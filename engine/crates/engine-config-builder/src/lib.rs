@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use std::time::Duration;
 
-use engine_v2_config::latest::{CacheConfig, CacheConfigTarget};
+use engine_v2_config::latest::{CacheConfig, CacheConfigTarget, CacheConfigs};
 use engine_v2_config::{
     latest::{self as config, Header, HeaderId},
     VersionedConfig,
@@ -40,14 +40,11 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
         strings: context.strings.into_vec(),
         headers: context.headers,
         subgraph_configs,
-        cache_config,
+        cache: cache_config,
     })
 }
 
-fn build_cache_config(
-    config: &FederatedGraphConfig,
-    graph: &FederatedGraphV1,
-) -> BTreeMap<CacheConfigTarget, CacheConfig> {
+fn build_cache_config(config: &FederatedGraphConfig, graph: &FederatedGraphV1) -> CacheConfigs {
     let mut cache_config = BTreeMap::new();
 
     for (target, cache_control) in config.global_cache_rules.iter() {
@@ -77,7 +74,7 @@ fn build_cache_config(
         }
     }
 
-    cache_config
+    CacheConfigs { rules: cache_config }
 }
 
 #[derive(Default)]

@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fmt::Formatter;
 use std::str::FromStr;
 use std::time::Duration;
@@ -8,12 +9,23 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use federated_graph::{FieldId, ObjectId};
 
 #[derive(Default, Debug, Hash, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+pub struct CacheConfigs {
+    pub rules: BTreeMap<CacheConfigTarget, CacheConfig>,
+}
+
+impl CacheConfigs {
+    pub fn rule(&self, key: CacheConfigTarget) -> Option<&CacheConfig> {
+        self.rules.get(&key)
+    }
+}
+
+#[derive(Default, Debug, Hash, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct CacheConfig {
     pub max_age: Duration,
     pub stale_while_revalidate: Duration,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Ord, PartialOrd)]
 pub enum CacheConfigTarget {
     Object(ObjectId),
     Field(FieldId),

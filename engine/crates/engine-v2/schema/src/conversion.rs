@@ -53,8 +53,8 @@ impl From<Config> for Schema {
             let object_id = ObjectId::from(schema.objects.len());
             let keys = object.resolvable_keys;
             let cache_config = config
-                .cache_config
-                .get(&CacheConfigTarget::Object(federated_graph::ObjectId(object_id.into())))
+                .cache
+                .rule(CacheConfigTarget::Object(federated_graph::ObjectId(object_id.into())))
                 .map(|config| schema.insert_cache_config(config));
 
             schema.objects.push(Object {
@@ -195,8 +195,8 @@ impl From<Config> for Schema {
                 is_deprecated: false,
                 deprecation_reason: None,
                 cache_config: config
-                    .cache_config
-                    .get(&CacheConfigTarget::Field(federated_graph::FieldId(field_id.into())))
+                    .cache
+                    .rule(CacheConfigTarget::Field(federated_graph::FieldId(field_id.into())))
                     .map(|config| schema.insert_cache_config(config)),
             };
             schema.fields.push(field);

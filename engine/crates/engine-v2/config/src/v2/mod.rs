@@ -1,6 +1,8 @@
+mod cache_config;
+
 use std::collections::BTreeMap;
 
-pub use crate::cache_config::{CacheConfig, CacheConfigTarget};
+pub use cache_config::{CacheConfig, CacheConfigTarget, CacheConfigs};
 use federated_graph::{FederatedGraphV1, SubgraphId};
 
 /// Configuration for a federated graph
@@ -18,7 +20,7 @@ pub struct Config {
 
     /// Caching configuration
     #[serde(default)]
-    pub cache_config: BTreeMap<CacheConfigTarget, CacheConfig>,
+    pub cache: CacheConfigs,
 }
 
 /// Additional configuration for a particular subgraph
@@ -68,7 +70,7 @@ impl std::ops::Index<HeaderId> for Config {
 
 #[cfg(test)]
 mod tests {
-    use crate::v2::{CacheConfig, CacheConfigTarget, Config};
+    use crate::v2::{CacheConfig, CacheConfigTarget, CacheConfigs, Config};
     use federated_graph::{FederatedGraphV1, FieldId, ObjectId, RootOperationTypes};
     use std::collections::BTreeMap;
     use std::time::Duration;
@@ -108,20 +110,22 @@ mod tests {
             headers: vec![],
             default_headers: vec![],
             subgraph_configs: Default::default(),
-            cache_config,
+            cache: CacheConfigs { rules: cache_config },
         };
 
         insta::assert_json_snapshot!(serde_json::json!(config), @r###"
         {
-          "cache_config": {
-            "f0": {
-              "max_age": {
-                "nanos": 0,
-                "secs": 0
-              },
-              "stale_while_revalidate": {
-                "nanos": 0,
-                "secs": 0
+          "cache": {
+            "rules": {
+              "f0": {
+                "max_age": {
+                  "nanos": 0,
+                  "secs": 0
+                },
+                "stale_while_revalidate": {
+                  "nanos": 0,
+                  "secs": 0
+                }
               }
             }
           },

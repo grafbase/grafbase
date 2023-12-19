@@ -6,7 +6,7 @@ pub use flat::*;
 pub use ids::*;
 pub use parse::{parse_operation, UnboundOperation};
 pub use path::QueryPath;
-use schema::{CacheConfig, Definition, Merge, ObjectId, Schema, SchemaWalker};
+use schema::{CacheConfig, Merge, ObjectId, Schema, SchemaWalker};
 pub use selection_set::*;
 pub use variable::VariableDefinition;
 pub use walkers::*;
