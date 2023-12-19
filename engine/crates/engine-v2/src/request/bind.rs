@@ -7,13 +7,14 @@ pub use engine_parser::types::OperationType;
 use engine_parser::Positioned;
 use schema::{Definition, FieldWalker, Schema};
 
+use crate::response::GraphqlError;
+
 use super::{
     selection_set::BoundField, variable::VariableDefinition, BoundAnyFieldDefinition, BoundAnyFieldDefinitionId,
     BoundFieldArgument, BoundFieldDefinition, BoundFieldId, BoundFragmentDefinition, BoundFragmentDefinitionId,
     BoundFragmentSpread, BoundInlineFragment, BoundSelection, BoundSelectionSet, BoundSelectionSetId,
     BoundTypeNameFieldDefinition, Operation, Pos, ResponseKeys, SelectionSetType, TypeCondition, UnboundOperation,
 };
-use crate::response::GraphqlError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum BindError {
@@ -110,6 +111,7 @@ pub fn bind(schema: &Schema, unbound: UnboundOperation) -> BindResult<Operation>
             .subscription
             .ok_or(BindError::NoSubscriptionDefined)?,
     };
+
     let mut binder = Binder {
         schema,
         operation_name: ErrorOperationName(unbound.name.clone()),
@@ -148,6 +150,7 @@ pub fn bind(schema: &Schema, unbound: UnboundOperation) -> BindResult<Operation>
         field_definitions: binder.field_definitions,
         fields: binder.fields,
         variable_definitions: binder.variable_definitions,
+        cache_config: None,
     })
 }
 

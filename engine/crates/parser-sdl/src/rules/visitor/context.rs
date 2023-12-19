@@ -152,7 +152,7 @@ impl<'a> VisitorContext<'a> {
     }
 
     /// Finish the Registry
-    pub(crate) fn finish(self) -> ParseResult<'static> {
+    pub(crate) fn finish(mut self) -> ParseResult<'static> {
         let mut registry = self.registry.take();
         if self.federation.is_some() {
             registry.enable_federation = true;
@@ -218,6 +218,9 @@ impl<'a> VisitorContext<'a> {
         if let Some(engine::AuthProvider::Authorizer(AuthorizerProvider { ref name })) = registry.auth.provider {
             required_udfs.insert((UdfKind::Authorizer, name.clone()));
         }
+
+        // lets make sure we add the global rules to the federated graph config as well
+        self.federated_graph_config.global_cache_rules = self.global_cache_rules.clone();
 
         ParseResult {
             global_cache_rules: self.global_cache_rules,

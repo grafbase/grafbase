@@ -11,5 +11,10 @@ keywords = ["graphql", "engine", "grafbase"]
 
 [dependencies]
 serde.workspace = true
+thiserror.workspace = true
 
 federated-graph = { package = "graphql-federated-graph", path = "../../federated-graph" }
+
+[dev-dependencies]
+serde_json = "1.0"
+insta = { version = "1.34", features = ["json"]}

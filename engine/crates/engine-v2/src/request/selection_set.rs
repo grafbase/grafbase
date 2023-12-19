@@ -3,8 +3,9 @@ use std::borrow::Cow;
 use engine_parser::Pos;
 use schema::{Definition, FieldId, InputValueId, InterfaceId, ObjectId, Schema, UnionId};
 
-use super::{BoundAnyFieldDefinitionId, BoundFieldId, BoundFragmentDefinitionId, BoundSelectionSetId};
 use crate::response::{BoundResponseKey, ResponseKey};
+
+use super::{BoundAnyFieldDefinitionId, BoundFieldId, BoundFragmentDefinitionId, BoundSelectionSetId};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundSelectionSet {

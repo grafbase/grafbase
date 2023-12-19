@@ -2,7 +2,8 @@
 /// They can only be created by From<usize>
 use crate::{
     sources::federation::{DataSource as FederationDataSource, Subgraph},
-    Definition, Enum, Field, Header, InputObject, InputValue, Interface, Object, Resolver, Scalar, Schema, Type, Union,
+    CacheConfig, Definition, Enum, Field, Header, InputObject, InputValue, Interface, Object, Resolver, Scalar, Schema,
+    Type, Union,
 };
 
 /// Reserving the 4 upper bits for some fun with bit packing. It still leaves 268 million possible values.
@@ -68,4 +69,5 @@ id_newtypes! {
     Schema.input_values[InputValueId] => InputValue unless "Too many input values",
     Schema.headers[HeaderId] => Header unless "Too many headers",
     FederationDataSource.subgraphs[SubgraphId] => Subgraph unless "Too many subgraphs",
+    Schema.cache_configs[CacheConfigId] => CacheConfig unless "Too many cache configs",
 }

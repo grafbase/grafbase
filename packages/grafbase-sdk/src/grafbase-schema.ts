@@ -25,6 +25,7 @@ import { MongoDBAPI, PartialMongoDBAPI } from './connector/mongodb'
 import { DynamoDBModel, ModelFields } from './connector/dynamodb/model'
 import { PostgresAPI, PartialPostgresAPI } from './connector/postgres'
 import { FederatedGraphHeaders } from './federated/headers'
+import {CacheParams, GlobalCache} from "./cache";
 
 export type PartialDatasource =
   | PartialOpenAPI
@@ -510,20 +511,26 @@ export class Graph {
 
 export interface FederatedGraphInput {
   headers?: (headers: FederatedGraphHeaders) => void
+  cache?: CacheParams
 }
 
 export class FederatedGraph {
-  private headers: FederatedGraphHeaders
+  private readonly headers: FederatedGraphHeaders
+  private readonly cache?: GlobalCache
 
   public constructor(input?: FederatedGraphInput) {
     this.headers = new FederatedGraphHeaders()
     if (input?.headers) {
       input.headers(this.headers)
     }
+
+    if (input?.cache) {
+       this.cache = new GlobalCache({rules: input.cache.rules})
+    }
   }
 
   public toString(): string {
-    return `\nextend schema\n  @graph(type: federated)${this.headers}\n`
+    return `\nextend schema\n  @graph(type: federated)${this.headers}\n${this.cache || ''}`
   }
 }
 

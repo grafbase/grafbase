@@ -434,6 +434,7 @@ impl Introspection {
             description: None,
             interfaces: vec![],
             composed_directives: vec![],
+            cache_config: None,
         });
         ObjectId::from(self.objects.len() - 1)
     }
@@ -450,6 +451,7 @@ impl Introspection {
             description: None,
             is_deprecated: false,
             deprecation_reason: None,
+            cache_config: None,
         });
         let field_id = FieldId::from(self.fields.len() - 1);
         self.object_fields.push(ObjectField { object_id, field_id });

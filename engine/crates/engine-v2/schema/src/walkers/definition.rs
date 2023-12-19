@@ -88,6 +88,13 @@ impl<'a> DefinitionWalker<'a> {
         }
     }
 
+    pub fn as_object(&self) -> Option<ObjectWalker<'a>> {
+        match self.wrapped {
+            Definition::Object(s) => Some(self.walk(s)),
+            _ => None,
+        }
+    }
+
     pub fn data_type(&self) -> Option<DataType> {
         match self.wrapped {
             Definition::Scalar(id) => Some(self.schema[id].data_type),

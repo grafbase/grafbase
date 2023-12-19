@@ -54,17 +54,28 @@ impl<'a> IntoFuture for ExecutionRequest<'a> {
         let request = self.graphql.into_engine_request();
 
         Box::pin(async move {
-            GraphqlResponse(serde_json::to_value(self.engine.execute(request, (&self.headers).into()).await).unwrap())
+            let response: engine_v2::Response = self.engine.execute(request, (&self.headers).into()).await;
+            let metadata = response.metadata().clone();
+
+            GraphqlResponse {
+                gql_response: serde_json::to_value(response).unwrap(),
+                metadata,
+            }
         })
     }
 }
 
 #[derive(serde::Serialize, Debug)]
-pub struct GraphqlResponse(serde_json::Value);
+pub struct GraphqlResponse {
+    #[serde(flatten)]
+    gql_response: serde_json::Value,
+    #[serde(skip)]
+    pub metadata: engine_v2::ExecutionMetadata,
+}
 
 impl std::fmt::Display for GraphqlResponse {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", serde_json::to_string_pretty(&self.0).unwrap())
+        write!(f, "{}", serde_json::to_string_pretty(&self.gql_response).unwrap())
     }
 }
 
@@ -72,19 +83,19 @@ impl Deref for GraphqlResponse {
     type Target = serde_json::Value;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.gql_response
     }
 }
 
 impl GraphqlResponse {
     pub fn into_value(self) -> serde_json::Value {
-        self.0
+        self.gql_response
     }
 
     pub fn into_data(self) -> serde_json::Value {
         assert!(self.errors().is_empty(), "{self:#?}");
 
-        match self.0 {
+        match self.gql_response {
             serde_json::Value::Object(mut value) => value.remove("data"),
             _ => None,
         }
@@ -92,7 +103,7 @@ impl GraphqlResponse {
     }
 
     pub fn errors(&self) -> Cow<'_, Vec<serde_json::Value>> {
-        self.0["errors"]
+        self.gql_response["errors"]
             .as_array()
             .map(Cow::Borrowed)
             .unwrap_or_else(|| Cow::Owned(Vec::new()))

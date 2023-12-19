@@ -1,5 +1,5 @@
 use super::{FieldWalker, SchemaWalker};
-use crate::{InterfaceWalker, ObjectField, ObjectId, RangeWalker};
+use crate::{CacheConfig, InterfaceWalker, ObjectField, ObjectId, RangeWalker};
 
 pub type ObjectWalker<'a> = SchemaWalker<'a, ObjectId>;
 
@@ -36,6 +36,10 @@ impl<'a> ObjectWalker<'a> {
     pub fn interfaces(&self) -> impl Iterator<Item = InterfaceWalker<'a>> + 'a {
         let walker = *self;
         self.interfaces.clone().into_iter().map(move |id| walker.walk(id))
+    }
+
+    pub fn cache_config(&self) -> Option<CacheConfig> {
+        self.cache_config.map(|cache_config_id| self.schema[cache_config_id])
     }
 }
 

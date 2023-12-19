@@ -149,6 +149,9 @@ mod tests {
                     },
                 },
                 default_headers: [],
+                global_cache_rules: GlobalCacheRules(
+                    {},
+                ),
             },
         )
         "###);
