@@ -20,11 +20,6 @@ enum join__Graph {
     USERS @join__graph(name: "users", url: "http://example.com/users")
 }
 
-type Query {
-    product(id: ID!): Product @join__field(graph: PRODUCTS)
-    user(id: ID!): User @join__field(graph: USERS)
-}
-
 type Product
     @join__type(graph: PRODUCTS, key: "id")
 {
@@ -48,4 +43,9 @@ type User
     id: ID!
     name: String
     email: String @join__field(graph: USERS)
+}
+
+type Query {
+    product(id: ID!): Product @join__field(graph: PRODUCTS)
+    user(id: ID!): User @join__field(graph: USERS)
 }

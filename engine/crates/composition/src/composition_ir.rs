@@ -12,7 +12,7 @@ use std::collections::{BTreeSet, HashMap};
 /// contents of the federated graph is the subgraphs.
 #[derive(Default)]
 pub(crate) struct CompositionIr {
-    pub(crate) definitions_by_name: HashMap<subgraphs::StringId, federated::Definition>,
+    pub(crate) definitions_by_name: HashMap<federated::StringId, federated::Definition>,
 
     pub(crate) objects: Vec<federated::Object>,
     pub(crate) interfaces: Vec<federated::Interface>,
@@ -32,8 +32,12 @@ pub(crate) struct CompositionIr {
 
     pub(crate) strings: StringsIr,
     pub(crate) fields: Vec<FieldIr>,
-    pub(crate) union_members: BTreeSet<(subgraphs::StringId, subgraphs::StringId)>,
+    pub(crate) union_members: BTreeSet<(federated::StringId, federated::StringId)>,
     pub(crate) resolvable_keys: Vec<KeyIr>,
+
+    /// Fields on implementers of an interface entity's implementers that are contributed by other
+    /// subgraphs.
+    pub(crate) object_fields_from_entity_interfaces: BTreeSet<(federated::StringId, federated::FieldId)>,
 }
 
 impl CompositionIr {
@@ -50,10 +54,6 @@ impl CompositionIr {
         });
     }
 
-    pub(crate) fn insert_union_member(&mut self, union_name: subgraphs::StringId, member_name: subgraphs::StringId) {
-        self.union_members.insert((union_name, member_name));
-    }
-
     pub(crate) fn insert_string(&mut self, string: subgraphs::StringWalker<'_>) -> federated::StringId {
         self.strings.insert(string)
     }
@@ -64,7 +64,7 @@ impl CompositionIr {
 }
 
 pub(crate) struct FieldIr {
-    pub(crate) parent_name: subgraphs::StringId,
+    pub(crate) parent_definition: federated::Definition,
     pub(crate) field_name: subgraphs::StringId,
     pub(crate) field_type: subgraphs::FieldTypeId,
     pub(crate) arguments: Vec<ArgumentIr>,

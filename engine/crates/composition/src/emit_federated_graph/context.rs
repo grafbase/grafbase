@@ -1,21 +1,21 @@
 use super::field_types_map::FieldTypesMap;
-use crate::{composition_ir::CompositionIr, subgraphs, VecExt};
+use crate::{composition_ir as ir, subgraphs, VecExt};
 use graphql_federated_graph as federated;
 use std::collections::HashMap;
 
 pub(super) struct Context<'a> {
     pub(super) out: &'a mut federated::FederatedGraphV1,
     pub(super) subgraphs: &'a subgraphs::Subgraphs,
-    pub(super) definitions: HashMap<subgraphs::StringId, federated::Definition>,
     pub(super) field_types_map: FieldTypesMap,
     pub(super) selection_map: HashMap<(federated::Definition, federated::StringId), federated::FieldId>,
+    pub(super) definitions: HashMap<federated::StringId, federated::Definition>,
 
-    strings_map: HashMap<subgraphs::StringId, federated::StringId>,
+    strings_ir: ir::StringsIr,
 }
 
 impl<'a> Context<'a> {
     pub(crate) fn new(
-        ir: &mut CompositionIr,
+        ir: &mut ir::CompositionIr,
         subgraphs: &'a subgraphs::Subgraphs,
         out: &'a mut federated::FederatedGraphV1,
     ) -> Self {
@@ -23,7 +23,7 @@ impl<'a> Context<'a> {
             out,
             subgraphs,
             definitions: std::mem::take(&mut ir.definitions_by_name),
-            strings_map: std::mem::take(&mut ir.strings.map),
+            strings_ir: std::mem::take(&mut ir.strings),
             selection_map: HashMap::with_capacity(ir.fields.len()),
             field_types_map: FieldTypesMap::default(),
         }
@@ -32,7 +32,8 @@ impl<'a> Context<'a> {
     /// Subgraphs string -> federated graph string.
     pub(crate) fn insert_string(&mut self, string: subgraphs::StringWalker<'_>) -> federated::StringId {
         *self
-            .strings_map
+            .strings_ir
+            .map
             .entry(string.id)
             .or_insert_with(|| federated::StringId(self.out.strings.push_return_idx(string.as_str().to_owned())))
     }

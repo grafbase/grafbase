@@ -1,0 +1,35 @@
+schema {
+  query: AlmondProductQuery
+}
+
+type AlmondProductQuery {
+  almondProducts(query: Query): [AlmondProduct]
+  almondProductById(id: ID!): AlmondProduct
+}
+
+# Error: the type can't be called Query and not be the root query type.
+# It's a federation rule.
+type Query {
+  filterByNutritionalValue: String!
+}
+
+type AlmondProduct {
+  id: ID!
+  name: String
+  type: AlmondProductType
+  nutritionInfo: NutritionInfo
+}
+
+enum AlmondProductType {
+  RAW
+  ROASTED
+  MILK
+  BUTTER
+}
+
+type NutritionInfo {
+  calories: Int
+  fatContent: Float
+  proteinContent: Float
+  carbohydrates: Float
+}

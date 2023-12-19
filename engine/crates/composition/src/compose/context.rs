@@ -31,10 +31,6 @@ impl<'a> Context<'a> {
         context
     }
 
-    pub(crate) fn has_query_type(&self) -> bool {
-        self.ir.query_type.is_some()
-    }
-
     pub(crate) fn into_ir(self) -> CompositionIr {
         self.ir
     }
@@ -57,7 +53,7 @@ impl<'a> Context<'a> {
         let id = federated::EnumId(self.ir.enums.push_return_idx(r#enum));
         self.ir
             .definitions_by_name
-            .insert(enum_name.id, federated::Definition::Enum(id));
+            .insert(name, federated::Definition::Enum(id));
         id
     }
 
@@ -85,11 +81,10 @@ impl<'a> Context<'a> {
 
     pub(crate) fn insert_input_object(
         &mut self,
-        input_object_name: StringWalker<'_>,
+        name: federated::StringId,
         description: Option<StringWalker<'_>>,
         composed_directives: Vec<federated::Directive>,
     ) -> federated::InputObjectId {
-        let name = self.ir.insert_string(input_object_name);
         let description = description.map(|description| self.ir.insert_string(description));
         let object = federated::InputObject {
             name,
@@ -100,17 +95,16 @@ impl<'a> Context<'a> {
         let id = federated::InputObjectId(self.ir.input_objects.push_return_idx(object));
         self.ir
             .definitions_by_name
-            .insert(input_object_name.id, federated::Definition::InputObject(id));
+            .insert(name, federated::Definition::InputObject(id));
         id
     }
 
     pub(crate) fn insert_interface(
         &mut self,
-        interface_name: StringWalker<'_>,
+        name: federated::StringId,
         description: Option<StringWalker<'_>>,
         composed_directives: Vec<federated::Directive>,
     ) -> federated::InterfaceId {
-        let name = self.ir.insert_string(interface_name);
         let description = description.map(|description| self.ir.insert_string(description));
 
         let interface = federated::Interface {
@@ -123,7 +117,7 @@ impl<'a> Context<'a> {
         let id = federated::InterfaceId(self.ir.interfaces.push_return_idx(interface));
         self.ir
             .definitions_by_name
-            .insert(interface_name.id, federated::Definition::Interface(id));
+            .insert(name, federated::Definition::Interface(id));
         id
     }
 
@@ -139,11 +133,10 @@ impl<'a> Context<'a> {
 
     pub(crate) fn insert_object(
         &mut self,
-        object_name: StringWalker<'_>,
+        name: federated::StringId,
         description: Option<StringWalker<'_>>,
         composed_directives: Vec<federated::Directive>,
     ) -> federated::ObjectId {
-        let name = self.ir.insert_string(object_name);
         let description = description.map(|description| self.ir.insert_string(description));
 
         let object = federated::Object {
@@ -156,15 +149,7 @@ impl<'a> Context<'a> {
         let id = federated::ObjectId(self.ir.objects.push_return_idx(object));
         self.ir
             .definitions_by_name
-            .insert(object_name.id, federated::Definition::Object(id));
-
-        // FIXME: Those roots probably shouldn't be hardcoded.
-        match object_name.as_str() {
-            "Query" => self.ir.query_type = Some(id),
-            "Mutation" => self.ir.mutation_type = Some(id),
-            "Subscription" => self.ir.subscription_type = Some(id),
-            _ => (),
-        }
+            .insert(name, federated::Definition::Object(id));
 
         id
     }
@@ -187,16 +172,15 @@ impl<'a> Context<'a> {
         let id = federated::ScalarId(self.ir.scalars.push_return_idx(scalar));
         self.ir
             .definitions_by_name
-            .insert(scalar_name.id, federated::Definition::Scalar(id));
+            .insert(name, federated::Definition::Scalar(id));
     }
 
     pub(crate) fn insert_union(
         &mut self,
-        union_name: StringWalker<'_>,
+        name: federated::StringId,
         is_inaccessible: bool,
         description: Option<StringWalker<'_>>,
     ) -> federated::UnionId {
-        let name = self.ir.insert_string(union_name);
         let description = description.map(|description| self.ir.insert_string(description));
 
         let composed_directives = if is_inaccessible {
@@ -216,12 +200,12 @@ impl<'a> Context<'a> {
         let id = federated::UnionId(self.ir.unions.push_return_idx(union));
         self.ir
             .definitions_by_name
-            .insert(union_name.id, federated::Definition::Union(id));
+            .insert(name, federated::Definition::Union(id));
         id
     }
 
-    pub(crate) fn insert_union_member(&mut self, union_name: subgraphs::StringId, member_name: subgraphs::StringId) {
-        self.ir.insert_union_member(union_name, member_name);
+    pub(crate) fn insert_union_member(&mut self, union_name: federated::StringId, member_name: federated::StringId) {
+        self.ir.union_members.insert((union_name, member_name));
     }
 
     pub(crate) fn insert_resolvable_key(&mut self, object_id: federated::ObjectId, key_id: subgraphs::KeyId) {
@@ -240,6 +224,28 @@ impl<'a> Context<'a> {
             Some(id) => self.ir.insert_string(self.subgraphs.walk(id)),
             None => self.ir.insert_static_str(string),
         }
+    }
+
+    pub(crate) fn set_query(&mut self, id: federated::ObjectId) {
+        self.ir.query_type = Some(id);
+    }
+
+    pub(crate) fn set_mutation(&mut self, id: federated::ObjectId) {
+        self.ir.mutation_type = Some(id);
+    }
+
+    pub(crate) fn set_subscription(&mut self, id: federated::ObjectId) {
+        self.ir.subscription_type = Some(id);
+    }
+
+    pub(crate) fn insert_object_field_from_entity_interface(
+        &mut self,
+        object_name: federated::StringId,
+        field_id: federated::FieldId,
+    ) {
+        self.ir
+            .object_fields_from_entity_interfaces
+            .insert((object_name, field_id));
     }
 }
 

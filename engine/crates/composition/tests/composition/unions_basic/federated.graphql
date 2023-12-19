@@ -40,10 +40,6 @@ type Pineapple {
     isAnanas: Boolean! @join__field(graph: PIZZA)
 }
 
-type Query {
-    pizza(id: ID!): Pizza @join__field(graph: PIZZA)
-}
-
 type Sushi {
     id: ID! @join__field(graph: SUSHI)
     topping: Topping @join__field(graph: SUSHI)
@@ -56,6 +52,10 @@ type Salmon {
 
 type Omelet {
     isRectangular: Boolean @join__field(graph: SUSHI)
+}
+
+type Query {
+    pizza(id: ID!): Pizza @join__field(graph: PIZZA)
 }
 
 union Topping = Onion | Cheese | Pineapple | Salmon | Omelet

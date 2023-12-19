@@ -32,15 +32,6 @@ type Ungulate {
     type: UngulateType! @join__field(graph: FIVE_WITH_ENUM) @inaccessible
 }
 
-type Query {
-    getUngulate(id: ID!): Ungulate @join__field(graph: FIVE_WITH_ENUM)
-    getTVContent(id: ID!): TVContent @join__field(graph: FOUR_WITH_UNION) @inaccessible
-    getNew(name: String!): New @join__field(graph: ONE)
-    getBook(id: ID!): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
-    getPolynomial(id: ID!): Polynomial @join__field(graph: THREE_WITH_INTERFACE) @inaccessible
-    currentTime: Time! @join__field(graph: TWO) @inaccessible
-}
-
 type Movie {
     id: ID! @join__field(graph: FOUR_WITH_UNION)
     title: String! @join__field(graph: FOUR_WITH_UNION)
@@ -73,11 +64,6 @@ type Book {
     genre: String @join__field(graph: SIX_WITH_INPUT_OBJECT)
 }
 
-type Mutation {
-    addBook(input: BookInput! @inaccessible): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
-    updateBook(id: ID!, input: BookInput! @inaccessible): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
-}
-
 type Quadratic implements Polynomial {
     degree: Int @join__field(graph: THREE_WITH_INTERFACE)
     coefficients: [Float] @join__field(graph: THREE_WITH_INTERFACE)
@@ -88,6 +74,20 @@ type Cubic implements Polynomial {
     degree: Int @join__field(graph: THREE_WITH_INTERFACE)
     coefficients: [Float] @join__field(graph: THREE_WITH_INTERFACE)
     inflectionPoint: Float @join__field(graph: THREE_WITH_INTERFACE)
+}
+
+type Query {
+    getUngulate(id: ID!): Ungulate @join__field(graph: FIVE_WITH_ENUM)
+    getTVContent(id: ID!): TVContent @join__field(graph: FOUR_WITH_UNION) @inaccessible
+    getNew(name: String!): New @join__field(graph: ONE)
+    getBook(id: ID!): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
+    getPolynomial(id: ID!): Polynomial @join__field(graph: THREE_WITH_INTERFACE) @inaccessible
+    currentTime: Time! @join__field(graph: TWO) @inaccessible
+}
+
+type Mutation {
+    addBook(input: BookInput! @inaccessible): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
+    updateBook(id: ID!, input: BookInput! @inaccessible): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
 }
 
 interface Polynomial @inaccessible {

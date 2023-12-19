@@ -1,0 +1,30 @@
+type Query {
+  wasteCollectionPoints(city: String!): [CollectionPoint]
+  wasteStatistics(city: String!): WasteStats
+}
+
+type WasteManagementQuery {
+    ohno: Boolean
+}
+
+type CollectionPoint {
+  id: ID!
+  address: String
+  type: String
+  openingHours: String
+
+  # WasteManagementQuery is the root query type in the other subgraph, but not
+  # in this one.
+  enquiries: [WasteManagementQuery!]
+}
+
+type WasteStats {
+  city: String
+  totalWasteCollected: Float
+  wasteTypeBreakdown: [WasteTypeBreakdown]
+}
+
+type WasteTypeBreakdown {
+  type: String
+  amount: Float
+}

@@ -15,8 +15,9 @@ pub(super) struct FieldTypesMap {
 impl Context<'_> {
     /// Subgraphs field type -> federated graph field type.
     pub(super) fn insert_field_type(&mut self, field_type: subgraphs::FieldTypeWalker<'_>) -> federated::FieldTypeId {
+        let type_name = self.insert_string(field_type.type_name());
         *self.field_types_map.map.entry(field_type.id).or_insert_with(|| {
-            let Some(kind) = self.definitions.get(&field_type.type_name().id).copied() else {
+            let Some(kind) = self.definitions.get(&type_name).copied() else {
                 panic!(
                     "Invariant violation: definition {:?} from field type not registered.",
                     field_type.type_name().as_str()

@@ -3,7 +3,7 @@ use crate::subgraphs::*;
 /// See [crate::subgraphs::Keys::nested_key_fields].
 pub(super) fn ingest_nested_key_fields(subgraph_id: SubgraphId, subgraphs: &mut Subgraphs) {
     subgraphs.with_nested_key_fields(|subgraphs, nested_key_fields| {
-        for definition in subgraphs.walk(subgraph_id).definitions() {
+        for definition in subgraphs.walk_subgraph(subgraph_id).definitions() {
             for key in definition.entity_keys() {
                 for field in key.fields() {
                     let Some(field_type) = definition
@@ -37,7 +37,7 @@ fn ingest_nested_key_fields_rec(
         return;
     }
 
-    let Some(selection_field_type) = field.r#type().definition(parent_definition.subgraph().id) else {
+    let Some(selection_field_type) = field.r#type().definition(parent_definition.subgraph_id()) else {
         return;
     };
 

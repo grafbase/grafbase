@@ -9,7 +9,8 @@ pub(super) fn merge_input_object_definitions(
 
     let composed_directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
 
-    ctx.insert_input_object(first.name(), description, composed_directives);
+    let input_object_name = ctx.insert_string(first.name().id);
+    let input_object_id = ctx.insert_input_object(input_object_name, description, composed_directives);
 
     // We want to take the intersection of the field sets.
     let intersection: HashSet<StringId> = first
@@ -61,7 +62,7 @@ pub(super) fn merge_input_object_definitions(
         };
 
         ctx.insert_field(ir::FieldIr {
-            parent_name: first.name().id,
+            parent_definition: federated::Definition::InputObject(input_object_id),
             field_name,
             field_type,
             arguments: Vec::new(),

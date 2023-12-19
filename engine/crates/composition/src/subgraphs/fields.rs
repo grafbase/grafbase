@@ -14,9 +14,6 @@ pub(crate) struct Fields {
 
     /// Fields of objects, interfaces and input objects.
     definition_fields: BTreeMap<FieldId, FieldTuple>,
-
-    /// Groups of fields to compose. The fields are grouped by parent type name and field name.
-    field_groups: BTreeSet<(StringId, StringId, DefinitionId)>,
 }
 
 /// A field in an object, interface or input object type.
@@ -36,33 +33,6 @@ impl Subgraphs {
                 id: (*id, *tuple),
                 subgraphs: self,
             })
-    }
-
-    /// Iterate over groups of fields to compose. The fields are grouped by parent type name and
-    /// field name. The argument is a closure that receives each group as an argument. The order of
-    /// iteration is deterministic but unspecified.
-    pub(crate) fn iter_field_groups<'a>(
-        &'a self,
-        parent_name: StringId,
-        mut compose_fn: impl FnMut(&[FieldWalker<'a>]),
-    ) {
-        let mut buf = Vec::new();
-        for (_, group) in &self
-            .fields
-            .field_groups
-            .range((parent_name, StringId::MIN, DefinitionId::MIN)..(parent_name, StringId::MAX, DefinitionId::MAX))
-            .group_by(|(_, field_name, _)| field_name)
-        {
-            buf.clear();
-            buf.extend(group.into_iter().map(|(_, field_name, definition_id)| {
-                let field_id = FieldId(*definition_id, *field_name);
-                FieldWalker {
-                    id: (field_id, self.fields.definition_fields[&field_id]),
-                    subgraphs: self,
-                }
-            }));
-            compose_fn(&buf);
-        }
     }
 
     pub(crate) fn push_field(
@@ -85,11 +55,6 @@ impl Subgraphs {
                 description,
             },
         );
-
-        let parent_definition_name = self.walk(parent_definition_id).name().id;
-        self.fields
-            .field_groups
-            .insert((parent_definition_name, name, parent_definition_id));
 
         FieldId(parent_definition_id, name)
     }

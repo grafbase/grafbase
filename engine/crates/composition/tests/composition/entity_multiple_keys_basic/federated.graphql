@@ -20,11 +20,6 @@ enum join__Graph {
     SINGLE_KEY @join__graph(name: "single_key", url: "http://example.com/single_key")
 }
 
-type Query {
-    getUserComments(name: String!, email: String!): User @join__field(graph: MULTI_KEY)
-    getUser(id: ID!): User @join__field(graph: SINGLE_KEY)
-}
-
 type User
     @join__type(graph: MULTI_KEY, key: "id")
     @join__type(graph: MULTI_KEY, key: "name email")
@@ -47,4 +42,9 @@ type Post {
     title: String! @join__field(graph: SINGLE_KEY)
     body: String! @join__field(graph: SINGLE_KEY)
     published: Boolean! @join__field(graph: SINGLE_KEY)
+}
+
+type Query {
+    getUserComments(name: String!, email: String!): User @join__field(graph: MULTI_KEY)
+    getUser(id: ID!): User @join__field(graph: SINGLE_KEY)
 }

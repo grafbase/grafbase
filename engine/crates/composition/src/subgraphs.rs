@@ -5,8 +5,9 @@ mod field_types;
 mod fields;
 mod keys;
 mod strings;
+mod top;
 mod unions;
-mod walkers;
+mod walker;
 
 pub(crate) use self::{
     definitions::{DefinitionId, DefinitionKind, DefinitionWalker},
@@ -15,11 +16,11 @@ pub(crate) use self::{
     fields::*,
     keys::*,
     strings::{StringId, StringWalker},
-    walkers::*,
+    top::*,
+    walker::Walker,
 };
 
 use crate::VecExt;
-use itertools::Itertools;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 /// A set of subgraphs to be composed.
@@ -81,29 +82,32 @@ impl Subgraphs {
     /// argument is a closure that receives each group as argument. The order of iteration is
     /// deterministic but unspecified.
     pub(crate) fn iter_definition_groups<'a>(&'a self, mut compose_fn: impl FnMut(&[DefinitionWalker<'a>])) {
+        let mut key = None;
         let mut buf = Vec::new();
-        for (_, group) in &self.definition_names.iter().group_by(|((name, _), _)| name) {
-            buf.clear();
-            buf.extend(
-                group
-                    .into_iter()
-                    .map(move |(_, definition_id)| self.walk(*definition_id)),
-            );
-            compose_fn(&buf);
+
+        for ((name, subgraph), definition) in &self.definition_names {
+            if Some(name) != key {
+                // New key. Compose previous key and start new group.
+                compose_fn(&buf);
+                buf.clear();
+                key = Some(name);
+            }
+
+            // Fill buf, except if we are dealing with a root object type.
+
+            if self.is_root_type(*subgraph, *definition) {
+                continue; // handled separately
+            }
+
+            buf.push(self.walk(*definition));
         }
+
+        compose_fn(&buf)
     }
 
     pub(crate) fn push_ingestion_diagnostic(&mut self, subgraph: SubgraphId, message: String) {
         self.ingestion_diagnostics
-            .push_fatal(format!("[{}]: {message}", self.walk(subgraph).name().as_str()));
-    }
-
-    pub(crate) fn push_subgraph(&mut self, name: &str, url: &str) -> SubgraphId {
-        let subgraph = Subgraph {
-            name: self.strings.intern(name),
-            url: self.strings.intern(url),
-        };
-        SubgraphId(self.subgraphs.push_return_idx(subgraph))
+            .push_fatal(format!("[{}]: {message}", self.walk_subgraph(subgraph).name().as_str()));
     }
 
     pub(crate) fn walk<Id>(&self, id: Id) -> Walker<'_, Id> {
@@ -118,30 +122,7 @@ impl Subgraphs {
             .map(|string| self.walk(string))
     }
 
-    pub(crate) fn iter_subgraphs(&self) -> impl ExactSizeIterator<Item = SubgraphWalker<'_>> {
-        (0..self.subgraphs.len()).map(|idx| self.walk(SubgraphId(idx)))
-    }
-
     pub(crate) fn emit_ingestion_diagnostics(&self, diagnostics: &mut crate::Diagnostics) {
         diagnostics.clone_all_from(&self.ingestion_diagnostics);
-    }
-}
-
-pub(crate) struct Subgraph {
-    /// The name of the subgraph. It is not contained in the GraphQL schema of the subgraph, it
-    /// only makes sense within a project.
-    name: StringId,
-    url: StringId,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct SubgraphId(usize);
-
-impl SubgraphId {
-    pub(crate) const MIN: SubgraphId = SubgraphId(usize::MIN);
-    pub(crate) const MAX: SubgraphId = SubgraphId(usize::MAX);
-
-    pub(crate) fn idx(self) -> usize {
-        self.0
     }
 }

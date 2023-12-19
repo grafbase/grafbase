@@ -20,13 +20,6 @@ enum join__Graph {
     PATIENT_RECORD @join__graph(name: "patient_record", url: "http://example.com/patient_record")
 }
 
-type Query {
-    patient(id: ID!): Patient @join__field(graph: PATIENT_INFO)
-    patients: [Patient] @join__field(graph: PATIENT_INFO)
-    patientRecord(recordId: ID!, patientId: ID!): PatientRecord @join__field(graph: PATIENT_RECORD)
-    patientRecords: [PatientRecord] @join__field(graph: PATIENT_RECORD)
-}
-
 type Patient
     @join__type(graph: PATIENT_INFO, key: "id")
     @join__type(graph: PATIENT_RECORD, key: "id")
@@ -47,4 +40,11 @@ type PatientRecord
     extendPatientRecord: PatientRecord @join__field(graph: PATIENT_INFO, requires: "patient { id } recordId")
     diagnosis: String @join__field(graph: PATIENT_RECORD)
     treatmentPlan: String @join__field(graph: PATIENT_RECORD)
+}
+
+type Query {
+    patient(id: ID!): Patient @join__field(graph: PATIENT_INFO)
+    patients: [Patient] @join__field(graph: PATIENT_INFO)
+    patientRecord(recordId: ID!, patientId: ID!): PatientRecord @join__field(graph: PATIENT_RECORD)
+    patientRecords: [PatientRecord] @join__field(graph: PATIENT_RECORD)
 }

@@ -20,11 +20,6 @@ enum join__Graph {
     SECOND @join__graph(name: "second", url: "http://example.com/second")
 }
 
-type Query {
-    as: [A] @join__field(graph: FIRST)
-    bs: [B] @join__field(graph: SECOND)
-}
-
 type A
     @join__type(graph: FIRST, key: "b { id } c")
 {
@@ -38,4 +33,9 @@ type B
     id: ID!
     foo: String @join__field(graph: FIRST)
     bar: String @join__field(graph: SECOND)
+}
+
+type Query {
+    as: [A] @join__field(graph: FIRST)
+    bs: [B] @join__field(graph: SECOND)
 }

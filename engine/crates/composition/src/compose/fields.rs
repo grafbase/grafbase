@@ -1,5 +1,35 @@
 use super::*;
 
+/// Group fields of the definitions that share the same name. For each name group, `compose_fn` is
+/// called once with the relevant fields.
+pub(super) fn for_each_field_group<'a>(
+    definitions: &[DefinitionWalker<'a>],
+    mut compose_fn: impl FnMut(&[FieldWalker<'a>]),
+) {
+    let mut all_fields = definitions
+        .iter()
+        .flat_map(|def| def.fields().map(|field| (field.name().id, field)))
+        .collect::<Vec<_>>();
+
+    all_fields.sort_by_key(|(name, _)| *name);
+
+    let mut start = 0;
+    let mut fields_buf = Vec::new();
+
+    while start < all_fields.len() {
+        fields_buf.clear();
+        let field_name = all_fields[start].0;
+        let end = all_fields[start..].partition_point(|(name, _)| *name == field_name) + start;
+        let fields = &all_fields[start..end];
+
+        fields_buf.extend(fields.iter().map(|(_, field)| field));
+
+        compose_fn(&fields_buf);
+
+        start = end;
+    }
+}
+
 pub(super) fn compose_input_field_types<'a>(
     fields: impl Iterator<Item = FieldWalker<'a>>,
     ctx: &mut Context<'_>,

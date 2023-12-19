@@ -20,10 +20,6 @@ enum join__Graph {
     SPINNERS_B @join__graph(name: "spinners_b", url: "http://example.com/spinners_b")
 }
 
-type Query {
-    fidgetSpinners(filter: SpinnerFilter!): [FidgetSpinner]
-}
-
 type FidgetSpinner implements Spinner {
     id: ID!
     model: String
@@ -34,6 +30,10 @@ type FidgetSpinner implements Spinner {
 type Manufacturer {
     name: String!
     location: String
+}
+
+type Query {
+    fidgetSpinners(filter: SpinnerFilter!): [FidgetSpinner]
 }
 
 interface Spinner {

@@ -20,11 +20,6 @@ enum join__Graph {
     PHONEBOOK @join__graph(name: "phonebook", url: "http://example.com/phonebook")
 }
 
-type Query {
-    getPersonInfo(input: InputPerson!): Person @join__field(graph: EMAILBOOK)
-    searchPerson(input: InputPerson!): [Person] @join__field(graph: PHONEBOOK)
-}
-
 type Person
     @join__type(graph: EMAILBOOK, key: "id")
     @join__type(graph: PHONEBOOK, key: "id")
@@ -35,6 +30,11 @@ type Person
     age: Int!
     email: String! @join__field(graph: EMAILBOOK)
     phoneNumber: String @join__field(graph: PHONEBOOK)
+}
+
+type Query {
+    getPersonInfo(input: InputPerson!): Person @join__field(graph: EMAILBOOK)
+    searchPerson(input: InputPerson!): [Person] @join__field(graph: PHONEBOOK)
 }
 
 input InputPerson {

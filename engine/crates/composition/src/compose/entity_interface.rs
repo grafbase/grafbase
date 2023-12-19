@@ -15,7 +15,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
     let Some(interface_def) = interfaces.next() else {
         ctx.diagnostics.push_fatal(format!(
             "The entity interface `{}` is not defined as an interface in any subgraph.",
-            interface_name.as_str()
+            first.name().as_str()
         ));
         return;
     };
@@ -62,13 +62,14 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
     }
 
     let description = interface_def.description();
+    let interface_name = ctx.insert_string(interface_name.id);
     let interface_id = ctx.insert_interface(interface_name, description, composed_directives);
 
     let mut fields = BTreeMap::new();
 
     for field in interface_def.fields() {
         fields.entry(field.name().id).or_insert_with(|| ir::FieldIr {
-            parent_name: interface_def.name().id,
+            parent_definition: federated::Definition::Interface(interface_id),
             field_name: field.name().id,
             field_type: field.r#type().id,
             arguments: field
@@ -99,7 +100,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
     let Some(expected_key) = interface_def.entity_keys().next() else {
         ctx.diagnostics.push_fatal(format!(
             "The entity interface `{}` is missing a key in the `{}` subgraph.",
-            interface_name.as_str(),
+            first.name().as_str(),
             interface_def.subgraph().name().as_str(),
         ));
         return;
@@ -121,7 +122,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         if definition.entity_keys().next().is_none() {
             ctx.diagnostics.push_fatal(format!(
                 "The object type `{}` is annotated with @interfaceObject but missing a key in the `{}` subgraph.",
-                interface_name.as_str(),
+                first.name().as_str(),
                 definition.subgraph().name().as_str(),
             ));
         }
@@ -133,7 +134,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         for field in definition.fields() {
             let description = field.description().map(|description| ctx.insert_string(description.id));
             fields.entry(field.name().id).or_insert_with(|| ir::FieldIr {
-                parent_name: definition.name().id,
+                parent_definition: federated::Definition::Interface(interface_id),
                 field_name: field.name().id,
                 field_type: field.r#type().id,
                 arguments: field
@@ -151,7 +152,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                         },
                     })
                     .collect(),
-                resolvable_in: Some(graphql_federated_graph::SubgraphId(definition.subgraph().id.idx())),
+                resolvable_in: Some(graphql_federated_graph::SubgraphId(definition.subgraph_id().idx())),
                 provides: Vec::new(),
                 requires: Vec::new(),
                 composed_directives: Vec::new(),
@@ -161,16 +162,18 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         }
     }
 
+    let field_ids: Vec<_> = fields.into_values().map(|field| ctx.insert_field(field)).collect();
+
     // Contribute the interface fields from the interface object definitions to the implementer of
     // that interface.
-    for object in interface_def.subgraph().interface_implementers(interface_name.id) {
+    for object in interface_def.subgraph().interface_implementers(first.name().id) {
         match object.entity_keys().next() {
             Some(key) if key.fields() == expected_key.fields() => (),
             Some(_) => ctx.diagnostics.push_fatal(format!(
                 "[{}] The object type `{}` is annotated with @interfaceObject but has a different key than the entity interface `{}`.",
                 object.subgraph().name().as_str(),
                 object.name().as_str(),
-                interface_name.as_str(),
+                first.name().as_str(),
             )),
             None => ctx.diagnostics.push_fatal(format!(
                 "[{}] The object type `{}` is annotated with @interfaceObject but missing a key.",
@@ -179,35 +182,9 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
             )),
         }
 
-        for ir::FieldIr {
-            parent_name: _,
-            field_name,
-            field_type,
-            arguments,
-            resolvable_in,
-            provides,
-            requires,
-            composed_directives,
-            overrides,
-            description,
-        } in fields.values()
-        {
-            ctx.insert_field(ir::FieldIr {
-                parent_name: object.name().id,
-                field_name: *field_name,
-                field_type: *field_type,
-                arguments: arguments.clone(),
-                resolvable_in: *resolvable_in,
-                provides: provides.clone(),
-                requires: requires.clone(),
-                composed_directives: composed_directives.clone(),
-                overrides: overrides.clone(),
-                description: *description,
-            });
+        let object_name = ctx.insert_string(object.name().id);
+        for field_id in &field_ids {
+            ctx.insert_object_field_from_entity_interface(object_name, *field_id);
         }
-    }
-
-    for field in fields.into_values() {
-        ctx.insert_field(field);
     }
 }
