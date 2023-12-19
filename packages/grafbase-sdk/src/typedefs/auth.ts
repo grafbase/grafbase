@@ -1,6 +1,5 @@
 import { AuthRuleF, AuthRules } from '../auth'
 import { ReferenceDefinition } from './reference'
-import { RelationDefinition } from '../relation'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { DefaultDefinition } from './default'
 import { LengthLimitedStringDefinition } from './length-limited-string'
@@ -25,7 +24,6 @@ export type Authenticable =
   | SearchDefinition
   | ReferenceDefinition
   | LengthLimitedStringDefinition
-  | RelationDefinition
   | CacheDefinition
   | ResolverDefinition
   | EnumDefinition<any, any>

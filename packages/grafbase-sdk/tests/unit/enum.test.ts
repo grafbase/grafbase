@@ -23,7 +23,7 @@ describe('Enum generator', () => {
   it('generates an enum field', () => {
     const e = g.enum('Fruits', ['Apples', 'Oranges'])
 
-    g.model('Basket', {
+    g.type('Basket', {
       fruitType: g.enumRef(e)
     })
 
@@ -33,27 +33,8 @@ describe('Enum generator', () => {
         Oranges
       }
 
-      type Basket @model {
+      type Basket {
         fruitType: Fruits!
-      }"
-    `)
-  })
-
-  it('generates an enum field with a default', () => {
-    const e = g.enum('Fruits', ['Apples', 'Oranges'])
-
-    g.model('Basket', {
-      fruitType: g.enumRef(e).default('Oranges')
-    })
-
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
-      "enum Fruits {
-        Apples,
-        Oranges
-      }
-
-      type Basket @model {
-        fruitType: Fruits! @default(value: Oranges)
       }"
     `)
   })
