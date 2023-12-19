@@ -170,7 +170,7 @@ export class AuthRules {
 
 export interface AuthParams {
   providers?: FixedLengthArray<AuthProvider, 1>
-  rules: AuthRuleF
+  rules?: AuthRuleF
 }
 
 export class Authentication {
@@ -181,7 +181,7 @@ export class Authentication {
     this.providers = params.providers
 
     const rules = new AuthRules()
-    params.rules(rules)
+    params.rules?.(rules)
 
     this.rules = rules
   }
