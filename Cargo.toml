@@ -39,7 +39,7 @@ chrono = { version = "0.4", default-features = false }
 flexbuffers = "2"
 futures = "0.3"
 futures-util = "0.3"
-headers = "0.4"
+headers = "0.3"
 http = "0.2"
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
 itertools = "0.12"
