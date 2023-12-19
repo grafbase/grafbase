@@ -72,6 +72,8 @@ impl Operation {
         bind::bind(schema, unbound_operation)
     }
 
+    // this merely traverses the selection set recursively and merge all cache_config present in the
+    // selected fields
     fn traverse_bound_selection_for_caching(
         schema: &Schema,
         operation: &Operation,

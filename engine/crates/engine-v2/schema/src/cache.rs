@@ -1,7 +1,9 @@
+use std::time::Duration;
+
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
 pub struct CacheConfig {
-    pub max_age: usize,
-    pub stale_while_revalidate: usize,
+    pub max_age: Duration,
+    pub stale_while_revalidate: Duration,
 }
 
 pub trait Merge<T> {
@@ -11,20 +13,8 @@ pub trait Merge<T> {
 impl Merge<CacheConfig> for CacheConfig {
     fn merge(self, right: CacheConfig) -> CacheConfig {
         CacheConfig {
-            max_age: if self.max_age == 0 {
-                right.max_age
-            } else if right.max_age == 0 {
-                self.max_age
-            } else {
-                self.max_age.min(right.max_age)
-            },
-            stale_while_revalidate: if self.stale_while_revalidate == 0 {
-                right.stale_while_revalidate
-            } else if right.stale_while_revalidate == 0 {
-                self.stale_while_revalidate
-            } else {
-                self.stale_while_revalidate.min(right.stale_while_revalidate)
-            },
+            max_age: self.max_age.min(right.max_age),
+            stale_while_revalidate: self.stale_while_revalidate.min(right.stale_while_revalidate),
         }
     }
 }
@@ -42,5 +32,43 @@ impl From<&config::latest::CacheConfig> for CacheConfig {
             max_age: value.max_age,
             stale_while_revalidate: value.stale_while_revalidate,
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::time::Duration;
+    use super::{CacheConfig, Merge};
+
+    #[test]
+    fn test_merge() {
+        let left = CacheConfig {
+            max_age: Duration::from_secs(1),
+            stale_while_revalidate: Duration::from_secs(1),
+        };
+
+        let right = CacheConfig {
+            max_age: Duration::from_secs(2),
+            stale_while_revalidate: Duration::from_secs(2),
+        };
+
+        assert_eq!(left, left.merge(right));
+    }
+
+    #[test]
+    fn test_merge_optional() {
+        let left = Some(CacheConfig {
+            max_age: Duration::from_secs(1),
+            stale_while_revalidate: Duration::from_secs(1),
+        });
+
+        let right = Some(CacheConfig {
+            max_age: Duration::from_secs(2),
+            stale_while_revalidate: Duration::from_secs(2),
+        });
+
+        assert_eq!(left, left.merge(right));
+        assert_eq!(left, left.merge(None));
+        assert_eq!(right, None.merge(right));
     }
 }

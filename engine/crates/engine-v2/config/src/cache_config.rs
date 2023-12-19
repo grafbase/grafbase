@@ -1,5 +1,6 @@
 use std::fmt::Formatter;
 use std::str::FromStr;
+use std::time::Duration;
 
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -8,8 +9,8 @@ use federated_graph::{FieldId, ObjectId};
 
 #[derive(Default, Debug, Hash, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct CacheConfig {
-    pub max_age: usize,
-    pub stale_while_revalidate: usize,
+    pub max_age: Duration,
+    pub stale_while_revalidate: Duration,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Ord, PartialOrd)]
@@ -85,7 +86,7 @@ mod tests {
     use crate::v2::CacheConfigTarget;
 
     #[test]
-    fn test() {
+    fn test_custom_serde() {
         let field = CacheConfigTarget::Field(FieldId(0));
         let object = CacheConfigTarget::Object(ObjectId(0));
 

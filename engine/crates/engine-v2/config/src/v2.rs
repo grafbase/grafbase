@@ -71,15 +71,16 @@ mod tests {
     use crate::v2::{CacheConfig, CacheConfigTarget, Config};
     use federated_graph::{FederatedGraphV1, FieldId, ObjectId, RootOperationTypes};
     use std::collections::BTreeMap;
+    use std::time::Duration;
 
     #[test]
-    fn make_sure_we_can_deserialize_the_config() {
+    fn make_sure_we_can_serialize_the_config() {
         let mut cache_config = BTreeMap::<CacheConfigTarget, CacheConfig>::new();
         cache_config.insert(
             CacheConfigTarget::Field(FieldId(0)),
             CacheConfig {
-                max_age: 0,
-                stale_while_revalidate: 0,
+                max_age: Duration::from_secs(0),
+                stale_while_revalidate: Duration::from_secs(0),
             },
         );
 
@@ -110,6 +111,45 @@ mod tests {
             cache_config,
         };
 
-        println!("{}", serde_json::json!(config));
+
+        insta::assert_json_snapshot!(serde_json::json!(config), @r###"
+        {
+          "cache_config": {
+            "f0": {
+              "max_age": {
+                "nanos": 0,
+                "secs": 0
+              },
+              "stale_while_revalidate": {
+                "nanos": 0,
+                "secs": 0
+              }
+            }
+          },
+          "default_headers": [],
+          "graph": {
+            "enums": [],
+            "field_types": [],
+            "fields": [],
+            "input_objects": [],
+            "interface_fields": [],
+            "interfaces": [],
+            "object_fields": [],
+            "objects": [],
+            "root_operation_types": {
+              "mutation": null,
+              "query": 0,
+              "subscription": null
+            },
+            "scalars": [],
+            "strings": [],
+            "subgraphs": [],
+            "unions": []
+          },
+          "headers": [],
+          "strings": [],
+          "subgraph_configs": {}
+        }
+        "###);
     }
 }

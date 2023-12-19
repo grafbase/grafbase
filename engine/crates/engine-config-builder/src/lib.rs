@@ -1,6 +1,7 @@
 //! Glue crate between parser-sdl & engine-v2-config
 
 use std::collections::BTreeMap;
+use std::time::Duration;
 
 use engine_v2_config::latest::{CacheConfig, CacheConfigTarget};
 use engine_v2_config::{
@@ -56,8 +57,8 @@ fn build_cache_config(
                     cache_config.insert(
                         CacheConfigTarget::Object(object_id),
                         CacheConfig {
-                            max_age: cache_control.max_age,
-                            stale_while_revalidate: cache_control.stale_while_revalidate,
+                            max_age: Duration::from_secs(cache_control.max_age as u64),
+                            stale_while_revalidate: Duration::from_secs(cache_control.stale_while_revalidate as u64),
                         },
                     );
                 }
@@ -67,8 +68,8 @@ fn build_cache_config(
                     cache_config.insert(
                         CacheConfigTarget::Field(field_id),
                         CacheConfig {
-                            max_age: cache_control.max_age,
-                            stale_while_revalidate: cache_control.stale_while_revalidate,
+                            max_age: Duration::from_secs(cache_control.max_age as u64),
+                            stale_while_revalidate: Duration::from_secs(cache_control.stale_while_revalidate as u64),
                         },
                     );
                 }
