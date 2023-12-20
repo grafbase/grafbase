@@ -5,7 +5,7 @@ pub(super) fn merge_input_object_definitions(
     first: &DefinitionWalker<'_>,
     definitions: &[DefinitionWalker<'_>],
 ) {
-    let description = definitions.iter().find_map(|def| def.description());
+    let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
 
     let composed_directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
 

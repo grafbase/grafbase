@@ -25,7 +25,7 @@ impl<'a> Context<'a> {
         };
 
         for builtin_scalar in subgraphs.iter_builtin_scalars() {
-            context.insert_scalar(builtin_scalar, None, Vec::new());
+            context.insert_scalar(builtin_scalar.as_str(), None, Vec::new());
         }
 
         context
@@ -37,12 +37,12 @@ impl<'a> Context<'a> {
 
     pub(crate) fn insert_enum(
         &mut self,
-        enum_name: StringWalker<'_>,
-        description: Option<StringWalker<'_>>,
+        enum_name: &str,
+        description: Option<&str>,
         composed_directives: Vec<federated::Directive>,
     ) -> federated::EnumId {
-        let name = self.ir.insert_string(enum_name);
-        let description = description.map(|description| self.ir.insert_string(description));
+        let name = self.ir.strings.insert(enum_name);
+        let description = description.map(|description| self.ir.strings.insert(description));
 
         let r#enum = federated::Enum {
             name,
@@ -60,12 +60,12 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_enum_value(
         &mut self,
         enum_id: federated::EnumId,
-        value: StringWalker<'_>,
-        description: Option<StringWalker<'_>>,
+        value: &str,
+        description: Option<&str>,
         composed_directives: Vec<federated::Directive>,
     ) {
-        let value = self.ir.insert_string(value);
-        let description = description.map(|description| self.ir.insert_string(description));
+        let value = self.ir.strings.insert(value);
+        let description = description.map(|description| self.ir.strings.insert(description));
         let r#enum = &mut self.ir.enums[enum_id.0];
 
         r#enum.values.push(federated::EnumValue {
@@ -82,10 +82,10 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_input_object(
         &mut self,
         name: federated::StringId,
-        description: Option<StringWalker<'_>>,
+        description: Option<&str>,
         composed_directives: Vec<federated::Directive>,
     ) -> federated::InputObjectId {
-        let description = description.map(|description| self.ir.insert_string(description));
+        let description = description.map(|description| self.ir.strings.insert(description));
         let object = federated::InputObject {
             name,
             fields: Vec::new(),
@@ -102,10 +102,10 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_interface(
         &mut self,
         name: federated::StringId,
-        description: Option<StringWalker<'_>>,
+        description: Option<&str>,
         composed_directives: Vec<federated::Directive>,
     ) -> federated::InterfaceId {
-        let description = description.map(|description| self.ir.insert_string(description));
+        let description = description.map(|description| self.ir.strings.insert(description));
 
         let interface = federated::Interface {
             name,
@@ -124,11 +124,14 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_interface_resolvable_key(
         &mut self,
         id: federated::InterfaceId,
-        key: subgraphs::KeyId,
+        key_id: subgraphs::KeyId,
         is_interface_object: bool,
     ) {
-        self.ir
-            .insert_resolvable_key(federated::Definition::Interface(id), key, is_interface_object);
+        self.ir.resolvable_keys.push(ir::KeyIr {
+            parent: federated::Definition::Interface(id),
+            key_id,
+            is_interface_object,
+        });
     }
 
     pub(crate) fn insert_object(
@@ -137,7 +140,7 @@ impl<'a> Context<'a> {
         description: Option<StringWalker<'_>>,
         composed_directives: Vec<federated::Directive>,
     ) -> federated::ObjectId {
-        let description = description.map(|description| self.ir.insert_string(description));
+        let description = description.map(|description| self.ir.strings.insert(description.as_str()));
 
         let object = federated::Object {
             name,
@@ -156,12 +159,12 @@ impl<'a> Context<'a> {
 
     pub(crate) fn insert_scalar(
         &mut self,
-        scalar_name: StringWalker<'_>,
-        description: Option<StringWalker<'_>>,
+        scalar_name: &str,
+        description: Option<&str>,
         composed_directives: Vec<federated::Directive>,
     ) {
-        let name = self.ir.insert_string(scalar_name);
-        let description = description.map(|description| self.ir.insert_string(description));
+        let name = self.ir.strings.insert(scalar_name);
+        let description = description.map(|description| self.ir.strings.insert(description));
 
         let scalar = federated::Scalar {
             name,
@@ -181,7 +184,7 @@ impl<'a> Context<'a> {
         is_inaccessible: bool,
         description: Option<StringWalker<'_>>,
     ) -> federated::UnionId {
-        let description = description.map(|description| self.ir.insert_string(description));
+        let description = description.map(|description| self.ir.strings.insert(description.as_str()));
 
         let composed_directives = if is_inaccessible {
             vec![federated::Directive {
@@ -208,22 +211,22 @@ impl<'a> Context<'a> {
         self.ir.union_members.insert((union_name, member_name));
     }
 
-    pub(crate) fn insert_resolvable_key(&mut self, object_id: federated::ObjectId, key_id: subgraphs::KeyId) {
-        self.ir
-            .insert_resolvable_key(federated::Definition::Object(object_id), key_id, false);
+    pub(crate) fn insert_resolvable_key(&mut self, id: federated::ObjectId, key_id: subgraphs::KeyId) {
+        self.ir.resolvable_keys.push(ir::KeyIr {
+            parent: federated::Definition::Object(id),
+            key_id,
+            is_interface_object: false,
+        });
     }
 
     pub(crate) fn insert_string(&mut self, string_id: subgraphs::StringId) -> federated::StringId {
-        self.ir.insert_string(self.subgraphs.walk(string_id))
+        self.ir.strings.insert(self.subgraphs.walk(string_id).as_str())
     }
 
     // We need a separate method for strings that appear in the federated graph but were not
     // interned in subgraphs.
     pub(crate) fn insert_static_str(&mut self, string: &'static str) -> federated::StringId {
-        match self.subgraphs.strings.lookup(string) {
-            Some(id) => self.ir.insert_string(self.subgraphs.walk(id)),
-            None => self.ir.insert_static_str(string),
-        }
+        self.ir.strings.insert(string)
     }
 
     pub(crate) fn set_query(&mut self, id: federated::ObjectId) {
