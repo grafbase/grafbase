@@ -377,62 +377,6 @@ describe('OpenID auth provider', () => {
     `)
   })
 
-  it('renders a provider with owner access', () => {
-    const clerk = auth.OpenIDConnect({
-      issuer: '{{ env.ISSUER_URL }}'
-    })
-
-    const cfg = config({
-      schema: g,
-      auth: {
-        providers: [clerk],
-        rules: (rules) => {
-          rules.owner()
-        }
-      }
-    })
-
-    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
-      "extend schema
-        @auth(
-          providers: [
-            { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
-          ]
-          rules: [
-            { allow: owner }
-          ]
-        )"
-    `)
-  })
-
-  it('renders a provider with owner access and custom operations', () => {
-    const clerk = auth.OpenIDConnect({
-      issuer: '{{ env.ISSUER_URL }}'
-    })
-
-    const cfg = config({
-      schema: g,
-      auth: {
-        providers: [clerk],
-        rules: (rules) => {
-          rules.owner().create()
-        }
-      }
-    })
-
-    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
-      "extend schema
-        @auth(
-          providers: [
-            { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
-          ]
-          rules: [
-            { allow: owner, operations: [create] }
-          ]
-        )"
-    `)
-  })
-
   it('renders a provider with groups access', () => {
     const clerk = auth.OpenIDConnect({
       issuer: '{{ env.ISSUER_URL }}'
@@ -500,7 +444,6 @@ describe('OpenID auth provider', () => {
         providers: [clerk],
         rules: (rules) => {
           rules.private().read()
-          rules.owner().create()
           rules.groups(['backend', 'admin']).delete()
         }
       }
@@ -514,7 +457,6 @@ describe('OpenID auth provider', () => {
           ]
           rules: [
             { allow: private, operations: [read] }
-            { allow: owner, operations: [create] }
             { allow: groups, groups: ["backend", "admin"], operations: [delete] }
           ]
         )"

@@ -1,4 +1,3 @@
-import { FieldShape as DynamoFieldShape } from './connector/dynamodb/model'
 import { FieldShape as MongoFieldShape } from './connector/mongodb/model'
 import { DeprecatedDefinition } from './typedefs/deprecated'
 import { InaccessibleDefinition } from './typedefs/inaccessible'
@@ -10,7 +9,6 @@ import { TagDefinition } from './typedefs/tag'
 import { validateIdentifier } from './validation'
 
 type FieldShape =
-  | DynamoFieldShape
   | MongoFieldShape
   | JoinDefinition
   | TagDefinition

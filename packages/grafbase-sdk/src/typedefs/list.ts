@@ -1,6 +1,5 @@
 import { AuthRuleF, AuthRules } from '../auth'
 import { ReferenceDefinition } from './reference'
-import { RelationDefinition } from '../relation'
 import { DefaultValueType, renderDefault } from './default'
 import {
   BigIntDefinition,
@@ -24,7 +23,6 @@ import { escapeString } from '../utils'
 
 export type ListScalarType =
   | ScalarDefinition
-  | RelationDefinition
   | ReferenceDefinition
   | EnumDefinition<any, any>
   | InputDefinition
@@ -166,62 +164,6 @@ export class ListDefinition {
         : ''
 
     return `[${this.fieldDefinition}]${required}${rules}${resolver}${join}${otherDirectives}`
-  }
-}
-
-export class RelationListDefinition {
-  private relation: RelationDefinition
-  private isOptional: boolean
-  private authRules?: AuthRules
-
-  constructor(fieldDefinition: RelationDefinition) {
-    this.relation = fieldDefinition
-    this.isOptional = false
-  }
-
-  /**
-   * Make the field optional.
-   */
-  public optional(): RelationListDefinition {
-    this.isOptional = true
-
-    return this
-  }
-
-  /**
-   * Set the field-level auth directive.
-   *
-   * @param rules - A closure to build the authentication rules.
-   */
-  public auth(rules: AuthRuleF): RelationListDefinition {
-    const authRules = new AuthRules()
-    rules(authRules)
-
-    this.authRules = authRules
-
-    return this
-  }
-
-  public toString(): string {
-    let modelName
-    if (typeof this.relation.referencedModel === 'function') {
-      modelName = this.relation.referencedModel().name
-    } else {
-      modelName = this.relation.referencedModel.name
-    }
-
-    const relationRequired = this.relation.isOptional ? '' : '!'
-    const listRequired = this.isOptional ? '' : '!'
-
-    const relationAttribute = this.relation.relationName
-      ? ` @relation(name: ${this.relation.relationName})`
-      : ''
-
-    const rules = this.authRules
-      ? ` @auth(rules: ${this.authRules.toString().replace(/\s\s+/g, ' ')})`
-      : ''
-
-    return `[${modelName}${relationRequired}]${listRequired}${relationAttribute}${rules}`
   }
 }
 
