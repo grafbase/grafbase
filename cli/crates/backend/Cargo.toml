@@ -13,9 +13,6 @@ repository.workspace = true
 axum.workspace = true
 async-compression = { version = "0.4", features = ["gzip", "tokio"] }
 async-tar = "0.4"
-# https://github.com/zkat/cacache-rs/commit/d39e83801dc4f1e6479dacd50dcf1372658a598f
-# breaks the Linux musl build because the `reflink` dependency does not compile for that target.
-cacache = "=11.7.1"
 chrono = "0.4"
 const_format = { version = "0.2", features = ["rust_1_64"] }
 cynic = { version = "3", features = ["http-reqwest"] }

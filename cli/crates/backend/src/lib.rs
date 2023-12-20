@@ -20,8 +20,6 @@ let (server_port, server_handle) = start_server(PORT, SEARCH).unwrap();
 
 #![forbid(unsafe_code)]
 
-use cacache as _;
-
 mod consts;
 
 pub mod api;
