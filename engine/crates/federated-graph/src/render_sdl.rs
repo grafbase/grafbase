@@ -95,11 +95,12 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
     for (idx, interface) in graph.interfaces.iter().enumerate() {
         let interface_name = &graph[interface.name];
-        write!(sdl, "interface {interface_name}")?;
 
         if let Some(description) = interface.description {
             write!(sdl, "{}", Description(&graph[description], ""))?;
         }
+
+        write!(sdl, "interface {interface_name}")?;
 
         if !interface.implements_interfaces.is_empty() {
             sdl.push_str(" implements ");
