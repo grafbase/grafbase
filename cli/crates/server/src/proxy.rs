@@ -1,35 +1,23 @@
-#![allow(unused)]
+use std::{net::TcpListener, sync::atomic::Ordering, time::Duration};
 
-use crate::atomics::WORKER_PORT;
-use crate::errors::ServerError;
-use crate::servers::PortSelection;
-use axum::routing::head;
 use axum::{
-    body::{Body, HttpBody},
-    extract::{Query, RawPathParams, State},
-    http::uri::Uri,
-    response::{Html, IntoResponse, Redirect, Response},
-    routing::{get, post},
+    body::Body,
+    extract::State,
+    response::{Html, IntoResponse},
+    routing::{get, head, post},
     Router,
 };
 use common::environment::Environment;
-use futures_util::FutureExt;
 use handlebars::Handlebars;
-use hyper::{client::HttpConnector, StatusCode};
-use hyper::{http::HeaderValue, Method, Request};
+use hyper::{client::HttpConnector, Request, StatusCode};
 use serde_json::json;
-use sqlx::query;
-use std::future::IntoFuture;
-use std::net::Shutdown;
-use std::time::Duration;
-use std::{
-    net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, TcpListener},
-    sync::atomic::Ordering,
+use tokio::{
+    task::{JoinError, JoinSet},
+    time::sleep,
 };
-use tokio::signal;
-use tokio::task::{JoinError, JoinHandle, JoinSet};
-use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, services::ServeDir};
+
+use crate::{atomics::WORKER_PORT, errors::ServerError, servers::PortSelection};
 
 type Client = hyper::client::Client<HttpConnector, Body>;
 
@@ -48,7 +36,7 @@ pub async fn start(port: PortSelection) -> Result<ProxyHandle, ServerError> {
     let listener = port.into_listener().await?;
     let port = listener.local_addr().expect("must have a local addr").port();
     let mut set = JoinSet::new();
-    let handle = set.spawn(start_inner(listener));
+    set.spawn(start_inner(listener));
 
     Ok(ProxyHandle { port, set })
 }
@@ -101,7 +89,7 @@ async fn start_inner(listener: TcpListener) -> Result<(), ServerError> {
         .http1_preserve_header_case(true)
         .serve(router.into_make_service())
         .await
-        .map_err(ServerError::StartProxyServer);
+        .map_err(ServerError::StartProxyServer)?;
 
     Ok(())
 }
@@ -115,14 +103,14 @@ const POLL_INTERVAL: Duration = Duration::from_millis(200);
 
 async fn graphql(
     State(ProxyState { client, .. }): State<ProxyState>,
-    mut req: Request<Body>,
+    req: Request<Body>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
     graphql_inner(client, req, "graphql").await
 }
 
 async fn admin(
     State(ProxyState { client, .. }): State<ProxyState>,
-    mut req: Request<Body>,
+    req: Request<Body>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
     graphql_inner(client, req, "admin").await
 }
