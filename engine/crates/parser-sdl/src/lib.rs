@@ -45,6 +45,7 @@ use rules::{
     mongodb_directive::{MongoDBModelDirective, MongoDBTypeDirective},
     one_of_directive::OneOfDirective,
     openapi_directive::OpenApiVisitor,
+    operation_limits_directive::{OperationLimitsDirective, OperationLimitsVisitor},
     postgres_directive::PostgresVisitor,
     relations::{relations_rules, RelationEngine},
     requires_directive::RequiresDirective,
@@ -157,6 +158,7 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<JoinDirective>()
         .with::<ExternalDirective>()
         .with::<ShareableDirective>()
+        .with::<OperationLimitsDirective>()
         .with::<OverrideDirective>()
         .with::<ProvidesDirective>()
         .with::<DeprecatedDirective>()
@@ -226,7 +228,9 @@ pub async fn parse<'a>(
 }
 
 async fn parse_basic<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) -> Result<(), Error> {
-    let mut connector_rules = rules::visitor::VisitorNil.with(GraphVisitor);
+    let mut connector_rules = rules::visitor::VisitorNil
+        .with(GraphVisitor)
+        .with(OperationLimitsVisitor);
 
     visit(&mut connector_rules, ctx, schema);
 
