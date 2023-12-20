@@ -23,7 +23,9 @@ import { InputDefinition } from './typedefs/input'
 import { MongoDBAPI, PartialMongoDBAPI } from './connector/mongodb'
 import { PostgresAPI, PartialPostgresAPI } from './connector/postgres'
 import { FederatedGraphHeaders } from './federated/headers'
-import {CacheParams, GlobalCache} from "./cache";
+import { CacheParams, GlobalCache } from './cache'
+import scalar from './scalar'
+import create from './create'
 
 export type PartialDatasource =
   | PartialOpenAPI
@@ -106,14 +108,20 @@ export class Graph {
    * @param fields - The fields to be included.
    */
   public type(name: string, fields: TypeFields): Type {
-    const type = Object.entries(fields).reduce(
-      (type, [name, definition]) => type.field(name, definition),
-      new Type(name)
-    )
+    const type = create.type(name, fields)
 
-    this.types.push(type)
+    this.addType(type)
 
     return type
+  }
+
+  /**
+   * Add an existing type to the schema.
+   *
+   * @param type - The type to add
+   */
+  public addType(type: Type) {
+    this.types.push(type)
   }
 
   /**
@@ -123,14 +131,20 @@ export class Graph {
    * @param fields - The fields to be included.
    */
   public interface(name: string, fields: InterfaceFields): Interface {
-    const iface = Object.entries(fields).reduce(
-      (iface, [name, definition]) => iface.field(name, definition),
-      new Interface(name)
-    )
+    const iface = create.interface(name, fields)
 
-    this.interfaces.push(iface)
+    this.addInterface(iface)
 
     return iface
+  }
+
+  /**
+   * Add an existing interface to the schema.
+   *
+   * @param iface - The interface to add
+   */
+  public addInterface(iface: Interface) {
+    this.interfaces.push(iface)
   }
 
   /**
@@ -140,14 +154,20 @@ export class Graph {
    * @param types - The types to be included.
    */
   public union(name: string, types: Record<string, Type>): Union {
-    const union = Object.entries(types).reduce(
-      (model, [_, type]) => model.type(type),
-      new Union(name)
-    )
+    const union = create.union(name, types)
 
-    this.unions.push(union)
+    this.addUnion(union)
 
     return union
+  }
+
+  /**
+   * Add an existing union to the schema.
+   *
+   * @param union - The union to add
+   */
+  public addUnion(union: Union) {
+    this.unions.push(union)
   }
 
   /**
@@ -157,21 +177,24 @@ export class Graph {
    * @param definition - The query definition.
    */
   public query(name: string, definition: QueryInput): Query {
-    const query = new Query(name, definition.returns, definition.resolver)
+    const query = create.query(name, definition)
 
-    if (definition.args != null) {
-      Object.entries(definition.args).forEach(([name, type]) =>
-        query.argument(name, type)
-      )
-    }
+    this.addQuery(query)
 
+    return query
+  }
+
+  /**
+   * Add an existing query to the schema.
+   *
+   * @param query - The query to add
+   */
+  public addQuery(query: Query) {
     if (!this.queries) {
       this.queries = new TypeExtension('Query')
     }
 
     this.queries.query(query)
-
-    return query
   }
 
   /**
@@ -181,22 +204,24 @@ export class Graph {
    * @param fields - The mutation definition.
    */
   public mutation(name: string, definition: QueryInput): Query {
-    const query = new Query(name, definition.returns, definition.resolver)
+    const mutation = create.mutation(name, definition)
 
-    if (definition.args != null) {
-      Object.entries(definition.args).forEach(
-        ([name, type]) => query.argument(name, type),
-        query
-      )
-    }
+    this.addMutation(mutation)
 
+    return mutation
+  }
+
+  /**
+   * Add an existing mutation to the schema.
+   *
+   * @param mutation - The mutation to add
+   */
+  public addMutation(mutation: Query) {
     if (!this.mutations) {
       this.mutations = new TypeExtension('Mutation')
     }
 
-    this.mutations.query(query)
-
-    return query
+    this.mutations.query(mutation)
   }
 
   /**
@@ -206,15 +231,20 @@ export class Graph {
    * @param fields = The input definition.
    */
   public input(name: string, definition: InputFields): Input {
-    const input = new Input(name)
+    const input = create.input(name, definition)
 
-    Object.entries(definition).forEach(([name, type]) => {
-      input.field(name, type)
-    })
-
-    this.inputs.push(input)
+    this.addInput(input)
 
     return input
+  }
+
+  /**
+   * Add an existing input to the schema.
+   *
+   * @param input - The input to add
+   */
+  public addInput(input: Input) {
+    this.inputs.push(input)
   }
 
   /**
@@ -227,122 +257,134 @@ export class Graph {
     name: string,
     variants: U
   ): Enum<T, U> {
-    const e = new Enum(name, variants)
-    this.enums.push(e)
+    const definition = create.enum(name, variants)
 
-    return e
+    this.addEnum(definition)
+
+    return definition
+  }
+
+  /**
+   * Add an existing enum to the schema.
+   *
+   * @param definition - The enum to add
+   */
+  public addEnum<T extends string, U extends EnumShape<T>>(
+    definition: Enum<T, U>
+  ) {
+    this.enums.push(definition)
   }
 
   /**
    * Create a new string field.
    */
   public string(): StringDefinition {
-    return new StringDefinition(FieldType.String)
+    return scalar.string()
   }
 
   /**
    * Create a new ID field.
    */
   public id(): StringDefinition {
-    return new StringDefinition(FieldType.ID)
+    return scalar.id()
   }
 
   /**
    * Create a new email field.
    */
   public email(): StringDefinition {
-    return new StringDefinition(FieldType.Email)
+    return scalar.email()
   }
 
   /**
    * Create a new int field.
    */
   public int(): NumberDefinition {
-    return new NumberDefinition(FieldType.Int)
+    return scalar.int()
   }
 
   /**
    * Create a new float field.
    */
   public float(): NumberDefinition {
-    return new NumberDefinition(FieldType.Float)
+    return scalar.float()
   }
 
   /**
    * Create a new boolean field.
    */
   public boolean(): BooleanDefinition {
-    return new BooleanDefinition(FieldType.Boolean)
+    return scalar.boolean()
   }
 
   /**
    * Create a new date field.
    */
   public date(): DateDefinition {
-    return new DateDefinition(FieldType.Date)
+    return scalar.date()
   }
 
   /**
    * Create a new datetime field.
    */
   public datetime(): DateDefinition {
-    return new DateDefinition(FieldType.DateTime)
+    return scalar.datetime()
   }
 
   /**
    * Create a new IP address field.
    */
   public ipAddress(): StringDefinition {
-    return new StringDefinition(FieldType.IPAddress)
+    return scalar.ipAddress()
   }
 
   /**
    * Create a new timestamp field.
    */
   public timestamp(): NumberDefinition {
-    return new NumberDefinition(FieldType.Timestamp)
+    return scalar.timestamp()
   }
 
   /**
    * Create a new URL field.
    */
   public url(): StringDefinition {
-    return new StringDefinition(FieldType.URL)
+    return scalar.url()
   }
 
   /**
    * Create a new JSON field.
    */
   public json(): ObjectDefinition {
-    return new ObjectDefinition(FieldType.JSON)
+    return scalar.json()
   }
 
   /**
    * Create a new phone number field.
    */
   public phoneNumber(): StringDefinition {
-    return new StringDefinition(FieldType.PhoneNumber)
+    return scalar.phoneNumber()
   }
 
   /**
    * Create a new decimal field.
    */
   public decimal(): StringDefinition {
-    return new StringDefinition(FieldType.Decimal)
+    return scalar.decimal()
   }
 
   /**
    * Create a new bytes field.
    */
   public bytes(): BytesDefinition {
-    return new BytesDefinition(FieldType.Bytes)
+    return scalar.bytes()
   }
 
   /**
    * Create a new bigint field.
    */
   public bigint(): BigIntDefinition {
-    return new BigIntDefinition(FieldType.BigInt)
+    return scalar.bigint()
   }
 
   /**
@@ -351,7 +393,7 @@ export class Graph {
    * @param type - A type to be referred.
    */
   public ref(type: Type | string): ReferenceDefinition {
-    return new ReferenceDefinition(type)
+    return create.ref(type)
   }
 
   /**
@@ -362,7 +404,7 @@ export class Graph {
   public enumRef<T extends string, U extends EnumShape<T>>(
     e: Enum<T, U>
   ): EnumDefinition<T, U> {
-    return new EnumDefinition(e)
+    return create.enumRef(e)
   }
 
   /**
@@ -371,7 +413,7 @@ export class Graph {
    * @param input - The input object reference.
    */
   public inputRef(input: Input): InputDefinition {
-    return new InputDefinition(input)
+    return create.inputRef(input)
   }
 
   /**
@@ -495,12 +537,14 @@ export class FederatedGraph {
     }
 
     if (input?.cache) {
-       this.cache = new GlobalCache({rules: input.cache.rules})
+      this.cache = new GlobalCache({ rules: input.cache.rules })
     }
   }
 
   public toString(): string {
-    return `\nextend schema\n  @graph(type: federated)${this.headers}\n${this.cache || ''}`
+    return `\nextend schema\n  @graph(type: federated)${this.headers}\n${
+      this.cache || ''
+    }`
   }
 }
 

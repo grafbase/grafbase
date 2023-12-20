@@ -19,6 +19,8 @@ import { validateIdentifier } from './validation'
 import { PostgresParams, PartialPostgresAPI } from './connector/postgres'
 import { graph } from './graph'
 import { FederatedGraph } from './grafbase-schema'
+import scalar from './scalar'
+import create from './create'
 
 export { type ResolverContext as Context } from './resolver/context'
 export { type ResolverFn } from './resolver/resolverFn'
@@ -26,7 +28,7 @@ export { type ResolverInfo as Info } from './resolver/info'
 export { type VerifiedIdentity } from './authorizer/verifiedIdentity'
 export { type AuthorizerContext } from './authorizer/context'
 
-export { graph }
+export { graph, scalar, create }
 
 /** @deprecated use `graph.Standalone()` instead */
 export const g = graph.Standalone()
