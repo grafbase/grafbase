@@ -1,4 +1,4 @@
-use backend::api::errors::{ApiError, CreateError, DeployError, LoginApiError};
+use backend::api::errors::{ApiError, CreateError, DeployError, LoginApiError, PublishError};
 use backend::errors::{BackendError, ServerError};
 use common::errors::CommonError;
 use std::io::{self, ErrorKind};
@@ -96,8 +96,9 @@ impl CliError {
             Self::ServerError(ServerError::PortInUse(_)) => Some("try using a different --port number or supplying the --search flag".to_owned()),
             Self::BackendApiError(
                 ApiError::RequestError(_)
-                | ApiError::CreateError(CreateError::Unknown(_))
-                | ApiError::DeployError(DeployError::Unknown(_)),
+                                | ApiError::CreateError(CreateError::Unknown(_))
+                                | ApiError::DeployError(DeployError::Unknown(_))
+                                | ApiError::PublishError(PublishError::Unknown(_))
             ) => Some("you may be using an older version of the Grafbase CLI, try updating".to_owned()),
             Self::BackendApiError(ApiError::NotLoggedIn | ApiError::CorruptCredentialsFile) => Some("try running 'grafbase login'".to_owned()),
             Self::BackendApiError(ApiError::ProjectAlreadyLinked) => Some("try running 'grafbase deploy'".to_owned()),

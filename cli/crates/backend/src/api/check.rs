@@ -40,6 +40,6 @@ pub async fn check(
                 }),
             errors: _,
         } => Ok(sc),
-        _ => Err(ApiError::PublishError(format!("API error:\n\n{result:#?}",))),
+        _ => Err(ApiError::RequestError(format!("API error:\n\n{result:#?}",))),
     }
 }

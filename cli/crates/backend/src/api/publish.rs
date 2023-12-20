@@ -1,26 +1,33 @@
 use super::{
     client::create_client,
     consts::API_URL,
-    errors::ApiError,
-    graphql::mutations::{FederatedGraphCompositionError, PublishPayload, SubgraphCreateArguments, SubgraphPublish},
+    errors::{ApiError, PublishError},
+    graphql::mutations::{
+        BranchDoesNotExistError, FederatedGraphCompositionError, PublishPayload, SubgraphCreateArguments,
+        SubgraphPublish,
+    },
 };
 use cynic::{http::ReqwestExt, MutationBuilder};
 
+pub struct PublishOutcome {
+    pub composition_errors: Vec<String>,
+}
+
 pub async fn publish(
-    // The Good Code™
-    account: &str,
-    project: &str,
+    // The Better Code™
+    account_slug: &str,
+    project_slug: &str,
     branch: Option<&str>,
     subgraph_name: &str,
     url: &str,
     schema: &str,
-) -> Result<Result<(), Vec<String>>, ApiError> {
+) -> Result<PublishOutcome, ApiError> {
     let client = create_client().await?;
 
     let operation = SubgraphPublish::build(SubgraphCreateArguments {
         input: super::graphql::mutations::PublishInput {
-            account_slug: account,
-            project_slug: project,
+            account_slug,
+            project_slug,
             branch,
             subgraph: subgraph_name,
             url,
@@ -28,13 +35,24 @@ pub async fn publish(
         },
     });
 
-    let result = client.post(API_URL).run_graphql(operation).await?;
+    let cynic::GraphQlResponse { data, errors } = client.post(API_URL).run_graphql(operation).await?;
 
-    match result.data.as_ref().and_then(|data| data.publish.as_ref()) {
-        Some(PublishPayload::PublishSuccess(_)) => Ok(Ok(())),
-        Some(PublishPayload::FederatedGraphCompositionError(FederatedGraphCompositionError { messages })) => {
-            Ok(Err(messages.clone()))
+    if let Some(data) = data {
+        match data.publish {
+            PublishPayload::PublishSuccess(_) => Ok(PublishOutcome {
+                composition_errors: vec![],
+            }),
+            PublishPayload::FederatedGraphCompositionError(FederatedGraphCompositionError {
+                messages: composition_errors,
+            }) => Ok(PublishOutcome { composition_errors }),
+            PublishPayload::BranchDoesNotExistError(BranchDoesNotExistError { .. }) => {
+                Err(ApiError::PublishError(PublishError::BranchDoesNotExist))
+            }
+            PublishPayload::Unknown(unknown_variant) => {
+                Err(ApiError::PublishError(PublishError::Unknown(unknown_variant)))
+            }
         }
-        _ => Err(ApiError::PublishError(format!("API error:\n\n{result:#?}",))),
+    } else {
+        Err(ApiError::RequestError(format!("{errors:#?}")))
     }
 }

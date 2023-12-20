@@ -191,10 +191,16 @@ pub struct FederatedGraphCompositionError {
     pub messages: Vec<String>,
 }
 
+#[derive(cynic::QueryFragment, Debug)]
+pub struct BranchDoesNotExistError {
+    pub __typename: String,
+}
+
 #[derive(cynic::InlineFragments, Debug)]
 pub enum PublishPayload {
     PublishSuccess(PublishSuccess),
     FederatedGraphCompositionError(FederatedGraphCompositionError),
+    BranchDoesNotExistError(BranchDoesNotExistError),
     #[cynic(fallback)]
     Unknown(String),
 }
@@ -220,7 +226,7 @@ pub struct PublishInput<'a> {
 #[cynic(graphql_type = "Mutation", variables = "SubgraphCreateArguments")]
 pub struct SubgraphPublish {
     #[arguments(input: $input)]
-    pub publish: Option<PublishPayload>,
+    pub publish: PublishPayload,
 }
 
 #[derive(cynic::QueryFragment, Debug)]

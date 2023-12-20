@@ -38,11 +38,10 @@ pub(crate) async fn publish(
     .await
     .map_err(CliError::BackendApiError)?;
 
-    match outcome {
-        Ok(()) => report::publish_command_success(&subgraph_name),
-        Err(messages) => {
-            report::publish_command_composition_failure(&messages);
-        }
+    if outcome.composition_errors.is_empty() {
+        report::publish_command_success(&subgraph_name);
+    } else {
+        report::publish_command_composition_failure(&outcome.composition_errors);
     }
 
     Ok(())

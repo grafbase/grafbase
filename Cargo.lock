@@ -2708,6 +2708,7 @@ dependencies = [
 name = "grafbase"
 version = "0.51.0"
 dependencies = [
+ "assert_matches",
  "async-graphql 5.0.10",
  "async-graphql-axum 5.0.10",
  "async-trait",

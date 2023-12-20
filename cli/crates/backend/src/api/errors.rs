@@ -72,6 +72,10 @@ pub enum ApiError {
     #[error("could not complete a request: {0}")]
     RequestError(String),
 
+    /// returned if a mutation returns an entity of an unknown variant
+    #[error("API returned unrecognised payload: {0}")]
+    UnknownPayloadError(String),
+
     /// returned if a cynic request could not be completed (due to connection issues)
     #[error("could not complete a request")]
     ConnectionError,
@@ -136,12 +140,13 @@ pub enum ApiError {
     #[error(transparent)]
     DeployError(#[from] DeployError),
 
+    /// wraps a [`PublishError`]
+    #[error(transparent)]
+    PublishError(#[from] PublishError),
+
     /// returned if the project does not exist
     #[error("could not find the project")]
     ProjectDoesNotExist,
-
-    #[error("{0}")]
-    PublishError(String),
 
     #[error("{0}")]
     SubgraphsError(String),
@@ -195,6 +200,17 @@ pub enum CreateError {
 
     /// returned if an unknown error occurs
     #[error("could not create a new project, encountered an unknown error\nCaused by: {0}")]
+    Unknown(String),
+}
+
+#[derive(Error, Debug)]
+pub enum PublishError {
+    /// returned if provided branch does not exist
+    #[error("provided branch does not exist in the project")]
+    BranchDoesNotExist,
+
+    /// returned if an unknown error occurs
+    #[error("could not publish, encountered an unknown error\nCaused by: {0}")]
     Unknown(String),
 }
 

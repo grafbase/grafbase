@@ -512,12 +512,17 @@ pub(crate) fn federated_schema_local_introspection_not_implemented() {
 }
 
 pub(crate) fn publish_command_composition_failure(messages: &[String]) {
-    watercolor::output!("🔴 Published with composition error(s).\n", @BrightRed);
+    assert_matches::assert_matches!(messages, [_, ..]);
 
-    if !messages.is_empty() {
-        watercolor::output!("Composition errors:", @BrightRed);
-        for error in messages {
-            watercolor::output!("- {error}", @BrightRed);
-        }
+    let with_what = if messages.len() == 1 {
+        "a composition error"
+    } else {
+        "composition errors"
+    };
+    watercolor::output!("🔴 Published with {with_what}.\n", @BrightRed);
+
+    watercolor::output!("Composition errors:", @BrightRed);
+    for error in messages {
+        watercolor::output!("- {error}", @BrightRed);
     }
 }

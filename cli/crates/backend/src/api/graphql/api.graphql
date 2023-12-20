@@ -182,6 +182,10 @@ type BranchConnection {
   nodes: [Branch!]!
 }
 
+type BranchDoesNotExistError {
+  query: Query!
+}
+
 """
 An edge in a connection.
 """
@@ -309,6 +313,25 @@ RFC3339 formatted date in the UTC time zone denoted by letter 'Z'
 """
 scalar DateTime
 
+input DeleteSubgraphInput {
+  accountSlug: String!
+  projectSlug: String!
+  branch: String!
+  subgraph: String!
+  dryRun: Boolean!
+}
+
+union DeleteSubgraphPayload =
+    DeleteSubgraphSuccess
+  | SubgraphNotFoundError
+  | ProjectDoesNotExistError
+  | ProjectNotFederatedError
+  | FederatedGraphCompositionError
+
+type DeleteSubgraphSuccess {
+  query: Query!
+}
+
 """
 Deployment
 """
@@ -319,6 +342,7 @@ type Deployment implements Node {
   createdAt: DateTime!
   startedAt: DateTime
   finishedAt: DateTime
+  triggerType: DeploymentTriggerType!
   """
   The duration of the deployment in milliseconds.
   """
@@ -413,6 +437,15 @@ enum DeploymentStatus {
   IN_PROGRESS
   SUCCEEDED
   FAILED
+}
+
+enum DeploymentTriggerType {
+  PROJECT_CREATION
+  GIT_PUSH
+  CLI
+  REDEPLOYMENT
+  NEW_SCHEMA_PUBLICATION
+  INTERNAL
 }
 
 type DisabledAccountError {
@@ -1036,6 +1069,10 @@ type Mutation {
   Publish a new subgraph.
   """
   publish(input: PublishInput!): PublishPayload!
+  """
+  Delete a subgraph
+  """
+  deleteSubgraph(input: DeleteSubgraphInput!): DeleteSubgraphPayload!
   stripeSetupIntentCreate: StripeSetupIntentCreatePayload!
 }
 
@@ -1590,6 +1627,7 @@ type Project implements Node {
     after: String
     filter: OperationRequestAnalyticsFilter!
   ): OperationRequestMetricsConnection!
+  schemaChecks(first: Int, after: String, branch: String): SchemaCheckConnection!
   logEvents(first: Int, after: String, last: Int, before: String, filter: LogEventFilter!): LogEventConnection!
 }
 
@@ -1837,6 +1875,10 @@ type ProjectNotDeployed {
   query: Query!
 }
 
+type ProjectNotFederatedError {
+  query: Query!
+}
+
 input ProjectRequestAnalyticsFilter {
   branch: String = null
   period: ProjectRequestAnalyticsPeriod!
@@ -1889,7 +1931,12 @@ input PublishInput {
   schema: String!
 }
 
-union PublishPayload = PublishSuccess | ProjectDoesNotExistError | FederatedGraphCompositionError
+union PublishPayload =
+    PublishSuccess
+  | ProjectDoesNotExistError
+  | ProjectNotFederatedError
+  | FederatedGraphCompositionError
+  | BranchDoesNotExistError
 
 type PublishSuccess {
   query: Query!
@@ -2005,6 +2052,7 @@ type Query {
     """
     id: ID!
   ): Project @deprecated(reason: "use the top-level `node` query")
+  schemaCheck(id: ID!): SchemaCheck
   """
   Get subgraph.
   """
@@ -2202,6 +2250,21 @@ type SchemaCheck {
   gitCommit: SchemaCheckGitCommit
 }
 
+type SchemaCheckConnection {
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+  """
+  A list of edges.
+  """
+  edges: [SchemaCheckEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [SchemaCheck!]!
+}
+
 input SchemaCheckCreateInput {
   accountSlug: String!
   projectSlug: String!
@@ -2209,6 +2272,20 @@ input SchemaCheckCreateInput {
   subgraphName: String
   schema: String!
   gitCommit: SchemaCheckGitCommitInput
+}
+
+"""
+An edge in a connection.
+"""
+type SchemaCheckEdge {
+  """
+  The item at the end of the edge
+  """
+  node: SchemaCheck!
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
 }
 
 type SchemaCheckGitCommit {
@@ -2229,7 +2306,11 @@ input SchemaCheckGitCommitInput {
   authorAvatarUrl: String
 }
 
-union SchemaCheckPayload = SchemaCheck | ProjectDoesNotExistError
+union SchemaCheckPayload =
+    SchemaCheck
+  | ProjectDoesNotExistError
+  | SubgraphNameProvidedOnSingleProjectError
+  | SubgraphNameMissingOnFederatedProjectError
 
 type SchemaVersion {
   id: ID!
@@ -2424,7 +2505,19 @@ type Subgraph {
   url: String!
   schema: String!
   createdAt: DateTime!
-  updatedAt: DateTime!
+  updatedAt: DateTime
+}
+
+type SubgraphNameMissingOnFederatedProjectError {
+  query: Query!
+}
+
+type SubgraphNameProvidedOnSingleProjectError {
+  query: Query!
+}
+
+type SubgraphNotFoundError {
+  query: Query!
 }
 
 type TemplateDoesNotExistError {
