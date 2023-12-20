@@ -206,6 +206,8 @@ impl MongoDBDirective {
 
 #[cfg(test)]
 mod tests {
+    use engine::registry::TypeReference;
+
     use crate::tests::assert_validation_error;
 
     #[test]
@@ -240,5 +242,74 @@ mod tests {
             "#,
             "Connector names must be alphanumeric and cannot start with a number"
         );
+    }
+
+    #[test]
+    fn basic_introspection() {
+        let config = r#"
+extend schema
+  @mongodb(
+    namespace: false
+    name: "MongoDB"
+    url: "https://example.org"
+    apiKey: "gloubiboulga"
+    dataSource: "data-source"
+    database: "database"
+  )
+
+extend schema @federation(version: "2.3")
+
+enum Enum1 {
+  Variant1,
+  Variant2,
+  Variant3
+}
+
+type Model1 @model(connector: "MongoDB", collection: "Model1") @key(fields: "field3") {
+  field1: String!
+  field2: String!
+  field3: String! @unique
+}
+
+type Model2 @model(connector: "MongoDB", collection: "Model2") @key(fields: field1) {
+  field1: String!
+  field2: Enum1!
+  field3: [Model1!]!
+}
+        "#;
+
+        let registry = crate::parse_registry(config).unwrap();
+
+        for (type_name, tpe) in registry.types.iter() {
+            match tpe {
+                engine::registry::MetaType::Object(obj) => {
+                    for (field_name, field) in obj.fields.iter() {
+                        let ty = field.ty.base_type_name();
+                        assert!(registry.types.contains_key(ty), "{type_name}.{field_name} -> {ty}");
+                    }
+                }
+                engine::registry::MetaType::Interface(iface) => {
+                    for (field_name, field) in iface.fields.iter() {
+                        let ty = field.ty.base_type_name();
+                        assert!(registry.types.contains_key(ty), "{type_name}.{field_name} -> {ty}");
+                    }
+                }
+                engine::registry::MetaType::Union(unn) => {
+                    for possible_type in unn.possible_types.iter() {
+                        assert!(registry.types.contains_key(possible_type));
+                    }
+                }
+                engine::registry::MetaType::InputObject(input_object) => {
+                    for (field_name, field) in input_object.input_fields.iter() {
+                        let ty = field.ty.named_type();
+                        assert!(
+                            registry.types.contains_key(ty.as_str()),
+                            "{type_name}.{field_name} -> {ty}"
+                        );
+                    }
+                }
+                _ => (),
+            }
+        }
     }
 }

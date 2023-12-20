@@ -14,7 +14,6 @@ use crate::{
         default_directive::DefaultDirective,
         mongodb_directive::model_directive::create_type_context::CreateTypeContext, visitor::VisitorContext,
     },
-    utils::to_input_type,
 };
 
 pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTypeContext<'_>) -> String {
@@ -28,7 +27,13 @@ pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &
     });
 
     let explicit_fields = create_ctx.object.fields.iter().map(|field| {
-        let r#type = to_input_type(&visitor_ctx.types, field.r#type().clone());
+        let type_def = visitor_ctx.types.get(field.r#type().base.to_base_type_str()).unwrap();
+        let r#type = match type_def.kind {
+            engine_parser::types::TypeKind::Scalar | engine_parser::types::TypeKind::Enum(_) => {
+                type_def.name.node.to_string()
+            }
+            _ => MetaNames::create_input(type_def, None),
+        };
         let mut input = MetaInputValue::new(field.node.name.node.to_string(), r#type.to_string());
 
         input.description = field.description().map(ToString::to_string);
