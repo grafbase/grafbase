@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use engine::parser::types::OperationType;
 use futures_util::FutureExt;
-use runtime::cache::Cache;
+use runtime::cache::{Cache, CacheReadStatus, CachedExecutionResponse};
 pub use runtime::context::RequestContext;
 use tracing::{info_span, Instrument};
 
@@ -14,8 +14,9 @@ mod response;
 pub mod serving;
 mod streaming;
 
+use crate::cache::build_cache_key;
 pub use auth::{authorize_request, AdminAuthError, AuthError, Authorizer};
-pub use cache::{CacheConfig, CacheControl};
+pub use cache::CacheConfig;
 pub use executor::Executor;
 pub use response::Response;
 pub use streaming::{encode_stream_response, format::StreamingFormat};
@@ -109,23 +110,48 @@ where
                 .instrument(info_span!("execute_stream"))
                 .await
         } else {
-            cache::process_execution_response(
-                ctx.as_ref(),
-                cache::execute_with_cache(
-                    &self.cache,
-                    &self.cache_config,
-                    ctx.as_ref(),
-                    request,
-                    auth,
-                    |request, auth| {
-                        Arc::clone(&self.executor)
-                            .execute(Arc::clone(ctx), auth, request)
-                            .instrument(info_span!("execute"))
-                            .map(move |res| res.map(Arc::new))
-                    },
-                )
-                .await,
-            )
+            if !self.cache_config.global_enabled || !self.cache_config.partial_registry.enable_caching {
+                let result = Arc::clone(&self.executor)
+                    .execute(Arc::clone(ctx), auth, request)
+                    .instrument(info_span!("execute"))
+                    .await?;
+
+                return Response::engine(Arc::new(result));
+            }
+
+            match build_cache_key(&self.cache_config, ctx.as_ref(), &request, &auth) {
+                Ok(cache_key) => {
+                    let execution_fut = Arc::clone(&self.executor)
+                        .execute(Arc::clone(ctx), auth, request)
+                        .instrument(info_span!("execute"))
+                        .map(move |res| res.map(Arc::new));
+
+                    let cached_execution = cache::cached_execution(
+                        self.cache.clone(),
+                        cache_key,
+                        &self.cache_config,
+                        ctx.as_ref(),
+                        execution_fut,
+                    )
+                    .await;
+
+                    cache::process_execution_response(ctx.as_ref(), cached_execution)
+                }
+                Err(_) => {
+                    let result = Arc::clone(&self.executor)
+                        .execute(Arc::clone(ctx), auth, request)
+                        .instrument(info_span!("execute"))
+                        .map(move |res| res.map(Arc::new))
+                        .await?;
+
+                    let response = CachedExecutionResponse::Origin {
+                        response: result,
+                        cache_read: Some(CacheReadStatus::Bypass),
+                    };
+
+                    cache::process_execution_response(ctx.as_ref(), Ok(response))
+                }
+            }
         }
     }
 }

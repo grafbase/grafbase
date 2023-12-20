@@ -14,7 +14,7 @@ keywords = ["graphql", "engine", "grafbase"]
 workspace = true
 
 [dependencies]
-async-runtime = { workspace = true }
+async-runtime.workspace = true
 derive_more = "0.99"
 im = "15"
 indexmap.workspace = true

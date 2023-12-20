@@ -20,7 +20,7 @@ pub enum UdfKind {
     Authorizer,
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Clone, Copy, Debug, strum::Display, PartialEq)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Copy, Debug, strum::Display, Eq, PartialEq, Hash)]
 #[strum(serialize_all = "lowercase")]
 pub enum OperationType {
     Query { is_introspection: bool },
