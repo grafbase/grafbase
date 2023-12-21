@@ -17,12 +17,14 @@ export type InputFieldShape =
  */
 export class Input {
   private _name: string
+  private _kind: 'input'
   private fields: InputField[]
 
   constructor(name: string) {
     validateIdentifier(name)
 
     this._name = name
+    this._kind = 'input'
     this.fields = []
   }
 
@@ -31,6 +33,10 @@ export class Input {
    */
   public get name(): string {
     return this._name
+  }
+
+  public get kind(): 'input' {
+    return this._kind
   }
 
   /**

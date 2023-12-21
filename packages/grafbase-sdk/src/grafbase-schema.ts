@@ -102,6 +102,30 @@ export class Graph {
   }
 
   /**
+   * Add an existing item to the schema.
+   *
+   * @param item - The item to add
+   */
+  public add(item: Type | Enum<any, any> | Union | Interface | Input | Query) {
+    switch (item.kind) {
+      case 'type':
+        return this.addType(item)
+      case 'interface':
+        return this.addInterface(item)
+      case 'union':
+        return this.addUnion(item)
+      case 'enum':
+        return this.addEnum(item)
+      case 'input':
+        return this.addInput(item)
+      case 'mutation':
+        return this.addMutation(item)
+      case 'query':
+        return this.addQuery(item)
+    }
+  }
+
+  /**
    * Add a new composite type to the schema.
    *
    * @param name - The name of the type.
@@ -120,7 +144,7 @@ export class Graph {
    *
    * @param type - The type to add
    */
-  public addType(type: Type) {
+  private addType(type: Type) {
     this.types.push(type)
   }
 
@@ -143,7 +167,7 @@ export class Graph {
    *
    * @param iface - The interface to add
    */
-  public addInterface(iface: Interface) {
+  private addInterface(iface: Interface) {
     this.interfaces.push(iface)
   }
 
@@ -166,7 +190,7 @@ export class Graph {
    *
    * @param union - The union to add
    */
-  public addUnion(union: Union) {
+  private addUnion(union: Union) {
     this.unions.push(union)
   }
 
@@ -189,7 +213,7 @@ export class Graph {
    *
    * @param query - The query to add
    */
-  public addQuery(query: Query) {
+  private addQuery(query: Query) {
     if (!this.queries) {
       this.queries = new TypeExtension('Query')
     }
@@ -216,7 +240,7 @@ export class Graph {
    *
    * @param mutation - The mutation to add
    */
-  public addMutation(mutation: Query) {
+  private addMutation(mutation: Query) {
     if (!this.mutations) {
       this.mutations = new TypeExtension('Mutation')
     }
@@ -243,7 +267,7 @@ export class Graph {
    *
    * @param input - The input to add
    */
-  public addInput(input: Input) {
+  private addInput(input: Input) {
     this.inputs.push(input)
   }
 
@@ -269,7 +293,7 @@ export class Graph {
    *
    * @param definition - The enum to add
    */
-  public addEnum<T extends string, U extends EnumShape<T>>(
+  private addEnum<T extends string, U extends EnumShape<T>>(
     definition: Enum<T, U>
   ) {
     this.enums.push(definition)
@@ -435,7 +459,7 @@ export class Graph {
       definitionOrBuilder(extension)
     } else {
       Object.entries(definitionOrBuilder).forEach(([name, input]) => {
-        const query = new Query(name, input.returns, input.resolver)
+        const query = new Query(name, input.returns, input.resolver, false)
 
         if (input.args != null) {
           Object.entries(input.args).forEach(([name, type]) =>

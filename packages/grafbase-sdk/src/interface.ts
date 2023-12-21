@@ -16,12 +16,14 @@ export type InterfaceFieldShape = ScalarDefinition | ListDefinition
 export class Interface {
   private _name: string
   private _fields: Field[]
+  private _kind: 'interface'
 
   constructor(name: string) {
     validateIdentifier(name)
 
     this._name = name
     this._fields = []
+    this._kind = 'interface'
   }
 
   /**
@@ -41,6 +43,10 @@ export class Interface {
    */
   public get fields(): Field[] {
     return this._fields
+  }
+
+  public get kind(): 'interface' {
+    return this._kind
   }
 
   /**

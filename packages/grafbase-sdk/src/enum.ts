@@ -9,6 +9,7 @@ export type EnumShape<T> = [T, ...Array<T>]
 export class Enum<T extends string, U extends EnumShape<T>> {
   private _name: string
   private _variants: U
+  private _kind: 'enum'
 
   constructor(name: string, variants: U) {
     validateIdentifier(name)
@@ -16,6 +17,7 @@ export class Enum<T extends string, U extends EnumShape<T>> {
 
     this._name = name
     this._variants = variants
+    this._kind = 'enum'
   }
 
   /**
@@ -30,6 +32,10 @@ export class Enum<T extends string, U extends EnumShape<T>> {
    */
   public get variants(): U {
     return this._variants
+  }
+
+  public get kind(): 'enum' {
+    return this._kind
   }
 
   public toString(): string {

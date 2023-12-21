@@ -52,7 +52,12 @@ export default {
    * @param definition - The query definition.
    */
   query: (name: string, definition: QueryInput) => {
-    const query = new Query(name, definition.returns, definition.resolver)
+    const query = new Query(
+      name,
+      definition.returns,
+      definition.resolver,
+      false
+    )
 
     if (definition.args != null) {
       Object.entries(definition.args).forEach(([name, type]) =>
@@ -70,7 +75,12 @@ export default {
    * @param fields - The mutation definition.
    */
   mutation: (name: string, definition: QueryInput) => {
-    const mutation = new Query(name, definition.returns, definition.resolver)
+    const mutation = new Query(
+      name,
+      definition.returns,
+      definition.resolver,
+      true
+    )
 
     if (definition.args != null) {
       Object.entries(definition.args).forEach(
