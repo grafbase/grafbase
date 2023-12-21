@@ -205,6 +205,7 @@ impl MongoDBDirective {
 }
 
 #[cfg(test)]
+#[allow(clippy::panic)]
 mod tests {
     use crate::tests::assert_validation_error;
 
@@ -240,5 +241,123 @@ mod tests {
             "#,
             "Connector names must be alphanumeric and cannot start with a number"
         );
+    }
+
+    #[test]
+    fn model_as_input() {
+        let config = r#"
+extend schema
+  @mongodb(
+    namespace: false
+    name: "MongoDB"
+    url: "https://example.org"
+    apiKey: "gloubi-boulga"
+    dataSource: "data-source"
+    database: "database"
+  )
+
+enum Enum1 {
+  Variant1,
+  Variant2,
+  Variant3
+}
+
+type Model1 @model(connector: "MongoDB", collection: "Model1") @key(fields: "field3") {
+  field1: String!
+  field2: String!
+  field3: String! @unique
+}
+
+type Model2 @model(connector: "MongoDB", collection: "Model2") @key(fields: field1) {
+  field1: String!
+  field2: Enum1!
+  field3: [Model1!]!
+}
+            "#;
+
+        assert_validation_error!(
+            config,
+            "Field 'field3' cannot be of type 'Model1' because 'Model1' is a model type."
+        );
+    }
+
+    #[test]
+    fn basic_introspection() {
+        let config = r#"
+extend schema
+  @mongodb(
+    namespace: false
+    name: "MongoDB"
+    url: "https://example.org"
+    apiKey: "gloubi-boulga"
+    dataSource: "data-source"
+    database: "database"
+  )
+
+extend schema @federation(version: "2.3")
+
+enum Enum1 {
+  Variant1,
+  Variant2,
+  Variant3
+}
+
+type Model1 @model(connector: "MongoDB", collection: "Model1") @key(fields: "field3") {
+  field1: String!
+  field2: String!
+  field3: String! @unique
+}
+
+type Model2 @model(connector: "MongoDB", collection: "Model2") @key(fields: field1) {
+  field1: String!
+  field2: Enum1!
+  field3: [SomethingElse!]!
+}
+
+type SomethingElse {
+    name: String
+    addressStreet: String
+}
+        "#;
+
+        let registry = crate::parse_registry(config).unwrap();
+
+        let mut errs = Vec::new();
+
+        for tpe in registry.types.values() {
+            match tpe {
+                engine::registry::MetaType::Object(obj) => {
+                    for field in obj.fields.values() {
+                        if let Err(err) = registry.lookup(&field.ty) {
+                            errs.push(err);
+                        }
+                    }
+                }
+                engine::registry::MetaType::Interface(iface) => {
+                    for field in iface.fields.values() {
+                        if let Err(err) = registry.lookup(&field.ty) {
+                            errs.push(err);
+                        }
+                    }
+                }
+                engine::registry::MetaType::Union(unn) => {
+                    for possible_type in unn.possible_types.iter() {
+                        assert!(registry.types.contains_key(possible_type));
+                    }
+                }
+                engine::registry::MetaType::InputObject(input_object) => {
+                    for field in input_object.input_fields.values() {
+                        if let Err(err) = registry.lookup(&field.ty) {
+                            errs.push(err);
+                        }
+                    }
+                }
+                _ => (),
+            }
+        }
+
+        if !errs.is_empty() {
+            panic!("{:#?}\n({} errors)", errs, errs.len())
+        }
     }
 }

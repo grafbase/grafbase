@@ -6,7 +6,7 @@ use function_name::named;
 use serde_json as _;
 
 macro_rules! assert_validation_error {
-    ($schema:literal, $expected_message:literal) => {
+    ($schema:expr, $expected_message:literal) => {
         assert_matches!(
             $crate::parse_registry($schema)
                 .err()
