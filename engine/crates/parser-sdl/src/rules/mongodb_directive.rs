@@ -278,16 +278,22 @@ type Model2 @model(connector: "MongoDB", collection: "Model2") @key(fields: fiel
 
         let registry = crate::parse_registry(config).unwrap();
 
+        let mut errs = Vec::new();
+
         for tpe in registry.types.values() {
             match tpe {
                 engine::registry::MetaType::Object(obj) => {
                     for field in obj.fields.values() {
-                        registry.lookup(&field.ty).unwrap();
+                        if let Err(err) = registry.lookup(&field.ty) {
+                            errs.push(err);
+                        }
                     }
                 }
                 engine::registry::MetaType::Interface(iface) => {
                     for field in iface.fields.values() {
-                        registry.lookup(&field.ty).unwrap();
+                        if let Err(err) = registry.lookup(&field.ty) {
+                            errs.push(err);
+                        }
                     }
                 }
                 engine::registry::MetaType::Union(unn) => {
@@ -297,11 +303,17 @@ type Model2 @model(connector: "MongoDB", collection: "Model2") @key(fields: fiel
                 }
                 engine::registry::MetaType::InputObject(input_object) => {
                     for field in input_object.input_fields.values() {
-                        registry.lookup(&field.ty).unwrap();
+                        if let Err(err) = registry.lookup(&field.ty) {
+                            errs.push(err);
+                        }
                     }
                 }
                 _ => (),
             }
+        }
+
+        if !errs.is_empty() {
+            panic!("{:#?}", errs)
         }
     }
 }
