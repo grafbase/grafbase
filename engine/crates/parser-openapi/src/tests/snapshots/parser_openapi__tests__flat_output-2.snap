@@ -2289,4 +2289,11 @@ Registry {
     },
     enable_ai: false,
     is_federated: false,
+    operation_limts: OperationLimits {
+        depth: None,
+        height: None,
+        aliases: None,
+        root_fields: None,
+        complexity: None,
+    },
 }

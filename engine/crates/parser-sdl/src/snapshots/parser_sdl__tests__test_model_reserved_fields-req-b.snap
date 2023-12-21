@@ -88,6 +88,13 @@ expression: req_string_b
   "is_federated": false,
   "mongodb_configurations": {},
   "mutation_type": "Mutation",
+  "operation_limts": {
+    "aliases": null,
+    "complexity": null,
+    "depth": null,
+    "height": null,
+    "rootFields": null
+  },
   "postgres_databases": {},
   "query_type": "Query",
   "search_config": {
