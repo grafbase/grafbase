@@ -421,7 +421,7 @@ export class Graph {
    * @param type - A type to be referred.
    */
   public ref(type: Type | string): ReferenceDefinition {
-    return create.ref(type)
+    return define.ref(type)
   }
 
   /**
@@ -432,7 +432,7 @@ export class Graph {
   public enumRef<T extends string, U extends EnumShape<T>>(
     e: Enum<T, U>
   ): EnumDefinition<T, U> {
-    return create.enumRef(e)
+    return define.enumRef(e)
   }
 
   /**
@@ -441,7 +441,7 @@ export class Graph {
    * @param input - The input object reference.
    */
   public inputRef(input: Input): InputDefinition {
-    return create.inputRef(input)
+    return define.inputRef(input)
   }
 
   /**
