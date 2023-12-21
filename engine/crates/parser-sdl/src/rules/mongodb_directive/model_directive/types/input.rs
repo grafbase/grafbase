@@ -29,6 +29,9 @@ pub(crate) fn register_type_input(
 
         let r#type = match (r#type, composite_type) {
             (Some(r#type), false) if matches!(r#type.kind, engine_parser::types::TypeKind::Enum(_)) => base.to_owned(),
+            (Some(r#type), false) if matches!(r#type.kind, engine_parser::types::TypeKind::Enum(_)) && is_list => {
+                format!("[{base}]")
+            }
             (Some(_), true) if is_list => {
                 register_list_input(visitor_ctx, field.r#type(), field.name(), &input_type_name, true)
             }
