@@ -313,7 +313,7 @@ type Model2 @model(connector: "MongoDB", collection: "Model2") @key(fields: fiel
         }
 
         if !errs.is_empty() {
-            panic!("{:#?}", errs)
+            panic!("{:#?}\n({} errors)", errs, errs.len())
         }
     }
 }
