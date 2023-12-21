@@ -405,11 +405,11 @@ async fn stream_github_archive<'a>(
             std::fs::File::open(&decompressed_file_path).map_err(BackendError::CouldNotCreateTemporaryFile)?;
         let mut archive = tar::Archive::new(decompressed_file);
 
-        let mut entries = archive.entries().map_err(|_| BackendError::ReadArchiveEntries)?;
+        let entries = archive.entries().map_err(|_| BackendError::ReadArchiveEntries)?;
 
         let temporary_directory = tempfile::tempdir().map_err(BackendError::MoveExtractedFiles)?;
 
-        while let Some(entry) = entries.next() {
+        for entry in entries {
             let mut entry = entry.map_err(BackendError::ExtractArchiveEntry)?;
 
             if entry
