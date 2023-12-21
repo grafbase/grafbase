@@ -206,8 +206,6 @@ impl MongoDBDirective {
 
 #[cfg(test)]
 mod tests {
-    use engine::registry::TypeReference;
-
     use crate::tests::assert_validation_error;
 
     #[test]
@@ -280,18 +278,16 @@ type Model2 @model(connector: "MongoDB", collection: "Model2") @key(fields: fiel
 
         let registry = crate::parse_registry(config).unwrap();
 
-        for (type_name, tpe) in registry.types.iter() {
+        for (_type_name, tpe) in registry.types.iter() {
             match tpe {
                 engine::registry::MetaType::Object(obj) => {
-                    for (field_name, field) in obj.fields.iter() {
-                        let ty = field.ty.base_type_name();
-                        assert!(registry.types.contains_key(ty), "{type_name}.{field_name} -> {ty}");
+                    for (_field_name, field) in obj.fields.iter() {
+                        registry.lookup(&field.ty).unwrap();
                     }
                 }
                 engine::registry::MetaType::Interface(iface) => {
-                    for (field_name, field) in iface.fields.iter() {
-                        let ty = field.ty.base_type_name();
-                        assert!(registry.types.contains_key(ty), "{type_name}.{field_name} -> {ty}");
+                    for (_field_name, field) in iface.fields.iter() {
+                        registry.lookup(&field.ty).unwrap();
                     }
                 }
                 engine::registry::MetaType::Union(unn) => {
@@ -300,12 +296,8 @@ type Model2 @model(connector: "MongoDB", collection: "Model2") @key(fields: fiel
                     }
                 }
                 engine::registry::MetaType::InputObject(input_object) => {
-                    for (field_name, field) in input_object.input_fields.iter() {
-                        let ty = field.ty.named_type();
-                        assert!(
-                            registry.types.contains_key(ty.as_str()),
-                            "{type_name}.{field_name} -> {ty}"
-                        );
+                    for (_field_name, field) in input_object.input_fields.iter() {
+                        registry.lookup(&field.ty).unwrap();
                     }
                 }
                 _ => (),

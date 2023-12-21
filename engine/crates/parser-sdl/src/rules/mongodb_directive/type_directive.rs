@@ -12,7 +12,7 @@ impl<'a> Visitor<'a> for MongoDBTypeDirective {
             return;
         }
 
-        if r#type.node.directives.iter().any(|directive| directive.is_model()) {
+        if !r#type.node.directives.iter().any(|directive| directive.is_model()) {
             return;
         }
 

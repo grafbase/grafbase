@@ -58,11 +58,7 @@ pub(crate) fn register_type_input<'a>(
             engine_parser::types::TypeKind::Enum(_),
         ) {
             field.r#type().base.to_string()
-        } else if matches!(
-            visitor_ctx.types[field.r#type().base.to_base_type_str()].node.kind,
-            engine_parser::types::TypeKind::Scalar
-        ) && field.r#type().base.is_list()
-        {
+        } else if field.r#type().base.is_list() {
             let base = field.r#type().base.to_base_type_str();
             generic::filter_type_name(&format!("{base}Array"))
         } else {

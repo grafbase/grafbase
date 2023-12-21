@@ -38,6 +38,7 @@ pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>) {
 
 pub(crate) fn register_array_type(visitor_ctx: &mut VisitorContext<'_>, field_type: &str, is_scalar: bool) {
     let type_name = filter_type_name(&format!("{field_type}Array"));
+    dbg!(&type_name);
 
     let mut fields = Vec::new();
 
