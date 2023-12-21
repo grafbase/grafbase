@@ -4,10 +4,10 @@ import { renderGraphQL } from '../utils'
 
 const g = graph.Standalone()
 
-describe('Interface generator', () => {
+describe('Add, define, scalar', () => {
   beforeEach(() => g.clear())
 
-  it('generates a type implementing multiple interfaces', () => {
+  it('correctly produces a schema built using scalar, define and add', () => {
     const produce = define.interface('Produce', {
       name: scalar.string()
     })
