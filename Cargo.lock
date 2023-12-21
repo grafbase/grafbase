@@ -1747,7 +1747,7 @@ dependencies = [
 
 [[package]]
 name = "engine-config-builder"
-version = "0.52.0"
+version = "0.52.1"
 dependencies = [
  "engine-v2-config",
  "graphql-federated-graph",
@@ -1950,7 +1950,7 @@ checksum = "25cbce373ec4653f1a01a31e8a5e5ec0c622dc27ff9c4e6606eefef5cbbed4a5"
 
 [[package]]
 name = "federated-dev"
-version = "0.52.0"
+version = "0.52.1"
 dependencies = [
  "async-graphql 6.0.11",
  "async-graphql-axum 6.0.11",
@@ -2237,7 +2237,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.52.0"
+version = "0.52.1"
 dependencies = [
  "async-graphql 6.0.11",
  "async-trait",
@@ -2350,7 +2350,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.52.0"
+version = "0.52.1"
 dependencies = [
  "assert_matches",
  "async-graphql 5.0.10",
@@ -2420,7 +2420,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.52.0"
+version = "0.52.1"
 dependencies = [
  "apollo-encoder",
  "apollo-parser",
@@ -2433,7 +2433,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.52.0"
+version = "0.52.1"
 dependencies = [
  "async-compression",
  "axum",
@@ -2464,7 +2464,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.52.0"
+version = "0.52.1"
 dependencies = [
  "chrono",
  "common-types",
@@ -2481,7 +2481,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.52.0"
+version = "0.52.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -3976,7 +3976,7 @@ dependencies = [
 
 [[package]]
 name = "operation-normalizer"
-version = "0.52.0"
+version = "0.52.1"
 dependencies = [
  "anyhow",
  "expect-test",
@@ -6682,7 +6682,7 @@ checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "typed-resolvers"
-version = "0.52.0"
+version = "0.52.1"
 dependencies = [
  "datatest-stable",
  "engine-parser",
