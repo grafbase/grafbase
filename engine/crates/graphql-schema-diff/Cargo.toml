@@ -1,0 +1,25 @@
+[package]
+name = "graphql-schema-diff"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[dependencies]
+async-graphql-parser = "6"
+async-graphql-value = "6"
+indexmap.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+datatest-stable = "0.2.3"
+similar = "2"
+miette = { version = "5.10.0", features = ["fancy"] }
+
+[[test]]
+name = "diff_tests"
+harness = false
