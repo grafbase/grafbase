@@ -47,7 +47,7 @@ impl<'a> Visitor<'a> for MongoDBModelDirective {
             return;
         }
 
-        validate_field_names(ctx, object);
+        validate_fields(ctx, object);
 
         let model_auth = match AuthDirective::parse(ctx, &r#type.node.directives, false) {
             Ok(auth) => auth,
@@ -64,7 +64,7 @@ impl<'a> Visitor<'a> for MongoDBModelDirective {
     }
 }
 
-fn validate_field_names(ctx: &mut VisitorContext<'_>, object: &ObjectType) {
+fn validate_fields(ctx: &mut VisitorContext<'_>, object: &ObjectType) {
     for field in &object.fields {
         let name = field.node.name.node.as_str();
 
@@ -73,6 +73,17 @@ fn validate_field_names(ctx: &mut VisitorContext<'_>, object: &ObjectType) {
                 vec![field.pos],
                 format!("Field name '{name}' is reserved and cannot be used."),
             );
+        }
+
+        let ty = field.ty.base.to_base_type_str();
+
+        if let Some(referenced) = ctx.types.get(ty) {
+            if get_config(ctx, referenced).is_some() {
+                ctx.report_error(
+                    vec![field.pos],
+                    format!("Field '{name}' cannot be of type '{ty}' because '{ty}' is a model type.",),
+                );
+            }
         }
     }
 }

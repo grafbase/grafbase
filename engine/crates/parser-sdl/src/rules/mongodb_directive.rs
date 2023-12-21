@@ -205,6 +205,7 @@ impl MongoDBDirective {
 }
 
 #[cfg(test)]
+#[allow(clippy::panic)]
 mod tests {
     use crate::tests::assert_validation_error;
 
@@ -245,6 +246,16 @@ mod tests {
     #[test]
     fn model_as_input() {
         let config = r#"
+extend schema
+  @mongodb(
+    namespace: false
+    name: "MongoDB"
+    url: "https://example.org"
+    apiKey: "gloubi-boulga"
+    dataSource: "data-source"
+    database: "database"
+  )
+
 enum Enum1 {
   Variant1,
   Variant2,
@@ -264,7 +275,10 @@ type Model2 @model(connector: "MongoDB", collection: "Model2") @key(fields: fiel
 }
             "#;
 
-        assert_validation_error!(config, "meow");
+        assert_validation_error!(
+            config,
+            "Field 'field3' cannot be of type 'Model1' because 'Model1' is a model type."
+        );
     }
 
     #[test]
