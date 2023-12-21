@@ -12,19 +12,19 @@ impl<'a> Visitor<'a> for MongoDBTypeDirective {
             return;
         }
 
-        if !r#type.node.directives.iter().any(|directive| directive.is_model()) {
-            return;
+        match &r#type.node.kind {
+            TypeKind::Object(object) => {
+                let input_type_name = generic::filter_type_name(r#type.name.as_str());
+                filter::register_type_input(ctx, object, &input_type_name, std::iter::empty());
+                generic::register_array_type(ctx, r#type.name.as_str(), false);
+                generic::register_singular_type(ctx, r#type.name.as_str());
+                filter::register_orderby_input(ctx, object, r#type.node.name.as_str(), std::iter::empty());
+                input::register_type_input(ctx, object, &r#type.node);
+            }
+            TypeKind::Enum(_) => {
+                generic::register_array_type(ctx, r#type.name.as_str(), true);
+            }
+            _ => (),
         }
-
-        let TypeKind::Object(ref object) = r#type.node.kind else {
-            return;
-        };
-
-        let input_type_name = generic::filter_type_name(r#type.name.as_str());
-        filter::register_type_input(ctx, object, &input_type_name, std::iter::empty());
-        generic::register_array_type(ctx, r#type.name.as_str(), false);
-        generic::register_singular_type(ctx, r#type.name.as_str());
-        filter::register_orderby_input(ctx, object, r#type.node.name.as_str(), std::iter::empty());
-        input::register_type_input(ctx, object, &r#type.node);
     }
 }
