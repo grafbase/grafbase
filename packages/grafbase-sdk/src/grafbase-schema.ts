@@ -16,7 +16,6 @@ import {
   ObjectDefinition,
   StringDefinition
 } from './typedefs/scalar'
-import { FieldType } from './typedefs'
 import { EnumDefinition } from './typedefs/enum'
 import { Input, InputFields } from './input_type'
 import { InputDefinition } from './typedefs/input'
