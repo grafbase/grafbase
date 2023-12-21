@@ -16,7 +16,6 @@ use std::iter::Iterator;
 use std::path::{Path, PathBuf};
 use std::{env, fmt};
 use tokio_stream::StreamExt;
-use tokio_util::compat::TokioAsyncReadCompatExt;
 use tokio_util::io::StreamReader;
 use url::Url;
 
@@ -387,29 +386,48 @@ async fn stream_github_archive<'a>(
         .map(|result| result.map_err(|error| IoError::new(IoErrorKind::Other, error)));
 
     let tar_gz_reader = StreamReader::new(tar_gz_stream);
-    let tar = GzipDecoder::new(tar_gz_reader);
+    let mut uncompressed_tar_reader = GzipDecoder::new(tar_gz_reader);
 
-    let archive = async_tar::Archive::new(tar.compat());
+    let (decompressed_file, decompressed_file_path) = tempfile::NamedTempFile::new()
+        .map_err(BackendError::CouldNotCreateTemporaryFile)?
+        .into_parts();
+    let mut decompressed_file: tokio::fs::File = decompressed_file.into();
+    tokio::io::copy(&mut uncompressed_tar_reader, &mut decompressed_file)
+        .await
+        .map_err(BackendError::CouldNotCreateTemporaryFile)?;
 
-    let mut entries = archive.entries().map_err(|_| BackendError::ReadArchiveEntries)?;
+    let template_path_cloned = template_path.to_owned();
 
-    let temporary_directory = tempfile::tempdir().map_err(BackendError::MoveExtractedFiles)?;
+    let temporary_directory = tokio::task::spawn_blocking(move || {
+        let decompressed_file_path = decompressed_file_path;
 
-    while let Some(entry) = entries.next().await {
-        let mut entry = entry.map_err(BackendError::ExtractArchiveEntry)?;
+        let decompressed_file =
+            std::fs::File::open(&decompressed_file_path).map_err(BackendError::CouldNotCreateTemporaryFile)?;
+        let mut archive = tar::Archive::new(decompressed_file);
 
-        if entry
-            .path()
-            .ok()
-            .filter(|path| path.starts_with(template_path))
-            .is_some()
-        {
-            entry
-                .unpack_in(temporary_directory.path())
-                .await
-                .map_err(BackendError::ExtractArchiveEntry)?;
+        let mut entries = archive.entries().map_err(|_| BackendError::ReadArchiveEntries)?;
+
+        let temporary_directory = tempfile::tempdir().map_err(BackendError::MoveExtractedFiles)?;
+
+        while let Some(entry) = entries.next() {
+            let mut entry = entry.map_err(BackendError::ExtractArchiveEntry)?;
+
+            if entry
+                .path()
+                .ok()
+                .filter(|path| path.starts_with(&template_path_cloned))
+                .is_some()
+            {
+                entry
+                    .unpack_in(temporary_directory.path())
+                    .map_err(BackendError::ExtractArchiveEntry)?;
+            }
         }
-    }
+
+        Ok::<_, BackendError>(temporary_directory)
+    })
+    .await
+    .expect("must succeed")?;
 
     let final_path = temporary_directory.path().join(template_path);
 

@@ -12,7 +12,6 @@ repository.workspace = true
 [dependencies]
 axum.workspace = true
 async-compression = { version = "0.4", features = ["gzip", "tokio"] }
-async-tar = "0.4"
 chrono = "0.4"
 const_format = { version = "0.2", features = ["rust_1_64"] }
 cynic = { version = "3", features = ["http-reqwest"] }
