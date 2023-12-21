@@ -32,7 +32,7 @@ pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &
             engine_parser::types::TypeKind::Scalar | engine_parser::types::TypeKind::Enum(_) => {
                 type_def.name.node.to_string()
             }
-            _ => MetaNames::create_input(type_def, None),
+            _ => MetaNames::update_input(type_def),
         };
         let mut input = MetaInputValue::new(field.node.name.node.to_string(), r#type.to_string());
 
@@ -41,8 +41,9 @@ pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &
         input.default_value = DefaultDirective::default_value_of(field);
         input.validators = get_length_validator(field).map(|validator| vec![validator]);
 
-        input
+        dbg!(input)
     });
+    dbg!(&input_type_name);
 
     let input_fields = implicit_fields.chain(explicit_fields);
     let description = format!("Input to create a {}", create_ctx.model_name().to_camel());

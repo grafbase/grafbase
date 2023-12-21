@@ -14,8 +14,8 @@ impl<'a> Visitor<'a> for MongoDBTypeDirective {
 
         match &r#type.node.kind {
             TypeKind::Object(object) => {
-                let input_type_name = generic::filter_type_name(r#type.name.as_str());
-                filter::register_type_input(ctx, object, &input_type_name, std::iter::empty());
+                let filter_type_name = generic::filter_type_name(r#type.name.as_str());
+                filter::register_type_input(ctx, object, &filter_type_name, std::iter::empty());
                 generic::register_array_type(ctx, r#type.name.as_str(), false);
                 generic::register_singular_type(ctx, r#type.name.as_str());
                 filter::register_orderby_input(ctx, object, r#type.node.name.as_str(), std::iter::empty());

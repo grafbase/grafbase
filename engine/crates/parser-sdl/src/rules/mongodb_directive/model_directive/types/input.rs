@@ -66,7 +66,7 @@ fn register_list_input(
     is_composite: bool,
 ) -> String {
     let composite_input = is_composite.then(|| {
-        let name = format!("{}CreateInput", field_type.base.to_base_type_str());
+        let name = format!("{}", field_type.base.to_base_type_str());
         Type::nullable(field_type.override_base(BaseType::named(&name)).base)
     });
 
@@ -192,10 +192,7 @@ fn register_push_input(
     let composite_input = is_composite.then(|| {
         Type::nullable(
             field_type
-                .override_base(BaseType::named(&format!(
-                    "{}CreateInput",
-                    field_type.base.to_base_type_str()
-                )))
+                .override_base(BaseType::named(&format!("{}", field_type.base.to_base_type_str())))
                 .base,
         )
     });
@@ -262,10 +259,7 @@ fn register_add_to_set_input(
     let composite_input = is_composite.then(|| {
         Type::nullable(
             field_type
-                .override_base(BaseType::named(&format!(
-                    "{}CreateInput",
-                    field_type.base.to_base_type_str()
-                )))
+                .override_base(BaseType::named(&format!("{}", field_type.base.to_base_type_str())))
                 .base,
         )
     });

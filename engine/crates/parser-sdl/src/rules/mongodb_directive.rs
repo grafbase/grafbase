@@ -278,15 +278,15 @@ type Model2 @model(connector: "MongoDB", collection: "Model2") @key(fields: fiel
 
         let registry = crate::parse_registry(config).unwrap();
 
-        for (_type_name, tpe) in registry.types.iter() {
+        for tpe in registry.types.values() {
             match tpe {
                 engine::registry::MetaType::Object(obj) => {
-                    for (_field_name, field) in obj.fields.iter() {
+                    for field in obj.fields.values() {
                         registry.lookup(&field.ty).unwrap();
                     }
                 }
                 engine::registry::MetaType::Interface(iface) => {
-                    for (_field_name, field) in iface.fields.iter() {
+                    for field in iface.fields.values() {
                         registry.lookup(&field.ty).unwrap();
                     }
                 }
@@ -296,7 +296,7 @@ type Model2 @model(connector: "MongoDB", collection: "Model2") @key(fields: fiel
                     }
                 }
                 engine::registry::MetaType::InputObject(input_object) => {
-                    for (_field_name, field) in input_object.input_fields.iter() {
+                    for field in input_object.input_fields.values() {
                         registry.lookup(&field.ty).unwrap();
                     }
                 }
