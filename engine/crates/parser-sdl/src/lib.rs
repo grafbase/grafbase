@@ -45,6 +45,7 @@ use rules::{
     mongodb_directive::{MongoDBModelDirective, MongoDBTypeDirective},
     one_of_directive::OneOfDirective,
     openapi_directive::OpenApiVisitor,
+    operation_limits_directive::{OperationLimitsDirective, OperationLimitsVisitor},
     postgres_directive::PostgresVisitor,
     relations::{relations_rules, RelationEngine},
     requires_directive::RequiresDirective,
@@ -134,37 +135,38 @@ pub struct ParseResult<'a> {
 
 fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
     let directives = Directives::new()
+        .with::<AllSubgraphsDirective>()
         .with::<AuthDirective>()
+        .with::<CacheDirective>()
         .with::<DefaultDirective>()
-        .with::<MapDirective>()
-        .with::<LengthDirective>()
-        .with::<ModelDirective>()
-        .with::<OneOfDirective>()
-        .with::<RelationEngine>()
-        .with::<ResolverDirective>()
-        .with::<UniqueDirective>()
-        .with::<SearchDirective>()
-        .with::<OpenApiDirective>()
+        .with::<DeprecatedDirective>()
+        .with::<ExperimentalDirective>()
+        .with::<ExtendFieldDirective>()
+        .with::<ExternalDirective>()
+        .with::<FederationDirective>()
         .with::<GraphDirective>()
         .with::<GraphqlDirective>()
-        .with::<CacheDirective>()
-        .with::<MongoDBDirective>()
-        .with::<PostgresDirective>()
-        .with::<ExperimentalDirective>()
-        .with::<FederationDirective>()
-        .with::<RequiresDirective>()
-        .with::<KeyDirective>()
-        .with::<JoinDirective>()
-        .with::<ExternalDirective>()
-        .with::<ShareableDirective>()
-        .with::<OverrideDirective>()
-        .with::<ProvidesDirective>()
-        .with::<DeprecatedDirective>()
         .with::<InaccessibleDirective>()
-        .with::<TagDirective>()
-        .with::<ExtendFieldDirective>()
+        .with::<JoinDirective>()
+        .with::<KeyDirective>()
+        .with::<LengthDirective>()
+        .with::<MapDirective>()
+        .with::<ModelDirective>()
+        .with::<MongoDBDirective>()
+        .with::<OneOfDirective>()
+        .with::<OpenApiDirective>()
+        .with::<OperationLimitsDirective>()
+        .with::<OverrideDirective>()
+        .with::<PostgresDirective>()
+        .with::<ProvidesDirective>()
+        .with::<RelationEngine>()
+        .with::<RequiresDirective>()
+        .with::<ResolverDirective>()
+        .with::<SearchDirective>()
+        .with::<ShareableDirective>()
         .with::<SubgraphDirective>()
-        .with::<AllSubgraphsDirective>();
+        .with::<TagDirective>()
+        .with::<UniqueDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",
@@ -226,7 +228,9 @@ pub async fn parse<'a>(
 }
 
 async fn parse_basic<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) -> Result<(), Error> {
-    let mut connector_rules = rules::visitor::VisitorNil.with(GraphVisitor);
+    let mut connector_rules = rules::visitor::VisitorNil
+        .with(GraphVisitor)
+        .with(OperationLimitsVisitor);
 
     visit(&mut connector_rules, ctx, schema);
 

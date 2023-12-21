@@ -29,6 +29,7 @@ pub mod model_directive;
 pub mod mongodb_directive;
 pub mod one_of_directive;
 pub mod openapi_directive;
+pub mod operation_limits_directive;
 pub mod postgres_directive;
 pub mod relations;
 pub mod requires_directive;

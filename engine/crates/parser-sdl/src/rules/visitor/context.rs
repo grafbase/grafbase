@@ -21,8 +21,10 @@ use engine_value::{indexmap::IndexMap, Name};
 
 use super::{warnings::Warnings, RuleError, TypeStackType, Warning, MUTATION_TYPE, QUERY_TYPE};
 use crate::{
-    federation::FederatedGraphConfig, rules::federation::FederationVersion, GlobalCacheRules, GlobalCacheTarget,
-    GraphqlDirective, MongoDBDirective, OpenApiDirective, ParseResult, PostgresDirective,
+    federation::FederatedGraphConfig,
+    rules::{federation::FederationVersion, operation_limits_directive::OperationLimitsDirective},
+    GlobalCacheRules, GlobalCacheTarget, GraphqlDirective, MongoDBDirective, OpenApiDirective, ParseResult,
+    PostgresDirective,
 };
 
 /// The VisitorContext to visit every types from the Schema.
@@ -59,6 +61,7 @@ pub struct VisitorContext<'a> {
     pub(crate) mongodb_directives: Vec<(MongoDBDirective, Pos)>,
     pub(crate) postgres_directives: Vec<(PostgresDirective, Pos)>,
     pub(crate) global_cache_rules: GlobalCacheRules<'static>,
+    pub(crate) operation_limits_directive: Option<OperationLimitsDirective>,
 
     pub database_models_enabled: bool,
     pub federation: Option<FederationVersion>,
@@ -148,6 +151,7 @@ impl<'a> VisitorContext<'a> {
             database_models_enabled,
             federation: None,
             federated_graph_config: Default::default(),
+            operation_limits_directive: None,
         }
     }
 
@@ -209,6 +213,12 @@ impl<'a> VisitorContext<'a> {
         }
 
         registry.remove_unused_types();
+
+        registry.operation_limts = self
+            .operation_limits_directive
+            .take()
+            .map(From::from)
+            .unwrap_or_default();
 
         let mut required_udfs = self
             .required_resolvers

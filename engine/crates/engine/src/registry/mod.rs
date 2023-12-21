@@ -1391,6 +1391,16 @@ pub struct VersionedRegistry<'a> {
     pub deployment_id: Cow<'a, str>,
 }
 
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OperationLimits {
+    pub depth: Option<u16>,
+    pub height: Option<u16>,
+    pub aliases: Option<u16>,
+    pub root_fields: Option<u16>,
+    pub complexity: Option<u16>,
+}
+
 // TODO(@miaxos): Remove this to a separate create as we'll need to use it outside engine
 // for a LogicalQuery
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -1423,6 +1433,8 @@ pub struct Registry {
     pub enable_ai: bool,
     // FIXME: Make an enum.
     pub is_federated: bool,
+    #[serde(default)]
+    pub operation_limts: OperationLimits,
 }
 
 impl Default for Registry {
@@ -1447,6 +1459,7 @@ impl Default for Registry {
             federation_entities: Default::default(),
             enable_ai: false,
             is_federated: false,
+            operation_limts: Default::default(),
         }
     }
 }

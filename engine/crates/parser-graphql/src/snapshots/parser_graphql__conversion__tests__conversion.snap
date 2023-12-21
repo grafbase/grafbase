@@ -2841,5 +2841,12 @@ expression: registry_from_introspection(schema)
   "enable_caching": false,
   "enable_kv": false,
   "enable_ai": false,
-  "is_federated": false
+  "is_federated": false,
+  "operation_limts": {
+    "depth": null,
+    "height": null,
+    "aliases": null,
+    "rootFields": null,
+    "complexity": null
+  }
 }
