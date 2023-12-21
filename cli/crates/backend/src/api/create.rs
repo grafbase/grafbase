@@ -79,7 +79,6 @@ pub async fn create(account_id: &str, project_slug: &str) -> Result<Vec<String>,
     let operation = ProjectCreate::build(ProjectCreateArguments {
         input: ProjectCreateInput {
             account_id: Id::new(account_id),
-            database_regions: &[],
             project_slug,
             project_root_path: project
                 .schema_path

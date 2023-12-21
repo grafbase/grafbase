@@ -4,7 +4,6 @@ use super::schema;
 pub struct ProjectCreateInput<'a> {
     pub account_id: cynic::Id,
     pub project_slug: &'a str,
-    pub database_regions: &'a [String],
     pub project_root_path: &'a str,
 }
 
