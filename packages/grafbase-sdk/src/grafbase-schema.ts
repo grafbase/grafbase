@@ -108,7 +108,7 @@ export class Graph {
   public add(
     ...items: Array<Type | Enum<any, any> | Union | Interface | Input | Query>
   ) {
-    items.forEach((item) => {
+    for (const item of items) {
       switch (item.kind) {
         case 'type':
           return this.addType(item)
@@ -125,7 +125,7 @@ export class Graph {
         case 'query':
           return this.addQuery(item)
       }
-    })
+    }
   }
 
   /**
