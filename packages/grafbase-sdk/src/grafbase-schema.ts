@@ -25,7 +25,7 @@ import { PostgresAPI, PartialPostgresAPI } from './connector/postgres'
 import { FederatedGraphHeaders } from './federated/headers'
 import { CacheParams, GlobalCache } from './cache'
 import scalar from './scalar'
-import create from './create'
+import define from './define'
 
 export type PartialDatasource =
   | PartialOpenAPI
@@ -102,27 +102,31 @@ export class Graph {
   }
 
   /**
-   * Add an existing item to the schema.
+   * Add an existing item or items to the schema.
    *
-   * @param item - The item to add
+   * @param items - The items to add
    */
-  public add(item: Type | Enum<any, any> | Union | Interface | Input | Query) {
-    switch (item.kind) {
-      case 'type':
-        return this.addType(item)
-      case 'interface':
-        return this.addInterface(item)
-      case 'union':
-        return this.addUnion(item)
-      case 'enum':
-        return this.addEnum(item)
-      case 'input':
-        return this.addInput(item)
-      case 'mutation':
-        return this.addMutation(item)
-      case 'query':
-        return this.addQuery(item)
-    }
+  public add(
+    ...items: Array<Type | Enum<any, any> | Union | Interface | Input | Query>
+  ) {
+    items.forEach((item) => {
+      switch (item.kind) {
+        case 'type':
+          return this.addType(item)
+        case 'interface':
+          return this.addInterface(item)
+        case 'union':
+          return this.addUnion(item)
+        case 'enum':
+          return this.addEnum(item)
+        case 'input':
+          return this.addInput(item)
+        case 'mutation':
+          return this.addMutation(item)
+        case 'query':
+          return this.addQuery(item)
+      }
+    })
   }
 
   /**
@@ -132,7 +136,7 @@ export class Graph {
    * @param fields - The fields to be included.
    */
   public type(name: string, fields: TypeFields): Type {
-    const type = create.type(name, fields)
+    const type = define.type(name, fields)
 
     this.addType(type)
 
@@ -155,7 +159,7 @@ export class Graph {
    * @param fields - The fields to be included.
    */
   public interface(name: string, fields: InterfaceFields): Interface {
-    const iface = create.interface(name, fields)
+    const iface = define.interface(name, fields)
 
     this.addInterface(iface)
 
@@ -178,7 +182,7 @@ export class Graph {
    * @param types - The types to be included.
    */
   public union(name: string, types: Record<string, Type>): Union {
-    const union = create.union(name, types)
+    const union = define.union(name, types)
 
     this.addUnion(union)
 
@@ -201,7 +205,7 @@ export class Graph {
    * @param definition - The query definition.
    */
   public query(name: string, definition: QueryInput): Query {
-    const query = create.query(name, definition)
+    const query = define.query(name, definition)
 
     this.addQuery(query)
 
@@ -228,7 +232,7 @@ export class Graph {
    * @param fields - The mutation definition.
    */
   public mutation(name: string, definition: QueryInput): Query {
-    const mutation = create.mutation(name, definition)
+    const mutation = define.mutation(name, definition)
 
     this.addMutation(mutation)
 
@@ -255,7 +259,7 @@ export class Graph {
    * @param fields = The input definition.
    */
   public input(name: string, definition: InputFields): Input {
-    const input = create.input(name, definition)
+    const input = define.input(name, definition)
 
     this.addInput(input)
 
@@ -281,7 +285,7 @@ export class Graph {
     name: string,
     variants: U
   ): Enum<T, U> {
-    const definition = create.enum(name, variants)
+    const definition = define.enum(name, variants)
 
     this.addEnum(definition)
 
