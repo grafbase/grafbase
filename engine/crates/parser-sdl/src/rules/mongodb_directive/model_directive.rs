@@ -66,9 +66,9 @@ impl<'a> Visitor<'a> for MongoDBModelDirective {
 
 fn validate_field_names(ctx: &mut VisitorContext<'_>, object: &ObjectType) {
     for field in &object.fields {
-        let name = field.node.name.node.to_string();
+        let name = field.node.name.node.as_str();
 
-        if RESERVED_FIELDS.contains(&name.as_str()) {
+        if RESERVED_FIELDS.contains(&name) {
             ctx.report_error(
                 vec![field.pos],
                 format!("Field name '{name}' is reserved and cannot be used."),

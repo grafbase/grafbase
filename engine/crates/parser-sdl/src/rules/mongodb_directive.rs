@@ -243,6 +243,31 @@ mod tests {
     }
 
     #[test]
+    fn model_as_input() {
+        let config = r#"
+enum Enum1 {
+  Variant1,
+  Variant2,
+  Variant3
+}
+
+type Model1 @model(connector: "MongoDB", collection: "Model1") @key(fields: "field3") {
+  field1: String!
+  field2: String!
+  field3: String! @unique
+}
+
+type Model2 @model(connector: "MongoDB", collection: "Model2") @key(fields: field1) {
+  field1: String!
+  field2: Enum1!
+  field3: [Model1!]!
+}
+            "#;
+
+        assert_validation_error!(config, "meow");
+    }
+
+    #[test]
     fn basic_introspection() {
         let config = r#"
 extend schema
@@ -250,7 +275,7 @@ extend schema
     namespace: false
     name: "MongoDB"
     url: "https://example.org"
-    apiKey: "gloubiboulga"
+    apiKey: "gloubi-boulga"
     dataSource: "data-source"
     database: "database"
   )
@@ -272,7 +297,12 @@ type Model1 @model(connector: "MongoDB", collection: "Model1") @key(fields: "fie
 type Model2 @model(connector: "MongoDB", collection: "Model2") @key(fields: field1) {
   field1: String!
   field2: Enum1!
-  field3: [Model1!]!
+  field3: [SomethingElse!]!
+}
+
+type SomethingElse {
+    name: String
+    addressStreet: String
 }
         "#;
 
