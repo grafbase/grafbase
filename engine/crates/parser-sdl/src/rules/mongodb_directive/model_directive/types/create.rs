@@ -14,6 +14,7 @@ use crate::{
         default_directive::DefaultDirective,
         mongodb_directive::model_directive::create_type_context::CreateTypeContext, visitor::VisitorContext,
     },
+    utils::to_input_type,
 };
 
 pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTypeContext<'_>) -> String {
@@ -27,13 +28,7 @@ pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &
     });
 
     let explicit_fields = create_ctx.object.fields.iter().map(|field| {
-        let type_def = visitor_ctx.types.get(field.r#type().base.to_base_type_str()).unwrap();
-        let r#type = match type_def.kind {
-            engine_parser::types::TypeKind::Scalar | engine_parser::types::TypeKind::Enum(_) => {
-                type_def.name.node.to_string()
-            }
-            _ => MetaNames::update_input(type_def),
-        };
+        let r#type = to_input_type(&visitor_ctx.types, field.r#type().clone());
         let mut input = MetaInputValue::new(field.node.name.node.to_string(), r#type.to_string());
 
         input.description = field.description().map(ToString::to_string);
@@ -41,9 +36,8 @@ pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &
         input.default_value = DefaultDirective::default_value_of(field);
         input.validators = get_length_validator(field).map(|validator| vec![validator]);
 
-        dbg!(input)
+        input
     });
-    dbg!(&input_type_name);
 
     let input_fields = implicit_fields.chain(explicit_fields);
     let description = format!("Input to create a {}", create_ctx.model_name().to_camel());

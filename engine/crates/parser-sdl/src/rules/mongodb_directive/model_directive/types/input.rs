@@ -24,18 +24,13 @@ pub(crate) fn register_type_input(
         let is_list = field.r#type().base.is_list();
         let is_optional = field.r#type().nullable;
 
-        let r#type = visitor_ctx.types.get(base);
-        let composite_type = r#type.map(|r#type| r#type.is_composite()).unwrap_or_default();
+        let composite_type = visitor_ctx.types.get(base).filter(|r#type| r#type.is_composite());
 
-        let r#type = match (r#type, composite_type) {
-            (Some(r#type), false) if matches!(r#type.kind, engine_parser::types::TypeKind::Enum(_)) => base.to_owned(),
-            (Some(r#type), false) if matches!(r#type.kind, engine_parser::types::TypeKind::Enum(_)) && is_list => {
-                format!("[{base}]")
-            }
-            (Some(_), true) if is_list => {
+        let r#type = match composite_type {
+            Some(_) if is_list => {
                 register_list_input(visitor_ctx, field.r#type(), field.name(), &input_type_name, true)
             }
-            (Some(r#type), true) => MetaNames::update_input(&r#type.node),
+            Some(r#type) => MetaNames::update_input(&r#type.node),
             _ if is_list => register_list_input(visitor_ctx, field.r#type(), field.name(), &input_type_name, false),
             _ if is_optional => generic::optional_update_type_name(base),
             _ => generic::required_update_type_name(base),
@@ -66,8 +61,11 @@ fn register_list_input(
     is_composite: bool,
 ) -> String {
     let composite_input = is_composite.then(|| {
-        let name = format!("{}", field_type.base.to_base_type_str());
-        Type::nullable(field_type.override_base(BaseType::named(&name)).base)
+        Type::nullable(
+            field_type
+                .override_base(BaseType::named(&format!("{}Input", field_type.base.to_base_type_str())))
+                .base,
+        )
     });
 
     let optional_field_type = Type::nullable(field_type.base.clone());
@@ -192,7 +190,7 @@ fn register_push_input(
     let composite_input = is_composite.then(|| {
         Type::nullable(
             field_type
-                .override_base(BaseType::named(&format!("{}", field_type.base.to_base_type_str())))
+                .override_base(BaseType::named(&format!("{}Input", field_type.base.to_base_type_str())))
                 .base,
         )
     });
@@ -259,7 +257,7 @@ fn register_add_to_set_input(
     let composite_input = is_composite.then(|| {
         Type::nullable(
             field_type
-                .override_base(BaseType::named(&format!("{}", field_type.base.to_base_type_str())))
+                .override_base(BaseType::named(&format!("{}Input", field_type.base.to_base_type_str())))
                 .base,
         )
     });

@@ -17,7 +17,7 @@ const LOGICAL_OPERATIONS: &[(&str, &str, &str)] = &[
 ];
 
 pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTypeContext<'_>) -> String {
-    let input_type_name = generic::filter_type_name(&create_ctx.r#type.name.node);
+    let input_type_name = MetaNames::collection(create_ctx.r#type);
 
     let implicit_fields = std::iter::once({
         let mut input = MetaInputValue::new(OUTPUT_FIELD_ID, generic::filter_type_name("ID"));
@@ -53,12 +53,7 @@ pub(crate) fn register_type_input<'a>(
     extra_fields: impl Iterator<Item = MetaInputValue> + 'a,
 ) {
     let explicit_fields = object.fields.iter().map(|field| {
-        let r#type = if matches!(
-            visitor_ctx.types[field.r#type().base.to_base_type_str()].node.kind,
-            engine_parser::types::TypeKind::Enum(_),
-        ) {
-            field.r#type().base.to_string()
-        } else if field.r#type().base.is_list() {
+        let r#type = if field.r#type().base.is_list() {
             let base = field.r#type().base.to_base_type_str();
             generic::filter_type_name(&format!("{base}Array"))
         } else {
