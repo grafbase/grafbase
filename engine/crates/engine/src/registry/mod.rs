@@ -1433,6 +1433,7 @@ pub struct Registry {
     pub enable_ai: bool,
     // FIXME: Make an enum.
     pub is_federated: bool,
+    #[serde(default)]
     pub operation_limts: OperationLimits,
 }
 

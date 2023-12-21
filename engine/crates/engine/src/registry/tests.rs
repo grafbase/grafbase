@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 use super::*;
 
-const EXPECTED_SHA: &str = "72a30f920316c9671d202d3f5b7b5b3ad8e45685e81525a94e7e4460a86c1b4e";
+const EXPECTED_SHA: &str = "83ebe89ade32a62c7ccee507e2828f7c0f8cb88cf2e2b0ddb8497175b5140d36";
 
 #[test]
 fn test_serde_roundtrip() {
