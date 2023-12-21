@@ -86,7 +86,7 @@ export class Query {
     name: string,
     returnType: OutputType,
     resolverName: string,
-    mutation: bool
+    mutation: boolean
   ) {
     validateIdentifier(name)
 
