@@ -1,4 +1,5 @@
-use crate::*;
+use crate::{ast, ConstValue, DefinitionKind, DiffMap, DiffState, Positioned};
+use std::{collections::hash_map::Entry, hash::Hash};
 
 pub(crate) fn traverse_schemas<'a>([source, target]: [&'a ast::ServiceDocument; 2], state: &mut DiffState<'a>) {
     let schema_size_approx = source.definitions.len().max(target.definitions.len());
@@ -7,31 +8,6 @@ pub(crate) fn traverse_schemas<'a>([source, target]: [&'a ast::ServiceDocument; 
 
     traverse_source(source, state);
     traverse_target(target, state);
-
-
-    for (path @ [type_name, field_name, _arg_name], (src, target)) in &state.arguments_map {
-        let path = *path;
-        let parent_is_gone = || matches!(&state.fields_map[&[*type_name, *field_name]], (Some(_), None));
-
-        match (src, target) {
-            (None, None) => unreachable!(),
-            (None, Some(_)) => state.arguments.added.push(path),
-            (Some(_), None) if !parent_is_gone() => state.arguments.removed.push(path),
-            (Some(_), None) => (),
-            (Some((src_type, src_default)), Some((target_type, target_default))) => {
-                if src_type != target_type {
-                    state.argument_type_changed.push(path);
-                }
-
-                match (src_default, target_default) {
-                    (None, Some(_)) => state.argument_default_values.added.push(path),
-                    (Some(_), None) => state.argument_default_values.removed.push(path),
-                    (Some(a), Some(b)) if a != b => state.argument_default_changed.push(path),
-                    _ => (),
-                }
-            }
-        }
-    }
 }
 
 fn traverse_source<'a>(source: &'a ast::ServiceDocument, state: &mut DiffState<'a>) {

@@ -2,64 +2,29 @@ use crate::*;
 
 pub(crate) type DiffMap<K, V> = HashMap<K, (Option<V>, Option<V>)>;
 
-#[derive(Debug, Default)]
-pub(crate) struct AddedRemoved<T> {
-    pub(crate) added: T,
-    pub(crate) removed: T,
-}
-
 #[derive(Default)]
 pub(crate) struct DiffState<'a> {
-    pub(crate) fields: AddedRemoved<Vec<[&'a str; 2]>>,
-    pub(crate) enum_variants: AddedRemoved<Vec<[&'a str; 2]>>,
-    pub(crate) union_members: AddedRemoved<Vec<[&'a str; 2]>>,
-    pub(crate) arguments: AddedRemoved<Vec<[&'a str; 3]>>,
-    pub(crate) argument_default_values: AddedRemoved<Vec<[&'a str; 3]>>,
-    pub(crate) argument_default_changed: Vec<[&'a str; 3]>,
-    pub(crate) argument_type_changed: Vec<[&'a str; 3]>,
-    pub(crate) field_type_changed: Vec<[&'a str; 2]>,
-
     pub(crate) schema_definition_map: (Option<&'a ast::SchemaDefinition>, Option<&'a ast::SchemaDefinition>),
     pub(crate) types_map: DiffMap<&'a str, DefinitionKind>,
     pub(crate) fields_map: DiffMap<[&'a str; 2], Option<&'a ast::Type>>,
     pub(crate) arguments_map: DiffMap<[&'a str; 3], (&'a ast::Type, Option<&'a ConstValue>)>,
 }
 
-macro_rules! definition_kinds {
-    ($($camel:ident, $snake:ident);*) => {
-            #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-            #[repr(u8)]
-            pub(crate) enum DefinitionKind {
-                $(
-                    $camel,
-                )*
-            }
-
-    }
-}
-
-definition_kinds! {
-    Directive, directive;
-    Enum, r#enum;
-    InputObject, input_object;
-    Interface, interface;
-    Object, object;
-    Scalar, scalar;
-    Union, union
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[repr(u8)]
+pub(crate) enum DefinitionKind {
+    Directive,
+    Enum,
+    InputObject,
+    Interface,
+    Object,
+    Scalar,
+    Union,
 }
 
 impl DiffState<'_> {
     pub(crate) fn into_changes(self) -> Vec<Change> {
         let DiffState {
-            fields,
-            enum_variants,
-            union_members,
-            arguments,
-            argument_default_values,
-            argument_default_changed,
-            field_type_changed,
-            argument_type_changed,
-
             schema_definition_map,
             types_map,
             fields_map,
@@ -72,30 +37,52 @@ impl DiffState<'_> {
         push_schema_definition_changes(schema_definition_map, &mut changes);
 
         push_definition_changes(&types_map, &mut changes);
-
         push_field_changes(&fields_map, &types_map, &mut changes);
-
-        changes.extend(
-            [
-                (arguments.added, ChangeKind::AddFieldArgument),
-                (arguments.removed, ChangeKind::RemoveFieldArgument),
-                (argument_default_values.added, ChangeKind::AddFieldArgumentDefault),
-                (argument_default_values.removed, ChangeKind::RemoveFieldArgumentDefault),
-                (argument_default_changed, ChangeKind::ChangeFieldArgumentDefault),
-                (argument_type_changed, ChangeKind::ChangeFieldArgumentType),
-            ]
-            .into_iter()
-            .flat_map(|(items, kind)| {
-                items.into_iter().map(move |[parent, field, argument]| Change {
-                    path: [parent, field, argument].join("."),
-                    kind,
-                })
-            }),
-        );
+        push_argument_changes(&fields_map, &arguments_map, &mut changes);
 
         changes.sort();
 
         changes
+    }
+}
+
+fn push_argument_changes(
+    fields_map: &DiffMap<[&str; 2], Option<&ast::Type>>,
+    arguments_map: &DiffMap<[&str; 3], (&ast::Type, Option<&ConstValue>)>,
+    changes: &mut Vec<Change>,
+) {
+    for (path @ [type_name, field_name, _arg_name], (src, target)) in arguments_map {
+        let path = *path;
+        let parent_is_gone = || matches!(&fields_map[&[*type_name, *field_name]], (Some(_), None));
+
+        let kind = match (src, target) {
+            (None, None) => unreachable!(),
+            (None, Some(_)) => Some(ChangeKind::AddFieldArgument),
+            (Some(_), None) if !parent_is_gone() => Some(ChangeKind::RemoveFieldArgument),
+            (Some(_), None) => None,
+            (Some((src_type, src_default)), Some((target_type, target_default))) => {
+                if src_type != target_type {
+                    changes.push(Change {
+                        path: path.join("."),
+                        kind: ChangeKind::ChangeFieldArgumentType,
+                    });
+                }
+
+                match (src_default, target_default) {
+                    (None, Some(_)) => Some(ChangeKind::AddFieldArgumentDefault),
+                    (Some(_), None) => Some(ChangeKind::RemoveFieldArgumentDefault),
+                    (Some(a), Some(b)) if a != b => Some(ChangeKind::ChangeFieldArgumentDefault),
+                    _ => None,
+                }
+            }
+        };
+
+        if let Some(kind) = kind {
+            changes.push(Change {
+                path: path.join("."),
+                kind,
+            });
+        }
     }
 }
 

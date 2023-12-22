@@ -1,0 +1,22 @@
+interface Candy {
+  calories: String!
+}
+
+type Cookie {
+  id: ID!
+  calories: String!
+  firmness: Float
+}
+
+# --- #
+
+interface Candy {
+  calories: String!
+}
+
+type Cookie implements Candy {
+  id: ID!
+  calories: String!
+  firmness: Float
+}
+
