@@ -11,6 +11,9 @@ pub struct Change {
 #[repr(u8)]
 pub enum ChangeKind {
     // /!\ The order of variants matters for the PartialOrd derive /!\
+    ChangeQueryType,
+    ChangeMutationType,
+    ChangeSubscriptionType,
     RemoveObjectType,
     AddObjectType,
     ChangeFieldType,

@@ -1,0 +1,17 @@
+type A
+
+type B
+
+schema { query: Q, mutation: A }
+
+type Q
+
+# --- #
+
+type Q
+
+type A
+
+type B
+
+schema { mutation: B, query: Q }

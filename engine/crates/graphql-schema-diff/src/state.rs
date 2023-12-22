@@ -97,17 +97,7 @@ impl DiffState<'_> {
 
         let mut changes = Vec::new();
 
-        match schema_definition_map {
-            (None, None) | (Some(_), Some(_)) => (),
-            (None, Some(_)) => changes.push(Change {
-                path: String::new(),
-                kind: ChangeKind::AddSchemaDefinition,
-            }),
-            (Some(_), None) => changes.push(Change {
-                path: String::new(),
-                kind: ChangeKind::RemoveSchemaDefinition,
-            }),
-        }
+        push_schema_definition_changes(schema_definition_map, &mut changes);
 
         changes.extend(
             [
@@ -175,5 +165,49 @@ impl DiffState<'_> {
         changes.sort();
 
         changes
+    }
+}
+
+fn push_schema_definition_changes(
+    schema_definition_map: (Option<&ast::SchemaDefinition>, Option<&ast::SchemaDefinition>),
+    changes: &mut Vec<Change>,
+) {
+    match schema_definition_map {
+        (None, None) => (),
+        (Some(src), Some(target)) => {
+            let [src_query, src_mutation, src_subscription] =
+                [&src.query, &src.mutation, &src.subscription].map(|opt_node| opt_node.as_ref().map(|n| &n.node));
+            let [target_query, target_mutation, target_subscription] =
+                [&target.query, &target.mutation, &target.subscription]
+                    .map(|opt_node| opt_node.as_ref().map(|n| &n.node));
+            if src_query != target_query {
+                changes.push(Change {
+                    path: String::new(),
+                    kind: ChangeKind::ChangeQueryType,
+                });
+            }
+
+            if src_mutation != target_mutation {
+                changes.push(Change {
+                    path: String::new(),
+                    kind: ChangeKind::ChangeMutationType,
+                });
+            }
+
+            if src_subscription != target_subscription {
+                changes.push(Change {
+                    path: String::new(),
+                    kind: ChangeKind::ChangeSubscriptionType,
+                });
+            }
+        }
+        (None, Some(_)) => changes.push(Change {
+            path: String::new(),
+            kind: ChangeKind::AddSchemaDefinition,
+        }),
+        (Some(_), None) => changes.push(Change {
+            path: String::new(),
+            kind: ChangeKind::RemoveSchemaDefinition,
+        }),
     }
 }

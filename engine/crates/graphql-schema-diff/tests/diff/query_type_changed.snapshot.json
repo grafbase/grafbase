@@ -1,0 +1,14 @@
+{
+  "src → target": [
+    {
+      "kind": "ChangeQueryType",
+      "path": ""
+    }
+  ],
+  "target → src": [
+    {
+      "kind": "ChangeQueryType",
+      "path": ""
+    }
+  ]
+}
