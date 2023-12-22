@@ -6,6 +6,7 @@ import { validateIdentifier } from './validation'
  */
 export class Union {
   private name: string
+  private _kind: 'union'
   private types: string[]
 
   constructor(name: string) {
@@ -13,6 +14,7 @@ export class Union {
 
     this.name = name
     this.types = []
+    this._kind = 'union'
   }
 
   /**
@@ -24,6 +26,10 @@ export class Union {
     this.types.push(type.name)
 
     return this
+  }
+
+  public get kind(): 'union' {
+    return this._kind
   }
 
   public toString(): string {

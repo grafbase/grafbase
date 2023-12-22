@@ -77,17 +77,28 @@ export class QueryArgument {
  */
 export class Query {
   private name: string
+  private _kind: 'mutation' | 'query'
   private arguments: QueryArgument[]
   private returns: OutputType
   private resolver: string
 
-  constructor(name: string, returnType: OutputType, resolverName: string) {
+  constructor(
+    name: string,
+    returnType: OutputType,
+    resolverName: string,
+    mutation: boolean
+  ) {
     validateIdentifier(name)
 
     this.name = name
     this.arguments = []
     this.returns = returnType
     this.resolver = resolverName
+    this._kind = mutation ? 'mutation' : 'query'
+  }
+
+  public get kind(): 'mutation' | 'query' {
+    return this._kind
   }
 
   /**

@@ -51,6 +51,7 @@ export type TypeFieldShape =
  */
 export class Type {
   private _name: string
+  private _kind: 'type'
   private fields: Field[]
   private interfaces: Interface[]
   private cacheDirective?: TypeLevelCache
@@ -63,6 +64,7 @@ export class Type {
     this.fields = []
     this.interfaces = []
     this.keys = []
+    this._kind = 'type'
   }
 
   /**
@@ -70,6 +72,10 @@ export class Type {
    */
   public get name(): string {
     return this._name
+  }
+
+  public get kind(): 'type' {
+    return this._kind
   }
 
   /**

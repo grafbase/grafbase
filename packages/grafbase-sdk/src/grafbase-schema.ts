@@ -16,14 +16,15 @@ import {
   ObjectDefinition,
   StringDefinition
 } from './typedefs/scalar'
-import { FieldType } from './typedefs'
 import { EnumDefinition } from './typedefs/enum'
 import { Input, InputFields } from './input_type'
 import { InputDefinition } from './typedefs/input'
 import { MongoDBAPI, PartialMongoDBAPI } from './connector/mongodb'
 import { PostgresAPI, PartialPostgresAPI } from './connector/postgres'
 import { FederatedGraphHeaders } from './federated/headers'
-import {CacheParams, GlobalCache} from "./cache";
+import { CacheParams, GlobalCache } from './cache'
+import scalar from './scalar'
+import define from './define'
 
 export type PartialDatasource =
   | PartialOpenAPI
@@ -100,20 +101,54 @@ export class Graph {
   }
 
   /**
+   * Add an existing item or items to the schema.
+   *
+   * @param items - The items to add
+   */
+  public add(
+    ...items: Array<Type | Enum<any, any> | Union | Interface | Input | Query>
+  ) {
+    items.forEach((item) => {
+      switch (item.kind) {
+        case 'type':
+          return this.addType(item)
+        case 'interface':
+          return this.addInterface(item)
+        case 'union':
+          return this.addUnion(item)
+        case 'enum':
+          return this.addEnum(item)
+        case 'input':
+          return this.addInput(item)
+        case 'mutation':
+          return this.addMutation(item)
+        case 'query':
+          return this.addQuery(item)
+      }
+    })
+  }
+
+  /**
    * Add a new composite type to the schema.
    *
    * @param name - The name of the type.
    * @param fields - The fields to be included.
    */
   public type(name: string, fields: TypeFields): Type {
-    const type = Object.entries(fields).reduce(
-      (type, [name, definition]) => type.field(name, definition),
-      new Type(name)
-    )
+    const type = define.type(name, fields)
 
-    this.types.push(type)
+    this.addType(type)
 
     return type
+  }
+
+  /**
+   * Add an existing type to the schema.
+   *
+   * @param type - The type to add
+   */
+  private addType(type: Type) {
+    this.types.push(type)
   }
 
   /**
@@ -123,14 +158,20 @@ export class Graph {
    * @param fields - The fields to be included.
    */
   public interface(name: string, fields: InterfaceFields): Interface {
-    const iface = Object.entries(fields).reduce(
-      (iface, [name, definition]) => iface.field(name, definition),
-      new Interface(name)
-    )
+    const iface = define.interface(name, fields)
 
-    this.interfaces.push(iface)
+    this.addInterface(iface)
 
     return iface
+  }
+
+  /**
+   * Add an existing interface to the schema.
+   *
+   * @param iface - The interface to add
+   */
+  private addInterface(iface: Interface) {
+    this.interfaces.push(iface)
   }
 
   /**
@@ -140,14 +181,20 @@ export class Graph {
    * @param types - The types to be included.
    */
   public union(name: string, types: Record<string, Type>): Union {
-    const union = Object.entries(types).reduce(
-      (model, [_, type]) => model.type(type),
-      new Union(name)
-    )
+    const union = define.union(name, types)
 
-    this.unions.push(union)
+    this.addUnion(union)
 
     return union
+  }
+
+  /**
+   * Add an existing union to the schema.
+   *
+   * @param union - The union to add
+   */
+  private addUnion(union: Union) {
+    this.unions.push(union)
   }
 
   /**
@@ -157,21 +204,24 @@ export class Graph {
    * @param definition - The query definition.
    */
   public query(name: string, definition: QueryInput): Query {
-    const query = new Query(name, definition.returns, definition.resolver)
+    const query = define.query(name, definition)
 
-    if (definition.args != null) {
-      Object.entries(definition.args).forEach(([name, type]) =>
-        query.argument(name, type)
-      )
-    }
+    this.addQuery(query)
 
+    return query
+  }
+
+  /**
+   * Add an existing query to the schema.
+   *
+   * @param query - The query to add
+   */
+  private addQuery(query: Query) {
     if (!this.queries) {
       this.queries = new TypeExtension('Query')
     }
 
     this.queries.query(query)
-
-    return query
   }
 
   /**
@@ -181,22 +231,24 @@ export class Graph {
    * @param fields - The mutation definition.
    */
   public mutation(name: string, definition: QueryInput): Query {
-    const query = new Query(name, definition.returns, definition.resolver)
+    const mutation = define.mutation(name, definition)
 
-    if (definition.args != null) {
-      Object.entries(definition.args).forEach(
-        ([name, type]) => query.argument(name, type),
-        query
-      )
-    }
+    this.addMutation(mutation)
 
+    return mutation
+  }
+
+  /**
+   * Add an existing mutation to the schema.
+   *
+   * @param mutation - The mutation to add
+   */
+  private addMutation(mutation: Query) {
     if (!this.mutations) {
       this.mutations = new TypeExtension('Mutation')
     }
 
-    this.mutations.query(query)
-
-    return query
+    this.mutations.query(mutation)
   }
 
   /**
@@ -206,15 +258,20 @@ export class Graph {
    * @param fields = The input definition.
    */
   public input(name: string, definition: InputFields): Input {
-    const input = new Input(name)
+    const input = define.input(name, definition)
 
-    Object.entries(definition).forEach(([name, type]) => {
-      input.field(name, type)
-    })
-
-    this.inputs.push(input)
+    this.addInput(input)
 
     return input
+  }
+
+  /**
+   * Add an existing input to the schema.
+   *
+   * @param input - The input to add
+   */
+  private addInput(input: Input) {
+    this.inputs.push(input)
   }
 
   /**
@@ -227,122 +284,134 @@ export class Graph {
     name: string,
     variants: U
   ): Enum<T, U> {
-    const e = new Enum(name, variants)
-    this.enums.push(e)
+    const definition = define.enum(name, variants)
 
-    return e
+    this.addEnum(definition)
+
+    return definition
+  }
+
+  /**
+   * Add an existing enum to the schema.
+   *
+   * @param definition - The enum to add
+   */
+  private addEnum<T extends string, U extends EnumShape<T>>(
+    definition: Enum<T, U>
+  ) {
+    this.enums.push(definition)
   }
 
   /**
    * Create a new string field.
    */
   public string(): StringDefinition {
-    return new StringDefinition(FieldType.String)
+    return scalar.string()
   }
 
   /**
    * Create a new ID field.
    */
   public id(): StringDefinition {
-    return new StringDefinition(FieldType.ID)
+    return scalar.id()
   }
 
   /**
    * Create a new email field.
    */
   public email(): StringDefinition {
-    return new StringDefinition(FieldType.Email)
+    return scalar.email()
   }
 
   /**
    * Create a new int field.
    */
   public int(): NumberDefinition {
-    return new NumberDefinition(FieldType.Int)
+    return scalar.int()
   }
 
   /**
    * Create a new float field.
    */
   public float(): NumberDefinition {
-    return new NumberDefinition(FieldType.Float)
+    return scalar.float()
   }
 
   /**
    * Create a new boolean field.
    */
   public boolean(): BooleanDefinition {
-    return new BooleanDefinition(FieldType.Boolean)
+    return scalar.boolean()
   }
 
   /**
    * Create a new date field.
    */
   public date(): DateDefinition {
-    return new DateDefinition(FieldType.Date)
+    return scalar.date()
   }
 
   /**
    * Create a new datetime field.
    */
   public datetime(): DateDefinition {
-    return new DateDefinition(FieldType.DateTime)
+    return scalar.datetime()
   }
 
   /**
    * Create a new IP address field.
    */
   public ipAddress(): StringDefinition {
-    return new StringDefinition(FieldType.IPAddress)
+    return scalar.ipAddress()
   }
 
   /**
    * Create a new timestamp field.
    */
   public timestamp(): NumberDefinition {
-    return new NumberDefinition(FieldType.Timestamp)
+    return scalar.timestamp()
   }
 
   /**
    * Create a new URL field.
    */
   public url(): StringDefinition {
-    return new StringDefinition(FieldType.URL)
+    return scalar.url()
   }
 
   /**
    * Create a new JSON field.
    */
   public json(): ObjectDefinition {
-    return new ObjectDefinition(FieldType.JSON)
+    return scalar.json()
   }
 
   /**
    * Create a new phone number field.
    */
   public phoneNumber(): StringDefinition {
-    return new StringDefinition(FieldType.PhoneNumber)
+    return scalar.phoneNumber()
   }
 
   /**
    * Create a new decimal field.
    */
   public decimal(): StringDefinition {
-    return new StringDefinition(FieldType.Decimal)
+    return scalar.decimal()
   }
 
   /**
    * Create a new bytes field.
    */
   public bytes(): BytesDefinition {
-    return new BytesDefinition(FieldType.Bytes)
+    return scalar.bytes()
   }
 
   /**
    * Create a new bigint field.
    */
   public bigint(): BigIntDefinition {
-    return new BigIntDefinition(FieldType.BigInt)
+    return scalar.bigint()
   }
 
   /**
@@ -351,7 +420,7 @@ export class Graph {
    * @param type - A type to be referred.
    */
   public ref(type: Type | string): ReferenceDefinition {
-    return new ReferenceDefinition(type)
+    return define.ref(type)
   }
 
   /**
@@ -362,7 +431,7 @@ export class Graph {
   public enumRef<T extends string, U extends EnumShape<T>>(
     e: Enum<T, U>
   ): EnumDefinition<T, U> {
-    return new EnumDefinition(e)
+    return define.enumRef(e)
   }
 
   /**
@@ -371,7 +440,7 @@ export class Graph {
    * @param input - The input object reference.
    */
   public inputRef(input: Input): InputDefinition {
-    return new InputDefinition(input)
+    return define.inputRef(input)
   }
 
   /**
@@ -393,7 +462,7 @@ export class Graph {
       definitionOrBuilder(extension)
     } else {
       Object.entries(definitionOrBuilder).forEach(([name, input]) => {
-        const query = new Query(name, input.returns, input.resolver)
+        const query = new Query(name, input.returns, input.resolver, false)
 
         if (input.args != null) {
           Object.entries(input.args).forEach(([name, type]) =>
@@ -495,12 +564,14 @@ export class FederatedGraph {
     }
 
     if (input?.cache) {
-       this.cache = new GlobalCache({rules: input.cache.rules})
+      this.cache = new GlobalCache({ rules: input.cache.rules })
     }
   }
 
   public toString(): string {
-    return `\nextend schema\n  @graph(type: federated)${this.headers}\n${this.cache || ''}`
+    return `\nextend schema\n  @graph(type: federated)${this.headers}\n${
+      this.cache || ''
+    }`
   }
 }
 
