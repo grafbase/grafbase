@@ -291,7 +291,7 @@ impl UdfRuntime {
                         UdfWorkerStatus::BuildInProgress { notify } => {
                             // If the resolver build happening within another invocation has been cancelled
                             // due to the invocation having been interrupted by the HTTP client, start a new build.
-                            if Arc::strong_count(notify) == 1 {
+                            if Arc::strong_count(&notify) == 1 {
                                 notify.clone()
                             } else {
                                 let notify = notify.clone();

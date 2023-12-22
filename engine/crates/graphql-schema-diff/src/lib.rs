@@ -97,14 +97,31 @@ impl DiffState<'_> {
             union,
         } = self.definitions;
 
-        let mut changes: Vec<Change> = object
-            .added
-            .into_iter()
-            .map(|name| Change {
+        let top_level_changes = [
+            (object.added, ChangeKind::AddObjectType),
+            (object.removed, ChangeKind::RemoveObjectType),
+        ]
+        .into_iter()
+        .flat_map(|(items, kind)| {
+            items.into_iter().map(move |name| Change {
                 path: name.to_owned(),
-                kind: ChangeKind::AddedObjectType,
+                kind,
             })
-            .collect();
+        });
+
+        let second_level_changes = [
+            (self.fields.added, ChangeKind::AddField),
+            (self.fields.removed, ChangeKind::RemoveField),
+        ]
+        .into_iter()
+        .flat_map(|(items, kind)| {
+            items.into_iter().map(move |(parent, field)| Change {
+                path: [parent, field].join("."),
+                kind,
+            })
+        });
+
+        let mut changes = top_level_changes.chain(second_level_changes).collect::<Vec<_>>();
 
         changes.sort();
 
@@ -131,7 +148,7 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
     let mut fields_map: DiffMap<(&str, &str), Option<&ast::Type>> = HashMap::with_capacity(schema_size_approx);
     let mut arguments_map: DiffMap<(&str, &str, &str), Option<&ast::Type>> = HashMap::with_capacity(schema_size_approx);
 
-    for (idx, tpe) in source.definitions.iter().enumerate() {
+    for tpe in &source.definitions {
         match tpe {
             async_graphql_parser::types::TypeSystemDefinition::Schema(_) => todo!(),
             async_graphql_parser::types::TypeSystemDefinition::Type(tpe) => {
@@ -182,8 +199,8 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
 
                         for field in &input.fields {
                             insert_source(
-                                &mut arguments_map,
-                                (type_name, field.node.name.node.as_str(), "input"),
+                                &mut fields_map,
+                                (type_name, field.node.name.node.as_str()),
                                 Some(&field.node.ty.node),
                             );
                         }
@@ -194,7 +211,7 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
         }
     }
 
-    for (idx, tpe) in target.definitions.iter().enumerate() {
+    for tpe in &target.definitions {
         match tpe {
             async_graphql_parser::types::TypeSystemDefinition::Schema(_) => todo!(),
             async_graphql_parser::types::TypeSystemDefinition::Directive(_) => todo!(),
@@ -244,7 +261,7 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
 
                         for field in &input.fields {
                             merge_target(
-                                arguments_map.entry((type_name, field.node.name.node.as_str(), "input")),
+                                fields_map.entry((type_name, field.node.name.node.as_str())),
                                 Some(&field.node.ty.node),
                             );
                         }
@@ -267,7 +284,14 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
         }
     }
 
-    for (path @ (type_name, field_name), presence) in fields_map {}
+    for (path @ (type_name, field_name), presence) in fields_map {
+        match presence {
+            (None, None) => unreachable!(),
+            (None, Some(_)) => state.fields.added.push(path),
+            (Some(_), None) => state.fields.removed.push(path),
+            (Some(_), Some(_)) => (),
+        }
+    }
 
     Ok(state.into_changes())
 }

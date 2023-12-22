@@ -1,6 +1,11 @@
 #![allow(unused_crate_dependencies)]
 
-use std::{fs, path::Path};
+use std::{fs, path::Path, sync::OnceLock};
+
+fn update_expect() -> bool {
+    static UPDATE_EXPECT: OnceLock<bool> = OnceLock::new();
+    *UPDATE_EXPECT.get_or_init(|| std::env::var("UPDATE_EXPECT").is_ok())
+}
 
 fn run_test(case: &Path) -> datatest_stable::Result<()> {
     let schemas = fs::read_to_string(case)?;
@@ -8,10 +13,15 @@ fn run_test(case: &Path) -> datatest_stable::Result<()> {
     let source = schemas.next().expect("Can't find first schema in test case.");
     let target = schemas.next().expect("Can't find second schema in test case.");
 
-    dbg!(source, target);
-    let diff = format!("{:#?}", graphql_schema_diff::diff(source, target));
+    let diff = serde_json::to_string_pretty(&graphql_schema_diff::diff(source, target).unwrap()).unwrap();
 
-    let snapshot_file_path = case.with_extension("diff.snapshot");
+    let snapshot_file_path = case.with_extension("snapshot.json");
+
+    if update_expect() {
+        fs::write(&snapshot_file_path, &diff).unwrap();
+        return Ok(());
+    }
+
     let snapshot = fs::read_to_string(&snapshot_file_path).unwrap_or_default();
 
     if snapshot != diff {

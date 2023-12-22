@@ -1,0 +1,10 @@
+
+type Nothing
+
+type Locust {
+  id: ID!
+}
+
+# --- #
+
+type Nothing

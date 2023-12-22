@@ -1,0 +1,14 @@
+[
+  {
+    "path": "CatInHat.whimsicalQuote",
+    "kind": "AddField"
+  },
+  {
+    "path": "CreateSeussCharacterInput.favoriteRhyme",
+    "kind": "AddField"
+  },
+  {
+    "path": "SeussCharacter.whimsicalQuote",
+    "kind": "AddField"
+  }
+]

@@ -1,0 +1,38 @@
+
+# An interface representing a generic Dr. Seuss character
+interface SeussCharacter {
+  id: ID!
+  name: String!
+}
+
+# A specific object implementing the SeussCharacter interface, representing the Cat in the Hat
+type CatInHat implements SeussCharacter {
+  id: ID!
+  name: String!
+  hatStripes: Int!
+}
+
+# An input object used when creating a new character in the world of Dr. Seuss
+input CreateSeussCharacterInput {
+  name: String!
+}
+
+# --- #
+
+interface SeussCharacter {
+  id: ID!
+  name: String!
+  whimsicalQuote: String!
+}
+
+type CatInHat implements SeussCharacter {
+  id: ID!
+  name: String!
+  whimsicalQuote: String!
+  hatStripes: Int!
+}
+
+input CreateSeussCharacterInput {
+  name: String!
+  favoriteRhyme: String!
+}

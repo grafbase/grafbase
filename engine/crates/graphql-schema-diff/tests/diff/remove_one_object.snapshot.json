@@ -1,0 +1,10 @@
+[
+  {
+    "path": "Locust",
+    "kind": "RemoveObjectType"
+  },
+  {
+    "path": "Locust.id",
+    "kind": "RemoveField"
+  }
+]

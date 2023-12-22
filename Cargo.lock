@@ -2530,6 +2530,8 @@ dependencies = [
  "async-graphql-value 6.0.11",
  "datatest-stable",
  "miette",
+ "serde",
+ "serde_json",
  "similar",
 ]
 

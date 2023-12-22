@@ -1,4 +1,5 @@
 #[derive(Clone, Eq, PartialEq, Hash, Ord, PartialOrd, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Change {
     // /!\ The order of fields matters for the PartialOrd derive /!\
     pub path: String,
@@ -6,10 +7,13 @@ pub struct Change {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u8)]
 pub enum ChangeKind {
     // /!\ The order of variants matters for the PartialOrd derive /!\
-    RemovedObjectType,
-    AddedObjectType,
-    FieldTypeChanged,
+    RemoveObjectType,
+    AddObjectType,
+    ChangeFieldType,
+    RemoveField,
+    AddField,
 }
