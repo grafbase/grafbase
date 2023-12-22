@@ -2,30 +2,14 @@ use crate::*;
 
 pub(crate) fn traverse_schemas<'a>([source, target]: [&'a ast::ServiceDocument; 2], state: &mut DiffState<'a>) {
     let schema_size_approx = source.definitions.len().max(target.definitions.len());
+    state.types_map.reserve(schema_size_approx);
+    state.fields_map.reserve(schema_size_approx);
 
-    let mut types_map: DiffMap<&str, DefinitionKind> = HashMap::with_capacity(schema_size_approx);
-    let mut fields_map: DiffMap<[&str; 2], Option<&ast::Type>> = HashMap::with_capacity(schema_size_approx);
-    let mut arguments_map: DiffMap<[&str; 3], (&ast::Type, Option<&ConstValue>)> =
-        HashMap::with_capacity(schema_size_approx);
+    traverse_source(source, state);
+    traverse_target(target, state);
 
-    traverse_source(source, &mut types_map, &mut fields_map, &mut arguments_map, state);
-    traverse_target(target, &mut types_map, &mut fields_map, &mut arguments_map, state);
-
-    for (name, entries) in &types_map {
-        match entries {
-            (None, None) => unreachable!(),
-            (None, Some(kind)) => state.push_added_type(name, *kind),
-            (Some(kind), None) => state.push_removed_type(name, *kind),
-            (Some(a), Some(b)) if a != b => {
-                state.push_removed_type(name, *a);
-                state.push_added_type(name, *b);
-            }
-            (Some(_), Some(_)) => (),
-        }
-    }
-
-    for (path @ [type_name, _field_name], (src, target)) in &fields_map {
-        let parent = &types_map[type_name];
+    for (path @ [type_name, _field_name], (src, target)) in &state.fields_map {
+        let parent = &state.types_map[type_name];
         let parent_is_gone = || matches!(parent, (Some(_), None));
 
         if matches!(parent, (Some(a), Some(b)) if a != b) {
@@ -64,8 +48,9 @@ pub(crate) fn traverse_schemas<'a>([source, target]: [&'a ast::ServiceDocument; 
         }
     }
 
-    for (path @ [type_name, field_name, _arg_name], (src, target)) in arguments_map {
-        let parent_is_gone = || matches!(&fields_map[&[type_name, field_name]], (Some(_), None));
+    for (path @ [type_name, field_name, _arg_name], (src, target)) in &state.arguments_map {
+        let path = *path;
+        let parent_is_gone = || matches!(&state.fields_map[&[*type_name, *field_name]], (Some(_), None));
 
         match (src, target) {
             (None, None) => unreachable!(),
@@ -88,93 +73,16 @@ pub(crate) fn traverse_schemas<'a>([source, target]: [&'a ast::ServiceDocument; 
     }
 }
 
-fn traverse_source<'a>(
-    source: &'a ast::ServiceDocument,
-    types_map: &mut DiffMap<&'a str, DefinitionKind>,
-    fields_map: &mut DiffMap<[&'a str; 2], Option<&'a ast::Type>>,
-    arguments_map: &mut DiffMap<[&'a str; 3], (&'a ast::Type, Option<&'a ConstValue>)>,
-    state: &mut DiffState<'a>,
-) {
+fn traverse_source<'a>(source: &'a ast::ServiceDocument, state: &mut DiffState<'a>) {
     for tpe in &source.definitions {
         match tpe {
             async_graphql_parser::types::TypeSystemDefinition::Schema(def) => {
                 state.schema_definition_map.0 = Some(&def.node);
             }
             async_graphql_parser::types::TypeSystemDefinition::Directive(directive_def) => {
-                insert_source(types_map, &directive_def.node.name.node, DefinitionKind::Directive);
-            }
-            async_graphql_parser::types::TypeSystemDefinition::Type(tpe) => {
-                let type_name = tpe.node.name.node.as_str();
-
-                match &tpe.node.kind {
-                    ast::TypeKind::Scalar => {
-                        types_map.insert(type_name, (Some(DefinitionKind::Scalar), None));
-                    }
-                    ast::TypeKind::Object(obj) => {
-                        types_map.insert(type_name, (Some(DefinitionKind::Object), None));
-
-                        for field in &obj.fields {
-                            let field_name = field.node.name.node.as_str();
-
-                            insert_source(fields_map, [type_name, field_name], Some(&field.node.ty.node));
-
-                            args_src(arguments_map, type_name, field_name, &field.node.arguments);
-                        }
-                    }
-                    ast::TypeKind::Interface(iface) => {
-                        types_map.insert(type_name, (Some(DefinitionKind::Interface), None));
-
-                        for field in &iface.fields {
-                            let field_name = field.node.name.node.as_str();
-
-                            insert_source(fields_map, [type_name, field_name], Some(&field.node.ty.node));
-
-                            args_src(arguments_map, type_name, field_name, &field.node.arguments);
-                        }
-                    }
-                    ast::TypeKind::Union(union) => {
-                        types_map.insert(type_name, (Some(DefinitionKind::Union), None));
-
-                        for member in &union.members {
-                            insert_source(fields_map, [type_name, member.node.as_str()], None);
-                        }
-                    }
-                    ast::TypeKind::Enum(enm) => {
-                        types_map.insert(type_name, (Some(DefinitionKind::Enum), None));
-
-                        for value in &enm.values {
-                            insert_source(fields_map, [type_name, value.node.value.node.as_str()], None);
-                        }
-                    }
-                    ast::TypeKind::InputObject(input) => {
-                        types_map.insert(type_name, (Some(DefinitionKind::InputObject), None));
-
-                        for field in &input.fields {
-                            let field_name = field.node.name.node.as_str();
-                            insert_source(fields_map, [type_name, field_name], Some(&field.node.ty.node));
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-fn traverse_target<'a>(
-    target: &'a ast::ServiceDocument,
-    types_map: &mut DiffMap<&'a str, DefinitionKind>,
-    fields_map: &mut DiffMap<[&'a str; 2], Option<&'a ast::Type>>,
-    arguments_map: &mut DiffMap<[&'a str; 3], (&'a ast::Type, Option<&'a ConstValue>)>,
-    state: &mut DiffState<'a>,
-) {
-    for tpe in &target.definitions {
-        match tpe {
-            async_graphql_parser::types::TypeSystemDefinition::Schema(def) => {
-                state.schema_definition_map.1 = Some(&def.node);
-            }
-            async_graphql_parser::types::TypeSystemDefinition::Directive(directive_def) => {
-                merge_target(
-                    types_map.entry(&directive_def.node.name.node),
+                insert_source(
+                    &mut state.types_map,
+                    &directive_def.node.name.node,
                     DefinitionKind::Directive,
                 );
             }
@@ -183,48 +91,142 @@ fn traverse_target<'a>(
 
                 match &tpe.node.kind {
                     ast::TypeKind::Scalar => {
-                        types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Scalar);
+                        state.types_map.insert(type_name, (Some(DefinitionKind::Scalar), None));
                     }
                     ast::TypeKind::Object(obj) => {
-                        types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Object);
+                        state.types_map.insert(type_name, (Some(DefinitionKind::Object), None));
 
                         for field in &obj.fields {
                             let field_name = field.node.name.node.as_str();
 
-                            merge_target(fields_map.entry([type_name, field_name]), Some(&field.node.ty.node));
-                            args_target(arguments_map, type_name, field_name, &field.node.arguments);
+                            insert_source(
+                                &mut state.fields_map,
+                                [type_name, field_name],
+                                Some(&field.node.ty.node),
+                            );
+
+                            args_src(&mut state.arguments_map, type_name, field_name, &field.node.arguments);
                         }
                     }
                     ast::TypeKind::Interface(iface) => {
-                        types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Interface);
+                        state
+                            .types_map
+                            .insert(type_name, (Some(DefinitionKind::Interface), None));
 
                         for field in &iface.fields {
                             let field_name = field.node.name.node.as_str();
 
-                            merge_target(fields_map.entry([type_name, field_name]), Some(&field.node.ty.node));
-                            args_target(arguments_map, type_name, field_name, &field.node.arguments);
+                            insert_source(
+                                &mut state.fields_map,
+                                [type_name, field_name],
+                                Some(&field.node.ty.node),
+                            );
+
+                            args_src(&mut state.arguments_map, type_name, field_name, &field.node.arguments);
                         }
                     }
                     ast::TypeKind::Union(union) => {
-                        types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Union);
+                        state.types_map.insert(type_name, (Some(DefinitionKind::Union), None));
 
                         for member in &union.members {
-                            merge_target(fields_map.entry([type_name, member.node.as_str()]), None);
+                            insert_source(&mut state.fields_map, [type_name, member.node.as_str()], None);
                         }
                     }
                     ast::TypeKind::Enum(enm) => {
-                        types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Enum);
+                        state.types_map.insert(type_name, (Some(DefinitionKind::Enum), None));
 
                         for value in &enm.values {
-                            merge_target(fields_map.entry([type_name, value.node.value.node.as_str()]), None);
+                            insert_source(&mut state.fields_map, [type_name, value.node.value.node.as_str()], None);
                         }
                     }
                     ast::TypeKind::InputObject(input) => {
-                        types_map.entry(type_name).or_default().1 = Some(DefinitionKind::InputObject);
+                        state
+                            .types_map
+                            .insert(type_name, (Some(DefinitionKind::InputObject), None));
+
+                        for field in &input.fields {
+                            let field_name = field.node.name.node.as_str();
+                            insert_source(
+                                &mut state.fields_map,
+                                [type_name, field_name],
+                                Some(&field.node.ty.node),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn traverse_target<'a>(target: &'a ast::ServiceDocument, state: &mut DiffState<'a>) {
+    for tpe in &target.definitions {
+        match tpe {
+            async_graphql_parser::types::TypeSystemDefinition::Schema(def) => {
+                state.schema_definition_map.1 = Some(&def.node);
+            }
+            async_graphql_parser::types::TypeSystemDefinition::Directive(directive_def) => {
+                merge_target(
+                    state.types_map.entry(&directive_def.node.name.node),
+                    DefinitionKind::Directive,
+                );
+            }
+            async_graphql_parser::types::TypeSystemDefinition::Type(tpe) => {
+                let type_name = tpe.node.name.node.as_str();
+
+                match &tpe.node.kind {
+                    ast::TypeKind::Scalar => {
+                        state.types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Scalar);
+                    }
+                    ast::TypeKind::Object(obj) => {
+                        state.types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Object);
+
+                        for field in &obj.fields {
+                            let field_name = field.node.name.node.as_str();
+
+                            merge_target(
+                                state.fields_map.entry([type_name, field_name]),
+                                Some(&field.node.ty.node),
+                            );
+                            args_target(&mut state.arguments_map, type_name, field_name, &field.node.arguments);
+                        }
+                    }
+                    ast::TypeKind::Interface(iface) => {
+                        state.types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Interface);
+
+                        for field in &iface.fields {
+                            let field_name = field.node.name.node.as_str();
+
+                            merge_target(
+                                state.fields_map.entry([type_name, field_name]),
+                                Some(&field.node.ty.node),
+                            );
+                            args_target(&mut state.arguments_map, type_name, field_name, &field.node.arguments);
+                        }
+                    }
+                    ast::TypeKind::Union(union) => {
+                        state.types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Union);
+
+                        for member in &union.members {
+                            merge_target(state.fields_map.entry([type_name, member.node.as_str()]), None);
+                        }
+                    }
+                    ast::TypeKind::Enum(enm) => {
+                        state.types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Enum);
+
+                        for value in &enm.values {
+                            merge_target(
+                                state.fields_map.entry([type_name, value.node.value.node.as_str()]),
+                                None,
+                            );
+                        }
+                    }
+                    ast::TypeKind::InputObject(input) => {
+                        state.types_map.entry(type_name).or_default().1 = Some(DefinitionKind::InputObject);
 
                         for field in &input.fields {
                             merge_target(
-                                fields_map.entry([type_name, field.node.name.node.as_str()]),
+                                state.fields_map.entry([type_name, field.node.name.node.as_str()]),
                                 Some(&field.node.ty.node),
                             );
                         }

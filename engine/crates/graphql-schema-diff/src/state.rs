@@ -1,6 +1,4 @@
-use crate::{Change, ChangeKind};
-use async_graphql_parser::types as ast;
-use std::collections::HashMap;
+use crate::*;
 
 pub(crate) type DiffMap<K, V> = HashMap<K, (Option<V>, Option<V>)>;
 
@@ -12,7 +10,6 @@ pub(crate) struct AddedRemoved<T> {
 
 #[derive(Default)]
 pub(crate) struct DiffState<'a> {
-    pub(crate) definitions: Definitions<'a>,
     pub(crate) fields: AddedRemoved<Vec<[&'a str; 2]>>,
     pub(crate) enum_variants: AddedRemoved<Vec<[&'a str; 2]>>,
     pub(crate) union_members: AddedRemoved<Vec<[&'a str; 2]>>,
@@ -21,7 +18,11 @@ pub(crate) struct DiffState<'a> {
     pub(crate) argument_default_changed: Vec<[&'a str; 3]>,
     pub(crate) argument_type_changed: Vec<[&'a str; 3]>,
     pub(crate) field_type_changed: Vec<[&'a str; 2]>,
+
     pub(crate) schema_definition_map: (Option<&'a ast::SchemaDefinition>, Option<&'a ast::SchemaDefinition>),
+    pub(crate) types_map: DiffMap<&'a str, DefinitionKind>,
+    pub(crate) fields_map: DiffMap<[&'a str; 2], Option<&'a ast::Type>>,
+    pub(crate) arguments_map: DiffMap<[&'a str; 3], (&'a ast::Type, Option<&'a ConstValue>)>,
 }
 
 macro_rules! definition_kinds {
@@ -34,30 +35,6 @@ macro_rules! definition_kinds {
                 )*
             }
 
-            #[derive(Default)]
-            pub(crate) struct Definitions<'a> {
-                $(
-                    pub(crate) $snake: AddedRemoved<Vec<&'a str>>,
-                )*
-            }
-
-            impl<'a> DiffState<'a> {
-                pub(crate) fn push_added_type(&mut self, name: &'a str, kind: DefinitionKind) {
-                    match kind {
-                        $(
-                            DefinitionKind::$camel => self.definitions.$snake.added.push(name),
-                        )*
-                    }
-                }
-
-                pub(crate) fn push_removed_type(&mut self, name: &'a str, kind: DefinitionKind) {
-                    match kind {
-                        $(
-                            DefinitionKind::$camel => self.definitions.$snake.removed.push(name),
-                        )*
-                    }
-                }
-            }
     }
 }
 
@@ -74,16 +51,6 @@ definition_kinds! {
 impl DiffState<'_> {
     pub(crate) fn into_changes(self) -> Vec<Change> {
         let DiffState {
-            definitions:
-                Definitions {
-                    directive,
-                    r#enum,
-                    input_object,
-                    interface,
-                    object,
-                    scalar,
-                    union,
-                },
             fields,
             enum_variants,
             union_members,
@@ -92,38 +59,18 @@ impl DiffState<'_> {
             argument_default_changed,
             field_type_changed,
             argument_type_changed,
+
             schema_definition_map,
+            types_map,
+            fields_map,
+            arguments_map,
         } = self;
 
         let mut changes = Vec::new();
 
         push_schema_definition_changes(schema_definition_map, &mut changes);
 
-        changes.extend(
-            [
-                (object.added, ChangeKind::AddObjectType),
-                (object.removed, ChangeKind::RemoveObjectType),
-                (union.added, ChangeKind::AddUnion),
-                (union.removed, ChangeKind::RemoveUnion),
-                (r#enum.added, ChangeKind::AddEnum),
-                (r#enum.removed, ChangeKind::RemoveEnum),
-                (scalar.added, ChangeKind::AddScalar),
-                (scalar.removed, ChangeKind::RemoveScalar),
-                (interface.added, ChangeKind::AddInterface),
-                (interface.removed, ChangeKind::RemoveInterface),
-                (directive.added, ChangeKind::AddDirectiveDefinition),
-                (directive.removed, ChangeKind::RemoveDirectiveDefinition),
-                (input_object.added, ChangeKind::AddInputObject),
-                (input_object.removed, ChangeKind::RemoveInputObject),
-            ]
-            .into_iter()
-            .flat_map(|(items, kind)| {
-                items.into_iter().map(move |name| Change {
-                    path: name.to_owned(),
-                    kind,
-                })
-            }),
-        );
+        push_definition_changes(types_map, &mut changes);
 
         changes.extend(
             [
@@ -166,6 +113,58 @@ impl DiffState<'_> {
 
         changes
     }
+}
+
+fn push_definition_changes(
+    types_map: HashMap<&str, (Option<DefinitionKind>, Option<DefinitionKind>)>,
+    changes: &mut Vec<Change>,
+) {
+    for (name, entries) in &types_map {
+        match entries {
+            (None, None) => unreachable!(),
+            (None, Some(kind)) => push_added_type(name, *kind, changes),
+            (Some(kind), None) => push_removed_type(name, *kind, changes),
+            (Some(a), Some(b)) if a != b => {
+                push_removed_type(name, *a, changes);
+                push_added_type(name, *b, changes);
+            }
+            (Some(_), Some(_)) => (),
+        }
+    }
+}
+
+fn push_added_type(name: &str, kind: DefinitionKind, changes: &mut Vec<Change>) {
+    let change_kind = match kind {
+        DefinitionKind::Directive => ChangeKind::AddDirectiveDefinition,
+        DefinitionKind::Enum => ChangeKind::AddEnum,
+        DefinitionKind::InputObject => ChangeKind::AddInputObject,
+        DefinitionKind::Interface => ChangeKind::AddInterface,
+        DefinitionKind::Object => ChangeKind::AddObjectType,
+        DefinitionKind::Scalar => ChangeKind::AddScalar,
+        DefinitionKind::Union => ChangeKind::AddUnion,
+    };
+
+    changes.push(Change {
+        path: name.to_owned(),
+        kind: change_kind,
+    });
+}
+
+fn push_removed_type(name: &str, kind: DefinitionKind, changes: &mut Vec<Change>) {
+    let change_kind = match kind {
+        DefinitionKind::Directive => ChangeKind::RemoveDirectiveDefinition,
+        DefinitionKind::Enum => ChangeKind::RemoveEnum,
+        DefinitionKind::InputObject => ChangeKind::RemoveInputObject,
+        DefinitionKind::Interface => ChangeKind::RemoveInterface,
+        DefinitionKind::Object => ChangeKind::RemoveObjectType,
+        DefinitionKind::Scalar => ChangeKind::RemoveScalar,
+        DefinitionKind::Union => ChangeKind::RemoveUnion,
+    };
+
+    changes.push(Change {
+        path: name.to_owned(),
+        kind: change_kind,
+    });
 }
 
 fn push_schema_definition_changes(
