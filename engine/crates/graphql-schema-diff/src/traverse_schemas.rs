@@ -8,45 +8,6 @@ pub(crate) fn traverse_schemas<'a>([source, target]: [&'a ast::ServiceDocument; 
     traverse_source(source, state);
     traverse_target(target, state);
 
-    for (path @ [type_name, _field_name], (src, target)) in &state.fields_map {
-        let parent = &state.types_map[type_name];
-        let parent_is_gone = || matches!(parent, (Some(_), None));
-
-        if matches!(parent, (Some(a), Some(b)) if a != b) {
-            continue; // so we don't falsely interpret same name as field type change
-        }
-
-        let kind = match parent {
-            (None, None) => unreachable!(),
-            (Some(kind), None) | (None, Some(kind)) => *kind,
-            (Some(kind), Some(_)) => *kind,
-        };
-
-        match (src, target, kind) {
-            (None, None, _) | (_, _, DefinitionKind::Scalar | DefinitionKind::Directive) => {
-                unreachable!()
-            }
-            (None, Some(_), DefinitionKind::Object | DefinitionKind::Interface | DefinitionKind::InputObject) => {
-                state.fields.added.push(*path)
-            }
-            (None, Some(_), DefinitionKind::Enum) => state.enum_variants.added.push(*path),
-            (Some(_), None, DefinitionKind::Enum) if !parent_is_gone() => state.enum_variants.removed.push(*path),
-            (None, Some(_), DefinitionKind::Union) => state.union_members.added.push(*path),
-            (Some(_), None, DefinitionKind::Union) if !parent_is_gone() => state.union_members.removed.push(*path),
-            (Some(_), None, DefinitionKind::Object | DefinitionKind::Interface | DefinitionKind::InputObject)
-                if !parent_is_gone() =>
-            {
-                state.fields.removed.push(*path)
-            }
-            (
-                Some(ty_a),
-                Some(ty_b),
-                DefinitionKind::Object | DefinitionKind::InputObject | DefinitionKind::Interface,
-            ) if ty_a != ty_b => state.field_type_changed.push(*path),
-            (Some(_), None, _) => (),
-            (Some(_), Some(_), _) => (),
-        }
-    }
 
     for (path @ [type_name, field_name, _arg_name], (src, target)) in &state.arguments_map {
         let path = *path;

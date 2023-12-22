@@ -68,28 +68,12 @@ impl DiffState<'_> {
 
         let mut changes = Vec::new();
 
+        // TODO interface implementers
         push_schema_definition_changes(schema_definition_map, &mut changes);
 
-        push_definition_changes(types_map, &mut changes);
+        push_definition_changes(&types_map, &mut changes);
 
-        changes.extend(
-            [
-                (fields.added, ChangeKind::AddField),
-                (fields.removed, ChangeKind::RemoveField),
-                (field_type_changed, ChangeKind::ChangeFieldType),
-                (enum_variants.added, ChangeKind::AddEnumValue),
-                (enum_variants.removed, ChangeKind::RemoveEnumValue),
-                (union_members.added, ChangeKind::AddUnionMember),
-                (union_members.removed, ChangeKind::RemoveUnionMember),
-            ]
-            .into_iter()
-            .flat_map(|(items, kind)| {
-                items.into_iter().map(move |path| Change {
-                    path: path.join("."),
-                    kind,
-                })
-            }),
-        );
+        push_field_changes(&fields_map, &types_map, &mut changes);
 
         changes.extend(
             [
@@ -115,11 +99,64 @@ impl DiffState<'_> {
     }
 }
 
-fn push_definition_changes(
-    types_map: HashMap<&str, (Option<DefinitionKind>, Option<DefinitionKind>)>,
+fn push_field_changes(
+    fields_map: &DiffMap<[&str; 2], Option<&ast::Type>>,
+    types_map: &DiffMap<&str, DefinitionKind>,
     changes: &mut Vec<Change>,
 ) {
-    for (name, entries) in &types_map {
+    for (path @ [type_name, _field_name], (src, target)) in fields_map {
+        let parent = &types_map[type_name];
+        let parent_is_gone = || matches!(parent, (Some(_), None));
+
+        if matches!(parent, (Some(a), Some(b)) if a != b) {
+            continue; // so we don't falsely interpret same name as field type change
+        }
+
+        let definition_kind = match parent {
+            (None, None) => unreachable!(),
+            (Some(kind), None) | (None, Some(kind)) => *kind,
+            (Some(kind), Some(_)) => *kind,
+        };
+
+        let change_kind = match (src, target, definition_kind) {
+            (None, None, _) | (_, _, DefinitionKind::Scalar | DefinitionKind::Directive) => {
+                unreachable!()
+            }
+            (None, Some(_), DefinitionKind::Object | DefinitionKind::Interface | DefinitionKind::InputObject) => {
+                Some(ChangeKind::AddField)
+            }
+            (None, Some(_), DefinitionKind::Enum) => Some(ChangeKind::AddEnumValue),
+            (Some(_), None, DefinitionKind::Enum) if !parent_is_gone() => Some(ChangeKind::RemoveEnumValue),
+            (None, Some(_), DefinitionKind::Union) => Some(ChangeKind::AddUnionMember),
+            (Some(_), None, DefinitionKind::Union) if !parent_is_gone() => Some(ChangeKind::RemoveUnionMember),
+            (Some(_), None, DefinitionKind::Object | DefinitionKind::Interface | DefinitionKind::InputObject)
+                if !parent_is_gone() =>
+            {
+                Some(ChangeKind::RemoveField)
+            }
+            (
+                Some(ty_a),
+                Some(ty_b),
+                DefinitionKind::Object | DefinitionKind::InputObject | DefinitionKind::Interface,
+            ) if ty_a != ty_b => Some(ChangeKind::ChangeFieldType),
+            (Some(_), None, _) => None,
+            (Some(_), Some(_), _) => None,
+        };
+
+        if let Some(kind) = change_kind {
+            changes.push(Change {
+                path: path.join("."),
+                kind,
+            });
+        }
+    }
+}
+
+fn push_definition_changes(
+    types_map: &HashMap<&str, (Option<DefinitionKind>, Option<DefinitionKind>)>,
+    changes: &mut Vec<Change>,
+) {
+    for (name, entries) in types_map {
         match entries {
             (None, None) => unreachable!(),
             (None, Some(kind)) => push_added_type(name, *kind, changes),
