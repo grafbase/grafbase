@@ -32,6 +32,12 @@ pub struct ValidationResult {
 
     /// Query depth
     pub depth: usize,
+
+    /// Query height
+    pub height: usize,
+
+    /// Root fields in the query
+    pub root_field_count: usize,
 }
 
 /// Validation mode
@@ -55,6 +61,8 @@ pub fn check_rules(
     let mut cache_invalidation_policies = Default::default();
     let mut complexity = 0;
     let mut depth = 0;
+    let mut root_field_count: usize = 0;
+    let mut height: usize = 0;
 
     match mode {
         ValidationMode::Strict => {
@@ -86,7 +94,9 @@ pub fn check_rules(
                     invalidation_policies: &mut cache_invalidation_policies,
                 })
                 .with(visitors::ComplexityCalculate::new(&mut complexity))
-                .with(visitors::DepthCalculate::new(&mut depth));
+                .with(visitors::DepthCalculate::new(&mut depth))
+                .with(visitors::HeightCalculate::new(&mut height))
+                .with(visitors::RootFieldCountCalculate::new(&mut root_field_count));
 
             visit(&mut visitor, &mut ctx, doc);
         }
@@ -114,5 +124,7 @@ pub fn check_rules(
         cache_invalidation_policies,
         complexity,
         depth,
+        root_field_count,
+        height,
     })
 }

@@ -30,8 +30,6 @@ pub struct SchemaBuilder {
     validation_mode: ValidationMode,
     registry: Registry,
     data: Data,
-    complexity: Option<usize>,
-    depth: Option<usize>,
     extensions: Vec<Box<dyn ExtensionFactory>>,
 }
 
@@ -58,20 +56,6 @@ impl SchemaBuilder {
     #[must_use]
     pub fn disable_introspection(mut self) -> Self {
         self.registry.disable_introspection = true;
-        self
-    }
-
-    /// Set the maximum complexity a query can have. By default, there is no limit.
-    #[must_use]
-    pub fn limit_complexity(mut self, complexity: usize) -> Self {
-        self.complexity = Some(complexity);
-        self
-    }
-
-    /// Set the maximum depth a query can have. By default, there is no limit.
-    #[must_use]
-    pub fn limit_depth(mut self, depth: usize) -> Self {
-        self.depth = Some(depth);
         self
     }
 
@@ -154,8 +138,10 @@ impl SchemaBuilder {
 
         Schema(Arc::new(SchemaInner {
             validation_mode: self.validation_mode,
-            complexity: self.complexity,
-            depth: self.depth,
+            max_complexity: self.registry.operation_limts.complexity.map(From::from),
+            max_depth: self.registry.operation_limts.depth.map(From::from),
+            max_root_field_count: self.registry.operation_limts.root_fields.map(From::from),
+            max_height: self.registry.operation_limts.height.map(From::from),
             extensions: self.extensions,
             env: SchemaEnv(Arc::new(SchemaEnvInner {
                 registry: self.registry,
@@ -186,8 +172,10 @@ impl Deref for SchemaEnv {
 #[doc(hidden)]
 pub struct SchemaInner {
     pub(crate) validation_mode: ValidationMode,
-    pub(crate) complexity: Option<usize>,
-    pub(crate) depth: Option<usize>,
+    pub(crate) max_complexity: Option<usize>,
+    pub(crate) max_depth: Option<usize>,
+    pub(crate) max_root_field_count: Option<usize>,
+    pub(crate) max_height: Option<usize>,
     pub(crate) extensions: Vec<Box<dyn ExtensionFactory>>,
     pub(crate) env: SchemaEnv,
 }
@@ -228,8 +216,6 @@ impl Schema {
             validation_mode: ValidationMode::Strict,
             registry,
             data: Default::default(),
-            complexity: None,
-            depth: None,
             extensions: Default::default(),
         }
     }
@@ -440,16 +426,28 @@ impl Schema {
             extensions.validation(&mut validation_fut).await?
         };
 
-        // check limit
-        if let Some(limit_complexity) = self.complexity {
+        // Check limits.
+        if let Some(limit_complexity) = self.max_complexity {
             if validation_result.complexity > limit_complexity {
                 return Err(vec![ServerError::new("Query is too complex.", None)]);
             }
         }
 
-        if let Some(limit_depth) = self.depth {
+        if let Some(limit_depth) = self.max_depth {
             if validation_result.depth > limit_depth {
                 return Err(vec![ServerError::new("Query is nested too deep.", None)]);
+            }
+        }
+
+        if let Some(height) = self.max_height {
+            if validation_result.height > height {
+                return Err(vec![ServerError::new("Query is too high.", None)]);
+            }
+        }
+
+        if let Some(root_field_count) = self.max_root_field_count {
+            if validation_result.root_field_count > root_field_count {
+                return Err(vec![ServerError::new("Query has too many root fields.", None)]);
             }
         }
 
