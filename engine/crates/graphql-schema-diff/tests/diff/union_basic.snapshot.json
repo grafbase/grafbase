@@ -3,18 +3,6 @@
     {
       "kind": "RemoveUnion",
       "path": "Color"
-    },
-    {
-      "kind": "RemoveUnionMember",
-      "path": "Color.Blue"
-    },
-    {
-      "kind": "RemoveUnionMember",
-      "path": "Color.Green"
-    },
-    {
-      "kind": "RemoveUnionMember",
-      "path": "Color.Red"
     }
   ],
   "target → src": [

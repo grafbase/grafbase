@@ -7,14 +7,6 @@
     {
       "kind": "RemoveEnum",
       "path": "People"
-    },
-    {
-      "kind": "RemoveEnumValue",
-      "path": "People.CAT"
-    },
-    {
-      "kind": "RemoveEnumValue",
-      "path": "People.DOG"
     }
   ],
   "target → src": [

@@ -13,10 +13,6 @@
     {
       "kind": "RemoveObjectType",
       "path": "Locust"
-    },
-    {
-      "kind": "RemoveField",
-      "path": "Locust.id"
     }
   ]
 }

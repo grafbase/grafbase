@@ -342,8 +342,10 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
         }
     }
 
-    for (path @ [type_name, _field_name], (src, target)) in fields_map {
-        let kind = match &types_map[type_name] {
+    for (path @ [type_name, _field_name], (src, target)) in &fields_map {
+        let parent = &types_map[type_name];
+        let parent_is_gone = || matches!(parent, (Some(_), None));
+        let kind = match parent {
             (None, None) => unreachable!(),
             (Some(kind), None) | (None, Some(kind)) => *kind,
             (Some(kind), Some(_)) => *kind,
@@ -354,29 +356,35 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
                 unreachable!()
             }
             (None, Some(_), DefinitionKind::Object | DefinitionKind::Interface | DefinitionKind::InputObject) => {
-                state.fields.added.push(path)
+                state.fields.added.push(*path)
             }
-            (None, Some(_), DefinitionKind::Enum) => state.enum_variants.added.push(path),
-            (Some(_), None, DefinitionKind::Enum) => state.enum_variants.removed.push(path),
-            (None, Some(_), DefinitionKind::Union) => state.union_members.added.push(path),
-            (Some(_), None, DefinitionKind::Union) => state.union_members.removed.push(path),
-            (Some(_), None, DefinitionKind::Object | DefinitionKind::Interface | DefinitionKind::InputObject) => {
-                state.fields.removed.push(path)
+            (None, Some(_), DefinitionKind::Enum) => state.enum_variants.added.push(*path),
+            (Some(_), None, DefinitionKind::Enum) if !parent_is_gone() => state.enum_variants.removed.push(*path),
+            (None, Some(_), DefinitionKind::Union) => state.union_members.added.push(*path),
+            (Some(_), None, DefinitionKind::Union) if !parent_is_gone() => state.union_members.removed.push(*path),
+            (Some(_), None, DefinitionKind::Object | DefinitionKind::Interface | DefinitionKind::InputObject)
+                if !parent_is_gone() =>
+            {
+                state.fields.removed.push(*path)
             }
             (
                 Some(ty_a),
                 Some(ty_b),
                 DefinitionKind::Object | DefinitionKind::InputObject | DefinitionKind::Interface,
-            ) if ty_a != ty_b => state.field_type_changed.push(path),
+            ) if ty_a != ty_b => state.field_type_changed.push(*path),
+            (Some(_), None, _) => (),
             (Some(_), Some(_), _) => (),
         }
     }
 
-    for (path, (src, target)) in arguments_map {
+    for (path @ [type_name, field_name, _arg_name], (src, target)) in arguments_map {
+        let parent_is_gone = || matches!(&fields_map[&[type_name, field_name]], (Some(_), None));
+
         match (src, target) {
             (None, None) => unreachable!(),
             (None, Some(_)) => state.arguments.added.push(path),
-            (Some(_), None) => state.arguments.removed.push(path),
+            (Some(_), None) if !parent_is_gone() => state.arguments.removed.push(path),
+            (Some(_), None) => (),
             (Some((src_type, src_default)), Some((target_type, target_default))) => {
                 if src_type != target_type {
                     state.argument_type_changed.push(path);
