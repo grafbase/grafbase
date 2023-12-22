@@ -36,4 +36,8 @@ pub enum ChangeKind {
     RemoveInputObject,
     AddFieldArgument,
     RemoveFieldArgument,
+    AddFieldArgumentDefault,
+    RemoveFieldArgumentDefault,
+    ChangeFieldArgumentDefault,
+    ChangeFieldArgumentType,
 }

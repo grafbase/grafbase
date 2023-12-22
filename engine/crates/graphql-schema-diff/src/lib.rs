@@ -5,6 +5,7 @@ mod change;
 pub use change::{Change, ChangeKind};
 
 use async_graphql_parser::{types as ast, Positioned};
+use async_graphql_value::ConstValue;
 use std::{
     collections::{hash_map::Entry, HashMap},
     hash::Hash,
@@ -26,12 +27,17 @@ fn merge_target<K, V>(entry: Entry<'_, K, (Option<V>, Option<V>)>, target: V) {
     entry.or_default().1 = Some(target);
 }
 
+#[derive(Default)]
 struct DiffState<'a> {
     definitions: Definitions<'a>,
-    fields: AddedRemoved<Vec<(&'a str, &'a str)>>,
-    enum_variants: AddedRemoved<Vec<(&'a str, &'a str)>>,
-    union_members: AddedRemoved<Vec<(&'a str, &'a str)>>,
+    fields: AddedRemoved<Vec<[&'a str; 2]>>,
+    enum_variants: AddedRemoved<Vec<[&'a str; 2]>>,
+    union_members: AddedRemoved<Vec<[&'a str; 2]>>,
     arguments: AddedRemoved<Vec<[&'a str; 3]>>,
+    argument_default_values: AddedRemoved<Vec<[&'a str; 3]>>,
+    argument_default_changed: Vec<[&'a str; 3]>,
+    argument_type_changed: Vec<[&'a str; 3]>,
+    field_type_changed: Vec<[&'a str; 2]>,
 }
 
 macro_rules! definition_kinds {
@@ -100,6 +106,10 @@ impl DiffState<'_> {
             enum_variants,
             union_members,
             arguments,
+            argument_default_values,
+            argument_default_changed,
+            field_type_changed,
+            argument_type_changed,
         } = self;
 
         let top_level_changes = [
@@ -131,6 +141,7 @@ impl DiffState<'_> {
         let second_level_changes = [
             (fields.added, ChangeKind::AddField),
             (fields.removed, ChangeKind::RemoveField),
+            (field_type_changed, ChangeKind::ChangeFieldType),
             (enum_variants.added, ChangeKind::AddEnumValue),
             (enum_variants.removed, ChangeKind::RemoveEnumValue),
             (union_members.added, ChangeKind::AddUnionMember),
@@ -138,23 +149,27 @@ impl DiffState<'_> {
         ]
         .into_iter()
         .flat_map(|(items, kind)| {
-            items.into_iter().map(move |(parent, field)| Change {
-                path: [parent, field].join("."),
+            items.into_iter().map(move |path| Change {
+                path: path.join("."),
                 kind,
             })
         });
 
-        let arguments = arguments
-            .added
-            .into_iter()
-            .map(|path| Change {
-                path: path.join("."),
-                kind: ChangeKind::AddFieldArgument,
+        let arguments = [
+            (arguments.added, ChangeKind::AddFieldArgument),
+            (arguments.removed, ChangeKind::RemoveFieldArgument),
+            (argument_default_values.added, ChangeKind::AddFieldArgumentDefault),
+            (argument_default_values.removed, ChangeKind::RemoveFieldArgumentDefault),
+            (argument_default_changed, ChangeKind::ChangeFieldArgumentDefault),
+            (argument_type_changed, ChangeKind::ChangeFieldArgumentType),
+        ]
+        .into_iter()
+        .flat_map(|(items, kind)| {
+            items.into_iter().map(move |[parent, field, argument]| Change {
+                path: [parent, field, argument].join("."),
+                kind,
             })
-            .chain(arguments.removed.into_iter().map(|path| Change {
-                path: path.join("."),
-                kind: ChangeKind::RemoveFieldArgument,
-            }));
+        });
 
         let mut changes = top_level_changes
             .chain(second_level_changes)
@@ -170,19 +185,15 @@ impl DiffState<'_> {
 pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_parser::Error> {
     let source = async_graphql_parser::parse_schema(source)?;
     let target = async_graphql_parser::parse_schema(target)?;
-    let mut state = DiffState {
-        definitions: Default::default(),
-        fields: Default::default(),
-        enum_variants: Default::default(),
-        union_members: Default::default(),
-        arguments: Default::default(),
-    };
+
+    let mut state = DiffState::default();
 
     let schema_size_approx = source.definitions.len().max(target.definitions.len());
 
     let mut types_map: DiffMap<&str, DefinitionKind> = HashMap::with_capacity(schema_size_approx);
-    let mut fields_map: DiffMap<(&str, &str), Option<&ast::Type>> = HashMap::with_capacity(schema_size_approx);
-    let mut arguments_map: DiffMap<[&str; 3], &ast::Type> = HashMap::with_capacity(schema_size_approx);
+    let mut fields_map: DiffMap<[&str; 2], Option<&ast::Type>> = HashMap::with_capacity(schema_size_approx);
+    let mut arguments_map: DiffMap<[&str; 3], (&ast::Type, Option<&ConstValue>)> =
+        HashMap::with_capacity(schema_size_approx);
 
     for tpe in &source.definitions {
         match tpe {
@@ -205,7 +216,7 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
                         for field in &obj.fields {
                             let field_name = field.node.name.node.as_str();
 
-                            insert_source(&mut fields_map, (type_name, field_name), Some(&field.node.ty.node));
+                            insert_source(&mut fields_map, [type_name, field_name], Some(&field.node.ty.node));
 
                             args_src(&mut arguments_map, type_name, field_name, &field.node.arguments);
                         }
@@ -216,7 +227,7 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
                         for field in &iface.fields {
                             let field_name = field.node.name.node.as_str();
 
-                            insert_source(&mut fields_map, (type_name, field_name), Some(&field.node.ty.node));
+                            insert_source(&mut fields_map, [type_name, field_name], Some(&field.node.ty.node));
 
                             args_src(&mut arguments_map, type_name, field_name, &field.node.arguments);
                         }
@@ -225,14 +236,14 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
                         types_map.insert(type_name, (Some(DefinitionKind::Union), None));
 
                         for member in &union.members {
-                            insert_source(&mut fields_map, (type_name, member.node.as_str()), None);
+                            insert_source(&mut fields_map, [type_name, member.node.as_str()], None);
                         }
                     }
                     ast::TypeKind::Enum(enm) => {
                         types_map.insert(type_name, (Some(DefinitionKind::Enum), None));
 
                         for value in &enm.values {
-                            insert_source(&mut fields_map, (type_name, value.node.value.node.as_str()), None);
+                            insert_source(&mut fields_map, [type_name, value.node.value.node.as_str()], None);
                         }
                     }
                     ast::TypeKind::InputObject(input) => {
@@ -241,7 +252,7 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
                         for field in &input.fields {
                             insert_source(
                                 &mut fields_map,
-                                (type_name, field.node.name.node.as_str()),
+                                [type_name, field.node.name.node.as_str()],
                                 Some(&field.node.ty.node),
                             );
                         }
@@ -268,7 +279,7 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
                         for field in &obj.fields {
                             let field_name = field.node.name.node.as_str();
 
-                            merge_target(fields_map.entry((type_name, field_name)), Some(&field.node.ty.node));
+                            merge_target(fields_map.entry([type_name, field_name]), Some(&field.node.ty.node));
                             args_target(&mut arguments_map, type_name, field_name, &field.node.arguments);
                         }
                     }
@@ -278,7 +289,7 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
                         for field in &iface.fields {
                             let field_name = field.node.name.node.as_str();
 
-                            merge_target(fields_map.entry((type_name, field_name)), Some(&field.node.ty.node));
+                            merge_target(fields_map.entry([type_name, field_name]), Some(&field.node.ty.node));
                             args_target(&mut arguments_map, type_name, field_name, &field.node.arguments);
                         }
                     }
@@ -286,14 +297,14 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
                         types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Union);
 
                         for member in &union.members {
-                            merge_target(fields_map.entry((type_name, member.node.as_str())), None);
+                            merge_target(fields_map.entry([type_name, member.node.as_str()]), None);
                         }
                     }
                     ast::TypeKind::Enum(enm) => {
                         types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Enum);
 
                         for value in &enm.values {
-                            merge_target(fields_map.entry((type_name, value.node.value.node.as_str())), None);
+                            merge_target(fields_map.entry([type_name, value.node.value.node.as_str()]), None);
                         }
                     }
                     ast::TypeKind::InputObject(input) => {
@@ -301,7 +312,7 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
 
                         for field in &input.fields {
                             merge_target(
-                                fields_map.entry((type_name, field.node.name.node.as_str())),
+                                fields_map.entry([type_name, field.node.name.node.as_str()]),
                                 Some(&field.node.ty.node),
                             );
                         }
@@ -324,7 +335,7 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
         }
     }
 
-    for (path @ (type_name, _field_name), (src, target)) in fields_map {
+    for (path @ [type_name, _field_name], (src, target)) in fields_map {
         let kind = match &types_map[type_name] {
             (None, None) => unreachable!(),
             (Some(kind), None) | (None, Some(kind)) => *kind,
@@ -345,6 +356,11 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
             (Some(_), None, DefinitionKind::Object | DefinitionKind::Interface | DefinitionKind::InputObject) => {
                 state.fields.removed.push(path)
             }
+            (
+                Some(ty_a),
+                Some(ty_b),
+                DefinitionKind::Object | DefinitionKind::InputObject | DefinitionKind::Interface,
+            ) if ty_a != ty_b => state.field_type_changed.push(path),
             (Some(_), Some(_), _) => (),
         }
     }
@@ -354,7 +370,18 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
             (None, None) => unreachable!(),
             (None, Some(_)) => state.arguments.added.push(path),
             (Some(_), None) => state.arguments.removed.push(path),
-            (Some(_), Some(_)) => (),
+            (Some((src_type, src_default)), Some((target_type, target_default))) => {
+                if src_type != target_type {
+                    state.argument_type_changed.push(path);
+                }
+
+                match (src_default, target_default) {
+                    (None, Some(_)) => state.argument_default_values.added.push(path),
+                    (Some(_), None) => state.argument_default_values.removed.push(path),
+                    (Some(a), Some(b)) if a != b => state.argument_default_changed.push(path),
+                    _ => (),
+                }
+            }
         }
     }
 
@@ -362,18 +389,22 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
 }
 
 fn args_src<'a>(
-    arguments_map: &mut DiffMap<[&'a str; 3], &'a ast::Type>,
+    arguments_map: &mut DiffMap<[&'a str; 3], (&'a ast::Type, Option<&'a ConstValue>)>,
     parent: &'a str,
     field: &'a str,
     args: &'a [Positioned<ast::InputValueDefinition>],
 ) {
     for arg in args {
-        insert_source(arguments_map, [parent, field, &arg.node.name.node], &arg.node.ty.node)
+        insert_source(
+            arguments_map,
+            [parent, field, &arg.node.name.node],
+            (&arg.node.ty.node, arg.node.default_value.as_ref().map(|pos| &pos.node)),
+        )
     }
 }
 
 fn args_target<'a>(
-    arguments_map: &mut DiffMap<[&'a str; 3], &'a ast::Type>,
+    arguments_map: &mut DiffMap<[&'a str; 3], (&'a ast::Type, Option<&'a ConstValue>)>,
     parent: &'a str,
     field: &'a str,
     args: &'a [Positioned<ast::InputValueDefinition>],
@@ -381,7 +412,7 @@ fn args_target<'a>(
     for arg in args {
         merge_target(
             arguments_map.entry([parent, field, &arg.node.name.node]),
-            &arg.node.ty.node,
+            (&arg.node.ty.node, arg.node.default_value.as_ref().map(|pos| &pos.node)),
         )
     }
 }
