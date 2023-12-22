@@ -2524,7 +2524,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-schema-diff"
-version = "0.52.0"
+version = "0.52.1"
 dependencies = [
  "async-graphql-parser 6.0.11",
  "async-graphql-value 6.0.11",
