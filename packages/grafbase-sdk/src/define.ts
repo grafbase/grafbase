@@ -10,7 +10,7 @@ import { Union } from './union'
 
 export default {
   /**
-   * Creates a new composite type.
+   * Creates a new object type.
    *
    * @param name - The name of the type.
    * @param fields - The fields to be included.
