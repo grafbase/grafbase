@@ -8,8 +8,8 @@ pub(crate) fn traverse_schemas<'a>([source, target]: [&'a ast::ServiceDocument; 
     let mut arguments_map: DiffMap<[&str; 3], (&ast::Type, Option<&ConstValue>)> =
         HashMap::with_capacity(schema_size_approx);
 
-    traverse_source(source, &mut types_map, &mut fields_map, &mut arguments_map);
-    traverse_target(target, &mut types_map, &mut fields_map, &mut arguments_map);
+    traverse_source(source, &mut types_map, &mut fields_map, &mut arguments_map, state);
+    traverse_target(target, &mut types_map, &mut fields_map, &mut arguments_map, state);
 
     for (name, entries) in &types_map {
         match entries {
@@ -27,6 +27,11 @@ pub(crate) fn traverse_schemas<'a>([source, target]: [&'a ast::ServiceDocument; 
     for (path @ [type_name, _field_name], (src, target)) in &fields_map {
         let parent = &types_map[type_name];
         let parent_is_gone = || matches!(parent, (Some(_), None));
+
+        if matches!(parent, (Some(a), Some(b)) if a != b) {
+            continue; // so we don't falsely interpret same name as field type change
+        }
+
         let kind = match parent {
             (None, None) => unreachable!(),
             (Some(kind), None) | (None, Some(kind)) => *kind,
@@ -34,7 +39,7 @@ pub(crate) fn traverse_schemas<'a>([source, target]: [&'a ast::ServiceDocument; 
         };
 
         match (src, target, kind) {
-            (None, None, _) | (_, _, DefinitionKind::Scalar | DefinitionKind::Schema | DefinitionKind::Directive) => {
+            (None, None, _) | (_, _, DefinitionKind::Scalar | DefinitionKind::Directive) => {
                 unreachable!()
             }
             (None, Some(_), DefinitionKind::Object | DefinitionKind::Interface | DefinitionKind::InputObject) => {
@@ -88,11 +93,12 @@ fn traverse_source<'a>(
     types_map: &mut DiffMap<&'a str, DefinitionKind>,
     fields_map: &mut DiffMap<[&'a str; 2], Option<&'a ast::Type>>,
     arguments_map: &mut DiffMap<[&'a str; 3], (&'a ast::Type, Option<&'a ConstValue>)>,
+    state: &mut DiffState<'a>,
 ) {
     for tpe in &source.definitions {
         match tpe {
-            async_graphql_parser::types::TypeSystemDefinition::Schema(_) => {
-                insert_source(types_map, ".", DefinitionKind::Schema)
+            async_graphql_parser::types::TypeSystemDefinition::Schema(def) => {
+                state.schema_definition_map.0 = Some(&def.node);
             }
             async_graphql_parser::types::TypeSystemDefinition::Directive(directive_def) => {
                 insert_source(types_map, &directive_def.node.name.node, DefinitionKind::Directive);
@@ -159,11 +165,12 @@ fn traverse_target<'a>(
     types_map: &mut DiffMap<&'a str, DefinitionKind>,
     fields_map: &mut DiffMap<[&'a str; 2], Option<&'a ast::Type>>,
     arguments_map: &mut DiffMap<[&'a str; 3], (&'a ast::Type, Option<&'a ConstValue>)>,
+    state: &mut DiffState<'a>,
 ) {
     for tpe in &target.definitions {
         match tpe {
-            async_graphql_parser::types::TypeSystemDefinition::Schema(_) => {
-                merge_target(types_map.entry("."), DefinitionKind::Schema)
+            async_graphql_parser::types::TypeSystemDefinition::Schema(def) => {
+                state.schema_definition_map.1 = Some(&def.node);
             }
             async_graphql_parser::types::TypeSystemDefinition::Directive(directive_def) => {
                 merge_target(
@@ -185,7 +192,7 @@ fn traverse_target<'a>(
                             let field_name = field.node.name.node.as_str();
 
                             merge_target(fields_map.entry([type_name, field_name]), Some(&field.node.ty.node));
-                            args_target( arguments_map, type_name, field_name, &field.node.arguments);
+                            args_target(arguments_map, type_name, field_name, &field.node.arguments);
                         }
                     }
                     ast::TypeKind::Interface(iface) => {
@@ -195,7 +202,7 @@ fn traverse_target<'a>(
                             let field_name = field.node.name.node.as_str();
 
                             merge_target(fields_map.entry([type_name, field_name]), Some(&field.node.ty.node));
-                            args_target( arguments_map, type_name, field_name, &field.node.arguments);
+                            args_target(arguments_map, type_name, field_name, &field.node.arguments);
                         }
                     }
                     ast::TypeKind::Union(union) => {
@@ -264,5 +271,3 @@ fn insert_source<K: Hash + Eq, V>(map: &mut DiffMap<K, V>, key: K, source: V) {
 fn merge_target<K, V>(entry: Entry<'_, K, (Option<V>, Option<V>)>, target: V) {
     entry.or_default().1 = Some(target);
 }
-
-type DiffMap<K, V> = HashMap<K, (Option<V>, Option<V>)>;

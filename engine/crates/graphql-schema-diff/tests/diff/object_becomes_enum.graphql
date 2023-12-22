@@ -1,0 +1,13 @@
+type Color {
+    red: Int
+    green: Int
+    blue: Int
+}
+
+# --- #
+
+enum Color {
+    red
+    green
+    blue
+}
