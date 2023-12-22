@@ -28,7 +28,7 @@ impl<'a> PaginationContext<'a> {
 pub(super) fn paginate(
     ctx: PaginationContext<'_>,
     order_by: Option<&[JsonMap]>,
-    documents: &Vec<serde_json::Value>,
+    documents: &[serde_json::Value],
     documents_fetched: usize,
 ) -> Result<ResolvedPaginationInfo, Error> {
     let start_cursor = documents

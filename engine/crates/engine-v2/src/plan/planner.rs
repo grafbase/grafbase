@@ -91,7 +91,7 @@ impl<'op> Planner<'op> {
     pub fn generate_plans(
         &mut self,
         boundary: PlanBoundary,
-        response_boundary: &Vec<ResponseBoundaryItem>,
+        response_boundary: &[ResponseBoundaryItem],
     ) -> PlanningResult<Vec<Plan>> {
         if response_boundary.is_empty() {
             return Ok(vec![]);
@@ -102,8 +102,10 @@ impl<'op> Planner<'op> {
             .filter_map(|mut child| {
                 // we could certainly be smarter and avoids copies with an Arc.
                 let response_boundary = match (boundary.selection_set_type, child.root_selection_set.ty) {
-                    (SelectionSetType::Object(_), _) => response_boundary.clone(),
-                    (SelectionSetType::Interface(a), EntityType::Interface(b)) if a == b => response_boundary.clone(),
+                    (SelectionSetType::Object(_), _) => response_boundary.to_owned(),
+                    (SelectionSetType::Interface(a), EntityType::Interface(b)) if a == b => {
+                        response_boundary.to_owned()
+                    }
                     (_, EntityType::Interface(id)) => {
                         let possible_types = &self.schema[id].possible_types;
                         response_boundary
