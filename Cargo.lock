@@ -2529,7 +2529,6 @@ dependencies = [
  "async-graphql-parser 6.0.11",
  "async-graphql-value 6.0.11",
  "datatest-stable",
- "indexmap 2.0.0-pre",
  "miette",
  "similar",
 ]

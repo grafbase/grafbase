@@ -1,15 +1,14 @@
 #![allow(unused_crate_dependencies)]
 
-mod change_enum;
+mod change;
+
+pub use change::{Change, ChangeKind};
 
 use async_graphql_parser::types as ast;
-use indexmap::IndexSet;
 use std::{
     collections::{hash_map::Entry, HashMap},
     hash::Hash,
 };
-
-type Paths = Box<[usize]>;
 
 type DiffMap<K, V> = HashMap<K, (Option<V>, Option<V>)>;
 
@@ -27,26 +26,10 @@ fn merge_target<K, V>(entry: Entry<'_, K, (Option<V>, Option<V>)>, target: V) {
     entry.or_default().1 = Some(target);
 }
 
-#[derive(Debug, Default)]
-pub struct Diff {
-    objects: AddedRemoved<Paths>,
-    fields: AddedRemoved<Paths>,
-    arguments: AddedRemoved<Paths>,
-    enum_variants: AddedRemoved<Paths>,
-    union_members: AddedRemoved<Paths>,
-    path_segments: IndexSet<Box<str>>,
-}
-
-#[derive(Debug, Default)]
-struct DefinitionDiff {
-    added: Paths,
-    removed: Paths,
-}
-
 struct DiffState<'a> {
     source: &'a ast::ServiceDocument,
     target: &'a ast::ServiceDocument,
-    definitions: AddedRemoved<Definitions<'a>>,
+    definitions: Definitions<'a>,
     fields: AddedRemoved<Vec<(&'a str, &'a str)>>,
     enum_variants: AddedRemoved<Vec<(&'a str, &'a str)>>,
     union_members: AddedRemoved<Vec<(&'a str, &'a str)>>,
@@ -66,7 +49,7 @@ macro_rules! definition_kinds {
             #[derive(Default)]
             struct Definitions<'a> {
                 $(
-                    $snake: Vec<&'a str>,
+                    $snake: AddedRemoved<Vec<&'a str>>,
                 )*
             }
 
@@ -74,7 +57,7 @@ macro_rules! definition_kinds {
                 fn push_added_type(&mut self, name: &'a str, kind: DefinitionKind) {
                     match kind {
                         $(
-                            DefinitionKind::$camel => self.definitions.added.$snake.push(name),
+                            DefinitionKind::$camel => self.definitions.$snake.added.push(name),
                         )*
                     }
                 }
@@ -82,7 +65,7 @@ macro_rules! definition_kinds {
                 fn push_removed_type(&mut self, name: &'a str, kind: DefinitionKind) {
                     match kind {
                         $(
-                            DefinitionKind::$camel => self.definitions.removed.$snake.push(name),
+                            DefinitionKind::$camel => self.definitions.$snake.removed.push(name),
                         )*
                     }
                 }
@@ -102,42 +85,34 @@ definition_kinds! {
 }
 
 impl DiffState<'_> {
-    fn into_diff(self) -> Diff {
-        let mut path_segments = IndexSet::new();
-        let mut insert_segment = |segment: &str| match path_segments.get_full(segment) {
-            Some((idx, _)) => idx,
-            None => path_segments.insert_full(segment.to_owned().into_boxed_str()).0,
-        };
+    fn into_changes(self) -> Vec<Change> {
+        let Definitions {
+            directive,
+            r#enum,
+            input_object,
+            interface,
+            object,
+            scalar,
+            schema,
+            union,
+        } = self.definitions;
 
-        Diff {
-            objects: AddedRemoved {
-                added: self
-                    .definitions
-                    .added
-                    .object
-                    .into_iter()
-                    .map(|name| insert_segment(name))
-                    .collect::<Vec<_>>()
-                    .into_boxed_slice(),
-                removed: self
-                    .definitions
-                    .removed
-                    .object
-                    .into_iter()
-                    .map(|name| insert_segment(name))
-                    .collect::<Vec<_>>()
-                    .into_boxed_slice(),
-            },
-            fields: Default::default(),
-            arguments: Default::default(),
-            enum_variants: Default::default(),
-            union_members: Default::default(),
-            path_segments,
-        }
+        let mut changes: Vec<Change> = object
+            .added
+            .into_iter()
+            .map(|name| Change {
+                path: name.to_owned(),
+                kind: ChangeKind::AddedObjectType,
+            })
+            .collect();
+
+        changes.sort();
+
+        changes
     }
 }
 
-pub fn diff(source: &str, target: &str) -> Result<Diff, async_graphql_parser::Error> {
+pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_parser::Error> {
     let source = async_graphql_parser::parse_schema(source)?;
     let target = async_graphql_parser::parse_schema(target)?;
     let mut state = DiffState {
@@ -294,5 +269,5 @@ pub fn diff(source: &str, target: &str) -> Result<Diff, async_graphql_parser::Er
 
     for (path @ (type_name, field_name), presence) in fields_map {}
 
-    Ok(state.into_diff())
+    Ok(state.into_changes())
 }

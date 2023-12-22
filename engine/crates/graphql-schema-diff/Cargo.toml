@@ -10,7 +10,6 @@ repository.workspace = true
 [dependencies]
 async-graphql-parser = "6"
 async-graphql-value = "6"
-indexmap.workspace = true
 
 [lints]
 workspace = true
