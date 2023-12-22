@@ -264,8 +264,15 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
 
     for tpe in &target.definitions {
         match tpe {
-            async_graphql_parser::types::TypeSystemDefinition::Schema(_) => todo!(),
-            async_graphql_parser::types::TypeSystemDefinition::Directive(_) => todo!(),
+            async_graphql_parser::types::TypeSystemDefinition::Schema(_) => {
+                merge_target(types_map.entry("."), DefinitionKind::Schema)
+            }
+            async_graphql_parser::types::TypeSystemDefinition::Directive(directive_def) => {
+                merge_target(
+                    types_map.entry(&directive_def.node.name.node),
+                    DefinitionKind::Directive,
+                );
+            }
             async_graphql_parser::types::TypeSystemDefinition::Type(tpe) => {
                 let type_name = tpe.node.name.node.as_str();
 
