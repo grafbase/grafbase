@@ -13,7 +13,14 @@ fn run_test(case: &Path) -> datatest_stable::Result<()> {
     let source = schemas.next().expect("Can't find first schema in test case.");
     let target = schemas.next().expect("Can't find second schema in test case.");
 
-    let diff = serde_json::to_string_pretty(&graphql_schema_diff::diff(source, target).unwrap()).unwrap();
+    let forward_diff = graphql_schema_diff::diff(source, target).unwrap();
+    let backward_diff = graphql_schema_diff::diff(target, source).unwrap();
+
+    let diff = serde_json::to_string_pretty(&serde_json::json!({
+        "src → target": forward_diff,
+        "target → src": backward_diff,
+    }))
+    .unwrap();
 
     let snapshot_file_path = case.with_extension("snapshot.json");
 

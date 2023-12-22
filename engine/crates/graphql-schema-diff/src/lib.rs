@@ -4,7 +4,7 @@ mod change;
 
 pub use change::{Change, ChangeKind};
 
-use async_graphql_parser::types as ast;
+use async_graphql_parser::{types as ast, Positioned};
 use std::{
     collections::{hash_map::Entry, HashMap},
     hash::Hash,
@@ -27,13 +27,11 @@ fn merge_target<K, V>(entry: Entry<'_, K, (Option<V>, Option<V>)>, target: V) {
 }
 
 struct DiffState<'a> {
-    source: &'a ast::ServiceDocument,
-    target: &'a ast::ServiceDocument,
     definitions: Definitions<'a>,
     fields: AddedRemoved<Vec<(&'a str, &'a str)>>,
     enum_variants: AddedRemoved<Vec<(&'a str, &'a str)>>,
     union_members: AddedRemoved<Vec<(&'a str, &'a str)>>,
-    arguments: AddedRemoved<Vec<(&'a str, &'a str, &'a str)>>,
+    arguments: AddedRemoved<Vec<[&'a str; 3]>>,
 }
 
 macro_rules! definition_kinds {
@@ -86,20 +84,41 @@ definition_kinds! {
 
 impl DiffState<'_> {
     fn into_changes(self) -> Vec<Change> {
-        let Definitions {
-            directive,
-            r#enum,
-            input_object,
-            interface,
-            object,
-            scalar,
-            schema,
-            union,
-        } = self.definitions;
+        let DiffState {
+            definitions:
+                Definitions {
+                    directive,
+                    r#enum,
+                    input_object,
+                    interface,
+                    object,
+                    scalar,
+                    schema,
+                    union,
+                },
+            fields,
+            enum_variants,
+            union_members,
+            arguments,
+        } = self;
 
         let top_level_changes = [
             (object.added, ChangeKind::AddObjectType),
             (object.removed, ChangeKind::RemoveObjectType),
+            (union.added, ChangeKind::AddUnion),
+            (union.removed, ChangeKind::RemoveUnion),
+            (r#enum.added, ChangeKind::AddEnum),
+            (r#enum.removed, ChangeKind::RemoveEnum),
+            (scalar.added, ChangeKind::AddScalar),
+            (scalar.removed, ChangeKind::RemoveScalar),
+            (interface.added, ChangeKind::AddInterface),
+            (interface.removed, ChangeKind::RemoveInterface),
+            (directive.added, ChangeKind::AddDirectiveDefinition),
+            (directive.removed, ChangeKind::RemoveDirectiveDefinition),
+            (schema.added, ChangeKind::AddSchemaDefinition),
+            (schema.removed, ChangeKind::RemoveSchemaDefinition),
+            (input_object.added, ChangeKind::AddInputObject),
+            (input_object.removed, ChangeKind::RemoveInputObject),
         ]
         .into_iter()
         .flat_map(|(items, kind)| {
@@ -110,8 +129,12 @@ impl DiffState<'_> {
         });
 
         let second_level_changes = [
-            (self.fields.added, ChangeKind::AddField),
-            (self.fields.removed, ChangeKind::RemoveField),
+            (fields.added, ChangeKind::AddField),
+            (fields.removed, ChangeKind::RemoveField),
+            (enum_variants.added, ChangeKind::AddEnumValue),
+            (enum_variants.removed, ChangeKind::RemoveEnumValue),
+            (union_members.added, ChangeKind::AddUnionMember),
+            (union_members.removed, ChangeKind::RemoveUnionMember),
         ]
         .into_iter()
         .flat_map(|(items, kind)| {
@@ -121,7 +144,22 @@ impl DiffState<'_> {
             })
         });
 
-        let mut changes = top_level_changes.chain(second_level_changes).collect::<Vec<_>>();
+        let arguments = arguments
+            .added
+            .into_iter()
+            .map(|path| Change {
+                path: path.join("."),
+                kind: ChangeKind::AddFieldArgument,
+            })
+            .chain(arguments.removed.into_iter().map(|path| Change {
+                path: path.join("."),
+                kind: ChangeKind::RemoveFieldArgument,
+            }));
+
+        let mut changes = top_level_changes
+            .chain(second_level_changes)
+            .chain(arguments)
+            .collect::<Vec<_>>();
 
         changes.sort();
 
@@ -133,8 +171,6 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
     let source = async_graphql_parser::parse_schema(source)?;
     let target = async_graphql_parser::parse_schema(target)?;
     let mut state = DiffState {
-        source: &source,
-        target: &target,
         definitions: Default::default(),
         fields: Default::default(),
         enum_variants: Default::default(),
@@ -146,11 +182,16 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
 
     let mut types_map: DiffMap<&str, DefinitionKind> = HashMap::with_capacity(schema_size_approx);
     let mut fields_map: DiffMap<(&str, &str), Option<&ast::Type>> = HashMap::with_capacity(schema_size_approx);
-    let mut arguments_map: DiffMap<(&str, &str, &str), Option<&ast::Type>> = HashMap::with_capacity(schema_size_approx);
+    let mut arguments_map: DiffMap<[&str; 3], &ast::Type> = HashMap::with_capacity(schema_size_approx);
 
     for tpe in &source.definitions {
         match tpe {
-            async_graphql_parser::types::TypeSystemDefinition::Schema(_) => todo!(),
+            async_graphql_parser::types::TypeSystemDefinition::Schema(_) => {
+                insert_source(&mut types_map, ".", DefinitionKind::Schema)
+            }
+            async_graphql_parser::types::TypeSystemDefinition::Directive(directive_def) => {
+                insert_source(&mut types_map, &directive_def.node.name.node, DefinitionKind::Directive);
+            }
             async_graphql_parser::types::TypeSystemDefinition::Type(tpe) => {
                 let type_name = tpe.node.name.node.as_str();
 
@@ -162,22 +203,22 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
                         types_map.insert(type_name, (Some(DefinitionKind::Object), None));
 
                         for field in &obj.fields {
-                            insert_source(
-                                &mut fields_map,
-                                (type_name, field.node.name.node.as_str()),
-                                Some(&field.node.ty.node),
-                            );
+                            let field_name = field.node.name.node.as_str();
+
+                            insert_source(&mut fields_map, (type_name, field_name), Some(&field.node.ty.node));
+
+                            args_src(&mut arguments_map, type_name, field_name, &field.node.arguments);
                         }
                     }
                     ast::TypeKind::Interface(iface) => {
                         types_map.insert(type_name, (Some(DefinitionKind::Interface), None));
 
                         for field in &iface.fields {
-                            insert_source(
-                                &mut fields_map,
-                                (type_name, field.node.name.node.as_str()),
-                                Some(&field.node.ty.node),
-                            );
+                            let field_name = field.node.name.node.as_str();
+
+                            insert_source(&mut fields_map, (type_name, field_name), Some(&field.node.ty.node));
+
+                            args_src(&mut arguments_map, type_name, field_name, &field.node.arguments);
                         }
                     }
                     ast::TypeKind::Union(union) => {
@@ -207,7 +248,6 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
                     }
                 }
             }
-            async_graphql_parser::types::TypeSystemDefinition::Directive(_) => todo!(),
         }
     }
 
@@ -226,20 +266,20 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
                         types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Object);
 
                         for field in &obj.fields {
-                            merge_target(
-                                fields_map.entry((type_name, field.node.name.node.as_str())),
-                                Some(&field.node.ty.node),
-                            );
+                            let field_name = field.node.name.node.as_str();
+
+                            merge_target(fields_map.entry((type_name, field_name)), Some(&field.node.ty.node));
+                            args_target(&mut arguments_map, type_name, field_name, &field.node.arguments);
                         }
                     }
                     ast::TypeKind::Interface(iface) => {
                         types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Interface);
 
                         for field in &iface.fields {
-                            merge_target(
-                                fields_map.entry((type_name, field.node.name.node.as_str())),
-                                Some(&field.node.ty.node),
-                            );
+                            let field_name = field.node.name.node.as_str();
+
+                            merge_target(fields_map.entry((type_name, field_name)), Some(&field.node.ty.node));
+                            args_target(&mut arguments_map, type_name, field_name, &field.node.arguments);
                         }
                     }
                     ast::TypeKind::Union(union) => {
@@ -284,14 +324,64 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_par
         }
     }
 
-    for (path @ (type_name, field_name), presence) in fields_map {
-        match presence {
+    for (path @ (type_name, _field_name), (src, target)) in fields_map {
+        let kind = match &types_map[type_name] {
             (None, None) => unreachable!(),
-            (None, Some(_)) => state.fields.added.push(path),
-            (Some(_), None) => state.fields.removed.push(path),
+            (Some(kind), None) | (None, Some(kind)) => *kind,
+            (Some(kind), Some(_)) => *kind,
+        };
+
+        match (src, target, kind) {
+            (None, None, _) | (_, _, DefinitionKind::Scalar | DefinitionKind::Schema | DefinitionKind::Directive) => {
+                unreachable!()
+            }
+            (None, Some(_), DefinitionKind::Object | DefinitionKind::Interface | DefinitionKind::InputObject) => {
+                state.fields.added.push(path)
+            }
+            (None, Some(_), DefinitionKind::Enum) => state.enum_variants.added.push(path),
+            (Some(_), None, DefinitionKind::Enum) => state.enum_variants.removed.push(path),
+            (None, Some(_), DefinitionKind::Union) => state.union_members.added.push(path),
+            (Some(_), None, DefinitionKind::Union) => state.union_members.removed.push(path),
+            (Some(_), None, DefinitionKind::Object | DefinitionKind::Interface | DefinitionKind::InputObject) => {
+                state.fields.removed.push(path)
+            }
+            (Some(_), Some(_), _) => (),
+        }
+    }
+
+    for (path, (src, target)) in arguments_map {
+        match (src, target) {
+            (None, None) => unreachable!(),
+            (None, Some(_)) => state.arguments.added.push(path),
+            (Some(_), None) => state.arguments.removed.push(path),
             (Some(_), Some(_)) => (),
         }
     }
 
     Ok(state.into_changes())
+}
+
+fn args_src<'a>(
+    arguments_map: &mut DiffMap<[&'a str; 3], &'a ast::Type>,
+    parent: &'a str,
+    field: &'a str,
+    args: &'a [Positioned<ast::InputValueDefinition>],
+) {
+    for arg in args {
+        insert_source(arguments_map, [parent, field, &arg.node.name.node], &arg.node.ty.node)
+    }
+}
+
+fn args_target<'a>(
+    arguments_map: &mut DiffMap<[&'a str; 3], &'a ast::Type>,
+    parent: &'a str,
+    field: &'a str,
+    args: &'a [Positioned<ast::InputValueDefinition>],
+) {
+    for arg in args {
+        merge_target(
+            arguments_map.entry([parent, field, &arg.node.name.node]),
+            &arg.node.ty.node,
+        )
+    }
 }

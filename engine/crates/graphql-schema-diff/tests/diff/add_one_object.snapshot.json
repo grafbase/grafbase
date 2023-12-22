@@ -1,10 +1,22 @@
-[
-  {
-    "path": "Locust",
-    "kind": "AddObjectType"
-  },
-  {
-    "path": "Locust.id",
-    "kind": "AddField"
-  }
-]
+{
+  "src → target": [
+    {
+      "kind": "AddObjectType",
+      "path": "Locust"
+    },
+    {
+      "kind": "AddField",
+      "path": "Locust.id"
+    }
+  ],
+  "target → src": [
+    {
+      "kind": "RemoveObjectType",
+      "path": "Locust"
+    },
+    {
+      "kind": "RemoveField",
+      "path": "Locust.id"
+    }
+  ]
+}
