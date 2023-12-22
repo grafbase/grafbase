@@ -389,13 +389,15 @@ async fn wait_until_udf_ready(worker_port: u16, udf_kind: UdfKind, udf_name: &st
 }
 
 async fn is_udf_ready(resolver_worker_port: u16) -> Result<bool, reqwest::Error> {
-    match reqwest::get(format!("http://127.0.0.1:{resolver_worker_port}/health"))
+    let result = reqwest::get(format!("http://127.0.0.1:{resolver_worker_port}/health"))
         .await
         .and_then(reqwest::Response::error_for_status)
         .map_err(|err| {
             trace!("error: {err}");
             err
-        }) {
+        });
+
+    match result {
         Ok(_) => Ok(true),
         Err(err) if err.is_connect() => Ok(false),
         Err(other) => Err(other),
