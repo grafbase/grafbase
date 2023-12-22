@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::GlobalCacheRules;
+use crate::{rules::auth_directive::v2::AuthV2Directive, GlobalCacheRules};
 use engine::registry::ConnectorHeaderValue;
 
 /// Configuration for a federated graph
@@ -11,6 +11,8 @@ pub struct FederatedGraphConfig {
     pub default_headers: Vec<(String, SubgraphHeaderValue)>,
 
     pub global_cache_rules: GlobalCacheRules<'static>,
+
+    pub auth: Option<AuthV2Directive>,
 }
 
 /// Configuration for a subgraph of the current federated graph

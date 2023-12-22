@@ -17,3 +17,4 @@ async-trait = "0.1"
 serde.workspace = true
 thiserror.workspace = true
 runtime.workspace = true
+bytes.workspace = true

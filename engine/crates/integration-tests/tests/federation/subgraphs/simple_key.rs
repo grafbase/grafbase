@@ -10,7 +10,7 @@ async fn execute(request: &str) -> GraphqlResponse {
     let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
     let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
 
-    let engine = Engine::build()
+    let engine = Engine::builder()
         .with_schema("accounts", &accounts)
         .await
         .with_schema("products", &products)

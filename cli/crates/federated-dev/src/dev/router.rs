@@ -42,12 +42,12 @@ impl Router {
                 (RouterMessage::GraphUpdated, _) => {
                     log::trace!("router received a graph update");
 
-                    self.engine = new_engine(&self.graph, &self.config)
+                    self.engine = new_engine(&self.graph, &self.config).await
                 }
                 (RouterMessage::ConfigUpdated, _) => {
                     log::trace!("router received a config update");
 
-                    self.engine = new_engine(&self.graph, &self.config)
+                    self.engine = new_engine(&self.graph, &self.config).await
                 }
                 (RouterMessage::Request(request, headers, response_sender), Some(engine)) => {
                     log::trace!("router got a new request with an existing engine");
@@ -64,15 +64,15 @@ impl Router {
     }
 }
 
-fn new_engine(graph: &GraphReceiver, config: &ConfigReceiver) -> Option<Arc<Engine>> {
+async fn new_engine(graph: &GraphReceiver, config: &ConfigReceiver) -> Option<Arc<Engine>> {
     let graph = graph.borrow().clone()?;
 
     let config = engine_config_builder::build_config(&config.borrow(), graph);
-
-    Some(Arc::new(Engine::new(
+    Some(Arc::new(Engine::build(
         config.into_latest().into(),
         EngineRuntime {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
+            kv: runtime_local::InMemoryKvStore::runtime_kv(),
         },
     )))
 }

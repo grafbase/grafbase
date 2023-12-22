@@ -150,6 +150,7 @@ mod tests {
                         },
                     },
                 ),
+                auth: None,
             },
         )
         "###);

@@ -1,6 +1,7 @@
 mod bridge;
 mod cache;
 mod fetch;
+mod kv;
 mod log;
 mod pg;
 pub mod search;
@@ -9,6 +10,7 @@ mod ufd_invoker;
 pub use bridge::Bridge;
 pub use cache::InMemoryCache;
 pub use fetch::NativeFetcher;
+pub use kv::*;
 pub use pg::LocalPgTransportFactory;
 pub use search::LocalSearchEngine;
 pub use ufd_invoker::UdfInvokerImpl;

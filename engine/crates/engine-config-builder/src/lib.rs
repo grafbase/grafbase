@@ -3,14 +3,14 @@
 use std::collections::BTreeMap;
 use std::time::Duration;
 
-use engine_v2_config::latest::{CacheConfig, CacheConfigTarget, CacheConfigs};
+use engine_v2_config::latest::{AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs};
 use engine_v2_config::{
     latest::{self as config, Header, HeaderId},
     VersionedConfig,
 };
 use federated_graph::{FederatedGraph, FederatedGraphV1, FieldId, ObjectId, SubgraphId};
 use parser_sdl::federation::{FederatedGraphConfig, SubgraphHeaderValue};
-use parser_sdl::GlobalCacheTarget;
+use parser_sdl::{AuthV2Provider, GlobalCacheTarget};
 
 mod strings;
 
@@ -41,6 +41,30 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
         headers: context.headers,
         subgraph_configs,
         cache: cache_config,
+        auth: build_auth_config(config),
+    })
+}
+
+fn build_auth_config(config: &FederatedGraphConfig) -> Option<AuthConfig> {
+    config.auth.as_ref().map(|auth| {
+        let providers = auth
+            .providers
+            .iter()
+            .map(|provider| match provider {
+                AuthV2Provider::JWT { name, jwks, header } => AuthProviderConfig::Jwt(config::JwtConfig {
+                    name: name.clone(),
+                    jwks: config::JwksConfig {
+                        issuer: jwks.issuer.clone(),
+                        audience: jwks.audience.clone(),
+                        url: jwks.url.clone(),
+                        poll_interval: jwks.poll_interval,
+                    },
+                    header_name: header.name.clone(),
+                    header_value_prefix: header.value_prefix.clone(),
+                }),
+            })
+            .collect();
+        AuthConfig { providers }
     })
 }
 

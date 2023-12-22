@@ -13,7 +13,7 @@ fn root_fields_from_different_subgraphs() {
         let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
         let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
 
-        let engine = Engine::build()
+        let engine = Engine::builder()
             .with_schema("accounts", &accounts)
             .await
             .with_schema("products", &products)
@@ -79,7 +79,7 @@ fn root_fragment_on_different_subgraphs() {
         let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
         let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
 
-        let engine = Engine::build()
+        let engine = Engine::builder()
             .with_schema("accounts", &accounts)
             .await
             .with_schema("products", &products)

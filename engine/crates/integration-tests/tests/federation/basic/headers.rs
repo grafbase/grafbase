@@ -8,7 +8,7 @@ fn test_default_headers() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -53,7 +53,7 @@ fn test_default_headers_forwarding() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -105,7 +105,7 @@ fn test_subgraph_specific_header_forwarding() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(

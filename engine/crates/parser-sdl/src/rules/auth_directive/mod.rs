@@ -7,6 +7,7 @@ mod config;
 mod operations;
 mod providers;
 mod rules;
+pub mod v2;
 
 use super::directive::Directive;
 

@@ -165,9 +165,7 @@ async fn handle_engine_request(
             "data": null,
             "errors": [
                 {
-                    "message": error.to_string(),
-                    "locations": [],
-                    "path": []
+                    "message": error.to_string()
                 }
             ]
         }))

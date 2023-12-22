@@ -15,7 +15,7 @@ pub struct FederationEngineBuilder {
 }
 
 pub trait EngineV2Ext {
-    fn build() -> FederationEngineBuilder {
+    fn builder() -> FederationEngineBuilder {
         FederationEngineBuilder {
             schemas: vec![],
             config_sdl: None,
@@ -69,10 +69,11 @@ impl FederationEngineBuilder {
         let config = engine_config_builder::build_config(&federated_graph_config, graph).into_latest();
 
         TestFederationEngine {
-            engine: Engine::new(
+            engine: Engine::build(
                 config.into(),
                 engine_v2::EngineRuntime {
                     fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
+                    kv: runtime_local::InMemoryKvStore::runtime_kv(),
                 },
             ),
         }

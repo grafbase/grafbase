@@ -11,7 +11,7 @@ fn test_basic_query_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -50,7 +50,7 @@ fn test_field_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -100,7 +100,7 @@ fn test_object_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -148,7 +148,7 @@ fn test_non_object_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -195,7 +195,7 @@ fn test_min_object_field_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -265,7 +265,11 @@ fn test_no_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build().with_schema("github", &github_mock).await.finish().await;
+        let engine = Engine::builder()
+            .with_schema("github", &github_mock)
+            .await
+            .finish()
+            .await;
 
         let response: GraphqlResponse = engine.execute(r#"query { botPullRequests(bots: []) { title } }"#).await;
         assert_eq!(response.metadata.cache_config, None);
@@ -292,7 +296,11 @@ fn test_no_caching_on_mutation() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(StateMutationSchema::default()).await;
 
-        let engine = Engine::build().with_schema("github", &github_mock).await.finish().await;
+        let engine = Engine::builder()
+            .with_schema("github", &github_mock)
+            .await
+            .finish()
+            .await;
 
         let response = engine
             .execute(
