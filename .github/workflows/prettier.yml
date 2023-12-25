@@ -29,7 +29,7 @@ jobs:
     runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - name: Get sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run prettier on cli/
         shell: bash

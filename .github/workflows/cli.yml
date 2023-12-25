@@ -42,7 +42,7 @@ jobs:
       build: ${{ steps.filter.outputs.build }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Path filter check
         uses: dorny/paths-filter@v2
@@ -63,7 +63,7 @@ jobs:
     runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - name: Get sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
@@ -91,7 +91,7 @@ jobs:
     runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - name: Get sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
@@ -125,7 +125,7 @@ jobs:
       packages: write
     steps:
       - name: Get sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cli_assets
@@ -164,7 +164,7 @@ jobs:
     runs-on: windows-latest-8-cores
     steps:
       - name: Get sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
         with:
@@ -243,7 +243,7 @@ jobs:
     runs-on: ${{ matrix.archs.runner }}
     steps:
       - name: Get sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
@@ -310,7 +310,7 @@ jobs:
         target: [aarch64-apple-darwin, x86_64-apple-darwin]
     steps:
       - name: Get sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
@@ -420,7 +420,7 @@ jobs:
     runs-on: buildjet-16vcpu-ubuntu-2204
     steps:
       - name: Get sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@beta
 
       - name: Login to Docker Hub

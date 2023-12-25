@@ -24,7 +24,7 @@ jobs:
     runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - name: Get sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
