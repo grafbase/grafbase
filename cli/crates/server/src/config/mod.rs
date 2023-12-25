@@ -18,7 +18,7 @@ use tokio::process::Command;
 
 use crate::{
     atomics::REGISTRY_PARSED_EPOCH_OFFSET_MILLIS,
-    consts::{CONFIG_PARSER_SCRIPT_CJS, CONFIG_PARSER_SCRIPT_ESM, SCHEMA_PARSER_DIR, TS_NODE_SCRIPT_PATH},
+    consts::{CONFIG_PARSER_SCRIPT, SCHEMA_PARSER_DIR, TSX_SCRIPT_PATH},
     node::validate_node,
 };
 
@@ -131,43 +131,21 @@ async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<Stri
         std::fs::create_dir_all(generated_schemas_dir)?;
     }
 
-    let module_type = project
-        .package_json_path
-        .as_deref()
-        .and_then(ModuleType::from_package_json)
-        .unwrap_or_default();
-
     let config_parser_path = environment
         .user_dot_grafbase_path
         .join(SCHEMA_PARSER_DIR)
-        .join(match module_type {
-            ModuleType::CommonJS => CONFIG_PARSER_SCRIPT_CJS,
-            ModuleType::Esm => CONFIG_PARSER_SCRIPT_ESM,
-        });
+        .join(CONFIG_PARSER_SCRIPT);
 
-    let ts_node_path = environment.user_dot_grafbase_path.join(TS_NODE_SCRIPT_PATH);
-
-    let args = match module_type {
-        ModuleType::CommonJS => vec![
-            ts_node_path.to_string_lossy().to_string(),
-            config_parser_path.to_string_lossy().to_string(),
-            ts_config_path.to_string_lossy().to_string(),
-            generated_config_path.to_string_lossy().to_string(),
-        ],
-        ModuleType::Esm => vec![
-            ts_node_path.to_string_lossy().to_string(),
-            "--compilerOptions".to_string(),
-            r#"{"module": "esnext", "moduleResolution": "node", "esModuleInterop": true}"#.to_string(),
-            "--esm".to_string(),
-            config_parser_path.to_string_lossy().to_string(),
-            ts_config_path.to_string_lossy().to_string(),
-            generated_config_path.to_string_lossy().to_string(),
-        ],
-    };
+    let tsx_path = environment.user_dot_grafbase_path.join(TSX_SCRIPT_PATH);
 
     validate_node().await?;
     let node_command = Command::new("node")
-        .args(args)
+        .args([
+            tsx_path.to_string_lossy().to_string(),
+            config_parser_path.to_string_lossy().to_string(),
+            ts_config_path.to_string_lossy().to_string(),
+            generated_config_path.to_string_lossy().to_string(),
+        ])
         .stderr(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()?;
@@ -184,22 +162,4 @@ async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<Stri
     trace!("Generated configuration in {}.", generated_config_path);
 
     Ok(generated_config_path.to_string())
-}
-
-#[derive(Default)]
-enum ModuleType {
-    #[default]
-    CommonJS,
-    Esm,
-}
-
-impl ModuleType {
-    pub fn from_package_json(package_json: &Path) -> Option<ModuleType> {
-        let value = serde_json::from_slice::<serde_json::Value>(&std::fs::read(package_json).ok()?).ok()?;
-        if value["type"].as_str()? == "module" {
-            Some(ModuleType::Esm)
-        } else {
-            Some(ModuleType::CommonJS)
-        }
-    }
 }
