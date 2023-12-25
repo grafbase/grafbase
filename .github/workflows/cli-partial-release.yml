@@ -30,7 +30,7 @@ jobs:
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
       - name: Get sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
