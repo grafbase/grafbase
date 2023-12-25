@@ -61,31 +61,31 @@ jobs:
           assets_version: ${{ steps.lookup-assets-version.outputs.result }}
 
       - name: Download darwin-x86_64 artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-x86_64-apple-darwin
           path: cli/npm/x86_64-apple-darwin
 
       - name: Download darwin-aarch64 artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-aarch64-apple-darwin
           path: cli/npm/aarch64-apple-darwin
 
       - name: Download linux amd artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-linux
           path: cli/npm/x86_64-unknown-linux-musl
 
       - name: Download linux arm artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-linux-arm
           path: cli/npm/aarch64-unknown-linux-musl
 
       - name: Download windows artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-windows
           path: cli/npm/x86_64-pc-windows-msvc
