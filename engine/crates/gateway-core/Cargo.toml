@@ -14,26 +14,26 @@ keywords = ["graphql", "gateway", "grafbase"]
 workspace = true
 
 [dependencies]
-thiserror = { workspace = true }
+async-graphql.workspace = true
 async-runtime = { workspace = true }
+async-sse = "5"
 async-trait = "0.1"
-async-graphql = "6"
+bytes = { workspace = true }
+common-types = { workspace = true }
 engine = { workspace = true }
 engine-value = { workspace = true }
-mediatype = "0.19"
-jwt-verifier = { workspace = true }
-tracing = { workspace = true }
-runtime = { workspace = true }
-http = "0.2"
 futures-util = { workspace = true }
-common-types = { workspace = true }
-serde_json = { workspace = true }
-log = { path = "../log" }
-bytes = { workspace = true }
-multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs.git", branch = "fix-multipart-mixed" }
-async-sse = "5"
 headers.workspace = true
+http.workspace = true
+jwt-verifier = { workspace = true }
+log = { path = "../log" }
+mediatype = "0.19"
 mime = "0.3"
+multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs.git", branch = "fix-multipart-mixed" }
+runtime = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 serde = { workspace = true }

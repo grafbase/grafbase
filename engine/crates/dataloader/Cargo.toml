@@ -27,7 +27,7 @@ tokio = { version = "1.35", features = [
   "sync",
   "time",
 ] }
-async-graphql = "6"
+async-graphql.workspace = true
 
 [features]
 tracing = ["dep:tracing"]

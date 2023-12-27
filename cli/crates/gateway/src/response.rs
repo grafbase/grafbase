@@ -61,7 +61,11 @@ impl gateway_core::Response for Response {
 
     fn error(code: StatusCode, message: &str) -> Self {
         println!("ERROR {code} {message}");
-        (code, message.to_string()).into_response().into()
+        axum::response::Response::builder()
+            .status(code)
+            .body(message.to_string())
+            .expect("must be valid")
+            .into()
     }
 
     fn engine(response: Arc<engine::Response>) -> Result<Self, Self::Error> {
@@ -75,7 +79,13 @@ impl gateway_core::Response for Response {
     }
 
     fn with_additional_headers(mut self, headers: http::HeaderMap) -> Self {
-        self.headers_mut().extend(headers);
+        use std::str::FromStr;
+        self.headers_mut().extend(headers.into_iter().map(|(name, value)| {
+            (
+                name.map(|name| axum::http::HeaderName::from_str(name.as_str()).expect("must be a valid name")),
+                axum::http::HeaderValue::from_bytes(value.as_bytes()).expect("must be a valid value"),
+            )
+        }));
         self
     }
 }

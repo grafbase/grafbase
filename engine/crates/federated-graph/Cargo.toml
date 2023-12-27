@@ -14,8 +14,8 @@ workspace = true
 serde = { version = "1", features = ["derive"] }
 indoc = "2"
 
-async-graphql-parser = { version = "6", optional = true }
-async-graphql-value = { version = "6", optional = true }
+async-graphql-parser = { workspace = true, optional = true }
+async-graphql-value = { workspace = true, optional = true }
 indexmap = { optional = true, version = "2" }
 
 [dev-dependencies]

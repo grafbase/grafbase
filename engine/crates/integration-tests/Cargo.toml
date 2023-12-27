@@ -7,9 +7,9 @@ edition = "2021"
 workspace = true
 
 [dependencies]
-async-graphql = "6"
-async-graphql-axum = "6"
-async-graphql-parser = "6"
+async-graphql.workspace = true
+async-graphql-axum.workspace = true
+async-graphql-parser.workspace = true
 async-once-cell = "0.5.3"
 async-trait = "0.1"
 axum.workspace = true

@@ -5,7 +5,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     response::{Html, IntoResponse},
     routing::get,
-    Json, Server,
+    Json,
 };
 use common::environment::Environment;
 use handlebars::Handlebars;
@@ -85,10 +85,10 @@ pub(super) async fn run(port: u16, expose: bool, config: ConfigReceiver) -> Resu
     } else {
         format!("127.0.0.1:{port}")
     };
-    let address = host.parse().expect("we just defined it above, it _must work_");
+    let address: std::net::SocketAddr = host.parse().expect("we just defined it above, it _must work_");
 
-    Server::bind(&address)
-        .serve(app.into_make_service())
+    let listener = tokio::net::TcpListener::bind(&address).await.unwrap();
+    axum::serve(listener, app)
         .await
         .map_err(|error| crate::Error::internal(error.to_string()))?;
 

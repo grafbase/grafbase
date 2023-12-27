@@ -49,8 +49,8 @@ federated-dev = { path = "../federated-dev" }
 atty = "0.2.14"
 
 [dev-dependencies]
-async-graphql = "5"
-async-graphql-axum = "5"
+async-graphql.workspace = true
+async-graphql-axum.workspace = true
 async-trait = "0.1"
 axum.workspace = true
 cfg-if = "1"

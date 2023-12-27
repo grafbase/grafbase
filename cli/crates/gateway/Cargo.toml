@@ -9,12 +9,12 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-async-graphql = "6"
+async-graphql.workspace = true
 async-trait = "0.1"
 axum = { workspace = true }
 futures-util = { workspace = true }
 thiserror = "1"
-http = "0.2"
+http.workspace = true
 tokio = { workspace = true }
 rusoto_core = "0.48"
 bytes = "1"
