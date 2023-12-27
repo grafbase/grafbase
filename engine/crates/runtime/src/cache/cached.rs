@@ -594,7 +594,7 @@ mod tests {
 
         // act
         let response = cached_execution(
-            cache,
+            cache.clone(),
             &GlobalCacheConfig {
                 enabled: true,
                 common_cache_tags: vec![],
@@ -674,7 +674,7 @@ mod tests {
 
         // act
         let response = cached_execution(
-            cache,
+            cache.clone(),
             &GlobalCacheConfig {
                 enabled: true,
                 common_cache_tags: vec![],
@@ -740,7 +740,7 @@ mod tests {
 
         // act
         let response = cached_execution(
-            cache,
+            cache.clone(),
             &GlobalCacheConfig {
                 enabled: true,
                 common_cache_tags: vec![],
@@ -796,7 +796,7 @@ mod tests {
 
         // act
         let response = cached_execution(
-            cache,
+            cache.clone(),
             &GlobalCacheConfig {
                 enabled: true,
                 common_cache_tags: vec![],
@@ -860,7 +860,7 @@ mod tests {
 
         // act
         let response = cached_execution(
-            cache,
+            cache.clone(),
             &GlobalCacheConfig {
                 enabled: true,
                 common_cache_tags: vec!["project".to_string()],
