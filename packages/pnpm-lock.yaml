@@ -21,8 +21,8 @@ importers:
   cli-app:
     dependencies:
       '@pathfinder-ide/react':
-        specifier: 0.3.3
-        version: 0.3.3(@types/react@18.2.45)(prettier@3.1.1)(react-dom@18.2.0)(react@18.2.0)
+        specifier: 0.3.4
+        version: 0.3.4(@types/react@18.2.45)(prettier@3.1.1)(react-dom@18.2.0)(react@18.2.0)
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -1665,8 +1665,8 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.15.0
 
-  /@pathfinder-ide/react@0.3.3(@types/react@18.2.45)(prettier@3.1.1)(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-Qi8AIcFlJ1FA48jO6ooZfofaeExhqBWAOq0fA5tEM9WgWug+3lsywaftFfiJH//6FGfZep6y9RCzhaxONelHFA==}
+  /@pathfinder-ide/react@0.3.4(@types/react@18.2.45)(prettier@3.1.1)(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-0oHWffLgGhmfmvlQGvCC73/zsF5D3j0Se6gA861UdpWaBdtyveHXyr4JDpLcyLBe1fDw9uVq6uBAUGj0j9Ctnw==}
     peerDependencies:
       react: ^18.2.0
       react-dom: ^18.2.0
@@ -1680,7 +1680,7 @@ packages:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       react-markdown: 9.0.1(@types/react@18.2.45)(react@18.2.0)
-      zustand: 4.4.6(@types/react@18.2.45)(react@18.2.0)
+      zustand: 4.4.7(@types/react@18.2.45)(react@18.2.0)
     transitivePeerDependencies:
       - '@types/react'
       - immer
@@ -7045,8 +7045,8 @@ packages:
     resolution: {integrity: sha512-PQ2PC7R9rslx84ndNBZB/Dkv8V8fZEpk83RLgXtYd0fwUgEjseMn1Dgajh2x6S8QbZAFa9p2qVCEuYZNgve0dQ==}
     dev: false
 
-  /zustand@4.4.6(@types/react@18.2.45)(react@18.2.0):
-    resolution: {integrity: sha512-Rb16eW55gqL4W2XZpJh0fnrATxYEG3Apl2gfHTyDSE965x/zxslTikpNch0JgNjJA9zK6gEFW8Fl6d1rTZaqgg==}
+  /zustand@4.4.7(@types/react@18.2.45)(react@18.2.0):
+    resolution: {integrity: sha512-QFJWJMdlETcI69paJwhSMJz7PPWjVP8Sjhclxmxmxv/RYI7ZOvR5BHX+ktH0we9gTWQMxcne8q1OY8xxz604gw==}
     engines: {node: '>=12.7.0'}
     peerDependencies:
       '@types/react': '>=16.8'
