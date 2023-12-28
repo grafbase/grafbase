@@ -126,7 +126,7 @@ async fn graphql_inner(
     mut req: Request<Body>,
     path: &str,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
-    const BODY_LIMIT: usize = 1 * 1_024 * 1_024 * 512;
+    const BODY_LIMIT: usize = 1_024 * 1_024 * 512;
 
     let query = req.uri().query().map_or(String::new(), |query| format!("?{query}"));
 

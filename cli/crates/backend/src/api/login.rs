@@ -93,7 +93,7 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiEr
         .send(LoginMessage::CallbackUrl(url.clone()))
         .expect("must be open");
 
-    let (shutdown_sender, mut shutdown_receiver) = tokio::sync::mpsc::channel::<Result<(), LoginApiError>>(2);
+    let (shutdown_sender, _shutdown_receiver) = tokio::sync::mpsc::channel::<Result<(), LoginApiError>>(2);
 
     let router = Router::new()
         .route("/", get(token))
