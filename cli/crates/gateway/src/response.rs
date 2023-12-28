@@ -61,11 +61,7 @@ impl gateway_core::Response for Response {
 
     fn error(code: StatusCode, message: &str) -> Self {
         println!("ERROR {code} {message}");
-        axum::response::Response::builder()
-            .status(code)
-            .body(message.to_string())
-            .expect("must be valid")
-            .into()
+        (code, message.to_string()).into_response().into()
     }
 
     fn engine(response: Arc<engine::Response>) -> Result<Self, Self::Error> {

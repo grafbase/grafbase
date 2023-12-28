@@ -3,7 +3,6 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::Json;
 use common::types::UdfKind;
-use hyper::Error as HyperError;
 use notify::Error as NotifyError;
 use serde_json::json;
 use std::io::Error as IoError;
@@ -49,8 +48,16 @@ pub enum ServerError {
     ReadVersion,
 
     /// returned if the sqlite bridge cannot be started
-    #[error("the bridge api encountered an error: {0}")]
-    BridgeApi(#[from] HyperError),
+    #[error("the bridge api could not be started: {0}")]
+    StartBridgeApi(std::io::Error),
+
+    /// returned if the error server cannot be started
+    #[error("the error server could not be started: {0}")]
+    StartErrorServer(std::io::Error),
+
+    /// returned if the gateway server cannot be started
+    #[error("the gateway server could not be started: {0}")]
+    StartGatewayServer(std::io::Error),
 
     /// returned if the miniflare command returns an error
     #[error("miniflare encountered an error: {0}")]
@@ -162,7 +169,7 @@ pub enum ServerError {
 
     /// returned if the proxy server could not be started
     #[error("could not start the proxy server\nCaused by:{0}")]
-    StartProxyServer(hyper::Error),
+    StartProxyServer(std::io::Error),
 
     #[error("Could not create a lock for the wrangler installation: {0}")]
     Lock(fslock::Error),

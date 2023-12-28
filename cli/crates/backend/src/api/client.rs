@@ -2,8 +2,8 @@ use super::consts::GRAFBASE_ACCESS_TOKEN_ENV_VAR;
 use super::types::Credentials;
 use super::{consts::CREDENTIALS_FILE, errors::ApiError};
 use crate::consts::USER_AGENT;
-use axum::http::{HeaderMap, HeaderValue};
 use common::environment::Environment;
+use reqwest::header::HeaderValue;
 use reqwest::{header, Client};
 use std::env;
 use tokio::fs::read_to_string;
@@ -14,7 +14,7 @@ use tokio::fs::read_to_string;
 #[allow(clippy::module_name_repetitions)]
 pub async fn create_client() -> Result<reqwest::Client, ApiError> {
     let token = get_access_token().await?;
-    let mut headers = HeaderMap::new();
+    let mut headers = header::HeaderMap::new();
     let mut bearer_token =
         HeaderValue::from_str(&format!("Bearer {token}")).map_err(|_| ApiError::CorruptAccessToken)?;
     bearer_token.set_sensitive(true);

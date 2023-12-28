@@ -2403,7 +2403,8 @@ dependencies = [
  "gateway",
  "grafbase-local-common",
  "handlebars",
- "hyper 0.14.28",
+ "hyper 1.1.0",
+ "hyper-util",
  "itertools 0.12.0",
  "log 0.4.20",
  "notify",
@@ -2897,6 +2898,7 @@ dependencies = [
  "itoa",
  "pin-project-lite",
  "tokio",
+ "want",
 ]
 
 [[package]]
@@ -2929,8 +2931,7 @@ dependencies = [
 [[package]]
 name = "hyper-util"
 version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bdea9aac0dbe5a9240d68cfd9501e2db94222c6dc06843e06640b9e07f0fdc67"
+source = "git+https://github.com/grafbase/hyper-util?rev=3ad8fd132812dc1e33b5a4830b96dff01b8020a3#3ad8fd132812dc1e33b5a4830b96dff01b8020a3"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -2941,6 +2942,8 @@ dependencies = [
  "pin-project-lite",
  "socket2",
  "tokio",
+ "tower",
+ "tower-service",
  "tracing",
 ]
 

@@ -29,10 +29,10 @@ pub async fn start(port: u16, error: String) -> Result<(), ServerError> {
         .with_state(error)
         .layer(TraceLayer::new_for_http());
 
-    let server =
-        axum::Server::bind(&std::net::SocketAddr::from((Ipv4Addr::LOCALHOST, port))).serve(router.into_make_service());
-
-    server.await?;
-
-    Ok(())
+    let tcp_listener = tokio::net::TcpListener::bind(&std::net::SocketAddr::from((Ipv4Addr::LOCALHOST, port)))
+        .await
+        .map_err(ServerError::StartErrorServer)?;
+    axum::serve(tcp_listener, router)
+        .await
+        .map_err(ServerError::StartErrorServer)
 }

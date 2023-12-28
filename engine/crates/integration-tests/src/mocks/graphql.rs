@@ -1,6 +1,6 @@
 //! A mock GraphQL server for testing the GraphQL connector
 
-use std::{net::TcpListener, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{extract::State, http::HeaderMap, routing::post, Router};
@@ -42,14 +42,14 @@ impl MockGraphQlServer {
         let state = AppState { schema: schema.clone() };
         let app = Router::new().route("/", post(graphql_handler)).with_state(state);
 
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
 
         // FIXME: `_shutdown_rx` should be used after axum adds support!
         let (shutdown_tx, _shutdown_rx) = tokio::sync::oneshot::channel::<()>();
 
         tokio::spawn(async move {
-            axum::serve(tokio::net::TcpListener::from_std(listener).unwrap(), app.with_state(()))
+            axum::serve(listener, app.with_state(()))
                 // FIXME: Uncomment when https://github.com/tokio-rs/axum/pull/2398 is merged.
                 /*.with_graceful_shutdown(async move {
                     shutdown_rx.await.ok();
