@@ -3663,11 +3663,11 @@ dependencies = [
 [[package]]
 name = "multipart-stream"
 version = "0.1.2"
-source = "git+https://github.com/grafbase/multipart-stream-rs.git?branch=fix-multipart-mixed#96eaebfcd0f8101bc834ddc405f69f28dbf1e559"
+source = "git+https://github.com/grafbase/multipart-stream-rs-fork?rev=06ff198e4041c8a8c1c93e580c260d597727c193#06ff198e4041c8a8c1c93e580c260d597727c193"
 dependencies = [
  "bytes",
  "futures",
- "http 0.2.11",
+ "http 1.0.0",
  "httparse",
  "pin-project",
 ]
@@ -7553,8 +7553,3 @@ dependencies = [
  "quote",
  "syn 2.0.43",
 ]
-
-[[patch.unused]]
-name = "multipart-stream"
-version = "0.1.2"
-source = "git+https://github.com/grafbase/multipart-stream-rs.git?rev=96eaebfcd0f8101bc834ddc405f69f28dbf1e559#96eaebfcd0f8101bc834ddc405f69f28dbf1e559"

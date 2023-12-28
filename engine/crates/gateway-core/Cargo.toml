@@ -29,7 +29,7 @@ jwt-verifier = { workspace = true }
 log = { path = "../log" }
 mediatype = "0.19"
 mime = "0.3"
-multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs.git", branch = "fix-multipart-mixed" }
+multipart-stream = "0.1"
 runtime = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
