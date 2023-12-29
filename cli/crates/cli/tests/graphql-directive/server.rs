@@ -1,4 +1,4 @@
-use std::{net::TcpListener, time::Duration};
+use std::time::Duration;
 
 use async_graphql::{EmptyMutation, EmptySubscription, Interface, Object, Schema, SimpleObject, Union, ID};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
@@ -22,15 +22,11 @@ async fn graphql_handler(headers: HeaderMap, req: GraphQLRequest) -> GraphQLResp
 pub(crate) async fn run() -> u16 {
     let app = Router::new().route("/", post(graphql_handler));
 
-    let socket = TcpListener::bind("127.0.0.1:0").unwrap();
-    let port = socket.local_addr().unwrap().port();
+    let tcp_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = tcp_listener.local_addr().unwrap().port();
 
     tokio::spawn(async move {
-        axum::Server::from_tcp(socket)
-            .unwrap()
-            .serve(app.into_make_service())
-            .await
-            .unwrap();
+        axum::serve(tcp_listener, app).await.unwrap();
     });
 
     // Give the server time to start
@@ -107,7 +103,7 @@ struct Issue {
 }
 
 #[derive(Interface)]
-#[graphql(field(name = "title", type = "String"), field(name = "author", type = "UserOrBot"))]
+#[graphql(field(name = "title", ty = "String"), field(name = "author", ty = "UserOrBot"))]
 enum PullRequestOrIssue {
     PullRequest(PullRequest),
     Issue(Issue),
