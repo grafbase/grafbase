@@ -45,14 +45,13 @@ impl MockGraphQlServer {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
 
-        let (shutdown_sender, _shutdown_receiver) = tokio::sync::oneshot::channel::<()>();
+        let (shutdown_sender, shutdown_receiver) = tokio::sync::oneshot::channel::<()>();
 
         tokio::spawn(async move {
             axum::serve(listener, app.with_state(()))
-                // FIXME: Uncomment when https://github.com/tokio-rs/axum/pull/2398 is merged.
-                /*.with_graceful_shutdown(async move {
+                .with_graceful_shutdown(async move {
                     shutdown_receiver.await.ok();
-                })*/
+                })
                 .await
                 .unwrap();
         });

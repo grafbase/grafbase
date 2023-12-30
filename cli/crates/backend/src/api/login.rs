@@ -93,7 +93,7 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiEr
         .send(LoginMessage::CallbackUrl(url.clone()))
         .expect("must be open");
 
-    let (shutdown_sender, _shutdown_receiver) = tokio::sync::mpsc::channel::<Result<(), LoginApiError>>(2);
+    let (shutdown_sender, mut shutdown_receiver) = tokio::sync::mpsc::channel::<Result<(), LoginApiError>>(2);
 
     let router = Router::new()
         .route("/", get(token))
@@ -103,16 +103,14 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiEr
             user_dot_grafbase_path: environment.user_dot_grafbase_path.clone(),
         });
 
-    let server = axum::serve(listener, router);
-    // FIXME: Uncomment when https://github.com/tokio-rs/axum/pull/2398 is merged.
-    /*.with_graceful_shutdown(async {
+    let server = axum::serve(listener, router).with_graceful_shutdown(async move {
         let shutdown_result = shutdown_receiver.recv().await.expect("must be open");
 
         match shutdown_result {
             Ok(()) => message_sender.send(LoginMessage::Done).expect("must be open"),
             Err(error) => message_sender.send(LoginMessage::Error(error)).expect("must be open"),
         }
-    });*/
+    });
 
     server.await.map_err(|_| ApiError::StartLoginServer)
 }
