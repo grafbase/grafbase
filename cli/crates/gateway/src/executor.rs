@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use common_types::auth::ExecutionAuth;
 use dynamodb::{DynamoDBBatchersData, DynamoDBContext};
@@ -165,23 +165,13 @@ impl gateway_core::Executor for Executor {
         request: engine::Request,
         streaming_format: StreamingFormat,
     ) -> Result<Self::Response, crate::Error> {
+        use axum::response::IntoResponse;
         let schema = self.build_schema(&ctx, auth).await?;
         let payload_stream = Box::pin(schema.execute_stream(request));
-        let mut response_builder = axum::response::Response::builder();
         let (headers, bytes_stream) =
             gateway_core::encode_stream_response(ctx.as_ref(), payload_stream, streaming_format).await;
-        response_builder
-            .headers_mut()
-            .unwrap()
-            .extend(headers.into_iter().map(|(name, value)| {
-                (
-                    name.map(|name| axum::http::HeaderName::from_str(name.as_str()).expect("must be a valid name")),
-                    axum::http::HeaderValue::from_bytes(value.as_bytes()).expect("must be a valid value"),
-                )
-            }));
-        Ok(response_builder
-            .body(axum::body::Body::from_stream(bytes_stream))
-            .unwrap()
+        Ok((headers, axum::body::Body::from_stream(bytes_stream))
+            .into_response()
             .into())
     }
 }

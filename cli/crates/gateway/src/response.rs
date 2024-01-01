@@ -75,13 +75,7 @@ impl gateway_core::Response for Response {
     }
 
     fn with_additional_headers(mut self, headers: http::HeaderMap) -> Self {
-        use std::str::FromStr;
-        self.headers_mut().extend(headers.into_iter().map(|(name, value)| {
-            (
-                name.map(|name| axum::http::HeaderName::from_str(name.as_str()).expect("must be a valid name")),
-                axum::http::HeaderValue::from_bytes(value.as_bytes()).expect("must be a valid value"),
-            )
-        }));
+        self.headers_mut().extend(headers);
         self
     }
 }
