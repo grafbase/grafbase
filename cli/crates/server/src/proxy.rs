@@ -128,13 +128,13 @@ async fn graphql_inner(
 ) -> Result<impl IntoResponse, impl IntoResponse> {
     // Request body size limit for Cloudflare Workers enterprise.
     // See https://developers.cloudflare.com/workers/platform/limits/.
-    const BODY_LIMIT: usize = 1_024 * 1_024 * 512;
+    const REQUEST_BODY_SIZE_LIMIT: usize = 1_024 * 1_024 * 512;
 
     let query = req.uri().query().map_or(String::new(), |query| format!("?{query}"));
 
     // http::Request can't be cloned
     let (parts, body) = req.into_parts();
-    let body_bytes = axum::body::to_bytes(body, BODY_LIMIT)
+    let body_bytes = axum::body::to_bytes(body, REQUEST_BODY_SIZE_LIMIT)
         .await
         .map_err(|_| StatusCode::BAD_REQUEST)?;
     let body = String::from_utf8(body_bytes.clone().into()).map_err(|_| StatusCode::BAD_REQUEST)?;
