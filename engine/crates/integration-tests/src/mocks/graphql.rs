@@ -1,6 +1,6 @@
 //! A mock GraphQL server for testing the GraphQL connector
 
-use std::{net::TcpListener, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{extract::State, http::HeaderMap, routing::post, Router};
@@ -42,17 +42,15 @@ impl MockGraphQlServer {
         let state = AppState { schema: schema.clone() };
         let app = Router::new().route("/", post(graphql_handler)).with_state(state);
 
-        let socket = TcpListener::bind("127.0.0.1:0").unwrap();
-        let port = socket.local_addr().unwrap().port();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
 
-        let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+        let (shutdown_sender, shutdown_receiver) = tokio::sync::oneshot::channel::<()>();
 
         tokio::spawn(async move {
-            axum::Server::from_tcp(socket)
-                .unwrap()
-                .serve(app.with_state(()).into_make_service())
+            axum::serve(listener, app.with_state(()))
                 .with_graceful_shutdown(async move {
-                    shutdown_rx.await.ok();
+                    shutdown_receiver.await.ok();
                 })
                 .await
                 .unwrap();
@@ -63,7 +61,7 @@ impl MockGraphQlServer {
 
         MockGraphQlServer {
             schema,
-            shutdown: Some(shutdown_tx),
+            shutdown: Some(shutdown_sender),
             port,
         }
     }

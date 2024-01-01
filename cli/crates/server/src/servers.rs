@@ -20,6 +20,7 @@ use sha2::Digest;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
+use std::future::IntoFuture;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::num::NonZeroUsize;
 use std::path::Path;
@@ -106,9 +107,12 @@ impl ProductionServer {
                 .await
                 .map_err(|error| ServerError::GatewayError(error.to_string()));
         }
-        let bridge_server = axum::Server::bind(&SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .serve(self.bridge_app.into_make_service());
-        let bridge_port = bridge_server.local_addr().port();
+
+        let tcp_listener = tokio::net::TcpListener::bind(&SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
+            .await
+            .map_err(ServerError::StartBridgeApi)?;
+        let bridge_port = tcp_listener.local_addr().unwrap().port();
+        let bridge_server = axum::serve(tcp_listener, self.bridge_app);
 
         let gateway_app = gateway::Gateway::new(
             self.environment_variables,
@@ -119,8 +123,12 @@ impl ProductionServer {
         .map_err(|error| ServerError::GatewayError(error.to_string()))?
         .into_router();
 
-        let gateway_server =
-            axum::Server::bind(&SocketAddr::new(listen_address, port)).serve(gateway_app.into_make_service());
+        let gateway_server = axum::serve(
+            tokio::net::TcpListener::bind(&SocketAddr::new(listen_address, port))
+                .await
+                .map_err(ServerError::StartGatewayServer)?,
+            gateway_app,
+        );
 
         let _ = self.message_sender.send(ServerMessage::Ready {
             listen_address,
@@ -128,11 +136,11 @@ impl ProductionServer {
             is_federated,
         });
         tokio::select! {
-            result = gateway_server => {
-                result?;
+            result = gateway_server.into_future() => {
+                result.map_err(ServerError::StartGatewayServer)?;
             }
-            result = bridge_server => {
-                result?;
+            result = bridge_server.into_future() => {
+                result.map_err(ServerError::StartBridgeApi)?
             }
         }
         Ok(())
@@ -371,7 +379,12 @@ async fn spawn_servers(
         port
     };
 
-    let gateway_server = axum::Server::bind(&"127.0.0.1:0".parse().unwrap()).serve(
+    let tcp_listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .map_err(ServerError::StartGatewayServer)?;
+    let gateway_port = tcp_listener.local_addr().unwrap().port();
+    let gateway_server = axum::serve(
+        tcp_listener,
         gateway::Gateway::new(environment_variables, gateway::Bridge::new(bridge_port), registry)
             .await
             .map_err(|error| ServerError::GatewayError(error.to_string()))?
@@ -379,8 +392,8 @@ async fn spawn_servers(
             .into_make_service(),
     );
 
-    WORKER_PORT.store(gateway_server.local_addr().port(), Ordering::Relaxed);
-    join_set.spawn(async move { Ok(gateway_server.await?) });
+    WORKER_PORT.store(gateway_port, Ordering::Relaxed);
+    join_set.spawn(async move { gateway_server.await.map_err(ServerError::StartGatewayServer) });
 
     message_sender
         .send(ServerMessage::Ready {

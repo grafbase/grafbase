@@ -87,8 +87,6 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiEr
 
     let port = listener.local_addr().map_err(|_| ApiError::FindAvailablePort)?.port();
 
-    let std_listener = listener.into_std().map_err(|_| ApiError::FindAvailablePort)?;
-
     let url = &format!("{AUTH_URL}?callback={}", encode(&format!("http://127.0.0.1:{port}")));
 
     message_sender
@@ -105,19 +103,14 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiEr
             user_dot_grafbase_path: environment.user_dot_grafbase_path.clone(),
         });
 
-    let server = axum::Server::from_tcp(std_listener)
-        .map_err(|_| ApiError::StartLoginServer)?
-        .serve(router.into_make_service())
-        .with_graceful_shutdown(async {
-            let shutdown_result = shutdown_receiver.recv().await.expect("must be open");
+    let server = axum::serve(listener, router).with_graceful_shutdown(async move {
+        let shutdown_result = shutdown_receiver.recv().await.expect("must be open");
 
-            match shutdown_result {
-                Ok(()) => message_sender.send(LoginMessage::Done).expect("must be open"),
-                Err(error) => message_sender.send(LoginMessage::Error(error)).expect("must be open"),
-            }
-        });
+        match shutdown_result {
+            Ok(()) => message_sender.send(LoginMessage::Done).expect("must be open"),
+            Err(error) => message_sender.send(LoginMessage::Error(error)).expect("must be open"),
+        }
+    });
 
-    server.await.map_err(|_| ApiError::StartLoginServer)?;
-
-    Ok(())
+    server.await.map_err(|_| ApiError::StartLoginServer)
 }

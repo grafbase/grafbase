@@ -1,6 +1,5 @@
 use std::{collections::HashMap, sync::Arc};
 
-use axum::response::IntoResponse;
 use common_types::auth::ExecutionAuth;
 use dynamodb::{DynamoDBBatchersData, DynamoDBContext};
 use engine::{registry::resolvers::graphql, RequestHeaders};
@@ -166,11 +165,12 @@ impl gateway_core::Executor for Executor {
         request: engine::Request,
         streaming_format: StreamingFormat,
     ) -> Result<Self::Response, crate::Error> {
+        use axum::response::IntoResponse;
         let schema = self.build_schema(&ctx, auth).await?;
         let payload_stream = Box::pin(schema.execute_stream(request));
         let (headers, bytes_stream) =
             gateway_core::encode_stream_response(ctx.as_ref(), payload_stream, streaming_format).await;
-        Ok((headers, axum::body::StreamBody::new(bytes_stream))
+        Ok((headers, axum::body::Body::from_stream(bytes_stream))
             .into_response()
             .into())
     }

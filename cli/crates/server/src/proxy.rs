@@ -9,7 +9,7 @@ use axum::{
 };
 use common::environment::Environment;
 use handlebars::Handlebars;
-use hyper::{client::HttpConnector, Request, StatusCode};
+use hyper::{Request, StatusCode};
 use serde_json::json;
 use tokio::{
     task::{JoinError, JoinSet},
@@ -19,7 +19,7 @@ use tower_http::{cors::CorsLayer, services::ServeDir};
 
 use crate::{atomics::WORKER_PORT, errors::ServerError, servers::PortSelection};
 
-type Client = hyper::client::Client<HttpConnector, Body>;
+type Client = hyper_util::client::legacy::Client<hyper_util::client::legacy::connect::HttpConnector, Body>;
 
 #[derive(Clone)]
 struct ProxyState {
@@ -42,12 +42,16 @@ pub async fn start(port: PortSelection) -> Result<ProxyHandle, ServerError> {
 }
 
 async fn start_inner(listener: TcpListener) -> Result<(), ServerError> {
+    // FIXME: Migrate to the new abstractions.
+    use hyper_util::client::legacy::Client as HyperClient;
+    use hyper_util::rt::TokioExecutor;
+
     let port = listener.local_addr().expect("must have a local addr").port();
     trace!("starting pathfinder at port {port}");
 
-    let client: Client = hyper::Client::builder()
+    let client = HyperClient::builder(TokioExecutor::new())
         .http1_preserve_header_case(true)
-        .build(HttpConnector::new());
+        .build_http();
 
     let mut handlebars = Handlebars::new();
     let template = include_str!("../templates/pathfinder.hbs");
@@ -84,12 +88,14 @@ async fn start_inner(listener: TcpListener) -> Result<(), ServerError> {
             client,
         });
 
-    axum::Server::from_tcp(listener)
-        .map_err(ServerError::StartProxyServer)?
-        .http1_preserve_header_case(true)
-        .serve(router.into_make_service())
-        .await
-        .map_err(ServerError::StartProxyServer)?;
+    axum::serve(
+        tokio::net::TcpListener::from_std(listener).map_err(ServerError::StartProxyServer)?,
+        router,
+    )
+    // FIXME: Bring back!
+    // .preserve_header_case(true)
+    .await
+    .map_err(ServerError::StartProxyServer)?;
 
     Ok(())
 }
@@ -120,11 +126,17 @@ async fn graphql_inner(
     mut req: Request<Body>,
     path: &str,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
+    // Request body size limit for Cloudflare Workers enterprise.
+    // See https://developers.cloudflare.com/workers/platform/limits/.
+    const REQUEST_BODY_SIZE_LIMIT: usize = 1_024 * 1_024 * 512;
+
     let query = req.uri().query().map_or(String::new(), |query| format!("?{query}"));
 
     // http::Request can't be cloned
     let (parts, body) = req.into_parts();
-    let body_bytes = hyper::body::to_bytes(body).await.map_err(|_| StatusCode::BAD_REQUEST)?;
+    let body_bytes = axum::body::to_bytes(body, REQUEST_BODY_SIZE_LIMIT)
+        .await
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
     let body = String::from_utf8(body_bytes.clone().into()).map_err(|_| StatusCode::BAD_REQUEST)?;
     req = Request::from_parts(parts, body_bytes.into());
 
@@ -162,7 +174,7 @@ async fn graphql_inner(
                 if error.is_connect() {
                     sleep(POLL_INTERVAL).await;
                 } else {
-                    return Err(StatusCode::BAD_REQUEST);
+                    return Err(axum::http::StatusCode::BAD_REQUEST);
                 }
             }
         };

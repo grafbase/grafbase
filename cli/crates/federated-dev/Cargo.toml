@@ -10,10 +10,10 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-graphql = { version = "6.0.11", features = ["url"] }
-async-graphql-axum = "6.0.11"
-async-graphql-parser = "6.0.11"
-axum = { workspace = true, features = ["headers"] }
+async-graphql = { workspace = true, features = ["url"] }
+async-graphql-axum.workspace = true
+async-graphql-parser.workspace = true
+axum = { workspace = true }
 futures-concurrency = "7"
 futures-util = "0.3"
 graphql-composition.workspace = true

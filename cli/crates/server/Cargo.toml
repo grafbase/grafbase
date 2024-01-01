@@ -21,7 +21,8 @@ flate2 = "1.0"
 fslock = "0.2"
 futures-util = { workspace = true }
 handlebars = "4"
-hyper = { version = "0.14", features = ["tcp"] }
+hyper.workspace = true
+hyper-util = { workspace = true, features = ["client", "client-legacy", "http1"] }
 itertools = "0.12"
 log = "0.4"
 notify = { version = "6", default-features = false, features = [
