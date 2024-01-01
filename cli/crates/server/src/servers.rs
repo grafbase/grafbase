@@ -379,7 +379,9 @@ async fn spawn_servers(
         port
     };
 
-    let tcp_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let tcp_listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .map_err(ServerError::StartGatewayServer)?;
     let gateway_port = tcp_listener.local_addr().unwrap().port();
     let gateway_server = axum::serve(
         tcp_listener,
