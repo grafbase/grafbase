@@ -126,6 +126,8 @@ async fn graphql_inner(
     mut req: Request<Body>,
     path: &str,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
+    // Request body size limit for Cloudflare Workers enterprise.
+    // See https://developers.cloudflare.com/workers/platform/limits/.
     const BODY_LIMIT: usize = 1_024 * 1_024 * 512;
 
     let query = req.uri().query().map_or(String::new(), |query| format!("?{query}"));
