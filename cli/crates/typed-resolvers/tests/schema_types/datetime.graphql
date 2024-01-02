@@ -1,0 +1,7 @@
+type Task {
+  id: Int!
+  publicId: String!
+  title: String
+  dueDate: DateTime!
+  completedAt: DateTime
+}
