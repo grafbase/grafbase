@@ -1,10 +1,5 @@
-mod error;
-mod metadata;
-mod path;
-mod read;
-mod value;
-mod write;
-
+use engine_parser::Pos;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 pub(crate) use error::GraphqlError;
@@ -15,6 +10,13 @@ use schema::Schema;
 pub use value::{ResponseObject, ResponseValue};
 pub use write::*;
 
+mod error;
+mod metadata;
+mod path;
+mod read;
+mod value;
+mod write;
+
 pub enum Response {
     Initial(InitialResponse),
     RequestError(RequestErrorResponse),
@@ -23,6 +25,20 @@ pub enum Response {
 // Our internal error struct shouldn't be accessible. It'll also need some context like
 // ResponseKeys to even just present paths correctly.
 pub struct Error<'a>(&'a GraphqlError);
+impl<'a> Error<'a> {
+    pub fn message(&self) -> &str {
+        &self.0.message
+    }
+    pub fn locations(&self) -> &Vec<Pos> {
+        &self.0.locations
+    }
+    pub fn path(&self) -> Option<&ResponsePath> {
+        self.0.path.as_ref()
+    }
+    pub fn extensions(&self) -> &BTreeMap<String, serde_json::Value> {
+        &self.0.extensions
+    }
+}
 
 pub struct InitialResponse {
     // will be None if an error propagated up to the root.

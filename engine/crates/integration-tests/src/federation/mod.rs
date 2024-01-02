@@ -54,7 +54,7 @@ impl<'a> IntoFuture for ExecutionRequest<'a> {
         let request = self.graphql.into_engine_request();
 
         Box::pin(async move {
-            let response: engine_v2::Response = self.engine.execute(request, (&self.headers).into()).await;
+            let response = self.engine.execute(request, (&self.headers).into()).await;
             let metadata = response.metadata().clone();
 
             GraphqlResponse {

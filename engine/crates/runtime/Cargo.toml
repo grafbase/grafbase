@@ -13,6 +13,7 @@ keywords = ["runtime", "environment", "grafbase"]
 workspace = true
 
 [dependencies]
+async-runtime = { workspace = true }
 async-trait = { workspace = true }
 bytes = { workspace = true }
 futures-util = { workspace = true }
@@ -23,6 +24,8 @@ serde_json = { workspace = true }
 strum = { workspace = true }
 thiserror = { workspace = true }
 ulid = { workspace = true }
+tracing = { workspace = true }
+tracing-futures = { workspace = true }
 
 search-protocol = { path = "../search-protocol" }
 postgres-connector-types = { path = "../postgres-connector-types" }
@@ -30,3 +33,6 @@ common-types = { workspace = true }
 
 [features]
 test-utils = []
+
+[dev-dependencies]
+tokio = { version = "1.33", features = ["full"]}

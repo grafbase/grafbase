@@ -1,5 +1,6 @@
 use engine::registry::CachePartialRegistry;
-use gateway_core::{CacheConfig, CacheControl};
+use gateway_core::CacheConfig;
+use runtime::cache::CacheControl;
 use runtime_local::InMemoryCache;
 use std::{collections::HashMap, ops::Deref, sync::Arc};
 

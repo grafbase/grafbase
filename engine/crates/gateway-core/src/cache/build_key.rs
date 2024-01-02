@@ -9,10 +9,10 @@ use super::{
 };
 use crate::RequestContext;
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Eq, PartialEq, Debug)]
 pub enum BuildKeyError {
     #[error("Not a single cache scope matched")]
-    MultipleScopesError,
+    MissingScope,
     #[error("Could not determine cache control: {0}")]
     CouldNotDetermineCacheControl(String),
 }
@@ -58,19 +58,284 @@ pub fn build_cache_key(
         .unwrap_or(CacheAccess::Default(auth));
 
     match &cache_access {
-        CacheAccess::Scoped(scopes) if scopes.is_empty() => return Err(BuildKeyError::MultipleScopesError),
+        CacheAccess::Scoped(scopes) if scopes.is_empty() => return Err(BuildKeyError::MissingScope),
         _ => {}
     }
 
     // cache key
-    // note: I opted for using `DefaultHasher` as its using SipHash-2-4.
+    // note: I opted for using `DefaultHasher` as its using SipHash-1-3.
     // this hashing algorithm is *not* collision resistant but it provides a good mix of security and speed
     // using cryptographic hashes provide a more secure alternative as they are collision resistant BUT are slower
     // additionally, each combination of <project>-<branch> gets their own cache in order to reduce the number keys directed to a particular cache
-    // note: I'm also using DefaultHasher and not SipHash24 because SipHash direct usage is deprecated.
+    // note: I'm also using DefaultHasher and not SipHash13 because SipHash direct usage is deprecated.
     // But beware that the default hash implementation can change across rust releases so pay attention to that when bumping
     let subdomain = &config.subdomain;
     let cache_key = CacheKey::<DefaultHasher>::new(cache_access, request, subdomain);
 
     Ok(format!("https://{}/{}", subdomain, cache_key.to_hash_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
+
+    use futures_util::future::BoxFuture;
+    use tokio::sync::Mutex;
+
+    use crate::cache::build_cache_key;
+    use common_types::auth::ExecutionAuth;
+    use engine::{
+        registry::{CacheAccessScope, MetaField, MetaFieldType, MetaType, ObjectType, Registry},
+        Request,
+    };
+    use runtime::context::RequestContext;
+
+    use crate::cache::build_key::BuildKeyError;
+    use crate::cache::key::{CacheAccess, CacheKey};
+    use crate::CacheConfig;
+
+    const TEST: &str = "Test";
+    const QUERY: &str = "query { Test { id } }";
+
+    #[derive(Default)]
+    struct FakeRequestContext {
+        headers: http::HeaderMap,
+        futures: Mutex<Vec<BoxFuture<'static, ()>>>,
+    }
+
+    impl FakeRequestContext {
+        fn with_header(mut self, name: &'static str, value: &'static str) -> Self {
+            self.headers.insert(name, http::HeaderValue::from_static(value));
+            self
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl RequestContext for FakeRequestContext {
+        fn ray_id(&self) -> &str {
+            "ray-id"
+        }
+
+        async fn wait_until(&self, fut: BoxFuture<'static, ()>) {
+            self.futures.lock().await.push(fut);
+        }
+
+        fn headers(&self) -> &http::HeaderMap {
+            &self.headers
+        }
+    }
+
+    #[tokio::test]
+    async fn should_build_cache_key_for_auth() {
+        // prepare
+        let engine_request = Request::new(QUERY);
+        let expected_cache_key =
+            CacheKey::<DefaultHasher>::new(CacheAccess::Default(&ExecutionAuth::ApiKey), &engine_request, TEST);
+        let expected_cache_key = format!("https://{}/{}", TEST, expected_cache_key.to_hash_string());
+        let cache_config = CacheConfig {
+            global_enabled: true,
+            subdomain: TEST.to_string(),
+            ..config(None)
+        };
+        let ctx = FakeRequestContext::default();
+        let auth = ExecutionAuth::ApiKey;
+
+        // act
+        let response = build_cache_key(&cache_config, &ctx, &engine_request, &auth).unwrap();
+
+        // assert
+        assert_eq!(expected_cache_key, response);
+    }
+
+    #[tokio::test]
+    async fn should_build_cache_key_for_scoped_access_api_key() {
+        // prepare
+        let engine_request = Request::new(QUERY);
+        let expected_cache_key = CacheKey::<DefaultHasher>::new(
+            CacheAccess::Scoped(BTreeSet::from([ExecutionAuth::ApiKey.global_ops().to_string()])),
+            &engine_request,
+            TEST,
+        );
+        let expected_cache_key = format!("https://{}/{}", TEST, expected_cache_key.to_hash_string());
+        let cache_config = CacheConfig {
+            global_enabled: true,
+            subdomain: TEST.to_string(),
+            ..config(Some(engine::CacheControl {
+                access_scopes: Some([CacheAccessScope::ApiKey].into()),
+                ..Default::default()
+            }))
+        };
+        let ctx = FakeRequestContext::default();
+
+        // act
+        let response = build_cache_key(&cache_config, &ctx, &engine_request, &ExecutionAuth::ApiKey).unwrap();
+
+        // assert
+        assert_eq!(expected_cache_key, response);
+    }
+
+    #[tokio::test]
+    async fn should_build_cache_key_for_scoped_access_jwt() {
+        // prepare
+        let claim_value = serde_json::Value::String(TEST.to_string());
+        let auth = ExecutionAuth::new_from_token(
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            BTreeMap::from_iter([(TEST.to_string(), claim_value.clone())]),
+        );
+        let engine_request = Request::new(QUERY);
+        let expected_cache_key = CacheKey::<DefaultHasher>::new(
+            CacheAccess::Scoped(BTreeSet::from([claim_value.to_string()])),
+            &engine_request,
+            TEST,
+        );
+        let expected_cache_key = format!("https://{}/{}", TEST, expected_cache_key.to_hash_string());
+        let cache_config = CacheConfig {
+            global_enabled: true,
+            subdomain: TEST.to_string(),
+            ..config(Some(engine::CacheControl {
+                access_scopes: Some(
+                    [CacheAccessScope::Jwt {
+                        claim: TEST.to_string(),
+                    }]
+                    .into(),
+                ),
+                ..Default::default()
+            }))
+        };
+        let ctx = FakeRequestContext::default();
+
+        // act
+        let response = build_cache_key(&cache_config, &ctx, &engine_request, &auth).unwrap();
+
+        // assert
+        assert_eq!(expected_cache_key, response);
+    }
+
+    #[tokio::test]
+    async fn should_build_cache_key_for_scoped_access_header() {
+        // expected cache key
+        let engine_request = Request::new(QUERY);
+        let expected_cache_key = CacheKey::<DefaultHasher>::new(
+            CacheAccess::Scoped(BTreeSet::from([TEST.to_string()])),
+            &engine_request,
+            TEST,
+        );
+        let expected_cache_key = format!("https://{}/{}", TEST, expected_cache_key.to_hash_string());
+        let cache_config = CacheConfig {
+            global_enabled: true,
+            subdomain: TEST.to_string(),
+            ..config(Some(engine::CacheControl {
+                access_scopes: Some(
+                    [CacheAccessScope::Header {
+                        header: TEST.to_string(),
+                    }]
+                    .into(),
+                ),
+                ..Default::default()
+            }))
+        };
+        let ctx = FakeRequestContext::default().with_header(TEST, TEST);
+
+        // act
+        let response = build_cache_key(&cache_config, &ctx, &engine_request, &ExecutionAuth::ApiKey).unwrap();
+
+        // assert
+        assert_eq!(expected_cache_key, response);
+    }
+
+    #[tokio::test]
+    async fn should_build_cache_key_for_scoped_access_public() {
+        // prepare
+        let engine_request = Request::new(QUERY);
+        let expected_cache_key = CacheKey::<DefaultHasher>::new(
+            CacheAccess::Scoped(BTreeSet::from([ExecutionAuth::Public {
+                global_ops: Default::default(),
+            }
+            .global_ops()
+            .to_string()])),
+            &engine_request,
+            TEST,
+        );
+        let expected_cache_key = format!("https://{}/{}", TEST, expected_cache_key.to_hash_string());
+        let cache_config = CacheConfig {
+            global_enabled: true,
+            subdomain: TEST.to_string(),
+            ..config(Some(engine::CacheControl {
+                access_scopes: Some([CacheAccessScope::Public].into()),
+                ..Default::default()
+            }))
+        };
+        let ctx = FakeRequestContext::default();
+        let auth = ExecutionAuth::Public {
+            global_ops: Default::default(),
+        };
+
+        // act
+        let response = build_cache_key(&cache_config, &ctx, &engine_request, &auth).unwrap();
+
+        // assert
+        assert_eq!(expected_cache_key, response);
+    }
+
+    #[tokio::test]
+    async fn should_bypass_cache_on_missing_data_for_access_scopes() {
+        // prepare
+        let cache_config = CacheConfig {
+            global_enabled: true,
+            subdomain: TEST.to_string(),
+            ..config(Some(engine::CacheControl {
+                access_scopes: Some(
+                    [CacheAccessScope::Header {
+                        header: TEST.to_string(),
+                    }]
+                    .into(),
+                ),
+                ..Default::default()
+            }))
+        };
+        let ctx = FakeRequestContext::default();
+        let request = Request::new(QUERY);
+        let auth = ExecutionAuth::ApiKey;
+
+        // act
+        let response = build_cache_key(&cache_config, &ctx, &request, &auth);
+
+        // assert
+        assert!(response.is_err());
+        assert_eq!(response.err().unwrap(), BuildKeyError::MissingScope)
+    }
+
+    fn config(cache_control: Option<engine::CacheControl>) -> CacheConfig {
+        let mut registry = Registry::new();
+        registry.create_type(
+            |_| {
+                MetaType::Object({
+                    let obj = ObjectType::new(TEST.to_string(), [MetaField::new("id", "String!")]);
+                    if let Some(cache_control) = cache_control {
+                        obj.with_cache_control(cache_control)
+                    } else {
+                        obj
+                    }
+                })
+            },
+            TEST,
+            TEST,
+        );
+
+        registry.query_root_mut().fields_mut().unwrap().insert(
+            TEST.to_string(),
+            MetaField::new(TEST.to_string(), MetaFieldType::from(TEST)),
+        );
+        registry.enable_caching = true;
+        CacheConfig {
+            global_enabled: false,
+            cache_control: Default::default(),
+            common_cache_tags: vec![],
+            subdomain: String::new(),
+            partial_registry: registry.into(),
+            host_name: String::new(),
+        }
+    }
 }
