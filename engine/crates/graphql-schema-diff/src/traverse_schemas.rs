@@ -1,6 +1,7 @@
 use crate::{ast, ConstValue, DefinitionKind, DiffMap, DiffState, Positioned};
 use std::{collections::hash_map::Entry, hash::Hash};
 
+/// Traverse the source and target schemas, populating the `DiffState`.
 pub(crate) fn traverse_schemas<'a>([source, target]: [&'a ast::ServiceDocument; 2], state: &mut DiffState<'a>) {
     let schema_size_approx = source.definitions.len().max(target.definitions.len());
     state.types_map.reserve(schema_size_approx);
@@ -43,7 +44,7 @@ fn traverse_source<'a>(source: &'a ast::ServiceDocument, state: &mut DiffState<'
                                 Some(&field.node.ty.node),
                             );
 
-                            args_src(&mut state.arguments_map, type_name, field_name, &field.node.arguments);
+                            fill_args_src(&mut state.arguments_map, type_name, field_name, &field.node.arguments);
                         }
                     }
                     ast::TypeKind::Interface(iface) => {
@@ -61,7 +62,7 @@ fn traverse_source<'a>(source: &'a ast::ServiceDocument, state: &mut DiffState<'
                                 Some(&field.node.ty.node),
                             );
 
-                            args_src(&mut state.arguments_map, type_name, field_name, &field.node.arguments);
+                            fill_args_src(&mut state.arguments_map, type_name, field_name, &field.node.arguments);
                         }
                     }
                     ast::TypeKind::Union(union) => {
@@ -178,7 +179,8 @@ fn traverse_target<'a>(target: &'a ast::ServiceDocument, state: &mut DiffState<'
     }
 }
 
-fn args_src<'a>(
+// Insert the arguments of a field into the DiffState.
+fn fill_args_src<'a>(
     arguments_map: &mut DiffMap<[&'a str; 3], (&'a ast::Type, Option<&'a ConstValue>)>,
     parent: &'a str,
     field: &'a str,
@@ -193,6 +195,7 @@ fn args_src<'a>(
     }
 }
 
+// Merge the arguments of a field in the target schema into the DiffState.
 fn args_target<'a>(
     arguments_map: &mut DiffMap<[&'a str; 3], (&'a ast::Type, Option<&'a ConstValue>)>,
     parent: &'a str,

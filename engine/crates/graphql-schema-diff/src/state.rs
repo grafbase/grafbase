@@ -231,9 +231,11 @@ fn push_schema_definition_changes(
         [Some(src), Some(target)] => {
             let [src_query, src_mutation, src_subscription] =
                 [&src.query, &src.mutation, &src.subscription].map(|opt_node| opt_node.as_ref().map(|n| &n.node));
+
             let [target_query, target_mutation, target_subscription] =
                 [&target.query, &target.mutation, &target.subscription]
                     .map(|opt_node| opt_node.as_ref().map(|n| &n.node));
+
             if src_query != target_query {
                 changes.push(Change {
                     path: String::new(),
