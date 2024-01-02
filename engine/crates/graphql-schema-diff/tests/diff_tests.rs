@@ -9,7 +9,7 @@ fn update_expect() -> bool {
 
 fn run_test(case: &Path) -> datatest_stable::Result<()> {
     let schemas = fs::read_to_string(case)?;
-    let mut schemas = schemas.split("# --- #\n");
+    let mut schemas = schemas.split("# --- #");
     let source = schemas.next().expect("Can't find first schema in test case.");
     let target = schemas.next().expect("Can't find second schema in test case.");
 
