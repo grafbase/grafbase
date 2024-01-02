@@ -11,40 +11,6 @@ use crate::cache::{
 };
 use crate::context::RequestContext;
 
-#[derive(Debug, PartialEq, Eq)]
-enum CacheResponse<T> {
-    Hit(T),
-    Miss(T),
-    Bypass(T),
-    Stale { response: T, updating: bool },
-}
-
-impl<T: Cacheable> From<CacheResponse<Arc<T>>> for CachedExecutionResponse<Arc<T>> {
-    fn from(value: CacheResponse<Arc<T>>) -> Self {
-        match value {
-            CacheResponse::Hit(response) => CachedExecutionResponse::Cached(response),
-            CacheResponse::Stale {
-                response,
-                updating: revalidated,
-            } => CachedExecutionResponse::Stale {
-                response,
-                cache_revalidation: revalidated,
-            },
-            CacheResponse::Miss(response) => {
-                let max_age = response.max_age();
-                CachedExecutionResponse::Origin {
-                    response,
-                    cache_read: Some(CacheReadStatus::Miss { max_age }),
-                }
-            }
-            CacheResponse::Bypass(response) => CachedExecutionResponse::Origin {
-                response,
-                cache_read: Some(CacheReadStatus::Bypass),
-            },
-        }
-    }
-}
-
 pub async fn cached_execution<Value, Error, ValueFut>(
     cache: Arc<impl Cache<Value = Value> + 'static + ?Sized>,
     global_config: &GlobalCacheConfig,
@@ -58,8 +24,7 @@ where
     Error: Display + Send,
     ValueFut: Future<Output = Result<Arc<Value>, Error>> + Send + 'static,
 {
-    let cache_response = cached(cache, global_config, request_cache_config, ctx, cache_key, execution).await?;
-    Ok(cache_response.into())
+    cached(cache, global_config, request_cache_config, ctx, cache_key, execution).await
 }
 
 async fn cached<Value, Error, ValueFut>(
@@ -69,7 +34,7 @@ async fn cached<Value, Error, ValueFut>(
     ctx: &impl RequestContext,
     key: String,
     value_fut: ValueFut,
-) -> Result<CacheResponse<Arc<Value>>, Error>
+) -> Result<CachedExecutionResponse<Arc<Value>>, Error>
 where
     Value: Cacheable + 'static,
     Error: Display + Send,
@@ -119,18 +84,18 @@ where
             // they shouldn't be considered as stale from a client perspective
             if is_early_stale {
                 tracing::info!(ray_id = ctx.ray_id(), "Cache HIT - {}", key);
-                return Ok(CacheResponse::Hit(response));
+                return Ok(CachedExecutionResponse::Cached(response));
             }
 
-            Ok(CacheResponse::Stale {
+            Ok(CachedExecutionResponse::Stale {
                 response,
-                updating: revalidated,
+                cache_revalidation: revalidated,
             })
         }
         Entry::Hit(gql_response) => {
             tracing::info!(ray_id = ctx.ray_id(), "Cache HIT - {}", key);
 
-            Ok(CacheResponse::Hit(Arc::new(gql_response)))
+            Ok(CachedExecutionResponse::Cached(Arc::new(gql_response)))
         }
         Entry::Miss => {
             tracing::info!(ray_id = ctx.ray_id(), "Cache MISS - {}", key);
@@ -179,10 +144,17 @@ where
                 )
                 .await;
 
-                return Ok(CacheResponse::Miss(origin_result));
+                let max_age = origin_result.max_age();
+                return Ok(CachedExecutionResponse::Origin {
+                    response: origin_result,
+                    cache_read: Some(CacheReadStatus::Miss { max_age }),
+                });
             }
 
-            Ok(CacheResponse::Bypass(origin_result))
+            Ok(CachedExecutionResponse::Origin {
+                response: origin_result,
+                cache_read: Some(CacheReadStatus::Bypass),
+            })
         }
     }
 }

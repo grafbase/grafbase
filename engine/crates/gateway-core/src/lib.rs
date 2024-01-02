@@ -124,7 +124,7 @@ where
                     let execution_fut = Arc::clone(&self.executor)
                         .execute(Arc::clone(ctx), auth, request)
                         .instrument(info_span!("execute"))
-                        .map(move |res| res.map(Arc::new));
+                        .map(|res| res.map(Arc::new));
 
                     let cached_execution = cache::cached_execution(
                         self.cache.clone(),
@@ -141,7 +141,7 @@ where
                     let result = Arc::clone(&self.executor)
                         .execute(Arc::clone(ctx), auth, request)
                         .instrument(info_span!("execute"))
-                        .map(move |res| res.map(Arc::new))
+                        .map(|res| res.map(Arc::new))
                         .await?;
 
                     let response = CachedExecutionResponse::Origin {

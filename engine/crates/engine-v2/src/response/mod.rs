@@ -26,14 +26,14 @@ pub enum Response {
 // ResponseKeys to even just present paths correctly.
 pub struct Error<'a>(&'a GraphqlError);
 impl<'a> Error<'a> {
-    pub fn message(&self) -> &String {
+    pub fn message(&self) -> &str {
         &self.0.message
     }
     pub fn locations(&self) -> &Vec<Pos> {
         &self.0.locations
     }
-    pub fn path(&self) -> &Option<ResponsePath> {
-        &self.0.path
+    pub fn path(&self) -> Option<&ResponsePath> {
+        self.0.path.as_ref()
     }
     pub fn extensions(&self) -> &BTreeMap<String, serde_json::Value> {
         &self.0.extensions
