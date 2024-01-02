@@ -32,6 +32,7 @@ fn traverse_source<'a>(source: &'a ast::ServiceDocument, state: &mut DiffState<'
                     }
                     ast::TypeKind::Object(obj) => {
                         state.types_map.insert(type_name, (Some(DefinitionKind::Object), None));
+                        insert_source(&mut state.interface_impls, type_name, &obj.implements);
 
                         for field in &obj.fields {
                             let field_name = field.node.name.node.as_str();
@@ -49,6 +50,7 @@ fn traverse_source<'a>(source: &'a ast::ServiceDocument, state: &mut DiffState<'
                         state
                             .types_map
                             .insert(type_name, (Some(DefinitionKind::Interface), None));
+                        insert_source(&mut state.interface_impls, type_name, &iface.implements);
 
                         for field in &iface.fields {
                             let field_name = field.node.name.node.as_str();
@@ -117,6 +119,7 @@ fn traverse_target<'a>(target: &'a ast::ServiceDocument, state: &mut DiffState<'
                     }
                     ast::TypeKind::Object(obj) => {
                         state.types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Object);
+                        merge_target(state.interface_impls.entry(type_name), &obj.implements);
 
                         for field in &obj.fields {
                             let field_name = field.node.name.node.as_str();
@@ -130,6 +133,7 @@ fn traverse_target<'a>(target: &'a ast::ServiceDocument, state: &mut DiffState<'
                     }
                     ast::TypeKind::Interface(iface) => {
                         state.types_map.entry(type_name).or_default().1 = Some(DefinitionKind::Interface);
+                        merge_target(state.interface_impls.entry(type_name), &iface.implements);
 
                         for field in &iface.fields {
                             let field_name = field.node.name.node.as_str();

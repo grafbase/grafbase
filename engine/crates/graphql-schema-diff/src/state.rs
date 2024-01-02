@@ -7,6 +7,7 @@ pub(crate) struct DiffState<'a> {
     pub(crate) schema_definition_map: (Option<&'a ast::SchemaDefinition>, Option<&'a ast::SchemaDefinition>),
     pub(crate) types_map: DiffMap<&'a str, DefinitionKind>,
     pub(crate) fields_map: DiffMap<[&'a str; 2], Option<&'a ast::Type>>,
+    pub(crate) interface_impls: DiffMap<&'a str, &'a [Positioned<async_graphql_value::Name>]>,
     pub(crate) arguments_map: DiffMap<[&'a str; 3], (&'a ast::Type, Option<&'a ConstValue>)>,
 }
 
@@ -29,12 +30,13 @@ impl DiffState<'_> {
             types_map,
             fields_map,
             arguments_map,
+            interface_impls,
         } = self;
 
         let mut changes = Vec::new();
 
-        // TODO interface implementers
         push_schema_definition_changes(schema_definition_map, &mut changes);
+        push_interface_implementer_changes(interface_impls, &mut changes);
 
         push_definition_changes(&types_map, &mut changes);
         push_field_changes(&fields_map, &types_map, &mut changes);
@@ -43,6 +45,35 @@ impl DiffState<'_> {
         changes.sort();
 
         changes
+    }
+}
+
+fn push_interface_implementer_changes(
+    interface_impls: DiffMap<&str, &[Positioned<async_graphql_value::Name>]>,
+    changes: &mut Vec<Change>,
+) {
+    // O(n²) but n should always be small enough to not matter
+    for (interface_name, (src, target)) in &interface_impls {
+        let src = src.unwrap_or(&[]);
+        let target = target.unwrap_or(&[]);
+
+        for src_impl in src {
+            if !target.contains(src_impl) {
+                changes.push(Change {
+                    path: format!("{}.{}", interface_name, src_impl.node),
+                    kind: ChangeKind::RemoveInterfaceImplementation,
+                });
+            }
+        }
+
+        for target_impl in target {
+            if !src.contains(target_impl) {
+                changes.push(Change {
+                    path: format!("{}.{}", interface_name, target_impl.node),
+                    kind: ChangeKind::AddInterfaceImplementation,
+                });
+            }
+        }
     }
 }
 
@@ -99,13 +130,13 @@ fn push_field_changes(
             continue; // so we don't falsely interpret same name as field type change
         }
 
-        let definition_kind = match parent {
+        let definition = match parent {
             (None, None) => unreachable!(),
             (Some(kind), None) | (None, Some(kind)) => *kind,
             (Some(kind), Some(_)) => *kind,
         };
 
-        let change_kind = match (src, target, definition_kind) {
+        let change_kind = match (src, target, definition) {
             (None, None, _) | (_, _, DefinitionKind::Scalar | DefinitionKind::Directive) => {
                 unreachable!()
             }
@@ -146,8 +177,8 @@ fn push_definition_changes(
     for (name, entries) in types_map {
         match entries {
             (None, None) => unreachable!(),
-            (None, Some(kind)) => push_added_type(name, *kind, changes),
-            (Some(kind), None) => push_removed_type(name, *kind, changes),
+            (None, Some(definition)) => push_added_type(name, *definition, changes),
+            (Some(definition), None) => push_removed_type(name, *definition, changes),
             (Some(a), Some(b)) if a != b => {
                 push_removed_type(name, *a, changes);
                 push_added_type(name, *b, changes);

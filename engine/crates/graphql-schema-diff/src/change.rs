@@ -16,6 +16,8 @@ pub enum ChangeKind {
     ChangeSubscriptionType,
     RemoveObjectType,
     AddObjectType,
+    AddInterfaceImplementation,
+    RemoveInterfaceImplementation,
     ChangeFieldType,
     RemoveField,
     AddField,
