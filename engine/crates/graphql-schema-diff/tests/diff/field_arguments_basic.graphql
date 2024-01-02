@@ -1,0 +1,66 @@
+interface MapleProduct {
+  id: ID!
+  name: String!
+  origin: String!
+}
+
+type MapleSyrup implements MapleProduct {
+  id: ID!
+  name: String!
+  origin: String!
+  grade: String!
+  volume: Float!
+  pricePerLiter(details: PriceArgs, currency: String!): Float!
+}
+
+input PriceArgs {
+  quantity: Int!
+  packaging: String! # The type of packaging
+}
+
+
+enum MapleSyrupGrade {
+  GOLDEN_DELICATE
+  AMBER_RICH
+  DARK_ROBUST
+  VERY_DARK_STRONG
+}
+
+type Query {
+  getMapleSyrup(id: ID!): MapleSyrup
+}
+
+
+# --- #
+
+interface MapleProduct {
+  id: ID!
+  name: String!
+  origin: String!
+}
+
+type MapleSyrup implements MapleProduct {
+  id: ID!
+  name: String!
+  origin: String!
+  grade: String!
+  volume: Float!
+  pricePerLiter(details: PriceArgs): Float!
+}
+
+input PriceArgs {
+  quantity: Int!
+  packaging: String!
+  currency: String!
+}
+
+enum MapleSyrupGrade {
+  GOLDEN_DELICATE
+  AMBER_RICH
+  DARK_ROBUST
+  VERY_DARK_STRONG
+}
+
+type Query {
+  getMapleSyrup(id: ID!): MapleSyrup
+}

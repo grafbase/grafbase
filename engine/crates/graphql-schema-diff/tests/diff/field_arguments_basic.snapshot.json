@@ -1,0 +1,22 @@
+{
+  "src → target": [
+    {
+      "kind": "RemoveFieldArgument",
+      "path": "MapleSyrup.pricePerLiter.currency"
+    },
+    {
+      "kind": "AddField",
+      "path": "PriceArgs.currency"
+    }
+  ],
+  "target → src": [
+    {
+      "kind": "AddFieldArgument",
+      "path": "MapleSyrup.pricePerLiter.currency"
+    },
+    {
+      "kind": "RemoveField",
+      "path": "PriceArgs.currency"
+    }
+  ]
+}

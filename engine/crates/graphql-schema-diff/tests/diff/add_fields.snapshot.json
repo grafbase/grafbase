@@ -1,0 +1,30 @@
+{
+  "src → target": [
+    {
+      "kind": "AddField",
+      "path": "CatInHat.whimsicalQuote"
+    },
+    {
+      "kind": "AddField",
+      "path": "CreateSeussCharacterInput.favoriteRhyme"
+    },
+    {
+      "kind": "AddField",
+      "path": "SeussCharacter.whimsicalQuote"
+    }
+  ],
+  "target → src": [
+    {
+      "kind": "RemoveField",
+      "path": "CatInHat.whimsicalQuote"
+    },
+    {
+      "kind": "RemoveField",
+      "path": "CreateSeussCharacterInput.favoriteRhyme"
+    },
+    {
+      "kind": "RemoveField",
+      "path": "SeussCharacter.whimsicalQuote"
+    }
+  ]
+}

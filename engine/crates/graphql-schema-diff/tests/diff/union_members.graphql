@@ -1,0 +1,105 @@
+# Define the FloralProduct union, which can be any of the product types listed
+union FloralProduct = Bouquet | LivePlant | FloralArrangement | SeedPacket
+
+# Define the Bouquet type for a collection of flowers
+type Bouquet {
+  id: ID!
+  name: String!
+  flowers: [String!]! # Names of flowers included
+  price: Float! # Price in local currency
+  occasion: String # Suggested occasion for the bouquet
+}
+
+# Define the LivePlant type for individual plants
+type LivePlant {
+  id: ID!
+  name: String!
+  species: String!
+  careDifficulty: String! # Easy, Medium, Hard
+  price: Float! # Price in local currency
+}
+
+# Define the FloralArrangement type for decorative purposes
+type FloralArrangement {
+  id: ID!
+  name: String!
+  flowers: [String!]! # Names of flowers included
+  containerType: String! # Type of container, e.g., vase, basket
+  price: Float! # Price in local currency
+  suitableFor: String # Suggested places, e.g., table, office
+}
+
+# Define the SeedPacket type for gardeners
+type SeedPacket {
+  id: ID!
+  name: String!
+  species: String!
+  seedCount: Int! # Number of seeds in the packet
+  price: Float! # Price in local currency
+  plantingSeason: String # Ideal planting season
+}
+
+# Input type for searching floral products
+input FloralProductSearchInput {
+  name: String
+  maxPrice: Float
+  occasion: String
+}
+
+# The root Query type
+type Query {
+  # Retrieve a specific floral product by its ID, which can be any type of product
+  getFloralProduct(id: ID!): FloralProduct
+
+  # Search for floral products based on criteria
+  searchFloralProducts(input: FloralProductSearchInput): [FloralProduct]
+}
+
+# --- #
+
+union FloralProduct = Bouquet | LivePlant | SeedPacket
+
+type Bouquet {
+  id: ID!
+  name: String!
+  flowers: [String!]! # Names of flowers included
+  price: Float! # Price in local currency
+  occasion: String # Suggested occasion for the bouquet
+}
+
+type LivePlant {
+  id: ID!
+  name: String!
+  species: String!
+  careDifficulty: String! # Easy, Medium, Hard
+  price: Float! # Price in local currency
+}
+
+type FloralArrangement {
+  id: ID!
+  name: String!
+  flowers: [String!]! # Names of flowers included
+  containerType: String! # Type of container, e.g., vase, basket
+  price: Float! # Price in local currency
+  suitableFor: String # Suggested places, e.g., table, office
+}
+
+type SeedPacket {
+  id: ID!
+  name: String!
+  species: String!
+  seedCount: Int! # Number of seeds in the packet
+  price: Float! # Price in local currency
+  plantingSeason: String # Ideal planting season
+}
+
+input FloralProductSearchInput {
+  name: String
+  maxPrice: Float
+  occasion: String
+}
+
+type Query {
+  getFloralProduct(id: ID!): FloralProduct
+  searchFloralProducts(input: FloralProductSearchInput): [FloralProduct]
+}

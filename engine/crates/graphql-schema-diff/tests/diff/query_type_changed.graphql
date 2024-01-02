@@ -1,0 +1,14 @@
+type A
+
+type B
+
+schema { query: A }
+
+# --- #
+
+type A
+
+type B
+
+# Different type!
+schema { query: B }

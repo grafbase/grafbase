@@ -1,0 +1,21 @@
+type Mutation {
+  drop(coin: Coin): Boolean
+}
+
+enum Coin {
+  PENNY
+  QUARTER
+  DIME
+}
+
+# --- #
+
+type Mutation {
+  drop(coin: String): Coin
+}
+
+enum Coin {
+  PENNY
+  QUARTER
+  DIME
+}

@@ -285,7 +285,7 @@ impl UdfRuntime {
                 let mut udf_builds: tokio::sync::MutexGuard<'_, _> = self.udf_workers.lock().await;
 
                 if let Some(udf_build) = udf_builds.get(&(udf_name.clone(), udf_kind)) {
-                    match udf_build {
+                    match &udf_build {
                         UdfWorkerStatus::Available { worker_port, .. } => break *worker_port,
                         UdfWorkerStatus::BuildFailed => return Err(ApiError::UdfInvocation),
                         UdfWorkerStatus::BuildInProgress { notify } => {

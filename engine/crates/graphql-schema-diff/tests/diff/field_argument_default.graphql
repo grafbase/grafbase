@@ -1,0 +1,21 @@
+type Query {
+  doMop(useMop: Mop): Mop
+}
+
+enum Mop {
+  MOP_1
+  MOP_2
+}
+
+# --- #
+
+type Query {
+  doMop(useMop: Mop = MOP_2): Mop
+}
+
+enum Mop {
+  MOP_1
+  MOP_2
+}
+
+

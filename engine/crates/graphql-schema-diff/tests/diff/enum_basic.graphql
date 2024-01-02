@@ -1,0 +1,23 @@
+type Query
+
+enum Color {
+  RED
+  GREEN
+  BLUE
+}
+
+enum People {
+  CAT
+  DOG
+}
+
+# --- #
+
+type Query
+
+enum Color {
+  RED
+  GREEN
+  BLUE
+  ALPHA
+}

@@ -1,0 +1,26 @@
+{
+  "src → target": [
+    {
+      "kind": "RemoveUnion",
+      "path": "Color"
+    }
+  ],
+  "target → src": [
+    {
+      "kind": "AddUnion",
+      "path": "Color"
+    },
+    {
+      "kind": "AddUnionMember",
+      "path": "Color.Blue"
+    },
+    {
+      "kind": "AddUnionMember",
+      "path": "Color.Green"
+    },
+    {
+      "kind": "AddUnionMember",
+      "path": "Color.Red"
+    }
+  ]
+}

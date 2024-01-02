@@ -1,0 +1,29 @@
+interface Candy {
+  calories: String!
+}
+
+interface Pastry {
+  doughType: String!
+}
+
+interface Cookie implements Pastry {
+  id: ID!
+  calories: String!
+  firmness: Float
+}
+
+# --- #
+
+interface Candy {
+  calories: String!
+}
+
+interface Pastry {
+  doughType: String!
+}
+
+interface Cookie implements Candy & Pastry {
+  id: ID!
+  calories: String!
+  firmness: Float
+}

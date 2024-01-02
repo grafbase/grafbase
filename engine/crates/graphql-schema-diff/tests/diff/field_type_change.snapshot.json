@@ -1,0 +1,22 @@
+{
+  "src → target": [
+    {
+      "kind": "ChangeFieldType",
+      "path": "Mutation.drop"
+    },
+    {
+      "kind": "ChangeFieldArgumentType",
+      "path": "Mutation.drop.coin"
+    }
+  ],
+  "target → src": [
+    {
+      "kind": "ChangeFieldType",
+      "path": "Mutation.drop"
+    },
+    {
+      "kind": "ChangeFieldArgumentType",
+      "path": "Mutation.drop.coin"
+    }
+  ]
+}

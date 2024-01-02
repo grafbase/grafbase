@@ -271,7 +271,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-release-timings.html
+          name: ${{ matrix.archs.platform }}-release-timings.html
           path: target/cargo-timings/cargo-timing.html
 
       - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' }}

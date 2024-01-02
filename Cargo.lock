@@ -2523,6 +2523,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "graphql-schema-diff"
+version = "0.1.0"
+dependencies = [
+ "async-graphql-parser",
+ "async-graphql-value",
+ "datatest-stable",
+ "miette",
+ "serde",
+ "serde_json",
+ "similar",
+]
+
+[[package]]
 name = "graphql-schema-validation"
 version = "0.1.2"
 dependencies = [

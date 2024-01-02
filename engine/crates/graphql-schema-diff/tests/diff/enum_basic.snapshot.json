@@ -1,0 +1,30 @@
+{
+  "src → target": [
+    {
+      "kind": "AddEnumValue",
+      "path": "Color.ALPHA"
+    },
+    {
+      "kind": "RemoveEnum",
+      "path": "People"
+    }
+  ],
+  "target → src": [
+    {
+      "kind": "RemoveEnumValue",
+      "path": "Color.ALPHA"
+    },
+    {
+      "kind": "AddEnum",
+      "path": "People"
+    },
+    {
+      "kind": "AddEnumValue",
+      "path": "People.CAT"
+    },
+    {
+      "kind": "AddEnumValue",
+      "path": "People.DOG"
+    }
+  ]
+}

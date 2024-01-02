@@ -1,0 +1,14 @@
+{
+  "src → target": [
+    {
+      "kind": "RemoveUnionMember",
+      "path": "FloralProduct.FloralArrangement"
+    }
+  ],
+  "target → src": [
+    {
+      "kind": "AddUnionMember",
+      "path": "FloralProduct.FloralArrangement"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+extend schema @tag
+
+type Query
+
+# --- #
+
+type Query

@@ -1,0 +1,22 @@
+{
+  "src → target": [
+    {
+      "kind": "RemoveObjectType",
+      "path": "Color"
+    },
+    {
+      "kind": "AddEnum",
+      "path": "Color"
+    }
+  ],
+  "target → src": [
+    {
+      "kind": "AddObjectType",
+      "path": "Color"
+    },
+    {
+      "kind": "RemoveEnum",
+      "path": "Color"
+    }
+  ]
+}

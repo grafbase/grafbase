@@ -1,0 +1,23 @@
+type Red
+
+type Green
+
+type Blue
+
+type Alpha
+
+union Color = Red | Green | Blue
+
+union Rgba = Red | Green | Alpha | Blue
+
+# --- #
+
+type Red
+
+type Green
+
+union Rgba = Red | Green | Alpha | Blue
+
+type Blue
+
+type Alpha
