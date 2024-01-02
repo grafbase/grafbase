@@ -351,6 +351,52 @@ fn string_eq() {
 }
 
 #[test]
+fn bytea_eq() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                val BYTEA NOT NULL
+            )    
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let insert = indoc! {r#"
+            INSERT INTO "User" (id, val) VALUES (1, '\xdeadbeef'::bytea), (2, '\xbeefdead'::bytea)
+        "#};
+
+        api.execute_sql(insert).await;
+
+        let query = indoc! {r#"
+            query Pg {
+              userCollection(first: 10, filter: { val: { eq: "3q2+7w" }}) { edges { node { id val }} }
+            }
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "id": 1,
+                    "val": "3q2+7w"
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
 fn array_eq() {
     let response = query_postgres(|api| async move {
         let schema = indoc! {r#"
