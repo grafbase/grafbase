@@ -22,9 +22,9 @@ impl DynamicParse for HexBytesScalar {
         match value {
             ConstValue::String(bytes_string) => match STANDARD_NO_PAD.decode(bytes_string) {
                 Ok(bytes_vector) => Ok(Value::String(format!("\\x{}", hex::encode(bytes_vector)))),
-                Err(_) => Err(InputValueError::ty_custom("Bytes", "Invalid HexBytes value")),
+                Err(_) => Err(InputValueError::ty_custom("HexBytes", "Invalid HexBytes value")),
             },
-            _ => Err(InputValueError::ty_custom("Bytes", "Cannot parse into HexBytes")),
+            _ => Err(InputValueError::ty_custom("HexBytes", "Cannot parse into HexBytes")),
         }
     }
 

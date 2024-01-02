@@ -17,7 +17,7 @@ static SCALARS: &[&str] = &[
     "Boolean",
     "BigInt",
     "UnsignedBigInt",
-    "Bytes",
+    "HexBytes",
     "Decimal",
     "Date",
     "DateTime",
