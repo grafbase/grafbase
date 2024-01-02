@@ -285,13 +285,13 @@ impl UdfRuntime {
                 let mut udf_builds: tokio::sync::MutexGuard<'_, _> = self.udf_workers.lock().await;
 
                 if let Some(udf_build) = udf_builds.get(&(udf_name.clone(), udf_kind)) {
-                    match udf_build {
+                    match &udf_build {
                         UdfWorkerStatus::Available { worker_port, .. } => break *worker_port,
                         UdfWorkerStatus::BuildFailed => return Err(ApiError::UdfInvocation),
                         UdfWorkerStatus::BuildInProgress { notify } => {
                             // If the resolver build happening within another invocation has been cancelled
                             // due to the invocation having been interrupted by the HTTP client, start a new build.
-                            if Arc::strong_count(&notify) == 1 {
+                            if Arc::strong_count(notify) == 1 {
                                 notify.clone()
                             } else {
                                 let notify = notify.clone();
