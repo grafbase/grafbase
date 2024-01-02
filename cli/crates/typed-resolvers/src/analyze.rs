@@ -319,11 +319,26 @@ pub(crate) struct CustomScalar<'doc> {
 
 #[derive(Debug)]
 pub(crate) enum BuiltinScalar {
+    // GraphQL builtin scalars
     Int,
     Float,
     String,
     Boolean,
     Id,
+
+    // Grafbase builtin scalars. They are not defined in user configuration, so we can't treat them
+    // as custom scalars. This will change once we base the resolver codegen on the registry.
+    Email,
+    Date,
+    DateTime,
+    IPAddress,
+    Timestamp,
+    Url,
+    Json,
+    PhoneNumber,
+    Decimal,
+    Bytes,
+    BigInt,
 }
 
 impl FromStr for BuiltinScalar {
@@ -336,6 +351,17 @@ impl FromStr for BuiltinScalar {
             "Float" => Ok(BuiltinScalar::Float),
             "Boolean" => Ok(BuiltinScalar::Boolean),
             "ID" => Ok(BuiltinScalar::Id),
+            "Email" => Ok(BuiltinScalar::Email),
+            "Date" => Ok(BuiltinScalar::Date),
+            "DateTime" => Ok(BuiltinScalar::DateTime),
+            "IPAddress" => Ok(BuiltinScalar::IPAddress),
+            "Timestamp" => Ok(BuiltinScalar::Timestamp),
+            "Url" => Ok(BuiltinScalar::Url),
+            "Json" => Ok(BuiltinScalar::Json),
+            "PhoneNumber" => Ok(BuiltinScalar::PhoneNumber),
+            "Decimal" => Ok(BuiltinScalar::Decimal),
+            "Bytes" => Ok(BuiltinScalar::Bytes),
+            "BigInt" => Ok(BuiltinScalar::BigInt),
             _ => Err(()),
         }
     }

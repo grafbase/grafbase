@@ -84,8 +84,18 @@ where
 fn render_graphql_type(r#type: &GraphqlType, schema: &AnalyzedSchema<'_>) -> String {
     let mut type_string = match &r#type.kind {
         TypeKind::BuiltinScalar(scalar) => match scalar {
-            BuiltinScalar::Int | BuiltinScalar::Float => "number",
-            BuiltinScalar::String | BuiltinScalar::Id => "string",
+            BuiltinScalar::Int | BuiltinScalar::Float | BuiltinScalar::BigInt | BuiltinScalar::Timestamp => "number",
+            BuiltinScalar::String
+            | BuiltinScalar::Id
+            | BuiltinScalar::Url
+            | BuiltinScalar::Email
+            | BuiltinScalar::Date
+            | BuiltinScalar::IPAddress
+            | BuiltinScalar::PhoneNumber
+            | BuiltinScalar::Bytes
+            | BuiltinScalar::Decimal
+            | BuiltinScalar::DateTime => "string",
+            BuiltinScalar::Json => "any",
             BuiltinScalar::Boolean => "boolean",
         }
         .to_owned(),
