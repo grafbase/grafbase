@@ -1,6 +1,6 @@
 use super::*;
 
-pub(crate) fn ingest_schema_definition(document: &ast::ServiceDocument) -> RootTypeMatcher<'_> {
+pub(super) fn ingest_schema_definition(document: &ast::ServiceDocument) -> RootTypeMatcher<'_> {
     let schema_definitions = document.definitions.iter().filter_map(|definition| match &definition {
         ast::TypeSystemDefinition::Schema(schema_definition) => Some(schema_definition),
         _ => None,
