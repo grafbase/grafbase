@@ -14,7 +14,7 @@ fn traverse_source<'a>(source: &'a ast::ServiceDocument, state: &mut DiffState<'
     for tpe in &source.definitions {
         match tpe {
             async_graphql_parser::types::TypeSystemDefinition::Schema(def) => {
-                state.schema_definition_map.0 = Some(&def.node);
+                state.schema_definition_map[0] = Some(&def.node);
             }
             async_graphql_parser::types::TypeSystemDefinition::Directive(directive_def) => {
                 insert_source(
@@ -102,7 +102,7 @@ fn traverse_target<'a>(target: &'a ast::ServiceDocument, state: &mut DiffState<'
     for tpe in &target.definitions {
         match tpe {
             async_graphql_parser::types::TypeSystemDefinition::Schema(def) => {
-                state.schema_definition_map.1 = Some(&def.node);
+                state.schema_definition_map[1] = Some(&def.node);
             }
             async_graphql_parser::types::TypeSystemDefinition::Directive(directive_def) => {
                 merge_target(

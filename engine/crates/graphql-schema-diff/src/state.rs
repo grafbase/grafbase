@@ -4,7 +4,7 @@ pub(crate) type DiffMap<K, V> = HashMap<K, (Option<V>, Option<V>)>;
 
 #[derive(Default)]
 pub(crate) struct DiffState<'a> {
-    pub(crate) schema_definition_map: (Option<&'a ast::SchemaDefinition>, Option<&'a ast::SchemaDefinition>),
+    pub(crate) schema_definition_map: [Option<&'a ast::SchemaDefinition>; 2],
     pub(crate) types_map: DiffMap<&'a str, DefinitionKind>,
     pub(crate) fields_map: DiffMap<[&'a str; 2], Option<&'a ast::Type>>,
     pub(crate) interface_impls: DiffMap<&'a str, &'a [Positioned<async_graphql_value::Name>]>,
@@ -223,12 +223,12 @@ fn push_removed_type(name: &str, kind: DefinitionKind, changes: &mut Vec<Change>
 }
 
 fn push_schema_definition_changes(
-    schema_definition_map: (Option<&ast::SchemaDefinition>, Option<&ast::SchemaDefinition>),
+    schema_definition_map: [Option<&ast::SchemaDefinition>; 2],
     changes: &mut Vec<Change>,
 ) {
     match schema_definition_map {
-        (None, None) => (),
-        (Some(src), Some(target)) => {
+        [None, None] => (),
+        [Some(src), Some(target)] => {
             let [src_query, src_mutation, src_subscription] =
                 [&src.query, &src.mutation, &src.subscription].map(|opt_node| opt_node.as_ref().map(|n| &n.node));
             let [target_query, target_mutation, target_subscription] =
@@ -255,11 +255,11 @@ fn push_schema_definition_changes(
                 });
             }
         }
-        (None, Some(_)) => changes.push(Change {
+        [None, Some(_)] => changes.push(Change {
             path: String::new(),
             kind: ChangeKind::AddSchemaDefinition,
         }),
-        (Some(_), None) => changes.push(Change {
+        [Some(_), None] => changes.push(Change {
             path: String::new(),
             kind: ChangeKind::RemoveSchemaDefinition,
         }),
