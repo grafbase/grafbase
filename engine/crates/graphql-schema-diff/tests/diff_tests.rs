@@ -16,11 +16,15 @@ fn run_test(case: &Path) -> datatest_stable::Result<()> {
     let forward_diff = graphql_schema_diff::diff(source, target).unwrap();
     let backward_diff = graphql_schema_diff::diff(target, source).unwrap();
 
-    let diff = serde_json::to_string_pretty(&serde_json::json!({
+    let mut diff = serde_json::to_string_pretty(&serde_json::json!({
         "src → target": forward_diff,
         "target → src": backward_diff,
     }))
     .unwrap();
+
+    if cfg!(windows) {
+        diff = diff.replace("\r\n", "\n");
+    }
 
     let snapshot_file_path = case.with_extension("snapshot.json");
 
@@ -29,7 +33,11 @@ fn run_test(case: &Path) -> datatest_stable::Result<()> {
         return Ok(());
     }
 
-    let snapshot = fs::read_to_string(&snapshot_file_path).unwrap_or_default();
+    let mut snapshot = fs::read_to_string(&snapshot_file_path).unwrap_or_default();
+
+    if cfg!(windows) {
+        snapshot = snapshot.replace("\r\n", "\n");
+    }
 
     if snapshot != diff {
         return Err(miette::miette!(
