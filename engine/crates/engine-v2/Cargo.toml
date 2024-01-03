@@ -15,6 +15,7 @@ workspace = true
 
 [dependencies]
 async-runtime.workspace = true
+bytes.workspace = true
 derive_more = "0.99"
 im = "15"
 indexmap.workspace = true

@@ -1693,6 +1693,7 @@ version = "3.0.31"
 dependencies = [
  "anyhow",
  "async-runtime",
+ "bytes",
  "derive_more",
  "engine",
  "engine-parser",

@@ -1,5 +1,6 @@
 mod cached;
 
+use bytes::Bytes;
 use headers::HeaderMapExt;
 use std::{sync::Arc, time::Duration};
 
@@ -42,11 +43,21 @@ pub enum EntryState {
 pub enum Entry<T> {
     Hit(T),
     Miss,
-    Stale {
-        response: T,
-        state: EntryState,
-        is_early_stale: bool,
-    },
+    Stale(StaleEntry<T>),
+}
+
+impl<T> Entry<T> {
+    fn try_map<V, F: FnOnce(T) -> Result<V>>(self, f: F) -> Result<Entry<V>> {
+        todo!()
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct StaleEntry<T> {
+    value: T,
+    state: EntryState,
+    is_early_stale: bool,
+    metadata: CacheMetadata,
 }
 
 /// Represents the status of the cache read operation
@@ -126,15 +137,65 @@ pub struct RequestCacheConfig {
     pub cache_control: CacheControl,
 }
 
-#[async_trait::async_trait]
-pub trait Cache: Send + Sync {
-    type Value: Cacheable + 'static;
+#[derive(Clone)]
+pub struct Cache(Arc<dyn CacheInner>);
 
-    async fn get(&self, key: &str) -> Result<Entry<Self::Value>>;
-    async fn put(&self, key: &str, state: EntryState, value: Arc<Self::Value>, tags: Vec<String>) -> Result<()>;
+impl Cache {
+    pub fn new(inner: impl CacheInner + 'static) -> Self {
+        Self(Arc::new(inner))
+    }
+
+    pub async fn get_json<T: serde::de::DeserializeOwned>(&self, key: &str) -> Result<Entry<T>> {
+        self.get(key)
+            .await?
+            .try_map(|bytes| serde_json::from_slice(&bytes).map_err(|err| Error::Serialization(err.to_string())))
+    }
+
+    pub async fn put_json<T: serde::Serialize>(
+        &self,
+        key: &str,
+        state: EntryState,
+        value: &T,
+        metadata: CacheMetadata,
+    ) -> Result<()> {
+        let bytes = serde_json::to_vec(value).map_err(|err| Error::Serialization(err.to_string()))?;
+        self.put(key, state, bytes.into(), metadata).await
+    }
+}
+
+impl std::ops::Deref for Cache {
+    type Target = dyn CacheInner;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.deref()
+    }
+}
+
+#[async_trait::async_trait]
+pub trait CacheInner: Send + Sync {
+    async fn get(&self, key: &str) -> Result<Entry<Bytes>>;
+    async fn put(&self, key: &str, state: EntryState, value: Bytes, metadata: CacheMetadata) -> Result<()>;
     async fn delete(&self, key: &str) -> Result<()>;
     async fn purge_by_tags(&self, tags: Vec<String>) -> Result<()>;
     async fn purge_by_hostname(&self, hostname: String) -> Result<()>;
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CacheMetadata {
+    max_age: Duration,
+    stale_while_revalidate: Duration,
+    tags: Vec<String>,
+    should_purge_related: bool,
+    should_cache: bool,
+}
+
+impl CacheMetadata {
+    fn with_priority_tags(mut self, tags: &Vec<String>) -> Self {
+        let mut tags = tags.clone();
+        tags.extend(self.tags);
+        self.tags = tags;
+        self
+    }
 }
 
 pub trait Cacheable: DeserializeOwned + Serialize + Send + Sync {
@@ -144,11 +205,6 @@ pub trait Cacheable: DeserializeOwned + Serialize + Send + Sync {
     fn cache_tags(&self) -> Vec<String>;
     fn should_purge_related(&self) -> bool;
     fn should_cache(&self) -> bool;
-
-    fn cache_tags_with_priority_tags(&self, mut tags: Vec<String>) -> Vec<String> {
-        tags.extend(self.cache_tags());
-        tags
-    }
 }
 
 #[cfg(any(test, feature = "test-utils"))]

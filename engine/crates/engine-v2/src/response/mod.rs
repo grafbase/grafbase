@@ -2,6 +2,7 @@ use engine_parser::Pos;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+pub use cacheable::*;
 pub(crate) use error::GraphqlError;
 pub use metadata::*;
 pub use path::*;
@@ -10,6 +11,7 @@ use schema::Schema;
 pub use value::{ResponseObject, ResponseValue};
 pub use write::*;
 
+mod cacheable;
 mod error;
 mod metadata;
 mod path;
@@ -67,6 +69,13 @@ impl Response {
         })
     }
 
+    pub(crate) fn into_metadata(self) -> ExecutionMetadata {
+        match self {
+            Self::Initial(initial) => initial.metadata,
+            Self::RequestError(request_error) => request_error.metadata,
+        }
+    }
+
     pub(crate) fn from_errors<E>(errors: impl IntoIterator<Item = E>, metadata: ExecutionMetadata) -> Self
     where
         E: Into<GraphqlError>,
@@ -77,12 +86,13 @@ impl Response {
         })
     }
 
-    pub fn errors(&self) -> Vec<Error<'_>> {
-        match self {
-            Self::Initial(initial) => initial.errors.iter().map(Error).collect(),
-            Self::RequestError(request_error) => request_error.errors.iter().map(Error).collect(),
-        }
-    }
+    // pub fn errors(&self) -> Vec<Error<'_>> {
+    //     match self {
+    //         Self::Initial(initial) => initial.errors.iter().map(Error).collect(),
+    //         Self::RequestError(request_error) => request_error.errors.iter().map(Error).collect(),
+    //         Self::Cached(_) => todo!(),
+    //     }
+    // }
 
     pub fn metadata(&self) -> &ExecutionMetadata {
         match self {

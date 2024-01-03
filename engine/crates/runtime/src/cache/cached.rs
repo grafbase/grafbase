@@ -3,6 +3,8 @@ use std::future::Future;
 use std::sync::Arc;
 
 use futures_util::{FutureExt, TryFutureExt};
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use tracing_futures::Instrument;
 
 use crate::cache::{
@@ -11,41 +13,43 @@ use crate::cache::{
 };
 use crate::context::RequestContext;
 
+use super::{CacheMetadata, StaleEntry};
+
 pub async fn cached_execution<Value, Error, ValueFut>(
-    cache: Arc<impl Cache<Value = Value> + 'static + ?Sized>,
+    cache: Cache,
     global_config: &GlobalCacheConfig,
     request_cache_config: &RequestCacheConfig,
     cache_key: String,
     ctx: &impl RequestContext,
     execution: ValueFut,
-) -> Result<CachedExecutionResponse<Arc<Value>>, Error>
+) -> Result<CachedExecutionResponse<Value>, Error>
 where
-    Value: Cacheable + 'static,
+    Value: Sync + Send + DeserializeOwned + Serialize + Clone + 'static,
     Error: Display + Send,
-    ValueFut: Future<Output = Result<Arc<Value>, Error>> + Send + 'static,
+    ValueFut: Future<Output = Result<(Value, CacheMetadata), Error>> + Send + 'static,
 {
     cached(cache, global_config, request_cache_config, ctx, cache_key, execution).await
 }
 
 async fn cached<Value, Error, ValueFut>(
-    cache: Arc<impl Cache<Value = Value> + 'static + ?Sized>,
+    cache: Cache,
     config: &GlobalCacheConfig,
     request_cache_config: &RequestCacheConfig,
     ctx: &impl RequestContext,
     key: String,
     value_fut: ValueFut,
-) -> Result<CachedExecutionResponse<Arc<Value>>, Error>
+) -> Result<CachedExecutionResponse<Value>, Error>
 where
-    Value: Cacheable + 'static,
+    Value: Sync + Send + DeserializeOwned + Serialize + Clone + 'static,
     Error: Display + Send,
-    ValueFut: Future<Output = Result<Arc<Value>, Error>> + Send + 'static,
+    ValueFut: Future<Output = Result<(Value, CacheMetadata), Error>> + Send + 'static,
 {
     // skip if the incoming request doesn't want cached values, forces origin revalidation
-    let cached_value = if request_cache_config.cache_control.no_cache {
+    let cached_value: Entry<Value> = if request_cache_config.cache_control.no_cache {
         Entry::Miss
     } else {
         cache
-            .get(&key)
+            .get_json(&key)
             .instrument(tracing::info_span!("cache_get", ray_id = ctx.ray_id()))
             .await
             .unwrap_or_else(|e| {
@@ -55,23 +59,18 @@ where
     };
 
     match cached_value {
-        Entry::Stale {
-            response,
-            state,
-            is_early_stale,
-        } => {
-            let response = Arc::new(response);
+        Entry::Stale(entry) => {
             let mut revalidated = false;
 
             // we only want to issue a revalidation if one is not already in progress
-            if state != EntryState::UpdateInProgress {
+            if entry.state != EntryState::UpdateInProgress {
                 revalidated = true;
 
                 update_stale(
                     cache,
                     ctx,
                     key.clone(),
-                    response.clone(),
+                    &entry,
                     value_fut,
                     config.common_cache_tags.clone(),
                 )
@@ -82,31 +81,31 @@ where
 
             // early stales mean early refreshes on our part
             // they shouldn't be considered as stale from a client perspective
-            if is_early_stale {
+            if entry.is_early_stale {
                 tracing::info!(ray_id = ctx.ray_id(), "Cache HIT - {}", key);
-                return Ok(CachedExecutionResponse::Cached(response));
+                return Ok(CachedExecutionResponse::Cached(entry.value));
             }
 
             Ok(CachedExecutionResponse::Stale {
-                response,
+                response: entry.value,
                 cache_revalidation: revalidated,
             })
         }
-        Entry::Hit(gql_response) => {
+        Entry::Hit(value) => {
             tracing::info!(ray_id = ctx.ray_id(), "Cache HIT - {}", key);
 
-            Ok(CachedExecutionResponse::Cached(Arc::new(gql_response)))
+            Ok(CachedExecutionResponse::Cached(value))
         }
         Entry::Miss => {
             tracing::info!(ray_id = ctx.ray_id(), "Cache MISS - {}", key);
 
-            let origin_result = value_fut.await?;
-            let origin_tags = origin_result.cache_tags_with_priority_tags(config.common_cache_tags.clone());
+            let (response, metadata) = value_fut.await?;
+            let metadata = metadata.with_priority_tags(&config.common_cache_tags);
 
-            if origin_result.should_purge_related() {
+            if metadata.should_purge_related {
                 let ray_id = ctx.ray_id().to_string();
-                let cache = Arc::clone(&cache);
-                let purge_cache_tags = origin_tags.clone();
+                let cache = cache.clone();
+                let purge_cache_tags = metadata.tags.clone();
 
                 tracing::info!(ray_id, "Purging global cache by tags: {:?}", purge_cache_tags);
 
@@ -125,15 +124,17 @@ where
                 .await;
             }
 
-            if origin_result.should_cache() && !request_cache_config.cache_control.no_store {
+            if metadata.should_cache && !request_cache_config.cache_control.no_store {
                 let ray_id = ctx.ray_id().to_string();
-                let put_value = origin_result.clone();
-                let cache = Arc::clone(&cache);
+                let put_value = response.clone();
+                let max_age = metadata.max_age;
+                let metadata = metadata.clone();
+                let cache = cache.clone();
 
                 ctx.wait_until(
                     async_runtime::make_send_on_wasm(async move {
                         if let Err(err) = cache
-                            .put(&key, EntryState::Fresh, put_value, origin_tags)
+                            .put_json(&key, EntryState::Fresh, &put_value, metadata)
                             .instrument(tracing::info_span!("cache_put"))
                             .await
                         {
@@ -144,15 +145,14 @@ where
                 )
                 .await;
 
-                let max_age = origin_result.max_age();
                 return Ok(CachedExecutionResponse::Origin {
-                    response: origin_result,
+                    response,
                     cache_read: Some(CacheReadStatus::Miss { max_age }),
                 });
             }
 
             Ok(CachedExecutionResponse::Origin {
-                response: origin_result,
+                response,
                 cache_read: Some(CacheReadStatus::Bypass),
             })
         }
@@ -160,31 +160,27 @@ where
 }
 
 async fn update_stale<Value, Error, ValueFut>(
-    cache: Arc<impl Cache<Value = Value> + 'static + ?Sized>,
+    cache: Cache,
     ctx: &impl RequestContext,
     key: String,
-    existing_value: Arc<Value>,
+    entry: &StaleEntry<Value>,
     value_fut: ValueFut,
     priority_tags: Vec<String>,
 ) where
-    Value: Cacheable + 'static,
+    Value: Sync + Send + DeserializeOwned + Serialize + Clone + 'static,
     Error: Display + Send,
-    ValueFut: Future<Output = Result<Arc<Value>, Error>> + Send + 'static,
+    ValueFut: Future<Output = Result<(Value, CacheMetadata), Error>> + Send + 'static,
 {
     let ray_id = ctx.ray_id().to_string();
-    let existing_tags = existing_value.cache_tags_with_priority_tags(priority_tags.clone());
+    let value = entry.value.clone();
+    let metadata = entry.metadata.clone().with_priority_tags(&priority_tags);
 
     // refresh the cache async and update the existing entry state
-    let cache = Arc::clone(&cache);
+    let cache = cache.clone();
     ctx.wait_until(
         async_runtime::make_send_on_wasm(async move {
             let put_futures = cache
-                .put(
-                    &key,
-                    EntryState::UpdateInProgress,
-                    existing_value.clone(),
-                    existing_tags.clone(),
-                )
+                .put_json(&key, EntryState::UpdateInProgress, &value, metadata.clone())
                 .instrument(tracing::info_span!("cache_put_updating"))
                 .inspect_err(|err| {
                     tracing::error!(
@@ -198,12 +194,16 @@ async fn update_stale<Value, Error, ValueFut>(
             let (_, source_result) = futures_util::join!(put_futures, value_fut);
 
             match source_result {
-                Ok(fresh_value) => {
+                Ok((response, metadata)) => {
                     tracing::info!(ray_id, "Successfully fetched new value for cache from origin");
-                    let fresh_cache_tags = fresh_value.cache_tags_with_priority_tags(priority_tags);
 
                     let _ = cache
-                        .put(&key, EntryState::Fresh, fresh_value, fresh_cache_tags)
+                        .put_json(
+                            &key,
+                            EntryState::Fresh,
+                            &response,
+                            metadata.with_priority_tags(&priority_tags),
+                        )
                         .instrument(tracing::info_span!("cache_put_refresh"))
                         .inspect_err(|err| {
                             // if this errors we're probably stuck in `UPDATING` state or
@@ -215,7 +215,7 @@ async fn update_stale<Value, Error, ValueFut>(
                 Err(err) => {
                     tracing::error!(ray_id, "Error fetching fresh value for a stale cache entry: {}", err);
                     let _ = cache
-                        .put(&key, EntryState::Stale, existing_value, existing_tags)
+                        .put_json(&key, EntryState::Stale, &value, metadata)
                         .instrument(tracing::info_span!("cache_put_stale"))
                         .inspect_err(|err| {
                             // if this errors we're probably stuck in `UPDATING` state or
