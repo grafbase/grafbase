@@ -1,4 +1,4 @@
-use sysinfo::{Pid, ProcessExt, Signal, System, SystemExt};
+use sysinfo::{Pid, Signal, System};
 
 pub fn kill_with_children(pid: u32) {
     let target_id = Pid::from(pid as usize);
@@ -9,7 +9,7 @@ pub fn kill_with_children(pid: u32) {
     let signal_preference = [Signal::Interrupt, Signal::Kill];
     let signal = signal_preference
         .iter()
-        .find(|signal| System::SUPPORTED_SIGNALS.contains(signal))
+        .find(|signal| sysinfo::SUPPORTED_SIGNALS.contains(signal))
         .unwrap();
 
     for (_, process) in sys
