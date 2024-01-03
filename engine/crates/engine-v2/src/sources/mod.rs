@@ -1,10 +1,11 @@
+use futures_util::stream::BoxStream;
 use schema::{Resolver, ResolverWalker};
 
 use crate::{
     execution::ExecutionContext,
     plan::{PlanId, PlanOutput},
     request::EntityType,
-    response::{ExecutorOutput, GraphqlError, ResponseBoundaryObjectsView},
+    response::{ExecutorOutput, GraphqlError, ResponseBoundaryObjectsView, ResponseBuilder},
 };
 
 mod graphql;
@@ -13,6 +14,8 @@ mod introspection;
 use graphql::federation::FederationEntityExecutor;
 use graphql::GraphqlExecutor;
 use introspection::IntrospectionExecutionPlan;
+
+use self::graphql::GraphqlSubscriptionExecutor;
 
 /// Executors are responsible to retrieve a selection_set from a certain point in the query.
 ///
@@ -90,6 +93,35 @@ impl<'exc> Executor<'exc> {
             Executor::Introspection(executor) => executor.execute().await,
             Executor::FederationEntity(executor) => executor.execute().await,
         }
+    }
+}
+
+pub(crate) struct SubscriptionResolverInput<'ctx> {
+    pub ctx: ExecutionContext<'ctx>,
+    pub plan_id: PlanId,
+    pub plan_output: PlanOutput,
+}
+
+pub(crate) enum SubscriptionExecutor<'a> {
+    Graphql(GraphqlSubscriptionExecutor<'a>),
+}
+
+impl<'exc> SubscriptionExecutor<'exc> {
+    pub fn build<'ctx>(
+        walker: ResolverWalker<'ctx>,
+        entity_type: EntityType,
+        input: SubscriptionResolverInput<'ctx>,
+    ) -> ExecutorResult<Self>
+    where
+        'ctx: 'exc,
+    {
+        todo!()
+    }
+
+    pub fn execute(self) -> BoxStream<'exc, (ResponseBuilder, ExecutorOutput)> {
+        // TODO: This somehow needs
+        todo!();
+        return Box::pin(futures_util::stream::pending());
     }
 }
 

@@ -11,6 +11,9 @@ use crate::{
 mod deserialize;
 pub mod federation;
 mod query;
+mod subscription;
+
+pub use subscription::*;
 
 pub(crate) struct GraphqlExecutor<'ctx> {
     ctx: ExecutionContext<'ctx>,
