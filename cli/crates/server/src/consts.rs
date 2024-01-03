@@ -1,13 +1,12 @@
 pub const ASSET_VERSION_FILE: &str = "version.txt";
-pub const CONFIG_PARSER_SCRIPT_CJS: &str = "parse-config.ts";
-pub const CONFIG_PARSER_SCRIPT_ESM: &str = "parse-config.mts";
+pub const CONFIG_PARSER_SCRIPT: &str = "parse-config.ts";
 pub const DOT_ENV_FILE_NAME: &str = ".env";
 pub const GIT_IGNORE_CONTENTS: &str = "*\n";
 pub const GIT_IGNORE_FILE: &str = ".gitignore";
 pub const MIN_NODE_VERSION: &str = "v18.0.0";
 pub const MINIFLARE_CLI_JS_PATH: &str = "node_modules/miniflare/dist/src/cli.js";
 pub const SCHEMA_PARSER_DIR: &str = "parser";
-pub const TS_NODE_SCRIPT_PATH: &str = "node_modules/ts-node/dist/bin.js";
+pub const TSX_SCRIPT_PATH: &str = "node_modules/tsx/dist/cli.mjs";
 pub const WRAPPER_WORKER_JS_PATH: &str = "custom-resolvers/wrapper-worker.js";
 pub const GRAFBASE_WASM_SDK_NAME: &str = "grafbase-wasm-sdk_bg.wasm";
 pub const GRAFBASE_WASM_SDK_PATH: &str = "custom-resolvers/grafbase-wasm-sdk_bg.wasm";
