@@ -120,7 +120,7 @@ const udf = async (_parent: unknown, _args: unknown, context: { kv: KVNamespace 
 
 // patches console.* to return the logs in the response
 for (const level of Object.values(LogLevel)) {
-  globalThis.console[level] = function (...message: unknown[]) {
+  globalThis.console[level] = (...message: unknown[]) => {
     globalThis[LOG_ENTRIES].push({
       loggedAt: Date.now(),
       level,
