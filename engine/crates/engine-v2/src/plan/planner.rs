@@ -88,6 +88,32 @@ impl<'op> Planner<'op> {
         Ok(boundary)
     }
 
+    // TODO: could I have a generate root plan that skips the response boundary stuff?
+    pub fn generate_root_plan(&mut self, boundary: PlanBoundary) -> PlanningResult<Vec<Plan>> {
+        boundary
+            .children
+            .into_iter()
+            .filter_map(|mut child| {
+                let id = child.id;
+                let resolver_id = child.resolver_id;
+                let input = PlanInput {
+                    response_boundary,
+                    selection_set: std::mem::take(&mut child.input_selection_set),
+                };
+                Some(
+                    self.create_plan_output(&boundary.query_path, child)
+                        .map(|(output, boundaries)| Plan {
+                            id,
+                            resolver_id,
+                            input,
+                            output,
+                            boundaries,
+                        }),
+                )
+            })
+            .collect()
+    }
+
     pub fn generate_plans(
         &mut self,
         boundary: PlanBoundary,

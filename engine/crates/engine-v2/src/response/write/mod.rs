@@ -72,6 +72,14 @@ impl ResponseBuilder {
         ExecutorOutput::new(id, boundaries)
     }
 
+    pub fn root_response_boundary(&self) -> Option<ResponseBoundaryItem> {
+        Some(ResponseBoundaryItem {
+            response_object_id: self.root?,
+            response_path: ResponsePath::default(),
+            object_id: self[self.root?].object_id,
+        })
+    }
+
     pub fn ingest(&mut self, output: ExecutorOutput) -> Vec<(PlanBoundary, Vec<ResponseBoundaryItem>)> {
         let reservation = &mut self.parts[usize::from(output.id)];
         assert!(reservation.is_empty(), "Part already has data");

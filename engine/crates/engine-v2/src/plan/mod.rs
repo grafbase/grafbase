@@ -19,7 +19,7 @@ pub use planner::{Planner, PlanningError};
 pub struct Plan {
     pub id: PlanId,
     pub resolver_id: ResolverId,
-    pub input: PlanInput,
+    pub input: Option<PlanInput>,
     pub output: PlanOutput,
     /// Boundaries between this plan and its children. ResponseObjectRoots will be collected at
     /// those during execution.
