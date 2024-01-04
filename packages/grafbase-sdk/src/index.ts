@@ -8,7 +8,7 @@ import {
 import { OpenAPIParams, PartialOpenAPI } from './connector/openapi'
 import { GraphQLParams, PartialGraphQLAPI } from './connector/graphql'
 import { OpenIDAuth, OpenIDParams } from './auth/openid'
-import { JWTAuth, JWTParams } from './auth/jwt'
+import { JWTAuth, JWTParams, JWTAuthV2, JWTParamsV2 } from './auth/jwt'
 import { JWKSAuth, JWKSParams } from './auth/jwks'
 import { RequireAtLeastOne } from 'type-fest'
 import dotenv from 'dotenv'
@@ -129,8 +129,14 @@ export const auth = {
    *
    * @param params - The configuration parameters.
    */
-  JWT: (params: JWTParams): JWTAuth => {
+  JWT: ((params: JWTParams | JWTParamsV2): JWTAuth | JWTAuthV2 => {
+    if ('jwks' in params) {
+      return new JWTAuthV2(params)
+    }
     return new JWTAuth(params)
+  }) as {
+    (params: JWTParams): JWTAuth
+    (params: JWTParamsV2): JWTAuthV2
   },
   /**
    * Create a new JWKS authenticator.

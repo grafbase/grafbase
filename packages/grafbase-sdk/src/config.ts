@@ -1,4 +1,9 @@
-import { AuthParams, Authentication } from './auth'
+import {
+  AuthParams,
+  AuthParamsV2,
+  Authentication,
+  AuthenticationV2
+} from './auth'
 import { CacheParams, GlobalCache } from './cache'
 import { FederatedGraph, Graph } from './grafbase-schema'
 import { Experimental, ExperimentalParams } from './experimental'
@@ -30,6 +35,7 @@ export interface DeprecatedGraphConfigInput {
  */
 export interface FederatedGraphConfigInput {
   graph: FederatedGraph
+  auth?: AuthParamsV2
 }
 
 /**
@@ -70,12 +76,19 @@ export class GraphConfig {
 
 export class FederatedGraphConfig {
   private graph: FederatedGraph
+  private readonly auth?: AuthenticationV2
 
   constructor(input: FederatedGraphConfigInput) {
     this.graph = input.graph
+    if (input.auth) {
+      this.auth = new AuthenticationV2(input.auth)
+    }
   }
 
   public toString(): string {
-    return this.graph.toString()
+    const graph = this.graph.toString()
+    const auth = this.auth ? this.auth.toString() : ''
+
+    return `${auth}${graph}`
   }
 }
