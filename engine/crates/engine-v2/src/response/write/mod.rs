@@ -46,6 +46,7 @@ pub(crate) struct ResponseBuilder {
 // least wait until we face actual problems. We're focused on OLTP workloads, so might never
 // happen.
 impl ResponseBuilder {
+    // TODO: This could probably just take the root_object_id?
     pub fn new(operation: &Operation) -> Self {
         let mut builder = ExecutorOutput::new(ResponseDataPartId::from(0), vec![]);
         let root_id = builder.push_object(ResponseObject {

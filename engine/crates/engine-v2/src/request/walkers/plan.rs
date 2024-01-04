@@ -19,7 +19,7 @@ pub type PlanFieldArgument<'a> = BoundFieldArgumentWalker<'a, ExecutorWalkContex
 #[derive(Clone, Copy)]
 pub struct ExecutorWalkContext<'a> {
     pub attribution: &'a Attribution,
-    pub variables: &'a Variables<'a>,
+    pub variables: &'a Variables,
 }
 
 impl<'a, I: Copy, SI> OperationWalker<'a, I, SI, ExecutorWalkContext<'a>> {
