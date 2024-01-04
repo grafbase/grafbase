@@ -28,20 +28,20 @@ pub use union::UnionWalker;
 
 #[derive(Clone, Copy)]
 pub struct SchemaWalker<'a, I> {
-    // 'wrapped' instead of 'inner' to avoid confusion with TypeWalker.inner()
-    pub(crate) wrapped: I,
+    // 'item' instead of 'inner' to avoid confusion with TypeWalker.inner()
+    pub(crate) item: I,
     pub(crate) schema: &'a Schema,
     pub(crate) names: &'a dyn Names,
 }
 
 impl<'a, I> SchemaWalker<'a, I> {
-    pub fn new(wrapped: I, schema: &'a Schema, names: &'a dyn Names) -> Self {
-        Self { wrapped, schema, names }
+    pub fn new(item: I, schema: &'a Schema, names: &'a dyn Names) -> Self {
+        Self { item, schema, names }
     }
 
-    pub fn walk<Other>(self, wrapped: Other) -> SchemaWalker<'a, Other> {
+    pub fn walk<Other>(self, item: Other) -> SchemaWalker<'a, Other> {
         SchemaWalker {
-            wrapped,
+            item,
             schema: self.schema,
             names: self.names,
         }
@@ -52,22 +52,15 @@ impl<'a, Id: Copy> SchemaWalker<'a, Id>
 where
     Schema: std::ops::Index<Id>,
 {
-    pub fn get(&self) -> &'a <Schema as std::ops::Index<Id>>::Output {
-        &self.schema[self.wrapped]
+    // Clippy complains because it's ambiguous with AsRef. But AsRef doesn't allow us to add the 'a
+    // lifetime. I could rename to `to_ref()` or `ref()`, but doesn't feel better than `as_ref()`.
+    #[allow(clippy::should_implement_trait)]
+    pub fn as_ref(&self) -> &'a <Schema as std::ops::Index<Id>>::Output {
+        &self.schema[self.item]
     }
 
     pub fn id(&self) -> Id {
-        self.wrapped
-    }
-}
-
-impl<'a, Id: Copy> std::ops::Deref for SchemaWalker<'a, Id>
-where
-    Schema: std::ops::Index<Id>,
-{
-    type Target = <Schema as std::ops::Index<Id>>::Output;
-    fn deref(&self) -> &Self::Target {
-        &self.schema[self.wrapped]
+        self.item
     }
 }
 
@@ -95,23 +88,23 @@ where
 }
 
 impl<'a> SchemaWalker<'a, ()> {
-    pub fn definitions(&'a self) -> impl Iterator<Item = DefinitionWalker<'a>> + 'a {
-        let walker = self;
+    pub fn definitions(&self) -> impl Iterator<Item = DefinitionWalker<'a>> + 'a {
+        let walker = *self;
         self.schema
             .definitions
             .iter()
             .map(move |definition| walker.walk(*definition))
     }
 
-    pub fn query(&'a self) -> ObjectWalker<'a> {
+    pub fn query(&self) -> ObjectWalker<'a> {
         self.walk(self.schema.root_operation_types.query)
     }
 
-    pub fn mutation(&'a self) -> Option<ObjectWalker<'a>> {
+    pub fn mutation(&self) -> Option<ObjectWalker<'a>> {
         self.schema.root_operation_types.mutation.map(|id| self.walk(id))
     }
 
-    pub fn subscription(&'a self) -> Option<ObjectWalker<'a>> {
+    pub fn subscription(&self) -> Option<ObjectWalker<'a>> {
         self.schema.root_operation_types.subscription.map(|id| self.walk(id))
     }
 
@@ -119,7 +112,9 @@ impl<'a> SchemaWalker<'a, ()> {
         self.names
     }
 
-    pub fn get(&self) -> &'a Schema {
+    // See further up
+    #[allow(clippy::should_implement_trait)]
+    pub fn as_ref(&self) -> &'a Schema {
         self.schema
     }
 }

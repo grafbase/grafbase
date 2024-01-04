@@ -75,7 +75,7 @@ impl<'exc> Executor<'exc> {
     where
         'ctx: 'exc,
     {
-        match walker.get() {
+        match walker.as_ref() {
             Resolver::Introspection(resolver) => IntrospectionExecutionPlan::build(walker.walk(resolver), input),
             Resolver::FederationRootField(resolver) => GraphqlExecutor::build(walker.walk(resolver), input),
             Resolver::FederationEntity(resolver) => {

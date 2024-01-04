@@ -34,15 +34,20 @@ use super::{
 };
 
 #[derive(Clone, Copy)]
-pub struct OperationWalker<'a, Walkable = (), SchemaId = (), Extension = ()> {
-    /// The operation MUST NOT be accessible directly in any form. Elans may have additional
+pub struct OperationWalker<'a, Item = (), SchemaItem = (), ExecutorWalkContextOrUnit = ()> {
+    /// The operation MUST NOT be accessible directly in any form. Plans may have additional
     /// internal fields which we can't add to the operation easily. It's shared during execution.
     /// Those internal fields must present themselves like real proper operation fields for plan
     /// which direct access to the Operation can't do obviously.
     pub(super) operation: &'a Operation,
-    pub(super) schema_walker: SchemaWalker<'a, SchemaId>,
-    pub(super) ext: Extension,
-    pub(super) wrapped: Walkable,
+    pub(super) schema_walker: SchemaWalker<'a, SchemaItem>,
+    /// Walkers are used in two different situations:
+    /// - during planning
+    /// - by executors, with plan & execution metadata: attributed fields and variables.
+    /// In practice this type is a `() | ExecutorWalkContext` as some methods only make sense in either case
+    /// and others are common.
+    pub(super) ctx: ExecutorWalkContextOrUnit,
+    pub(super) item: Item,
 }
 
 impl<'a> std::fmt::Debug for OperationWalker<'a, (), (), ()> {
@@ -51,31 +56,20 @@ impl<'a> std::fmt::Debug for OperationWalker<'a, (), (), ()> {
     }
 }
 
-impl<'a, W: Copy, I, E> OperationWalker<'a, W, I, E>
+impl<'a, I: Copy, SI, C> OperationWalker<'a, I, SI, C>
 where
-    Operation: std::ops::Index<W>,
+    Operation: std::ops::Index<I>,
 {
-    pub fn get(&self) -> &'a <Operation as std::ops::Index<W>>::Output {
-        &self.operation[self.wrapped]
+    pub fn as_ref(&self) -> &'a <Operation as std::ops::Index<I>>::Output {
+        &self.operation[self.item]
     }
 
-    pub fn id(&self) -> W {
-        self.wrapped
+    pub fn id(&self) -> I {
+        self.item
     }
 }
 
-impl<'a, W: Copy, I, E> std::ops::Deref for OperationWalker<'a, W, I, E>
-where
-    Operation: std::ops::Index<W>,
-{
-    type Target = <Operation as std::ops::Index<W>>::Output;
-
-    fn deref(&self) -> &Self::Target {
-        &self.operation[self.wrapped]
-    }
-}
-
-impl<'a, E> OperationWalker<'a, (), (), E> {
+impl<'a, C> OperationWalker<'a, (), (), C> {
     pub fn schema(&self) -> SchemaWalker<'a, ()> {
         self.schema_walker
     }
@@ -85,43 +79,56 @@ impl<'a, E> OperationWalker<'a, (), (), E> {
     }
 }
 
-impl<'a, W, I, E> OperationWalker<'a, W, I, E> {
-    pub fn walk<W2>(&self, inner: W2) -> OperationWalker<'a, W2, I, E>
+impl<'a, I, SI, C> OperationWalker<'a, I, SI, C> {
+    pub fn walk<I2>(&self, item: I2) -> OperationWalker<'a, I2, SI, C>
     where
-        I: Copy,
-        E: Copy,
+        SI: Copy,
+        C: Copy,
     {
         OperationWalker {
             operation: self.operation,
             schema_walker: self.schema_walker,
-            ext: self.ext,
-            wrapped: inner,
+            ctx: self.ctx,
+            item,
         }
     }
 
-    pub fn walk_with<W2, I2>(&self, inner: W2, schema_id: I2) -> OperationWalker<'a, W2, I2, E>
+    pub fn walk_with<I2, SI2>(&self, item: I2, schema_item: SI2) -> OperationWalker<'a, I2, SI2, C>
     where
-        I: Copy,
-        E: Copy,
+        SI: Copy,
+        C: Copy,
     {
         OperationWalker {
             operation: self.operation,
-            schema_walker: self.schema_walker.walk(schema_id),
-            ext: self.ext,
-            wrapped: inner,
+            schema_walker: self.schema_walker.walk(schema_item),
+            ctx: self.ctx,
+            item,
         }
     }
 
-    pub fn with_ext<E2>(&self, ext: E2) -> OperationWalker<'a, W, I, E2>
+    pub fn with_ctx(&self, ctx: ExecutorWalkContext<'a>) -> OperationWalker<'a, I, SI, ExecutorWalkContext<'a>>
     where
-        W: Copy,
         I: Copy,
+        SI: Copy,
     {
         OperationWalker {
             operation: self.operation,
             schema_walker: self.schema_walker,
-            ext,
-            wrapped: self.wrapped,
+            ctx,
+            item: self.item,
+        }
+    }
+
+    pub fn without_ctx(&self) -> OperationWalker<'a, I, SI, ()>
+    where
+        I: Copy,
+        SI: Copy,
+    {
+        OperationWalker {
+            operation: self.operation,
+            schema_walker: self.schema_walker,
+            ctx: (),
+            item: self.item,
         }
     }
 }

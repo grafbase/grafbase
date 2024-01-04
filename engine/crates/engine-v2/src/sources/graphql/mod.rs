@@ -72,9 +72,12 @@ impl<'ctx> GraphqlExecutor<'ctx> {
             .await?
             .bytes;
         let err_path = Some(
-            self.boundary_item
-                .response_path
-                .child(self.ctx.walker.walk(self.plan_output.root_fields[0]).bound_response_key),
+            self.boundary_item.response_path.child(
+                self.ctx
+                    .walker
+                    .walk(self.plan_output.root_fields[0])
+                    .bound_response_key(),
+            ),
         );
         let mut upstream_errors = vec![];
         let result = deserialize::GraphqlResponseSeed::new(

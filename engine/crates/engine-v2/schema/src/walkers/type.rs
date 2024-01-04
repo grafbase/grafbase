@@ -1,24 +1,28 @@
 use super::SchemaWalker;
-use crate::{DefinitionWalker, ListWrapping, TypeId};
+use crate::{DefinitionWalker, ListWrapping, TypeId, Wrapping};
 
 pub type TypeWalker<'a> = SchemaWalker<'a, TypeId>;
 
 impl<'a> TypeWalker<'a> {
+    pub fn wrapping(&self) -> &'a Wrapping {
+        &self.as_ref().wrapping
+    }
+
     pub fn inner(&self) -> DefinitionWalker<'a> {
-        self.walk(self.get().inner)
+        self.walk(self.as_ref().inner)
     }
 }
 
 impl std::fmt::Display for TypeWalker<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for _ in self.wrapping.list_wrapping.iter().rev() {
+        for _ in self.as_ref().wrapping.list_wrapping.iter().rev() {
             write!(f, "[")?;
         }
         write!(f, "{}", self.inner().name())?;
-        if self.wrapping.inner_is_required {
+        if self.as_ref().wrapping.inner_is_required {
             write!(f, "!")?;
         }
-        for wrapping in &self.wrapping.list_wrapping {
+        for wrapping in &self.as_ref().wrapping.list_wrapping {
             write!(f, "]")?;
             if *wrapping == ListWrapping::RequiredList {
                 write!(f, "!")?;

@@ -96,7 +96,7 @@ enum ObjectIdentifier<'ctx, 'parent> {
 
 impl<'ctx, 'parent> ObjectIdentifier<'ctx, 'parent> {
     fn new(ctx: &'parent SeedContext<'ctx>, root: SelectionSetType) -> Self {
-        let schema = ctx.walker.schema().get();
+        let schema = ctx.walker.schema().as_ref();
         match root {
             SelectionSetType::Interface(interface_id) => Self::Unknown {
                 discriminant_key: ctx.walker.names().interface_discriminant_key(schema, interface_id),

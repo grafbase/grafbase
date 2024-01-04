@@ -34,7 +34,7 @@ impl<'a> IntrospectionWriter<'a> {
     pub fn write_schema_field(&self, mut writer: GroupedFieldWriter<'_>) -> WriteResult<ResponseValue> {
         let schema = self.schema.walker();
         writer.write_known_object_with(|mut writer| match writer.expected_field.name() {
-            "description" => writer.write_opt_string_id(writer.expected_field.description),
+            "description" => writer.write_opt_string_id(writer.expected_field.description_string_id()),
             "types" => writer.write_list_with(schema.definitions(), |field, item| self.__type_inner(field, item)),
             "queryType" => self.__type_inner(writer, schema.query().into()),
             "mutationType" => match schema.mutation() {
@@ -81,7 +81,7 @@ impl<'a> IntrospectionWriter<'a> {
                         })
                         .unwrap_or_default();
                     fields.filter(move |field| {
-                        (!field.is_deprecated || include_deprecated) && !self.types.meta_fields.contains(&field.id())
+                        (!field.is_deprecated() || include_deprecated) && !self.types.meta_fields.contains(&field.id())
                     })
                 }),
                 |writer, item| self.__field(writer, item),
@@ -103,21 +103,23 @@ impl<'a> IntrospectionWriter<'a> {
                 |field, item| self.__input_value(field, item),
             ),
             "ofType" => writer.write_null(),
-            "specifiedByURL" => {
-                writer.write_opt_string_id(definition.as_scalar().and_then(|scalar| scalar.specified_by_url))
-            }
+            "specifiedByURL" => writer.write_opt_string_id(
+                definition
+                    .as_scalar()
+                    .and_then(|scalar| scalar.specified_by_url_string_id()),
+            ),
             name => unresolvable(name),
         })
     }
 
     fn __field(&self, mut writer: GroupedFieldWriter<'_>, field: FieldWalker<'_>) -> WriteResult<ResponseValue> {
         writer.write_known_object_with(|mut writer| match writer.expected_field.name() {
-            "name" => writer.write_string_id(field.name),
-            "description" => writer.write_opt_string_id(field.description),
+            "name" => writer.write_string_id(field.name_string_id()),
+            "description" => writer.write_opt_string_id(field.description_string_id()),
             "args" => writer.write_list_with(field.arguments(), |field, item| self.__input_value(field, item)),
             "type" => self.__type(writer, field.ty()),
-            "isDeprecated" => writer.write_boolean(field.is_deprecated),
-            "deprecationReason" => writer.write_opt_string_id(field.deprecation_reason),
+            "isDeprecated" => writer.write_boolean(field.is_deprecated()),
+            "deprecationReason" => writer.write_opt_string_id(field.deprecation_reason_string_id()),
             name => unresolvable(name),
         })
     }
@@ -138,8 +140,8 @@ impl<'a> IntrospectionWriter<'a> {
         input_value: InputValueWalker<'_>,
     ) -> WriteResult<ResponseValue> {
         writer.write_known_object_with(|mut writer| match writer.expected_field.name() {
-            "name" => writer.write_string_id(input_value.name),
-            "description" => writer.write_opt_string_id(input_value.description),
+            "name" => writer.write_string_id(input_value.name_string_id()),
+            "description" => writer.write_opt_string_id(input_value.description_string_id()),
             "type" => self.__type(writer, input_value.ty()),
             // TODO: add default value...
             "defaultValue" => writer.write_null(),
@@ -150,7 +152,7 @@ impl<'a> IntrospectionWriter<'a> {
     fn __type(&self, writer: GroupedFieldWriter<'_>, ty: TypeWalker<'_>) -> WriteResult<ResponseValue> {
         // Building it from outermost to innermost
         let mut wrapping = Wrapping::new();
-        let mut schema_wrapping = ty.wrapping.clone();
+        let mut schema_wrapping = ty.wrapping().clone();
         while let Some(list_wrapping) = schema_wrapping.list_wrapping.pop() {
             match list_wrapping {
                 schema::ListWrapping::RequiredList => wrapping.extend([WrappingType::NonNull, WrappingType::List]),

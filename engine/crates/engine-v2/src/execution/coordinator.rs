@@ -151,7 +151,7 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
                                 ctx: ExecutionContext::<'ctx> {
                                     engine: self.engine,
                                     variables: self.variables,
-                                    walker: self.operation.walker_with(schema, ()),
+                                    walker: self.operation.walker_with(schema),
                                     request_headers: self.request_headers,
                                 },
                                 boundary_objects_view: self.response.read(schema, plan.input),
