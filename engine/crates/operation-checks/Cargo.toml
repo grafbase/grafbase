@@ -9,9 +9,18 @@ repository.workspace = true
 
 [dependencies]
 async-graphql-parser.workspace = true
+async-graphql-value.workspace = true
+graphql-schema-diff.path = "../graphql-schema-diff"
 
 [dev-dependencies]
+datatest-stable = "0.2.3"
 expect-test = "1"
+similar = "2"
+miette = { version = "5.10.0", features = ["fancy"] }
 
 [lints]
 workspace = true
+
+[[test]]
+name = "operation_check_tests"
+harness = false

@@ -1,0 +1,17 @@
+type Query {
+  sayHi: String!
+}
+
+# --- #
+
+type Query {
+  sayHi(name: String! = "Buddy"): String!
+}
+
+# --- #
+
+# The field has to be used.
+query {
+    sayHi
+}
+

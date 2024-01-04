@@ -1,0 +1,14 @@
+Forward:
+[]
+
+Backward:
+[
+    CheckDiagnostic {
+        message: "The new required argument at `Query.findAlbumsByArtist.yearRangeEnd` would break clients that are not providing it.",
+        severity: Error,
+    },
+    CheckDiagnostic {
+        message: "The new required argument at `Query.findAlbumsByArtist.yearRangeStart` would break clients that are not providing it.",
+        severity: Error,
+    },
+]

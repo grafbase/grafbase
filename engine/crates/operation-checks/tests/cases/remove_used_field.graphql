@@ -1,0 +1,24 @@
+type Query {
+  doA: String
+  doB: Boolean
+  doC: Int
+}
+
+# --- #
+
+type Query {
+  doA: String
+  doC: Int
+}
+
+# --- #
+
+{
+  doA
+  doC
+}
+
+# --- #
+
+{ doA doB }
+

@@ -1,0 +1,30 @@
+type Query {
+  findUser(id: ID): User
+}
+
+type User {
+  id: ID!
+  firstName: String!
+  email: String
+}
+
+# --- #
+
+type User {
+  id: ID!
+  firstName: String!
+  email: String
+}
+
+type Query {
+  findUser(id: ID): User
+}
+
+# --- #
+
+{
+  findUser(id: "ABCD") {
+    id
+    email
+  }
+}

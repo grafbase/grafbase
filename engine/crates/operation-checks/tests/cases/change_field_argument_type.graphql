@@ -1,0 +1,32 @@
+type Query {
+  findAlbumsByArtist(artist: String!, yearRangeStart: Int!, yearRangeEnd: Int!): [Album]
+}
+
+type Album {
+    title: String!
+    year: Int!
+    artist: String!
+}
+
+# --- #
+
+type Query {
+  findAlbumsByArtist(artist: String!, yearRangeStart: Float!, yearRangeEnd: Float!): [Album]
+}
+
+type Album {
+    title: String!
+    year: Int!
+    artist: String!
+}
+
+# --- #
+
+query {
+    findAlbumsByArtist(artist: "The Beatles", yearRangeStart: 1960, yearRangeEnd: 1970) {
+        title
+        year
+        artist
+    }
+}
+

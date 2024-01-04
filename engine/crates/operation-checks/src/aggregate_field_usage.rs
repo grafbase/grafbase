@@ -1,120 +1,57 @@
-mod async_graphql;
-
+use crate::{operation::*, schema};
 use std::collections::HashMap;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct SelectionId(usize);
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct FieldId(usize);
-
-/// Usage count of a field in a query.
+/// Usage count of fields in a set of operations.
 #[derive(Debug)]
-pub struct FieldUsage<'a> {
-    pub increment: u64,
+pub struct FieldUsage {
+    pub(crate) increment: u64,
     /// field id -> usage count
-    pub count_per_field: &'a mut HashMap<FieldId, u64>,
+    pub(crate) count_per_field: HashMap<schema::FieldId, u64>,
+    pub(crate) count_per_field_argument: HashMap<schema::ArgumentId, u64>,
+
+    /// Usage of interface implementers and union members in type conditions. The key is a string
+    /// of the form "parent_type_name.implementer_type_name"
+    pub(crate) type_condition_counts: HashMap<String, u64>,
 }
 
-impl FieldUsage<'_> {
-    pub fn with_increment(self, new_increment: u64) -> Self {
-        Self {
-            increment: new_increment,
-            count_per_field: self.count_per_field,
+impl Default for FieldUsage {
+    fn default() -> Self {
+        FieldUsage {
+            increment: 1,
+            count_per_field: HashMap::new(),
+            count_per_field_argument: HashMap::new(),
+            type_condition_counts: HashMap::new(),
         }
+    }
+}
+
+impl FieldUsage {
+    /// Set the increment per field usage. If an operation was used 20 times for example, you
+    /// should set this to 20 so each field usage increments by 20.
+    pub fn set_increment(&mut self, new_increment: u64) {
+        self.increment = new_increment;
     }
 
     /// Register a field usage.
-    fn register(&mut self, field_id: FieldId) {
+    fn register_field_usage(&mut self, field_id: schema::FieldId) {
         if let Some(count) = self.count_per_field.get_mut(&field_id) {
             *count += self.increment;
         } else {
             self.count_per_field.insert(field_id, self.increment);
         }
     }
-}
 
-/// (type name, field name) -> field type
-#[derive(Debug)]
-pub struct Schema {
-    pub fields: Vec<SchemaField>,
-    pub query_type_name: String,
-    pub mutation_type_name: String,
-    pub subscription_type_name: String,
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct SchemaField {
-    type_name: String,
-    field_name: String,
-    /// The type fo the field without any wrapping type (! and []).
-    base_type: String,
-}
-
-impl Schema {
-    fn find_field(&self, type_name: &str, field_name: &str) -> Option<FieldId> {
-        self.fields
-            .binary_search_by_key(
-                &(type_name, field_name),
-                |SchemaField {
-                     type_name, field_name, ..
-                 }| { (type_name, field_name) },
-            )
-            .map(FieldId)
-            .ok()
+    fn register_argument_usage(&mut self, argument_id: schema::ArgumentId) {
+        if let Some(count) = self.count_per_field_argument.get_mut(&argument_id) {
+            *count += self.increment;
+        } else {
+            self.count_per_field_argument.insert(argument_id, self.increment);
+        }
     }
-}
-
-impl std::ops::Index<FieldId> for Schema {
-    type Output = SchemaField;
-
-    fn index(&self, index: FieldId) -> &Self::Output {
-        &self.fields[index.0]
-    }
-}
-
-#[derive(Debug)]
-pub struct Query {
-    /// fragment name -> fragment
-    pub fragments: HashMap<String, Fragment>,
-
-    pub operation_type: OperationType,
-    pub root_selection: SelectionId,
-
-    /// (parent selection, selection)
-    pub selections: Vec<(SelectionId, Selection)>,
-}
-
-#[derive(Debug)]
-pub struct Fragment {
-    pub type_condition: String,
-    pub selection: SelectionId,
-}
-
-#[derive(Debug)]
-pub enum OperationType {
-    Query,
-    Mutation,
-    Subscription,
-}
-
-#[derive(Debug)]
-pub enum Selection {
-    Field {
-        field_name: String,
-        subselection: Option<SelectionId>,
-    },
-    FragmentSpread {
-        fragment_name: String,
-    },
-    InlineFragment {
-        on: Option<String>,
-        selection: SelectionId,
-    },
 }
 
 /// Given a GraphQL query and the corresponding schema, count the number of times each schema field is used.
-pub fn aggregate_field_usage(query: &Query, schema: &Schema, usage: &mut FieldUsage<'_>) {
+pub fn aggregate_field_usage(query: &Operation, schema: &schema::Schema, usage: &mut FieldUsage) {
     let ty = match query.operation_type {
         OperationType::Query => &schema.query_type_name,
         OperationType::Mutation => &schema.mutation_type_name,
@@ -126,9 +63,9 @@ pub fn aggregate_field_usage(query: &Query, schema: &Schema, usage: &mut FieldUs
 fn aggregate_field_usage_inner(
     selection_id: SelectionId,
     parent_type_name: &str,
-    query: &Query,
-    schema: &Schema,
-    usage: &mut FieldUsage<'_>,
+    query: &Operation,
+    schema: &schema::Schema,
+    usage: &mut FieldUsage,
 ) {
     let start = query.selections.partition_point(|(id, _)| *id < selection_id);
     let selection_set = query.selections[start..]
@@ -139,13 +76,22 @@ fn aggregate_field_usage_inner(
         match selection {
             Selection::Field {
                 field_name,
+                arguments,
                 subselection,
             } => {
                 let Some(field_id) = schema.find_field(parent_type_name, field_name) else {
                     continue;
                 };
 
-                usage.register(field_id);
+                usage.register_field_usage(field_id);
+
+                for arg_name in arguments {
+                    let Some(argument_id) = schema.find_argument((parent_type_name, field_name, &arg_name)) else {
+                        continue;
+                    };
+
+                    usage.register_argument_usage(argument_id);
+                }
 
                 if let Some(subselection_id) = subselection {
                     let field_type = &schema[field_id].base_type;
@@ -164,8 +110,18 @@ fn aggregate_field_usage_inner(
                 aggregate_field_usage_inner(*selection, type_condition, query, schema, usage);
             }
             Selection::InlineFragment { on, selection } => {
-                let parent_type = on.as_deref().unwrap_or(parent_type_name);
-                aggregate_field_usage_inner(*selection, parent_type, query, schema, usage);
+                let subselection_parent_type = if let Some(on) = on {
+                    *usage
+                        .type_condition_counts
+                        .entry([parent_type_name, on].join("."))
+                        .or_insert(0) += 1;
+
+                    on
+                } else {
+                    parent_type_name
+                };
+
+                aggregate_field_usage_inner(*selection, subselection_parent_type, query, schema, usage);
             }
         }
     }
@@ -175,26 +131,23 @@ fn aggregate_field_usage_inner(
 mod tests {
     use super::*;
 
-    fn parse_schema(schema: &str) -> Schema {
+    fn parse_schema(schema: &str) -> schema::Schema {
         async_graphql_parser::parse_schema(schema).unwrap().into()
     }
 
-    fn parse_query(query: &str) -> Query {
+    fn parse_query(query: &str) -> Operation {
         async_graphql_parser::parse_query(query).unwrap().into()
     }
 
     fn run_test(query: &str, schema: &str, expected: expect_test::Expect) {
         let query = parse_query(query);
         let schema = parse_schema(schema);
-        let mut counts = HashMap::new();
-        let mut usage = FieldUsage {
-            increment: 1,
-            count_per_field: &mut counts,
-        };
+        let mut usage = FieldUsage::default();
 
         aggregate_field_usage(&query, &schema, &mut usage);
 
-        let mut counts = counts
+        let mut counts = usage
+            .count_per_field
             .into_iter()
             .map(|(id, count)| format!("{}.{} => {count}", schema[id].type_name, schema[id].field_name))
             .collect::<Vec<_>>();
@@ -445,15 +398,16 @@ mod tests {
 
         let query = parse_query(query);
         let schema = parse_schema(schema);
-        let mut counts = HashMap::new();
+
         let mut usage = FieldUsage {
             increment: 9000,
-            count_per_field: &mut counts,
+            ..Default::default()
         };
 
         aggregate_field_usage(&query, &schema, &mut usage);
 
-        let mut counts = counts
+        let mut counts = usage
+            .count_per_field
             .into_iter()
             .map(|(id, count)| format!("{}.{} => {count}", schema[id].type_name, schema[id].field_name))
             .collect::<Vec<_>>();

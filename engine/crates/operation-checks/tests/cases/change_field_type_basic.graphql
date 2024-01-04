@@ -1,0 +1,50 @@
+type Mutation {
+  createMammal(input: MammalInput!): Mammal!
+}
+
+type Mammal {
+  id: ID!
+  name: String!
+  weight: Float!
+  isExtinct: Boolean!
+}
+
+input MammalInput {
+  mname: String!
+  mweight: Float!
+  misExtinct: Boolean!
+}
+
+# --- #
+
+type Mutation {
+  createMammal(input: MammalInput!): Mammal!
+}
+
+type Mammal {
+  id: ID!
+  name: String!
+  weight: Int!
+  isExtinct: Boolean!
+}
+
+input MammalInput {
+  mname: String!
+  mweight: Int!
+  misExtinct: Boolean!
+}
+
+# --- #
+
+mutation {
+  createMammal(input: {
+    mname: "Tiger"
+    mweight: 300
+    misExtinct: false
+  }) {
+    id
+    name
+    weight
+    isExtinct
+  }
+}
