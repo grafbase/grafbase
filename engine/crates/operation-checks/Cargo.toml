@@ -1,0 +1,17 @@
+[package]
+name = "operation-checks"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[dependencies]
+async-graphql-parser.workspace = true
+
+[dev-dependencies]
+expect-test = "1"
+
+[lints]
+workspace = true
