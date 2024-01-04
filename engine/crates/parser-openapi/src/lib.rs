@@ -134,9 +134,9 @@ pub enum Error {
     UnsupportedVersion(String),
     #[error("There was no URL in this OpenAPI document.  Please provide the url parameter to `@openapi`")]
     MissingUrl,
-    #[error("Could not parse the open api spec: {0}")]
+    #[error("Could not parse the OpenAPI specification: {0}")]
     JsonParsingError(String),
-    #[error("Could not parse the open api spec: {0}")]
+    #[error("Could not parse the OpenAPI specification: {0}")]
     YamlParsingError(String),
     #[error("The schema component {0} was a reference, which we don't currently support.")]
     TopLevelSchemaWasReference(String),
