@@ -108,14 +108,16 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
 }
 
 // FIXME: testing only, remove
-const udf = async (_parent: unknown, _args: unknown, _context: unknown, _info: unknown) => {
+const udf = async (_parent: unknown, _args: unknown, context: { kv: KVNamespace }, _info: unknown) => {
+  await context.kv.put('test', '1')
+  console.log(await context.kv.get('test'))
   await fetch('https://example.com').then((response) => response.text())
-  console.log('test')
   return { hello: 'world' }
 }
 
 let logEntries: LogEntry[] = []
 
+// allows the wrapper to output the port
 globalThis[STDOUT] = console.log
 
 for (const level of [LogLevel.Debug, LogLevel.Error, LogLevel.Info, LogLevel.Warn]) {
@@ -212,6 +214,7 @@ const invoke = async (request: Request) => {
   const { parent, args, context, info } = await request.json()
 
   let returnValue: unknown = null
+
   try {
     if (context) {
       context.kv = new KVNamespace(new MemoryStorage())
@@ -222,6 +225,7 @@ const invoke = async (request: Request) => {
     if (returnValue instanceof Promise) {
       returnValue = await returnValue
     }
+
     if (returnValue instanceof Response) {
       const contentType = returnValue.headers.get(Header.ContentType)?.split(MIME_PROPERTY_SEPARATOR)[0].trim()
       switch (contentType) {
@@ -237,19 +241,21 @@ const invoke = async (request: Request) => {
           break
       }
     }
+
     returnValue = {
       Success: returnValue,
     }
-  } catch (error) {
-    if (error === null) {
+  } catch (error: unknown) {
+    if (error == null) {
       returnValue = {
-        Error: 'null thrown',
+        Error: 'nullish value thrown',
       }
     } else {
-      if (error.name === ErrorType.GraphQL) {
+      if (error instanceof Error && error.name === ErrorType.GraphQL) {
         returnValue = {
           GraphQLError: {
             message: error.message,
+            // @ts-expect-error
             extensions: error.extensions,
           },
         }
