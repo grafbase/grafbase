@@ -75,6 +75,14 @@ globalThis[FETCH] = globalThis.fetch
 globalThis[LOG_ENTRIES] = []
 globalThis[FETCH_REQUESTS] = []
 
+// FIXME: testing only, remove
+const udf = async (_parent: unknown, _args: unknown, context: { kv: KVNamespace }, _info: unknown) => {
+  await context.kv.put('test', '1')
+  console.log(await context.kv.get('test'))
+  await fetch('https://example.com').then((response) => response.text())
+  return { hello: 'world' }
+}
+
 const server = createServer((request, response) => {
   router(
     new Request(`${DUMMY_HOST}${request.url}`, {
@@ -91,7 +99,7 @@ const server = createServer((request, response) => {
     response.statusCode = udfResponse.status
     // cast likely required due to node fetch being experimental
     Readable.fromWeb(udfResponse.body as ReadableStream<Uint8Array>)
-      .on(StreamEvent.Data, (data) => response.write(data))
+      .on(StreamEvent.Data, (chunk) => response.write(chunk))
       .on(StreamEvent.End, () => response.end())
   })
 })
@@ -108,14 +116,6 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
     binaryString += String.fromCharCode(byte)
   }
   return btoa(binaryString)
-}
-
-// FIXME: testing only, remove
-const udf = async (_parent: unknown, _args: unknown, context: { kv: KVNamespace }, _info: unknown) => {
-  await context.kv.put('test', '1')
-  console.log(await context.kv.get('test'))
-  await fetch('https://example.com').then((response) => response.text())
-  return { hello: 'world' }
 }
 
 // patches console.* to return the logs in the response
