@@ -43,6 +43,7 @@ impl ProductionServer {
         parallelism: NonZeroUsize,
         tracing: bool,
     ) -> Result<Self, ServerError> {
+        export_embedded_files()?;
         create_project_dot_grafbase_directory()?;
 
         let environment_variables: HashMap<_, _> = crate::environment::variables().collect();
@@ -78,7 +79,6 @@ impl ProductionServer {
             let hash = hasher.finalize().to_vec();
             let hash_path = project.dot_grafbase_directory_path.join("grafbase_hash");
             if hash != std::fs::read(&hash_path).unwrap_or_default() {
-                export_embedded_files()?;
                 install_wrangler(Environment::get(), tracing).await?;
                 bridge_state.build_all_udfs(detected_udfs, parallelism).await?;
             }
