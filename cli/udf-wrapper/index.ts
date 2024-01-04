@@ -184,7 +184,7 @@ const router = async (request: Request) => {
     case Route.Invoke:
       switch (request.method) {
         case HttpMethod.Post:
-          return await invoke(request)
+          return invoke(request)
         default:
           return new Response(`method not allowed for ${Route.Invoke}`, { status: HttpStatus.MethodNotAllowed })
       }
