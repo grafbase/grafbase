@@ -117,7 +117,7 @@ const udf = async (_parent: unknown, _args: unknown, context: { kv: KVNamespace 
 
 let logEntries: LogEntry[] = []
 
-// allows the wrapper to output the port
+// allows the wrapper to output the port without being easily accessible for a user
 globalThis[STDOUT] = console.log
 
 for (const level of [LogLevel.Debug, LogLevel.Error, LogLevel.Info, LogLevel.Warn]) {
@@ -177,33 +177,26 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
 const router = async (request: Request) => {
   const url = new URL(request.url)
   switch (url.pathname) {
-    case Route.Health: {
+    case Route.Health:
       switch (request.method) {
-        case HttpMethod.Get: {
+        case HttpMethod.Get:
           return new Response(JSON.stringify({ ready: true }), {
             headers: {
               [Header.ContentType]: MimeType.ApplicationJson,
             },
           })
-        }
-        default: {
+        default:
           return new Response(`method not allowed for ${Route.Health}`, { status: HttpStatus.MethodNotAllowed })
-        }
       }
-    }
-    case Route.Invoke: {
+    case Route.Invoke:
       switch (request.method) {
-        case HttpMethod.Post: {
+        case HttpMethod.Post:
           return await invoke(request)
-        }
-        default: {
+        default:
           return new Response(`method not allowed for ${Route.Invoke}`, { status: HttpStatus.MethodNotAllowed })
-        }
       }
-    }
-    default: {
+    default:
       return new Response(`${url.pathname} not found`, { status: HttpStatus.NotFound })
-    }
   }
 }
 
@@ -267,7 +260,7 @@ const invoke = async (request: Request) => {
     }
   }
 
-  const jsonResponse = { value: returnValue, fetchRequests, logEntries: logEntries }
+  const jsonResponse = { value: returnValue, fetchRequests, logEntries }
 
   return new Response(JSON.stringify(jsonResponse), {
     headers: {
