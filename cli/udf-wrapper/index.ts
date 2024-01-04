@@ -1,15 +1,9 @@
 //import udf from '${UDF_MAIN_FILE_PATH}'
 import { createServer } from 'http'
-import { KVNamespace } from '@miniflare/kv'
-import { MemoryStorage } from '@miniflare/storage-memory'
 import { Readable } from 'stream'
 import { ReadableStream } from 'stream/web'
-
-interface LogEntry {
-  loggedAt: number
-  level: string
-  message: string
-}
+import { KVNamespace } from '@miniflare/kv'
+import { MemoryStorage } from '@miniflare/storage-memory'
 
 interface FetchRequest {
   loggedAt: number
@@ -70,7 +64,16 @@ const PORT = 0
 const HOST = '127.0.0.1'
 const DUMMY_HOST = 'https://grafbase-cli'
 const MIME_PROPERTY_SEPARATOR = ';'
-const STDOUT = Symbol()
+const CONSOLE_LOG = Symbol()
+const FETCH = Symbol()
+const LOG_ENTRIES = Symbol()
+const FETCH_REQUESTS = Symbol()
+
+// allows the wrapper to access various wrapped functions without easily exposing them to the user
+globalThis[CONSOLE_LOG] = console.log
+globalThis[FETCH] = globalThis.fetch
+globalThis[LOG_ENTRIES] = []
+globalThis[FETCH_REQUESTS] = []
 
 const server = createServer((request, response) => {
   router(
@@ -86,6 +89,7 @@ const server = createServer((request, response) => {
     udfResponse.headers.forEach((value, key) => response.setHeader(key, value))
     response.statusMessage = udfResponse.statusText
     response.statusCode = udfResponse.status
+    // cast likely required due to node fetch being experimental
     Readable.fromWeb(udfResponse.body as ReadableStream<Uint8Array>)
       .on(StreamEvent.Data, (data) => response.write(data))
       .on(StreamEvent.End, () => response.end())
@@ -95,13 +99,12 @@ const server = createServer((request, response) => {
 server.listen(PORT, HOST, () => {
   // @ts-expect-error incorrectly typed
   const port = server.address().port
-  globalThis[STDOUT](port)
+  globalThis[CONSOLE_LOG](port)
 })
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
   let binaryString = ''
-  const byteArray = new Uint8Array(buffer)
-  for (const byte of byteArray) {
+  for (const byte of new Uint8Array(buffer)) {
     binaryString += String.fromCharCode(byte)
   }
   return btoa(binaryString)
@@ -115,14 +118,10 @@ const udf = async (_parent: unknown, _args: unknown, context: { kv: KVNamespace 
   return { hello: 'world' }
 }
 
-let logEntries: LogEntry[] = []
-
-// allows the wrapper to output the port without being easily accessible for a user
-globalThis[STDOUT] = console.log
-
+// patches console.* to return the logs in the response
 for (const level of [LogLevel.Debug, LogLevel.Error, LogLevel.Info, LogLevel.Warn]) {
   globalThis.console[level] = function (...message: unknown[]) {
-    logEntries.push({
+    globalThis[LOG_ENTRIES].push({
       loggedAt: Date.now(),
       level,
       message: Array.from(message)
@@ -136,15 +135,11 @@ globalThis.console.log = globalThis.console.info
 
 // Monkey patch `fetch()` calls from custom resolvers
 // to allow for fully introspected logging of all HTTP requests.
-let fetchRequests: FetchRequest[] = []
-
-const originalFetch = globalThis.fetch
-
 globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   const request = new Request(input, init)
 
   const startTime = Date.now()
-  const response = await originalFetch(request)
+  const response = await globalThis[FETCH](request)
   const endTime = Date.now()
 
   const contentType = response.headers.get(Header.ContentType)?.split(MIME_PROPERTY_SEPARATOR)[0].trim()
@@ -169,7 +164,7 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     body,
   }
 
-  fetchRequests.push(fetchRequest)
+  globalThis[FETCH_REQUESTS].push(fetchRequest)
 
   return response
 }
@@ -181,9 +176,7 @@ const router = async (request: Request) => {
       switch (request.method) {
         case HttpMethod.Get:
           return new Response(JSON.stringify({ ready: true }), {
-            headers: {
-              [Header.ContentType]: MimeType.ApplicationJson,
-            },
+            headers: { [Header.ContentType]: MimeType.ApplicationJson },
           })
         default:
           return new Response(`method not allowed for ${Route.Health}`, { status: HttpStatus.MethodNotAllowed })
@@ -201,8 +194,8 @@ const router = async (request: Request) => {
 }
 
 const invoke = async (request: Request) => {
-  logEntries = []
-  fetchRequests = []
+  globalThis[LOG_ENTRIES] = []
+  globalThis[FETCH_REQUESTS] = []
 
   const { parent, args, context, info } = await request.json()
 
@@ -260,11 +253,13 @@ const invoke = async (request: Request) => {
     }
   }
 
-  const jsonResponse = { value: returnValue, fetchRequests, logEntries }
+  const jsonResponse = {
+    value: returnValue,
+    fetchRequests: globalThis[FETCH_REQUESTS],
+    logEntries: globalThis[LOG_ENTRIES],
+  }
 
   return new Response(JSON.stringify(jsonResponse), {
-    headers: {
-      [Header.ContentType]: MimeType.ApplicationJson,
-    },
+    headers: { [Header.ContentType]: MimeType.ApplicationJson },
   })
 }
