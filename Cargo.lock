@@ -4022,6 +4022,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "operation-checks"
+version = "0.52.2"
+dependencies = [
+ "async-graphql-parser",
+ "expect-test",
+]
+
+[[package]]
 name = "operation-normalizer"
 version = "0.52.2"
 dependencies = [
