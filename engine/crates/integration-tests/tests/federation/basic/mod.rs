@@ -8,6 +8,7 @@ mod fragments;
 mod headers;
 mod mutation;
 mod scalars;
+mod streaming;
 mod variables;
 
 use engine_v2::Engine;
