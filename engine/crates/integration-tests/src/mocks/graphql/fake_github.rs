@@ -1,5 +1,5 @@
 use async_graphql::{
-    scalar, EmptyMutation, EmptySubscription, InputObject, Interface, Object, SimpleObject, Union, ID,
+    scalar, ComplexObject, EmptyMutation, EmptySubscription, InputObject, Interface, Object, SimpleObject, Union, ID,
 };
 
 pub struct FakeGithubSchema;
@@ -239,9 +239,17 @@ enum UserOrBot {
 }
 
 #[derive(SimpleObject, Clone)]
+#[graphql(complex)]
 struct User {
     name: String,
     email: String,
+}
+
+#[ComplexObject]
+impl User {
+    async fn pull_requests(&self) -> Vec<PullRequest> {
+        vec![]
+    }
 }
 
 #[derive(SimpleObject, Clone)]

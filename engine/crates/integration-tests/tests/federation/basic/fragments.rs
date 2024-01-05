@@ -64,6 +64,63 @@ fn named_fragment_on_object() {
 }
 
 #[test]
+fn named_fragment_cycle() {
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+
+        let engine = Gateway::builder()
+            .with_schema("schema", &github_mock)
+            .await
+            .finish()
+            .await;
+
+        engine
+            .execute(
+                r"
+                    query {
+                        allBotPullRequests {
+                            ...PrFields
+                        }
+                    }
+
+                    fragment PrFields on PullRequest {
+                        title
+                        checks
+                        author {
+                            ...UserFields
+                        }
+                    }
+
+                    fragment UserFields on User {
+                        name
+                        pullRequests {
+                            ...PrFields
+                        }
+                    }
+                    ",
+            )
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": null,
+      "errors": [
+        {
+          "message": "Fragment cycle detected: PrFields, UserFields, PrFields",
+          "locations": [
+            {
+              "line": 19,
+              "column": 29
+            }
+          ]
+        }
+      ]
+    }
+    "###);
+}
+
+#[test]
 fn inline_fragment_on_object() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
