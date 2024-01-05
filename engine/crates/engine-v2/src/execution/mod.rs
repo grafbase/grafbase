@@ -3,5 +3,5 @@ mod coordinator;
 mod variables;
 
 pub(crate) use context::*;
-pub use coordinator::{ExecutorCoordinator, ResponseReceiver};
+pub use coordinator::ExecutorCoordinator;
 pub use variables::*;

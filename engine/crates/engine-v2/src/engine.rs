@@ -29,7 +29,7 @@ impl Engine {
     }
 
     pub async fn execute(&self, request: engine::Request, headers: RequestHeaders) -> Response {
-        let operation = match self.prepare(&request).await {
+        let operation = match self.prepare(&request) {
             Ok(operation) => operation,
             Err(error) => return Response::from_error(error, ExecutionMetadata::default()),
         };

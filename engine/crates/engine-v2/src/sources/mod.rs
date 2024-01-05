@@ -96,21 +96,24 @@ impl<'exc> Executor<'exc> {
     }
 }
 
+#[allow(dead_code)]
 pub(crate) struct SubscriptionResolverInput<'ctx> {
     pub ctx: ExecutionContext<'ctx>,
     pub plan_id: PlanId,
     pub plan_output: PlanOutput,
 }
 
+#[allow(dead_code)]
 pub(crate) enum SubscriptionExecutor<'a> {
     Graphql(GraphqlSubscriptionExecutor<'a>),
 }
 
+#[allow(dead_code)]
 impl<'exc> SubscriptionExecutor<'exc> {
     pub fn build<'ctx>(
-        walker: ResolverWalker<'ctx>,
-        entity_type: EntityType,
-        input: SubscriptionResolverInput<'ctx>,
+        _walker: ResolverWalker<'ctx>,
+        _entity_type: EntityType,
+        _input: SubscriptionResolverInput<'ctx>,
     ) -> ExecutorResult<Self>
     where
         'ctx: 'exc,
@@ -119,9 +122,7 @@ impl<'exc> SubscriptionExecutor<'exc> {
     }
 
     pub fn execute(self) -> BoxStream<'exc, (ResponseBuilder, ExecutorOutput)> {
-        // TODO: This somehow needs
         todo!();
-        return Box::pin(futures_util::stream::pending());
     }
 }
 

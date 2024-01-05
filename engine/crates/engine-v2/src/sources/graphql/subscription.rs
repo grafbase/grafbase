@@ -1,11 +1,12 @@
 use schema::sources::federation::SubgraphWalker;
 
-use super::{ExecutionContext, Executor, ExecutorError, ExecutorResult, ResolverInput};
+use super::ExecutionContext;
 use crate::{
     plan::PlanOutput,
-    response::{ExecutorOutput, GraphqlError, ResponseBoundaryItem},
+    response::{ExecutorOutput, ResponseBoundaryItem},
 };
 
+#[allow(dead_code)]
 pub struct GraphqlSubscriptionExecutor<'ctx> {
     ctx: ExecutionContext<'ctx>,
     subgraph: SubgraphWalker<'ctx>,

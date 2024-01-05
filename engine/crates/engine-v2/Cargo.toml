@@ -16,6 +16,7 @@ workspace = true
 [dependencies]
 async-runtime.workspace = true
 derive_more = "0.99"
+futures.workspace = true
 im = "15"
 indexmap.workspace = true
 lasso = "0.7"

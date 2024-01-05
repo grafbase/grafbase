@@ -46,7 +46,6 @@ pub(crate) struct ResponseBuilder {
 // least wait until we face actual problems. We're focused on OLTP workloads, so might never
 // happen.
 impl ResponseBuilder {
-    // TODO: This could probably just take the root_object_id?
     pub fn new(operation: &Operation) -> Self {
         let mut builder = ExecutorOutput::new(ResponseDataPartId::from(0), vec![]);
         let root_id = builder.push_object(ResponseObject {
@@ -101,6 +100,11 @@ impl ResponseBuilder {
     // Coordinator during the planning phase.
     pub fn push_error(&mut self, error: impl Into<GraphqlError>) {
         self.errors.push(error.into());
+    }
+
+    pub fn with_error(mut self, error: impl Into<GraphqlError>) -> Self {
+        self.push_error(error);
+        self
     }
 
     pub fn build(self, schema: Arc<Schema>, keys: Arc<ResponseKeys>, metadata: ExecutionMetadata) -> Response {

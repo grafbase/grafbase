@@ -4,7 +4,6 @@ use engine_parser::Pos;
 use engine_value::{ConstValue, Name};
 use indexmap::IndexMap;
 use schema::{DataType, InputObjectId, ListWrapping, Schema, StringId};
-use serde::de;
 
 use crate::{
     request::{Operation, VariableDefinition, VariableDefinitionId},
