@@ -106,12 +106,14 @@ server.listen(PORT, HOST, () => {
 })
 
 // For Deno:
+//
 // Deno.serve(
 //   { port: PORT, onListen: (path: { hostname: string; port: number }) => originalConsoleLog(path.port) },
 //   (request: Request) => router(request),
 // )
 
 // For Bun:
+//
 // const server = Bun.serve({
 //   port: PORT,
 //   fetch: (request: Request) => router(request),
