@@ -11,3 +11,12 @@ pub(crate) struct GraphqlError {
     // ensures consistent ordering for tests
     pub extensions: BTreeMap<String, serde_json::Value>,
 }
+
+impl GraphqlError {
+    pub fn new(message: impl Into<String>) -> Self {
+        GraphqlError {
+            message: message.into(),
+            ..Default::default()
+        }
+    }
+}
