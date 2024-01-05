@@ -6,6 +6,12 @@ import { ReadableStream } from 'stream/web'
 import { KVNamespace } from '@miniflare/kv'
 import { MemoryStorage } from '@miniflare/storage-memory'
 
+interface LogEntry {
+  loggedAt: number
+  level: string
+  message: string
+}
+
 interface FetchRequest {
   loggedAt: number
   url: string
@@ -69,8 +75,8 @@ const MIME_PROPERTY_SEPARATOR = ';'
 const originalConsoleLog = console.log
 const originalFetch = globalThis.fetch
 
-let logEntries: any = []
-let fetchRequests: any = []
+let logEntries: Array<LogEntry> = []
+let fetchRequests: Array<FetchRequest> = []
 
 const server = createServer((request, response) => {
   router(
