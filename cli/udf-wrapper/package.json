@@ -1,18 +1,13 @@
 {
-  "name": "cli",
+  "name": "udf-wrapper",
   "module": "index.ts",
   "devDependencies": {
-    "bun-types": "latest",
+    "@types/node": "^20.10.5",
     "esbuild": "0.19.11",
-    "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
   },
   "dependencies": {
     "@miniflare/kv": "^2.14.1",
-    "@miniflare/storage-memory": "^2.14.1",
-    "@types/node": "^20.10.5"
+    "@miniflare/storage-memory": "^2.14.1"
   }
 }

@@ -1,4 +1,5 @@
-//import udf from '${UDF_MAIN_FILE_PATH}'
+// @ts-expect-error
+import udf from '${UDF_MAIN_FILE_PATH}'
 import { createServer } from 'http'
 import { Readable } from 'stream'
 import { ReadableStream } from 'stream/web'
@@ -74,14 +75,6 @@ globalThis[CONSOLE_LOG] = console.log
 globalThis[FETCH] = globalThis.fetch
 globalThis[LOG_ENTRIES] = []
 globalThis[FETCH_REQUESTS] = []
-
-// FIXME: testing only, remove
-const udf = async (_parent: unknown, _args: unknown, context: { kv: KVNamespace }, _info: unknown) => {
-  await context.kv.put('test', '1')
-  console.log(await context.kv.get('test'))
-  await fetch('https://example.com').then((response) => response.text())
-  return { hello: 'world' }
-}
 
 const server = createServer((request, response) => {
   router(
