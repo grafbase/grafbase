@@ -241,7 +241,7 @@ const invoke = async (request: Request) => {
         returnValue = {
           GraphQLError: {
             message: error.message,
-            // @ts-expect-error
+            // @ts-expect-error TODO: check if this is needed
             extensions: error.extensions,
           },
         }
