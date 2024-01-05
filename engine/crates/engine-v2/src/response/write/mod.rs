@@ -72,6 +72,14 @@ impl ResponseBuilder {
         ExecutorOutput::new(id, boundaries)
     }
 
+    pub fn root_response_boundary(&self) -> Option<ResponseBoundaryItem> {
+        Some(ResponseBoundaryItem {
+            response_object_id: self.root?,
+            response_path: ResponsePath::default(),
+            object_id: self[self.root?].object_id,
+        })
+    }
+
     pub fn ingest(&mut self, output: ExecutorOutput) -> Vec<(PlanBoundary, Vec<ResponseBoundaryItem>)> {
         let reservation = &mut self.parts[usize::from(output.id)];
         assert!(reservation.is_empty(), "Part already has data");
@@ -92,6 +100,11 @@ impl ResponseBuilder {
     // Coordinator during the planning phase.
     pub fn push_error(&mut self, error: impl Into<GraphqlError>) {
         self.errors.push(error.into());
+    }
+
+    pub fn with_error(mut self, error: impl Into<GraphqlError>) -> Self {
+        self.push_error(error);
+        self
     }
 
     pub fn build(self, schema: Arc<Schema>, keys: Arc<ResponseKeys>, metadata: ExecutionMetadata) -> Response {

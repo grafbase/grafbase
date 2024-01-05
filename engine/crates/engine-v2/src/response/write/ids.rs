@@ -80,6 +80,7 @@ impl std::ops::Index<ResponseObjectId> for ResponseData {
         &self.parts[usize::from(index.part_id)].objects[index.index as usize]
     }
 }
+
 impl std::ops::Index<ResponseListId> for ResponseData {
     type Output = [ResponseValue];
 

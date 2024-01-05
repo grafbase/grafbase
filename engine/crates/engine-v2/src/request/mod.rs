@@ -22,9 +22,6 @@ mod selection_set;
 mod variable;
 mod walkers;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct VariableId(usize);
-
 pub struct Operation {
     pub ty: OperationType,
     pub root_object_id: ObjectId,

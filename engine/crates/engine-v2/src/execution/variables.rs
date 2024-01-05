@@ -6,7 +6,7 @@ use indexmap::IndexMap;
 use schema::{DataType, InputObjectId, ListWrapping, Schema, StringId};
 
 use crate::{
-    request::{Operation, VariableDefinition},
+    request::{Operation, VariableDefinition, VariableDefinitionId},
     response::GraphqlError,
 };
 
@@ -95,28 +95,34 @@ impl ValueKind {
     }
 }
 
-pub struct Variables<'a> {
-    inner: HashMap<String, Variable<'a>>,
+pub struct Variables {
+    inner: HashMap<String, Variable>,
 }
 
-pub struct Variable<'a> {
+pub struct Variable {
     pub value: Option<ConstValue>,
-    pub definition: &'a VariableDefinition,
+    pub definition_id: VariableDefinitionId,
 }
 
-impl<'a> Variables<'a> {
+impl Variables {
     pub fn from_request(
-        operation: &'a Operation,
+        operation: &Operation,
         schema: &Schema,
         mut variables: engine_value::Variables,
     ) -> Result<Self, Vec<VariableError>> {
         let mut coerced = HashMap::new();
         let mut errors = vec![];
 
-        for definition in operation.variable_definitions.iter() {
+        for (id, definition) in operation.variable_definitions.iter().enumerate() {
             match coerce_variable_value(definition, schema, &mut variables, VariablePath::new(&definition.name)) {
                 Ok(value) => {
-                    coerced.insert(definition.name.clone(), Variable { value, definition });
+                    coerced.insert(
+                        definition.name.clone(),
+                        Variable {
+                            value,
+                            definition_id: id.into(),
+                        },
+                    );
                 }
                 Err(error) => {
                     errors.push(error);
@@ -131,7 +137,7 @@ impl<'a> Variables<'a> {
         Ok(Self { inner: coerced })
     }
 
-    pub fn get(&self, name: &str) -> Option<&Variable<'_>> {
+    pub fn get(&self, name: &str) -> Option<&Variable> {
         self.inner.get(name)
     }
 }

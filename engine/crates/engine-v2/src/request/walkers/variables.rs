@@ -5,8 +5,8 @@ use crate::execution::{Variable, Variables};
 
 use super::OperationWalker;
 
-pub type VariablesWalker<'a> = OperationWalker<'a, &'a Variables<'a>>;
-pub type VariableWalker<'a> = OperationWalker<'a, &'a Variable<'a>>;
+pub type VariablesWalker<'a> = OperationWalker<'a, &'a Variables>;
+pub type VariableWalker<'a> = OperationWalker<'a, &'a Variable>;
 
 impl<'a> VariablesWalker<'a> {
     pub fn get(&self, name: &str) -> Option<VariableWalker<'a>> {
@@ -20,7 +20,7 @@ impl<'a> VariableWalker<'a> {
     }
 
     pub fn type_name(&self) -> String {
-        let ty = &self.item.definition.r#type;
+        let ty = &self.walk(self.item.definition_id).as_ref().r#type;
         let mut name = self.schema_walker.walk(ty.inner).name().to_string();
         if ty.wrapping.inner_is_required {
             name.push('!');
@@ -34,7 +34,7 @@ impl<'a> VariableWalker<'a> {
         name
     }
 
-    pub fn default_value(&self) -> &Option<ConstValue> {
-        &self.item.definition.default_value
+    pub fn default_value(&self) -> Option<&ConstValue> {
+        self.walk(self.item.definition_id).as_ref().default_value.as_ref()
     }
 }

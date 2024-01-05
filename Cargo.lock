@@ -1699,6 +1699,7 @@ dependencies = [
  "engine-v2-config",
  "engine-v2-schema",
  "engine-value",
+ "futures",
  "futures-util",
  "hex",
  "im",

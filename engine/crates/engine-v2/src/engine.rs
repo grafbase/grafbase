@@ -29,7 +29,7 @@ impl Engine {
     }
 
     pub async fn execute(&self, request: engine::Request, headers: RequestHeaders) -> Response {
-        let operation = match self.prepare(&request).await {
+        let operation = match self.prepare(&request) {
             Ok(operation) => operation,
             Err(error) => return Response::from_error(error, ExecutionMetadata::default()),
         };
@@ -38,12 +38,11 @@ impl Engine {
             Err(errors) => return Response::from_errors(errors, ExecutionMetadata::build(&operation)),
         };
 
-        let mut executor = ExecutorCoordinator::new(self, &operation, &variables, &headers);
-        executor.execute().await;
-        executor.into_response()
+        let executor = ExecutorCoordinator::new(self, operation, variables, headers);
+        executor.execute().await
     }
 
-    async fn prepare(&self, request: &engine::Request) -> Result<Operation, GraphqlError> {
+    fn prepare(&self, request: &engine::Request) -> Result<Operation, GraphqlError> {
         let unbound_operation = parse_operation(request)?;
         let operation = Operation::build(&self.schema, unbound_operation)?;
         Ok(operation)

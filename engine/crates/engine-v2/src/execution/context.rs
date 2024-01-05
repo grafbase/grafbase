@@ -14,7 +14,7 @@ use crate::{
 pub(crate) struct ExecutionContext<'ctx> {
     pub engine: &'ctx Engine,
     pub walker: OperationWalker<'ctx>,
-    pub(super) variables: &'ctx Variables<'ctx>,
+    pub(super) variables: &'ctx Variables,
     pub(super) request_headers: &'ctx RequestHeaders,
 }
 
