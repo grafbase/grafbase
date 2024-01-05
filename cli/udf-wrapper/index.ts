@@ -65,16 +65,12 @@ const PORT = 0
 const HOST = '127.0.0.1'
 const DUMMY_HOST = 'https://grafbase-cli'
 const MIME_PROPERTY_SEPARATOR = ';'
-const CONSOLE_LOG = Symbol()
-const FETCH = Symbol()
-const LOG_ENTRIES = Symbol()
-const FETCH_REQUESTS = Symbol()
 
-// allows the wrapper to access various wrapped functions without easily exposing them to the user
-globalThis[CONSOLE_LOG] = console.log
-globalThis[FETCH] = globalThis.fetch
-globalThis[LOG_ENTRIES] = []
-globalThis[FETCH_REQUESTS] = []
+const originalConsoleLog = console.log
+const originalFetch = globalThis.fetch
+
+let logEntries: any = []
+let fetchRequests: any = []
 
 const server = createServer((request, response) => {
   router(
@@ -100,7 +96,7 @@ const server = createServer((request, response) => {
 server.listen(PORT, HOST, () => {
   // @ts-expect-error incorrectly typed
   const port = server.address().port
-  globalThis[CONSOLE_LOG](port)
+  originalConsoleLog(port)
 })
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
@@ -114,7 +110,7 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
 // patches console.* to return the logs in the response
 for (const level of Object.values(LogLevel)) {
   globalThis.console[level] = (...message: unknown[]) => {
-    globalThis[LOG_ENTRIES].push({
+    logEntries.push({
       loggedAt: Date.now(),
       level,
       message: Array.from(message)
@@ -132,7 +128,7 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   const request = new Request(input, init)
 
   const startTime = Date.now()
-  const response = await globalThis[FETCH](request)
+  const response = await originalFetch(request)
   const endTime = Date.now()
 
   const contentType = response.headers.get(Header.ContentType)?.split(MIME_PROPERTY_SEPARATOR)[0].trim()
@@ -157,7 +153,7 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     body,
   }
 
-  globalThis[FETCH_REQUESTS].push(fetchRequest)
+  fetchRequests.push(fetchRequest)
 
   return response
 }
@@ -187,8 +183,8 @@ const router = async (request: Request) => {
 }
 
 const invoke = async (request: Request) => {
-  globalThis[LOG_ENTRIES] = []
-  globalThis[FETCH_REQUESTS] = []
+  logEntries = []
+  fetchRequests = []
 
   const { parent, args, context, info } = await request.json()
 
@@ -248,8 +244,8 @@ const invoke = async (request: Request) => {
 
   const jsonResponse = {
     value: returnValue,
-    fetchRequests: globalThis[FETCH_REQUESTS],
-    logEntries: globalThis[LOG_ENTRIES],
+    fetchRequests,
+    logEntries,
   }
 
   return new Response(JSON.stringify(jsonResponse), {
