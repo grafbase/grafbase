@@ -4,6 +4,7 @@ import { Readable } from 'stream'
 import { ReadableStream } from 'stream/web'
 import { KVNamespace } from '@miniflare/kv'
 import { MemoryStorage } from '@miniflare/storage-memory'
+import { GraphQLError } from 'graphql'
 
 interface FetchRequest {
   loggedAt: number
@@ -41,10 +42,6 @@ enum MimeType {
 enum Route {
   Health = '/health',
   Invoke = '/invoke',
-}
-
-enum ErrorType {
-  GraphQL = 'GraphQLError',
 }
 
 enum Header {
@@ -237,11 +234,10 @@ const invoke = async (request: Request) => {
         Error: 'nullish value thrown',
       }
     } else {
-      if (error instanceof Error && error.name === ErrorType.GraphQL) {
+      if (error instanceof GraphQLError) {
         returnValue = {
           GraphQLError: {
             message: error.message,
-            // @ts-expect-error TODO: check if this is needed
             extensions: error.extensions,
           },
         }
