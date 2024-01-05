@@ -105,6 +105,20 @@ server.listen(PORT, HOST, () => {
   originalConsoleLog(port)
 })
 
+// For Deno:
+// Deno.serve(
+//   { port: PORT, onListen: (path: { hostname: string; port: number }) => originalConsoleLog(path.port) },
+//   (request: Request) => router(request),
+// )
+
+// For Bun:
+// const server = Bun.serve({
+//   port: PORT,
+//   fetch: (request: Request) => router(request),
+// })
+//
+// console.log(server.port)
+
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
   let binaryString = ''
   for (const byte of new Uint8Array(buffer)) {
