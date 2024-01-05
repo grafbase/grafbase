@@ -50,21 +50,19 @@ impl Engine {
         request: engine::Request,
         headers: RequestHeaders,
     ) -> impl Stream<Item = Response> + '_ {
-        let initial_state = StreamState::Starting(request, headers);
+        let initial_state = StreamState::Starting(request, headers, self);
         futures_util::stream::unfold(initial_state, move |state| async move {})
     }
 
     fn prepare(&self, request: &engine::Request) -> Result<Operation, GraphqlError> {
         let unbound_operation = parse_operation(request)?;
-        // TODO: Can possibly move Variables::from_request here to make things nicer.
-        // Or package up Operation w/ Variables at least?  Not sure.
         let operation = Operation::build(&self.schema, unbound_operation)?;
         Ok(operation)
     }
 }
 
 enum StreamState<'a> {
-    Starting(&'a engine::Request, &'a RequestHeaders, &'a Engine),
+    Starting(engine::Request, RequestHeaders, &'a Engine),
     Started(ResponseReceiver, BoxFuture<'a, ()>),
     Finished,
 }
@@ -93,15 +91,12 @@ impl StreamState<'_> {
                     }
                 };
 
-                    if matches!(operation.ty, OperationType::Query | OperationType::Mutation) {
-                        let response = ExecutorCoordinator::new(engine, operation, variables, headers)
-                            .execute()
-                            .await;
-                        return Some((response, StreamState::Finished));
-                    }
-
-                // TODO: Could probably write some tests of running queries & mutations via execute_stream
-                // now...
+                if matches!(operation.ty, OperationType::Query | OperationType::Mutation) {
+                    let response = ExecutorCoordinator::new(engine, operation, variables, headers)
+                        .execute()
+                        .await;
+                    return Some((response, StreamState::Finished));
+                }
 
                 let executor = ExecutorCoordinator::new(engine, &operation, &variables, &headers);
                 let (sender, receiver) = mpsc::channel(2);
