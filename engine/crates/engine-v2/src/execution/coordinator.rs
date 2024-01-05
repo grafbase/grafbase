@@ -39,8 +39,7 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
     }
 
     pub async fn execute(self) -> Response {
-        let planner = Planner::new(&self.engine.schema, &self.operation);
-        let mut planner = planner;
+        let mut planner = Planner::new(&self.engine.schema, &self.operation);
         let mut response = ResponseBuilder::new(&self.operation);
 
         // Mutation root fields need to be executed sequentially. So we're tracking for each
@@ -190,21 +189,24 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
             };
 
             for plan in plans {
-                executors.extend(self.executor_from_plan(plan, response))
+                match self.executor_from_plan(plan, response) {
+                    Ok(executor) => executors.push(executor),
+                    Err(error) => response.push_error(error),
+                }
             }
         }
 
         executors
     }
 
-    fn executor_from_plan<'a>(&'a self, plan: Plan, response: &mut ResponseBuilder) -> Option<Executor<'a>> {
+    fn executor_from_plan<'a>(&'a self, plan: Plan, response: &mut ResponseBuilder) -> ExecutorResult<Executor<'a>> {
         let resolver = self.engine.schema.walker().walk(plan.resolver_id);
         let schema = self.engine.schema.walker_with(resolver.names());
         let output = response.new_output(plan.boundaries);
         // Ensuring that all walkers the executors has access to have a consistent
         // `Names`.
         let resolver = schema.walk(plan.resolver_id);
-        let result = Executor::build(
+        Executor::build(
             resolver,
             plan.output.entity_type,
             ResolverInput {
@@ -220,14 +222,7 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
                 plan_output: plan.output,
                 output,
             },
-        );
-        match result {
-            Ok(executor) => Some(executor),
-            Err(err) => {
-                response.push_error(err);
-                None
-            }
-        }
+        )
     }
 
     fn subscription_executor_from_plan(&self, plan: Plan) -> ExecutorResult<SubscriptionExecutor<'_>> {
