@@ -23,7 +23,7 @@ impl<'a> std::ops::Deref for RootFieldResolverWalker<'a> {
     type Target = RootFieldResolver;
 
     fn deref(&self) -> &'a Self::Target {
-        self.wrapped
+        self.item
     }
 }
 
@@ -69,7 +69,7 @@ impl<'a> std::ops::Deref for EntityResolverWalker<'a> {
     type Target = EntityResolver;
 
     fn deref(&self) -> &'a Self::Target {
-        self.wrapped
+        self.item
     }
 }
 
@@ -103,18 +103,18 @@ pub type SubgraphWalker<'a> = SchemaWalker<'a, &'a Subgraph>;
 
 impl<'a> SubgraphWalker<'a> {
     pub fn name(&self) -> &'a str {
-        &self.schema[self.wrapped.name]
+        &self.schema[self.item.name]
     }
 
     pub fn url(&self) -> &'a str {
-        &self.schema[self.wrapped.url]
+        &self.schema[self.item.url]
     }
 
     pub fn headers(&self) -> impl Iterator<Item = SubgraphHeaderWalker<'a>> + '_ {
         self.schema
             .default_headers
             .iter()
-            .chain(self.wrapped.headers.iter())
+            .chain(self.item.headers.iter())
             .map(|id| self.walk(&self.schema[*id]))
     }
 }
@@ -132,11 +132,11 @@ pub type SubgraphHeaderWalker<'a> = SchemaWalker<'a, &'a Header>;
 
 impl<'a> SubgraphHeaderWalker<'a> {
     pub fn name(&self) -> &'a str {
-        &self.schema[self.wrapped.name]
+        &self.schema[self.item.name]
     }
 
     pub fn value(&self) -> SubgraphHeaderValueRef<'a> {
-        match self.wrapped.value {
+        match self.item.value {
             HeaderValue::Forward(id) => SubgraphHeaderValueRef::Forward(&self.schema[id]),
             HeaderValue::Static(id) => SubgraphHeaderValueRef::Static(&self.schema[id]),
         }

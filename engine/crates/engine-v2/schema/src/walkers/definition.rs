@@ -7,11 +7,11 @@ pub type DefinitionWalker<'a> = SchemaWalker<'a, Definition>;
 
 impl<'a> DefinitionWalker<'a> {
     pub fn id(&self) -> Definition {
-        self.wrapped
+        self.item
     }
 
     pub fn name(&self) -> &'a str {
-        match self.wrapped {
+        match self.item {
             Definition::Scalar(s) => self.names.scalar(self.schema, s),
             Definition::Object(o) => self.names.object(self.schema, o),
             Definition::Interface(i) => self.names.interface(self.schema, i),
@@ -22,7 +22,7 @@ impl<'a> DefinitionWalker<'a> {
     }
 
     pub fn schema_name_id(&self) -> StringId {
-        match self.wrapped {
+        match self.item {
             Definition::Scalar(s) => self.schema[s].name,
             Definition::Object(o) => self.schema[o].name,
             Definition::Interface(i) => self.schema[i].name,
@@ -33,7 +33,7 @@ impl<'a> DefinitionWalker<'a> {
     }
 
     pub fn schema_description_id(&self) -> Option<StringId> {
-        match self.wrapped {
+        match self.item {
             Definition::Scalar(s) => self.schema[s].description,
             Definition::Object(o) => self.schema[o].description,
             Definition::Interface(i) => self.schema[i].description,
@@ -44,7 +44,7 @@ impl<'a> DefinitionWalker<'a> {
     }
 
     pub fn fields(&self) -> Option<Box<dyn Iterator<Item = FieldWalker<'a>> + 'a>> {
-        match self.wrapped {
+        match self.item {
             Definition::Object(o) => Some(Box::new(self.walk(o).fields())),
             Definition::Interface(i) => Some(Box::new(self.walk(i).fields())),
             _ => None,
@@ -52,7 +52,7 @@ impl<'a> DefinitionWalker<'a> {
     }
 
     pub fn interfaces(&self) -> Option<Box<dyn Iterator<Item = InterfaceWalker<'a>> + 'a>> {
-        match self.wrapped {
+        match self.item {
             Definition::Object(o) => Some(Box::new(self.walk(o).interfaces())),
             Definition::Interface(i) => Some(Box::new(self.walk(i).interfaces())),
             _ => None,
@@ -60,7 +60,7 @@ impl<'a> DefinitionWalker<'a> {
     }
 
     pub fn possible_types(&self) -> Option<Box<dyn Iterator<Item = ObjectWalker<'a>> + 'a>> {
-        match self.wrapped {
+        match self.item {
             Definition::Interface(i) => Some(Box::new(self.walk(i).possible_types())),
             Definition::Union(u) => Some(Box::new(self.walk(u).possible_types())),
             _ => None,
@@ -68,35 +68,35 @@ impl<'a> DefinitionWalker<'a> {
     }
 
     pub fn as_enum(&self) -> Option<EnumWalker<'a>> {
-        match self.wrapped {
+        match self.item {
             Definition::Enum(e) => Some(self.walk(e)),
             _ => None,
         }
     }
 
     pub fn as_input_object(&self) -> Option<InputObjectWalker<'a>> {
-        match self.wrapped {
+        match self.item {
             Definition::InputObject(io) => Some(self.walk(io)),
             _ => None,
         }
     }
 
     pub fn as_scalar(&self) -> Option<ScalarWalker<'a>> {
-        match self.wrapped {
+        match self.item {
             Definition::Scalar(s) => Some(self.walk(s)),
             _ => None,
         }
     }
 
     pub fn as_object(&self) -> Option<ObjectWalker<'a>> {
-        match self.wrapped {
+        match self.item {
             Definition::Object(s) => Some(self.walk(s)),
             _ => None,
         }
     }
 
     pub fn data_type(&self) -> Option<DataType> {
-        match self.wrapped {
+        match self.item {
             Definition::Scalar(id) => Some(self.schema[id].data_type),
             Definition::Enum(_) => Some(DataType::String),
             _ => None,
@@ -104,26 +104,26 @@ impl<'a> DefinitionWalker<'a> {
     }
 
     pub fn is_object(&self) -> bool {
-        matches!(self.wrapped, Definition::Object(_))
+        matches!(self.item, Definition::Object(_))
     }
 }
 
 impl<'a> From<ObjectWalker<'a>> for DefinitionWalker<'a> {
     fn from(value: ObjectWalker<'a>) -> Self {
-        value.walk(value.wrapped.into())
+        value.walk(value.item.into())
     }
 }
 
 impl<'a> From<InterfaceWalker<'a>> for DefinitionWalker<'a> {
     fn from(value: InterfaceWalker<'a>) -> Self {
-        value.walk(value.wrapped.into())
+        value.walk(value.item.into())
     }
 }
 
 impl<'a> std::fmt::Debug for DefinitionWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut debug = f.debug_struct("Definition");
-        match self.wrapped {
+        match self.item {
             Definition::Scalar(s) => debug.field("inner", &self.walk(s)),
             Definition::Object(o) => debug.field("inner", &self.walk(o)),
             Definition::Interface(i) => debug.field("inner", &self.walk(i)),

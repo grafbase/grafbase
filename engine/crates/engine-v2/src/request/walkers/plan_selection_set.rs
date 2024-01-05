@@ -3,8 +3,8 @@ use std::collections::VecDeque;
 use schema::Definition;
 
 use super::{
-    BoundFragmentSpreadWalker, BoundInlineFragmentWalker, BoundSelectionSetWalker, OperationWalker, PlanExt, PlanField,
-    PlanOperationWalker, PlanWalker, SelectionSetTypeWalker,
+    BoundFragmentSpreadWalker, BoundInlineFragmentWalker, BoundSelectionSetWalker, ExecutorWalkContext,
+    OperationWalker, PlanField, PlanOperationWalker, PlanWalker, SelectionSetTypeWalker,
 };
 use crate::{
     plan::{ExtraFieldWalker, ExtraSelectionSetId},
@@ -14,21 +14,21 @@ use crate::{
 #[derive(Clone)]
 pub enum PlanSelectionSet<'a> {
     RootFields(PlanOperationWalker<'a>),
-    Query(BoundSelectionSetWalker<'a, PlanExt<'a>>),
-    Extra(OperationWalker<'a, ExtraSelectionSetId, (), PlanExt<'a>>),
+    Query(BoundSelectionSetWalker<'a, ExecutorWalkContext<'a>>),
+    Extra(OperationWalker<'a, ExtraSelectionSetId, (), ExecutorWalkContext<'a>>),
 }
 
 impl<'a> PlanSelectionSet<'a> {
     pub fn ty(&self) -> SelectionSetTypeWalker<'a, ()> {
         match self {
             Self::RootFields(walker) => {
-                let ty: SelectionSetType = walker.wrapped.entity_type.into();
-                walker.walk_with(ty, Definition::from(ty)).with_ext(())
+                let ty: SelectionSetType = walker.item.entity_type.into();
+                walker.walk_with(ty, Definition::from(ty)).without_ctx()
             }
             Self::Query(walker) => walker.ty(),
             Self::Extra(walker) => {
                 let ty = walker.as_attribution_walker().ty();
-                walker.walk_with(ty, Definition::from(ty)).with_ext(())
+                walker.walk_with(ty, Definition::from(ty)).without_ctx()
             }
         }
     }
@@ -36,8 +36,8 @@ impl<'a> PlanSelectionSet<'a> {
 
 pub enum PlanSelection<'a> {
     Field(PlanField<'a>),
-    FragmentSpread(BoundFragmentSpreadWalker<'a, PlanExt<'a>>),
-    InlineFragment(BoundInlineFragmentWalker<'a, PlanExt<'a>>),
+    FragmentSpread(BoundFragmentSpreadWalker<'a, ExecutorWalkContext<'a>>),
+    InlineFragment(BoundInlineFragmentWalker<'a, ExecutorWalkContext<'a>>),
 }
 
 impl<'a> IntoIterator for PlanSelectionSet<'a> {
@@ -49,18 +49,18 @@ impl<'a> IntoIterator for PlanSelectionSet<'a> {
         match self {
             Self::RootFields(walker) => PlanSelectionIterator {
                 walker: walker.walk(()),
-                bound_field_ids: walker.wrapped.root_fields.iter().copied().collect(),
+                bound_field_ids: walker.item.root_fields.iter().copied().collect(),
                 selections: VecDeque::with_capacity(0),
                 extra_fields: VecDeque::with_capacity(0),
             },
             Self::Query(walker) => PlanSelectionIterator {
                 walker: walker.walk(()),
                 bound_field_ids: VecDeque::with_capacity(0),
-                selections: walker.operation[walker.wrapped].items.iter().collect(),
+                selections: walker.operation[walker.item].items.iter().collect(),
                 extra_fields: walker
-                    .ext
+                    .ctx
                     .attribution
-                    .extras_for(walker.wrapped)
+                    .extras_for(walker.item)
                     .map(|extras| extras.fields().collect())
                     .unwrap_or_default(),
             },
@@ -91,7 +91,7 @@ impl<'a> Iterator for PlanSelectionIterator<'a> {
                 // Skipping over metadata fields. The plan doesn't provide them.
                 let field = bound_field.definition().as_field().map(|definition| {
                     PlanSelection::Field(PlanField::Query(
-                        bound_field.walk_with((bound_field.id(), definition.wrapped), definition.id()),
+                        bound_field.walk_with((bound_field.id(), definition.item), definition.id()),
                     ))
                 });
                 if field.is_some() {
@@ -100,17 +100,17 @@ impl<'a> Iterator for PlanSelectionIterator<'a> {
             } else if let Some(selection) = self.selections.pop_front() {
                 match selection {
                     &BoundSelection::Field(id) => {
-                        if self.walker.ext.attribution.field(id) {
+                        if self.walker.ctx.attribution.field(id) {
                             self.bound_field_ids.push_back(id);
                         }
                     }
                     BoundSelection::FragmentSpread(spread) => {
-                        if self.walker.ext.attribution.selection_set(spread.selection_set_id) {
+                        if self.walker.ctx.attribution.selection_set(spread.selection_set_id) {
                             return Some(PlanSelection::FragmentSpread(self.walker.walk(spread)));
                         }
                     }
                     BoundSelection::InlineFragment(fragment) => {
-                        if self.walker.ext.attribution.selection_set(fragment.selection_set_id) {
+                        if self.walker.ctx.attribution.selection_set(fragment.selection_set_id) {
                             return Some(PlanSelection::InlineFragment(self.walker.walk(fragment)));
                         }
                     }

@@ -59,7 +59,7 @@ impl<'op> Planner<'op> {
                 .bound_field()
                 .definition()
                 .as_field()
-                .map(|field| field.resolvers.is_empty())
+                .map(|field| field.resolvers().len() == 0)
                 .unwrap_or(true)
         });
         let mut boundary = if matches!(self.operation.ty, OperationType::Mutation) {
@@ -352,7 +352,7 @@ impl<'op> Planner<'op> {
         }: ChildPlan,
     ) -> PlanningResult<(PlanOutput, Vec<PlanBoundary>)> {
         let resolver = self.schema.walker().walk(resolver_id).with_own_names();
-        let walker = self.operation.walker_with(resolver.walk(()), ());
+        let walker = self.operation.walker_with(resolver.walk(()));
         let flat_selection_set: FlatSelectionSetWalker<'_, EntityType> = walker.walk(Cow::Owned(providable));
         let entity_type = flat_selection_set.ty();
 
@@ -509,7 +509,7 @@ impl<'op> Planner<'op> {
     }
 
     fn default_operation_walker(&self) -> OperationWalker<'op> {
-        self.operation.walker_with(self.schema.walker(), ())
+        self.operation.walker_with(self.schema.walker())
     }
 }
 
@@ -574,7 +574,7 @@ impl<'a> AttributionLogic<'a> {
             AttributionLogic::CompatibleResolver { resolver, providable } => {
                 let providable = FieldSet::merge_opt(
                     providable.get(field.id()).map(|s| &s.subselection),
-                    Some(&field.provides),
+                    Some(field.provides()),
                 );
                 if resolver.can_provide(field) {
                     AttributionLogic::CompatibleResolver {
@@ -703,7 +703,7 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
                     expected_key,
                     edge: group.key.into(),
                     definition_id: Some(group.definition_id),
-                    wrapping: field.ty().wrapping.clone(),
+                    wrapping: field.ty().wrapping().clone(),
                     ty,
                 });
             } else {
@@ -721,7 +721,7 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
                         ConcreteType::ExtraSelectionSet(self.attribution[id].clone().build())
                     }
                 },
-                wrapping: self.walker.schema().walk(extra_field.field_id).ty().wrapping.clone(),
+                wrapping: self.walker.schema().walk(extra_field.field_id).ty().wrapping().clone(),
             }));
         }
         fields.sort_unstable_by(|a, b| a.expected_key.cmp(&b.expected_key));
@@ -790,13 +790,13 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
                 expected_key,
                 ty,
                 field_id: field.id(),
-                bound_response_key: bound_field.bound_response_key,
-                definition_id: bound_field.definition_id,
+                bound_response_key: bound_field.bound_response_key(),
+                definition_id: bound_field.definition_id(),
             })))
         } else {
             Ok(PossibleField::TypeName {
                 type_condition: flat_field.into_inner().type_condition,
-                key: bound_field.bound_response_key,
+                key: bound_field.bound_response_key(),
             })
         }
     }

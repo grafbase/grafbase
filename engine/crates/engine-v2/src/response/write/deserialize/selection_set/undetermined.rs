@@ -191,7 +191,7 @@ impl<'ctx, 'parent> UndeterminedFieldsSeed<'ctx, 'parent> {
                                             selection_set_ids: vec![id],
                                         },
                                     },
-                                    wrapping: schema_field.ty().wrapping.clone(),
+                                    wrapping: schema_field.ty().wrapping().clone(),
                                 });
                         }
                     }
@@ -222,7 +222,7 @@ impl<'ctx, 'parent> UndeterminedFieldsSeed<'ctx, 'parent> {
                                             selection_set_ids: vec![id],
                                         },
                                     },
-                                    wrapping: schema_field.ty().wrapping.clone(),
+                                    wrapping: schema_field.ty().wrapping().clone(),
                                 });
                         }
                     }
@@ -325,7 +325,7 @@ impl<'ctx, 'parent> UndeterminedFieldsSeed<'ctx, 'parent> {
                                 selection_set_ids: vec![id],
                             },
                         },
-                        wrapping: schema_field.ty().wrapping.clone(),
+                        wrapping: schema_field.ty().wrapping().clone(),
                     });
                 acc
             });

@@ -5,16 +5,16 @@ pub type InputObjectWalker<'a> = SchemaWalker<'a, InputObjectId>;
 
 impl<'a> InputObjectWalker<'a> {
     pub fn name(&self) -> &'a str {
-        self.names.input_object(self.schema, self.wrapped)
+        self.names.input_object(self.schema, self.item)
     }
 
     pub fn description(&self) -> Option<&'a str> {
-        self.description.map(|id| self.schema[id].as_str())
+        self.as_ref().description.map(|id| self.schema[id].as_str())
     }
 
     pub fn input_fields(&self) -> impl Iterator<Item = InputValueWalker<'a>> + 'a {
         let walker = *self;
-        self.schema[self.wrapped]
+        self.schema[self.item]
             .input_fields
             .iter()
             .map(move |id| walker.walk(*id))
@@ -24,7 +24,7 @@ impl<'a> InputObjectWalker<'a> {
 impl<'a> std::fmt::Debug for InputObjectWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("InputObject")
-            .field("id", &usize::from(self.wrapped))
+            .field("id", &usize::from(self.item))
             .field("name", &self.name())
             .field("description", &self.description())
             .field(

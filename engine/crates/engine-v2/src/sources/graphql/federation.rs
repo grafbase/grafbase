@@ -83,9 +83,12 @@ impl<'ctx> FederationEntityExecutor<'ctx> {
             .await?
             .bytes;
         let err_path = Some(
-            self.response_boundary[0]
-                .response_path
-                .child(self.ctx.walker.walk(self.plan_output.root_fields[0]).bound_response_key),
+            self.response_boundary[0].response_path.child(
+                self.ctx
+                    .walker
+                    .walk(self.plan_output.root_fields[0])
+                    .bound_response_key(),
+            ),
         );
         let mut upstream_errors = vec![];
         let result = deserialize::GraphqlResponseSeed::new(

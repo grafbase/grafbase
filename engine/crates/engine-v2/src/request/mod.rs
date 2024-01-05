@@ -54,7 +54,7 @@ impl Operation {
                 .map(|cache_config_id| schema[cache_config_id]);
 
             let selection_set_cache_config = operation
-                .walker_with(schema.walker(), ())
+                .walker_with(schema.walker())
                 .walk(operation.root_selection_set_id)
                 .cache_config();
 
@@ -68,19 +68,18 @@ impl Operation {
         bind::bind(schema, unbound_operation)
     }
 
-    pub fn walker_with<'op, 'schema, E>(
+    pub fn walker_with<'op, 'schema>(
         &'op self,
         schema_walker: SchemaWalker<'schema, ()>,
-        ext: E,
-    ) -> OperationWalker<'op, (), (), E>
+    ) -> OperationWalker<'op, (), (), ()>
     where
         'schema: 'op,
     {
         OperationWalker {
             operation: self,
             schema_walker,
-            ext,
-            wrapped: (),
+            ctx: (),
+            item: (),
         }
     }
 }

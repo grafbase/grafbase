@@ -244,10 +244,10 @@ impl QueryBuilder {
         let name = self.fragment_content_to_name.entry(fragment_buffer).or_insert_with(|| {
             let id = self
                 .fragment_name_to_last_id
-                .entry(fragment.name.to_string())
+                .entry(fragment.name().to_string())
                 .and_modify(|id| *id += 1)
                 .or_default();
-            format!("{}_{}", fragment.name, id)
+            format!("{}_{}", fragment.name(), id)
         });
         buffer.indent_write(&format!("...{name}\n"))?;
         Ok(())

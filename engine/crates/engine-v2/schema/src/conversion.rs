@@ -99,16 +99,16 @@ impl From<Config> for Schema {
             let mut root_fields = vec![];
             let walker = schema.walker();
             for field in walker.walk(schema.root_operation_types.query).fields() {
-                root_fields.push(field.wrapped);
+                root_fields.push(field.item);
             }
             if let Some(mutation) = schema.root_operation_types.mutation {
                 for field in walker.walk(mutation).fields() {
-                    root_fields.push(field.wrapped);
+                    root_fields.push(field.item);
                 }
             }
             if let Some(subscription) = schema.root_operation_types.subscription {
                 for field in walker.walk(subscription).fields() {
-                    root_fields.push(field.wrapped);
+                    root_fields.push(field.item);
                 }
             }
             root_fields.sort_unstable();

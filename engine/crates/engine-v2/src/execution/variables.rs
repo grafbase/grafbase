@@ -345,7 +345,7 @@ fn coerce_input_object(
     let mut coerced = IndexMap::new();
     for field in schema.walker().walk(object_id).input_fields() {
         match fields.remove(field.name()) {
-            None | Some(ConstValue::Null) if field.ty().wrapping.is_required() => {
+            None | Some(ConstValue::Null) if field.ty().wrapping().is_required() => {
                 return Err(CoercionError::UnexpectedNull {
                     expected: field.ty().to_string(),
                     path: path.to_error_string(schema),
@@ -355,7 +355,7 @@ fn coerce_input_object(
             Some(value) => {
                 coerced.insert(
                     Name::new(field.name()),
-                    coerce_value(value, &field.ty(), schema, path.child(field.name))?,
+                    coerce_value(value, field.ty().as_ref(), schema, path.child(field.name_string_id()))?,
                 );
             }
         }

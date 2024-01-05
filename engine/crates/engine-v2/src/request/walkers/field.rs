@@ -1,41 +1,60 @@
 use schema::{FieldId, FieldWalker};
 
 use super::{
-    BoundAnyFieldDefinitionWalker, BoundFieldArgumentWalker, BoundSelectionSetWalker, OperationWalker, PlanExt,
-    PlanSelectionSet,
+    BoundAnyFieldDefinitionWalker, BoundFieldArgumentWalker, BoundSelectionSetWalker, ExecutorWalkContext,
+    OperationWalker, PlanSelectionSet,
 };
 use crate::{
     plan::ExtraFieldId,
-    request::{BoundFieldDefinition, BoundFieldId},
+    request::{BoundAnyFieldDefinitionId, BoundFieldDefinition, BoundFieldId},
+    response::BoundResponseKey,
 };
 
-pub type BoundFieldWalker<'a, Extension = ()> = OperationWalker<'a, BoundFieldId, (), Extension>;
+pub type BoundFieldWalker<'a, CtxOrUnit = ()> = OperationWalker<'a, BoundFieldId, (), CtxOrUnit>;
 
-impl<'a, E: Copy> BoundFieldWalker<'a, E> {
-    pub fn response_key_str(&self) -> &'a str {
-        &self.operation.response_keys[self.bound_response_key.into()]
+impl<'a, C: Copy> BoundFieldWalker<'a, C> {
+    pub fn bound_response_key(&self) -> BoundResponseKey {
+        self.as_ref().bound_response_key
     }
 
-    pub fn definition(&self) -> BoundAnyFieldDefinitionWalker<'a, E> {
-        self.walk_with(self.definition_id, ())
+    pub fn response_key_str(&self) -> &'a str {
+        &self.operation.response_keys[self.as_ref().bound_response_key.into()]
+    }
+
+    pub fn definition_id(&self) -> BoundAnyFieldDefinitionId {
+        self.as_ref().definition_id
+    }
+
+    pub fn definition(&self) -> BoundAnyFieldDefinitionWalker<'a, C> {
+        self.walk_with(self.as_ref().definition_id, ())
     }
 }
 
 impl<'a> BoundFieldWalker<'a, ()> {
     pub fn selection_set(&self) -> Option<BoundSelectionSetWalker<'a>> {
-        self.selection_set_id.map(|id| self.walk(id))
+        self.as_ref().selection_set_id.map(|id| self.walk(id))
     }
 }
 
-impl<'a> BoundFieldWalker<'a, PlanExt<'a>> {
+impl<'a> BoundFieldWalker<'a, ExecutorWalkContext<'a>> {
     pub fn selection_set(&self) -> Option<PlanSelectionSet<'a>> {
-        self.selection_set_id
-            .filter(|id| self.ext.attribution.selection_set(*id))
+        self.as_ref()
+            .selection_set_id
+            .filter(|id| self.ctx.attribution.selection_set(*id))
             .map(|id| PlanSelectionSet::Query(self.walk(id)))
     }
 }
 
-impl<'a> std::fmt::Debug for BoundFieldWalker<'a, PlanExt<'a>> {
+impl<'a> std::fmt::Debug for BoundFieldWalker<'a, ()> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BoundFieldWalker")
+            .field("definition", &self.definition())
+            .field("selection_set", &self.selection_set())
+            .finish()
+    }
+}
+
+impl<'a> std::fmt::Debug for BoundFieldWalker<'a, ExecutorWalkContext<'a>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("BoundFieldWalker")
             .field("definition", &self.definition())
@@ -45,8 +64,8 @@ impl<'a> std::fmt::Debug for BoundFieldWalker<'a, PlanExt<'a>> {
 }
 
 pub enum PlanField<'a> {
-    Query(OperationWalker<'a, (BoundFieldId, &'a BoundFieldDefinition), FieldId, PlanExt<'a>>),
-    Extra(OperationWalker<'a, ExtraFieldId, FieldId, PlanExt<'a>>),
+    Query(OperationWalker<'a, (BoundFieldId, &'a BoundFieldDefinition), FieldId, ExecutorWalkContext<'a>>),
+    Extra(OperationWalker<'a, ExtraFieldId, FieldId, ExecutorWalkContext<'a>>),
 }
 
 impl<'a> std::ops::Deref for PlanField<'a> {
@@ -63,14 +82,14 @@ impl<'a> std::ops::Deref for PlanField<'a> {
 impl<'a> PlanField<'a> {
     pub fn response_key_str(&self) -> &'a str {
         match self {
-            PlanField::Query(walker) => walker.walk_with(walker.wrapped.0, ()).response_key_str(),
+            PlanField::Query(walker) => walker.walk_with(walker.item.0, ()).response_key_str(),
             PlanField::Extra(walker) => walker.as_attribution_walker().expected_key(),
         }
     }
 
     pub fn selection_set(&self) -> Option<PlanSelectionSet<'a>> {
         match self {
-            PlanField::Query(walker) => walker.walk_with(walker.wrapped.0, ()).selection_set(),
+            PlanField::Query(walker) => walker.walk_with(walker.item.0, ()).selection_set(),
             PlanField::Extra(walker) => walker
                 .as_attribution_walker()
                 .selection_set()
@@ -78,10 +97,12 @@ impl<'a> PlanField<'a> {
         }
     }
 
-    pub fn bound_arguments(&self) -> impl ExactSizeIterator<Item = BoundFieldArgumentWalker<'a, PlanExt<'a>>> + 'a {
+    pub fn bound_arguments(
+        &self,
+    ) -> impl ExactSizeIterator<Item = BoundFieldArgumentWalker<'a, ExecutorWalkContext<'a>>> + 'a {
         let arguments = match self {
             PlanField::Query(walker) => walker
-                .wrapped
+                .item
                 .1
                 .arguments
                 .iter()

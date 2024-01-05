@@ -5,27 +5,27 @@ use schema::InputValueId;
 
 use crate::request::BoundFieldArgument;
 
-use super::{OperationWalker, PlanExt};
+use super::{ExecutorWalkContext, OperationWalker};
 
-pub type BoundFieldArgumentWalker<'a, Extension = ()> =
-    OperationWalker<'a, &'a BoundFieldArgument, InputValueId, Extension>;
+pub type BoundFieldArgumentWalker<'a, CtxOrUnit = ()> =
+    OperationWalker<'a, &'a BoundFieldArgument, InputValueId, CtxOrUnit>;
 
-impl<'a, E> BoundFieldArgumentWalker<'a, E> {
+impl<'a, C> BoundFieldArgumentWalker<'a, C> {
     // Value in the query, before variable resolution.
     pub fn query_value(&self) -> &engine_value::Value {
-        &self.wrapped.value
+        &self.item.value
     }
 }
 
-impl<'a> BoundFieldArgumentWalker<'a, PlanExt<'a>> {
+impl<'a> BoundFieldArgumentWalker<'a, ExecutorWalkContext<'a>> {
     pub fn resolved_value(&self) -> ConstValue {
         // not really efficient, but works.
-        self.wrapped
+        self.item
             .value
             .clone()
             .into_const_with::<()>(|name| {
                 Ok(self
-                    .ext
+                    .ctx
                     .variables
                     .get(&name)
                     .expect("Would have failed at validation")

@@ -10,17 +10,17 @@ pub type VariableWalker<'a> = OperationWalker<'a, &'a Variable<'a>>;
 
 impl<'a> VariablesWalker<'a> {
     pub fn get(&self, name: &str) -> Option<VariableWalker<'a>> {
-        self.wrapped.get(name).map(|variable| self.walk(variable))
+        self.item.get(name).map(|variable| self.walk(variable))
     }
 }
 
 impl<'a> VariableWalker<'a> {
     pub fn value(&self) -> Option<&'a ConstValue> {
-        self.wrapped.value.as_ref()
+        self.item.value.as_ref()
     }
 
     pub fn type_name(&self) -> String {
-        let ty = &self.wrapped.definition.r#type;
+        let ty = &self.item.definition.r#type;
         let mut name = self.schema_walker.walk(ty.inner).name().to_string();
         if ty.wrapping.inner_is_required {
             name.push('!');
@@ -35,6 +35,6 @@ impl<'a> VariableWalker<'a> {
     }
 
     pub fn default_value(&self) -> &Option<ConstValue> {
-        &self.wrapped.definition.default_value
+        &self.item.definition.default_value
     }
 }

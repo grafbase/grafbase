@@ -8,21 +8,23 @@ use crate::{
     plan::{Attribution, AttributionWalker, PlanOutput},
 };
 
-pub type PlanWalker<'a> = OperationWalker<'a, (), (), PlanExt<'a>>;
-pub type PlanOperationWalker<'a> = OperationWalker<'a, &'a PlanOutput, (), PlanExt<'a>>;
-pub type PlanFragmentSpread<'a> = BoundFragmentSpreadWalker<'a, PlanExt<'a>>;
-pub type PlanInlineFragment<'a> = BoundInlineFragmentWalker<'a, PlanExt<'a>>;
-pub type PlanFieldArgument<'a> = BoundFieldArgumentWalker<'a, PlanExt<'a>>;
+// Not sure if best name, but those allow to walk over the "plan" for an executor. Attributed
+// fields and their associated variables.
+pub type PlanWalker<'a> = OperationWalker<'a, (), (), ExecutorWalkContext<'a>>;
+pub type PlanOperationWalker<'a> = OperationWalker<'a, &'a PlanOutput, (), ExecutorWalkContext<'a>>;
+pub type PlanFragmentSpread<'a> = BoundFragmentSpreadWalker<'a, ExecutorWalkContext<'a>>;
+pub type PlanInlineFragment<'a> = BoundInlineFragmentWalker<'a, ExecutorWalkContext<'a>>;
+pub type PlanFieldArgument<'a> = BoundFieldArgumentWalker<'a, ExecutorWalkContext<'a>>;
 
 #[derive(Clone, Copy)]
-pub struct PlanExt<'a> {
+pub struct ExecutorWalkContext<'a> {
     pub attribution: &'a Attribution,
     pub variables: &'a Variables<'a>,
 }
 
-impl<'a, W: Copy, S> OperationWalker<'a, W, S, PlanExt<'a>> {
-    pub(super) fn as_attribution_walker(&self) -> AttributionWalker<'a, W> {
-        self.ext.attribution.walk(self.wrapped)
+impl<'a, I: Copy, SI> OperationWalker<'a, I, SI, ExecutorWalkContext<'a>> {
+    pub(super) fn as_attribution_walker(&self) -> AttributionWalker<'a, I> {
+        self.ctx.attribution.walk(self.item)
     }
 }
 

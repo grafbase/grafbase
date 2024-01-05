@@ -89,7 +89,7 @@ impl<'a, Id: Copy> AttributionWalker<'a, Id>
 where
     Attribution: std::ops::Index<Id>,
 {
-    pub fn get(&self) -> &'a <Attribution as std::ops::Index<Id>>::Output {
+    pub fn as_ref(&self) -> &'a <Attribution as std::ops::Index<Id>>::Output {
         &self.attribution[self.id]
     }
 }
@@ -99,25 +99,25 @@ pub type ExtraFieldWalker<'a> = AttributionWalker<'a, ExtraFieldId>;
 
 impl<'a> ExtraSelectionSetWalker<'a> {
     pub fn ty(&self) -> SelectionSetType {
-        self.get().ty
+        self.as_ref().ty
     }
 
     pub fn fields(&self) -> impl Iterator<Item = ExtraFieldWalker<'a>> + 'a {
         let walker = self.walk(());
-        self.get().fields.iter().map(move |id| walker.walk(*id))
+        self.as_ref().fields.iter().map(move |id| walker.walk(*id))
     }
 }
 
 impl<'a> ExtraFieldWalker<'a> {
     pub fn selection_set(&self) -> Option<ExtraSelectionSetWalker<'a>> {
-        match self.get().ty {
+        match self.as_ref().ty {
             ExpectedType::Scalar(_) => None,
             ExpectedType::SelectionSet(id) => Some(self.walk(id)),
         }
     }
 
     pub fn expected_key(&self) -> &'a str {
-        &self.get().expected_key
+        &self.as_ref().expected_key
     }
 }
 
@@ -125,7 +125,7 @@ impl<'a> std::ops::Deref for ExtraFieldWalker<'a> {
     type Target = ExtraField;
 
     fn deref(&self) -> &'a Self::Target {
-        self.get()
+        self.as_ref()
     }
 }
 

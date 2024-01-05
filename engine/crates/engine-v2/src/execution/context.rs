@@ -4,7 +4,7 @@ use schema::SchemaWalker;
 use super::Variables;
 use crate::{
     plan::PlanOutput,
-    request::{OperationWalker, PlanExt, PlanOperationWalker, VariablesWalker},
+    request::{ExecutorWalkContext, OperationWalker, PlanOperationWalker, VariablesWalker},
     response::{ExecutorOutput, ResponseBoundaryItem, ResponseObjectWriter},
     Engine,
 };
@@ -32,7 +32,7 @@ impl<'ctx> ExecutionContext<'ctx> {
         'ctx: 'p,
     {
         self.walker
-            .with_ext(PlanExt {
+            .with_ctx(ExecutorWalkContext {
                 attribution: &output.attribution,
                 variables: self.variables,
             })
@@ -49,7 +49,7 @@ impl<'ctx> ExecutionContext<'ctx> {
         'ctx: 'a,
     {
         ResponseObjectWriter::new(
-            self.walker.with_ext(PlanExt {
+            self.walker.with_ctx(ExecutorWalkContext {
                 attribution: &output.attribution,
                 variables: self.variables,
             }),

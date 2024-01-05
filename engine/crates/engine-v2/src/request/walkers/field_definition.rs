@@ -7,37 +7,37 @@ use crate::{
     response::ResponseKey,
 };
 
-use super::{BoundFieldArgumentWalker, OperationWalker, PlanExt};
+use super::{BoundFieldArgumentWalker, ExecutorWalkContext, OperationWalker};
 
-pub type BoundAnyFieldDefinitionWalker<'a, Extension = ()> =
-    OperationWalker<'a, BoundAnyFieldDefinitionId, (), Extension>;
-pub type BoundFieldDefinitionWalker<'a, Extension = ()> =
-    OperationWalker<'a, &'a BoundFieldDefinition, FieldId, Extension>;
+pub type BoundAnyFieldDefinitionWalker<'a, CtxOrUnit = ()> =
+    OperationWalker<'a, BoundAnyFieldDefinitionId, (), CtxOrUnit>;
+pub type BoundFieldDefinitionWalker<'a, CtxOrUnit = ()> =
+    OperationWalker<'a, &'a BoundFieldDefinition, FieldId, CtxOrUnit>;
 
-impl<'a, E: Copy> BoundAnyFieldDefinitionWalker<'a, E> {
-    pub fn as_field(&self) -> Option<BoundFieldDefinitionWalker<'a, E>> {
-        match self.get() {
+impl<'a, C: Copy> BoundAnyFieldDefinitionWalker<'a, C> {
+    pub fn as_field(&self) -> Option<BoundFieldDefinitionWalker<'a, C>> {
+        match self.as_ref() {
             BoundAnyFieldDefinition::TypeName(_) => None,
             BoundAnyFieldDefinition::Field(definition) => Some(self.walk_with(definition, definition.field_id)),
         }
     }
 
     pub fn name_location(&self) -> Pos {
-        match self.get() {
+        match self.as_ref() {
             BoundAnyFieldDefinition::TypeName(definition) => definition.name_location,
             BoundAnyFieldDefinition::Field(definition) => definition.name_location,
         }
     }
 
     pub fn response_key_str(&self) -> &'a str {
-        &self.operation.response_keys[self.get().response_key()]
+        &self.operation.response_keys[self.as_ref().response_key()]
     }
 }
 
-impl<'a, E: Copy> std::fmt::Debug for BoundAnyFieldDefinitionWalker<'a, E> {
+impl<'a, C: Copy> std::fmt::Debug for BoundAnyFieldDefinitionWalker<'a, C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut fmt = f.debug_struct("BoundAnyFieldDefinition");
-        let name = match self.get() {
+        let name = match self.as_ref() {
             BoundAnyFieldDefinition::TypeName(_) => "__typename",
             BoundAnyFieldDefinition::Field(definition) => self.schema_walker.walk(definition.field_id).name(),
         };
@@ -48,7 +48,7 @@ impl<'a, E: Copy> std::fmt::Debug for BoundAnyFieldDefinitionWalker<'a, E> {
     }
 }
 
-impl<'a, E> std::ops::Deref for BoundFieldDefinitionWalker<'a, E> {
+impl<'a, C> std::ops::Deref for BoundFieldDefinitionWalker<'a, C> {
     type Target = FieldWalker<'a>;
 
     fn deref(&self) -> &Self::Target {
@@ -56,28 +56,28 @@ impl<'a, E> std::ops::Deref for BoundFieldDefinitionWalker<'a, E> {
     }
 }
 
-impl<'a, E> BoundFieldDefinitionWalker<'a, E> {
+impl<'a, C> BoundFieldDefinitionWalker<'a, C> {
     pub fn response_key(&self) -> ResponseKey {
-        self.wrapped.response_key
+        self.item.response_key
     }
 
     pub fn response_key_str(&self) -> &str {
-        &self.operation.response_keys[self.wrapped.response_key]
+        &self.operation.response_keys[self.item.response_key]
     }
 
-    pub fn bound_arguments(&self) -> impl ExactSizeIterator<Item = BoundFieldArgumentWalker<'a, E>> + 'a
+    pub fn bound_arguments(&self) -> impl ExactSizeIterator<Item = BoundFieldArgumentWalker<'a, C>> + 'a
     where
-        E: Copy + 'a,
+        C: Copy + 'a,
     {
         let walker = *self;
-        self.wrapped
+        self.item
             .arguments
             .iter()
             .map(move |argument| walker.walk_with(argument, argument.input_value_id))
     }
 }
 
-impl<'a, E> std::fmt::Debug for BoundFieldDefinitionWalker<'a, E> {
+impl<'a, C> std::fmt::Debug for BoundFieldDefinitionWalker<'a, C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut fmt = f.debug_struct("BoundFieldDefinition");
         if self.response_key_str() != self.name() {
@@ -89,7 +89,7 @@ impl<'a, E> std::fmt::Debug for BoundFieldDefinitionWalker<'a, E> {
 
 #[derive(Clone, Copy)]
 pub enum PlanFieldDefinition<'a> {
-    Query(BoundFieldDefinitionWalker<'a, PlanExt<'a>>),
+    Query(BoundFieldDefinitionWalker<'a, ExecutorWalkContext<'a>>),
     Extra {
         schema_field: FieldWalker<'a>,
         extra: &'a ExtraField,
@@ -99,11 +99,13 @@ pub enum PlanFieldDefinition<'a> {
 impl<'a> PlanFieldDefinition<'a> {
     pub fn name_location(&self) -> Option<Pos> {
         match self {
-            PlanFieldDefinition::Query(walker) => Some(walker.wrapped.name_location),
+            PlanFieldDefinition::Query(walker) => Some(walker.item.name_location),
             PlanFieldDefinition::Extra { .. } => None,
         }
     }
-    pub fn bound_arguments(&self) -> impl ExactSizeIterator<Item = BoundFieldArgumentWalker<'a, PlanExt<'a>>> + 'a {
+    pub fn bound_arguments(
+        &self,
+    ) -> impl ExactSizeIterator<Item = BoundFieldArgumentWalker<'a, ExecutorWalkContext<'a>>> + 'a {
         let arguments = match self {
             PlanFieldDefinition::Query(walker) => walker.bound_arguments().collect(),
             PlanFieldDefinition::Extra { .. } => vec![],
