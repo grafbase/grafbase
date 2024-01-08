@@ -29,6 +29,13 @@ impl super::Schema for StateMutationSchema {
         self.schema().execute(request).await
     }
 
+    fn execute_stream(
+        &self,
+        request: async_graphql::Request,
+    ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
+        Box::pin(self.schema().execute_stream(request))
+    }
+
     fn sdl(&self) -> String {
         self.schema()
             .sdl_with_options(async_graphql::SDLExportOptions::new().federation())

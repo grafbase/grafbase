@@ -17,6 +17,23 @@ impl super::Schema for FakeGithubSchema {
             .await
     }
 
+    fn execute_stream(
+        &self,
+        request: async_graphql::Request,
+    ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
+        Box::pin(
+            async_graphql::Schema::build(
+                Query {
+                    headers: Default::default(),
+                },
+                EmptyMutation,
+                EmptySubscription,
+            )
+            .finish()
+            .execute_stream(request),
+        )
+    }
+
     fn sdl(&self) -> String {
         let schema = async_graphql::Schema::build(
             Query {

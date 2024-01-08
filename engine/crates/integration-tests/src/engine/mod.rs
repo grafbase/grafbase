@@ -191,6 +191,13 @@ impl crate::mocks::graphql::Schema for Engine {
         async_graphql::Response::deserialize(serde_json::to_value(response).unwrap()).unwrap()
     }
 
+    fn execute_stream(
+        &self,
+        _request: async_graphql::Request,
+    ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
+        todo!("if you need this you should implement it")
+    }
+
     fn sdl(&self) -> String {
         self.inner.schema.federation_sdl()
     }

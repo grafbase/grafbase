@@ -1,10 +1,11 @@
 // See https://github.com/async-graphql/examples
-use async_graphql::{Context, EmptyMutation, EmptySubscription, Object, Schema, SimpleObject};
+use async_graphql::{Context, EmptyMutation, Object, Schema, SimpleObject};
+use futures::Stream;
 
 pub struct FakeFederationProductsSchema;
 
 impl FakeFederationProductsSchema {
-    fn schema() -> Schema<Query, EmptyMutation, EmptySubscription> {
+    fn schema() -> Schema<Query, EmptyMutation, Subscription> {
         let hats = vec![
             Product {
                 upc: "top-1".to_string(),
@@ -32,7 +33,7 @@ impl FakeFederationProductsSchema {
                 price: 55,
             },
         ];
-        Schema::build(Query, EmptyMutation, EmptySubscription)
+        Schema::build(Query, EmptyMutation, Subscription)
             .enable_federation()
             .data(hats)
             .finish()
@@ -47,6 +48,13 @@ impl super::super::Schema for FakeFederationProductsSchema {
         request: async_graphql::Request,
     ) -> async_graphql::Response {
         Self::schema().execute(request).await
+    }
+
+    fn execute_stream(
+        &self,
+        request: async_graphql::Request,
+    ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
+        Box::pin(Self::schema().execute_stream(request))
     }
 
     fn sdl(&self) -> String {
@@ -74,5 +82,25 @@ impl Query {
     async fn find_product_by_upc<'a>(&self, ctx: &'a Context<'_>, upc: String) -> Option<&'a Product> {
         let hats = ctx.data_unchecked::<Vec<Product>>();
         hats.iter().find(|product| product.upc == upc)
+    }
+}
+
+struct Subscription;
+
+#[async_graphql::Subscription]
+impl Subscription {
+    async fn new_products(&self) -> impl Stream<Item = Product> {
+        futures::stream::iter([
+            Product {
+                upc: "top-4".to_string(),
+                name: "Jeans".to_string(),
+                price: 44,
+            },
+            Product {
+                upc: "top-5".to_string(),
+                name: "Pink Jeans".to_string(),
+                price: 55,
+            },
+        ])
     }
 }
