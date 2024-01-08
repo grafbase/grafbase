@@ -1,10 +1,10 @@
 use futures_util::future::join_all;
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::Value;
 
-use super::{dynamo_querying::DynamoResolver, ResolvedValue, ResolverContext};
+use super::{ResolvedValue, ResolverContext};
 use crate::{
-    registry::{federation::FederationResolver, variables::VariableResolveDefinition, NamedType},
+    registry::{federation::FederationResolver, NamedType},
     Context, ContextExt, ContextField, Error,
 };
 
@@ -64,15 +64,6 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
     let resolver_context = ResolverContext::new(ctx).with_ty(actual_type);
 
     let data = match key_being_resolved.resolver() {
-        Some(FederationResolver::DynamoUnique) => {
-            let last_resolver_value = Some(ResolvedValue::new(json!({"by": representation.data})));
-            DynamoResolver::QueryBy {
-                by: VariableResolveDefinition::local_data("by"),
-                schema: None,
-            }
-            .resolve(ctx, &resolver_context, last_resolver_value.as_ref())
-            .await
-        }
         Some(FederationResolver::Http(resolver)) => {
             let last_resolver_value = Some(ResolvedValue::new(representation.data));
             resolver.resolve(ctx, &resolver_context, last_resolver_value).await

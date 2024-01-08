@@ -6,7 +6,7 @@ use super::{TodoEngineExt, TODO_SCHEMA};
 #[test]
 fn unknown_entity() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).with_local_dynamo().build().await;
+        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
 
         insta::assert_json_snapshot!(
             engine
@@ -56,7 +56,7 @@ fn unknown_entity() {
 #[test]
 fn unknown_key() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).with_local_dynamo().build().await;
+        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
 
         insta::assert_json_snapshot!(
             engine
@@ -109,7 +109,7 @@ fn unknown_key() {
 #[test]
 fn partial_failures() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).with_local_dynamo().build().await;
+        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
 
         let todo_id = engine.create_todo("Test Federation").await;
 
@@ -168,7 +168,7 @@ fn partial_failures() {
 #[test]
 fn totally_malformed_representation() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).with_local_dynamo().build().await;
+        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
 
         insta::assert_json_snapshot!(
             engine
@@ -212,7 +212,7 @@ fn totally_malformed_representation() {
 #[test]
 fn representation_missing_typename() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).with_local_dynamo().build().await;
+        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
 
         insta::assert_json_snapshot!(
             engine

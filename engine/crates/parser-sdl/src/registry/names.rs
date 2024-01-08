@@ -5,7 +5,6 @@ pub use engine::names::*;
 use engine::registry::NamedType;
 use engine_parser::types::TypeDefinition;
 
-use super::NumericFieldKind;
 use crate::{registry::ParentRelation, utils::to_lower_camelcase};
 
 pub const PAGINATION_INPUT_ARG_FIRST: &str = "first";
@@ -354,13 +353,6 @@ impl MetaNames {
             Self::relation_prefix(parent_relation),
             Self::model(field_model_type_definition)
         )
-    }
-
-    //
-    // Numerical Operation
-    //
-    pub fn numerical_operation_input(kind: &NumericFieldKind) -> String {
-        format!("{}OperationsInput", kind.as_str())
     }
 
     /// Prefix used for any input/output type created for a relation.

@@ -1,8 +1,6 @@
 use std::hash::Hash;
 
 use common_types::UdfKind;
-use dynamodb::attribute_to_value;
-use dynomite::AttributeValue;
 use runtime::udf::{
     CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse, CustomResolversEngine, UdfRequest,
     UdfRequestContext, UdfRequestContextRequest,
@@ -36,7 +34,7 @@ impl CustomResolver {
         // We use the presence of the type key to try and differentiate these two
         let parent = parent
             .get_field(ctx.parent_type.name())
-            .map(|model_data| dynamodb_to_json(model_data.take()))
+            .map(|model_data| model_data.take())
             .map(ResolvedValue::new)
             .unwrap_or(parent);
 
@@ -90,37 +88,5 @@ impl CustomResolver {
             }
             CustomResolverResponse::Error(_err) => Err(CustomResolverError::InvocationError.into()),
         }
-    }
-}
-
-/// Magic function to convert the dynamodb format to the format we want to have on the
-/// resolver.
-fn dynamodb_to_json(model_data: serde_json::Value) -> serde_json::Value {
-    match model_data {
-        serde_json::Value::Object(val) => {
-            let temp = val
-                .into_iter()
-                .filter_map(|(field, val)| {
-                    if field.starts_with('_') {
-                        let new_field = match field.as_str() {
-                            "__created_at" => Some("createdAt"),
-                            "__updated_at" => Some("updatedAt"),
-                            "__sk" => Some("id"),
-                            _ => None,
-                        };
-                        new_field.map(|x| (x.to_string(), val))
-                    } else {
-                        Some((field, val))
-                    }
-                })
-                .map(|(field, x)| {
-                    let attribute = serde_json::from_value::<AttributeValue>(x).ok().unwrap_or_default();
-
-                    (field, attribute_to_value(attribute))
-                })
-                .collect();
-            serde_json::Value::Object(temp)
-        }
-        _ => serde_json::json!({}),
     }
 }

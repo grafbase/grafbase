@@ -22,7 +22,7 @@ const TODO_SCHEMA: &str = r#"
 #[test]
 fn federation_smoke_test() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).with_local_dynamo().build().await;
+        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
 
         let todo_id = engine.create_todo("Test Federation").await;
 
@@ -63,7 +63,7 @@ fn federation_smoke_test() {
 #[test]
 fn test_getting_multiple_reprs() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).with_local_dynamo().build().await;
+        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
 
         let todo_id_one = engine.create_todo("Test Federation").await;
         let todo_id_two = engine.create_todo("Release Federation").await;
@@ -109,7 +109,7 @@ fn test_getting_multiple_reprs() {
 #[test]
 fn test_missing_item() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).with_local_dynamo().build().await;
+        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
 
         insta::assert_json_snapshot!(
             engine
@@ -166,7 +166,6 @@ fn test_returning_unresolvable_representations() {
         "#;
 
         let engine = EngineBuilder::new(schema)
-            .with_local_dynamo()
             .with_custom_resolvers(RustUdfs::new().resolver(
                 "todoListRepresentation",
                 |payload: CustomResolverRequestPayload| {
@@ -251,7 +250,6 @@ fn test_contributing_fields_via_default_resolver() {
         "#;
 
         let engine = EngineBuilder::new(schema)
-            .with_local_dynamo()
             .with_custom_resolvers(
                 RustUdfs::new().resolver("todoListName", |payload: CustomResolverRequestPayload| {
                     let parent = payload.parent.unwrap();
@@ -318,7 +316,6 @@ fn test_key_with_select() {
         "#;
 
         let engine = EngineBuilder::new(schema)
-            .with_local_dynamo()
             .with_custom_resolvers(
                 RustUdfs::new().resolver("todoList", |payload: CustomResolverRequestPayload| {
                     let id = payload.arguments["id"].as_str().unwrap();

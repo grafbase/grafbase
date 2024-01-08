@@ -1,15 +1,12 @@
 use case::CaseExt;
 use engine::{
-    registry::{
-        federation::{FederationKey, FederationResolver},
-        Constraint, InputObjectType, MetaInputValue, Registry,
-    },
+    registry::{Constraint, InputObjectType, MetaInputValue, Registry},
     Pos, Positioned,
 };
 use engine_parser::types::{BaseType, FieldDefinition, ObjectType};
 use engine_value::ConstValue;
 
-use super::{directive::Directive, relations::RelationEngine, visitor::VisitorContext};
+use super::{directive::Directive, visitor::VisitorContext};
 use crate::registry::names::MetaNames;
 
 pub const UNIQUE_DIRECTIVE: &str = "unique";
@@ -52,7 +49,7 @@ impl UniqueDirective {
             .find(|directive| directive.node.name.node == UNIQUE_DIRECTIVE)?;
 
         let field_name = field.node.name.node.to_string();
-        let mut fields = vec![UniqueDirectiveField::parse(ctx, model_name, &field.node, directive.pos)];
+        let mut fields = vec![UniqueDirectiveField::parse(ctx, &field.node, directive.pos)];
 
         for (name, argument) in &directive.node.arguments {
             if name.node != UNIQUE_FIELDS_ARGUMENT {
@@ -85,12 +82,7 @@ impl UniqueDirective {
                     );
                     return None;
                 };
-                fields.push(UniqueDirectiveField::parse(
-                    ctx,
-                    model_name,
-                    &model_field.node,
-                    argument.pos,
-                ));
+                fields.push(UniqueDirectiveField::parse(ctx, &model_field.node, argument.pos));
             }
         }
 
@@ -154,19 +146,10 @@ impl UniqueDirective {
 
         description
     }
-
-    pub fn to_federation_key(&self, resolver: FederationResolver) -> FederationKey {
-        FederationKey::multiple(self.fields.iter().map(|field| field.name.clone()).collect(), resolver)
-    }
 }
 
 impl UniqueDirectiveField {
-    pub fn parse(
-        ctx: &mut VisitorContext<'_>,
-        model_name: &str,
-        field: &FieldDefinition,
-        pos: Pos,
-    ) -> UniqueDirectiveField {
+    pub fn parse(ctx: &mut VisitorContext<'_>, field: &FieldDefinition, pos: Pos) -> UniqueDirectiveField {
         if field.ty.node.nullable {
             ctx.report_error(
                 vec![pos],
@@ -182,16 +165,6 @@ impl UniqueDirectiveField {
                 vec![pos],
                 format!(
                     "The @unique directive cannot be used with collections, but {} is a collection",
-                    field.name.node
-                ),
-            );
-        }
-
-        if RelationEngine::get(ctx, model_name, field).is_some() {
-            ctx.report_error(
-                vec![pos],
-                format!(
-                    "The @unique directive cannot be used with relations, but {} is a relation",
                     field.name.node
                 ),
             );

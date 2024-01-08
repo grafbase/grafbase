@@ -20,8 +20,6 @@ pub struct FederationEntity {
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum FederationResolver {
-    /// Fetches a dynamo entity by some unique key
-    DynamoUnique,
     /// Makes an HTTP call to resolve
     Http(HttpResolver),
     /// This "resolver" doesn't actually resolve data in the same way the others do.

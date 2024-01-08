@@ -9,7 +9,6 @@ use std::{
 };
 
 use async_lock::Mutex as AsyncMutex;
-use dynamodb::CurrentDateTime;
 use engine_parser::types::OperationType;
 use engine_value::{ConstValue as Value, Variables};
 use fnv::FnvHashMap;
@@ -24,6 +23,7 @@ pub(crate) use self::{
     list::{ContextList, ContextWithIndex},
 };
 use crate::{
+    current_datetime::CurrentDateTime,
     deferred::DeferredWorkloadSender,
     extensions::Extensions,
     parser::types::{Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet},
@@ -32,6 +32,7 @@ use crate::{
     schema::SchemaEnv,
     CacheInvalidation, Name, Positioned, Result, ServerError, ServerResult, UploadValue,
 };
+pub use ext::TraceId;
 
 mod ext;
 mod field;

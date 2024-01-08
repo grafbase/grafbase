@@ -1,12 +1,12 @@
 use std::{collections::HashMap, sync::Arc};
 
+use super::Inner;
 use engine::{registry::resolvers::graphql::QueryBatcher, Schema};
 use futures::future::BoxFuture;
 use parser_sdl::{ConnectorParsers, GraphqlDirective, OpenApiDirective, ParseResult, PostgresDirective, Registry};
 use postgres_connector_types::transport::TcpTransport;
 use runtime::udf::{CustomResolverRequestPayload, CustomResolversEngine, UdfInvoker};
 
-use super::{dynamo::enable_local_dynamo, Inner};
 use crate::Engine;
 
 #[must_use]
@@ -15,7 +15,6 @@ pub struct EngineBuilder {
     openapi_specs: HashMap<String, String>,
     environment_variables: HashMap<String, String>,
     custom_resolvers: Option<CustomResolversEngine>,
-    local_dynamo: bool,
 }
 
 struct RequestContext {
@@ -45,7 +44,6 @@ impl EngineBuilder {
             openapi_specs: HashMap::new(),
             environment_variables: HashMap::new(),
             custom_resolvers: None,
-            local_dynamo: false,
         }
     }
 
@@ -56,11 +54,6 @@ impl EngineBuilder {
 
     pub fn with_env_var(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.environment_variables.insert(name.into(), value.into());
-        self
-    }
-
-    pub fn with_local_dynamo(mut self) -> Self {
-        self.local_dynamo = true;
         self
     }
 
@@ -103,10 +96,6 @@ impl EngineBuilder {
                 },
             ))
             .data(postgres);
-
-        if self.local_dynamo {
-            schema_builder = enable_local_dynamo(schema_builder).await;
-        }
 
         if let Some(custom_resolvers) = self.custom_resolvers {
             schema_builder = schema_builder.data(custom_resolvers);

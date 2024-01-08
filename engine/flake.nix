@@ -51,9 +51,6 @@
 
               # Formatting
               nodePackages.prettier
-
-              # Local DynamoDB handling
-              dynein
             ]
             ++ optional (system == systems.aarch64-darwin) [
               darwin.apple_sdk.frameworks.Security

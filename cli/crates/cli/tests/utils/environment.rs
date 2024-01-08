@@ -25,8 +25,6 @@ pub struct Environment {
     commands: CommandHandles,
     home: Option<PathBuf>,
     ts_config_dependencies_prepared: bool,
-    #[cfg(feature = "dynamodb")]
-    dynamodb_env: dynamodb::DynamoDbEnvironment,
 }
 
 const DOT_ENV_FILE: &str = ".env";
@@ -58,52 +56,20 @@ fn get_free_port() -> u16 {
 impl Environment {
     #[allow(clippy::needless_return, clippy::unused_async)]
     pub fn init() -> Self {
-        let port = get_free_port();
-        cfg_if!(
-            if #[cfg(feature = "dynamodb")] {
-                return tokio::runtime::Runtime::new().unwrap().block_on(async move {
-                    let dynamodb_env = dynamodb::DynamoDbEnvironment::new(port).await;
-                    Self::init_internal("./", port, dynamodb_env)
-                });
-            } else {
-                return Self::init_internal("./", port)
-            }
-        );
+        Self::init_internal("./", get_free_port())
     }
 
     #[allow(clippy::needless_return, clippy::unused_async)]
     pub fn init_in_subdirectory(subdirectory_path: impl AsRef<Path>) -> Self {
-        let port = get_free_port();
-        cfg_if!(
-            if #[cfg(feature = "dynamodb")] {
-                return tokio::runtime::Runtime::new().unwrap().block_on(async move {
-                    let dynamodb_env = dynamodb::DynamoDbEnvironment::new(port).await;
-                    Self::init_internal(subdirectory_path, port, dynamodb_env)
-                });
-            } else {
-                return Self::init_internal(subdirectory_path, port)
-            }
-        );
+        Self::init_internal(subdirectory_path, get_free_port())
     }
 
     #[allow(clippy::needless_return, clippy::unused_async)]
     pub async fn init_async() -> Self {
-        let port = get_free_port();
-        cfg_if!(
-            if #[cfg(feature = "dynamodb")] {
-                let dynamodb_env = dynamodb::DynamoDbEnvironment::new(port).await;
-                return Self::init_internal("./", port, dynamodb_env);
-            } else {
-                return Self::init_internal("./", port);
-            }
-        );
+        Self::init_internal("./", get_free_port())
     }
 
-    fn init_internal(
-        subdirectory_path: impl AsRef<Path>,
-        port: u16,
-        #[cfg(feature = "dynamodb")] dynamodb_env: dynamodb::DynamoDbEnvironment,
-    ) -> Self {
+    fn init_internal(subdirectory_path: impl AsRef<Path>, port: u16) -> Self {
         let temp_dir = tempdir().unwrap();
         env::set_current_dir(temp_dir.path()).unwrap();
 
@@ -131,8 +97,6 @@ impl Environment {
             commands: CommandHandles::new(),
             home: None,
             ts_config_dependencies_prepared: false,
-            #[cfg(feature = "dynamodb")]
-            dynamodb_env,
         }
     }
 
@@ -153,11 +117,6 @@ impl Environment {
             port,
             home: other.home.clone(),
             ts_config_dependencies_prepared: other.ts_config_dependencies_prepared,
-            #[cfg(feature = "dynamodb")]
-            dynamodb_env: dynamodb::DynamoDbEnvironment {
-                dynamodb_client: None, // Only one dynamodb client is needed for the cleanup.
-                table_name: other.dynamodb_env.table_name.clone(),
-            },
         }
     }
 
@@ -334,8 +293,6 @@ impl Environment {
             self.port.to_string()
         )
         .dir(&self.directory_path);
-        #[cfg(feature = "dynamodb")]
-        let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         let command = command.start().unwrap();
 
         self.commands.0.lock().unwrap().push(command);
@@ -351,8 +308,6 @@ impl Environment {
             self.port.to_string()
         )
         .dir(&self.directory_path);
-        #[cfg(feature = "dynamodb")]
-        let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         let command = command.start().unwrap();
 
         self.commands.0.lock().unwrap().push(command);
@@ -390,8 +345,7 @@ impl Environment {
             self.port.to_string()
         )
         .dir(&self.directory_path);
-        #[cfg(feature = "dynamodb")]
-        let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
+
         command.start()?.into_output()
     }
 
@@ -423,8 +377,7 @@ impl Environment {
             self.port.to_string()
         )
         .dir(&self.directory_path);
-        #[cfg(feature = "dynamodb")]
-        let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
+
         let command = command.start().unwrap();
 
         self.commands.0.lock().unwrap().push(command);
@@ -452,145 +405,9 @@ impl Environment {
     }
 }
 
-#[cfg(feature = "dynamodb")]
-mod dynamodb {
-    use rusoto_dynamodb::{CreateTableInput, DeleteTableInput, DescribeTableInput, DynamoDb};
-
-    pub struct DynamoDbEnvironment {
-        pub dynamodb_client: Option<rusoto_dynamodb::DynamoDbClient>, // If set, will be used for db cleanup on drop.
-        pub table_name: String,
-    }
-
-    impl DynamoDbEnvironment {
-        pub async fn new(port: u16) -> Self {
-            let table_name = format!("gateway_test_{port}");
-            let dynamodb_client = create_database(&table_name).await;
-            Self {
-                dynamodb_client: Some(dynamodb_client),
-                table_name,
-            }
-        }
-    }
-
-    pub async fn create_database(table_name: &String) -> rusoto_dynamodb::DynamoDbClient {
-        use rusoto_utils::{attr_def, gsi, key_schema};
-
-        let aws_access_key_id = std::env::var("AWS_ACCESS_KEY_ID").unwrap();
-        let aws_secret_access_key = std::env::var("AWS_SECRET_ACCESS_KEY").unwrap();
-        let dynamodb_region = std::env::var("DYNAMODB_REGION").unwrap();
-
-        let dynamodb_region = match dynamodb_region.strip_prefix("custom:") {
-            Some(suffix) => rusoto_core::Region::Custom {
-                name: "local".to_string(),
-                endpoint: suffix.to_string(),
-            },
-            None => <rusoto_core::Region as std::str::FromStr>::from_str(&dynamodb_region).unwrap(),
-        };
-        let aws_credentials =
-            rusoto_core::credential::AwsCredentials::new(aws_access_key_id, aws_secret_access_key, None, None);
-
-        let dynamodb_client = {
-            let http_client = rusoto_core::HttpClient::new().expect("failed to create HTTP client");
-            let credentials_provider = rusoto_core::credential::StaticProvider::from(aws_credentials);
-            rusoto_dynamodb::DynamoDbClient::new_with(http_client, credentials_provider, dynamodb_region)
-        };
-
-        println!("Initializing dynamodb table name: {table_name}");
-
-        if dynamodb_client
-            .describe_table(DescribeTableInput {
-                table_name: table_name.clone(),
-            })
-            .await
-            .is_ok()
-        {
-            println!("Deleting the table");
-            dynamodb_client
-                .delete_table(DeleteTableInput {
-                    table_name: table_name.clone(),
-                })
-                .await
-                .unwrap();
-        }
-
-        dynamodb_client
-            .create_table(CreateTableInput {
-                table_name: table_name.clone(),
-                key_schema: key_schema(""),
-                attribute_definitions: attr_def(vec!["__pk", "__sk", "__gsi1pk", "__gsi1sk", "__gsi2pk", "__gsi2sk"]),
-                global_secondary_indexes: Some(vec![gsi("gsi1"), gsi("gsi2")]),
-                billing_mode: Some("PAY_PER_REQUEST".to_string()),
-                ..Default::default()
-            })
-            .await
-            .unwrap();
-
-        dynamodb_client
-    }
-
-    pub async fn delete_database_async(dynamodb_client: rusoto_dynamodb::DynamoDbClient, table_name: String) {
-        println!("Deleting dynamodb table name: {table_name}");
-        dynamodb_client
-            .delete_table(DeleteTableInput { table_name })
-            .await
-            .unwrap();
-    }
-
-    mod rusoto_utils {
-        use rusoto_dynamodb::{AttributeDefinition, GlobalSecondaryIndex, KeySchemaElement, Projection};
-
-        pub fn attr_def(names: Vec<&str>) -> Vec<AttributeDefinition> {
-            names
-                .into_iter()
-                .map(|name| AttributeDefinition {
-                    attribute_name: name.to_string(),
-                    attribute_type: "S".to_string(),
-                })
-                .collect()
-        }
-
-        pub fn key_schema(infix: &str) -> Vec<KeySchemaElement> {
-            vec![
-                KeySchemaElement {
-                    attribute_name: format!("__{infix}pk"),
-                    key_type: "HASH".to_string(),
-                },
-                KeySchemaElement {
-                    attribute_name: format!("__{infix}sk"),
-                    key_type: "RANGE".to_string(),
-                },
-            ]
-        }
-
-        pub fn gsi(name: &str) -> GlobalSecondaryIndex {
-            GlobalSecondaryIndex {
-                index_name: name.to_string(),
-                key_schema: key_schema(name),
-                projection: Projection {
-                    projection_type: Some("ALL".to_string()),
-                    ..Default::default()
-                },
-                ..Default::default()
-            }
-        }
-    }
-}
-
 impl Drop for Environment {
     fn drop(&mut self) {
         self.kill_processes();
-        #[cfg(feature = "dynamodb")]
-        if let Some(dynamodb_client) = self.dynamodb_env.dynamodb_client.take() {
-            let cleanup_future = dynamodb::delete_database_async(dynamodb_client, self.dynamodb_env.table_name.clone());
-            match tokio::runtime::Handle::try_current() {
-                Ok(handle) => {
-                    tokio::task::block_in_place(|| handle.block_on(cleanup_future));
-                }
-                Err(_) => {
-                    tokio::runtime::Runtime::new().unwrap().block_on(cleanup_future);
-                }
-            }
-        }
     }
 }
 

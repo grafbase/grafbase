@@ -4,22 +4,14 @@ use std::{
 };
 
 use chrono::{DateTime, SecondsFormat, TimeZone, Utc};
-use dynomite::{Attribute, AttributeValue};
 use web_time::{SystemTime, UNIX_EPOCH};
 
-// TODO: It should be placed in a different crate than dynamodb
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CurrentDateTime(SystemTime);
 
 impl CurrentDateTime {
     pub fn new() -> Self {
         Self(SystemTime::now())
-    }
-
-    // Overriding Dynamite implementation as we only store for milliseconds.
-    // We probably don't need it, but it's consistent with the previous behavior.
-    pub fn into_attr(self) -> AttributeValue {
-        self.to_string().into_attr()
     }
 }
 

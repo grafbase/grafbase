@@ -2,23 +2,17 @@
 
 use std::hash::Hash;
 
-use dynamodb::attribute_to_value;
-use dynomite::AttributeValue;
 use grafbase_sql_ast::ast::Order;
 use indexmap::IndexMap;
 use postgres_connector_types::{cursor::SQLCursor, database_definition::TableId};
 use runtime::search::GraphqlCursor;
 use serde_json::Value;
 
-use super::{
-    dynamo_querying::{DynamoResolver, IdCursor},
-    ResolvedPaginationInfo, ResolvedValue, Resolver,
-};
+use super::{ResolvedPaginationInfo, ResolvedValue, Resolver};
 use crate::{
     registry::{
         resolvers::{postgres::CollectionArgs, resolved_value::SelectionData, ResolverContext},
         type_kinds::OutputType,
-        variables::VariableResolveDefinition,
         MetaEnumValue, UnionDiscriminator,
     },
     ContextExt, ContextField, Error,
@@ -30,61 +24,7 @@ use crate::{
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum Transformer {
     /// Key based Resolver for ResolverContext
-    Select {
-        key: String,
-    },
-    ConvertSkToCursor,
-    DynamoSelect {
-        /// The key where this select
-        key: String,
-    },
-    /// ContextDataResolver based on Edges.
-    ///
-    /// When we fetch a Node, we'll also fetch the Edges of that node if needed (note: this is currenly disabled).
-    /// We need to indicate in the ResolverChain than those fields will be Edges.
-    ///
-    /// The only side note is when your edge is also a Node:
-    ///
-    /// ```ignore
-    ///     Fetch 1             Fetch 2
-    ///  ◄──────────────────◄►──────────────►
-    ///  ┌──────┐
-    ///  │Node A├─┐
-    ///  └──────┘ │ ┌────────┐
-    ///           ├─┤ Edge 1 ├─┐
-    ///           │ └────────┘ │ ┌──────────┐
-    ///           │            └─┤ Edge 1.1 │
-    ///           │              └──────────┘
-    ///           │
-    ///           │ ┌────────┐
-    ///           └─┤ Edge 2 │
-    ///             └────────┘
-    /// ```
-    ///
-    /// When you got a structure like this, the Fetch 1 will allow you to fetch
-    /// the Node and his Edges, but you'll also need the Edges from Edge 1 as
-    /// it's also a Node.
-    ///
-    /// The issue is you can only get the first-depth relation in our Graph
-    /// Modelization in one go.
-    ///
-    /// So when we manipulate an Edge which is also a Node, we need to tell the
-    /// resolver it's a Node, so we'll know we need to check at request-time, if
-    /// the sub-level edges are requested, and if they are, we'll need to perform
-    /// a second query accross our database.
-    SingleEdge {
-        key: String,
-        relation_name: String,
-    },
-    /// Used for an array of edges, e.g. [Todo]
-    EdgeArray {
-        key: String,
-        relation_name: String,
-        /// Expected type output
-        /// Used when you are fetching an Edge which doesn't require you fetch other
-        /// Nodes
-        expected_ty: String,
-    },
+    Select { key: String },
     /// This resolver get the PaginationData
     PaginationData,
     /// Resolves the correct values of a remote enum using the given enum name
@@ -98,10 +38,7 @@ pub enum Transformer {
     /// Calculate cursor value for a Postgres row.
     PostgresCursor,
     /// Set Postgres selection data.
-    PostgresSelectionData {
-        directive_name: String,
-        table_id: TableId,
-    },
+    PostgresSelectionData { directive_name: String, table_id: TableId },
 }
 
 impl From<Transformer> for Resolver {
@@ -122,29 +59,10 @@ impl Transformer {
     pub(super) async fn resolve(
         &self,
         ctx: &ContextField<'_>,
-        resolver_ctx: &ResolverContext<'_>,
+        _resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
         match self {
-            Self::ConvertSkToCursor => {
-                let result = last_resolver_value
-                    .as_ref()
-                    .and_then(|r| r.data_resolved().as_str())
-                    .map(|sk| serde_json::to_value(IdCursor { id: sk.to_string() }))
-                    .transpose()?
-                    .unwrap_or_default();
-                Ok(ResolvedValue::new(result))
-            }
-            Self::DynamoSelect { key } => {
-                let result = last_resolver_value
-                    .as_ref()
-                    .and_then(|r| r.data_resolved().get(key))
-                    .map(|field| serde_json::from_value(field.clone()))
-                    .transpose()?
-                    .map(attribute_to_value)
-                    .unwrap_or_default();
-                Ok(ResolvedValue::new(result))
-            }
             Transformer::Select { key } => {
                 let new_value = last_resolver_value.and_then(|x| x.get_field(key)).unwrap_or_default();
 
@@ -168,99 +86,6 @@ impl Transformer {
                     .and_then(|x| x.pagination.as_ref())
                     .map(ResolvedPaginationInfo::output);
                 Ok(ResolvedValue::new(serde_json::to_value(pagination)?))
-            }
-            // TODO: look into loading single edges in the same query. This may be tricky as we can no longer differentiate
-            // between the queried item and it's edges as a nested pagination will not have pk == sk
-            // also
-            // TODO: look into optimizing nested single edges
-            Transformer::SingleEdge { key, relation_name } => {
-                let old_val = match last_resolver_value.as_ref().and_then(|x| x.data_resolved().get(key)) {
-                    Some(Value::Array(arr)) => {
-                        // Check than the old_val is an array with only 1 element.
-                        if arr.len() > 1 {
-                            ctx.add_error(
-                                Error::new("An issue occured while resolving this field. Reason: Incoherent schema.")
-                                    .into_server_error(ctx.item.pos),
-                            );
-                        }
-
-                        arr.first().map(std::clone::Clone::clone).unwrap_or(Value::Null)
-                    }
-                    // happens in nested relations
-                    Some(val) => val.clone(),
-                    _ => return Ok(ResolvedValue::null().with_early_return()),
-                };
-
-                let sk_attr = serde_json::from_value::<AttributeValue>(
-                    old_val.get(dynamodb::constant::SK).cloned().unwrap_or_default(),
-                )?;
-                let Some(sk) = sk_attr.s else {
-                    ctx.add_error(
-                        Error::new("An issue occurred while resolving this field. Reason: Incoherent schema.")
-                            .into_server_error(ctx.item.pos),
-                    );
-                    return Ok(ResolvedValue::null());
-                };
-
-                let result = DynamoResolver::QuerySingleRelation {
-                    parent_pk: sk.clone(),
-                    relation_name: relation_name.clone(),
-                }
-                .resolve(ctx, resolver_ctx, last_resolver_value.as_ref())
-                .await?;
-
-                Ok(result)
-            }
-            Transformer::EdgeArray {
-                key,
-                relation_name,
-                expected_ty,
-            } => {
-                let old_val = match last_resolver_value.as_ref().and_then(|x| x.data_resolved().get(key)) {
-                    Some(Value::Array(arr)) => {
-                        // Check than the old_val is an array with only 1 element.
-                        if arr.len() > 1 {
-                            ctx.add_error(
-                                Error::new("An issue occured while resolving this field. Reason: Incoherent schema.")
-                                    .into_server_error(ctx.item.pos),
-                            );
-                        }
-
-                        arr.first().map(std::clone::Clone::clone).unwrap_or(Value::Null)
-                    }
-                    // happens in nested relations
-                    Some(val) => val.clone(),
-                    _ => return Ok(ResolvedValue::null().with_early_return()),
-                };
-
-                let sk_attr = serde_json::from_value::<AttributeValue>(
-                    old_val.get(dynamodb::constant::SK).cloned().unwrap_or_default(),
-                )?;
-                let Some(sk) = sk_attr.s else {
-                    ctx.add_error(
-                        Error::new("An issue occurred while resolving this field. Reason: Incoherent schema.")
-                            .into_server_error(ctx.item.pos),
-                    );
-                    return Ok(ResolvedValue::null());
-                };
-
-                // FIXME: this should be used instead of EdgeArray, we're relying on the arguments
-                // names defined in common/parser, so the actual resolver should be defined
-                // there. My refactor changes this, but we're not there yet...
-                let result = DynamoResolver::ListResultByTypePaginated {
-                    r#type: VariableResolveDefinition::debug_string(expected_ty.to_string()),
-                    first: VariableResolveDefinition::input_type_name("first"),
-                    after: VariableResolveDefinition::input_type_name("after"),
-                    before: VariableResolveDefinition::input_type_name("before"),
-                    last: VariableResolveDefinition::input_type_name("last"),
-                    order_by: Some(VariableResolveDefinition::input_type_name("orderBy")),
-                    filter: None,
-                    nested: Box::new(Some((relation_name.clone(), sk.clone()))),
-                }
-                .resolve(ctx, resolver_ctx, last_resolver_value.as_ref())
-                .await?;
-
-                Ok(result)
             }
             Transformer::RemoteUnion => {
                 let discriminators = ctx

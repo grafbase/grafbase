@@ -1,7 +1,5 @@
 use std::{borrow::Cow, fmt::Display};
 
-use dynomite::{Attribute, AttributeError};
-
 mod constraint;
 pub use constraint::{
     db::{ConstraintID, ConstraintIDError},
@@ -72,15 +70,5 @@ impl<'a> ID<'a> {
             Self::NodeID(a) => a.ty(),
             Self::ConstraintID(a) => a.ty(),
         }
-    }
-}
-
-impl<'a> Attribute for ID<'a> {
-    fn into_attr(self) -> dynomite::AttributeValue {
-        self.to_string().into_attr()
-    }
-
-    fn from_attr(value: dynomite::AttributeValue) -> Result<Self, dynomite::AttributeError> {
-        Self::try_from(value.s.ok_or(AttributeError::InvalidType)?).map_err(|_| AttributeError::InvalidFormat)
     }
 }

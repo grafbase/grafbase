@@ -20,7 +20,7 @@ const TODO_SCHEMA: &str = r#"
 #[test]
 fn introspecting_service_field() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).with_local_dynamo().build().await;
+        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
 
         let data = engine.execute("query { _service { sdl } }").await.into_data::<Value>();
         let schema = data["_service"]["sdl"].as_str().unwrap();
@@ -32,10 +32,7 @@ fn introspecting_service_field() {
 #[test]
 fn introspecting_service_field_when_no_federation() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new("type User @model { name: String }")
-            .with_local_dynamo()
-            .build()
-            .await;
+        let engine = EngineBuilder::new("type User @model { name: String }").build().await;
 
         let result = engine.execute("query { _service { sdl } }").await.into_value();
 

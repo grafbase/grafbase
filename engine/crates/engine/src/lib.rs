@@ -10,6 +10,7 @@
 use getrandom as _;
 
 mod base;
+mod current_datetime;
 mod error;
 mod guard;
 mod headers;

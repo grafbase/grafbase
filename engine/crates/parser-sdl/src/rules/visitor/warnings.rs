@@ -8,6 +8,7 @@ pub(crate) struct Warnings {
 }
 
 impl Warnings {
+    #[allow(dead_code)]
     pub fn push(&mut self, warning: Warning) {
         self.warnings.insert(warning);
     }
@@ -15,23 +16,14 @@ impl Warnings {
     pub fn is_empty(&self) -> bool {
         self.warnings.is_empty()
     }
-
-    #[cfg(test)]
-    pub fn uses_deprecated_models(&self) -> bool {
-        self.warnings.contains(&Warning::DeprecatedModelDefinition)
-    }
 }
 
 #[derive(Clone, Debug, Ord, PartialOrd, PartialEq, Eq)]
-pub(crate) enum Warning {
-    DeprecatedModelDefinition,
-}
+pub(crate) enum Warning {}
 
 impl AsRef<str> for Warning {
     fn as_ref(&self) -> &str {
-        match self {
-            Warning::DeprecatedModelDefinition => "The Grafbase database is deprecated and will be sunset soon. Use connectors like Postgres or MongoDB instead.",
-        }
+        unreachable!()
     }
 }
 
