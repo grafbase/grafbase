@@ -25,7 +25,8 @@ impl<'a> Visitor<'a> for SearchDirective {
         if !type_definition
             .node
             .directives
-            .iter().any(|directive| directive.is_search())
+            .iter()
+            .any(|directive| directive.is_search())
         {
             return;
         }
