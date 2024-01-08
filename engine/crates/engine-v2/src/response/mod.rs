@@ -90,6 +90,13 @@ impl Response {
             Self::RequestError(request_error) => &request_error.metadata,
         }
     }
+
+    pub fn take_metadata(self) -> ExecutionMetadata {
+        match self {
+            Self::Initial(initial) => initial.metadata,
+            Self::RequestError(request_error) => request_error.metadata,
+        }
+    }
 }
 
 impl std::fmt::Debug for Response {

@@ -4,7 +4,7 @@ use std::{borrow::Cow, collections::HashMap, future::IntoFuture, ops::Deref};
 
 pub use builder::*;
 use engine::Variables;
-use futures::future::BoxFuture;
+use futures::{future::BoxFuture, Stream, StreamExt};
 
 use crate::engine::GraphQlRequest;
 
@@ -55,13 +55,25 @@ impl<'a> IntoFuture for ExecutionRequest<'a> {
 
         Box::pin(async move {
             let response = self.engine.execute(request, (&self.headers).into()).await;
-            let metadata = response.metadata().clone();
 
             GraphqlResponse {
-                gql_response: serde_json::to_value(response).unwrap(),
-                metadata,
+                gql_response: serde_json::to_value(&response).unwrap(),
+                metadata: response.take_metadata(),
             }
         })
+    }
+}
+
+impl<'a> ExecutionRequest<'a> {
+    pub fn into_stream(self) -> impl Stream<Item = GraphqlResponse> + 'a {
+        let request = self.graphql.into_engine_request();
+
+        self.engine
+            .execute_stream(request, (&self.headers).into())
+            .map(|response| GraphqlResponse {
+                gql_response: serde_json::to_value(&response).unwrap(),
+                metadata: response.take_metadata(),
+            })
     }
 }
 

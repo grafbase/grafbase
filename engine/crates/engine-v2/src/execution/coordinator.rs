@@ -14,6 +14,7 @@ use crate::{
     Engine,
 };
 
+pub type ResponseReceiver = futures::channel::mpsc::Receiver<Response>;
 pub type ResponseSender = futures::channel::mpsc::Sender<Response>;
 
 pub struct ExecutorCoordinator<'ctx> {
@@ -36,6 +37,10 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
             variables,
             request_headers,
         }
+    }
+
+    pub fn operation_type(&self) -> OperationType {
+        self.operation.ty
     }
 
     pub async fn execute(self) -> Response {
@@ -86,7 +91,6 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
             .await
     }
 
-    #[allow(dead_code)]
     pub async fn execute_subscription(self, mut responses: ResponseSender) {
         assert!(matches!(self.operation.ty, OperationType::Subscription));
 

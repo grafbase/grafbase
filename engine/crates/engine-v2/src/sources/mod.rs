@@ -108,7 +108,6 @@ pub(crate) enum SubscriptionExecutor<'a> {
     Graphql(GraphqlSubscriptionExecutor<'a>),
 }
 
-#[allow(dead_code)]
 impl<'exc> SubscriptionExecutor<'exc> {
     pub fn build<'ctx>(
         _walker: ResolverWalker<'ctx>,

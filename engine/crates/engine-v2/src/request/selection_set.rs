@@ -107,7 +107,6 @@ pub enum BoundAnyFieldDefinition {
     Field(BoundFieldDefinition),
 }
 
-#[allow(dead_code)]
 impl BoundAnyFieldDefinition {
     pub fn as_field(&self) -> Option<&BoundFieldDefinition> {
         match self {
