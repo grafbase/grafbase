@@ -1,5 +1,5 @@
 ---
-source: common/parser-graphql/src/lib.rs
+source: engine/crates/parser-graphql/src/lib.rs
 expression: result
 ---
 """
@@ -34,7 +34,7 @@ type PreFixQuery {
 	"""
 	[BETA] Get the connected vehicles for the current user
 	"""
-	connectedVehicleList(filter: PreFixConnectedVehicleListFilter, size: Int = "10", page: Int = "0"): [PreFixConnectedVehicle]
+	connectedVehicleList(filter: PreFixConnectedVehicleListFilter, size: Int = 10, page: Int = 0): [PreFixConnectedVehicle]
 	"""
 	[BETA] Retrieve live vehicle data by connected vehicle id
 	"""
@@ -112,7 +112,7 @@ type PreFixQuery {
 	"""
 	[BETA] Get a full list of vehicles.
 	"""
-	vehicleList(search: String, filter: PreFixVehicleListFilter, country: PreFixCountryCodeAlpha2, size: Int = "10", page: Int = "0"): [PreFixVehicleList]
+	vehicleList(search: String, filter: PreFixVehicleListFilter, country: PreFixCountryCodeAlpha2, size: Int = 10, page: Int = 0): [PreFixVehicleList]
 }
 type Query {
 	"""

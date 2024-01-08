@@ -2654,7 +2654,7 @@ expression: registry_from_introspection(schema)
               "includeDeprecated": {
                 "n": "includeDeprecated",
                 "t": "Boolean",
-                "D": "false"
+                "D": false
               }
             },
             "t": "[__EnumValue!]"
@@ -2665,7 +2665,7 @@ expression: registry_from_introspection(schema)
               "includeDeprecated": {
                 "n": "includeDeprecated",
                 "t": "Boolean",
-                "D": "false"
+                "D": false
               }
             },
             "t": "[__Field!]"
@@ -2759,7 +2759,7 @@ expression: registry_from_introspection(schema)
           "n": "reason",
           "d": "Explains why this element was deprecated, usually also including a suggestion for how to access supported similar data. Formatted using the Markdown syntax (as specified by [CommonMark](https://commonmark.org/).",
           "t": "String",
-          "D": "\"No longer supported\""
+          "D": "No longer supported"
         }
       },
       "is_repeatable": false

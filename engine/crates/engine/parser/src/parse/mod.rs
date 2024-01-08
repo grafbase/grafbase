@@ -29,6 +29,20 @@ pub use service::parse_schema;
 #[grammar = "graphql.pest"]
 struct GraphQLParser;
 
+/// Parses a GraphQL ConstValue
+///
+/// # Errors
+///
+/// Fails if the input is not a valid GraphQL ConstValue
+pub fn parse_const_value<T: AsRef<str>>(input: T) -> Result<ConstValue> {
+    let mut pc = PositionCalculator::new(input.as_ref());
+    Ok(parse_const_value_impl(
+        exactly_one(GraphQLParser::parse(Rule::const_value, input.as_ref())?),
+        &mut pc,
+    )?
+    .node)
+}
+
 fn parse_operation_type(pair: Pair<'_, Rule>, pc: &mut PositionCalculator<'_>) -> Result<Positioned<OperationType>> {
     debug_assert_eq!(pair.as_rule(), Rule::operation_type);
 
@@ -48,7 +62,7 @@ fn parse_operation_type(pair: Pair<'_, Rule>, pc: &mut PositionCalculator<'_>) -
 fn parse_default_value(pair: Pair<'_, Rule>, pc: &mut PositionCalculator<'_>) -> Result<Positioned<ConstValue>> {
     debug_assert_eq!(pair.as_rule(), Rule::default_value);
 
-    parse_const_value(exactly_one(pair.into_inner()), pc)
+    parse_const_value_impl(exactly_one(pair.into_inner()), pc)
 }
 
 fn parse_type(pair: Pair<'_, Rule>, pc: &mut PositionCalculator<'_>) -> Result<Positioned<Type>> {
@@ -57,7 +71,7 @@ fn parse_type(pair: Pair<'_, Rule>, pc: &mut PositionCalculator<'_>) -> Result<P
     Ok(Positioned::new(Type::new(pair.as_str()).unwrap(), pc.step(&pair)))
 }
 
-fn parse_const_value(pair: Pair<'_, Rule>, pc: &mut PositionCalculator<'_>) -> Result<Positioned<ConstValue>> {
+fn parse_const_value_impl(pair: Pair<'_, Rule>, pc: &mut PositionCalculator<'_>) -> Result<Positioned<ConstValue>> {
     debug_assert_eq!(pair.as_rule(), Rule::const_value);
 
     let pos = pc.step(&pair);
@@ -72,7 +86,7 @@ fn parse_const_value(pair: Pair<'_, Rule>, pc: &mut PositionCalculator<'_>) -> R
             Rule::enum_value => ConstValue::Enum(parse_enum_value(pair, pc)?.node),
             Rule::const_list => ConstValue::List(
                 pair.into_inner()
-                    .map(|pair| Ok(parse_const_value(pair, pc)?.node))
+                    .map(|pair| Ok(parse_const_value_impl(pair, pc)?.node))
                     .collect::<Result<_>>()?,
             ),
             Rule::const_object => ConstValue::Object(
@@ -83,7 +97,7 @@ fn parse_const_value(pair: Pair<'_, Rule>, pc: &mut PositionCalculator<'_>) -> R
                         let mut pairs = pair.into_inner();
 
                         let name = parse_name(pairs.next().unwrap(), pc)?;
-                        let value = parse_const_value(pairs.next().unwrap(), pc)?;
+                        let value = parse_const_value_impl(pairs.next().unwrap(), pc)?;
 
                         debug_assert_eq!(pairs.next(), None);
 
@@ -257,7 +271,7 @@ fn parse_const_arguments(
             let mut pairs = pair.into_inner();
 
             let name = parse_name(pairs.next().unwrap(), pc)?;
-            let value = parse_const_value(pairs.next().unwrap(), pc)?;
+            let value = parse_const_value_impl(pairs.next().unwrap(), pc)?;
 
             debug_assert_eq!(pairs.next(), None);
 

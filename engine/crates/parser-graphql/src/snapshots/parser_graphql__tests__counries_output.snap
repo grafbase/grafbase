@@ -1,5 +1,5 @@
 ---
-source: crates/parser-graphql/src/lib.rs
+source: engine/crates/parser-graphql/src/lib.rs
 expression: result
 ---
 enum FooBarAccelerationUnit {
@@ -199,7 +199,7 @@ input FooBarAuxiliaryConsumptionInput {
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
-	source: FooBarTelemetryInputSource = "manual"
+	source: FooBarTelemetryInputSource = manual
 }
 enum FooBarAuxiliaryConsumptionUnit {
 	kilowatt_hour
@@ -225,7 +225,7 @@ input FooBarBatteryTemperatureInput {
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
-	source: FooBarTelemetryInputSource = "manual"
+	source: FooBarTelemetryInputSource = manual
 }
 """
 Output of a car query
@@ -1932,7 +1932,7 @@ input FooBarChargeSpeedInput {
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
-	source: FooBarTelemetryInputSource = "manual"
+	source: FooBarTelemetryInputSource = manual
 }
 enum FooBarChargeSpeedUnit {
 	kilowatt_hour
@@ -1951,7 +1951,7 @@ input FooBarChargeTotalInput {
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
-	source: FooBarTelemetryInputSource = "manual"
+	source: FooBarTelemetryInputSource = manual
 }
 """
 A groupped representation of EVSEs
@@ -2188,7 +2188,7 @@ input FooBarConnectedVehicleListFilter {
 	"""
 	Status of the connected vehicle
 	"""
-	status: [FooBarConnectedVehicleStatus!] = "[pending_authorization, pending_removal, authorized]"
+	status: [FooBarConnectedVehicleStatus!] = [pending_authorization,pending_removal,authorized]
 }
 enum FooBarConnectedVehicleStatus {
 	pending_authorization
@@ -2740,7 +2740,7 @@ input FooBarElevationInput {
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
-	source: FooBarTelemetryInputSource = "manual"
+	source: FooBarTelemetryInputSource = manual
 }
 enum FooBarElevationUnit {
 	meter
@@ -2965,27 +2965,27 @@ input FooBarIsolineInput {
 	"""
 	Numbers of polygons to be generated (default: 1, maximum: 20)
 	"""
-	polygon_count: Int = "1"
+	polygon_count: Int = 1
 	"""
 	Vehicle should be able to return to the origin point from any point
 	"""
-	round_trip: Boolean = "false"
+	round_trip: Boolean = false
 	"""
 	Climate is on
 	"""
-	climate_control: Boolean = "true"
+	climate_control: Boolean = true
 	"""
 	Season to be taken into account when generating the isoline
 	"""
-	season: FooBarRouteSeason = "current"
+	season: FooBarRouteSeason = current
 	"""
 	Polygons precision quality
 	"""
-	quality: FooBarIsolineQuality = "high"
+	quality: FooBarIsolineQuality = high
 	"""
 	Include ferry connections. Single and multiple ferry connections increase the calculation time and the number of polygons.
 	"""
-	ferry_connections: FooBarIsolineFerryConnectionsType = "none"
+	ferry_connections: FooBarIsolineFerryConnectionsType = none
 }
 """
 Granularity of the isoline
@@ -3150,7 +3150,7 @@ type FooBarNavigation {
 	"""
 	State of charge at the last known location
 	"""
-	state_of_charge(unit: FooBarStateOfChargeUnit = "kilowatt_hour"): Float!
+	state_of_charge(unit: FooBarStateOfChargeUnit = kilowatt_hour): Float!
 	"""
 	Last known location
 	"""
@@ -3189,11 +3189,11 @@ input FooBarNavigationInstructionsInput {
 	"""
 	Preferred navigation instructions language. Default: en
 	"""
-	language: FooBarMappingLanguage = "en"
+	language: FooBarMappingLanguage = en
 	"""
 	Number of decimals used for the Google Polyline encoding Algorithm. Allowed values are 5 or 6, the default is 5
 	"""
-	precision: Int = "5"
+	precision: Int = 5
 }
 """
 Input for the navigation recalculate
@@ -3269,7 +3269,7 @@ type FooBarNavigationStation {
 	"""
 	Estimated state of charge, at arrival on the next charging station
 	"""
-	estimated_state_of_charge(unit: FooBarStateOfChargeUnit = "kilowatt_hour"): Float!
+	estimated_state_of_charge(unit: FooBarStateOfChargeUnit = kilowatt_hour): Float!
 	"""
 	Estimated consumption, in kWh, from last the known location until the next charging station
 	"""
@@ -3992,7 +3992,7 @@ input FooBarOdometerInput {
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
-	source: FooBarTelemetryInputSource = "manual"
+	source: FooBarTelemetryInputSource = manual
 }
 """
 The operator data which extends OCPI BusinessDetails
@@ -4089,7 +4089,7 @@ input FooBarOutsideTempInput {
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
-	source: FooBarTelemetryInputSource = "manual"
+	source: FooBarTelemetryInputSource = manual
 }
 enum FooBarParkingCost {
 	free
@@ -4183,7 +4183,7 @@ input FooBarPowerInput {
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
-	source: FooBarTelemetryInputSource = "manual"
+	source: FooBarTelemetryInputSource = manual
 }
 """
 The list of powers for the speed type
@@ -4330,7 +4330,7 @@ type FooBarQuery {
 	"""
 	[BETA] Get the connected vehicles for the current user
 	"""
-	connectedVehicleList(filter: FooBarConnectedVehicleListFilter, size: Int = "10", page: Int = "0"): [FooBarConnectedVehicle]
+	connectedVehicleList(filter: FooBarConnectedVehicleListFilter, size: Int = 10, page: Int = 0): [FooBarConnectedVehicle]
 	"""
 	[BETA] Retrieve live vehicle data by connected vehicle id
 	"""
@@ -4408,7 +4408,7 @@ type FooBarQuery {
 	"""
 	[BETA] Get a full list of vehicles.
 	"""
-	vehicleList(search: String, filter: FooBarVehicleListFilter, country: FooBarCountryCodeAlpha2, size: Int = "10", page: Int = "0"): [FooBarVehicleList]
+	vehicleList(search: String, filter: FooBarVehicleListFilter, country: FooBarCountryCodeAlpha2, size: Int = 10, page: Int = 0): [FooBarVehicleList]
 }
 input FooBarRemoveConnectedVehicleInput {
 	"""
@@ -5612,7 +5612,7 @@ input FooBarScheduledChargeStopInput {
 	"""
 	Maximum allowed offset from the stop_after value in seconds. Default is 1800
 	"""
-	offset: Int = "1800"
+	offset: Int = 1800
 	"""
 	Desired drive time for a scheduled stop after leaving the origin point, in seconds
 	"""
@@ -5620,7 +5620,7 @@ input FooBarScheduledChargeStopInput {
 	"""
 	Maximum distance from a station to an amenity, in meters. The value should be between 0 and 1000. Default is 1000
 	"""
-	max_distance_from_station: Int = "1000"
+	max_distance_from_station: Int = 1000
 }
 enum FooBarSpeedUnit {
 	kilometers_per_hour
@@ -5651,7 +5651,7 @@ input FooBarStateOfChargeInput {
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
-	source: FooBarTelemetryInputSource = "manual"
+	source: FooBarTelemetryInputSource = manual
 }
 enum FooBarStateOfChargeUnit {
 	kilometer
@@ -6078,7 +6078,7 @@ type FooBarTelemetry {
 	"""
 	Value of the auxiliary power consumption of the vehicle
 	"""
-	auxiliary_consumption(unit: FooBarAuxiliaryConsumptionUnit = "kilowatt_hour"): Float
+	auxiliary_consumption(unit: FooBarAuxiliaryConsumptionUnit = kilowatt_hour): Float
 	"""
 	Battery current in ampere
 	"""
@@ -6086,7 +6086,7 @@ type FooBarTelemetry {
 	"""
 	Value of the temperature of the battery
 	"""
-	battery_temperature(unit: FooBarTemperatureUnit = "Celsius"): Float
+	battery_temperature(unit: FooBarTemperatureUnit = Celsius): Float
 	"""
 	Battery voltage in volts
 	"""
@@ -6098,23 +6098,23 @@ type FooBarTelemetry {
 	"""
 	Value of the rate of charge of the battery
 	"""
-	charge_speed(unit: FooBarChargeSpeedUnit = "kilowatt_hour"): Float
+	charge_speed(unit: FooBarChargeSpeedUnit = kilowatt_hour): Float
 	"""
 	Value of the amount of battery charged
 	"""
-	charge_total(unit: FooBarStateOfChargeUnit = "kilowatt_hour"): Float
+	charge_total(unit: FooBarStateOfChargeUnit = kilowatt_hour): Float
 	"""
 	Value of the current weight of the occupants
 	"""
-	total_occupant_weight(unit: FooBarWeightUnit = "kilogram"): Float
+	total_occupant_weight(unit: FooBarWeightUnit = kilogram): Float
 	"""
 	Value of the current weight of the cargo
 	"""
-	total_cargo_weight(unit: FooBarWeightUnit = "kilogram"): Float
+	total_cargo_weight(unit: FooBarWeightUnit = kilogram): Float
 	"""
 	Value of the current elevation
 	"""
-	elevation(unit: FooBarElevationUnit = "meter"): Float
+	elevation(unit: FooBarElevationUnit = meter): Float
 	"""
 	Current heading in degrees
 	"""
@@ -6130,11 +6130,11 @@ type FooBarTelemetry {
 	"""
 	Value of the vehicle's odometer
 	"""
-	odometer(unit: FooBarDistanceUnit = "kilometer"): Float
+	odometer(unit: FooBarDistanceUnit = kilometer): Float
 	"""
 	Value of the outside temperature
 	"""
-	outside_temperature(unit: FooBarTemperatureUnit = "Celsius"): Float
+	outside_temperature(unit: FooBarTemperatureUnit = Celsius): Float
 	"""
 	Vehicle is in park, neutral or turned off
 	"""
@@ -6142,15 +6142,15 @@ type FooBarTelemetry {
 	"""
 	Value of the positive or negative power. When negative the vehicle is charging
 	"""
-	power(unit: FooBarPowerUnit = "kilowatt"): Float
+	power(unit: FooBarPowerUnit = kilowatt): Float
 	"""
 	Value of the state of charge of the vehicle
 	"""
-	state_of_charge(unit: FooBarStateOfChargeUnit = "kilowatt_hour"): Float
+	state_of_charge(unit: FooBarStateOfChargeUnit = kilowatt_hour): Float
 	"""
 	Values for the average tire pressures of all wheels, starting from the front side right to left and to the rear
 	"""
-	tire_pressure(unit: FooBarPressureUnit = "bar"): [Float!]
+	tire_pressure(unit: FooBarPressureUnit = bar): [Float!]
 	"""
 	UNIX timestamp in seconds
 	"""
@@ -6158,7 +6158,7 @@ type FooBarTelemetry {
 	"""
 	Value of the vehicle speed
 	"""
-	vehicle_speed(unit: FooBarSpeedUnit = "kilometers_per_hour"): Float
+	vehicle_speed(unit: FooBarSpeedUnit = kilometers_per_hour): Float
 	"""
 	Custom input fields can be added based on telemetry architecture
 	"""
@@ -6274,7 +6274,7 @@ input FooBarTirePressureInput {
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
-	source: FooBarTelemetryInputSource = "manual"
+	source: FooBarTelemetryInputSource = manual
 }
 enum FooBarTorqueUnit {
 	newton_meter
@@ -6292,7 +6292,7 @@ input FooBarTotalCargoWeightInput {
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
-	source: FooBarTelemetryInputSource = "manual"
+	source: FooBarTelemetryInputSource = manual
 }
 input FooBarTotalOccupantWeightInput {
 	"""
@@ -6306,7 +6306,7 @@ input FooBarTotalOccupantWeightInput {
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
-	source: FooBarTelemetryInputSource = "manual"
+	source: FooBarTelemetryInputSource = manual
 }
 enum FooBarTurningCircleUnit {
 	meter
@@ -7833,7 +7833,7 @@ input FooBarVehicleSpeedInput {
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
-	source: FooBarTelemetryInputSource = "manual"
+	source: FooBarTelemetryInputSource = manual
 }
 """
 Status of a vehicle.
