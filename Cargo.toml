@@ -12,11 +12,6 @@ members = [
 
 [patch.crates-io]
 again = { git = "https://github.com/grafbase/again", branch = "cloudflare-workers-compatibility" }
-# Drop these patches when https://github.com/async-graphql/async-graphql/commit/3cacd544b922683a2a87040bbbfb6f854e1a2017 is released.
-async-graphql = { git = "https://github.com/async-graphql/async-graphql", rev = "44ae98335413a11e1acbc6c48135f452996e8a0b" }
-async-graphql-axum = { git = "https://github.com/async-graphql/async-graphql", rev = "44ae98335413a11e1acbc6c48135f452996e8a0b" }
-async-graphql-parser = { git = "https://github.com/async-graphql/async-graphql", rev = "44ae98335413a11e1acbc6c48135f452996e8a0b" }
-async-graphql-value = { git = "https://github.com/async-graphql/async-graphql", rev = "44ae98335413a11e1acbc6c48135f452996e8a0b" }
 # Use our fork of dynomite that uses the 0.48 version of rusoto.
 dynomite = { git = "https://github.com/grafbase/dynomite", branch = "rusoto-0_48" }
 hyper-util = { git = "https://github.com/grafbase/hyper-util", rev = "3ad8fd132812dc1e33b5a4830b96dff01b8020a3" } # error-is-connect
@@ -38,10 +33,10 @@ repository = "https://github.com/grafbase/grafbase"
 
 [workspace.dependencies]
 again = "0.1"
-async-graphql = "6"
-async-graphql-axum = "6"
-async-graphql-parser = "6"
-async-graphql-value = "6"
+async-graphql = "7"
+async-graphql-axum = "7"
+async-graphql-parser = "7"
+async-graphql-value = "7"
 async-trait = "0.1"
 axum = "0.7"
 base64 = "0.21"
