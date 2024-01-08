@@ -1,0 +1,15 @@
+Forward:
+[
+    CheckDiagnostic {
+        message: "The new required field at `GreetingParams.honorifics` would break clients that are not providing it.",
+        severity: Error,
+    },
+]
+
+Backward:
+[
+    CheckDiagnostic {
+        message: "The field `GreetingParams.honorifics` was removed but it is still used by clients.",
+        severity: Error,
+    },
+]

@@ -1,0 +1,63 @@
+interface SpeechCondition {
+  id: ID!
+  name: String!
+  description: String
+}
+
+type Stutter implements SpeechCondition {
+  id: ID!
+  name: String!
+  description: String
+  severity: String
+}
+
+
+type Lisp implements SpeechCondition {
+  id: ID!
+  name: String!
+  description: String
+  affectsLetters: [String]
+}
+
+type Query {
+  allConditions: [SpeechCondition]
+  stutters: [Stutter]
+}
+
+# --- #
+
+interface SpeechCondition {
+  id: ID!
+  name: String!
+  description: String
+}
+
+type Stutter implements SpeechCondition {
+  id: ID!
+  name: String!
+  description: String
+  severity: String
+}
+
+type Query {
+  allConditions: [SpeechCondition]
+  stutters: [Stutter]
+}
+
+# --- #
+
+{
+  lisps { name description affectsLetters }
+}
+
+# --- #
+
+query stutters { name severity }
+
+# --- #
+
+query allConditions {
+    allConditions {
+        name description ... on Lisp { affectsLetters } ... on Stutter { severity }
+    }
+}

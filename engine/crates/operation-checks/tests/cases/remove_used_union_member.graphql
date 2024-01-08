@@ -1,0 +1,57 @@
+type Query {
+  dog(id: ID!): Dog
+}
+
+type Dog {
+  id: ID!
+  name: String!
+  ears: DogEars
+}
+
+union DogEars = FloppyEars | PointyEars
+
+type FloppyEars {
+  length: Float
+  texture: String
+}
+
+type PointyEars {
+  height: Float
+  alertnessLevel: String
+}
+
+# --- #
+
+type Query {
+  dog(id: ID!): Dog
+}
+
+type Dog {
+  id: ID!
+  name: String!
+  ears: DogEars
+}
+
+union DogEars = FloppyEars
+
+type FloppyEars {
+  length: Float
+  texture: String
+}
+
+type PointyEars {
+  height: Float
+  alertnessLevel: String
+}
+
+# --- #
+
+query { 
+    dog {
+        name 
+        ears {
+            ... on FloppyEars { length texture }
+            ... on PointyEars { height alertnessLevel }
+        }
+    }
+}

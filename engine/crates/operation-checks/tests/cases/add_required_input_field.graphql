@@ -1,0 +1,25 @@
+input GreetingParams {
+    name: String!
+}
+
+type Query {
+  sayHi(params: GreetingParams): String!
+}
+
+# --- #
+
+type Query {
+  sayHi(params: GreetingParams): String!
+}
+
+input GreetingParams {
+    name: String!
+    honorifics: [String!]!
+}
+
+# --- #
+
+# The field has to be used.
+query Greet($greetings: GreetingParams!) {
+    sayHi(params: $greetings)
+}

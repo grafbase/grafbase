@@ -1,0 +1,10 @@
+Forward:
+[]
+
+Backward:
+[
+    CheckDiagnostic {
+        message: "The field `GreetingParams.honorifics` was removed but it may still be used by clients.",
+        severity: Warning,
+    },
+]

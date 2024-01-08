@@ -1,0 +1,10 @@
+Forward:
+[
+    CheckDiagnostic {
+        message: "The new required argument at `Query.sayHi.name` would break clients that are not providing it.",
+        severity: Error,
+    },
+]
+
+Backward:
+[]
