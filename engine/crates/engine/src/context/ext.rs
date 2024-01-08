@@ -63,7 +63,7 @@ pub trait ContextExt<'a>: Context<'a> {
     }
 
     fn trace_id(&self) -> String {
-        self.data::<Box<TraceId>>()
+        self.data::<TraceId>()
             .map(|trace_id| trace_id.0.clone())
             .unwrap_or_default()
     }

@@ -61,7 +61,6 @@ mod validations;
 
 pub use connector_parsers::ConnectorParsers;
 pub use engine::registry::Registry;
-pub use migration_detection::{required_migrations, RequiredMigration};
 pub use registry::names::*;
 pub use rules::{
     cache_directive::global::{GlobalCacheRules, GlobalCacheTarget},
@@ -85,7 +84,6 @@ pub mod usage;
 
 mod directive_de;
 mod dynamic_string;
-mod migration_detection;
 mod registry;
 mod rules;
 #[cfg(test)]

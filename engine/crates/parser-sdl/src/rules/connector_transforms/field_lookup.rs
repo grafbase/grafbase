@@ -202,9 +202,9 @@ mod tests {
     fn test_type_path_parsing() {
         insta::assert_json_snapshot!(parse("Query.whatever"), @r###"
         {
-          "field": "whatever",
+          "starting_type": "Query",
           "path": [],
-          "starting_type": "Query"
+          "field": "whatever"
         }
         "###);
         insta::assert_json_snapshot!(parse("Query.{customer,invoice}"), @r###"

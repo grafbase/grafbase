@@ -1,15 +1,15 @@
 ---
 source: cli/crates/cli/tests/graphql-directive/main.rs
-expression: "client.gql::<Value>(UNNAMESPACED_QUERY).variables(json!({ \"id\" : \"2\" })).await"
+expression: "client.gql::<Value>(UNNAMESPACED_QUERY).variables(json!({ \"id\": \"2\" })).await"
 ---
 data:
+  serverVersion: "1"
   pullRequestOrIssue:
     __typename: PullRequest
+    title: Some bot PR
+    checks:
+      - Success!
     author:
       __typename: Bot
       id: "123"
-    checks:
-      - Success!
-    title: Some bot PR
-  serverVersion: "1"
 

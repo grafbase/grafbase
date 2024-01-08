@@ -67,40 +67,42 @@ async fn defer_multipart_test() {
         .collect::<Vec<_>>()
         .await;
 
-    insta::assert_json_snapshot!(parts, @r###"
-    [
-      {
-        "data": {
-          "todoCollection": [
-            {
-              "__typename": "Todo",
-              "id": "1",
-              "title": "Defer Things"
-            }
-          ]
-        },
-        "hasNext": true
-      },
-      {
-        "data": {
-          "deferred": [
-            {
-              "__typename": "Todo",
-              "id": "1",
-              "title": "Defer Things"
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_json_snapshot!(parts, @r###"
+        [
+          {
+            "data": {
+              "todoCollection": [
+                {
+                  "__typename": "Todo",
+                  "id": "1",
+                  "title": "Defer Things"
+                }
+              ]
             },
-            {
-              "__typename": "Todo",
-              "id": "2",
-              "title": "Defer Things"
-            }
-          ]
-        },
-        "hasNext": false,
-        "path": []
-      }
-    ]
-    "###);
+            "hasNext": true
+          },
+          {
+            "data": {
+              "deferred": [
+                {
+                  "__typename": "Todo",
+                  "id": "1",
+                  "title": "Defer Things"
+                },
+                {
+                  "__typename": "Todo",
+                  "id": "2",
+                  "title": "Defer Things"
+                }
+              ]
+            },
+            "hasNext": false,
+            "path": []
+          }
+        ]
+        "###);
+    });
 }
 
 #[tokio::test(flavor = "multi_thread")]

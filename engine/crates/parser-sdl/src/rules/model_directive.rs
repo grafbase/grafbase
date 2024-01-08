@@ -116,10 +116,12 @@ mod tests {
 
         insta::assert_debug_snapshot!(ctx.errors, @r###"
         [
-            1,
-            2,
-            3,
-            4,
+            RuleError {
+                locations: [
+                    Pos(2:18),
+                ],
+                message: "The connector-less `@model` directive is no longer supported.",
+            },
         ]
         "###);
     }

@@ -139,38 +139,41 @@ fn graphql_test_without_namespace() {
 
         let engine = EngineBuilder::new(schema(graphql_mock.port(), false)).build().await;
 
-        insta::assert_json_snapshot!(
-            "unnamespaced-pull-request-with-user",
-            engine
-                .execute(UNNAMESPACED_QUERY)
-                .variables(json!({"id": "1"}))
-                .await
-                .into_value()
-        );
-        insta::assert_json_snapshot!(
-            "unnamespaced-pull-request-with-bot",
-            engine
-                .execute(UNNAMESPACED_QUERY)
-                .variables(json!({"id": "2"}))
-                .await
-                .into_value()
-        );
-        insta::assert_json_snapshot!(
-            "unnamespaced-issue",
-            engine
-                .execute(UNNAMESPACED_QUERY)
-                .variables(json!({"id": "3"}))
-                .await
-                .into_value()
-        );
-        insta::assert_json_snapshot!(
-            "unnamespaced-null",
-            engine
-                .execute(UNNAMESPACED_QUERY)
-                .variables(json!({"id": "4"}))
-                .await
-                .into_value()
-        );
+        let value = engine
+            .execute(UNNAMESPACED_QUERY)
+            .variables(json!({"id": "1"}))
+            .await
+            .into_value();
+        insta::with_settings!({sort_maps => true}, {
+            insta::assert_json_snapshot!("unnamespaced-pull-request-with-user", value);
+        });
+
+        let value = engine
+            .execute(UNNAMESPACED_QUERY)
+            .variables(json!({"id": "2"}))
+            .await
+            .into_value();
+        insta::with_settings!({sort_maps => true}, {
+            insta::assert_json_snapshot!("unnamespaced-pull-request-with-bot", value);
+        });
+
+        let value = engine
+            .execute(UNNAMESPACED_QUERY)
+            .variables(json!({"id": "3"}))
+            .await
+            .into_value();
+        insta::with_settings!({sort_maps => true}, {
+            insta::assert_json_snapshot!("unnamespaced-issue", value);
+        });
+
+        let value = engine
+            .execute(UNNAMESPACED_QUERY)
+            .variables(json!({"id": "4"}))
+            .await
+            .into_value();
+        insta::with_settings!({sort_maps => true}, {
+            insta::assert_json_snapshot!("unnamespaced-null", value);
+        });
     });
 }
 

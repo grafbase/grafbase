@@ -4,7 +4,6 @@ use super::async_client::AsyncClient;
 use super::kill_with_children::kill_with_children;
 use super::{cargo_bin::cargo_bin, client::Client};
 use backend::project::GraphType;
-use cfg_if::cfg_if;
 use common::consts::GRAFBASE_SCHEMA_FILE_NAME;
 use duct::{cmd, Handle};
 use std::env::VarError;

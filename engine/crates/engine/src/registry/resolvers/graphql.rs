@@ -580,7 +580,9 @@ mod tests {
 
         assert_eq!(result.as_ref().err(), None);
 
-        insta::assert_json_snapshot!(result.unwrap());
+        insta::with_settings!({sort_maps => true}, {
+            insta::assert_json_snapshot!(result.unwrap());
+        });
     }
 
     struct FnMatcher<T: Fn(&wiremock::Request) -> bool + Send + Sync>(T);

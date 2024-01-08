@@ -1,20 +1,20 @@
 ---
 source: engine/crates/integration-tests/tests/graphql_connector/basic.rs
-expression: "engine.execute(UNNAMESPACED_QUERY).variables(json!({\n                    \"id\" : \"1\"\n                })).await.into_value()"
+expression: value
 ---
 {
   "data": {
-    "serverVersion": "1",
     "pullRequestOrIssue": {
       "__typename": "PullRequest",
-      "title": "Creating the thing",
-      "checks": [
-        "Success!"
-      ],
       "author": {
         "__typename": "User",
         "email": "jim@example.com"
-      }
-    }
+      },
+      "checks": [
+        "Success!"
+      ],
+      "title": "Creating the thing"
+    },
+    "serverVersion": "1"
   }
 }

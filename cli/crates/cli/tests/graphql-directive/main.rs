@@ -54,34 +54,40 @@ async fn graphql_test_with_namespace() {
     let mut env = Environment::init_async().await;
     let client = start_grafbase(&mut env, schema(port, true)).await;
 
-    insta::assert_yaml_snapshot!(
-        "namespaced-pull-request-with-user",
-        client
-            .gql::<Value>(NAMESPACED_QUERY)
-            .variables(json!({"id": "1"}))
-            .await
-    );
-    insta::assert_yaml_snapshot!(
-        "namespaced-pull-request-with-bot",
-        client
-            .gql::<Value>(NAMESPACED_QUERY)
-            .variables(json!({"id": "2"}))
-            .await
-    );
-    insta::assert_yaml_snapshot!(
-        "namespaced-issue",
-        client
-            .gql::<Value>(NAMESPACED_QUERY)
-            .variables(json!({"id": "3"}))
-            .await
-    );
-    insta::assert_yaml_snapshot!(
-        "namespaced-null",
-        client
-            .gql::<Value>(NAMESPACED_QUERY)
-            .variables(json!({"id": "4"}))
-            .await
-    );
+    let value = client
+        .gql::<Value>(NAMESPACED_QUERY)
+        .variables(json!({"id": "1"}))
+        .await;
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_yaml_snapshot!(
+            "namespaced-pull-request-with-user",
+            value
+        );
+    });
+    let value = client
+        .gql::<Value>(NAMESPACED_QUERY)
+        .variables(json!({"id": "2"}))
+        .await;
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_yaml_snapshot!(
+            "namespaced-pull-request-with-bot",
+            value
+        );
+    });
+    let value = client
+        .gql::<Value>(NAMESPACED_QUERY)
+        .variables(json!({"id": "3"}))
+        .await;
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_yaml_snapshot!("namespaced-issue", value);
+    });
+    let value = client
+        .gql::<Value>(NAMESPACED_QUERY)
+        .variables(json!({"id": "4"}))
+        .await;
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_yaml_snapshot!("namespaced-null", value);
+    });
 }
 
 const UNNAMESPACED_QUERY: &str = "

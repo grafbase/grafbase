@@ -35,8 +35,7 @@ tuple = "0.5"
 url = { version = "2" }
 
 [dev-dependencies]
-assert_matches = "1.5"
-function_name = "0.3"
+assert_matches = "1"
 insta = { version = "1", features = ["json"] }
 maplit = "1"
 pretty_assertions = "1"

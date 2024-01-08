@@ -1,0 +1,8 @@
+---
+source: engine/crates/parser-sdl/src/rules/federation/directive.rs
+expression: registry.export_sdl(true)
+---
+type Query {
+	firstName: String!
+}
+

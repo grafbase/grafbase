@@ -113,46 +113,48 @@ mod tests {
             cache: CacheConfigs { rules: cache_config },
         };
 
-        insta::assert_json_snapshot!(serde_json::json!(config), @r###"
-        {
-          "cache": {
-            "rules": {
-              "f0": {
-                "max_age": {
-                  "nanos": 0,
-                  "secs": 0
-                },
-                "stale_while_revalidate": {
-                  "nanos": 0,
-                  "secs": 0
+        insta::with_settings!({sort_maps => true}, {
+            insta::assert_json_snapshot!(serde_json::json!(config), @r###"
+            {
+              "cache": {
+                "rules": {
+                  "f0": {
+                    "max_age": {
+                      "nanos": 0,
+                      "secs": 0
+                    },
+                    "stale_while_revalidate": {
+                      "nanos": 0,
+                      "secs": 0
+                    }
+                  }
                 }
-              }
+              },
+              "default_headers": [],
+              "graph": {
+                "enums": [],
+                "field_types": [],
+                "fields": [],
+                "input_objects": [],
+                "interface_fields": [],
+                "interfaces": [],
+                "object_fields": [],
+                "objects": [],
+                "root_operation_types": {
+                  "mutation": null,
+                  "query": 0,
+                  "subscription": null
+                },
+                "scalars": [],
+                "strings": [],
+                "subgraphs": [],
+                "unions": []
+              },
+              "headers": [],
+              "strings": [],
+              "subgraph_configs": {}
             }
-          },
-          "default_headers": [],
-          "graph": {
-            "enums": [],
-            "field_types": [],
-            "fields": [],
-            "input_objects": [],
-            "interface_fields": [],
-            "interfaces": [],
-            "object_fields": [],
-            "objects": [],
-            "root_operation_types": {
-              "mutation": null,
-              "query": 0,
-              "subscription": null
-            },
-            "scalars": [],
-            "strings": [],
-            "subgraphs": [],
-            "unions": []
-          },
-          "headers": [],
-          "strings": [],
-          "subgraph_configs": {}
-        }
-        "###);
+            "###);
+        });
     }
 }

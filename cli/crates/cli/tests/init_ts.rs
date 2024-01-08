@@ -40,16 +40,16 @@ fn init_ts_existing_package_json() {
     },
     @r###"
     {
-      "author": "",
+      "name": "test",
+      "version": "1.0.0",
       "description": "",
+      "main": "index.js",
+      "keywords": [],
+      "author": "",
+      "license": "ISC",
       "devDependencies": {
         "@grafbase/sdk": "[version]"
-      },
-      "keywords": [],
-      "license": "ISC",
-      "main": "index.js",
-      "name": "test",
-      "version": "1.0.0"
+      }
     }
     "###);
 }
