@@ -53,14 +53,14 @@ fn push_interface_implementer_changes(
     changes: &mut Vec<Change>,
 ) {
     // O(n²) but n should always be small enough to not matter
-    for (interface_name, (src, target)) in &interface_impls {
+    for (implementer, (src, target)) in &interface_impls {
         let src = src.unwrap_or(&[]);
         let target = target.unwrap_or(&[]);
 
         for src_impl in src {
             if !target.contains(src_impl) {
                 changes.push(Change {
-                    path: format!("{}.{}", interface_name, src_impl.node),
+                    path: format!("{}.{}", src_impl.node, implementer),
                     kind: ChangeKind::RemoveInterfaceImplementation,
                 });
             }
@@ -69,7 +69,7 @@ fn push_interface_implementer_changes(
         for target_impl in target {
             if !src.contains(target_impl) {
                 changes.push(Change {
-                    path: format!("{}.{}", interface_name, target_impl.node),
+                    path: format!("{}.{}", target_impl.node, implementer),
                     kind: ChangeKind::AddInterfaceImplementation,
                 });
             }
