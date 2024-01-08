@@ -1,0 +1,14 @@
+{
+  "name": "grafbase-test-package",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@grafbase/sdk": "*"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "*",
+    "ts-node": "*",
+    "typescript": "*"
+  }
+}
