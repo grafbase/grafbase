@@ -17,20 +17,34 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
     };
+    crane = {
+      url = "github:ipetkov/crane";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+          inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+      };
+    };
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
-  outputs = {
+  outputs = inputs@{
+    flake-parts,
     nixpkgs,
     flake-utils,
     pnpm2nix,
+    crane,
+    rust-overlay,
     ...
   }: let
     inherit (nixpkgs.lib) optional concatStringsSep;
     systems = flake-utils.lib.system;
-  in
-    flake-utils.lib.eachDefaultSystem (system: let
+    flake = flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
         inherit system;
       };
@@ -90,10 +104,25 @@
           fi
         '';
       };
-
-      mkPnpmPackage = pnpm2nix.packages."${system}".mkPnpmPackage;
     in {
       devShells.default = pkgs.mkShell defaultShellConf;
-      packages.cli-app = import ./packages/nix/cli-app.nix {inherit mkPnpmPackage pkgs;};
     });
+  in
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      inherit flake;
+
+      systems = flake-utils.lib.defaultSystems;
+
+      perSystem = { config, system, ... }: {
+        _module.args = {
+          inherit crane pnpm2nix;
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [(import rust-overlay)];
+          };
+        };
+
+        imports = [ ./cli/nix/cli.nix ./packages/nix/cli-app.nix ];
+      };
+    };
 }
