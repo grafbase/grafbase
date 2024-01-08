@@ -11,8 +11,8 @@ keywords = ["graphql"]
 workspace = true
 
 [dependencies]
-async-graphql-parser = "6"
-async-graphql-value = "6"
+async-graphql-parser.workspace = true
+async-graphql-value.workspace = true
 miette = { version = "5.10.0" }
 bitflags.workspace = true
 
