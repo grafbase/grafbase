@@ -2,7 +2,7 @@
 
 use std::{sync::Arc, time::Duration};
 
-use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{extract::State, http::HeaderMap, routing::post, Router};
 
 mod almost_empty;
@@ -40,7 +40,10 @@ impl MockGraphQlServer {
 
     async fn new_impl(schema: Arc<dyn Schema>) -> Self {
         let state = AppState { schema: schema.clone() };
-        let app = Router::new().route("/", post(graphql_handler)).with_state(state);
+        let app = Router::new()
+            .route("/", post(graphql_handler))
+            .route_service("/ws", GraphQLSubscription::new(SchemaExecutor(schema.clone())))
+            .with_state(state);
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
@@ -98,6 +101,11 @@ pub trait Schema: Send + Sync {
     async fn execute(&self, headers: Vec<(String, String)>, request: async_graphql::Request)
         -> async_graphql::Response;
 
+    fn execute_stream(
+        &self,
+        request: async_graphql::Request,
+    ) -> futures::stream::BoxStream<'static, async_graphql::Response>;
+
     fn sdl(&self) -> String;
 }
 
@@ -116,7 +124,34 @@ where
         async_graphql::Schema::execute(self, request).await
     }
 
+    fn execute_stream(
+        &self,
+        request: async_graphql::Request,
+    ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
+        Box::pin(async_graphql::Schema::execute_stream(self, request))
+    }
+
     fn sdl(&self) -> String {
         self.sdl_with_options(async_graphql::SDLExportOptions::new())
+    }
+}
+
+#[derive(Clone)]
+pub struct SchemaExecutor(Arc<dyn Schema>);
+
+#[async_trait::async_trait]
+impl async_graphql::Executor for SchemaExecutor {
+    /// Execute a GraphQL query.
+    async fn execute(&self, request: async_graphql::Request) -> async_graphql::Response {
+        self.0.execute(Default::default(), request).await
+    }
+
+    /// Execute a GraphQL subscription with session data.
+    fn execute_stream(
+        &self,
+        request: async_graphql::Request,
+        _session_data: Option<Arc<async_graphql::Data>>,
+    ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
+        self.0.execute_stream(request)
     }
 }

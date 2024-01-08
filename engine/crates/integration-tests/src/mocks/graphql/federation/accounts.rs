@@ -21,6 +21,13 @@ impl super::super::Schema for FakeFederationAccountsSchema {
         Self::schema().execute(request).await
     }
 
+    fn execute_stream(
+        &self,
+        request: async_graphql::Request,
+    ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
+        Box::pin(Self::schema().execute_stream(request))
+    }
+
     fn sdl(&self) -> String {
         Self::schema().sdl_with_options(async_graphql::SDLExportOptions::new().federation())
     }
