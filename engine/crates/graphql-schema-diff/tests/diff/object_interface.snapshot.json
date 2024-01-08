@@ -2,13 +2,13 @@
   "src → target": [
     {
       "kind": "AddInterfaceImplementation",
-      "path": "Cookie.Candy"
+      "path": "Candy.Cookie"
     }
   ],
   "target → src": [
     {
       "kind": "RemoveInterfaceImplementation",
-      "path": "Cookie.Candy"
+      "path": "Candy.Cookie"
     }
   ]
 }
