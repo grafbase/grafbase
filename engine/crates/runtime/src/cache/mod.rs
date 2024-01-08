@@ -102,7 +102,7 @@ pub enum CachedExecutionResponse<T> {
 }
 
 #[derive(Clone, Default)]
-pub struct CacheControl {
+pub struct RequestCacheControl {
     /// The no-cache request directive asks caches to validate the response with the origin server before reuse.
     /// no-cache allows clients to request the most up-to-date response even if the cache has a fresh response.
     pub no_cache: bool,
@@ -123,7 +123,7 @@ pub struct GlobalCacheConfig {
 #[derive(Clone, Default)]
 pub struct RequestCacheConfig {
     pub enabled: bool,
-    pub cache_control: CacheControl,
+    pub cache_control: RequestCacheControl,
 }
 
 #[async_trait::async_trait]
