@@ -5,9 +5,12 @@
 
 use std::ops::Not;
 
-use engine::registry::{
-    Deprecation, MetaDirective, MetaEnumValue, MetaField, MetaInputValue, MetaType, ObjectType, Registry,
-    __DirectiveLocation,
+use engine::{
+    registry::{
+        Deprecation, MetaDirective, MetaEnumValue, MetaField, MetaInputValue, MetaType, ObjectType, Registry,
+        __DirectiveLocation,
+    },
+    Value,
 };
 
 pub fn registry_from_introspection(schema: cynic_introspection::Schema) -> Registry {
@@ -93,12 +96,19 @@ fn input_value_from_introspection(input: cynic_introspection::InputValue) -> Met
         name: input.name,
         description: input.description,
         ty: input.ty.to_string().into(),
-        default_value: input.default_value.map(Into::into),
+        default_value: input.default_value.and_then(convert_default_value),
         visible: None,
         validators: None,
         is_secret: false,
         rename: None,
     }
+}
+
+fn convert_default_value(default_value: String) -> Option<Value> {
+    // The default_value is a string in GraphQL format so we need to be careful to convert it correctly.
+    // The main gotcha is that enum values such as `HELLO` should not be converted to string values
+    // which would be represented as `"HELLO"` inside the string.
+    engine_parser::parse_const_value(default_value).ok()
 }
 
 fn directive_location_from_introspection(location: cynic_introspection::DirectiveLocation) -> __DirectiveLocation {

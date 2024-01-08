@@ -12,7 +12,8 @@ keywords = ["graphql", "parser", "grafbase"]
 workspace = true
 
 [dependencies]
-engine = { workspace = true }
+engine.workspace = true
+engine-parser.workspace = true
 
 serde_json = { workspace = true }
 thiserror = { workspace = true }

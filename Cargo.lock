@@ -4163,6 +4163,7 @@ dependencies = [
  "cynic",
  "cynic-introspection",
  "engine",
+ "engine-parser",
  "http 0.2.11",
  "insta",
  "reqwest",
