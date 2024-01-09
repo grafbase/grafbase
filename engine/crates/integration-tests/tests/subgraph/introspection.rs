@@ -27,7 +27,9 @@ fn introspecting_service_field() {
 #[test]
 fn introspecting_service_field_when_no_federation() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(r#"extend type Query { field: String! @resolver(name: "resolver") }"#).build().await;
+        let engine = EngineBuilder::new(r#"extend type Query { field: String! @resolver(name: "resolver") }"#)
+            .build()
+            .await;
 
         let result = engine.execute("query { _service { sdl } }").await.into_value();
 
