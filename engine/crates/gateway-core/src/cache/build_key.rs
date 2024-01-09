@@ -331,7 +331,7 @@ mod tests {
         registry.enable_caching = true;
         CacheConfig {
             global_enabled: false,
-            cache_control: Default::default(),
+            request_cache_control: Default::default(),
             common_cache_tags: vec![],
             subdomain: String::new(),
             partial_registry: registry.into(),

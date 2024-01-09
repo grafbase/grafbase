@@ -14,7 +14,7 @@ mod response;
 pub mod serving;
 mod streaming;
 
-use crate::cache::build_cache_key;
+pub use crate::cache::build_cache_key;
 pub use auth::{authorize_request, AdminAuthError, AuthError, Authorizer};
 pub use cache::CacheConfig;
 pub use executor::Executor;
