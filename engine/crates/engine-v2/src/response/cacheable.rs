@@ -52,9 +52,7 @@ impl Cacheable for CacheableResponse {
             && self
                 .metadata
                 .operation_type
-                .map(|operation_type| {
-                    operation_type == OperationType::Query
-                })
+                .map(|operation_type| operation_type == OperationType::Query)
                 .unwrap_or_default()
     }
 }
