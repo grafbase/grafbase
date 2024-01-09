@@ -1133,9 +1133,9 @@ dependencies = [
 
 [[package]]
 name = "cynic"
-version = "3.3.1"
+version = "3.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73f08d114a2d87adefeedbb9c1ab44c7955b28950c0c92653bd781e680189e17"
+checksum = "32e79cdf61ea6642d05dd3c03b89a4ea104bf5bea096e8d3f75685dac4eb63fd"
 dependencies = [
  "cynic-proc-macros",
  "ref-cast",
@@ -1148,9 +1148,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-codegen"
-version = "3.3.1"
+version = "3.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7bd30e88ddb48049dbc4c6371d534f6de1cb9bb99d0d8417681de70c853b6a7"
+checksum = "9a640dbc3ae03e43bcfa6b6aceb5ea8fad50abac3042b866292bfb01e426176f"
 dependencies = [
  "counter",
  "darling 0.20.3",
@@ -1167,9 +1167,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-introspection"
-version = "3.3.1"
+version = "3.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3317fa1959c7b1168bc0773a5646729ffa348dfdc26ab9db9a634b8078cbca7"
+checksum = "3f866ae6580a5fa0b35a0498140b525d4a32ae77a6500573e45edf814164ef95"
 dependencies = [
  "cynic",
  "cynic-codegen",
@@ -1179,9 +1179,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-proc-macros"
-version = "3.3.1"
+version = "3.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf1d18711760aba62c42e38bbf5a7f1b7161fb9e73c038f25a0fe646a991d04c"
+checksum = "97d9fe5123812a05331a893bd5057de33a10ee309e16c876c01f64a3ddc0375e"
 dependencies = [
  "cynic-codegen",
  "darling 0.20.3",
@@ -2191,7 +2191,7 @@ dependencies = [
  "engine",
  "engine-value",
  "futures-util",
- "headers 0.4.0",
+ "headers",
  "http 1.0.0",
  "jwt-verifier",
  "log 0.1.0",
@@ -2293,7 +2293,7 @@ dependencies = [
  "grafbase-local-backend",
  "grafbase-local-common",
  "grafbase-local-server",
- "headers 0.3.9",
+ "headers",
  "indicatif",
  "indoc",
  "inquire",
@@ -2641,41 +2641,17 @@ dependencies = [
 
 [[package]]
 name = "headers"
-version = "0.3.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06683b93020a07e3dbcf5f8c0f6d40080d725bea7936fc01ad345c01b97dc270"
-dependencies = [
- "base64 0.21.5",
- "bytes",
- "headers-core 0.2.0",
- "http 0.2.11",
- "httpdate",
- "mime",
- "sha1",
-]
-
-[[package]]
-name = "headers"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "322106e6bd0cba2d5ead589ddb8150a13d7c4217cf80d7c4f682ca994ccc6aa9"
 dependencies = [
  "base64 0.21.5",
  "bytes",
- "headers-core 0.3.0",
+ "headers-core",
  "http 1.0.0",
  "httpdate",
  "mime",
  "sha1",
-]
-
-[[package]]
-name = "headers-core"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7f66481bfee273957b1f20485a4ff3362987f85b2c236580d81b4eb7a326429"
-dependencies = [
- "http 0.2.11",
 ]
 
 [[package]]
@@ -4479,7 +4455,7 @@ dependencies = [
  "indexmap 2.1.0",
  "itertools 0.12.0",
  "reqwest",
- "rustls 0.22.1",
+ "rustls 0.22.2",
  "rustls-native-certs",
  "search-protocol",
  "serde",
@@ -5112,7 +5088,7 @@ dependencies = [
  "bytes",
  "common-types",
  "futures-util",
- "headers 0.4.0",
+ "headers",
  "http 1.0.0",
  "postgres-connector-types",
  "search-protocol",
@@ -5296,9 +5272,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.22.1"
+version = "0.22.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe6b63262c9fcac8659abfaa96cac103d28166d3ff3eaf8f412e19f3ae9e5a48"
+checksum = "e87c9956bd9807afa1f77e0f7594af32566e830e088a5576d27c5b6f30f49d41"
 dependencies = [
  "log 0.4.20",
  "ring 0.17.7",
@@ -6504,7 +6480,7 @@ source = "git+https://github.com/grafbase/tokio-postgres-rustls?branch=grafbase-
 dependencies = [
  "futures",
  "ring 0.16.20",
- "rustls 0.22.1",
+ "rustls 0.22.2",
  "rustls-pki-types",
  "tokio",
  "tokio-postgres",
@@ -6527,7 +6503,7 @@ version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "775e0c0f0adb3a2f22a00c4745d728b479985fc15ee7ca6a2608388c5569860f"
 dependencies = [
- "rustls 0.22.1",
+ "rustls 0.22.2",
  "rustls-pki-types",
  "tokio",
 ]
