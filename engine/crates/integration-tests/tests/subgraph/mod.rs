@@ -7,24 +7,57 @@ mod openapi;
 mod requires;
 
 use integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};
-use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
+use runtime::udf::{CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse};
 use serde_json::{json, Value};
 
-const TODO_SCHEMA: &str = r#"
+const TOOD_SCHEMA: &str = r#"
     extend schema @federation(version: "2.3")
 
-    type Todo @model {
+    extend type Query {
+        todo(id: ID!): Todo @resolver(name: "todo")
+    }
+
+    type Todo @key(fields: "id", select: "todo(id: $id)") {
         id: ID!
         title: String!
     }
 "#;
 
+fn resolver_returning_items_by_id(
+    items: impl IntoIterator<Item = serde_json::Value>,
+) -> Box<dyn Fn(CustomResolverRequestPayload) -> Result<CustomResolverResponse, CustomResolverError> + Send + Sync> {
+    let items: std::collections::HashMap<_, _> = items
+        .into_iter()
+        .map(|item| {
+            let id = item["id"].as_str().expect("ID must be a string");
+            (id.to_owned(), item)
+        })
+        .collect();
+    Box::new(move |payload| {
+        Ok(CustomResolverResponse::Success(
+            payload.arguments["id"]
+                .as_str()
+                .and_then(|id| items.get(id).cloned())
+                .unwrap_or(serde_json::Value::Null),
+        ))
+    })
+}
+
+async fn todo_engine(items: impl IntoIterator<Item = serde_json::Value>) -> Engine {
+    EngineBuilder::new(TOOD_SCHEMA)
+        .with_custom_resolvers(RustUdfs::new().resolver("todo", resolver_returning_items_by_id(items)))
+        .build()
+        .await
+}
+
 #[test]
 fn federation_smoke_test() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
-
-        let todo_id = engine.create_todo("Test Federation").await;
+        let engine = todo_engine([serde_json::json!({
+            "id": "todo_1",
+            "title": "Test Federation",
+        })])
+        .await;
 
         insta::assert_json_snapshot!(
             engine
@@ -42,7 +75,7 @@ fn federation_smoke_test() {
                 )
                 .variables(json!({"repr": {
                     "__typename": "Todo",
-                    "id": todo_id
+                    "id": "todo_1"
                 }}))
                 .await
                 .into_data::<Value>(),
@@ -63,10 +96,17 @@ fn federation_smoke_test() {
 #[test]
 fn test_getting_multiple_reprs() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
-
-        let todo_id_one = engine.create_todo("Test Federation").await;
-        let todo_id_two = engine.create_todo("Release Federation").await;
+        let engine = todo_engine([
+            serde_json::json!({
+                "id": "todo_1",
+                "title": "Test Federation",
+            }),
+            serde_json::json!({
+                "id": "todo_2",
+                "title": "Release Federation",
+            }),
+        ])
+        .await;
 
         insta::assert_json_snapshot!(
             engine
@@ -83,8 +123,8 @@ fn test_getting_multiple_reprs() {
                 ",
                 )
                 .variables(json!({"reprs": [
-                    { "__typename": "Todo", "id": todo_id_one },
-                    { "__typename": "Todo", "id": todo_id_two },
+                    { "__typename": "Todo", "id": "todo_1" },
+                    { "__typename": "Todo", "id": "todo_2" },
                 ]}))
                 .await
                 .into_data::<Value>(),
@@ -109,7 +149,7 @@ fn test_getting_multiple_reprs() {
 #[test]
 fn test_missing_item() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
+        let engine: Engine = todo_engine([]).await;
 
         insta::assert_json_snapshot!(
             engine
@@ -153,7 +193,11 @@ fn test_returning_unresolvable_representations() {
         let schema = r#"
             extend schema @federation(version: "2.3")
 
-            type Todo @model {
+            extend type Query {
+                todo(id: ID!): Todo @resolver(name: "todo")
+            }
+    
+            type Todo @key(fields: "id", select: "todo(id: $id)") {
                 id: ID!
                 title: String!
                 todoList: TodoList @resolver(name: "todoListRepresentation")
@@ -165,29 +209,56 @@ fn test_returning_unresolvable_representations() {
             }
         "#;
 
+        let todo_without_list_id = "todo_1";
+        let todo_without_list = serde_json::json!({
+            "id": todo_without_list_id,
+            "title": "Test a todo with no list",
+            "todoListId": None::<String>,
+        });
+        let todolist_id = "123";
+        let todo_with_list_id = "todo_2";
+        let todo_with_list = serde_json::json!({
+            "id": todo_without_list_id,
+            "title": "Test a todo with a list",
+            "todoListId": todolist_id,
+        });
+
         let engine = EngineBuilder::new(schema)
-            .with_custom_resolvers(RustUdfs::new().resolver(
-                "todoListRepresentation",
-                |payload: CustomResolverRequestPayload| {
-                    Ok(if let Some(id) = payload.parent.unwrap()["todoListId"].as_str() {
-                        CustomResolverResponse::Success(json!({ "id": id }))
-                    } else {
-                        CustomResolverResponse::Success(json!(null))
+            .with_custom_resolvers(
+                RustUdfs::new()
+                    .resolver("todo", move |payload: CustomResolverRequestPayload| {
+                        Ok(CustomResolverResponse::Success(
+                            match payload.arguments["id"].as_str() {
+                                Some(id) => {
+                                    if id == todo_without_list_id {
+                                        todo_without_list.clone()
+                                    } else if id == todo_with_list_id {
+                                        todo_with_list.clone()
+                                    } else {
+                                        json!(null)
+                                    }
+                                }
+                                _ => json!(null),
+                            },
+                        ))
                     })
-                },
-            ))
+                    .resolver("todoListRepresentation", |payload: CustomResolverRequestPayload| {
+                        Ok(if let Some(id) = payload.parent.unwrap()["todoListId"].as_str() {
+                            CustomResolverResponse::Success(json!({ "id": id }))
+                        } else {
+                            CustomResolverResponse::Success(json!(null))
+                        })
+                    }),
+            )
             .build()
             .await;
-
-        let todo_id = engine.create_todo("Test a todo with no list").await;
-        let todo_with_list_id = engine.create_todo_with_list("Test a todo with a list", "123").await;
 
         insta::assert_json_snapshot!(
             engine
                 .execute(
                 r"
                     query($withoutListId: ID!, $withListId: ID!) {
-                        withoutList: todo(by: {id: $withoutListId}) {
+                        withoutList: todo(id: $withoutListId) {
                             title
                             # Annoying having to query the ID for this
                             # we should do https://linear.app/grafbase/issue/GB-4014 sometime
@@ -197,7 +268,7 @@ fn test_returning_unresolvable_representations() {
                                 __typename
                             }
                         }
-                        withList: todo(by: {id: $withListId}) {
+                        withList: todo(id: $withListId) {
                             title
                             # Annoying having to query the ID for this
                             # we should do https://linear.app/grafbase/issue/GB-4014 sometime
@@ -210,7 +281,7 @@ fn test_returning_unresolvable_representations() {
                     }
                 ",
                 )
-                .variables(json!({"withoutListId": todo_id, "withListId": todo_with_list_id}))
+                .variables(json!({"withoutListId": todo_without_list_id, "withListId": todo_with_list_id}))
                 .await
                 .into_data::<Value>(),
                 @r###"
@@ -366,57 +437,4 @@ fn test_key_with_select() {
         "###
         );
     });
-}
-
-#[async_trait::async_trait]
-trait TodoEngineExt {
-    /// Creates a todo with this engine, returns a string
-    async fn create_todo(&self, title: &str) -> String;
-
-    /// Creates a todo with this engine, returns a string
-    /// Note that this requires a different schema from the above
-    async fn create_todo_with_list(&self, title: &str, list_id: &str) -> String;
-}
-
-#[async_trait::async_trait]
-impl TodoEngineExt for Engine {
-    async fn create_todo(&self, title: &str) -> String {
-        self.execute(
-            r"
-                mutation($title: String!) {
-                    todoCreate(input: {title: $title}) {
-                        todo {
-                            id
-                        }
-                    }
-                }
-            ",
-        )
-        .variables(json!({"title": title}))
-        .await
-        .into_data::<Value>()["todoCreate"]["todo"]["id"]
-            .as_str()
-            .unwrap()
-            .to_string()
-    }
-
-    async fn create_todo_with_list(&self, title: &str, list_id: &str) -> String {
-        self.execute(
-            r"
-                mutation($title: String!, $listId: ID) {
-                    todoCreate(input: {title: $title, todoListId: $listId}) {
-                        todo {
-                            id
-                        }
-                    }
-                }
-            ",
-        )
-        .variables(json!({"title": title, "listId": list_id}))
-        .await
-        .into_data::<Value>()["todoCreate"]["todo"]["id"]
-            .as_str()
-            .unwrap()
-            .to_string()
-    }
 }

@@ -1,12 +1,13 @@
-use integration_tests::{runtime, EngineBuilder, ResponseExt};
+use integration_tests::{runtime, udfs::RustUdfs, EngineBuilder, ResponseExt};
+use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
 use serde_json::json;
 
-use super::{TodoEngineExt, TODO_SCHEMA};
+use crate::subgraph::todo_engine;
 
 #[test]
 fn unknown_entity() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
+        let engine = todo_engine([]).await;
 
         insta::assert_json_snapshot!(
             engine
@@ -56,7 +57,7 @@ fn unknown_entity() {
 #[test]
 fn unknown_key() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
+        let engine = todo_engine([]).await;
 
         insta::assert_json_snapshot!(
             engine
@@ -109,9 +110,11 @@ fn unknown_key() {
 #[test]
 fn partial_failures() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
-
-        let todo_id = engine.create_todo("Test Federation").await;
+        let engine = todo_engine([serde_json::json!({
+            "id": "todo_1",
+            "title": "Test Federation",
+        })])
+        .await;
 
         insta::assert_json_snapshot!(
             engine
@@ -128,8 +131,8 @@ fn partial_failures() {
                 ",
                 )
                 .variables(json!({"reprs": [
-                    { "__typename": "Todo", "id": todo_id },
-                    { "__typename": "SomeUnknownType", "id": todo_id }
+                    { "__typename": "Todo", "id": "todo_1" },
+                    { "__typename": "SomeUnknownType", "id": "todo_1" }
                 ]}))
                 .await
                 .into_value(),
@@ -168,7 +171,27 @@ fn partial_failures() {
 #[test]
 fn totally_malformed_representation() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
+        const SCHEMA: &str = r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                todo(id: ID!): Todo @resolver(name: "todo")
+            }
+
+            type Todo @key(fields: "id", select: "todo(id: $id)") {
+                id: ID!
+                title: String!
+            }
+        "#;
+
+        let engine = EngineBuilder::new(SCHEMA)
+            .with_custom_resolvers(
+                RustUdfs::new().resolver("todo", move |_payload: CustomResolverRequestPayload| {
+                    Ok(CustomResolverResponse::Success(json!(null)))
+                }),
+            )
+            .build()
+            .await;
 
         insta::assert_json_snapshot!(
             engine
@@ -212,7 +235,27 @@ fn totally_malformed_representation() {
 #[test]
 fn representation_missing_typename() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
+        const SCHEMA: &str = r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                todo(id: ID!): Todo @resolver(name: "todo")
+            }
+
+            type Todo @key(fields: "id", select: "todo(id: $id)") {
+                id: ID!
+                title: String!
+            }
+        "#;
+
+        let engine = EngineBuilder::new(SCHEMA)
+            .with_custom_resolvers(
+                RustUdfs::new().resolver("todo", move |_payload: CustomResolverRequestPayload| {
+                    Ok(CustomResolverResponse::Success(json!(null)))
+                }),
+            )
+            .build()
+            .await;
 
         insta::assert_json_snapshot!(
             engine
