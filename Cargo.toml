@@ -43,6 +43,8 @@ base64 = "0.21"
 bitflags = "2"
 bytes = "1"
 chrono = { version = "0.4", default-features = false }
+cynic = "3"
+cynic-introspection = "3"
 flexbuffers = "2"
 futures = "0.3"
 futures-util = "0.3"
