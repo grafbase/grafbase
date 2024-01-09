@@ -8,7 +8,7 @@ use std::{
 use common_types::UdfKind;
 use engine::{
     model::{__Schema, __Type},
-    registry::{relations::MetaRelation, ConnectorIdGenerator, MetaField, MetaInputValue, SchemaID, SchemaIDGenerator},
+    registry::{ConnectorIdGenerator, MetaField, MetaInputValue, SchemaID, SchemaIDGenerator},
     AuthorizerProvider, LegacyOutputType, Registry, Schema,
 };
 use engine_parser::{
@@ -17,9 +17,9 @@ use engine_parser::{
     },
     Pos, Positioned,
 };
-use engine_value::{indexmap::IndexMap, Name};
+use engine_value::Name;
 
-use super::{warnings::Warnings, RuleError, TypeStackType, Warning, MUTATION_TYPE, QUERY_TYPE};
+use super::{warnings::Warnings, RuleError, TypeStackType, MUTATION_TYPE, QUERY_TYPE};
 use crate::{
     federation::FederatedGraphConfig,
     rules::{federation::FederationVersion, operation_limits_directive::OperationLimitsDirective},
@@ -38,8 +38,6 @@ pub struct VisitorContext<'a> {
     pub(crate) type_stack: TypeStackType<'a>,
     pub(crate) queries: Vec<MetaField>,
     pub(crate) mutations: Vec<MetaField>,
-    /// Relations by name
-    pub(crate) relations: IndexMap<String, MetaRelation>,
     pub schema_id_generator: SchemaIDGenerator,
 
     /// A generator used to generate unique identifiers for each connector present in the schema.
@@ -74,27 +72,7 @@ impl<'a> VisitorContext<'a> {
     pub(crate) fn new_for_tests(document: &'a ServiceDocument) -> Self {
         use std::sync::OnceLock;
         static MAP: OnceLock<HashMap<String, String>> = OnceLock::new();
-        Self::new(document, true, MAP.get_or_init(HashMap::new))
-    }
-
-    /// Create a new unique [`SchemaID`] for this [`VisitorContext`] if the provided `ty` doesn't
-    /// already have a [`SchemaID`]
-    pub(crate) fn get_schema_id<S: AsRef<str>>(&self, ty: S) -> SchemaID {
-        if let Some((id, _val)) = self
-            .schema_to_build
-            .try_read()
-            .expect("Poisoned")
-            .iter()
-            .find(|(_id, val)| val.as_str() == ty.as_ref())
-        {
-            return *id;
-        }
-        let new_id = self.schema_id_generator.new_id();
-        self.schema_to_build
-            .try_write()
-            .expect("Poisoned")
-            .insert(new_id, ty.as_ref().to_string());
-        new_id
+        Self::new(document, false, MAP.get_or_init(HashMap::new))
     }
 
     pub(crate) fn new(
@@ -137,7 +115,6 @@ impl<'a> VisitorContext<'a> {
             registry: RefCell::new(Schema::create_registry()),
             mutations: Default::default(),
             queries: Default::default(),
-            relations: Default::default(),
             schema_to_build: Default::default(),
             connector_id_generator: Default::default(),
             schema_id_generator: Default::default(),
@@ -243,10 +220,6 @@ impl<'a> VisitorContext<'a> {
     #[allow(dead_code)]
     pub(crate) fn report_error<T: Into<String>>(&mut self, locations: Vec<Pos>, msg: T) {
         self.errors.push(RuleError::new(locations, msg));
-    }
-
-    pub(crate) fn report_warning(&mut self, warning: Warning) {
-        self.warnings.push(warning);
     }
 
     #[allow(dead_code)]

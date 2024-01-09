@@ -11,13 +11,8 @@ members = [
 ]
 
 [patch.crates-io]
-again = { git = "https://github.com/grafbase/again", branch = "cloudflare-workers-compatibility" }
-# Use our fork of dynomite that uses the 0.48 version of rusoto.
-dynomite = { git = "https://github.com/grafbase/dynomite", branch = "rusoto-0_48" }
 hyper-util = { git = "https://github.com/grafbase/hyper-util", rev = "3ad8fd132812dc1e33b5a4830b96dff01b8020a3" } # error-is-connect
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
-rusoto_core = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
-rusoto_dynamodb = { git = "https://github.com/grafbase/rusoto", branch = "wasm-rustls-0_48-reqwest" }
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "7c8c63e03daf81b23dcbb39b43c3c1dbb5a25b01" } # minify-field-names-strum-0.25
 # Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
 tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
@@ -32,7 +27,6 @@ keywords = ["grafbase"]
 repository = "https://github.com/grafbase/grafbase"
 
 [workspace.dependencies]
-again = "0.1"
 async-graphql = "7"
 async-graphql-axum = "7"
 async-graphql-parser = "7"
@@ -74,10 +68,6 @@ web-time = "0.2"
 which = "5"
 worker = "0.0.18"
 
-# AWS Rusoto SDK
-rusoto_core = "0.48"
-rusoto_dynamodb = "0.48"
-
 # Serde
 serde = { version = "1", features = ["derive"] }
 serde_dynamo = "4"
@@ -94,7 +84,6 @@ tracing-futures = "0.2"
 async-runtime = { path = "engine/crates/async-runtime" }
 common-types = { path = "engine/crates/common-types" }
 dataloader = { path = "engine/crates/dataloader", features = ["tracing"] }
-dynamodb = { path = "engine/crates/dynamodb" }
 engine-parser = { path = "engine/crates/engine/parser" }
 engine = { path = "engine/crates/engine" }
 engine-v2 = { path = "engine/crates/engine-v2" }

@@ -389,16 +389,6 @@ pub mod tests {
     );
 
     parse_fail!(
-        type_auth_with_provider,
-        r#"
-        type Todo @model @auth(providers: [ { type: oidc, issuer: "https://my.idp.com" } ]) {
-          id: ID!
-        }
-        "#,
-        "auth providers can only be configured globally"
-    );
-
-    parse_fail!(
         field_auth_without_model,
         r"
         type Todo {
@@ -407,17 +397,6 @@ pub mod tests {
         }
         ",
         "the @auth directive can only be used on fields of @model types"
-    );
-
-    parse_fail!(
-        field_auth_with_provider,
-        r#"
-        type Todo @model {
-          id: ID!
-          title: String @auth(providers: [ { type: oidc, issuer: "https://my.idp.com" } ])
-        }
-        "#,
-        "auth providers can only be configured globally"
     );
 
     parse_test!(
@@ -756,42 +735,6 @@ query: Query
             allowed_private_ops: Operations::all(),
             ..Default::default()
         }
-    );
-
-    parse_fail!(
-        model_level_with_introspection,
-        r#"
-      schema @auth(
-        providers: [ { type: jwt, issuer: "myidp", secret: "s" } ],
-        rules: [ { allow: private, operations: [read] } ]
-
-      ){
-        query: Query
-      }
-      type Todo @model @auth(rules: [ { allow: private, operations: [introspection, read] } ]) {
-        id: ID!
-      }
-
-      "#,
-        "introspection rule can be only configured globally"
-    );
-
-    parse_fail!(
-        field_level_with_introspection,
-        r#"
-    schema @auth(
-      providers: [ { type: jwt, issuer: "myidp", secret: "s" } ],
-      rules: [ { allow: private, operations: [read] } ]
-
-    ){
-      query: Query
-    }
-    type Todo @model {
-      id: ID! @auth(rules: [ { allow: private, operations: [introspection, read] } ])
-    }
-
-    "#,
-        "introspection rule can be only configured globally"
     );
 
     #[cfg(feature = "local")] // Allow public introspection locally for backwards compatibility.

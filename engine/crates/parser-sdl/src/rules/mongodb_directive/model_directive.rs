@@ -4,14 +4,7 @@ mod queries;
 pub(super) mod types;
 
 use create_type_context::CreateTypeContext;
-use engine::{
-    names::{
-        INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT,
-        OUTPUT_FIELD_ID,
-    },
-    registry::MongoDBConfiguration,
-    Positioned,
-};
+use engine::{registry::MongoDBConfiguration, Positioned};
 use engine_parser::types::{ObjectType, TypeDefinition, TypeKind};
 
 use crate::{
@@ -25,13 +18,7 @@ use crate::{
 const CONNECTOR_KEY: &str = "connector";
 const COLLECTION_KEY: &str = "collection";
 
-const RESERVED_FIELDS: [&str; 5] = [
-    OUTPUT_FIELD_ID,
-    INPUT_FIELD_FILTER_ALL,
-    INPUT_FIELD_FILTER_ANY,
-    INPUT_FIELD_FILTER_NONE,
-    INPUT_FIELD_FILTER_NOT,
-];
+const RESERVED_FIELDS: [&str; 0] = [];
 
 pub struct MongoDBModelDirective;
 

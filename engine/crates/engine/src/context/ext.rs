@@ -1,9 +1,5 @@
-use std::{
-    any::{Any, TypeId},
-    sync::Arc,
-};
+use std::any::{Any, TypeId};
 
-use dynamodb::DynamoDBBatchersData;
 use engine_value::{ConstValue as Value, Value as InputValue}; // WHY?
 use graph_entities::QueryResponse;
 use http::{
@@ -30,6 +26,9 @@ pub trait Context<'a> {
         &self.schema_env().registry
     }
 }
+
+#[derive(Clone)]
+pub struct TraceId(pub String);
 
 /// Extension trait that defines shared behaviour for ContextSelectionSet & ContextField
 pub trait ContextExt<'a>: Context<'a> {
@@ -64,9 +63,8 @@ pub trait ContextExt<'a>: Context<'a> {
     }
 
     fn trace_id(&self) -> String {
-        self.data::<Arc<DynamoDBBatchersData>>()
-            .map(|x| x.ctx.trace_id.clone())
-            .ok()
+        self.data::<TraceId>()
+            .map(|trace_id| trace_id.0.clone())
             .unwrap_or_default()
     }
 

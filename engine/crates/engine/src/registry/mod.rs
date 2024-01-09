@@ -280,17 +280,6 @@ impl Constraint {
     }
 }
 
-impl From<Constraint> for dynamodb::export::graph_entities::ConstraintDefinition {
-    fn from(constraint: Constraint) -> Self {
-        Self {
-            fields: constraint.fields(),
-            r#type: match constraint.r#type {
-                ConstraintType::Unique => dynamodb::export::graph_entities::ConstraintType::Unique,
-            },
-        }
-    }
-}
-
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
 #[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl, Deprecation)]
 #[derive(Clone, Default, derivative::Derivative, serde::Deserialize, serde::Serialize)]

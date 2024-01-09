@@ -129,29 +129,33 @@ async fn openapi_flat_namespace() {
         .mount(&mock_server)
         .await;
 
-    insta::assert_yaml_snapshot!(
-        client
-            .gql::<Value>(
-                r"
-                    query {
-                        pet(petId: 123) {
-                            id
-                            name
-                            status
-                        }
-                    }
-                ",
-            )
-            .await,
-        @r###"
-    ---
-    data:
-      pet:
-        id: 123
-        name: doggie
-        status: AVAILABLE
-    "###
-    );
+    let value = client
+        .gql::<Value>(
+            r"
+            query {
+                pet(petId: 123) {
+                    id
+                    name
+                    status
+                }
+            }
+        ",
+        )
+        .await;
+
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_yaml_snapshot!(
+            value,
+            @r###"
+        ---
+        data:
+          pet:
+            id: 123
+            name: doggie
+            status: AVAILABLE
+        "###
+        );
+    });
 
     let mock_guard = Mock::given(method("PUT"))
         .and(path("/pet"))
@@ -160,28 +164,31 @@ async fn openapi_flat_namespace() {
         .mount_as_scoped(&mock_server)
         .await;
 
-    insta::assert_yaml_snapshot!(
-        client
-            .gql::<Value>(
-                r#"
-                    mutation {
-                        updatePet(input: {
-                            id: 123
-                            name: "Doggie"
-                            status: AVAILABLE
-                            tags: []
-                            photoUrls: []
-                            category: {}
-                        }) {
-                            id
-                            name
-                            status
-                        }
-                    }
-                "#,
-            )
-            .await,
-        @r###"
+    let value = client
+        .gql::<Value>(
+            r#"
+            mutation {
+                updatePet(input: {
+                    id: 123
+                    name: "Doggie"
+                    status: AVAILABLE
+                    tags: []
+                    photoUrls: []
+                    category: {}
+                }) {
+                    id
+                    name
+                    status
+                }
+            }
+        "#,
+        )
+        .await;
+
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_yaml_snapshot!(
+            value,
+            @r###"
     ---
     data:
       updatePet:
@@ -189,9 +196,12 @@ async fn openapi_flat_namespace() {
         name: doggie
         status: AVAILABLE
     "###
-    );
+        );
+    });
 
-    insta::assert_yaml_snapshot!(mock_guard.received_json_bodies().await, @r###"
+    let value = mock_guard.received_json_bodies().await;
+    insta::with_settings!({sort_maps => true}, {
+    insta::assert_yaml_snapshot!(value, @r###"
     ---
     - category: {}
       id: 123
@@ -200,6 +210,7 @@ async fn openapi_flat_namespace() {
       status: available
       tags: []
     "###);
+    });
 }
 
 async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> AsyncClient {

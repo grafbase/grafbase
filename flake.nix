@@ -65,10 +65,7 @@
             nodePackages.npm
             nodePackages.semver
             sd
-
-            # DynamoDB local
-            dynein
-
+            
             # Node.js
             nodejs
             nodePackages.prettier

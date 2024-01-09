@@ -6,11 +6,6 @@ use serde_json::Value;
 const TODO_SCHEMA: &str = r#"
     extend schema @federation(version: "2.3")
 
-    type Todo @model {
-        id: ID!
-        title: String!
-    }
-
     type User @key(fields: "id") {
         id: ID!
         name: String! @resolver(name: "user/name") @requires(fields: "id")
@@ -20,7 +15,7 @@ const TODO_SCHEMA: &str = r#"
 #[test]
 fn introspecting_service_field() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new(TODO_SCHEMA).with_local_dynamo().build().await;
+        let engine = EngineBuilder::new(TODO_SCHEMA).build().await;
 
         let data = engine.execute("query { _service { sdl } }").await.into_data::<Value>();
         let schema = data["_service"]["sdl"].as_str().unwrap();
@@ -32,8 +27,7 @@ fn introspecting_service_field() {
 #[test]
 fn introspecting_service_field_when_no_federation() {
     runtime().block_on(async {
-        let engine = EngineBuilder::new("type User @model { name: String }")
-            .with_local_dynamo()
+        let engine = EngineBuilder::new(r#"extend type Query { field: String! @resolver(name: "resolver") }"#)
             .build()
             .await;
 

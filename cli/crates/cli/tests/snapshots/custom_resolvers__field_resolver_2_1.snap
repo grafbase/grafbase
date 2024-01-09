@@ -1,9 +1,5 @@
 ---
-source: crates/cli/tests/custom_resolvers.rs
+source: cli/crates/cli/tests/custom_resolvers.rs
 expression: value
 ---
-{
-  "data": {
-    "__typename": "Query"
-  }
-}
+null

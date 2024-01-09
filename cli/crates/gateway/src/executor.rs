@@ -1,7 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
 use common_types::auth::ExecutionAuth;
-use dynamodb::{DynamoDBBatchersData, DynamoDBContext};
 use engine::{registry::resolvers::graphql, RequestHeaders};
 use gateway_core::{RequestContext, StreamingFormat};
 use graphql_extensions::{authorization::AuthExtension, runtime_log::RuntimeLogExtension};
@@ -43,73 +42,11 @@ impl Executor {
         })
     }
 
-    #[allow(clippy::panic, clippy::unused_async)]
-    async fn get_db_context(&self, ctx: &crate::Context, auth: &ExecutionAuth) -> DynamoDBContext {
-        #[cfg(not(feature = "sqlite"))]
-        {
-            const AWS_ACCESS_KEY_ID_ENV_VAR: &str = "AWS_ACCESS_KEY_ID";
-            const AWS_SECRET_ACCESS_KEY_ENV_VAR: &str = "AWS_SECRET_ACCESS_KEY";
-            const DYNAMODB_TABLE_NAME_ENV_VAR: &str = "DYNAMODB_TABLE_NAME";
-            const DYNAMODB_REGION: &str = "DYNAMODB_REGION";
-
-            let closest_aws_region =
-                self.env_vars
-                    .get(DYNAMODB_REGION)
-                    .map_or(rusoto_core::Region::EuNorth1, |region: String| {
-                        match region.strip_prefix("custom:") {
-                            Some(suffix) => rusoto_core::Region::Custom {
-                                name: "local".to_string(),
-                                endpoint: suffix.to_string(),
-                            },
-                            None => <rusoto_core::Region as std::str::FromStr>::from_str(&region)
-                                .ok()
-                                .expect("Cannot parse {DYNAMODB_REGION}"),
-                        }
-                    });
-
-            return DynamoDBContext::new(
-                ctx.ray_id().to_string(),
-                self.env_vars
-                    .get(AWS_ACCESS_KEY_ID_ENV_VAR)
-                    .expect("Missing env var {AWS_ACCESS_KEY_ID_ENV_VAR}"),
-                self.env_vars
-                    .get(AWS_SECRET_ACCESS_KEY_ENV_VAR)
-                    .expect("Missing env var {AWS_SECRET_ACCESS_KEY_ENV_VAR}"),
-                closest_aws_region,
-                self.env_vars
-                    .get(DYNAMODB_TABLE_NAME_ENV_VAR)
-                    .expect("Missing env var {DYNAMODB_TABLE_NAME_ENV_VAR}"),
-                HashMap::default(),
-                auth.clone(),
-            );
-        }
-
-        #[cfg(feature = "sqlite")]
-        return DynamoDBContext::new(
-            ctx.ray_id().to_string(),
-            String::new(),
-            String::new(),
-            rusoto_core::Region::EuNorth1,
-            String::new(),
-            HashMap::default(),
-            auth.clone(),
-        );
-    }
-
     async fn build_schema(
         &self,
         ctx: &Arc<crate::Context>,
         auth: ExecutionAuth,
     ) -> Result<engine::Schema, crate::Error> {
-        let db_context = self.get_db_context(ctx, &auth).await;
-
-        let dynamodb_batchers_data = DynamoDBBatchersData::new(
-            &Arc::new(db_context.clone()),
-            #[cfg(feature = "sqlite")]
-            Some(&Arc::new(dynamodb::LocalContext {
-                bridge_port: self.bridge.port().to_string(),
-            })),
-        );
         let runtime_ctx = runtime::context::Context::new(
             ctx,
             runtime::context::LogContext {
@@ -126,7 +63,7 @@ impl Executor {
         let search_engine = LocalSearchEngine::new(self.bridge.clone());
 
         Ok(engine::Schema::build(engine::Registry::clone(&self.registry))
-            .data(dynamodb_batchers_data)
+            .data(engine::TraceId(ctx.ray_id().to_string()))
             .data(graphql::QueryBatcher::new())
             .data(search_engine)
             .data(resolver_engine)

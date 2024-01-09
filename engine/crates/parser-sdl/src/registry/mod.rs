@@ -6,7 +6,7 @@ use std::fmt::Display;
 
 use case::CaseExt;
 use engine::{
-    registry::{self, enums::EngineEnum, relations::MetaRelation, MetaEnumValue, MetaInputValue, NamedType, Registry},
+    registry::{relations::MetaRelation, MetaInputValue},
     validation::dynamic_validators::DynValidator,
 };
 use engine_parser::types::{FieldDefinition, ObjectType, TypeDefinition};
@@ -20,26 +20,9 @@ use crate::{
     utils::{to_base_type_str, to_input_type},
 };
 
-mod create_update;
-mod delete;
 pub mod names;
 pub(crate) mod pagination;
 mod relations;
-mod search;
-pub use create_update::{add_mutation_create, add_mutation_update, NumericFieldKind};
-pub use delete::add_mutation_delete;
-pub use pagination::{add_query_paginated_collection, generate_pagination_args};
-pub use search::add_query_search;
-
-pub fn register_engine_enum<T: EngineEnum>(registry: &mut Registry) -> NamedType<'static> {
-    let type_name = T::ty().to_string();
-    registry.create_type(
-        |_| registry::EnumType::new(type_name.clone(), T::values().into_iter().map(MetaEnumValue::new)).into(),
-        &type_name,
-        &type_name,
-    );
-    type_name.into()
-}
 
 /// Create an input type for a non_primitive Type.
 pub fn add_input_type_non_primitive(ctx: &mut VisitorContext<'_>, object: &ObjectType, type_name: &str) -> String {

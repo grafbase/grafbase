@@ -19,81 +19,105 @@ enum JavaScriptPackageManager {
 #[case(
     1,
     r#"
-        type Post @model {
+        type Query {
+            post: Post! @resolver(name: "post")
+        }
+
+        type Post {
             title: String!
             text: String! @resolver(name: "return-text")
         }
     "#,
-    "return-text.js",
-    r#"
-        export default function Resolver(parent, args, context, info) {
-            return "Lorem ipsum dolor sit amet";
-        }
-    "#,
     &[
-        ("query GetPost($id: ID!) { post(by: { id: $id }) { text } }", "data.post.text")
+        ("post.js", r"
+            export default function Resolver(parent, args, context, info) {
+                return {
+                    title: 'Hello'
+                }
+            }
+        "),
+        ("return-text.js", r#"
+            export default function Resolver(parent, args, context, info) {
+                return "Lorem ipsum dolor sit amet";
+            }
+        "#)
+    ],
+    &[
+        ("{ post { text } }", "data.post.text")
     ],
     None,
 )]
 #[case(
     2,
     r#"
-        type Post @model {
+        type Query {
+            post: Post! @resolver(name: "post")
+        }
+
+        type Post {
             title: String!
             fetchResult: JSON! @resolver(name: "fetch-grafbase-graphql")
         }
     "#,
-    "fetch-grafbase-graphql.js",
-    r"
-        export default function Resolver(parent, args, context, info) {
-            return fetch('https://api.grafbase.com/graphql', {
-                headers: {
-                    'content-type': 'application/json'
-                },
-                method: 'POST',
-                body: JSON.stringify({ query: '{ __typename }' })
-            });
-        }
-    ",
     &[
-        ("query GetPost($id: ID!) { post(by: { id: $id }) { fetchResult } }", "data.post.fetchResult")
+        ("post.js", r"
+            export default function Resolver(parent, args, context, info) {
+                return {
+                    title: 'Hello'
+                }
+            }
+        "),
+        ("fetch-grafbase-graphql.js", r#"
+            export default function Resolver(parent, args, context, info) {
+                return fetch('https://api.grafbase.com/graphql', {
+                    headers: {
+                        'content-type': 'application/json'
+                    },
+                    method: 'POST',
+                    body: JSON.stringify({ query: '{ __typename }' })
+                });
+            }
+        "#)
+    ],
+    &[
+        ("{ post { fetchResult }  }", "data.post.fetchResult")
     ],
     None,
 )]
 #[case(
     3,
     r#"
-        type Post @model {
+        type Query {
+            post: Post! @resolver(name: "post")
+        }
+
+        type Post {
             title: String!
             variable(name: String!): String @resolver(name: "return-env-variable")
         }
     "#,
-    "return-env-variable.js",
-    r"
-        export default function Resolver(parent, args, context, info) {
-            return process.env[args.name] || null;
-        }
-    ",
+    &[
+        ("post.js", r"
+            export default function Resolver(parent, args, context, info) {
+                return {
+                    title: 'Hello'
+                }
+            }
+        "),
+        ("return-env-variable.js", r#"
+            export default function Resolver(parent, args, context, info) {
+                return process.env[args.name] || null;
+            }
+        "#)
+    ],
     &[
         (
-            r#"
-                query GetPost($id: ID!) {
-                    post(by: { id: $id }) {
-                        variable(name: "GRAFBASE_ENV")
-                    }
-                }
-            "#,
-            "data.post.variable"
+            r#"{ post { variable(name: "GRAFBASE_ENV") } }"#,
+            "post.variable"
         ),
         (
-            r#"
-                query GetPost($id: ID!) {
-                    post(by: { id: $id }) {
-                        variable(name: "MY_OWN_VARIABLE")
-                    }
-                }
-            "#,
-            "data.post.variable"
+            r#"{ post { variable(name: "MY_OWN_VARIABLE") } }"#,
+            "post.variable"
         ),
     ],
     None,
@@ -101,29 +125,35 @@ enum JavaScriptPackageManager {
 #[case(
     4,
     r#"
-        type Post @model {
+        type Query {
+            post: Post! @resolver(name: "post")
+        }
+
+        type Post {
             title: String!
             variable: String! @resolver(name: "return-env-variable")
         }
     "#,
-    "return-env-variable.js",
-    r#"
-        const value = process.env["MY_OWN_VARIABLE"];
+    &[
+        ("post.js", r"
+            export default function Resolver(parent, args, context, info) {
+                return {
+                    title: 'Hello'
+                }
+            }
+        "),
+        ("return-env-variable.js", r#"
+            const value = process.env["MY_OWN_VARIABLE"];
 
-        export default function Resolver(parent, args, context, info) {
-            return value;
-        }
-    "#,
+            export default function Resolver(parent, args, context, info) {
+                return value;
+            }
+        "#)
+    ],
     &[
         (
-            r"
-                query GetPost($id: ID!) {
-                    post(by: { id: $id }) {
-                        variable
-                    }
-                }
-            ",
-            "data.post.variable"
+            "{ post { variable } }",
+            "post.variable"
         ),
     ],
     None,
@@ -131,78 +161,126 @@ enum JavaScriptPackageManager {
 #[case(
     5,
     r#"
-        type Post @model {
+        type Query {
+            post: Post! @resolver(name: "post")
+        }
+
+        type Post {
             title: String!
             object: JSON! @resolver(name: "nested/return-object")
         }
     "#,
-    "nested/return-object.ts",
-    r#"
-        export default function Resolver(parent, args, context, info) {
-            const returnValue: any = { a: 123, b: "Hello" };
-            return returnValue;
-        }
-    "#,
     &[
-        ("query GetPost($id: ID!) { post(by: { id: $id }) { object } }", "data.post.object")
+        ("post.js", r"
+            export default function Resolver(parent, args, context, info) {
+                return {
+                    title: 'Hello'
+                }
+            }
+        "),
+        ("nested/return-object.ts", r#"
+            export default function Resolver(parent, args, context, info) {
+                const returnValue: any = { a: 123, b: "Hello" };
+                return returnValue;
+            }
+        "#)
+    ],
+    &[
+        ("{ post { object } }", "post.object")
     ],
     None,
 )]
 #[case(
     6,
     r#"
-        type Post @model {
+        type Query {
+            post: Post! @resolver(name: "post")
+        }
+
+        type Post {
             title: String!
             title2: String! @resolver(name: "return-title")
         }
     "#,
-    "return-title.js",
-    r"
-        export default function Resolver(parent, args, context, info) {
-            return parent.title;
-        }
-    ",
     &[
-        ("query GetPost($id: ID!) { post(by: { id: $id }) { title2 } }", "data.post.title2")
+        ("post.js", r"
+            export default function Resolver(parent, args, context, info) {
+                return {
+                    title: 'Hello'
+                }
+            }
+        "),
+        ("return-title.js", r"
+            export default function Resolver(parent, args, context, info) {
+                return parent.title;
+            }
+        ")
+    ],
+    &[
+        ("{ post { title2 } }", "post.title2")
     ],
     None,
 )]
 #[case(
     7,
     r#"
-        type Post @model {
+        type Query {
+            post: Post! @resolver(name: "post")
+        }
+
+        type Post{
             title: String!
             headerValue(name: String!): String @resolver(name: "return-header-value")
         }
     "#,
-    "return-header-value.js",
-    r"
-        export default function Resolver(parent, args, context, info) {
-            return context.request.headers[args.name];
-        }
-    ",
     &[
-        ("query GetPost($id: ID!) { post(by: { id: $id }) { headerValue(name: \"x-test-header\") } }", "data.post.headerValue")
+        ("post.js", r"
+            export default function Resolver(parent, args, context, info) {
+                return {
+                    title: 'Hello World!'
+                }
+            }
+        "),
+        ("return-header-value.js", r"
+            export default function Resolver(parent, args, context, info) {
+                return context.request.headers[args.name];
+            }
+        ")
+    ],
+    &[
+        ("{ post { headerValue(name: \"x-test-header\") } }", "post.headerValue")
     ],
     None,
 )]
 #[case(
     8,
     r#"
-        type Post @model {
+        type Query {
+            post: Post! @resolver(name: "post")
+        }
+
+        type Post {
             title: String!
             isTitlePalindrome: Boolean! @resolver(name: "resolver")
         }
     "#,
-    "resolver.js",
-    r"
-        const isPalindrome = require('is-palindrome');
-        export default function Resolver(parent, args, context, info) {
-            return isPalindrome(parent.title);
-        }
-    ",
     &[
-        ("query GetPost($id: ID!) { post(by: { id: $id }) { isTitlePalindrome } }", "data.post.isTitlePalindrome")
+        ("post.js", r"
+            export default function Resolver(parent, args, context, info) {
+                return {
+                    title: 'Hello World!'
+                }
+            }
+        "),
+        ("resolver.js", r"
+            const isPalindrome = require('is-palindrome');
+            export default function Resolver(parent, args, context, info) {
+                return isPalindrome(parent.title);
+            }
+        ")
+    ],
+    &[
+        ("{ post { isTitlePalindrome } }", "post.isTitlePalindrome")
     ],
     Some((JavaScriptPackageManager::Npm, r#"
         {
@@ -216,20 +294,32 @@ enum JavaScriptPackageManager {
 #[case(
     9,
     r#"
-        type Post @model {
+        type Query {
+            post: Post! @resolver(name: "post")
+        }
+
+        type Post {
             title: String!
             isTitlePalindrome: Boolean! @resolver(name: "resolver")
         }
     "#,
-    "resolver.js",
-    r"
-        const isPalindrome = require('is-palindrome');
-        export default function Resolver(parent, args, context, info) {
-            return isPalindrome(parent.title);
-        }
-    ",
     &[
-        ("query GetPost($id: ID!) { post(by: { id: $id }) { isTitlePalindrome } }", "data.post.isTitlePalindrome")
+        ("post.js", r"
+            export default function Resolver(parent, args, context, info) {
+                return {
+                    title: 'Hello World!'
+                }
+            }
+        "),
+        ("resolver.js", r"
+            const isPalindrome = require('is-palindrome');
+            export default function Resolver(parent, args, context, info) {
+                return isPalindrome(parent.title);
+            }
+        ")
+    ],
+    &[
+        ("{ post { isTitlePalindrome } }", "post.isTitlePalindrome")
     ],
     Some((JavaScriptPackageManager::Pnpm, r#"
         {
@@ -243,20 +333,32 @@ enum JavaScriptPackageManager {
 #[case(
     10,
     r#"
-        type Post @model {
+        type Query {
+            post: Post! @resolver(name: "post")
+        }
+
+        type Post {
             title: String!
             isTitlePalindrome: Boolean! @resolver(name: "resolver")
         }
     "#,
-    "resolver.js",
-    r"
-        const isPalindrome = require('is-palindrome');
-        export default function Resolver(parent, args, context, info) {
-            return isPalindrome(parent.title);
-        }
-    ",
     &[
-        ("query GetPost($id: ID!) { post(by: { id: $id }) { isTitlePalindrome } }", "data.post.isTitlePalindrome")
+        ("post.js", r"
+            export default function Resolver(parent, args, context, info) {
+                return {
+                    title: 'Hello World!'
+                }
+            }
+        "),
+        ("resolver.js", r"
+            const isPalindrome = require('is-palindrome');
+            export default function Resolver(parent, args, context, info) {
+                return isPalindrome(parent.title);
+            }
+        ")
+    ],
+    &[
+        ("{ post { isTitlePalindrome } }", "post.isTitlePalindrome")
     ],
     Some((JavaScriptPackageManager::Yarn, r#"
         {
@@ -271,8 +373,7 @@ enum JavaScriptPackageManager {
 fn test_field_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,
-    #[case] resolver_name: &str,
-    #[case] resolver_contents: &str,
+    #[case] resolvers: &[(&str, &str)],
     #[case] queries: &[(&str, &str)],
     #[case] package_json: Option<(JavaScriptPackageManager, &str)>,
     #[values(("./", "./"), ("./grafbase", "../"))] variant: (&str, &str),
@@ -286,7 +387,9 @@ fn test_field_resolver(
     )
     .unwrap();
     env.write_schema(schema);
-    env.write_resolver(resolver_name, resolver_contents);
+    for (name, contents) in resolvers {
+        env.write_resolver(name, contents);
+    }
     if let Some((package_manager, package_json)) = package_json {
         env.write_file(
             std::path::Path::new(package_json_path).join("package.json"),
@@ -304,36 +407,16 @@ fn test_field_resolver(
         .with_api_key();
     client.poll_endpoint(120, 250);
 
-    // Create.
-    let response = client
-        .gql::<Value>(
-            r#"
-                mutation {
-                    postCreate(
-                        input: {
-                            title: "Hello"
-                        }
-                    ) {
-                        post {
-                            id
-                        }
-                    }
-                }
-            "#,
-        )
-        .send();
-    let post_id = dot_get!(response, "data.postCreate.post.id", String);
-
     // Run queries.
     for (index, (query_contents, path)) in queries.iter().enumerate() {
         let response = client
             .gql::<Value>(query_contents.to_owned())
             .header("x-test-header", "test-value")
-            .variables(serde_json::json!({ "id": post_id }))
             .send();
         let errors = dot_get_opt!(response, "errors", Vec::<serde_json::Value>).unwrap_or_default();
         assert!(errors.is_empty(), "Error response: {errors:?}");
-        let value = dot_get_opt!(response, path, serde_json::Value).unwrap_or_default();
+        let data = dot_get!(response, "data", serde_json::Value);
+        let value = dot_get_opt!(data, path, serde_json::Value).unwrap_or_default();
         let snapshot_name = format!("field_resolver_{case_index}_{index}", index = index + 1);
         if let Some(value) = value.as_str() {
             insta::assert_snapshot!(snapshot_name, value);

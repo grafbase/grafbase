@@ -81,8 +81,6 @@ reqwest-eventsource = "0.5"
 rsa = "0.9"
 rstest = "0.18"
 rstest_reuse = "0.6"
-rusoto_core = "0.48"
-rusoto_dynamodb = "0.48"
 serde = { version = "1", features = ["derive"] }
 strum = { version = "0.25", features = ["derive"] }
 sysinfo = "0.30"
@@ -96,7 +94,7 @@ wiremock = "0.5"
 name = "grafbase"
 
 [features]
-dynamodb = ["backend/dynamodb"]
+default = []
 
 [lints]
 workspace = true

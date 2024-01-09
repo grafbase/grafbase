@@ -28,8 +28,6 @@
 | [`async-runtime`](crates/async-runtime)                 | A wrapper crate for various async runtime functionality                       |
 | [`common-types`](crates/common-types)                   | Various type definitions for the Grafbase platform                            |
 | [`dataloader`](crates/dataloader)                       | A GraphQL dataloader implementation for Grafbase                              |
-| [`dynamodb`](crates/dynamodb)                           | An implementation of the built-in Grafbase database using DynamoDB and SQLite |
-| [`dynamodb-utils`](crates/dynamodb-utils)               | Various utilities for use with DynamoDB                                       |
 | [`engine`](crates/engine)                               | A dynamic GraphQL engine written in Rust                                      |
 | [`gateway-adapter`](crates/gateway-adapter)             | An adapter layer between the gateway and its environment                      |
 | [`gateway-adapter-local`](crates/gateway-adapter-local) | A local implementation of `gateway-adapter`                                   |

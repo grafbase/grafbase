@@ -44,7 +44,7 @@ server = { package = "grafbase-local-server", path = "../server", version = "0.5
 cynic-codegen = { version = "3", features = ["rkyv"] }
 
 [features]
-dynamodb = ["server/dynamodb"]
+default = []
 
 [lints]
 workspace = true

@@ -13,36 +13,33 @@ workspace = true
 
 [dependencies]
 async-trait = "0.1"
+case = "1"
+colored = "2.1.0"
+common-types.workspace = true
+engine = { path = "../engine" }
 engine-parser = { path = "../engine/parser" }
 engine-value.workspace = true
-engine = { path = "../engine" }
-dynamodb.workspace = true
-common-types.workspace = true
-runtime.workspace = true
-case = "1"
+futures = "0.3"
 if_chain = "1"
+indexmap.workspace = true
+Inflector = { version = "0.11", default-features = false }
 itertools.workspace = true
+nom = "7"
 regex.workspace = true
 secrecy.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_with.workspace = true
-url = { version = "2" }
 thiserror.workspace = true
 tuple = "0.5"
-futures = "0.3"
-nom = "7"
-Inflector = { version = "0.11", default-features = false }
-colored = "2.1.0"
-indexmap.workspace = true
+url = { version = "2" }
 
 [dev-dependencies]
+assert_matches = "1"
 insta = { version = "1", features = ["json"] }
+maplit = "1"
 pretty_assertions = "1"
 rstest.workspace = true
-assert_matches = "1.5"
-function_name = "0.3"
-maplit = "1"
 
 [features]
 default = []

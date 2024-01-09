@@ -137,7 +137,7 @@ mod tests {
         auth_directive::AuthDirective,
         directive::Directives,
         model_directive::ModelDirective,
-        relations::RelationEngine,
+        resolver_directive::ResolverDirective,
         unique_directive::UniqueDirective,
         visitor::{visit, VisitorContext},
     };
@@ -146,8 +146,8 @@ mod tests {
         Directives::new()
             .with::<UniqueDirective>()
             .with::<ModelDirective>()
+            .with::<ResolverDirective>()
             .with::<AuthDirective>()
-            .with::<RelationEngine>()
     }
 
     #[test]
@@ -162,7 +162,6 @@ mod tests {
         let mut rules = rules::visitor::VisitorNil
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
-            .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
         let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
@@ -188,7 +187,6 @@ mod tests {
         let mut rules = rules::visitor::VisitorNil
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
-            .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
         let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
@@ -215,7 +213,6 @@ mod tests {
         let mut rules = rules::visitor::VisitorNil
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
-            .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
         let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
@@ -242,7 +239,6 @@ mod tests {
         let mut rules = rules::visitor::VisitorNil
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
-            .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
         let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
@@ -268,7 +264,6 @@ mod tests {
         let mut rules = rules::visitor::VisitorNil
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
-            .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
         let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
@@ -286,7 +281,7 @@ mod tests {
     #[test]
     fn should_error_on_known_directive_not_allowed_in_type_position() {
         let schema = r"
-            type Product @relation {
+            type Product @unique {
                 id: ID!
                 name: String!
             }
@@ -295,7 +290,6 @@ mod tests {
         let mut rules = rules::visitor::VisitorNil
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
-            .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
         let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
@@ -305,24 +299,21 @@ mod tests {
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
         assert_eq!(
             ctx.errors.first().unwrap().message,
-            "Directive `relation` may not be used in type context",
+            "Directive `unique` may not be used in type context",
             "should match"
         );
     }
 
     #[test]
     fn should_not_error_on_known_directive_allowed_in_positions() {
-        let schema = r"
-            type Product @model {
-                id: ID!
-                name: String! @unique
+        let schema = r#"
+            extend type Query {
+                foo: String! @resolver(name: "foo")
             }
-            ";
+        "#;
 
         let mut rules = rules::visitor::VisitorNil
-            .with(rules::model_directive::ModelDirective)
-            .with(rules::auth_directive::AuthDirective)
-            .with(rules::relations::relations_rules())
+            .with(rules::resolver_directive::ResolverDirective)
             .with(CheckAllDirectivesAreKnown::default());
         let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");

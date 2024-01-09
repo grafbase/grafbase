@@ -1,6 +1,5 @@
 use std::{borrow::Cow, fmt::Display, str::FromStr};
 
-use dynomite::{Attribute, AttributeError};
 use serde::Serialize;
 use ulid::Ulid;
 
@@ -83,16 +82,6 @@ impl<'a> NodeID<'a> {
 impl<'a> Display for NodeID<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}{ID_SEPARATOR}{}", self.ty.to_lowercase(), self.ulid)
-    }
-}
-
-impl<'a> Attribute for NodeID<'a> {
-    fn into_attr(self) -> dynomite::AttributeValue {
-        self.to_string().into_attr()
-    }
-
-    fn from_attr(value: dynomite::AttributeValue) -> Result<Self, dynomite::AttributeError> {
-        Self::from_owned(value.s.ok_or(AttributeError::InvalidType)?).map_err(|_| AttributeError::InvalidFormat)
     }
 }
 

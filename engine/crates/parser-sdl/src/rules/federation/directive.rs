@@ -57,13 +57,12 @@ mod tests {
     use crate::tests::assert_validation_error;
 
     #[test]
-    fn test_federation_with_a_model() {
+    fn test_federation_with_a_resolver() {
         let schema = r#"
             extend schema @federation(version: "2.3")
 
-            type User @model {
-                id: ID!
-                firstName: String!
+            extend type Query {
+                firstName: String! @resolver(name: "resolver")
             }
         "#;
 

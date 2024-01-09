@@ -9,13 +9,9 @@
 //!
 //! A Resolver always know how to apply the associated transformers.
 
-use dynamo_mutation::DynamoMutationResolver;
-use dynamo_querying::DynamoResolver;
-use dynamodb::PaginatedCursor;
 use engine_parser::types::SelectionSet;
 use engine_value::{ConstValue, Name};
 use graph_entities::ConstraintID;
-use query::QueryResolver;
 use runtime::search::GraphqlCursor;
 use ulid::Ulid;
 
@@ -24,6 +20,7 @@ use self::{
     federation::resolve_federation_entities,
     graphql::{QueryBatcher, Target},
     join::JoinResolver,
+    pagination::PaginatedCursor,
     transformer::Transformer,
 };
 pub use self::{introspection::IntrospectionResolver, resolved_value::ResolvedValue};
@@ -32,16 +29,14 @@ use crate::{Context, ContextExt, ContextField, Error, RequestHeaders};
 
 pub mod atlas_data_api;
 pub mod custom;
-pub mod dynamo_mutation;
-pub mod dynamo_querying;
 mod federation;
 pub mod graphql;
 pub mod http;
 mod introspection;
 pub mod join;
 mod logged_fetch;
+mod pagination;
 pub mod postgres;
-pub mod query;
 mod resolved_value;
 pub mod transformer;
 
@@ -146,18 +141,6 @@ impl Resolver {
     ) -> Result<ResolvedValue, Error> {
         match self {
             Resolver::Parent => last_resolver_value.ok_or_else(|| Error::new("No data to propagate!")),
-            Resolver::DynamoResolver(dynamodb) => {
-                dynamodb
-                    .resolve(ctx, resolver_ctx, last_resolver_value.as_ref())
-                    .instrument(info_span!("dynamo_resolver"))
-                    .await
-            }
-            Resolver::DynamoMutationResolver(dynamodb) => {
-                dynamodb
-                    .resolve(ctx, resolver_ctx, last_resolver_value.as_ref())
-                    .instrument(info_span!("dynamo_mutation_resolver"))
-                    .await
-            }
             Resolver::Transformer(ctx_data) => ctx_data.resolve(ctx, resolver_ctx, last_resolver_value).await,
             Resolver::CustomResolver(resolver) => {
                 resolver
@@ -165,7 +148,6 @@ impl Resolver {
                     .instrument(info_span!("custom_resolver", resolver_name = resolver.resolver_name))
                     .await
             }
-            Resolver::Query(query) => query.resolve(ctx, resolver_ctx, last_resolver_value.as_ref()).await,
             Resolver::Composition(resolvers) => {
                 let [head, tail @ ..] = &resolvers[..] else {
                     unreachable!("Composition of resolvers always have at least one element")
@@ -328,9 +310,6 @@ pub enum Resolver {
     // By default a resolver will just return its parent value
     #[default]
     Parent,
-    DynamoResolver(DynamoResolver),
-    Query(QueryResolver),
-    DynamoMutationResolver(DynamoMutationResolver),
     Transformer(Transformer),
     CustomResolver(CustomResolver),
     Composition(Vec<Resolver>),

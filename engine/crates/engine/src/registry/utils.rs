@@ -1,5 +1,3 @@
-pub use dynamodb::{attribute_to_value, value_to_attribute};
-
 /// Merge JSON together
 pub fn merge(a: &mut serde_json::Value, b: serde_json::Value) {
     match (a, b) {

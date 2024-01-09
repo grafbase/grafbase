@@ -35,23 +35,25 @@ fn init_ts_existing_package_json() {
 
     let package_json = serde_json::from_str::<Value>(&env.load_file_from_project("package.json")).expect("valid JSON");
 
-    insta::assert_json_snapshot!(&package_json, {
-      r#".devDependencies["@grafbase/sdk"]"# => "[version]"
-    },
-    @r###"
-    {
-      "author": "",
-      "description": "",
-      "devDependencies": {
-        "@grafbase/sdk": "[version]"
-      },
-      "keywords": [],
-      "license": "ISC",
-      "main": "index.js",
-      "name": "test",
-      "version": "1.0.0"
-    }
-    "###);
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_json_snapshot!(&package_json, {
+            r#".devDependencies["@grafbase/sdk"]"# => "[version]"
+        },
+        @r###"
+        {
+          "author": "",
+          "description": "",
+          "devDependencies": {
+            "@grafbase/sdk": "[version]"
+          },
+          "keywords": [],
+          "license": "ISC",
+          "main": "index.js",
+          "name": "test",
+          "version": "1.0.0"
+        }
+        "###);
+    });
 }
 
 #[test]
