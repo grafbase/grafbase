@@ -20,6 +20,7 @@ graphql-composition.workspace = true
 handlebars.workspace = true
 indoc = "2.0.4"
 log = "0.4.20"
+mime = "0.3"
 reqwest = { version = "0.11.23", default-features = false, features = ["json", "rustls"] }
 runtime-local.workspace = true
 serde = "1.0.195"
@@ -33,7 +34,8 @@ url = "2.5.0"
 common = { package = "grafbase-local-common", path = "../common", version = "0.52.2" }
 engine = { path = "../../../engine/crates/engine" }
 engine-config-builder = { path = "../../../engine/crates/engine-config-builder" }
-engine-v2 = { path = "../../../engine/crates/engine-v2" }
+engine-v2.workspace = true
+gateway-v2.workspace = true
 grafbase-graphql-introspection = { path = "../graphql-introspection" }
 parser-sdl = { path = "../../../engine/crates/parser-sdl" }
 

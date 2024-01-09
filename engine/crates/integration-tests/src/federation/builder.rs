@@ -1,29 +1,29 @@
 use std::collections::HashMap;
 
 use async_graphql_parser::types::ServiceDocument;
-use engine_v2::Engine;
+use gateway_v2::Gateway;
 use parser_sdl::connector_parsers::MockConnectorParsers;
 
 use crate::MockGraphQlServer;
 
-use super::TestFederationEngine;
+use super::TestFederationGateway;
 
 #[must_use]
-pub struct FederationEngineBuilder {
+pub struct FederationGatewayBuilder {
     schemas: Vec<(String, String, ServiceDocument)>,
     config_sdl: Option<String>,
 }
 
-pub trait EngineV2Ext {
-    fn builder() -> FederationEngineBuilder {
-        FederationEngineBuilder {
+pub trait GatewayV2Ext {
+    fn builder() -> FederationGatewayBuilder {
+        FederationGatewayBuilder {
             schemas: vec![],
             config_sdl: None,
         }
     }
 }
 
-impl EngineV2Ext for engine_v2::Engine {}
+impl GatewayV2Ext for gateway_v2::Gateway {}
 
 #[async_trait::async_trait]
 pub trait SchemaSource {
@@ -31,7 +31,7 @@ pub trait SchemaSource {
     fn url(&self) -> String;
 }
 
-impl FederationEngineBuilder {
+impl FederationGatewayBuilder {
     pub fn with_supergraph_config(mut self, sdl: impl Into<String>) -> Self {
         self.config_sdl = Some(format!("{}\nextend schema @graph(type: federated)", sdl.into()));
         self
@@ -46,7 +46,7 @@ impl FederationEngineBuilder {
         self
     }
 
-    pub async fn finish(self) -> TestFederationEngine {
+    pub async fn finish(self) -> TestFederationGateway {
         let mut subgraphs = graphql_composition::Subgraphs::default();
         for (name, url, schema) in self.schemas {
             subgraphs.ingest(&schema, &name, &url);
@@ -68,13 +68,13 @@ impl FederationEngineBuilder {
 
         let config = engine_config_builder::build_config(&federated_graph_config, graph).into_latest();
 
-        TestFederationEngine {
-            engine: Engine::build(
+        TestFederationGateway {
+            gateway: Gateway::new(
                 config.into(),
                 engine_v2::EngineRuntime {
                     fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
-                    kv: runtime_local::InMemoryKvStore::runtime_kv(),
                 },
+                runtime_local::InMemoryKvStore::runtime_kv(),
             ),
         }
     }

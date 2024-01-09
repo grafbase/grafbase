@@ -20,8 +20,6 @@ pub enum Response {
     Initial(InitialResponse),
     /// Engine could not execute the request.
     RequestError(RequestErrorResponse),
-    /// Engine refused to execute request because the user isn't authenticated/authorized.
-    AuthError(AuthErrorResponse),
 }
 
 // Our internal error struct shouldn't be accessible. It'll also need some context like
@@ -47,20 +45,19 @@ pub struct RequestErrorResponse {
     metadata: ExecutionMetadata,
 }
 
-pub struct AuthErrorResponse {
-    errors: Vec<GraphqlError>,
-    metadata: ExecutionMetadata,
-}
-
 impl Response {
-    pub(crate) fn request_error(error: impl Into<GraphqlError>, metadata: ExecutionMetadata) -> Self {
+    pub fn error(message: impl Into<String>) -> Self {
+        Self::from_error(GraphqlError::new(message), ExecutionMetadata::default())
+    }
+
+    pub(crate) fn from_error(error: impl Into<GraphqlError>, metadata: ExecutionMetadata) -> Self {
         Self::RequestError(RequestErrorResponse {
             errors: vec![error.into()],
             metadata,
         })
     }
 
-    pub(crate) fn request_errors<E>(errors: impl IntoIterator<Item = E>, metadata: ExecutionMetadata) -> Self
+    pub(crate) fn from_errors<E>(errors: impl IntoIterator<Item = E>, metadata: ExecutionMetadata) -> Self
     where
         E: Into<GraphqlError>,
     {
@@ -70,18 +67,10 @@ impl Response {
         })
     }
 
-    pub(crate) fn auth_error(error: impl Into<GraphqlError>, metadata: ExecutionMetadata) -> Self {
-        Self::AuthError(AuthErrorResponse {
-            errors: vec![error.into()],
-            metadata,
-        })
-    }
-
     pub fn errors(&self) -> Vec<Error<'_>> {
         match self {
             Self::Initial(resp) => resp.errors.iter().map(Error).collect(),
             Self::RequestError(resp) => resp.errors.iter().map(Error).collect(),
-            Self::AuthError(resp) => resp.errors.iter().map(Error).collect(),
         }
     }
 
@@ -89,20 +78,14 @@ impl Response {
         match self {
             Self::Initial(resp) => &resp.metadata,
             Self::RequestError(resp) => &resp.metadata,
-            Self::AuthError(resp) => &resp.metadata,
         }
     }
 
-<<<<<<< HEAD
     pub fn take_metadata(self) -> ExecutionMetadata {
         match self {
             Self::Initial(initial) => initial.metadata,
             Self::RequestError(request_error) => request_error.metadata,
         }
-=======
-    pub fn is_auth_error(&self) -> bool {
-        matches!(self, Self::AuthError(_))
->>>>>>> cbe19512 (auth)
     }
 }
 

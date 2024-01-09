@@ -3,8 +3,8 @@ use serde::ser::{SerializeMap, SerializeSeq};
 
 use crate::{
     response::{
-        path::UnpackedResponseEdge, AuthErrorResponse, GraphqlError, InitialResponse, RequestErrorResponse,
-        ResponseData, ResponseKeys, ResponseObject, ResponsePath, ResponseValue,
+        path::UnpackedResponseEdge, GraphqlError, InitialResponse, RequestErrorResponse, ResponseData, ResponseKeys,
+        ResponseObject, ResponsePath, ResponseValue,
     },
     Response,
 };
@@ -30,8 +30,7 @@ impl serde::Serialize for Response {
                 }
                 map.end()
             }
-            Response::RequestError(RequestErrorResponse { errors, .. })
-            | Response::AuthError(AuthErrorResponse { errors, .. }) => {
+            Response::RequestError(RequestErrorResponse { errors, .. }) => {
                 let mut map = serializer.serialize_map(Some(1))?;
                 map.serialize_entry("data", &serde_json::Value::Null)?;
                 // Shouldn't happen, but better safe than sorry.

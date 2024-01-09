@@ -122,7 +122,7 @@ mod tests {
             insta::assert_json_snapshot!(serde_json::json!(config), @r###"
             {
               "auth": null,
-          "cache": {
+              "cache": {
                 "rules": {
                   "f0": {
                     "max_age": {

@@ -1,9 +1,9 @@
 //! Tests of caching behaviour
 
-use engine_v2::Engine;
+use gateway_v2::Gateway;
 use integration_tests::federation::GraphqlResponse;
 use integration_tests::mocks::graphql::StateMutationSchema;
-use integration_tests::{federation::EngineV2Ext, mocks::graphql::FakeGithubSchema, runtime, MockGraphQlServer};
+use integration_tests::{federation::GatewayV2Ext, mocks::graphql::FakeGithubSchema, runtime, MockGraphQlServer};
 use std::time::Duration;
 
 #[test]
@@ -11,7 +11,7 @@ fn test_basic_query_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -50,7 +50,7 @@ fn test_field_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -100,7 +100,7 @@ fn test_object_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -148,7 +148,7 @@ fn test_non_object_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -195,7 +195,7 @@ fn test_min_object_field_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -265,7 +265,7 @@ fn test_no_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .finish()
@@ -296,7 +296,7 @@ fn test_no_caching_on_mutation() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(StateMutationSchema::default()).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .finish()

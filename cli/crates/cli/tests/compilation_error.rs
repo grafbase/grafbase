@@ -111,7 +111,9 @@ fn compilation_error_resolvers() {
 
     // File watcher is on a 1 second debounce so we need to give it a chance to do its thing
     // We're not changing the schema this time so we can't just poll for changes to that
-    std::thread::sleep(Duration::from_secs(3));
+    // For some reason it takes a really long time on Linux ARM for this to be taken into account
+    // when running all tests.
+    std::thread::sleep(Duration::from_secs(10));
 
     let response = client.gql::<Value>("query { hello }").send();
 

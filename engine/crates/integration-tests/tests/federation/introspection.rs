@@ -1,8 +1,8 @@
 use cynic::{http::ReqwestExt, QueryBuilder};
 use cynic_introspection::{CapabilitiesQuery, IntrospectionQuery, SpecificationVersion};
-use engine_v2::Engine;
+use gateway_v2::Gateway;
 use integration_tests::{
-    federation::EngineV2Ext,
+    federation::GatewayV2Ext,
     mocks::graphql::{
         EchoSchema, FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema,
         FakeGithubSchema,
@@ -17,7 +17,7 @@ fn can_run_pathfinder_introspection_query() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -88,7 +88,7 @@ fn can_run_2018_introspection_query() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -163,7 +163,7 @@ fn can_run_2021_introspection_query() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -238,7 +238,7 @@ fn echo_subgraph_introspection() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(EchoSchema::default()).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -292,7 +292,7 @@ fn can_run_capability_introspection_query() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -318,7 +318,7 @@ fn introspection_output_matches_source() {
     let (response, _upstream_sdl) = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -352,7 +352,7 @@ fn can_introsect_when_multiple_subgraphs() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
         let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .with_schema("echo", &echo_mock)
@@ -453,7 +453,7 @@ fn supports_the_type_field() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .finish()
@@ -531,7 +531,7 @@ fn type_field_returns_null_on_missing_type() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .finish()
@@ -565,7 +565,7 @@ fn supports_recursing_through_types() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .finish()
@@ -742,7 +742,7 @@ fn rejects_bogus_introspection_queries() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .finish()
@@ -788,7 +788,7 @@ fn introspection_on_multiple_federation_subgraphs() {
         let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
         let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("accounts", &accounts)
             .await
             .with_schema("products", &products)
@@ -872,7 +872,7 @@ fn introspecting_with_grafbase_openapi_subgraph() {
 
         let petstore_mock = MockGraphQlServer::new(engine_v1).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("petstore", &petstore_mock)
             .await
             .finish()

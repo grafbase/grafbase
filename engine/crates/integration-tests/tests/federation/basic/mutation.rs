@@ -1,11 +1,11 @@
-use engine_v2::Engine;
-use integration_tests::{federation::EngineV2Ext, mocks::graphql::StateMutationSchema, runtime, MockGraphQlServer};
+use gateway_v2::Gateway;
+use integration_tests::{federation::GatewayV2Ext, mocks::graphql::StateMutationSchema, runtime, MockGraphQlServer};
 
 #[test]
 fn mutations_should_be_executed_sequentially() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(StateMutationSchema::default()).await;
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -61,7 +61,7 @@ fn mutations_should_be_executed_sequentially() {
 fn mutation_failure_should_stop_later_executions_if_required() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(StateMutationSchema::default()).await;
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()

@@ -1,6 +1,6 @@
-use engine_v2::Engine;
+use gateway_v2::Gateway;
 use integration_tests::{
-    federation::EngineV2Ext,
+    federation::GatewayV2Ext,
     mocks::graphql::{FakeFederationAccountsSchema, FakeFederationProductsSchema},
     runtime, MockGraphQlServer,
 };
@@ -13,7 +13,7 @@ fn root_fields_from_different_subgraphs() {
         let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
         let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("accounts", &accounts)
             .await
             .with_schema("products", &products)
@@ -79,7 +79,7 @@ fn root_fragment_on_different_subgraphs() {
         let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
         let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("accounts", &accounts)
             .await
             .with_schema("products", &products)

@@ -3,7 +3,7 @@ resolver = "2"
 members = [
   "cli/crates/*",
   "engine/crates/*",
-  "engine/crates/engine-v2/auth",
+  "engine/crates/gateway-v2/auth",
   "engine/crates/engine-v2/config",
   "engine/crates/engine-v2/schema",
   "engine/crates/engine/derive",
@@ -96,6 +96,7 @@ gateway-adapter-local = { path = "engine/crates/gateway-adapter-local" }
 gateway-adapter = { path = "engine/crates/gateway-adapter" }
 gateway-core = { path = "engine/crates/gateway-core" }
 gateway-types = { path = "engine/crates/gateway-types" }
+gateway-v2 = { path = "engine/crates/gateway-v2" }
 graph-entities = { path = "engine/crates/graph-entities" }
 graphql-composition = { path = "engine/crates/composition" }
 graphql-extensions = { path = "engine/crates/graphql-extensions" }

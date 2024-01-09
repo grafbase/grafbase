@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use const_format::formatcp;
-use engine_v2::Engine;
+use gateway_v2::Gateway;
 use integration_tests::federation::GraphqlResponse;
 use integration_tests::openid::{CoreClientExt, OryHydraOpenIDProvider};
 use integration_tests::{
-    federation::EngineV2Ext,
+    federation::GatewayV2Ext,
     mocks::graphql::FakeGithubSchema,
     openid::{AUDIENCE, JWKS_URI, OTHER_AUDIENCE},
     runtime, MockGraphQlServer,
@@ -18,7 +18,7 @@ fn test_provider() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(format!("extend schema @authz(providers: [{JWT_PROVIDER_CONFIG}])"))
@@ -50,7 +50,7 @@ fn test_different_header_location() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(format!(
@@ -93,7 +93,7 @@ fn test_unauthorized() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(format!("extend schema @authz(providers: [{JWT_PROVIDER_CONFIG}])"))
@@ -152,7 +152,7 @@ fn test_tampered_jwt() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(format!("extend schema @authz(providers: [{JWT_PROVIDER_CONFIG}])"))
@@ -209,7 +209,7 @@ fn test_wrong_provider() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(format!("extend schema @authz(providers: [{JWT_PROVIDER_CONFIG}])"))
@@ -244,7 +244,7 @@ fn test_audience() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(format!(

@@ -1,8 +1,8 @@
-use engine_v2::Engine;
+use gateway_v2::Gateway;
 use integration_tests::federation::GraphqlResponse;
 use integration_tests::openid::{CoreClientExt, OryHydraOpenIDProvider};
 use integration_tests::{
-    federation::EngineV2Ext,
+    federation::GatewayV2Ext,
     mocks::graphql::FakeGithubSchema,
     openid::{AUDIENCE, JWKS_URI, JWKS_URI_2},
     runtime, MockGraphQlServer,
@@ -13,7 +13,7 @@ fn test_provider() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(format!(

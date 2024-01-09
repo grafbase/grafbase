@@ -1,6 +1,6 @@
-use engine_v2::Engine;
+use gateway_v2::Gateway;
 use integration_tests::{
-    federation::{EngineV2Ext, GraphqlResponse},
+    federation::{GatewayV2Ext, GraphqlResponse},
     mocks::graphql::{FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema},
     runtime, MockGraphQlServer,
 };
@@ -10,7 +10,7 @@ async fn execute(request: &str) -> GraphqlResponse {
     let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
     let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
 
-    let engine = Engine::builder()
+    let engine = Gateway::builder()
         .with_schema("accounts", &accounts)
         .await
         .with_schema("products", &products)

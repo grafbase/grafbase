@@ -1722,7 +1722,6 @@ dependencies = [
  "derive_more",
  "engine",
  "engine-parser",
- "engine-v2-auth",
  "engine-v2-config",
  "engine-v2-schema",
  "engine-value",
@@ -1739,27 +1738,6 @@ dependencies = [
  "serde_json",
  "strum",
  "thiserror",
-]
-
-[[package]]
-name = "engine-v2-auth"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-runtime",
- "async-trait",
- "base64 0.21.6",
- "engine",
- "engine-v2-config",
- "futures-util",
- "getrandom 0.2.12",
- "jsonwebtoken",
- "reqwest",
- "runtime",
- "serde",
- "serde_json",
- "sha2",
- "tracing",
 ]
 
 [[package]]
@@ -1944,12 +1922,14 @@ dependencies = [
  "engine-v2",
  "futures-concurrency",
  "futures-util",
+ "gateway-v2",
  "grafbase-graphql-introspection",
  "grafbase-local-common",
  "graphql-composition",
  "handlebars 5.0.0",
  "indoc",
  "log 0.4.20",
+ "mime",
  "parser-sdl",
  "reqwest",
  "runtime-local",
@@ -2268,6 +2248,38 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "gateway-v2"
+version = "0.0.0"
+dependencies = [
+ "engine",
+ "engine-v2",
+ "futures-util",
+ "gateway-v2-auth",
+ "runtime",
+]
+
+[[package]]
+name = "gateway-v2-auth"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-runtime",
+ "async-trait",
+ "base64 0.21.6",
+ "engine",
+ "engine-v2-config",
+ "futures-util",
+ "getrandom 0.2.12",
+ "jsonwebtoken",
+ "reqwest",
+ "runtime",
+ "serde",
+ "serde_json",
+ "sha2",
  "tracing",
 ]
 
@@ -3285,6 +3297,7 @@ dependencies = [
  "engine-v2",
  "expect-test",
  "futures",
+ "gateway-v2",
  "grafbase-graphql-introspection",
  "graphql-composition",
  "graphql-parser 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3485,7 +3498,6 @@ dependencies = [
  "log 0.1.0",
  "reqwest",
  "runtime",
- "runtime-noop",
  "secrecy",
  "serde",
  "serde_json",
@@ -5378,7 +5390,6 @@ dependencies = [
  "async-trait",
  "bytes",
  "runtime",
- "serde",
  "thiserror",
 ]
 

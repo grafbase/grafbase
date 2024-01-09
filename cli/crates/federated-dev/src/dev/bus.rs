@@ -42,7 +42,7 @@ pub(crate) type RequestSender = mpsc::Sender<(engine::Request, RequestHeaders, R
 pub(crate) type RequestReceiver = mpsc::Receiver<(engine::Request, RequestHeaders, ResponseSender)>;
 
 /// Send half of channel for the router actor to send responses
-pub(crate) type ResponseSender = oneshot::Sender<RouterResult<engine_v2::Response>>;
+pub(crate) type ResponseSender = oneshot::Sender<RouterResult<engine_v2::CacheableResponse>>;
 
 async fn compose_graph(
     sender: &ComposeSender,
