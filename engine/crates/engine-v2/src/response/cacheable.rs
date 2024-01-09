@@ -53,7 +53,7 @@ impl Cacheable for CacheableResponse {
                 .metadata
                 .operation_type
                 .map(|operation_type| {
-                    operation_type != OperationType::Mutation && operation_type != OperationType::Subscription
+                    operation_type == OperationType::Query
                 })
                 .unwrap_or_default()
     }
