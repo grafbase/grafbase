@@ -130,34 +130,34 @@ async fn graphql_test_without_namespace() {
     let mut env = Environment::init_async().await;
     let client = start_grafbase(&mut env, schema(port, false)).await;
 
-    insta::assert_yaml_snapshot!(
-        "unnamespaced-pull-request-with-user",
-        client
-            .gql::<Value>(UNNAMESPACED_QUERY)
-            .variables(json!({"id": "1"}))
-            .await
-    );
-    insta::assert_yaml_snapshot!(
-        "unnamespaced-pull-request-with-bot",
-        client
-            .gql::<Value>(UNNAMESPACED_QUERY)
-            .variables(json!({"id": "2"}))
-            .await
-    );
-    insta::assert_yaml_snapshot!(
-        "unnamespaced-issue",
-        client
-            .gql::<Value>(UNNAMESPACED_QUERY)
-            .variables(json!({"id": "3"}))
-            .await
-    );
-    insta::assert_yaml_snapshot!(
-        "unnamespaced-null",
-        client
-            .gql::<Value>(UNNAMESPACED_QUERY)
-            .variables(json!({"id": "4"}))
-            .await
-    );
+    let value = client
+        .gql::<Value>(UNNAMESPACED_QUERY)
+        .variables(json!({"id": "1"}))
+        .await;
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_yaml_snapshot!("unnamespaced-pull-request-with-user", value);
+    });
+    let value = client
+        .gql::<Value>(UNNAMESPACED_QUERY)
+        .variables(json!({"id": "2"}))
+        .await;
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_yaml_snapshot!("unnamespaced-pull-request-with-bot", value);
+    });
+    let value = client
+        .gql::<Value>(UNNAMESPACED_QUERY)
+        .variables(json!({"id": "3"}))
+        .await;
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_yaml_snapshot!("unnamespaced-issue", value);
+    });
+    let value = client
+        .gql::<Value>(UNNAMESPACED_QUERY)
+        .variables(json!({"id": "4"}))
+        .await;
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_yaml_snapshot!("unnamespaced-null", value);
+    });
 }
 
 async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> AsyncClient {
