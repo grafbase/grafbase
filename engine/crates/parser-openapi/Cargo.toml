@@ -14,17 +14,17 @@ workspace = true
 [dependencies]
 Inflector = "0.11"
 indexmap = "1"
-itertools = { workspace = true }
+itertools.workspace = true
 once_cell = "1"
 petgraph = "0.6"
-regex = { workspace = true }
+regex.workspace = true
 serde = "1"
 serde_json = "1"
 serde_yaml = "0.9"
 strum = { workspace = true, features = ["derive"] }
-thiserror = { workspace = true }
-tracing = { workspace = true }
-url = { workspace = true }
+thiserror.workspace = true
+tracing.workspace = true
+url.workspace = true
 
 # We use the openapi crate for v2 of OpenAPI - unfortunately it's not been released on
 # crates.io for years so we're forking for now at least.
@@ -35,7 +35,7 @@ openapi = { git = "https://github.com/grafbase/openapi.git", rev = "2972de3f2efa
 openapiv3 = { git = "https://github.com/grafbase/openapiv3.git", branch = "openapiv3.1" }
 
 engine = { path = "../engine" }
-engine-value = { workspace = true }
+engine-value.workspace = true
 parser-sdl = { path = "../parser-sdl" }
 
 [dev-dependencies]

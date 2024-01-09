@@ -13,7 +13,7 @@ keywords = ["types", "search", "grafbase"]
 workspace = true
 
 [dependencies]
-serde = { workspace = true }
+serde.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 thiserror = "1"
 chrono = { version = "0.4", features = ["serde"] }
@@ -21,5 +21,5 @@ ulid = { workspace = true, features = ["serde"] }
 strum = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]
-serde_json = { workspace = true }
-rstest = { workspace = true }
+serde_json.workspace = true
+rstest.workspace = true

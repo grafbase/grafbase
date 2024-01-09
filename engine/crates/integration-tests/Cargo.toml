@@ -25,7 +25,7 @@ futures = "0.3"
 grafbase-graphql-introspection = { path = "../../../cli/crates/graphql-introspection" }
 graphql-composition.workspace = true
 graphql-parser = "0.4.0"
-http = { workspace = true }
+http.workspace = true
 indoc = "2"
 names = "0.14"
 reqwest = "0.11"

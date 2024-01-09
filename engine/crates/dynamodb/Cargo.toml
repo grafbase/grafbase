@@ -27,23 +27,23 @@ dynomite = "0.10"
 futures = "0.3"
 futures-util = { workspace = true, features = ["std", "async-await"] }
 indexmap.workspace = true
-itertools = { workspace = true }
+itertools.workspace = true
 log = { path = "../log", features = ["with-worker"] }
 quick-error = "2"
-rusoto_core = { workspace = true }
-rusoto_dynamodb = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-thiserror = { workspace = true }
-web-time = { workspace = true }
+rusoto_core.workspace = true
+rusoto_dynamodb.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+web-time.workspace = true
 
 dynamodb-utils = { path = "../dynamodb-utils" }
 common-types = { path = "../common-types" }
-dataloader = { workspace = true }
-async-runtime = { workspace = true }
-graph-entities = { workspace = true }
+dataloader.workspace = true
+async-runtime.workspace = true
+graph-entities.workspace = true
 
-tracing = { workspace = true }
+tracing.workspace = true
 
 # feature="sqlite"
 cfg-if = "1"

@@ -8,17 +8,17 @@ edition = "2021"
 workspace = true
 
 [dependencies]
-futures-util = { workspace = true }
+futures-util.workspace = true
 json_dotpath = "1"
 jwt-compact = { version = "0.8", features = ["clock", "rsa"] }
-secrecy = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-serde_with = { workspace = true }
+secrecy.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_with.workspace = true
 thiserror = "1"
 url = { workspace = true, features = ["serde"] }
-runtime = { workspace = true }
-log = { workspace = true }
+runtime.workspace = true
+log.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { version = "0.11", default-features = false, features = ["json"] }
@@ -31,7 +31,7 @@ reqwest = { version = "0.11", default-features = false, features = [
 
 [dev-dependencies]
 chrono = "0.4"
-serde_json = { workspace = true }
+serde_json.workspace = true
 tokio = { version = "1", features = ["macros"] }
 wiremock = "0.5"
-runtime-noop = { workspace = true }
+runtime-noop.workspace = true
