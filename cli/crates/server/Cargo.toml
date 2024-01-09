@@ -15,15 +15,15 @@ workspace = true
 
 [dependencies]
 async-trait = "0.1"
-axum = { workspace = true }
+axum.workspace = true
 dotenv = "0.15"
 flate2 = "1.0"
 fslock = "0.2"
-futures-util = { workspace = true }
-handlebars = "4"
+futures-util.workspace = true
+handlebars.workspace = true
 hyper.workspace = true
 hyper-util = { workspace = true, features = ["client", "client-legacy", "http1"] }
-itertools = "0.12"
+itertools.workspace = true
 log = "0.4"
 notify = { version = "6", default-features = false, features = [
   "macos_fsevent",
@@ -48,7 +48,7 @@ tokio-stream = { version = "0.1", features = ["sync", "io-util"] }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 tracing = "0.1"
 version-compare = "0.1"
-which = "4"
+which.workspace = true
 cfg-if = "1"
 walkdir = "2"
 sha2 = "0.10"

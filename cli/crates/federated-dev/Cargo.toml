@@ -13,16 +13,16 @@ repository.workspace = true
 async-graphql = { workspace = true, features = ["url"] }
 async-graphql-axum.workspace = true
 async-graphql-parser.workspace = true
-axum = { workspace = true }
+axum.workspace = true
 futures-concurrency = "7"
 futures-util = "0.3"
 graphql-composition.workspace = true
-handlebars = "4.5.0"
+handlebars.workspace = true
 indoc = "2.0.4"
 log = "0.4.20"
 reqwest = { version = "0.11.23", default-features = false, features = ["json", "rustls"] }
 runtime-local.workspace = true
-serde = "1.0.194"
+serde = "1.0.195"
 serde_json.workspace = true
 thiserror = "1.0.56"
 tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }

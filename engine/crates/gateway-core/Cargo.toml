@@ -15,25 +15,25 @@ workspace = true
 
 [dependencies]
 async-graphql.workspace = true
-async-runtime = { workspace = true }
+async-runtime.workspace = true
 async-sse = "5"
 async-trait = "0.1"
-bytes = { workspace = true }
-common-types = { workspace = true }
-engine = { workspace = true }
-engine-value = { workspace = true }
-futures-util = { workspace = true }
+bytes.workspace = true
+common-types.workspace = true
+engine.workspace = true
+engine-value.workspace = true
+futures-util.workspace = true
 headers.workspace = true
 http.workspace = true
-jwt-verifier = { workspace = true }
+jwt-verifier.workspace = true
 log = { path = "../log" }
 mediatype = "0.19"
 mime = "0.3"
 multipart-stream = "0.1"
 runtime = { workspace = true, features = ["test-utils"] }
-serde_json = { workspace = true }
-thiserror = { workspace = true }
-tracing = { workspace = true }
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros"] }

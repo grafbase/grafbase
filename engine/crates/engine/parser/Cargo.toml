@@ -13,4 +13,4 @@ keywords = ["graphql", "query", "parser", "grafbase"]
 engine-value = { path = "../value", version = "3" }
 pest = "2"
 pest_derive = "2"
-serde = { workspace = true }
+serde.workspace = true

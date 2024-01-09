@@ -14,16 +14,16 @@ workspace = true
 
 [dependencies]
 async-trait = "0.1"
-async-runtime = { workspace = true }
-ulid = { workspace = true }
-futures-util = { workspace = true }
+async-runtime.workspace = true
+ulid.workspace = true
+futures-util.workspace = true
 
-serde = { workspace = true }
+serde.workspace = true
 
-runtime = { workspace = true }
-graph-entities = { workspace = true }
+runtime.workspace = true
+graph-entities.workspace = true
 log = { workspace = true, features = ["with-worker"] }
-search-protocol = { workspace = true }
+search-protocol.workspace = true
 postgres-connector-types = { path = "../postgres-connector-types" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

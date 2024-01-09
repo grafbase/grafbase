@@ -14,13 +14,13 @@ workspace = true
 
 [dependencies]
 async-trait = "0.1"
-web-time = { workspace = true }
+web-time.workspace = true
 
 engine = { path = "../engine", default-features = false }
-engine-value = { workspace = true }
+engine-value.workspace = true
 log = { path = "../log" }
-runtime = { workspace = true }
-common-types = { workspace = true }
+runtime.workspace = true
+common-types.workspace = true
 
 [features]
 local = []
