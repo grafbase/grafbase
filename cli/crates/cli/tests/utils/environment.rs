@@ -53,17 +53,14 @@ fn get_free_port() -> u16 {
 }
 
 impl Environment {
-    #[allow(clippy::needless_return, clippy::unused_async)]
     pub fn init() -> Self {
         Self::init_internal("./", get_free_port())
     }
 
-    #[allow(clippy::needless_return, clippy::unused_async)]
     pub fn init_in_subdirectory(subdirectory_path: impl AsRef<Path>) -> Self {
         Self::init_internal(subdirectory_path, get_free_port())
     }
 
-    #[allow(clippy::needless_return, clippy::unused_async)]
     pub async fn init_async() -> Self {
         Self::init_internal("./", get_free_port())
     }
