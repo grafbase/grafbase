@@ -117,6 +117,6 @@ export class Query {
     const args = this.arguments.map(String).join(', ')
     const argsStr = args ? `(${args})` : ''
 
-    return `  ${this.name}${argsStr}: ${this.returns} @resolver(name: "${this.resolver}")`
+    return `${this.name}${argsStr}: ${this.returns} @resolver(name: "${this.resolver}")`
   }
 }

@@ -449,7 +449,7 @@ describe('Type generator', () => {
     })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-"extend type StripeCustomer  
+"extend type StripeCustomer
   @key(fields: "id" resolvable: false)"
 `)
   })
@@ -461,9 +461,27 @@ describe('Type generator', () => {
     })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-"extend type StripeCustomer 
-    @extendField(name: "id", shareable: true, inaccesible: true),
-    @extendField(name: "other", provides: {fields: "id blah"}, override: {from: "Product"})"
-`)
+      "extend type StripeCustomer
+          @extendField(name: "id", shareable: true, inaccesible: true),
+          @extendField(name: "other", provides: {fields: "id blah"}, override: {from: "Product"})"
+    `)
+  })
+
+  it('can add fields to extended types', () => {
+    g.extend('StripeCustomer', (extend) => {
+      extend.addField('id', g.id().join('aField'))
+      extend.addFields({
+        foo: g.boolean()
+      })
+      extend.extendField('other').provides('id blah').override('Product')
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "extend type StripeCustomer
+          @extendField(name: "other", provides: {fields: "id blah"}, override: {from: "Product"}) {
+        id: ID! @join(select: "aField")
+        foo: Boolean!
+      }"
+    `)
   })
 })

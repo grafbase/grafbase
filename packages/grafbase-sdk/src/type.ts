@@ -150,6 +150,7 @@ export class TypeExtension {
   private queries: Query[]
   private keys: FederationKey[]
   private fieldExtensions: FieldExtension[]
+  private fieldAdditions: Field[]
 
   constructor(type: string | Type) {
     if (type instanceof Type) {
@@ -162,6 +163,7 @@ export class TypeExtension {
     this.queries = []
     this.keys = []
     this.fieldExtensions = []
+    this.fieldAdditions = []
   }
 
   /**
@@ -191,6 +193,26 @@ export class TypeExtension {
    *
    * @param field The name of the field to extend
    */
+  public addField(name: string, definition: TypeFieldShape) {
+    this.fieldAdditions.push(new Field(name, definition))
+  }
+
+  /**
+   * Extends a field of this type with additional federation directives
+   *
+   * @param field The name of the field to extend
+   */
+  public addFields(fields: TypeFields) {
+    for (const [key, value] of Object.entries(fields)) {
+      this.addField(key, value)
+    }
+  }
+
+  /**
+   * Extends a field of this type with additional federation directives
+   *
+   * @param field The name of the field to extend
+   */
   public extendField(field: string): FieldExtension {
     const fieldExtension = new FieldExtension(field)
     this.fieldExtensions.push(fieldExtension)
@@ -198,20 +220,22 @@ export class TypeExtension {
   }
 
   public toString(): string {
-    const queries =
-      this.queries.length > 0
-        ? `{\n${this.queries.map(String).join('\n')}\n}`
-        : ''
+    const fields = this.queries
+      .map(String)
+      .concat(this.fieldAdditions.map(String))
+      .map((field) => `  ${field}`)
+
+    const fieldsString = fields.length > 0 ? ` {\n${fields.join('\n')}\n}` : ''
 
     const keys =
-      this.keys.length > 0 ? this.keys.map((key) => ` \n  ${key}`) : ''
+      this.keys.length > 0 ? this.keys.map((key) => `\n  ${key}`) : ''
 
     const fieldExtends =
       this.fieldExtensions.length > 0
         ? this.fieldExtensions.map((field) => `\n  ${field}`)
         : ''
 
-    return `extend type ${this.name} ${keys}${fieldExtends}${queries}`
+    return `extend type ${this.name}${keys}${fieldExtends}${fieldsString}`
   }
 }
 
