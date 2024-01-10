@@ -3,10 +3,10 @@ mod async_graphql;
 use std::collections::HashSet;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct FieldId(usize);
+pub struct FieldId(pub(crate) usize);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ArgumentId(usize);
+pub struct ArgumentId(pub(crate) usize);
 
 /// A GraphQL schema to run operation checks against.
 #[derive(Debug)]
