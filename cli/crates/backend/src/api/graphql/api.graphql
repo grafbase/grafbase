@@ -127,7 +127,7 @@ type AccountResourcesUsageDashboardInvalidFilterCombinationError {
 }
 
 union AccountResourcesUsageDashboardPayload =
-    AccountResourcesUsageDashboardSuccess
+  | AccountResourcesUsageDashboardSuccess
   | AccountResourcesUsageDashboardInvalidFilterCombinationError
 
 type AccountResourcesUsageDashboardSuccess {
@@ -242,7 +242,7 @@ input CustomDomainCreateInput {
 }
 
 union CustomDomainCreatePayload =
-    CustomDomainCreateSuccess
+  | CustomDomainCreateSuccess
   | ProjectDoesNotExistError
   | CustomDomainAlreadyExists
   | ProjectNotDeployed
@@ -322,7 +322,7 @@ input DeleteSubgraphInput {
 }
 
 union DeleteSubgraphPayload =
-    DeleteSubgraphSuccess
+  | DeleteSubgraphSuccess
   | SubgraphNotFoundError
   | ProjectDoesNotExistError
   | ProjectNotFederatedError
@@ -377,7 +377,7 @@ input DeploymentCreateInput {
 }
 
 union DeploymentCreatePayload =
-    DeploymentCreateSuccess
+  | DeploymentCreateSuccess
   | ProjectDoesNotExistError
   | ArchiveFileSizeLimitExceededError
   | DailyDeploymentCountLimitExceededError
@@ -423,7 +423,7 @@ enum DeploymentLogLevel {
 }
 
 union DeploymentRedeployPayload =
-    DeploymentRedeploySuccess
+  | DeploymentRedeploySuccess
   | DeploymentDoesNotExistError
   | DailyDeploymentCountLimitExceededError
 
@@ -518,7 +518,7 @@ input EnvironmentVariableCreateInput {
 }
 
 union EnvironmentVariableCreatePayload =
-    EnvironmentVariableCreateSuccess
+  | EnvironmentVariableCreateSuccess
   | NameAlreadyExistsError
   | NameTooLongError
   | NameContainsInvalidCharactersError
@@ -573,7 +573,7 @@ input EnvironmentVariableUpdateInput {
 }
 
 union EnvironmentVariableUpdatePayload =
-    EnvironmentVariableUpdateSuccess
+  | EnvironmentVariableUpdateSuccess
   | EnvironmentVariableDoesNotExistError
   | NameAlreadyExistsError
   | NameTooLongError
@@ -1436,7 +1436,7 @@ input OrganizationCreateInput {
 }
 
 union OrganizationCreatePayload =
-    OrganizationCreateSuccess
+  | OrganizationCreateSuccess
   | SlugError
   | SlugSizeCheckError
   | NameSizeCheckError
@@ -1454,7 +1454,7 @@ input OrganizationDeleteInput {
 }
 
 union OrganizationDeletePayload =
-    OrganizationDeleteSuccess
+  | OrganizationDeleteSuccess
   | OrganizationDoesNotExistError
   | NotAllowedToDeleteOrganizationError
 
@@ -1486,13 +1486,13 @@ type OrganizationOwnershipNotTransferredError {
 }
 
 union OrganizationPaymentMethodReplacePayload =
-    OrganizationSuccessfulUpdate
+  | OrganizationSuccessfulUpdate
   | MissingStripeCustomerError
   | OrganizationDoesNotExistError
   | NotAllowedError
 
 union OrganizationSetupPaymentMethod =
-    OrganizationUpgradeToProSuccess
+  | OrganizationUpgradeToProSuccess
   | HasAlreadyPaymentMethodError
   | OrganizationDoesNotExistError
   | NotAllowedError
@@ -1503,7 +1503,7 @@ input OrganizationSlugUpdateInput {
 }
 
 union OrganizationSlugUpdatePayload =
-    OrganizationSlugUpdateSuccess
+  | OrganizationSlugUpdateSuccess
   | SlugError
   | SlugSizeCheckError
   | ReservedSlugsCheckError
@@ -1528,7 +1528,7 @@ input OrganizationUpdateInput {
 }
 
 union OrganizationUpdatePayload =
-    OrganizationUpdateSuccess
+  | OrganizationUpdateSuccess
   | OrganizationDoesNotExistError
   | NameSizeCheckError
   | NotAllowedToUpdateOrganizationError
@@ -1592,7 +1592,7 @@ input PersonalAccountSlugUpdateInput {
 }
 
 union PersonalAccountSlugUpdatePayload =
-    PersonalAccountSlugUpdateSuccess
+  | PersonalAccountSlugUpdateSuccess
   | SlugError
   | SlugSizeCheckError
   | ReservedSlugsCheckError
@@ -1681,7 +1681,7 @@ input ProjectApiKeyDeleteInput {
 }
 
 union ProjectApiKeyDeletePayload =
-    ProjectApiKeyDeleteSuccess
+  | ProjectApiKeyDeleteSuccess
   | KeyDoesNotExistError
   | MustLeaveAtLeastOneKeyForEnvironmentError
 
@@ -1742,7 +1742,7 @@ input ProjectCreateFromRepositoryInput {
 }
 
 union ProjectCreateFromRepositoryPayload =
-    ProjectCreateFromRepositorySuccess
+  | ProjectCreateFromRepositorySuccess
   | SlugAlreadyExistsError
   | DisabledAccountError
   | SlugInvalidError
@@ -1771,7 +1771,7 @@ input ProjectCreateFromSchemaInput {
 }
 
 union ProjectCreateFromSchemaPayload =
-    ProjectCreateFromSchemaSuccess
+  | ProjectCreateFromSchemaSuccess
   | SlugAlreadyExistsError
   | DisabledAccountError
   | SlugInvalidError
@@ -1802,7 +1802,7 @@ input ProjectCreateFromTemplateInput {
 }
 
 union ProjectCreateFromTemplatePayload =
-    ProjectCreateFromTemplateSuccess
+  | ProjectCreateFromTemplateSuccess
   | SlugAlreadyExistsError
   | DisabledAccountError
   | SlugInvalidError
@@ -1833,7 +1833,7 @@ input ProjectCreateInput {
 }
 
 union ProjectCreatePayload =
-    ProjectCreateSuccess
+  | ProjectCreateSuccess
   | SlugAlreadyExistsError
   | DisabledAccountError
   | SlugInvalidError
@@ -1976,7 +1976,7 @@ input ProjectUpdateInput {
 }
 
 union ProjectUpdatePayload =
-    ProjectUpdateSuccess
+  | ProjectUpdateSuccess
   | ProjectDoesNotExistError
   | SlugAlreadyExistsError
   | SlugInvalidError
@@ -1997,7 +1997,7 @@ input PublishInput {
 }
 
 union PublishPayload =
-    PublishSuccess
+  | PublishSuccess
   | ProjectDoesNotExistError
   | ProjectNotFederatedError
   | FederatedGraphCompositionError
@@ -2368,7 +2368,7 @@ input SchemaCheckGitCommitInput {
 }
 
 union SchemaCheckPayload =
-    SchemaCheck
+  | SchemaCheck
   | ProjectDoesNotExistError
   | SubgraphNameProvidedOnSingleProjectError
   | SubgraphNameMissingOnFederatedProjectError
