@@ -30,6 +30,7 @@ strum.workspace = true
 thiserror.workspace = true
 futures-util.workspace = true
 hex = "0.4.3"
+url.workspace = true
 
 config = { package = "engine-v2-config", path = "./config" }
 engine-value = { path = "../engine/value" }

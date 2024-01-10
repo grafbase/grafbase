@@ -52,21 +52,30 @@ where
     where
         A: MapAccess<'de>,
     {
-        while let Some(key) = map.next_key::<&str>()? {
+        while let Some(key) = map.next_key::<ResponseKey>()? {
             match key {
-                "data" => match self.data.take() {
+                ResponseKey::Data => match self.data.take() {
                     Some(data) => map.next_value_seed(data)?,
                     None => return Err(serde::de::Error::custom("data key present multiple times.")),
                 },
-                "errors" => map.next_value_seed(UpstreamGraphqlErrorsSeed {
+                ResponseKey::Errors => map.next_value_seed(UpstreamGraphqlErrorsSeed {
                     path: self.err_path.clone(),
                     errors: self.errors,
                 })?,
-                _ => {
+                ResponseKey::Unknown => {
                     map.next_value::<IgnoredAny>()?;
                 }
             }
         }
         Ok(())
     }
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum ResponseKey {
+    Data,
+    Errors,
+    #[serde(other)]
+    Unknown,
 }

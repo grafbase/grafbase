@@ -8,7 +8,7 @@ use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 use crate::{
     plan::CollectedSelectionSet,
     response::{
-        write::deserialize::{FieldSeed, SeedContext},
+        write::deserialize::{key::Key, FieldSeed, SeedContext},
         ResponseEdge, ResponseObject, ResponsePath, ResponseValue,
     },
 };
@@ -44,7 +44,8 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedFieldsSeed<'ctx, 'parent> {
     {
         let mut identifier = super::ObjectIdentifier::new(self.ctx, self.expected.ty);
         let mut fields = BTreeMap::<ResponseEdge, ResponseValue>::new();
-        while let Some(key) = map.next_key::<&str>()? {
+        while let Some(key) = map.next_key::<Key<'_>>()? {
+            let key = key.as_ref();
             let start = self
                 .expected
                 .fields

@@ -45,7 +45,7 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
 
     pub async fn execute(self) -> Response {
         let mut planner = Planner::new(&self.engine.schema, &self.operation);
-        let mut response = ResponseBuilder::new(&self.operation);
+        let mut response = ResponseBuilder::new(self.operation.root_object_id);
 
         // Mutation root fields need to be executed sequentially. So we're tracking for each
         // executor whether it was for one and if so execute the next executor in the queue.
@@ -96,21 +96,19 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
 
         let mut planner = Planner::new(&self.engine.schema, &self.operation);
 
-        let executor = planner
-            .generate_root_plan_boundary()
-            .and_then(|boundary| planner.generate_subscription_plan(boundary))
-            .map_err(PlanningError::into_graphql_error)
-            .and_then(|plan| self.subscription_executor_from_plan(plan).map_err(GraphqlError::from));
-
-        let mut stream = match executor {
-            Ok(executor) => executor.execute(),
+        let mut stream = match self.build_subscription_stream(&mut planner).await {
+            Ok(stream) => stream,
             Err(error) => {
                 responses
-                    .send(ResponseBuilder::new(&self.operation).with_error(error).build(
-                        self.engine.schema.clone(),
-                        self.operation.response_keys.clone(),
-                        ExecutionMetadata::build(&self.operation),
-                    ))
+                    .send(
+                        ResponseBuilder::new(self.operation.root_object_id)
+                            .with_error(error)
+                            .build(
+                                self.engine.schema.clone(),
+                                self.operation.response_keys.clone(),
+                                ExecutionMetadata::build(&self.operation),
+                            ),
+                    )
                     .await
                     .ok();
                 return;
@@ -172,6 +170,20 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
             self.operation.response_keys.clone(),
             ExecutionMetadata::build(&self.operation),
         )
+    }
+
+    async fn build_subscription_stream(
+        self,
+        planner: &mut Planner<'_>,
+    ) -> Result<BoxStream<'exc, (ResponseBuilder, ExecutorOutput)>, GraphqlError> {
+        let executor = planner
+            .generate_root_plan_boundary()
+            .and_then(|boundary| planner.generate_subscription_plan(boundary))
+            .map_err(PlanningError::into_graphql_error)?;
+
+        let executor = self.subscription_executor_from_plan(plan)?;
+
+        Ok(executor.execute().await?)
     }
 
     fn generate_executors(
@@ -249,6 +261,7 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
                 },
                 plan_id: plan.id,
                 plan_output: plan.output,
+                plan_boundaries: plan.boundaries,
             },
         )
     }

@@ -18,6 +18,7 @@ use crate::{
 };
 
 mod field;
+mod key;
 mod list;
 mod nullable;
 mod scalar;

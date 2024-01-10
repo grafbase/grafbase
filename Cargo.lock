@@ -1609,6 +1609,7 @@ dependencies = [
  "serde_json",
  "strum",
  "thiserror",
+ "url",
 ]
 
 [[package]]
@@ -5016,6 +5017,7 @@ dependencies = [
  "runtime",
  "search-protocol",
  "serde",
+ "serde_json",
  "tokio",
  "ulid",
 ]
