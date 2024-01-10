@@ -51,6 +51,7 @@ fn can_run_pathfinder_introspection_query() {
     type PullRequest implements PullRequestOrIssue {
       author: UserOrBot!
       checks: [String!]!
+      id: ID!
       title: String!
     }
 
@@ -68,6 +69,7 @@ fn can_run_pathfinder_introspection_query() {
       botPullRequests(bots: [[BotInput!]!]): [PullRequest!]!
       favoriteRepository: CustomRepoId!
       headers: [Header!]!
+      pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
@@ -126,6 +128,7 @@ fn can_run_2018_introspection_query() {
     type PullRequest implements PullRequestOrIssue {
       author: UserOrBot!
       checks: [String!]!
+      id: ID!
       title: String!
     }
 
@@ -143,6 +146,7 @@ fn can_run_2018_introspection_query() {
       botPullRequests(bots: [[BotInput!]!]): [PullRequest!]!
       favoriteRepository: CustomRepoId!
       headers: [Header!]!
+      pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
@@ -201,6 +205,7 @@ fn can_run_2021_introspection_query() {
     type PullRequest implements PullRequestOrIssue {
       author: UserOrBot!
       checks: [String!]!
+      id: ID!
       title: String!
     }
 
@@ -218,6 +223,7 @@ fn can_run_2021_introspection_query() {
       botPullRequests(bots: [[BotInput!]!]): [PullRequest!]!
       favoriteRepository: CustomRepoId!
       headers: [Header!]!
+      pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
@@ -406,6 +412,7 @@ fn can_introsect_when_multiple_subgraphs() {
     type PullRequest implements PullRequestOrIssue {
       author: UserOrBot!
       checks: [String!]!
+      id: ID!
       title: String!
     }
 
@@ -432,6 +439,7 @@ fn can_introsect_when_multiple_subgraphs() {
       listOfListOfStrings(input: [[String!]!]!): [[String!]!]!
       listOfStrings(input: [String!]!): [String!]!
       optionalListOfOptionalStrings(input: [String]): [String]
+      pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
@@ -506,6 +514,9 @@ fn supports_the_type_field() {
             },
             {
               "name": "checks"
+            },
+            {
+              "name": "id"
             },
             {
               "name": "title"
