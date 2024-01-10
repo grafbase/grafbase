@@ -1,0 +1,10 @@
+type Query
+
+type Subscription {
+  topProducts: Product
+}
+
+type Product @key(fields: "id") {
+  id: ID!
+  name: String
+}

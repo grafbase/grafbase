@@ -1,0 +1,41 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    PRODUCTS @join__graph(name: "products", url: "http://example.com/products")
+    REVIEWS @join__graph(name: "reviews", url: "http://example.com/reviews")
+}
+
+type Product
+    @join__type(graph: PRODUCTS, key: "id")
+    @join__type(graph: REVIEWS, key: "id")
+{
+    id: ID!
+    name: String @join__field(graph: PRODUCTS)
+    reviews: [Review] @join__field(graph: REVIEWS)
+}
+
+type Review {
+    id: ID! @join__field(graph: REVIEWS)
+    text: String! @join__field(graph: REVIEWS)
+}
+
+type Query
+
+type Subscription {
+    topProducts: Product @join__field(graph: PRODUCTS)
+}
