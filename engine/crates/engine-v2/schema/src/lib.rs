@@ -41,7 +41,9 @@ pub struct Schema {
     input_values: Vec<InputValue>,
     resolvers: Vec<Resolver>,
 
-    /// All the strings in the supergraph, deduplicated.
+    /// All the strings, mostly deduplicated. FederatedGraph deduplicates them
+    /// but we're adding a few during config building. If you need those to be entirely
+    /// deduplicated, double check engine-config-builder.
     strings: Vec<String>,
     /// All the field types in the supergraph, deduplicated.
     types: Vec<Type>,
@@ -54,6 +56,7 @@ pub struct Schema {
     default_headers: Vec<HeaderId>,
 
     cache_configs: Vec<CacheConfig>,
+    pub auth_config: Option<config::latest::AuthConfig>,
 }
 
 #[derive(Default)]

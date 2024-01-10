@@ -1,7 +1,9 @@
+mod auth;
 mod cache_config;
 
 use std::collections::BTreeMap;
 
+pub use auth::*;
 pub use cache_config::{CacheConfig, CacheConfigTarget, CacheConfigs};
 use federated_graph::{FederatedGraphV1, SubgraphId};
 
@@ -21,6 +23,8 @@ pub struct Config {
     /// Caching configuration
     #[serde(default)]
     pub cache: CacheConfigs,
+
+    pub auth: Option<AuthConfig>,
 }
 
 /// Additional configuration for a particular subgraph
@@ -111,11 +115,13 @@ mod tests {
             default_headers: vec![],
             subgraph_configs: Default::default(),
             cache: CacheConfigs { rules: cache_config },
+            auth: None,
         };
 
         insta::with_settings!({sort_maps => true}, {
             insta::assert_json_snapshot!(serde_json::json!(config), @r###"
             {
+              "auth": null,
               "cache": {
                 "rules": {
                   "f0": {

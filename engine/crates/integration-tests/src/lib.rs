@@ -5,6 +5,7 @@ pub mod federation;
 pub mod helpers;
 pub mod mocks;
 pub mod mongodb;
+pub mod openid;
 pub mod postgres;
 pub mod types;
 pub mod udfs;
@@ -22,6 +23,19 @@ pub use crate::engine::{Engine, EngineBuilder};
 
 thread_local! {
     static NAMES: RefCell<Option<Generator<'static>>> = RefCell::new(None);
+}
+
+#[ctor::ctor]
+fn setup_logging() {
+    let filter = tracing_subscriber::filter::EnvFilter::try_from_env("RUST_LOG").unwrap_or_default();
+    tracing_subscriber::fmt()
+        .pretty()
+        .with_env_filter(filter)
+        .with_file(true)
+        .with_line_number(true)
+        .with_target(true)
+        .without_time()
+        .init();
 }
 
 pub fn runtime() -> &'static Runtime {

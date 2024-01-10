@@ -40,6 +40,7 @@ impl From<Config> for Schema {
             },
             default_headers: config.default_headers.into_iter().map(Into::into).collect(),
             cache_configs: vec![],
+            auth_config: config.auth,
         };
 
         schema.strings.extend(config.strings);

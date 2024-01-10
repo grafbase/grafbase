@@ -8,16 +8,16 @@ use futures::{future::BoxFuture, Stream, StreamExt};
 
 use crate::engine::GraphQlRequest;
 
-pub struct TestFederationEngine {
-    engine: engine_v2::Engine,
+pub struct TestFederationGateway {
+    gateway: gateway_v2::Gateway,
 }
 
-impl TestFederationEngine {
+impl TestFederationGateway {
     pub fn execute(&self, operation: impl Into<GraphQlRequest>) -> ExecutionRequest<'_> {
         ExecutionRequest {
             graphql: operation.into(),
             headers: HashMap::new(),
-            engine: &self.engine,
+            gateway: &self.gateway,
         }
     }
 }
@@ -27,7 +27,7 @@ pub struct ExecutionRequest<'a> {
     graphql: GraphQlRequest,
     #[allow(dead_code)]
     headers: HashMap<String, String>,
-    engine: &'a engine_v2::Engine,
+    gateway: &'a gateway_v2::Gateway,
 }
 
 impl ExecutionRequest<'_> {
@@ -54,10 +54,16 @@ impl<'a> IntoFuture for ExecutionRequest<'a> {
         let request = self.graphql.into_engine_request();
 
         Box::pin(async move {
-            let response = self.engine.execute(request, (&self.headers).into()).await;
+            let response = self
+                .gateway
+                .execute(request, (&self.headers).into(), |response| {
+                    serde_json::to_vec(&response)
+                })
+                .await
+                .unwrap();
 
             GraphqlResponse {
-                gql_response: serde_json::to_value(&response).unwrap(),
+                gql_response: serde_json::from_slice(&response.bytes).unwrap(),
                 metadata: response.take_metadata(),
             }
         })
@@ -68,7 +74,7 @@ impl<'a> ExecutionRequest<'a> {
     pub fn into_stream(self) -> impl Stream<Item = GraphqlResponse> + 'a {
         let request = self.graphql.into_engine_request();
 
-        self.engine
+        self.gateway
             .execute_stream(request, (&self.headers).into())
             .map(|response| GraphqlResponse {
                 gql_response: serde_json::to_value(&response).unwrap(),

@@ -1,24 +1,33 @@
-use crate::ExecutionMetadata;
+use crate::{ExecutionMetadata, Response};
 use engine_parser::types::OperationType;
 use runtime::cache::Cacheable;
 use std::time::Duration;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct CacheableResponse {
-    pub json_bytes: bytes::Bytes,
+    pub bytes: bytes::Bytes,
     // Empty if coming from the cache, nothing was executed.
     #[serde(skip, default)]
     pub metadata: ExecutionMetadata,
     pub has_errors: bool,
 }
 
+impl CacheableResponse {
+    pub fn take_metadata(self) -> ExecutionMetadata {
+        self.metadata
+    }
+}
+
 impl crate::Response {
-    pub fn into_cacheable(self) -> Result<CacheableResponse, serde_json::Error> {
-        let bytes = serde_json::to_vec(&self)?;
+    pub fn into_cacheable<F, E>(self, serializer: F) -> Result<CacheableResponse, E>
+    where
+        F: FnOnce(&Response) -> Result<Vec<u8>, E>,
+    {
+        let bytes = serializer(&self)?;
         let has_errors = !self.errors().is_empty();
         Ok(CacheableResponse {
             has_errors,
-            json_bytes: bytes::Bytes::from(bytes),
+            bytes: bytes::Bytes::from(bytes),
             metadata: self.take_metadata(),
         })
     }

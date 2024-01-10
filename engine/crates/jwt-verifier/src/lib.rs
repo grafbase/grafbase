@@ -13,7 +13,7 @@ use jwt_compact::{
     TimeOptions,
 };
 use log::warn;
-use runtime::kv::{KvGet, KvPut, KvStore};
+use runtime::kv::{KvError, KvStore};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -46,7 +46,7 @@ struct OidcConfig {
 
 // A wrapper around JsonWebKey that makes the kid accessible
 #[derive(Serialize, Deserialize, Debug)]
-struct ExtendedJsonWebKey<'a> {
+pub struct ExtendedJsonWebKey<'a> {
     #[serde(flatten)]
     base: JsonWebKey<'a>,
     #[serde(rename = "kid")]
@@ -80,13 +80,13 @@ struct CustomClaims {
 }
 
 #[derive(Default)]
-pub struct Client<'a, Kv> {
+pub struct Client<'a> {
     pub trace_id: &'a str,
     pub http_client: reqwest::Client,
     pub time_opts: TimeOptions,        // used for testing
     pub groups_claim: Option<&'a str>, // The name of the claim (json attribute) that stores groups.
     pub client_id: Option<&'a str>,    // The name of the application that must be present in the "aud" claim.
-    pub jwks_cache: Option<Kv>,
+    pub jwks_cache: Option<KvStore>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -96,7 +96,7 @@ pub struct VerifiedToken {
     pub token_claims: BTreeMap<String, Value>,
 }
 
-impl<'a, Kv: KvStore> Client<'a, Kv> {
+impl<'a> Client<'a> {
     fn joinable_url(&self, url: &url::Url) -> url::Url {
         if url.to_string().ends_with('/') {
             url.clone()
@@ -460,13 +460,12 @@ impl<'a, Kv: KvStore> Client<'a, Kv> {
     async fn get_jwk_from_cache(
         &self,
         caching_key: &CachingKey<'_>,
-    ) -> Result<Option<ExtendedJsonWebKey<'_>>, Kv::Error> {
+    ) -> Result<Option<ExtendedJsonWebKey<'_>>, KvError> {
         if let Some(cache) = &self.jwks_cache {
             cache
-                .get(&caching_key.key())
-                .cache_ttl(Duration::from_secs(JWKS_CACHE_TTL))
-                .json::<ExtendedJsonWebKey<'_>>()
+                .get(&caching_key.key(), Some(Duration::from_secs(JWKS_CACHE_TTL)))
                 .await
+                .map(|maybe_bytes| maybe_bytes.and_then(|bytes| serde_json::from_slice(&bytes[..]).ok()))
         } else {
             Ok(None)
         }
@@ -475,16 +474,18 @@ impl<'a, Kv: KvStore> Client<'a, Kv> {
     async fn add_jwk_to_cache(
         &self,
         caching_key: &CachingKey<'_>,
-        jwk: &ExtendedJsonWebKey<'_>,
-    ) -> Result<(), Kv::Error> {
+        jwk: &ExtendedJsonWebKey<'static>,
+    ) -> Result<(), KvError> {
         assert_eq!(caching_key.kid(), jwk.id, "key identifier must be the same");
         if let Some(cache) = &self.jwks_cache {
             let key = caching_key.key();
             log::debug!(self.trace_id, "Adding {key} to cache");
             cache
-                .put(&key, jwk)?
-                .expiration_ttl(Duration::from_secs(JWKS_CACHE_TTL))
-                .execute()
+                .put(
+                    &key,
+                    serde_json::to_vec(&jwk).expect("serializable").into(),
+                    Some(Duration::from_secs(JWKS_CACHE_TTL)),
+                )
                 .await
         } else {
             Ok(())

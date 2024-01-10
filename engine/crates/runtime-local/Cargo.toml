@@ -17,6 +17,7 @@ async-trait = "0.1"
 async-runtime.workspace = true
 ulid.workspace = true
 futures-util.workspace = true
+bytes.workspace = true
 
 serde.workspace = true
 

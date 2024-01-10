@@ -15,7 +15,7 @@ use engine::{
 use engine_parser::{types::ServiceDocument, Error as ParserError};
 use rules::{
     all_subgraphs_directive::{AllSubgraphsDirective, AllSubgraphsDirectiveVisitor},
-    auth_directive::AuthDirective,
+    auth_directive::{v2::AuthV2DirectiveVisitor, AuthDirective},
     basic_type::BasicType,
     check_field_lowercase::CheckFieldCamelCase,
     check_known_directives::CheckAllDirectivesAreKnown,
@@ -63,6 +63,7 @@ pub use connector_parsers::ConnectorParsers;
 pub use engine::registry::Registry;
 pub use registry::names::*;
 pub use rules::{
+    auth_directive::v2::{AuthV2Directive, AuthV2Provider},
     cache_directive::global::{GlobalCacheRules, GlobalCacheTarget},
     graph_directive::GraphDirective,
     graphql_directive::GraphqlDirective,
@@ -133,6 +134,7 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
     let directives = Directives::new()
         .with::<AllSubgraphsDirective>()
         .with::<AuthDirective>()
+        .with::<AuthV2Directive>()
         .with::<CacheDirective>()
         .with::<DefaultDirective>()
         .with::<DeprecatedDirective>()
@@ -332,6 +334,7 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(CheckTypeValidity)
         .with(ModelDirective)
         .with(AuthDirective)
+        .with(AuthV2DirectiveVisitor)
         .with(ResolverDirective)
         .with(CacheVisitor)
         .with(InputObjectVisitor)

@@ -1,6 +1,6 @@
-use engine_v2::Engine;
+use gateway_v2::Gateway;
 use integration_tests::{
-    federation::EngineV2Ext,
+    federation::GatewayV2Ext,
     mocks::graphql::{AlmostEmptySchema, FakeGithubSchema},
     runtime, MockGraphQlServer,
 };
@@ -11,7 +11,11 @@ fn supports_custom_scalars() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::build().with_schema("schema", &github_mock).await.finish().await;
+        let engine = Gateway::builder()
+            .with_schema("schema", &github_mock)
+            .await
+            .finish()
+            .await;
 
         engine.execute("query { favoriteRepository }").await
     });
@@ -33,7 +37,7 @@ fn supports_unused_builtin_scalars() {
     let response = runtime().block_on(async move {
         let mock = MockGraphQlServer::new(AlmostEmptySchema::default()).await;
 
-        let engine = Engine::build().with_schema("schema", &mock).await.finish().await;
+        let engine = Gateway::builder().with_schema("schema", &mock).await.finish().await;
 
         engine
             .execute("query Blah($id: ID!) { string(input: $id) }")

@@ -4,15 +4,16 @@ use crate::ConfigReceiver;
 
 use super::bus::{GraphReceiver, RequestReceiver, ResponseSender};
 use engine::RequestHeaders;
-use engine_v2::{Engine, EngineRuntime};
+use engine_v2::EngineRuntime;
 use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
+use gateway_v2::Gateway;
 use tokio_stream::wrappers::{ReceiverStream, WatchStream};
 
 pub(crate) struct Router {
     graph: GraphReceiver,
     request_bus: RequestReceiver,
-    engine: Option<Arc<Engine>>,
+    gateway: Option<Arc<Gateway>>,
     config: ConfigReceiver,
 }
 
@@ -21,7 +22,7 @@ impl Router {
         Self {
             graph,
             request_bus,
-            engine: None,
+            gateway: None,
             config,
         }
     }
@@ -38,21 +39,21 @@ impl Router {
         let mut stream = streams.merge();
 
         while let Some(message) = stream.next().await {
-            match (message, self.engine.as_ref()) {
+            match (message, self.gateway.as_ref()) {
                 (RouterMessage::GraphUpdated, _) => {
                     log::trace!("router received a graph update");
 
-                    self.engine = new_engine(&self.graph, &self.config)
+                    self.gateway = new_engine(&self.graph, &self.config).await
                 }
                 (RouterMessage::ConfigUpdated, _) => {
                     log::trace!("router received a config update");
 
-                    self.engine = new_engine(&self.graph, &self.config)
+                    self.gateway = new_engine(&self.graph, &self.config).await
                 }
-                (RouterMessage::Request(request, headers, response_sender), Some(engine)) => {
+                (RouterMessage::Request(request, headers, response_sender), Some(gateway)) => {
                     log::trace!("router got a new request with an existing engine");
 
-                    tokio::spawn(run_request(request, headers, response_sender, Arc::clone(engine)));
+                    tokio::spawn(run_request(request, headers, response_sender, Arc::clone(gateway)));
                 }
                 (RouterMessage::Request(_, _, response_sender), None) => {
                     log::trace!("router got a new request with a missing engine");
@@ -64,16 +65,16 @@ impl Router {
     }
 }
 
-fn new_engine(graph: &GraphReceiver, config: &ConfigReceiver) -> Option<Arc<Engine>> {
+async fn new_engine(graph: &GraphReceiver, config: &ConfigReceiver) -> Option<Arc<Gateway>> {
     let graph = graph.borrow().clone()?;
 
     let config = engine_config_builder::build_config(&config.borrow(), graph);
-
-    Some(Arc::new(Engine::new(
+    Some(Arc::new(Gateway::new(
         config.into_latest().into(),
         EngineRuntime {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         },
+        runtime_local::InMemoryKvStore::runtime_kv(),
     )))
 }
 
@@ -81,9 +82,16 @@ async fn run_request(
     request: engine::Request,
     headers: RequestHeaders,
     response_sender: ResponseSender,
-    engine: Arc<Engine>,
+    engine: Arc<Gateway>,
 ) {
-    response_sender.send(Ok(engine.execute(request, headers).await)).ok();
+    response_sender
+        .send(
+            engine
+                .execute(request, headers, serde_json::to_vec)
+                .await
+                .map_err(Into::into),
+        )
+        .ok();
 }
 
 enum RouterMessage {
@@ -104,6 +112,8 @@ type RouterStream = BoxStream<'static, RouterMessage>;
 pub enum RouterError {
     #[error("there are no subgraphs registered currently")]
     NoSubgraphs,
+    #[error("Serialization failure: {0}")]
+    Serialization(#[from] serde_json::Error),
 }
 
 pub type RouterResult<T> = Result<T, RouterError>;

@@ -2,7 +2,7 @@ use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::GraphQL;
 use axum::{
     extract::{Query, State},
-    http::{HeaderMap, StatusCode},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{Html, IntoResponse},
     routing::get,
     Json,
@@ -160,14 +160,19 @@ async fn handle_engine_request(
     request_sender.send((request, headers, response_sender)).await.unwrap();
 
     match response_receiver.await {
-        Ok(Ok(response)) => Json(response).into_response(),
+        Ok(Ok(response)) => (
+            [(
+                header::CONTENT_TYPE,
+                HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
+            )],
+            response.bytes,
+        )
+            .into_response(),
         Ok(Err(error)) => Json(json!({
             "data": null,
             "errors": [
                 {
-                    "message": error.to_string(),
-                    "locations": [],
-                    "path": []
+                    "message": error.to_string()
                 }
             ]
         }))

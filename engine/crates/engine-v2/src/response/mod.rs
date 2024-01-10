@@ -18,6 +18,7 @@ mod write;
 
 pub enum Response {
     Initial(InitialResponse),
+    /// Engine could not execute the request.
     RequestError(RequestErrorResponse),
 }
 
@@ -45,6 +46,10 @@ pub struct RequestErrorResponse {
 }
 
 impl Response {
+    pub fn error(message: impl Into<String>) -> Self {
+        Self::from_error(GraphqlError::new(message), ExecutionMetadata::default())
+    }
+
     pub(crate) fn from_error(error: impl Into<GraphqlError>, metadata: ExecutionMetadata) -> Self {
         Self::RequestError(RequestErrorResponse {
             errors: vec![error.into()],
@@ -64,15 +69,15 @@ impl Response {
 
     pub fn errors(&self) -> Vec<Error<'_>> {
         match self {
-            Self::Initial(initial) => initial.errors.iter().map(Error).collect(),
-            Self::RequestError(request_error) => request_error.errors.iter().map(Error).collect(),
+            Self::Initial(resp) => resp.errors.iter().map(Error).collect(),
+            Self::RequestError(resp) => resp.errors.iter().map(Error).collect(),
         }
     }
 
     pub fn metadata(&self) -> &ExecutionMetadata {
         match self {
-            Self::Initial(initial) => &initial.metadata,
-            Self::RequestError(request_error) => &request_error.metadata,
+            Self::Initial(resp) => &resp.metadata,
+            Self::RequestError(resp) => &resp.metadata,
         }
     }
 

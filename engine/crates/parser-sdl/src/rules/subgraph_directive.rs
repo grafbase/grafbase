@@ -152,6 +152,7 @@ mod tests {
                 global_cache_rules: GlobalCacheRules(
                     {},
                 ),
+                auth: None,
             },
         )
         "###);

@@ -1,18 +1,21 @@
 use schema::Schema;
 use serde::ser::{SerializeMap, SerializeSeq};
 
-use crate::response::{
-    path::UnpackedResponseEdge, GraphqlError, InitialResponse, RequestErrorResponse, ResponseData, ResponseKeys,
-    ResponseObject, ResponsePath, ResponseValue,
+use crate::{
+    response::{
+        path::UnpackedResponseEdge, GraphqlError, InitialResponse, RequestErrorResponse, ResponseData, ResponseKeys,
+        ResponseObject, ResponsePath, ResponseValue,
+    },
+    Response,
 };
 
-impl serde::Serialize for crate::Response {
+impl serde::Serialize for Response {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         match self {
-            crate::Response::Initial(InitialResponse { data, errors, .. }) => {
+            Response::Initial(InitialResponse { data, errors, .. }) => {
                 let mut map = serializer.serialize_map(Some(1))?;
                 map.serialize_entry("data", &SerializableResponseData { data })?;
                 if !errors.is_empty() {
@@ -27,7 +30,7 @@ impl serde::Serialize for crate::Response {
                 }
                 map.end()
             }
-            crate::Response::RequestError(RequestErrorResponse { errors, .. }) => {
+            Response::RequestError(RequestErrorResponse { errors, .. }) => {
                 let mut map = serializer.serialize_map(Some(1))?;
                 map.serialize_entry("data", &serde_json::Value::Null)?;
                 // Shouldn't happen, but better safe than sorry.
