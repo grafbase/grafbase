@@ -30,8 +30,11 @@ fn compilation_error_schema() {
 
     client.snapshot();
 
-    env.write_schema(SCHEMA);
     env.write_resolver("hello.js", "export default function Resolver() { return 'hello'; }");
+    env.write_schema(SCHEMA);
+
+    // the CI for Linux ARM is *extremely* slow to see those changes.
+    std::thread::sleep(Duration::from_secs(10));
 
     client.poll_endpoint_for_changes(30, 300);
 
