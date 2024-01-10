@@ -32,6 +32,14 @@ impl FieldUsage {
         self.increment = new_increment;
     }
 
+    /// Remove all occurrences with fewer than `threshold` requests from the usage counts. This
+    /// should only be called after all operations have been aggregated.
+    pub fn apply_request_count_threshold(&mut self, threshold: u64) {
+        self.count_per_field.retain(|_, count| *count >= threshold);
+        self.count_per_field_argument.retain(|_, count| *count >= threshold);
+        self.type_condition_counts.retain(|_, count| *count >= threshold);
+    }
+
     /// Register a field usage.
     fn register_field_usage(&mut self, field_id: schema::FieldId) {
         if let Some(count) = self.count_per_field.get_mut(&field_id) {
@@ -423,5 +431,61 @@ mod tests {
         "#]];
 
         expected.assert_debug_eq(&counts);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::schema::{ArgumentId, FieldId};
+
+    #[test]
+    fn apply_request_count_threshold() {
+        let mut usage = FieldUsage {
+            increment: 100,
+            count_per_field: vec![
+                (FieldId(1), 100),
+                (FieldId(2), 200),
+                (FieldId(3), 300),
+                (FieldId(4), 400),
+                (FieldId(5), 500),
+            ]
+            .into_iter()
+            .collect(),
+            count_per_field_argument: vec![
+                (ArgumentId(1), 100),
+                (ArgumentId(2), 200),
+                (ArgumentId(3), 300),
+                (ArgumentId(4), 400),
+                (ArgumentId(5), 500),
+            ]
+            .into_iter()
+            .collect(),
+            type_condition_counts: vec![
+                ("E.F".to_string(), 300),
+                ("G.H".to_string(), 400),
+                ("C.D".to_string(), 200),
+                ("I.J".to_string(), 500),
+                ("A.B".to_string(), 100),
+            ]
+            .into_iter()
+            .collect(),
+        };
+
+        usage.apply_request_count_threshold(300);
+
+        fn keys<K: Ord, V>(hm: &HashMap<K, V>) -> Vec<&K> {
+            let mut out: Vec<_> = hm.keys().collect();
+            out.sort();
+            out
+        }
+
+        assert_eq!(keys(&usage.count_per_field), &[&FieldId(3), &FieldId(4), &FieldId(5)]);
+        assert_eq!(
+            keys(&usage.count_per_field_argument),
+            &[&ArgumentId(3), &ArgumentId(4), &ArgumentId(5)]
+        );
+
+        assert_eq!(keys(&usage.type_condition_counts), &["E.F", "G.H", "I.J"]);
     }
 }
