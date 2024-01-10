@@ -1,6 +1,6 @@
 import { FixedLengthArray } from 'type-fest'
 import { JWKSAuth } from './auth/jwks'
-import { JWTAuth } from './auth/jwt'
+import { JWTAuth, JWTAuthV2 } from './auth/jwt'
 import { OpenIDAuth } from './auth/openid'
 import { Authorizer } from './auth/authorizer'
 
@@ -8,6 +8,7 @@ import { Authorizer } from './auth/authorizer'
  * A list of authentication providers which can be used in the configuration.
  */
 export type AuthProvider = OpenIDAuth | JWTAuth | JWKSAuth | Authorizer
+export type AuthProviderV2 = JWTAuthV2
 
 /**
  * A closure to define authentication rules.
@@ -206,5 +207,29 @@ export class Authentication {
     }
 
     return `extend schema\n  @auth(${providers}${rules}\n  )`
+  }
+}
+
+export type AuthParamsV2 = RequireAtLeastOne<{
+  providers?: FixedLengthArray<AuthProviderV2, 1>
+}>
+
+export class AuthenticationV2 {
+  private providers?: FixedLengthArray<AuthProviderV2, 1>
+
+  constructor(params: AuthParamsV2) {
+    this.providers = params.providers
+  }
+
+  public toString(): string {
+    let providers = this.providers
+      ? this.providers.map(String).join('\n      ')
+      : ''
+
+    if (providers) {
+      providers = `\n    providers: [\n      ${providers}\n    ]`
+    }
+
+    return `extend schema\n  @authz(${providers}\n  )`
   }
 }
