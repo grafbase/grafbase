@@ -369,7 +369,8 @@ impl Resolver {
 
         let wrapping_field = match &target {
             Target::SelectionSet(_) => None,
-            Target::Field(field, _) => Some(field.name.node.to_string()),
+            Target::Field(field, _) if field.alias.is_none() => Some(field.name.node.to_string()),
+            Target::Field(field, _) => Some(field.alias.as_ref().unwrap().node.to_string()),
         };
 
         Box::pin(make_send_on_wasm(async move {

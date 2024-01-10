@@ -32,6 +32,7 @@ fn graphql_test_with_transforms() {
         }
 
         type PullRequest implements PullRequestOrIssue {
+          id: ID!
           title: String!
           checks: [String!]!
         }
@@ -50,6 +51,7 @@ fn graphql_test_with_transforms() {
           pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
           botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
           allBotPullRequests: [PullRequest!]!
+          pullRequest(id: ID!): PullRequest
           pullRequestOrIssue(id: ID!): PullRequestOrIssue
           headers: [Header!]!
         }

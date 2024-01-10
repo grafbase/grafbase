@@ -78,6 +78,7 @@ impl Query {
         // This doesn't actually filter anything because I don't need that for my test.
         vec![
             PullRequestOrIssue::PullRequest(PullRequest {
+                id: "1".into(),
                 title: "Creating the thing".into(),
                 checks: vec!["Success!".into()],
                 author: UserOrBot::User(User {
@@ -86,6 +87,7 @@ impl Query {
                 }),
             }),
             PullRequestOrIssue::PullRequest(PullRequest {
+                id: "2".into(),
                 title: "Some bot PR".into(),
                 checks: vec!["Success!".into()],
                 author: UserOrBot::Bot(Bot { id: "123".into() }),
@@ -104,6 +106,7 @@ impl Query {
     async fn bot_pull_requests(&self, bots: Vec<Option<Vec<BotInput>>>) -> Vec<PullRequest> {
         vec![
             PullRequest {
+                id: "1".into(),
                 title: "Creating the thing".into(),
                 checks: vec!["Success!".into()],
                 author: UserOrBot::User(User {
@@ -112,6 +115,7 @@ impl Query {
                 }),
             },
             PullRequest {
+                id: "2".into(),
                 title: "Some bot PR".into(),
                 checks: vec!["Success!".into()],
                 author: UserOrBot::Bot(Bot { id: "123".into() }),
@@ -122,6 +126,7 @@ impl Query {
     async fn all_bot_pull_requests(&self) -> Vec<PullRequest> {
         vec![
             PullRequest {
+                id: "1".into(),
                 title: "Creating the thing".into(),
                 checks: vec!["Success!".into()],
                 author: UserOrBot::User(User {
@@ -130,6 +135,7 @@ impl Query {
                 }),
             },
             PullRequest {
+                id: "2".into(),
                 title: "Some bot PR".into(),
                 checks: vec!["Success!".into()],
                 author: UserOrBot::Bot(Bot { id: "123".into() }),
@@ -137,9 +143,32 @@ impl Query {
         ]
     }
 
+    async fn pull_request(&self, id: ID) -> Option<PullRequest> {
+        if id == "1" {
+            return Some(PullRequest {
+                id: "1".into(),
+                title: "Creating the thing".into(),
+                checks: vec!["Success!".into()],
+                author: UserOrBot::User(User {
+                    name: "Jim".into(),
+                    email: "jim@example.com".into(),
+                }),
+            });
+        } else if id == "2" {
+            return Some(PullRequest {
+                id: "2".into(),
+                title: "Some bot PR".into(),
+                checks: vec!["Success!".into()],
+                author: UserOrBot::Bot(Bot { id: "123".into() }),
+            });
+        }
+        None
+    }
+
     async fn pull_request_or_issue(&self, id: ID) -> Option<PullRequestOrIssue> {
         if id == "1" {
             return Some(PullRequestOrIssue::PullRequest(PullRequest {
+                id: "1".into(),
                 title: "Creating the thing".into(),
                 checks: vec!["Success!".into()],
                 author: UserOrBot::User(User {
@@ -149,6 +178,7 @@ impl Query {
             }));
         } else if id == "2" {
             return Some(PullRequestOrIssue::PullRequest(PullRequest {
+                id: "2".into(),
                 title: "Some bot PR".into(),
                 checks: vec!["Success!".into()],
                 author: UserOrBot::Bot(Bot { id: "123".into() }),
@@ -183,6 +213,7 @@ struct Header {
 
 #[derive(SimpleObject)]
 struct PullRequest {
+    id: async_graphql::ID,
     title: String,
     checks: Vec<String>,
     author: UserOrBot,

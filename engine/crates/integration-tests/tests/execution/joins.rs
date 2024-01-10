@@ -115,3 +115,71 @@ fn join_on_connector_type() {
         );
     });
 }
+
+#[test]
+fn multiple_joins_on_graphql_connector() {
+    // Tests the case where a GraphQL connector join appears twice in a response, which leads to a
+    // single additional GraphQL request.  The naive approach to serializing this would build an
+    // invalid GraphQL query - this test makes sure that it works.
+    runtime().block_on(async {
+        let graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let port = graphql_mock.port();
+
+        let schema = format!(
+            r#"
+            extend schema
+                @graphql(
+                    name: "gothub",
+                    namespace: false,
+                    url: "http://127.0.0.1:{port}",
+                )
+
+            extend type PullRequest {{
+                oohRecursion: PullRequest @join(select: "pullRequest(id: $id)")
+            }}
+            "#
+        );
+
+        let engine = EngineBuilder::new(schema).build().await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute(r#"
+                query {
+                    pullRequestsAndIssues(filter: {search: ""}) {
+                        ... on PullRequest {
+                            id
+                            oohRecursion {
+                                id
+                                title
+                            }
+                        }
+                    }
+                }
+                "#)
+                .await
+                .into_data::<Value>(),
+                @r###"
+        {
+          "pullRequestsAndIssues": [
+            {
+              "id": "1",
+              "oohRecursion": {
+                "id": "1",
+                "title": "Creating the thing"
+              }
+            },
+            {
+              "id": "2",
+              "oohRecursion": {
+                "id": "2",
+                "title": "Some bot PR"
+              }
+            },
+            {}
+          ]
+        }
+        "###
+        );
+    });
+}

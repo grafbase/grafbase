@@ -1,4 +1,7 @@
-use std::collections::BTreeMap;
+use std::{
+    collections::BTreeMap,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 use engine_parser::{types::Field, Positioned};
 use engine_value::{argument_set::ArgumentSet, ConstValue, Name, Value};
@@ -61,6 +64,8 @@ impl JoinResolver {
     }
 }
 
+static FIELD_COUNTER: AtomicU64 = AtomicU64::new(0);
+
 impl JoinResolver {
     fn field_for_join(
         &self,
@@ -73,7 +78,10 @@ impl JoinResolver {
 
         Ok(Positioned::new(
             Field {
-                alias: None,
+                alias: Some(Positioned::new(
+                    Name::new(format!("field_{}", FIELD_COUNTER.fetch_add(1, Ordering::Relaxed))),
+                    *pos,
+                )),
                 name: Positioned::new(Name::new(&self.field_name), *pos),
                 arguments: arguments
                     .into_iter()
