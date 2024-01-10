@@ -35,6 +35,7 @@ impl FakeFederationProductsSchema {
         ];
         Schema::build(Query, EmptyMutation, Subscription)
             .enable_federation()
+            .enable_subscription_in_federation()
             .data(hats)
             .finish()
     }

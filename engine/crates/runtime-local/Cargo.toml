@@ -13,11 +13,14 @@ keywords = ["local", "runtime", "grafbase"]
 workspace = true
 
 [dependencies]
-async-trait = "0.1"
 async-runtime.workspace = true
-ulid.workspace = true
-futures-util.workspace = true
+async-trait = "0.1"
+async-tungstenite = { version = "0.24.0", features = ["tokio-runtime"] }
 bytes.workspace = true
+futures-util.workspace = true
+graphql-ws-client = "0.7"
+tokio.workspace = true
+ulid.workspace = true
 
 serde.workspace = true
 serde_json.workspace  = true
@@ -28,14 +31,10 @@ log = { workspace = true, features = ["with-worker"] }
 search-protocol.workspace = true
 postgres-connector-types = { path = "../postgres-connector-types" }
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-reqwest = { version = "0.11", default-features = false, features = ["json"] }
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { version = "0.11", default-features = false, features = [
   "json",
   "rustls-tls",
 ] }
 
 [dev-dependencies]
-tokio = { version = "1", features = ["macros"] }
+tokio = { workspace = true, features = ["macros"] }
