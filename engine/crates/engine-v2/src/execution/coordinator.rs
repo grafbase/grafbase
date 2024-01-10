@@ -3,7 +3,11 @@ use std::collections::BTreeMap;
 use async_runtime::make_send_on_wasm;
 use engine::RequestHeaders;
 use engine_parser::types::OperationType;
-use futures_util::{future::BoxFuture, stream::FuturesUnordered, Future, FutureExt, SinkExt, StreamExt};
+use futures_util::{
+    future::BoxFuture,
+    stream::{BoxStream, FuturesUnordered},
+    Future, FutureExt, SinkExt, StreamExt,
+};
 
 use crate::{
     execution::{ExecutionContext, Variables},
@@ -172,11 +176,11 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
         )
     }
 
-    async fn build_subscription_stream(
-        self,
-        planner: &mut Planner<'_>,
-    ) -> Result<BoxStream<'exc, (ResponseBuilder, ExecutorOutput)>, GraphqlError> {
-        let executor = planner
+    async fn build_subscription_stream<'a>(
+        &'a self,
+        planner: &mut Planner<'a>,
+    ) -> Result<BoxStream<'a, (ResponseBuilder, ExecutorOutput)>, GraphqlError> {
+        let plan = planner
             .generate_root_plan_boundary()
             .and_then(|boundary| planner.generate_subscription_plan(boundary))
             .map_err(PlanningError::into_graphql_error)?;

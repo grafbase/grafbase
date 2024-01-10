@@ -74,7 +74,8 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
             .stream(GraphqlRequest {
                 url: &url,
                 query: query.query,
-                variables: serde_json::to_value(&query.variables)?,
+                variables: serde_json::to_value(&query.variables)
+                    .map_err(|error| ExecutorError::Internal(error.to_string()))?,
                 headers: subgraph
                     .headers()
                     .filter_map(|header| {
@@ -90,16 +91,18 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
             })
             .await?;
 
-        Ok(Box::pin(stream.take_while(|result| async move { result.is_ok() }).map(
-            move |response| {
-                Some(handle_response(
-                    ctx,
-                    &plan_output,
-                    plan_boundaries.clone(),
-                    response.expect("errors to be filtered out by the above take_while"),
-                ))
-            },
-        )))
+        Ok(Box::pin(
+            stream
+                .take_while(|result| std::future::ready(result.is_ok()))
+                .map(move |response| {
+                    handle_response(
+                        ctx,
+                        &plan_output,
+                        plan_boundaries.clone(),
+                        response.expect("errors to be filtered out by the above take_while"),
+                    )
+                }),
+        ))
     }
 }
 
