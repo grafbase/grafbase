@@ -1,0 +1,17 @@
+[package]
+name = "axum-graphql-websockets"
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-trait.workspace = true
+axum.workspace = true
+futures-util.workspace = true
+tower-service.workspace = true
+
+[lints]
+workspace = true

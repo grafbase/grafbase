@@ -499,6 +499,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum-graphql-websockets"
+version = "0.0.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "futures-util",
+ "tower-service",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
