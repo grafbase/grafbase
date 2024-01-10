@@ -410,6 +410,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-tungstenite"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3609af4bbf701ddaf1f6bb4e6257dff4ff8932327d0e685d3f653724c258b1ac"
+dependencies = [
+ "futures-io",
+ "futures-util",
+ "log 0.4.20",
+ "pin-project-lite",
+ "tokio",
+ "tungstenite",
+]
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2628,6 +2642,22 @@ dependencies = [
  "datatest-stable",
  "miette",
  "similar",
+]
+
+[[package]]
+name = "graphql-ws-client"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "400c558067af87ebd3007b19c5b896ed6a4ff5312ea5a2db502814d309522e92"
+dependencies = [
+ "async-tungstenite",
+ "futures",
+ "log 0.4.20",
+ "pin-project",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "uuid",
 ]
 
 [[package]]
@@ -5371,9 +5401,11 @@ version = "0.1.0"
 dependencies = [
  "async-runtime",
  "async-trait",
+ "async-tungstenite",
  "bytes",
  "futures-util",
  "graph-entities",
+ "graphql-ws-client",
  "log 0.1.0",
  "postgres-connector-types",
  "reqwest",

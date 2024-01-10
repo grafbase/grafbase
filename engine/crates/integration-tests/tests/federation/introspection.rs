@@ -830,6 +830,10 @@ fn introspection_on_multiple_federation_subgraphs() {
       product: Product!
     }
 
+    type Subscription {
+      newProducts: Product!
+    }
+
     enum Trustworthiness {
       REALLY_TRUSTED
       KINDA_TRUSTED
