@@ -3,7 +3,7 @@ use schema::{Resolver, ResolverWalker};
 
 use crate::{
     execution::ExecutionContext,
-    plan::{PlanId, PlanOutput},
+    plan::{PlanBoundary, PlanId, PlanOutput},
     request::EntityType,
     response::{ExecutorOutput, GraphqlError, ResponseBoundaryObjectsView, ResponseBuilder},
 };
@@ -101,6 +101,7 @@ pub(crate) struct SubscriptionResolverInput<'ctx> {
     pub ctx: ExecutionContext<'ctx>,
     pub plan_id: PlanId,
     pub plan_output: PlanOutput,
+    pub plan_boundaries: Vec<PlanBoundary>,
 }
 
 #[allow(dead_code)]
@@ -110,18 +111,28 @@ pub(crate) enum SubscriptionExecutor<'a> {
 
 impl<'exc> SubscriptionExecutor<'exc> {
     pub fn build<'ctx>(
-        _walker: ResolverWalker<'ctx>,
+        walker: ResolverWalker<'ctx>,
         _entity_type: EntityType,
-        _input: SubscriptionResolverInput<'ctx>,
+        input: SubscriptionResolverInput<'ctx>,
     ) -> ExecutorResult<Self>
     where
         'ctx: 'exc,
     {
-        todo!()
+        match walker.as_ref() {
+            Resolver::FederationRootField(resolver) => GraphqlSubscriptionExecutor::build(walker.walk(resolver), input),
+            Resolver::Introspection(_) => Err(ExecutorError::Internal(
+                "Subscriptions can't contain introspection".into(),
+            )),
+            Resolver::FederationEntity(_) => Err(ExecutorError::Internal(
+                "Subscriptions can only be at the root of a query so can't contain federated entitites".into(),
+            )),
+        }
     }
 
-    pub fn execute(self) -> BoxStream<'exc, (ResponseBuilder, ExecutorOutput)> {
-        todo!();
+    pub async fn execute(self) -> ExecutorResult<BoxStream<'exc, (ResponseBuilder, ExecutorOutput)>> {
+        match self {
+            SubscriptionExecutor::Graphql(executor) => executor.execute().await,
+        }
     }
 }
 

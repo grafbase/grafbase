@@ -1,5 +1,6 @@
+use futures_util::stream::BoxStream;
 use reqwest::header::HeaderValue;
-use runtime::fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, Fetcher, FetcherInner};
+use runtime::fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, Fetcher, FetcherInner, GraphqlRequest};
 
 pub struct NativeFetcher {
     client: reqwest::Client,
@@ -7,9 +8,9 @@ pub struct NativeFetcher {
 
 impl NativeFetcher {
     pub fn runtime_fetcher() -> Fetcher {
-        Fetcher::new(Box::new(Self {
+        Fetcher::new(Self {
             client: reqwest::Client::new(),
-        }))
+        })
     }
 }
 
@@ -36,5 +37,12 @@ impl FetcherInner for NativeFetcher {
             .await
             .map_err(|e| FetchError::AnyError(e.to_string()))?;
         Ok(FetchResponse { bytes })
+    }
+
+    async fn stream(
+        &self,
+        _request: GraphqlRequest<'_>,
+    ) -> FetchResult<BoxStream<'static, Result<serde_json::Value, FetchError>>> {
+        todo!()
     }
 }

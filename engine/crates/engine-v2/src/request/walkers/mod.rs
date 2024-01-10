@@ -22,7 +22,7 @@ pub use fragment::*;
 pub use inline_fragment::*;
 pub use plan::*;
 pub use plan_selection_set::*;
-use schema::SchemaWalker;
+use schema::{ObjectId, SchemaWalker};
 pub use selection_set::*;
 pub use variables::*;
 
@@ -134,6 +134,10 @@ impl<'a, I, SI, C> OperationWalker<'a, I, SI, C> {
 }
 
 impl<'a> OperationWalker<'a> {
+    pub fn root_object_id(&self) -> ObjectId {
+        self.operation.root_object_id
+    }
+
     pub fn merged_selection_sets(&self, bound_field_ids: &[BoundFieldId]) -> FlatSelectionSetWalker<'a> {
         self.flatten_selection_sets(
             bound_field_ids

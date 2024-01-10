@@ -14,7 +14,7 @@ use crate::{
     },
     request::{BoundAnyFieldDefinitionId, FlatTypeCondition, SelectionSetType},
     response::{
-        write::deserialize::{CollectedFieldsSeed, SeedContext},
+        write::deserialize::{key::Key, CollectedFieldsSeed, SeedContext},
         ResponseEdge, ResponseKey, ResponseObject, ResponsePath,
     },
 };
@@ -58,15 +58,16 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for UndeterminedFieldsSeed<'ctx, 'parent> 
         if let ObjectIdentifier::Known(object_id) = identifier {
             return self.deserialize_concrete_object(object_id, map);
         }
-        let mut content = VecDeque::<(&str, serde_value::Value)>::new();
-        while let Some(key) = map.next_key::<&str>()? {
-            if identifier.discriminant_key_matches(key) {
+        let mut content = VecDeque::<(_, serde_value::Value)>::new();
+        while let Some(key) = map.next_key::<Key<'de>>()? {
+            if identifier.discriminant_key_matches(key.as_ref()) {
                 identifier.determine_object_id_from_discriminant(map.next_value()?);
                 return match identifier.try_into_object_id() {
                     Ok(object_id) => self.deserialize_concrete_object(
                         object_id,
                         ChainedMapAcces {
                             before: content,
+                            next_value: None,
                             after: map,
                         },
                     ),
@@ -358,7 +359,8 @@ impl<'ctx, 'parent> UndeterminedFieldsSeed<'ctx, 'parent> {
 }
 
 struct ChainedMapAcces<'de, A> {
-    before: VecDeque<(&'de str, serde_value::Value)>,
+    before: VecDeque<(Key<'de>, serde_value::Value)>,
+    next_value: Option<serde_value::Value>,
     after: A,
 }
 
@@ -372,9 +374,10 @@ where
     where
         K: DeserializeSeed<'de>,
     {
-        if let Some(&(key, _)) = self.before.front() {
+        if let Some((key, value)) = self.before.pop_front() {
+            self.next_value = Some(value);
             seed.deserialize(serde_value::ValueDeserializer::new(serde_value::Value::String(
-                key.to_string(),
+                key.into_string(),
             )))
             .map(Some)
         } else {
@@ -386,7 +389,7 @@ where
     where
         V: DeserializeSeed<'de>,
     {
-        if let Some((_, value)) = self.before.pop_front() {
+        if let Some(value) = self.next_value.take() {
             seed.deserialize(serde_value::ValueDeserializer::new(value))
         } else {
             self.after.next_value_seed(seed)

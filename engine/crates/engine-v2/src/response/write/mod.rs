@@ -8,7 +8,7 @@ use std::{collections::BTreeMap, sync::Arc};
 pub use ids::*;
 use itertools::Either;
 pub use manual::*;
-use schema::Schema;
+use schema::{ObjectId, Schema};
 pub use writer::*;
 
 use super::{
@@ -17,7 +17,6 @@ use super::{
 };
 use crate::{
     plan::{PlanBoundary, PlanBoundaryId},
-    request::Operation,
     Response,
 };
 
@@ -46,10 +45,10 @@ pub(crate) struct ResponseBuilder {
 // least wait until we face actual problems. We're focused on OLTP workloads, so might never
 // happen.
 impl ResponseBuilder {
-    pub fn new(operation: &Operation) -> Self {
+    pub fn new(root_object_id: ObjectId) -> Self {
         let mut builder = ExecutorOutput::new(ResponseDataPartId::from(0), vec![]);
         let root_id = builder.push_object(ResponseObject {
-            object_id: operation.root_object_id,
+            object_id: root_object_id,
             fields: BTreeMap::new(),
         });
         Self {

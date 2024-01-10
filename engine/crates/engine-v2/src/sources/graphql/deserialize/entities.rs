@@ -41,9 +41,9 @@ impl<'de, 'a> Visitor<'de> for EntitiesDataSeed<'a> {
     where
         A: MapAccess<'de>,
     {
-        while let Some(key) = map.next_key::<&str>()? {
+        while let Some(key) = map.next_key::<EntitiesKey>()? {
             match key {
-                "_entities" => {
+                EntitiesKey::Entities => {
                     let seed = EntitiesSeed {
                         ctx: self.ctx,
                         response_boundary: self.response_boundary,
@@ -52,13 +52,21 @@ impl<'de, 'a> Visitor<'de> for EntitiesDataSeed<'a> {
                     };
                     map.next_value_seed(seed)?;
                 }
-                _ => {
+                EntitiesKey::Unknown => {
                     map.next_value::<IgnoredAny>()?;
                 }
             }
         }
         Ok(())
     }
+}
+
+#[derive(serde::Deserialize)]
+enum EntitiesKey {
+    #[serde(rename = "_entities")]
+    Entities,
+    #[serde(other)]
+    Unknown,
 }
 
 struct EntitiesSeed<'a> {

@@ -45,7 +45,7 @@ pub struct PlanOutput {
     pub expectations: Expectations,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PlanBoundary {
     pub selection_set_type: SelectionSetType,
     pub query_path: QueryPath,
@@ -55,7 +55,7 @@ pub struct PlanBoundary {
     pub children: Vec<ChildPlan>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ChildPlan {
     pub id: PlanId,
     pub resolver_id: ResolverId,
