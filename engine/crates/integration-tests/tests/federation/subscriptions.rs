@@ -1,7 +1,8 @@
-use engine_v2::Engine;
-use futures::StreamExt;
+use futures::stream::StreamExt;
+
+use gateway_v2::Gateway;
 use integration_tests::{
-    federation::EngineV2Ext,
+    federation::GatewayV2Ext,
     mocks::graphql::{FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema},
     runtime, MockGraphQlServer,
 };
@@ -11,7 +12,11 @@ fn single_subgraph_subscription() {
     let response = runtime().block_on(async move {
         let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
 
-        let engine = Engine::build().with_schema("products", &products).await.finish().await;
+        let engine = Gateway::builder()
+            .with_schema("products", &products)
+            .await
+            .finish()
+            .await;
 
         engine
             .execute(
@@ -61,7 +66,7 @@ fn actual_federated_subscription() {
         let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
         let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
 
-        let engine = Engine::build()
+        let engine = Gateway::builder()
             .with_schema("accounts", &accounts)
             .await
             .with_schema("products", &products)
