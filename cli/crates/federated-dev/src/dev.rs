@@ -2,7 +2,7 @@ use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::GraphQL;
 use axum::{
     extract::{Query, State},
-    http::{header, HeaderMap, HeaderValue, StatusCode},
+    http::{header, HeaderMap, HeaderValue},
     response::{Html, IntoResponse},
     routing::get,
     Json,
@@ -11,24 +11,23 @@ use common::environment::Environment;
 use handlebars::Handlebars;
 use serde_json::json;
 use std::time::Duration;
-use tokio::sync::{mpsc, oneshot, watch};
+use tokio::sync::{mpsc, watch};
 use tower_http::cors::CorsLayer;
 
-use crate::ConfigReceiver;
+use crate::{dev::gateway_nanny::GatewayNanny, ConfigReceiver};
 
 use self::{
-    bus::{AdminBus, ComposeBus, RefreshBus, RequestSender},
+    bus::{AdminBus, ComposeBus, GatewayWatcher, RefreshBus},
     composer::Composer,
     refresher::Refresher,
-    router::Router,
     ticker::Ticker,
 };
 
 mod admin;
 mod bus;
 mod composer;
+mod gateway_nanny;
 mod refresher;
-mod router;
 mod ticker;
 
 const REFRESH_INTERVAL: Duration = Duration::from_secs(1);
@@ -36,7 +35,7 @@ const REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 #[derive(Clone)]
 struct ProxyState {
     admin_pathfinder_html: Html<String>,
-    request_sender: RequestSender,
+    gateway: GatewayWatcher,
 }
 
 pub(super) async fn run(port: u16, expose: bool, config: ConfigReceiver) -> Result<(), crate::Error> {
@@ -45,7 +44,7 @@ pub(super) async fn run(port: u16, expose: bool, config: ConfigReceiver) -> Resu
     let (graph_sender, graph_receiver) = watch::channel(None);
     let (refresh_sender, refresh_receiver) = mpsc::channel(16);
     let (compose_sender, compose_receiver) = mpsc::channel(16);
-    let (request_sender, request_receiver) = mpsc::channel(16);
+    let (gateway_sender, gateway) = watch::channel(None);
 
     let compose_bus = ComposeBus::new(graph_sender, refresh_sender, compose_sender.clone(), compose_receiver);
     let refresh_bus = RefreshBus::new(refresh_receiver, compose_sender.clone());
@@ -57,8 +56,8 @@ pub(super) async fn run(port: u16, expose: bool, config: ConfigReceiver) -> Resu
     let refresher = Refresher::new(refresh_bus);
     tokio::spawn(refresher.handler());
 
-    let router = Router::new(graph_receiver, request_receiver, config);
-    tokio::spawn(router.handler());
+    let nanny = GatewayNanny::new(graph_receiver, config, gateway_sender);
+    tokio::spawn(nanny.handler());
 
     let ticker = Ticker::new(REFRESH_INTERVAL, compose_sender);
     tokio::spawn(ticker.handler());
@@ -77,7 +76,7 @@ pub(super) async fn run(port: u16, expose: bool, config: ConfigReceiver) -> Resu
         .layer(CorsLayer::permissive())
         .with_state(ProxyState {
             admin_pathfinder_html: Html(render_pathfinder(port, "/admin")),
-            request_sender,
+            gateway,
         });
 
     let host = if expose {
@@ -128,22 +127,22 @@ async fn admin(
 async fn engine_get(
     Query(request): Query<engine::Request>,
     headers: HeaderMap,
-    State(ProxyState { request_sender, .. }): State<ProxyState>,
+    State(ProxyState { gateway, .. }): State<ProxyState>,
 ) -> impl IntoResponse {
-    handle_engine_request(request, request_sender, headers).await
+    handle_engine_request(request, gateway, headers).await
 }
 
 async fn engine_post(
-    State(ProxyState { request_sender, .. }): State<ProxyState>,
+    State(ProxyState { gateway, .. }): State<ProxyState>,
     headers: HeaderMap,
     Json(request): Json<engine::Request>,
 ) -> impl IntoResponse {
-    handle_engine_request(request, request_sender, headers).await
+    handle_engine_request(request, gateway, headers).await
 }
 
 async fn handle_engine_request(
     request: engine::Request,
-    request_sender: RequestSender,
+    gateway: GatewayWatcher,
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let headers = headers
@@ -156,11 +155,17 @@ async fn handle_engine_request(
         })
         .collect();
 
-    let (response_sender, response_receiver) = oneshot::channel();
-    request_sender.send((request, headers, response_sender)).await.unwrap();
+    let Some(gateway) = gateway.borrow().clone() else {
+        return Json(json!({
+            "errors": [{"message": "there are no subgraphs registered currently"}]
+        }))
+        .into_response();
+    };
 
-    match response_receiver.await {
-        Ok(Ok(response)) => (
+    let result = gateway.execute(request, headers, serde_json::to_vec).await;
+
+    match result {
+        Ok(response) => (
             [(
                 header::CONTENT_TYPE,
                 HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
@@ -168,15 +173,9 @@ async fn handle_engine_request(
             response.bytes,
         )
             .into_response(),
-        Ok(Err(error)) => Json(json!({
-            "data": null,
-            "errors": [
-                {
-                    "message": error.to_string()
-                }
-            ]
+        Err(error) => Json(json!({
+            "errors": [{"message": error.to_string()}]
         }))
         .into_response(),
-        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal error").into_response(),
     }
 }
