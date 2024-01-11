@@ -1,4 +1,7 @@
 mod async_graphql;
+mod wrapper_types;
+
+pub(crate) use wrapper_types::*;
 
 use std::collections::HashSet;
 
@@ -68,7 +71,28 @@ pub struct SchemaField {
     pub(crate) field_name: String,
     /// The type of the field without any wrapping type (! and []).
     pub(crate) base_type: String,
-    pub(crate) type_is_required: bool,
+    pub(crate) wrappers: WrapperTypes,
+}
+
+impl SchemaField {
+    pub(crate) fn render_type(&self) -> String {
+        let mut result = self.base_type.clone();
+        let wrappers: Vec<_> = self.wrappers.iter_wrappers().collect();
+
+        for wrapper in wrappers.iter().rev() {
+            result = match wrapper {
+                WrapperType::List => format!("[{result}]"),
+                WrapperType::Required => format!("{result}!"),
+                WrapperType::RequiredList => format!("[{result}]!"),
+            }
+        }
+
+        result
+    }
+
+    pub(crate) fn is_required(&self) -> bool {
+        self.wrappers.is_required()
+    }
 }
 
 impl PartialOrd for SchemaField {
@@ -92,7 +116,7 @@ pub struct FieldArgument {
     pub(crate) argument_name: String,
     /// The type of the field without any wrapping type (! and []).
     pub(crate) base_type: String,
-    pub(crate) is_required: bool,
+    pub(crate) wrappers: wrapper_types::WrapperTypes,
     pub(crate) has_default: bool,
 }
 
@@ -101,8 +125,12 @@ impl FieldArgument {
         (&self.type_name, &self.field_name, &self.argument_name)
     }
 
+    pub fn is_required(&self) -> bool {
+        self.wrappers.is_required()
+    }
+
     pub(crate) fn is_required_without_default_value(&self) -> bool {
-        self.is_required && !self.has_default
+        self.is_required() && !self.has_default
     }
 }
 

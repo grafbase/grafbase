@@ -1,0 +1,37 @@
+type Query {
+  koalaFeed(koalaInput: [[KoalaInput]]): [HappyKoala]
+}
+
+type HappyKoala {
+  name: String
+  family: [String]
+}
+
+input KoalaInput {
+  name: String
+  family: [String]
+}
+
+# --- #
+
+type Query {
+  koalaFeed(koalaInput: [KoalaInput]): [HappyKoala]
+}
+
+type HappyKoala {
+  name: String
+  family: [[String]]
+}
+
+input KoalaInput {
+  name: String
+  family: [[String]]
+}
+
+# --- #
+
+{ koalaFeed(koalaInput: { name: "George" }) { name } }
+
+# --- #
+
+{ koalaFeed(koalaInput: { name: "George", family: [] }) { name family } }

@@ -1,0 +1,49 @@
+type Mutation {
+  createMammals(input: [[MammalInput!]]): Mammal!
+  createMammals2(input: [MammalInput]): Mammal!
+}
+
+type Mammal {
+  id: ID!
+  vernacularNames: [String!]
+}
+
+input MammalInput {
+  mname: String!
+}
+
+# --- #
+
+type Mutation {
+  createMammals(input: [[MammalInput!]!]): Mammal!
+  createMammals2(input: [MammalInput!]): Mammal!
+}
+
+type Mammal {
+  id: ID!
+  vernacularNames: [String]
+}
+
+input MammalInput {
+  mname: String!
+}
+
+# --- #
+
+mutation {
+  createMammals(input: [[{
+    mname: "Tiger"
+  }, { mname: "Panther" }]]) {
+    id
+    vernacularNames
+  }
+
+  createMammals2(input: [
+      { mname: "Tiger" },
+      { mname: "Panther" }
+  ]) {
+    id
+    vernacularNames
+  }
+}
+

@@ -1,0 +1,31 @@
+Forward:
+[
+    CheckDiagnostic {
+        message: "The type of the field `HappyKoala.family` changed from `[String]` to `[[String]]`.",
+        severity: Error,
+    },
+    CheckDiagnostic {
+        message: "The type of the field `KoalaInput.family` changed from `[String]` to `[[String]]`.",
+        severity: Error,
+    },
+    CheckDiagnostic {
+        message: "The argument `Query.koalaFeed.koalaInput` changed type but it is used by clients.",
+        severity: Error,
+    },
+]
+
+Backward:
+[
+    CheckDiagnostic {
+        message: "The type of the field `HappyKoala.family` changed from `[[String]]` to `[String]`.",
+        severity: Error,
+    },
+    CheckDiagnostic {
+        message: "The type of the field `KoalaInput.family` changed from `[[String]]` to `[String]`.",
+        severity: Error,
+    },
+    CheckDiagnostic {
+        message: "The argument `Query.koalaFeed.koalaInput` changed type but it is used by clients.",
+        severity: Error,
+    },
+]

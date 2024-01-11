@@ -1,0 +1,18 @@
+Forward:
+[
+    CheckDiagnostic {
+        message: "The field `Mammal.vernacularNames` became optional, but clients do not expect null.",
+        severity: Error,
+    },
+    CheckDiagnostic {
+        message: "The argument `Mutation.createMammals.input` became required, but clients are not providing it.",
+        severity: Error,
+    },
+    CheckDiagnostic {
+        message: "The argument `Mutation.createMammals2.input` became required, but clients are not providing it.",
+        severity: Error,
+    },
+]
+
+Backward:
+[]

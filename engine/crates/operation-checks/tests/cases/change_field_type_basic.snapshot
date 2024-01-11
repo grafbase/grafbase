@@ -1,11 +1,11 @@
 Forward:
 [
     CheckDiagnostic {
-        message: "The type of the field `Mammal.weight` changed from `Float` to `Int`.",
+        message: "The type of the field `Mammal.weight` changed from `Float!` to `Int!`.",
         severity: Error,
     },
     CheckDiagnostic {
-        message: "The type of the field `MammalInput.mweight` changed from `Float` to `Int`.",
+        message: "The type of the field `MammalInput.mweight` changed from `Float!` to `Int!`.",
         severity: Error,
     },
 ]
@@ -13,11 +13,11 @@ Forward:
 Backward:
 [
     CheckDiagnostic {
-        message: "The type of the field `Mammal.weight` changed from `Int` to `Float`.",
+        message: "The type of the field `Mammal.weight` changed from `Int!` to `Float!`.",
         severity: Error,
     },
     CheckDiagnostic {
-        message: "The type of the field `MammalInput.mweight` changed from `Int` to `Float`.",
+        message: "The type of the field `MammalInput.mweight` changed from `Int!` to `Float!`.",
         severity: Error,
     },
 ]

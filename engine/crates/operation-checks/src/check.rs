@@ -5,15 +5,21 @@ use std::collections::HashSet;
 use crate::{FieldUsage, Schema};
 use graphql_schema_diff::{Change, ChangeKind};
 
+/// A diagnostic produced by [check()].
 #[derive(Debug)]
 pub struct CheckDiagnostic {
+    /// The message of the diagnostic.
     pub message: String,
+    /// See [Severity].
     pub severity: Severity,
 }
 
+/// The severity of a [CheckDiagnostic].
 #[derive(Debug)]
 pub enum Severity {
+    /// Could be breaking.
     Warning,
+    /// Is breaking.
     Error,
 }
 

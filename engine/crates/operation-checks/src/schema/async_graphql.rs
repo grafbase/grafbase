@@ -1,3 +1,4 @@
+use super::{WrapperType, WrapperTypes};
 use crate::schema;
 use async_graphql_parser::types::ServiceDocument;
 use std::collections::HashSet;
@@ -38,20 +39,22 @@ impl From<ServiceDocument> for schema::Schema {
                         async_graphql_parser::types::TypeKind::Object(obj) => {
                             for field in &obj.fields {
                                 let field_name = field.node.name.node.as_str();
+                                let (base_type, wrappers) = extract_type(&field.node.ty.node);
                                 fields.push(schema::SchemaField {
                                     type_name: type_name.to_string(),
                                     field_name: field_name.to_string(),
-                                    base_type: extract_type_name(&field.node.ty.node.base),
-                                    type_is_required: !field.node.ty.node.nullable,
+                                    base_type,
+                                    wrappers,
                                 });
 
                                 for argument in &field.node.arguments {
+                                    let (base_type, wrappers) = extract_type(&argument.node.ty.node);
                                     field_arguments.push(schema::FieldArgument {
                                         type_name: type_name.to_string(),
                                         field_name: field_name.to_string(),
                                         argument_name: argument.node.name.node.to_string(),
-                                        base_type: extract_type_name(&argument.node.ty.node.base),
-                                        is_required: !argument.node.ty.node.nullable,
+                                        base_type,
+                                        wrappers,
                                         has_default: argument.node.default_value.is_some(),
                                     });
                                 }
@@ -59,11 +62,12 @@ impl From<ServiceDocument> for schema::Schema {
                         }
                         async_graphql_parser::types::TypeKind::Interface(iface) => {
                             for field in &iface.fields {
+                                let (base_type, wrappers) = extract_type(&field.node.ty.node);
                                 fields.push(schema::SchemaField {
                                     type_name: type_name.to_string(),
                                     field_name: field.node.name.node.to_string(),
-                                    base_type: extract_type_name(&field.node.ty.node.base),
-                                    type_is_required: !field.node.ty.node.nullable,
+                                    base_type,
+                                    wrappers,
                                 });
                             }
                         }
@@ -71,11 +75,12 @@ impl From<ServiceDocument> for schema::Schema {
                             input_objects.insert(type_name.to_string());
 
                             for field in &input_obj.fields {
+                                let (base_type, wrappers) = extract_type(&field.node.ty.node);
                                 fields.push(schema::SchemaField {
                                     type_name: type_name.to_string(),
                                     field_name: field.node.name.node.to_string(),
-                                    base_type: extract_type_name(&field.node.ty.node.base),
-                                    type_is_required: !field.node.ty.node.nullable,
+                                    base_type,
+                                    wrappers,
                                 });
                             }
                         }
@@ -98,9 +103,60 @@ impl From<ServiceDocument> for schema::Schema {
     }
 }
 
-fn extract_type_name(ty: &async_graphql_parser::types::BaseType) -> String {
-    match ty {
-        async_graphql_parser::types::BaseType::Named(name) => name.to_string(),
-        async_graphql_parser::types::BaseType::List(inner) => extract_type_name(&inner.base),
+fn extract_type(top_level_ty: &async_graphql_parser::types::Type) -> (String, WrapperTypes) {
+    let mut ty = top_level_ty;
+    let mut small = 0u8;
+
+    // Fast path that should be taken nearly all the time.
+    for i in 0..4 {
+        match &ty.base {
+            async_graphql_parser::types::BaseType::Named(name) => {
+                if !ty.nullable {
+                    // We need a last `!` to reflect that the inner type is not nullable.
+                    small |= (WrapperType::Required as u8) << (i * 2);
+                }
+
+                return (name.to_string(), WrapperTypes::Small(small));
+            }
+            async_graphql_parser::types::BaseType::List(inner) => {
+                let wrapper = if ty.nullable {
+                    WrapperType::List as u8
+                } else {
+                    WrapperType::RequiredList as u8
+                };
+
+                small |= wrapper << (i * 2);
+
+                ty = inner.as_ref();
+            }
+        }
     }
+
+    let mut wrappers = Vec::new();
+    let mut ty = top_level_ty;
+
+    let inner_type = loop {
+        ty = match &ty.base {
+            async_graphql_parser::types::BaseType::Named(name) => {
+                if !ty.nullable {
+                    wrappers.push(WrapperType::Required);
+                }
+
+                break name.to_string();
+            }
+            async_graphql_parser::types::BaseType::List(inner) => {
+                let wrapper = if ty.nullable {
+                    WrapperType::List
+                } else {
+                    WrapperType::RequiredList
+                };
+
+                wrappers.push(wrapper);
+
+                inner.as_ref()
+            }
+        };
+    };
+
+    (inner_type, WrapperTypes::Large(wrappers.into_boxed_slice()))
 }
