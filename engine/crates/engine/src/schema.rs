@@ -15,7 +15,7 @@ use crate::{
         types::{Directive, DocumentOperations, OperationType, Selection, SelectionSet},
         Positioned,
     },
-    registry::{MetaDirective, MetaInputValue, Registry},
+    registry::{MetaDirective, MetaInputValue, OperationLimits, Registry},
     resolver_utils::{self, resolve_root_container, resolve_root_container_serial},
     response::{IncrementalPayload, StreamingPayload},
     subscription::collect_subscription_streams,
@@ -138,10 +138,7 @@ impl SchemaBuilder {
 
         Schema(Arc::new(SchemaInner {
             validation_mode: self.validation_mode,
-            max_complexity: self.registry.operation_limts.complexity.map(From::from),
-            max_depth: self.registry.operation_limts.depth.map(From::from),
-            max_root_field_count: self.registry.operation_limts.root_fields.map(From::from),
-            max_height: self.registry.operation_limts.height.map(From::from),
+            operation_limits: self.registry.operation_limts.clone(),
             extensions: self.extensions,
             env: SchemaEnv(Arc::new(SchemaEnvInner {
                 registry: self.registry,
@@ -172,10 +169,7 @@ impl Deref for SchemaEnv {
 #[doc(hidden)]
 pub struct SchemaInner {
     pub(crate) validation_mode: ValidationMode,
-    pub(crate) max_complexity: Option<usize>,
-    pub(crate) max_depth: Option<usize>,
-    pub(crate) max_root_field_count: Option<usize>,
-    pub(crate) max_height: Option<usize>,
+    pub(crate) operation_limits: OperationLimits,
     pub(crate) extensions: Vec<Box<dyn ExtensionFactory>>,
     pub(crate) env: SchemaEnv,
 }
@@ -427,27 +421,33 @@ impl Schema {
         };
 
         // Check limits.
-        if let Some(limit_complexity) = self.max_complexity {
-            if validation_result.complexity > limit_complexity {
+        if let Some(limit_complexity) = self.operation_limits.complexity {
+            if validation_result.complexity > limit_complexity as usize {
                 return Err(vec![ServerError::new("Query is too complex.", None)]);
             }
         }
 
-        if let Some(limit_depth) = self.max_depth {
-            if validation_result.depth > limit_depth {
+        if let Some(limit_depth) = self.operation_limits.depth {
+            if validation_result.depth > limit_depth as usize {
                 return Err(vec![ServerError::new("Query is nested too deep.", None)]);
             }
         }
 
-        if let Some(height) = self.max_height {
-            if validation_result.height > height {
+        if let Some(height) = self.operation_limits.height {
+            if validation_result.height > height as usize {
                 return Err(vec![ServerError::new("Query is too high.", None)]);
             }
         }
 
-        if let Some(root_field_count) = self.max_root_field_count {
-            if validation_result.root_field_count > root_field_count {
+        if let Some(root_field_count) = self.operation_limits.root_fields {
+            if validation_result.root_field_count > root_field_count as usize {
                 return Err(vec![ServerError::new("Query has too many root fields.", None)]);
+            }
+        }
+
+        if let Some(alias_count) = self.operation_limits.aliases {
+            if validation_result.alias_count > alias_count as usize {
+                return Err(vec![ServerError::new("Query has too many aliases.", None)]);
             }
         }
 

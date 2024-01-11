@@ -34,10 +34,15 @@ pub struct ValidationResult {
     pub depth: usize,
 
     /// Query height
+    ///
+    /// Limits the number of unique fields included in an operation, including fields of fragments. If a particular field is included multiple times via aliases, it's counted only once.
     pub height: usize,
 
     /// Root fields in the query
     pub root_field_count: usize,
+
+    /// Alias  count.
+    pub alias_count: usize,
 }
 
 /// Validation mode
@@ -63,6 +68,7 @@ pub fn check_rules(
     let mut depth = 0;
     let mut root_field_count: usize = 0;
     let mut height: usize = 0;
+    let mut alias_count: usize = 0;
 
     match mode {
         ValidationMode::Strict => {
@@ -96,6 +102,7 @@ pub fn check_rules(
                 .with(visitors::ComplexityCalculate::new(&mut complexity))
                 .with(visitors::DepthCalculate::new(&mut depth))
                 .with(visitors::HeightCalculate::new(&mut height))
+                .with(visitors::AliasCountCalculate::new(&mut alias_count))
                 .with(visitors::RootFieldCountCalculate::new(&mut root_field_count));
 
             visit(&mut visitor, &mut ctx, doc);
@@ -109,7 +116,10 @@ pub fn check_rules(
                     invalidation_policies: &mut cache_invalidation_policies,
                 })
                 .with(visitors::ComplexityCalculate::new(&mut complexity))
-                .with(visitors::DepthCalculate::new(&mut depth));
+                .with(visitors::DepthCalculate::new(&mut depth))
+                .with(visitors::HeightCalculate::new(&mut height))
+                .with(visitors::AliasCountCalculate::new(&mut alias_count))
+                .with(visitors::RootFieldCountCalculate::new(&mut root_field_count));
 
             visit(&mut visitor, &mut ctx, doc);
         }
@@ -126,5 +136,6 @@ pub fn check_rules(
         depth,
         root_field_count,
         height,
+        alias_count,
     })
 }
