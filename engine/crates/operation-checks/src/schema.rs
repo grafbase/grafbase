@@ -1,7 +1,7 @@
 mod async_graphql;
-mod wrapper_types;
+mod wrapping_types;
 
-pub(crate) use wrapper_types::*;
+pub(crate) use wrapping_types::*;
 
 use std::collections::HashSet;
 
@@ -71,23 +71,25 @@ pub struct SchemaField {
     pub(crate) field_name: String,
     /// The type of the field without any wrapping type (! and []).
     pub(crate) base_type: String,
-    pub(crate) wrappers: WrapperTypes,
+    pub(crate) wrappers: WrappingTypes,
 }
 
 impl SchemaField {
     pub(crate) fn render_type(&self) -> String {
         let mut result = self.base_type.clone();
-        let wrappers: Vec<_> = self.wrappers.iter_wrappers().collect();
 
-        for wrapper in wrappers.iter().rev() {
-            result = match wrapper {
-                WrapperType::List => format!("[{result}]"),
-                WrapperType::Required => format!("{result}!"),
-                WrapperType::RequiredList => format!("[{result}]!"),
+        for list in self.wrappers.iter_list_types() {
+            result = match list {
+                ListType::List => format!("[{result}]"),
+                ListType::NonNullList => format!("[{result}]!"),
             }
         }
 
-        result
+        if self.wrappers.inner_is_required() {
+            format!("{result}!")
+        } else {
+            result
+        }
     }
 
     pub(crate) fn is_required(&self) -> bool {
@@ -116,7 +118,7 @@ pub struct FieldArgument {
     pub(crate) argument_name: String,
     /// The type of the field without any wrapping type (! and []).
     pub(crate) base_type: String,
-    pub(crate) wrappers: wrapper_types::WrapperTypes,
+    pub(crate) wrappers: WrappingTypes,
     pub(crate) has_default: bool,
 }
 

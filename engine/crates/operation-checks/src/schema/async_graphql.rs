@@ -1,4 +1,4 @@
-use super::WrapperTypes;
+use super::WrappingTypes;
 use crate::schema;
 use async_graphql_parser::types::ServiceDocument;
 use std::collections::HashSet;
@@ -103,9 +103,9 @@ impl From<ServiceDocument> for schema::Schema {
     }
 }
 
-fn extract_type(top_level_ty: &async_graphql_parser::types::Type) -> (String, WrapperTypes) {
+fn extract_type(top_level_ty: &async_graphql_parser::types::Type) -> (String, WrappingTypes) {
     let mut ty = top_level_ty;
-    let mut wrapper_types = WrapperTypes::default();
+    let mut wrapper_types = WrappingTypes::default();
 
     loop {
         match &ty.base {

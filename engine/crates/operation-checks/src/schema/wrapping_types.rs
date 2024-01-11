@@ -1,8 +1,7 @@
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub(crate) enum WrapperType {
+pub(crate) enum ListType {
     List,
-    RequiredList,
-    Required,
+    NonNullList,
 }
 
 /// The [wrapping types](http://spec.graphql.org/October2021/#sec-Wrapping-Types) for a given
@@ -12,19 +11,14 @@ pub(crate) enum WrapperType {
 ///
 /// - 6 bits containing an integer representing the number of list wrapping types.
 /// - 1 bit representing whether the innermost type is required.
-/// - 57 bits representing the list wrappers. The lowest bit is the outermost list wrapping type.
+/// - 57 bits representing the list wrapping types. Zero for a nullable list, one for a nonnullable
+///   list. The lowest bit is the outermost list wrapping type.
 ///
 /// So we can represent up to 57 levels of list nesting. This should be enough.
-#[derive(PartialEq, Eq, Clone, Copy, Default)]
-pub struct WrapperTypes(u64);
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
+pub struct WrappingTypes(u64);
 
-impl std::fmt::Debug for WrapperTypes {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_list().entries(self.iter_wrappers()).finish()
-    }
-}
-
-impl WrapperTypes {
+impl WrappingTypes {
     /// The number of bits taken by the list wrapping types.
     const LIST_BITS_COUNT: u64 = 57;
 
@@ -38,55 +32,70 @@ impl WrapperTypes {
     /// The mask for the list count integer.
     const LIST_COUNT_BITS_MASK: u64 = u64::MAX << Self::LIST_COUNT_BITS_OFFSET;
 
-    fn lists_count(&self) -> u64 {
-        (self.0 & Self::LIST_COUNT_BITS_MASK) >> Self::LIST_COUNT_BITS_OFFSET
+    fn lists_count(&self) -> u8 {
+        ((self.0 & Self::LIST_COUNT_BITS_MASK) >> Self::LIST_COUNT_BITS_OFFSET) as u8
     }
 
-    pub fn is_required(&self) -> bool {
+    pub(crate) fn inner_is_required(&self) -> bool {
         self.0 & Self::REQUIRED_BIT_MASK != 0
     }
 
-    /// Iterate wrapper types from outermost to innermost.
-    pub(crate) fn iter_wrappers(&self) -> impl Iterator<Item = WrapperType> + '_ {
-        (0..self.lists_count())
-            .map(move |i| match (self.0 >> i) & 1 {
-                0 => WrapperType::List,
-                1 => WrapperType::RequiredList,
-                _ => unreachable!(),
-            })
-            .chain(Some(WrapperType::Required).filter(|_| self.is_required()).into_iter())
+    pub(crate) fn is_required(&self) -> bool {
+        self.iter_list_types()
+            .next()
+            .map(|list| matches!(list, ListType::NonNullList))
+            .unwrap_or_else(|| self.inner_is_required())
     }
 
-    pub(crate) fn compare(&self, target: &WrapperTypes) -> WrapperTypesComparison {
-        use WrapperType::*;
+    /// Iterate list wrapping types from outermost to innermost.
+    pub(crate) fn iter_list_types(&self) -> impl ExactSizeIterator<Item = ListType> + '_ {
+        (0..self.lists_count()).map(move |i| match (self.0 >> i) & 1 {
+            0 => ListType::List,
+            1 => ListType::NonNullList,
+            _ => unreachable!(),
+        })
+    }
+
+    pub(crate) fn compare(&self, target: &WrappingTypes) -> WrapperTypesComparison {
+        use ListType::*;
         use WrapperTypesComparison::*;
 
-        let mut src_wrappers = self.iter_wrappers();
-        let mut target_wrappers = target.iter_wrappers();
+        let mut src_wrappers = self.iter_list_types();
+        let mut target_wrappers = target.iter_list_types();
         let mut end_state = NoChange;
 
         loop {
             match (src_wrappers.next(), target_wrappers.next()) {
-                (Some(List), Some(List))
-                | (Some(RequiredList), Some(RequiredList))
-                | (Some(Required), Some(Required)) => (),
-
-                (Some(Required), None) | (Some(RequiredList), Some(List)) => {
+                (Some(List), Some(List)) | (Some(NonNullList), Some(NonNullList)) => (),
+                (Some(NonNullList), Some(List)) => {
                     end_state = match end_state {
                         NoChange | RemovedNonNull => RemovedNonNull,
                         AddedNonNull | NotCompatible => NotCompatible,
                     }
                 }
-                (None, Some(Required)) | (Some(List), Some(RequiredList)) => {
+
+                (Some(List), Some(NonNullList)) => {
                     end_state = match end_state {
                         NoChange | AddedNonNull => AddedNonNull,
                         RemovedNonNull | NotCompatible => NotCompatible,
                     }
                 }
-                (Some(_), _) | (_, Some(_)) => break NotCompatible,
 
-                (None, None) => break end_state,
+                (Some(_), None) | (None, Some(_)) => end_state = NotCompatible,
+                (None, None) => break,
             }
+        }
+
+        match (self.inner_is_required(), target.inner_is_required()) {
+            (true, true) | (false, false) => end_state,
+            (true, false) => match end_state {
+                NoChange | RemovedNonNull => RemovedNonNull,
+                AddedNonNull | NotCompatible => NotCompatible,
+            },
+            (false, true) => match end_state {
+                NoChange | AddedNonNull => AddedNonNull,
+                RemovedNonNull | NotCompatible => NotCompatible,
+            },
         }
     }
 
@@ -95,7 +104,7 @@ impl WrapperTypes {
     }
 
     pub(crate) fn push_list(&mut self, required: bool) {
-        let lists_count = self.lists_count();
+        let lists_count = u64::from(self.lists_count());
 
         if lists_count > Self::LIST_BITS_COUNT {
             // Too many list wrappers
