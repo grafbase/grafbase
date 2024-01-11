@@ -15,7 +15,7 @@ use crate::{
         types::{Directive, DocumentOperations, OperationType, Selection, SelectionSet},
         Positioned,
     },
-    registry::{MetaDirective, MetaInputValue, Registry},
+    registry::{MetaDirective, MetaInputValue, OperationLimits, Registry},
     resolver_utils::{self, resolve_root_container, resolve_root_container_serial},
     response::{IncrementalPayload, StreamingPayload},
     subscription::collect_subscription_streams,
@@ -30,8 +30,6 @@ pub struct SchemaBuilder {
     validation_mode: ValidationMode,
     registry: Registry,
     data: Data,
-    complexity: Option<usize>,
-    depth: Option<usize>,
     extensions: Vec<Box<dyn ExtensionFactory>>,
 }
 
@@ -58,20 +56,6 @@ impl SchemaBuilder {
     #[must_use]
     pub fn disable_introspection(mut self) -> Self {
         self.registry.disable_introspection = true;
-        self
-    }
-
-    /// Set the maximum complexity a query can have. By default, there is no limit.
-    #[must_use]
-    pub fn limit_complexity(mut self, complexity: usize) -> Self {
-        self.complexity = Some(complexity);
-        self
-    }
-
-    /// Set the maximum depth a query can have. By default, there is no limit.
-    #[must_use]
-    pub fn limit_depth(mut self, depth: usize) -> Self {
-        self.depth = Some(depth);
         self
     }
 
@@ -154,8 +138,7 @@ impl SchemaBuilder {
 
         Schema(Arc::new(SchemaInner {
             validation_mode: self.validation_mode,
-            complexity: self.complexity,
-            depth: self.depth,
+            operation_limits: self.registry.operation_limts.clone(),
             extensions: self.extensions,
             env: SchemaEnv(Arc::new(SchemaEnvInner {
                 registry: self.registry,
@@ -186,8 +169,7 @@ impl Deref for SchemaEnv {
 #[doc(hidden)]
 pub struct SchemaInner {
     pub(crate) validation_mode: ValidationMode,
-    pub(crate) complexity: Option<usize>,
-    pub(crate) depth: Option<usize>,
+    pub(crate) operation_limits: OperationLimits,
     pub(crate) extensions: Vec<Box<dyn ExtensionFactory>>,
     pub(crate) env: SchemaEnv,
 }
@@ -228,8 +210,6 @@ impl Schema {
             validation_mode: ValidationMode::Strict,
             registry,
             data: Default::default(),
-            complexity: None,
-            depth: None,
             extensions: Default::default(),
         }
     }
@@ -440,16 +420,34 @@ impl Schema {
             extensions.validation(&mut validation_fut).await?
         };
 
-        // check limit
-        if let Some(limit_complexity) = self.complexity {
-            if validation_result.complexity > limit_complexity {
+        // Check limits.
+        if let Some(limit_complexity) = self.operation_limits.complexity {
+            if validation_result.complexity > limit_complexity as usize {
                 return Err(vec![ServerError::new("Query is too complex.", None)]);
             }
         }
 
-        if let Some(limit_depth) = self.depth {
-            if validation_result.depth > limit_depth {
+        if let Some(limit_depth) = self.operation_limits.depth {
+            if validation_result.depth > limit_depth as usize {
                 return Err(vec![ServerError::new("Query is nested too deep.", None)]);
+            }
+        }
+
+        if let Some(height) = self.operation_limits.height {
+            if validation_result.height > height as usize {
+                return Err(vec![ServerError::new("Query is too high.", None)]);
+            }
+        }
+
+        if let Some(root_field_count) = self.operation_limits.root_fields {
+            if validation_result.root_field_count > root_field_count as usize {
+                return Err(vec![ServerError::new("Query has too many root fields.", None)]);
+            }
+        }
+
+        if let Some(alias_count) = self.operation_limits.aliases {
+            if validation_result.alias_count > alias_count as usize {
+                return Err(vec![ServerError::new("Query has too many aliases.", None)]);
             }
         }
 
