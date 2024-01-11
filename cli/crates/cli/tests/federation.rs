@@ -35,7 +35,6 @@ fn federation_start() {
         .send();
     insta::assert_json_snapshot!(response, @r###"
     {
-      "data": null,
       "errors": [
         {
           "message": "there are no subgraphs registered currently"

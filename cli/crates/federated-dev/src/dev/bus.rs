@@ -3,9 +3,11 @@ mod compose;
 mod message;
 mod refresh;
 
+use std::sync::Arc;
+
 pub(crate) use admin::AdminBus;
 pub(crate) use compose::ComposeBus;
-use engine::RequestHeaders;
+use gateway_v2::Gateway;
 pub(crate) use message::*;
 pub(crate) use refresh::RefreshBus;
 
@@ -15,7 +17,7 @@ use graphql_composition::FederatedGraph;
 use tokio::sync::{mpsc, oneshot, watch};
 use url::Url;
 
-use super::{admin::Header, refresher::RefreshMessage, router::RouterResult};
+use super::{admin::Header, refresher::RefreshMessage};
 
 /// A channel to send composed federated graph, typically to a router.
 pub(crate) type GraphSender = watch::Sender<Option<FederatedGraph>>;
@@ -35,14 +37,13 @@ pub(crate) type ComposeSender = mpsc::Sender<ComposeMessage>;
 /// Receive channel for the composer to control its state and actions
 pub(crate) type ComposeReceiver = mpsc::Receiver<ComposeMessage>;
 
-/// Send half of channel for the server to send requests to the router actor
-pub(crate) type RequestSender = mpsc::Sender<(engine::Request, RequestHeaders, ResponseSender)>;
+/// Send half of the gateway watch channel
+pub(crate) type GatewaySender = watch::Sender<Option<Arc<Gateway>>>;
 
-/// Receive half of channel for the router actor to receive requests
-pub(crate) type RequestReceiver = mpsc::Receiver<(engine::Request, RequestHeaders, ResponseSender)>;
-
-/// Send half of channel for the router actor to send responses
-pub(crate) type ResponseSender = oneshot::Sender<RouterResult<engine_v2::CacheableResponse>>;
+/// Receive half of the gateway watch channel.
+///
+/// Anything part of the system that needs access to the gateway can use this
+pub(crate) type GatewayReceiver = watch::Receiver<Option<Arc<Gateway>>>;
 
 async fn compose_graph(
     sender: &ComposeSender,
