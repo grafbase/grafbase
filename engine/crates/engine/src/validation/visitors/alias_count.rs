@@ -85,44 +85,46 @@ mod tests {
     }
 
     #[test]
-    fn depth() {
+    fn alias_count() {
         check_alias_count(
             r"{
-            value1 #1
-        }",
+                value1
+            }",
+            0,
+        );
+
+        check_alias_count(
+            r"
+            {
+                obj {
+                    a
+                    alias: b #1
+                }
+            }",
             1,
         );
 
         check_alias_count(
             r"
-        {
-            obj { #1
-                a #2
-                b #3
-            }
-        }",
-            3,
-        );
-
-        check_alias_count(
-            r"
-        {
-            value1 #1
-            value2 #2
-        }",
+            {
+                value1
+                alias1: value2 #1
+                alias2: value2 #2
+            }",
             2,
         );
 
         check_alias_count(
             r"
-        {
-            value1 #1
-            alias: value1 
-            obj { #2
-                a #3
-            }
-        }",
-            3,
+            {
+                value1
+                alias: value2 #1
+                obj {
+                    a
+                    b: alias2 #2
+                }
+            }",
+            2,
         );
     }
 }

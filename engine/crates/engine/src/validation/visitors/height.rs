@@ -101,7 +101,7 @@ mod tests {
     }
 
     #[test]
-    fn depth() {
+    fn height() {
         check_height(
             r"{
             value1 #1
