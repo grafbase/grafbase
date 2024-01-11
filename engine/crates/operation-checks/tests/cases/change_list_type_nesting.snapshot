@@ -5,6 +5,10 @@ Forward:
         severity: Error,
     },
     CheckDiagnostic {
+        message: "The type of the field `HappyKoala.familyRequired` changed from `[String!]` to `[[String!]]`.",
+        severity: Error,
+    },
+    CheckDiagnostic {
         message: "The type of the field `KoalaInput.family` changed from `[String]` to `[[String]]`.",
         severity: Error,
     },
@@ -18,6 +22,10 @@ Backward:
 [
     CheckDiagnostic {
         message: "The type of the field `HappyKoala.family` changed from `[[String]]` to `[String]`.",
+        severity: Error,
+    },
+    CheckDiagnostic {
+        message: "The type of the field `HappyKoala.familyRequired` changed from `[[String!]]` to `[String!]`.",
         severity: Error,
     },
     CheckDiagnostic {

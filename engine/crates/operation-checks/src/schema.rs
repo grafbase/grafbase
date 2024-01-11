@@ -76,7 +76,9 @@ pub struct SchemaField {
 
 impl SchemaField {
     pub(crate) fn render_type(&self) -> String {
-        let mut result = self.base_type.clone();
+        let base_type = &self.base_type;
+        let bang = if self.wrappers.inner_is_required() { "!" } else { "" };
+        let mut result = format!("{base_type}{bang}");
 
         for list in self.wrappers.iter_list_types() {
             result = match list {
@@ -85,11 +87,7 @@ impl SchemaField {
             }
         }
 
-        if self.wrappers.inner_is_required() {
-            format!("{result}!")
-        } else {
-            result
-        }
+        result
     }
 
     pub(crate) fn is_required(&self) -> bool {
