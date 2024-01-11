@@ -43,7 +43,7 @@ pub(crate) type GatewaySender = watch::Sender<Option<Arc<Gateway>>>;
 /// Receive half of the gateway watch channel.
 ///
 /// Anything part of the system that needs access to the gateway can use this
-pub(crate) type GatewayReceiver = watch::Receiver<Option<Arc<Gateway>>>;
+pub(crate) type GatewayWatcher = watch::Receiver<Option<Arc<Gateway>>>;
 
 async fn compose_graph(
     sender: &ComposeSender,

@@ -9,7 +9,7 @@ use futures_util::{stream::BoxStream, StreamExt};
 use gateway_v2::Gateway;
 use tokio_stream::wrappers::WatchStream;
 
-/// The GatewayNany looks after the `Gateway` - on updates to the graph or config it'll
+/// The GatewayNanny looks after the `Gateway` - on updates to the graph or config it'll
 /// create a new `Gateway` and publish it on the gateway channel
 pub(crate) struct GatewayNanny {
     graph: GraphReceiver,

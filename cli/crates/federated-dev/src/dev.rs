@@ -17,7 +17,7 @@ use tower_http::cors::CorsLayer;
 use crate::{dev::gateway_nanny::GatewayNanny, ConfigReceiver};
 
 use self::{
-    bus::{AdminBus, ComposeBus, GatewayReceiver, RefreshBus},
+    bus::{AdminBus, ComposeBus, GatewayWatcher, RefreshBus},
     composer::Composer,
     refresher::Refresher,
     ticker::Ticker,
@@ -35,7 +35,7 @@ const REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 #[derive(Clone)]
 struct ProxyState {
     admin_pathfinder_html: Html<String>,
-    gateway: GatewayReceiver,
+    gateway: GatewayWatcher,
 }
 
 pub(super) async fn run(port: u16, expose: bool, config: ConfigReceiver) -> Result<(), crate::Error> {
@@ -142,7 +142,7 @@ async fn engine_post(
 
 async fn handle_engine_request(
     request: engine::Request,
-    gateway: GatewayReceiver,
+    gateway: GatewayWatcher,
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let headers = headers
