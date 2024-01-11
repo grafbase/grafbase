@@ -1,62 +1,60 @@
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[repr(u8)]
-pub enum WrapperType {
-    List = 0b10,
-    Required = 0b01,
-    RequiredList = 0b11,
+pub(crate) enum WrapperType {
+    List,
+    RequiredList,
+    Required,
 }
 
-impl WrapperType {
-    const LIST: u8 = WrapperType::List as u8;
-    const REQUIRED: u8 = WrapperType::Required as u8;
-    const REQUIRED_LIST: u8 = WrapperType::RequiredList as u8;
-}
+/// The [wrapping types](http://spec.graphql.org/October2021/#sec-Wrapping-Types) for a given
+/// instance of a type.
+///
+/// Implementation: this is a 64 bit integer. Layout is the following, from highest to lowest bits:
+///
+/// - 6 bits containing an integer representing the number of list wrapping types.
+/// - 1 bit representing whether the innermost type is required.
+/// - 57 bits representing the list wrappers. The lowest bit is the outermost list wrapping type.
+///
+/// So we can represent up to 57 levels of list nesting. This should be enough.
+#[derive(PartialEq, Eq, Clone, Copy, Default)]
+pub struct WrapperTypes(u64);
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum WrapperTypes {
-    /// A compact representation for up to four levels of wrapper types. Each pair of bits
-    /// corresponds to an Option<WrapperType> (0b00 = None, 0b01 = Some(Required), 0b10 =>
-    /// Some(List), 0b11 => Some(RequiredList)). The least significant pair of bits corresponds to
-    /// the outermost wrappers.
-    Small(u8),
-    /// This variant is for extreme cases of list fields with more than three levels of nested
-    /// lists. From outermost to innermost.
-    Large(Box<[WrapperType]>),
+impl std::fmt::Debug for WrapperTypes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.iter_wrappers()).finish()
+    }
 }
 
 impl WrapperTypes {
-    /// Iterate wrapper types from outermost to innermost.
-    pub(crate) fn iter_wrappers(&self) -> impl Iterator<Item = WrapperType> + '_ {
-        let (first_four, rest): ([Option<WrapperType>; 4], &[WrapperType]) = match self {
-            WrapperTypes::Small(small) => (
-                [0, 1, 2, 3].map(move |i| {
-                    let shift = i * 2; // we deal with groups of two bits
+    /// The number of bits taken by the list wrapping types.
+    const LIST_BITS_COUNT: u64 = 57;
 
-                    // Shift the bits we are interested in to the lower end of the byte and mask
-                    // the rest away.
-                    let bits = (small >> shift) & 0b11;
+    /// The offset of the required bit (for shifts).
+    const REQUIRED_BIT_OFFSET: u64 = Self::LIST_BITS_COUNT;
+    /// Mask for the required bit.
+    const REQUIRED_BIT_MASK: u64 = 1 << Self::REQUIRED_BIT_OFFSET;
 
-                    match bits {
-                        0b00 => None,
-                        WrapperType::REQUIRED => Some(WrapperType::Required),
-                        WrapperType::LIST => Some(WrapperType::List),
-                        WrapperType::REQUIRED_LIST => Some(WrapperType::RequiredList),
-                        _ => unreachable!(),
-                    }
-                }),
-                &[],
-            ),
-            WrapperTypes::Large(large) => ([None; 4], large.as_ref()),
-        };
+    /// The offset of the list count integer (for shifts).
+    const LIST_COUNT_BITS_OFFSET: u64 = Self::REQUIRED_BIT_OFFSET + 1;
+    /// The mask for the list count integer.
+    const LIST_COUNT_BITS_MASK: u64 = u64::MAX << Self::LIST_COUNT_BITS_OFFSET;
 
-        first_four.into_iter().flatten().chain(rest.iter().copied())
+    fn lists_count(&self) -> u64 {
+        (self.0 & Self::LIST_COUNT_BITS_MASK) >> Self::LIST_COUNT_BITS_OFFSET
     }
 
-    pub(crate) fn is_required(&self) -> bool {
-        matches!(
-            self.iter_wrappers().next(),
-            Some(WrapperType::Required | WrapperType::RequiredList)
-        )
+    pub fn is_required(&self) -> bool {
+        self.0 & Self::REQUIRED_BIT_MASK != 0
+    }
+
+    /// Iterate wrapper types from outermost to innermost.
+    pub(crate) fn iter_wrappers(&self) -> impl Iterator<Item = WrapperType> + '_ {
+        (0..self.lists_count())
+            .map(move |i| match (self.0 >> i) & 1 {
+                0 => WrapperType::List,
+                1 => WrapperType::RequiredList,
+                _ => unreachable!(),
+            })
+            .chain(Some(WrapperType::Required).filter(|_| self.is_required()).into_iter())
     }
 
     pub(crate) fn compare(&self, target: &WrapperTypes) -> WrapperTypesComparison {
@@ -90,6 +88,28 @@ impl WrapperTypes {
                 (None, None) => break end_state,
             }
         }
+    }
+
+    pub(crate) fn set_required(&mut self, required: bool) {
+        self.0 |= u64::from(required) << Self::REQUIRED_BIT_OFFSET;
+    }
+
+    pub(crate) fn push_list(&mut self, required: bool) {
+        let lists_count = self.lists_count();
+
+        if lists_count > Self::LIST_BITS_COUNT {
+            // Too many list wrappers
+            return;
+        }
+
+        if required {
+            self.0 |= 1 << lists_count;
+        }
+
+        let new_lists_count = lists_count + 1;
+
+        self.0 &= !Self::LIST_COUNT_BITS_MASK;
+        self.0 |= new_lists_count << Self::LIST_COUNT_BITS_OFFSET;
     }
 }
 

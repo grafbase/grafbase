@@ -1,4 +1,4 @@
-use super::{WrapperType, WrapperTypes};
+use super::WrapperTypes;
 use crate::schema;
 use async_graphql_parser::types::ServiceDocument;
 use std::collections::HashSet;
@@ -105,58 +105,18 @@ impl From<ServiceDocument> for schema::Schema {
 
 fn extract_type(top_level_ty: &async_graphql_parser::types::Type) -> (String, WrapperTypes) {
     let mut ty = top_level_ty;
-    let mut small = 0u8;
+    let mut wrapper_types = WrapperTypes::default();
 
-    // Fast path that should be taken nearly all the time.
-    for i in 0..4 {
+    loop {
         match &ty.base {
             async_graphql_parser::types::BaseType::Named(name) => {
-                if !ty.nullable {
-                    // We need a last `!` to reflect that the inner type is not nullable.
-                    small |= (WrapperType::Required as u8) << (i * 2);
-                }
-
-                return (name.to_string(), WrapperTypes::Small(small));
+                wrapper_types.set_required(!ty.nullable);
+                return (name.to_string(), wrapper_types);
             }
             async_graphql_parser::types::BaseType::List(inner) => {
-                let wrapper = if ty.nullable {
-                    WrapperType::List as u8
-                } else {
-                    WrapperType::RequiredList as u8
-                };
-
-                small |= wrapper << (i * 2);
-
+                wrapper_types.push_list(!ty.nullable);
                 ty = inner.as_ref();
             }
         }
     }
-
-    let mut wrappers = Vec::new();
-    let mut ty = top_level_ty;
-
-    let inner_type = loop {
-        ty = match &ty.base {
-            async_graphql_parser::types::BaseType::Named(name) => {
-                if !ty.nullable {
-                    wrappers.push(WrapperType::Required);
-                }
-
-                break name.to_string();
-            }
-            async_graphql_parser::types::BaseType::List(inner) => {
-                let wrapper = if ty.nullable {
-                    WrapperType::List
-                } else {
-                    WrapperType::RequiredList
-                };
-
-                wrappers.push(wrapper);
-
-                inner.as_ref()
-            }
-        };
-    };
-
-    (inner_type, WrapperTypes::Large(wrappers.into_boxed_slice()))
 }
