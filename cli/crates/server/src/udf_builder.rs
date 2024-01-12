@@ -248,7 +248,7 @@ async fn installed_esbuild_version(esbuild_installation_path: impl AsRef<Path>) 
     Some(String::from_utf8(output_bytes).ok()?.trim().to_owned())
 }
 
-// FIXME(remove miniflare) check if we can bundle ESBUILD
+// FIXME(remove miniflare) check if we can bundle ESBUILD or already do
 pub(crate) async fn install_esbuild(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
     let lock_file_path = environment.user_dot_grafbase_path.join(".esbuild.install.lock");
     let mut lock_file = tokio::task::spawn_blocking(move || {
