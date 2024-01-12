@@ -159,6 +159,7 @@ async fn subscription_loop(
             return;
         }
     }
+    sender.send(Message::Complete { id }).await.ok();
 }
 
 async fn accept_websocket(mut websocket: WebSocket) -> Option<(WebSocket, Option<serde_json::Value>)> {
