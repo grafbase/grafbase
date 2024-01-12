@@ -1,31 +1,25 @@
-use std::{marker::PhantomData, sync::Arc};
-
-use runtime::cache::{Cache, Cacheable, Entry, EntryState, Result};
+use runtime::cache::{Cache, CacheInner, CacheMetadata, Entry, EntryState, GlobalCacheConfig, Key, Result};
 
 #[derive(Default)]
-pub struct NoopCache<T> {
-    _marker: PhantomData<T>,
-}
+pub struct NoopCache;
 
-impl<T> NoopCache<T> {
-    pub fn new() -> Self {
-        Self { _marker: PhantomData }
+impl NoopCache {
+    pub fn runtime(config: GlobalCacheConfig) -> Cache {
+        Cache::new(Self, config)
     }
 }
 
 #[async_trait::async_trait]
-impl<T: Cacheable + 'static> Cache for NoopCache<T> {
-    type Value = T;
-
-    async fn get(&self, _key: &str) -> Result<Entry<Self::Value>> {
+impl CacheInner for NoopCache {
+    async fn get(&self, _key: &Key) -> Result<Entry<Vec<u8>>> {
         Ok(Entry::Miss)
     }
 
-    async fn put(&self, _key: &str, _state: EntryState, _value: Arc<Self::Value>, _tags: Vec<String>) -> Result<()> {
+    async fn put(&self, _key: &Key, _state: EntryState, _value: Vec<u8>, _metadata: CacheMetadata) -> Result<()> {
         Ok(())
     }
 
-    async fn delete(&self, _key: &str) -> Result<()> {
+    async fn delete(&self, _key: &Key) -> Result<()> {
         Ok(())
     }
 

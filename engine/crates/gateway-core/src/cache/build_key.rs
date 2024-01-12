@@ -2,6 +2,7 @@ use std::collections::{hash_map::DefaultHasher, BTreeSet};
 
 use common_types::auth::ExecutionAuth;
 use engine::registry::CacheAccessScope;
+use runtime::cache::Key;
 
 use super::{
     key::{CacheAccess, CacheKey},
@@ -22,7 +23,7 @@ pub fn build_cache_key(
     ctx: &impl RequestContext,
     request: &engine::Request,
     auth: &ExecutionAuth,
-) -> Result<String, BuildKeyError> {
+) -> Result<Key, BuildKeyError> {
     let request_cache_control = config
         .partial_registry
         .get_cache_control(request)
@@ -72,7 +73,12 @@ pub fn build_cache_key(
     let subdomain = &config.subdomain;
     let cache_key = CacheKey::<DefaultHasher>::new(cache_access, request, subdomain);
 
-    Ok(format!("https://{}/{}", subdomain, cache_key.to_hash_string()))
+    Ok(Key::unchecked_new(format!(
+        // v1 was stored in JSON, v2 in msgpack
+        "https://{}/{}/v2",
+        subdomain,
+        cache_key.to_hash_string()
+    )))
 }
 
 #[cfg(test)]
@@ -88,7 +94,7 @@ mod tests {
         registry::{CacheAccessScope, MetaField, MetaFieldType, MetaType, ObjectType, Registry},
         Request,
     };
-    use runtime::context::RequestContext;
+    use runtime::{cache::Key, context::RequestContext};
 
     use crate::cache::build_key::BuildKeyError;
     use crate::cache::key::{CacheAccess, CacheKey};
@@ -131,7 +137,8 @@ mod tests {
         let engine_request = Request::new(QUERY);
         let expected_cache_key =
             CacheKey::<DefaultHasher>::new(CacheAccess::Default(&ExecutionAuth::ApiKey), &engine_request, TEST);
-        let expected_cache_key = format!("https://{}/{}", TEST, expected_cache_key.to_hash_string());
+        let expected_cache_key =
+            Key::unchecked_new(format!("https://{}/{}/v2", TEST, expected_cache_key.to_hash_string()));
         let cache_config = CacheConfig {
             global_enabled: true,
             subdomain: TEST.to_string(),
@@ -156,7 +163,8 @@ mod tests {
             &engine_request,
             TEST,
         );
-        let expected_cache_key = format!("https://{}/{}", TEST, expected_cache_key.to_hash_string());
+        let expected_cache_key =
+            Key::unchecked_new(format!("https://{}/{}/v2", TEST, expected_cache_key.to_hash_string()));
         let cache_config = CacheConfig {
             global_enabled: true,
             subdomain: TEST.to_string(),
@@ -190,7 +198,8 @@ mod tests {
             &engine_request,
             TEST,
         );
-        let expected_cache_key = format!("https://{}/{}", TEST, expected_cache_key.to_hash_string());
+        let expected_cache_key =
+            Key::unchecked_new(format!("https://{}/{}/v2", TEST, expected_cache_key.to_hash_string()));
         let cache_config = CacheConfig {
             global_enabled: true,
             subdomain: TEST.to_string(),
@@ -222,7 +231,8 @@ mod tests {
             &engine_request,
             TEST,
         );
-        let expected_cache_key = format!("https://{}/{}", TEST, expected_cache_key.to_hash_string());
+        let expected_cache_key =
+            Key::unchecked_new(format!("https://{}/{}/v2", TEST, expected_cache_key.to_hash_string()));
         let cache_config = CacheConfig {
             global_enabled: true,
             subdomain: TEST.to_string(),
@@ -258,7 +268,8 @@ mod tests {
             &engine_request,
             TEST,
         );
-        let expected_cache_key = format!("https://{}/{}", TEST, expected_cache_key.to_hash_string());
+        let expected_cache_key =
+            Key::unchecked_new(format!("https://{}/{}/v2", TEST, expected_cache_key.to_hash_string()));
         let cache_config = CacheConfig {
             global_enabled: true,
             subdomain: TEST.to_string(),

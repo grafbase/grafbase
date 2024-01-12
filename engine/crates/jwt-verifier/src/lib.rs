@@ -483,7 +483,7 @@ impl<'a> Client<'a> {
             cache
                 .put(
                     &key,
-                    serde_json::to_vec(&jwk).expect("serializable").into(),
+                    serde_json::to_vec(&jwk).expect("serializable"),
                     Some(Duration::from_secs(JWKS_CACHE_TTL)),
                 )
                 .await

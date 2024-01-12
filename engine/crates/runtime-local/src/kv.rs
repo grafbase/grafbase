@@ -1,4 +1,3 @@
-use bytes::Bytes;
 use runtime::kv::{KvResult, KvStore, KvStoreInner};
 use std::{
     collections::HashMap,
@@ -7,11 +6,11 @@ use std::{
 };
 
 pub struct InMemoryKvStore {
-    inner: Mutex<HashMap<String, (Bytes, Instant)>>,
+    inner: Mutex<HashMap<String, (Vec<u8>, Instant)>>,
 }
 
 impl InMemoryKvStore {
-    pub fn runtime_kv() -> KvStore {
+    pub fn runtime() -> KvStore {
         KvStore::new(Self::default())
     }
 }
@@ -26,7 +25,7 @@ impl Default for InMemoryKvStore {
 
 #[async_trait::async_trait]
 impl KvStoreInner for InMemoryKvStore {
-    async fn get(&self, name: &str, cache_ttl: Option<Duration>) -> KvResult<Option<Bytes>> {
+    async fn get(&self, name: &str, cache_ttl: Option<Duration>) -> KvResult<Option<Vec<u8>>> {
         if let Some(value) = self.inner.lock().unwrap().get(name) {
             if let Some(cache_ttl) = cache_ttl {
                 if value.1.elapsed() > cache_ttl {
@@ -40,7 +39,7 @@ impl KvStoreInner for InMemoryKvStore {
     }
 
     #[allow(clippy::panic)]
-    async fn put(&self, name: &str, bytes: Bytes, expiration_ttl: Option<Duration>) -> KvResult<()> {
+    async fn put(&self, name: &str, bytes: Vec<u8>, expiration_ttl: Option<Duration>) -> KvResult<()> {
         let mut inner = self.inner.lock().unwrap();
         inner.insert(
             name.to_string(),

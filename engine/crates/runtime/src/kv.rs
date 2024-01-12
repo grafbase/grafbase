@@ -1,7 +1,5 @@
 use std::{sync::Arc, time::Duration};
 
-use bytes::Bytes;
-
 #[derive(Debug, thiserror::Error)]
 pub enum KvError {
     #[error("Kv error: {0}")]
@@ -53,7 +51,7 @@ impl KvStore {
         expiration_ttl: Option<Duration>,
     ) -> KvResult<()> {
         let bytes = serde_json::to_vec(value)?;
-        self.put(name, bytes.into(), expiration_ttl).await
+        self.put(name, bytes, expiration_ttl).await
     }
 }
 
@@ -66,6 +64,6 @@ impl std::ops::Deref for KvStore {
 
 #[async_trait::async_trait]
 pub trait KvStoreInner: Send + Sync {
-    async fn get(&self, name: &str, cache_ttl: Option<Duration>) -> KvResult<Option<Bytes>>;
-    async fn put(&self, name: &str, bytes: Bytes, expiration_ttl: Option<Duration>) -> KvResult<()>;
+    async fn get(&self, name: &str, cache_ttl: Option<Duration>) -> KvResult<Option<Vec<u8>>>;
+    async fn put(&self, name: &str, bytes: Vec<u8>, expiration_ttl: Option<Duration>) -> KvResult<()>;
 }

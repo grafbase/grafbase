@@ -7,7 +7,8 @@ mod sources;
 mod utils;
 
 pub use ::engine::Request;
-pub use engine::{Engine, EngineRuntime};
+pub use engine::{Engine, EngineEnv};
+pub use execution::PreparedExecution;
 pub use response::{cacheable::CacheableResponse, Error, ExecutionMetadata, Response};
 pub use schema::{CacheConfig, Schema};
 

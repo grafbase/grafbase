@@ -6,7 +6,7 @@ use http::{
     header::{HeaderMap, HeaderName},
     HeaderValue,
 };
-use runtime::cache::Cacheable;
+use runtime::cache::{CacheMetadata, Cacheable};
 use serde::{ser::SerializeMap, Deserialize, Serialize};
 pub use streaming::*;
 
@@ -295,32 +295,23 @@ impl serde::Serialize for GraphQlResponse<'_> {
 }
 
 impl Cacheable for Response {
-    fn max_age(&self) -> Duration {
-        Duration::from_secs(self.cache_control.max_age as u64)
-    }
-
-    fn stale_while_revalidate(&self) -> Duration {
-        Duration::from_secs(self.cache_control.stale_while_revalidate as u64)
-    }
-
-    fn cache_tags(&self) -> Vec<String> {
-        self.data.cache_tags().iter().cloned().collect::<Vec<_>>()
-    }
-
-    fn should_purge_related(&self) -> bool {
-        self.graphql_operation
-            .as_ref()
-            .is_some_and(|operation| operation.r#type == common_types::OperationType::Mutation)
-            && !self.data.cache_tags().is_empty()
-    }
-
-    fn should_cache(&self) -> bool {
-        !self
-            .graphql_operation
-            .as_ref()
-            .is_some_and(|operation| operation.r#type == common_types::OperationType::Mutation)
-            && self.errors.is_empty()
-            && self.cache_control.max_age != 0
+    fn metadata(&self) -> CacheMetadata {
+        CacheMetadata {
+            max_age: Duration::from_secs(self.cache_control.max_age as u64),
+            stale_while_revalidate: Duration::from_secs(self.cache_control.stale_while_revalidate as u64),
+            tags: self.data.cache_tags().iter().cloned().collect::<Vec<_>>(),
+            should_purge_related: self
+                .graphql_operation
+                .as_ref()
+                .is_some_and(|operation| operation.r#type == common_types::OperationType::Mutation)
+                && !self.data.cache_tags().is_empty(),
+            should_cache: !self
+                .graphql_operation
+                .as_ref()
+                .is_some_and(|operation| operation.r#type == common_types::OperationType::Mutation)
+                && self.errors.is_empty()
+                && self.cache_control.max_age != 0,
+        }
     }
 }
 

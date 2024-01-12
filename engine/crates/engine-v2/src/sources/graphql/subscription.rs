@@ -69,7 +69,7 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
 
         let stream = ctx
             .engine
-            .runtime
+            .env
             .fetcher
             .stream(GraphqlRequest {
                 url: &url,

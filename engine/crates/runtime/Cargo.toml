@@ -16,6 +16,7 @@ workspace = true
 async-runtime.workspace = true
 async-trait.workspace = true
 bytes.workspace = true
+derive_more = "0.99"
 futures-util.workspace = true
 headers.workspace = true
 http.workspace = true
@@ -26,6 +27,7 @@ thiserror.workspace = true
 ulid.workspace = true
 tracing.workspace = true
 tracing-futures.workspace = true
+rmp-serde.workspace = true
 
 search-protocol = { path = "../search-protocol" }
 postgres-connector-types = { path = "../postgres-connector-types" }

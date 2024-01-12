@@ -1,16 +1,16 @@
 use config::latest::{AuthConfig, AuthProviderConfig};
 use engine::RequestHeaders;
 use futures_util::{stream::FuturesOrdered, StreamExt};
-use jsonwebtoken::TokenData;
+use jwt::JwtToken;
 use runtime::kv::KvStore;
-use std::collections::HashMap;
 
 mod jwt;
 
+#[derive(Hash, Debug)]
 pub enum AccessToken {
     Public,
     // boxing as clippy complains about enum size.
-    Jwt(Box<TokenData<HashMap<String, serde_json::Value>>>),
+    Jwt(Box<JwtToken>),
 }
 
 #[async_trait::async_trait]

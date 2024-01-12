@@ -18,7 +18,7 @@ pub(crate) use error::Error;
 pub(crate) use response::Response;
 pub use runtime_local::Bridge;
 
-pub type GatewayInner = gateway_core::Gateway<Executor, InMemoryCache<engine::Response>>;
+pub type GatewayInner = gateway_core::Gateway<Executor>;
 
 #[derive(Clone)]
 pub struct Gateway {
@@ -49,7 +49,11 @@ impl Gateway {
         Ok(Gateway {
             inner: Arc::new(gateway_core::Gateway::new(
                 executor,
-                Arc::new(InMemoryCache::<engine::Response>::new()),
+                InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
+                    common_cache_tags: vec![],
+                    enabled: true,
+                    subdomain: "localhost".to_string(),
+                }),
                 cache_config,
                 authorizer,
             )),

@@ -6,7 +6,7 @@ pub use builder::*;
 use engine::Variables;
 use futures::{future::BoxFuture, Stream, StreamExt};
 
-use crate::engine::GraphQlRequest;
+use crate::engine::{GraphQlRequest, RequestContext};
 
 pub struct TestFederationGateway {
     gateway: gateway_v2::Gateway,
@@ -53,18 +53,15 @@ impl<'a> IntoFuture for ExecutionRequest<'a> {
     fn into_future(self) -> Self::IntoFuture {
         let request = self.graphql.into_engine_request();
 
+        let (ctx, futures) = RequestContext::new(self.headers);
         Box::pin(async move {
-            let response = self
-                .gateway
-                .execute(request, (&self.headers).into(), |response| {
-                    serde_json::to_vec(&response)
-                })
-                .await
-                .unwrap();
+            let response = self.gateway.execute(&ctx, request).await;
+            tokio::spawn(RequestContext::wait_for_all(futures));
 
             GraphqlResponse {
                 gql_response: serde_json::from_slice(&response.bytes).unwrap(),
-                metadata: response.take_metadata(),
+                metadata: response.metadata,
+                headers: response.headers,
             }
         })
     }
@@ -74,11 +71,14 @@ impl<'a> ExecutionRequest<'a> {
     pub fn into_stream(self) -> impl Stream<Item = GraphqlResponse> + 'a {
         let request = self.graphql.into_engine_request();
 
+        let (ctx, futures) = RequestContext::new(self.headers);
+        tokio::spawn(RequestContext::wait_for_all(futures));
         self.gateway
-            .execute_stream(request, (&self.headers).into())
+            .execute_stream(&ctx, request)
             .map(|response| GraphqlResponse {
                 gql_response: serde_json::to_value(&response).unwrap(),
                 metadata: response.take_metadata(),
+                headers: http::HeaderMap::new(),
             })
     }
 }
@@ -89,6 +89,8 @@ pub struct GraphqlResponse {
     gql_response: serde_json::Value,
     #[serde(skip)]
     pub metadata: engine_v2::ExecutionMetadata,
+    #[serde(skip)]
+    pub headers: http::HeaderMap,
 }
 
 impl std::fmt::Display for GraphqlResponse {

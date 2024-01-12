@@ -1,21 +1,13 @@
 use crate::{ExecutionMetadata, Response};
 use engine_parser::types::OperationType;
-use runtime::cache::Cacheable;
-use std::time::Duration;
+use runtime::cache::{CacheMetadata, Cacheable};
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[serde_with::serde_as]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct CacheableResponse {
-    pub bytes: bytes::Bytes,
-    // Empty if coming from the cache, nothing was executed.
-    #[serde(skip, default)]
+    pub bytes: Vec<u8>,
     pub metadata: ExecutionMetadata,
     pub has_errors: bool,
-}
-
-impl CacheableResponse {
-    pub fn take_metadata(self) -> ExecutionMetadata {
-        self.metadata
-    }
 }
 
 impl crate::Response {
@@ -27,41 +19,33 @@ impl crate::Response {
         let has_errors = !self.errors().is_empty();
         Ok(CacheableResponse {
             has_errors,
-            bytes: bytes::Bytes::from(bytes),
+            bytes,
             metadata: self.take_metadata(),
         })
     }
 }
 
 impl Cacheable for CacheableResponse {
-    fn max_age(&self) -> Duration {
-        self.metadata
-            .cache_config
-            .map(|config| config.max_age)
-            .unwrap_or_default()
-    }
-
-    fn stale_while_revalidate(&self) -> Duration {
-        self.metadata
-            .cache_config
-            .map(|config| config.stale_while_revalidate)
-            .unwrap_or_default()
-    }
-
-    fn cache_tags(&self) -> Vec<String> {
-        vec![] // to be added when mutation invalidation is supported in v2
-    }
-
-    fn should_purge_related(&self) -> bool {
-        false // to be added when mutation invalidation is supported in v2
-    }
-
-    fn should_cache(&self) -> bool {
-        !self.has_errors
-            && self
+    fn metadata(&self) -> CacheMetadata {
+        CacheMetadata {
+            max_age: self
                 .metadata
-                .operation_type
-                .map(|operation_type| operation_type == OperationType::Query)
-                .unwrap_or_default()
+                .cache_config
+                .map(|config| config.max_age)
+                .unwrap_or_default(),
+            stale_while_revalidate: self
+                .metadata
+                .cache_config
+                .map(|config| config.stale_while_revalidate)
+                .unwrap_or_default(),
+            tags: vec![],
+            should_purge_related: false,
+            should_cache: !self.has_errors
+                && self
+                    .metadata
+                    .operation_type
+                    .map(|operation_type| operation_type == OperationType::Query)
+                    .unwrap_or_default(),
+        }
     }
 }

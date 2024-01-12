@@ -1,9 +1,12 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    hash::{Hash, Hasher},
+};
 
 use config::latest::JwtConfig;
 use jsonwebtoken::{
     jwk::{AlgorithmParameters, JwkSet},
-    Algorithm, DecodingKey,
+    Algorithm, DecodingKey, TokenData,
 };
 use runtime::kv::KvStore;
 
@@ -19,6 +22,19 @@ pub(super) struct JwtProvider {
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct JwtMetadata {
     jwks: JwkSet,
+}
+
+#[derive(Debug, Clone)]
+pub struct JwtToken {
+    pub data: TokenData<HashMap<String, serde_json::Value>>,
+    // Keeping signature to compute a hash for cache keys
+    signature: Vec<u8>,
+}
+
+impl Hash for JwtToken {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.signature.hash(state);
+    }
 }
 
 impl JwtProvider {
@@ -104,9 +120,12 @@ impl Authorizer for JwtProvider {
         };
 
         for key in decoding_keys(&metadata.jwks, &jose_header) {
-            if let Ok(token) = jsonwebtoken::decode::<HashMap<String, serde_json::Value>>(token_str, &key, &validation)
-            {
-                return Some(AccessToken::Jwt(Box::new(token)));
+            if let Ok(data) = jsonwebtoken::decode(token_str, &key, &validation) {
+                use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+                let signature = URL_SAFE_NO_PAD
+                    .decode(token_str.rsplit('.').next().expect("valid jwt"))
+                    .expect("valid jwt");
+                return Some(AccessToken::Jwt(Box::new(JwtToken { data, signature })));
             }
         }
         return None;

@@ -108,13 +108,13 @@ impl Variables {
     pub fn from_request(
         operation: &Operation,
         schema: &Schema,
-        mut variables: engine_value::Variables,
+        variables: &mut engine_value::Variables,
     ) -> Result<Self, Vec<VariableError>> {
         let mut coerced = HashMap::new();
         let mut errors = vec![];
 
         for (id, definition) in operation.variable_definitions.iter().enumerate() {
-            match coerce_variable_value(definition, schema, &mut variables, VariablePath::new(&definition.name)) {
+            match coerce_variable_value(definition, schema, variables, VariablePath::new(&definition.name)) {
                 Ok(value) => {
                     coerced.insert(
                         definition.name.clone(),
@@ -139,6 +139,14 @@ impl Variables {
 
     pub fn get(&self, name: &str) -> Option<&Variable> {
         self.inner.get(name)
+    }
+
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Variable)> {
+        self.inner.iter()
     }
 }
 

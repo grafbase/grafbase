@@ -33,24 +33,23 @@ pub enum Error {
 
 // A bit tedious but this allows the caller to have an easier time with its error, response and
 // context types.
-pub struct Gateway<Executor: self::Executor, Cache> {
+pub struct Gateway<Executor: self::Executor> {
     executor: Arc<Executor>,
-    cache: Arc<Cache>,
+    cache: Cache,
     cache_config: CacheConfig,
     authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
 }
 
-impl<Executor, Cache> Gateway<Executor, Cache>
+impl<Executor> Gateway<Executor>
 where
     Executor: self::Executor + 'static,
     Executor::Context: RequestContext,
     Executor::Error: From<Error> + std::error::Error + Send + 'static,
     Executor::Response: self::Response<Error = Executor::Error>,
-    Cache: self::Cache<Value = engine::Response> + 'static,
 {
     pub fn new(
         executor: Arc<Executor>,
-        cache: Arc<Cache>,
+        cache: Cache,
         cache_config: CacheConfig,
         authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
     ) -> Self {
@@ -81,7 +80,7 @@ where
             });
         }
         Executor::Response::admin(
-            self::admin::handle_graphql_request(ctx.as_ref(), &self.cache, &self.cache_config, request).await,
+            self::admin::handle_graphql_request(ctx.as_ref(), self.cache.clone(), &self.cache_config, request).await,
         )
     }
 
@@ -126,14 +125,8 @@ where
                         .instrument(info_span!("execute"))
                         .map(|res| res.map(Arc::new));
 
-                    let cached_execution = cache::cached_execution(
-                        self.cache.clone(),
-                        cache_key,
-                        &self.cache_config,
-                        ctx.as_ref(),
-                        execution_fut,
-                    )
-                    .await;
+                    let cached_execution =
+                        cache::cached_execution(&self.cache, cache_key, ctx.as_ref(), execution_fut).await;
 
                     cache::process_execution_response(ctx.as_ref(), cached_execution)
                 }
@@ -146,7 +139,7 @@ where
 
                     let response = CachedExecutionResponse::Origin {
                         response: result,
-                        cache_read: Some(CacheReadStatus::Bypass),
+                        cache_read: CacheReadStatus::Bypass,
                     };
 
                     cache::process_execution_response(ctx.as_ref(), Ok(response))
