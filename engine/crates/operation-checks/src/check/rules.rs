@@ -28,7 +28,7 @@ pub(super) fn remove_field(
         let field_is_required = check_params
             .source
             .find_field(type_name, field_name)
-            .map(|field_id| check_params.source[field_id].type_is_required)
+            .map(|field_id| check_params.source[field_id].is_required())
             .unwrap_or_default();
 
         let diagnostic = if field_is_required {
@@ -112,7 +112,7 @@ pub(super) fn add_field(
         return None;
     };
 
-    if !check_params.target[field_id].type_is_required {
+    if !check_params.target[field_id].is_required() {
         return None;
     }
 
@@ -135,8 +135,6 @@ pub(super) fn add_field(
 
 /// Changing the type of an argument or removing an argument is safe iff the argument is not in
 /// use or if it was required and became optional (keeping the same inner type).
-///
-/// FIXME: we do not handle lists great here and in other places => GB-5749
 pub(super) fn change_field_argument_type(
     CheckArgs {
         change, check_params, ..
@@ -151,6 +149,7 @@ pub(super) fn change_field_argument_type(
 
     let arg_in_src = check_params.source.find_argument((type_name, field_name, arg_name));
     let arg_in_target = check_params.source.find_argument((type_name, field_name, arg_name));
+
     'refine: {
         if let Some((src_id, target_id)) = arg_in_src.zip(arg_in_target) {
             let src_arg = &check_params.source[src_id];
@@ -160,25 +159,25 @@ pub(super) fn change_field_argument_type(
                 break 'refine; // type change overrides arity change
             }
 
-            if !src_arg.is_required && target_arg.is_required {
-                return Some(CheckDiagnostic {
-                    message: format!(
-                        "The argument `{}` became required, but clients are not providing it.",
-                        change.path
-                    ),
-                    severity: Severity::Error,
-                });
-            } else if src_arg.is_required && !target_arg.is_required {
-                return None;
+            match src_arg.wrappers.compare(&target_arg.wrappers) {
+                crate::schema::WrapperTypesComparison::RemovedNonNull => return None,
+                crate::schema::WrapperTypesComparison::AddedNonNull => {
+                    return Some(CheckDiagnostic {
+                        message: format!(
+                            "The argument `{}` became required, but clients are not providing it.",
+                            change.path
+                        ),
+                        severity: Severity::Error,
+                    });
+                }
+                crate::schema::WrapperTypesComparison::NoChange
+                | crate::schema::WrapperTypesComparison::NotCompatible => break 'refine,
             }
         }
     }
 
     Some(CheckDiagnostic {
-        message: format!(
-            "The argument `{}` changed type but it is still used by clients.",
-            change.path
-        ),
+        message: format!("The argument `{}` changed type but it is used by clients.", change.path),
         severity: Severity::Error,
     })
 }
@@ -231,37 +230,44 @@ pub(super) fn change_field_type(
         return None;
     }
 
-    if source_field.base_type != target_field.base_type {
+    let wrappers_comparison = source_field.wrappers.compare(&target_field.wrappers);
+
+    if source_field.base_type != target_field.base_type
+        || matches!(
+            wrappers_comparison,
+            crate::schema::WrapperTypesComparison::NotCompatible,
+        )
+    {
         return Some(CheckDiagnostic {
             message: format!(
                 "The type of the field `{}` changed from `{}` to `{}`.",
-                change.path, source_field.base_type, target_field.base_type
+                change.path,
+                source_field.render_type(),
+                target_field.render_type()
             ),
             severity: Severity::Error,
         });
     }
 
-    if is_input_object {
-        if !source_field.type_is_required && target_field.type_is_required {
-            return Some(CheckDiagnostic {
+    match (is_input_object, wrappers_comparison) {
+        (true, crate::schema::WrapperTypesComparison::AddedNonNull) => {
+            Some(CheckDiagnostic {
                 message: format!(
                     "The field `{}` became required, but clients may not be providing it.",
                     change.path
                 ),
                 severity: Severity::Warning, // warning because we can't tell if they are providing it or not
-            });
+            })
         }
-    } else if source_field.type_is_required && !target_field.type_is_required {
-        return Some(CheckDiagnostic {
+        (false, crate::schema::WrapperTypesComparison::RemovedNonNull) => Some(CheckDiagnostic {
             message: format!(
                 "The field `{}` became optional, but clients do not expect null.",
                 change.path
             ),
             severity: Severity::Error,
-        });
+        }),
+        _ => None,
     }
-
-    None
 }
 
 /// Removing an `implements` is safe iff there is no inline fragment making use of the

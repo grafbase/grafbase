@@ -15,6 +15,6 @@ mod operation;
 mod schema;
 
 pub use aggregate_field_usage::{aggregate_field_usage, FieldUsage};
-pub use check::{check, CheckParams};
+pub use check::{check, CheckDiagnostic, CheckParams, Severity};
 pub use operation::Operation;
 pub use schema::Schema;
