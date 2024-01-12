@@ -180,7 +180,7 @@ impl UdfRuntime {
             .current_dir(&environment.user_dot_grafbase_path)
             .kill_on_drop(true);
         trace!("Spawning {node:?}");
-        // FIXME(remove miniflare) - add a proper error for this
+        // FIXME(remove miniflare) - add a proper error for this and unwraps below
         let mut node = node.spawn().unwrap();
 
         let bound_port = {
