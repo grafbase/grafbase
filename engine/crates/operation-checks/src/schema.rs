@@ -75,23 +75,12 @@ pub struct SchemaField {
 }
 
 impl SchemaField {
-    pub(crate) fn render_type(&self) -> String {
-        let base_type = &self.base_type;
-        let bang = if self.wrappers.inner_is_required() { "!" } else { "" };
-        let mut result = format!("{base_type}{bang}");
-
-        for list in self.wrappers.iter_list_types() {
-            result = match list {
-                ListType::List => format!("[{result}]"),
-                ListType::NonNullList => format!("[{result}]!"),
-            }
-        }
-
-        result
+    pub(crate) fn render_type(&self) -> impl std::fmt::Display + '_ {
+        self.wrappers.render(&self.base_type)
     }
 
     pub(crate) fn is_required(&self) -> bool {
-        self.wrappers.is_required()
+        self.wrappers.is_nonnull()
     }
 }
 
@@ -126,7 +115,7 @@ impl FieldArgument {
     }
 
     pub fn is_required(&self) -> bool {
-        self.wrappers.is_required()
+        self.wrappers.is_nonnull()
     }
 
     pub(crate) fn is_required_without_default_value(&self) -> bool {

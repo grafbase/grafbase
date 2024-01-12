@@ -110,7 +110,7 @@ fn extract_type(top_level_ty: &async_graphql_parser::types::Type) -> (String, Wr
     loop {
         match &ty.base {
             async_graphql_parser::types::BaseType::Named(name) => {
-                wrapper_types.set_required(!ty.nullable);
+                wrapper_types.set_inner_nonnull(!ty.nullable);
                 return (name.to_string(), wrapper_types);
             }
             async_graphql_parser::types::BaseType::List(inner) => {
