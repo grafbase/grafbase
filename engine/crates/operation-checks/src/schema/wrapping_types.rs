@@ -100,6 +100,7 @@ impl WrappingTypes {
     }
 
     pub(crate) fn set_required(&mut self, required: bool) {
+        self.0 &= !Self::REQUIRED_BIT_MASK;
         self.0 |= u64::from(required) << Self::REQUIRED_BIT_OFFSET;
     }
 
@@ -133,4 +134,77 @@ pub(crate) enum WrapperTypesComparison {
     /// List nesting level changed such that there exist values of src that will not fit in target
     /// and vice versa.
     NotCompatible,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_roundtrip(list_wrappers: &[ListType], inner_is_required: bool) {
+        let mut wrappers = WrappingTypes::default();
+        wrappers.set_required(inner_is_required);
+
+        for list in list_wrappers {
+            match list {
+                ListType::List => wrappers.push_list(false),
+                ListType::NonNullList => wrappers.push_list(true),
+            }
+        }
+
+        assert_eq!(wrappers.inner_is_required(), inner_is_required);
+        assert_eq!(wrappers.iter_list_types().collect::<Vec<_>>(), list_wrappers);
+    }
+
+    #[test]
+    fn roundtrip_empty() {
+        test_roundtrip(&[], false);
+    }
+
+    #[test]
+    fn roundtrip_nonempty() {
+        test_roundtrip(&[ListType::List, ListType::NonNullList], true);
+    }
+
+    #[test]
+    fn roundtrip_only_inner_required() {
+        test_roundtrip(&[], true);
+    }
+
+    #[test]
+    fn roundtrip_many_nonnull_lists() {
+        test_roundtrip(
+            &[
+                ListType::NonNullList,
+                ListType::NonNullList,
+                ListType::NonNullList,
+                ListType::NonNullList,
+                ListType::List,
+            ],
+            false,
+        );
+    }
+
+    #[test]
+    fn required_between_push_lists() {
+        let mut wrappers = WrappingTypes::default();
+        wrappers.push_list(false);
+        wrappers.set_required(true);
+        wrappers.push_list(true);
+
+        assert_eq!(
+            wrappers.iter_list_types().collect::<Vec<_>>(),
+            &[ListType::List, ListType::NonNullList]
+        );
+
+        assert!(wrappers.inner_is_required());
+
+        wrappers.set_required(false);
+
+        assert!(!wrappers.inner_is_required());
+
+        assert_eq!(
+            wrappers.iter_list_types().collect::<Vec<_>>(),
+            &[ListType::List, ListType::NonNullList]
+        );
+    }
 }
