@@ -242,7 +242,7 @@ impl UdfRuntime {
                 .await
                 {
                     Ok((_, wrangler_toml_path)) => Ok(UdfWorker {
-                        name: udf_name,
+                        _name: udf_name,
                         directory: wrangler_toml_path.parent().unwrap().to_owned(),
                     }),
                     Err(err) => {
