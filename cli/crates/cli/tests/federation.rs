@@ -1,4 +1,4 @@
-#![allow(unused_crate_dependencies)]
+#![allow(unused_crate_dependencies, unused_imports)]
 mod utils;
 
 use backend::project::GraphType;

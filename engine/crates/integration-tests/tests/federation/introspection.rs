@@ -78,6 +78,7 @@ fn can_run_pathfinder_introspection_query() {
     type User {
       email: String!
       name: String!
+      pullRequests: [PullRequest!]!
     }
 
     union UserOrBot = Bot | User
@@ -155,6 +156,7 @@ fn can_run_2018_introspection_query() {
     type User {
       email: String!
       name: String!
+      pullRequests: [PullRequest!]!
     }
 
     union UserOrBot = Bot | User
@@ -232,6 +234,7 @@ fn can_run_2021_introspection_query() {
     type User {
       email: String!
       name: String!
+      pullRequests: [PullRequest!]!
     }
 
     union UserOrBot = Bot | User
@@ -449,6 +452,7 @@ fn can_introsect_when_multiple_subgraphs() {
     type User {
       email: String!
       name: String!
+      pullRequests: [PullRequest!]!
     }
 
     union UserOrBot = Bot | User

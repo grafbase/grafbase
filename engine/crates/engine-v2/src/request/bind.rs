@@ -5,6 +5,7 @@ use std::{
 
 pub use engine_parser::types::OperationType;
 use engine_parser::Positioned;
+use itertools::Itertools;
 use schema::{Definition, FieldWalker, Schema};
 
 use crate::response::GraphqlError;
@@ -68,6 +69,8 @@ pub enum BindError {
         operation: ErrorOperationName,
         location: Pos,
     },
+    #[error("Fragment cycle detected: {}", .cycle.iter().join(", "))]
+    FragmentCycle { cycle: Vec<String>, location: Pos },
 }
 
 impl From<BindError> for GraphqlError {
@@ -86,6 +89,7 @@ impl From<BindError> for GraphqlError {
             | BindError::LeafMustBeAScalarOrEnum { location, .. }
             | BindError::DuplicateVariable { location, .. }
             | BindError::UndefinedVariable { location, .. }
+            | BindError::FragmentCycle { location, .. }
             | BindError::UnusedVariable { location, .. } => vec![location],
             BindError::NoMutationDefined | BindError::NoSubscriptionDefined => vec![],
         };
@@ -124,6 +128,7 @@ pub fn bind(schema: &Schema, unbound: UnboundOperation) -> BindResult<Operation>
         variable_definitions: vec![],
         variables_used: HashSet::new(),
         next_response_position: 0,
+        current_fragments_stack: Vec::new(),
     };
 
     binder.variable_definitions = binder.bind_variables(unbound.definition.variable_definitions)?;
@@ -173,6 +178,7 @@ pub struct Binder<'a> {
     // We also need to use the global request position so that merged selection sets are still
     // in the right order.
     next_response_position: usize,
+    current_fragments_stack: Vec<String>,
 }
 
 impl<'a> Binder<'a> {
@@ -445,25 +451,35 @@ impl<'a> Binder<'a> {
     ) -> BindResult<BoundSelection> {
         // We always create a new selection set from a named fragment. It may not be split in the
         // same way and we need to validate the type condition each time.
-        let name = spread.fragment_name.node.as_str();
+        let name = spread.fragment_name.node.to_string();
         let Positioned {
             pos: fragment_definition_pos,
             node: fragment_definition,
         } = self
             .unbound_fragments
-            .get(name)
+            .get(&name)
             .cloned()
             .ok_or_else(|| BindError::UnknownFragment {
                 name: name.to_string(),
                 location,
             })?;
         let type_condition = self.bind_type_condition(root, &fragment_definition.type_condition)?;
+
+        if self.current_fragments_stack.contains(&name) {
+            self.current_fragments_stack.push(name);
+            return Err(BindError::FragmentCycle {
+                cycle: std::mem::take(&mut self.current_fragments_stack),
+                location,
+            });
+        }
+        self.current_fragments_stack.push(name.clone());
         let selection_set_id = self.bind_selection_set(type_condition.into(), fragment_definition.selection_set)?;
+        self.current_fragments_stack.pop();
 
         Ok(BoundSelection::FragmentSpread(BoundFragmentSpread {
             location,
             selection_set_id,
-            fragment_id: match self.fragment_definitions.get(name) {
+            fragment_id: match self.fragment_definitions.get(&name) {
                 Some((id, _)) => *id,
                 None => {
                     // A bound fragment definition has no selection set, it was already bound. We
