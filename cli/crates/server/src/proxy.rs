@@ -185,8 +185,10 @@ async fn graphql_inner(
     }
 }
 
+pub const WS_TRANSPORT: &str = "graphql-transport-ws";
+
 async fn websocket_handler(ws: WebSocketUpgrade) -> Response {
-    ws.protocols(["graphql-transport-ws"]).on_upgrade(proxy_websocket)
+    ws.protocols([WS_TRANSPORT]).on_upgrade(proxy_websocket)
 }
 
 async fn proxy_websocket(client_socket: WebSocket) {
@@ -200,12 +202,13 @@ async fn proxy_websocket(client_socket: WebSocket) {
         let mut request = format!("ws://127.0.0.1:{worker_port}/ws")
             .into_client_request()
             .unwrap();
-        request.headers_mut().insert(
-            "Sec-WebSocket-Protocol",
-            HeaderValue::from_str("graphql-transport-ws").unwrap(),
-        );
+        request
+            .headers_mut()
+            .insert("Sec-WebSocket-Protocol", HeaderValue::from_str(WS_TRANSPORT).unwrap());
 
-        let (connection, _) = async_tungstenite::tokio::connect_async(request).await.unwrap();
+        let Ok((connection, _)) = async_tungstenite::tokio::connect_async(request).await else {
+            return;
+        };
 
         connection
     };
