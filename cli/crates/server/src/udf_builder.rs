@@ -1,6 +1,5 @@
 use common::environment::Environment;
 use common::types::UdfKind;
-use std::io;
 
 use itertools::Itertools;
 use std::path::{Path, PathBuf};
@@ -101,8 +100,11 @@ pub(crate) async fn build(
     udf_kind: UdfKind,
     udf_name: &str,
     tracing: bool,
-    enable_kv: bool,
+    // FIXME(remove miniflare)
+    _enable_kv: bool,
 ) -> Result<(PathBuf, PathBuf), UdfBuildError> {
+    // FIXME(remove miniflare)
+    let wrangler_toml_file_path = PathBuf::new();
     use path_slash::PathBufExt as _;
 
     let project = environment.project.as_ref().expect("must be present");
@@ -139,7 +141,8 @@ pub(crate) async fn build(
     let udf_build_package_json_path = udf_build_artifact_directory_path.join("package.json");
 
     let artifact_directory_modules_path = udf_build_artifact_directory_path.join("node_modules");
-    let artifact_directory_modules_path_string = artifact_directory_modules_path
+    // FIXME(remove miniflare)
+    let _artifact_directory_modules_path_string = artifact_directory_modules_path
         .to_str()
         .expect("must be valid if `artifact_directory_path_string` is valid");
 
@@ -162,11 +165,11 @@ pub(crate) async fn build(
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_build_package_json_path.clone(), udf_kind, err))?;
 
-    // FIXME
+    // FIXME(remove miniflare)
     let esbuild_arguments: &[&str] = &[];
 
     let _: Result<_, _> = tokio::fs::remove_file(&wrangler_toml_file_path).await;
-    // FIXME ESBUILD HERE
+    // FIXME(remove miniflare) ESBUILD HERE
     run_command(
         JavaScriptPackageManager::Npm,
         esbuild_arguments,
@@ -197,20 +200,21 @@ pub(crate) async fn build(
             .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
         temp_file
             .write_all(
-                // FIXME join with worker path
+                // FIXME(remove miniflare) join with worker path
                 &tokio::fs::read("entrypoint.js").await.expect("must succeed"),
             )
             .await
             .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
     }
-    // FIXME join with worker path
-    let entrypoint_js_path = "entrypoint.js";
+    // FIXME(remove miniflare) join with worker path
+    let entrypoint_js_path = PathBuf::from("entrypoint.js");
     tokio::fs::copy(temp_file_path, &entrypoint_js_path)
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(entrypoint_js_path.clone(), udf_kind, err))?;
 
-    let slugified_udf_name = slug::slugify(udf_name);
-    let udf_url_path = udf_url_path(udf_kind, udf_name);
+    // FIXME(remove miniflare)
+    let _slugified_udf_name = slug::slugify(udf_name);
+    let _udf_url_path = udf_url_path(udf_kind, udf_name);
 
     Ok((udf_build_package_json_path, wrangler_toml_file_path))
 }
@@ -244,7 +248,7 @@ async fn installed_esbuild_version(esbuild_installation_path: impl AsRef<Path>) 
     Some(String::from_utf8(output_bytes).ok()?.trim().to_owned())
 }
 
-// FIXME check if we can bundle ESBUILD
+// FIXME(remove miniflare) check if we can bundle ESBUILD
 pub(crate) async fn install_esbuild(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
     let lock_file_path = environment.user_dot_grafbase_path.join(".esbuild.install.lock");
     let mut lock_file = tokio::task::spawn_blocking(move || {

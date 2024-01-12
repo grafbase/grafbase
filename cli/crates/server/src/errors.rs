@@ -108,7 +108,7 @@ pub enum ServerError {
 
     /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
     #[error("command error: {0}")]
-    WranglerInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
+    EsbuildInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
 
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully
     #[error("resolver {0} failed to build:\n{1}")]
@@ -171,7 +171,7 @@ pub enum ServerError {
     #[error("could not start the proxy server\nCaused by:{0}")]
     StartProxyServer(std::io::Error),
 
-    #[error("Could not create a lock for the wrangler installation: {0}")]
+    #[error("Could not create a lock for the esbuild installation: {0}")]
     Lock(fslock::Error),
 
     #[error("Could not release the lock for the esbuild installation: {0}")]
@@ -232,6 +232,10 @@ pub enum UdfBuildError {
     // returned if the node process for a given UDF fails to spawn, with more details
     #[error("\n{output}")]
     NodeSpawnFailedWithOutput { output: String },
+
+    /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
+    #[error("command error: {0}")]
+    EsbuildInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
 
     /// returned if a spawned task panics
     #[error(transparent)]

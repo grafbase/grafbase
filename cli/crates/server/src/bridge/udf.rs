@@ -66,7 +66,8 @@ enum UdfWorkerStatus {
 }
 
 struct UdfWorker {
-    name: String,
+    // FIXME(remove miniflare)
+    _name: String,
     directory: PathBuf,
 }
 
@@ -153,16 +154,20 @@ impl UdfRuntime {
     async fn spawn_multi_worker_node(
         &self,
         udf_workers: Vec<UdfWorker>,
-    ) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildErrofBuildError> {
-        let mut node_arguments: Vec<_> = [/* FIXME script location*/].into_iter().map(Cow::Borrowed).collect();
+    ) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildError> {
+        let mut node_arguments: Vec<_> = ["" /* FIXME(remove miniflare) script location*/]
+            .into_iter()
+            .map(Cow::Borrowed)
+            .collect();
         if self.tracing {
-            // FIXME: add wrapper env var for debug
+            // FIXME(remove miniflare): add wrapper env var for debug
         }
 
         node_arguments.extend(
             udf_workers
                 .into_iter()
-                .map(|UdfWorker { directory, .. }| directory.display()),
+                // FIXME(remove miniflare) take another look at this tostring
+                .map(|UdfWorker { directory, .. }| Cow::Owned(directory.display().to_string())),
         );
 
         let environment = Environment::get();
@@ -385,20 +390,17 @@ async fn is_udf_ready(resolver_worker_port: u16) -> Result<bool, reqwest::Error>
 async fn spawn_node(
     udf_kind: UdfKind,
     udf_name: &str,
-    package_json_path: std::path::PathBuf,
-    wrangler_toml_path: std::path::PathBuf,
+    // FIXME(remove miniflare)
+    _package_json_path: std::path::PathBuf,
+    _wrangler_toml_path: std::path::PathBuf,
     tracing: bool,
 ) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildError> {
     use tokio::io::AsyncBufReadExt;
     use tokio_stream::wrappers::LinesStream;
 
-    let environment = Environment::get();
-
     let (join_handle, resolver_worker_port) = {
-        let mut node_arguments = vec![
-            /* FIXME script path */
-        ];
-        if tracing { /* FIXME debug */ }
+        let node_arguments = vec!["" /* FIXME(remove miniflare) script path */];
+        if tracing { /* FIXME(remove minflare) debug */ }
         let node_command = node_arguments.join(" ");
 
         let mut node = Command::new("node");

@@ -8,6 +8,3 @@ pub const MIN_NODE_VERSION: &str = "v18.0.0";
 pub const SCHEMA_PARSER_DIR: &str = "parser";
 pub const TS_NODE_SCRIPT_PATH: &str = "node_modules/ts-node/dist/bin.js";
 pub const WRAPPER_WORKER_JS_PATH: &str = "custom-resolvers/wrapper-worker.js";
-pub const GRAFBASE_WASM_SDK_NAME: &str = "grafbase-wasm-sdk_bg.wasm";
-pub const GRAFBASE_WASM_SDK_PATH: &str = "custom-resolvers/grafbase-wasm-sdk_bg.wasm";
-pub const GRAFBASE_KV_DATA_PATH: &str = "kv/data";

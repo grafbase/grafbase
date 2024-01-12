@@ -49,8 +49,7 @@ tokio-stream = { version = "0.1", features = ["sync", "io-util"] }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 tracing = "0.1"
 version-compare = "0.1"
-which.workspace = true
-cfg-if = "1"
+which = "4"
 walkdir = "2"
 sha2 = "0.10"
 
