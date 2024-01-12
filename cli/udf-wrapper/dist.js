@@ -31,9 +31,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// node_modules/picomatch/lib/constants.js
+// node_modules/.deno/picomatch@2.3.1/node_modules/picomatch/lib/constants.js
 var require_constants = __commonJS({
-  "node_modules/picomatch/lib/constants.js"(exports2, module2) {
+  "node_modules/.deno/picomatch@2.3.1/node_modules/picomatch/lib/constants.js"(exports2, module2) {
     "use strict";
     var path4 = require("path");
     var WIN_SLASH = "\\\\/";
@@ -228,9 +228,9 @@ var require_constants = __commonJS({
   }
 });
 
-// node_modules/picomatch/lib/utils.js
+// node_modules/.deno/picomatch@2.3.1/node_modules/picomatch/lib/utils.js
 var require_utils = __commonJS({
-  "node_modules/picomatch/lib/utils.js"(exports2) {
+  "node_modules/.deno/picomatch@2.3.1/node_modules/picomatch/lib/utils.js"(exports2) {
     "use strict";
     var path4 = require("path");
     var win32 = process.platform === "win32";
@@ -291,9 +291,9 @@ var require_utils = __commonJS({
   }
 });
 
-// node_modules/picomatch/lib/scan.js
+// node_modules/.deno/picomatch@2.3.1/node_modules/picomatch/lib/scan.js
 var require_scan = __commonJS({
-  "node_modules/picomatch/lib/scan.js"(exports2, module2) {
+  "node_modules/.deno/picomatch@2.3.1/node_modules/picomatch/lib/scan.js"(exports2, module2) {
     "use strict";
     var utils = require_utils();
     var {
@@ -624,9 +624,9 @@ var require_scan = __commonJS({
   }
 });
 
-// node_modules/picomatch/lib/parse.js
+// node_modules/.deno/picomatch@2.3.1/node_modules/picomatch/lib/parse.js
 var require_parse = __commonJS({
-  "node_modules/picomatch/lib/parse.js"(exports2, module2) {
+  "node_modules/.deno/picomatch@2.3.1/node_modules/picomatch/lib/parse.js"(exports2, module2) {
     "use strict";
     var constants3 = require_constants();
     var utils = require_utils();
@@ -1405,9 +1405,9 @@ var require_parse = __commonJS({
   }
 });
 
-// node_modules/picomatch/lib/picomatch.js
+// node_modules/.deno/picomatch@2.3.1/node_modules/picomatch/lib/picomatch.js
 var require_picomatch = __commonJS({
-  "node_modules/picomatch/lib/picomatch.js"(exports2, module2) {
+  "node_modules/.deno/picomatch@2.3.1/node_modules/picomatch/lib/picomatch.js"(exports2, module2) {
     "use strict";
     var path4 = require("path");
     var scan = require_scan();
@@ -1549,17 +1549,17 @@ var require_picomatch = __commonJS({
   }
 });
 
-// node_modules/picomatch/index.js
+// node_modules/.deno/picomatch@2.3.1/node_modules/picomatch/index.js
 var require_picomatch2 = __commonJS({
-  "node_modules/picomatch/index.js"(exports2, module2) {
+  "node_modules/.deno/picomatch@2.3.1/node_modules/picomatch/index.js"(exports2, module2) {
     "use strict";
     module2.exports = require_picomatch();
   }
 });
 
-// node_modules/kleur/colors.js
+// node_modules/.deno/kleur@4.1.5/node_modules/kleur/colors.js
 var require_colors = __commonJS({
-  "node_modules/kleur/colors.js"(exports2) {
+  "node_modules/.deno/kleur@4.1.5/node_modules/kleur/colors.js"(exports2) {
     var FORCE_COLOR;
     var NODE_DISABLE_COLORS;
     var NO_COLOR;
@@ -1610,9 +1610,9 @@ var require_colors = __commonJS({
   }
 });
 
-// node_modules/semver/internal/constants.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/internal/constants.js
 var require_constants2 = __commonJS({
-  "node_modules/semver/internal/constants.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/internal/constants.js"(exports2, module2) {
     var SEMVER_SPEC_VERSION = "2.0.0";
     var MAX_LENGTH = 256;
     var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || /* istanbul ignore next */
@@ -1641,18 +1641,18 @@ var require_constants2 = __commonJS({
   }
 });
 
-// node_modules/semver/internal/debug.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/internal/debug.js
 var require_debug = __commonJS({
-  "node_modules/semver/internal/debug.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/internal/debug.js"(exports2, module2) {
     var debug = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {
     };
     module2.exports = debug;
   }
 });
 
-// node_modules/semver/internal/re.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/internal/re.js
 var require_re = __commonJS({
-  "node_modules/semver/internal/re.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/internal/re.js"(exports2, module2) {
     var {
       MAX_SAFE_COMPONENT_LENGTH,
       MAX_SAFE_BUILD_LENGTH,
@@ -1732,9 +1732,9 @@ var require_re = __commonJS({
   }
 });
 
-// node_modules/semver/internal/parse-options.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/internal/parse-options.js
 var require_parse_options = __commonJS({
-  "node_modules/semver/internal/parse-options.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/internal/parse-options.js"(exports2, module2) {
     var looseOption = Object.freeze({ loose: true });
     var emptyOpts = Object.freeze({});
     var parseOptions = (options) => {
@@ -1750,9 +1750,9 @@ var require_parse_options = __commonJS({
   }
 });
 
-// node_modules/semver/internal/identifiers.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/internal/identifiers.js
 var require_identifiers = __commonJS({
-  "node_modules/semver/internal/identifiers.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/internal/identifiers.js"(exports2, module2) {
     var numeric = /^[0-9]+$/;
     var compareIdentifiers = (a, b) => {
       const anum = numeric.test(a);
@@ -1771,9 +1771,9 @@ var require_identifiers = __commonJS({
   }
 });
 
-// node_modules/semver/classes/semver.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/classes/semver.js
 var require_semver = __commonJS({
-  "node_modules/semver/classes/semver.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/classes/semver.js"(exports2, module2) {
     var debug = require_debug();
     var { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants2();
     var { safeRe: re, t } = require_re();
@@ -2013,9 +2013,9 @@ var require_semver = __commonJS({
   }
 });
 
-// node_modules/semver/functions/parse.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/parse.js
 var require_parse2 = __commonJS({
-  "node_modules/semver/functions/parse.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/parse.js"(exports2, module2) {
     var SemVer = require_semver();
     var parse2 = (version, options, throwErrors = false) => {
       if (version instanceof SemVer) {
@@ -2034,9 +2034,9 @@ var require_parse2 = __commonJS({
   }
 });
 
-// node_modules/semver/functions/valid.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/valid.js
 var require_valid = __commonJS({
-  "node_modules/semver/functions/valid.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/valid.js"(exports2, module2) {
     var parse2 = require_parse2();
     var valid = (version, options) => {
       const v = parse2(version, options);
@@ -2046,9 +2046,9 @@ var require_valid = __commonJS({
   }
 });
 
-// node_modules/semver/functions/clean.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/clean.js
 var require_clean = __commonJS({
-  "node_modules/semver/functions/clean.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/clean.js"(exports2, module2) {
     var parse2 = require_parse2();
     var clean = (version, options) => {
       const s = parse2(version.trim().replace(/^[=v]+/, ""), options);
@@ -2058,9 +2058,9 @@ var require_clean = __commonJS({
   }
 });
 
-// node_modules/semver/functions/inc.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/inc.js
 var require_inc = __commonJS({
-  "node_modules/semver/functions/inc.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/inc.js"(exports2, module2) {
     var SemVer = require_semver();
     var inc = (version, release, options, identifier, identifierBase) => {
       if (typeof options === "string") {
@@ -2081,9 +2081,9 @@ var require_inc = __commonJS({
   }
 });
 
-// node_modules/semver/functions/diff.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/diff.js
 var require_diff = __commonJS({
-  "node_modules/semver/functions/diff.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/diff.js"(exports2, module2) {
     var parse2 = require_parse2();
     var diff = (version1, version2) => {
       const v1 = parse2(version1, null, true);
@@ -2125,36 +2125,36 @@ var require_diff = __commonJS({
   }
 });
 
-// node_modules/semver/functions/major.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/major.js
 var require_major = __commonJS({
-  "node_modules/semver/functions/major.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/major.js"(exports2, module2) {
     var SemVer = require_semver();
     var major = (a, loose) => new SemVer(a, loose).major;
     module2.exports = major;
   }
 });
 
-// node_modules/semver/functions/minor.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/minor.js
 var require_minor = __commonJS({
-  "node_modules/semver/functions/minor.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/minor.js"(exports2, module2) {
     var SemVer = require_semver();
     var minor = (a, loose) => new SemVer(a, loose).minor;
     module2.exports = minor;
   }
 });
 
-// node_modules/semver/functions/patch.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/patch.js
 var require_patch = __commonJS({
-  "node_modules/semver/functions/patch.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/patch.js"(exports2, module2) {
     var SemVer = require_semver();
     var patch = (a, loose) => new SemVer(a, loose).patch;
     module2.exports = patch;
   }
 });
 
-// node_modules/semver/functions/prerelease.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/prerelease.js
 var require_prerelease = __commonJS({
-  "node_modules/semver/functions/prerelease.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/prerelease.js"(exports2, module2) {
     var parse2 = require_parse2();
     var prerelease = (version, options) => {
       const parsed = parse2(version, options);
@@ -2164,36 +2164,36 @@ var require_prerelease = __commonJS({
   }
 });
 
-// node_modules/semver/functions/compare.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/compare.js
 var require_compare = __commonJS({
-  "node_modules/semver/functions/compare.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/compare.js"(exports2, module2) {
     var SemVer = require_semver();
     var compare = (a, b, loose) => new SemVer(a, loose).compare(new SemVer(b, loose));
     module2.exports = compare;
   }
 });
 
-// node_modules/semver/functions/rcompare.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/rcompare.js
 var require_rcompare = __commonJS({
-  "node_modules/semver/functions/rcompare.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/rcompare.js"(exports2, module2) {
     var compare = require_compare();
     var rcompare = (a, b, loose) => compare(b, a, loose);
     module2.exports = rcompare;
   }
 });
 
-// node_modules/semver/functions/compare-loose.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/compare-loose.js
 var require_compare_loose = __commonJS({
-  "node_modules/semver/functions/compare-loose.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/compare-loose.js"(exports2, module2) {
     var compare = require_compare();
     var compareLoose = (a, b) => compare(a, b, true);
     module2.exports = compareLoose;
   }
 });
 
-// node_modules/semver/functions/compare-build.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/compare-build.js
 var require_compare_build = __commonJS({
-  "node_modules/semver/functions/compare-build.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/compare-build.js"(exports2, module2) {
     var SemVer = require_semver();
     var compareBuild = (a, b, loose) => {
       const versionA = new SemVer(a, loose);
@@ -2204,81 +2204,81 @@ var require_compare_build = __commonJS({
   }
 });
 
-// node_modules/semver/functions/sort.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/sort.js
 var require_sort = __commonJS({
-  "node_modules/semver/functions/sort.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/sort.js"(exports2, module2) {
     var compareBuild = require_compare_build();
     var sort = (list, loose) => list.sort((a, b) => compareBuild(a, b, loose));
     module2.exports = sort;
   }
 });
 
-// node_modules/semver/functions/rsort.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/rsort.js
 var require_rsort = __commonJS({
-  "node_modules/semver/functions/rsort.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/rsort.js"(exports2, module2) {
     var compareBuild = require_compare_build();
     var rsort = (list, loose) => list.sort((a, b) => compareBuild(b, a, loose));
     module2.exports = rsort;
   }
 });
 
-// node_modules/semver/functions/gt.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/gt.js
 var require_gt = __commonJS({
-  "node_modules/semver/functions/gt.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/gt.js"(exports2, module2) {
     var compare = require_compare();
     var gt = (a, b, loose) => compare(a, b, loose) > 0;
     module2.exports = gt;
   }
 });
 
-// node_modules/semver/functions/lt.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/lt.js
 var require_lt = __commonJS({
-  "node_modules/semver/functions/lt.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/lt.js"(exports2, module2) {
     var compare = require_compare();
     var lt = (a, b, loose) => compare(a, b, loose) < 0;
     module2.exports = lt;
   }
 });
 
-// node_modules/semver/functions/eq.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/eq.js
 var require_eq = __commonJS({
-  "node_modules/semver/functions/eq.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/eq.js"(exports2, module2) {
     var compare = require_compare();
     var eq = (a, b, loose) => compare(a, b, loose) === 0;
     module2.exports = eq;
   }
 });
 
-// node_modules/semver/functions/neq.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/neq.js
 var require_neq = __commonJS({
-  "node_modules/semver/functions/neq.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/neq.js"(exports2, module2) {
     var compare = require_compare();
     var neq = (a, b, loose) => compare(a, b, loose) !== 0;
     module2.exports = neq;
   }
 });
 
-// node_modules/semver/functions/gte.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/gte.js
 var require_gte = __commonJS({
-  "node_modules/semver/functions/gte.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/gte.js"(exports2, module2) {
     var compare = require_compare();
     var gte = (a, b, loose) => compare(a, b, loose) >= 0;
     module2.exports = gte;
   }
 });
 
-// node_modules/semver/functions/lte.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/lte.js
 var require_lte = __commonJS({
-  "node_modules/semver/functions/lte.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/lte.js"(exports2, module2) {
     var compare = require_compare();
     var lte = (a, b, loose) => compare(a, b, loose) <= 0;
     module2.exports = lte;
   }
 });
 
-// node_modules/semver/functions/cmp.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/cmp.js
 var require_cmp = __commonJS({
-  "node_modules/semver/functions/cmp.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/cmp.js"(exports2, module2) {
     var eq = require_eq();
     var neq = require_neq();
     var gt = require_gt();
@@ -2325,9 +2325,9 @@ var require_cmp = __commonJS({
   }
 });
 
-// node_modules/semver/functions/coerce.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/coerce.js
 var require_coerce = __commonJS({
-  "node_modules/semver/functions/coerce.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/coerce.js"(exports2, module2) {
     var SemVer = require_semver();
     var parse2 = require_parse2();
     var { safeRe: re, t } = require_re();
@@ -2364,9 +2364,9 @@ var require_coerce = __commonJS({
   }
 });
 
-// node_modules/yallist/iterator.js
+// node_modules/.deno/yallist@4.0.0/node_modules/yallist/iterator.js
 var require_iterator = __commonJS({
-  "node_modules/yallist/iterator.js"(exports2, module2) {
+  "node_modules/.deno/yallist@4.0.0/node_modules/yallist/iterator.js"(exports2, module2) {
     "use strict";
     module2.exports = function(Yallist) {
       Yallist.prototype[Symbol.iterator] = function* () {
@@ -2378,9 +2378,9 @@ var require_iterator = __commonJS({
   }
 });
 
-// node_modules/yallist/yallist.js
+// node_modules/.deno/yallist@4.0.0/node_modules/yallist/yallist.js
 var require_yallist = __commonJS({
-  "node_modules/yallist/yallist.js"(exports2, module2) {
+  "node_modules/.deno/yallist@4.0.0/node_modules/yallist/yallist.js"(exports2, module2) {
     "use strict";
     module2.exports = Yallist;
     Yallist.Node = Node;
@@ -2747,9 +2747,9 @@ var require_yallist = __commonJS({
   }
 });
 
-// node_modules/lru-cache/index.js
+// node_modules/.deno/lru-cache@6.0.0/node_modules/lru-cache/index.js
 var require_lru_cache = __commonJS({
-  "node_modules/lru-cache/index.js"(exports2, module2) {
+  "node_modules/.deno/lru-cache@6.0.0/node_modules/lru-cache/index.js"(exports2, module2) {
     "use strict";
     var Yallist = require_yallist();
     var MAX = Symbol("max");
@@ -3017,9 +3017,9 @@ var require_lru_cache = __commonJS({
   }
 });
 
-// node_modules/semver/classes/range.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/classes/range.js
 var require_range = __commonJS({
-  "node_modules/semver/classes/range.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/classes/range.js"(exports2, module2) {
     var Range = class _Range {
       constructor(range, options) {
         options = parseOptions(options);
@@ -3374,9 +3374,9 @@ var require_range = __commonJS({
   }
 });
 
-// node_modules/semver/classes/comparator.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/classes/comparator.js
 var require_comparator = __commonJS({
-  "node_modules/semver/classes/comparator.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/classes/comparator.js"(exports2, module2) {
     var ANY = Symbol("SemVer ANY");
     var Comparator = class _Comparator {
       static get ANY() {
@@ -3486,9 +3486,9 @@ var require_comparator = __commonJS({
   }
 });
 
-// node_modules/semver/functions/satisfies.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/functions/satisfies.js
 var require_satisfies = __commonJS({
-  "node_modules/semver/functions/satisfies.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/functions/satisfies.js"(exports2, module2) {
     var Range = require_range();
     var satisfies = (version, range, options) => {
       try {
@@ -3502,18 +3502,18 @@ var require_satisfies = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/to-comparators.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/to-comparators.js
 var require_to_comparators = __commonJS({
-  "node_modules/semver/ranges/to-comparators.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/to-comparators.js"(exports2, module2) {
     var Range = require_range();
     var toComparators = (range, options) => new Range(range, options).set.map((comp) => comp.map((c) => c.value).join(" ").trim().split(" "));
     module2.exports = toComparators;
   }
 });
 
-// node_modules/semver/ranges/max-satisfying.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/max-satisfying.js
 var require_max_satisfying = __commonJS({
-  "node_modules/semver/ranges/max-satisfying.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/max-satisfying.js"(exports2, module2) {
     var SemVer = require_semver();
     var Range = require_range();
     var maxSatisfying = (versions, range, options) => {
@@ -3539,9 +3539,9 @@ var require_max_satisfying = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/min-satisfying.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/min-satisfying.js
 var require_min_satisfying = __commonJS({
-  "node_modules/semver/ranges/min-satisfying.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/min-satisfying.js"(exports2, module2) {
     var SemVer = require_semver();
     var Range = require_range();
     var minSatisfying = (versions, range, options) => {
@@ -3567,9 +3567,9 @@ var require_min_satisfying = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/min-version.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/min-version.js
 var require_min_version = __commonJS({
-  "node_modules/semver/ranges/min-version.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/min-version.js"(exports2, module2) {
     var SemVer = require_semver();
     var Range = require_range();
     var gt = require_gt();
@@ -3623,9 +3623,9 @@ var require_min_version = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/valid.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/valid.js
 var require_valid2 = __commonJS({
-  "node_modules/semver/ranges/valid.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/valid.js"(exports2, module2) {
     var Range = require_range();
     var validRange = (range, options) => {
       try {
@@ -3638,9 +3638,9 @@ var require_valid2 = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/outside.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/outside.js
 var require_outside = __commonJS({
-  "node_modules/semver/ranges/outside.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/outside.js"(exports2, module2) {
     var SemVer = require_semver();
     var Comparator = require_comparator();
     var { ANY } = Comparator;
@@ -3706,27 +3706,27 @@ var require_outside = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/gtr.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/gtr.js
 var require_gtr = __commonJS({
-  "node_modules/semver/ranges/gtr.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/gtr.js"(exports2, module2) {
     var outside = require_outside();
     var gtr = (version, range, options) => outside(version, range, ">", options);
     module2.exports = gtr;
   }
 });
 
-// node_modules/semver/ranges/ltr.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/ltr.js
 var require_ltr = __commonJS({
-  "node_modules/semver/ranges/ltr.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/ltr.js"(exports2, module2) {
     var outside = require_outside();
     var ltr = (version, range, options) => outside(version, range, "<", options);
     module2.exports = ltr;
   }
 });
 
-// node_modules/semver/ranges/intersects.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/intersects.js
 var require_intersects = __commonJS({
-  "node_modules/semver/ranges/intersects.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/intersects.js"(exports2, module2) {
     var Range = require_range();
     var intersects = (r1, r2, options) => {
       r1 = new Range(r1, options);
@@ -3737,9 +3737,9 @@ var require_intersects = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/simplify.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/simplify.js
 var require_simplify = __commonJS({
-  "node_modules/semver/ranges/simplify.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/simplify.js"(exports2, module2) {
     var satisfies = require_satisfies();
     var compare = require_compare();
     module2.exports = (versions, range, options) => {
@@ -3786,9 +3786,9 @@ var require_simplify = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/subset.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/subset.js
 var require_subset = __commonJS({
-  "node_modules/semver/ranges/subset.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/ranges/subset.js"(exports2, module2) {
     var Range = require_range();
     var Comparator = require_comparator();
     var { ANY } = Comparator;
@@ -3948,9 +3948,9 @@ var require_subset = __commonJS({
   }
 });
 
-// node_modules/semver/index.js
+// node_modules/.deno/semver@7.5.4/node_modules/semver/index.js
 var require_semver2 = __commonJS({
-  "node_modules/semver/index.js"(exports2, module2) {
+  "node_modules/.deno/semver@7.5.4/node_modules/semver/index.js"(exports2, module2) {
     var internalRe = require_re();
     var constants3 = require_constants2();
     var SemVer = require_semver();
@@ -4042,7 +4042,7 @@ var require_semver2 = __commonJS({
   }
 });
 
-// node_modules/parse-package-name/dist/index.mjs
+// node_modules/.deno/parse-package-name@1.0.0/node_modules/parse-package-name/dist/index.mjs
 function parse(input) {
   const m = RE_SCOPED.exec(input) || RE_NON_SCOPED.exec(input);
   if (!m) {
@@ -4056,15 +4056,15 @@ function parse(input) {
 }
 var RE_SCOPED, RE_NON_SCOPED;
 var init_dist = __esm({
-  "node_modules/parse-package-name/dist/index.mjs"() {
+  "node_modules/.deno/parse-package-name@1.0.0/node_modules/parse-package-name/dist/index.mjs"() {
     RE_SCOPED = /^(@[^\/]+\/[^@\/]+)(?:@([^\/]+))?(\/.*)?$/;
     RE_NON_SCOPED = /^([^@\/]+)(?:@([^\/]+))?(\/.*)?$/;
   }
 });
 
-// node_modules/isexe/windows.js
+// node_modules/.deno/isexe@2.0.0/node_modules/isexe/windows.js
 var require_windows = __commonJS({
-  "node_modules/isexe/windows.js"(exports2, module2) {
+  "node_modules/.deno/isexe@2.0.0/node_modules/isexe/windows.js"(exports2, module2) {
     module2.exports = isexe;
     isexe.sync = sync;
     var fs = require("fs");
@@ -4102,9 +4102,9 @@ var require_windows = __commonJS({
   }
 });
 
-// node_modules/isexe/mode.js
+// node_modules/.deno/isexe@2.0.0/node_modules/isexe/mode.js
 var require_mode = __commonJS({
-  "node_modules/isexe/mode.js"(exports2, module2) {
+  "node_modules/.deno/isexe@2.0.0/node_modules/isexe/mode.js"(exports2, module2) {
     module2.exports = isexe;
     isexe.sync = sync;
     var fs = require("fs");
@@ -4135,9 +4135,9 @@ var require_mode = __commonJS({
   }
 });
 
-// node_modules/isexe/index.js
+// node_modules/.deno/isexe@2.0.0/node_modules/isexe/index.js
 var require_isexe = __commonJS({
-  "node_modules/isexe/index.js"(exports2, module2) {
+  "node_modules/.deno/isexe@2.0.0/node_modules/isexe/index.js"(exports2, module2) {
     var fs = require("fs");
     var core;
     if (process.platform === "win32" || global.TESTING_WINDOWS) {
@@ -4190,9 +4190,9 @@ var require_isexe = __commonJS({
   }
 });
 
-// node_modules/which/which.js
+// node_modules/.deno/which@2.0.2/node_modules/which/which.js
 var require_which = __commonJS({
-  "node_modules/which/which.js"(exports2, module2) {
+  "node_modules/.deno/which@2.0.2/node_modules/which/which.js"(exports2, module2) {
     var isWindows = process.platform === "win32" || process.env.OSTYPE === "cygwin" || process.env.OSTYPE === "msys";
     var path4 = require("path");
     var COLON = isWindows ? ";" : ":";
@@ -4286,9 +4286,9 @@ var require_which = __commonJS({
   }
 });
 
-// node_modules/path-key/index.js
+// node_modules/.deno/path-key@3.1.1/node_modules/path-key/index.js
 var require_path_key = __commonJS({
-  "node_modules/path-key/index.js"(exports2, module2) {
+  "node_modules/.deno/path-key@3.1.1/node_modules/path-key/index.js"(exports2, module2) {
     "use strict";
     var pathKey2 = (options = {}) => {
       const environment = options.env || process.env;
@@ -4303,9 +4303,9 @@ var require_path_key = __commonJS({
   }
 });
 
-// node_modules/cross-spawn/lib/util/resolveCommand.js
+// node_modules/.deno/cross-spawn@7.0.3/node_modules/cross-spawn/lib/util/resolveCommand.js
 var require_resolveCommand = __commonJS({
-  "node_modules/cross-spawn/lib/util/resolveCommand.js"(exports2, module2) {
+  "node_modules/.deno/cross-spawn@7.0.3/node_modules/cross-spawn/lib/util/resolveCommand.js"(exports2, module2) {
     "use strict";
     var path4 = require("path");
     var which = require_which();
@@ -4345,9 +4345,9 @@ var require_resolveCommand = __commonJS({
   }
 });
 
-// node_modules/cross-spawn/lib/util/escape.js
+// node_modules/.deno/cross-spawn@7.0.3/node_modules/cross-spawn/lib/util/escape.js
 var require_escape = __commonJS({
-  "node_modules/cross-spawn/lib/util/escape.js"(exports2, module2) {
+  "node_modules/.deno/cross-spawn@7.0.3/node_modules/cross-spawn/lib/util/escape.js"(exports2, module2) {
     "use strict";
     var metaCharsRegExp = /([()\][%!^"`<>&|;, *?])/g;
     function escapeCommand(arg) {
@@ -4370,17 +4370,17 @@ var require_escape = __commonJS({
   }
 });
 
-// node_modules/shebang-regex/index.js
+// node_modules/.deno/shebang-regex@3.0.0/node_modules/shebang-regex/index.js
 var require_shebang_regex = __commonJS({
-  "node_modules/shebang-regex/index.js"(exports2, module2) {
+  "node_modules/.deno/shebang-regex@3.0.0/node_modules/shebang-regex/index.js"(exports2, module2) {
     "use strict";
     module2.exports = /^#!(.*)/;
   }
 });
 
-// node_modules/shebang-command/index.js
+// node_modules/.deno/shebang-command@2.0.0/node_modules/shebang-command/index.js
 var require_shebang_command = __commonJS({
-  "node_modules/shebang-command/index.js"(exports2, module2) {
+  "node_modules/.deno/shebang-command@2.0.0/node_modules/shebang-command/index.js"(exports2, module2) {
     "use strict";
     var shebangRegex = require_shebang_regex();
     module2.exports = (string = "") => {
@@ -4398,9 +4398,9 @@ var require_shebang_command = __commonJS({
   }
 });
 
-// node_modules/cross-spawn/lib/util/readShebang.js
+// node_modules/.deno/cross-spawn@7.0.3/node_modules/cross-spawn/lib/util/readShebang.js
 var require_readShebang = __commonJS({
-  "node_modules/cross-spawn/lib/util/readShebang.js"(exports2, module2) {
+  "node_modules/.deno/cross-spawn@7.0.3/node_modules/cross-spawn/lib/util/readShebang.js"(exports2, module2) {
     "use strict";
     var fs = require("fs");
     var shebangCommand = require_shebang_command();
@@ -4420,9 +4420,9 @@ var require_readShebang = __commonJS({
   }
 });
 
-// node_modules/cross-spawn/lib/parse.js
+// node_modules/.deno/cross-spawn@7.0.3/node_modules/cross-spawn/lib/parse.js
 var require_parse3 = __commonJS({
-  "node_modules/cross-spawn/lib/parse.js"(exports2, module2) {
+  "node_modules/.deno/cross-spawn@7.0.3/node_modules/cross-spawn/lib/parse.js"(exports2, module2) {
     "use strict";
     var path4 = require("path");
     var resolveCommand = require_resolveCommand();
@@ -4482,9 +4482,9 @@ var require_parse3 = __commonJS({
   }
 });
 
-// node_modules/cross-spawn/lib/enoent.js
+// node_modules/.deno/cross-spawn@7.0.3/node_modules/cross-spawn/lib/enoent.js
 var require_enoent = __commonJS({
-  "node_modules/cross-spawn/lib/enoent.js"(exports2, module2) {
+  "node_modules/.deno/cross-spawn@7.0.3/node_modules/cross-spawn/lib/enoent.js"(exports2, module2) {
     "use strict";
     var isWin = process.platform === "win32";
     function notFoundError(original, syscall) {
@@ -4532,9 +4532,9 @@ var require_enoent = __commonJS({
   }
 });
 
-// node_modules/cross-spawn/index.js
+// node_modules/.deno/cross-spawn@7.0.3/node_modules/cross-spawn/index.js
 var require_cross_spawn = __commonJS({
-  "node_modules/cross-spawn/index.js"(exports2, module2) {
+  "node_modules/.deno/cross-spawn@7.0.3/node_modules/cross-spawn/index.js"(exports2, module2) {
     "use strict";
     var cp = require("child_process");
     var parse2 = require_parse3();
@@ -4559,7 +4559,7 @@ var require_cross_spawn = __commonJS({
   }
 });
 
-// node_modules/strip-final-newline/index.js
+// node_modules/.deno/strip-final-newline@3.0.0/node_modules/strip-final-newline/index.js
 function stripFinalNewline(input) {
   const LF = typeof input === "string" ? "\n" : "\n".charCodeAt();
   const CR = typeof input === "string" ? "\r" : "\r".charCodeAt();
@@ -4572,11 +4572,11 @@ function stripFinalNewline(input) {
   return input;
 }
 var init_strip_final_newline = __esm({
-  "node_modules/strip-final-newline/index.js"() {
+  "node_modules/.deno/strip-final-newline@3.0.0/node_modules/strip-final-newline/index.js"() {
   }
 });
 
-// node_modules/npm-run-path/node_modules/path-key/index.js
+// node_modules/.deno/path-key@4.0.0/node_modules/path-key/index.js
 function pathKey(options = {}) {
   const {
     env = process.env,
@@ -4588,11 +4588,11 @@ function pathKey(options = {}) {
   return Object.keys(env).reverse().find((key) => key.toUpperCase() === "PATH") || "Path";
 }
 var init_path_key = __esm({
-  "node_modules/npm-run-path/node_modules/path-key/index.js"() {
+  "node_modules/.deno/path-key@4.0.0/node_modules/path-key/index.js"() {
   }
 });
 
-// node_modules/npm-run-path/index.js
+// node_modules/.deno/npm-run-path@5.2.0/node_modules/npm-run-path/index.js
 function npmRunPath(options = {}) {
   const {
     cwd = import_node_process.default.cwd(),
@@ -4621,7 +4621,7 @@ function npmRunPathEnv({ env = import_node_process.default.env, ...options } = {
 }
 var import_node_process, import_node_path, import_node_url;
 var init_npm_run_path = __esm({
-  "node_modules/npm-run-path/index.js"() {
+  "node_modules/.deno/npm-run-path@5.2.0/node_modules/npm-run-path/index.js"() {
     import_node_process = __toESM(require("node:process"), 1);
     import_node_path = __toESM(require("node:path"), 1);
     import_node_url = __toESM(require("node:url"), 1);
@@ -4629,7 +4629,7 @@ var init_npm_run_path = __esm({
   }
 });
 
-// node_modules/mimic-fn/index.js
+// node_modules/.deno/mimic-fn@4.0.0/node_modules/mimic-fn/index.js
 function mimicFunction(to, from, { ignoreNonConfigurable = false } = {}) {
   const { name } = to;
   for (const property of Reflect.ownKeys(from)) {
@@ -4641,7 +4641,7 @@ function mimicFunction(to, from, { ignoreNonConfigurable = false } = {}) {
 }
 var copyProperty, canCopyProperty, changePrototype, wrappedToString, toStringDescriptor, toStringName, changeToString;
 var init_mimic_fn = __esm({
-  "node_modules/mimic-fn/index.js"() {
+  "node_modules/.deno/mimic-fn@4.0.0/node_modules/mimic-fn/index.js"() {
     copyProperty = (to, from, property, ignoreNonConfigurable) => {
       if (property === "length" || property === "prototype") {
         return;
@@ -4679,10 +4679,10 @@ ${fromBody}`;
   }
 });
 
-// node_modules/onetime/index.js
+// node_modules/.deno/onetime@6.0.0/node_modules/onetime/index.js
 var calledFunctions, onetime, onetime_default;
 var init_onetime = __esm({
-  "node_modules/onetime/index.js"() {
+  "node_modules/.deno/onetime@6.0.0/node_modules/onetime/index.js"() {
     init_mimic_fn();
     calledFunctions = /* @__PURE__ */ new WeakMap();
     onetime = (function_, options = {}) => {
@@ -4716,10 +4716,10 @@ var init_onetime = __esm({
   }
 });
 
-// node_modules/human-signals/build/src/realtime.js
+// node_modules/.deno/human-signals@3.0.1/node_modules/human-signals/build/src/realtime.js
 var getRealtimeSignals, getRealtimeSignal, SIGRTMIN, SIGRTMAX;
 var init_realtime = __esm({
-  "node_modules/human-signals/build/src/realtime.js"() {
+  "node_modules/.deno/human-signals@3.0.1/node_modules/human-signals/build/src/realtime.js"() {
     getRealtimeSignals = function() {
       const length = SIGRTMAX - SIGRTMIN + 1;
       return Array.from({ length }, getRealtimeSignal);
@@ -4738,10 +4738,10 @@ var init_realtime = __esm({
   }
 });
 
-// node_modules/human-signals/build/src/core.js
+// node_modules/.deno/human-signals@3.0.1/node_modules/human-signals/build/src/core.js
 var SIGNALS;
 var init_core = __esm({
-  "node_modules/human-signals/build/src/core.js"() {
+  "node_modules/.deno/human-signals@3.0.1/node_modules/human-signals/build/src/core.js"() {
     SIGNALS = [
       {
         name: "SIGHUP",
@@ -5016,10 +5016,10 @@ var init_core = __esm({
   }
 });
 
-// node_modules/human-signals/build/src/signals.js
+// node_modules/.deno/human-signals@3.0.1/node_modules/human-signals/build/src/signals.js
 var import_os, getSignals, normalizeSignal;
 var init_signals = __esm({
-  "node_modules/human-signals/build/src/signals.js"() {
+  "node_modules/.deno/human-signals@3.0.1/node_modules/human-signals/build/src/signals.js"() {
     import_os = require("os");
     init_core();
     init_realtime();
@@ -5046,10 +5046,10 @@ var init_signals = __esm({
   }
 });
 
-// node_modules/human-signals/build/src/main.js
+// node_modules/.deno/human-signals@3.0.1/node_modules/human-signals/build/src/main.js
 var import_os2, getSignalsByName, getSignalByName, signalsByName, getSignalsByNumber, getSignalByNumber, findSignalByNumber, signalsByNumber;
 var init_main = __esm({
-  "node_modules/human-signals/build/src/main.js"() {
+  "node_modules/.deno/human-signals@3.0.1/node_modules/human-signals/build/src/main.js"() {
     import_os2 = require("os");
     init_realtime();
     init_signals();
@@ -5099,10 +5099,10 @@ var init_main = __esm({
   }
 });
 
-// node_modules/execa/lib/error.js
+// node_modules/.deno/execa@6.1.0/node_modules/execa/lib/error.js
 var getErrorPrefix, makeError;
 var init_error = __esm({
-  "node_modules/execa/lib/error.js"() {
+  "node_modules/.deno/execa@6.1.0/node_modules/execa/lib/error.js"() {
     init_main();
     getErrorPrefix = ({ timedOut, timeout, errorCode, signal, signalDescription, exitCode, isCanceled }) => {
       if (timedOut) {
@@ -5175,10 +5175,10 @@ ${error.message}` : execaMessage;
   }
 });
 
-// node_modules/execa/lib/stdio.js
+// node_modules/.deno/execa@6.1.0/node_modules/execa/lib/stdio.js
 var aliases, hasAlias, normalizeStdio;
 var init_stdio = __esm({
-  "node_modules/execa/lib/stdio.js"() {
+  "node_modules/.deno/execa@6.1.0/node_modules/execa/lib/stdio.js"() {
     aliases = ["stdin", "stdout", "stderr"];
     hasAlias = (options) => aliases.some((alias) => options[alias] !== void 0);
     normalizeStdio = (options) => {
@@ -5204,9 +5204,9 @@ var init_stdio = __esm({
   }
 });
 
-// node_modules/signal-exit/signals.js
+// node_modules/.deno/signal-exit@3.0.7/node_modules/signal-exit/signals.js
 var require_signals = __commonJS({
-  "node_modules/signal-exit/signals.js"(exports2, module2) {
+  "node_modules/.deno/signal-exit@3.0.7/node_modules/signal-exit/signals.js"(exports2, module2) {
     module2.exports = [
       "SIGABRT",
       "SIGALRM",
@@ -5241,9 +5241,9 @@ var require_signals = __commonJS({
   }
 });
 
-// node_modules/signal-exit/index.js
+// node_modules/.deno/signal-exit@3.0.7/node_modules/signal-exit/index.js
 var require_signal_exit = __commonJS({
-  "node_modules/signal-exit/index.js"(exports2, module2) {
+  "node_modules/.deno/signal-exit@3.0.7/node_modules/signal-exit/index.js"(exports2, module2) {
     var process4 = global.process;
     var processOk = function(process5) {
       return process5 && typeof process5 === "object" && typeof process5.removeListener === "function" && typeof process5.emit === "function" && typeof process5.reallyExit === "function" && typeof process5.listeners === "function" && typeof process5.kill === "function" && typeof process5.pid === "number" && typeof process5.on === "function";
@@ -5400,10 +5400,10 @@ var require_signal_exit = __commonJS({
   }
 });
 
-// node_modules/execa/lib/kill.js
+// node_modules/.deno/execa@6.1.0/node_modules/execa/lib/kill.js
 var import_node_os, import_signal_exit, DEFAULT_FORCE_KILL_TIMEOUT, spawnedKill, setKillTimeout, shouldForceKill, isSigterm, getForceKillAfterTimeout, spawnedCancel, timeoutKill, setupTimeout, validateTimeout, setExitHandler;
 var init_kill = __esm({
-  "node_modules/execa/lib/kill.js"() {
+  "node_modules/.deno/execa@6.1.0/node_modules/execa/lib/kill.js"() {
     import_node_os = __toESM(require("node:os"), 1);
     import_signal_exit = __toESM(require_signal_exit(), 1);
     DEFAULT_FORCE_KILL_TIMEOUT = 1e3 * 5;
@@ -5479,18 +5479,18 @@ var init_kill = __esm({
   }
 });
 
-// node_modules/is-stream/index.js
+// node_modules/.deno/is-stream@3.0.0/node_modules/is-stream/index.js
 function isStream(stream) {
   return stream !== null && typeof stream === "object" && typeof stream.pipe === "function";
 }
 var init_is_stream = __esm({
-  "node_modules/is-stream/index.js"() {
+  "node_modules/.deno/is-stream@3.0.0/node_modules/is-stream/index.js"() {
   }
 });
 
-// node_modules/get-stream/buffer-stream.js
+// node_modules/.deno/get-stream@6.0.1/node_modules/get-stream/buffer-stream.js
 var require_buffer_stream = __commonJS({
-  "node_modules/get-stream/buffer-stream.js"(exports2, module2) {
+  "node_modules/.deno/get-stream@6.0.1/node_modules/get-stream/buffer-stream.js"(exports2, module2) {
     "use strict";
     var { PassThrough: PassThroughStream } = require("stream");
     module2.exports = (options) => {
@@ -5533,9 +5533,9 @@ var require_buffer_stream = __commonJS({
   }
 });
 
-// node_modules/get-stream/index.js
+// node_modules/.deno/get-stream@6.0.1/node_modules/get-stream/index.js
 var require_get_stream = __commonJS({
-  "node_modules/get-stream/index.js"(exports2, module2) {
+  "node_modules/.deno/get-stream@6.0.1/node_modules/get-stream/index.js"(exports2, module2) {
     "use strict";
     var { constants: BufferConstants } = require("buffer");
     var stream = require("stream");
@@ -5588,9 +5588,9 @@ var require_get_stream = __commonJS({
   }
 });
 
-// node_modules/merge-stream/index.js
+// node_modules/.deno/merge-stream@2.0.0/node_modules/merge-stream/index.js
 var require_merge_stream = __commonJS({
-  "node_modules/merge-stream/index.js"(exports2, module2) {
+  "node_modules/.deno/merge-stream@2.0.0/node_modules/merge-stream/index.js"(exports2, module2) {
     "use strict";
     var { PassThrough } = require("stream");
     module2.exports = function() {
@@ -5628,10 +5628,10 @@ var require_merge_stream = __commonJS({
   }
 });
 
-// node_modules/execa/lib/stream.js
+// node_modules/.deno/execa@6.1.0/node_modules/execa/lib/stream.js
 var import_get_stream, import_merge_stream, handleInput, makeAllStream, getBufferedData, getStreamPromise, getSpawnedResult;
 var init_stream = __esm({
-  "node_modules/execa/lib/stream.js"() {
+  "node_modules/.deno/execa@6.1.0/node_modules/execa/lib/stream.js"() {
     init_is_stream();
     import_get_stream = __toESM(require_get_stream(), 1);
     import_merge_stream = __toESM(require_merge_stream(), 1);
@@ -5696,10 +5696,10 @@ var init_stream = __esm({
   }
 });
 
-// node_modules/execa/lib/promise.js
+// node_modules/.deno/execa@6.1.0/node_modules/execa/lib/promise.js
 var nativePromisePrototype, descriptors, mergePromise, getSpawnedPromise;
 var init_promise = __esm({
-  "node_modules/execa/lib/promise.js"() {
+  "node_modules/.deno/execa@6.1.0/node_modules/execa/lib/promise.js"() {
     nativePromisePrototype = (async () => {
     })().constructor.prototype;
     descriptors = ["then", "catch", "finally"].map((property) => [
@@ -5729,10 +5729,10 @@ var init_promise = __esm({
   }
 });
 
-// node_modules/execa/lib/command.js
+// node_modules/.deno/execa@6.1.0/node_modules/execa/lib/command.js
 var normalizeArgs, NO_ESCAPE_REGEXP, DOUBLE_QUOTES_REGEXP, escapeArg, joinCommand, getEscapedCommand, SPACES_REGEXP, parseCommand;
 var init_command = __esm({
-  "node_modules/execa/lib/command.js"() {
+  "node_modules/.deno/execa@6.1.0/node_modules/execa/lib/command.js"() {
     normalizeArgs = (file, args = []) => {
       if (!Array.isArray(args)) {
         return [file];
@@ -5765,7 +5765,7 @@ var init_command = __esm({
   }
 });
 
-// node_modules/execa/index.js
+// node_modules/.deno/execa@6.1.0/node_modules/execa/index.js
 function execa(file, args, options) {
   const parsed = handleArguments(file, args, options);
   const command = joinCommand(file, args);
@@ -5845,7 +5845,7 @@ function execaCommand(command, options) {
 }
 var import_node_buffer, import_node_path2, import_node_child_process, import_node_process2, import_cross_spawn, DEFAULT_MAX_BUFFER, getEnv, handleArguments, handleOutput;
 var init_execa = __esm({
-  "node_modules/execa/index.js"() {
+  "node_modules/.deno/execa@6.1.0/node_modules/execa/index.js"() {
     import_node_buffer = require("node:buffer");
     import_node_path2 = __toESM(require("node:path"), 1);
     import_node_child_process = __toESM(require("node:child_process"), 1);
@@ -5907,9 +5907,9 @@ var init_execa = __esm({
   }
 });
 
-// node_modules/builtins/index.js
+// node_modules/.deno/builtins@5.0.1/node_modules/builtins/index.js
 var require_builtins = __commonJS({
-  "node_modules/builtins/index.js"(exports2, module2) {
+  "node_modules/.deno/builtins@5.0.1/node_modules/builtins/index.js"(exports2, module2) {
     "use strict";
     var semver2 = require_semver2();
     var permanentModules = [
@@ -5982,9 +5982,9 @@ var require_builtins = __commonJS({
   }
 });
 
-// node_modules/validate-npm-package-name/lib/index.js
+// node_modules/.deno/validate-npm-package-name@4.0.0/node_modules/validate-npm-package-name/lib/index.js
 var require_lib = __commonJS({
-  "node_modules/validate-npm-package-name/lib/index.js"(exports2, module2) {
+  "node_modules/.deno/validate-npm-package-name@4.0.0/node_modules/validate-npm-package-name/lib/index.js"(exports2, module2) {
     "use strict";
     var scopedPackagePattern = new RegExp("^(?:@([^/]+?)[/])?([^/]+?)$");
     var builtins = require_builtins();
@@ -6070,7 +6070,7 @@ var require_lib = __commonJS({
   }
 });
 
-// node_modules/npx-import/lib/utils.js
+// node_modules/.deno/npx-import@1.1.4/node_modules/npx-import/lib/utils.js
 async function _import(packageWithPath) {
   return await import(packageWithPath);
 }
@@ -6086,14 +6086,14 @@ function _resolveRelative(installDir, packageWithPath) {
 }
 var import_node_url2, import_node_module, import_meta;
 var init_utils = __esm({
-  "node_modules/npx-import/lib/utils.js"() {
+  "node_modules/.deno/npx-import@1.1.4/node_modules/npx-import/lib/utils.js"() {
     import_node_url2 = require("node:url");
     import_node_module = require("node:module");
     import_meta = {};
   }
 });
 
-// node_modules/npx-import/lib/index.js
+// node_modules/.deno/npx-import@1.1.4/node_modules/npx-import/lib/index.js
 var lib_exports = {};
 __export(lib_exports, {
   getPackageManager: () => getPackageManager,
@@ -6262,7 +6262,7 @@ ${JSON.stringify(paths)}`);
 }
 var import_node_os2, import_node_path3, import_semver, import_validate_npm_package_name, WINDOWS, NOT_IMPORTABLE, INSTALLED_LOCALLY, INSTALL_CACHE, DEFAULT_LOGGER, INSTRUCTIONS, formatForCLI;
 var init_lib = __esm({
-  "node_modules/npx-import/lib/index.js"() {
+  "node_modules/.deno/npx-import@1.1.4/node_modules/npx-import/lib/index.js"() {
     import_node_os2 = __toESM(require("node:os"), 1);
     import_node_path3 = __toESM(require("node:path"), 1);
     import_semver = __toESM(require_semver2(), 1);
@@ -6288,9 +6288,9 @@ var init_lib = __esm({
   }
 });
 
-// node_modules/@miniflare/shared/dist/src/index.js
+// node_modules/.deno/@miniflare+shared@2.14.1/node_modules/@miniflare/shared/dist/src/index.js
 var require_src = __commonJS({
-  "node_modules/@miniflare/shared/dist/src/index.js"(exports2) {
+  "node_modules/.deno/@miniflare+shared@2.14.1/node_modules/@miniflare/shared/dist/src/index.js"(exports2) {
     var __create2 = Object.create;
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
@@ -7081,9 +7081,9 @@ A subrequest is a call to fetch(), a redirect, or a call to any Cache API method
   }
 });
 
-// node_modules/@miniflare/kv/dist/src/index.js
+// node_modules/.deno/@miniflare+kv@2.14.1/node_modules/@miniflare/kv/dist/src/index.js
 var require_src2 = __commonJS({
-  "node_modules/@miniflare/kv/dist/src/index.js"(exports2) {
+  "node_modules/.deno/@miniflare+kv@2.14.1/node_modules/@miniflare/kv/dist/src/index.js"(exports2) {
     var __create2 = Object.create;
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
@@ -7383,9 +7383,9 @@ var require_src2 = __commonJS({
   }
 });
 
-// node_modules/@miniflare/storage-memory/dist/src/index.js
+// node_modules/.deno/@miniflare+storage-memory@2.14.1/node_modules/@miniflare/storage-memory/dist/src/index.js
 var require_src3 = __commonJS({
-  "node_modules/@miniflare/storage-memory/dist/src/index.js"(exports2) {
+  "node_modules/.deno/@miniflare+storage-memory@2.14.1/node_modules/@miniflare/storage-memory/dist/src/index.js"(exports2) {
     var __create2 = Object.create;
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
@@ -7623,7 +7623,6 @@ var require_src3 = __commonJS({
 });
 
 // index.ts
-var import_UDF_MAIN_FILE_PATH = __toESM(require("${UDF_MAIN_FILE_PATH}"));
 var import_http = require("http");
 var import_stream2 = require("stream");
 var import_kv = __toESM(require_src2());
@@ -7639,14 +7638,14 @@ var PORT = 0;
 var HOST = "127.0.0.1";
 var DUMMY_HOST = "https://grafbase-cli";
 var MIME_PROPERTY_SEPARATOR = ";";
-var CONSOLE_LOG = Symbol();
-var FETCH = Symbol();
-var LOG_ENTRIES = Symbol();
-var FETCH_REQUESTS = Symbol();
-globalThis[CONSOLE_LOG] = console.log;
-globalThis[FETCH] = globalThis.fetch;
-globalThis[LOG_ENTRIES] = [];
-globalThis[FETCH_REQUESTS] = [];
+var originalConsoleLog = console.log;
+var originalFetch = globalThis.fetch;
+var logEntries = [];
+var fetchRequests = [];
+var udf = (_parent, _args, _context, _info) => {
+  console.log("$");
+  return 4;
+};
 var server = (0, import_http.createServer)((request, response) => {
   router(
     new Request(`${DUMMY_HOST}${request.url}`, {
@@ -7666,7 +7665,7 @@ var server = (0, import_http.createServer)((request, response) => {
 });
 server.listen(PORT, HOST, () => {
   const port = server.address().port;
-  globalThis[CONSOLE_LOG](port);
+  originalConsoleLog(port);
 });
 var arrayBufferToBase64 = (buffer) => {
   let binaryString = "";
@@ -7677,7 +7676,7 @@ var arrayBufferToBase64 = (buffer) => {
 };
 for (const level of Object.values(LogLevel)) {
   globalThis.console[level] = (...message) => {
-    globalThis[LOG_ENTRIES].push({
+    logEntries.push({
       loggedAt: Date.now(),
       level,
       message: Array.from(message).map((message2) => JSON.stringify(message2)).join(" ")
@@ -7688,7 +7687,7 @@ globalThis.console.log = globalThis.console.info;
 globalThis.fetch = async (input, init) => {
   const request = new Request(input, init);
   const startTime = Date.now();
-  const response = await globalThis[FETCH](request);
+  const response = await originalFetch(request);
   const endTime = Date.now();
   const contentType = response.headers.get("content-type" /* ContentType */)?.split(MIME_PROPERTY_SEPARATOR)[0].trim();
   let body = null;
@@ -7708,7 +7707,7 @@ globalThis.fetch = async (input, init) => {
     contentType,
     body
   };
-  globalThis[FETCH_REQUESTS].push(fetchRequest);
+  fetchRequests.push(fetchRequest);
   return response;
 };
 var router = async (request) => {
@@ -7735,15 +7734,15 @@ var router = async (request) => {
   }
 };
 var invoke = async (request) => {
-  globalThis[LOG_ENTRIES] = [];
-  globalThis[FETCH_REQUESTS] = [];
+  logEntries = [];
+  fetchRequests = [];
   const { parent, args, context, info } = await request.json();
   let returnValue = null;
   try {
     if (context) {
       context.kv = new import_kv.KVNamespace(new import_storage_memory.MemoryStorage());
     }
-    returnValue = (0, import_UDF_MAIN_FILE_PATH.default)(parent, args, context, info);
+    returnValue = udf(parent, args, context, info);
     if (returnValue instanceof Promise) {
       returnValue = await returnValue;
     }
@@ -7788,8 +7787,8 @@ var invoke = async (request) => {
   }
   const jsonResponse = {
     value: returnValue,
-    fetchRequests: globalThis[FETCH_REQUESTS],
-    logEntries: globalThis[LOG_ENTRIES]
+    fetchRequests,
+    logEntries
   };
   return new Response(JSON.stringify(jsonResponse), {
     headers: { ["content-type" /* ContentType */]: "application/json" /* ApplicationJson */ }

@@ -5,7 +5,7 @@ use crate::file_watcher::Watcher;
 use crate::node::validate_node;
 use crate::proxy::ProxyHandle;
 use crate::types::{MessageSender, ServerMessage, ASSETS_GZIP};
-use crate::udf_builder::install_wrangler;
+use crate::udf_builder::install_esbuild;
 use crate::{bridge, errors::ServerError};
 use crate::{error_server, proxy};
 use bridge::BridgeState;
@@ -148,7 +148,7 @@ impl ProductionServer {
 }
 
 /// starts a development server by unpacking any files needed by the gateway worker
-/// and starting the miniflare cli in `user_grafbase_path` in [`Environment`]
+/// and starting the node in `user_grafbase_path` in [`Environment`]
 ///
 /// # Errors
 ///
@@ -160,7 +160,7 @@ impl ProductionServer {
 ///
 /// # Panics
 ///
-/// The spawned server and miniflare thread can panic if either of the two inner spawned threads panic
+/// The spawned server and node thread can panic if either of the two inner spawned threads panic
 pub async fn start(
     port: PortSelection,
     watch: bool,
@@ -169,7 +169,7 @@ pub async fn start(
 ) -> Result<(), ServerError> {
     let project = Project::get();
 
-    // Exporting Pathfinder, TS parser & miniflare for resolvers.
+    // Exporting Pathfinder, TS parser for resolvers.
     export_embedded_files()?;
     create_project_dot_grafbase_directory()?;
 
@@ -342,15 +342,15 @@ async fn spawn_servers(
     let environment = Environment::get();
 
     if detected_udfs.is_empty() {
-        trace!("Skipping wrangler installation");
+        trace!("Skipping esbuild installation");
     } else {
         validate_node().await?;
-        if let Err(error) = install_wrangler(environment, tracing).await {
+        if let Err(error) = install_esbuild(environment, tracing).await {
             message_sender
                 .send(ServerMessage::CompilationError(error.to_string()))
                 .ok();
 
-            // TODO consider disabling colored output from wrangler
+            // TODO consider disabling colored output from esbuild
             let error = String::from_utf8(strip_ansi_escapes::strip(error.to_string().as_bytes()))
                 .ok()
                 .unwrap_or_else(|| error.to_string());
@@ -508,8 +508,8 @@ where
 {
     for port in range {
         if let Ok(listener) = TcpListener::bind((Ipv4Addr::LOCALHOST, port)).await {
-            return listener.into_std().map_err(|_| ServerError::AvailablePortMiniflare);
+            return listener.into_std().map_err(|_| ServerError::AvailablePortNode);
         }
     }
-    Err(ServerError::AvailablePortMiniflare)
+    Err(ServerError::AvailablePortNode)
 }

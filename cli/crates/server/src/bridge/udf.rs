@@ -59,7 +59,7 @@ enum UdfWorkerStatus {
     },
     Available {
         #[allow(dead_code)]
-        miniflare_handle: Arc<tokio::task::JoinHandle<()>>,
+        node_handle: Arc<tokio::task::JoinHandle<()>>,
         worker_port: u16,
     },
     BuildFailed,
@@ -133,14 +133,14 @@ impl UdfRuntime {
                 duration: start.elapsed(),
             })
             .expect("receiver is not never closed");
-        let (join_handle, port) = self.spawn_multi_worker_miniflare(udf_workers).await?;
+        let (join_handle, port) = self.spawn_multi_worker_node(udf_workers).await?;
         let join_handle = Arc::new(join_handle);
         let mut builds = self.udf_workers.lock().await;
         for udf in udfs {
             builds.insert(
                 (udf.udf_name, udf.udf_kind),
                 UdfWorkerStatus::Available {
-                    miniflare_handle: join_handle.clone(),
+                    node_handle: join_handle.clone(),
                     worker_port: port,
                 },
             );
@@ -150,80 +150,58 @@ impl UdfRuntime {
 }
 
 impl UdfRuntime {
-    async fn spawn_multi_worker_miniflare(
+    async fn spawn_multi_worker_node(
         &self,
         udf_workers: Vec<UdfWorker>,
-    ) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildError> {
-        let mut miniflare_arguments: Vec<_> = [
-            // used by miniflare when running normally as well
-            "--experimental-vm-modules",
-            "./node_modules/miniflare/dist/src/cli.js",
-            "--modules",
-            "--host",
-            "127.0.0.1",
-            "--port",
-            "0",
-            "--no-update-check",
-            "--no-cf-fetch",
-            "--do-persist",
-        ]
-        .into_iter()
-        .map(Cow::Borrowed)
-        .collect();
+    ) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildErrofBuildError> {
+        let mut node_arguments: Vec<_> = [/* FIXME script location*/].into_iter().map(Cow::Borrowed).collect();
         if self.tracing {
-            miniflare_arguments.push("--debug".into());
+            // FIXME: add wrapper env var for debug
         }
 
-        miniflare_arguments.extend(udf_workers.into_iter().flat_map(|UdfWorker { name, directory }| {
-            [
-                Cow::Borrowed("--mount"),
-                format!("{name}={path}", name = slug::slugify(name), path = directory.display()).into(),
-            ]
-        }));
+        node_arguments.extend(
+            udf_workers
+                .into_iter()
+                .map(|UdfWorker { directory, .. }| directory.display()),
+        );
 
         let environment = Environment::get();
-        let mut miniflare = Command::new("node");
-        miniflare
+        let mut node = Command::new("node");
+        node
             // Unbounded worker limit
-            .env("MINIFLARE_SUBREQUEST_LIMIT", "1000")
-            .args(miniflare_arguments.iter().map(std::convert::AsRef::as_ref))
+            .args(node_arguments.iter().map(std::convert::AsRef::as_ref))
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .current_dir(&environment.user_dot_grafbase_path)
             .kill_on_drop(true);
-        trace!("Spawning {miniflare:?}");
-        let mut miniflare = miniflare.spawn().unwrap();
+        trace!("Spawning {node:?}");
+        let mut node = node.spawn().unwrap();
 
         let bound_port = {
             use tokio::io::AsyncBufReadExt;
             use tokio_stream::wrappers::LinesStream;
-            let stdout = miniflare.stdout.as_mut().unwrap();
+            let stdout = node.stdout.as_mut().unwrap();
             let mut lines_skipped_over = vec![];
             let filtered_lines_stream =
                 LinesStream::new(tokio::io::BufReader::new(stdout).lines()).try_filter_map(|line: String| {
-                    trace!("miniflare: {line}");
-                    let port = line
-                        .split("Listening on")
-                        .skip(1)
-                        .flat_map(|bound_address| bound_address.split(':'))
-                        .nth(1)
-                        .and_then(|value| value.trim().parse::<u16>().ok());
+                    trace!("node: {line}");
+                    let port = line.trim().parse::<u16>().ok();
                     lines_skipped_over.push(line);
                     futures_util::future::ready(Ok(port))
                 });
             pin_mut!(filtered_lines_stream);
             filtered_lines_stream.try_next().await.ok().flatten().ok_or_else(|| {
-                UdfBuildError::MiniflareSpawnFailedWithOutput {
+                UdfBuildError::NodeSpawnFailedWithOutput {
                     output: lines_skipped_over.join("\n"),
                 }
             })?
         };
         trace!("Bound to port: {bound_port}");
         let join_handle = tokio::spawn(async move {
-            let outcome = miniflare.wait_with_output().await.unwrap();
+            let outcome = node.wait_with_output().await.unwrap();
             assert!(
                 outcome.status.success(),
-                "Miniflare failed: '{}'",
+                "Node failed: '{}'",
                 String::from_utf8_lossy(&outcome.stderr).into_owned()
             );
         });
@@ -328,15 +306,15 @@ impl UdfRuntime {
                 self.registry.enable_kv,
             )
             .and_then(|(package_json_path, wrangler_toml_path)| {
-                super::udf::spawn_miniflare(udf_kind, &udf_name, package_json_path, wrangler_toml_path, self.tracing)
+                super::udf::spawn_node(udf_kind, &udf_name, package_json_path, wrangler_toml_path, self.tracing)
             })
             .await
             {
-                Ok((miniflare_handle, worker_port)) => {
+                Ok((node_handle, worker_port)) => {
                     self.udf_workers.lock().await.insert(
                         (udf_name.clone(), udf_kind),
                         UdfWorkerStatus::Available {
-                            miniflare_handle: Arc::new(miniflare_handle),
+                            node_handle: Arc::new(node_handle),
                             worker_port,
                         },
                     );
@@ -374,16 +352,16 @@ impl UdfRuntime {
 }
 
 async fn wait_until_udf_ready(worker_port: u16, udf_kind: UdfKind, udf_name: &str) -> Result<bool, reqwest::Error> {
-    const RESOLVER_WORKER_MINIFLARE_READY_RETRY_COUNT: usize = 50;
-    const RESOLVER_WORKER_MINIFLARE_READY_RETRY_INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
+    const RESOLVER_WORKER_NODE_READY_RETRY_COUNT: usize = 50;
+    const RESOLVER_WORKER_NODE_READY_RETRY_INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 
-    for _ in 0..RESOLVER_WORKER_MINIFLARE_READY_RETRY_COUNT {
+    for _ in 0..RESOLVER_WORKER_NODE_READY_RETRY_COUNT {
         trace!("readiness check of {udf_kind} '{udf_name}' under port {worker_port}");
         if is_udf_ready(worker_port).await? {
             trace!("{udf_kind} '{udf_name}' ready under port {worker_port}");
             return Ok(true);
         }
-        tokio::time::sleep(RESOLVER_WORKER_MINIFLARE_READY_RETRY_INTERVAL).await;
+        tokio::time::sleep(RESOLVER_WORKER_NODE_READY_RETRY_INTERVAL).await;
     }
     Ok(false)
 }
@@ -404,7 +382,7 @@ async fn is_udf_ready(resolver_worker_port: u16) -> Result<bool, reqwest::Error>
     }
 }
 
-async fn spawn_miniflare(
+async fn spawn_node(
     udf_kind: UdfKind,
     udf_name: &str,
     package_json_path: std::path::PathBuf,
@@ -416,64 +394,36 @@ async fn spawn_miniflare(
 
     let environment = Environment::get();
 
-    let miniflare_path = environment
-        .user_dot_grafbase_path
-        .join(crate::consts::MINIFLARE_CLI_JS_PATH)
-        .canonicalize()
-        .unwrap();
-
     let (join_handle, resolver_worker_port) = {
-        let mut miniflare_arguments = vec![
-            // used by miniflare when running normally as well
-            "--experimental-vm-modules",
-            miniflare_path.to_str().unwrap(),
-            "--modules",
-            "--host",
-            "127.0.0.1",
-            "--port",
-            "0",
-            "--package",
-            package_json_path.to_str().unwrap(),
-            "--no-update-check",
-            "--no-cf-fetch",
-            "--wrangler-config",
-            wrangler_toml_path.to_str().unwrap(),
+        let mut node_arguments = vec![
+            /* FIXME script path */
         ];
-        if tracing {
-            miniflare_arguments.push("--debug");
-        }
-        let miniflare_command = miniflare_arguments.join(" ");
+        if tracing { /* FIXME debug */ }
+        let node_command = node_arguments.join(" ");
 
-        let mut miniflare = Command::new("node");
-        miniflare
+        let mut node = Command::new("node");
+        node
             // Unbounded worker limit
-            .env("MINIFLARE_SUBREQUEST_LIMIT", "1000")
-            .args(miniflare_arguments)
+            .args(node_arguments)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .current_dir(wrangler_toml_path.parent().unwrap())
             .kill_on_drop(true);
-        trace!("Spawning {udf_kind} '{udf_name}': {miniflare_command}");
+        trace!("Spawning {udf_kind} '{udf_name}': {node_command}");
 
-        let mut miniflare = miniflare.spawn().unwrap();
+        let mut node = node.spawn().unwrap();
         let bound_port = {
-            let stdout = miniflare.stdout.as_mut().unwrap();
+            let stdout = node.stdout.as_mut().unwrap();
             let mut lines_skipped_over = vec![];
             let filtered_lines_stream =
                 LinesStream::new(tokio::io::BufReader::new(stdout).lines()).try_filter_map(|line: String| {
-                    trace!("miniflare: {line}");
-                    let port = line
-                        .split("Listening on")
-                        .skip(1)
-                        .flat_map(|bound_address| bound_address.split(':'))
-                        .nth(1)
-                        .and_then(|value| value.trim().parse::<u16>().ok());
+                    trace!("node: {line}");
+                    let port = line.trim().parse::<u16>().ok();
                     lines_skipped_over.push(line);
                     futures_util::future::ready(Ok(port))
                 });
             pin_mut!(filtered_lines_stream);
             filtered_lines_stream.try_next().await.ok().flatten().ok_or_else(|| {
-                UdfBuildError::MiniflareSpawnFailedWithOutput {
+                UdfBuildError::NodeSpawnFailedWithOutput {
                     output: lines_skipped_over.join("\n"),
                 }
             })?
@@ -481,7 +431,7 @@ async fn spawn_miniflare(
         trace!("Bound to port: {bound_port}");
         let udf_name = udf_name.to_owned();
         let join_handle = tokio::spawn(async move {
-            let outcome = miniflare.wait_with_output().await.unwrap();
+            let outcome = node.wait_with_output().await.unwrap();
             assert!(
                 outcome.status.success(),
                 "udf worker {udf_kind} '{udf_name}' failed: '{}'",
@@ -494,11 +444,11 @@ async fn spawn_miniflare(
 
     if wait_until_udf_ready(resolver_worker_port, udf_kind, udf_name)
         .await
-        .map_err(|_| UdfBuildError::MiniflareSpawnFailed)?
+        .map_err(|_| UdfBuildError::NodeSpawnFailed)?
     {
         Ok((join_handle, resolver_worker_port))
     } else {
-        Err(UdfBuildError::MiniflareSpawnFailed)
+        Err(UdfBuildError::NodeSpawnFailed)
     }
 }
 

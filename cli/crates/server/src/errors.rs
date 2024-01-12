@@ -59,13 +59,13 @@ pub enum ServerError {
     #[error("the gateway server could not be started: {0}")]
     StartGatewayServer(std::io::Error),
 
-    /// returned if the miniflare command returns an error
-    #[error("miniflare encountered an error: {0}")]
-    MiniflareCommandError(IoError),
+    /// returned if the node command returns an error
+    #[error("node encountered an error: {0}")]
+    NodeCommandError(IoError),
 
-    /// returned if the miniflare command exits unsuccessfully
-    #[error("miniflare encountered an error\ncause:\n{0}")]
-    MiniflareError(String),
+    /// returned if the node command exits unsuccessfully
+    #[error("node encountered an error\ncause:\n{0}")]
+    NodeError(String),
 
     /// returned if the schema parser command returns an error
     #[error(transparent)]
@@ -141,7 +141,7 @@ pub enum ServerError {
     /// returned if no port is available.
     /// used specifically when searching for ports
     #[error("could not find an available port")]
-    AvailablePortMiniflare,
+    AvailablePortNode,
 
     /// returned if a given port is in use and the search option is not used
     #[error("port {0} is currently in use")]
@@ -174,7 +174,7 @@ pub enum ServerError {
     #[error("Could not create a lock for the wrangler installation: {0}")]
     Lock(fslock::Error),
 
-    #[error("Could not release the lock for the wrangler installation: {0}")]
+    #[error("Could not release the lock for the esbuild installation: {0}")]
     Unlock(fslock::Error),
 
     #[error(transparent)]
@@ -225,25 +225,20 @@ pub enum UdfBuildError {
     #[error("could not find a {0} referenced in the schema under the path {1}.{{js,ts}}")]
     UdfDoesNotExist(UdfKind, PathBuf),
 
-    /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
-    #[error("command error: {0}")]
-    WranglerInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
-
-    /// returned if the wrangler build step failed
-    #[error("\n{output}")]
-    WranglerBuildFailed { output: String },
-
-    // returned if miniflare for a given UDF fails to spawn
+    // returned if the node process for a given UDF fails to spawn
     #[error("unknown spawn error")]
-    MiniflareSpawnFailed,
+    NodeSpawnFailed,
 
-    // returned if miniflare for a given UDF fails to spawn, with more details
+    // returned if the node process for a given UDF fails to spawn, with more details
     #[error("\n{output}")]
-    MiniflareSpawnFailedWithOutput { output: String },
+    NodeSpawnFailedWithOutput { output: String },
 
     /// returned if a spawned task panics
     #[error(transparent)]
     SpawnedTaskPanic(#[from] JoinError),
+
+    #[error("esbuild encountered an error: \n{output}")]
+    EsbuildBuildFailed { output: String },
 }
 
 impl IntoResponse for ServerError {

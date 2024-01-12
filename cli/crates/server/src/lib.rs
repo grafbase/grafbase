@@ -1,5 +1,5 @@
 /*!
-The server crate provides a server with the gateway worker (via miniflare)
+The server crate provides a server with the gateway worker
 and a bridge server
 
 # Example
