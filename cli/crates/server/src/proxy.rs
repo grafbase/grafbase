@@ -1,13 +1,16 @@
 use std::{net::TcpListener, sync::atomic::Ordering, time::Duration};
 
+use async_tungstenite::tungstenite::client::IntoClientRequest;
 use axum::{
     body::Body,
-    extract::State,
-    response::{Html, IntoResponse},
+    extract::{ws::WebSocket, State, WebSocketUpgrade},
+    http::HeaderValue,
+    response::{Html, IntoResponse, Response},
     routing::{get, head, post},
     Router,
 };
 use common::environment::Environment;
+use futures_util::stream::StreamExt;
 use handlebars::Handlebars;
 use hyper::{Request, StatusCode};
 use serde_json::json;
@@ -81,6 +84,7 @@ async fn start_inner(listener: TcpListener) -> Result<(), ServerError> {
         .route("/admin", get(admin))
         .route("/admin", head(admin))
         .route("/admin", post(admin))
+        .route("/ws", get(websocket_handler))
         .nest_service("/static", ServeDir::new(static_asset_path))
         .layer(CorsLayer::permissive())
         .with_state(ProxyState {
@@ -178,6 +182,84 @@ async fn graphql_inner(
                 }
             }
         };
+    }
+}
+
+async fn websocket_handler(ws: WebSocketUpgrade) -> Response {
+    ws.protocols(["graphql-transport-ws"]).on_upgrade(proxy_websocket)
+}
+
+async fn proxy_websocket(client_socket: WebSocket) {
+    let worker_port = WORKER_PORT.load(Ordering::Relaxed);
+
+    if worker_port == 0 {
+        return;
+    }
+
+    let server_socket = {
+        let mut request = format!("ws://127.0.0.1:{worker_port}/ws")
+            .into_client_request()
+            .unwrap();
+        request.headers_mut().insert(
+            "Sec-WebSocket-Protocol",
+            HeaderValue::from_str("graphql-transport-ws").unwrap(),
+        );
+
+        let (connection, _) = async_tungstenite::tokio::connect_async(request).await.unwrap();
+
+        connection
+    };
+
+    let (server_sink, server_stream) = server_socket.split();
+    let (client_sink, client_stream) = client_socket.split();
+
+    let _ = futures_util::join!(
+        server_stream.map(axum_from_tungstenite).forward(client_sink),
+        client_stream.map(tungstenite_from_axum).forward(server_sink)
+    );
+}
+
+fn tungstenite_from_axum(
+    value: Result<axum::extract::ws::Message, axum::Error>,
+) -> Result<async_tungstenite::tungstenite::Message, async_tungstenite::tungstenite::Error> {
+    match value {
+        Ok(axum::extract::ws::Message::Text(inner)) => Ok(async_tungstenite::tungstenite::Message::Text(inner)),
+        Ok(axum::extract::ws::Message::Binary(inner)) => Ok(async_tungstenite::tungstenite::Message::Binary(inner)),
+        Ok(axum::extract::ws::Message::Ping(inner)) => Ok(async_tungstenite::tungstenite::Message::Ping(inner)),
+        Ok(axum::extract::ws::Message::Pong(inner)) => Ok(async_tungstenite::tungstenite::Message::Pong(inner)),
+        Ok(axum::extract::ws::Message::Close(inner)) => {
+            Ok(async_tungstenite::tungstenite::Message::Close(inner.map(|frame| {
+                async_tungstenite::tungstenite::protocol::CloseFrame {
+                    code: frame.code.into(),
+                    reason: frame.reason,
+                }
+            })))
+        }
+        Err(_) => {
+            // No easy way to convert these errors so I'm just going to pretend they're all ConnectionClosed
+            Err(async_tungstenite::tungstenite::Error::ConnectionClosed)
+        }
+    }
+}
+
+fn axum_from_tungstenite(
+    value: Result<async_tungstenite::tungstenite::Message, async_tungstenite::tungstenite::Error>,
+) -> Result<axum::extract::ws::Message, axum::Error> {
+    match value {
+        Ok(async_tungstenite::tungstenite::Message::Text(inner)) => Ok(axum::extract::ws::Message::Text(inner)),
+        Ok(async_tungstenite::tungstenite::Message::Binary(inner)) => Ok(axum::extract::ws::Message::Binary(inner)),
+        Ok(async_tungstenite::tungstenite::Message::Ping(inner)) => Ok(axum::extract::ws::Message::Ping(inner)),
+        Ok(async_tungstenite::tungstenite::Message::Pong(inner)) => Ok(axum::extract::ws::Message::Pong(inner)),
+        Ok(async_tungstenite::tungstenite::Message::Close(inner)) => {
+            Ok(axum::extract::ws::Message::Close(inner.map(|frame| {
+                axum::extract::ws::CloseFrame {
+                    code: frame.code.into(),
+                    reason: frame.reason,
+                }
+            })))
+        }
+        Ok(async_tungstenite::tungstenite::Message::Frame(_)) => unimplemented!(),
+        Err(error) => Err(axum::Error::new(error)),
     }
 }
 

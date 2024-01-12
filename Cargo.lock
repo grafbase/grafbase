@@ -2491,6 +2491,7 @@ name = "grafbase-local-server"
 version = "0.52.4"
 dependencies = [
  "async-trait",
+ "async-tungstenite",
  "axum",
  "cfg-if",
  "common-types",
