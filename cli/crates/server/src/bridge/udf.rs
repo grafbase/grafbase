@@ -190,6 +190,7 @@ impl UdfRuntime {
             let filtered_lines_stream =
                 LinesStream::new(tokio::io::BufReader::new(stdout).lines()).try_filter_map(|line: String| {
                     trace!("node: {line}");
+                    // FIXME(remove miniflare) there's going to be multiple here, we need to see how to handle this
                     let port = line.trim().parse::<u16>().ok();
                     lines_skipped_over.push(line);
                     futures_util::future::ready(Ok(port))
