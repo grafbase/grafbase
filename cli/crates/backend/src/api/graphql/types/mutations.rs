@@ -233,6 +233,7 @@ pub struct SchemaCheck {
     pub id: cynic::Id,
     pub validation_check_errors: Vec<ValidationCheckError>,
     pub composition_check_errors: Vec<CompositionCheckError>,
+    pub operation_check_errors: Vec<OperationCheckError>,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
@@ -243,6 +244,12 @@ pub struct ValidationCheckError {
 
 #[derive(cynic::QueryFragment, Debug)]
 pub struct CompositionCheckError {
+    pub message: String,
+    pub title: String,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct OperationCheckError {
     pub message: String,
     pub title: String,
 }

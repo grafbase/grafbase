@@ -44,14 +44,16 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
         id: _,
         validation_check_errors,
         composition_check_errors,
+        operation_check_errors,
     } = result;
 
-    if validation_check_errors.is_empty() && composition_check_errors.is_empty() {
+    if validation_check_errors.is_empty() && composition_check_errors.is_empty() && operation_check_errors.is_empty() {
         report::check_success();
     } else {
         report::check_errors(
             validation_check_errors.iter().map(|err| err.message.as_str()),
             composition_check_errors.iter().map(|err| err.message.as_str()),
+            operation_check_errors.iter().map(|err| err.message.as_str()),
         );
         std::process::exit(FAILED_CHECK_EXIT_STATUS);
     }

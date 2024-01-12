@@ -1060,6 +1060,9 @@ type Mutation {
   """
   projectCreateFromTemplate(input: ProjectCreateFromTemplateInput!): ProjectCreateFromTemplatePayload!
   projectUpdate(input: ProjectUpdateInput!): ProjectUpdatePayload!
+  projectOperationCheckConfigurationUpdate(
+    input: ProjectOperationCheckConfigurationInput!
+  ): ProjectOperationCheckConfigurationUpdatePayload!
   projectDelete(input: ProjectDeleteInput!): ProjectDeletePayload!
   """
   Run checks against the given schema
@@ -1120,6 +1123,11 @@ type NotAllowedToSlugUpdateError {
 
 type NotAllowedToUpdateOrganizationError {
   query: Query!
+}
+
+type OperationCheckError {
+  title: String!
+  message: String!
 }
 
 input OperationRequestAnalyticsFilter {
@@ -1628,6 +1636,7 @@ type Project implements Node {
     filter: OperationRequestAnalyticsFilter!
   ): OperationRequestMetricsConnection!
   schemaChecks(first: Int, after: String, branch: String): SchemaCheckConnection!
+  operationChecksConfiguration: ProjectOperationCheckConfiguration!
   logEvents(first: Int, after: String, last: Int, before: String, filter: LogEventFilter!): LogEventConnection!
 }
 
@@ -1879,6 +1888,62 @@ type ProjectNotFederatedError {
   query: Query!
 }
 
+type ProjectOperationCheckConfiguration {
+  """
+  Whether operation checks are enabled for the project.
+  """
+  enabled: Boolean!
+  """
+  The time range in days to consider for operation checks. Operations older than the specificied
+  number of days are ignored.
+  """
+  timeRangeDays: Int!
+  """
+  The request count threshold to consider for operation checks. Operations that have been
+  registered less than the specified number of occurrences are ignored.
+  """
+  requestCountThreshold: Int!
+  """
+  The clients to exclude from operation checks.
+  """
+  excludedClients: [String!]!
+  """
+  The operations to exclude from operation checks.
+  """
+  excludedOperations: [String!]!
+}
+
+input ProjectOperationCheckConfigurationInput {
+  """
+  The project to update.
+  """
+  projectId: ID!
+  """
+  Whether operation checks are enabled for the project.
+  """
+  enabled: Boolean!
+  """
+  The time range in days to consider for operation checks. Operations older than the specificied
+  number of days are ignored.
+  """
+  timeRangeDays: Int!
+  """
+  The request count threshold to consider for operation checks. Operations that have been
+  registered less than the specified number of occurrences are ignored.
+  """
+  requestCountThreshold: Int!
+  """
+  The clients to exclude from operation checks.
+  """
+  excludedClients: [String!]!
+  """
+  The operations to exclude from operation checks.
+  """
+  excludedOperations: [String!]!
+}
+
+union ProjectOperationCheckConfigurationUpdatePayload = ProjectDoesNotExistError | ProjectOperationCheckConfiguration
+
 input ProjectRequestAnalyticsFilter {
   branch: String = null
   period: ProjectRequestAnalyticsPeriod!
@@ -1997,11 +2062,6 @@ type Query {
     """
     name: String!
   ): CustomDomain
-  """
-  Get all database regions available for replication.
-  """
-  databaseRegions: [DatabaseRegion!]!
-  closestDatabaseRegion: DatabaseRegion
   """
   Get deployment by ID.
   """
@@ -2246,6 +2306,7 @@ type SchemaCheck {
   errorCount: Int!
   validationCheckErrors: [ValidationCheckError!]!
   compositionCheckErrors: [CompositionCheckError!]!
+  operationCheckErrors: [OperationCheckError!]!
   createdAt: DateTime!
   gitCommit: SchemaCheckGitCommit
 }
@@ -2591,6 +2652,8 @@ type ViewerLimits {
   totalProjects: Int
 }
 
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
 schema {
   query: Query
   mutation: Mutation
