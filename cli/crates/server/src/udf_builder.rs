@@ -176,7 +176,7 @@ pub(crate) async fn build(
     )
     .await
     .map_err(|err| match err {
-        JavascriptPackageManagerComamndError::OutputError(_, output) => UdfBuildError::WranglerBuildFailed { output },
+        JavascriptPackageManagerComamndError::OutputError(_, output) => UdfBuildError::EsbuildBuildFailed { output },
         other => other.into(),
     })?;
 
@@ -219,8 +219,7 @@ pub(crate) fn udf_url_path(kind: UdfKind, name: &str) -> String {
     format!("/{kind}/{}/invoke", slug::slugify(name))
 }
 
-// FIXME
-const ESBUILD_VERSION: &str = "";
+const ESBUILD_VERSION: &str = "0.19.11";
 
 async fn installed_esbuild_version(esbuild_installation_path: impl AsRef<Path>) -> Option<String> {
     let esbuild_installation_path = esbuild_installation_path.as_ref();
