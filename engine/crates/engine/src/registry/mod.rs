@@ -1380,7 +1380,7 @@ pub struct VersionedRegistry<'a> {
     pub deployment_id: Cow<'a, str>,
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct OperationLimits {
     pub depth: Option<u16>,
@@ -1388,6 +1388,12 @@ pub struct OperationLimits {
     pub aliases: Option<u16>,
     pub root_fields: Option<u16>,
     pub complexity: Option<u16>,
+}
+
+impl OperationLimits {
+    pub fn any_enabled(&self) -> bool {
+        *self != Default::default()
+    }
 }
 
 // TODO(@miaxos): Remove this to a separate create as we'll need to use it outside engine
@@ -1423,7 +1429,7 @@ pub struct Registry {
     // FIXME: Make an enum.
     pub is_federated: bool,
     #[serde(default)]
-    pub operation_limts: OperationLimits,
+    pub operation_limits: OperationLimits,
 }
 
 impl Default for Registry {
@@ -1448,7 +1454,7 @@ impl Default for Registry {
             federation_entities: Default::default(),
             enable_ai: false,
             is_federated: false,
-            operation_limts: Default::default(),
+            operation_limits: Default::default(),
         }
     }
 }

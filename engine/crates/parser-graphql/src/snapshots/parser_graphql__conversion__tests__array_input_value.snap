@@ -869,7 +869,7 @@ expression: registry_from_introspection(schema)
   "enable_kv": false,
   "enable_ai": false,
   "is_federated": false,
-  "operation_limts": {
+  "operation_limits": {
     "depth": null,
     "height": null,
     "aliases": null,

@@ -2289,7 +2289,7 @@ Registry {
     },
     enable_ai: false,
     is_federated: false,
-    operation_limts: OperationLimits {
+    operation_limits: OperationLimits {
         depth: None,
         height: None,
         aliases: None,

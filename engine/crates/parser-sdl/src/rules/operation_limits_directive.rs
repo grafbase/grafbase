@@ -145,7 +145,7 @@ mod tests {
         ))
         .unwrap();
 
-        insta::assert_debug_snapshot!(result.registry.operation_limts, @r###"
+        insta::assert_debug_snapshot!(result.registry.operation_limits, @r###"
         OperationLimits {
             depth: Some(
                 5,

@@ -138,7 +138,7 @@ impl SchemaBuilder {
 
         Schema(Arc::new(SchemaInner {
             validation_mode: self.validation_mode,
-            operation_limits: self.registry.operation_limts.clone(),
+            operation_limits: self.registry.operation_limits.clone(),
             extensions: self.extensions,
             env: SchemaEnv(Arc::new(SchemaEnvInner {
                 registry: self.registry,
