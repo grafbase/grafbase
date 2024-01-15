@@ -1423,7 +1423,7 @@ pub struct Registry {
     // FIXME: Make an enum.
     pub is_federated: bool,
     #[serde(default)]
-    pub operation_limts: OperationLimits,
+    pub operation_limits: OperationLimits,
 }
 
 impl Default for Registry {
@@ -1448,7 +1448,7 @@ impl Default for Registry {
             federation_entities: Default::default(),
             enable_ai: false,
             is_federated: false,
-            operation_limts: Default::default(),
+            operation_limits: Default::default(),
         }
     }
 }

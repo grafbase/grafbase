@@ -191,7 +191,7 @@ impl<'a> VisitorContext<'a> {
 
         registry.remove_unused_types();
 
-        registry.operation_limts = self
+        registry.operation_limits = self
             .operation_limits_directive
             .take()
             .map(From::from)
