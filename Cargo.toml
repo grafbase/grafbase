@@ -68,7 +68,7 @@ url = "2"
 uuid = "1"
 ulid = "1"
 wasm-bindgen = "0.2"
-web-time = "0.2"
+web-time = "1.0"
 which = "5"
 worker = "0.0.18"
 
