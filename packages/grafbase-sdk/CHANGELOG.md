@@ -1,8 +1,8 @@
 # Changelog
 
-## [0.14.1] - Tue Jan 10 2024
+## [0.15.0] - Mon Jan 15 2024
 
-[CHANGELOG](changelog/0.14.1.md)
+[CHANGELOG](changelog/0.15.0.md)
 
 ## [0.14.0] - Tue Jan 9 2024
 
