@@ -262,9 +262,7 @@ const invoke = async (request: Request) => {
       }
     }
 
-    returnValue = {
-      Success: returnValue,
-    }
+    returnValue = { Success: returnValue }
   } catch (error: unknown) {
     if (error == null) {
       returnValue = { Error: 'nullish value thrown' }
