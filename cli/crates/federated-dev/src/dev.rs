@@ -14,7 +14,13 @@ use std::time::Duration;
 use tokio::sync::{mpsc, watch};
 use tower_http::cors::CorsLayer;
 
-use crate::{dev::gateway_nanny::GatewayNanny, ConfigReceiver};
+use crate::{
+    dev::{
+        gateway_nanny::GatewayNanny,
+        websockets::{WebsocketAccepter, WebsocketService},
+    },
+    ConfigReceiver,
+};
 
 use self::{
     bus::{AdminBus, ComposeBus, GatewayWatcher, RefreshBus},
@@ -29,6 +35,7 @@ mod composer;
 mod gateway_nanny;
 mod refresher;
 mod ticker;
+mod websockets;
 
 const REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 
@@ -45,6 +52,7 @@ pub(super) async fn run(port: u16, expose: bool, config: ConfigReceiver) -> Resu
     let (refresh_sender, refresh_receiver) = mpsc::channel(16);
     let (compose_sender, compose_receiver) = mpsc::channel(16);
     let (gateway_sender, gateway) = watch::channel(None);
+    let (websocket_sender, websocket_receiver) = mpsc::channel(16);
 
     let compose_bus = ComposeBus::new(graph_sender, refresh_sender, compose_sender.clone(), compose_receiver);
     let refresh_bus = RefreshBus::new(refresh_receiver, compose_sender.clone());
@@ -62,6 +70,9 @@ pub(super) async fn run(port: u16, expose: bool, config: ConfigReceiver) -> Resu
     let ticker = Ticker::new(REFRESH_INTERVAL, compose_sender);
     tokio::spawn(ticker.handler());
 
+    let websocket_accepter = WebsocketAccepter::new(websocket_receiver, gateway.clone());
+    tokio::spawn(websocket_accepter.handler());
+
     let schema = Schema::build(admin::QueryRoot, admin::MutationRoot, EmptySubscription)
         .data(admin_bus)
         .finish();
@@ -72,6 +83,7 @@ pub(super) async fn run(port: u16, expose: bool, config: ConfigReceiver) -> Resu
     let app = axum::Router::new()
         .route("/admin", get(admin).post_service(GraphQL::new(schema)))
         .route("/graphql", get(engine_get).post(engine_post))
+        .route_service("/ws", WebsocketService::new(websocket_sender))
         .nest_service("/static", tower_http::services::ServeDir::new(static_asset_path))
         .layer(CorsLayer::permissive())
         .with_state(ProxyState {

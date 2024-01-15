@@ -13,6 +13,7 @@ repository.workspace = true
 async-graphql = { workspace = true, features = ["url"] }
 async-graphql-axum.workspace = true
 async-graphql-parser.workspace = true
+async-trait.workspace = true
 axum.workspace = true
 futures-concurrency = "7"
 futures-util = "0.3"
@@ -29,6 +30,7 @@ thiserror = "1.0.56"
 tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }
 tokio-stream = "0.1"
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
+tower-service.workspace = true
 url = "2.5.0"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.52.4" }

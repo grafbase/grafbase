@@ -1931,6 +1931,7 @@ dependencies = [
  "async-graphql",
  "async-graphql-axum",
  "async-graphql-parser",
+ "async-trait",
  "axum",
  "engine",
  "engine-config-builder",
@@ -1954,6 +1955,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tower-http",
+ "tower-service",
  "url",
 ]
 
