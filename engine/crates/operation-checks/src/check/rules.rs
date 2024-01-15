@@ -317,3 +317,39 @@ pub(super) fn remove_union_member(
         severity: Severity::Error,
     })
 }
+
+/// If you remove a regular object type, it registers as a field type change
+/// for the fields that return it. But that isn't the case for the root
+/// query, mutation and subscription types, so we need to check for that
+/// case separately.
+pub(crate) fn remove_object_type(args: CheckArgs<'_, '_>) -> Option<CheckDiagnostic> {
+    let type_name = &args.change.path;
+    let src = args.check_params.source;
+
+    if ![
+        &src.query_type_name,
+        &src.mutation_type_name,
+        &src.subscription_type_name,
+    ]
+    .contains(&type_name)
+    {
+        return None;
+    }
+
+    let type_is_used = args.check_params.source.iter_fields(type_name).any(|field| {
+        args.check_params
+            .field_is_used(&format!("{}.{}", type_name, field.field_name))
+    });
+
+    if !type_is_used {
+        return None;
+    }
+
+    Some(CheckDiagnostic {
+        message: format!(
+            "The root type `{}` was removed but it is still used by clients.",
+            type_name
+        ),
+        severity: Severity::Error,
+    })
+}

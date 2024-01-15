@@ -1,9 +1,8 @@
 mod rules;
 
-use std::collections::HashSet;
-
 use crate::{FieldUsage, Schema};
 use graphql_schema_diff::{Change, ChangeKind};
+use std::collections::HashSet;
 
 /// A diagnostic produced by [check()].
 #[derive(Debug)]
@@ -121,13 +120,13 @@ fn check_change(args: CheckArgs<'_, '_>) -> Option<CheckDiagnostic> {
 
         // Removing a type means it isn't used anymore. That may translate to field type changes,
         // which are the actual breaking changes.
-        | ChangeKind::RemoveObjectType
         | ChangeKind::RemoveEnum
         | ChangeKind::RemoveScalar
         | ChangeKind::RemoveInterface
         | ChangeKind::RemoveInputObject
         | ChangeKind::RemoveUnion => None,
 
+        ChangeKind::RemoveObjectType => rules::remove_object_type(args),
 
         ChangeKind::RemoveField => rules::remove_field(args),
 
