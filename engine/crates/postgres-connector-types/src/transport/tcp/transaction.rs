@@ -5,8 +5,8 @@ use futures::stream::BoxStream;
 use serde_json::Value;
 use tokio_postgres::Transaction;
 
-use crate::{error::Error, transport::Transport};
 use crate::transport::ext::TransportTransactionExt;
+use crate::{error::Error, transport::Transport};
 
 use super::executor;
 

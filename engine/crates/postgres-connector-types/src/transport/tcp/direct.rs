@@ -4,9 +4,9 @@ use futures::stream::BoxStream;
 use serde_json::Value;
 
 use crate::error::Error;
+use crate::transport::ext::TransportTransactionExt;
 use crate::transport::tcp::executor;
 use crate::transport::{Transport, TransportTransaction};
-use crate::transport::ext::TransportTransactionExt;
 
 pub struct DirectTcpTransport {
     client: tokio_postgres::Client,

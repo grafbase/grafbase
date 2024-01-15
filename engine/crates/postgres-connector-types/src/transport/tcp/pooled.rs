@@ -7,9 +7,9 @@ use serde_json::Value;
 use tokio_postgres::GenericClient;
 
 use crate::error::Error;
+use crate::transport::ext::TransportTransactionExt;
 use crate::transport::tcp::executor;
 use crate::transport::{Transport, TransportTransaction};
-use crate::transport::ext::TransportTransactionExt;
 
 pub struct PoolingConfig {
     pub max_size: usize,
