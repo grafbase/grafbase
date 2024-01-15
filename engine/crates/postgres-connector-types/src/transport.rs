@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use futures::stream::BoxStream;
 use serde_json::Value;
 
-pub use ext::TransportExt;
+pub use ext::{TransportExt, TransportTransactionExt};
 pub use tcp::{DirectTcpTransport, Transaction, TransportTransaction};
 #[cfg(feature = "pooling")]
 pub use tcp::{PooledTcpConnection, PooledTcpTransport, PooledTransaction, PoolingConfig};
@@ -51,6 +51,4 @@ pub trait Transport: Send + Sync {
     async fn execute(&self, query: &str) -> crate::Result<i64> {
         self.parameterized_execute(query, Vec::new()).await
     }
-
-    async fn transaction(&mut self) -> crate::Result<TransportTransaction<'_>>;
 }

@@ -3,7 +3,7 @@ use futures::{pin_mut, StreamExt};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use super::Transport;
+use super::{Transport, TransportTransaction};
 
 impl<T: ?Sized> TransportExt for T where T: Transport {}
 
@@ -29,4 +29,10 @@ pub trait TransportExt: Transport {
 
         Ok(result)
     }
+}
+
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+pub trait TransportTransactionExt: Transport {
+    async fn transaction(&mut self) -> crate::Result<TransportTransaction<'_>>;
 }

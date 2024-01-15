@@ -9,6 +9,7 @@ use tokio_postgres::GenericClient;
 use crate::error::Error;
 use crate::transport::tcp::executor;
 use crate::transport::{Transport, TransportTransaction};
+use crate::transport::ext::TransportTransactionExt;
 
 pub struct PoolingConfig {
     pub max_size: usize,
@@ -86,7 +87,11 @@ impl Transport for PooledTcpConnection {
     fn connection_string(&self) -> &str {
         &self.connection_string
     }
+}
 
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+impl TransportTransactionExt for PooledTcpConnection {
     async fn transaction(&mut self) -> crate::Result<TransportTransaction<'_>> {
         self.connection
             .transaction()

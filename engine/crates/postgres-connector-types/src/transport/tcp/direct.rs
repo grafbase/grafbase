@@ -6,6 +6,7 @@ use serde_json::Value;
 use crate::error::Error;
 use crate::transport::tcp::executor;
 use crate::transport::{Transport, TransportTransaction};
+use crate::transport::ext::TransportTransactionExt;
 
 pub struct DirectTcpTransport {
     client: tokio_postgres::Client,
@@ -119,7 +120,11 @@ impl Transport for DirectTcpTransport {
     fn connection_string(&self) -> &str {
         &self.connection_string
     }
+}
 
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+impl TransportTransactionExt for DirectTcpTransport {
     async fn transaction(&mut self) -> crate::Result<TransportTransaction<'_>> {
         self.client
             .transaction()

@@ -6,6 +6,7 @@ use serde_json::Value;
 use tokio_postgres::Transaction;
 
 use crate::{error::Error, transport::Transport};
+use crate::transport::ext::TransportTransactionExt;
 
 use super::executor;
 
@@ -28,7 +29,11 @@ impl Transport for Transaction<'_> {
     fn connection_string(&self) -> &str {
         ""
     }
+}
 
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+impl TransportTransactionExt for Transaction<'_> {
     async fn transaction(&mut self) -> crate::Result<TransportTransaction<'_>> {
         self.transaction()
             .await
