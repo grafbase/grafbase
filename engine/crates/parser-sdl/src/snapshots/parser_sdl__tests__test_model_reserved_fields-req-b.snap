@@ -88,7 +88,7 @@ expression: req_string_b
   "is_federated": false,
   "mongodb_configurations": {},
   "mutation_type": "Mutation",
-  "operation_limts": {
+  "operation_limits": {
     "aliases": null,
     "complexity": null,
     "depth": null,
