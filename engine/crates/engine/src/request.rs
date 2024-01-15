@@ -44,6 +44,10 @@ pub struct Request {
     /// Disable introspection queries for this request.
     #[serde(skip)]
     pub disable_introspection: bool,
+
+    /// Disable validating operation limits.
+    #[serde(skip)]
+    pub disable_operation_limits: bool,
 }
 
 impl Request {
@@ -57,6 +61,7 @@ impl Request {
             data: Data::default(),
             extensions: Default::default(),
             disable_introspection: false,
+            disable_operation_limits: false,
         }
     }
 
