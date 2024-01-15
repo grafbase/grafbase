@@ -75,7 +75,7 @@ pub fn build_cache_key(
 
     Ok(Key::unchecked_new(format!(
         // v1 was stored in JSON, v2 in msgpack
-        "https://{}/{}/v2",
+        "https://{}/v2/{}",
         subdomain,
         cache_key.to_hash_string()
     )))
@@ -138,7 +138,7 @@ mod tests {
         let expected_cache_key =
             CacheKey::<DefaultHasher>::new(CacheAccess::Default(&ExecutionAuth::ApiKey), &engine_request, TEST);
         let expected_cache_key =
-            Key::unchecked_new(format!("https://{}/{}/v2", TEST, expected_cache_key.to_hash_string()));
+            Key::unchecked_new(format!("https://{}/v2/{}", TEST, expected_cache_key.to_hash_string()));
         let cache_config = CacheConfig {
             global_enabled: true,
             subdomain: TEST.to_string(),
@@ -164,7 +164,7 @@ mod tests {
             TEST,
         );
         let expected_cache_key =
-            Key::unchecked_new(format!("https://{}/{}/v2", TEST, expected_cache_key.to_hash_string()));
+            Key::unchecked_new(format!("https://{}/v2/{}", TEST, expected_cache_key.to_hash_string()));
         let cache_config = CacheConfig {
             global_enabled: true,
             subdomain: TEST.to_string(),
@@ -199,7 +199,7 @@ mod tests {
             TEST,
         );
         let expected_cache_key =
-            Key::unchecked_new(format!("https://{}/{}/v2", TEST, expected_cache_key.to_hash_string()));
+            Key::unchecked_new(format!("https://{}/v2/{}", TEST, expected_cache_key.to_hash_string()));
         let cache_config = CacheConfig {
             global_enabled: true,
             subdomain: TEST.to_string(),
@@ -232,7 +232,7 @@ mod tests {
             TEST,
         );
         let expected_cache_key =
-            Key::unchecked_new(format!("https://{}/{}/v2", TEST, expected_cache_key.to_hash_string()));
+            Key::unchecked_new(format!("https://{}/v2/{}", TEST, expected_cache_key.to_hash_string()));
         let cache_config = CacheConfig {
             global_enabled: true,
             subdomain: TEST.to_string(),
@@ -269,7 +269,7 @@ mod tests {
             TEST,
         );
         let expected_cache_key =
-            Key::unchecked_new(format!("https://{}/{}/v2", TEST, expected_cache_key.to_hash_string()));
+            Key::unchecked_new(format!("https://{}/v2/{}", TEST, expected_cache_key.to_hash_string()));
         let cache_config = CacheConfig {
             global_enabled: true,
             subdomain: TEST.to_string(),
@@ -342,7 +342,6 @@ mod tests {
         registry.enable_caching = true;
         CacheConfig {
             global_enabled: false,
-            request_cache_control: Default::default(),
             common_cache_tags: vec![],
             subdomain: String::new(),
             partial_registry: registry.into(),

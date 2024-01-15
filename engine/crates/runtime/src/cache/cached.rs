@@ -9,7 +9,7 @@ use tracing_futures::Instrument;
 use crate::cache::{Cache, CacheReadStatus, Cacheable, CachedExecutionResponse, Entry, EntryState};
 use crate::context::RequestContext;
 
-use super::{CacheMetadata, Key, RequestCacheControl};
+use super::{CacheMetadata, Key};
 
 impl Cache {
     pub async fn cached_execution<Value, Error, ValueFut>(
@@ -23,15 +23,12 @@ impl Cache {
         Error: Display + Send,
         ValueFut: Future<Output = Result<Arc<Value>, Error>> + Send + 'static,
     {
-        let request_cache_control = {
-            let cache_control = ctx.headers().typed_get::<headers::CacheControl>();
-            RequestCacheControl {
-                no_cache: cache_control.as_ref().map(|cc| cc.no_cache()).unwrap_or_default(),
-                no_store: cache_control.as_ref().map(|cc| cc.no_store()).unwrap_or_default(),
-            }
-        };
+        let cache_control = ctx
+            .headers()
+            .typed_get::<headers::CacheControl>()
+            .unwrap_or_else(headers::CacheControl::new);
         if self.config.enabled {
-            cached(self, request_cache_control, ctx, key, execution).await
+            cached(self, cache_control, ctx, key, execution).await
         } else {
             Ok(CachedExecutionResponse::Origin {
                 response: execution.await?,
@@ -43,7 +40,7 @@ impl Cache {
 
 async fn cached<Value, Error, ValueFut>(
     cache: &Cache,
-    request_cache_control: RequestCacheControl,
+    cache_control: headers::CacheControl,
     ctx: &impl RequestContext,
     key: Key,
     value_fut: ValueFut,
@@ -54,11 +51,11 @@ where
     ValueFut: Future<Output = Result<Arc<Value>, Error>> + Send + 'static,
 {
     // skip if the incoming request doesn't want cached values, forces origin revalidation
-    let cached_value: Entry<Value> = if request_cache_control.no_cache {
+    let cached_value: Entry<Value> = if cache_control.no_cache() {
         Entry::Miss
     } else {
         cache
-            .get_msgpack(&key)
+            .get_json(&key)
             .instrument(tracing::info_span!("cache_get", ray_id = ctx.ray_id()))
             .await
             .unwrap_or_else(|e| {
@@ -128,7 +125,7 @@ where
                 .await;
             }
 
-            if metadata.should_cache && !request_cache_control.no_store {
+            if metadata.should_cache && !cache_control.no_store() {
                 let ray_id = ctx.ray_id().to_string();
                 let put_value = origin_result.clone();
                 let max_age = metadata.max_age;
@@ -137,7 +134,7 @@ where
                 ctx.wait_until(
                     async_runtime::make_send_on_wasm(async move {
                         if let Err(err) = cache
-                            .put_msgpack(&key, EntryState::Fresh, put_value.as_ref(), metadata)
+                            .put_json(&key, EntryState::Fresh, put_value.as_ref(), metadata)
                             .instrument(tracing::info_span!("cache_put"))
                             .await
                         {
@@ -182,7 +179,7 @@ async fn update_stale<Value, Error, ValueFut>(
     ctx.wait_until(
         async_runtime::make_send_on_wasm(async move {
             let put_futures = cache
-                .put_msgpack(
+                .put_json(
                     &key,
                     EntryState::UpdateInProgress,
                     existing_value.as_ref(),
@@ -208,7 +205,7 @@ async fn update_stale<Value, Error, ValueFut>(
                         .with_priority_tags(&cache.config.common_cache_tags);
 
                     let _ = cache
-                        .put_msgpack(&key, EntryState::Fresh, fresh_value.as_ref(), fresh_metadata)
+                        .put_json(&key, EntryState::Fresh, fresh_value.as_ref(), fresh_metadata)
                         .instrument(tracing::info_span!("cache_put_refresh"))
                         .inspect_err(|err| {
                             // if this errors we're probably stuck in `UPDATING` state or
@@ -220,7 +217,7 @@ async fn update_stale<Value, Error, ValueFut>(
                 Err(err) => {
                     tracing::error!(ray_id, "Error fetching fresh value for a stale cache entry: {}", err);
                     let _ = cache
-                        .put_msgpack(&key, EntryState::Stale, existing_value.as_ref(), existing_metadata)
+                        .put_json(&key, EntryState::Stale, existing_value.as_ref(), existing_metadata)
                         .instrument(tracing::info_span!("cache_put_stale"))
                         .inspect_err(|err| {
                             // if this errors we're probably stuck in `UPDATING` state or
@@ -473,7 +470,7 @@ mod tests {
             async fn get(&self, _key: &Key) -> Result<Entry<Vec<u8>>> {
                 GET_CALLS.fetch_add(1, Ordering::SeqCst);
                 Ok(Entry::Hit(
-                    rmp_serde::to_vec(&Dummy {
+                    serde_json::to_vec(&Dummy {
                         value: "cached".to_string(),
                         ..Default::default()
                     })
@@ -524,7 +521,7 @@ mod tests {
                     ..Default::default()
                 };
                 Ok(Entry::Stale(StaleEntry {
-                    value: rmp_serde::to_vec(&dummy).unwrap(),
+                    value: serde_json::to_vec(&dummy).unwrap(),
                     state: EntryState::Fresh,
                     is_early_stale: false,
                     metadata: dummy.metadata(),
@@ -535,7 +532,7 @@ mod tests {
                 self.put_calls
                     .write()
                     .await
-                    .push((state, Arc::new(rmp_serde::from_slice(&value).unwrap())));
+                    .push((state, Arc::new(serde_json::from_slice(&value).unwrap())));
                 Ok(())
             }
         }
@@ -597,7 +594,7 @@ mod tests {
                     ..Default::default()
                 };
                 Ok(Entry::Stale(StaleEntry {
-                    value: rmp_serde::to_vec(&dummy).unwrap(),
+                    value: serde_json::to_vec(&dummy).unwrap(),
                     state: EntryState::Fresh,
                     is_early_stale: false,
                     metadata: dummy.metadata(),
@@ -608,7 +605,7 @@ mod tests {
                 self.put_calls
                     .write()
                     .await
-                    .push((state, Arc::new(rmp_serde::from_slice(&value).unwrap())));
+                    .push((state, Arc::new(serde_json::from_slice(&value).unwrap())));
                 self.entry_stale
                     .swap(matches!(state, EntryState::Stale), Ordering::SeqCst);
                 Ok(())
@@ -673,7 +670,7 @@ mod tests {
                     ..Default::default()
                 };
                 Ok(Entry::Stale(StaleEntry {
-                    value: rmp_serde::to_vec(&dummy).unwrap(),
+                    value: serde_json::to_vec(&dummy).unwrap(),
                     state: EntryState::UpdateInProgress,
                     is_early_stale: false,
                     metadata: dummy.metadata(),

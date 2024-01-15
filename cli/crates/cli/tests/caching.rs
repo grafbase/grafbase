@@ -16,41 +16,65 @@ fn header<'r>(response: &'r reqwest::Response, name: &'static str) -> Option<&'r
     response.headers().get(name).map(|header| header.to_str().unwrap())
 }
 
-#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn global_caching() {
     let mut env = Environment::init_async().await;
+    env.write_resolver(
+        "post.js",
+        r"
+        export default function Resolver(parent, args, context, info) {
+            return {
+                title: (Math.random() + 1).toString(36).substring(7)
+            }
+        }
+    ",
+    );
     let client = start_grafbase(
         &mut env,
         r#"
             extend schema @cache(rules: [{maxAge: 60, types: "Query"}])
 
-            type Post @model {
-                test: String!
+            type Query {
+                post: Post! @resolver(name: "post")
+            }
+
+            type Post {
+                title: String!
             }
         "#,
     )
     .await;
 
     let call = || async {
-        client
-            .gql::<Value>("query {postCollection(first: 10) {edges {node {test}}}}")
+        let response = client
+            .gql::<Value>("query { post { title } }")
             .into_reqwest_builder()
             .send()
             .await
-            .unwrap()
+            .unwrap();
+        (
+            response.headers().clone(),
+            response.json::<serde_json::Value>().await.unwrap(),
+        )
     };
 
-    let response = call().await;
-    assert_eq!(header(&response, GRAFBASE_CACHE_HEADER), Some("MISS"));
+    let (headers, content) = call().await;
     assert_eq!(
-        response.headers().typed_get::<CacheControl>(),
+        headers.get(GRAFBASE_CACHE_HEADER).map(|v| v.to_str().unwrap()),
+        Some("MISS")
+    );
+    assert_eq!(
+        headers.typed_get::<CacheControl>(),
         Some(CacheControl::new().with_public().with_max_age(Duration::from_secs(60)))
     );
 
-    let response = call().await;
-    assert_eq!(header(&response, GRAFBASE_CACHE_HEADER), Some("HIT"));
-    assert_eq!(response.headers().typed_get::<CacheControl>(), None);
+    let (headers, cached_content) = call().await;
+    assert_eq!(cached_content, content);
+    assert_eq!(
+        headers.get(GRAFBASE_CACHE_HEADER).map(|v| v.to_str().unwrap()),
+        Some("HIT")
+    );
+    assert_eq!(headers.typed_get::<CacheControl>(), None);
 }
 
 #[ignore]
@@ -103,23 +127,38 @@ async fn model_and_field_caching() {
     assert_eq!(response.headers().typed_get::<CacheControl>(), None);
 }
 
-#[ignore]
 #[tokio::test(flavor = "multi_thread")]
-async fn no_cache_on_non_cahced_field() {
+async fn no_cache_on_non_cached_field() {
     let mut env = Environment::init_async().await;
+    env.write_resolver(
+        "post.js",
+        r"
+        export default function Resolver(parent, args, context, info) {
+            return {
+                title: (Math.random() + 1).toString(36).substring(7),
+                author: (Math.random() + 1).toString(36).substring(7)
+            }
+        }
+    ",
+    );
     let client = start_grafbase(
         &mut env,
-        r"
-            type Post @model {
-                test: String!  @cache(maxAge: 20)
+        r#"
+            type Query {
+                post: Post! @resolver(name: "post")
             }
-        ",
+
+            type Post {
+                title: String! @cache(maxAge: 10)
+                author: String!
+            }
+        "#,
     )
     .await;
 
     let call = || async {
         client
-            .gql::<Value>("query {postCollection(first: 10) {edges {node {id}}}}")
+            .gql::<Value>("query { post { author } }")
             .into_reqwest_builder()
             .send()
             .await
@@ -180,77 +219,105 @@ async fn no_cache_on_mutations() {
     assert_eq!(response.headers().typed_get::<CacheControl>(), None);
 }
 
-#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn no_cache_on_same_query_different_variables() {
     let mut env = Environment::init_async().await;
+    env.write_resolver(
+        "greet.js",
+        r"
+        export default function Resolver(parent, args, context, info) {
+            let rng = (Math.random() + 1).toString(36).substring(7)
+            return `Hello ${args.name}! ${rng}`
+        }
+    ",
+    );
     let client = start_grafbase(
         &mut env,
-        r"
-            type Post @model @cache(maxAge: 30) {
-                test: String! @unique @cache(maxAge: 10)
+        r#"
+            extend schema @cache(rules: [{maxAge: 10, types: "Query"}])
+
+            type Query {
+                greet(name: String): String! @resolver(name: "greet")
             }
-        ",
+        "#,
     )
     .await;
 
     let call = |variables: serde_json::Value| async {
-        client
-            .gql::<Value>(
-                r"
-                query PostByTest($test: String!) {
-                    post(by: { test: $test }) {
-                        id
-                        test
-                    }
-                }
-                ",
-            )
+        let response = client
+            .gql::<Value>("query Greeting($name: String!) { greet(name: $name) }")
             .variables(variables)
             .into_reqwest_builder()
             .send()
             .await
-            .unwrap()
+            .unwrap();
+        (
+            response.headers().clone(),
+            response.json::<serde_json::Value>().await.unwrap(),
+        )
     };
-    let response = call(serde_json::json!({ "test": "hello" })).await;
-    assert_eq!(header(&response, GRAFBASE_CACHE_HEADER), Some("MISS"));
+
+    let (headers, hello_content) = call(serde_json::json!({ "name": "hello" })).await;
+    println!("{}", serde_json::to_string_pretty(&hello_content).unwrap());
     assert_eq!(
-        response.headers().typed_get::<CacheControl>(),
+        headers.get(GRAFBASE_CACHE_HEADER).map(|v| v.to_str().unwrap()),
+        Some("MISS")
+    );
+    assert_eq!(
+        headers.typed_get::<CacheControl>(),
         Some(CacheControl::new().with_public().with_max_age(Duration::from_secs(10)))
     );
 
-    let response = call(serde_json::json!({ "test": "world" })).await;
-    assert_eq!(header(&response, GRAFBASE_CACHE_HEADER), Some("MISS"));
+    let (headers, world_content) = call(serde_json::json!({ "name": "world" })).await;
     assert_eq!(
-        response.headers().typed_get::<CacheControl>(),
+        headers.get(GRAFBASE_CACHE_HEADER).map(|v| v.to_str().unwrap()),
+        Some("MISS")
+    );
+    assert_eq!(
+        headers.typed_get::<CacheControl>(),
         Some(CacheControl::new().with_public().with_max_age(Duration::from_secs(10)))
     );
 
-    let response = call(serde_json::json!({ "test": "hello" })).await;
-    assert_eq!(header(&response, GRAFBASE_CACHE_HEADER), Some("HIT"));
-    assert_eq!(response.headers().typed_get::<CacheControl>(), None);
+    let (headers, content) = call(serde_json::json!({ "name": "hello" })).await;
+    assert_eq!(content, hello_content);
+    assert_eq!(
+        headers.get(GRAFBASE_CACHE_HEADER).map(|v| v.to_str().unwrap()),
+        Some("HIT")
+    );
+    assert_eq!(headers.typed_get::<CacheControl>(), None);
 
-    let response = call(serde_json::json!({ "test": "world" })).await;
-    assert_eq!(header(&response, GRAFBASE_CACHE_HEADER), Some("HIT"));
-    assert_eq!(response.headers().typed_get::<CacheControl>(), None);
+    let (headers, content) = call(serde_json::json!({ "name": "world" })).await;
+    assert_eq!(content, world_content);
+    assert_eq!(
+        headers.get(GRAFBASE_CACHE_HEADER).map(|v| v.to_str().unwrap()),
+        Some("HIT")
+    );
+    assert_eq!(headers.typed_get::<CacheControl>(), None);
 }
 
-#[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn no_cache_header_when_caching_is_not_used() {
     let mut env = Environment::init_async().await;
+    env.write_resolver(
+        "title.js",
+        r"
+        export default function Resolver(parent, args, context, info) {
+            return 'Hello!'
+        }
+    ",
+    );
     let client = start_grafbase(
         &mut env,
-        r"
-            type Post @model {
-                test: String!
+        r#"
+            type Query {
+                title: String! @resolver(name: "title")
             }
-        ",
+        "#,
     )
     .await;
 
     let response = client
-        .gql::<Value>("query {postCollection(first: 10) {edges {node {test}}}}")
+        .gql::<Value>("query { title }")
         .into_reqwest_builder()
         .send()
         .await

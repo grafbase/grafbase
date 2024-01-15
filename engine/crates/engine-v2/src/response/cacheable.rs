@@ -1,10 +1,14 @@
 use crate::{ExecutionMetadata, Response};
 use engine_parser::types::OperationType;
 use runtime::cache::{CacheMetadata, Cacheable};
+use serde_with::base64::Base64;
 
 #[serde_with::serde_as]
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct CacheableResponse {
+    // Currently, we store the response as JSON in the cache. So converting to base64 for more
+    // efficient storage as JSON represents it as an array of numbers otherwise.
+    #[serde_as(as = "Base64")]
     pub bytes: Vec<u8>,
     pub metadata: ExecutionMetadata,
     pub has_errors: bool,
@@ -16,9 +20,8 @@ impl crate::Response {
         F: FnOnce(&Response) -> Result<Vec<u8>, E>,
     {
         let bytes = serializer(&self)?;
-        let has_errors = !self.errors().is_empty();
         Ok(CacheableResponse {
-            has_errors,
+            has_errors: self.has_errors(),
             bytes,
             metadata: self.take_metadata(),
         })
@@ -27,12 +30,13 @@ impl crate::Response {
 
 impl Cacheable for CacheableResponse {
     fn metadata(&self) -> CacheMetadata {
+        let max_age = self
+            .metadata
+            .cache_config
+            .map(|config| config.max_age)
+            .unwrap_or_default();
         CacheMetadata {
-            max_age: self
-                .metadata
-                .cache_config
-                .map(|config| config.max_age)
-                .unwrap_or_default(),
+            max_age,
             stale_while_revalidate: self
                 .metadata
                 .cache_config
@@ -45,7 +49,8 @@ impl Cacheable for CacheableResponse {
                     .metadata
                     .operation_type
                     .map(|operation_type| operation_type == OperationType::Query)
-                    .unwrap_or_default(),
+                    .unwrap_or_default()
+                && !max_age.is_zero(),
         }
     }
 }

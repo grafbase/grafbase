@@ -1,6 +1,5 @@
 use engine::registry::CachePartialRegistry;
 use gateway_core::CacheConfig;
-use runtime::cache::RequestCacheControl;
 use runtime_local::InMemoryCache;
 use std::{collections::HashMap, ops::Deref, sync::Arc};
 
@@ -35,7 +34,6 @@ impl Gateway {
             global_enabled: true,
             subdomain: "localhost".to_string(),
             host_name: "localhost".to_string(),
-            request_cache_control: RequestCacheControl::default(),
             partial_registry: CachePartialRegistry::from(registry.as_ref()),
             common_cache_tags: vec![],
         };

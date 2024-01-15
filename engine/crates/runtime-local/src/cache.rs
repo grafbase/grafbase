@@ -49,6 +49,7 @@ struct CacheInner {
     tag_to_keys: HashMap<String, HashSet<Key>>,
 }
 
+#[derive(Debug)]
 struct CacheEntry {
     state: EntryState,
     value: Vec<u8>,
@@ -103,7 +104,7 @@ impl runtime::cache::CacheInner for InMemoryCache {
         let mut inner = self.inner.lock().await;
         let now = (inner.now)();
         inner.purge(now);
-        Ok(inner
+        let res = Ok(inner
             .key_to_entry
             .get(key)
             .map(|entry| {
@@ -118,7 +119,8 @@ impl runtime::cache::CacheInner for InMemoryCache {
                     })
                 }
             })
-            .unwrap_or(Entry::Miss))
+            .unwrap_or(Entry::Miss));
+        res
     }
 
     async fn put(&self, key: &Key, state: EntryState, value: Vec<u8>, metadata: CacheMetadata) -> Result<()> {
@@ -235,18 +237,18 @@ mod tests {
         let test_key = cache.build_key("test");
         let unknown_key = cache.build_key("unknown");
         cache
-            .put_msgpack(&test_key, EntryState::Fresh, &dummy, dummy.metadata())
+            .put_json(&test_key, EntryState::Fresh, &dummy, dummy.metadata())
             .await
             .unwrap();
 
-        assert_eq!(cache.get_msgpack::<Dummy>(&unknown_key).await.unwrap(), Entry::Miss);
+        assert_eq!(cache.get_json::<Dummy>(&unknown_key).await.unwrap(), Entry::Miss);
         assert_eq!(
-            cache.get_msgpack(&test_key).await.unwrap(),
+            cache.get_json(&test_key).await.unwrap(),
             Entry::Hit(Dummy::new("test value", 10, 20))
         );
         offset.store(25, Relaxed);
         assert_eq!(
-            cache.get_msgpack(&test_key).await.unwrap(),
+            cache.get_json(&test_key).await.unwrap(),
             Entry::Stale(StaleEntry {
                 value: dummy.clone(),
                 state: EntryState::Fresh,
@@ -256,15 +258,15 @@ mod tests {
         );
 
         offset.store(31, Relaxed);
-        assert_eq!(cache.get_msgpack::<Dummy>(&test_key).await.unwrap(), Entry::Miss);
+        assert_eq!(cache.get_json::<Dummy>(&test_key).await.unwrap(), Entry::Miss);
 
         cache
-            .put_msgpack(&test_key, EntryState::Fresh, &dummy, dummy.metadata())
+            .put_json(&test_key, EntryState::Fresh, &dummy, dummy.metadata())
             .await
             .unwrap();
 
         cache.delete(&test_key).await.unwrap();
-        assert_eq!(cache.get_msgpack::<Dummy>(&test_key).await.unwrap(), Entry::Miss);
+        assert_eq!(cache.get_json::<Dummy>(&test_key).await.unwrap(), Entry::Miss);
     }
 
     #[tokio::test]
@@ -280,7 +282,7 @@ mod tests {
         let put = |key: &'static str, tags: &'static [&'static str]| async {
             let dummy = Dummy::new(key.to_string(), 10, 20);
             cache
-                .put_msgpack(
+                .put_json(
                     &cache.build_key(key),
                     EntryState::Fresh,
                     &dummy,
@@ -295,34 +297,31 @@ mod tests {
         put("Saint Bernard", &["large", "dog"]).await;
         put("Basset Hound", &["small", "dog"]).await;
         assert_eq!(
-            cache.get_msgpack(&cache.build_key("Basset Hound")).await.unwrap(),
+            cache.get_json(&cache.build_key("Basset Hound")).await.unwrap(),
             Entry::Hit(Dummy::new("Basset Hound", 10, 20))
         );
         assert_eq!(
-            cache.get_msgpack(&cache.build_key("Great Dane")).await.unwrap(),
+            cache.get_json(&cache.build_key("Great Dane")).await.unwrap(),
             Entry::Hit(Dummy::new("Great Dane", 10, 20))
         );
         assert_eq!(
-            cache.get_msgpack(&cache.build_key("Saint Bernard")).await.unwrap(),
+            cache.get_json(&cache.build_key("Saint Bernard")).await.unwrap(),
             Entry::Hit(Dummy::new("Saint Bernard", 10, 20))
         );
 
         // multiple keys for a tag;
         cache.purge_by_tags(vec!["large".to_string()]).await.unwrap();
         assert_eq!(
-            cache.get_msgpack(&cache.build_key("Basset Hound")).await.unwrap(),
+            cache.get_json(&cache.build_key("Basset Hound")).await.unwrap(),
             Entry::Hit(Dummy::new("Basset Hound", 10, 20))
         );
         assert_eq!(
-            cache
-                .get_msgpack::<Dummy>(&cache.build_key("Great Dane"))
-                .await
-                .unwrap(),
+            cache.get_json::<Dummy>(&cache.build_key("Great Dane")).await.unwrap(),
             Entry::Miss
         );
         assert_eq!(
             cache
-                .get_msgpack::<Dummy>(&cache.build_key("Saint Bernard"))
+                .get_json::<Dummy>(&cache.build_key("Saint Bernard"))
                 .await
                 .unwrap(),
             Entry::Miss
@@ -330,22 +329,16 @@ mod tests {
 
         cache.purge_by_tags(vec!["dog".to_string()]).await.unwrap();
         assert_eq!(
-            cache
-                .get_msgpack::<Dummy>(&cache.build_key("Basset Hound"))
-                .await
-                .unwrap(),
+            cache.get_json::<Dummy>(&cache.build_key("Basset Hound")).await.unwrap(),
+            Entry::Miss
+        );
+        assert_eq!(
+            cache.get_json::<Dummy>(&cache.build_key("Great Dane")).await.unwrap(),
             Entry::Miss
         );
         assert_eq!(
             cache
-                .get_msgpack::<Dummy>(&cache.build_key("Great Dane"))
-                .await
-                .unwrap(),
-            Entry::Miss
-        );
-        assert_eq!(
-            cache
-                .get_msgpack::<Dummy>(&cache.build_key("Saint Bernard"))
+                .get_json::<Dummy>(&cache.build_key("Saint Bernard"))
                 .await
                 .unwrap(),
             Entry::Miss

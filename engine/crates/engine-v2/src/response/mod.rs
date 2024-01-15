@@ -22,10 +22,6 @@ pub enum Response {
     RequestError(RequestErrorResponse),
 }
 
-// Our internal error struct shouldn't be accessible. It'll also need some context like
-// ResponseKeys to even just present paths correctly.
-pub struct Error<'a>(&'a GraphqlError);
-
 pub struct InitialResponse {
     // will be None if an error propagated up to the root.
     data: ResponseData,
@@ -67,10 +63,13 @@ impl Response {
         })
     }
 
-    pub fn errors(&self) -> Vec<Error<'_>> {
+    // Our internal error struct is NOT meant to be public. If we ever need it, we should consider
+    // exposing it through a Serializable struct, in the same way 'data' is only available through
+    // serialization.
+    pub fn has_errors(&self) -> bool {
         match self {
-            Self::Initial(resp) => resp.errors.iter().map(Error).collect(),
-            Self::RequestError(resp) => resp.errors.iter().map(Error).collect(),
+            Self::Initial(resp) => !resp.errors.is_empty(),
+            Self::RequestError(resp) => !resp.errors.is_empty(),
         }
     }
 

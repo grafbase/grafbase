@@ -130,16 +130,6 @@ impl<T> CachedExecutionResponse<T> {
     }
 }
 
-#[derive(Clone, Default)]
-pub struct RequestCacheControl {
-    /// The no-cache request directive asks caches to validate the response with the origin server before reuse.
-    /// no-cache allows clients to request the most up-to-date response even if the cache has a fresh response.
-    pub no_cache: bool,
-    /// The no-store request directive allows a client to request that caches refrain from storing
-    /// the request and corresponding response — even if the origin server's response could be stored.
-    pub no_store: bool,
-}
-
 /// Global cache config
 #[derive(Clone, Default)]
 pub struct GlobalCacheConfig {
@@ -176,20 +166,21 @@ impl Cache {
         Key(format!("https://{}/{}", self.config.subdomain, id))
     }
 
-    pub async fn get_msgpack<T: DeserializeOwned>(&self, key: &Key) -> Result<Entry<T>> {
+    pub async fn get_json<T: DeserializeOwned>(&self, key: &Key) -> Result<Entry<T>> {
         self.get(key)
             .await?
-            .try_map(|bytes| rmp_serde::from_slice(&bytes).map_err(|err| Error::Serialization(err.to_string())))
+            .try_map(|bytes| serde_json::from_slice(&bytes).map_err(|err| Error::Serialization(err.to_string())))
     }
 
-    pub async fn put_msgpack<T: Serialize>(
+    // Tried Msgpack, but it doesn't behave really well with engine_v1::Response...
+    pub async fn put_json<T: Serialize + DeserializeOwned>(
         &self,
         key: &Key,
         state: EntryState,
         value: &T,
         metadata: CacheMetadata,
     ) -> Result<()> {
-        let bytes = rmp_serde::to_vec(value).map_err(|err| Error::Serialization(err.to_string()))?;
+        let bytes = serde_json::to_vec(value).map_err(|err| Error::Serialization(err.to_string()))?;
         self.put(key, state, bytes, metadata).await
     }
 }

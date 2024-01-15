@@ -144,7 +144,15 @@ async fn subscription_loop(
     id: String,
     sender: mpsc::Sender<Message>,
 ) {
-    let stream = gateway.execute_stream(request, Default::default());
+    let (wait_until_sender, wait_until_receiver) = tokio::sync::mpsc::unbounded_channel();
+    let ctx = crate::dev::RequestContext {
+        ray_id: ulid::Ulid::new().to_string(),
+        headers: Default::default(),
+        wait_until_sender,
+    };
+    let stream = gateway.execute_stream(&ctx, request);
+    tokio::spawn(crate::dev::wait(wait_until_receiver));
+
     pin_mut!(stream);
     while let Some(response) = stream.next().await {
         let result = sender

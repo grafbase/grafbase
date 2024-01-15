@@ -27,7 +27,6 @@ thiserror.workspace = true
 ulid.workspace = true
 tracing.workspace = true
 tracing-futures.workspace = true
-rmp-serde.workspace = true
 
 search-protocol = { path = "../search-protocol" }
 postgres-connector-types = { path = "../postgres-connector-types" }

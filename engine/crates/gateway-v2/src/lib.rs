@@ -42,12 +42,34 @@ impl Gateway {
         }
     }
 
+    // The Engine is directly accessible
+    pub async fn unchecked_engine_execute(&self, ctx: &impl RequestContext, request: Request) -> Response {
+        let request_headers = headers(ctx);
+        let response = self.engine.execute(request, request_headers).await;
+        let has_errors = response.has_errors();
+        match serde_json::to_vec(&response) {
+            Ok(bytes) => Response {
+                status: http::StatusCode::OK,
+                headers: http::HeaderMap::new(),
+                bytes,
+                metadata: response.take_metadata(),
+                has_errors,
+            },
+            Err(_) => Response {
+                status: http::StatusCode::INTERNAL_SERVER_ERROR,
+                headers: http::HeaderMap::new(),
+                bytes: serde_json::to_vec(&serde_json::json!({
+                    "errors": [{"message": "Server error"}],
+                }))
+                .expect("Obviously valid JSON"),
+                metadata: ExecutionMetadata::default(),
+                has_errors,
+            },
+        }
+    }
+
     pub async fn execute(&self, ctx: &impl RequestContext, request: Request) -> Response {
-        let request_headers = RequestHeaders::from_iter(
-            ctx.headers()
-                .iter()
-                .map(|(name, value)| (name.to_string(), String::from_utf8_lossy(value.as_bytes()).to_string())),
-        );
+        let request_headers = headers(ctx);
         let cached_response = if let Some(token) = self.authorizer.get_access_token(&request_headers).await {
             let prepared_execution = self.engine.execute(request, request_headers);
             match self.build_cache_key(&prepared_execution, &token) {
@@ -116,12 +138,7 @@ impl Gateway {
         ctx: &impl RequestContext,
         request: engine::Request,
     ) -> impl Stream<Item = engine_v2::Response> + '_ {
-        let request_headers = RequestHeaders::from_iter(
-            ctx.headers()
-                .iter()
-                .map(|(name, value)| (name.to_string(), String::from_utf8_lossy(value.as_bytes()).to_string())),
-        );
-        self.engine.execute_stream(request, request_headers)
+        self.engine.execute_stream(request, headers(ctx))
     }
 
     fn build_cache_key(
@@ -141,4 +158,12 @@ impl Gateway {
 
         Some(self.env.cache.build_key(&h.to_string()))
     }
+}
+
+fn headers(ctx: &impl RequestContext) -> RequestHeaders {
+    RequestHeaders::from_iter(
+        ctx.headers()
+            .iter()
+            .map(|(name, value)| (name.to_string(), String::from_utf8_lossy(value.as_bytes()).to_string())),
+    )
 }

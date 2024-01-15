@@ -5,7 +5,7 @@ use http::status::StatusCode;
 use super::RequestContext;
 pub use build_key::build_cache_key;
 use engine::registry::CachePartialRegistry;
-use runtime::cache::{Cache, Cacheable, CachedExecutionResponse, RequestCacheControl};
+use runtime::cache::{Cache, Cacheable, CachedExecutionResponse};
 
 mod build_key;
 mod key;
@@ -15,7 +15,6 @@ pub struct CacheConfig {
     pub global_enabled: bool,
     pub subdomain: String,
     pub host_name: String,
-    pub request_cache_control: RequestCacheControl,
     pub partial_registry: CachePartialRegistry,
     pub common_cache_tags: Vec<String>,
 }
