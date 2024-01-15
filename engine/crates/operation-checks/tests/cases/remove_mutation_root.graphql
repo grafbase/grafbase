@@ -1,0 +1,26 @@
+schema {
+    query: Qu
+    mutation: Mu
+}
+
+type Qu {
+    everything: [String]
+}
+
+type Mu {
+    deleteEverything: Qu
+}
+
+# --- #
+
+schema {
+    query: Qu
+}
+
+type Qu {
+    everything: [String]
+}
+
+# --- #
+
+mutation { deleteEverything { everything } }

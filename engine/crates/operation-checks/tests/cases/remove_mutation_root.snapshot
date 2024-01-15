@@ -1,0 +1,10 @@
+Forward:
+[
+    CheckDiagnostic {
+        message: "The root type `Mu` was removed but it is still used by clients.",
+        severity: Error,
+    },
+]
+
+Backward:
+[]
