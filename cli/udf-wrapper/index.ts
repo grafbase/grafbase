@@ -1,8 +1,7 @@
-// @ts-expect-error
+// @ts-expect-error set individually for each UDF
 import udf from '${UDF_MAIN_FILE_PATH}'
-import { createServer } from 'http'
+import { IncomingMessage, ServerResponse, createServer } from 'http'
 import { Readable } from 'stream'
-import { ReadableStream } from 'stream/web'
 import { KVNamespace } from '@miniflare/kv'
 import { MemoryStorage } from '@miniflare/storage-memory'
 
@@ -21,6 +20,17 @@ interface FetchRequest {
   contentType?: string
   body: string | null
 }
+
+interface UdfRequestPayload {
+  info: unknown
+  parent: unknown
+  context: { kv?: KVNamespace }
+  args: unknown
+}
+
+type NodeResponse = ServerResponse<IncomingMessage> & { req: IncomingMessage }
+
+type Headers = Record<string, string | string[]>
 
 enum HttpMethod {
   Get = 'GET',
@@ -78,42 +88,55 @@ const originalFetch = globalThis.fetch
 let logEntries: Array<LogEntry> = []
 let fetchRequests: Array<FetchRequest> = []
 
+// Node.js:
+
 const server = createServer((request, response) => {
-  router(
-    new Request(`${DUMMY_HOST}${request.url}`, {
-      method: request.method,
-      // the cast here is likely required because of node fetch still being experimental
-      headers: request.headers as Record<string, string>,
-      body: Readable.toWeb(request),
-      // @ts-expect-error https://github.com/node-fetch/node-fetch/issues/1769
-      duplex: Duplex.Half,
-    }),
-  ).then((udfResponse) => {
-    udfResponse.headers.forEach((value, key) => response.setHeader(key, value))
-    response.statusMessage = udfResponse.statusText
-    response.statusCode = udfResponse.status
-    // cast likely required due to node fetch being experimental
-    Readable.fromWeb(udfResponse.body as ReadableStream<Uint8Array>)
-      .on(StreamEvent.Data, (chunk) => response.write(chunk))
-      .on(StreamEvent.End, () => response.end())
-  })
+  const routerResponse = router(nodeRequestToWeb(request))
+
+  if (routerResponse instanceof Promise) {
+    routerResponse.then((routerResponse) => webResponseToNode(routerResponse, response))
+  } else {
+    webResponseToNode(routerResponse, response)
+  }
 })
 
 server.listen(PORT, HOST, () => {
-  // @ts-expect-error incorrectly typed
+  // @ts-expect-error incorrectly typed for the `.port` property, `.address()` must exist at this point
   const port = server.address().port
   originalConsoleLog(port)
 })
 
-// For Deno:
-//
+const nodeRequestToWeb = (request: IncomingMessage) =>
+  new Request(`${DUMMY_HOST}${request.url}`, {
+    method: request.method,
+    // the cast here is likely required because of node fetch still being experimental
+    headers: request.headers as Headers,
+    body: Readable.toWeb(request),
+    duplex: Duplex.Half,
+  })
+
+const webResponseToNode = (webResponse: Response, response: NodeResponse) => {
+  webResponse.headers.forEach((value, key) => response.setHeader(key, value))
+  response.statusMessage = webResponse.statusText
+  response.statusCode = webResponse.status
+  if (webResponse.body !== null) {
+    Readable.fromWeb(webResponse.body)
+      .on(StreamEvent.Data, (chunk) => response.write(chunk))
+      .on(StreamEvent.End, () => response.end())
+  } else {
+    response.end()
+  }
+}
+
+// Deno:
+
 // Deno.serve(
 //   { port: PORT, onListen: (path: { hostname: string; port: number }) => originalConsoleLog(path.port) },
 //   (request: Request) => router(request),
 // )
 
-// For Bun:
-//
+// Bun:
+
 // const server = Bun.serve({
 //   port: PORT,
 //   fetch: (request: Request) => router(request),
@@ -146,7 +169,7 @@ globalThis.console.log = globalThis.console.info
 
 // Monkey patch `fetch()` calls from custom resolvers
 // to allow for fully introspected logging of all HTTP requests.
-globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+globalThis.fetch = async (input: string | URL | Request, init?: RequestInit) => {
   const request = new Request(input, init)
 
   const startTime = Date.now()
@@ -180,7 +203,7 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   return response
 }
 
-const router = async (request: Request) => {
+const router = (request: Request) => {
   const url = new URL(request.url)
   switch (url.pathname) {
     case Route.Health:
@@ -208,7 +231,7 @@ const invoke = async (request: Request) => {
   logEntries = []
   fetchRequests = []
 
-  const { parent, args, context, info } = await request.json()
+  const { parent, args, context, info } = (await request.json()) as UdfRequestPayload
 
   let returnValue: unknown = null
 
@@ -244,9 +267,7 @@ const invoke = async (request: Request) => {
     }
   } catch (error: unknown) {
     if (error == null) {
-      returnValue = {
-        Error: 'nullish value thrown',
-      }
+      returnValue = { Error: 'nullish value thrown' }
     } else {
       if (error instanceof Error && error.name === ErrorType.GraphQL) {
         returnValue = {
@@ -257,20 +278,12 @@ const invoke = async (request: Request) => {
           },
         }
       } else {
-        returnValue = {
-          Error: error.toString(),
-        }
+        returnValue = { Error: error.toString() }
       }
     }
   }
 
-  const jsonResponse = {
-    value: returnValue,
-    fetchRequests,
-    logEntries,
-  }
-
-  return new Response(JSON.stringify(jsonResponse), {
+  return new Response(JSON.stringify({ value: returnValue, fetchRequests, logEntries }), {
     headers: { [Header.ContentType]: MimeType.ApplicationJson },
   })
 }
