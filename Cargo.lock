@@ -7020,8 +7020,8 @@ checksum = "ed646292ffc8188ef8ea4d1e0e0150fb15a5c2e12ad9b8fc191ae7a8a7f3c4b9"
 
 [[package]]
 name = "ulid"
-version = "1.0.0"
-source = "git+https://github.com/grafbase/ulid-rs?rev=6d06156193d51a2db3216f058cbfadd4923df2c7#6d06156193d51a2db3216f058cbfadd4923df2c7"
+version = "1.1.0"
+source = "git+https://github.com/grafbase/ulid-rs?rev=299b52e08db0703b129063347584ce063da10721#299b52e08db0703b129063347584ce063da10721"
 dependencies = [
  "getrandom 0.2.12",
  "rand 0.8.5",
@@ -7339,9 +7339,9 @@ dependencies = [
 
 [[package]]
 name = "web-time"
-version = "0.2.4"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa30049b1c872b72c89866d458eae9f20380ab280ffd1b1e18df2d3e2d98cfe0"
+checksum = "2ee269d72cc29bf77a2c4bc689cc750fb39f5cbd493d2205bbb3f5c7779cf7b0"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
