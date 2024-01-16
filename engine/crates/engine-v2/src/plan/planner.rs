@@ -15,8 +15,8 @@ use crate::{
         PlanInput, PlanOutput, PossibleField, UndeterminedSelectionSet,
     },
     request::{
-        BoundFieldDefinitionWalker, BoundFieldId, FlatField, FlatFieldWalker, FlatSelectionSet, FlatSelectionSetWalker,
-        Operation, OperationWalker, QueryPath, SelectionSetType,
+        BoundFieldDefinitionWalker, BoundFieldId, BoundSelectionSetId, FlatField, FlatFieldWalker, FlatSelectionSet,
+        FlatSelectionSetWalker, Operation, OperationWalker, QueryPath, SelectionSetType,
     },
     response::{ReadField, ReadSelectionSet, ResponseBoundaryItem, ResponseEdge},
 };
@@ -79,7 +79,7 @@ impl<'op> Planner<'op> {
                     let flat_selection_set = providable.into_inner();
                     FlatSelectionSet {
                         ty: EntityType::Object(self.operation.root_object_id),
-                        any_selection_set_id: flat_selection_set.any_selection_set_id,
+                        id: flat_selection_set.id,
                         fields: flat_selection_set.fields,
                     }
                 },
@@ -175,7 +175,7 @@ impl<'op> Planner<'op> {
     ) -> PlanningResult<PlanBoundary> {
         let walker = self.default_operation_walker();
         let selection_set_type = missing_selection_set.ty();
-        let any_selection_set_id = missing_selection_set.any_selection_set_id();
+        let flat_selection_set_id = missing_selection_set.id();
         let mut id_to_missing_fields: HashMap<BoundFieldId, FlatField> = missing_selection_set
             .into_fields()
             .map(|flat_field| (flat_field.bound_field_id, flat_field.into_inner()))
@@ -268,7 +268,7 @@ impl<'op> Planner<'op> {
                         .unwrap_or_default(),
                     root_selection_set: FlatSelectionSet {
                         ty: candidate.entity_type,
-                        any_selection_set_id,
+                        id: flat_selection_set_id,
                         fields: providable,
                     },
                 });
@@ -302,7 +302,7 @@ impl<'op> Planner<'op> {
     ) -> PlanningResult<PlanBoundary> {
         let walker = self.default_operation_walker();
         let selection_set_type = missing_selection_set.ty();
-        let any_selection_set_id = missing_selection_set.any_selection_set_id();
+        let flat_selection_set_id = missing_selection_set.id();
         let entity_type = EntityType::Object(self.operation.root_object_id);
 
         let mut groups = missing_selection_set
@@ -343,13 +343,13 @@ impl<'op> Planner<'op> {
                     input_selection_set: ReadSelectionSet::default(),
                     root_selection_set: FlatSelectionSet {
                         ty: entity_type,
-                        any_selection_set_id,
+                        id: flat_selection_set_id,
                         fields: group
                             .bound_field_ids
                             .into_iter()
                             .map(|id| FlatField {
                                 type_condition: None,
-                                selection_set_path: vec![any_selection_set_id],
+                                selection_set_path: vec![flat_selection_set_id.into()],
                                 bound_field_id: id,
                             })
                             .collect(),
@@ -469,7 +469,7 @@ impl<'op> Planner<'op> {
             .collect::<PlanningResult<ReadSelectionSet>>()?;
 
         if !missing.is_empty() {
-            let id = parent.flat_selection_set.any_selection_set_id();
+            let id = BoundSelectionSetId::from(parent.flat_selection_set.id());
             // If it wasn't done already, we're now attributing this selection_set to the parent
             // plan as it'll contain at least one extra field.
             parent.attribution.attributed_selection_sets.insert(id);
@@ -733,7 +733,7 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
                 typename_fields.push(group.key.into());
             }
         }
-        if let Some(extra_fields) = self.attribution.extra_fields(flat_selection_set.any_selection_set_id()) {
+        if let Some(extra_fields) = self.attribution.extra_fields(flat_selection_set.id().into()) {
             fields.extend(extra_fields.map(|extra_field| ConcreteField {
                 edge: extra_field.edge,
                 expected_key: extra_field.expected_key.clone(),
@@ -762,13 +762,13 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
         maybe_boundary_id: Option<PlanBoundaryId>,
     ) -> PlanningResult<UndeterminedSelectionSetId> {
         let ty = flat_selection_set.ty();
-        let any_selection_set_id = flat_selection_set.any_selection_set_id();
+        let id = BoundSelectionSetId::from(flat_selection_set.id());
         let mut fields = flat_selection_set
             .into_fields()
             .map(|flat_field| self.expected_ungrouped_field(flat_field))
             .collect::<PlanningResult<Vec<_>>>()?;
 
-        if let Some(extra_field_ids) = self.attribution.extra_field_ids(any_selection_set_id) {
+        if let Some(extra_field_ids) = self.attribution.extra_field_ids(id) {
             fields.extend(extra_field_ids.map(PossibleField::Extra));
         }
         // Sorting by the ResponseEdge, so field position in the query, ensures proper field

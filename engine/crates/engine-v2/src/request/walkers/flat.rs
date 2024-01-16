@@ -7,8 +7,8 @@ use schema::{Definition, FieldId};
 
 use crate::{
     request::{
-        BoundAnyFieldDefinitionId, BoundFieldId, BoundSelectionSetId, FlatField, FlatSelectionSet, FlatTypeCondition,
-        SelectionSetType,
+        BoundAnyFieldDefinitionId, BoundFieldId, BoundSelectionSetId, FlatField, FlatSelectionSet, FlatSelectionSetId,
+        FlatTypeCondition, SelectionSetType,
     },
     response::{BoundResponseKey, ResponseKey},
 };
@@ -19,8 +19,8 @@ pub type FlatSelectionSetWalker<'a, Ty = SelectionSetType> = OperationWalker<'a,
 pub type FlatFieldWalker<'a> = OperationWalker<'a, Cow<'a, FlatField>>;
 
 impl<'a, Ty: Copy> FlatSelectionSetWalker<'a, Ty> {
-    pub fn any_selection_set_id(&self) -> BoundSelectionSetId {
-        self.item.any_selection_set_id
+    pub fn id(&self) -> FlatSelectionSetId {
+        self.item.id
     }
 
     pub fn ty(&self) -> Ty {
@@ -105,7 +105,7 @@ impl<'a, Ty: Copy> FlatSelectionSetWalker<'a, Ty> {
     fn with_fields(&self, fields: Vec<FlatField>) -> Self {
         self.walk(Cow::Owned(FlatSelectionSet {
             ty: self.item.ty,
-            any_selection_set_id: self.item.any_selection_set_id,
+            id: self.item.id,
             fields,
         }))
     }
@@ -156,7 +156,7 @@ impl<'a, Ty: Copy + std::fmt::Debug + Into<SelectionSetType>> std::fmt::Debug fo
         let ty_name = self.walk_with(ty, Definition::from(ty)).name();
 
         f.debug_struct("FlatSelectionSet")
-            .field("any_selection_set_id", &self.any_selection_set_id())
+            .field("id", &self.id())
             .field("ty", &ty_name)
             .field("fields", &self.fields().collect::<Vec<_>>())
             .finish()
