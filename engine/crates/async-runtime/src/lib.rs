@@ -1,3 +1,5 @@
+pub mod stream;
+
 use core::future::Future;
 
 #[cfg(target_arch = "wasm32")]

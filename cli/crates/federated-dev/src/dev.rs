@@ -9,6 +9,7 @@ use axum::{
 };
 use common::environment::Environment;
 use futures_util::future::{join_all, BoxFuture};
+use gateway_v2::streaming::{encode_stream_response, StreamingFormat};
 use handlebars::Handlebars;
 use serde_json::json;
 use std::time::Duration;
@@ -168,17 +169,36 @@ async fn handle_engine_request(
         .into_response();
     };
 
+    let streaming_format = headers
+        .get(http::header::ACCEPT)
+        .and_then(|value| value.to_str().ok())
+        .and_then(StreamingFormat::from_accept_header);
+
     let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
     let ctx = RequestContext {
         ray_id: ulid::Ulid::new().to_string(),
         headers,
         wait_until_sender: sender,
     };
+
+    if let Some(streaming_format) = streaming_format {
+        let ray_id = ctx.ray_id.clone();
+        let stream = gateway.execute_stream(ctx, request);
+
+        let (headers, stream) = encode_stream_response(ray_id, stream, streaming_format).await;
+
+        // TODO: is this the right place to spawn?
+        tokio::spawn(wait(receiver));
+
+        return (headers, axum::body::Body::from_stream(stream)).into_response();
+    }
+
     let response = gateway.execute(&ctx, request).await;
     tokio::spawn(wait(receiver));
     (response.status, response.headers, response.bytes).into_response()
 }
 
+#[derive(Clone)]
 struct RequestContext {
     ray_id: String,
     headers: http::HeaderMap,

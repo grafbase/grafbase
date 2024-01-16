@@ -1,14 +1,10 @@
 pub(super) mod format;
 
+use async_runtime::stream::producer_stream;
 use async_sse::Sender;
 use bytes::Bytes;
 use format::StreamingFormat;
-use futures_util::{
-    future::{self, BoxFuture},
-    pin_mut,
-    stream::{self, BoxStream},
-    AsyncBufReadExt, FutureExt, Stream, StreamExt,
-};
+use futures_util::{pin_mut, stream::BoxStream, AsyncBufReadExt, Stream, StreamExt};
 use headers::HeaderMapExt;
 
 const MULTIPART_BOUNDARY: &str = "-";
@@ -38,15 +34,15 @@ where
         }
         StreamingFormat::GraphQLOverSSE => {
             let (sse_sender, sse_encoder) = async_sse::encode();
-            let response_stream: BoxStream<'a, Result<Bytes, String>> = Box::pin(sse_encoder.lines().map(|line| {
+            let response_stream = sse_encoder.lines().map(|line| {
                 line.map(|mut line| {
                     line.push_str("\r\n");
                     line.into()
                 })
                 .map_err(|e| e.to_string())
-            }));
+            });
 
-            sse_stream(ray_id, payload_stream, sse_sender, response_stream)
+            Box::pin(sse_stream(ray_id, payload_stream, sse_sender, response_stream))
         }
     };
 
@@ -66,13 +62,13 @@ fn sse_stream<'a, T>(
     ray_id: String,
     payload_stream: impl Stream<Item = T> + Send + 'a,
     sse_sender: Sender,
-    sse_output: BoxStream<'a, Result<Bytes, String>>,
-) -> BoxStream<'a, Result<Bytes, String>>
+    sse_output: impl Stream<Item = Result<Bytes, String>> + Send + 'a,
+) -> impl Stream<Item = Result<Bytes, String>> + Send + 'a
 where
     T: serde::Serialize + Send,
 {
     // Start a future that pumps data from payload_stream into the sse_sender
-    let pump_future: BoxFuture<'a, ()> = Box::pin(async move {
+    producer_stream(sse_output, async move {
         pin_mut!(payload_stream);
 
         while let Some(payload) = payload_stream.next().await {
@@ -96,38 +92,5 @@ where
         if let Err(error) = sse_sender.send("complete", "null", None).await {
             log::error!(ray_id, "Could not send complete payload via sse_sender: {error}");
         }
-    });
-
-    // Return a Stream that'll run `pump_future` while taking items from sse_output
-    Box::pin(futures_util::stream::unfold(
-        SSEStreamState::Running(sse_output.fuse(), pump_future.fuse()),
-        |mut state| async {
-            loop {
-                match state {
-                    SSEStreamState::Running(mut sse_output, mut pump) => {
-                        futures_util::select! {
-                            output = sse_output.next() => {
-                                return Some((output?, SSEStreamState::Running(sse_output, pump)));
-                            }
-                            _ = pump => {
-                                state = SSEStreamState::Draining(sse_output);
-                                continue;
-                            }
-                        }
-                    }
-                    SSEStreamState::Draining(mut sse_output) => {
-                        return Some((sse_output.next().await?, SSEStreamState::Draining(sse_output)))
-                    }
-                }
-            }
-        },
-    ))
-}
-
-enum SSEStreamState<'a> {
-    Running(
-        stream::Fuse<BoxStream<'a, Result<Bytes, String>>>,
-        future::Fuse<BoxFuture<'a, ()>>,
-    ),
-    Draining(stream::Fuse<BoxStream<'a, Result<Bytes, String>>>),
+    })
 }

@@ -12,6 +12,8 @@ use gateway_core::RequestContext;
 use headers::HeaderMapExt;
 use runtime::cache::{CacheReadStatus, CachedExecutionResponse};
 
+pub mod streaming;
+
 pub struct Gateway {
     engine: Arc<Engine>,
     env: GatewayEnv,
@@ -137,7 +139,7 @@ impl Gateway {
         &self,
         ctx: impl RequestContext,
         request: engine::Request,
-    ) -> impl Stream<Item = engine_v2::Response> + '_ {
+    ) -> impl Stream<Item = engine_v2::Response> {
         self.engine.execute_stream(request, headers(&ctx))
     }
 

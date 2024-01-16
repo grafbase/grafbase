@@ -357,6 +357,7 @@ dependencies = [
 name = "async-runtime"
 version = "0.1.0"
 dependencies = [
+ "futures-util",
  "send_wrapper 0.6.0",
  "tokio",
  "wasm-bindgen-futures",
