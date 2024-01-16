@@ -140,7 +140,7 @@ pub(super) fn change_field_argument_type(
         change, check_params, ..
     }: CheckArgs<'_, '_>,
 ) -> Option<CheckDiagnostic> {
-    if !check_params.argument_is_used(&change.path) {
+    if !check_params.field_is_used(trim_to_field_path(&change.path)) {
         return None;
     }
 
@@ -161,6 +161,9 @@ pub(super) fn change_field_argument_type(
 
             match src_arg.wrappers.compare(&target_arg.wrappers) {
                 crate::schema::WrapperTypesComparison::RemovedNonNull => return None,
+                crate::schema::WrapperTypesComparison::AddedNonNull if target_arg.has_default => {
+                    return None;
+                }
                 crate::schema::WrapperTypesComparison::AddedNonNull => {
                     return Some(CheckDiagnostic {
                         message: format!(
@@ -174,6 +177,10 @@ pub(super) fn change_field_argument_type(
                 | crate::schema::WrapperTypesComparison::NotCompatible => break 'refine,
             }
         }
+    }
+
+    if !check_params.argument_is_used(&change.path) {
+        return None;
     }
 
     Some(CheckDiagnostic {
@@ -365,6 +372,20 @@ pub(crate) fn remove_enum_value(args: CheckArgs<'_, '_>) -> Option<CheckDiagnost
             "The enum value `{}` was removed but it is still used by clients.",
             args.change.path
         ),
+        severity: Severity::Error,
+    })
+}
+
+/// Only breaking if the argument is required and at least one query leaves it out.
+pub(crate) fn remove_field_argument_default(args: CheckArgs<'_, '_>) -> Option<CheckDiagnostic> {
+    let path = &args.change.path;
+
+    if !args.check_params.argument_is_left_out(path) {
+        return None;
+    }
+
+    Some(CheckDiagnostic {
+        message: format!("The default value for required argument `{path}` was removed but some queries leave it out.",),
         severity: Severity::Error,
     })
 }

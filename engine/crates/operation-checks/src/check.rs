@@ -46,12 +46,7 @@ impl CheckParams<'_> {
     }
 
     fn argument_is_used(&self, path: &str) -> bool {
-        let mut path = path.split('.');
-        let type_name = path.next().unwrap();
-        let field_name = path.next().unwrap();
-        let argument_name = path.next().unwrap();
-
-        let Some(argument_id) = self.source.find_argument((type_name, field_name, argument_name)) else {
+        let Some(argument_id) = self.find_argument(path) else {
             return false;
         };
 
@@ -60,6 +55,25 @@ impl CheckParams<'_> {
 
     fn enum_value_is_used(&self, path: &str) -> bool {
         self.field_usage.count_per_enum_value.contains_key(path)
+    }
+
+    fn argument_is_left_out(&self, path: &str) -> bool {
+        let Some(argument_id) = self.find_argument(path) else {
+            return false;
+        };
+
+        self.field_usage
+            .arguments_with_defaults_left_out_count
+            .contains_key(&argument_id)
+    }
+
+    fn find_argument(&self, path: &str) -> Option<crate::schema::ArgumentId> {
+        let mut path = path.split('.');
+        let type_name = path.next().unwrap();
+        let field_name = path.next().unwrap();
+        let argument_name = path.next().unwrap();
+
+        self.source.find_argument((type_name, field_name, argument_name))
     }
 }
 
@@ -150,9 +164,7 @@ fn check_change(args: CheckArgs<'_, '_>) -> Option<CheckDiagnostic> {
 
         ChangeKind::RemoveEnumValue => rules::remove_enum_value(args),
 
-        // Only breaking if the argument is required and at least one query leaves it out.
-        // TODO: implement this => GB-5748
-        ChangeKind::RemoveFieldArgumentDefault  => None,
+        ChangeKind::RemoveFieldArgumentDefault  => rules::remove_field_argument_default(args),
     }
 }
 
