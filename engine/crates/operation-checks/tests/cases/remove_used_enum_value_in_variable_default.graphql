@@ -1,0 +1,31 @@
+scalar Url
+
+type Query {
+  findImage(dominantColor: Color): Url
+}
+
+enum Color {
+  RED
+  GREEN
+  BLUE
+}
+
+# --- #
+
+scalar Url
+
+type Query {
+  findImage(dominantColor: Color): Url
+}
+
+enum Color {
+  RED
+  GREEN
+}
+
+# --- #
+
+query findBlueImage($color: Color = BLUE) {
+    findImage(dominantColor: $color)
+}
+

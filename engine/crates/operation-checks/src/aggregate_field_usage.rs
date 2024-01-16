@@ -8,6 +8,7 @@ pub struct FieldUsage {
     /// field id -> usage count
     pub(crate) count_per_field: HashMap<schema::FieldId, u64>,
     pub(crate) count_per_field_argument: HashMap<schema::ArgumentId, u64>,
+    pub(crate) count_per_enum_value: HashMap<String, u64>,
 
     /// Usage of interface implementers and union members in type conditions. The key is a string
     /// of the form "parent_type_name.implementer_type_name"
@@ -21,6 +22,7 @@ impl Default for FieldUsage {
             count_per_field: HashMap::new(),
             count_per_field_argument: HashMap::new(),
             type_condition_counts: HashMap::new(),
+            count_per_enum_value: HashMap::new(),
         }
     }
 }
@@ -38,6 +40,7 @@ impl FieldUsage {
         self.count_per_field.retain(|_, count| *count >= threshold);
         self.count_per_field_argument.retain(|_, count| *count >= threshold);
         self.type_condition_counts.retain(|_, count| *count >= threshold);
+        self.count_per_enum_value.retain(|_, count| *count >= threshold);
     }
 
     /// Register a field usage.
@@ -56,15 +59,24 @@ impl FieldUsage {
             self.count_per_field_argument.insert(argument_id, self.increment);
         }
     }
+
+    fn register_enum_value_usage(&mut self, enum_and_value: String) {
+        *self.count_per_enum_value.entry(enum_and_value).or_insert(0) += self.increment;
+    }
 }
 
 /// Given a GraphQL query and the corresponding schema, count the number of times each schema field is used.
 pub fn aggregate_field_usage(query: &Operation, schema: &schema::Schema, usage: &mut FieldUsage) {
+    for used_enum_value in &query.enum_values_in_variable_defaults {
+        usage.register_enum_value_usage(used_enum_value.clone());
+    }
+
     let ty = match query.operation_type {
         OperationType::Query => &schema.query_type_name,
         OperationType::Mutation => &schema.mutation_type_name,
         OperationType::Subscription => &schema.subscription_type_name,
     };
+
     aggregate_field_usage_inner(query.root_selection, ty, query, schema, usage);
 }
 
@@ -93,12 +105,21 @@ fn aggregate_field_usage_inner(
 
                 usage.register_field_usage(field_id);
 
-                for arg_name in arguments {
-                    let Some(argument_id) = schema.find_argument((parent_type_name, field_name, &arg_name)) else {
+                for super::operation::Argument {
+                    name,
+                    enum_literal_value,
+                } in arguments
+                {
+                    let Some(argument_id) = schema.find_argument((parent_type_name, field_name, &name)) else {
                         continue;
                     };
 
                     usage.register_argument_usage(argument_id);
+
+                    if let Some(enum_value) = enum_literal_value {
+                        let enum_type_name = schema[argument_id].base_type.as_str();
+                        usage.register_enum_value_usage([enum_type_name, enum_value.as_str()].join("."));
+                    }
                 }
 
                 if let Some(subselection_id) = subselection {
@@ -470,6 +491,9 @@ mod test {
             ]
             .into_iter()
             .collect(),
+            count_per_enum_value: [("Color.RED".to_string(), 200), ("Animal.GIRAFFE".to_string(), 300)]
+                .into_iter()
+                .collect(),
         };
 
         usage.apply_request_count_threshold(300);
@@ -487,5 +511,6 @@ mod test {
         );
 
         assert_eq!(keys(&usage.type_condition_counts), &["E.F", "G.H", "I.J"]);
+        assert_eq!(keys(&usage.count_per_enum_value), &["Animal.GIRAFFE"]);
     }
 }

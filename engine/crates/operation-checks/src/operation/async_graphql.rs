@@ -1,11 +1,13 @@
 use super::*;
-use async_graphql_parser::types::ExecutableDocument;
+use async_graphql_parser::{types::ExecutableDocument, Positioned};
+use async_graphql_value::ConstValue;
 
 impl From<ExecutableDocument> for super::Operation {
     fn from(value: ExecutableDocument) -> Self {
         let mut selection_id_counter = 0usize;
         let mut fragments = HashMap::with_capacity(value.fragments.len());
         let mut selections = Vec::new();
+        let mut enum_values_in_variable_defaults = Vec::new();
 
         for (name, fragment) in &value.fragments {
             let selection_id = SelectionId(selection_id_counter);
@@ -36,6 +38,17 @@ impl From<ExecutableDocument> for super::Operation {
         let root_selection = SelectionId(selection_id_counter);
         selection_id_counter += 1;
 
+        for variable in &operation.node.variable_definitions {
+            if let Some(Positioned {
+                node: ConstValue::Enum(enum_value),
+                ..
+            }) = &variable.node.default_value
+            {
+                let (base, _) = crate::schema::extract_type(&variable.node.var_type.node);
+                enum_values_in_variable_defaults.push([base.as_str(), enum_value.as_str()].join("."));
+            }
+        }
+
         for item in &operation.node.selection_set.node.items {
             let item = ingest_selection(&mut selection_id_counter, &item.node, &mut selections);
             selections.push((root_selection, item));
@@ -48,6 +61,7 @@ impl From<ExecutableDocument> for super::Operation {
             operation_type,
             root_selection,
             selections,
+            enum_values_in_variable_defaults,
         }
     }
 }
@@ -79,7 +93,17 @@ fn ingest_selection(
                     .node
                     .arguments
                     .iter()
-                    .map(|(name, _)| name.node.to_string())
+                    .map(|(name, value)| {
+                        let enum_literal_value = match &value.node {
+                            async_graphql_value::Value::Enum(val) => Some(val.to_string()),
+                            _ => None,
+                        };
+
+                        Argument {
+                            name: name.node.to_string(),
+                            enum_literal_value,
+                        }
+                    })
                     .collect(),
                 subselection,
             }

@@ -353,3 +353,18 @@ pub(crate) fn remove_object_type(args: CheckArgs<'_, '_>) -> Option<CheckDiagnos
         severity: Severity::Error,
     })
 }
+
+// Removing an enum value is safe iff it is not used explicitly as argument in any query.
+pub(crate) fn remove_enum_value(args: CheckArgs<'_, '_>) -> Option<CheckDiagnostic> {
+    if !args.check_params.enum_value_is_used(&args.change.path) {
+        return None;
+    }
+
+    Some(CheckDiagnostic {
+        message: format!(
+            "The enum value `{}` was removed but it is still used by clients.",
+            args.change.path
+        ),
+        severity: Severity::Error,
+    })
+}

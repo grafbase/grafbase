@@ -1,7 +1,7 @@
 mod async_graphql;
 mod wrapping_types;
 
-pub(crate) use wrapping_types::*;
+pub(crate) use self::{async_graphql::extract_type, wrapping_types::*};
 
 use std::collections::HashSet;
 
