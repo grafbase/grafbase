@@ -74,7 +74,7 @@ impl<'a> ExecutionRequest<'a> {
         let (ctx, futures) = RequestContext::new(self.headers);
         tokio::spawn(RequestContext::wait_for_all(futures));
         self.gateway
-            .execute_stream(&ctx, request)
+            .execute_stream(ctx, request)
             .map(|response| GraphqlResponse {
                 gql_response: serde_json::to_value(&response).unwrap(),
                 metadata: response.take_metadata(),

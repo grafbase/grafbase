@@ -31,6 +31,7 @@ mediatype = "0.19"
 mime = "0.3"
 multipart-stream = "0.1"
 runtime = { workspace = true, features = ["test-utils"] }
+serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 tracing.workspace = true

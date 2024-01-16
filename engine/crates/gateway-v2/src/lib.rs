@@ -135,10 +135,10 @@ impl Gateway {
 
     pub fn execute_stream(
         &self,
-        ctx: &impl RequestContext,
+        ctx: impl RequestContext,
         request: engine::Request,
     ) -> impl Stream<Item = engine_v2::Response> + '_ {
-        self.engine.execute_stream(request, headers(ctx))
+        self.engine.execute_stream(request, headers(&ctx))
     }
 
     fn build_cache_key(
