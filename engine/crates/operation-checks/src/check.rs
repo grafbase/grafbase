@@ -57,6 +57,10 @@ impl CheckParams<'_> {
 
         self.field_usage.count_per_field_argument.contains_key(&argument_id)
     }
+
+    fn enum_value_is_used(&self, path: &str) -> bool {
+        self.field_usage.count_per_enum_value.contains_key(path)
+    }
 }
 
 /// Perform operation checks.
@@ -144,9 +148,7 @@ fn check_change(args: CheckArgs<'_, '_>) -> Option<CheckDiagnostic> {
 
         ChangeKind::RemoveUnionMember => rules::remove_union_member(args),
 
-        // Removing an enum value is safe iff it is not used explicitly as argument in any query.
-        // TODO: implement this => GB-5747
-        ChangeKind::RemoveEnumValue => None,
+        ChangeKind::RemoveEnumValue => rules::remove_enum_value(args),
 
         // Only breaking if the argument is required and at least one query leaves it out.
         // TODO: implement this => GB-5748

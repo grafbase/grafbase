@@ -16,6 +16,8 @@ pub struct Operation {
 
     /// (parent selection, selection)
     pub(crate) selections: Vec<(SelectionId, Selection)>,
+
+    pub(crate) enum_values_in_variable_defaults: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -32,10 +34,17 @@ pub enum OperationType {
 }
 
 #[derive(Debug)]
-pub enum Selection {
+pub(crate) struct Argument {
+    pub(crate) name: String,
+    /// Some(_) if the argument value is an enum literal.
+    pub(crate) enum_literal_value: Option<String>,
+}
+
+#[derive(Debug)]
+pub(crate) enum Selection {
     Field {
         field_name: String,
-        arguments: Vec<String>,
+        arguments: Vec<Argument>,
         subselection: Option<SelectionId>,
     },
     FragmentSpread {

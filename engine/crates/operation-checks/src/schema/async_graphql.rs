@@ -103,7 +103,7 @@ impl From<ServiceDocument> for schema::Schema {
     }
 }
 
-fn extract_type(top_level_ty: &async_graphql_parser::types::Type) -> (String, WrappingTypes) {
+pub(crate) fn extract_type(top_level_ty: &async_graphql_parser::types::Type) -> (String, WrappingTypes) {
     let mut ty = top_level_ty;
     let mut wrapper_types = WrappingTypes::default();
 
