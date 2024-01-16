@@ -1,21 +1,17 @@
 use crate::{ExecutionMetadata, Response};
 use engine_parser::types::OperationType;
-use runtime::cache::Cacheable;
-use std::time::Duration;
+use runtime::cache::{CacheMetadata, Cacheable};
+use serde_with::base64::Base64;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[serde_with::serde_as]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct CacheableResponse {
-    pub bytes: bytes::Bytes,
-    // Empty if coming from the cache, nothing was executed.
-    #[serde(skip, default)]
+    // Currently, we store the response as JSON in the cache. So converting to base64 for more
+    // efficient storage as JSON represents it as an array of numbers otherwise.
+    #[serde_as(as = "Base64")]
+    pub bytes: Vec<u8>,
     pub metadata: ExecutionMetadata,
     pub has_errors: bool,
-}
-
-impl CacheableResponse {
-    pub fn take_metadata(self) -> ExecutionMetadata {
-        self.metadata
-    }
 }
 
 impl crate::Response {
@@ -24,44 +20,37 @@ impl crate::Response {
         F: FnOnce(&Response) -> Result<Vec<u8>, E>,
     {
         let bytes = serializer(&self)?;
-        let has_errors = !self.errors().is_empty();
         Ok(CacheableResponse {
-            has_errors,
-            bytes: bytes::Bytes::from(bytes),
+            has_errors: self.has_errors(),
+            bytes,
             metadata: self.take_metadata(),
         })
     }
 }
 
 impl Cacheable for CacheableResponse {
-    fn max_age(&self) -> Duration {
-        self.metadata
+    fn metadata(&self) -> CacheMetadata {
+        let max_age = self
+            .metadata
             .cache_config
             .map(|config| config.max_age)
-            .unwrap_or_default()
-    }
-
-    fn stale_while_revalidate(&self) -> Duration {
-        self.metadata
-            .cache_config
-            .map(|config| config.stale_while_revalidate)
-            .unwrap_or_default()
-    }
-
-    fn cache_tags(&self) -> Vec<String> {
-        vec![] // to be added when mutation invalidation is supported in v2
-    }
-
-    fn should_purge_related(&self) -> bool {
-        false // to be added when mutation invalidation is supported in v2
-    }
-
-    fn should_cache(&self) -> bool {
-        !self.has_errors
-            && self
+            .unwrap_or_default();
+        CacheMetadata {
+            max_age,
+            stale_while_revalidate: self
                 .metadata
-                .operation_type
-                .map(|operation_type| operation_type == OperationType::Query)
-                .unwrap_or_default()
+                .cache_config
+                .map(|config| config.stale_while_revalidate)
+                .unwrap_or_default(),
+            tags: vec![],
+            should_purge_related: false,
+            should_cache: !self.has_errors
+                && self
+                    .metadata
+                    .operation_type
+                    .map(|operation_type| operation_type == OperationType::Query)
+                    .unwrap_or_default()
+                && !max_age.is_zero(),
+        }
     }
 }

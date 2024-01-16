@@ -71,10 +71,16 @@ impl FederationGatewayBuilder {
         TestFederationGateway {
             gateway: Gateway::new(
                 config.into(),
-                engine_v2::EngineRuntime {
+                engine_v2::EngineEnv {
                     fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
                 },
-                runtime_local::InMemoryKvStore::runtime_kv(),
+                gateway_v2::GatewayEnv {
+                    kv: runtime_local::InMemoryKvStore::runtime(),
+                    cache: runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
+                        enabled: true,
+                        ..Default::default()
+                    }),
+                },
             ),
         }
     }

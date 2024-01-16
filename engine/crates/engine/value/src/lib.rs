@@ -150,10 +150,12 @@ impl Hash for ConstValue {
         std::mem::discriminant(self).hash(state);
 
         match self {
-            ConstValue::Object(v) => {
-                for (k, v) in v {
-                    k.hash(state);
-                    v.hash(state);
+            ConstValue::Object(map) => {
+                let mut keys = map.keys().collect::<Vec<_>>();
+                keys.sort();
+                for key in keys {
+                    key.hash(state);
+                    map.get(key).hash(state);
                 }
             }
             ConstValue::Null => {}

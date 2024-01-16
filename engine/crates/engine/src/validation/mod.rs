@@ -129,6 +129,7 @@ pub fn check_rules(
         return Err(ctx.errors.into_iter().map(Into::into).collect());
     }
 
+    println!("CACHE CONTROL: {cache_control:#?}");
     Ok(ValidationResult {
         cache_control,
         cache_invalidation_policies,

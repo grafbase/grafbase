@@ -61,7 +61,7 @@ impl<'ctx> FederationEntityExecutor<'ctx> {
         let bytes = self
             .ctx
             .engine
-            .runtime
+            .env
             .fetcher
             .post(FetchRequest {
                 url: self.subgraph.url(),

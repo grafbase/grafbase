@@ -16,6 +16,7 @@ workspace = true
 async-runtime.workspace = true
 async-trait.workspace = true
 bytes.workspace = true
+derive_more = "0.99"
 futures-util.workspace = true
 headers.workspace = true
 http.workspace = true

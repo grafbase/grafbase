@@ -3,10 +3,10 @@ use std::sync::Arc;
 use crate::ConfigReceiver;
 
 use super::bus::{GatewaySender, GraphReceiver};
-use engine_v2::EngineRuntime;
+use engine_v2::EngineEnv;
 use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
-use gateway_v2::Gateway;
+use gateway_v2::{Gateway, GatewayEnv};
 use tokio_stream::wrappers::WatchStream;
 
 /// The GatewayNanny looks after the `Gateway` - on updates to the graph or config it'll
@@ -47,10 +47,17 @@ async fn new_gateway(graph: &GraphReceiver, config: &ConfigReceiver) -> Option<A
     let config = engine_config_builder::build_config(&config.borrow(), graph);
     Some(Arc::new(Gateway::new(
         config.into_latest().into(),
-        EngineRuntime {
+        EngineEnv {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         },
-        runtime_local::InMemoryKvStore::runtime_kv(),
+        GatewayEnv {
+            kv: runtime_local::InMemoryKvStore::runtime(),
+            cache: runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
+                common_cache_tags: vec![],
+                enabled: true,
+                subdomain: "localhost".to_string(),
+            }),
+        },
     )))
 }
 

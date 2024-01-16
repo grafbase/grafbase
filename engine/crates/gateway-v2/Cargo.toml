@@ -12,9 +12,14 @@ keywords = ["graphql", "engine", "grafbase"]
 workspace = true
 
 [dependencies]
+auth = { path = "./auth", package = "gateway-v2-auth" }
 engine = { path = "../engine" }
 engine-v2 = { path = "../engine-v2" }
-auth = { path = "./auth", package = "gateway-v2-auth" }
 futures-util.workspace = true
+gateway-core.workspace = true
+http.workspace = true
+log.workspace = true
 runtime.workspace = true
+serde_json.workspace = true
+headers.workspace = true
 

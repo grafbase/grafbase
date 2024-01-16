@@ -9,8 +9,6 @@ const X_GRAFBASE_CACHE: &str = "x-grafbase-cache";
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub use cached::cached_execution;
-
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]
@@ -42,11 +40,32 @@ pub enum EntryState {
 pub enum Entry<T> {
     Hit(T),
     Miss,
-    Stale {
-        response: T,
-        state: EntryState,
-        is_early_stale: bool,
-    },
+    Stale(StaleEntry<T>),
+}
+
+impl<T> Entry<T> {
+    fn try_map<V, F: FnOnce(T) -> Result<V>>(self, f: F) -> Result<Entry<V>> {
+        match self {
+            Entry::Hit(value) => f(value).map(Entry::Hit),
+            Entry::Miss => Ok(Entry::Miss),
+            Entry::Stale(entry) => f(entry.value).map(|value| {
+                Entry::Stale(StaleEntry {
+                    value,
+                    state: entry.state,
+                    is_early_stale: entry.is_early_stale,
+                    metadata: entry.metadata,
+                })
+            }),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct StaleEntry<T> {
+    pub value: T,
+    pub state: EntryState,
+    pub is_early_stale: bool,
+    pub metadata: CacheMetadata,
 }
 
 /// Represents the status of the cache read operation
@@ -95,20 +114,20 @@ pub enum CachedExecutionResponse<T> {
     /// `cache_read` indicates the caching behaviour:
     ///   - CacheReadStatus::Miss indicates that there was no value in the cache when we attempted to read and the response should be cached for `max-age`
     ///   - CacheReadStatus::Bypass indicates that no caching should take place (read or write)
-    Origin {
-        response: T,
-        cache_read: Option<CacheReadStatus>,
-    },
+    Origin { response: T, cache_read: CacheReadStatus },
 }
 
-#[derive(Clone, Default)]
-pub struct RequestCacheControl {
-    /// The no-cache request directive asks caches to validate the response with the origin server before reuse.
-    /// no-cache allows clients to request the most up-to-date response even if the cache has a fresh response.
-    pub no_cache: bool,
-    /// The no-store request directive allows a client to request that caches refrain from storing
-    /// the request and corresponding response — even if the origin server's response could be stored.
-    pub no_store: bool,
+impl<T> CachedExecutionResponse<T> {
+    pub fn into_response_and_headers(self) -> (T, http::HeaderMap) {
+        match self {
+            CachedExecutionResponse::Cached(response) => (response, CacheReadStatus::Hit.into_headers()),
+            CachedExecutionResponse::Stale {
+                response,
+                cache_revalidation: revalidated,
+            } => (response, CacheReadStatus::Stale { revalidated }.into_headers()),
+            CachedExecutionResponse::Origin { response, cache_read } => (response, cache_read.into_headers()),
+        }
+    }
 }
 
 /// Global cache config
@@ -119,36 +138,91 @@ pub struct GlobalCacheConfig {
     pub subdomain: String,
 }
 
-/// Request cache config
-#[derive(Clone, Default)]
-pub struct RequestCacheConfig {
-    pub enabled: bool,
-    pub cache_control: RequestCacheControl,
+#[derive(Clone)]
+pub struct Cache {
+    config: Arc<GlobalCacheConfig>,
+    inner: Arc<dyn CacheInner>,
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq, derive_more::Display)]
+pub struct Key(String);
+
+impl Key {
+    // Used by gateway-core to avoid refactoring half the tests...
+    pub fn unchecked_new(key: String) -> Self {
+        Self(key)
+    }
+}
+
+impl Cache {
+    pub fn new(inner: impl CacheInner + 'static, config: GlobalCacheConfig) -> Self {
+        Self {
+            config: Arc::new(config),
+            inner: Arc::new(inner),
+        }
+    }
+
+    pub fn build_key(&self, id: &str) -> Key {
+        Key(format!("https://{}/{}", self.config.subdomain, id))
+    }
+
+    pub async fn get_json<T: DeserializeOwned>(&self, key: &Key) -> Result<Entry<T>> {
+        self.get(key)
+            .await?
+            .try_map(|bytes| serde_json::from_slice(&bytes).map_err(|err| Error::Serialization(err.to_string())))
+    }
+
+    // Tried Msgpack, but it doesn't behave really well with engine_v1::Response...
+    pub async fn put_json<T: Serialize + DeserializeOwned>(
+        &self,
+        key: &Key,
+        state: EntryState,
+        value: &T,
+        metadata: CacheMetadata,
+    ) -> Result<()> {
+        let bytes = serde_json::to_vec(value).map_err(|err| Error::Serialization(err.to_string()))?;
+        self.put(key, state, bytes, metadata).await
+    }
+}
+
+impl std::ops::Deref for Cache {
+    type Target = dyn CacheInner;
+
+    fn deref(&self) -> &Self::Target {
+        self.inner.deref()
+    }
 }
 
 #[async_trait::async_trait]
-pub trait Cache: Send + Sync {
-    type Value: Cacheable + 'static;
-
-    async fn get(&self, key: &str) -> Result<Entry<Self::Value>>;
-    async fn put(&self, key: &str, state: EntryState, value: Arc<Self::Value>, tags: Vec<String>) -> Result<()>;
-    async fn delete(&self, key: &str) -> Result<()>;
+pub trait CacheInner: Send + Sync {
+    async fn get(&self, key: &Key) -> Result<Entry<Vec<u8>>>;
+    async fn put(&self, key: &Key, state: EntryState, value: Vec<u8>, metadata: CacheMetadata) -> Result<()>;
+    async fn delete(&self, key: &Key) -> Result<()>;
     async fn purge_by_tags(&self, tags: Vec<String>) -> Result<()>;
     async fn purge_by_hostname(&self, hostname: String) -> Result<()>;
 }
 
-pub trait Cacheable: DeserializeOwned + Serialize + Send + Sync {
-    // Also retrieved during cache.get(), so needs to be included in the value.
-    fn max_age(&self) -> Duration;
-    fn stale_while_revalidate(&self) -> Duration;
-    fn cache_tags(&self) -> Vec<String>;
-    fn should_purge_related(&self) -> bool;
-    fn should_cache(&self) -> bool;
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct CacheMetadata {
+    pub max_age: Duration,
+    pub stale_while_revalidate: Duration,
+    pub tags: Vec<String>,
+    pub should_purge_related: bool,
+    pub should_cache: bool,
+}
 
-    fn cache_tags_with_priority_tags(&self, mut tags: Vec<String>) -> Vec<String> {
-        tags.extend(self.cache_tags());
-        tags
+impl CacheMetadata {
+    pub fn with_priority_tags(mut self, tags: &[String]) -> Self {
+        let mut tags = tags.to_vec();
+        tags.extend(self.tags);
+        self.tags = tags;
+        self
     }
+}
+
+// Clone should be cheap.
+pub trait Cacheable: DeserializeOwned + Serialize + Send + Sync {
+    fn metadata(&self) -> CacheMetadata;
 }
 
 #[cfg(any(test, feature = "test-utils"))]
@@ -157,23 +231,15 @@ pub mod test_utils {
 
     #[async_trait::async_trait]
     pub trait FakeCache: Send + Sync {
-        type Value: Cacheable + 'static;
-
-        async fn get(&self, _key: &str) -> Result<Entry<Self::Value>> {
+        async fn get(&self, _key: &Key) -> Result<Entry<Vec<u8>>> {
             unimplemented!()
         }
 
-        async fn put(
-            &self,
-            _key: &str,
-            _status: EntryState,
-            _value: Arc<Self::Value>,
-            _tags: Vec<String>,
-        ) -> Result<()> {
+        async fn put(&self, _key: &Key, _status: EntryState, _value: Vec<u8>, _metadata: CacheMetadata) -> Result<()> {
             unimplemented!()
         }
 
-        async fn delete(&self, _key: &str) -> Result<()> {
+        async fn delete(&self, _key: &Key) -> Result<()> {
             unimplemented!()
         }
 
@@ -187,18 +253,16 @@ pub mod test_utils {
     }
 
     #[async_trait::async_trait]
-    impl<T: FakeCache> Cache for T {
-        type Value = <T as FakeCache>::Value;
-
-        async fn get(&self, key: &str) -> Result<Entry<Self::Value>> {
+    impl<T: FakeCache> CacheInner for T {
+        async fn get(&self, key: &Key) -> Result<Entry<Vec<u8>>> {
             self.get(key).await
         }
 
-        async fn put(&self, key: &str, status: EntryState, value: Arc<Self::Value>, tags: Vec<String>) -> Result<()> {
-            self.put(key, status, value, tags).await
+        async fn put(&self, key: &Key, status: EntryState, value: Vec<u8>, metadata: CacheMetadata) -> Result<()> {
+            self.put(key, status, value, metadata).await
         }
 
-        async fn delete(&self, key: &str) -> Result<()> {
+        async fn delete(&self, key: &Key) -> Result<()> {
             self.delete(key).await
         }
 

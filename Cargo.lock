@@ -1732,7 +1732,6 @@ version = "3.0.31"
 dependencies = [
  "anyhow",
  "async-runtime",
- "bytes",
  "derive_more",
  "engine",
  "engine-parser",
@@ -1750,6 +1749,7 @@ dependencies = [
  "serde",
  "serde-value",
  "serde_json",
+ "serde_with",
  "strum",
  "thiserror",
  "url",
@@ -1943,11 +1943,12 @@ dependencies = [
  "grafbase-local-common",
  "graphql-composition",
  "handlebars 5.0.0",
+ "http 1.0.0",
  "indoc",
  "log 0.4.20",
- "mime",
  "parser-sdl",
  "reqwest",
+ "runtime",
  "runtime-local",
  "serde",
  "serde_json",
@@ -1956,6 +1957,7 @@ dependencies = [
  "tokio-stream",
  "tower-http",
  "tower-service",
+ "ulid",
  "url",
 ]
 
@@ -2275,8 +2277,13 @@ dependencies = [
  "engine",
  "engine-v2",
  "futures-util",
+ "gateway-core",
  "gateway-v2-auth",
+ "headers 0.4.0",
+ "http 1.0.0",
+ "log 0.1.0",
  "runtime",
+ "serde_json",
 ]
 
 [[package]]
@@ -2390,6 +2397,7 @@ dependencies = [
  "grafbase-local-common",
  "grafbase-local-server",
  "headers 0.3.9",
+ "http 0.2.11",
  "indicatif",
  "indoc",
  "inquire",
@@ -3331,10 +3339,12 @@ dependencies = [
  "engine-v2",
  "expect-test",
  "futures",
+ "gateway-core",
  "gateway-v2",
  "grafbase-graphql-introspection",
  "graphql-composition",
  "graphql-parser 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "headers 0.4.0",
  "http 1.0.0",
  "indoc",
  "insta",
@@ -5383,6 +5393,7 @@ dependencies = [
  "async-trait",
  "bytes",
  "common-types",
+ "derive_more",
  "futures-util",
  "headers 0.4.0",
  "http 1.0.0",
@@ -5405,7 +5416,6 @@ dependencies = [
  "async-runtime",
  "async-trait",
  "async-tungstenite",
- "bytes",
  "futures-util",
  "graph-entities",
  "graphql-ws-client",
@@ -5425,7 +5435,6 @@ name = "runtime-noop"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "bytes",
  "runtime",
  "thiserror",
 ]

@@ -2,11 +2,10 @@ use std::{future::Future, sync::Arc};
 
 use http::status::StatusCode;
 
+use super::RequestContext;
 pub use build_key::build_cache_key;
 use engine::registry::CachePartialRegistry;
-use runtime::cache::{Cache, CacheReadStatus, Cacheable, CachedExecutionResponse, RequestCacheControl};
-
-use super::RequestContext;
+use runtime::cache::{Cache, Cacheable, CachedExecutionResponse};
 
 mod build_key;
 mod key;
@@ -16,7 +15,6 @@ pub struct CacheConfig {
     pub global_enabled: bool,
     pub subdomain: String,
     pub host_name: String,
-    pub request_cache_control: RequestCacheControl,
     pub partial_registry: CachePartialRegistry,
     pub common_cache_tags: Vec<String>,
 }
@@ -30,17 +28,7 @@ where
     Response: super::Response<Error = Error>,
 {
     let (response, headers) = match response {
-        Ok(execution_response) => match execution_response {
-            CachedExecutionResponse::Cached(cached) => (cached, CacheReadStatus::Hit.into_headers()),
-            CachedExecutionResponse::Stale {
-                response,
-                cache_revalidation: revalidated,
-            } => (response, CacheReadStatus::Stale { revalidated }.into_headers()),
-            CachedExecutionResponse::Origin { response, cache_read } => (
-                response,
-                cache_read.map(CacheReadStatus::into_headers).unwrap_or_default(),
-            ),
-        },
+        Ok(execution_response) => execution_response.into_response_and_headers(),
         Err(e) => {
             log::error!(ctx.ray_id(), "Execution error: {}", e);
             return Ok(Response::error(StatusCode::INTERNAL_SERVER_ERROR, "Execution error"));
@@ -50,9 +38,8 @@ where
 }
 
 pub async fn cached_execution<Value, Error, ValueFut>(
-    cache: Arc<impl Cache<Value = Value> + 'static>,
-    cache_key: String,
-    config: &CacheConfig,
+    cache: &Cache,
+    key: runtime::cache::Key,
     ctx: &impl RequestContext,
     execution_fut: ValueFut,
 ) -> Result<CachedExecutionResponse<Arc<Value>>, Error>
@@ -61,23 +48,5 @@ where
     Error: std::fmt::Display + Send,
     ValueFut: Future<Output = Result<Arc<Value>, Error>> + Send + 'static,
 {
-    runtime::cache::cached_execution(
-        cache,
-        &runtime::cache::GlobalCacheConfig {
-            enabled: config.global_enabled,
-            common_cache_tags: config.common_cache_tags.clone(),
-            subdomain: config.subdomain.clone(),
-        },
-        &runtime::cache::RequestCacheConfig {
-            enabled: config.partial_registry.enable_caching,
-            cache_control: RequestCacheControl {
-                no_cache: config.request_cache_control.no_cache,
-                no_store: config.request_cache_control.no_store,
-            },
-        },
-        cache_key,
-        ctx,
-        execution_fut,
-    )
-    .await
+    cache.cached_execution(ctx, key, execution_fut).await
 }

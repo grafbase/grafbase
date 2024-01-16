@@ -1,6 +1,7 @@
 //! Tests of caching behaviour
 
 use gateway_v2::Gateway;
+use headers::HeaderMapExt;
 use integration_tests::federation::GraphqlResponse;
 use integration_tests::mocks::graphql::StateMutationSchema;
 use integration_tests::{federation::GatewayV2Ext, mocks::graphql::FakeGithubSchema, runtime, MockGraphQlServer};
@@ -9,7 +10,7 @@ use std::time::Duration;
 #[test]
 fn test_basic_query_caching() {
     runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let github_mock = MockGraphQlServer::new(StateMutationSchema::default()).await;
 
         let engine = Gateway::builder()
             .with_schema("github", &github_mock)
@@ -18,27 +19,65 @@ fn test_basic_query_caching() {
                 r#"
                     extend schema
                         @cache(rules: [
-                            {maxAge: 10, types: ["Query"]}
+                            {maxAge: 2, types: ["Query"]}
                         ])
                 "#,
             )
             .finish()
             .await;
 
-        let response: GraphqlResponse = engine.execute("query { serverVersion }").await;
-
+        let response = engine.execute("query { value }").await;
         assert_eq!(
-            response.metadata.cache_config,
-            Some(engine_v2::CacheConfig {
-                max_age: Duration::from_secs(10),
-                ..Default::default()
-            })
+            response.headers.typed_get::<headers::CacheControl>(),
+            Some(
+                headers::CacheControl::new()
+                    .with_public()
+                    .with_max_age(Duration::from_secs(2))
+            ),
+            "{}",
+            response
+                .headers
+                .get("Cache-Control")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or_default()
         );
-
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "serverVersion": "1"
+            "value": 0
+          }
+        }
+        "###);
+
+        insta::assert_json_snapshot!(engine.execute("mutation { set(val: 2) }").await, @r###"
+        {
+          "data": {
+            "set": 2
+          }
+        }
+        "###);
+
+        insta::assert_json_snapshot!(engine.execute("query { value }").header("Cache-Control", "no-cache,no-store").await, @r###"
+        {
+          "data": {
+            "value": 2
+          }
+        }
+        "###);
+        insta::assert_json_snapshot!(engine.execute("query { value }").await, @r###"
+        {
+          "data": {
+            "value": 0
+          }
+        }
+        "###);
+
+        tokio::time::sleep(Duration::from_secs(2)).await;
+
+        insta::assert_json_snapshot!(engine.execute("query { value }").await, @r###"
+        {
+          "data": {
+            "value": 2
           }
         }
         "###);

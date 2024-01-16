@@ -1,19 +1,18 @@
 use std::{
     collections::{BinaryHeap, HashMap, HashSet},
-    sync::Arc,
     time::Instant,
 };
 
 use futures_util::lock::Mutex;
-use runtime::cache::{Cacheable, Entry, EntryState, Result};
+use runtime::cache::{Cache, CacheMetadata, Entry, EntryState, GlobalCacheConfig, Key, Result, StaleEntry};
 
-pub struct InMemoryCache<T> {
-    inner: Mutex<CacheInner<T>>,
+pub struct InMemoryCache {
+    inner: Mutex<CacheInner>,
 }
 
-impl<T> InMemoryCache<T> {
-    pub fn new() -> Self {
-        Self::default()
+impl InMemoryCache {
+    pub fn runtime(config: GlobalCacheConfig) -> Cache {
+        Cache::new(Self::default(), config)
     }
 
     #[cfg(test)]
@@ -29,7 +28,7 @@ impl<T> InMemoryCache<T> {
     }
 }
 
-impl<T> Default for InMemoryCache<T> {
+impl Default for InMemoryCache {
     fn default() -> Self {
         InMemoryCache {
             inner: Mutex::new(CacheInner {
@@ -42,23 +41,25 @@ impl<T> Default for InMemoryCache<T> {
     }
 }
 
-struct CacheInner<T> {
+struct CacheInner {
     // for testing
     now: Box<dyn Fn() -> Instant + Sync + Send>,
-    key_to_entry: HashMap<String, CacheEntry<T>>,
+    key_to_entry: HashMap<Key, CacheEntry>,
     deletion_tasks: BinaryHeap<DeletionTask>,
-    tag_to_keys: HashMap<String, HashSet<String>>,
+    tag_to_keys: HashMap<String, HashSet<Key>>,
 }
 
-struct CacheEntry<T> {
+#[derive(Debug)]
+struct CacheEntry {
     state: EntryState,
-    value: Arc<T>,
+    value: Vec<u8>,
     max_age_at: Instant,
+    metadata: CacheMetadata,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 struct DeletionTask {
-    key: String,
+    key: Key,
     to_delete_at: Instant,
 }
 
@@ -77,7 +78,7 @@ impl Ord for DeletionTask {
     }
 }
 
-impl<T> CacheInner<T> {
+impl CacheInner {
     fn purge(&mut self, now: Instant) {
         let mut deleted = vec![];
         while let Some(DeletionTask { key, to_delete_at }) = self.deletion_tasks.peek() {
@@ -98,56 +99,56 @@ impl<T> CacheInner<T> {
 }
 
 #[async_trait::async_trait]
-impl<T: Clone + Cacheable + 'static> runtime::cache::Cache for InMemoryCache<T> {
-    type Value = T;
-
-    async fn get(&self, key: &str) -> Result<Entry<Self::Value>> {
+impl runtime::cache::CacheInner for InMemoryCache {
+    async fn get(&self, key: &Key) -> Result<Entry<Vec<u8>>> {
         let mut inner = self.inner.lock().await;
         let now = (inner.now)();
         inner.purge(now);
-        Ok(inner
+        let res = Ok(inner
             .key_to_entry
             .get(key)
             .map(|entry| {
                 if now < entry.max_age_at {
-                    Entry::Hit(T::clone(entry.value.as_ref()))
+                    Entry::Hit(entry.value.clone())
                 } else {
-                    Entry::Stale {
-                        response: T::clone(entry.value.as_ref()),
+                    Entry::Stale(StaleEntry {
+                        value: entry.value.clone(),
                         state: entry.state,
                         is_early_stale: false,
-                    }
+                        metadata: entry.metadata.clone(),
+                    })
                 }
             })
-            .unwrap_or(Entry::Miss))
+            .unwrap_or(Entry::Miss));
+        res
     }
 
-    async fn put(&self, key: &str, state: EntryState, value: Arc<Self::Value>, tags: Vec<String>) -> Result<()> {
+    async fn put(&self, key: &Key, state: EntryState, value: Vec<u8>, metadata: CacheMetadata) -> Result<()> {
         let mut inner = self.inner.lock().await;
         let now = (inner.now)();
         inner.purge(now);
-        let key = key.to_string();
         inner.key_to_entry.insert(
             key.clone(),
             CacheEntry {
                 state,
-                value: Arc::clone(&value),
-                max_age_at: now.checked_add(value.max_age()).unwrap(),
+                value,
+                max_age_at: now.checked_add(metadata.max_age).unwrap(),
+                metadata: metadata.clone(),
             },
         );
-        for tag in tags {
+        for tag in metadata.tags {
             inner.tag_to_keys.entry(tag).or_default().insert(key.clone());
         }
         inner.deletion_tasks.push(DeletionTask {
-            key,
+            key: key.clone(),
             to_delete_at: now
-                .checked_add(value.max_age() + value.stale_while_revalidate())
+                .checked_add(metadata.max_age + metadata.stale_while_revalidate)
                 .unwrap(),
         });
         Ok(())
     }
 
-    async fn delete(&self, key: &str) -> Result<()> {
+    async fn delete(&self, key: &Key) -> Result<()> {
         let mut inner = self.inner.lock().await;
         let now = (inner.now)();
         inner.purge(now);
@@ -185,14 +186,11 @@ impl<T: Clone + Cacheable + 'static> runtime::cache::Cache for InMemoryCache<T> 
 #[cfg(test)]
 mod tests {
     use std::{
-        sync::{
-            atomic::{AtomicU64, Ordering::Relaxed},
-            Arc,
-        },
+        sync::atomic::{AtomicU64, Ordering::Relaxed},
         time::{Duration, Instant},
     };
 
-    use runtime::cache::{Cache, Cacheable, Entry, EntryState};
+    use runtime::cache::{Cache, CacheMetadata, Cacheable, Entry, EntryState, GlobalCacheConfig, StaleEntry};
 
     use super::InMemoryCache;
 
@@ -214,86 +212,83 @@ mod tests {
     }
 
     impl Cacheable for Dummy {
-        fn max_age(&self) -> Duration {
-            self.max_age
-        }
-
-        fn stale_while_revalidate(&self) -> Duration {
-            self.stale_while_revalidate
-        }
-
-        fn cache_tags(&self) -> Vec<String> {
-            vec![]
-        }
-
-        fn should_purge_related(&self) -> bool {
-            false
-        }
-
-        fn should_cache(&self) -> bool {
-            false
+        fn metadata(&self) -> CacheMetadata {
+            CacheMetadata {
+                max_age: self.max_age,
+                stale_while_revalidate: self.stale_while_revalidate,
+                tags: vec![],
+                should_purge_related: false,
+                should_cache: false,
+            }
         }
     }
 
     #[tokio::test]
     async fn get_put() {
         let offset: &'static AtomicU64 = Box::leak(Box::new(AtomicU64::new(0)));
-        let cache = InMemoryCache::<Dummy>::new_with_time({
-            let start = Instant::now();
-            move || start.checked_add(Duration::from_secs(offset.load(Relaxed))).unwrap()
-        });
-        let put = |key: &'static str| {
-            cache.put(
-                key,
-                EntryState::Fresh,
-                Arc::new(Dummy::new(format!("{key} value"), 10, 20)),
-                vec![],
-            )
-        };
+        let cache = Cache::new(
+            InMemoryCache::new_with_time({
+                let start = Instant::now();
+                move || start.checked_add(Duration::from_secs(offset.load(Relaxed))).unwrap()
+            }),
+            GlobalCacheConfig::default(),
+        );
+        let dummy = Dummy::new("test value".to_string(), 10, 20);
+        let test_key = cache.build_key("test");
+        let unknown_key = cache.build_key("unknown");
+        cache
+            .put_json(&test_key, EntryState::Fresh, &dummy, dummy.metadata())
+            .await
+            .unwrap();
 
-        put("test").await.unwrap();
-
-        assert_eq!(cache.get("unknown").await.unwrap(), Entry::Miss);
+        assert_eq!(cache.get_json::<Dummy>(&unknown_key).await.unwrap(), Entry::Miss);
         assert_eq!(
-            cache.get("test").await.unwrap(),
+            cache.get_json(&test_key).await.unwrap(),
             Entry::Hit(Dummy::new("test value", 10, 20))
         );
         offset.store(25, Relaxed);
         assert_eq!(
-            cache.get("test").await.unwrap(),
-            Entry::Stale {
-                response: Dummy::new("test value", 10, 20),
+            cache.get_json(&test_key).await.unwrap(),
+            Entry::Stale(StaleEntry {
+                value: dummy.clone(),
                 state: EntryState::Fresh,
-                is_early_stale: false
-            }
+                is_early_stale: false,
+                metadata: dummy.metadata()
+            })
         );
 
         offset.store(31, Relaxed);
-        assert_eq!(cache.get("test").await.unwrap(), Entry::Miss);
+        assert_eq!(cache.get_json::<Dummy>(&test_key).await.unwrap(), Entry::Miss);
 
-        put("test").await.unwrap();
-        assert_eq!(
-            cache.get("test").await.unwrap(),
-            Entry::Hit(Dummy::new("test value", 10, 20))
-        );
-        cache.delete("test").await.unwrap();
-        assert_eq!(cache.get("test").await.unwrap(), Entry::Miss);
+        cache
+            .put_json(&test_key, EntryState::Fresh, &dummy, dummy.metadata())
+            .await
+            .unwrap();
+
+        cache.delete(&test_key).await.unwrap();
+        assert_eq!(cache.get_json::<Dummy>(&test_key).await.unwrap(), Entry::Miss);
     }
 
     #[tokio::test]
     async fn tags() {
         let offset: &'static AtomicU64 = Box::leak(Box::new(AtomicU64::new(0)));
-        let cache = InMemoryCache::<Dummy>::new_with_time({
-            let start = Instant::now();
-            move || start.checked_add(Duration::from_secs(offset.load(Relaxed))).unwrap()
-        });
+        let cache = Cache::new(
+            InMemoryCache::new_with_time({
+                let start = Instant::now();
+                move || start.checked_add(Duration::from_secs(offset.load(Relaxed))).unwrap()
+            }),
+            GlobalCacheConfig::default(),
+        );
         let put = |key: &'static str, tags: &'static [&'static str]| async {
+            let dummy = Dummy::new(key.to_string(), 10, 20);
             cache
-                .put(
-                    key,
+                .put_json(
+                    &cache.build_key(key),
                     EntryState::Fresh,
-                    Arc::new(Dummy::new(key.to_string(), 10, 20)),
-                    tags.iter().map(ToString::to_string).collect(),
+                    &dummy,
+                    dummy
+                        .metadata()
+                        .with_priority_tags(&tags.iter().map(|s| s.to_string()).collect::<Vec<_>>()),
                 )
                 .await
                 .unwrap();
@@ -302,30 +297,51 @@ mod tests {
         put("Saint Bernard", &["large", "dog"]).await;
         put("Basset Hound", &["small", "dog"]).await;
         assert_eq!(
-            cache.get("Basset Hound").await.unwrap(),
+            cache.get_json(&cache.build_key("Basset Hound")).await.unwrap(),
             Entry::Hit(Dummy::new("Basset Hound", 10, 20))
         );
         assert_eq!(
-            cache.get("Great Dane").await.unwrap(),
+            cache.get_json(&cache.build_key("Great Dane")).await.unwrap(),
             Entry::Hit(Dummy::new("Great Dane", 10, 20))
         );
         assert_eq!(
-            cache.get("Saint Bernard").await.unwrap(),
+            cache.get_json(&cache.build_key("Saint Bernard")).await.unwrap(),
             Entry::Hit(Dummy::new("Saint Bernard", 10, 20))
         );
 
         // multiple keys for a tag;
         cache.purge_by_tags(vec!["large".to_string()]).await.unwrap();
         assert_eq!(
-            cache.get("Basset Hound").await.unwrap(),
+            cache.get_json(&cache.build_key("Basset Hound")).await.unwrap(),
             Entry::Hit(Dummy::new("Basset Hound", 10, 20))
         );
-        assert_eq!(cache.get("Great Dane").await.unwrap(), Entry::Miss);
-        assert_eq!(cache.get("Saint Bernard").await.unwrap(), Entry::Miss);
+        assert_eq!(
+            cache.get_json::<Dummy>(&cache.build_key("Great Dane")).await.unwrap(),
+            Entry::Miss
+        );
+        assert_eq!(
+            cache
+                .get_json::<Dummy>(&cache.build_key("Saint Bernard"))
+                .await
+                .unwrap(),
+            Entry::Miss
+        );
 
         cache.purge_by_tags(vec!["dog".to_string()]).await.unwrap();
-        assert_eq!(cache.get("Basset Hound").await.unwrap(), Entry::Miss);
-        assert_eq!(cache.get("Great Dane").await.unwrap(), Entry::Miss);
-        assert_eq!(cache.get("Saint Bernard").await.unwrap(), Entry::Miss);
+        assert_eq!(
+            cache.get_json::<Dummy>(&cache.build_key("Basset Hound")).await.unwrap(),
+            Entry::Miss
+        );
+        assert_eq!(
+            cache.get_json::<Dummy>(&cache.build_key("Great Dane")).await.unwrap(),
+            Entry::Miss
+        );
+        assert_eq!(
+            cache
+                .get_json::<Dummy>(&cache.build_key("Saint Bernard"))
+                .await
+                .unwrap(),
+            Entry::Miss
+        );
     }
 }

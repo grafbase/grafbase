@@ -2,16 +2,20 @@ use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::GraphQL;
 use axum::{
     extract::{Query, State},
-    http::{header, HeaderMap, HeaderValue},
+    http::HeaderMap,
     response::{Html, IntoResponse},
     routing::get,
     Json,
 };
 use common::environment::Environment;
+use futures_util::future::{join_all, BoxFuture};
 use handlebars::Handlebars;
 use serde_json::json;
 use std::time::Duration;
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{
+    mpsc::{self, UnboundedReceiver, UnboundedSender},
+    watch,
+};
 use tower_http::cors::CorsLayer;
 
 use crate::{
@@ -157,16 +161,6 @@ async fn handle_engine_request(
     gateway: GatewayWatcher,
     headers: HeaderMap,
 ) -> impl IntoResponse {
-    let headers = headers
-        .into_iter()
-        .map(|(name, value)| {
-            (
-                name.map(|name| name.to_string()).unwrap_or_default(),
-                String::from_utf8_lossy(value.as_bytes()).to_string(),
-            )
-        })
-        .collect();
-
     let Some(gateway) = gateway.borrow().clone() else {
         return Json(json!({
             "errors": [{"message": "there are no subgraphs registered currently"}]
@@ -174,20 +168,45 @@ async fn handle_engine_request(
         .into_response();
     };
 
-    let result = gateway.execute(request, headers, serde_json::to_vec).await;
+    let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
+    let ctx = RequestContext {
+        ray_id: ulid::Ulid::new().to_string(),
+        headers,
+        wait_until_sender: sender,
+    };
+    let response = gateway.execute(&ctx, request).await;
+    tokio::spawn(wait(receiver));
+    (response.status, response.headers, response.bytes).into_response()
+}
 
-    match result {
-        Ok(response) => (
-            [(
-                header::CONTENT_TYPE,
-                HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
-            )],
-            response.bytes,
-        )
-            .into_response(),
-        Err(error) => Json(json!({
-            "errors": [{"message": error.to_string()}]
-        }))
-        .into_response(),
+struct RequestContext {
+    ray_id: String,
+    headers: http::HeaderMap,
+    wait_until_sender: UnboundedSender<BoxFuture<'static, ()>>,
+}
+
+#[async_trait::async_trait]
+impl runtime::context::RequestContext for RequestContext {
+    fn ray_id(&self) -> &str {
+        &self.ray_id
+    }
+
+    async fn wait_until(&self, fut: BoxFuture<'static, ()>) {
+        self.wait_until_sender
+            .send(fut)
+            .expect("Channel is not closed before finishing all wait_until");
+    }
+
+    fn headers(&self) -> &http::HeaderMap {
+        &self.headers
+    }
+}
+
+async fn wait(mut receiver: UnboundedReceiver<BoxFuture<'static, ()>>) {
+    // Wait simultaneously on everything immediately accessible
+    join_all(std::iter::from_fn(|| receiver.try_recv().ok())).await;
+    // Wait sequentially on the rest
+    while let Some(fut) = receiver.recv().await {
+        fut.await;
     }
 }

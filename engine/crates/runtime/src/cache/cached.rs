@@ -3,36 +3,46 @@ use std::future::Future;
 use std::sync::Arc;
 
 use futures_util::{FutureExt, TryFutureExt};
+use headers::HeaderMapExt;
 use tracing_futures::Instrument;
 
-use crate::cache::{
-    Cache, CacheReadStatus, Cacheable, CachedExecutionResponse, Entry, EntryState, GlobalCacheConfig,
-    RequestCacheConfig,
-};
+use crate::cache::{Cache, CacheReadStatus, Cacheable, CachedExecutionResponse, Entry, EntryState};
 use crate::context::RequestContext;
 
-pub async fn cached_execution<Value, Error, ValueFut>(
-    cache: Arc<impl Cache<Value = Value> + 'static + ?Sized>,
-    global_config: &GlobalCacheConfig,
-    request_cache_config: &RequestCacheConfig,
-    cache_key: String,
-    ctx: &impl RequestContext,
-    execution: ValueFut,
-) -> Result<CachedExecutionResponse<Arc<Value>>, Error>
-where
-    Value: Cacheable + 'static,
-    Error: Display + Send,
-    ValueFut: Future<Output = Result<Arc<Value>, Error>> + Send + 'static,
-{
-    cached(cache, global_config, request_cache_config, ctx, cache_key, execution).await
+use super::{CacheMetadata, Key};
+
+impl Cache {
+    pub async fn cached_execution<Value, Error, ValueFut>(
+        &self,
+        ctx: &impl RequestContext,
+        key: Key,
+        execution: ValueFut,
+    ) -> Result<CachedExecutionResponse<Arc<Value>>, Error>
+    where
+        Value: Cacheable + 'static,
+        Error: Display + Send,
+        ValueFut: Future<Output = Result<Arc<Value>, Error>> + Send + 'static,
+    {
+        let cache_control = ctx
+            .headers()
+            .typed_get::<headers::CacheControl>()
+            .unwrap_or_else(headers::CacheControl::new);
+        if self.config.enabled {
+            cached(self, cache_control, ctx, key, execution).await
+        } else {
+            Ok(CachedExecutionResponse::Origin {
+                response: execution.await?,
+                cache_read: CacheReadStatus::Bypass,
+            })
+        }
+    }
 }
 
 async fn cached<Value, Error, ValueFut>(
-    cache: Arc<impl Cache<Value = Value> + 'static + ?Sized>,
-    config: &GlobalCacheConfig,
-    request_cache_config: &RequestCacheConfig,
+    cache: &Cache,
+    cache_control: headers::CacheControl,
     ctx: &impl RequestContext,
-    key: String,
+    key: Key,
     value_fut: ValueFut,
 ) -> Result<CachedExecutionResponse<Arc<Value>>, Error>
 where
@@ -41,11 +51,11 @@ where
     ValueFut: Future<Output = Result<Arc<Value>, Error>> + Send + 'static,
 {
     // skip if the incoming request doesn't want cached values, forces origin revalidation
-    let cached_value = if request_cache_config.cache_control.no_cache {
+    let cached_value: Entry<Value> = if cache_control.no_cache() {
         Entry::Miss
     } else {
         cache
-            .get(&key)
+            .get_json(&key)
             .instrument(tracing::info_span!("cache_get", ray_id = ctx.ray_id()))
             .await
             .unwrap_or_else(|e| {
@@ -55,65 +65,55 @@ where
     };
 
     match cached_value {
-        Entry::Stale {
-            response,
-            state,
-            is_early_stale,
-        } => {
-            let response = Arc::new(response);
+        Entry::Stale(entry) => {
             let mut revalidated = false;
+            let value = Arc::new(entry.value);
 
             // we only want to issue a revalidation if one is not already in progress
-            if state != EntryState::UpdateInProgress {
+            if entry.state != EntryState::UpdateInProgress {
                 revalidated = true;
 
-                update_stale(
-                    cache,
-                    ctx,
-                    key.clone(),
-                    response.clone(),
-                    value_fut,
-                    config.common_cache_tags.clone(),
-                )
-                .await;
+                update_stale(cache, ctx, key.clone(), Arc::clone(&value), entry.metadata, value_fut).await;
             }
 
             tracing::info!(ray_id = ctx.ray_id(), "Cache STALE - {} - {}", revalidated, key);
 
             // early stales mean early refreshes on our part
             // they shouldn't be considered as stale from a client perspective
-            if is_early_stale {
+            if entry.is_early_stale {
                 tracing::info!(ray_id = ctx.ray_id(), "Cache HIT - {}", key);
-                return Ok(CachedExecutionResponse::Cached(response));
+                return Ok(CachedExecutionResponse::Cached(value));
             }
 
             Ok(CachedExecutionResponse::Stale {
-                response,
+                response: value,
                 cache_revalidation: revalidated,
             })
         }
-        Entry::Hit(gql_response) => {
+        Entry::Hit(value) => {
             tracing::info!(ray_id = ctx.ray_id(), "Cache HIT - {}", key);
 
-            Ok(CachedExecutionResponse::Cached(Arc::new(gql_response)))
+            Ok(CachedExecutionResponse::Cached(Arc::new(value)))
         }
         Entry::Miss => {
             tracing::info!(ray_id = ctx.ray_id(), "Cache MISS - {}", key);
 
             let origin_result = value_fut.await?;
-            let origin_tags = origin_result.cache_tags_with_priority_tags(config.common_cache_tags.clone());
+            let metadata = origin_result
+                .metadata()
+                .with_priority_tags(&cache.config.common_cache_tags);
 
-            if origin_result.should_purge_related() {
+            if metadata.should_purge_related {
                 let ray_id = ctx.ray_id().to_string();
-                let cache = Arc::clone(&cache);
-                let purge_cache_tags = origin_tags.clone();
+                let cache = cache.clone();
+                let purge_tags = metadata.tags.clone();
 
-                tracing::info!(ray_id, "Purging global cache by tags: {:?}", purge_cache_tags);
+                tracing::info!(ray_id, "Purging global cache by tags: {:?}", purge_tags);
 
                 ctx.wait_until(
                     async_runtime::make_send_on_wasm(async move {
                         if let Err(err) = cache
-                            .purge_by_tags(purge_cache_tags)
+                            .purge_by_tags(purge_tags)
                             .instrument(tracing::info_span!("cache_tags_purge", ray_id))
                             .await
                         {
@@ -125,15 +125,16 @@ where
                 .await;
             }
 
-            if origin_result.should_cache() && !request_cache_config.cache_control.no_store {
+            if metadata.should_cache && !cache_control.no_store() {
                 let ray_id = ctx.ray_id().to_string();
                 let put_value = origin_result.clone();
-                let cache = Arc::clone(&cache);
+                let max_age = metadata.max_age;
+                let cache = cache.clone();
 
                 ctx.wait_until(
                     async_runtime::make_send_on_wasm(async move {
                         if let Err(err) = cache
-                            .put(&key, EntryState::Fresh, put_value, origin_tags)
+                            .put_json(&key, EntryState::Fresh, put_value.as_ref(), metadata)
                             .instrument(tracing::info_span!("cache_put"))
                             .await
                         {
@@ -144,46 +145,45 @@ where
                 )
                 .await;
 
-                let max_age = origin_result.max_age();
                 return Ok(CachedExecutionResponse::Origin {
                     response: origin_result,
-                    cache_read: Some(CacheReadStatus::Miss { max_age }),
+                    cache_read: CacheReadStatus::Miss { max_age },
                 });
             }
 
             Ok(CachedExecutionResponse::Origin {
                 response: origin_result,
-                cache_read: Some(CacheReadStatus::Bypass),
+                cache_read: CacheReadStatus::Bypass,
             })
         }
     }
 }
 
 async fn update_stale<Value, Error, ValueFut>(
-    cache: Arc<impl Cache<Value = Value> + 'static + ?Sized>,
+    cache: &Cache,
     ctx: &impl RequestContext,
-    key: String,
+    key: Key,
     existing_value: Arc<Value>,
+    existing_metadata: CacheMetadata,
     value_fut: ValueFut,
-    priority_tags: Vec<String>,
 ) where
     Value: Cacheable + 'static,
     Error: Display + Send,
     ValueFut: Future<Output = Result<Arc<Value>, Error>> + Send + 'static,
 {
     let ray_id = ctx.ray_id().to_string();
-    let existing_tags = existing_value.cache_tags_with_priority_tags(priority_tags.clone());
+    let existing_metadata = existing_metadata.with_priority_tags(&cache.config.common_cache_tags);
 
     // refresh the cache async and update the existing entry state
-    let cache = Arc::clone(&cache);
+    let cache = cache.clone();
     ctx.wait_until(
         async_runtime::make_send_on_wasm(async move {
             let put_futures = cache
-                .put(
+                .put_json(
                     &key,
                     EntryState::UpdateInProgress,
-                    existing_value.clone(),
-                    existing_tags.clone(),
+                    existing_value.as_ref(),
+                    existing_metadata.clone(),
                 )
                 .instrument(tracing::info_span!("cache_put_updating"))
                 .inspect_err(|err| {
@@ -200,10 +200,12 @@ async fn update_stale<Value, Error, ValueFut>(
             match source_result {
                 Ok(fresh_value) => {
                     tracing::info!(ray_id, "Successfully fetched new value for cache from origin");
-                    let fresh_cache_tags = fresh_value.cache_tags_with_priority_tags(priority_tags);
+                    let fresh_metadata = fresh_value
+                        .metadata()
+                        .with_priority_tags(&cache.config.common_cache_tags);
 
                     let _ = cache
-                        .put(&key, EntryState::Fresh, fresh_value, fresh_cache_tags)
+                        .put_json(&key, EntryState::Fresh, fresh_value.as_ref(), fresh_metadata)
                         .instrument(tracing::info_span!("cache_put_refresh"))
                         .inspect_err(|err| {
                             // if this errors we're probably stuck in `UPDATING` state or
@@ -215,7 +217,7 @@ async fn update_stale<Value, Error, ValueFut>(
                 Err(err) => {
                     tracing::error!(ray_id, "Error fetching fresh value for a stale cache entry: {}", err);
                     let _ = cache
-                        .put(&key, EntryState::Stale, existing_value, existing_tags)
+                        .put_json(&key, EntryState::Stale, existing_value.as_ref(), existing_metadata)
                         .instrument(tracing::info_span!("cache_put_stale"))
                         .inspect_err(|err| {
                             // if this errors we're probably stuck in `UPDATING` state or
@@ -248,10 +250,9 @@ mod tests {
 
     use common_types::OperationType;
 
-    use crate::cache::cached::cached_execution;
     use crate::cache::{
-        CacheReadStatus, Cacheable, CachedExecutionResponse, Entry, EntryState, GlobalCacheConfig, RequestCacheConfig,
-        Result,
+        Cache, CacheMetadata, CacheReadStatus, Cacheable, CachedExecutionResponse, Entry, EntryState,
+        GlobalCacheConfig, Key, Result, StaleEntry,
     };
     use crate::context::RequestContext;
     use crate::{cache::test_utils::FakeCache, cache::Error};
@@ -299,24 +300,14 @@ mod tests {
     }
 
     impl Cacheable for Dummy {
-        fn max_age(&self) -> Duration {
-            Duration::from_secs(self.max_age_seconds as u64)
-        }
-
-        fn stale_while_revalidate(&self) -> Duration {
-            Duration::from_secs(self.stale_seconds as u64)
-        }
-
-        fn cache_tags(&self) -> Vec<String> {
-            self.tags.clone()
-        }
-
-        fn should_purge_related(&self) -> bool {
-            self.operation_type == OperationType::Mutation && !self.tags.is_empty()
-        }
-
-        fn should_cache(&self) -> bool {
-            self.operation_type != OperationType::Mutation
+        fn metadata(&self) -> CacheMetadata {
+            CacheMetadata {
+                max_age: Duration::from_secs(self.max_age_seconds as u64),
+                stale_while_revalidate: Duration::from_secs(self.stale_seconds as u64),
+                tags: self.tags.clone(),
+                should_purge_related: self.operation_type == OperationType::Mutation && !self.tags.is_empty(),
+                should_cache: self.operation_type != OperationType::Mutation,
+            }
         }
     }
 
@@ -358,18 +349,16 @@ mod tests {
         struct TestCache;
         #[async_trait::async_trait]
         impl FakeCache for TestCache {
-            type Value = Dummy;
-
-            async fn get(&self, _key: &str) -> Result<Entry<Self::Value>> {
+            async fn get(&self, _key: &Key) -> Result<Entry<Vec<u8>>> {
                 Ok(Entry::Miss)
             }
 
             async fn put(
                 &self,
-                _key: &str,
+                _key: &Key,
                 _state: EntryState,
-                _value: Arc<Self::Value>,
-                _tags: Vec<String>,
+                _value: Vec<u8>,
+                _metadata: CacheMetadata,
             ) -> Result<()> {
                 Ok(())
             }
@@ -377,31 +366,28 @@ mod tests {
 
         let res = dummy("Hi!");
         let res2 = res.clone();
-        let response = cached_execution(
-            Arc::new(TestCache),
-            &GlobalCacheConfig {
+        let cache = Cache::new(
+            TestCache,
+            GlobalCacheConfig {
                 enabled: true,
                 common_cache_tags: vec![],
                 ..Default::default()
             },
-            &RequestCacheConfig {
-                enabled: true,
-                cache_control: Default::default(),
-            },
-            "the_key".to_string(),
-            &FakeRequestContext::default(),
-            async { Ok::<_, Error>(res2) },
-        )
-        .await
-        .unwrap();
+        );
+        let response = cache
+            .cached_execution(&FakeRequestContext::default(), cache.build_key("the_key"), async {
+                Ok::<_, Error>(res2)
+            })
+            .await
+            .unwrap();
 
         assert_eq!(
             response,
             CachedExecutionResponse::Origin {
                 response: res,
-                cache_read: Some(CacheReadStatus::Miss {
+                cache_read: CacheReadStatus::Miss {
                     max_age: Duration::from_secs(1),
-                }),
+                },
             }
         );
     }
@@ -414,19 +400,17 @@ mod tests {
         struct TestCache;
         #[async_trait::async_trait]
         impl FakeCache for TestCache {
-            type Value = Dummy;
-
-            async fn get(&self, _key: &str) -> Result<Entry<Self::Value>> {
+            async fn get(&self, _key: &Key) -> Result<Entry<Vec<u8>>> {
                 GET_CALLS.fetch_add(1, Ordering::SeqCst);
                 Ok(Entry::Miss)
             }
 
             async fn put(
                 &self,
-                _key: &str,
+                _key: &Key,
                 _state: EntryState,
-                _value: Arc<Self::Value>,
-                _tags: Vec<String>,
+                _value: Vec<u8>,
+                _metadata: CacheMetadata,
             ) -> Result<()> {
                 PUT_CALLS.fetch_add(1, Ordering::SeqCst);
                 Ok(())
@@ -444,23 +428,20 @@ mod tests {
 
         // act
         let request_context = FakeRequestContext::default();
-        let response = cached_execution(
-            Arc::new(TestCache),
-            &GlobalCacheConfig {
+        let cache = Cache::new(
+            TestCache,
+            GlobalCacheConfig {
                 enabled: true,
                 common_cache_tags: vec![],
                 ..Default::default()
             },
-            &RequestCacheConfig {
-                enabled: true,
-                cache_control: Default::default(),
-            },
-            "the_key".to_string(),
-            &request_context,
-            async { Ok::<_, Error>(dummy2) },
-        )
-        .await
-        .unwrap();
+        );
+        let response = cache
+            .cached_execution(&request_context, cache.build_key("the_key"), async {
+                Ok::<_, Error>(dummy2)
+            })
+            .await
+            .unwrap();
 
         request_context.wait_for_futures().await;
 
@@ -469,9 +450,9 @@ mod tests {
             response,
             CachedExecutionResponse::Origin {
                 response: dummy,
-                cache_read: Some(CacheReadStatus::Miss {
+                cache_read: CacheReadStatus::Miss {
                     max_age: Duration::from_secs(2),
-                }),
+                },
             }
         );
         assert_eq!(1, PUT_CALLS.load(Ordering::SeqCst));
@@ -486,40 +467,36 @@ mod tests {
         struct TestCache;
         #[async_trait::async_trait]
         impl FakeCache for TestCache {
-            type Value = Dummy;
-
-            async fn get(&self, _key: &str) -> Result<Entry<Self::Value>> {
+            async fn get(&self, _key: &Key) -> Result<Entry<Vec<u8>>> {
                 GET_CALLS.fetch_add(1, Ordering::SeqCst);
-                Ok(Entry::Hit(Dummy {
-                    value: "cached".to_string(),
-                    ..Default::default()
-                }))
+                Ok(Entry::Hit(
+                    serde_json::to_vec(&Dummy {
+                        value: "cached".to_string(),
+                        ..Default::default()
+                    })
+                    .unwrap(),
+                ))
             }
         }
 
         let ctx = FakeRequestContext::default();
-        let response = cached_execution(
-            Arc::new(TestCache),
-            &GlobalCacheConfig {
+        let cache = Cache::new(
+            TestCache,
+            GlobalCacheConfig {
                 enabled: true,
                 common_cache_tags: vec![],
                 ..Default::default()
             },
-            &RequestCacheConfig {
-                enabled: true,
-                cache_control: Default::default(),
-            },
-            "the_key".to_string(),
-            &ctx,
-            async {
+        );
+        let response = cache
+            .cached_execution(&ctx, cache.build_key("the_key"), async {
                 Ok::<_, Error>(Arc::new(Dummy {
                     value: "new".to_string(),
                     ..Default::default()
                 }))
-            },
-        )
-        .await
-        .unwrap();
+            })
+            .await
+            .unwrap();
         ctx.wait_for_futures().await;
 
         assert_eq!(response, CachedExecutionResponse::Cached(dummy("cached")));
@@ -530,58 +507,54 @@ mod tests {
     async fn should_successfully_update_stale() {
         #[derive(Default)]
         struct TestCache {
-            get_calls: AtomicUsize,
-            put_calls: tokio::sync::RwLock<Vec<(EntryState, Arc<Dummy>)>>,
+            get_calls: Arc<AtomicUsize>,
+            #[allow(clippy::type_complexity)]
+            put_calls: Arc<RwLock<Vec<(EntryState, Arc<Dummy>)>>>,
         }
+
         #[async_trait::async_trait]
         impl FakeCache for TestCache {
-            type Value = Dummy;
-
-            async fn get(&self, _key: &str) -> Result<Entry<Self::Value>> {
+            async fn get(&self, _key: &Key) -> Result<Entry<Vec<u8>>> {
                 self.get_calls.fetch_add(1, Ordering::SeqCst);
-                Ok(Entry::Stale {
-                    response: Dummy {
-                        value: "stale".to_string(),
-                        ..Default::default()
-                    },
+                let dummy = Dummy {
+                    value: "stale".to_string(),
+                    ..Default::default()
+                };
+                Ok(Entry::Stale(StaleEntry {
+                    value: serde_json::to_vec(&dummy).unwrap(),
                     state: EntryState::Fresh,
                     is_early_stale: false,
-                })
+                    metadata: dummy.metadata(),
+                }))
             }
 
-            async fn put(
-                &self,
-                _key: &str,
-                state: EntryState,
-                value: Arc<Self::Value>,
-                _tags: Vec<String>,
-            ) -> Result<()> {
-                self.put_calls.write().await.push((state, value));
+            async fn put(&self, _key: &Key, state: EntryState, value: Vec<u8>, _metadata: CacheMetadata) -> Result<()> {
+                self.put_calls
+                    .write()
+                    .await
+                    .push((state, Arc::new(serde_json::from_slice(&value).unwrap())));
                 Ok(())
             }
         }
 
         let ctx = FakeRequestContext::default();
-        let cache = Arc::new(TestCache::default());
-
-        // act
-        let response = cached_execution(
-            cache.clone(),
-            &GlobalCacheConfig {
+        let cache = TestCache::default();
+        let get_calls = cache.get_calls.clone();
+        let put_calls = cache.put_calls.clone();
+        let cache = Cache::new(
+            cache,
+            GlobalCacheConfig {
                 enabled: true,
                 common_cache_tags: vec![],
                 ..Default::default()
             },
-            &RequestCacheConfig {
-                enabled: true,
-                cache_control: Default::default(),
-            },
-            "the_key".to_string(),
-            &ctx,
-            async { Ok::<_, Error>(dummy("new")) },
-        )
-        .await
-        .unwrap();
+        );
+
+        // act
+        let response = cache
+            .cached_execution(&ctx, cache.build_key("the_key"), async { Ok::<_, Error>(dummy("new")) })
+            .await
+            .unwrap();
 
         ctx.wait_for_futures().await;
 
@@ -593,9 +566,9 @@ mod tests {
                 cache_revalidation: true,
             }
         );
-        assert_eq!(1, cache.get_calls.load(Ordering::SeqCst));
+        assert_eq!(1, get_calls.load(Ordering::SeqCst));
         assert_eq!(
-            cache.put_calls.read().await.iter().cloned().collect::<HashSet<_>>(),
+            put_calls.read().await.iter().cloned().collect::<HashSet<_>>(),
             HashSet::from([
                 (EntryState::UpdateInProgress, dummy("stale")),
                 (EntryState::Fresh, dummy("new"))
@@ -607,34 +580,32 @@ mod tests {
     async fn should_fail_update_stale() {
         #[derive(Default)]
         struct TestCache {
-            get_calls: AtomicUsize,
-            entry_stale: AtomicBool,
-            put_calls: RwLock<Vec<(EntryState, Arc<Dummy>)>>,
+            get_calls: Arc<AtomicUsize>,
+            entry_stale: Arc<AtomicBool>,
+            #[allow(clippy::type_complexity)]
+            put_calls: Arc<RwLock<Vec<(EntryState, Arc<Dummy>)>>>,
         }
         #[async_trait::async_trait]
         impl FakeCache for TestCache {
-            type Value = Dummy;
-
-            async fn get(&self, _key: &str) -> Result<Entry<Self::Value>> {
+            async fn get(&self, _key: &Key) -> Result<Entry<Vec<u8>>> {
                 self.get_calls.fetch_add(1, Ordering::SeqCst);
-                Ok(Entry::Stale {
-                    response: Dummy {
-                        value: "stale".to_string(),
-                        ..Default::default()
-                    },
+                let dummy = Dummy {
+                    value: "stale".to_string(),
+                    ..Default::default()
+                };
+                Ok(Entry::Stale(StaleEntry {
+                    value: serde_json::to_vec(&dummy).unwrap(),
                     state: EntryState::Fresh,
                     is_early_stale: false,
-                })
+                    metadata: dummy.metadata(),
+                }))
             }
 
-            async fn put(
-                &self,
-                _key: &str,
-                state: EntryState,
-                value: Arc<Self::Value>,
-                _tags: Vec<String>,
-            ) -> Result<()> {
-                self.put_calls.write().await.push((state, value));
+            async fn put(&self, _key: &Key, state: EntryState, value: Vec<u8>, _metadata: CacheMetadata) -> Result<()> {
+                self.put_calls
+                    .write()
+                    .await
+                    .push((state, Arc::new(serde_json::from_slice(&value).unwrap())));
                 self.entry_stale
                     .swap(matches!(state, EntryState::Stale), Ordering::SeqCst);
                 Ok(())
@@ -642,26 +613,26 @@ mod tests {
         }
 
         let ctx = FakeRequestContext::default();
-        let cache = Arc::new(TestCache::default());
-
-        // act
-        let response = cached_execution(
-            cache.clone(),
-            &GlobalCacheConfig {
+        let cache = TestCache::default();
+        let get_calls = cache.get_calls.clone();
+        let put_calls = cache.put_calls.clone();
+        let entry_stale = cache.entry_stale.clone();
+        let cache = Cache::new(
+            cache,
+            GlobalCacheConfig {
                 enabled: true,
                 common_cache_tags: vec![],
                 ..Default::default()
             },
-            &RequestCacheConfig {
-                enabled: true,
-                cache_control: Default::default(),
-            },
-            "the_key".to_string(),
-            &ctx,
-            async { Err(Error::Origin("failed_source".to_string())) },
-        )
-        .await
-        .unwrap();
+        );
+
+        // act
+        let response = cache
+            .cached_execution(&ctx, cache.build_key("the_key"), async {
+                Err(Error::Origin("failed_source".to_string()))
+            })
+            .await
+            .unwrap();
 
         ctx.wait_for_futures().await;
 
@@ -673,10 +644,10 @@ mod tests {
                 cache_revalidation: true,
             }
         );
-        assert_eq!(1, cache.get_calls.load(Ordering::SeqCst));
-        assert!(cache.entry_stale.load(Ordering::SeqCst));
+        assert_eq!(1, get_calls.load(Ordering::SeqCst));
+        assert!(entry_stale.load(Ordering::SeqCst));
         assert_eq!(
-            cache.put_calls.read().await.iter().cloned().collect::<HashSet<_>>(),
+            put_calls.read().await.iter().cloned().collect::<HashSet<_>>(),
             HashSet::from([
                 (EntryState::UpdateInProgress, dummy("stale")),
                 (EntryState::Stale, dummy("stale"))
@@ -692,42 +663,38 @@ mod tests {
         struct TestCache;
         #[async_trait::async_trait]
         impl FakeCache for TestCache {
-            type Value = Dummy;
-
-            async fn get(&self, _key: &str) -> Result<Entry<Self::Value>> {
+            async fn get(&self, _key: &Key) -> Result<Entry<Vec<u8>>> {
                 GET_CALLS.fetch_add(1, Ordering::SeqCst);
-                Ok(Entry::Stale {
-                    response: Dummy {
-                        value: "stale".to_string(),
-                        ..Default::default()
-                    },
+                let dummy = Dummy {
+                    value: "stale".to_string(),
+                    ..Default::default()
+                };
+                Ok(Entry::Stale(StaleEntry {
+                    value: serde_json::to_vec(&dummy).unwrap(),
                     state: EntryState::UpdateInProgress,
                     is_early_stale: false,
-                })
+                    metadata: dummy.metadata(),
+                }))
             }
         }
 
-        let cache = Arc::new(TestCache);
-        let ctx = FakeRequestContext::default();
-
-        // act
-        let response = cached_execution(
-            cache.clone(),
-            &GlobalCacheConfig {
+        let cache = Cache::new(
+            TestCache,
+            GlobalCacheConfig {
                 enabled: true,
                 common_cache_tags: vec![],
                 ..Default::default()
             },
-            &RequestCacheConfig {
-                enabled: true,
-                cache_control: Default::default(),
-            },
-            "the_key".to_string(),
-            &ctx,
-            async { Err(Error::Origin("failed_source".to_string())) },
-        )
-        .await
-        .unwrap();
+        );
+        let ctx = FakeRequestContext::default();
+
+        // act
+        let response = cache
+            .cached_execution(&ctx, cache.build_key("the_key"), async {
+                Err(Error::Origin("failed_source".to_string()))
+            })
+            .await
+            .unwrap();
         ctx.wait_for_futures().await;
 
         // assert
@@ -749,15 +716,20 @@ mod tests {
         struct TestCache;
         #[async_trait::async_trait]
         impl FakeCache for TestCache {
-            type Value = Dummy;
-
-            async fn get(&self, _key: &str) -> Result<Entry<Self::Value>> {
+            async fn get(&self, _key: &Key) -> Result<Entry<Vec<u8>>> {
                 GET_CALLS.fetch_add(1, Ordering::SeqCst);
                 Ok(Entry::Miss)
             }
         }
 
-        let cache = Arc::new(TestCache);
+        let cache = Cache::new(
+            TestCache,
+            GlobalCacheConfig {
+                enabled: true,
+                common_cache_tags: vec![],
+                ..Default::default()
+            },
+        );
         let ctx = FakeRequestContext::default();
         let dummy = Arc::new(Dummy {
             value: "new".to_string(),
@@ -767,23 +739,10 @@ mod tests {
         let dummy2 = Arc::clone(&dummy);
 
         // act
-        let response = cached_execution(
-            cache.clone(),
-            &GlobalCacheConfig {
-                enabled: true,
-                common_cache_tags: vec![],
-                ..Default::default()
-            },
-            &RequestCacheConfig {
-                enabled: true,
-                cache_control: Default::default(),
-            },
-            "the_key".to_string(),
-            &ctx,
-            async { Ok::<_, Error>(dummy2) },
-        )
-        .await
-        .unwrap();
+        let response = cache
+            .cached_execution(&ctx, cache.build_key("the_key"), async { Ok::<_, Error>(dummy2) })
+            .await
+            .unwrap();
 
         ctx.wait_for_futures().await;
 
@@ -792,7 +751,7 @@ mod tests {
             response,
             CachedExecutionResponse::Origin {
                 response: dummy,
-                cache_read: Some(CacheReadStatus::Bypass),
+                cache_read: CacheReadStatus::Bypass,
             }
         );
         assert_eq!(1, GET_CALLS.load(Ordering::SeqCst));
@@ -802,14 +761,12 @@ mod tests {
     async fn should_successfully_purge_global() {
         #[derive(Default)]
         struct TestCache {
-            get_calls: AtomicUsize,
-            purge_calls: RwLock<Vec<Vec<String>>>,
+            get_calls: Arc<AtomicUsize>,
+            purge_calls: Arc<RwLock<Vec<Vec<String>>>>,
         }
         #[async_trait::async_trait]
         impl FakeCache for TestCache {
-            type Value = Dummy;
-
-            async fn get(&self, _key: &str) -> Result<Entry<Self::Value>> {
+            async fn get(&self, _key: &Key) -> Result<Entry<Vec<u8>>> {
                 self.get_calls.fetch_add(1, Ordering::SeqCst);
                 Ok(Entry::Miss)
             }
@@ -828,26 +785,23 @@ mod tests {
             ..Default::default()
         });
         let dummy2 = Arc::clone(&dummy);
-        let cache = Arc::new(TestCache::default());
-
-        // act
-        let response = cached_execution(
-            cache.clone(),
-            &GlobalCacheConfig {
+        let cache = TestCache::default();
+        let get_calls = cache.get_calls.clone();
+        let purge_calls = cache.purge_calls.clone();
+        let cache = Cache::new(
+            cache,
+            GlobalCacheConfig {
                 enabled: true,
                 common_cache_tags: vec!["project".to_string()],
                 ..Default::default()
             },
-            &RequestCacheConfig {
-                enabled: true,
-                cache_control: Default::default(),
-            },
-            "the_key".to_string(),
-            &ctx,
-            async { Ok::<_, Error>(dummy2) },
-        )
-        .await
-        .unwrap();
+        );
+
+        // act
+        let response = cache
+            .cached_execution(&ctx, cache.build_key("the_key"), async { Ok::<_, Error>(dummy2) })
+            .await
+            .unwrap();
         ctx.wait_for_futures().await;
 
         // assert
@@ -855,12 +809,12 @@ mod tests {
             response,
             CachedExecutionResponse::Origin {
                 response: dummy,
-                cache_read: Some(CacheReadStatus::Bypass),
+                cache_read: CacheReadStatus::Bypass,
             }
         );
-        assert_eq!(cache.get_calls.load(Ordering::SeqCst), 1);
+        assert_eq!(get_calls.load(Ordering::SeqCst), 1);
         assert_eq!(
-            cache.purge_calls.read().await.clone(),
+            purge_calls.read().await.clone(),
             vec![vec!["project".to_string(), "tag".to_string()]]
         );
     }

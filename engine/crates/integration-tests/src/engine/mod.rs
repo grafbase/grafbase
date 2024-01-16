@@ -6,7 +6,7 @@ use engine::{Request, RequestHeaders, Response, Schema, StreamingPayload, Variab
 use futures::{future::BoxFuture, Stream, StreamExt};
 use serde::Deserialize;
 
-pub use self::builder::EngineBuilder;
+pub use self::builder::{EngineBuilder, RequestContext};
 
 /// An instance of the grafbase-engine code that can be used for testing.
 #[derive(Clone)]

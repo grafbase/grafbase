@@ -10,7 +10,7 @@ use futures_util::{
 use schema::Schema;
 
 use crate::{
-    execution::{ExecutorCoordinator, ResponseReceiver, Variables},
+    execution::{ExecutorCoordinator, PreparedExecution, PreparedRequest, ResponseReceiver, Variables},
     request::{parse_operation, Operation},
     response::{ExecutionMetadata, GraphqlError, Response},
 };
@@ -19,35 +19,52 @@ pub struct Engine {
     // We use an Arc for the schema to have a self-contained response which may still
     // needs access to the schema strings
     pub(crate) schema: Arc<Schema>,
-    pub(crate) runtime: EngineRuntime,
+    pub(crate) env: EngineEnv,
 }
 
-pub struct EngineRuntime {
+pub struct EngineEnv {
     pub fetcher: runtime::fetch::Fetcher,
 }
 
 impl Engine {
-    pub fn new(schema: Schema, runtime: EngineRuntime) -> Self {
+    pub fn new(schema: Schema, env: EngineEnv) -> Self {
         Self {
             schema: Arc::new(schema),
-            runtime,
+            env,
         }
     }
 
-    pub async fn execute(&self, request: engine::Request, headers: RequestHeaders) -> Response {
-        let coordinator = match self.prepare(request, headers) {
-            Ok(ok) => ok,
-            Err(response) => return response,
+    pub fn execute(self: &Arc<Self>, mut request: engine::Request, headers: RequestHeaders) -> PreparedExecution {
+        let operation = match self.prepare_operation(&request) {
+            Ok(operation) => operation,
+            Err(error) => {
+                return PreparedExecution::bad_request(Response::from_error(error, ExecutionMetadata::default()))
+            }
+        };
+        let variables = match Variables::from_request(&operation, self.schema.as_ref(), &mut request.variables) {
+            Ok(variables) => variables,
+            Err(errors) => {
+                return PreparedExecution::bad_request(Response::from_errors(
+                    errors,
+                    ExecutionMetadata::build(&operation),
+                ))
+            }
         };
 
-        if matches!(coordinator.operation_type(), OperationType::Subscription) {
-            return Response::from_error(
+        if matches!(operation.ty, OperationType::Subscription) {
+            return PreparedExecution::bad_request(Response::from_error(
                 GraphqlError::new("Subscriptions are only suported on streaming transports.  Try making a request with SSE or WebSockets"),
-                ExecutionMetadata::default(),
-            );
+                ExecutionMetadata::build(&operation),
+            ));
         }
 
-        coordinator.execute().await
+        PreparedExecution::PreparedRequest(PreparedRequest {
+            query: request.query,
+            operation,
+            variables,
+            headers,
+            engine: Arc::clone(self),
+        })
     }
 
     pub fn execute_stream(
@@ -59,12 +76,16 @@ impl Engine {
         futures_util::stream::unfold(initial_state, stream_handler)
     }
 
-    fn prepare(&self, request: engine::Request, headers: RequestHeaders) -> Result<ExecutorCoordinator<'_>, Response> {
+    fn prepare_coordinator(
+        &self,
+        mut request: engine::Request,
+        headers: RequestHeaders,
+    ) -> Result<ExecutorCoordinator<'_>, Response> {
         let operation = match self.prepare_operation(&request) {
             Ok(operation) => operation,
             Err(error) => return Err(Response::from_error(error, ExecutionMetadata::default())),
         };
-        let variables = match Variables::from_request(&operation, self.schema.as_ref(), request.variables) {
+        let variables = match Variables::from_request(&operation, self.schema.as_ref(), &mut request.variables) {
             Ok(variables) => variables,
             Err(errors) => return Err(Response::from_errors(errors, ExecutionMetadata::build(&operation))),
         };
@@ -90,7 +111,7 @@ async fn stream_handler(mut state: StreamState<'_>) -> Option<(Response, StreamS
     loop {
         match state {
             StreamState::Starting(request, headers, engine) => {
-                let coordinator = match engine.prepare(request, headers) {
+                let coordinator = match engine.prepare_coordinator(request, headers) {
                     Ok(coordinator) => coordinator,
                     Err(response) => return Some((response, StreamState::Finished)),
                 };
