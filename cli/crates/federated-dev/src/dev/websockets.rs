@@ -150,7 +150,7 @@ async fn subscription_loop(
         headers: Default::default(),
         wait_until_sender,
     };
-    let stream = gateway.execute_stream(&ctx, request);
+    let stream = gateway.execute_stream(ctx, request);
     tokio::spawn(crate::dev::wait(wait_until_receiver));
 
     pin_mut!(stream);

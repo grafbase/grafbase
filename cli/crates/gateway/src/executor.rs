@@ -106,7 +106,8 @@ impl gateway_core::Executor for Executor {
         let schema = self.build_schema(&ctx, auth).await?;
         let payload_stream = Box::pin(schema.execute_stream(request));
         let (headers, bytes_stream) =
-            gateway_core::encode_stream_response(ctx.as_ref(), payload_stream, streaming_format).await;
+            gateway_core::encode_stream_response(ctx.ray_id().to_string(), payload_stream, streaming_format).await;
+
         Ok((headers, axum::body::Body::from_stream(bytes_stream))
             .into_response()
             .into())

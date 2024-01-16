@@ -2293,6 +2293,7 @@ dependencies = [
  "mime",
  "multipart-stream",
  "runtime",
+ "serde",
  "serde_json",
  "thiserror",
  "tokio",
