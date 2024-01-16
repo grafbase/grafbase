@@ -1,0 +1,34 @@
+type Query {
+  turtles: [Turtle!]
+}
+
+type Turtle {
+  id: ID!
+  name: String!
+  feed(food: String = "Salad"): String!
+}
+
+# --- #
+
+type Query {
+  turtles: [Turtle!]
+}
+
+type Turtle {
+  id: ID!
+  name: String!
+  # We removed the default. This is not ok because the argument is required.
+  feed(food: String!): String!
+}
+
+# --- #
+
+query {
+  turtles {
+    id
+    name
+    feed
+  }
+}
+
+

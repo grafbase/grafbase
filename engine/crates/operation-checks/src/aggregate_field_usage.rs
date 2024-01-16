@@ -10,6 +10,10 @@ pub struct FieldUsage {
     pub(crate) count_per_field_argument: HashMap<schema::ArgumentId, u64>,
     pub(crate) count_per_enum_value: HashMap<String, u64>,
 
+    /// Arguments that could have been provided but were not. This is fine because they have a
+    /// default, but it will be a problem if the default is subsequently removed.
+    pub(crate) arguments_with_defaults_left_out_count: HashMap<schema::ArgumentId, u64>,
+
     /// Usage of interface implementers and union members in type conditions. The key is a string
     /// of the form "parent_type_name.implementer_type_name"
     pub(crate) type_condition_counts: HashMap<String, u64>,
@@ -23,6 +27,7 @@ impl Default for FieldUsage {
             count_per_field_argument: HashMap::new(),
             type_condition_counts: HashMap::new(),
             count_per_enum_value: HashMap::new(),
+            arguments_with_defaults_left_out_count: HashMap::new(),
         }
     }
 }
@@ -41,6 +46,8 @@ impl FieldUsage {
         self.count_per_field_argument.retain(|_, count| *count >= threshold);
         self.type_condition_counts.retain(|_, count| *count >= threshold);
         self.count_per_enum_value.retain(|_, count| *count >= threshold);
+        self.arguments_with_defaults_left_out_count
+            .retain(|_, count| *count >= threshold);
     }
 
     /// Register a field usage.
@@ -62,6 +69,13 @@ impl FieldUsage {
 
     fn register_enum_value_usage(&mut self, enum_and_value: String) {
         *self.count_per_enum_value.entry(enum_and_value).or_insert(0) += self.increment;
+    }
+
+    fn register_argument_with_default_left_out(&mut self, argument_id: schema::ArgumentId) {
+        *self
+            .arguments_with_defaults_left_out_count
+            .entry(argument_id)
+            .or_insert(0) += self.increment;
     }
 }
 
@@ -125,6 +139,15 @@ fn aggregate_field_usage_inner(
                 if let Some(subselection_id) = subselection {
                     let field_type = &schema[field_id].base_type;
                     aggregate_field_usage_inner(*subselection_id, field_type, query, schema, usage);
+                }
+
+                for (argument_id, schema_argument) in schema
+                    .iter_field_arguments(field_id)
+                    .filter(|(_, schema_arg)| arguments.iter().all(|arg| arg.name != schema_arg.argument_name))
+                {
+                    if schema_argument.is_required() && schema_argument.has_default {
+                        usage.register_argument_with_default_left_out(argument_id);
+                    }
                 }
             }
             Selection::FragmentSpread { fragment_name } => {
@@ -494,6 +517,13 @@ mod test {
             count_per_enum_value: [("Color.RED".to_string(), 200), ("Animal.GIRAFFE".to_string(), 300)]
                 .into_iter()
                 .collect(),
+            arguments_with_defaults_left_out_count: [
+                (ArgumentId(1), 100),
+                (ArgumentId(1000), 1),
+                (ArgumentId(100), 1000),
+            ]
+            .into_iter()
+            .collect(),
         };
 
         usage.apply_request_count_threshold(300);
@@ -512,5 +542,6 @@ mod test {
 
         assert_eq!(keys(&usage.type_condition_counts), &["E.F", "G.H", "I.J"]);
         assert_eq!(keys(&usage.count_per_enum_value), &["Animal.GIRAFFE"]);
+        assert_eq!(keys(&usage.arguments_with_defaults_left_out_count), &[&ArgumentId(100)]);
     }
 }

@@ -63,6 +63,25 @@ impl Schema {
                   }| type_name == other_type_name,
         )
     }
+
+    pub(crate) fn iter_field_arguments(&self, field_id: FieldId) -> impl Iterator<Item = (ArgumentId, &FieldArgument)> {
+        let field = &self[field_id];
+        let start = self.field_arguments.partition_point(
+            |FieldArgument {
+                 type_name, field_name, ..
+             }| { type_name < &field.type_name && field_name < &field.field_name },
+        );
+
+        self.field_arguments[start..]
+            .iter()
+            .take_while(
+                |FieldArgument {
+                     type_name, field_name, ..
+                 }| { type_name == &field.type_name && field_name == &field.field_name },
+            )
+            .enumerate()
+            .map(move |(idx, arg)| (ArgumentId(idx + start), arg))
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

@@ -1,0 +1,10 @@
+Forward:
+[
+    CheckDiagnostic {
+        message: "The default value for required argument `Turtle.feed.food` was removed but some queries leave it out.",
+        severity: Error,
+    },
+]
+
+Backward:
+[]

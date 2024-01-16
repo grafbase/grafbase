@@ -1,0 +1,10 @@
+Forward:
+[
+    CheckDiagnostic {
+        message: "The argument `Turtle.feed.food` became required, but clients are not providing it.",
+        severity: Error,
+    },
+]
+
+Backward:
+[]
