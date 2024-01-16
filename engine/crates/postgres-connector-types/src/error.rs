@@ -2,6 +2,8 @@ use reqwest::StatusCode;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("could not commit transaction: {0}")]
+    FailedCommit(String),
     #[error("the provided connection string is not a valid url: {0}")]
     InvalidConnectionString(String),
     #[error("request timeout")]
@@ -16,10 +18,21 @@ pub enum Error {
     Internal(String),
     #[error("could not connect to Postgres: {0}")]
     Connection(String),
+    #[error("could not start a tx in Postgres: {0}")]
+    Transaction(String),
     #[error("code {}: {}", code, message)]
     Query { code: String, message: String },
     #[error(transparent)]
     Serde(#[from] serde_json::Error),
+    #[cfg(feature = "pooling")]
+    #[error(transparent)]
+    DeadpoolConfig(#[from] deadpool_postgres::ConfigError),
+    #[cfg(feature = "pooling")]
+    #[error(transparent)]
+    DeadpoolBuild(#[from] deadpool_postgres::BuildError),
+    #[cfg(feature = "pooling")]
+    #[error("pg pool: {0}")]
+    Deadpool(String),
 }
 
 impl From<url::ParseError> for Error {

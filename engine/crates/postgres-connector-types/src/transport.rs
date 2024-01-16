@@ -1,13 +1,16 @@
-mod ext;
-mod tcp;
-
 use async_trait::async_trait;
-pub use ext::TransportExt;
 use futures::stream::BoxStream;
 use serde_json::Value;
-pub use tcp::{TcpTransport, Transaction};
+
+pub use ext::{TransportExt, TransportTransactionExt};
+pub use tcp::{DirectTcpTransport, Transaction, TransportTransaction};
+#[cfg(feature = "pooling")]
+pub use tcp::{PooledTcpConnection, PooledTcpTransport, PooledTransaction, PoolingConfig};
 
 use crate::{database_definition::ScalarType, error::Error};
+
+mod ext;
+mod tcp;
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct Column {

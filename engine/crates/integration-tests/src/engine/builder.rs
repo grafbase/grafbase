@@ -4,7 +4,7 @@ use super::Inner;
 use engine::{registry::resolvers::graphql::QueryBatcher, Schema};
 use futures::future::{join_all, BoxFuture};
 use parser_sdl::{ConnectorParsers, GraphqlDirective, OpenApiDirective, ParseResult, PostgresDirective, Registry};
-use postgres_connector_types::transport::TcpTransport;
+use postgres_connector_types::transport::DirectTcpTransport;
 use runtime::udf::{CustomResolverRequestPayload, CustomResolversEngine, UdfInvoker};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
@@ -105,7 +105,7 @@ impl EngineBuilder {
         let postgres = {
             let mut transports = HashMap::new();
             for (name, definition) in &registry.postgres_databases {
-                let transport = TcpTransport::new(definition.connection_string()).await.unwrap();
+                let transport = DirectTcpTransport::new(definition.connection_string()).await.unwrap();
                 transports.insert(name.to_string(), transport);
             }
             runtime::pg::PgTransportFactory::new(Box::new(runtime_local::LocalPgTransportFactory::new(transports)))
@@ -182,7 +182,7 @@ impl ConnectorParsers for EngineBuilder {
     }
 
     async fn fetch_and_parse_postgres(&self, directive: &PostgresDirective) -> Result<Registry, Vec<String>> {
-        let transport = TcpTransport::new(directive.connection_string())
+        let transport = DirectTcpTransport::new(directive.connection_string())
             .await
             .map_err(|error| vec![error.to_string()])?;
 

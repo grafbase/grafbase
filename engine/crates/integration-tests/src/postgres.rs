@@ -5,7 +5,7 @@ use engine::Response;
 use futures::FutureExt;
 use graphql_parser::parse_schema;
 use indoc::formatdoc;
-use postgres_connector_types::transport::{TcpTransport, Transport, TransportExt};
+use postgres_connector_types::transport::{DirectTcpTransport, Transport, TransportExt};
 use serde::de::DeserializeOwned;
 
 use crate::{Engine, EngineBuilder};
@@ -73,7 +73,7 @@ where
     T: Future<Output = TestApi>,
 {
     super::runtime().block_on(async {
-        let admin = TcpTransport::new(ADMIN_CONNECTION_STRING).await.unwrap();
+        let admin = DirectTcpTransport::new(ADMIN_CONNECTION_STRING).await.unwrap();
 
         admin
             .execute(&format!("DROP DATABASE IF EXISTS {database}"))
@@ -108,7 +108,7 @@ where
     R: Future<Output = TestApi>,
 {
     super::runtime().block_on(async {
-        let admin = TcpTransport::new(ADMIN_CONNECTION_STRING).await.unwrap();
+        let admin = DirectTcpTransport::new(ADMIN_CONNECTION_STRING).await.unwrap();
 
         admin
             .execute(&format!("DROP DATABASE IF EXISTS {database}"))
@@ -128,7 +128,7 @@ where
 
 pub struct Inner {
     engine: OnceCell<Engine>,
-    connection: TcpTransport,
+    connection: DirectTcpTransport,
     schema: String,
 }
 
@@ -176,7 +176,7 @@ impl TestApi {
 
     async fn new_inner(schema: String, connection_string: String) -> Self {
         let engine = OnceCell::new();
-        let connection = TcpTransport::new(&connection_string).await.unwrap();
+        let connection = DirectTcpTransport::new(&connection_string).await.unwrap();
 
         let inner = Inner {
             engine,

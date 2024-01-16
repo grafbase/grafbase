@@ -4,7 +4,7 @@ use common_types::auth::ExecutionAuth;
 use engine::{registry::resolvers::graphql, RequestHeaders};
 use gateway_core::{RequestContext, StreamingFormat};
 use graphql_extensions::{authorization::AuthExtension, runtime_log::RuntimeLogExtension};
-use postgres_connector_types::transport::TcpTransport;
+use postgres_connector_types::transport::DirectTcpTransport;
 use runtime::pg::PgTransportFactory;
 use runtime_local::{Bridge, LocalPgTransportFactory, LocalSearchEngine, UdfInvokerImpl};
 
@@ -25,7 +25,7 @@ impl Executor {
         let postgres = {
             let mut transports = HashMap::new();
             for (name, definition) in &registry.postgres_databases {
-                let transport = TcpTransport::new(definition.connection_string())
+                let transport = DirectTcpTransport::new(definition.connection_string())
                     .await
                     .map_err(|error| crate::Error::Internal(error.to_string()))?;
 
