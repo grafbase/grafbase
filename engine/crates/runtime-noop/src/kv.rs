@@ -1,20 +1,12 @@
 /// FIXME: Only here because of jwt-verifier, to be refactored with auth
 use std::time::Duration;
 
-use runtime::kv::{KvError, KvManager, KvResult, KvStore, KvStoreInner};
+use runtime::kv::{KvError, KvResult, KvStoreInner};
 
 #[derive(thiserror::Error, Debug)]
 pub enum NoopError {
     #[error("dummy")]
     KvNotAvailable,
-}
-
-pub struct NoopKvManager;
-
-impl KvManager for NoopKvManager {
-    fn load(&self, _namespace: &str) -> KvResult<KvStore> {
-        Ok(KvStore::new(NoopKvStore))
-    }
 }
 
 pub struct NoopKvStore;

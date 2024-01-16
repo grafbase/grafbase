@@ -5,13 +5,11 @@ use engine::{AuthConfig, AuthProvider, AuthorizerProvider};
 use futures_util::TryFutureExt;
 use jwt_verifier::{VerificationError, VerifiedToken};
 use runtime::{
-    kv::KvManager,
+    kv::KvStore,
     udf::{AuthorizerRequestPayload, CustomResolverResponse, UdfInvoker},
 };
 
 use super::RequestContext;
-
-const JWKS_CACHE_KV_NAMESPACE: &str = "JWKS_CACHE";
 
 #[derive(Debug, thiserror::Error)]
 #[allow(clippy::enum_variant_names)]
@@ -81,7 +79,7 @@ pub fn build_public_auth(auth_config: &AuthConfig) -> ExecutionAuth {
 
 #[allow(clippy::panic)]
 pub async fn authorize_request(
-    kv: &impl KvManager,
+    jwks_cache: Option<KvStore>,
     auth_invoker: &impl UdfInvoker<AuthorizerRequestPayload>,
     auth_config: &AuthConfig,
     ctx: &impl RequestContext,
@@ -94,13 +92,7 @@ pub async fn authorize_request(
         (Some(token), Some(AuthProvider::Oidc(oidc_provider))) => {
             let client = jwt_verifier::Client {
                 trace_id: ctx.ray_id(),
-                jwks_cache: kv
-                    .load(JWKS_CACHE_KV_NAMESPACE)
-                    .map_err(|err| {
-                        log::warn!(ctx.ray_id(), "Could not load JWKS cache");
-                        err
-                    })
-                    .ok(),
+                jwks_cache,
                 groups_claim: Some(&oidc_provider.groups_claim),
                 client_id: oidc_provider.client_id.as_deref(),
                 time_opts: Default::default(),
@@ -115,13 +107,7 @@ pub async fn authorize_request(
         (Some(token), Some(AuthProvider::Jwks(jwks_provider))) => {
             let client = jwt_verifier::Client {
                 trace_id: ctx.ray_id(),
-                jwks_cache: kv
-                    .load(JWKS_CACHE_KV_NAMESPACE)
-                    .map_err(|err| {
-                        log::warn!(ctx.ray_id(), "Could not load JWKS cache");
-                        err
-                    })
-                    .ok(),
+                jwks_cache,
                 groups_claim: Some(&jwks_provider.groups_claim),
                 client_id: jwks_provider.client_id.as_deref(),
                 time_opts: Default::default(),
@@ -143,13 +129,7 @@ pub async fn authorize_request(
                 trace_id: ctx.ray_id(),
                 groups_claim: Some(&jwt_provider.groups_claim),
                 client_id: jwt_provider.client_id.as_deref(),
-                jwks_cache: kv
-                    .load(JWKS_CACHE_KV_NAMESPACE)
-                    .map_err(|err| {
-                        log::warn!(ctx.ray_id(), "Could not load JWKS cache");
-                        err
-                    })
-                    .ok(),
+                jwks_cache,
                 time_opts: Default::default(),
                 http_client: Default::default(),
             };

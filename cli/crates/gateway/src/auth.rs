@@ -4,7 +4,6 @@ use common_types::auth::ExecutionAuth;
 use engine::AuthConfig;
 use gateway_core::{AdminAuthError, AuthError};
 use runtime_local::Bridge;
-use runtime_noop::kv::NoopKvManager;
 
 pub(crate) struct Authorizer {
     pub(crate) auth_config: AuthConfig,
@@ -33,7 +32,7 @@ impl gateway_core::Authorizer for Authorizer {
         } else {
             let auth_invoker = runtime_local::UdfInvokerImpl::new(self.bridge.clone());
             gateway_core::authorize_request(
-                &NoopKvManager,
+                None,
                 &auth_invoker,
                 &self.auth_config,
                 ctx.as_ref(),

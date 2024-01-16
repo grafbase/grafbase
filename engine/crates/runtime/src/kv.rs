@@ -10,11 +10,6 @@ pub enum KvError {
 
 pub type KvResult<T> = Result<T, KvError>;
 
-// used in gateway-core for jwt-verifier, not sure if relevant outside.
-pub trait KvManager {
-    fn load(&self, namespace: &str) -> KvResult<KvStore>;
-}
-
 #[derive(Clone)]
 pub struct KvStore(Arc<dyn KvStoreInner>);
 
