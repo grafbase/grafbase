@@ -167,7 +167,7 @@ where
 }
 
 #[async_trait::async_trait]
-impl crate::mocks::graphql::Schema for Engine {
+impl graphql_mocks::Schema for Engine {
     async fn execute(
         &self,
         headers: Vec<(String, String)>,

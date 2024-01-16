@@ -1,9 +1,6 @@
 use gateway_v2::Gateway;
-use integration_tests::{
-    federation::GatewayV2Ext,
-    mocks::graphql::{AlmostEmptySchema, FakeGithubSchema},
-    runtime, MockGraphQlServer,
-};
+use graphql_mocks::{AlmostEmptySchema, FakeGithubSchema, MockGraphQlServer};
+use integration_tests::{federation::GatewayV2Ext, runtime};
 use serde_json::json;
 
 #[test]

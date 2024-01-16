@@ -1,10 +1,10 @@
 //! Tests of caching behaviour
 
 use gateway_v2::Gateway;
+use graphql_mocks::{FakeGithubSchema, MockGraphQlServer, StateMutationSchema};
 use headers::HeaderMapExt;
 use integration_tests::federation::GraphqlResponse;
-use integration_tests::mocks::graphql::StateMutationSchema;
-use integration_tests::{federation::GatewayV2Ext, mocks::graphql::FakeGithubSchema, runtime, MockGraphQlServer};
+use integration_tests::{federation::GatewayV2Ext, runtime};
 use std::time::Duration;
 
 #[test]

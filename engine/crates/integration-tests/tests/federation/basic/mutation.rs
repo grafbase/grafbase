@@ -1,5 +1,6 @@
 use gateway_v2::Gateway;
-use integration_tests::{federation::GatewayV2Ext, mocks::graphql::StateMutationSchema, runtime, MockGraphQlServer};
+use graphql_mocks::{MockGraphQlServer, StateMutationSchema};
+use integration_tests::{federation::GatewayV2Ext, runtime};
 
 #[test]
 fn mutations_should_be_executed_sequentially() {

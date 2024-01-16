@@ -1,4 +1,5 @@
-use integration_tests::{mocks::graphql::FakeGithubSchema, runtime, EngineBuilder, MockGraphQlServer, ResponseExt};
+use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
+use integration_tests::{runtime, EngineBuilder, ResponseExt};
 use serde_json::json;
 
 const NAMESPACED_QUERY: &str = "

@@ -1,8 +1,7 @@
 //! Tests of the join directive
 
-use integration_tests::{
-    mocks::graphql::FakeGithubSchema, runtime, udfs::RustUdfs, EngineBuilder, MockGraphQlServer, ResponseExt,
-};
+use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
+use integration_tests::{runtime, udfs::RustUdfs, EngineBuilder, ResponseExt};
 use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
 use serde_json::{json, Value};
 

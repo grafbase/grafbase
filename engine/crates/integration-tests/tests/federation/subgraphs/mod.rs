@@ -1,9 +1,6 @@
 use gateway_v2::Gateway;
-use integration_tests::{
-    federation::GatewayV2Ext,
-    mocks::graphql::{FakeFederationAccountsSchema, FakeFederationProductsSchema},
-    runtime, MockGraphQlServer,
-};
+use graphql_mocks::{FakeFederationAccountsSchema, FakeFederationProductsSchema, MockGraphQlServer};
+use integration_tests::{federation::GatewayV2Ext, runtime};
 
 mod simple_key;
 
