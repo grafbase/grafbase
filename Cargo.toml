@@ -102,6 +102,7 @@ gateway-v2 = { path = "engine/crates/gateway-v2" }
 graph-entities = { path = "engine/crates/graph-entities" }
 graphql-composition = { path = "engine/crates/composition" }
 graphql-extensions = { path = "engine/crates/graphql-extensions" }
+graphql-mocks = { path = "engine/crates/graphql-mocks" }
 jwt-verifier = { path = "engine/crates/jwt-verifier" }
 log = { path = "engine/crates/log" }
 parser-graphql = { path = "engine/crates/parser-graphql" }

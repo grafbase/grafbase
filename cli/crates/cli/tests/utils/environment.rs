@@ -379,6 +379,25 @@ impl Environment {
         self.commands.0.lock().unwrap().push(command);
     }
 
+    pub fn grafbase_publish_dev(&mut self, name: impl AsRef<str>, url: impl AsRef<str>) {
+        let command = cmd!(
+            cargo_bin("grafbase"),
+            "--trace",
+            "2",
+            "publish",
+            "--dev",
+            "--dev-api-port",
+            self.port.to_string(),
+            "--name",
+            name.as_ref(),
+            "--url",
+            url.as_ref()
+        )
+        .dir(&self.directory_path);
+
+        command.run().unwrap();
+    }
+
     pub fn append_to_schema(&self, contents: &'static str) {
         let mut file = fs::OpenOptions::new().append(true).open(&self.schema_path).unwrap();
 

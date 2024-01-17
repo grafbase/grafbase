@@ -16,7 +16,7 @@ cynic-introspection.workspace = true
 engine-parser.workspace = true
 engine-v2.workspace = true
 gateway-v2.workspace = true
-graphql-mocks.path = "../graphql-mocks"
+graphql-mocks.workspace = true
 engine-config-builder = { path = "../engine-config-builder" }
 expect-test = "1.4"
 futures = "0.3"

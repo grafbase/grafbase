@@ -187,7 +187,6 @@ async fn handle_engine_request(
 
         let (headers, stream) = encode_stream_response(ray_id, stream, streaming_format).await;
 
-        // TODO: is this the right place to spawn?
         tokio::spawn(wait(receiver));
 
         return (headers, axum::body::Body::from_stream(stream)).into_response();
