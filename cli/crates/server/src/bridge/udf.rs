@@ -6,6 +6,7 @@ use std::process::Stdio;
 use std::sync::Arc;
 
 use crate::config::DetectedUdf;
+use crate::consts::ENTRYPOINT_SCRIPT_FILE_NAME;
 use crate::errors::UdfBuildError;
 use crate::types::{MessageSender, ServerMessage};
 use crate::udf_builder::udf_url_path;
@@ -155,7 +156,7 @@ impl UdfRuntime {
         &self,
         udf_workers: Vec<UdfWorker>,
     ) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildError> {
-        let mut node_arguments: Vec<_> = ["" /* FIXME(remove miniflare) script location*/]
+        let mut node_arguments: Vec<_> = ["" /* FIXME(remove miniflare) worker creation script location*/]
             .into_iter()
             .map(Cow::Borrowed)
             .collect();
@@ -166,7 +167,6 @@ impl UdfRuntime {
         node_arguments.extend(
             udf_workers
                 .into_iter()
-                // FIXME(remove miniflare) take another look at this tostring
                 .map(|UdfWorker { directory, .. }| Cow::Owned(directory.display().to_string())),
         );
 
@@ -243,9 +243,10 @@ impl UdfRuntime {
                 )
                 .await
                 {
-                    Ok((_, wrangler_toml_path)) => Ok(UdfWorker {
+                    Ok(package_json_path) => Ok(UdfWorker {
                         _name: udf_name,
-                        directory: wrangler_toml_path.parent().unwrap().to_owned(),
+                        // FIXME(remove miniflare) make sure this is correct
+                        directory: package_json_path.to_owned(),
                     }),
                     Err(err) => {
                         self.message_sender
@@ -312,9 +313,7 @@ impl UdfRuntime {
                 self.tracing,
                 self.registry.enable_kv,
             )
-            .and_then(|(package_json_path, wrangler_toml_path)| {
-                super::udf::spawn_node(udf_kind, &udf_name, package_json_path, wrangler_toml_path, self.tracing)
-            })
+            .and_then(|package_json_path| super::udf::spawn_node(udf_kind, &udf_name, package_json_path, self.tracing))
             .await
             {
                 Ok((node_handle, worker_port)) => {
@@ -392,18 +391,19 @@ async fn is_udf_ready(resolver_worker_port: u16) -> Result<bool, reqwest::Error>
 async fn spawn_node(
     udf_kind: UdfKind,
     udf_name: &str,
-    // FIXME(remove miniflare)
-    _package_json_path: std::path::PathBuf,
-    _wrangler_toml_path: std::path::PathBuf,
+    package_json_path: std::path::PathBuf,
     tracing: bool,
 ) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildError> {
     use tokio::io::AsyncBufReadExt;
     use tokio_stream::wrappers::LinesStream;
 
     let (join_handle, resolver_worker_port) = {
-        let node_arguments = vec!["" /* FIXME(remove miniflare) script path */];
+        let script_path = package_json_path
+            .parent()
+            .expect("must exist")
+            .join(ENTRYPOINT_SCRIPT_FILE_NAME);
+        let node_arguments = vec![script_path];
         if tracing { /* FIXME(remove minflare) debug */ }
-        let node_command = node_arguments.join(" ");
 
         let mut node = Command::new("node");
         node
@@ -412,7 +412,7 @@ async fn spawn_node(
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true);
-        trace!("Spawning {udf_kind} '{udf_name}': {node_command}");
+        trace!("Spawning {udf_kind} '{udf_name}'");
 
         let mut node = node.spawn().unwrap();
         let bound_port = {

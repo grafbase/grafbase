@@ -7,6 +7,7 @@ use std::process::Stdio;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
+use crate::consts::ENTRYPOINT_SCRIPT_FILE_NAME;
 use crate::errors::{JavascriptPackageManagerComamndError, ServerError, UdfBuildError};
 
 async fn run_command<P: AsRef<Path>>(
@@ -102,9 +103,7 @@ pub(crate) async fn build(
     tracing: bool,
     // FIXME(remove miniflare)
     _enable_kv: bool,
-) -> Result<(PathBuf, PathBuf), UdfBuildError> {
-    // FIXME(remove miniflare)
-    let wrangler_toml_file_path = PathBuf::new();
+) -> Result<PathBuf, UdfBuildError> {
     use path_slash::PathBufExt as _;
 
     let project = environment.project.as_ref().expect("must be present");
@@ -136,15 +135,9 @@ pub(crate) async fn build(
     tokio::fs::create_dir_all(&udf_build_artifact_directory_path)
         .await
         .map_err(|_err| UdfBuildError::CreateDir(udf_build_artifact_directory_path.clone(), udf_kind))?;
-    let udf_build_entrypoint_path = udf_build_artifact_directory_path.join("entrypoint.js");
+    let udf_build_entrypoint_path = udf_build_artifact_directory_path.join(ENTRYPOINT_SCRIPT_FILE_NAME);
 
     let udf_build_package_json_path = udf_build_artifact_directory_path.join("package.json");
-
-    let artifact_directory_modules_path = udf_build_artifact_directory_path.join("node_modules");
-    // FIXME(remove miniflare)
-    let _artifact_directory_modules_path_string = artifact_directory_modules_path
-        .to_str()
-        .expect("must be valid if `artifact_directory_path_string` is valid");
 
     let udf_wrapper_worker_contents = udf_wrapper_worker_contents.replace(
         "${UDF_MAIN_FILE_PATH}",
@@ -155,7 +148,7 @@ pub(crate) async fn build(
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_build_entrypoint_path.clone(), udf_kind, err))?;
 
     let package_json = serde_json::json!({
-        "module": "entrypoint.js",
+        "module": ENTRYPOINT_SCRIPT_FILE_NAME,
         "type": "module"
     });
     let new_package_json_contents = serde_json::to_string_pretty(&package_json).expect("must be valid JSON");
@@ -165,11 +158,13 @@ pub(crate) async fn build(
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_build_package_json_path.clone(), udf_kind, err))?;
 
-    // FIXME(remove miniflare)
-    let esbuild_arguments: &[&str] = &[];
+    let esbuild_arguments: &[&str] = &[
+        &udf_build_entrypoint_path.to_string_lossy(),
+        "--bundle",
+        "--platform=node",
+        "--outdir=dist",
+    ];
 
-    let _: Result<_, _> = tokio::fs::remove_file(&wrangler_toml_file_path).await;
-    // FIXME(remove miniflare) ESBUILD HERE
     run_command(
         JavaScriptPackageManager::Npm,
         esbuild_arguments,
@@ -200,14 +195,14 @@ pub(crate) async fn build(
             .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
         temp_file
             .write_all(
-                // FIXME(remove miniflare) join with worker path
-                &tokio::fs::read("entrypoint.js").await.expect("must succeed"),
+                &tokio::fs::read(udf_build_entrypoint_path.join("dist").join(ENTRYPOINT_SCRIPT_FILE_NAME))
+                    .await
+                    .expect("must succeed"),
             )
             .await
             .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
     }
-    // FIXME(remove miniflare) join with worker path
-    let entrypoint_js_path = PathBuf::from("entrypoint.js");
+    let entrypoint_js_path = udf_build_entrypoint_path.join("dist").join(ENTRYPOINT_SCRIPT_FILE_NAME);
     tokio::fs::copy(temp_file_path, &entrypoint_js_path)
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(entrypoint_js_path.clone(), udf_kind, err))?;
@@ -216,7 +211,7 @@ pub(crate) async fn build(
     let _slugified_udf_name = slug::slugify(udf_name);
     let _udf_url_path = udf_url_path(udf_kind, udf_name);
 
-    Ok((udf_build_package_json_path, wrangler_toml_file_path))
+    Ok(udf_build_package_json_path)
 }
 
 pub(crate) fn udf_url_path(kind: UdfKind, name: &str) -> String {
@@ -248,7 +243,6 @@ async fn installed_esbuild_version(esbuild_installation_path: impl AsRef<Path>) 
     Some(String::from_utf8(output_bytes).ok()?.trim().to_owned())
 }
 
-// FIXME(remove miniflare) check if we can bundle ESBUILD or already do
 pub(crate) async fn install_esbuild(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
     let lock_file_path = environment.user_dot_grafbase_path.join(".esbuild.install.lock");
     let mut lock_file = tokio::task::spawn_blocking(move || {
