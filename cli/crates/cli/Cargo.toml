@@ -52,6 +52,7 @@ atty = "0.2.14"
 async-graphql-axum.workspace = true
 async-graphql.workspace = true
 async-trait = "0.1"
+async-tungstenite = "0.24"
 axum.workspace = true
 cfg-if = "1"
 chrono = "0.4"
@@ -63,6 +64,7 @@ duct = "0.13"
 fslock = "0.2"
 futures-util = "0.3"
 graphql-mocks.workspace = true
+graphql-ws-client = "0.7"
 http = "0.2"
 headers = "0.3"
 insta = { version = "1.34", features = ["json", "redactions", "yaml"] }

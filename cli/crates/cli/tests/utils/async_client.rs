@@ -1,4 +1,6 @@
 #![allow(dead_code)]
+mod websockets;
+
 use reqwest::{header::HeaderMap, StatusCode};
 use serde_json::json;
 use std::{
