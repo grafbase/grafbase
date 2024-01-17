@@ -2465,7 +2465,7 @@ dependencies = [
  "url",
  "uuid",
  "webbrowser",
- "which",
+ "which 5.0.0",
  "wiremock",
 ]
 
@@ -2577,7 +2577,7 @@ dependencies = [
  "typed-resolvers",
  "version-compare",
  "walkdir",
- "which",
+ "which 4.4.2",
 ]
 
 [[package]]
@@ -7425,6 +7425,18 @@ name = "webpki-roots"
 version = "0.25.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1778a42e8b3b90bff8d0f5032bf22250792889a5cdc752aa0020c84abe3aaf10"
+
+[[package]]
+name = "which"
+version = "4.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87ba24419a2078cd2b0f2ede2691b6c66d8e47836da3b6db8265ebad47afbfc7"
+dependencies = [
+ "either",
+ "home",
+ "once_cell",
+ "rustix",
+]
 
 [[package]]
 name = "which"
