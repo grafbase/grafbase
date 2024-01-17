@@ -181,3 +181,58 @@ async fn test_multipart_transport() {
     ]
     "###);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+#[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
+async fn test_websocket_transport() {
+    let mut env = Environment::init_async().await;
+    let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
+
+    env.grafbase_init(GraphType::Federated);
+    env.prepare_ts_config_dependencies();
+    env.grafbase_dev_watch();
+
+    let client = env.create_async_client().with_api_key();
+    client.poll_endpoint(30, 300).await;
+    env.grafbase_publish_dev("subscriptions", subscription_server.url());
+
+    let response = client
+        .gql::<Value>(
+            r"
+            subscription {
+                newProducts {
+                    upc
+                    name
+                    price
+                }
+            }
+            ",
+        )
+        .into_websocket_stream()
+        .await
+        .collect::<Vec<_>>()
+        .await;
+
+    insta::assert_json_snapshot!(response, @r###"
+    [
+      {
+        "data": {
+          "newProducts": {
+            "name": "Jeans",
+            "price": 44,
+            "upc": "top-4"
+          }
+        }
+      },
+      {
+        "data": {
+          "newProducts": {
+            "name": "Pink Jeans",
+            "price": 55,
+            "upc": "top-5"
+          }
+        }
+      }
+    ]
+    "###);
+}
