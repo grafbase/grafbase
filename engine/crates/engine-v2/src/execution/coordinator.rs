@@ -18,7 +18,6 @@ use crate::{
     Engine,
 };
 
-pub type ResponseReceiver = futures::channel::mpsc::Receiver<Response>;
 pub type ResponseSender = futures::channel::mpsc::Sender<Response>;
 
 pub struct ExecutorCoordinator<'ctx> {

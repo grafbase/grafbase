@@ -12,6 +12,9 @@ keywords = ["async", "runtime", "grafbase"]
 [lints]
 workspace = true
 
+[dependencies]
+futures-util.workspace = true
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = { version = "0.4" }
 send_wrapper = { version = "0.6", features = ["futures"] }

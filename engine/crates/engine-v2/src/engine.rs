@@ -1,16 +1,14 @@
 use std::sync::Arc;
 
+use async_runtime::stream::StreamExt as _;
 use engine::RequestHeaders;
 use engine_parser::types::OperationType;
 use futures::channel::mpsc;
-use futures_util::{
-    future::{BoxFuture, Fuse},
-    FutureExt, Stream, StreamExt,
-};
+use futures_util::{SinkExt, Stream};
 use schema::Schema;
 
 use crate::{
-    execution::{ExecutorCoordinator, PreparedExecution, PreparedRequest, ResponseReceiver, Variables},
+    execution::{ExecutorCoordinator, PreparedExecution, PreparedRequest, Variables},
     request::{parse_operation, Operation},
     response::{ExecutionMetadata, GraphqlError, Response},
 };
@@ -68,12 +66,32 @@ impl Engine {
     }
 
     pub fn execute_stream(
-        &self,
+        self: &Arc<Self>,
         request: engine::Request,
         headers: RequestHeaders,
-    ) -> impl Stream<Item = Response> + '_ {
-        let initial_state = StreamState::Starting(request, headers, self);
-        futures_util::stream::unfold(initial_state, stream_handler)
+    ) -> impl Stream<Item = Response> {
+        let (mut sender, receiver) = mpsc::channel(2);
+        let engine = Arc::clone(self);
+
+        receiver.join(async move {
+            let coordinator = match engine.prepare_coordinator(request, headers) {
+                Ok(coordinator) => coordinator,
+                Err(response) => {
+                    sender.send(response).await.ok();
+                    return;
+                }
+            };
+
+            if matches!(
+                coordinator.operation_type(),
+                OperationType::Query | OperationType::Mutation
+            ) {
+                sender.send(coordinator.execute().await).await.ok();
+                return;
+            }
+
+            coordinator.execute_subscription(sender).await
+        })
     }
 
     fn prepare_coordinator(
@@ -97,56 +115,5 @@ impl Engine {
         let unbound_operation = parse_operation(request)?;
         let operation = Operation::build(&self.schema, unbound_operation)?;
         Ok(operation)
-    }
-}
-
-enum StreamState<'a> {
-    Starting(engine::Request, RequestHeaders, &'a Engine),
-    Running(ResponseReceiver, Fuse<BoxFuture<'a, ()>>),
-    Draining(ResponseReceiver),
-    Finished,
-}
-
-async fn stream_handler(mut state: StreamState<'_>) -> Option<(Response, StreamState<'_>)> {
-    loop {
-        match state {
-            StreamState::Starting(request, headers, engine) => {
-                let coordinator = match engine.prepare_coordinator(request, headers) {
-                    Ok(coordinator) => coordinator,
-                    Err(response) => return Some((response, StreamState::Finished)),
-                };
-
-                if matches!(
-                    coordinator.operation_type(),
-                    OperationType::Query | OperationType::Mutation
-                ) {
-                    let response = coordinator.execute().await;
-                    return Some((response, StreamState::Finished));
-                }
-
-                let (sender, receiver) = mpsc::channel(2);
-
-                let subscription_future: BoxFuture<'_, ()> = Box::pin(coordinator.execute_subscription(sender));
-
-                // Pass off to the Running handler
-                state = StreamState::Running(receiver, subscription_future.fuse());
-            }
-            StreamState::Running(mut receiver, mut subscription_future) => {
-                futures::select! {
-                    _ = subscription_future => {
-                        // Pass off to the Draining handler to make sure we deliver any pending
-                        // messages before we finish
-                        state = StreamState::Draining(receiver)
-                    },
-                    next = receiver.next() => {
-                        return Some((next?, StreamState::Running(receiver, subscription_future)));
-                    }
-                }
-            }
-            StreamState::Draining(mut receiver) => {
-                return Some((receiver.next().await?, StreamState::Draining(receiver)));
-            }
-            StreamState::Finished => return None,
-        }
     }
 }

@@ -72,6 +72,10 @@ impl MockGraphQlServer {
     pub fn port(&self) -> u16 {
         self.port
     }
+
+    pub fn url(&self) -> String {
+        format!("http://localhost:{}", self.port)
+    }
 }
 
 async fn graphql_handler(State(state): State<AppState>, headers: HeaderMap, req: GraphQLRequest) -> GraphQLResponse {
