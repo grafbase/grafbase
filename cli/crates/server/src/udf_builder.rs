@@ -2,6 +2,7 @@ use common::environment::Environment;
 use common::types::UdfKind;
 
 use itertools::Itertools;
+use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tokio::io::AsyncWriteExt;
@@ -148,8 +149,7 @@ pub(crate) async fn build(
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_build_entrypoint_path.clone(), udf_kind, err))?;
 
     let package_json = serde_json::json!({
-        "module": ENTRYPOINT_SCRIPT_FILE_NAME,
-        "type": "module"
+        "main": ENTRYPOINT_SCRIPT_FILE_NAME,
     });
     let new_package_json_contents = serde_json::to_string_pretty(&package_json).expect("must be valid JSON");
     trace!("new package.json contents:\n{new_package_json_contents}");
@@ -159,10 +159,16 @@ pub(crate) async fn build(
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_build_package_json_path.clone(), udf_kind, err))?;
 
     let esbuild_arguments: &[&str] = &[
+        "exec",
+        "--no",
+        "--prefix",
+        environment.esbuild_installation_path.to_str().expect("must be valid"),
+        "--",
+        "esbuild",
         &udf_build_entrypoint_path.to_string_lossy(),
         "--bundle",
         "--platform=node",
-        "--outdir=dist",
+        &format!("--outfile={}.js", udf_name),
     ];
 
     run_command(
@@ -178,8 +184,23 @@ pub(crate) async fn build(
         other => other.into(),
     })?;
 
+    tokio::fs::create_dir_all(udf_build_entrypoint_path.parent().unwrap().join("dist"))
+        .await
+        .unwrap();
+
+    tokio::fs::copy(
+        environment.esbuild_installation_path.join(format!("{udf_name}.js")),
+        udf_build_entrypoint_path
+            .parent()
+            .unwrap()
+            .join("dist")
+            .join("entrypoint.js"),
+    )
+    .await
+    .unwrap();
+
     let process_env_prelude = format!(
-        "globalThis.process = {{ env: {} }};",
+        "globalThis.process.env = {};",
         serde_json::to_string(&environment_variables).expect("must be valid JSON")
     );
 
@@ -195,14 +216,24 @@ pub(crate) async fn build(
             .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
         temp_file
             .write_all(
-                &tokio::fs::read(udf_build_entrypoint_path.join("dist").join(ENTRYPOINT_SCRIPT_FILE_NAME))
-                    .await
-                    .expect("must succeed"),
+                &tokio::fs::read(
+                    udf_build_entrypoint_path
+                        .parent()
+                        .unwrap()
+                        .join("dist")
+                        .join(ENTRYPOINT_SCRIPT_FILE_NAME),
+                )
+                .await
+                .expect("must succeed"),
             )
             .await
             .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
     }
-    let entrypoint_js_path = udf_build_entrypoint_path.join("dist").join(ENTRYPOINT_SCRIPT_FILE_NAME);
+    let entrypoint_js_path = udf_build_entrypoint_path
+        .parent()
+        .unwrap()
+        .join("dist")
+        .join(ENTRYPOINT_SCRIPT_FILE_NAME);
     tokio::fs::copy(temp_file_path, &entrypoint_js_path)
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(entrypoint_js_path.clone(), udf_kind, err))?;

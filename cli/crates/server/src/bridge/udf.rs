@@ -402,7 +402,12 @@ async fn spawn_node(
             .parent()
             .expect("must exist")
             .join(ENTRYPOINT_SCRIPT_FILE_NAME);
-        let node_arguments = vec![script_path];
+        dbg!(&script_path);
+        let node_arguments = vec![script_path
+            .parent()
+            .unwrap()
+            .join("dist")
+            .join(format!("entrypoint.js"))];
         if tracing { /* FIXME(remove minflare) debug */ }
 
         let mut node = Command::new("node");

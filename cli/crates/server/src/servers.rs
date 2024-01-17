@@ -79,7 +79,7 @@ impl ProductionServer {
             let hash = hasher.finalize().to_vec();
             let hash_path = project.dot_grafbase_directory_path.join("grafbase_hash");
             if hash != std::fs::read(&hash_path).unwrap_or_default() {
-                install_wrangler(Environment::get(), tracing).await?;
+                install_esbuild(Environment::get(), tracing).await?;
                 bridge_state.build_all_udfs(detected_udfs, parallelism).await?;
             }
             // If we fail to write the hash, we're just going to recompile the UDFs.
