@@ -10,6 +10,7 @@ workspace = true
 async-graphql-parser.workspace = true
 async-graphql.workspace = true
 async-once-cell = "0.5.3"
+async-runtime.workspace = true
 async-trait.workspace = true
 cynic.workspace = true
 cynic-introspection.workspace = true

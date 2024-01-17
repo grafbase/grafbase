@@ -3371,6 +3371,7 @@ dependencies = [
  "async-graphql",
  "async-graphql-parser",
  "async-once-cell",
+ "async-runtime",
  "async-trait",
  "base64 0.21.7",
  "const_format",

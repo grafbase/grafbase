@@ -11,6 +11,7 @@ use common::environment::Environment;
 use futures_util::future::{join_all, BoxFuture};
 use gateway_v2::streaming::{encode_stream_response, StreamingFormat};
 use handlebars::Handlebars;
+use runtime::context::RequestContext as _;
 use serde_json::json;
 use std::time::Duration;
 use tokio::sync::{
@@ -181,9 +182,14 @@ async fn handle_engine_request(
         wait_until_sender: sender,
     };
 
+    let session = match gateway.authorize(ctx.headers_as_map().into()).await {
+        Ok(session) => session,
+        Err(response) => return Json(response).into_response(),
+    };
+
     if let Some(streaming_format) = streaming_format {
         let ray_id = ctx.ray_id.clone();
-        let stream = gateway.execute_stream(ctx, request);
+        let stream = session.execute_stream(request);
 
         let (headers, stream) = encode_stream_response(ray_id, stream, streaming_format).await;
 
@@ -192,7 +198,7 @@ async fn handle_engine_request(
         return (headers, axum::body::Body::from_stream(stream)).into_response();
     }
 
-    let response = gateway.execute(&ctx, request).await;
+    let response = session.execute(&ctx, request).await;
     tokio::spawn(wait(receiver));
     (response.status, response.headers, response.bytes).into_response()
 }
