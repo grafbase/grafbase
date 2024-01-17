@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use async_runtime::stream::producer_stream;
+use async_runtime::stream::StreamExt as _;
 use engine::RequestHeaders;
 use engine_parser::types::OperationType;
 use futures::channel::mpsc;
@@ -73,7 +73,7 @@ impl Engine {
         let (mut sender, receiver) = mpsc::channel(2);
         let engine = Arc::clone(self);
 
-        producer_stream(receiver, async move {
+        receiver.join(async move {
             let coordinator = match engine.prepare_coordinator(request, headers) {
                 Ok(coordinator) => coordinator,
                 Err(response) => {

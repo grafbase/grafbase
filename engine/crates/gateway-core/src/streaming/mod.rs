@@ -1,6 +1,6 @@
 pub(super) mod format;
 
-use async_runtime::stream::producer_stream;
+use async_runtime::stream::StreamExt as _;
 use async_sse::Sender;
 use bytes::Bytes;
 use format::StreamingFormat;
@@ -67,8 +67,9 @@ fn sse_stream<'a, T>(
 where
     T: serde::Serialize + Send,
 {
-    // Start a future that pumps data from payload_stream into the sse_sender
-    producer_stream(sse_output, async move {
+    // Pumps data from payload_stream into the sse_sender, and run that
+    // alongside sse_output
+    sse_output.join(async move {
         pin_mut!(payload_stream);
 
         while let Some(payload) = payload_stream.next().await {

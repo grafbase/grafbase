@@ -49,6 +49,7 @@ fn federation_start() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_sse_transport() {
     let mut env = Environment::init_async().await;
     let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
@@ -114,6 +115,7 @@ async fn test_sse_transport() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_multipart_transport() {
     let mut env = Environment::init_async().await;
     let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
