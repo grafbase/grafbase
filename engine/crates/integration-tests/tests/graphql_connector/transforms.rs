@@ -1,6 +1,7 @@
 use cynic::QueryBuilder;
 use cynic_introspection::IntrospectionQuery;
-use integration_tests::{mocks::graphql::FakeGithubSchema, runtime, EngineBuilder, MockGraphQlServer, ResponseExt};
+use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
+use integration_tests::{runtime, EngineBuilder, ResponseExt};
 
 #[test]
 fn graphql_test_with_transforms() {

@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use const_format::formatcp;
 use gateway_v2::Gateway;
+use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::federation::GraphqlResponse;
 use integration_tests::openid::{CoreClientExt, OryHydraOpenIDProvider};
 use integration_tests::{
     federation::GatewayV2Ext,
-    mocks::graphql::FakeGithubSchema,
     openid::{AUDIENCE, JWKS_URI, OTHER_AUDIENCE},
-    runtime, MockGraphQlServer,
+    runtime,
 };
 
 const JWT_PROVIDER_CONFIG: &str = formatcp!(r#"{{ type: "jwt", jwks: {{ url: "{JWKS_URI}" }} }}"#);

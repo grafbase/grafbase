@@ -13,7 +13,6 @@ pub mod udfs;
 use std::{cell::RefCell, sync::OnceLock};
 
 pub use helpers::{GetPath, ResponseExt};
-pub use mocks::graphql::MockGraphQlServer;
 pub use mongodb::{with_mongodb, with_namespaced_mongodb};
 use names::{Generator, Name};
 use tokio::runtime::Runtime;

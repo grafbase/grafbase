@@ -2,9 +2,8 @@ use std::collections::HashMap;
 
 use async_graphql_parser::types::ServiceDocument;
 use gateway_v2::Gateway;
+use graphql_mocks::MockGraphQlServer;
 use parser_sdl::connector_parsers::MockConnectorParsers;
-
-use crate::MockGraphQlServer;
 
 use super::TestFederationGateway;
 

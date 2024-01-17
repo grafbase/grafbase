@@ -12,7 +12,8 @@ mod streaming;
 mod variables;
 
 use gateway_v2::Gateway;
-use integration_tests::{federation::GatewayV2Ext, mocks::graphql::FakeGithubSchema, runtime, MockGraphQlServer};
+use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
+use integration_tests::{federation::GatewayV2Ext, runtime};
 
 #[test]
 fn single_field_from_single_server() {

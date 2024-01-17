@@ -1,0 +1,22 @@
+[package]
+name = "graphql-mocks"
+private = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-graphql-axum.workspace = true
+async-graphql.workspace = true
+async-trait = "0.1"
+axum.workspace = true
+futures.workspace = true
+serde.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true

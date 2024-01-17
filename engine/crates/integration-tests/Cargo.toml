@@ -7,18 +7,16 @@ edition = "2021"
 workspace = true
 
 [dependencies]
-async-graphql.workspace = true
-async-graphql-axum.workspace = true
 async-graphql-parser.workspace = true
+async-graphql.workspace = true
 async-once-cell = "0.5.3"
-async-trait = "0.1"
-axum.workspace = true
-common-types.workspace = true
+async-trait.workspace = true
 cynic.workspace = true
 cynic-introspection.workspace = true
 engine-parser.workspace = true
 engine-v2.workspace = true
 gateway-v2.workspace = true
+graphql-mocks.path = "../graphql-mocks"
 engine-config-builder = { path = "../engine-config-builder" }
 expect-test = "1.4"
 futures = "0.3"

@@ -1,11 +1,11 @@
 use gateway_v2::Gateway;
+use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::federation::GraphqlResponse;
 use integration_tests::openid::{CoreClientExt, OryHydraOpenIDProvider};
 use integration_tests::{
     federation::GatewayV2Ext,
-    mocks::graphql::FakeGithubSchema,
     openid::{AUDIENCE, JWKS_URI, JWKS_URI_2},
-    runtime, MockGraphQlServer,
+    runtime,
 };
 
 #[test]

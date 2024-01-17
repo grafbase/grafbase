@@ -1,11 +1,10 @@
 use futures::stream::StreamExt;
 
 use gateway_v2::Gateway;
-use integration_tests::{
-    federation::GatewayV2Ext,
-    mocks::graphql::{FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema},
-    runtime, MockGraphQlServer,
+use graphql_mocks::{
+    FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema, MockGraphQlServer,
 };
+use integration_tests::{federation::GatewayV2Ext, runtime};
 
 #[test]
 fn single_subgraph_subscription() {

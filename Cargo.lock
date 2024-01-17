@@ -2642,6 +2642,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "graphql-mocks"
+version = "0.0.0"
+dependencies = [
+ "async-graphql",
+ "async-graphql-axum",
+ "async-trait",
+ "axum",
+ "futures",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "graphql-parser"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3352,13 +3365,10 @@ name = "integration-tests"
 version = "0.1.0"
 dependencies = [
  "async-graphql",
- "async-graphql-axum",
  "async-graphql-parser",
  "async-once-cell",
  "async-trait",
- "axum",
  "base64 0.21.7",
- "common-types",
  "const_format",
  "ctor",
  "cynic",
@@ -3373,6 +3383,7 @@ dependencies = [
  "gateway-v2",
  "grafbase-graphql-introspection",
  "graphql-composition",
+ "graphql-mocks",
  "graphql-parser 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "headers 0.4.0",
  "http 1.0.0",

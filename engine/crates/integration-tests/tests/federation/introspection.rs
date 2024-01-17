@@ -1,14 +1,11 @@
 use cynic::{http::ReqwestExt, QueryBuilder};
 use cynic_introspection::{CapabilitiesQuery, IntrospectionQuery, SpecificationVersion};
 use gateway_v2::Gateway;
-use integration_tests::{
-    federation::GatewayV2Ext,
-    mocks::graphql::{
-        EchoSchema, FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema,
-        FakeGithubSchema,
-    },
-    runtime, MockGraphQlServer,
+use graphql_mocks::{
+    EchoSchema, FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema,
+    FakeGithubSchema, MockGraphQlServer,
 };
+use integration_tests::{federation::GatewayV2Ext, runtime};
 
 const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("./graphql/introspection.graphql");
 

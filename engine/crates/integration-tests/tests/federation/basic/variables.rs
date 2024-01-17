@@ -1,8 +1,8 @@
 use gateway_v2::Gateway;
+use graphql_mocks::{EchoSchema, MockGraphQlServer};
 use integration_tests::{
     federation::{GatewayV2Ext, GraphqlResponse},
-    mocks::graphql::EchoSchema,
-    runtime, MockGraphQlServer,
+    runtime,
 };
 use serde::Serialize;
 use serde_json::json;

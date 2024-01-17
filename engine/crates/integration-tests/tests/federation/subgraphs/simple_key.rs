@@ -1,8 +1,10 @@
 use gateway_v2::Gateway;
+use graphql_mocks::{
+    FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema, MockGraphQlServer,
+};
 use integration_tests::{
     federation::{GatewayV2Ext, GraphqlResponse},
-    mocks::graphql::{FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema},
-    runtime, MockGraphQlServer,
+    runtime,
 };
 
 async fn execute(request: &str) -> GraphqlResponse {
