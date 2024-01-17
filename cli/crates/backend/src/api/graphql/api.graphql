@@ -164,6 +164,7 @@ type Branch implements Node {
   environment: BranchEnvironment!
   schema: String
   federatedSchema: String
+  operationChecksConfig: BranchOperationCheckConfiguration!
   subgraphs: [Subgraph!]!
 }
 
@@ -210,6 +211,40 @@ union BranchMetricsPayload = BranchMetricsSuccess | ProjectDoesNotExistError
 type BranchMetricsSuccess {
   latency: Distribution!
   request: Distribution!
+}
+
+type BranchOperationCheckConfiguration {
+  """
+  Whether operation checks are enabled for the branch.
+  """
+  enabled: Boolean!
+  """
+  The time range in days to consider for operation checks. Operations older than the specificied
+  number of days are ignored. Overrides project configuration if defined.
+  """
+  timeRangeDaysOverride: Int
+  """
+  The request count threshold to consider for operation checks. Operations that have been
+  registered less than the specified number of occurrences are ignored. Overrides project
+  configuration if defined.
+  """
+  requestCountThresholdOverride: Int
+  """
+  The clients to exclude from operation checks.
+  """
+  excludedClients: [String!]!
+  """
+  Whether to merge excluded clients with the project's.
+  """
+  excludedClientsAppendProjectSettings: Boolean!
+  """
+  The operations to exclude from operation checks.
+  """
+  excludedOperations: [String!]!
+  """
+  Whether to merge excluded operations with the project's.
+  """
+  excludedOperationsAppendProjectSettings: Boolean!
 }
 
 type CompositionCheckError {
@@ -276,18 +311,6 @@ enum CustomDomainStatus {
 type DailyDeploymentCountLimitExceededError {
   query: Query!
   limit: Int!
-}
-
-type DatabaseRegion {
-  name: String!
-  city: String!
-  countryCode: String!
-  continent: String!
-}
-
-enum DatabaseRegionChangeStatus {
-  IN_PROGRESS
-  COMPLETED
 }
 
 type DatabaseUsage {
@@ -1128,6 +1151,7 @@ type NotAllowedToUpdateOrganizationError {
 type OperationCheckError {
   title: String!
   message: String!
+  severity: SchemaCheckErrorSeverity!
 }
 
 input OperationRequestAnalyticsFilter {
@@ -1625,9 +1649,7 @@ type Project implements Node {
   productionBranch: Branch!
   environmentVariables(after: String, before: String, first: Int, last: Int): EnvironmentVariableConnection!
   deployments(after: String, before: String, first: Int, last: Int, filter: DeploymentFilter): DeploymentConnection!
-  databaseRegions: [DatabaseRegion!]!
   status: ProjectStatus!
-  databaseRegionChangeStatus: DatabaseRegionChangeStatus!
   customDomains: [String!]!
   requestAnalytics(filter: ProjectRequestAnalyticsFilter!): RequestAnalytics!
   operationAnalytics(
@@ -1736,7 +1758,6 @@ input ProjectCreateFromRepositoryInput {
   gitRepoUrl: Url!
   gitAccountId: String!
   productionBranch: String!
-  databaseRegions: [String!]! = []
   environmentVariables: [EnvironmentVariableSpecification!]! = []
   projectRootPath: String! = "grafbase"
 }
@@ -1766,7 +1787,6 @@ input ProjectCreateFromSchemaInput {
   accountId: ID!
   projectSlug: String!
   schema: String!
-  databaseRegions: [String!]! = []
   environmentVariables: [EnvironmentVariableSpecification!]! = []
 }
 
@@ -1796,7 +1816,6 @@ input ProjectCreateFromTemplateInput {
   gitAccountId: String!
   repoSlug: String!
   repoPrivate: Boolean!
-  databaseRegions: [String!]! = []
   environmentVariables: [EnvironmentVariableSpecification!]! = []
   projectRootPath: String! = "grafbase"
 }
@@ -1827,7 +1846,6 @@ type ProjectCreateFromTemplateSuccess {
 input ProjectCreateInput {
   accountId: ID!
   projectSlug: String!
-  databaseRegions: [String!]! = []
   environmentVariables: [EnvironmentVariableSpecification!]! = []
   projectRootPath: String! = "grafbase"
 }
@@ -2244,6 +2262,10 @@ type ResourceStatus {
 }
 
 enum SchemaChangeType {
+  SCHEMA_DEFINITION_ADDED
+  SCHEMA_DEFINITION_REMOVED
+  FIELD_ARGUMENT_DEFAULT_ADDED
+  FIELD_ARGUMENT_DEFAULT_REMOVED
   FIELD_ARGUMENT_DESCRIPTION_CHANGED
   FIELD_ARGUMENT_DEFAULT_CHANGED
   FIELD_ARGUMENT_TYPE_CHANGED
@@ -2257,6 +2279,8 @@ enum SchemaChangeType {
   DIRECTIVE_ARGUMENT_DESCRIPTION_CHANGED
   DIRECTIVE_ARGUMENT_DEFAULT_VALUE_CHANGED
   DIRECTIVE_ARGUMENT_TYPE_CHANGED
+  ENUM_ADDED
+  ENUM_REMOVED
   ENUM_VALUE_REMOVED
   ENUM_VALUE_ADDED
   ENUM_VALUE_DESCRIPTION_CHANGED
@@ -2276,6 +2300,8 @@ enum SchemaChangeType {
   FIELD_TYPE_CHANGED
   FIELD_ARGUMENT_ADDED
   FIELD_ARGUMENT_REMOVED
+  INPUT_OBJECT_REMOVED
+  INPUT_OBJECT_ADDED
   INPUT_FIELD_REMOVED
   INPUT_FIELD_ADDED
   INPUT_FIELD_DESCRIPTION_ADDED
@@ -2294,8 +2320,16 @@ enum SchemaChangeType {
   TYPE_DESCRIPTION_CHANGED
   TYPE_DESCRIPTION_REMOVED
   TYPE_DESCRIPTION_ADDED
+  UNION_ADDED
+  UNION_REMOVED
   UNION_MEMBER_REMOVED
   UNION_MEMBER_ADDED
+  INTERFACE_ADDED
+  INTERFACE_REMOVED
+  INTERFACE_IMPLEMENTATION_ADDED
+  INTERFACE_IMPLEMENTATION_REMOVED
+  SCALAR_ADDED
+  SCALAR_REMOVED
 }
 
 type SchemaCheck {
@@ -2347,6 +2381,11 @@ type SchemaCheckEdge {
   A cursor for use in pagination
   """
   cursor: String!
+}
+
+enum SchemaCheckErrorSeverity {
+  ERROR
+  WARNING
 }
 
 type SchemaCheckGitCommit {
