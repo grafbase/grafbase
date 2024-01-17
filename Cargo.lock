@@ -2537,7 +2537,6 @@ dependencies = [
  "async-trait",
  "async-tungstenite",
  "axum",
- "cfg-if",
  "common-types",
  "dotenv",
  "engine",
