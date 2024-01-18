@@ -42,18 +42,29 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
 
     let check::SchemaCheck {
         id: _,
+        error_count,
         validation_check_errors,
         composition_check_errors,
         operation_check_errors,
     } = result;
 
-    if validation_check_errors.is_empty() && composition_check_errors.is_empty() && operation_check_errors.is_empty() {
+    let warnings = operation_check_errors
+        .iter()
+        .filter(|err| matches!(err.severity, check::SchemaCheckErrorSeverity::Warning))
+        .map(|err| err.message.as_str());
+
+    report::check_warnings(warnings);
+
+    if error_count == 0 {
         report::check_success();
     } else {
         report::check_errors(
             validation_check_errors.iter().map(|err| err.message.as_str()),
             composition_check_errors.iter().map(|err| err.message.as_str()),
-            operation_check_errors.iter().map(|err| err.message.as_str()),
+            operation_check_errors
+                .iter()
+                .filter(|err| matches!(err.severity, check::SchemaCheckErrorSeverity::Error))
+                .map(|err| err.message.as_str()),
         );
         std::process::exit(FAILED_CHECK_EXIT_STATUS);
     }

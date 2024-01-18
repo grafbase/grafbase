@@ -30,7 +30,7 @@ async fn defer_multipart_test() {
     let mut env = Environment::init_async().await;
     let client = start_grafbase(&mut env, SCHEMA).await;
 
-    let response = client
+    let parts = client
         .gql::<Value>(
             r"
                     query {
@@ -49,21 +49,8 @@ async fn defer_multipart_test() {
                     }
                 ",
         )
-        .into_reqwest_builder()
-        .header("accept", "multipart/mixed")
-        .send()
+        .into_multipart_stream()
         .await
-        .unwrap();
-
-    assert!(response.status().is_success());
-
-    assert_eq!(
-        response.headers().get("content-type").unwrap(),
-        "multipart/mixed; boundary=\"-\""
-    );
-
-    let parts = multipart_stream::parse(response.bytes_stream(), "-")
-        .map(|result| serde_json::from_slice::<Value>(&result.unwrap().body).unwrap())
         .collect::<Vec<_>>()
         .await;
 
@@ -129,42 +116,42 @@ async fn defer_sse_test() {
                     }
                 ",
         )
-        .into_reqwest_builder()
-        .eventsource()
-        .unwrap()
-        .take_while(|event| {
-            let mut complete = false;
-            let event = event.as_ref().unwrap();
-            if let reqwest_eventsource::Event::Message(message) = event {
-                complete = message.event == "complete";
-            };
-            async move { !complete }
-        })
+        .into_sse_stream()
         .collect::<Vec<_>>()
-        .await
-        .into_iter()
-        .map(Result::unwrap)
-        .collect::<Vec<_>>();
+        .await;
 
-    insta::assert_debug_snapshot!(events, @r###"
+    insta::assert_json_snapshot!(events, @r###"
     [
-        Open,
-        Message(
-            Event {
-                event: "next",
-                data: "{\"data\":{\"todoCollection\":[{\"__typename\":\"Todo\",\"title\":\"Defer Things\",\"id\":\"1\"}]},\"hasNext\":true}",
-                id: "",
-                retry: None,
+      {
+        "data": {
+          "todoCollection": [
+            {
+              "__typename": "Todo",
+              "id": "1",
+              "title": "Defer Things"
+            }
+          ]
+        },
+        "hasNext": true
+      },
+      {
+        "data": {
+          "deferred": [
+            {
+              "__typename": "Todo",
+              "id": "1",
+              "title": "Defer Things"
             },
-        ),
-        Message(
-            Event {
-                event: "next",
-                data: "{\"data\":{\"deferred\":[{\"__typename\":\"Todo\",\"title\":\"Defer Things\",\"id\":\"1\"},{\"__typename\":\"Todo\",\"title\":\"Defer Things\",\"id\":\"2\"}]},\"path\":[],\"hasNext\":false}",
-                id: "",
-                retry: None,
-            },
-        ),
+            {
+              "__typename": "Todo",
+              "id": "2",
+              "title": "Defer Things"
+            }
+          ]
+        },
+        "hasNext": false,
+        "path": []
+      }
     ]
     "###);
 }

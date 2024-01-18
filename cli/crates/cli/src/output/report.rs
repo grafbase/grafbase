@@ -375,6 +375,12 @@ pub fn create_success(name: &str, urls: &[String]) {
     }
 }
 
+pub(crate) fn check_warnings<'a>(operation_check_warnings: impl Iterator<Item = &'a str>) {
+    for warning in operation_check_warnings {
+        watercolor::output!("⚠️  Warning: {warning}", @BrightYellow);
+    }
+}
+
 pub(crate) fn check_success() {
     watercolor::output!("✨ Successful check!", @BrightBlue);
 }
@@ -382,7 +388,7 @@ pub(crate) fn check_success() {
 pub(crate) fn check_errors<'a>(
     validation_errors: impl ExactSizeIterator<Item = &'a str>,
     composition_errors: impl ExactSizeIterator<Item = &'a str>,
-    operation_errors: impl ExactSizeIterator<Item = &'a str>,
+    operation_errors: impl Iterator<Item = &'a str>,
 ) {
     watercolor::output!("🔴 The schema check failed.\n", @BrightRed);
 
@@ -400,10 +406,11 @@ pub(crate) fn check_errors<'a>(
         }
     }
 
-    if operation_errors.len() > 0 {
+    let mut operation_errors = operation_errors.peekable();
+    if operation_errors.peek().is_some() {
         watercolor::output!("Operation check errors:", @BrightRed);
-        for error in operation_errors {
-            watercolor::output!("- {error}", @BrightRed);
+        for message in operation_errors {
+            watercolor::output!("- {message}", @BrightRed);
         }
     }
 }

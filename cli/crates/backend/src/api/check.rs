@@ -1,4 +1,4 @@
-pub use super::graphql::mutations::{SchemaCheck, SchemaCheckGitCommitInput};
+pub use super::graphql::mutations::{SchemaCheck, SchemaCheckErrorSeverity, SchemaCheckGitCommitInput};
 
 use super::{
     client::create_client,
