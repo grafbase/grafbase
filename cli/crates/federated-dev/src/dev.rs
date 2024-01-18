@@ -8,9 +8,13 @@ use axum::{
     Json,
 };
 use common::environment::Environment;
-use futures_util::future::{join_all, BoxFuture};
+use futures_util::{
+    future::{join_all, BoxFuture},
+    stream,
+};
 use gateway_v2::streaming::{encode_stream_response, StreamingFormat};
 use handlebars::Handlebars;
+use runtime::context::RequestContext as _;
 use serde_json::json;
 use std::time::Duration;
 use tokio::sync::{
@@ -181,18 +185,29 @@ async fn handle_engine_request(
         wait_until_sender: sender,
     };
 
+    let session = gateway.authorize(ctx.headers_as_map().into()).await;
+
     if let Some(streaming_format) = streaming_format {
         let ray_id = ctx.ray_id.clone();
-        let stream = gateway.execute_stream(ctx, request);
 
-        let (headers, stream) = encode_stream_response(ray_id, stream, streaming_format).await;
+        let (headers, stream) = match session {
+            Ok(session) => encode_stream_response(ray_id, session.execute_stream(request), streaming_format).await,
+            Err(response) => {
+                encode_stream_response(ray_id, stream::once(async move { response }), streaming_format).await
+            }
+        };
 
         tokio::spawn(wait(receiver));
 
         return (headers, axum::body::Body::from_stream(stream)).into_response();
     }
 
-    let response = gateway.execute(&ctx, request).await;
+    let session = match session {
+        Ok(session) => session,
+        Err(response) => return Json(response).into_response(),
+    };
+
+    let response = session.execute(&ctx, request).await;
     tokio::spawn(wait(receiver));
     (response.status, response.headers, response.bytes).into_response()
 }

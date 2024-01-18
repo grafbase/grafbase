@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use ::axum::extract::ws::{self, WebSocket};
 use futures_util::{pin_mut, stream::SplitStream, SinkExt, StreamExt};
-use serde_json::json;
+use gateway_v2::Session;
 use tokio::sync::mpsc;
 
 use self::messages::{Event, Message};
@@ -33,23 +33,19 @@ impl WebsocketAccepter {
             let gateway = self.gateway.clone();
 
             tokio::spawn(async move {
-                let Some((websocket, _init_payload)) = accept_websocket(connection).await else {
+                let Some((websocket, session)) = accept_websocket(connection, &gateway).await else {
                     log::warn!("Failed to accept websocket connection");
                     return;
                 };
-                // _init_payload may contain auth, we should do something with that at some point
 
-                websocket_loop(websocket, gateway).await;
+                websocket_loop(websocket, session).await;
             });
         }
     }
 }
 
 /// Message handling loop for a single websocket connection
-async fn websocket_loop(
-    socket: WebSocket,
-    gateway: tokio::sync::watch::Receiver<Option<std::sync::Arc<gateway_v2::Gateway>>>,
-) {
+async fn websocket_loop(socket: WebSocket, session: Session) {
     let (sender, mut receiver) = {
         let (mut socket_sender, socket_receiver) = socket.split();
 
@@ -79,7 +75,7 @@ async fn websocket_loop(
     let mut subscriptions = HashMap::new();
 
     while let Some(event) = receiver.recv_graphql().await {
-        let response = handle_incoming_event(event, &gateway, &sender, &mut tasks, &mut subscriptions).await;
+        let response = handle_incoming_event(event, &session, &sender, &mut tasks, &mut subscriptions).await;
         match response {
             None => {}
             Some(message @ Message::Close { .. }) => {
@@ -97,7 +93,7 @@ async fn websocket_loop(
 
 async fn handle_incoming_event(
     event: Event,
-    gateway: &GatewayWatcher,
+    session: &Session,
     sender: &tokio::sync::mpsc::Sender<Message>,
     tasks: &mut tokio::task::JoinSet<()>,
     subscriptions: &mut HashMap<String, tokio::task::AbortHandle>,
@@ -105,20 +101,10 @@ async fn handle_incoming_event(
     match event {
         Event::Subscribe { id, payload } => {
             if subscriptions.contains_key(&id) {
-                return Some(Message::Close {
-                    code: 4409,
-                    reason: format!("Subscriber for {id} already exists"),
-                });
+                return Some(Message::close(4409, format!("Subscriber for {id} already exists")));
             }
 
-            let Some(gateway) = gateway.borrow().clone() else {
-                return Some(Message::Error {
-                    id,
-                    payload: vec![json!({"message": "there are no subgraphs registered currently"})],
-                });
-            };
-
-            let handle = tasks.spawn(subscription_loop(gateway, payload, id.clone(), sender.clone()));
+            let handle = tasks.spawn(subscription_loop(session.clone(), payload, id.clone(), sender.clone()));
             subscriptions.insert(id, handle);
 
             None
@@ -139,19 +125,12 @@ async fn handle_incoming_event(
 }
 
 async fn subscription_loop(
-    gateway: std::sync::Arc<gateway_v2::Gateway>,
+    session: gateway_v2::Session,
     request: engine::Request,
     id: String,
     sender: mpsc::Sender<Message>,
 ) {
-    let (wait_until_sender, wait_until_receiver) = tokio::sync::mpsc::unbounded_channel();
-    let ctx = crate::dev::RequestContext {
-        ray_id: ulid::Ulid::new().to_string(),
-        headers: Default::default(),
-        wait_until_sender,
-    };
-    let stream = gateway.execute_stream(ctx, request);
-    tokio::spawn(crate::dev::wait(wait_until_receiver));
+    let stream = session.execute_stream(request);
 
     pin_mut!(stream);
     while let Some(response) = stream.next().await {
@@ -170,20 +149,36 @@ async fn subscription_loop(
     sender.send(Message::Complete { id }).await.ok();
 }
 
-async fn accept_websocket(mut websocket: WebSocket) -> Option<(WebSocket, Option<serde_json::Value>)> {
+async fn accept_websocket(mut websocket: WebSocket, gateway: &GatewayWatcher) -> Option<(WebSocket, Session)> {
     while let Some(event) = websocket.recv_graphql().await {
         match event {
             Event::ConnectionInit { payload } => {
+                let Some(gateway) = gateway.borrow().clone() else {
+                    websocket
+                        .send(
+                            Message::close(4995, "register a subgraph before connecting")
+                                .try_into()
+                                .unwrap(),
+                        )
+                        .await
+                        .ok();
+                    return None;
+                };
+
+                let Ok(session) = gateway.authorize(payload.headers.into()).await else {
+                    websocket
+                        .send(Message::close(4403, "Forbidden").try_into().unwrap())
+                        .await
+                        .ok();
+                    return None;
+                };
+
                 websocket
-                    .send(
-                        Message::ConnectionAck { payload: None }
-                            .try_into()
-                            .expect("ack should always be serializable"),
-                    )
+                    .send(Message::ConnectionAck { payload: None }.try_into().unwrap())
                     .await
                     .ok()?;
 
-                return Some((websocket, payload));
+                return Some((websocket, session));
             }
             Event::Ping { .. } => {
                 websocket

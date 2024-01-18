@@ -67,7 +67,6 @@ fn test_provider() {
         let response: GraphqlResponse = engine.execute("query { serverVersion }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
-          "data": null,
           "errors": [
             {
               "message": "Unauthorized"

@@ -62,14 +62,14 @@ fn jwt_provider() {
 
     // Reject valid token with wrong group
     let token = generate_hs512_token("cli_user", &["some-group"]);
-    let client = client.with_header("Authorization", &format!("Bearer {token}"));
+    let client = client.with_header("Authorization", format!("Bearer {token}"));
     let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send();
     let error: String = dot_get_opt!(resp, "errors.0.message").expect("should end with an auth failure");
     assert!(error.contains("Unauthorized"), "error: {error:#?}");
 
     // Accept valid token with correct group
     let token = generate_hs512_token("cli_user", &["backend"]);
-    let client = client.with_header("Authorization", &format!("Bearer {token}"));
+    let client = client.with_header("Authorization", format!("Bearer {token}"));
     let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send();
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
@@ -294,7 +294,7 @@ async fn oidc_token_with_valid_group_should_work() {
         Some(set_up.issuer_url.as_str()),
         KEY_ID,
     );
-    let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
+    let client = set_up.client.with_header("Authorization", format!("Bearer {token}"));
     let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
@@ -311,7 +311,7 @@ async fn oidc_with_path_with_trailing_slash_should_work() {
         Some(set_up.issuer_url.as_str()),
         KEY_ID,
     );
-    let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
+    let client = set_up.client.with_header("Authorization", format!("Bearer {token}"));
     let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
@@ -328,7 +328,7 @@ async fn oidc_with_path_without_trailing_slash_should_work() {
         Some(set_up.issuer_url.as_str()),
         KEY_ID,
     );
-    let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
+    let client = set_up.client.with_header("Authorization", format!("Bearer {token}"));
     let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
@@ -346,7 +346,7 @@ async fn oidc_token_with_wrong_group_should_fail() {
         Some(set_up.issuer_url.as_str()),
         KEY_ID,
     );
-    let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
+    let client = set_up.client.with_header("Authorization", format!("Bearer {token}"));
     let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
     assert_eq!(
@@ -368,7 +368,7 @@ async fn oidc_token_with_wrong_kid_should_fail() {
         Some(set_up.issuer_url.as_str()),
         "other-id",
     );
-    let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
+    let client = set_up.client.with_header("Authorization", format!("Bearer {token}"));
     let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
     assert_eq!(error, Some("Unauthorized".to_string()));
@@ -389,7 +389,7 @@ async fn jwks_issuer_token_with_valid_group_should_work() {
         Some(set_up.issuer_url.as_str()),
         KEY_ID,
     );
-    let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
+    let client = set_up.client.with_header("Authorization", format!("Bearer {token}"));
     let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
@@ -418,7 +418,7 @@ async fn jwks_endoint_token_with_valid_group_should_work() {
         Some(set_up.issuer_url.as_str()),
         KEY_ID,
     );
-    let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
+    let client = set_up.client.with_header("Authorization", format!("Bearer {token}"));
     let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
@@ -450,7 +450,7 @@ async fn jwks_endoint_and_issuer_token_with_valid_group_should_work() {
         Some(set_up.issuer_url.as_str()),
         KEY_ID,
     );
-    let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
+    let client = set_up.client.with_header("Authorization", format!("Bearer {token}"));
     let resp = client.gql::<Value>(AUTH_QUERY_TODOS).await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
@@ -510,7 +510,7 @@ async fn type_field_resolver_mixed() {
     let token = generate_hs512_token("cli_user", &[]);
     let private_client = env
         .create_async_client()
-        .with_header("Authorization", &format!("Bearer {token}"));
+        .with_header("Authorization", format!("Bearer {token}"));
     private_client.poll_endpoint(30, 300).await;
     let public_client = env.create_async_client();
     insta::assert_json_snapshot!(
@@ -558,7 +558,7 @@ async fn entrypoint_query_field_resolver() {
         let token = generate_hs512_token("cli_user", &["reader"]);
         let reader_client = env
             .create_async_client()
-            .with_header("Authorization", &format!("Bearer {token}"));
+            .with_header("Authorization", format!("Bearer {token}"));
         insta::assert_json_snapshot!(
             "entrypoint_query_field_resolver__reader_with_entrypoint_field_query_should_succeed",
             reader_client.gql::<Value>(AUTH_ENTRYPOINT_QUERY_TEXT).await
@@ -568,7 +568,7 @@ async fn entrypoint_query_field_resolver() {
         let token = generate_hs512_token("cli_user", &["writer"]);
         let writer_client = env
             .create_async_client()
-            .with_header("Authorization", &format!("Bearer {token}"));
+            .with_header("Authorization", format!("Bearer {token}"));
         insta::assert_json_snapshot!(
             "entrypoint_query_field_resolver__writer_with_entrypoint_field_query_should_fail",
             writer_client.gql::<Value>(AUTH_ENTRYPOINT_QUERY_TEXT).await
@@ -599,7 +599,7 @@ async fn entrypoint_mutation_field_resolver_mixed() {
         let token = generate_hs512_token("cli_user", &["writer"]);
         let writer_client = env
             .create_async_client()
-            .with_header("Authorization", &format!("Bearer {token}"));
+            .with_header("Authorization", format!("Bearer {token}"));
         insta::assert_json_snapshot!(
             "entrypoint_mutation_field_resolver_mixed___writer_with_entrypoint_field_mutation_should_succeed",
             writer_client.gql::<Value>(AUTH_ENTRYPOINT_MUTATION_TEXT).await
@@ -609,7 +609,7 @@ async fn entrypoint_mutation_field_resolver_mixed() {
         let token = generate_hs512_token("cli_user", &["reader"]);
         let reader_client = env
             .create_async_client()
-            .with_header("Authorization", &format!("Bearer {token}"));
+            .with_header("Authorization", format!("Bearer {token}"));
         insta::assert_json_snapshot!(
             "entrypoint_mutation_field_resolver_mixed__reader_entrypoint_field_mutation_should_fail",
             reader_client.gql::<Value>(AUTH_ENTRYPOINT_MUTATION_TEXT).await

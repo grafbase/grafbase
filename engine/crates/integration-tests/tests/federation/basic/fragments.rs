@@ -105,7 +105,6 @@ fn named_fragment_cycle() {
 
     insta::assert_json_snapshot!(response, @r###"
     {
-      "data": null,
       "errors": [
         {
           "message": "Fragment cycle detected: PrFields, UserFields, PrFields",
