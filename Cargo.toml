@@ -130,7 +130,7 @@ rust-2018-idioms = "deny"
 unused-crate-dependencies = "deny"
 
 [workspace.lints.clippy]
-#all = "deny"
+all = "deny"
 panic = "deny"
 
 # Opt out of lints that have too many false positives or are yet to be addressed.

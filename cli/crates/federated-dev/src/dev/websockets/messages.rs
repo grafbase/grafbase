@@ -26,7 +26,7 @@ pub enum Event {
     },
 }
 
-#[derive(Default, serde::Deserialize)]
+#[derive(Debug, Default, serde::Deserialize)]
 pub struct InitPayload {
     #[serde(default)]
     pub headers: HashMap<String, String>,

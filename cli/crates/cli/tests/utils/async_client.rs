@@ -46,8 +46,8 @@ impl AsyncClient {
         self.with_header("x-api-key", "any")
     }
 
-    pub fn with_header(mut self, key: &'static str, value: &str) -> Self {
-        self.headers.insert(key, value.parse().unwrap());
+    pub fn with_header(mut self, key: &'static str, value: impl AsRef<str>) -> Self {
+        self.headers.insert(key, value.as_ref().parse().unwrap());
         self
     }
 
@@ -227,7 +227,7 @@ impl<Response> GqlRequestBuilder<Response> {
             .unwrap()
             .take_while(|event| {
                 let mut complete = false;
-                let event = event.as_ref().unwrap();
+                let event = dbg!(event).as_ref().unwrap();
                 if let reqwest_eventsource::Event::Message(message) = event {
                     complete = message.event == "complete";
                 };
