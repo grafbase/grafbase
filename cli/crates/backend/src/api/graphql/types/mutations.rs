@@ -231,6 +231,7 @@ pub struct SubgraphPublish {
 #[derive(cynic::QueryFragment, Debug)]
 pub struct SchemaCheck {
     pub id: cynic::Id,
+    pub error_count: i32,
     pub validation_check_errors: Vec<ValidationCheckError>,
     pub composition_check_errors: Vec<CompositionCheckError>,
     pub operation_check_errors: Vec<OperationCheckError>,
@@ -252,6 +253,13 @@ pub struct CompositionCheckError {
 pub struct OperationCheckError {
     pub message: String,
     pub title: String,
+    pub severity: SchemaCheckErrorSeverity,
+}
+
+#[derive(cynic::Enum, Clone, Copy, Debug)]
+pub enum SchemaCheckErrorSeverity {
+    Error,
+    Warning,
 }
 
 #[derive(cynic::InlineFragments, Debug)]
