@@ -70,14 +70,10 @@ impl Gateway {
         }
     }
 
-    pub async fn authorize(self: &Arc<Self>, headers: RequestHeaders) -> Result<Session, engine_v2::Response> {
-        let token = self
-            .authorizer
-            .get_access_token(&headers)
-            .await
-            .ok_or_else(|| engine_v2::Response::error("Unauthorized"))?;
+    pub async fn authorize(self: &Arc<Self>, headers: RequestHeaders) -> Option<Session> {
+        let token = self.authorizer.get_access_token(&headers).await?;
 
-        Ok(Session {
+        Some(Session {
             gateway: Arc::clone(self),
             token,
             headers,
@@ -170,6 +166,19 @@ impl Session {
 
     pub fn execute_stream(self, request: engine::Request) -> impl Stream<Item = engine_v2::Response> {
         self.gateway.engine.execute_stream(request, self.headers)
+    }
+}
+
+impl Response {
+    pub fn unauthorized() -> Self {
+        let response = engine_v2::Response::error("Unauthorized");
+        Response {
+            status: http::StatusCode::UNAUTHORIZED,
+            headers: Default::default(),
+            bytes: serde_json::to_vec(&response).expect("this serialization should be fine"),
+            metadata: ExecutionMetadata::default(),
+            has_errors: true,
+        }
     }
 }
 

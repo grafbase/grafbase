@@ -191,9 +191,14 @@ async fn handle_engine_request(
         let ray_id = ctx.ray_id.clone();
 
         let (headers, stream) = match session {
-            Ok(session) => encode_stream_response(ray_id, session.execute_stream(request), streaming_format).await,
-            Err(response) => {
-                encode_stream_response(ray_id, stream::once(async move { response }), streaming_format).await
+            Some(session) => encode_stream_response(ray_id, session.execute_stream(request), streaming_format).await,
+            _ => {
+                encode_stream_response(
+                    ray_id,
+                    stream::once(async { engine_v2::Response::error("Unauthorized") }),
+                    streaming_format,
+                )
+                .await
             }
         };
 
@@ -202,12 +207,11 @@ async fn handle_engine_request(
         return (headers, axum::body::Body::from_stream(stream)).into_response();
     }
 
-    let session = match session {
-        Ok(session) => session,
-        Err(response) => return Json(response).into_response(),
+    let response = match session {
+        Some(session) => session.execute(&ctx, request).await,
+        None => gateway_v2::Response::unauthorized(),
     };
 
-    let response = session.execute(&ctx, request).await;
     tokio::spawn(wait(receiver));
     (response.status, response.headers, response.bytes).into_response()
 }

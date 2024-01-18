@@ -59,10 +59,10 @@ impl IntoFuture for ExecutionRequest {
         let (ctx, futures) = RequestContext::new(self.headers);
         Box::pin(async move {
             let session = match self.gateway.authorize(ctx.headers_as_map().into()).await {
-                Ok(session) => session,
-                Err(response) => {
+                Some(session) => session,
+                None => {
                     return GraphqlResponse {
-                        gql_response: serde_json::to_value(&response).unwrap(),
+                        gql_response: serde_json::to_value(engine_v2::Response::error("Unauthorized")).unwrap(),
                         metadata: Default::default(),
                         headers: HeaderMap::new(),
                     }
@@ -89,9 +89,12 @@ impl ExecutionRequest {
 
         receiver.join(async move {
             let session = match self.gateway.authorize(self.headers.into()).await {
-                Ok(session) => session,
-                Err(error) => {
-                    sender.send(error.into()).await.ok();
+                Some(session) => session,
+                None => {
+                    sender
+                        .send(engine_v2::Response::error("Unauthorized").into())
+                        .await
+                        .ok();
                     return;
                 }
             };
