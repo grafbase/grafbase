@@ -2,7 +2,6 @@ use common::environment::Environment;
 use common::types::UdfKind;
 
 use itertools::Itertools;
-use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tokio::io::AsyncWriteExt;
@@ -102,8 +101,6 @@ pub(crate) async fn build(
     udf_kind: UdfKind,
     udf_name: &str,
     tracing: bool,
-    // FIXME(remove miniflare)
-    _enable_kv: bool,
 ) -> Result<PathBuf, UdfBuildError> {
     use path_slash::PathBufExt as _;
 
@@ -167,7 +164,10 @@ pub(crate) async fn build(
         "esbuild",
         &udf_build_entrypoint_path.to_string_lossy(),
         "--bundle",
+        "--tree-shaking=true",
+        "--minify",
         "--platform=node",
+        "--target=node18",
         &format!("--outfile={}.js", udf_name),
     ];
 
@@ -184,17 +184,22 @@ pub(crate) async fn build(
         other => other.into(),
     })?;
 
-    tokio::fs::create_dir_all(udf_build_entrypoint_path.parent().unwrap().join("dist"))
-        .await
-        .unwrap();
+    tokio::fs::create_dir_all(
+        udf_build_entrypoint_path
+            .parent()
+            .expect("must have parent")
+            .join("dist"),
+    )
+    .await
+    .unwrap();
 
     tokio::fs::copy(
         environment.esbuild_installation_path.join(format!("{udf_name}.js")),
         udf_build_entrypoint_path
             .parent()
-            .unwrap()
+            .expect("must have parent")
             .join("dist")
-            .join("entrypoint.js"),
+            .join(ENTRYPOINT_SCRIPT_FILE_NAME),
     )
     .await
     .unwrap();
@@ -219,7 +224,7 @@ pub(crate) async fn build(
                 &tokio::fs::read(
                     udf_build_entrypoint_path
                         .parent()
-                        .unwrap()
+                        .expect("must have parent")
                         .join("dist")
                         .join(ENTRYPOINT_SCRIPT_FILE_NAME),
                 )
@@ -231,16 +236,12 @@ pub(crate) async fn build(
     }
     let entrypoint_js_path = udf_build_entrypoint_path
         .parent()
-        .unwrap()
+        .expect("must have parent")
         .join("dist")
         .join(ENTRYPOINT_SCRIPT_FILE_NAME);
     tokio::fs::copy(temp_file_path, &entrypoint_js_path)
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(entrypoint_js_path.clone(), udf_kind, err))?;
-
-    // FIXME(remove miniflare)
-    let _slugified_udf_name = slug::slugify(udf_name);
-    let _udf_url_path = udf_url_path(udf_kind, udf_name);
 
     Ok(udf_build_package_json_path)
 }

@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
@@ -67,7 +66,6 @@ enum UdfWorkerStatus {
 }
 
 struct UdfWorker {
-    // FIXME(remove miniflare)
     _name: String,
     directory: PathBuf,
 }
@@ -75,7 +73,7 @@ struct UdfWorker {
 pub struct UdfRuntime {
     udf_workers: Mutex<HashMap<(String, UdfKind), UdfWorkerStatus>>,
     environment_variables: HashMap<String, String>,
-    registry: Arc<engine::Registry>,
+    _registry: Arc<engine::Registry>,
     tracing: bool,
     message_sender: MessageSender,
 }
@@ -118,7 +116,7 @@ impl UdfRuntime {
         Self {
             udf_workers: Mutex::default(),
             environment_variables,
-            registry,
+            _registry: registry,
             tracing,
             message_sender,
         }
@@ -156,31 +154,25 @@ impl UdfRuntime {
         &self,
         udf_workers: Vec<UdfWorker>,
     ) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildError> {
-        let mut node_arguments: Vec<_> = ["" /* FIXME(remove miniflare) worker creation script location*/]
+        let node_arguments: Vec<String> = udf_workers
             .into_iter()
-            .map(Cow::Borrowed)
+            .map(|UdfWorker { directory, .. }| {
+                directory
+                    .join("dist")
+                    .join(ENTRYPOINT_SCRIPT_FILE_NAME)
+                    .display()
+                    .to_string()
+            })
             .collect();
-        if self.tracing {
-            // FIXME(remove miniflare): add wrapper env var for debug
-        }
-
-        node_arguments.extend(
-            udf_workers
-                .into_iter()
-                .map(|UdfWorker { directory, .. }| Cow::Owned(directory.display().to_string())),
-        );
 
         let environment = Environment::get();
         let mut node = Command::new("node");
-        node
-            // Unbounded worker limit
-            .args(node_arguments.iter().map(std::convert::AsRef::as_ref))
+        node.args(node_arguments)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .current_dir(&environment.user_dot_grafbase_path)
             .kill_on_drop(true);
         trace!("Spawning {node:?}");
-        // FIXME(remove miniflare) - add a proper error for this and unwraps below
         let mut node = node.spawn().unwrap();
 
         let bound_port = {
@@ -239,13 +231,11 @@ impl UdfRuntime {
                     udf_kind,
                     &udf_name,
                     self.tracing,
-                    self.registry.enable_kv,
                 )
                 .await
                 {
                     Ok(package_json_path) => Ok(UdfWorker {
                         _name: udf_name,
-                        // FIXME(remove miniflare) make sure this is correct
                         directory: package_json_path.to_owned(),
                     }),
                     Err(err) => {
@@ -311,7 +301,6 @@ impl UdfRuntime {
                 udf_kind,
                 &udf_name,
                 self.tracing,
-                self.registry.enable_kv,
             )
             .and_then(|package_json_path| super::udf::spawn_node(udf_kind, &udf_name, package_json_path, self.tracing))
             .await
@@ -402,12 +391,12 @@ async fn spawn_node(
             .parent()
             .expect("must exist")
             .join(ENTRYPOINT_SCRIPT_FILE_NAME);
-        dbg!(&script_path);
+
         let node_arguments = vec![script_path
             .parent()
             .unwrap()
             .join("dist")
-            .join(format!("entrypoint.js"))];
+            .join(ENTRYPOINT_SCRIPT_FILE_NAME)];
         if tracing { /* FIXME(remove minflare) debug */ }
 
         let mut node = Command::new("node");

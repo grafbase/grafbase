@@ -111,7 +111,7 @@ const nodeRequestToWeb = (request: IncomingMessage) =>
     method: request.method,
     // the cast here is likely required because of node fetch still being experimental
     headers: request.headers as Headers,
-    body: request.method === 'POST' ? Readable.toWeb(request) : undefined,
+    body: request.method === HttpMethod.Post ? Readable.toWeb(request) : undefined,
     duplex: Duplex.Half,
   })
 
