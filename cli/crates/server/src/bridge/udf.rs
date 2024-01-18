@@ -394,7 +394,7 @@ async fn spawn_node(
 
         let node_arguments = vec![script_path
             .parent()
-            .unwrap()
+            .expect("must exist")
             .join("dist")
             .join(ENTRYPOINT_SCRIPT_FILE_NAME)];
 
