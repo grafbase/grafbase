@@ -397,7 +397,6 @@ async fn spawn_node(
             .unwrap()
             .join("dist")
             .join(ENTRYPOINT_SCRIPT_FILE_NAME)];
-        if tracing { /* FIXME(remove minflare) debug */ }
 
         let mut node = Command::new("node");
         node
