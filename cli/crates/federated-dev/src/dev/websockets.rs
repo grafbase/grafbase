@@ -155,7 +155,11 @@ async fn accept_websocket(mut websocket: WebSocket, gateway: &GatewayWatcher) ->
             Event::ConnectionInit { payload } => {
                 let Some(gateway) = gateway.borrow().clone() else {
                     websocket
-                        .send(Message::close(4403, "Forbidden").try_into().unwrap())
+                        .send(
+                            Message::close(4995, "register a subgraph before connecting")
+                                .try_into()
+                                .unwrap(),
+                        )
                         .await
                         .ok();
                     return None;

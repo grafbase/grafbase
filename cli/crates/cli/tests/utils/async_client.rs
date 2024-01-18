@@ -227,7 +227,7 @@ impl<Response> GqlRequestBuilder<Response> {
             .unwrap()
             .take_while(|event| {
                 let mut complete = false;
-                let event = dbg!(event).as_ref().unwrap();
+                let event = event.as_ref().unwrap();
                 if let reqwest_eventsource::Event::Message(message) = event {
                     complete = message.event == "complete";
                 };

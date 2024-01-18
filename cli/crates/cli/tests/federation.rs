@@ -150,18 +150,18 @@ async fn test_sse_transport_with_auth() {
       {
         "data": {
           "newProducts": {
-            "upc": "top-4",
             "name": "Jeans",
-            "price": 44
+            "price": 44,
+            "upc": "top-4"
           }
         }
       },
       {
         "data": {
           "newProducts": {
-            "upc": "top-5",
             "name": "Pink Jeans",
-            "price": 55
+            "price": 55,
+            "upc": "top-5"
           }
         }
       }
@@ -332,18 +332,18 @@ async fn test_multipart_transport_with_auth() {
       {
         "data": {
           "newProducts": {
-            "upc": "top-4",
             "name": "Jeans",
-            "price": 44
+            "price": 44,
+            "upc": "top-4"
           }
         }
       },
       {
         "data": {
           "newProducts": {
-            "upc": "top-5",
             "name": "Pink Jeans",
-            "price": 55
+            "price": 55,
+            "upc": "top-5"
           }
         }
       }
@@ -517,18 +517,18 @@ async fn test_websocket_transport_with_auth() {
       {
         "data": {
           "newProducts": {
-            "upc": "top-4",
             "name": "Jeans",
-            "price": 44
+            "price": 44,
+            "upc": "top-4"
           }
         }
       },
       {
         "data": {
           "newProducts": {
-            "upc": "top-5",
             "name": "Pink Jeans",
-            "price": 55
+            "price": 55,
+            "upc": "top-5"
           }
         }
       }

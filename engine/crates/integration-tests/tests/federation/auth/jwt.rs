@@ -104,7 +104,6 @@ fn test_unauthorized() {
         let response: GraphqlResponse = engine.execute("query { serverVersion }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
-          "data": null,
           "errors": [
             {
               "message": "Unauthorized"
@@ -120,7 +119,6 @@ fn test_unauthorized() {
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
-          "data": null,
           "errors": [
             {
               "message": "Unauthorized"
@@ -136,7 +134,6 @@ fn test_unauthorized() {
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
-          "data": null,
           "errors": [
             {
               "message": "Unauthorized"
@@ -173,7 +170,6 @@ fn test_tampered_jwt() {
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
-          "data": null,
           "errors": [
             {
               "message": "Unauthorized"
@@ -228,7 +224,6 @@ fn test_wrong_provider() {
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
-          "data": null,
           "errors": [
             {
               "message": "Unauthorized"
@@ -287,7 +282,6 @@ fn test_audience() {
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
-          "data": null,
           "errors": [
             {
               "message": "Unauthorized"
@@ -309,7 +303,6 @@ fn test_audience() {
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
-          "data": null,
           "errors": [
             {
               "message": "Unauthorized"
