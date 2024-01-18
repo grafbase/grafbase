@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 mod websockets;
 
+use futures_util::{Stream, StreamExt};
 use reqwest::{header::HeaderMap, StatusCode};
+use reqwest_eventsource::RequestBuilderExt;
 use serde_json::json;
 use std::{
     future::{Future, IntoFuture},
@@ -198,6 +200,47 @@ impl<Response> GqlRequestBuilder<Response> {
         let json = serde_json::to_value(&self).expect("to be able to serialize gql request");
 
         self.reqwest_builder.json(&json)
+    }
+
+    pub async fn into_multipart_stream(self) -> impl Stream<Item = serde_json::Value> {
+        let response = self
+            .into_reqwest_builder()
+            .header("accept", "multipart/mixed")
+            .send()
+            .await
+            .unwrap();
+
+        assert!(response.status().is_success());
+
+        assert_eq!(
+            response.headers().get("content-type").unwrap(),
+            "multipart/mixed; boundary=\"-\""
+        );
+
+        multipart_stream::parse(response.bytes_stream(), "-")
+            .map(|result| serde_json::from_slice(&result.unwrap().body).unwrap())
+    }
+
+    pub fn into_sse_stream(self) -> impl Stream<Item = serde_json::Value> {
+        self.into_reqwest_builder()
+            .eventsource()
+            .unwrap()
+            .take_while(|event| {
+                let mut complete = false;
+                let event = event.as_ref().unwrap();
+                if let reqwest_eventsource::Event::Message(message) = event {
+                    complete = message.event == "complete";
+                };
+                async move { !complete }
+            })
+            .filter_map(|item| async move {
+                let event = item.unwrap();
+                let reqwest_eventsource::Event::Message(message) = event else {
+                    return None;
+                };
+                assert_eq!(message.event, "next");
+                serde_json::from_str(&message.data).unwrap()
+            })
     }
 }
 

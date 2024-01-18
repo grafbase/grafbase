@@ -74,42 +74,30 @@ async fn test_sse_transport() {
             }
             ",
         )
-        .into_reqwest_builder()
-        .eventsource()
-        .unwrap()
-        .take_while(|event| {
-            let mut complete = false;
-            let event = event.as_ref().unwrap();
-            if let reqwest_eventsource::Event::Message(message) = event {
-                complete = message.event == "complete";
-            };
-            async move { !complete }
-        })
+        .into_sse_stream()
         .collect::<Vec<_>>()
-        .await
-        .into_iter()
-        .map(Result::unwrap)
-        .collect::<Vec<_>>();
+        .await;
 
     insta::assert_debug_snapshot!(events, @r###"
     [
-        Open,
-        Message(
-            Event {
-                event: "next",
-                data: "{\"data\":{\"newProducts\":{\"upc\":\"top-4\",\"name\":\"Jeans\",\"price\":44}}}",
-                id: "",
-                retry: None,
+        Object {
+            "data": Object {
+                "newProducts": Object {
+                    "name": String("Jeans"),
+                    "price": Number(44),
+                    "upc": String("top-4"),
+                },
             },
-        ),
-        Message(
-            Event {
-                event: "next",
-                data: "{\"data\":{\"newProducts\":{\"upc\":\"top-5\",\"name\":\"Pink Jeans\",\"price\":55}}}",
-                id: "",
-                retry: None,
+        },
+        Object {
+            "data": Object {
+                "newProducts": Object {
+                    "name": String("Pink Jeans"),
+                    "price": Number(55),
+                    "upc": String("top-5"),
+                },
             },
-        ),
+        },
     ]
     "###);
 }
@@ -128,7 +116,7 @@ async fn test_multipart_transport() {
     client.poll_endpoint(30, 300).await;
     env.grafbase_publish_dev("subscriptions", subscription_server.url());
 
-    let response = client
+    let parts = client
         .gql::<Value>(
             r"
             subscription {
@@ -140,21 +128,8 @@ async fn test_multipart_transport() {
             }
             ",
         )
-        .into_reqwest_builder()
-        .header("accept", "multipart/mixed")
-        .send()
+        .into_multipart_stream()
         .await
-        .unwrap();
-
-    assert!(response.status().is_success());
-
-    assert_eq!(
-        response.headers().get("content-type").unwrap(),
-        "multipart/mixed; boundary=\"-\""
-    );
-
-    let parts = multipart_stream::parse(response.bytes_stream(), "-")
-        .map(|result| serde_json::from_slice::<Value>(&result.unwrap().body).unwrap())
         .collect::<Vec<_>>()
         .await;
 
