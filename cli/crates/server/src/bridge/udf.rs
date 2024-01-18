@@ -381,7 +381,7 @@ async fn spawn_node(
     udf_kind: UdfKind,
     udf_name: &str,
     package_json_path: std::path::PathBuf,
-    tracing: bool,
+    _tracing: bool,
 ) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildError> {
     use tokio::io::AsyncBufReadExt;
     use tokio_stream::wrappers::LinesStream;
