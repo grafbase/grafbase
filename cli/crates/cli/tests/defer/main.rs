@@ -120,38 +120,38 @@ async fn defer_sse_test() {
         .collect::<Vec<_>>()
         .await;
 
-    insta::assert_debug_snapshot!(events, @r###"
+    insta::assert_json_snapshot!(events, @r###"
     [
-        Object {
-            "data": Object {
-                "todoCollection": Array [
-                    Object {
-                        "__typename": String("Todo"),
-                        "id": String("1"),
-                        "title": String("Defer Things"),
-                    },
-                ],
-            },
-            "hasNext": Bool(true),
+      {
+        "data": {
+          "todoCollection": [
+            {
+              "__typename": "Todo",
+              "id": "1",
+              "title": "Defer Things"
+            }
+          ]
         },
-        Object {
-            "data": Object {
-                "deferred": Array [
-                    Object {
-                        "__typename": String("Todo"),
-                        "id": String("1"),
-                        "title": String("Defer Things"),
-                    },
-                    Object {
-                        "__typename": String("Todo"),
-                        "id": String("2"),
-                        "title": String("Defer Things"),
-                    },
-                ],
+        "hasNext": true
+      },
+      {
+        "data": {
+          "deferred": [
+            {
+              "__typename": "Todo",
+              "id": "1",
+              "title": "Defer Things"
             },
-            "hasNext": Bool(false),
-            "path": Array [],
+            {
+              "__typename": "Todo",
+              "id": "2",
+              "title": "Defer Things"
+            }
+          ]
         },
+        "hasNext": false,
+        "path": []
+      }
     ]
     "###);
 }

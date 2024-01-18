@@ -78,26 +78,26 @@ async fn test_sse_transport() {
         .collect::<Vec<_>>()
         .await;
 
-    insta::assert_debug_snapshot!(events, @r###"
+    insta::assert_json_snapshot!(events, @r###"
     [
-        Object {
-            "data": Object {
-                "newProducts": Object {
-                    "name": String("Jeans"),
-                    "price": Number(44),
-                    "upc": String("top-4"),
-                },
-            },
-        },
-        Object {
-            "data": Object {
-                "newProducts": Object {
-                    "name": String("Pink Jeans"),
-                    "price": Number(55),
-                    "upc": String("top-5"),
-                },
-            },
-        },
+      {
+        "data": {
+          "newProducts": {
+            "name": "Jeans",
+            "price": 44,
+            "upc": "top-4"
+          }
+        }
+      },
+      {
+        "data": {
+          "newProducts": {
+            "name": "Pink Jeans",
+            "price": 55,
+            "upc": "top-5"
+          }
+        }
+      }
     ]
     "###);
 }
