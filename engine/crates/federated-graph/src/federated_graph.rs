@@ -107,10 +107,14 @@ pub struct Field {
     pub name: StringId,
     pub field_type_id: FieldTypeId,
 
-    /// Includes the subgraph the field can be resolved in (= the subgraph that defines it), except
-    /// where the field is shareable or part of the key, in which case `resolvable_in` will be
-    /// `None`.
-    pub resolvable_in: Option<SubgraphId>,
+    /// This is populated only of fields of entities. The Vec includes all subgraphs the field can
+    /// be resolved in. For a regular field of an entity, it will be one subgraph, the subgraph
+    /// where the entity field is defined. For a shareable field in an entity, this contains the
+    /// subgraphs where the shareable field is defined on the entity. It may not be all the
+    /// subgraphs.
+    ///
+    /// On value types and input types, this is empty.
+    pub resolvable_in: Vec<SubgraphId>,
 
     /// See [FieldProvides].
     pub provides: Vec<FieldProvides>,

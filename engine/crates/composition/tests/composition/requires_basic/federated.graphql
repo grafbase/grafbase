@@ -26,7 +26,7 @@ type Farm
     @join__type(graph: FARMS, key: "id")
 {
     id: ID!
-    chiliId: ID!
+    chiliId: ID! @join__field(graph: FARMS)
     chiliDetails: ChiliVariety @join__field(graph: CHILIES, requires: "chiliId")
     name: String! @join__field(graph: FARMS)
     location: String! @join__field(graph: FARMS)

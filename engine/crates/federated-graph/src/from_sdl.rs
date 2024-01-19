@@ -332,7 +332,7 @@ fn ingest_provides_requires(parsed: &ast::ServiceDocument, state: &mut State<'_>
         let field_id = state.selection_map[&(parent_id, field.name.node.as_str())];
         let field_type_id = state.fields[field_id.0].field_type_id;
 
-        let Some(subgraph_id) = state.fields[field_id.0].resolvable_in else {
+        let Some(subgraph_id) = state.fields[field_id.0].resolvable_in.first().copied() else {
             continue;
         };
 
@@ -535,13 +535,14 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
     let resolvable_in = ast_field
         .directives
         .iter()
-        .find(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
+        .filter(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
         .filter(|dir| dir.node.get_argument("overrides").is_none())
-        .and_then(|dir| dir.node.get_argument("graph"))
-        .and_then(|arg| match &arg.node {
+        .filter_map(|dir| dir.node.get_argument("graph"))
+        .filter_map(|arg| match &arg.node {
             async_graphql_value::ConstValue::Enum(s) => Some(state.graph_sdl_names[s.as_str()]),
             _ => None,
-        });
+        })
+        .collect();
 
     let overrides = ast_field
         .directives

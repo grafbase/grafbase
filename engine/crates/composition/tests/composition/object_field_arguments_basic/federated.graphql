@@ -28,16 +28,16 @@ type RollerCoaster {
     height: Float!
     speed: Float!
     manufacturer: String!
-    historicalData: [HistoricalData] @join__field(graph: HISTORY) @inaccessible
-    numberOfInversions: Int! @join__field(graph: PERFORMANCE) @inaccessible
+    historicalData: [HistoricalData] @inaccessible
+    numberOfInversions: Int! @inaccessible
 }
 
 type HistoricalData {
-    year: Int! @join__field(graph: HISTORY)
-    visitors: Int! @join__field(graph: HISTORY)
-    incidents: Int! @join__field(graph: HISTORY)
+    year: Int!
+    visitors: Int!
+    incidents: Int!
 }
 
 type Query {
-    getRollerCoaster(id: ID!): RollerCoaster
+    getRollerCoaster(id: ID!): RollerCoaster @join__field(graph: HISTORY) @join__field(graph: INVENTORY) @join__field(graph: PERFORMANCE)
 }

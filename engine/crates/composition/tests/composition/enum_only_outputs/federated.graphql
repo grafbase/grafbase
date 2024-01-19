@@ -35,7 +35,7 @@ type Teletubby
 {
     activities: [Activity] @join__field(graph: ACTIVITIES)
     name: String!
-    favoriteToy: FavoriteToy
+    favoriteToy: FavoriteToy @join__field(graph: ACTIVITIES) @join__field(graph: EPISODES) @join__field(graph: TELETUBBYREPOSITORY)
     episodesFeatured: [Episode] @join__field(graph: EPISODES)
     color: String! @join__field(graph: TELETUBBYREPOSITORY)
     mood: Mood @join__field(graph: TELETUBBYREPOSITORY)

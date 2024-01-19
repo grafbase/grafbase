@@ -66,7 +66,7 @@ pub(super) fn merge_input_object_definitions(
             field_name,
             field_type,
             arguments: Vec::new(),
-            resolvable_in: None,
+            resolvable_in: Vec::new(),
             provides: Vec::new(),
             requires: Vec::new(),
             overrides: Vec::new(),

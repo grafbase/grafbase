@@ -49,8 +49,8 @@ type Series {
 type New {
     name: String! @inaccessible
     other: String!
-    message: String! @join__field(graph: ONE) @inaccessible
-    old: Old! @join__field(graph: ONE) @inaccessible
+    message: String! @inaccessible
+    old: Old! @inaccessible
 }
 
 type Old @inaccessible {

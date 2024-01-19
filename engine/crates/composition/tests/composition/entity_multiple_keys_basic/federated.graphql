@@ -27,8 +27,8 @@ type User
     @join__type(graph: SINGLE_KEY, key: "id")
 {
     id: ID!
-    name: String! @join__field(graph: MULTI_KEY)
-    email: String! @join__field(graph: MULTI_KEY)
+    name: String!
+    email: String!
     comments: [Comment!]! @join__field(graph: MULTI_KEY)
     posts: [Post!]! @join__field(graph: SINGLE_KEY)
 }
