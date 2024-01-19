@@ -165,7 +165,7 @@ async fn accept_websocket(mut websocket: WebSocket, gateway: &GatewayWatcher) ->
                     return None;
                 };
 
-                let Ok(session) = gateway.authorize(payload.headers.into()).await else {
+                let Some(session) = gateway.authorize(payload.headers.into()).await else {
                     websocket
                         .send(Message::close(4403, "Forbidden").try_into().unwrap())
                         .await
