@@ -1189,9 +1189,9 @@ dependencies = [
 
 [[package]]
 name = "cynic"
-version = "3.4.0"
+version = "3.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14e5d06f3d2b007994333130925ce153c024adf52557c2ddc4bb24c65906e4d9"
+checksum = "7335114540697c7b1c1a0131cbe0e983fdb1e646f881234afe9e2a66133ac99a"
 dependencies = [
  "cynic-proc-macros",
  "ref-cast",
@@ -1204,9 +1204,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-codegen"
-version = "3.4.0"
+version = "3.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ec48a52fd6b205b6519570a11816136883c4757964c770c4df32e36fd484e4e"
+checksum = "a11d6119f9f0f55c9d7cff5189a7b318f35a7d2d6faa4872441ee521f65420b6"
 dependencies = [
  "counter",
  "darling 0.20.3",
@@ -1223,9 +1223,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-introspection"
-version = "3.4.0"
+version = "3.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6158db974f23f3ff5826657aaabefeaaa8ccc81b92238d952232f71566a64491"
+checksum = "9c27e0c018f260c05f99b625cd41e8c4a32f1e9bc5b7be57dcee8460ec3608cd"
 dependencies = [
  "cynic",
  "cynic-codegen",
@@ -1235,9 +1235,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-proc-macros"
-version = "3.4.0"
+version = "3.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c77a54cd11efd03a7a85e17908e894c6440f320529a31186f233f945cbd677a"
+checksum = "eb81a5872a7774daf11caefb2ebe7166d9da12b1b69cf35661130b3c3fccbd61"
 dependencies = [
  "cynic-codegen",
  "darling 0.20.3",
