@@ -264,6 +264,14 @@ fn ingest_entity_keys(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> R
                 })
                 .transpose()?
                 .unwrap_or_default();
+            let resolvable = join_type
+                .node
+                .get_argument("resolvable")
+                .and_then(|arg| match &arg.node {
+                    async_graphql_value::ConstValue::Boolean(b) => Some(*b),
+                    _ => None,
+                })
+                .unwrap_or(true);
 
             let is_interface_object = join_type
                 .node
@@ -273,17 +281,19 @@ fn ingest_entity_keys(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> R
 
             match definition {
                 Definition::Object(object_id) => {
-                    state.objects[object_id.0].resolvable_keys.push(Key {
+                    state.objects[object_id.0].keys.push(Key {
                         subgraph_id,
                         fields,
                         is_interface_object,
+                        resolvable,
                     });
                 }
                 Definition::Interface(interface_id) => {
-                    state.interfaces[interface_id.0].resolvable_keys.push(Key {
+                    state.interfaces[interface_id.0].keys.push(Key {
                         subgraph_id,
                         fields,
                         is_interface_object,
+                        resolvable,
                     });
                 }
                 _ => (),
@@ -397,7 +407,7 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                         let object_id = ObjectId(state.objects.push_return_idx(Object {
                             name: type_name_id,
                             implements_interfaces: Vec::new(),
-                            resolvable_keys: Vec::new(),
+                            keys: Vec::new(),
                             composed_directives,
                             description,
                         }));
@@ -415,7 +425,7 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                         let interface_id = InterfaceId(state.interfaces.push_return_idx(Interface {
                             name: type_name_id,
                             implements_interfaces: Vec::new(),
-                            resolvable_keys: Vec::new(),
+                            keys: Vec::new(),
                             composed_directives,
                             description,
                         }));

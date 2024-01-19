@@ -93,12 +93,8 @@ fn merge_object_definitions<'a>(
     let object_name = ctx.insert_string(first.name().id);
     let object_id = ctx.insert_object(object_name, description, composed_directives);
 
-    for key in definitions
-        .iter()
-        .flat_map(|def| def.entity_keys())
-        .filter(|key| key.is_resolvable())
-    {
-        ctx.insert_resolvable_key(object_id, key.id);
+    for key in definitions.iter().flat_map(|def| def.entity_keys()) {
+        ctx.insert_key(object_id, key);
     }
 
     if is_shareable {

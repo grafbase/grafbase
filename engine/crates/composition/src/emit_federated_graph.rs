@@ -39,7 +39,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     emit_interface_impls(&mut ctx);
     emit_fields(mem::take(&mut ir.fields), &mut ctx);
     emit_union_members(&ir.union_members, &mut ctx);
-    emit_keys(&ir.resolvable_keys, &mut ctx);
+    emit_keys(&ir.keys, &mut ctx);
     push_object_fields_from_interface_entities(&ir.object_fields_from_entity_interfaces, &mut ctx);
 
     drop(ctx);
@@ -226,6 +226,7 @@ fn emit_keys(keys: &[KeyIr], ctx: &mut Context<'_>) {
         parent,
         key_id,
         is_interface_object,
+        resolvable,
     } in keys
     {
         let key = ctx.subgraphs.walk(*key_id);
@@ -234,14 +235,15 @@ fn emit_keys(keys: &[KeyIr], ctx: &mut Context<'_>) {
             subgraph_id: federated::SubgraphId(key.parent_definition().subgraph_id().idx()),
             fields: selection,
             is_interface_object: *is_interface_object,
+            resolvable: *resolvable,
         };
 
         match parent {
             federated::Definition::Object(object_id) => {
-                ctx.out[*object_id].resolvable_keys.push(key);
+                ctx.out[*object_id].keys.push(key);
             }
             federated::Definition::Interface(interface_id) => {
-                ctx.out[*interface_id].resolvable_keys.push(key);
+                ctx.out[*interface_id].keys.push(key);
             }
             _ => unreachable!("non-object, non-interface key parent"),
         }
