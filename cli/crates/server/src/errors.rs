@@ -31,6 +31,13 @@ pub enum JavascriptPackageManagerComamndError {
     /// returned if any of the npm/pnpm/yarn commands exits unsuccessfully
     #[error("{0} failed with output:\n{1}")]
     OutputError(JavaScriptPackageManager, String),
+    /// returned if any of the bun commands exits unsuccessfully
+    #[error("bun encountered an error: {0}")]
+    BunCommandError(IoError),
+
+    /// returned if any of the bun commands exits unsuccessfully
+    #[error("bun failed with output:\n{0}")]
+    BunOutputError(String),
 }
 
 #[derive(Error, Debug)]
@@ -108,7 +115,7 @@ pub enum ServerError {
 
     /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
     #[error("command error: {0}")]
-    EsbuildInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
+    BunInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
 
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully
     #[error("resolver {0} failed to build:\n{1}")]
@@ -171,10 +178,10 @@ pub enum ServerError {
     #[error("could not start the proxy server\nCaused by:{0}")]
     StartProxyServer(std::io::Error),
 
-    #[error("Could not create a lock for the esbuild installation: {0}")]
+    #[error("Could not create a lock for the bun installation: {0}")]
     Lock(fslock::Error),
 
-    #[error("Could not release the lock for the esbuild installation: {0}")]
+    #[error("Could not release the lock for the bun installation: {0}")]
     Unlock(fslock::Error),
 
     #[error(transparent)]
@@ -235,14 +242,14 @@ pub enum UdfBuildError {
 
     /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
     #[error("command error: {0}")]
-    EsbuildInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
+    BunInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
 
     /// returned if a spawned task panics
     #[error(transparent)]
     SpawnedTaskPanic(#[from] JoinError),
 
-    #[error("esbuild encountered an error: \n{output}")]
-    EsbuildBuildFailed { output: String },
+    #[error("bun encountered an error: \n{output}")]
+    BunBuildFailed { output: String },
 }
 
 impl IntoResponse for ServerError {

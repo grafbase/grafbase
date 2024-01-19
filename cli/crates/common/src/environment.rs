@@ -4,9 +4,9 @@ use crate::consts::{AUTHORIZERS_DIRECTORY_NAME, GENERATED_SCHEMAS_DIR, GRAFBASE_
 use crate::types::UdfKind;
 use crate::{
     consts::{
-        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY_NAME, ESBUILD_DIRECTORY_NAME, GRAFBASE_HOME,
-        GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME, PACKAGE_JSON_DEV_DEPENDENCIES, PACKAGE_JSON_FILE_NAME,
-        REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME,
+        BUN_DIRECTORY_NAME, DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
+        GRAFBASE_TS_CONFIG_FILE_NAME, PACKAGE_JSON_DEV_DEPENDENCIES, PACKAGE_JSON_FILE_NAME, REGISTRY_FILE,
+        RESOLVERS_DIRECTORY_NAME,
     },
     errors::CommonError,
 };
@@ -181,8 +181,8 @@ pub struct Environment {
     pub user_dot_grafbase_path: PathBuf,
     /// warnings when loading the environment
     pub warnings: Vec<Warning>,
-    /// the path within `$HOME/.grafbase` where esbuild gets installed
-    pub esbuild_installation_path: PathBuf,
+    /// the path within `$HOME/.grafbase` where bun gets installed
+    pub bun_installation_path: PathBuf,
 }
 
 /// static singleton for the environment struct
@@ -256,7 +256,7 @@ impl Environment {
 
         let user_dot_grafbase_path = get_user_dot_grafbase_path(home_override).ok_or(CommonError::FindHomeDirectory)?;
 
-        let esbuild_installation_path = user_dot_grafbase_path.join(ESBUILD_DIRECTORY_NAME);
+        let bun_installation_path = user_dot_grafbase_path.join(BUN_DIRECTORY_NAME);
 
         let project = Project::try_init(&mut warnings)?;
 
@@ -265,7 +265,7 @@ impl Environment {
                 project: Some(project),
                 user_dot_grafbase_path,
                 warnings,
-                esbuild_installation_path,
+                bun_installation_path,
             })
             .expect("cannot set environment twice");
 
@@ -280,14 +280,14 @@ impl Environment {
     pub fn try_init(home_override: Option<PathBuf>) -> Result<(), CommonError> {
         let user_dot_grafbase_path = get_user_dot_grafbase_path(home_override).ok_or(CommonError::FindHomeDirectory)?;
 
-        let esbuild_installation_path = user_dot_grafbase_path.join(ESBUILD_DIRECTORY_NAME);
+        let bun_installation_path = user_dot_grafbase_path.join(BUN_DIRECTORY_NAME);
 
         ENVIRONMENT
             .set(Self {
                 project: None,
                 user_dot_grafbase_path,
                 warnings: Vec::new(),
-                esbuild_installation_path,
+                bun_installation_path,
             })
             .expect("cannot set environment twice");
 

@@ -1,7 +1,7 @@
 // @ts-expect-error set individually for each UDF
 import udf from '${UDF_MAIN_FILE_PATH}'
-import { IncomingMessage, ServerResponse, createServer } from 'http'
-import { Readable } from 'stream'
+// import { IncomingMessage, ServerResponse, createServer } from 'http'
+// import { Readable } from 'stream'
 import { KVNamespace } from '@miniflare/kv'
 import { MemoryStorage } from '@miniflare/storage-memory'
 
@@ -28,9 +28,9 @@ interface UdfRequestPayload {
   args: unknown
 }
 
-type NodeResponse = ServerResponse<IncomingMessage> & { req: IncomingMessage }
+// type NodeResponse = ServerResponse<IncomingMessage> & { req: IncomingMessage }
 
-type Headers = Record<string, string | string[]>
+// type Headers = Record<string, string | string[]>
 
 enum HttpMethod {
   Get = 'GET',
@@ -68,65 +68,64 @@ enum Header {
   ContentType = 'content-type',
 }
 
-enum Duplex {
-  Half = 'half',
-}
+// enum Duplex {
+//   Half = 'half',
+// }
 
-enum StreamEvent {
-  Data = 'data',
-  End = 'end',
-}
+// enum StreamEvent {
+//   Data = 'data',
+//   End = 'end',
+// }
 
 const PORT = 0
-const HOST = '127.0.0.1'
-const DUMMY_HOST = 'https://grafbase-cli'
+// const HOST = '127.0.0.1'
+// const DUMMY_HOST = 'https://grafbase-cli'
 const MIME_PROPERTY_SEPARATOR = ';'
 
-const originalConsoleLog = console.log
 const originalFetch = globalThis.fetch
 
 let logEntries: Array<LogEntry> = []
 let fetchRequests: Array<FetchRequest> = []
 
-// Node.js:
+// // Node.js:
 
-const server = createServer((request, response) => {
-  const routerResponse = router(nodeRequestToWeb(request))
+// const server = createServer((request, response) => {
+//   const routerResponse = router(nodeRequestToWeb(request))
 
-  if (routerResponse instanceof Promise) {
-    routerResponse.then((routerResponse) => webResponseToNode(routerResponse, response))
-  } else {
-    webResponseToNode(routerResponse, response)
-  }
-})
+//   if (routerResponse instanceof Promise) {
+//     routerResponse.then((routerResponse) => webResponseToNode(routerResponse, response))
+//   } else {
+//     webResponseToNode(routerResponse, response)
+//   }
+// })
 
-server.listen(PORT, HOST, () => {
-  // @ts-expect-error incorrectly typed for the `.port` property, `.address()` must exist at this point
-  const port = server.address().port
-  originalConsoleLog(port)
-})
+// server.listen(PORT, HOST, () => {
+//   // @ts-expect-error incorrectly typed for the `.port` property, `.address()` must exist at this point
+//   const port = server.address().port
+//   originalConsoleLog(port)
+// })
 
-const nodeRequestToWeb = (request: IncomingMessage) =>
-  new Request(`${DUMMY_HOST}${request.url}`, {
-    method: request.method,
-    // the cast here is likely required because of node fetch still being experimental
-    headers: request.headers as Headers,
-    body: request.method === HttpMethod.Post ? Readable.toWeb(request) : undefined,
-    duplex: Duplex.Half,
-  })
+// const nodeRequestToWeb = (request: IncomingMessage) =>
+//   new Request(`${DUMMY_HOST}${request.url}`, {
+//     method: request.method,
+//     // the cast here is likely required because of node fetch still being experimental
+//     headers: request.headers as Headers,
+//     body: request.method === HttpMethod.Post ? Readable.toWeb(request) : undefined,
+//     duplex: Duplex.Half,
+//   })
 
-const webResponseToNode = (webResponse: Response, response: NodeResponse) => {
-  webResponse.headers.forEach((value, key) => response.setHeader(key, value))
-  response.statusMessage = webResponse.statusText
-  response.statusCode = webResponse.status
-  if (webResponse.body !== null) {
-    Readable.fromWeb(webResponse.body)
-      .on(StreamEvent.Data, (chunk) => response.write(chunk))
-      .on(StreamEvent.End, () => response.end())
-  } else {
-    response.end()
-  }
-}
+// const webResponseToNode = (webResponse: Response, response: NodeResponse) => {
+//   webResponse.headers.forEach((value, key) => response.setHeader(key, value))
+//   response.statusMessage = webResponse.statusText
+//   response.statusCode = webResponse.status
+//   if (webResponse.body !== null) {
+//     Readable.fromWeb(webResponse.body)
+//       .on(StreamEvent.Data, (chunk) => response.write(chunk))
+//       .on(StreamEvent.End, () => response.end())
+//   } else {
+//     response.end()
+//   }
+// }
 
 // Deno:
 
@@ -137,12 +136,13 @@ const webResponseToNode = (webResponse: Response, response: NodeResponse) => {
 
 // Bun:
 
-// const server = Bun.serve({
-//   port: PORT,
-//   fetch: (request: Request) => router(request),
-// })
-//
-// console.log(server.port)
+const server = Bun.serve({
+  port: PORT,
+  fetch: (request: Request) => router(request),
+})
+
+// @ts-expect-error incorrect typing
+await Bun.write(Bun.stdout, server.port)
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
   let binaryString = ''
@@ -170,7 +170,7 @@ globalThis.console.log = globalThis.console.info
 // Monkey patch `fetch()` calls from custom resolvers
 // to allow for fully introspected logging of all HTTP requests.
 globalThis.fetch = async (input: string | URL | Request, init?: RequestInit) => {
-  const request = new Request(input, init)
+  const request = new Request(input as Request /* incorrect typing for Bun */, init)
 
   const startTime = Date.now()
   const response = await originalFetch(request)

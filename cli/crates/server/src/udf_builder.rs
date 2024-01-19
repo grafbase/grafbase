@@ -155,32 +155,64 @@ pub(crate) async fn build(
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_build_package_json_path.clone(), udf_kind, err))?;
 
-    let esbuild_arguments: &[&str] = &[
-        "exec",
-        "--no",
-        "--prefix",
-        environment.esbuild_installation_path.to_str().expect("must be valid"),
-        "--",
-        "esbuild",
-        &udf_build_entrypoint_path.to_string_lossy(),
-        "--bundle",
-        "--tree-shaking=true",
+    let bun_arguments: &[&str] = &[
+        "build",
+        &udf_build_entrypoint_path.display().to_string(),
         "--minify",
-        "--platform=node",
-        "--target=node18",
-        &format!("--outfile={}.js", udf_name),
+        "--target=bun",
+        &format!("--outdir={}", udf_name),
     ];
 
-    run_command(
-        JavaScriptPackageManager::Npm,
-        esbuild_arguments,
-        &environment.esbuild_installation_path,
-        tracing,
-        &[],
-    )
+    async {
+        let current_directory = &environment.bun_installation_path;
+        match current_directory.try_exists() {
+            Ok(true) => Ok(()),
+            Ok(false) => Err(JavascriptPackageManagerComamndError::WorkingDirectoryNotFound(
+                current_directory.to_owned(),
+            )),
+            Err(err) => Err(JavascriptPackageManagerComamndError::WorkingDirectoryCannotBeRead(
+                current_directory.to_owned(),
+                err,
+            )),
+        }?;
+        // Use `which` to work-around weird path search issues on Windows.
+        // See https://github.com/rust-lang/rust/issues/37519.
+
+        let mut command = Command::new(
+            environment
+                .bun_installation_path
+                .join("node_modules")
+                .join("bun")
+                .join("bin")
+                .join("bun"),
+        );
+        command
+            .args(bun_arguments)
+            .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
+            .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
+            .current_dir(current_directory);
+
+        trace!("Spawning {command:?}");
+        let command = command
+            .spawn()
+            .map_err(JavascriptPackageManagerComamndError::BunCommandError)?;
+
+        let output = command
+            .wait_with_output()
+            .await
+            .map_err(JavascriptPackageManagerComamndError::BunCommandError)?;
+
+        if output.status.success() {
+            Ok(Some(output.stdout).filter(|output| !output.is_empty()))
+        } else {
+            Err(JavascriptPackageManagerComamndError::BunOutputError(
+                String::from_utf8_lossy(&output.stderr).into_owned(),
+            ))
+        }
+    }
     .await
     .map_err(|err| match err {
-        JavascriptPackageManagerComamndError::OutputError(_, output) => UdfBuildError::EsbuildBuildFailed { output },
+        JavascriptPackageManagerComamndError::OutputError(_, output) => UdfBuildError::BunBuildFailed { output },
         other => other.into(),
     })?;
 
@@ -194,7 +226,9 @@ pub(crate) async fn build(
     .unwrap();
 
     tokio::fs::copy(
-        environment.esbuild_installation_path.join(format!("{udf_name}.js")),
+        environment
+            .bun_installation_path
+            .join(format!("{udf_name}/entrypoint.js")),
         udf_build_entrypoint_path
             .parent()
             .expect("must have parent")
@@ -220,23 +254,13 @@ pub(crate) async fn build(
             .await
             .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
         temp_file
-            .write_all(
-                &tokio::fs::read(
-                    udf_build_entrypoint_path
-                        .parent()
-                        .expect("must have parent")
-                        .join("dist")
-                        .join(ENTRYPOINT_SCRIPT_FILE_NAME),
-                )
-                .await
-                .expect("must succeed"),
-            )
+            .write_all(&tokio::fs::read(&udf_build_entrypoint_path).await.expect("must succeed"))
             .await
             .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
     }
     let entrypoint_js_path = udf_build_entrypoint_path
         .parent()
-        .expect("must have parent")
+        .expect("must exist")
         .join("dist")
         .join(ENTRYPOINT_SCRIPT_FILE_NAME);
     tokio::fs::copy(temp_file_path, &entrypoint_js_path)
@@ -250,23 +274,23 @@ pub(crate) fn udf_url_path(kind: UdfKind, name: &str) -> String {
     format!("/{kind}/{}/invoke", slug::slugify(name))
 }
 
-const ESBUILD_VERSION: &str = "0.19.11";
+const BUN_VERSION: &str = "1.0.23";
 
-async fn installed_esbuild_version(esbuild_installation_path: impl AsRef<Path>) -> Option<String> {
-    let esbuild_installation_path = esbuild_installation_path.as_ref();
-    let esbuild_arguments = &[
+async fn installed_bun_version(bun_installation_path: impl AsRef<Path>) -> Option<String> {
+    let bun_installation_path = bun_installation_path.as_ref();
+    let bun_arguments = &[
         "exec",
         "--no",
         "--prefix",
-        esbuild_installation_path.to_str().expect("must be valid"),
+        bun_installation_path.to_str().expect("must be valid"),
         "--",
-        "esbuild",
+        "bun",
         "--version",
     ];
     let output_bytes = run_command(
         JavaScriptPackageManager::Npm,
-        esbuild_arguments,
-        esbuild_installation_path,
+        bun_arguments,
+        bun_installation_path,
         false,
         &[],
     )
@@ -275,8 +299,8 @@ async fn installed_esbuild_version(esbuild_installation_path: impl AsRef<Path>) 
     Some(String::from_utf8(output_bytes).ok()?.trim().to_owned())
 }
 
-pub(crate) async fn install_esbuild(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
-    let lock_file_path = environment.user_dot_grafbase_path.join(".esbuild.install.lock");
+pub(crate) async fn install_bun(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
+    let lock_file_path = environment.user_dot_grafbase_path.join(".bun.install.lock");
     let mut lock_file = tokio::task::spawn_blocking(move || {
         let mut file = fslock::LockFile::open(&lock_file_path)?;
         file.lock()?;
@@ -285,31 +309,31 @@ pub(crate) async fn install_esbuild(environment: &Environment, tracing: bool) ->
     .await?
     .map_err(ServerError::Lock)?;
 
-    if let Some(installed_esbuild_version) = installed_esbuild_version(&environment.esbuild_installation_path).await {
-        info!("Installed esbuild version: {installed_esbuild_version}");
-        if installed_esbuild_version == ESBUILD_VERSION {
-            info!("esbuild of the desired version already installed, skipping…");
+    if let Some(installed_bun_version) = installed_bun_version(&environment.bun_installation_path).await {
+        info!("Installed bun version: {installed_bun_version}");
+        if installed_bun_version == BUN_VERSION {
+            info!("bun of the desired version already installed, skipping…");
             return Ok(());
         }
     }
 
-    let esbuild_installation_path_str = environment.esbuild_installation_path.to_str().expect("must be valid");
+    let bun_installation_path_str = environment.bun_installation_path.to_str().expect("must be valid");
 
-    info!("Installing esbuild…");
-    tokio::fs::create_dir_all(&environment.esbuild_installation_path)
+    info!("Installing bun…");
+    tokio::fs::create_dir_all(&environment.bun_installation_path)
         .await
-        .map_err(|_| ServerError::CreateDir(environment.esbuild_installation_path.clone()))?;
-    // Install esbuild once and for all.
+        .map_err(|_| ServerError::CreateDir(environment.bun_installation_path.clone()))?;
+    // Install bun once and for all.
     run_command(
         JavaScriptPackageManager::Npm,
         &[
             "add",
             "--save-dev",
-            &format!("esbuild@{ESBUILD_VERSION}"),
+            &format!("bun@{BUN_VERSION}"),
             "--prefix",
-            esbuild_installation_path_str,
+            bun_installation_path_str,
         ],
-        esbuild_installation_path_str,
+        bun_installation_path_str,
         tracing,
         &[],
     )

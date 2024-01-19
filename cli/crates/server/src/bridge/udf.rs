@@ -53,13 +53,14 @@ struct UdfResponse {
     value: serde_json::Value,
 }
 
+#[derive(Debug)]
 enum UdfWorkerStatus {
     BuildInProgress {
         notify: Arc<Notify>,
     },
     Available {
         #[allow(dead_code)]
-        node_handle: Arc<tokio::task::JoinHandle<()>>,
+        bun_handle: Arc<tokio::task::JoinHandle<()>>,
         worker_port: u16,
     },
     BuildFailed,
@@ -140,7 +141,7 @@ impl UdfRuntime {
             builds.insert(
                 (udf.udf_name, udf.udf_kind),
                 UdfWorkerStatus::Available {
-                    node_handle: join_handle.clone(),
+                    bun_handle: join_handle.clone(),
                     worker_port: port,
                 },
             );
@@ -156,13 +157,7 @@ impl UdfRuntime {
     ) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildError> {
         let node_arguments: Vec<String> = udf_workers
             .into_iter()
-            .map(|UdfWorker { directory, .. }| {
-                directory
-                    .join("dist")
-                    .join(ENTRYPOINT_SCRIPT_FILE_NAME)
-                    .display()
-                    .to_string()
-            })
+            .map(|UdfWorker { directory, .. }| directory.join(ENTRYPOINT_SCRIPT_FILE_NAME).display().to_string())
             .collect();
 
         let environment = Environment::get();
@@ -302,14 +297,14 @@ impl UdfRuntime {
                 &udf_name,
                 self.tracing,
             )
-            .and_then(|package_json_path| super::udf::spawn_node(udf_kind, &udf_name, package_json_path, self.tracing))
+            .and_then(|package_json_path| super::udf::spawn_bun(udf_kind, &udf_name, package_json_path, self.tracing))
             .await
             {
-                Ok((node_handle, worker_port)) => {
+                Ok((bun_handle, worker_port)) => {
                     self.udf_workers.lock().await.insert(
                         (udf_name.clone(), udf_kind),
                         UdfWorkerStatus::Available {
-                            node_handle: Arc::new(node_handle),
+                            bun_handle: Arc::new(bun_handle),
                             worker_port,
                         },
                     );
@@ -377,7 +372,7 @@ async fn is_udf_ready(resolver_worker_port: u16) -> Result<bool, reqwest::Error>
     }
 }
 
-async fn spawn_node(
+async fn spawn_bun(
     udf_kind: UdfKind,
     udf_name: &str,
     package_json_path: std::path::PathBuf,
@@ -390,26 +385,32 @@ async fn spawn_node(
         let script_path = package_json_path
             .parent()
             .expect("must exist")
-            .join(ENTRYPOINT_SCRIPT_FILE_NAME);
-
-        let node_arguments = vec![script_path
-            .parent()
-            .expect("must exist")
             .join("dist")
-            .join(ENTRYPOINT_SCRIPT_FILE_NAME)];
+            .join(ENTRYPOINT_SCRIPT_FILE_NAME)
+            .display()
+            .to_string();
+        let bun_arguments = vec!["run", &script_path];
 
-        let mut node = Command::new("node");
-        node
+        let environment = Environment::get();
+        let mut bun = Command::new(
+            environment
+                .bun_installation_path
+                .join("node_modules")
+                .join("bun")
+                .join("bin")
+                .join("bun"),
+        );
+        bun
             // Unbounded worker limit
-            .args(node_arguments)
+            .args(bun_arguments)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true);
         trace!("Spawning {udf_kind} '{udf_name}'");
 
-        let mut node = node.spawn().unwrap();
+        let mut bun = bun.spawn().unwrap();
         let bound_port = {
-            let stdout = node.stdout.as_mut().unwrap();
+            let stdout = bun.stdout.as_mut().unwrap();
             let mut lines_skipped_over = vec![];
             let filtered_lines_stream =
                 LinesStream::new(tokio::io::BufReader::new(stdout).lines()).try_filter_map(|line: String| {
@@ -428,7 +429,7 @@ async fn spawn_node(
         trace!("Bound to port: {bound_port}");
         let udf_name = udf_name.to_owned();
         let join_handle = tokio::spawn(async move {
-            let outcome = node.wait_with_output().await.unwrap();
+            let outcome = bun.wait_with_output().await.unwrap();
             assert!(
                 outcome.status.success(),
                 "udf worker {udf_kind} '{udf_name}' failed: '{}'",
