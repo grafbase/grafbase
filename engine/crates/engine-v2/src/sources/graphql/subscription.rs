@@ -1,17 +1,16 @@
 use futures_util::{stream::BoxStream, StreamExt};
 use runtime::fetch::GraphqlRequest;
 use schema::sources::federation::{RootFieldResolverWalker, SubgraphHeaderValueRef, SubgraphWalker};
-use serde::de::DeserializeSeed;
 use url::Url;
 
 use super::{
-    deserialize,
+    deserialize::deserialize_response_into_output,
     query::{self, Query},
     ExecutionContext,
 };
 use crate::{
     plan::{PlanBoundary, PlanOutput},
-    response::{ExecutorOutput, GraphqlError, ResponseBuilder},
+    response::{ExecutorOutput, ResponseBuilder},
     sources::{ExecutorError, ExecutorResult, SubscriptionExecutor, SubscriptionResolverInput},
 };
 
@@ -119,31 +118,17 @@ fn handle_response(
         .root_response_boundary()
         .expect("a fresh response should always have a root");
 
-    let err_path = Some(
-        boundary_item
-            .response_path
-            .child(ctx.walker.walk(plan_output.root_fields[0]).bound_response_key()),
-    );
-    let mut upstream_errors = vec![];
-    let result = deserialize::GraphqlResponseSeed::new(
-        err_path.clone(),
-        &mut upstream_errors,
-        ctx.writer(&mut output, &boundary_item, plan_output),
-    )
-    .deserialize(subgraph_response);
+    let err_path = boundary_item
+        .response_path
+        .child(ctx.walker.walk(plan_output.root_fields[0]).bound_response_key());
 
-    if !upstream_errors.is_empty() {
-        output.push_errors(upstream_errors);
-    } else if let Err(err) = result {
-        // Only adding this if no other more precise errors were added.
-        if !output.has_errors() {
-            output.push_error(GraphqlError {
-                message: format!("Upstream response error: {err}"),
-                path: err_path,
-                ..Default::default()
-            });
-        }
-    }
+    let seed_ctx = ctx.seed_ctx(&mut output, plan_output);
+    deserialize_response_into_output(
+        &seed_ctx,
+        &err_path,
+        seed_ctx.create_root_seed(&boundary_item),
+        subgraph_response,
+    );
 
     (response, output)
 }

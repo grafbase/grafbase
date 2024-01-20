@@ -148,12 +148,6 @@ fn mutation_failure_should_stop_later_executions_if_required() {
           "data": null,
           "errors": [
             {
-              "message": "Upstream response error: Missing required field named 'fail'",
-              "path": [
-                "fail"
-              ]
-            },
-            {
               "message": "Upstream error: This mutation always fails",
               "path": [
                 "fail"

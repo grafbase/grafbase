@@ -4,7 +4,7 @@ use schema::{DataType, ListWrapping, Wrapping};
 use serde::de::DeserializeSeed;
 
 use super::{
-    BigIntSeed, BooleanSeed, FloatSeed, IntSeed, JSONSeed, ListSeed, NullableSeed, SeedContext, SelectionSetSeed,
+    BigIntSeed, BooleanSeed, FloatSeed, IntSeed, JSONSeed, ListSeed, NullableSeed, SeedContextInner, SelectionSetSeed,
     StringSeed,
 };
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
 };
 
 pub(super) struct FieldSeed<'ctx, 'parent> {
-    pub ctx: &'parent SeedContext<'ctx>,
+    pub ctx: &'parent SeedContextInner<'ctx>,
     pub path: ResponsePath,
     pub definition_id: Option<BoundAnyFieldDefinitionId>,
     pub expected_type: &'parent ConcreteType,

@@ -6,17 +6,13 @@ use serde::{
 };
 
 use crate::{
-    execution::ExecutionContext,
-    plan::PlanOutput,
-    response::{ExecutorOutput, ResponseBoundaryItem},
+    response::{ResponseBoundaryItem, SeedContext},
     sources::ExecutorError,
 };
 
-pub(crate) struct EntitiesDataSeed<'a> {
-    pub ctx: ExecutionContext<'a>,
+pub(in crate::sources::graphql) struct EntitiesDataSeed<'a> {
+    pub ctx: SeedContext<'a>,
     pub response_boundary: &'a Vec<ResponseBoundaryItem>,
-    pub output: &'a mut ExecutorOutput,
-    pub plan_output: &'a PlanOutput,
 }
 
 impl<'de, 'a> DeserializeSeed<'de> for EntitiesDataSeed<'a> {
@@ -44,13 +40,10 @@ impl<'de, 'a> Visitor<'de> for EntitiesDataSeed<'a> {
         while let Some(key) = map.next_key::<EntitiesKey>()? {
             match key {
                 EntitiesKey::Entities => {
-                    let seed = EntitiesSeed {
-                        ctx: self.ctx,
+                    map.next_value_seed(EntitiesSeed {
+                        ctx: &self.ctx,
                         response_boundary: self.response_boundary,
-                        output: self.output,
-                        plan_output: self.plan_output,
-                    };
-                    map.next_value_seed(seed)?;
+                    })?;
                 }
                 EntitiesKey::Unknown => {
                     map.next_value::<IgnoredAny>()?;
@@ -69,14 +62,12 @@ enum EntitiesKey {
     Unknown,
 }
 
-struct EntitiesSeed<'a> {
-    ctx: ExecutionContext<'a>,
-    response_boundary: &'a Vec<ResponseBoundaryItem>,
-    output: &'a mut ExecutorOutput,
-    plan_output: &'a PlanOutput,
+struct EntitiesSeed<'ctx, 'parent> {
+    ctx: &'parent SeedContext<'ctx>,
+    response_boundary: &'ctx Vec<ResponseBoundaryItem>,
 }
 
-impl<'de, 'a> DeserializeSeed<'de> for EntitiesSeed<'a> {
+impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for EntitiesSeed<'ctx, 'parent> {
     type Value = ();
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -87,7 +78,7 @@ impl<'de, 'a> DeserializeSeed<'de> for EntitiesSeed<'a> {
     }
 }
 
-impl<'de, 'a> Visitor<'de> for EntitiesSeed<'a> {
+impl<'de, 'ctx, 'parent> Visitor<'de> for EntitiesSeed<'ctx, 'parent> {
     type Value = ();
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -102,23 +93,22 @@ impl<'de, 'a> Visitor<'de> for EntitiesSeed<'a> {
         loop {
             if index >= self.response_boundary.len() {
                 if seq.next_element::<IgnoredAny>()?.is_some() {
-                    self.output.push_error(ExecutorError::Internal(
+                    self.ctx.borrow_mut_output().push_error(ExecutorError::Internal(
                         "Received more entities than expected".to_string(),
                     ));
                     while seq.next_element::<IgnoredAny>()?.is_some() {}
                 }
                 break;
             }
-            let writer = self
-                .ctx
-                .writer(self.output, &self.response_boundary[index], self.plan_output);
-            match seq.next_element_seed(writer) {
+            let seed = self.ctx.create_root_seed(&self.response_boundary[index]);
+            match seq.next_element_seed(seed) {
                 Ok(Some(_)) => {
                     index += 1;
                 }
                 Ok(None) => break,
                 Err(err) => {
-                    while seq.next_element::<IgnoredAny>()?.is_some() {}
+                    // Discarding the rest of the list
+                    while seq.next_element::<IgnoredAny>().unwrap_or_default().is_some() {}
                     return Err(err);
                 }
             }

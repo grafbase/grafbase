@@ -5,7 +5,7 @@ use serde::{
     Deserializer,
 };
 
-use super::SeedContext;
+use super::SeedContextInner;
 use crate::{
     request::BoundAnyFieldDefinitionId,
     response::{GraphqlError, ResponsePath, ResponseValue},
@@ -14,7 +14,7 @@ use crate::{
 pub(super) struct NullableSeed<'ctx, 'parent, Seed> {
     pub path: &'parent ResponsePath,
     pub definition_id: Option<BoundAnyFieldDefinitionId>,
-    pub ctx: &'parent SeedContext<'ctx>,
+    pub ctx: &'parent SeedContextInner<'ctx>,
     pub seed: Seed,
 }
 

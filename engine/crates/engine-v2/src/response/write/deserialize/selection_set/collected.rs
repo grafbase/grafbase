@@ -8,13 +8,13 @@ use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 use crate::{
     plan::CollectedSelectionSet,
     response::{
-        write::deserialize::{key::Key, FieldSeed, SeedContext},
+        write::deserialize::{key::Key, FieldSeed, SeedContextInner},
         ResponseEdge, ResponseObject, ResponsePath, ResponseValue,
     },
 };
 
 pub(crate) struct CollectedFieldsSeed<'ctx, 'parent> {
-    pub ctx: &'parent SeedContext<'ctx>,
+    pub ctx: &'parent SeedContextInner<'ctx>,
     pub path: &'parent ResponsePath,
     pub expected: &'parent CollectedSelectionSet,
 }

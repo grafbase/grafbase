@@ -5,7 +5,7 @@ use serde::{de::DeserializeSeed, Deserializer};
 use crate::response::{GraphqlError, ResponsePath};
 
 #[derive(serde::Deserialize)]
-pub(crate) struct UpstreamGraphqlError {
+pub(super) struct UpstreamGraphqlError {
     pub message: String,
     #[serde(default)]
     pub locations: serde_json::Value,
@@ -15,8 +15,8 @@ pub(crate) struct UpstreamGraphqlError {
     pub extensions: serde_json::Value,
 }
 
-pub(crate) struct UpstreamGraphqlErrorsSeed<'a> {
-    pub path: Option<ResponsePath>,
+pub(super) struct UpstreamGraphqlErrorsSeed<'a> {
+    pub path: &'a ResponsePath,
     pub errors: &'a mut Vec<GraphqlError>,
 }
 
@@ -42,7 +42,7 @@ impl<'de, 'a> DeserializeSeed<'de> for UpstreamGraphqlErrorsSeed<'a> {
             self.errors.push(GraphqlError {
                 message: format!("Upstream error: {}", error.message),
                 locations: vec![],
-                path: self.path.clone(),
+                path: Some(self.path.clone()),
                 extensions,
             });
         }
