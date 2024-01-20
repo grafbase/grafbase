@@ -61,15 +61,22 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
         write_composed_directives(&object.composed_directives, graph, &mut sdl)?;
 
-        if !object.resolvable_keys.is_empty() {
+        if !object.keys.is_empty() {
             sdl.push('\n');
-            for resolvable_key in &object.resolvable_keys {
-                let selection_set = FieldSetDisplay(&resolvable_key.fields, graph);
-                let subgraph_name = GraphEnumVariantName(&graph[graph[resolvable_key.subgraph_id].name]);
-                writeln!(
-                    sdl,
-                    r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}")"#
-                )?;
+            for key in &object.keys {
+                let selection_set = FieldSetDisplay(&key.fields, graph);
+                let subgraph_name = GraphEnumVariantName(&graph[graph[key.subgraph_id].name]);
+                if key.resolvable {
+                    writeln!(
+                        sdl,
+                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}")"#
+                    )?;
+                } else {
+                    writeln!(
+                        sdl,
+                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}", resolvable: false)"#
+                    )?;
+                }
             }
         }
 
@@ -80,7 +87,7 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
             .peekable();
 
         if fields.peek().is_some() {
-            if object.resolvable_keys.is_empty() {
+            if object.keys.is_empty() {
                 sdl.push(' ');
             }
             sdl.push_str("{\n");
@@ -117,11 +124,11 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
         write_composed_directives(&interface.composed_directives, graph, &mut sdl)?;
 
-        if interface.resolvable_keys.is_empty() {
+        if interface.keys.is_empty() {
             sdl.push_str(" {\n");
         } else {
             sdl.push('\n');
-            for resolvable_key in &interface.resolvable_keys {
+            for resolvable_key in &interface.keys {
                 let selection_set = FieldSetDisplay(&resolvable_key.fields, graph);
                 let subgraph_name = GraphEnumVariantName(&graph[graph[resolvable_key.subgraph_id].name]);
                 let is_interface_object = if resolvable_key.is_interface_object {
@@ -243,6 +250,7 @@ fn write_prelude(sdl: &mut String) -> fmt::Result {
         directive @join__type(
             graph: join__Graph!
             key: String!
+            resolvable: Boolean = true
         ) repeatable on OBJECT | INTERFACE
 
         directive @join__field(
@@ -587,6 +595,7 @@ fn test_render_empty() {
         directive @join__type(
             graph: join__Graph!
             key: String!
+            resolvable: Boolean = true
         ) repeatable on OBJECT | INTERFACE
 
         directive @join__field(

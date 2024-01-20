@@ -106,7 +106,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         return;
     };
 
-    ctx.insert_interface_resolvable_key(interface_id, expected_key.id, false);
+    ctx.insert_interface_resolvable_key(interface_id, expected_key, false);
 
     // Each object has to have @interfaceObject and the same key as the entity interface.
     for definition in definitions.iter().filter(|def| def.kind() == DefinitionKind::Object) {
@@ -128,7 +128,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         }
 
         for entity_key in definition.entity_keys().filter(|key| key.is_resolvable()) {
-            ctx.insert_interface_resolvable_key(interface_id, entity_key.id, true);
+            ctx.insert_interface_resolvable_key(interface_id, entity_key, true);
         }
 
         for field in definition.fields() {

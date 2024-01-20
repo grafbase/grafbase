@@ -52,7 +52,6 @@ impl From<Config> for Schema {
         let mut entity_resolvers = HashMap::<ObjectId, Vec<(ResolverId, SubgraphId)>>::new();
         for object in graph.objects {
             let object_id = ObjectId::from(schema.objects.len());
-            let keys = object.resolvable_keys;
             let cache_config = config
                 .cache
                 .rule(CacheConfigTarget::Object(federated_graph::ObjectId(object_id.into())))
@@ -66,7 +65,10 @@ impl From<Config> for Schema {
                 cache_config,
             });
 
-            for key in keys {
+            for key in object.keys {
+                if !key.resolvable {
+                    continue;
+                }
                 let resolver_id = ResolverId::from(schema.resolvers.len());
                 let subgraph_id = key.subgraph_id.into();
                 schema

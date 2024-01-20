@@ -17,26 +17,23 @@ directive @join__field(
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
 enum join__Graph {
+    ACCOUNTS @join__graph(name: "accounts", url: "http://example.com/accounts")
     PRODUCTS @join__graph(name: "products", url: "http://example.com/products")
-    REVIEWS @join__graph(name: "reviews", url: "http://example.com/reviews")
 }
 
-type Product
+type User {
+    id: ID! @join__field(graph: ACCOUNTS)
+    posts: [Post!]! @join__field(graph: ACCOUNTS)
+}
+
+type Post
+    @join__type(graph: ACCOUNTS, key: "id", resolvable: false)
     @join__type(graph: PRODUCTS, key: "id")
-    @join__type(graph: REVIEWS, key: "id")
 {
     id: ID!
     name: String @join__field(graph: PRODUCTS)
-    reviews: [Review] @join__field(graph: REVIEWS)
 }
 
-type Review {
-    id: ID! @join__field(graph: REVIEWS)
-    text: String! @join__field(graph: REVIEWS)
-}
-
-type Query
-
-type Subscription {
-    topProducts: Product @join__field(graph: PRODUCTS)
+type Query {
+    getUser(id: ID!): User @join__field(graph: ACCOUNTS)
 }

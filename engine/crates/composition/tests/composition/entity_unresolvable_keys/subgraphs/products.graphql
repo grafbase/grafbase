@@ -1,0 +1,6 @@
+type Post @key(fields: "id")  {
+  id: ID!
+  name: String
+}
+
+
