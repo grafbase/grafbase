@@ -18,6 +18,20 @@ use super::{
 };
 
 #[derive(thiserror::Error, Debug)]
+pub enum OperationLimitExceededError {
+    #[error("Query is too complex.")]
+    QueryTooComplex,
+    #[error("Query is nested too deep.")]
+    QueryTooDeep,
+    #[error("Query is too high.")]
+    QueryTooHigh,
+    #[error("Query contains too many root fields.")]
+    QueryContainsTooManyRootFields,
+    #[error("Query contains too many aliases.")]
+    QueryContainsTooManyAliases,
+}
+
+#[derive(thiserror::Error, Debug)]
 pub enum BindError {
     #[error("Unknown type named '{name}'")]
     UnknownType { name: String, location: Pos },
@@ -71,6 +85,11 @@ pub enum BindError {
     },
     #[error("Fragment cycle detected: {}", .cycle.iter().join(", "))]
     FragmentCycle { cycle: Vec<String>, location: Pos },
+    #[error("{0}")]
+    OperationLimitExceeded {
+        error: OperationLimitExceededError,
+        location: Pos,
+    },
 }
 
 impl From<BindError> for GraphqlError {
@@ -90,7 +109,8 @@ impl From<BindError> for GraphqlError {
             | BindError::DuplicateVariable { location, .. }
             | BindError::UndefinedVariable { location, .. }
             | BindError::FragmentCycle { location, .. }
-            | BindError::UnusedVariable { location, .. } => vec![location],
+            | BindError::UnusedVariable { location, .. }
+            | BindError::OperationLimitExceeded { location, .. } => vec![location],
             BindError::NoMutationDefined | BindError::NoSubscriptionDefined => vec![],
         };
         GraphqlError {

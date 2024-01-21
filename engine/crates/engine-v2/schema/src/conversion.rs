@@ -41,6 +41,7 @@ impl From<Config> for Schema {
             default_headers: config.default_headers.into_iter().map(Into::into).collect(),
             cache_configs: vec![],
             auth_config: config.auth,
+            operation_limits: config.operation_limits,
         };
 
         schema.strings.extend(config.strings);

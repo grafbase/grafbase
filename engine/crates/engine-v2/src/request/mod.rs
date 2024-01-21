@@ -13,6 +13,8 @@ pub use walkers::*;
 
 use crate::response::ResponseKeys;
 
+use self::bind::OperationLimitExceededError;
+
 mod bind;
 mod flat;
 pub mod ids;
@@ -37,6 +39,11 @@ pub struct Operation {
 }
 
 impl Operation {
+    fn enforce_operation_limits(&self) -> Result<(), OperationLimitExceededError> {
+        // FIXME: Implement.
+        Ok(())
+    }
+
     /// Builds an `Operation` by binding unbound operation to a schema and configuring its non functional requirements
     /// like caching, auth, ....
     ///
