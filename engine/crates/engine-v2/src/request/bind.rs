@@ -17,6 +17,7 @@ use super::{
     BoundTypeNameFieldDefinition, Operation, Pos, ResponseKeys, SelectionSetType, TypeCondition, UnboundOperation,
 };
 
+#[allow(clippy::enum_variant_names)]
 #[derive(thiserror::Error, Debug)]
 pub enum OperationLimitExceededError {
     #[error("Query is too complex.")]
