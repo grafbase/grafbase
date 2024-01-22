@@ -31,7 +31,7 @@ names = "0.14"
 openidconnect.workspace = true
 reqwest = "0.11"
 serde.workspace = true
-serde_json = { workspace = true, features = ["preserve_order"] }
+serde_json.workspace = true
 ulid.workspace = true
 url.workspace = true
 wiremock = "0.5"
