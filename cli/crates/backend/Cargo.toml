@@ -16,7 +16,7 @@ chrono = "0.4"
 const_format = { version = "0.2", features = ["rust_1_64"] }
 cynic = { workspace = true, features = ["http-reqwest"] }
 dirs = "5"
-http-cache-reqwest = "0.12"
+http-cache-reqwest = "0.13"
 reqwest = { version = "0.11", features = [
     "rustls-tls",
     "stream",
