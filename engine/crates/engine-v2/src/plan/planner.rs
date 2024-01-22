@@ -203,7 +203,7 @@ impl<'op> Planner<'op> {
     fn create_plan_boundary(
         &mut self,
         maybe_parent: Option<PlanBoundaryParent<'op, '_, '_>>,
-        missing_selection_set: FlatSelectionSetWalker<'op>,
+        missing_selection_set: FlatSelectionSetWalker<'op, '_>,
     ) -> PlanningResult<PlanBoundary> {
         let query_path = maybe_parent
             .as_ref()
@@ -222,7 +222,7 @@ impl<'op> Planner<'op> {
     /// resolvers, we create a plan for each field in the order the fields appear in.
     fn create_mutation_plan_boundary(
         &mut self,
-        missing_selection_set: FlatSelectionSetWalker<'_>,
+        missing_selection_set: FlatSelectionSetWalker<'_, '_>,
     ) -> PlanningResult<PlanBoundary> {
         let walker = self.default_operation_walker();
         let selection_set_type = missing_selection_set.ty();
@@ -242,7 +242,7 @@ impl<'op> Planner<'op> {
             .map(|group| {
                 let FieldResolverWalker {
                     resolver,
-                    field_requires: requires,
+                    field_requires,
                 } = walker
                     .walk(group.definition_id)
                     .as_field()
@@ -253,10 +253,10 @@ impl<'op> Planner<'op> {
                         missing: vec![walker.walk(group.bound_field_ids[0]).response_key_str().to_string()],
                         query_path: vec![],
                     })?;
-                if !requires.is_empty() {
+                if !field_requires.is_empty() {
                     return Err(PlanningError::CouldNotSatisfyRequires {
                         resolver: resolver.name().to_string(),
-                        field: requires
+                        field: field_requires
                             .into_iter()
                             .map(|item| walker.schema().walk(item.field_id).name())
                             .collect(),
@@ -317,7 +317,8 @@ impl<'op> Planner<'op> {
         let walker = self.operation.walker_with(resolver.walk(()));
         let root_selection_set_id = BoundSelectionSetId::from(root_selection_set.id);
         let entity_type = root_selection_set.ty;
-        let flat_selection_set: FlatSelectionSetWalker<'_, EntityType> = walker.walk(Cow::Owned(root_selection_set));
+        let flat_selection_set: FlatSelectionSetWalker<'_, '_, EntityType> =
+            walker.walk(Cow::Owned(root_selection_set));
 
         let mut boundaries = Vec::new();
         let mut attribution = AttributionBuilder::default();
@@ -513,10 +514,10 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
         self.expected_undetermined_selection_set(providable, maybe_boundary_id)
     }
 
-    fn partition_providable_missing(
+    fn partition_providable_missing<'a>(
         &mut self,
-        flat_selection_set: FlatSelectionSetWalker<'op>,
-    ) -> PlanningResult<(FlatSelectionSetWalker<'op>, Option<PlanBoundaryId>)> {
+        flat_selection_set: FlatSelectionSetWalker<'op, 'a>,
+    ) -> PlanningResult<(FlatSelectionSetWalker<'op, 'a>, Option<PlanBoundaryId>)> {
         let (providable, missing) = flat_selection_set.partition_fields(|flat_field| {
             flat_field
                 .bound_field()
@@ -547,7 +548,7 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
 
     fn collect_fields<Ty: Copy + Into<SelectionSetType> + std::fmt::Debug>(
         &mut self,
-        flat_selection_set: FlatSelectionSetWalker<'op, Ty>,
+        flat_selection_set: FlatSelectionSetWalker<'op, '_, Ty>,
         maybe_boundary_id: Option<PlanBoundaryId>,
     ) -> PlanningResult<CollectedSelectionSet> {
         let mut fields = vec![];
@@ -603,7 +604,7 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
 
     fn expected_undetermined_selection_set(
         &mut self,
-        flat_selection_set: FlatSelectionSetWalker<'op>,
+        flat_selection_set: FlatSelectionSetWalker<'op, '_>,
         maybe_boundary_id: Option<PlanBoundaryId>,
     ) -> PlanningResult<UndeterminedSelectionSetId> {
         let ty = flat_selection_set.ty();
@@ -632,7 +633,7 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
             }))
     }
 
-    fn expected_ungrouped_field(&mut self, flat_field: FlatFieldWalker<'_>) -> PlanningResult<PossibleField> {
+    fn expected_ungrouped_field(&mut self, flat_field: FlatFieldWalker<'_, '_>) -> PlanningResult<PossibleField> {
         self.attribution.attributed_fields.push(flat_field.bound_field_id);
         self.attribution
             .attributed_selection_sets

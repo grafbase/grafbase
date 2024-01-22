@@ -15,10 +15,10 @@ use crate::{
 
 use super::{BoundFieldDefinitionWalker, BoundFieldWalker, OperationWalker};
 
-pub type FlatSelectionSetWalker<'a, Ty = SelectionSetType> = OperationWalker<'a, Cow<'a, FlatSelectionSet<Ty>>>;
-pub type FlatFieldWalker<'a> = OperationWalker<'a, Cow<'a, FlatField>>;
+pub type FlatSelectionSetWalker<'op, 'a, Ty = SelectionSetType> = OperationWalker<'op, Cow<'a, FlatSelectionSet<Ty>>>;
+pub type FlatFieldWalker<'op, 'a> = OperationWalker<'op, Cow<'a, FlatField>>;
 
-impl<'a, Ty: Copy> FlatSelectionSetWalker<'a, Ty> {
+impl<'op, 'a, Ty: Copy> FlatSelectionSetWalker<'op, 'a, Ty> {
     pub fn id(&self) -> FlatSelectionSetId {
         self.item.id
     }
@@ -27,14 +27,19 @@ impl<'a, Ty: Copy> FlatSelectionSetWalker<'a, Ty> {
         self.item.ty
     }
 
-    pub fn fields(&self) -> impl ExactSizeIterator<Item = FlatFieldWalker<'_>> + '_ {
+    pub fn fields<'out, 's>(&'s self) -> impl ExactSizeIterator<Item = FlatFieldWalker<'op, 'out>> + 'out
+    where
+        'a: 'out,
+        's: 'out,
+    {
+        let walker: OperationWalker<'op> = self.walk(());
         self.item
             .fields
             .iter()
-            .map(move |flat_field| self.walk(Cow::Borrowed(flat_field)))
+            .map(move |flat_field| walker.walk(Cow::Borrowed(flat_field)))
     }
 
-    pub fn group_by_field_id(&self) -> HashMap<FieldId, GroupForFieldId<'a>> {
+    pub fn group_by_field_id(&self) -> HashMap<FieldId, GroupForFieldId<'op>> {
         self.item.fields.iter().fold(HashMap::new(), |mut map, flat_field| {
             let bound_field = self.walk(flat_field.bound_field_id);
             if let Some(field) = bound_field.definition().as_field() {
@@ -79,7 +84,7 @@ impl<'a, Ty: Copy> FlatSelectionSetWalker<'a, Ty> {
         )
     }
 
-    pub fn into_fields(self) -> impl Iterator<Item = FlatFieldWalker<'a>> {
+    pub fn into_fields(self) -> impl Iterator<Item = FlatFieldWalker<'op, 'static>> {
         let walker = self.walk(());
         self.item
             .into_owned()
@@ -90,8 +95,11 @@ impl<'a, Ty: Copy> FlatSelectionSetWalker<'a, Ty> {
 
     pub fn partition_fields(
         mut self,
-        predicate: impl Fn(FlatFieldWalker<'_>) -> bool,
-    ) -> (FlatSelectionSetWalker<'a, Ty>, FlatSelectionSetWalker<'a, Ty>) {
+        predicate: impl Fn(FlatFieldWalker<'op, '_>) -> bool,
+    ) -> (
+        FlatSelectionSetWalker<'op, 'static, Ty>,
+        FlatSelectionSetWalker<'op, 'static, Ty>,
+    ) {
         let fields = match self.item {
             Cow::Borrowed(selection_set) => selection_set.fields.clone(),
             Cow::Owned(ref mut selection_set) => std::mem::take(&mut selection_set.fields),
@@ -102,7 +110,7 @@ impl<'a, Ty: Copy> FlatSelectionSetWalker<'a, Ty> {
         (self.with_fields(left), self.with_fields(right))
     }
 
-    fn with_fields(&self, fields: Vec<FlatField>) -> Self {
+    fn with_fields(&self, fields: Vec<FlatField>) -> FlatSelectionSetWalker<'op, 'static, Ty> {
         self.walk(Cow::Owned(FlatSelectionSet {
             ty: self.item.ty,
             id: self.item.id,
@@ -119,8 +127,8 @@ impl<'a, Ty: Copy> FlatSelectionSetWalker<'a, Ty> {
     }
 }
 
-impl<'a> FlatFieldWalker<'a> {
-    pub fn bound_field(&self) -> BoundFieldWalker<'a> {
+impl<'op, 'a> FlatFieldWalker<'op, 'a> {
+    pub fn bound_field(&self) -> BoundFieldWalker<'op> {
         self.walk(self.item.bound_field_id)
     }
 
@@ -139,7 +147,7 @@ impl<'a> FlatFieldWalker<'a> {
     }
 }
 
-impl<'a> std::ops::Deref for FlatFieldWalker<'a> {
+impl<'op, 'a> std::ops::Deref for FlatFieldWalker<'op, 'a> {
     type Target = FlatField;
 
     fn deref(&self) -> &Self::Target {
@@ -161,7 +169,9 @@ pub struct GroupForResponseKey {
     pub bound_field_ids: Vec<BoundFieldId>,
 }
 
-impl<'a, Ty: Copy + std::fmt::Debug + Into<SelectionSetType>> std::fmt::Debug for FlatSelectionSetWalker<'a, Ty> {
+impl<'op, 'a, Ty: Copy + std::fmt::Debug + Into<SelectionSetType>> std::fmt::Debug
+    for FlatSelectionSetWalker<'op, 'a, Ty>
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let ty = Into::<SelectionSetType>::into(self.ty());
         let ty_name = self.walk_with(ty, Definition::from(ty)).name();
@@ -174,7 +184,7 @@ impl<'a, Ty: Copy + std::fmt::Debug + Into<SelectionSetType>> std::fmt::Debug fo
     }
 }
 
-impl<'a> std::fmt::Debug for FlatFieldWalker<'a> {
+impl<'op, 'a> std::fmt::Debug for FlatFieldWalker<'op, 'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut fmt = f.debug_struct("FlatField");
         if let Some(type_condition) = self.item.type_condition.as_ref() {

@@ -139,7 +139,7 @@ impl<'a> OperationWalker<'a> {
         self.operation.root_object_id
     }
 
-    pub fn merged_selection_sets(&self, bound_field_ids: &[BoundFieldId]) -> FlatSelectionSetWalker<'a> {
+    pub fn merged_selection_sets(&self, bound_field_ids: &[BoundFieldId]) -> FlatSelectionSetWalker<'a, 'static> {
         self.flatten_selection_sets(
             bound_field_ids
                 .iter()
@@ -151,7 +151,7 @@ impl<'a> OperationWalker<'a> {
     pub fn flatten_selection_sets(
         &self,
         merged_selection_set_ids: Vec<BoundSelectionSetId>,
-    ) -> FlatSelectionSetWalker<'a> {
+    ) -> FlatSelectionSetWalker<'a, 'static> {
         let id = FlatSelectionSetId::from(merged_selection_set_ids[0]);
         let selection_set_type = {
             let ty = merged_selection_set_ids

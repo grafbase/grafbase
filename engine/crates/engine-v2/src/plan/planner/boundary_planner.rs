@@ -31,12 +31,13 @@ pub(super) struct PlanBoundaryParent<'op, 'plan, 'ctx> {
     pub path: &'ctx QueryPath,
     pub logic: AttributionLogic<'op>,
     pub attribution: &'plan mut AttributionBuilder,
-    pub flat_selection_set: FlatSelectionSetWalker<'op>,
+    pub flat_selection_set: FlatSelectionSetWalker<'op, 'plan>,
 }
 
 #[derive(Debug)]
 enum BoundaryField<'op> {
     Planned {
+        plan_id: PlanId,
         field: GroupForFieldId<'op>,
         subselection: Option<BoundarySelectionSet<'op>>,
     },
@@ -78,7 +79,7 @@ impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
 
     pub fn plan_children(
         mut self,
-        missing_selection_set: FlatSelectionSetWalker<'op>,
+        missing_selection_set: FlatSelectionSetWalker<'op, '_>,
     ) -> PlanningResult<Vec<ChildPlan>> {
         let selection_set_type = missing_selection_set.ty();
 
@@ -98,6 +99,7 @@ impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
                             (
                                 field_id,
                                 BoundaryField::Planned {
+                                    plan_id: parent.plan_id,
                                     field: group,
                                     subselection: None,
                                 },
@@ -238,7 +240,7 @@ impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
                 (requires, providable)
             };
             let mut sibling_dependencies = HashSet::new();
-            let input_selection_set = self.create_read_selection_set(
+            let input_selection_set = create_read_selection_set(
                 &mut sibling_dependencies,
                 &resolver,
                 &requires,
@@ -251,15 +253,29 @@ impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
             if let Some(parent) = self.maybe_parent.as_ref() {
                 sibling_dependencies.remove(&parent.plan_id);
             }
+
+            let root_selection_set = FlatSelectionSet {
+                ty: candidate.entity_type,
+                id: boundary_selection_set.id,
+                fields: providable,
+            };
+            let plan_id = self.planner.next_plan_id();
+            for (field_id, group) in self.walker.walk(Cow::Borrowed(&root_selection_set)).group_by_field_id() {
+                boundary_selection_set
+                    .fields
+                    .entry(field_id)
+                    .or_insert_with(|| BoundaryField::Planned {
+                        plan_id,
+                        field: group,
+                        subselection: None,
+                    });
+            }
+
             self.children.push(ChildPlan {
-                id: self.planner.next_plan_id(),
+                id: plan_id,
                 resolver_id: resolver.id(),
                 input_selection_set,
-                root_selection_set: FlatSelectionSet {
-                    ty: candidate.entity_type,
-                    id: boundary_selection_set.id,
-                    fields: providable,
-                },
+                root_selection_set,
                 sibling_dependencies,
                 // replaced later if necessary.
                 extra_selection_sets: HashMap::with_capacity(0),
@@ -351,7 +367,11 @@ impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
                     continue;
                 }
                 match field {
-                    BoundaryField::Planned { field, subselection } => {
+                    BoundaryField::Planned {
+                        plan_id,
+                        field,
+                        subselection,
+                    } => {
                         let subselection = subselection.get_or_insert_with(|| {
                             let flat_selection_set = self.walker.merged_selection_sets(&field.bound_field_ids);
                             let id = flat_selection_set.id();
@@ -362,6 +382,7 @@ impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
                                     (
                                         field_id,
                                         BoundaryField::Planned {
+                                            plan_id: *plan_id,
                                             field,
                                             subselection: None,
                                         },
@@ -440,61 +461,6 @@ impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
         true
     }
 
-    fn create_read_selection_set(
-        &mut self,
-        dependencies: &mut HashSet<PlanId>,
-        resolver: &ResolverWalker<'_>,
-        requires: &FieldSet,
-        boundary_fields: &mut HashMap<FieldId, BoundaryField<'op>>,
-    ) -> PlanningResult<ReadSelectionSet> {
-        if requires.is_empty() {
-            return Ok(ReadSelectionSet::default());
-        }
-        requires
-            .iter()
-            .map(|item| {
-                match boundary_fields
-                    .get_mut(&item.field_id)
-                    .expect("field should be present, we could plan it")
-                {
-                    BoundaryField::Planned { field, subselection } => {
-                        dependencies.insert(self.maybe_parent.as_ref().unwrap().plan_id);
-                        Ok(ReadField {
-                            edge: field.key.into(),
-                            name: resolver.walk(item.field_id).name().to_string(),
-                            subselection: if item.subselection.is_empty() {
-                                ReadSelectionSet::default()
-                            } else {
-                                self.create_read_selection_set(
-                                    dependencies,
-                                    resolver,
-                                    &item.subselection,
-                                    &mut subselection
-                                        .as_mut()
-                                        .expect("subselection should be present, we could plan the subselection")
-                                        .fields,
-                                )?
-                            },
-                        })
-                    }
-                    BoundaryField::Extra { plan_id, field, .. } => {
-                        dependencies.insert(*plan_id);
-                        field.read = true;
-                        Ok(ReadField {
-                            edge: field.extra_field.edge,
-                            name: resolver.walk(item.field_id).name().to_string(),
-                            subselection: create_read_selection_set_from_extras(
-                                resolver,
-                                &item.subselection,
-                                &mut field.extra_field.ty,
-                            )?,
-                        })
-                    }
-                }
-            })
-            .collect::<PlanningResult<ReadSelectionSet>>()
-    }
-
     fn update_extra_field_subselection(
         &mut self,
         resolver: &ResolverWalker<'_>,
@@ -558,6 +524,64 @@ impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
             },
         }
     }
+}
+
+fn create_read_selection_set(
+    dependencies: &mut HashSet<PlanId>,
+    resolver: &ResolverWalker<'_>,
+    requires: &FieldSet,
+    boundary_fields: &mut HashMap<FieldId, BoundaryField<'_>>,
+) -> PlanningResult<ReadSelectionSet> {
+    if requires.is_empty() {
+        return Ok(ReadSelectionSet::default());
+    }
+    requires
+        .iter()
+        .map(|item| {
+            match boundary_fields
+                .get_mut(&item.field_id)
+                .expect("field should be present, we could plan it")
+            {
+                BoundaryField::Planned {
+                    field,
+                    subselection,
+                    plan_id,
+                } => {
+                    dependencies.insert(*plan_id);
+                    Ok(ReadField {
+                        edge: field.key.into(),
+                        name: resolver.walk(item.field_id).name().to_string(),
+                        subselection: if item.subselection.is_empty() {
+                            ReadSelectionSet::default()
+                        } else {
+                            create_read_selection_set(
+                                dependencies,
+                                resolver,
+                                &item.subselection,
+                                &mut subselection
+                                    .as_mut()
+                                    .expect("subselection should be present, we could plan the subselection")
+                                    .fields,
+                            )?
+                        },
+                    })
+                }
+                BoundaryField::Extra { plan_id, field, .. } => {
+                    dependencies.insert(*plan_id);
+                    field.read = true;
+                    Ok(ReadField {
+                        edge: field.extra_field.edge,
+                        name: resolver.walk(item.field_id).name().to_string(),
+                        subselection: create_read_selection_set_from_extras(
+                            resolver,
+                            &item.subselection,
+                            &mut field.extra_field.ty,
+                        )?,
+                    })
+                }
+            }
+        })
+        .collect::<PlanningResult<ReadSelectionSet>>()
 }
 
 fn create_read_selection_set_from_extras(
