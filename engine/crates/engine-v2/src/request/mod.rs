@@ -39,15 +39,29 @@ pub struct Operation {
 }
 
 impl Operation {
-    fn enforce_operation_limits(&self, schema: &Schema) -> Result<(), (OperationLimitExceededError, Pos)> {
+    fn enforce_operation_limits(&self, schema: &Schema) -> Result<(), OperationLimitExceededError> {
         // FIXME: Implement.
 
         let walker = self.walker_with(schema.walker()).walk(self.root_selection_set_id);
 
         if let Some(depth_limit) = schema.operation_limits.depth {
-            let (max_depth, location) = walker.max_depth();
+            let max_depth = walker.max_depth();
             if max_depth > depth_limit {
-                return Err((OperationLimitExceededError::QueryTooDeep, location));
+                return Err(OperationLimitExceededError::QueryTooDeep);
+            }
+        }
+
+        if let Some(max_alias_count) = schema.operation_limits.aliases {
+            let alias_count = walker.alias_count();
+            if alias_count > max_alias_count {
+                return Err(OperationLimitExceededError::QueryContainsTooManyAliases);
+            }
+        }
+
+        if let Some(max_root_field_count) = schema.operation_limits.root_fields {
+            let root_field_count = walker.root_field_count();
+            if root_field_count > max_root_field_count {
+                return Err(OperationLimitExceededError::QueryContainsTooManyRootFields);
             }
         }
 
@@ -64,7 +78,7 @@ impl Operation {
 
         operation
             .enforce_operation_limits(&schema)
-            .map_err(|(error, location)| BindError::OperationLimitExceeded { error, location })?;
+            .map_err(BindError::OperationLimitExceeded)?;
 
         if operation.ty == OperationType::Query {
             let root_cache_config = schema[operation.root_object_id]

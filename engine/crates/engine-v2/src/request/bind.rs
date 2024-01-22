@@ -85,11 +85,8 @@ pub enum BindError {
     },
     #[error("Fragment cycle detected: {}", .cycle.iter().join(", "))]
     FragmentCycle { cycle: Vec<String>, location: Pos },
-    #[error("{error}")]
-    OperationLimitExceeded {
-        error: OperationLimitExceededError,
-        location: Pos,
-    },
+    #[error("{0}")]
+    OperationLimitExceeded(OperationLimitExceededError),
 }
 
 impl From<BindError> for GraphqlError {
@@ -109,9 +106,12 @@ impl From<BindError> for GraphqlError {
             | BindError::DuplicateVariable { location, .. }
             | BindError::UndefinedVariable { location, .. }
             | BindError::FragmentCycle { location, .. }
-            | BindError::UnusedVariable { location, .. }
-            | BindError::OperationLimitExceeded { location, .. } => vec![location],
-            BindError::NoMutationDefined | BindError::NoSubscriptionDefined => vec![],
+            | BindError::UnusedVariable { location, .. } => vec![location],
+            BindError::NoMutationDefined
+            | BindError::NoSubscriptionDefined
+            | BindError::OperationLimitExceeded { .. } => {
+                vec![]
+            }
         };
         GraphqlError {
             message: err.to_string(),
