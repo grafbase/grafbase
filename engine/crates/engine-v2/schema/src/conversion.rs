@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use config::latest::{CacheConfigTarget, Config};
 
@@ -50,6 +50,7 @@ impl From<Config> for Schema {
 
         // -- OBJECTS --
         let mut entity_resolvers = HashMap::<ObjectId, Vec<(ResolverId, SubgraphId)>>::new();
+        let mut unresolvable_keys = HashMap::<ObjectId, HashMap<SubgraphId, FieldSet>>::new();
         for object in graph.objects {
             let object_id = ObjectId::from(schema.objects.len());
             let cache_config = config
@@ -66,36 +67,45 @@ impl From<Config> for Schema {
             });
 
             for key in object.keys {
-                if !key.resolvable {
-                    continue;
-                }
-                let resolver_id = ResolverId::from(schema.resolvers.len());
                 let subgraph_id = key.subgraph_id.into();
-                schema
-                    .resolvers
-                    .push(Resolver::FederationEntity(federation::EntityResolver {
-                        subgraph_id,
-                        key: federation::Key {
-                            fields: key.fields.into_iter().map(Into::into).collect(),
-                        },
-                    }));
-                entity_resolvers
-                    .entry(object_id)
-                    .or_default()
-                    .push((resolver_id, subgraph_id));
+                if key.resolvable {
+                    let resolver_id = ResolverId::from(schema.resolvers.len());
+                    schema
+                        .resolvers
+                        .push(Resolver::FederationEntity(federation::EntityResolver {
+                            subgraph_id,
+                            key: federation::Key {
+                                fields: key.fields.into_iter().map(Into::into).collect(),
+                            },
+                        }));
+                    entity_resolvers
+                        .entry(object_id)
+                        .or_default()
+                        .push((resolver_id, subgraph_id));
+                } else {
+                    // We don't need to differentiate between keys here. We'll be using this to add
+                    // those fields to `provides` in the relevant fields. It's the resolvable keys
+                    // that will determine which fields to retrieve during planning. And composition
+                    // ensures that keys between subgraphs are coherent.
+                    let field_set: FieldSet = key.fields.into_iter().map(Into::into).collect();
+                    unresolvable_keys
+                        .entry(object_id)
+                        .or_default()
+                        .entry(subgraph_id)
+                        .and_modify(|current| {
+                            *current = FieldSet::merge(current, &field_set);
+                        })
+                        .or_insert(field_set);
+                }
             }
         }
 
         // -- OBJECT FIELDS --
-        let mut field_entity_resolvers = HashMap::<FieldId, Vec<(ResolverId, SubgraphId)>>::new();
+        let mut field_id_to_maybe_object_id: Vec<Option<ObjectId>> = vec![None; graph.fields.len()];
         for object_field in graph.object_fields {
-            if let Some(resolvers) = entity_resolvers.get(&object_field.object_id.into()) {
-                field_entity_resolvers
-                    .entry(object_field.field_id.into())
-                    .or_default()
-                    .extend(resolvers);
-            }
-            schema.object_fields.push(object_field.into());
+            let object_field: ObjectField = object_field.into();
+            field_id_to_maybe_object_id[usize::from(object_field.field_id)] = Some(object_field.object_id);
+            schema.object_fields.push(object_field);
         }
 
         let root_fields = {
@@ -139,29 +149,75 @@ impl From<Config> for Schema {
                     )
                 })
                 .collect::<HashMap<_, _>>();
+            let mut resolvable_in = field.resolvable_in.into_iter().map(Into::into).collect::<HashSet<_>>();
 
-            for subgraph_id in &field.resolvable_in {
-                let subgraph_id = (*subgraph_id).into();
-                if root_fields.binary_search(&field_id).is_ok() {
-                    let resolver_id = *root_field_resolvers.entry(subgraph_id).or_insert_with(|| {
+            if root_fields.binary_search(&field_id).is_ok() {
+                for subgraph_id in &resolvable_in {
+                    let resolver_id = *root_field_resolvers.entry(*subgraph_id).or_insert_with(|| {
                         let resolver_id = ResolverId::from(schema.resolvers.len());
                         schema
                             .resolvers
                             .push(Resolver::FederationRootField(federation::RootFieldResolver {
-                                subgraph_id,
+                                subgraph_id: *subgraph_id,
                             }));
                         resolver_id
                     });
                     resolvers.push(FieldResolver {
                         resolver_id,
-                        requires: FieldSet::default(),
+                        field_requires: FieldSet::default(),
                     });
-                } else if let Some(entity_resolvers) = field_entity_resolvers.remove(&field_id) {
+                }
+            }
+
+            let mut provides: HashMap<SubgraphId, FieldSet> = field.provides.into_iter().fold(
+                HashMap::new(),
+                |mut provides, federated_graph::FieldProvides { subgraph_id, fields }| {
+                    let field_set: FieldSet = fields.into_iter().map(Into::into).collect();
+                    provides
+                        .entry(subgraph_id.into())
+                        .and_modify(|current| {
+                            *current = FieldSet::merge(current, &field_set);
+                        })
+                        .or_insert(field_set);
+
+                    provides
+                },
+            );
+            // Whether the field returns an object
+            if let Definition::Object(object_id) = &schema[TypeId::from(field.field_type_id)].inner {
+                if let Some(keys) = unresolvable_keys.get(object_id) {
+                    for (subgraph_id, field_set) in keys {
+                        provides
+                            .entry(*subgraph_id)
+                            .and_modify(|current| {
+                                *current = FieldSet::merge(current, field_set);
+                            })
+                            .or_insert_with(|| field_set.clone());
+                    }
+                }
+            }
+            // Whether the field is attached to an object (rather than an interface)
+            if let Some(object_id) = field_id_to_maybe_object_id[usize::from(field_id)] {
+                if let Some(entity_resolvers) = entity_resolvers.get(&object_id) {
                     for (resolver_id, entity_subgraph_id) in entity_resolvers {
-                        if entity_subgraph_id == subgraph_id {
+                        // Keys aren't in 'resolvable_in', so adding them
+                        if let Resolver::FederationEntity(resolver) = &schema[*resolver_id] {
+                            if let Some(item) = resolver.key.fields.get(field_id) {
+                                resolvable_in.insert(*entity_subgraph_id);
+                                provides
+                                    .entry(*entity_subgraph_id)
+                                    .and_modify(|current| {
+                                        *current = FieldSet::merge(current, &item.subselection);
+                                    })
+                                    .or_insert_with(|| item.subselection.clone());
+                            }
+                        }
+                    }
+                    for (resolver_id, entity_subgraph_id) in entity_resolvers {
+                        if resolvable_in.contains(entity_subgraph_id) {
                             resolvers.push(FieldResolver {
-                                resolver_id,
-                                requires: subgraph_requires.get(&entity_subgraph_id).cloned().unwrap_or_default(),
+                                resolver_id: *resolver_id,
+                                field_requires: subgraph_requires.get(entity_subgraph_id).cloned().unwrap_or_default(),
                             });
                         }
                     }
@@ -173,12 +229,13 @@ impl From<Config> for Schema {
                 description: None,
                 type_id: field.field_type_id.into(),
                 resolvers,
-                provides: field
-                    .provides
+                provides: provides
                     .into_iter()
-                    .find(|provides| field.resolvable_in.contains(&provides.subgraph_id))
-                    .map(|provides| provides.fields.into_iter().map(Into::into).collect())
-                    .unwrap_or_default(),
+                    .map(|(subgraph_id, field_set)| FieldProvides::IfResolverGroup {
+                        group: ResolverGroup::FederationSubgraph(subgraph_id),
+                        field_set,
+                    })
+                    .collect(),
                 arguments: {
                     field
                         .arguments

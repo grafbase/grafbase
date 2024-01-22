@@ -31,5 +31,5 @@ pub enum Resolver {
 /// will be providable (unless overridden by `@provides`).
 #[derive(Debug, PartialEq, Eq)]
 pub enum ResolverGroup {
-    Federation(SubgraphId),
+    FederationSubgraph(SubgraphId),
 }

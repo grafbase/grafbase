@@ -4,8 +4,8 @@ use std::{
 };
 
 use crate::{
-    DataType, Definition, EnumId, EnumValue, Field, FieldId, FieldSet, InputValue, InputValueId, ObjectField, ObjectId,
-    ScalarId, Schema, SchemaWalker, StringId, Type, TypeId, Value, Wrapping,
+    DataType, Definition, EnumId, EnumValue, Field, FieldId, InputValue, InputValueId, ObjectField, ObjectId, ScalarId,
+    Schema, SchemaWalker, StringId, Type, TypeId, Value, Wrapping,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -446,7 +446,7 @@ impl Introspection {
             type_id: field_type_id,
             composed_directives: vec![],
             resolvers: vec![],
-            provides: FieldSet::default(),
+            provides: vec![],
             arguments: vec![],
             description: None,
             is_deprecated: false,

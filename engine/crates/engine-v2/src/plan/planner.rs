@@ -192,7 +192,10 @@ impl<'op> Planner<'op> {
 
             let mut candidates = HashMap::<ResolverId, ChildPlanCandidate<'_>>::new();
             for field in id_to_missing_fields.values() {
-                for FieldResolverWalker { resolver, requires } in walker
+                for FieldResolverWalker {
+                    resolver,
+                    field_requires: requires,
+                } in walker
                     .walk(field.bound_field_id)
                     .definition()
                     .as_field()
@@ -313,7 +316,10 @@ impl<'op> Planner<'op> {
         let children = groups
             .into_iter()
             .map(|group| {
-                let FieldResolverWalker { resolver, requires } = walker
+                let FieldResolverWalker {
+                    resolver,
+                    field_requires: requires,
+                } = walker
                     .walk(group.definition_id)
                     .as_field()
                     .expect("Introspection resolver should have taken metadata fields")
@@ -591,7 +597,7 @@ impl<'a> AttributionLogic<'a> {
             AttributionLogic::CompatibleResolver { resolver, providable } => {
                 let providable = FieldSet::merge_opt(
                     providable.get(field.id()).map(|s| &s.subselection),
-                    Some(field.provides()),
+                    field.provides_for(resolver).as_deref(),
                 );
                 if resolver.can_provide(field) {
                     AttributionLogic::CompatibleResolver {
