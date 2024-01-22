@@ -171,6 +171,13 @@ mod tests {
                 "unions": []
               },
               "headers": [],
+              "operation_limits": {
+                "aliases": null,
+                "complexity": null,
+                "depth": null,
+                "height": null,
+                "rootFields": null
+              },
               "strings": [],
               "subgraph_configs": {}
             }
