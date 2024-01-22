@@ -1,16 +1,18 @@
 use runtime::fetch::FetchRequest;
 use schema::sources::federation::{EntityResolverWalker, SubgraphHeaderValueRef, SubgraphWalker};
-use serde::de::DeserializeSeed;
 
 use crate::{
     execution::ExecutionContext,
     plan::PlanOutput,
     request::EntityType,
-    response::{ExecutorOutput, GraphqlError, ResponseBoundaryItem},
+    response::{ExecutorOutput, ResponseBoundaryItem},
     sources::{Executor, ExecutorError, ExecutorResult, ResolverInput},
 };
 
-use super::{deserialize, query};
+use super::{
+    deserialize::{deserialize_response_into_output, EntitiesDataSeed},
+    query,
+};
 
 pub(crate) struct FederationEntityExecutor<'ctx> {
     ctx: ExecutionContext<'ctx>,
@@ -82,39 +84,22 @@ impl<'ctx> FederationEntityExecutor<'ctx> {
             })
             .await?
             .bytes;
-        let err_path = Some(
-            self.response_boundary[0].response_path.child(
-                self.ctx
-                    .walker
-                    .walk(self.plan_output.root_fields[0])
-                    .bound_response_key(),
-            ),
+        let err_path = self.response_boundary[0].response_path.child(
+            self.ctx
+                .walker
+                .walk(self.plan_output.root_fields[0])
+                .bound_response_key(),
         );
-        let mut upstream_errors = vec![];
-        let result = deserialize::GraphqlResponseSeed::new(
-            err_path.clone(),
-            &mut upstream_errors,
-            deserialize::EntitiesDataSeed {
-                ctx: self.ctx,
+        let seed_ctx = self.ctx.seed_ctx(&mut self.output, &self.plan_output);
+        deserialize_response_into_output(
+            &seed_ctx,
+            &err_path,
+            EntitiesDataSeed {
+                ctx: seed_ctx.clone(),
                 response_boundary: &self.response_boundary,
-                output: &mut self.output,
-                plan_output: &self.plan_output,
             },
-        )
-        .deserialize(&mut serde_json::Deserializer::from_slice(&bytes));
-
-        if !upstream_errors.is_empty() {
-            self.output.push_errors(upstream_errors);
-        } else if let Err(err) = result {
-            // Only adding this if no other more precise errors were added.
-            if !self.output.has_errors() {
-                self.output.push_error(GraphqlError {
-                    message: format!("Upstream response error: {err}"),
-                    path: err_path,
-                    ..Default::default()
-                });
-            }
-        }
+            &mut serde_json::Deserializer::from_slice(&bytes),
+        );
 
         Ok(self.output)
     }

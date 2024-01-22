@@ -14,7 +14,7 @@ use crate::{
     },
     request::{BoundAnyFieldDefinitionId, FlatTypeCondition, SelectionSetType},
     response::{
-        write::deserialize::{key::Key, CollectedFieldsSeed, SeedContext},
+        write::deserialize::{key::Key, CollectedFieldsSeed, SeedContextInner},
         ResponseEdge, ResponseKey, ResponseObject, ResponsePath,
     },
 };
@@ -23,7 +23,7 @@ use super::ObjectIdentifier;
 
 pub(crate) struct UndeterminedFieldsSeed<'ctx, 'parent> {
     pub path: &'parent ResponsePath,
-    pub ctx: &'parent SeedContext<'ctx>,
+    pub ctx: &'parent SeedContextInner<'ctx>,
     pub ty: SelectionSetType,
     pub selection_set_ids: Cow<'parent, [UndeterminedSelectionSetId]>,
 }
@@ -73,7 +73,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for UndeterminedFieldsSeed<'ctx, 'parent> 
                     ),
                     Err(err) => {
                         // Discarding the rest of the data.
-                        while map.next_entry::<IgnoredAny, IgnoredAny>()?.is_some() {}
+                        while map.next_entry::<IgnoredAny, IgnoredAny>().unwrap_or_default().is_some() {}
                         Err(err)
                     }
                 };
