@@ -46,7 +46,7 @@ pub(crate) struct FieldIr {
     pub(crate) field_type: subgraphs::FieldTypeId,
     pub(crate) arguments: Vec<ArgumentIr>,
 
-    pub(crate) resolvable_in: Option<federated::SubgraphId>,
+    pub(crate) resolvable_in: Vec<federated::SubgraphId>,
 
     /// Subgraph fields corresponding to this federated graph field that have an `@provides`.
     pub(crate) provides: Vec<subgraphs::FieldId>,

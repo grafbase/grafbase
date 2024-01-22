@@ -315,7 +315,7 @@ fn write_field(field_id: FieldId, graph: &FederatedGraphV1, sdl: &mut String) ->
 
     write!(sdl, "{INDENT}{field_name}{args}: {field_type}")?;
 
-    if let Some(subgraph) = &field.resolvable_in {
+    for subgraph in &field.resolvable_in {
         write_resolvable_in(*subgraph, field, graph, sdl)?;
     }
 
@@ -379,7 +379,7 @@ fn write_provides(field: &Field, graph: &FederatedGraphV1, sdl: &mut String) -> 
     for provides in field
         .provides
         .iter()
-        .filter(|provide| Some(provide.subgraph_id) != field.resolvable_in)
+        .filter(|provide| !field.resolvable_in.contains(&provide.subgraph_id))
     {
         let subgraph_name = GraphEnumVariantName(&graph[graph[provides.subgraph_id].name]);
         let fields = FieldSetDisplay(&provides.fields, graph);
@@ -393,7 +393,7 @@ fn write_requires(field: &Field, graph: &FederatedGraphV1, sdl: &mut String) -> 
     for requires in field
         .requires
         .iter()
-        .filter(|require| Some(require.subgraph_id) != field.resolvable_in)
+        .filter(|requires| !field.resolvable_in.contains(&requires.subgraph_id))
     {
         let subgraph_name = GraphEnumVariantName(&graph[graph[requires.subgraph_id].name]);
         let fields = FieldSetDisplay(&requires.fields, graph);

@@ -29,7 +29,7 @@ type Squirrel {
 type Cheetah implements Animal
     @join__type(graph: SAVANNA, key: "species")
 {
-    species: String! @join__field(graph: SAVANNA)
+    species: String!
     topSpeed: Int! @join__field(graph: SAVANNA)
     species: String!
     favouriteFood: String @join__field(graph: FOREST)

@@ -24,8 +24,8 @@ enum join__Graph {
 type A
     @join__type(graph: FIRST, key: "b { id } c")
 {
-    b: B! @join__field(graph: FIRST)
-    c: String! @join__field(graph: FIRST)
+    b: B!
+    c: String!
 }
 
 type B

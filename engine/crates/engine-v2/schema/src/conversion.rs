@@ -139,8 +139,9 @@ impl From<Config> for Schema {
                     )
                 })
                 .collect::<HashMap<_, _>>();
-            if let Some(subgraph_id) = field.resolvable_in {
-                let subgraph_id = subgraph_id.into();
+
+            for subgraph_id in &field.resolvable_in {
+                let subgraph_id = (*subgraph_id).into();
                 if root_fields.binary_search(&field_id).is_ok() {
                     let resolver_id = *root_field_resolvers.entry(subgraph_id).or_insert_with(|| {
                         let resolver_id = ResolverId::from(schema.resolvers.len());
@@ -175,7 +176,7 @@ impl From<Config> for Schema {
                 provides: field
                     .provides
                     .into_iter()
-                    .find(|provides| Some(provides.subgraph_id) == field.resolvable_in)
+                    .find(|provides| field.resolvable_in.contains(&provides.subgraph_id))
                     .map(|provides| provides.fields.into_iter().map(Into::into).collect())
                     .unwrap_or_default(),
                 arguments: {

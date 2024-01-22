@@ -107,10 +107,15 @@ pub struct Field {
     pub name: StringId,
     pub field_type_id: FieldTypeId,
 
-    /// Includes the subgraph the field can be resolved in (= the subgraph that defines it), except
-    /// where the field is shareable or part of the key, in which case `resolvable_in` will be
-    /// `None`.
-    pub resolvable_in: Option<SubgraphId>,
+    /// This is populated only of fields of entities. The Vec includes all subgraphs the field can
+    /// be resolved in. For a regular field of an entity, it will be one subgraph, the subgraph
+    /// where the entity field is defined. For a shareable field in an entity, this contains the
+    /// subgraphs where the shareable field is defined on the entity. It may not be all the
+    /// subgraphs.
+    ///
+    /// On fields of value types and input types, this is empty.
+    #[serde(deserialize_with = "deserialize_resolvable_in")]
+    pub resolvable_in: Vec<SubgraphId>,
 
     /// See [FieldProvides].
     pub provides: Vec<FieldProvides>,
@@ -235,6 +240,43 @@ pub struct Interface {
 
     #[serde(default)]
     pub description: Option<StringId>,
+}
+
+fn deserialize_resolvable_in<'de, D: serde::Deserializer<'de>>(de: D) -> Result<Vec<SubgraphId>, D::Error> {
+    use serde::Deserialize;
+
+    struct ResolvableInVisitor;
+
+    impl<'a> serde::de::Visitor<'a> for ResolvableInVisitor {
+        type Value = Vec<SubgraphId>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            formatter.write_str("null, a subgraph id or a list of subgraph ids")
+        }
+
+        fn visit_seq<A>(self, seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::SeqAccess<'a>,
+        {
+            Self::Value::deserialize(serde::de::value::SeqAccessDeserializer::new(seq))
+        }
+
+        fn visit_unit<E>(self) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(vec![])
+        }
+
+        fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(vec![SubgraphId(v as usize)])
+        }
+    }
+
+    de.deserialize_any(ResolvableInVisitor)
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]

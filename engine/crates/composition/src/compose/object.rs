@@ -196,10 +196,7 @@ pub(super) fn compose_object_fields<'a>(
 
     let arguments = object::merge_field_arguments(first, fields, ctx);
 
-    let resolvable_in = fields
-        .first()
-        .filter(|_| fields.len() == 1)
-        .map(|field| federated::SubgraphId(field.parent_definition().subgraph_id().idx()));
+    let resolvable_in = resolvable_in(fields, object_is_shareable);
 
     let provides = fields
         .iter()
@@ -236,6 +233,18 @@ pub(super) fn compose_object_fields<'a>(
         overrides,
         description,
     });
+}
+
+fn resolvable_in(fields: &[FieldWalker<'_>], object_is_shareable: bool) -> Vec<federated::SubgraphId> {
+    if object_is_shareable || fields.iter().any(|f| f.directives().r#override().is_some()) {
+        return vec![];
+    }
+
+    fields
+        .iter()
+        .filter(|field| !field.directives().external() && !field.is_part_of_key())
+        .map(|field| federated::SubgraphId(field.parent_definition().subgraph_id().idx()))
+        .collect()
 }
 
 fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<federated::Override> {

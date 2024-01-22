@@ -40,7 +40,7 @@ pub(super) fn merge_interface_definitions<'a>(
             field_name: field.name().id,
             field_type,
             arguments: Vec::new(),
-            resolvable_in: None,
+            resolvable_in: Vec::new(),
             provides: Vec::new(),
             requires: Vec::new(),
             overrides: Vec::new(),

@@ -87,7 +87,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                     },
                 })
                 .collect(),
-            resolvable_in: None,
+            resolvable_in: Vec::new(),
             provides: Vec::new(),
             requires: Vec::new(),
             composed_directives: Vec::new(),
@@ -152,7 +152,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                         },
                     })
                     .collect(),
-                resolvable_in: Some(graphql_federated_graph::SubgraphId(definition.subgraph_id().idx())),
+                resolvable_in: vec![graphql_federated_graph::SubgraphId(definition.subgraph_id().idx())],
                 provides: Vec::new(),
                 requires: Vec::new(),
                 composed_directives: Vec::new(),
