@@ -65,6 +65,20 @@ impl Operation {
             }
         }
 
+        if let Some(max_height) = schema.operation_limits.height {
+            let height = walker.height(&mut Default::default());
+            if height > max_height {
+                return Err(OperationLimitExceededError::QueryTooHigh);
+            }
+        }
+
+        if let Some(max_complexity) = schema.operation_limits.complexity {
+            let complexity = walker.complexity();
+            if complexity > max_complexity {
+                return Err(OperationLimitExceededError::QueryTooComplex);
+            }
+        }
+
         Ok(())
     }
 
@@ -77,7 +91,7 @@ impl Operation {
         let mut operation = Self::bind(schema, unbound_operation)?;
 
         operation
-            .enforce_operation_limits(&schema)
+            .enforce_operation_limits(schema)
             .map_err(BindError::OperationLimitExceeded)?;
 
         if operation.ty == OperationType::Query {
