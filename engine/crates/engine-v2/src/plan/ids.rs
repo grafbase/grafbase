@@ -1,7 +1,17 @@
 use std::num::NonZeroU16;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, derive_more::Display)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub struct PlanId(NonZeroU16);
+
+impl std::fmt::Display for PlanId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        usize::from(*self).fmt(f)
+    }
+}
+
+impl PlanId {
+    pub const MAX: PlanId = PlanId(NonZeroU16::MAX);
+}
 
 impl From<usize> for PlanId {
     fn from(value: usize) -> Self {
@@ -15,8 +25,14 @@ impl From<PlanId> for usize {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, derive_more::Display)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub struct PlanBoundaryId(NonZeroU16);
+
+impl std::fmt::Display for PlanBoundaryId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        usize::from(*self).fmt(f)
+    }
+}
 
 impl From<usize> for PlanBoundaryId {
     fn from(value: usize) -> Self {

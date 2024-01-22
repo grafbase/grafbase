@@ -1,7 +1,7 @@
 macro_rules! id_newtypes {
     ($($ty:ident.$field:ident[$name:ident] => $out:ident unless $msg:literal,)*) => {
         $(
-            #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, derive_more::Display)]
+            #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
             pub struct $name(std::num::NonZeroU16);
 
             impl std::ops::Index<$name> for $ty {
@@ -18,6 +18,11 @@ macro_rules! id_newtypes {
                 }
             }
 
+            impl std::fmt::Display for $name {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    usize::from(*self).fmt(f)
+                }
+            }
 
             impl From<usize> for $name {
                 fn from(value: usize) -> Self {

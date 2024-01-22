@@ -92,6 +92,7 @@ impl<'a, C: Copy> Iterator for SelectionIterator<'a, C> {
 impl<'a> std::fmt::Debug for BoundSelectionSetWalker<'a, ()> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("BoundSelectionSet")
+            .field("id", &self.id())
             .field("ty", &self.ty().name())
             .field("items", &self.into_iter().collect::<Vec<_>>())
             .finish()
@@ -101,6 +102,7 @@ impl<'a> std::fmt::Debug for BoundSelectionSetWalker<'a, ()> {
 impl<'a> std::fmt::Debug for BoundSelectionSetWalker<'a, ExecutorWalkContext<'a>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("BoundSelectionSet")
+            .field("id", &self.id())
             .field("ty", &self.ty().name())
             .field("items", &self.into_iter().collect::<Vec<_>>())
             .finish()

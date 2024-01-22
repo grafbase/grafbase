@@ -7,8 +7,8 @@ use schema::{Definition, FieldId};
 
 use crate::{
     request::{
-        BoundAnyFieldDefinitionId, BoundFieldId, BoundSelectionSetId, FlatField, FlatSelectionSet, FlatSelectionSetId,
-        FlatTypeCondition, SelectionSetType,
+        BoundAnyFieldDefinitionId, BoundFieldId, BoundSelectionSetId, EntityType, FlatField, FlatSelectionSet,
+        FlatSelectionSetId, FlatTypeCondition, SelectionSetType,
     },
     response::{BoundResponseKey, ResponseKey},
 };
@@ -45,7 +45,7 @@ impl<'a, Ty: Copy> FlatSelectionSetWalker<'a, Ty> {
                     })
                     .or_insert_with(|| GroupForFieldId {
                         key: bound_field.bound_response_key(),
-                        field,
+                        definition: field,
                         bound_field_ids: vec![bound_field.id()],
                     });
             }
@@ -124,8 +124,18 @@ impl<'a> FlatFieldWalker<'a> {
         self.walk(self.item.bound_field_id)
     }
 
-    pub fn into_inner(self) -> FlatField {
+    pub fn into_item(self) -> FlatField {
         self.item.into_owned()
+    }
+
+    pub fn entity_type(&self) -> EntityType {
+        match self.operation[*self.selection_set_path.last().unwrap()].ty {
+            SelectionSetType::Object(id) => EntityType::Object(id),
+            SelectionSetType::Interface(id) => EntityType::Interface(id),
+            SelectionSetType::Union(_) => {
+                unreachable!("Union have no fields")
+            }
+        }
     }
 }
 
@@ -137,9 +147,10 @@ impl<'a> std::ops::Deref for FlatFieldWalker<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct GroupForFieldId<'a> {
     pub key: BoundResponseKey,
-    pub field: BoundFieldDefinitionWalker<'a>,
+    pub definition: BoundFieldDefinitionWalker<'a>,
     pub bound_field_ids: Vec<BoundFieldId>,
 }
 

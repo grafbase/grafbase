@@ -195,7 +195,7 @@ impl QueryBuilder {
 
     fn write_fragments(&self, out: &mut String) {
         out.push_str(&format!(
-            "{}",
+            "\n{}",
             self.fragment_content_to_name
                 .iter()
                 .format_with("\n", |(fragment, name), f| {

@@ -1,7 +1,11 @@
+use std::collections::{HashMap, HashSet};
+
 use schema::ResolverId;
 
 use crate::{
-    request::{BoundFieldId, EntityType, FlatSelectionSet, FlatTypeCondition, QueryPath, SelectionSetType},
+    request::{
+        BoundFieldId, BoundSelectionSetId, EntityType, FlatSelectionSet, FlatTypeCondition, QueryPath, SelectionSetType,
+    },
     response::{ReadSelectionSet, ResponseBoundaryItem},
 };
 
@@ -13,12 +17,13 @@ mod planner;
 pub use attribution::*;
 pub use expectation::*;
 pub use ids::*;
-pub use planner::{Planner, PlanningError};
+pub use planner::Planner;
 
 #[derive(Debug)]
 pub struct Plan {
     pub id: PlanId,
     pub resolver_id: ResolverId,
+    pub sibling_dependencies: HashSet<PlanId>,
     pub input: Option<PlanInput>,
     pub output: PlanOutput,
     /// Boundaries between this plan and its children. ResponseObjectRoots will be collected at
@@ -36,6 +41,7 @@ pub struct PlanInput {
 
 #[derive(Debug)]
 pub struct PlanOutput {
+    pub root_selection_set_id: BoundSelectionSetId,
     pub entity_type: EntityType,
     /// Part of the selection set the plan is responsible for.
     pub root_fields: Vec<BoundFieldId>,
@@ -61,4 +67,8 @@ pub struct ChildPlan {
     pub resolver_id: ResolverId,
     pub input_selection_set: ReadSelectionSet,
     pub root_selection_set: FlatSelectionSet<EntityType>,
+    pub sibling_dependencies: HashSet<PlanId>,
+    // Only includes extra fields necessary for other child plans within the same
+    // plan boundary.
+    extra_selection_sets: HashMap<BoundSelectionSetId, planner::ExtraBoundarySelectionSet>,
 }

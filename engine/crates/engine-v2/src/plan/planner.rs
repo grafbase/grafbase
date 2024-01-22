@@ -1,34 +1,61 @@
 use std::{
     borrow::Cow,
     cell::Cell,
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
 };
 
 use engine_parser::types::OperationType;
-use itertools::Itertools;
-use schema::{FieldResolverWalker, FieldSet, FieldSetItem, FieldWalker, ResolverId, ResolverWalker, Schema};
+use schema::{FieldId, FieldResolverWalker, FieldSet, FieldWalker, ResolverWalker, Schema};
 
 use crate::{
     plan::{
         attribution::AttributionBuilder, ChildPlan, CollectedSelectionSet, ConcreteField, ConcreteType, EntityType,
-        ExpectedSelectionSet, ExtraSelectionSetId, FlatTypeCondition, Plan, PlanBoundary, PlanBoundaryId, PlanId,
-        PlanInput, PlanOutput, PossibleField, UndeterminedSelectionSet,
+        ExpectedSelectionSet, FlatTypeCondition, Plan, PlanBoundary, PlanBoundaryId, PlanId, PlanInput, PlanOutput,
+        PossibleField, UndeterminedSelectionSet,
     },
     request::{
         BoundFieldDefinitionWalker, BoundFieldId, BoundSelectionSetId, FlatField, FlatFieldWalker, FlatSelectionSet,
         FlatSelectionSetWalker, Operation, OperationWalker, QueryPath, SelectionSetType,
     },
-    response::{ReadField, ReadSelectionSet, ResponseBoundaryItem, ResponseEdge},
+    response::{GraphqlError, ReadSelectionSet, ResponseBoundaryItem, ResponseEdge},
 };
 
+pub(super) use boundary_planner::{ExtraBoundaryField, ExtraBoundarySelectionSet};
+use boundary_planner::{PlanBoundaryChildrenPlanner, PlanBoundaryParent};
+
 use super::{ExpectationsBuilder, ExpectedField, ExpectedType, UndeterminedSelectionSetId};
+
+mod boundary_planner;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PlanningError {
     #[error("Could not plan fields: {}", .missing.join(", "))]
-    CouldNotPlanAnyField { missing: Vec<String> },
+    CouldNotPlanAnyField {
+        missing: Vec<String>,
+        query_path: Vec<String>,
+    },
     #[error("Could not satisfy required field named '{field}' for resolver named '{resolver}'")]
     CouldNotSatisfyRequires { resolver: String, field: String },
+}
+
+impl From<PlanningError> for GraphqlError {
+    fn from(error: PlanningError) -> Self {
+        let message = error.to_string();
+        let query_path = match error {
+            PlanningError::CouldNotPlanAnyField { query_path, .. } => query_path
+                .into_iter()
+                .map(serde_json::Value::String)
+                .collect::<Vec<_>>(),
+            PlanningError::CouldNotSatisfyRequires { .. } => vec![],
+        };
+
+        GraphqlError {
+            message,
+            locations: vec![],
+            path: None,
+            extensions: BTreeMap::from([("queryPath".into(), serde_json::Value::Array(query_path))]),
+        }
+    }
 }
 
 pub type PlanningResult<T> = Result<T, PlanningError>;
@@ -37,6 +64,7 @@ pub struct Planner<'op> {
     schema: &'op Schema,
     operation: &'op Operation,
     next_plan_id: Cell<usize>,
+    extra_field_names: HashMap<FieldId, String>,
 }
 
 impl<'op> Planner<'op> {
@@ -45,6 +73,7 @@ impl<'op> Planner<'op> {
             schema,
             operation,
             next_plan_id: Cell::new(0),
+            extra_field_names: HashMap::new(),
         }
     }
 
@@ -83,6 +112,8 @@ impl<'op> Planner<'op> {
                         fields: flat_selection_set.fields,
                     }
                 },
+                sibling_dependencies: HashSet::with_capacity(0),
+                extra_selection_sets: HashMap::with_capacity(0),
             });
         }
         Ok(boundary)
@@ -96,9 +127,10 @@ impl<'op> Planner<'op> {
         let resolver_id = child.resolver_id;
 
         self.create_plan_output(&boundary.query_path, child)
-            .map(|(output, boundaries)| Plan {
+            .map(|(sibling_dependencies, output, boundaries)| Plan {
                 id,
                 resolver_id,
+                sibling_dependencies,
                 input: None,
                 output,
                 boundaries,
@@ -146,16 +178,16 @@ impl<'op> Planner<'op> {
                         response_boundary,
                         selection_set: std::mem::take(&mut child.input_selection_set),
                     });
-                    Some(
-                        self.create_plan_output(&boundary.query_path, child)
-                            .map(|(output, boundaries)| Plan {
-                                id,
-                                resolver_id,
-                                input,
-                                output,
-                                boundaries,
-                            }),
-                    )
+                    Some(self.create_plan_output(&boundary.query_path, child).map(
+                        |(sibling_dependencies, output, boundaries)| Plan {
+                            id,
+                            resolver_id,
+                            sibling_dependencies,
+                            input,
+                            output,
+                            boundaries,
+                        },
+                    ))
                 }
             })
             .collect()
@@ -170,126 +202,18 @@ impl<'op> Planner<'op> {
 
     fn create_plan_boundary(
         &mut self,
-        mut maybe_parent: Option<PlanBoundaryParent<'op, '_, '_>>,
-        missing_selection_set: FlatSelectionSetWalker<'_>,
+        maybe_parent: Option<PlanBoundaryParent<'op, '_, '_>>,
+        missing_selection_set: FlatSelectionSetWalker<'op>,
     ) -> PlanningResult<PlanBoundary> {
-        let walker = self.default_operation_walker();
+        let query_path = maybe_parent
+            .as_ref()
+            .map(|parent| parent.path.clone())
+            .unwrap_or_default();
         let selection_set_type = missing_selection_set.ty();
-        let flat_selection_set_id = missing_selection_set.id();
-        let mut id_to_missing_fields: HashMap<BoundFieldId, FlatField> = missing_selection_set
-            .into_fields()
-            .map(|flat_field| (flat_field.bound_field_id, flat_field.into_inner()))
-            .collect();
-
-        let mut children = Vec::new();
-        'candidates_generation: while !id_to_missing_fields.is_empty() {
-            let count = id_to_missing_fields.len();
-            pub struct ChildPlanCandidate<'a> {
-                entity_type: EntityType,
-                resolver: ResolverWalker<'a>,
-                fields: Vec<(BoundFieldId, &'a FieldSet)>,
-            }
-
-            let mut candidates = HashMap::<ResolverId, ChildPlanCandidate<'_>>::new();
-            for field in id_to_missing_fields.values() {
-                for FieldResolverWalker {
-                    resolver,
-                    field_requires: requires,
-                } in walker
-                    .walk(field.bound_field_id)
-                    .definition()
-                    .as_field()
-                    .expect("Meta fields are always providable so a missing field can't be one.")
-                    .resolvers()
-                {
-                    let candidate = candidates.entry(resolver.id()).or_insert_with(|| {
-                        let entity_type = match self.operation[*field.selection_set_path.last().unwrap()].ty {
-                            SelectionSetType::Object(id) => EntityType::Object(id),
-                            SelectionSetType::Interface(id) => EntityType::Interface(id),
-                            SelectionSetType::Union(_) => {
-                                unreachable!("not a meta field and only interfaces & objects can have fields")
-                            }
-                        };
-                        ChildPlanCandidate {
-                            // We don't need to care about type conditions here as the resolver naturally
-                            // enforces that only fields of the same interface/object can be grouped
-                            // together.
-                            entity_type,
-                            resolver,
-                            fields: Vec::new(),
-                        }
-                    });
-                    candidate.fields.push((field.bound_field_id, requires));
-                }
-            }
-            let mut candidates = candidates.into_values().collect::<Vec<_>>();
-            candidates.sort_unstable_by_key(|candidate| std::cmp::Reverse(candidate.fields.len()));
-            for candidate in candidates {
-                // if we just planned any fields, we're ensuring there is no intersection with the
-                // previous candidate. Otherwise we regenerate the candidates as their ordering is
-                // incorrect now.
-                if id_to_missing_fields.len() < count {
-                    for (id, _) in &candidate.fields {
-                        if !id_to_missing_fields.contains_key(id) {
-                            continue 'candidates_generation;
-                        }
-                    }
-                }
-
-                let resolver = candidate.resolver.with_own_names();
-                let mut providable = vec![];
-                let mut requires = resolver.requires();
-                for (id, field_requires) in candidate.fields {
-                    let flat_field = id_to_missing_fields.remove(&id).unwrap();
-                    if !field_requires.is_empty() {
-                        requires = Cow::Owned(FieldSet::merge(&requires, field_requires));
-                    }
-                    providable.push(flat_field);
-                }
-                children.push(ChildPlan {
-                    id: self.next_plan_id(),
-                    resolver_id: candidate.resolver.id(),
-                    input_selection_set: maybe_parent
-                        .as_mut()
-                        .map(|parent| {
-                            // Parent selection might be a union/interface and current resolver
-                            // apply on a object. It doesn't matter for the ReadSelectionSet
-                            // directly as it'll only read data from response objects that are
-                            // relevant to the plan. But it does matter for any extra fields we may
-                            // add to the parent.
-                            let type_condition = FlatTypeCondition::flatten(
-                                self.schema,
-                                selection_set_type,
-                                vec![candidate.entity_type.into()],
-                            );
-                            self.create_read_selection_set(parent, resolver, type_condition, &requires)
-                        })
-                        .transpose()?
-                        .unwrap_or_default(),
-                    root_selection_set: FlatSelectionSet {
-                        ty: candidate.entity_type,
-                        id: flat_selection_set_id,
-                        fields: providable,
-                    },
-                });
-            }
-
-            // No fields were planned
-            if count == id_to_missing_fields.len() {
-                return Err(PlanningError::CouldNotPlanAnyField {
-                    missing: id_to_missing_fields
-                        .into_keys()
-                        .map(|id| walker.walk(id).response_key_str().to_string())
-                        .collect(),
-                });
-            }
-        }
+        let children = PlanBoundaryChildrenPlanner::new(self, maybe_parent).plan_children(missing_selection_set)?;
         Ok(PlanBoundary {
-            query_path: maybe_parent
-                .as_ref()
-                .map(|parent| parent.path.clone())
-                .unwrap_or_default(),
             selection_set_type,
+            query_path,
             children,
         })
     }
@@ -313,7 +237,7 @@ impl<'op> Planner<'op> {
         // Ordering groups by their position in the query, ensuring proper ordering of plans.
         groups.sort_unstable_by(|a, b| a.key.cmp(&b.key));
 
-        let children = groups
+        let mut children = groups
             .into_iter()
             .map(|group| {
                 let FieldResolverWalker {
@@ -327,6 +251,7 @@ impl<'op> Planner<'op> {
                     .next()
                     .ok_or_else(|| PlanningError::CouldNotPlanAnyField {
                         missing: vec![walker.walk(group.bound_field_ids[0]).response_key_str().to_string()],
+                        query_path: vec![],
                     })?;
                 if !requires.is_empty() {
                     return Err(PlanningError::CouldNotSatisfyRequires {
@@ -354,9 +279,20 @@ impl<'op> Planner<'op> {
                             })
                             .collect(),
                     },
+                    sibling_dependencies: HashSet::new(),
+                    extra_selection_sets: HashMap::with_capacity(0),
                 })
             })
             .collect::<PlanningResult<Vec<_>>>()?;
+
+        // Ensuring mutation fields are executed in order.
+        let mut previous_plan = None;
+        for child in &mut children {
+            if let Some(plan_id) = previous_plan {
+                child.sibling_dependencies.insert(plan_id);
+            }
+            previous_plan = Some(child.id);
+        }
 
         Ok(PlanBoundary {
             selection_set_type,
@@ -369,20 +305,26 @@ impl<'op> Planner<'op> {
         &mut self,
         path: &QueryPath,
         ChildPlan {
+            id,
             resolver_id,
-            root_selection_set: providable,
+            root_selection_set,
+            extra_selection_sets,
+            sibling_dependencies,
             ..
         }: ChildPlan,
-    ) -> PlanningResult<(PlanOutput, Vec<PlanBoundary>)> {
+    ) -> PlanningResult<(HashSet<PlanId>, PlanOutput, Vec<PlanBoundary>)> {
         let resolver = self.schema.walker().walk(resolver_id).with_own_names();
         let walker = self.operation.walker_with(resolver.walk(()));
-        let flat_selection_set: FlatSelectionSetWalker<'_, EntityType> = walker.walk(Cow::Owned(providable));
-        let entity_type = flat_selection_set.ty();
+        let root_selection_set_id = BoundSelectionSetId::from(root_selection_set.id);
+        let entity_type = root_selection_set.ty;
+        let flat_selection_set: FlatSelectionSetWalker<'_, EntityType> = walker.walk(Cow::Owned(root_selection_set));
 
         let mut boundaries = Vec::new();
-        let mut attribution = AttributionBuilder::new(&self.operation.response_keys, resolver);
+        let mut attribution = AttributionBuilder::default();
+        attribution.add_extra_selection_sets(extra_selection_sets);
         let mut expectations = ExpectationsBuilder::default();
         let mut builder = PlanOutputBuilderContext {
+            plan_id: id,
             planner: self,
             path: path.clone(),
             walker,
@@ -401,7 +343,9 @@ impl<'op> Planner<'op> {
             .collect();
         let root_selection_set = builder.collect_fields(flat_selection_set, None)?;
         Ok((
+            sibling_dependencies,
             PlanOutput {
+                root_selection_set_id,
                 entity_type,
                 root_fields: fields,
                 attribution: attribution.build(),
@@ -411,160 +355,49 @@ impl<'op> Planner<'op> {
         ))
     }
 
-    fn create_read_selection_set(
-        &mut self,
-        parent: &mut PlanBoundaryParent<'op, '_, '_>,
-        resolver: ResolverWalker<'_>,
-        type_condition: Option<FlatTypeCondition>,
-        requires: &FieldSet,
-    ) -> PlanningResult<ReadSelectionSet> {
-        if requires.is_empty() {
-            return Ok(ReadSelectionSet::default());
-        }
-        let mut groups = parent.flat_selection_set.group_by_field_id();
-
-        let (providable, missing): (Vec<_>, Vec<_>) = requires
-            .iter()
-            .map(|item| {
-                if let Some(group) = groups.remove(&item.field_id) {
-                    Ok((item, group))
-                } else {
-                    Err(item)
-                }
-            })
-            .partition_result();
-
-        let mut read_selection_set = providable
-            .into_iter()
-            .map(|(item, group)| {
-                if !parent.logic.is_providable(*group.field) {
-                    return Err(PlanningError::CouldNotSatisfyRequires {
-                        resolver: resolver.name().to_string(),
-                        // We want the actual schema name here.
-                        field: self.schema.walker().walk(item.field_id).name().to_string(),
-                    });
-                }
-
-                let subselection = if item.subselection.is_empty() {
-                    ReadSelectionSet::default()
-                } else {
-                    let flat_selection_set = self
-                        .default_operation_walker()
-                        .merged_selection_sets(&group.bound_field_ids);
-                    self.create_read_selection_set(
-                        &mut parent.child(*group.field, flat_selection_set),
-                        resolver,
-                        None,
-                        &item.subselection,
-                    )?
-                };
-
-                Ok(ReadField {
-                    edge: group.key.into(),
-                    // We want the resolver's Names here.
-                    name: resolver.walk(group.field.id()).name().to_string(),
-                    subselection,
-                })
-            })
-            .collect::<PlanningResult<ReadSelectionSet>>()?;
-
-        if !missing.is_empty() {
-            let id = BoundSelectionSetId::from(parent.flat_selection_set.id());
-            // If it wasn't done already, we're now attributing this selection_set to the parent
-            // plan as it'll contain at least one extra field.
-            parent.attribution.attributed_selection_sets.insert(id);
-            let extra_selection_set_id = parent.attribution.extra_selection_set_for(id, self.operation[id].ty);
-            read_selection_set.extend_disjoint(self.create_extra_read_selection_set(
-                parent.attribution,
-                extra_selection_set_id,
-                parent.logic.clone(),
-                resolver,
-                type_condition,
-                missing,
-            )?);
-        }
-        Ok(read_selection_set)
-    }
-
-    fn create_extra_read_selection_set<'a>(
-        &mut self,
-        parent_attribution: &mut AttributionBuilder<'op>,
-        extra_selection_set_id: ExtraSelectionSetId,
-        logic: AttributionLogic<'_>,
-        resolver: ResolverWalker<'_>,
-        type_condition: Option<FlatTypeCondition>,
-        missing: impl IntoIterator<Item = &'a FieldSetItem>,
-    ) -> PlanningResult<ReadSelectionSet> {
-        missing
-            .into_iter()
-            .map(|missing_item| {
-                let field = resolver.walk(missing_item.field_id);
-                if !logic.is_providable(field) {
-                    return Err(PlanningError::CouldNotSatisfyRequires {
-                        resolver: resolver.name().to_string(),
-                        // We want the actual schema name here.
-                        field: self.schema.walker().walk(field.id()).name().to_string(),
-                    });
-                }
-                let extra_field = parent_attribution.get_or_insert_extra_field_with(
-                    extra_selection_set_id,
-                    type_condition.as_ref(),
-                    field.id(),
-                );
-                Ok(ReadField {
-                    edge: extra_field.edge,
-                    // We want the name that the resolver expects here.
-                    name: field.name().to_string(),
-                    subselection: match extra_field.ty {
-                        ExpectedType::SelectionSet(subselection_id) => self.create_extra_read_selection_set(
-                            parent_attribution,
-                            subselection_id,
-                            logic.child(field),
-                            resolver,
-                            None,
-                            &missing_item.subselection,
-                        )?,
-                        _ => ReadSelectionSet::default(),
-                    },
-                })
-            })
-            .collect()
-    }
-
     fn default_operation_walker(&self) -> OperationWalker<'op> {
         self.operation.walker_with(self.schema.walker())
     }
-}
 
-struct PlanBoundaryParent<'op, 'plan, 'ctx> {
-    path: &'ctx QueryPath,
-    logic: AttributionLogic<'op>,
-    attribution: &'plan mut AttributionBuilder<'op>,
-    flat_selection_set: FlatSelectionSetWalker<'op>,
-}
-
-impl<'op, 'plan, 'ctx> PlanBoundaryParent<'op, 'plan, 'ctx> {
-    fn child<'s>(
-        &'s mut self,
-        field: FieldWalker<'op>,
-        flat_selection_set: FlatSelectionSetWalker<'op>,
-    ) -> PlanBoundaryParent<'op, 's, 'ctx> {
-        PlanBoundaryParent {
-            path: self.path,
-            logic: self.logic.child(field),
-            attribution: self.attribution,
-            flat_selection_set,
-        }
+    fn get_extra_field_name(&mut self, field_id: FieldId) -> String {
+        // When the resolver supports aliases, we must ensure that extra fields
+        // don't collide with existing response keys. And to avoid duplicates
+        // during field collection, we have a single unique name per field id.
+        self.extra_field_names
+            .entry(field_id)
+            .or_insert_with(|| {
+                let short_id = hex::encode(u32::from(field_id).to_be_bytes())
+                    .trim_start_matches('0')
+                    .to_uppercase();
+                let name = format!("_{}{}", self.schema.walker().walk(field_id).name(), short_id);
+                // name is unique, but may collide with existing keys so
+                // iterating over candidates until we find a valid one.
+                // This is only a safeguard, it most likely won't ever run.
+                if self.operation.response_keys.contains(&name) {
+                    let mut index = 0;
+                    loop {
+                        let candidate = format!("{name}{index}");
+                        if !self.operation.response_keys.contains(&candidate) {
+                            break candidate;
+                        }
+                        index += 1;
+                    }
+                } else {
+                    name
+                }
+            })
+            .to_string()
     }
 }
 
 struct PlanOutputBuilderContext<'op, 'plan> {
     planner: &'plan mut Planner<'op>,
+    plan_id: PlanId,
     path: QueryPath,
     walker: OperationWalker<'op>,
     resolver: ResolverWalker<'op>,
     logic: AttributionLogic<'op>,
-    attribution: &'plan mut AttributionBuilder<'op>,
+    attribution: &'plan mut AttributionBuilder,
     expectations: &'plan mut ExpectationsBuilder,
     boundaries: &'plan mut Vec<PlanBoundary>,
 }
@@ -578,17 +411,19 @@ enum AttributionLogic<'a> {
     },
     /// Only an explicitly providable (@provide) field can be attributed. This is an optimization
     /// overriding the CompatibleResolver logic
-    OnlyProvidable { providable: FieldSet },
+    OnlyProvidable {
+        resolver: ResolverWalker<'a>,
+        providable: FieldSet,
+    },
 }
 
 impl<'a> AttributionLogic<'a> {
     fn is_providable(&self, field: FieldWalker<'_>) -> bool {
         match self {
             AttributionLogic::CompatibleResolver { resolver, providable } => {
-                let providable_field = providable.get(field.id());
-                providable_field.is_some() || resolver.can_provide(field)
+                providable.get(field.id()).is_some() || resolver.can_provide(field)
             }
-            AttributionLogic::OnlyProvidable { providable } => providable.get(field.id()).is_some(),
+            AttributionLogic::OnlyProvidable { providable, .. } => providable.get(field.id()).is_some(),
         }
     }
 
@@ -605,16 +440,27 @@ impl<'a> AttributionLogic<'a> {
                         providable,
                     }
                 } else {
-                    AttributionLogic::OnlyProvidable { providable }
+                    AttributionLogic::OnlyProvidable {
+                        resolver: *resolver,
+                        providable,
+                    }
                 }
             }
-            AttributionLogic::OnlyProvidable { providable } => AttributionLogic::OnlyProvidable {
+            AttributionLogic::OnlyProvidable { resolver, providable } => AttributionLogic::OnlyProvidable {
+                resolver: *resolver,
                 providable: providable
                     .get(field.id())
                     .map(|s| &s.subselection)
                     .cloned()
                     .unwrap_or_default(),
             },
+        }
+    }
+
+    fn resolver(&self) -> &ResolverWalker<'a> {
+        match self {
+            AttributionLogic::CompatibleResolver { resolver, .. } => resolver,
+            AttributionLogic::OnlyProvidable { resolver, .. } => resolver,
         }
     }
 }
@@ -685,6 +531,7 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
         } else {
             let boundary = self.planner.create_plan_boundary(
                 Some(PlanBoundaryParent {
+                    plan_id: self.plan_id,
                     path: &self.path,
                     logic: self.logic.clone(),
                     attribution: self.attribution,
@@ -740,9 +587,7 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
                 definition_id: None,
                 ty: match extra_field.ty {
                     ExpectedType::Scalar(data_type) => ConcreteType::Scalar(data_type),
-                    ExpectedType::SelectionSet(id) => {
-                        ConcreteType::ExtraSelectionSet(self.attribution[id].clone().build())
-                    }
+                    ExpectedType::SelectionSet(id) => ConcreteType::ExtraSelectionSet(self.attribution[id].clone()),
                 },
                 wrapping: self.walker.schema().walk(extra_field.field_id).ty().wrapping().clone(),
             }));
@@ -809,7 +654,7 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
             };
             let bound_field = flat_field.bound_field();
             Ok(PossibleField::Query(self.expectations.push_field(ExpectedField {
-                type_condition: flat_field.into_inner().type_condition,
+                type_condition: flat_field.into_item().type_condition,
                 expected_key,
                 ty,
                 field_id: field.id(),
@@ -818,7 +663,7 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
             })))
         } else {
             Ok(PossibleField::TypeName {
-                type_condition: flat_field.into_inner().type_condition,
+                type_condition: flat_field.into_item().type_condition,
                 key: bound_field.bound_response_key(),
             })
         }
@@ -832,6 +677,7 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
 
     fn child<'s>(&'s mut self, field: BoundFieldDefinitionWalker<'_>) -> PlanOutputBuilderContext<'op, 's> {
         PlanOutputBuilderContext {
+            plan_id: self.plan_id,
             planner: self.planner,
             path: self.path.child(field.response_key()),
             walker: self.walker,

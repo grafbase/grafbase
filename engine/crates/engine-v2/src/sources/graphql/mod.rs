@@ -3,7 +3,7 @@ use schema::sources::federation::{RootFieldResolverWalker, SubgraphHeaderValueRe
 
 use super::{ExecutionContext, Executor, ExecutorError, ExecutorResult, ResolverInput};
 use crate::{
-    plan::PlanOutput,
+    plan::{PlanId, PlanOutput},
     response::{ExecutorOutput, ResponseBoundaryItem},
 };
 
@@ -19,35 +19,46 @@ pub(crate) struct GraphqlExecutor<'ctx> {
     subgraph: SubgraphWalker<'ctx>,
     json_body: String,
     boundary_item: ResponseBoundaryItem,
+    pub(super) plan_id: PlanId,
     plan_output: PlanOutput,
     output: ExecutorOutput,
 }
 
 impl<'ctx> GraphqlExecutor<'ctx> {
+    #[tracing::instrument(skip_all, fields(plan_id = %input.plan_id, federated_subgraph = %resolver.subgraph().name()))]
     pub fn build<'input>(
         resolver: RootFieldResolverWalker<'ctx>,
-        ResolverInput {
+        input: ResolverInput<'ctx, 'input>,
+    ) -> ExecutorResult<Executor<'ctx>> {
+        let ResolverInput {
             ctx,
             boundary_objects_view: roots,
             plan_id,
             plan_output,
             output,
-        }: ResolverInput<'ctx, 'input>,
-    ) -> ExecutorResult<Executor<'ctx>> {
+        } = input;
         let subgraph = resolver.subgraph();
         let query = query::Query::build(ctx, plan_id, &plan_output)
             .map_err(|err| ExecutorError::Internal(format!("Failed to build query: {err}")))?;
+        tracing::debug!(
+            "Query {}\n{}\n{}",
+            subgraph.name(),
+            query.query,
+            serde_json::to_string_pretty(&query.variables).unwrap_or_default()
+        );
         Ok(Executor::GraphQL(Self {
             ctx,
             subgraph,
             json_body: serde_json::to_string(&query)
                 .map_err(|err| ExecutorError::Internal(format!("Failed to serialize query: {err}")))?,
             boundary_item: roots.into_single_boundary_item(),
+            plan_id,
             plan_output,
             output,
         }))
     }
 
+    #[tracing::instrument(skip_all, fields(plan_id = %self.plan_id, federated_subgraph = %self.subgraph.name()))]
     pub async fn execute(mut self) -> ExecutorResult<ExecutorOutput> {
         let bytes = self
             .ctx

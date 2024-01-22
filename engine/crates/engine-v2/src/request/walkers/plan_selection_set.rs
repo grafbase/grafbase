@@ -51,7 +51,12 @@ impl<'a> IntoIterator for PlanSelectionSet<'a> {
                 walker: walker.walk(()),
                 bound_field_ids: walker.item.root_fields.iter().copied().collect(),
                 selections: VecDeque::with_capacity(0),
-                extra_fields: VecDeque::with_capacity(0),
+                extra_fields: walker
+                    .ctx
+                    .attribution
+                    .extras_for(walker.item.root_selection_set_id)
+                    .map(|extras| extras.fields().collect())
+                    .unwrap_or_default(),
             },
             Self::Query(walker) => PlanSelectionIterator {
                 walker: walker.walk(()),

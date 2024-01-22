@@ -3,7 +3,7 @@ use schema::sources::introspection::{Metadata, ResolverWalker};
 use super::{Executor, ExecutorError, ResolverInput};
 use crate::{
     execution::ExecutionContext,
-    plan::PlanOutput,
+    plan::{PlanId, PlanOutput},
     response::{ExecutorOutput, ResponseBoundaryItem},
 };
 
@@ -15,6 +15,7 @@ pub(crate) struct IntrospectionExecutionPlan<'ctx> {
     metadata: &'ctx Metadata,
     plan_output: PlanOutput,
     output: ExecutorOutput,
+    pub(super) plan_id: PlanId,
 }
 
 impl<'ctx> IntrospectionExecutionPlan<'ctx> {
@@ -24,7 +25,7 @@ impl<'ctx> IntrospectionExecutionPlan<'ctx> {
         ResolverInput {
             ctx,
             boundary_objects_view: root_response_objects,
-            plan_id: _,
+            plan_id,
             plan_output,
             output,
         }: ResolverInput<'ctx, 'input>,
@@ -35,6 +36,7 @@ impl<'ctx> IntrospectionExecutionPlan<'ctx> {
             metadata: resolver.metadata(),
             plan_output,
             output,
+            plan_id,
         }))
     }
 

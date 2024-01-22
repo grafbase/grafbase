@@ -94,6 +94,14 @@ impl<'exc> Executor<'exc> {
             Executor::FederationEntity(executor) => executor.execute().await,
         }
     }
+
+    pub fn plan_id(&self) -> PlanId {
+        match self {
+            Executor::GraphQL(executor) => executor.plan_id,
+            Executor::Introspection(executor) => executor.plan_id,
+            Executor::FederationEntity(executor) => executor.plan_id,
+        }
+    }
 }
 
 #[allow(dead_code)]

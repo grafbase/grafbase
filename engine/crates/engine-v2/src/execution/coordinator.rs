@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use async_runtime::make_send_on_wasm;
 use engine::RequestHeaders;
@@ -11,7 +11,7 @@ use futures_util::{
 
 use crate::{
     execution::{ExecutionContext, Variables},
-    plan::{Plan, PlanBoundary, Planner, PlanningError},
+    plan::{Plan, PlanBoundary, PlanId, Planner},
     request::Operation,
     response::{ExecutionMetadata, ExecutorOutput, GraphqlError, Response, ResponseBoundaryItem, ResponseBuilder},
     sources::{Executor, ExecutorResult, ResolverInput, SubscriptionExecutor, SubscriptionResolverInput},
@@ -47,50 +47,30 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
     }
 
     pub async fn execute(self) -> Response {
+        if matches!(self.operation.ty, OperationType::Subscription) {
+            unreachable!("execute shouldnt be called for subscriptions")
+        }
+
         let mut planner = Planner::new(&self.engine.schema, &self.operation);
         let mut response = ResponseBuilder::new(self.operation.root_object_id);
 
-        // Mutation root fields need to be executed sequentially. So we're tracking for each
-        // executor whether it was for one and if so execute the next executor in the queue.
-        // Keeping the queue outside of the FuturesUnordered also ensures the future is static
-        // which wasm target somehow required. (not entirely sure why though)
-        let mut mutation_root_fields_executors = vec![];
         let response_boundary = vec![response
             .root_response_boundary()
             .expect("a fresh response should always have a root")];
 
-        let initial_executors = match planner.generate_root_plan_boundary() {
+        let (executors, plans_with_dependencies) = match planner.generate_root_plan_boundary() {
             Ok(boundary) => self.generate_executors(vec![(boundary, response_boundary)], &mut planner, &mut response),
             Err(error) => {
-                response.push_error(error.into_graphql_error());
-
-                vec![]
+                response.push_error(error);
+                (vec![], vec![])
             }
         };
 
         let mut futures = ExecutorFutureSet::new();
-
-        match self.operation.ty {
-            OperationType::Query => {
-                for executor in initial_executors {
-                    futures.execute(executor);
-                }
-            }
-            OperationType::Mutation => {
-                // Reverse the initial_executors so we can pop them in the order they should run
-                mutation_root_fields_executors = initial_executors;
-                mutation_root_fields_executors.reverse();
-
-                if let Some(executor) = mutation_root_fields_executors.pop() {
-                    futures.execute_mutation_root(executor);
-                }
-            }
-            OperationType::Subscription => {
-                unreachable!("execute shouldnt be called for subscriptions")
-            }
+        for executor in executors {
+            futures.execute(executor);
         }
-
-        self.execute_once(futures, response, mutation_root_fields_executors, &mut planner)
+        self.execute_once(futures, response, &mut planner, plans_with_dependencies)
             .await
     }
 
@@ -120,9 +100,16 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
 
         while let Some((response, output)) = stream.next().await {
             let mut futures = ExecutorFutureSet::new();
-            futures.push(async move { ExecutorFutResult::from(Ok(output)) });
+            futures.push(async move {
+                ExecutorFutResult {
+                    result: Ok(output),
+                    // Hack, we just know that the subscription plan is necessarily the first and
+                    // there are no sibling plans anyway. So doesn't matter for now.
+                    plan_id: PlanId::from(0),
+                }
+            });
 
-            let response = self.execute_once(futures, response, vec![], &mut planner).await;
+            let response = self.execute_once(futures, response, &mut planner, vec![]).await;
 
             if responses.send(response).await.is_err() {
                 return;
@@ -135,14 +122,19 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
         &'ctx self,
         mut futures: ExecutorFutureSet<'ctx>,
         mut response: ResponseBuilder,
-        mut mutation_root_fields_executors: Vec<Executor<'ctx>>,
         planner: &mut Planner<'ctx>,
+        plans_with_dependencies: Vec<Plan>,
     ) -> Response {
-        while let Some(ExecutorFutResult {
-            result,
-            is_mutation_root_field,
-        }) = futures.next().await
-        {
+        let mut outgoing_edges = HashMap::<PlanId, Vec<PlanId>>::new();
+        let mut plans = HashMap::<PlanId, Plan>::new();
+        for plan in plans_with_dependencies {
+            for dependency in &plan.sibling_dependencies {
+                outgoing_edges.entry(*dependency).or_default().push(plan.id);
+            }
+            plans.insert(plan.id, plan);
+        }
+
+        while let Some(ExecutorFutResult { result, plan_id }) = futures.next().await {
             match result {
                 Ok(output) => {
                     // Ingesting data first to propagate errors.
@@ -151,12 +143,30 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
                     // Hack to ensure we don't execute any subsequent mutation root fields if a
                     // previous one failed and the error propagated up to the root `data` field.
                     if response.root_response_object_id().is_some() {
-                        if is_mutation_root_field {
-                            if let Some(executor) = mutation_root_fields_executors.pop() {
-                                futures.execute_mutation_root(executor);
+                        for dependent in outgoing_edges.remove(&plan_id).unwrap_or_default() {
+                            let executable = plans
+                                .get_mut(&dependent)
+                                .map(|plan| {
+                                    plan.sibling_dependencies.remove(&plan_id);
+                                    plan.sibling_dependencies.is_empty()
+                                })
+                                .unwrap_or_default();
+                            if executable {
+                                let plan = plans.remove(&dependent).unwrap();
+                                match self.executor_from_plan(plan, &mut response) {
+                                    Ok(executor) => futures.execute(executor),
+                                    Err(error) => response.push_error(error),
+                                }
                             }
                         }
-                        let executors = self.generate_executors(boundaries, planner, &mut response);
+                        let (executors, plans_with_dependencies) =
+                            self.generate_executors(boundaries, planner, &mut response);
+                        for plan in plans_with_dependencies {
+                            for dependency in &plan.sibling_dependencies {
+                                outgoing_edges.entry(*dependency).or_default().push(plan.id);
+                            }
+                            plans.insert(plan.id, plan);
+                        }
                         for executor in executors {
                             futures.execute(executor);
                         }
@@ -181,8 +191,7 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
     ) -> Result<BoxStream<'a, (ResponseBuilder, ExecutorOutput)>, GraphqlError> {
         let plan = planner
             .generate_root_plan_boundary()
-            .and_then(|boundary| planner.generate_subscription_plan(boundary))
-            .map_err(PlanningError::into_graphql_error)?;
+            .and_then(|boundary| planner.generate_subscription_plan(boundary))?;
 
         let executor = self.subscription_executor_from_plan(plan)?;
 
@@ -194,28 +203,33 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
         boundaries: Vec<(PlanBoundary, Vec<ResponseBoundaryItem>)>,
         planner: &mut Planner<'ctx>,
         response: &mut ResponseBuilder, // mutable_bits: &mut TheMutableBits<'ctx>,
-    ) -> Vec<Executor<'_>> {
+    ) -> (Vec<Executor<'_>>, Vec<Plan>) {
         // Ordering of the executors MUST match the plan boundary order for mutation root
         let mut executors = vec![];
+        let mut plans_with_dependencies = vec![];
 
         for (plan_boundary, response_boundaries) in boundaries {
             let plans = match planner.generate_plans(plan_boundary, &response_boundaries) {
                 Ok(plans) => plans,
                 Err(error) => {
-                    response.push_error(error.into_graphql_error());
+                    response.push_error(error);
                     continue;
                 }
             };
 
             for plan in plans {
-                match self.executor_from_plan(plan, response) {
-                    Ok(executor) => executors.push(executor),
-                    Err(error) => response.push_error(error),
+                if plan.sibling_dependencies.is_empty() {
+                    match self.executor_from_plan(plan, response) {
+                        Ok(executor) => executors.push(executor),
+                        Err(error) => response.push_error(error),
+                    }
+                } else {
+                    plans_with_dependencies.push(plan);
                 }
             }
         }
 
-        executors
+        (executors, plans_with_dependencies)
     }
 
     fn executor_from_plan<'a>(&'a self, plan: Plan, response: &mut ResponseBuilder) -> ExecutorResult<Executor<'a>> {
@@ -270,17 +284,6 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
     }
 }
 
-impl PlanningError {
-    fn into_graphql_error(self) -> GraphqlError {
-        GraphqlError {
-            message: self.to_string(),
-            locations: vec![],
-            path: None,
-            extensions: BTreeMap::from([("queryPath".into(), serde_json::Value::Array(vec![]))]),
-        }
-    }
-}
-
 pub struct ExecutorFutureSet<'a>(FuturesUnordered<BoxFuture<'a, ExecutorFutResult>>);
 
 impl<'a> ExecutorFutureSet<'a> {
@@ -289,16 +292,12 @@ impl<'a> ExecutorFutureSet<'a> {
     }
 
     fn execute(&mut self, executor: Executor<'a>) {
-        self.push(make_send_on_wasm(executor.execute().map(ExecutorFutResult::from)))
-    }
-
-    fn execute_mutation_root(&mut self, executor: Executor<'a>) {
-        self.push(make_send_on_wasm(async move {
-            ExecutorFutResult {
-                result: executor.execute().await,
-                is_mutation_root_field: true,
-            }
-        }))
+        let plan_id = executor.plan_id();
+        self.push(make_send_on_wasm(
+            executor
+                .execute()
+                .map(move |result| ExecutorFutResult { result, plan_id }),
+        ))
     }
 
     fn push(&mut self, fut: impl Future<Output = ExecutorFutResult> + Send + 'a) {
@@ -312,14 +311,5 @@ impl<'a> ExecutorFutureSet<'a> {
 
 struct ExecutorFutResult {
     result: ExecutorResult<ExecutorOutput>,
-    is_mutation_root_field: bool,
-}
-
-impl From<ExecutorResult<ExecutorOutput>> for ExecutorFutResult {
-    fn from(result: ExecutorResult<ExecutorOutput>) -> Self {
-        Self {
-            result,
-            is_mutation_root_field: false,
-        }
-    }
+    plan_id: PlanId,
 }
