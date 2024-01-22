@@ -37,8 +37,8 @@ impl<'a> ResolverWalker<'a> {
     pub fn group(&self) -> Option<ResolverGroup> {
         match self.as_ref() {
             Resolver::Introspection(_) => None,
-            Resolver::FederationRootField(resolver) => Some(ResolverGroup::Federation(resolver.subgraph_id)),
-            Resolver::FederationEntity(resolver) => Some(ResolverGroup::Federation(resolver.subgraph_id)),
+            Resolver::FederationRootField(resolver) => Some(ResolverGroup::FederationSubgraph(resolver.subgraph_id)),
+            Resolver::FederationEntity(resolver) => Some(ResolverGroup::FederationSubgraph(resolver.subgraph_id)),
         }
     }
 

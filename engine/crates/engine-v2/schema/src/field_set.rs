@@ -79,7 +79,9 @@ impl FieldSet {
     }
 
     pub fn merge(left_set: &FieldSet, right_set: &FieldSet) -> FieldSet {
-        let mut items = vec![];
+        // Allocating too much, but doesn't really matter. FieldSet will always be relatively small
+        // anyway.
+        let mut items = Vec::with_capacity(left_set.items.len() + right_set.items.len());
         let mut l = 0;
         let mut r = 0;
         while l < left_set.items.len() && r < right_set.items.len() {
