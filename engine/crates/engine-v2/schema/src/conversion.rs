@@ -68,6 +68,10 @@ impl From<Config> for Schema {
 
             for key in object.keys {
                 let subgraph_id = key.subgraph_id.into();
+                // Some SDL are generated with empty keys, they're useless to us.
+                if key.fields.is_empty() {
+                    continue;
+                }
                 if key.resolvable {
                     let resolver_id = ResolverId::from(schema.resolvers.len());
                     schema
