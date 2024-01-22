@@ -453,6 +453,29 @@ impl<'doc> AnalyzedSchema<'doc> {
     fn push_union_variant(&mut self, union: UnionId, variant: ObjectId) {
         self.union_variants.push((union, variant));
     }
+
+    pub fn push_custom_resolver(&mut self, custom_resolver: &crate::CustomResolver) {
+        let Some(Definition::Object(parent_object_id)) = self
+            .definition_names
+            .get(custom_resolver.parent_type_name.as_str())
+            .copied()
+        else {
+            return;
+        };
+
+        let partition_point = self.object_fields.partition_point(|(id, _)| *id < parent_object_id);
+
+        for (object_id, field) in &mut self.object_fields[partition_point..] {
+            if *object_id != parent_object_id {
+                return;
+            }
+
+            if field.name == custom_resolver.field_name {
+                assert!(field.resolver_name.is_none());
+                field.resolver_name = Some(custom_resolver.resolver_name.to_owned());
+            }
+        }
+    }
 }
 
 impl<'doc> ops::Index<CustomScalarId> for AnalyzedSchema<'doc> {
