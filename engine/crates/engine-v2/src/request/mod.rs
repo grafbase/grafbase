@@ -13,7 +13,7 @@ pub use walkers::*;
 
 use crate::response::ResponseKeys;
 
-use self::bind::OperationLimitExceededError;
+use self::bind::{BindError, OperationLimitExceededError};
 
 mod bind;
 mod flat;
@@ -39,8 +39,18 @@ pub struct Operation {
 }
 
 impl Operation {
-    fn enforce_operation_limits(&self) -> Result<(), OperationLimitExceededError> {
+    fn enforce_operation_limits(&self, schema: &Schema) -> Result<(), (OperationLimitExceededError, Pos)> {
         // FIXME: Implement.
+
+        let walker = self.walker_with(schema.walker()).walk(self.root_selection_set_id);
+
+        if let Some(depth_limit) = schema.operation_limits.depth {
+            let (max_depth, location) = walker.max_depth();
+            if max_depth > depth_limit {
+                return Err((OperationLimitExceededError::QueryTooDeep, location));
+            }
+        }
+
         Ok(())
     }
 
@@ -51,6 +61,10 @@ impl Operation {
     /// At this stage the operation might not be resolvable but it should make sense given the schema types.
     pub fn build(schema: &Schema, unbound_operation: UnboundOperation) -> BindResult<Self> {
         let mut operation = Self::bind(schema, unbound_operation)?;
+
+        operation
+            .enforce_operation_limits(&schema)
+            .map_err(|(error, location)| BindError::OperationLimitExceeded { error, location })?;
 
         if operation.ty == OperationType::Query {
             let root_cache_config = schema[operation.root_object_id]

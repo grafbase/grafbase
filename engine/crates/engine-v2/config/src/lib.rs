@@ -40,6 +40,7 @@ impl VersionedConfig {
                 subgraph_configs: Default::default(),
                 cache: Default::default(),
                 auth: None,
+                operation_limits: Default::default(),
             },
             VersionedConfig::V2(latest) => latest,
         }

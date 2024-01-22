@@ -85,7 +85,7 @@ pub enum BindError {
     },
     #[error("Fragment cycle detected: {}", .cycle.iter().join(", "))]
     FragmentCycle { cycle: Vec<String>, location: Pos },
-    #[error("{0}")]
+    #[error("{error}")]
     OperationLimitExceeded {
         error: OperationLimitExceededError,
         location: Pos,
