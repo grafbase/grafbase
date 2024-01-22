@@ -1,14 +1,14 @@
 {
   "src → target": [
     {
-      "kind": "AddFieldArgumentDefault",
-      "path": "Query.doMop.useMop"
+      "path": "Query.doMop.useMop",
+      "kind": "AddFieldArgumentDefault"
     }
   ],
   "target → src": [
     {
-      "kind": "RemoveFieldArgumentDefault",
-      "path": "Query.doMop.useMop"
+      "path": "Query.doMop.useMop",
+      "kind": "RemoveFieldArgumentDefault"
     }
   ]
 }
