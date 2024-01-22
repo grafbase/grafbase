@@ -1,6 +1,6 @@
 [toolchain]
 profile = "default"
-channel = "beta"
+channel = "1.75.0"
 targets = [
     "aarch64-apple-darwin",
     "x86_64-apple-darwin",
