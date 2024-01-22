@@ -71,7 +71,7 @@ uuid = "1"
 ulid = "1"
 wasm-bindgen = "0.2"
 web-time = "1"
-which = "5"
+which = "6"
 worker = "0.0.18"
 
 # Serde
