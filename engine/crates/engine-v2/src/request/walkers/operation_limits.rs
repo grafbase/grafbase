@@ -1,7 +1,5 @@
 use std::collections::HashSet;
 
-use schema::StringId;
-
 use super::{BoundSelectionSetWalker, BoundSelectionWalker};
 
 impl<'a> BoundSelectionSetWalker<'a, ()> {
@@ -65,12 +63,12 @@ impl<'a> BoundSelectionSetWalker<'a, ()> {
     }
 
     // `None` stored in the set means `__typename`.
-    pub(crate) fn height(&self, fields_seen: &mut HashSet<Option<StringId>>) -> u16 {
+    pub(crate) fn height(&self, fields_seen: &mut HashSet<Option<schema::FieldId>>) -> u16 {
         (*self)
             .into_iter()
             .map(|selection| match selection {
                 BoundSelectionWalker::Field(field) => {
-                    (if fields_seen.insert(field.definition().as_field().map(|field| field.name_string_id())) {
+                    (if fields_seen.insert(field.definition().as_field().map(|field| field.id())) {
                         1
                     } else {
                         0
