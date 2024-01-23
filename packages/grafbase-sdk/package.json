@@ -1,16 +1,22 @@
 {
   "name": "@grafbase/sdk",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "The Grafbase SDK",
   "repository": {
     "type": "git",
     "url": "https://github.com/grafbase/grafbase",
     "directory": "packages/grafbase-sdk"
   },
-  "keywords": ["grafbase", "typescript", "graphql"],
+  "keywords": [
+    "grafbase",
+    "typescript",
+    "graphql"
+  ],
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
-  "files": ["/dist"],
+  "files": [
+    "/dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "pnpm exec jest",
@@ -21,7 +27,10 @@
   },
   "watch": {
     "build": {
-      "patterns": ["src", "tests"],
+      "patterns": [
+        "src",
+        "tests"
+      ],
       "extensions": "ts"
     }
   },
