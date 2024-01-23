@@ -28,7 +28,7 @@ impl<'a> BoundSelectionSetWalker<'a, ()> {
             .into_iter()
             .map(|selection| match selection {
                 BoundSelectionWalker::Field(field) => {
-                    (field.definition().as_field().expect("must be a field").name() == field.response_key_str()) as u16
+                    (field.definition().schema_name() == field.response_key_str()) as u16
                 }
                 BoundSelectionWalker::InlineFragment(inline) => inline.selection_set().alias_count(),
                 BoundSelectionWalker::FragmentSpread(spread) => spread.selection_set().alias_count(),
@@ -64,15 +64,16 @@ impl<'a> BoundSelectionSetWalker<'a, ()> {
             .sum()
     }
 
-    pub(crate) fn height(&self, fields_seen: &mut HashSet<StringId>) -> u16 {
+    // `None` stored in the set means `__typename`.
+    pub(crate) fn height(&self, fields_seen: &mut HashSet<Option<StringId>>) -> u16 {
         (*self)
             .into_iter()
             .map(|selection| match selection {
                 BoundSelectionWalker::Field(field) => {
-                    (if fields_seen.insert(field.definition().as_field().expect("must be a field").name_string_id()) {
-                        0
-                    } else {
+                    (if fields_seen.insert(field.definition().as_field().map(|field| field.name_string_id())) {
                         1
+                    } else {
+                        0
                     }) + field
                         .selection_set()
                         .map(|selection_set| selection_set.height(&mut HashSet::new()))
