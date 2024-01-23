@@ -54,7 +54,7 @@ cfg-if = "1"
 walkdir = "2"
 sha2 = "0.10"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.52.4" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.52.5" }
 gateway = { path = "../gateway" }
 typed-resolvers = { path = "../typed-resolvers" }
 federated-dev = { path = "../federated-dev" }

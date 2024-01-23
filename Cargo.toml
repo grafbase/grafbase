@@ -20,7 +20,7 @@ tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44fa
 ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "299b52e08db0703b129063347584ce063da10721" } # 1.1.0-wasm-compatibility-web-time-1.0
 
 [workspace.package]
-version = "0.52.4"
+version = "0.52.5"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://grafbase.com"
