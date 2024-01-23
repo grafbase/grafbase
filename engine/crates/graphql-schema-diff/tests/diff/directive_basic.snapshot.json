@@ -1,14 +1,14 @@
 {
   "src → target": [
     {
-      "kind": "RemoveDirectiveDefinition",
-      "path": "auth"
+      "path": "auth",
+      "kind": "RemoveDirectiveDefinition"
     }
   ],
   "target → src": [
     {
-      "kind": "AddDirectiveDefinition",
-      "path": "auth"
+      "path": "auth",
+      "kind": "AddDirectiveDefinition"
     }
   ]
 }

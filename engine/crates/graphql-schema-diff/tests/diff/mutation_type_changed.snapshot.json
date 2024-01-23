@@ -1,14 +1,14 @@
 {
   "src → target": [
     {
-      "kind": "ChangeMutationType",
-      "path": ""
+      "path": "",
+      "kind": "ChangeMutationType"
     }
   ],
   "target → src": [
     {
-      "kind": "ChangeMutationType",
-      "path": ""
+      "path": "",
+      "kind": "ChangeMutationType"
     }
   ]
 }

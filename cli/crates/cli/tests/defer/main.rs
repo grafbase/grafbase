@@ -127,8 +127,8 @@ async fn defer_sse_test() {
           "todoCollection": [
             {
               "__typename": "Todo",
-              "id": "1",
-              "title": "Defer Things"
+              "title": "Defer Things",
+              "id": "1"
             }
           ]
         },
@@ -139,18 +139,18 @@ async fn defer_sse_test() {
           "deferred": [
             {
               "__typename": "Todo",
-              "id": "1",
-              "title": "Defer Things"
+              "title": "Defer Things",
+              "id": "1"
             },
             {
               "__typename": "Todo",
-              "id": "2",
-              "title": "Defer Things"
+              "title": "Defer Things",
+              "id": "2"
             }
           ]
         },
-        "hasNext": false,
-        "path": []
+        "path": [],
+        "hasNext": false
       }
     ]
     "###);

@@ -1,14 +1,14 @@
 {
   "src → target": [
     {
-      "kind": "ChangeFieldArgumentDefault",
-      "path": "Query.doMop.useMop"
+      "path": "Query.doMop.useMop",
+      "kind": "ChangeFieldArgumentDefault"
     }
   ],
   "target → src": [
     {
-      "kind": "ChangeFieldArgumentDefault",
-      "path": "Query.doMop.useMop"
+      "path": "Query.doMop.useMop",
+      "kind": "ChangeFieldArgumentDefault"
     }
   ]
 }
