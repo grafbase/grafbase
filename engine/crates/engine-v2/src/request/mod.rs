@@ -85,12 +85,18 @@ impl Operation {
     ///
     /// All field names are mapped to their actual field id in the schema and respective configuration.
     /// At this stage the operation might not be resolvable but it should make sense given the schema types.
-    pub fn build(schema: &Schema, unbound_operation: UnboundOperation) -> BindResult<Self> {
+    pub fn build(
+        schema: &Schema,
+        unbound_operation: UnboundOperation,
+        operation_limits_enabled: bool,
+    ) -> BindResult<Self> {
         let mut operation = Self::bind(schema, unbound_operation)?;
 
-        operation
-            .enforce_operation_limits(schema)
-            .map_err(BindError::OperationLimitExceeded)?;
+        if operation_limits_enabled {
+            operation
+                .enforce_operation_limits(schema)
+                .map_err(BindError::OperationLimitExceeded)?;
+        }
 
         if operation.ty == OperationType::Query {
             let root_cache_config = schema[operation.root_object_id]
