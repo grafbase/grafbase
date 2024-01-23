@@ -8,7 +8,7 @@ use thiserror::Error;
 
 /// Sanity checks on resolvers to ensure that the right types are being used and the shape of
 /// exports makes sense.
-pub(crate) fn check_resolver(path: &Path, graphql_schema: &AnalyzedSchema<'_>) -> miette::Result<()> {
+pub fn check_resolver(path: &Path, graphql_schema: &AnalyzedSchema<'_>) -> miette::Result<()> {
     let (src, module) = parse_file(path)?;
     let found_resolver_signature = find_resolver_signature(&module).map_err(|err| {
         err.with_source_code(miette::NamedSource::new(

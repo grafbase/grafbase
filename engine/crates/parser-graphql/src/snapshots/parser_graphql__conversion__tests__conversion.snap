@@ -2841,6 +2841,7 @@ expression: registry_from_introspection(schema)
   "enable_caching": false,
   "enable_kv": false,
   "enable_ai": false,
+  "enable_codegen": false,
   "is_federated": false,
   "operation_limits": {
     "depth": null,
