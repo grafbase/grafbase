@@ -3,7 +3,9 @@
 use std::collections::BTreeMap;
 use std::time::Duration;
 
-use engine_v2_config::latest::{AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs};
+use engine_v2_config::latest::{
+    AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, OperationLimits,
+};
 use engine_v2_config::{
     latest::{self as config, Header, HeaderId},
     VersionedConfig,
@@ -42,7 +44,19 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
         subgraph_configs,
         cache: cache_config,
         auth: build_auth_config(config),
+        operation_limits: build_operation_limits(config),
     })
+}
+
+fn build_operation_limits(config: &FederatedGraphConfig) -> OperationLimits {
+    let parsed_operation_limits = &config.operation_limits;
+    OperationLimits {
+        depth: parsed_operation_limits.depth,
+        height: parsed_operation_limits.height,
+        aliases: parsed_operation_limits.aliases,
+        root_fields: parsed_operation_limits.root_fields,
+        complexity: parsed_operation_limits.complexity,
+    }
 }
 
 fn build_auth_config(config: &FederatedGraphConfig) -> Option<AuthConfig> {

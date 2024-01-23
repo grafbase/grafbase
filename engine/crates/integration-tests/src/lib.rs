@@ -3,7 +3,6 @@
 pub mod engine;
 pub mod federation;
 pub mod helpers;
-pub mod mocks;
 pub mod mongodb;
 pub mod openid;
 pub mod postgres;

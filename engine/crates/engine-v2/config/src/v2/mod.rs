@@ -7,6 +7,16 @@ pub use auth::*;
 pub use cache_config::{CacheConfig, CacheConfigTarget, CacheConfigs};
 use federated_graph::{FederatedGraphV1, SubgraphId};
 
+#[derive(Default, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OperationLimits {
+    pub depth: Option<u16>,
+    pub height: Option<u16>,
+    pub aliases: Option<u16>,
+    pub root_fields: Option<u16>,
+    pub complexity: Option<u16>,
+}
+
 /// Configuration for a federated graph
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Config {
@@ -25,6 +35,9 @@ pub struct Config {
     pub cache: CacheConfigs,
 
     pub auth: Option<AuthConfig>,
+
+    #[serde(default)]
+    pub operation_limits: OperationLimits,
 }
 
 /// Additional configuration for a particular subgraph
@@ -116,6 +129,7 @@ mod tests {
             subgraph_configs: Default::default(),
             cache: CacheConfigs { rules: cache_config },
             auth: None,
+            operation_limits: Default::default(),
         };
 
         insta::with_settings!({sort_maps => true}, {
@@ -157,6 +171,13 @@ mod tests {
                 "unions": []
               },
               "headers": [],
+              "operation_limits": {
+                "aliases": null,
+                "complexity": null,
+                "depth": null,
+                "height": null,
+                "rootFields": null
+              },
               "strings": [],
               "subgraph_configs": {}
             }

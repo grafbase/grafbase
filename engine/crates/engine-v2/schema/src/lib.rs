@@ -57,6 +57,7 @@ pub struct Schema {
 
     cache_configs: Vec<CacheConfig>,
     pub auth_config: Option<config::latest::AuthConfig>,
+    pub operation_limits: config::latest::OperationLimits,
 }
 
 #[derive(Default)]
