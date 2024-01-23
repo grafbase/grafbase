@@ -108,7 +108,7 @@ impl InputValue {
                 Node::Default(value) => Some(value.clone()),
                 _ => None,
             })
-            .and_then(|value| self.transform_default(value, graph))
+            .and_then(|value| self.transform_default(*value, graph))
     }
 
     /// We get a serde_json::Value default value from OpenAPI, which is nice because it's almost

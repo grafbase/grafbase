@@ -125,7 +125,7 @@ impl<'a> TypeNode<'a> {
 
     pub fn add_default(self, default: Option<&Value>) -> Self {
         if let Some(default_value) = default {
-            let default_index = self.1.add_node(Node::Default(default_value.clone()));
+            let default_index = self.1.add_node(Node::Default(Box::new(default_value.clone())));
             self.1.add_edge(self.0, default_index, Edge::HasDefault);
         }
         self
@@ -136,9 +136,9 @@ impl<'a> TypeNode<'a> {
         T: serde::Serialize,
     {
         for value in values {
-            let value_index = self.1.add_node(Node::PossibleValue(
+            let value_index = self.1.add_node(Node::PossibleValue(Box::new(
                 serde_json::to_value(value).expect("default valueto be serializable"),
-            ));
+            )));
             self.1.add_edge(self.0, value_index, Edge::HasPossibleValue);
         }
         self
