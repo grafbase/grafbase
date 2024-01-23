@@ -2,10 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use schema::FieldId;
 
-use super::{
-    planner::{ExtraBoundaryField, ExtraBoundarySelectionSet},
-    ExpectedType,
-};
+use super::{planner::ExtraBoundarySelectionSet, ExpectedType};
 use crate::{
     request::{BoundFieldId, BoundSelectionSetId, FlatTypeCondition, SelectionSetType},
     response::ResponseEdge,
@@ -188,50 +185,29 @@ impl AttributionBuilder {
     }
 
     fn insert_extra_selection_set(&mut self, extra: ExtraBoundarySelectionSet) -> ExtraSelectionSetId {
-        let selection_set = ExtraSelectionSet {
-            ty: extra.ty,
-            fields: extra
-                .fields
-                .into_values()
-                .filter_map(
-                    |ExtraBoundaryField {
-                         extra_field,
-                         read: used,
-                     }| {
-                        if used {
-                            Some(extra_field)
-                        } else {
-                            None
-                        }
-                    },
-                )
-                .map(
-                    |ExtraField {
-                         edge,
-                         type_condition,
-                         field_id,
-                         expected_key,
-                         ty,
-                     }| {
-                        let field = ExtraField {
-                            edge,
-                            type_condition,
-                            field_id,
-                            expected_key,
-                            ty: match ty {
-                                ExpectedType::Scalar(scalar) => ExpectedType::Scalar(scalar),
-                                ExpectedType::SelectionSet(extra) => {
-                                    ExpectedType::SelectionSet(self.insert_extra_selection_set(extra))
-                                }
-                            },
-                        };
-                        let id = ExtraFieldId::from(self.extra_fields.len());
-                        self.extra_fields.push(field);
-                        id
-                    },
-                )
-                .collect(),
-        };
+        let mut fields = Vec::new();
+        for field in extra.fields.into_values() {
+            if !field.read {
+                continue;
+            }
+            let field = field.extra_field;
+            let field = ExtraField {
+                edge: field.edge,
+                type_condition: field.type_condition,
+                field_id: field.field_id,
+                expected_key: field.expected_key,
+                ty: match field.ty {
+                    ExpectedType::Scalar(scalar) => ExpectedType::Scalar(scalar),
+                    ExpectedType::SelectionSet(extra) => {
+                        ExpectedType::SelectionSet(self.insert_extra_selection_set(extra))
+                    }
+                },
+            };
+            let id = ExtraFieldId::from(self.extra_fields.len());
+            self.extra_fields.push(field);
+            fields.push(id);
+        }
+        let selection_set = ExtraSelectionSet { ty: extra.ty, fields };
         let id = ExtraSelectionSetId::from(self.extra_selection_sets.len());
         self.extra_selection_sets.push(selection_set);
         id

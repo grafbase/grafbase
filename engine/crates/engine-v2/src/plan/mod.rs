@@ -69,6 +69,7 @@ pub struct ChildPlan {
     pub root_selection_set: FlatSelectionSet<EntityType>,
     pub sibling_dependencies: HashSet<PlanId>,
     // Only includes extra fields necessary for other child plans within the same
-    // plan boundary.
+    // plan boundary. They're indexed by BoundSelectionSetId as that's what allows us find the
+    // extra fields during the traversal of the operation for the a plan.
     extra_selection_sets: HashMap<BoundSelectionSetId, planner::ExtraBoundarySelectionSet>,
 }

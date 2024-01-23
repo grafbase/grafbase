@@ -20,12 +20,13 @@ use crate::{
     response::{GraphqlError, ReadSelectionSet, ResponseBoundaryItem, ResponseEdge},
 };
 
-pub(super) use boundary_planner::{ExtraBoundaryField, ExtraBoundarySelectionSet};
 use boundary_planner::{PlanBoundaryChildrenPlanner, PlanBoundaryParent};
+pub(super) use boundary_selection_set::ExtraBoundarySelectionSet;
 
 use super::{ExpectationsBuilder, ExpectedField, ExpectedType, UndeterminedSelectionSetId};
 
 mod boundary_planner;
+mod boundary_selection_set;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PlanningError {
@@ -536,7 +537,7 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
                     path: &self.path,
                     logic: self.logic.clone(),
                     attribution: self.attribution,
-                    flat_selection_set: providable.clone(),
+                    provided_selection_set: providable.clone(),
                 }),
                 missing,
             )?;

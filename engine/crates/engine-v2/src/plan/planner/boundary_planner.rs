@@ -3,7 +3,7 @@ use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
 };
 
-use schema::{FieldId, FieldResolverWalker, FieldSet, FieldSetItem, ResolverId, ResolverWalker};
+use schema::{FieldId, FieldResolverWalker, FieldSet, FieldSetItem, ResolverId, ResolverWalker, Schema};
 
 use crate::{
     plan::{
@@ -11,59 +11,41 @@ use crate::{
         ChildPlan, EntityType, FlatTypeCondition, PlanId,
     },
     request::{
-        BoundFieldId, BoundSelectionSetId, FlatField, FlatSelectionSet, FlatSelectionSetId, FlatSelectionSetWalker,
-        GroupForFieldId, OperationWalker, QueryPath, SelectionSetType,
+        BoundFieldId, BoundSelectionSetId, FlatField, FlatSelectionSet, FlatSelectionSetWalker, OperationWalker,
+        QueryPath, SelectionSetType,
     },
     response::{ReadField, ReadSelectionSet},
 };
 
+use super::boundary_selection_set::*;
 use super::{AttributionLogic, ExpectedType, Planner, PlanningError, PlanningResult};
 
+/// Plans the children of a plan at a boundary (where some fields could not be planned).
 pub(super) struct PlanBoundaryChildrenPlanner<'op, 'a> {
     planner: &'a mut Planner<'op>,
     walker: OperationWalker<'op>,
+    /// There is no parent for the root plans.
     maybe_parent: Option<PlanBoundaryParent<'op, 'a, 'a>>,
     children: Vec<ChildPlan>,
 }
 
+/// Parent plan of a boundary
 pub(super) struct PlanBoundaryParent<'op, 'plan, 'ctx> {
     pub plan_id: PlanId,
+    /// Path within the query for errors
     pub path: &'ctx QueryPath,
     pub logic: AttributionLogic<'op>,
     pub attribution: &'plan mut AttributionBuilder,
-    pub flat_selection_set: FlatSelectionSetWalker<'op, 'plan>,
+    pub provided_selection_set: FlatSelectionSetWalker<'op, 'plan>,
 }
 
-#[derive(Debug)]
-enum BoundaryField<'op> {
-    Planned {
-        plan_id: PlanId,
-        field: GroupForFieldId<'op>,
-        subselection: Option<BoundarySelectionSet<'op>>,
-    },
-    Extra {
-        plan_id: PlanId,
-        resolver_id: ResolverId,
-        field: ExtraBoundaryField,
-    },
-}
-
-#[derive(Debug)]
-struct BoundarySelectionSet<'op> {
-    id: FlatSelectionSetId,
-    fields: HashMap<FieldId, BoundaryField<'op>>,
-}
-
-#[derive(Debug, Clone)]
-pub(in crate::plan) struct ExtraBoundaryField {
-    pub extra_field: ExtraField<ExtraBoundarySelectionSet>,
-    pub read: bool,
-}
-
-#[derive(Debug, Clone)]
-pub(in crate::plan) struct ExtraBoundarySelectionSet {
-    pub ty: SelectionSetType,
-    pub fields: HashMap<FieldId, ExtraBoundaryField>,
+/// Potential child plan, but might not be the best one.
+struct ChildPlanCandidate<'op> {
+    resolver_id: ResolverId,
+    /// Entity type (object/interface id) of the fields
+    entity_type: EntityType,
+    /// Providable fields by the resolvers with their requirements
+    providable_fields: Vec<(BoundFieldId, &'op FieldSet)>,
 }
 
 impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
@@ -81,134 +63,29 @@ impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
         mut self,
         missing_selection_set: FlatSelectionSetWalker<'op, '_>,
     ) -> PlanningResult<Vec<ChildPlan>> {
-        let selection_set_type = missing_selection_set.ty();
-
         // All planned fields at the boundary from the parent & children plans and any extra fields
         // added to satisfy the @requires.
         let mut boundary_selection_set = BoundarySelectionSet {
             id: missing_selection_set.id(),
-            fields: self
-                .maybe_parent
-                .as_ref()
-                .map(|parent| {
-                    parent
-                        .flat_selection_set
-                        .group_by_field_id()
-                        .into_iter()
-                        .map(|(field_id, group)| {
-                            (
-                                field_id,
-                                BoundaryField::Planned {
-                                    plan_id: parent.plan_id,
-                                    field: group,
-                                    subselection: None,
-                                },
-                            )
-                        })
-                        .collect()
-                })
-                .unwrap_or_default(),
+            fields: self.create_boundary_selection_set_fields(),
         };
 
         // Fields that couldn't be provided by the parent and that have yet to be planned by one
         // child plan.
-        struct MissingField<'op> {
-            entity_type: EntityType,
-            flat_field: FlatField,
-            type_condition: Option<FlatTypeCondition>,
-            field_resolvers: Vec<FieldResolverWalker<'op>>,
-        }
-        let mut id_to_missing_fields: HashMap<BoundFieldId, MissingField<'op>> = missing_selection_set
-            .into_fields()
-            .map(|flat_field_walker| {
-                let entity_type = flat_field_walker.entity_type();
-                let field_resolvers = flat_field_walker
-                    .bound_field()
-                    .definition()
-                    .as_field()
-                    .expect("Meta fields are always providable, it can't be missing.")
-                    .resolvers()
-                    .collect::<Vec<_>>();
+        let mut id_to_missing_fields: HashMap<BoundFieldId, MissingField<'op>> =
+            build_missing_fields(self.walker.schema().as_ref(), missing_selection_set);
 
-                let flat_field = flat_field_walker.into_item();
-                (
-                    flat_field.bound_field_id,
-                    MissingField {
-                        entity_type,
-                        flat_field,
-                        // Parent selection might be a union/interface and current resolver
-                        // apply on a object.
-                        type_condition: FlatTypeCondition::flatten(
-                            self.walker.schema().as_ref(),
-                            selection_set_type,
-                            vec![entity_type.into()],
-                        ),
-                        field_resolvers,
-                    },
-                )
-            })
-            .collect();
-
-        // Possible candidates for the next child plan.
-        struct ChildPlanCandidate<'op> {
-            entity_type: EntityType,
-            resolver_id: ResolverId,
-            fields: Vec<(BoundFieldId, &'op FieldSet)>,
-        }
-        let mut candidates: HashMap<ResolverId, ChildPlanCandidate<'_>> = HashMap::new();
-
-        // Actual planning, at each iteration we:
-        // 1. generate all possibles candidates
-        // 2. select the best one and plan it
+        // Actual planning, we plan one child plan at a time.
+        let mut candidates: HashMap<ResolverId, ChildPlanCandidate<'op>> = HashMap::new();
         while !id_to_missing_fields.is_empty() {
             candidates.clear();
-            for field in id_to_missing_fields.values() {
-                for FieldResolverWalker {
-                    resolver,
-                    field_requires,
-                } in &field.field_resolvers
-                {
-                    match candidates.entry(resolver.id()) {
-                        Entry::Occupied(mut entry) => {
-                            let candidate = entry.get_mut();
-                            if self.could_plan_requirements(
-                                &mut boundary_selection_set,
-                                field_requires,
-                                &field.type_condition,
-                            ) {
-                                candidate.fields.push((field.flat_field.bound_field_id, field_requires));
-                            }
-                        }
-                        Entry::Vacant(entry) => {
-                            if self.could_plan_requirements(
-                                &mut boundary_selection_set,
-                                &resolver.requires(),
-                                &field.type_condition,
-                            ) && self.could_plan_requirements(
-                                &mut boundary_selection_set,
-                                field_requires,
-                                &field.type_condition,
-                            ) {
-                                entry.insert(ChildPlanCandidate {
-                                    entity_type: field.entity_type,
-                                    resolver_id: resolver.id(),
-                                    fields: vec![(field.flat_field.bound_field_id, field_requires)],
-                                });
-                            }
-                        }
-                    }
-                }
-            }
+            self.generate_all_candidates(
+                id_to_missing_fields.values(),
+                &mut boundary_selection_set,
+                &mut candidates,
+            );
 
-            // We could be smarter, but we need to be sure there is no intersection between
-            // candidates (which impacts ordering among other things) and some fields may now be
-            // available (requires can now be provided) after planning this candidate. So the easy
-            // solution is to regenerate candidates after each plan.
-            let Some(candidate) = candidates
-                .values_mut()
-                .filter(|candidate| !candidate.fields.is_empty())
-                .max_by_key(|candidate| candidate.fields.len())
-            else {
+            let Some(candidate) = select_best_child_plan(&mut candidates) else {
                 return Err(PlanningError::CouldNotPlanAnyField {
                     missing: id_to_missing_fields
                         .into_keys()
@@ -226,65 +103,137 @@ impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
                 });
             };
 
-            let resolver = self.walker.schema().walk(candidate.resolver_id).with_own_names();
-            let (requires, providable) = {
-                let mut providable = vec![];
-                let mut requires = resolver.requires();
-                for (id, field_requires) in std::mem::take(&mut candidate.fields) {
-                    let flat_field = id_to_missing_fields.remove(&id).unwrap().flat_field;
-                    if !field_requires.is_empty() {
-                        requires = Cow::Owned(FieldSet::merge(&requires, field_requires));
-                    }
-                    providable.push(flat_field);
-                }
-                (requires, providable)
-            };
-            let mut sibling_dependencies = HashSet::new();
-            let input_selection_set = create_read_selection_set(
-                &mut sibling_dependencies,
-                &resolver,
-                &requires,
-                &mut boundary_selection_set.fields,
-            )?;
-
-            // Currently, we don't track the global execution state nor do we keep track of the
-            // parent during the execution. But we know children will only be executed once the
-            // parent finishes. So only keeping sibling dependencies.
-            if let Some(parent) = self.maybe_parent.as_ref() {
-                sibling_dependencies.remove(&parent.plan_id);
-            }
-
-            let root_selection_set = FlatSelectionSet {
-                ty: candidate.entity_type,
-                id: boundary_selection_set.id,
-                fields: providable,
-            };
-            let plan_id = self.planner.next_plan_id();
-            for (field_id, group) in self.walker.walk(Cow::Borrowed(&root_selection_set)).group_by_field_id() {
-                boundary_selection_set
-                    .fields
-                    .entry(field_id)
-                    .or_insert_with(|| BoundaryField::Planned {
-                        plan_id,
-                        field: group,
-                        subselection: None,
-                    });
-            }
-
-            self.children.push(ChildPlan {
-                id: plan_id,
-                resolver_id: resolver.id(),
-                input_selection_set,
-                root_selection_set,
-                sibling_dependencies,
-                // replaced later if necessary.
-                extra_selection_sets: HashMap::with_capacity(0),
-            });
+            self.push_child_plan(&mut boundary_selection_set, &mut id_to_missing_fields, candidate)?;
         }
 
+        // All extra fields are within the boundary_selection_set, now we need to distribute them
+        // to their respective plan.
         self.attribute_extra_fields(boundary_selection_set);
 
         Ok(self.children)
+    }
+
+    fn create_boundary_selection_set_fields(&self) -> HashMap<FieldId, BoundaryField<'op>> {
+        if let Some(ref parent) = self.maybe_parent {
+            parent
+                .provided_selection_set
+                .group_by_field_id()
+                .into_iter()
+                .map(|(field_id, group)| {
+                    (
+                        field_id,
+                        BoundaryField::Planned(PlannedBoundaryField::new(parent.plan_id, group)),
+                    )
+                })
+                .collect()
+        } else {
+            HashMap::new()
+        }
+    }
+
+    fn generate_all_candidates<'field>(
+        &mut self,
+        missing_fields: impl IntoIterator<Item = &'field MissingField<'op>>,
+        boundary_selection_set: &mut BoundarySelectionSet<'op>,
+        candidates: &mut HashMap<ResolverId, ChildPlanCandidate<'op>>,
+    ) where
+        'op: 'field,
+    {
+        for field in missing_fields {
+            for FieldResolverWalker {
+                resolver,
+                field_requires,
+            } in &field.field_resolvers
+            {
+                match candidates.entry(resolver.id()) {
+                    Entry::Occupied(mut entry) => {
+                        let candidate = entry.get_mut();
+                        if self.could_plan_requirements(boundary_selection_set, field_requires, &field.type_condition) {
+                            candidate
+                                .providable_fields
+                                .push((field.flat_field.bound_field_id, field_requires));
+                        }
+                    }
+                    Entry::Vacant(entry) => {
+                        if self.could_plan_requirements(
+                            boundary_selection_set,
+                            &resolver.requires(),
+                            &field.type_condition,
+                        ) && self.could_plan_requirements(
+                            boundary_selection_set,
+                            field_requires,
+                            &field.type_condition,
+                        ) {
+                            entry.insert(ChildPlanCandidate {
+                                entity_type: field.entity_type,
+                                resolver_id: resolver.id(),
+                                providable_fields: vec![(field.flat_field.bound_field_id, field_requires)],
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn push_child_plan(
+        &mut self,
+        boundary_selection_set: &mut BoundarySelectionSet<'op>,
+        id_to_missing_fields: &mut HashMap<BoundFieldId, MissingField<'op>>,
+        candidate: &mut ChildPlanCandidate<'op>,
+    ) -> PlanningResult<()> {
+        let resolver = self.walker.schema().walk(candidate.resolver_id).with_own_names();
+        let (requires, providable) = {
+            let mut providable = vec![];
+            let mut requires = resolver.requires();
+            for (id, field_requires) in std::mem::take(&mut candidate.providable_fields) {
+                let flat_field = id_to_missing_fields.remove(&id).unwrap().flat_field;
+                if !field_requires.is_empty() {
+                    requires = Cow::Owned(FieldSet::merge(&requires, field_requires));
+                }
+                providable.push(flat_field);
+            }
+            (requires, providable)
+        };
+        let mut sibling_dependencies = HashSet::new();
+        let input_selection_set = create_read_selection_set(
+            &mut sibling_dependencies,
+            &resolver,
+            &requires,
+            &mut boundary_selection_set.fields,
+        )?;
+
+        // Currently, we don't track the global execution state nor do we keep track of the
+        // parent during the execution. But we know children will only be executed once the
+        // parent finishes. So only keeping sibling dependencies.
+        if let Some(parent) = self.maybe_parent.as_ref() {
+            sibling_dependencies.remove(&parent.plan_id);
+        }
+
+        let root_selection_set = FlatSelectionSet {
+            ty: candidate.entity_type,
+            id: boundary_selection_set.id,
+            fields: providable,
+        };
+        let plan_id = self.planner.next_plan_id();
+        for (field_id, group) in self.walker.walk(Cow::Borrowed(&root_selection_set)).group_by_field_id() {
+            boundary_selection_set
+                .fields
+                .entry(field_id)
+                .or_insert_with(|| BoundaryField::Planned(PlannedBoundaryField::new(plan_id, group)));
+        }
+
+        self.children.push(ChildPlan {
+            id: plan_id,
+            resolver_id: resolver.id(),
+            input_selection_set,
+            root_selection_set,
+            sibling_dependencies,
+            // replaced later if necessary.
+            extra_selection_sets: HashMap::with_capacity(0),
+        });
+
+        Ok(())
     }
 
     fn attribute_extra_fields(&mut self, boundary_selection_set: BoundarySelectionSet<'op>) {
@@ -298,8 +247,8 @@ impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
             let id = BoundSelectionSetId::from(selection_set.id);
             for boundary_field in selection_set.fields.into_values() {
                 match boundary_field {
-                    BoundaryField::Planned { subselection, .. } => {
-                        if let Some(subselection) = subselection {
+                    BoundaryField::Planned(planned) => {
+                        if let Some(subselection) = planned.take_subselection_if_read() {
                             selection_sets.push(subselection);
                         }
                     }
@@ -367,30 +316,10 @@ impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
                     continue;
                 }
                 match field {
-                    BoundaryField::Planned {
-                        plan_id,
-                        field,
-                        subselection,
-                    } => {
-                        let subselection = subselection.get_or_insert_with(|| {
-                            let flat_selection_set = self.walker.merged_selection_sets(&field.bound_field_ids);
-                            let id = flat_selection_set.id();
-                            let fields = flat_selection_set
-                                .group_by_field_id()
-                                .into_iter()
-                                .map(|(field_id, field)| {
-                                    (
-                                        field_id,
-                                        BoundaryField::Planned {
-                                            plan_id: *plan_id,
-                                            field,
-                                            subselection: None,
-                                        },
-                                    )
-                                })
-                                .collect();
-                            BoundarySelectionSet { id, fields }
-                        });
+                    BoundaryField::Planned(planned) => {
+                        let Some(subselection) = planned.subselection_mut() else {
+                            return false;
+                        };
                         if self.could_plan_requirements(subselection, requires, &None) {
                             continue;
                         } else {
@@ -526,6 +455,63 @@ impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
     }
 }
 
+fn select_best_child_plan<'c, 'op>(
+    candidates: &'c mut HashMap<ResolverId, ChildPlanCandidate<'op>>,
+) -> Option<&'c mut ChildPlanCandidate<'op>> {
+    // We could be smarter, but we need to be sure there is no intersection between
+    // candidates (which impacts ordering among other things) and some fields may now be
+    // available (requires can now be provided) after planning this candidate. So the easy
+    // solution is to regenerate candidates after each plan.
+    candidates
+        .values_mut()
+        .filter(|candidate| !candidate.providable_fields.is_empty())
+        .max_by_key(|candidate| candidate.providable_fields.len())
+}
+
+struct MissingField<'op> {
+    entity_type: EntityType,
+    flat_field: FlatField,
+    type_condition: Option<FlatTypeCondition>,
+    field_resolvers: Vec<FieldResolverWalker<'op>>,
+}
+
+fn build_missing_fields<'op>(
+    schema: &Schema,
+    missing_selection_set: FlatSelectionSetWalker<'op, '_>,
+) -> HashMap<BoundFieldId, MissingField<'op>> {
+    let selection_set_type = missing_selection_set.ty();
+    missing_selection_set
+        .into_fields()
+        .map(|flat_field_walker| {
+            let entity_type = flat_field_walker.entity_type();
+            let field_resolvers = flat_field_walker
+                .bound_field()
+                .definition()
+                .as_field()
+                .expect("Meta fields are always providable, it can't be missing.")
+                .resolvers()
+                .collect::<Vec<_>>();
+
+            let flat_field = flat_field_walker.into_item();
+            (
+                flat_field.bound_field_id,
+                MissingField {
+                    entity_type,
+                    flat_field,
+                    // Parent selection might be a union/interface and current resolver
+                    // apply on a object.
+                    type_condition: FlatTypeCondition::flatten(schema, selection_set_type, vec![entity_type.into()]),
+                    field_resolvers,
+                },
+            )
+        })
+        .collect()
+}
+
+/// Create the the input selection set of a Plan given its resolver and requirements.
+/// We iterate over the requirements and find the matching fields inside the boundary fields,
+/// which contains all providable & extra fields. During the iteration we track all the dependency
+/// plans.
 fn create_read_selection_set(
     dependencies: &mut HashSet<PlanId>,
     resolver: &ResolverWalker<'_>,
@@ -542,14 +528,10 @@ fn create_read_selection_set(
                 .get_mut(&item.field_id)
                 .expect("field should be present, we could plan it")
             {
-                BoundaryField::Planned {
-                    field,
-                    subselection,
-                    plan_id,
-                } => {
-                    dependencies.insert(*plan_id);
+                BoundaryField::Planned(planned) => {
+                    dependencies.insert(planned.plan_id);
                     Ok(ReadField {
-                        edge: field.key.into(),
+                        edge: planned.field.key.into(),
                         name: resolver.walk(item.field_id).name().to_string(),
                         subselection: if item.subselection.is_empty() {
                             ReadSelectionSet::default()
@@ -558,8 +540,8 @@ fn create_read_selection_set(
                                 dependencies,
                                 resolver,
                                 &item.subselection,
-                                &mut subselection
-                                    .as_mut()
+                                &mut planned
+                                    .subselection_mut()
                                     .expect("subselection should be present, we could plan the subselection")
                                     .fields,
                             )?

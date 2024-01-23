@@ -47,9 +47,10 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
     }
 
     pub async fn execute(self) -> Response {
-        if matches!(self.operation.ty, OperationType::Subscription) {
-            unreachable!("execute shouldnt be called for subscriptions")
-        }
+        assert!(
+            !matches!(self.operation.ty, OperationType::Subscription),
+            "execute shouldn't be called for subscriptions"
+        );
 
         let mut planner = Planner::new(&self.engine.schema, &self.operation);
         let mut response = ResponseBuilder::new(self.operation.root_object_id);
@@ -68,7 +69,7 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
             ),
             Err(error) => {
                 response.push_error(error);
-                vec![]
+                Vec::with_capacity(0)
             }
         };
 

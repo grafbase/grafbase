@@ -20,9 +20,8 @@ impl<'a, C> BoundSelectionSetWalker<'a, C> {
 impl<'a> BoundSelectionSetWalker<'a, ()> {
     // this merely traverses the selection set recursively and merge all cache_config present in the
     // selected fields
-    pub fn cache_config(&self) -> Option<CacheConfig> {
-        (*self)
-            .into_iter()
+    pub fn cache_config(self) -> Option<CacheConfig> {
+        self.into_iter()
             .filter_map(|selection| match selection {
                 BoundSelectionWalker::Field(field) => {
                     let cache_config = field.definition().as_field().and_then(|definition| {
