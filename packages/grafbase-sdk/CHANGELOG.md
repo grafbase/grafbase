@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.16.0] - Mon Jan 23 2024
+## [0.16.0] - Tue Jan 23 2024
 
 [CHANGELOG](changelog/0.16.0.md)
 
