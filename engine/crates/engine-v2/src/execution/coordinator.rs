@@ -58,11 +58,17 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
             .root_response_boundary()
             .expect("a fresh response should always have a root")];
 
-        let (executors, plans_with_dependencies) = match planner.generate_root_plan_boundary() {
-            Ok(boundary) => self.generate_executors(vec![(boundary, response_boundary)], &mut planner, &mut response),
+        let mut plans_with_dependencies = PlansWithDependencies::default();
+        let executors = match planner.generate_root_plan_boundary() {
+            Ok(boundary) => self.generate_executors(
+                &mut planner,
+                &mut plans_with_dependencies,
+                &mut response,
+                vec![(boundary, response_boundary)],
+            ),
             Err(error) => {
                 response.push_error(error);
-                (vec![], vec![])
+                vec![]
             }
         };
 
@@ -109,7 +115,9 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
                 }
             });
 
-            let response = self.execute_once(futures, response, &mut planner, vec![]).await;
+            let response = self
+                .execute_once(futures, response, &mut planner, PlansWithDependencies::default())
+                .await;
 
             if responses.send(response).await.is_err() {
                 return;
@@ -123,58 +131,37 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
         mut futures: ExecutorFutureSet<'ctx>,
         mut response: ResponseBuilder,
         planner: &mut Planner<'ctx>,
-        plans_with_dependencies: Vec<Plan>,
+        mut plans_with_dependencies: PlansWithDependencies,
     ) -> Response {
-        let mut outgoing_edges = HashMap::<PlanId, Vec<PlanId>>::new();
-        let mut plans = HashMap::<PlanId, Plan>::new();
-        for plan in plans_with_dependencies {
-            for dependency in &plan.sibling_dependencies {
-                outgoing_edges.entry(*dependency).or_default().push(plan.id);
-            }
-            plans.insert(plan.id, plan);
-        }
-
         while let Some(ExecutorFutResult { result, plan_id }) = futures.next().await {
-            match result {
-                Ok(output) => {
-                    // Ingesting data first to propagate errors.
-                    let boundaries = response.ingest(output);
-
-                    // Hack to ensure we don't execute any subsequent mutation root fields if a
-                    // previous one failed and the error propagated up to the root `data` field.
-                    if response.root_response_object_id().is_some() {
-                        for dependent in outgoing_edges.remove(&plan_id).unwrap_or_default() {
-                            let executable = plans
-                                .get_mut(&dependent)
-                                .map(|plan| {
-                                    plan.sibling_dependencies.remove(&plan_id);
-                                    plan.sibling_dependencies.is_empty()
-                                })
-                                .unwrap_or_default();
-                            if executable {
-                                let plan = plans.remove(&dependent).unwrap();
-                                match self.executor_from_plan(plan, &mut response) {
-                                    Ok(executor) => futures.execute(executor),
-                                    Err(error) => response.push_error(error),
-                                }
-                            }
-                        }
-                        let (executors, plans_with_dependencies) =
-                            self.generate_executors(boundaries, planner, &mut response);
-                        for plan in plans_with_dependencies {
-                            for dependency in &plan.sibling_dependencies {
-                                outgoing_edges.entry(*dependency).or_default().push(plan.id);
-                            }
-                            plans.insert(plan.id, plan);
-                        }
-                        for executor in executors {
-                            futures.execute(executor);
-                        }
-                    }
-                }
+            let output = match result {
+                Ok(output) => output,
                 Err(err) => {
                     response.push_error(err);
+                    continue;
                 }
+            };
+
+            // Ingesting data first to propagate errors and next plans likely rely on it
+            let boundaries = response.ingest(output);
+
+            // Hack to ensure we don't execute any subsequent mutation root fields if a
+            // previous one failed and the error propagated up to the root `data` field.
+            if response.root_response_object_id().is_none() {
+                continue;
+            }
+
+            for plan in plans_with_dependencies.get_executable_plans(plan_id) {
+                match self.executor_from_plan(plan, &mut response) {
+                    Ok(executor) => futures.execute(executor),
+                    Err(error) => response.push_error(error),
+                }
+            }
+
+            let executors = self.generate_executors(planner, &mut plans_with_dependencies, &mut response, boundaries);
+
+            for executor in executors {
+                futures.execute(executor);
             }
         }
 
@@ -200,13 +187,13 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
 
     fn generate_executors(
         &self,
-        boundaries: Vec<(PlanBoundary, Vec<ResponseBoundaryItem>)>,
         planner: &mut Planner<'ctx>,
+        plans_with_dependencies: &mut PlansWithDependencies,
         response: &mut ResponseBuilder, // mutable_bits: &mut TheMutableBits<'ctx>,
-    ) -> (Vec<Executor<'_>>, Vec<Plan>) {
+        boundaries: Vec<(PlanBoundary, Vec<ResponseBoundaryItem>)>,
+    ) -> Vec<Executor<'_>> {
         // Ordering of the executors MUST match the plan boundary order for mutation root
         let mut executors = vec![];
-        let mut plans_with_dependencies = vec![];
 
         for (plan_boundary, response_boundaries) in boundaries {
             let plans = match planner.generate_plans(plan_boundary, &response_boundaries) {
@@ -229,7 +216,7 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
             }
         }
 
-        (executors, plans_with_dependencies)
+        executors
     }
 
     fn executor_from_plan<'a>(&'a self, plan: Plan, response: &mut ResponseBuilder) -> ExecutorResult<Executor<'a>> {
@@ -312,4 +299,42 @@ impl<'a> ExecutorFutureSet<'a> {
 struct ExecutorFutResult {
     result: ExecutorResult<ExecutorOutput>,
     plan_id: PlanId,
+}
+
+#[derive(Default)]
+struct PlansWithDependencies {
+    dependency_to_dependents: HashMap<PlanId, Vec<PlanId>>,
+    plans: HashMap<PlanId, Plan>,
+}
+
+impl PlansWithDependencies {
+    fn push(&mut self, plan: Plan) {
+        assert!(!plan.sibling_dependencies.is_empty());
+        for dependency in &plan.sibling_dependencies {
+            self.dependency_to_dependents
+                .entry(*dependency)
+                .or_default()
+                .push(plan.id);
+        }
+        self.plans.insert(plan.id, plan);
+    }
+
+    fn get_executable_plans(&mut self, plan_id: PlanId) -> Vec<Plan> {
+        let mut executable_plans = vec![];
+        for dependent in self.dependency_to_dependents.remove(&plan_id).unwrap_or_default() {
+            let executable = self
+                .plans
+                .get_mut(&dependent)
+                .map(|plan| {
+                    plan.sibling_dependencies.remove(&plan_id);
+                    plan.sibling_dependencies.is_empty()
+                })
+                .unwrap_or_default();
+            if executable {
+                executable_plans.push(self.plans.remove(&dependent).unwrap());
+            }
+        }
+
+        executable_plans
+    }
 }
