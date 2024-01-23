@@ -39,9 +39,9 @@ struct State<'a> {
     strings: IndexSet<String>,
     field_types: indexmap::IndexSet<FieldType>,
 
-    query_type: Option<ObjectId>,
-    mutation_type: Option<ObjectId>,
-    subscription_type: Option<ObjectId>,
+    query_type_name: Option<String>,
+    mutation_type_name: Option<String>,
+    subscription_type_name: Option<String>,
 
     definition_names: HashMap<&'a str, Definition>,
     selection_map: HashMap<(Definition, &'a str), FieldId>,
@@ -100,6 +100,27 @@ impl<'a> State<'a> {
             async_graphql_value::ConstValue::Object(_) => todo!(),
         }
     }
+
+    fn root_operation_types(&self) -> Result<RootOperationTypes, DomainError> {
+        fn get_object_id(state: &State<'_>, name: &str) -> Option<ObjectId> {
+            state
+                .definition_names
+                .get(name)
+                .and_then(|definition| match definition {
+                    Definition::Object(object_id) => Some(*object_id),
+                    _ => None,
+                })
+        }
+        let query_type_name = self.query_type_name.as_deref().unwrap_or("Query");
+        let mutation_type_name = self.mutation_type_name.as_deref().unwrap_or("Mutation");
+        let subscription_type_name = self.subscription_type_name.as_deref().unwrap_or("Subscription");
+        Ok(RootOperationTypes {
+            query: get_object_id(self, query_type_name)
+                .ok_or_else(|| DomainError(format!("The `{query_type_name}` type is not defined")))?,
+            mutation: get_object_id(self, mutation_type_name),
+            subscription: get_object_id(self, subscription_type_name),
+        })
+    }
 }
 
 pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
@@ -112,14 +133,8 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     ingest_selection_sets(&parsed, &mut state)?;
 
     Ok(FederatedGraph::V1(FederatedGraphV1 {
+        root_operation_types: state.root_operation_types()?,
         subgraphs: state.subgraphs,
-        root_operation_types: RootOperationTypes {
-            query: state
-                .query_type
-                .ok_or_else(|| DomainError("The `Query` type is not defined".to_owned()))?,
-            mutation: state.mutation_type,
-            subscription: state.subscription_type,
-        },
         objects: state.objects,
         object_fields: state.object_fields,
         interfaces: state.interfaces,
@@ -137,10 +152,8 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
 fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> Result<(), DomainError> {
     for definition in &parsed.definitions {
         match definition {
-            ast::TypeSystemDefinition::Schema(_) => {
-                return Err(DomainError(
-                    "Not implemented: schema definitions in federated schema".to_owned(),
-                ))
+            ast::TypeSystemDefinition::Schema(Positioned { node: schema, .. }) => {
+                ingest_schema_definition(schema, state)?;
             }
             ast::TypeSystemDefinition::Directive(_) => (),
             ast::TypeSystemDefinition::Type(typedef) => match &typedef.node.kind {
@@ -183,6 +196,27 @@ fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) ->
                 }
             },
         }
+    }
+
+    Ok(())
+}
+
+fn ingest_schema_definition(schema: &ast::SchemaDefinition, state: &mut State<'_>) -> Result<(), DomainError> {
+    for Positioned { node: directive, .. } in &schema.directives {
+        let name = directive.name.node.as_str();
+        if name != "link" {
+            return Err(DomainError(format!("Unsupported directive {name} on schema.")));
+        }
+    }
+
+    if let Some(Positioned { node: name, .. }) = &schema.query {
+        state.query_type_name = Some(name.to_string());
+    }
+    if let Some(Positioned { node: name, .. }) = &schema.mutation {
+        state.mutation_type_name = Some(name.to_string());
+    }
+    if let Some(Positioned { node: name, .. }) = &schema.subscription {
+        state.subscription_type_name = Some(name.to_string());
     }
 
     Ok(())
@@ -412,13 +446,6 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                             description,
                         }));
 
-                        match type_name {
-                            "Query" => state.query_type = Some(object_id),
-                            "Mutation" => state.mutation_type = Some(object_id),
-                            "Subscription" => state.subscription_type = Some(object_id),
-                            _ => (),
-                        }
-
                         state.definition_names.insert(type_name, Definition::Object(object_id));
                     }
                     ast::TypeKind::Interface(_) => {
@@ -537,6 +564,15 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
         .iter()
         .filter(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
         .filter(|dir| dir.node.get_argument("overrides").is_none())
+        .filter(|dir| {
+            !dir.node
+                .get_argument("external")
+                .map(|arg| match &arg.node {
+                    async_graphql_value::ConstValue::Boolean(b) => *b,
+                    _ => false,
+                })
+                .unwrap_or_default()
+        })
         .filter_map(|dir| dir.node.get_argument("graph"))
         .filter_map(|arg| match &arg.node {
             async_graphql_value::ConstValue::Enum(s) => Some(state.graph_sdl_names[s.as_str()]),
@@ -765,4 +801,101 @@ fn collect_composed_directives(
                 .collect(),
         })
         .collect()
+}
+
+#[cfg(test)]
+#[test]
+fn test_from_sdl() {
+    // https://github.com/the-guild-org/gateways-benchmark/blob/main/federation-v1/gateways/apollo-router/supergraph.graphql
+    super::from_sdl(r#"
+        schema
+          @link(url: "https://specs.apollo.dev/link/v1.0")
+          @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+        {
+          query: Query
+        }
+
+        directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+        directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+        directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+        directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+        directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+        directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+        scalar join__FieldSet
+
+        enum join__Graph {
+          ACCOUNTS @join__graph(name: "accounts", url: "http://accounts:4001/graphql")
+          INVENTORY @join__graph(name: "inventory", url: "http://inventory:4002/graphql")
+          PRODUCTS @join__graph(name: "products", url: "http://products:4003/graphql")
+          REVIEWS @join__graph(name: "reviews", url: "http://reviews:4004/graphql")
+        }
+
+        scalar link__Import
+
+        enum link__Purpose {
+          """
+          `SECURITY` features provide metadata necessary to securely resolve fields.
+          """
+          SECURITY
+
+          """
+          `EXECUTION` features provide metadata necessary for operation execution.
+          """
+          EXECUTION
+        }
+
+        type Product
+          @join__type(graph: INVENTORY, key: "upc")
+          @join__type(graph: PRODUCTS, key: "upc")
+          @join__type(graph: REVIEWS, key: "upc")
+        {
+          upc: String!
+          weight: Int @join__field(graph: INVENTORY, external: true) @join__field(graph: PRODUCTS)
+          price: Int @join__field(graph: INVENTORY, external: true) @join__field(graph: PRODUCTS)
+          inStock: Boolean @join__field(graph: INVENTORY)
+          shippingEstimate: Int @join__field(graph: INVENTORY, requires: "price weight")
+          name: String @join__field(graph: PRODUCTS)
+          reviews: [Review] @join__field(graph: REVIEWS)
+        }
+
+        type Query
+          @join__type(graph: ACCOUNTS)
+          @join__type(graph: INVENTORY)
+          @join__type(graph: PRODUCTS)
+          @join__type(graph: REVIEWS)
+        {
+          me: User @join__field(graph: ACCOUNTS)
+          user(id: ID!): User @join__field(graph: ACCOUNTS)
+          users: [User] @join__field(graph: ACCOUNTS)
+          topProducts(first: Int = 5): [Product] @join__field(graph: PRODUCTS)
+        }
+
+        type Review
+          @join__type(graph: REVIEWS, key: "id")
+        {
+          id: ID!
+          body: String
+          product: Product
+          author: User @join__field(graph: REVIEWS, provides: "username")
+        }
+
+        type User
+          @join__type(graph: ACCOUNTS, key: "id")
+          @join__type(graph: REVIEWS, key: "id")
+        {
+          id: ID!
+          name: String @join__field(graph: ACCOUNTS)
+          username: String @join__field(graph: ACCOUNTS) @join__field(graph: REVIEWS, external: true)
+          birthday: Int @join__field(graph: ACCOUNTS)
+          reviews: [Review] @join__field(graph: REVIEWS)
+        }
+    "#).unwrap();
 }
