@@ -2314,6 +2314,7 @@ dependencies = [
  "http 1.0.0",
  "log 0.1.0",
  "runtime",
+ "serde",
  "serde_json",
 ]
 

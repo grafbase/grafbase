@@ -2,15 +2,17 @@ use std::collections::HashMap;
 
 use ::axum::extract::ws::{self, WebSocket};
 use futures_util::{pin_mut, stream::SplitStream, SinkExt, StreamExt};
-use gateway_v2::Session;
+use gateway_v2::{
+    websockets::messages::{Event, Message},
+    Session,
+};
 use tokio::sync::mpsc;
 
-use self::messages::{Event, Message};
+use self::axum::MessageConvert;
 
 use super::bus::GatewayWatcher;
 
 mod axum;
-mod messages;
 
 pub use axum::WebsocketService;
 
@@ -51,10 +53,10 @@ async fn websocket_loop(socket: WebSocket, session: Session) {
 
         // The WebSocket sender isn't clone, so we switch it for an mpsc and
         // spawn a message pumping task to hook up the mpsc & the sender.
-        let (message_sender, mut message_receiver) = mpsc::channel(16);
+        let (message_sender, mut message_receiver) = mpsc::channel::<Message>(16);
         tokio::spawn(async move {
             while let Some(message) = message_receiver.recv().await {
-                let message = match ws::Message::try_from(message) {
+                let message = match message.to_axum_message() {
                     Ok(message) => message,
                     Err(error) => {
                         log::warn!("Couldn't encode websocket message: {error:?}");
@@ -157,7 +159,7 @@ async fn accept_websocket(mut websocket: WebSocket, gateway: &GatewayWatcher) ->
                     websocket
                         .send(
                             Message::close(4995, "register a subgraph before connecting")
-                                .try_into()
+                                .to_axum_message()
                                 .unwrap(),
                         )
                         .await
@@ -167,14 +169,14 @@ async fn accept_websocket(mut websocket: WebSocket, gateway: &GatewayWatcher) ->
 
                 let Some(session) = gateway.authorize(payload.headers.into()).await else {
                     websocket
-                        .send(Message::close(4403, "Forbidden").try_into().unwrap())
+                        .send(Message::close(4403, "Forbidden").to_axum_message().unwrap())
                         .await
                         .ok();
                     return None;
                 };
 
                 websocket
-                    .send(Message::ConnectionAck { payload: None }.try_into().unwrap())
+                    .send(Message::ConnectionAck { payload: None }.to_axum_message().unwrap())
                     .await
                     .ok()?;
 
@@ -184,7 +186,7 @@ async fn accept_websocket(mut websocket: WebSocket, gateway: &GatewayWatcher) ->
                 websocket
                     .send(
                         Message::Ping { payload: None }
-                            .try_into()
+                            .to_axum_message()
                             .expect("ping should always be serializable"),
                     )
                     .await

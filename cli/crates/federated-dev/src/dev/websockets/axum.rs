@@ -110,15 +110,19 @@ where
     }
 }
 
-impl TryFrom<super::messages::Message> for ws::Message {
-    type Error = serde_json::Error;
+pub trait MessageConvert {
+    fn to_axum_message(self) -> Result<ws::Message, serde_json::Error>;
+}
 
-    fn try_from(message: super::messages::Message) -> Result<Self, Self::Error> {
-        match message {
-            super::messages::Message::Close { code, reason } => Ok(ws::Message::Close(Some(ws::CloseFrame {
-                code,
-                reason: reason.into(),
-            }))),
+impl MessageConvert for gateway_v2::websockets::messages::Message {
+    fn to_axum_message(self) -> Result<ws::Message, serde_json::Error> {
+        match self {
+            gateway_v2::websockets::messages::Message::Close { code, reason } => {
+                Ok(ws::Message::Close(Some(ws::CloseFrame {
+                    code,
+                    reason: reason.into(),
+                })))
+            }
             message => Ok(ws::Message::Text(serde_json::to_string(&message)?)),
         }
     }
