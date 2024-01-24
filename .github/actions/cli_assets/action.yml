@@ -22,10 +22,6 @@ runs:
       run: |
         curl https://${{ inputs.cdn }}/cli/${{ inputs.assets_version }}.tar.gz --output assets.tar.gz --fail
         cp assets.tar.gz crates/server/assets
-        mkdir ~/.grafbase
-        cp assets.tar.gz ~/.grafbase
-        (cd ~/.grafbase && tar -xf assets.tar.gz)
-        touch ~/.grafbase/version.txt
 
     - name: Build cli-app
       shell: bash
