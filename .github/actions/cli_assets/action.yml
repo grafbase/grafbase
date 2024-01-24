@@ -33,3 +33,10 @@ runs:
       run: |
         npx pnpm i
         npx pnpm run cli-app:build
+
+    - name: Build udf-wrapper
+      shell: bash
+      working-directory: './cli/udf-wrapper'
+      run: |
+        npx npm i
+        npx npm run build
