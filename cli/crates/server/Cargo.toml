@@ -49,7 +49,7 @@ tokio-stream = { version = "0.1", features = ["sync", "io-util"] }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 tracing = "0.1"
 version-compare = "0.1"
-which = "4"
+which.workspace = true
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.52.4" }
 gateway = { path = "../gateway" }
