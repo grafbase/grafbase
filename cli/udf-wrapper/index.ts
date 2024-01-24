@@ -244,14 +244,7 @@ export const invoke = async (request: Request) => {
 
   try {
     context ??= {}
-    const kv = new KVNamespace(new MemoryStorage())
-    context.kv = {
-      set: kv.put,
-      get: kv.get,
-      getWithMetadata: kv.getWithMetadata,
-      delete: kv.delete,
-      list: kv.list,
-    }
+    context.kv = new KVNamespace(new MemoryStorage())
 
     returnValue = udf(parent, args, context, info)
 
