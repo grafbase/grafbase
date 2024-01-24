@@ -47,8 +47,6 @@ fn decompress_assets() -> io::Result<tempfile::TempDir> {
     Ok(dir)
 }
 
-// FIXME: move instead of copy bun builds
-
 fn recompress_assets(assets_path: &Path) -> io::Result<()> {
     use flate2::{write::GzEncoder, Compression};
 
