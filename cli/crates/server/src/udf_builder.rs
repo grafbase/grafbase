@@ -216,31 +216,34 @@ pub(crate) async fn build(
         other => other.into(),
     })?;
 
-    tokio::fs::create_dir_all(
-        udf_build_entrypoint_path
-            .parent()
-            .expect("must have parent")
-            .join("dist"),
-    )
-    .await
-    .unwrap();
+    let dist_path = udf_build_entrypoint_path
+        .parent()
+        .expect("must have parent")
+        .join("dist");
+
+    tokio::fs::create_dir_all(&dist_path)
+        .await
+        .map_err(|_| UdfBuildError::CreateDir(dist_path, udf_kind))?;
+
+    let entrypoint_path = udf_build_entrypoint_path
+        .parent()
+        .expect("must have parent")
+        .join("dist")
+        .join(ENTRYPOINT_SCRIPT_FILE_NAME);
 
     tokio::fs::copy(
         environment
             .bun_installation_path
             .join(format!("{udf_name}/entrypoint.js")),
-        udf_build_entrypoint_path
-            .parent()
-            .expect("must have parent")
-            .join("dist")
-            .join(ENTRYPOINT_SCRIPT_FILE_NAME),
+        &entrypoint_path,
     )
     .await
-    .unwrap();
+    .map_err(|error| UdfBuildError::CreateUdfArtifactFile(entrypoint_path, udf_kind, error))?;
 
-    tokio::fs::remove_dir_all(environment.bun_installation_path.join(udf_name))
+    let temp_dir_path = environment.bun_installation_path.join(udf_name);
+    tokio::fs::remove_dir_all(&temp_dir_path)
         .await
-        .unwrap();
+        .map_err(|error| UdfBuildError::RemoveTemporaryDir(temp_dir_path, udf_kind, error))?;
 
     let process_env_prelude = format!(
         "globalThis.process.env = {};",

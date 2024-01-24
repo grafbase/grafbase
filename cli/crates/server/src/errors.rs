@@ -205,6 +205,10 @@ pub enum UdfBuildError {
     #[error("could not create a file {0} during a {1} build: {2}")]
     CreateUdfArtifactFile(PathBuf, UdfKind, IoError),
 
+    /// returned if removing a temporary directoryh fails
+    #[error("could not remove the temporary directory {0} during a {1} build: {2}")]
+    RemoveTemporaryDir(PathBuf, UdfKind, IoError),
+
     /// returned if the directory cannot be created
     #[error("could not create path '{0}' for {1} build artifacts")]
     CreateDir(PathBuf, UdfKind),
