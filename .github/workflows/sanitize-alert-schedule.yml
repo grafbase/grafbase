@@ -14,6 +14,7 @@ permissions:
   pull-requests: read
 
 env:
+  GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
   ASSETS_VERSION: 'release/latest'
   PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'

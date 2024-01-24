@@ -16,13 +16,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Fetch CDN assets
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        curl https://${{ inputs.cdn }}/cli/${{ inputs.assets_version }}.tar.gz --output assets.tar.gz --fail
-        cp assets.tar.gz crates/server/assets
-
     - name: Build cli-app
       shell: bash
       working-directory: './packages/cli-app'
@@ -36,3 +29,16 @@ runs:
       run: |
         npm i
         npm run build
+
+    - name: Fetch CDN assets
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        curl https://${{ inputs.cdn }}/cli/${{ inputs.assets_version }}.tar.gz --output assets.tar.gz --fail
+        cp assets.tar.gz crates/server/assets
+        mkdir ~/.grafbase
+        cp assets.tar.gz ~/.grafbase
+        (cd ~/.grafbase && tar -xf assets.tar.gz)
+        touch ~/.grafbase/version.txt
+        cp ./cli/udf-wrapper/dist.js ~/.grafbase/custom-resolvers/wrapper.js
+        cp ./cli/udf-wrapper/bun-multi-wrapper.ts ~/.grafbase/custom-resolvers/bun-multi-wrapper.ts
