@@ -38,5 +38,5 @@ runs:
       shell: bash
       working-directory: './cli/udf-wrapper'
       run: |
-        npx npm i
-        npx npm run build
+        npm i
+        npm run build
