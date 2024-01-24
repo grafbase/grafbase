@@ -18,7 +18,6 @@ permissions:
   issues: write
 
 env:
-  GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
   ASSETS_VERSION: release/b8af78f-2024-01-24
   PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'
