@@ -67,7 +67,8 @@ enum UdfWorkerStatus {
 }
 
 struct UdfWorker {
-    _name: String,
+    name: String,
+    kind: UdfKind,
     directory: PathBuf,
 }
 
@@ -134,7 +135,7 @@ impl UdfRuntime {
                 duration: start.elapsed(),
             })
             .expect("receiver is not never closed");
-        let (join_handle, port) = self.spawn_multi_worker_node(udf_workers).await?;
+        let (join_handle, port) = self.spawn_multi_worker_bun(udf_workers).await?;
         let join_handle = Arc::new(join_handle);
         let mut builds = self.udf_workers.lock().await;
         for udf in udfs {
@@ -151,34 +152,60 @@ impl UdfRuntime {
 }
 
 impl UdfRuntime {
-    async fn spawn_multi_worker_node(
+    async fn spawn_multi_worker_bun(
         &self,
         udf_workers: Vec<UdfWorker>,
     ) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildError> {
-        let node_arguments: Vec<String> = udf_workers
-            .into_iter()
-            .map(|UdfWorker { directory, .. }| directory.join(ENTRYPOINT_SCRIPT_FILE_NAME).display().to_string())
-            .collect();
+        let environment = Environment::get();
+        let mut bun_arguments = vec![
+            "run".to_owned(),
+            environment
+                .user_dot_grafbase_path
+                .join(crate::consts::MULTI_WRAPPER_WORKER_JS_PATH)
+                .display()
+                .to_string(),
+            "--".to_owned(),
+        ];
+
+        bun_arguments.extend(
+            udf_workers
+                .into_iter()
+                .map(|UdfWorker { name, directory, kind }| {
+                    format!(
+                        "{}:{}:{}",
+                        slug::slugify(name),
+                        kind.to_string().to_lowercase(),
+                        directory.join("dist").join(ENTRYPOINT_SCRIPT_FILE_NAME).display()
+                    )
+                })
+                .collect::<Vec<String>>(),
+        );
 
         let environment = Environment::get();
-        let mut node = Command::new("node");
-        node.args(node_arguments)
+        let mut bun = Command::new(
+            environment
+                .bun_installation_path
+                .join("node_modules")
+                .join("bun")
+                .join("bin")
+                .join("bun"),
+        );
+        bun.args(bun_arguments)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .current_dir(&environment.user_dot_grafbase_path)
             .kill_on_drop(true);
-        trace!("Spawning {node:?}");
-        let mut node = node.spawn().unwrap();
+
+        trace!("Spawning {bun:?}");
+        let mut bun = bun.spawn().unwrap();
 
         let bound_port = {
             use tokio::io::AsyncBufReadExt;
             use tokio_stream::wrappers::LinesStream;
-            let stdout = node.stdout.as_mut().unwrap();
+            let stdout = bun.stdout.as_mut().unwrap();
             let mut lines_skipped_over = vec![];
             let filtered_lines_stream =
                 LinesStream::new(tokio::io::BufReader::new(stdout).lines()).try_filter_map(|line: String| {
-                    trace!("node: {line}");
-                    // FIXME(remove miniflare) there's going to be multiple here, we need to see how to handle this
+                    trace!("Bun: {line}");
                     let port = line.trim().parse::<u16>().ok();
                     lines_skipped_over.push(line);
                     futures_util::future::ready(Ok(port))
@@ -192,10 +219,10 @@ impl UdfRuntime {
         };
         trace!("Bound to port: {bound_port}");
         let join_handle = tokio::spawn(async move {
-            let outcome = node.wait_with_output().await.unwrap();
+            let outcome = bun.wait_with_output().await.unwrap();
             assert!(
                 outcome.status.success(),
-                "Node failed: '{}'",
+                "Bun failed: '{}'",
                 String::from_utf8_lossy(&outcome.stderr).into_owned()
             );
         });
@@ -230,8 +257,9 @@ impl UdfRuntime {
                 .await
                 {
                     Ok(package_json_path) => Ok(UdfWorker {
-                        _name: udf_name,
-                        directory: package_json_path.to_owned(),
+                        name: udf_name,
+                        kind: udf_kind,
+                        directory: package_json_path.parent().expect("must exist").to_owned(),
                     }),
                     Err(err) => {
                         self.message_sender
@@ -400,9 +428,7 @@ async fn spawn_bun(
                 .join("bin")
                 .join("bun"),
         );
-        bun
-            // Unbounded worker limit
-            .args(bun_arguments)
+        bun.args(bun_arguments)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true);
@@ -414,7 +440,7 @@ async fn spawn_bun(
             let mut lines_skipped_over = vec![];
             let filtered_lines_stream =
                 LinesStream::new(tokio::io::BufReader::new(stdout).lines()).try_filter_map(|line: String| {
-                    trace!("node: {line}");
+                    trace!("Bun: {line}");
                     let port = line.trim().parse::<u16>().ok();
                     lines_skipped_over.push(line);
                     futures_util::future::ready(Ok(port))
@@ -481,6 +507,8 @@ async fn invoke(
         error!("deserialization from '{json_string}' failed: {err:?}");
         ApiError::UdfInvocation
     })?;
+
+    trace!("Value: {value}");
 
     let mut messages = vec![];
 

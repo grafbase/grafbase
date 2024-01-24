@@ -2563,7 +2563,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "sha2",
  "slug",
  "strip-ansi-escapes",
  "strum",
@@ -2576,7 +2575,6 @@ dependencies = [
  "tracing",
  "typed-resolvers",
  "version-compare",
- "walkdir",
  "which 4.4.2",
 ]
 

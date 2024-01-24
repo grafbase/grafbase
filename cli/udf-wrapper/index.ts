@@ -1,4 +1,4 @@
-// @ts-expect-error set individually for each UDF
+/// @ts-expect-error set individually for each UDF
 import udf from '${UDF_MAIN_FILE_PATH}'
 // import { IncomingMessage, ServerResponse, createServer } from 'http'
 // import { Readable } from 'stream'
@@ -135,14 +135,90 @@ let fetchRequests: Array<FetchRequest> = []
 // )
 
 // Bun:
+if (import.meta.main) {
+  const server = Bun.serve({
+    port: PORT,
+    fetch: (request: Request) => router(request),
+  })
 
-const server = Bun.serve({
-  port: PORT,
-  fetch: (request: Request) => router(request),
-})
+  // @ts-expect-error incorrect typing
+  await Bun.write(Bun.stdout, `${server.port}\n`)
 
-// @ts-expect-error incorrect typing
-await Bun.write(Bun.stdout, server.port)
+  // patches console.* to return the logs in the response
+  for (const level of Object.values(LogLevel)) {
+    globalThis.console[level] = (...message: unknown[]) => {
+      logEntries.push({
+        loggedAt: Date.now(),
+        level,
+        message: Array.from(message)
+          .map((message) => JSON.stringify(message))
+          .join(' '),
+      })
+    }
+  }
+
+  globalThis.console.log = globalThis.console.info
+
+  // Monkey patch `fetch()` calls from custom resolvers
+  // to allow for fully introspected logging of all HTTP requests.
+  globalThis.fetch = async (input: string | URL | Request, init?: RequestInit) => {
+    const request = new Request(input as Request /* incorrect typing for Bun */, init)
+
+    const startTime = Date.now()
+    const response = await originalFetch(request)
+    const endTime = Date.now()
+
+    const contentType = response.headers.get(Header.ContentType)?.split(MIME_PROPERTY_SEPARATOR)[0].trim()
+
+    let body: string | null = null
+
+    switch (contentType) {
+      case MimeType.ApplicationJson:
+      case MimeType.TextPlain:
+      case MimeType.TextHtml:
+        body = await response.clone().text()
+        break
+    }
+
+    const fetchRequest: FetchRequest = {
+      loggedAt: Date.now(),
+      url: request.url,
+      method: request.method,
+      statusCode: response.status,
+      duration: endTime - startTime,
+      contentType,
+      body,
+    }
+
+    fetchRequests.push(fetchRequest)
+
+    return response
+  }
+
+  const router = (request: Request) => {
+    const url = new URL(request.url)
+    switch (url.pathname) {
+      case Route.Health:
+        switch (request.method) {
+          case HttpMethod.Get:
+            return new Response(JSON.stringify({ ready: true }), {
+              headers: { [Header.ContentType]: MimeType.ApplicationJson },
+            })
+          default:
+            return new Response(toErrorResponse(`method not allowed for ${Route.Health}`), { status: HttpStatus.MethodNotAllowed })
+        }
+      case Route.Invoke:
+        switch (request.method) {
+          case HttpMethod.Post:
+            return invoke(request)
+          default:
+            return new Response(toErrorResponse(`method not allowed for ${Route.Invoke}`), { status: HttpStatus.MethodNotAllowed })
+        }
+      default:
+        return new Response(toErrorResponse(`${url.pathname} not found`), { status: HttpStatus.NotFound })
+    }
+  }
+}
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
   let binaryString = ''
@@ -152,82 +228,7 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
   return btoa(binaryString)
 }
 
-// patches console.* to return the logs in the response
-for (const level of Object.values(LogLevel)) {
-  globalThis.console[level] = (...message: unknown[]) => {
-    logEntries.push({
-      loggedAt: Date.now(),
-      level,
-      message: Array.from(message)
-        .map((message) => JSON.stringify(message))
-        .join(' '),
-    })
-  }
-}
-
-globalThis.console.log = globalThis.console.info
-
-// Monkey patch `fetch()` calls from custom resolvers
-// to allow for fully introspected logging of all HTTP requests.
-globalThis.fetch = async (input: string | URL | Request, init?: RequestInit) => {
-  const request = new Request(input as Request /* incorrect typing for Bun */, init)
-
-  const startTime = Date.now()
-  const response = await originalFetch(request)
-  const endTime = Date.now()
-
-  const contentType = response.headers.get(Header.ContentType)?.split(MIME_PROPERTY_SEPARATOR)[0].trim()
-
-  let body: string | null = null
-
-  switch (contentType) {
-    case MimeType.ApplicationJson:
-    case MimeType.TextPlain:
-    case MimeType.TextHtml:
-      body = await response.clone().text()
-      break
-  }
-
-  const fetchRequest: FetchRequest = {
-    loggedAt: Date.now(),
-    url: request.url,
-    method: request.method,
-    statusCode: response.status,
-    duration: endTime - startTime,
-    contentType,
-    body,
-  }
-
-  fetchRequests.push(fetchRequest)
-
-  return response
-}
-
-const router = (request: Request) => {
-  const url = new URL(request.url)
-  switch (url.pathname) {
-    case Route.Health:
-      switch (request.method) {
-        case HttpMethod.Get:
-          return new Response(JSON.stringify({ ready: true }), {
-            headers: { [Header.ContentType]: MimeType.ApplicationJson },
-          })
-        default:
-          return new Response(`method not allowed for ${Route.Health}`, { status: HttpStatus.MethodNotAllowed })
-      }
-    case Route.Invoke:
-      switch (request.method) {
-        case HttpMethod.Post:
-          return invoke(request)
-        default:
-          return new Response(`method not allowed for ${Route.Invoke}`, { status: HttpStatus.MethodNotAllowed })
-      }
-    default:
-      return new Response(`${url.pathname} not found`, { status: HttpStatus.NotFound })
-  }
-}
-
-const invoke = async (request: Request) => {
+export const invoke = async (request: Request) => {
   logEntries = []
   fetchRequests = []
 
@@ -285,3 +286,10 @@ const invoke = async (request: Request) => {
     headers: { [Header.ContentType]: MimeType.ApplicationJson },
   })
 }
+
+const toErrorResponse = (error: string) =>
+  JSON.stringify({
+    value: { Error: error },
+    fetchRequests: [],
+    logEntries: [],
+  });

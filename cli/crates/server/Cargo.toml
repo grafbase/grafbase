@@ -50,8 +50,6 @@ tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 tracing = "0.1"
 version-compare = "0.1"
 which = "4"
-walkdir = "2"
-sha2 = "0.10"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.52.4" }
 gateway = { path = "../gateway" }

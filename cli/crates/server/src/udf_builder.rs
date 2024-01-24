@@ -238,6 +238,10 @@ pub(crate) async fn build(
     .await
     .unwrap();
 
+    tokio::fs::remove_dir_all(environment.bun_installation_path.join(udf_name))
+        .await
+        .unwrap();
+
     let process_env_prelude = format!(
         "globalThis.process.env = {};",
         serde_json::to_string(&environment_variables).expect("must be valid JSON")
@@ -271,7 +275,7 @@ pub(crate) async fn build(
 }
 
 pub(crate) fn udf_url_path(kind: UdfKind, name: &str) -> String {
-    format!("/{kind}/{}/invoke", slug::slugify(name))
+    format!("/{}/{}/invoke", kind.to_string().to_lowercase(), slug::slugify(name))
 }
 
 const BUN_VERSION: &str = "1.0.23";

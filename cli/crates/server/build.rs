@@ -47,6 +47,8 @@ fn decompress_assets() -> io::Result<tempfile::TempDir> {
     Ok(dir)
 }
 
+// FIXME: move instead of copy bun builds
+
 fn recompress_assets(assets_path: &Path) -> io::Result<()> {
     use flate2::{write::GzEncoder, Compression};
 
@@ -89,6 +91,19 @@ fn main() -> io::Result<()> {
     }
     eprintln!("⏱️ Timing after copy: {:?}", time::Instant::now().duration_since(start));
 
+    let origin_path = Path::new("../../udf-wrapper");
+    let dest_path = tmp_assets.path();
+    fs::create_dir_all(&target_path)?;
+    fs::copy(
+        origin_path.join("bun-multi-wrapper.ts"),
+        dest_path.join("custom-resolvers/bun-multi-wrapper.ts"),
+    )?;
+    let _ = fs::remove_file(dest_path.join("custom-resolvers/wrapper-worker.js"));
+    fs::metadata(origin_path.join("dist.js")).expect("Building the worker wrapper is required to continue. Please run `npm install && npm run build` in 'cli/udf-wrapper'");
+    fs::copy(
+        origin_path.join("dist.js"),
+        dest_path.join("custom-resolvers/wrapper-worker.js"),
+    )?;
     recompress_assets(tmp_assets.path())?;
     eprintln!(
         "⏱️ Timing after recompress: {:?}",
