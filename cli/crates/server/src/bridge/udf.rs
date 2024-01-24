@@ -212,7 +212,7 @@ impl UdfRuntime {
                 });
             pin_mut!(filtered_lines_stream);
             filtered_lines_stream.try_next().await.ok().flatten().ok_or_else(|| {
-                UdfBuildError::NodeSpawnFailedWithOutput {
+                UdfBuildError::BunSpawnFailedWithOutput {
                     output: lines_skipped_over.join("\n"),
                 }
             })?
@@ -370,16 +370,16 @@ impl UdfRuntime {
 }
 
 async fn wait_until_udf_ready(worker_port: u16, udf_kind: UdfKind, udf_name: &str) -> Result<bool, reqwest::Error> {
-    const RESOLVER_WORKER_NODE_READY_RETRY_COUNT: usize = 50;
-    const RESOLVER_WORKER_NODE_READY_RETRY_INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
+    const RESOLVER_WORKER_BUN_READY_RETRY_COUNT: usize = 50;
+    const RESOLVER_WORKER_BUN_READY_RETRY_INTERVAL: std::time::Duration = std::time::Duration::from_millis(100);
 
-    for _ in 0..RESOLVER_WORKER_NODE_READY_RETRY_COUNT {
+    for _ in 0..RESOLVER_WORKER_BUN_READY_RETRY_COUNT {
         trace!("readiness check of {udf_kind} '{udf_name}' under port {worker_port}");
         if is_udf_ready(worker_port).await? {
             trace!("{udf_kind} '{udf_name}' ready under port {worker_port}");
             return Ok(true);
         }
-        tokio::time::sleep(RESOLVER_WORKER_NODE_READY_RETRY_INTERVAL).await;
+        tokio::time::sleep(RESOLVER_WORKER_BUN_READY_RETRY_INTERVAL).await;
     }
     Ok(false)
 }
@@ -447,7 +447,7 @@ async fn spawn_bun(
                 });
             pin_mut!(filtered_lines_stream);
             filtered_lines_stream.try_next().await.ok().flatten().ok_or_else(|| {
-                UdfBuildError::NodeSpawnFailedWithOutput {
+                UdfBuildError::BunSpawnFailedWithOutput {
                     output: lines_skipped_over.join("\n"),
                 }
             })?
@@ -468,11 +468,11 @@ async fn spawn_bun(
 
     if wait_until_udf_ready(resolver_worker_port, udf_kind, udf_name)
         .await
-        .map_err(|_| UdfBuildError::NodeSpawnFailed)?
+        .map_err(|_| UdfBuildError::BunSpawnFailed)?
     {
         Ok((join_handle, resolver_worker_port))
     } else {
-        Err(UdfBuildError::NodeSpawnFailed)
+        Err(UdfBuildError::BunSpawnFailed)
     }
 }
 

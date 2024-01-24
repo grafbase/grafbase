@@ -151,7 +151,7 @@ impl ProductionServer {
 }
 
 /// starts a development server by unpacking any files needed by the gateway worker
-/// and starting the node in `user_grafbase_path` in [`Environment`]
+/// and starting bun in `user_grafbase_path` in [`Environment`]
 ///
 /// # Errors
 ///
@@ -163,7 +163,7 @@ impl ProductionServer {
 ///
 /// # Panics
 ///
-/// The spawned server and node thread can panic if either of the two inner spawned threads panic
+/// The spawned server and bun thread can panic if either of the two inner spawned threads panic
 pub async fn start(
     port: PortSelection,
     watch: bool,
