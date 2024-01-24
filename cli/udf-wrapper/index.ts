@@ -24,7 +24,7 @@ interface FetchRequest {
 interface UdfRequestPayload {
   info: unknown
   parent: unknown
-  context: { kv?: KVNamespace }
+  context: { kv?: unknown }
   args: unknown
 }
 
@@ -244,7 +244,14 @@ export const invoke = async (request: Request) => {
 
   try {
     context ??= {}
-    context.kv = new KVNamespace(new MemoryStorage())
+    const kv = new KVNamespace(new MemoryStorage())
+    context.kv = {
+      set: kv.put,
+      get: kv.get,
+      getWithMetadata: kv.getWithMetadata,
+      delete: kv.delete,
+      list: kv.list,
+    }
 
     returnValue = udf(parent, args, context, info)
 

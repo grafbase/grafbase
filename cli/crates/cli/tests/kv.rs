@@ -29,8 +29,7 @@ fn test_kv_integration(#[case] enabled: bool) {
             let value = await kv.get(kvKey);
             if (value === null) {
                 console.info(`Key ${kvKey} doesn't exist in KV. Creating ...`);
-                await kv.put(kvKey, "hello kv!");
-                console.log("created")
+                await kv.set(kvKey, "hello kv!");
             }
 
             return kv.get(kvKey);
