@@ -205,17 +205,23 @@ if (import.meta.main) {
               headers: { [Header.ContentType]: MimeType.ApplicationJson },
             })
           default:
-            return new Response(toErrorResponse(`method not allowed for ${Route.Health}`), { status: HttpStatus.MethodNotAllowed })
+            return new Response(toErrorResponse(`method not allowed for ${Route.Health}`), {
+              status: HttpStatus.MethodNotAllowed,
+            })
         }
       case Route.Invoke:
         switch (request.method) {
           case HttpMethod.Post:
             return invoke(request)
           default:
-            return new Response(toErrorResponse(`method not allowed for ${Route.Invoke}`), { status: HttpStatus.MethodNotAllowed })
+            return new Response(toErrorResponse(`method not allowed for ${Route.Invoke}`), {
+              status: HttpStatus.MethodNotAllowed,
+            })
         }
       default:
-        return new Response(toErrorResponse(`${url.pathname} not found`), { status: HttpStatus.NotFound })
+        return new Response(toErrorResponse(`${url.pathname} not found`), {
+          status: HttpStatus.NotFound,
+        })
     }
   }
 }
@@ -237,9 +243,7 @@ export const invoke = async (request: Request) => {
   let returnValue: unknown = null
 
   try {
-    if (context) {
-      context.kv = new KVNamespace(new MemoryStorage())
-    }
+    context.kv = new KVNamespace(new MemoryStorage())
 
     returnValue = udf(parent, args, context, info)
 
@@ -292,4 +296,4 @@ const toErrorResponse = (error: string) =>
     value: { Error: error },
     fetchRequests: [],
     logEntries: [],
-  });
+  })
