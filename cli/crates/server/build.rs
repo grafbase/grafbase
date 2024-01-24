@@ -111,6 +111,7 @@ fn main() -> io::Result<()> {
     println!("cargo:rerun-if-changed={bundle_location}");
     println!("cargo:rerun-if-env-changed={GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH}");
     println!("cargo:rerun-if-changed={ASSETS_GZIP_PATH}");
+    println!("cargo:rerun-if-changed=../../udf-wrapper");
 
     Ok(())
 }
