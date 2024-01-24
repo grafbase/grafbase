@@ -223,13 +223,9 @@ pub(crate) async fn build(
 
     tokio::fs::create_dir_all(&dist_path)
         .await
-        .map_err(|_| UdfBuildError::CreateDir(dist_path, udf_kind))?;
+        .map_err(|_| UdfBuildError::CreateDir(dist_path.clone(), udf_kind))?;
 
-    let entrypoint_path = udf_build_entrypoint_path
-        .parent()
-        .expect("must have parent")
-        .join("dist")
-        .join(ENTRYPOINT_SCRIPT_FILE_NAME);
+    let entrypoint_path = dist_path.join(ENTRYPOINT_SCRIPT_FILE_NAME);
 
     tokio::fs::copy(
         environment
@@ -265,11 +261,7 @@ pub(crate) async fn build(
             .await
             .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
     }
-    let entrypoint_js_path = udf_build_entrypoint_path
-        .parent()
-        .expect("must exist")
-        .join("dist")
-        .join(ENTRYPOINT_SCRIPT_FILE_NAME);
+    let entrypoint_js_path = dist_path.join(ENTRYPOINT_SCRIPT_FILE_NAME);
     tokio::fs::copy(temp_file_path, &entrypoint_js_path)
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(entrypoint_js_path.clone(), udf_kind, err))?;
