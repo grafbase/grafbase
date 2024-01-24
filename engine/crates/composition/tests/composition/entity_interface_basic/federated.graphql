@@ -5,6 +5,7 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 directive @join__type(
     graph: join__Graph!
     key: String!
+    resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
@@ -28,7 +29,7 @@ type Squirrel {
 type Cheetah implements Animal
     @join__type(graph: SAVANNA, key: "species")
 {
-    species: String! @join__field(graph: SAVANNA)
+    species: String!
     topSpeed: Int! @join__field(graph: SAVANNA)
     species: String!
     favouriteFood: String @join__field(graph: FOREST)

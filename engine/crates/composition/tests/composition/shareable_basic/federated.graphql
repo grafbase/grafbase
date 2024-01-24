@@ -5,6 +5,7 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 directive @join__type(
     graph: join__Graph!
     key: String!
+    resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
@@ -24,9 +25,9 @@ enum join__Graph {
 type Customer {
     id: ID!
     name: String
-    other: Int @join__field(graph: ACCOUNTS) @inaccessible
-    newsletterSubscribed: Boolean @join__field(graph: MARKETING) @inaccessible
-    subscriptionPlan: Plan! @join__field(graph: SUBSCRIPTIONS) @inaccessible
+    other: Int @inaccessible
+    newsletterSubscribed: Boolean @inaccessible
+    subscriptionPlan: Plan! @inaccessible
 }
 
 type Query {

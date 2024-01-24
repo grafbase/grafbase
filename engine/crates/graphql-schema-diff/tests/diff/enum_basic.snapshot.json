@@ -1,30 +1,30 @@
 {
   "src → target": [
     {
-      "kind": "AddEnumValue",
-      "path": "Color.ALPHA"
+      "path": "Color.ALPHA",
+      "kind": "AddEnumValue"
     },
     {
-      "kind": "RemoveEnum",
-      "path": "People"
+      "path": "People",
+      "kind": "RemoveEnum"
     }
   ],
   "target → src": [
     {
-      "kind": "RemoveEnumValue",
-      "path": "Color.ALPHA"
+      "path": "Color.ALPHA",
+      "kind": "RemoveEnumValue"
     },
     {
-      "kind": "AddEnum",
-      "path": "People"
+      "path": "People",
+      "kind": "AddEnum"
     },
     {
-      "kind": "AddEnumValue",
-      "path": "People.CAT"
+      "path": "People.CAT",
+      "kind": "AddEnumValue"
     },
     {
-      "kind": "AddEnumValue",
-      "path": "People.DOG"
+      "path": "People.DOG",
+      "kind": "AddEnumValue"
     }
   ]
 }

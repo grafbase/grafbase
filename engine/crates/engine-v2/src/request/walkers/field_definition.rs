@@ -22,6 +22,13 @@ impl<'a, C: Copy> BoundAnyFieldDefinitionWalker<'a, C> {
         }
     }
 
+    pub fn schema_name(&self) -> &'a str {
+        match self.as_ref() {
+            BoundAnyFieldDefinition::TypeName(_) => "__typename",
+            BoundAnyFieldDefinition::Field(definition) => self.schema_walker.walk(definition.field_id).name(),
+        }
+    }
+
     pub fn name_location(&self) -> Pos {
         match self.as_ref() {
             BoundAnyFieldDefinition::TypeName(definition) => definition.name_location,

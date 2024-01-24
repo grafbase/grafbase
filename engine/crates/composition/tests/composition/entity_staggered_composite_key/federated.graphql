@@ -5,6 +5,7 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 directive @join__type(
     graph: join__Graph!
     key: String!
+    resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
@@ -23,8 +24,8 @@ enum join__Graph {
 type A
     @join__type(graph: FIRST, key: "b { id } c")
 {
-    b: B! @join__field(graph: FIRST)
-    c: String! @join__field(graph: FIRST)
+    b: B!
+    c: String!
 }
 
 type B

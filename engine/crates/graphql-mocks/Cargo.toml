@@ -1,6 +1,6 @@
 [package]
 name = "graphql-mocks"
-private = true
+publish = false
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true

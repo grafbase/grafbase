@@ -5,6 +5,7 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 directive @join__type(
     graph: join__Graph!
     key: String!
+    resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
@@ -48,8 +49,8 @@ type Series {
 type New {
     name: String! @inaccessible
     other: String!
-    message: String! @join__field(graph: ONE) @inaccessible
-    old: Old! @join__field(graph: ONE) @inaccessible
+    message: String! @inaccessible
+    old: Old! @inaccessible
 }
 
 type Old @inaccessible {

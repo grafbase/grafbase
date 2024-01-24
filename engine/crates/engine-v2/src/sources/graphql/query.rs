@@ -132,7 +132,7 @@ impl<'a> FederationEntityQuery<'a> {
         query.push_str(&format!("\n\t_entities(representations: ${var_name}) {{"));
         query.push_str("\n\t\t__typename");
         query.push_str(&format!("\n\t\t... on {type_name} {selection_set}\t}}"));
-        query.push_str("\n}");
+        query.push_str("\n}\n");
 
         builder.write_fragments(&mut query);
 

@@ -1189,9 +1189,9 @@ dependencies = [
 
 [[package]]
 name = "cynic"
-version = "3.4.0"
+version = "3.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14e5d06f3d2b007994333130925ce153c024adf52557c2ddc4bb24c65906e4d9"
+checksum = "7335114540697c7b1c1a0131cbe0e983fdb1e646f881234afe9e2a66133ac99a"
 dependencies = [
  "cynic-proc-macros",
  "ref-cast",
@@ -1204,9 +1204,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-codegen"
-version = "3.4.0"
+version = "3.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ec48a52fd6b205b6519570a11816136883c4757964c770c4df32e36fd484e4e"
+checksum = "a11d6119f9f0f55c9d7cff5189a7b318f35a7d2d6faa4872441ee521f65420b6"
 dependencies = [
  "counter",
  "darling 0.20.3",
@@ -1223,9 +1223,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-introspection"
-version = "3.4.0"
+version = "3.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6158db974f23f3ff5826657aaabefeaaa8ccc81b92238d952232f71566a64491"
+checksum = "9c27e0c018f260c05f99b625cd41e8c4a32f1e9bc5b7be57dcee8460ec3608cd"
 dependencies = [
  "cynic",
  "cynic-codegen",
@@ -1235,9 +1235,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-proc-macros"
-version = "3.4.0"
+version = "3.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c77a54cd11efd03a7a85e17908e894c6440f320529a31186f233f945cbd677a"
+checksum = "eb81a5872a7774daf11caefb2ebe7166d9da12b1b69cf35661130b3c3fccbd61"
 dependencies = [
  "cynic-codegen",
  "darling 0.20.3",
@@ -1726,7 +1726,7 @@ dependencies = [
 
 [[package]]
 name = "engine-config-builder"
-version = "0.52.4"
+version = "0.53.0"
 dependencies = [
  "engine-v2-config",
  "graphql-federated-graph",
@@ -1957,7 +1957,7 @@ checksum = "25cbce373ec4653f1a01a31e8a5e5ec0c622dc27ff9c4e6606eefef5cbbed4a5"
 
 [[package]]
 name = "federated-dev"
-version = "0.52.4"
+version = "0.53.0"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
@@ -2251,7 +2251,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.52.4"
+version = "0.53.0"
 dependencies = [
  "async-graphql",
  "async-trait",
@@ -2399,7 +2399,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.52.4"
+version = "0.53.0"
 dependencies = [
  "assert_matches",
  "async-graphql",
@@ -2471,7 +2471,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.52.4"
+version = "0.53.0"
 dependencies = [
  "apollo-encoder",
  "apollo-parser",
@@ -2484,7 +2484,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.52.4"
+version = "0.53.0"
 dependencies = [
  "async-compression",
  "axum",
@@ -2515,7 +2515,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.52.4"
+version = "0.53.0"
 dependencies = [
  "chrono",
  "common-types",
@@ -2532,7 +2532,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.52.4"
+version = "0.53.0"
 dependencies = [
  "async-trait",
  "async-tungstenite",
@@ -2640,6 +2640,7 @@ dependencies = [
  "indexmap 2.1.0",
  "indoc",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2999,9 +3000,9 @@ dependencies = [
 
 [[package]]
 name = "http-cache"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57bae69908277d47122334bf6009e514cd3d24e65d0bf2b56f1b45db6ad8864d"
+checksum = "5b5ab65432bbdfe8490dfde21d0366353a8d39f2bc24aca0146889f931b0b4b5"
 dependencies = [
  "async-trait",
  "bincode",
@@ -3015,9 +3016,9 @@ dependencies = [
 
 [[package]]
 name = "http-cache-reqwest"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee5a40915f9da8f3feef6f942f9aace74393803c47bce6870f19cd2b5123f27a"
+checksum = "9c8285341ce7e709c56a0f259ff1c789c70edfbaa88acd69d27e4d63980b92dc"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3368,6 +3369,7 @@ dependencies = [
  "async-graphql",
  "async-graphql-parser",
  "async-once-cell",
+ "async-runtime",
  "async-trait",
  "base64 0.21.7",
  "const_format",
@@ -3898,6 +3900,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "more-asserts"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fafa6961cabd9c63bcd77a45d7e3b7f3b552b70417831fb0f56db717e72407e"
+
+[[package]]
 name = "multer"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4289,7 +4297,7 @@ dependencies = [
 
 [[package]]
 name = "operation-checks"
-version = "0.52.4"
+version = "0.53.0"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
@@ -4302,7 +4310,7 @@ dependencies = [
 
 [[package]]
 name = "operation-normalizer"
-version = "0.52.4"
+version = "0.53.0"
 dependencies = [
  "anyhow",
  "expect-test",
@@ -4493,6 +4501,7 @@ dependencies = [
  "indexmap 1.9.3",
  "insta",
  "itertools 0.12.0",
+ "more-asserts",
  "once_cell",
  "openapi",
  "openapiv3",
@@ -6342,9 +6351,9 @@ dependencies = [
 
 [[package]]
 name = "swc_common"
-version = "0.33.12"
+version = "0.33.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b3ae36feceded27f0178dc9dabb49399830847ffb7f866af01798844de8f973"
+checksum = "d58670ef866b00f97a6d8a7a529741c31796d232ad907ddec967e9ce3ee0a099"
 dependencies = [
  "ast_node",
  "better_scoped_tls",
@@ -6367,9 +6376,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_ast"
-version = "0.110.17"
+version = "0.111.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79401a45da704f4fb2552c5bf86ee2198e8636b121cb81f8036848a300edd53b"
+checksum = "9d46096f634ff7bca91d58e118a4872ccb6ee0078918dcf9d840e487d5970618"
 dependencies = [
  "bitflags 2.4.1",
  "is-macro",
@@ -6384,9 +6393,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_parser"
-version = "0.141.37"
+version = "0.142.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4d17401dd95048a6a62b777d533c0999dabdd531ef9d667e22f8ae2a2a0d294"
+checksum = "88ae890b3faee49f0e88b6d374c11be4062384c71a48b83b89a6cd3fd6fe2471"
 dependencies = [
  "either",
  "new_debug_unreachable",
@@ -7046,7 +7055,7 @@ checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "typed-resolvers"
-version = "0.52.4"
+version = "0.53.0"
 dependencies = [
  "datatest-stable",
  "engine-parser",
@@ -7426,15 +7435,15 @@ checksum = "1778a42e8b3b90bff8d0f5032bf22250792889a5cdc752aa0020c84abe3aaf10"
 
 [[package]]
 name = "which"
-version = "5.0.0"
+version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bf3ea8596f3a0dd5980b46430f2058dfe2c36a27ccfbb1845d6fbfcd9ba6e14"
+checksum = "7fa5e0c10bf77f44aac573e498d1a82d5fbd5e91f6fc0a99e7be4b38e85e101c"
 dependencies = [
  "either",
  "home",
  "once_cell",
  "rustix",
- "windows-sys 0.48.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

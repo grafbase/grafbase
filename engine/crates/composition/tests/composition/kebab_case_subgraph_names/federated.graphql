@@ -5,6 +5,7 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 directive @join__type(
     graph: join__Graph!
     key: String!
+    resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
@@ -24,7 +25,7 @@ enum join__Graph {
 type Kebab
     @join__type(graph: BROCHETTE_REPOSITORY, key: "id")
 {
-    id: ID! @join__field(graph: BROCHETTE_REPOSITORY)
+    id: ID!
     meatType: String @join__field(graph: BROCHETTE_REPOSITORY)
     vegetables: [String] @join__field(graph: BROCHETTE_REPOSITORY)
     breadType: String @join__field(graph: BROCHETTE_REPOSITORY)
@@ -33,7 +34,7 @@ type Kebab
 type Brochette
     @join__type(graph: BROCHETTE_REPOSITORY, key: "id")
 {
-    id: ID! @join__field(graph: BROCHETTE_REPOSITORY)
+    id: ID!
     meatType: String @join__field(graph: BROCHETTE_REPOSITORY)
     marinade: String @join__field(graph: BROCHETTE_REPOSITORY)
     servedWith: String @join__field(graph: BROCHETTE_REPOSITORY)
@@ -42,7 +43,7 @@ type Brochette
 type Kushi
     @join__type(graph: KUSHI_STORE, key: "id")
 {
-    id: ID! @join__field(graph: KUSHI_STORE)
+    id: ID!
     meatType: String @join__field(graph: KUSHI_STORE)
     sauce: String @join__field(graph: KUSHI_STORE)
     stickMaterial: String @join__field(graph: KUSHI_STORE)
@@ -51,7 +52,7 @@ type Kushi
 type Schaschlik
     @join__type(graph: SCHASCHLIK_SERVICE, key: "id")
 {
-    id: ID! @join__field(graph: SCHASCHLIK_SERVICE)
+    id: ID!
     meatType: String @join__field(graph: SCHASCHLIK_SERVICE)
     spices: [String] @join__field(graph: SCHASCHLIK_SERVICE)
     originCountry: String @join__field(graph: SCHASCHLIK_SERVICE)

@@ -17,6 +17,21 @@ use super::{
     BoundTypeNameFieldDefinition, Operation, Pos, ResponseKeys, SelectionSetType, TypeCondition, UnboundOperation,
 };
 
+#[allow(clippy::enum_variant_names)]
+#[derive(thiserror::Error, Debug)]
+pub enum OperationLimitExceededError {
+    #[error("Query is too complex.")]
+    QueryTooComplex,
+    #[error("Query is nested too deep.")]
+    QueryTooDeep,
+    #[error("Query is too high.")]
+    QueryTooHigh,
+    #[error("Query contains too many root fields.")]
+    QueryContainsTooManyRootFields,
+    #[error("Query contains too many aliases.")]
+    QueryContainsTooManyAliases,
+}
+
 #[derive(thiserror::Error, Debug)]
 pub enum BindError {
     #[error("Unknown type named '{name}'")]
@@ -71,6 +86,8 @@ pub enum BindError {
     },
     #[error("Fragment cycle detected: {}", .cycle.iter().join(", "))]
     FragmentCycle { cycle: Vec<String>, location: Pos },
+    #[error("{0}")]
+    OperationLimitExceeded(OperationLimitExceededError),
 }
 
 impl From<BindError> for GraphqlError {
@@ -91,7 +108,11 @@ impl From<BindError> for GraphqlError {
             | BindError::UndefinedVariable { location, .. }
             | BindError::FragmentCycle { location, .. }
             | BindError::UnusedVariable { location, .. } => vec![location],
-            BindError::NoMutationDefined | BindError::NoSubscriptionDefined => vec![],
+            BindError::NoMutationDefined
+            | BindError::NoSubscriptionDefined
+            | BindError::OperationLimitExceeded { .. } => {
+                vec![]
+            }
         };
         GraphqlError {
             message: err.to_string(),

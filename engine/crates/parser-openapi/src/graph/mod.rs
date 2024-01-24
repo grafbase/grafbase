@@ -9,7 +9,6 @@ use petgraph::{
     Graph,
 };
 use regex::Regex;
-use serde_json::Value;
 
 mod enums;
 mod input_object;
@@ -140,10 +139,10 @@ pub enum Node {
     Enum,
 
     // The default value for a type node, linked via a HasDefault edge
-    Default(Value),
+    Default(Box<serde_json::Value>),
 
     // A possible value for a given scalar/enum
-    PossibleValue(Value),
+    PossibleValue(Box<serde_json::Value>),
 
     /// An OpenAPI allOf schema.
     ///
@@ -594,7 +593,7 @@ mod tests {
     fn test_graph_size() {
         // Our graph can end up with a ton of nodes & edges so it's important
         // that they don't get too big.
-        assert!(std::mem::size_of::<Node>() <= 48);
-        assert!(std::mem::size_of::<Edge>() <= 48);
+        more_asserts::assert_le!(std::mem::size_of::<Node>(), 48);
+        more_asserts::assert_le!(std::mem::size_of::<Edge>(), 48);
     }
 }

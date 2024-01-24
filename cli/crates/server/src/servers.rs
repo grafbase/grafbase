@@ -192,8 +192,7 @@ pub async fn start(
         federated_dev(proxy, message_sender, config).await?;
     } else {
         if let Some(file_changes) = file_changes {
-            crate::codegen_server::start_codegen_worker(file_changes, config.config_stream(), message_sender.clone())
-                .expect("Invariant violation: codegen worker started twice.");
+            crate::codegen_server::start_codegen_worker(file_changes, &config, message_sender.clone())
         }
 
         standalone_dev(proxy, message_sender, config, tracing).await?;

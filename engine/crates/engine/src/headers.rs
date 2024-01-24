@@ -3,7 +3,7 @@ use std::collections::HashMap;
 /// The headers that were provided in the HTTP request to engine.
 ///
 /// Certain connectors use these to forward headers on, depending on their configuration.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct RequestHeaders(Vec<(String, String)>);
 
 impl RequestHeaders {
@@ -36,6 +36,12 @@ impl RequestHeaders {
 impl From<&HashMap<String, String>> for RequestHeaders {
     fn from(value: &HashMap<String, String>) -> Self {
         RequestHeaders::new(value.clone())
+    }
+}
+
+impl From<HashMap<String, String>> for RequestHeaders {
+    fn from(value: HashMap<String, String>) -> Self {
+        RequestHeaders::new(value)
     }
 }
 

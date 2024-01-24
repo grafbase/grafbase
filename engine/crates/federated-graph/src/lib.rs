@@ -12,9 +12,19 @@ pub use render_sdl::render_sdl;
 mod from_sdl;
 
 #[cfg(feature = "from_sdl")]
-pub use from_sdl::from_sdl;
+pub use from_sdl::{from_sdl, DomainError};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub enum FederatedGraph {
     V1(FederatedGraphV1),
+}
+
+impl FederatedGraph {
+    pub fn to_sdl(&self) -> Result<String, std::fmt::Error> {
+        render_sdl(self)
+    }
+
+    pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
+        from_sdl(sdl)
+    }
 }

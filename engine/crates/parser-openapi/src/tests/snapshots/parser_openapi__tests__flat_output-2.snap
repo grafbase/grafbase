@@ -2288,6 +2288,7 @@ Registry {
         },
     },
     enable_ai: false,
+    enable_codegen: false,
     is_federated: false,
     operation_limits: OperationLimits {
         depth: None,

@@ -13,6 +13,8 @@ pub use walkers::*;
 
 use crate::response::ResponseKeys;
 
+use self::bind::{BindError, OperationLimitExceededError};
+
 mod bind;
 mod flat;
 pub mod ids;
@@ -37,13 +39,64 @@ pub struct Operation {
 }
 
 impl Operation {
+    fn enforce_operation_limits(&self, schema: &Schema) -> Result<(), OperationLimitExceededError> {
+        let selection_set = self.walker_with(schema.walker()).walk(self.root_selection_set_id);
+
+        if let Some(depth_limit) = schema.operation_limits.depth {
+            let max_depth = selection_set.max_depth();
+            if max_depth > depth_limit {
+                return Err(OperationLimitExceededError::QueryTooDeep);
+            }
+        }
+
+        if let Some(max_alias_count) = schema.operation_limits.aliases {
+            let alias_count = selection_set.alias_count();
+            if alias_count > max_alias_count {
+                return Err(OperationLimitExceededError::QueryContainsTooManyAliases);
+            }
+        }
+
+        if let Some(max_root_field_count) = schema.operation_limits.root_fields {
+            let root_field_count = selection_set.root_field_count();
+            if root_field_count > max_root_field_count {
+                return Err(OperationLimitExceededError::QueryContainsTooManyRootFields);
+            }
+        }
+
+        if let Some(max_height) = schema.operation_limits.height {
+            let height = selection_set.height(&mut Default::default());
+            if height > max_height {
+                return Err(OperationLimitExceededError::QueryTooHigh);
+            }
+        }
+
+        if let Some(max_complexity) = schema.operation_limits.complexity {
+            let complexity = selection_set.complexity();
+            if complexity > max_complexity {
+                return Err(OperationLimitExceededError::QueryTooComplex);
+            }
+        }
+
+        Ok(())
+    }
+
     /// Builds an `Operation` by binding unbound operation to a schema and configuring its non functional requirements
     /// like caching, auth, ....
     ///
     /// All field names are mapped to their actual field id in the schema and respective configuration.
     /// At this stage the operation might not be resolvable but it should make sense given the schema types.
-    pub fn build(schema: &Schema, unbound_operation: UnboundOperation) -> BindResult<Self> {
+    pub fn build(
+        schema: &Schema,
+        unbound_operation: UnboundOperation,
+        operation_limits_enabled: bool,
+    ) -> BindResult<Self> {
         let mut operation = Self::bind(schema, unbound_operation)?;
+
+        if operation_limits_enabled {
+            operation
+                .enforce_operation_limits(schema)
+                .map_err(BindError::OperationLimitExceeded)?;
+        }
 
         if operation.ty == OperationType::Query {
             let root_cache_config = schema[operation.root_object_id]

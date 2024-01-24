@@ -20,6 +20,7 @@ indexmap = { optional = true, version = "2" }
 
 [dev-dependencies]
 expect-test = "1.4"
+serde_json.workspace = true
 
 [features]
 default = ["render_sdl", "from_sdl"]

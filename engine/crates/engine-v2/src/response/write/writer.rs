@@ -1,11 +1,4 @@
-use std::{cell::RefCell, sync::atomic::AtomicBool};
-
-use serde::{de::DeserializeSeed, Deserializer};
-
-use super::{
-    deserialize::{SeedContext, UpdateSeed},
-    ExecutorOutput, ExpectedObjectFieldsWriter, GroupedFieldWriter,
-};
+use super::{ExecutorOutput, ExpectedObjectFieldsWriter, GroupedFieldWriter};
 use crate::{
     plan::PlanOutput,
     request::PlanWalker,
@@ -83,27 +76,5 @@ impl<'a> ResponseObjectWriter<'a> {
                     .push_error_path_to_propagate(self.boundary_item.response_path.clone());
             }
         }
-    }
-}
-
-impl<'de, 'ctx> DeserializeSeed<'de> for ResponseObjectWriter<'ctx> {
-    type Value = ();
-
-    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        UpdateSeed {
-            ctx: SeedContext {
-                walker: self.walker,
-                data: RefCell::new(self.data),
-                propagating_error: AtomicBool::new(false),
-                expectations: &self.output.expectations,
-                attribution: &self.output.attribution,
-            },
-            boundary_item: self.boundary_item,
-            expected: &self.output.expectations.root_selection_set,
-        }
-        .deserialize(deserializer)
     }
 }

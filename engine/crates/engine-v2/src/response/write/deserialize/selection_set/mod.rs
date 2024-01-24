@@ -8,7 +8,7 @@ use schema::ObjectId;
 use serde::de::DeserializeSeed;
 use undetermined::*;
 
-use super::SeedContext;
+use super::SeedContextInner;
 use crate::{
     plan::ExpectedSelectionSet,
     request::SelectionSetType,
@@ -16,7 +16,7 @@ use crate::{
 };
 
 pub(super) struct SelectionSetSeed<'ctx, 'parent> {
-    pub ctx: &'parent SeedContext<'ctx>,
+    pub ctx: &'parent SeedContextInner<'ctx>,
     pub path: &'parent ResponsePath,
     pub expected: &'parent ExpectedSelectionSet,
 }
@@ -83,19 +83,19 @@ enum ObjectIdentifier<'ctx, 'parent> {
     Known(ObjectId),
     Unknown {
         discriminant_key: &'ctx str,
-        ctx: &'parent SeedContext<'ctx>,
+        ctx: &'parent SeedContextInner<'ctx>,
         root: SelectionSetType,
     },
     Failure {
         discriminant_key: &'ctx str,
         discriminant: String,
-        ctx: &'parent SeedContext<'ctx>,
+        ctx: &'parent SeedContextInner<'ctx>,
         root: SelectionSetType,
     },
 }
 
 impl<'ctx, 'parent> ObjectIdentifier<'ctx, 'parent> {
-    fn new(ctx: &'parent SeedContext<'ctx>, root: SelectionSetType) -> Self {
+    fn new(ctx: &'parent SeedContextInner<'ctx>, root: SelectionSetType) -> Self {
         let schema = ctx.walker.schema().as_ref();
         match root {
             SelectionSetType::Interface(interface_id) => Self::Unknown {

@@ -1,0 +1,13 @@
+extend type Query {
+  getUser(id: ID!): User
+}
+
+type User {
+  id: ID!
+  posts: [Post!]!
+}
+
+type Post @key(fields: "id", resolvable: false)  {
+  id: ID!
+}
+

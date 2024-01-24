@@ -5,7 +5,7 @@ use serde::{
     Deserializer,
 };
 
-use super::SeedContext;
+use super::SeedContextInner;
 use crate::{
     request::BoundAnyFieldDefinitionId,
     response::{GraphqlError, ResponsePath, ResponseValue},
@@ -14,7 +14,7 @@ use crate::{
 pub(super) struct ListSeed<'ctx, 'parent, F> {
     pub path: &'parent ResponsePath,
     pub definition_id: Option<BoundAnyFieldDefinitionId>,
-    pub ctx: &'parent SeedContext<'ctx>,
+    pub ctx: &'parent SeedContextInner<'ctx>,
     pub seed_builder: F,
 }
 
@@ -76,7 +76,7 @@ where
                         });
                     }
                     // Discarding the rest of the sequence.
-                    while seq.next_element::<IgnoredAny>()?.is_some() {}
+                    while seq.next_element::<IgnoredAny>().unwrap_or_default().is_some() {}
                     return Err(err);
                 }
             }

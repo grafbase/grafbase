@@ -113,7 +113,7 @@ impl Engine {
 
     fn prepare_operation(&self, request: &engine::Request) -> Result<Operation, GraphqlError> {
         let unbound_operation = parse_operation(request)?;
-        let operation = Operation::build(&self.schema, unbound_operation)?;
+        let operation = Operation::build(&self.schema, unbound_operation, !request.disable_operation_limits)?;
         Ok(operation)
     }
 }

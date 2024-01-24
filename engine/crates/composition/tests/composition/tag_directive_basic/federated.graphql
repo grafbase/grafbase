@@ -5,6 +5,7 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 directive @join__type(
     graph: join__Graph!
     key: String!
+    resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
@@ -23,9 +24,9 @@ enum join__Graph {
 scalar Texture @tag(name: "appleTexture") @tag(name: "orangeTexture")
 
 type Apple implements HasId @tag(name: "appleType") {
-    id: ID! @join__field(graph: APPLE)
-    variety: AppleVariety @join__field(graph: APPLE)
-    texture: Texture @join__field(graph: APPLE)
+    id: ID!
+    variety: AppleVariety
+    texture: Texture
 }
 
 type Orange implements HasId @tag(name: "orangeType") {
@@ -35,7 +36,7 @@ type Orange implements HasId @tag(name: "orangeType") {
 }
 
 type Query @tag(name: "appleQuery") @tag(name: "orangeQuery") {
-    tags(filter: String @tag(name: "appleTagsFilter") @tag(name: "orangeTagsFilter")): [String] @tag(name: "appleField") @tag(name: "orangeField")
+    tags(filter: String @tag(name: "appleTagsFilter") @tag(name: "orangeTagsFilter")): [String] @join__field(graph: APPLE) @join__field(graph: ORANGE) @tag(name: "appleField") @tag(name: "orangeField")
 }
 
 interface HasId @tag(name: "appleInterface") @tag(name: "orangeInterface") {

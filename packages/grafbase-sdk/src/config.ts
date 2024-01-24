@@ -6,6 +6,7 @@ import {
 } from './auth'
 import { CacheParams, GlobalCache } from './cache'
 import { FederatedGraph, Graph } from './grafbase-schema'
+import { OperationLimits, OperationLimitsParams } from './operation-limits'
 import { Experimental, ExperimentalParams } from './experimental'
 
 /**
@@ -15,6 +16,7 @@ export interface GraphConfigInput {
   graph: Graph
   auth?: AuthParams
   cache?: CacheParams
+  operationLimits?: OperationLimitsParams
   experimental?: ExperimentalParams
 }
 
@@ -26,6 +28,7 @@ export interface DeprecatedGraphConfigInput {
   /** @deprecated use `graph` instead */
   schema: Graph
   auth?: AuthParams
+  operationLimits?: OperationLimitsParams
   cache?: CacheParams
   experimental?: ExperimentalParams
 }
@@ -36,6 +39,7 @@ export interface DeprecatedGraphConfigInput {
 export interface FederatedGraphConfigInput {
   graph: FederatedGraph
   auth?: AuthParamsV2
+  operationLimits?: OperationLimitsParams
 }
 
 /**
@@ -45,6 +49,7 @@ export class GraphConfig {
   private graph: Graph
   private readonly auth?: Authentication
   private readonly cache?: GlobalCache
+  private readonly operationLimits?: OperationLimits
   private readonly experimental?: Experimental
 
   /** @deprecated use `graph` instead of `schema` */
@@ -53,6 +58,10 @@ export class GraphConfig {
 
     if (input.auth) {
       this.auth = new Authentication(input.auth)
+    }
+
+    if (input.operationLimits) {
+      this.operationLimits = new OperationLimits(input.operationLimits)
     }
 
     if (input.cache) {
@@ -67,15 +76,17 @@ export class GraphConfig {
   public toString(): string {
     const graph = this.graph.toString()
     const auth = this.auth ? this.auth.toString() : ''
+    const operationLimits = this.operationLimits ? this.operationLimits.toString() : ''
     const cache = this.cache ? this.cache.toString() : ''
     const experimental = this.experimental ? this.experimental.toString() : ''
 
-    return `${experimental}${auth}${cache}${graph}`
+    return `${experimental}${auth}${operationLimits}${cache}${graph}`
   }
 }
 
 export class FederatedGraphConfig {
   private graph: FederatedGraph
+  private readonly operationLimits?: OperationLimits
   private readonly auth?: AuthenticationV2
 
   constructor(input: FederatedGraphConfigInput) {
@@ -83,12 +94,16 @@ export class FederatedGraphConfig {
     if (input.auth) {
       this.auth = new AuthenticationV2(input.auth)
     }
+    if (input.operationLimits) {
+      this.operationLimits = new OperationLimits(input.operationLimits)
+    }
   }
 
   public toString(): string {
     const graph = this.graph.toString()
     const auth = this.auth ? this.auth.toString() : ''
+    const operationLimits = this.operationLimits ? this.operationLimits.toString() : ''
 
-    return `${auth}${graph}`
+    return `${auth}${graph}${operationLimits}`
   }
 }

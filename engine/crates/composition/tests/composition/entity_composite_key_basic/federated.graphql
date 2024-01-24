@@ -5,6 +5,7 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 directive @join__type(
     graph: join__Graph!
     key: String!
+    resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
@@ -47,7 +48,7 @@ type Enrollment
 type CourseRating
     @join__type(graph: RATINGS, key: "courseId")
 {
-    courseId: ID! @join__field(graph: RATINGS)
+    courseId: ID!
     rating: Float @join__field(graph: RATINGS)
     comments: String @join__field(graph: RATINGS)
 }
@@ -55,7 +56,7 @@ type CourseRating
 type Student
     @join__type(graph: STUDENTS, key: "id")
 {
-    id: ID! @join__field(graph: STUDENTS)
+    id: ID!
     name: String @join__field(graph: STUDENTS)
     enrollments: [Enrollment] @join__field(graph: STUDENTS)
 }

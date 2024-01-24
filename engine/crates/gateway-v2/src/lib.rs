@@ -46,7 +46,7 @@ impl Gateway {
 
     // The Engine is directly accessible
     pub async fn unchecked_engine_execute(&self, ctx: &impl RequestContext, request: Request) -> Response {
-        let request_headers = headers(ctx);
+        let request_headers = build_request_headers(ctx.headers());
         let response = self.engine.execute(request, request_headers).await;
         let has_errors = response.has_errors();
         match serde_json::to_vec(&response) {
@@ -70,37 +70,66 @@ impl Gateway {
         }
     }
 
-    pub async fn execute(&self, ctx: &impl RequestContext, request: Request) -> Response {
-        let request_headers = headers(ctx);
-        let cached_response = if let Some(token) = self.authorizer.get_access_token(&request_headers).await {
-            let prepared_execution = self.engine.execute(request, request_headers);
-            match self.build_cache_key(&prepared_execution, &token) {
-                Some(key) => {
-                    self.env
-                        .cache
-                        .cached_execution(ctx, key, async move {
-                            prepared_execution
-                                .await
-                                .into_cacheable(serde_json::to_vec)
-                                .map(Arc::new)
-                        })
-                        .await
-                }
-                None => prepared_execution
+    pub async fn authorize(self: &Arc<Self>, headers: RequestHeaders) -> Option<Session> {
+        let token = self.authorizer.get_access_token(&headers).await?;
+
+        Some(Session {
+            gateway: Arc::clone(self),
+            token,
+            headers,
+        })
+    }
+
+    fn build_cache_key(
+        &self,
+        prepared_execution: &PreparedExecution,
+        token: &auth::AccessToken,
+    ) -> Option<runtime::cache::Key> {
+        let PreparedExecution::PreparedRequest(prepared) = prepared_execution else {
+            return None;
+        };
+        // necessary later for cache scopes and if there is no cache config, there isn't any key.
+        let _cache_config = prepared.computed_cache_config()?;
+        let mut hasher = DefaultHasher::new();
+        prepared.operation_hash(&mut hasher);
+        token.hash(&mut hasher);
+        let h = hasher.finish();
+
+        Some(self.env.cache.build_key(&h.to_string()))
+    }
+}
+
+/// An authenticated gateway session
+#[derive(Clone)]
+pub struct Session {
+    gateway: Arc<Gateway>,
+    token: auth::AccessToken,
+    headers: RequestHeaders,
+}
+
+impl Session {
+    pub async fn execute(self, ctx: &impl RequestContext, request: Request) -> Response {
+        let prepared_execution = self.gateway.engine.execute(request, self.headers);
+        let cached_response = match self.gateway.build_cache_key(&prepared_execution, &self.token) {
+            Some(key) => {
+                self.gateway
+                    .env
+                    .cache
+                    .cached_execution(ctx, key, async move {
+                        prepared_execution
+                            .await
+                            .into_cacheable(serde_json::to_vec)
+                            .map(Arc::new)
+                    })
                     .await
-                    .into_cacheable(serde_json::to_vec)
-                    .map(|response| CachedExecutionResponse::Origin {
-                        response: Arc::new(response),
-                        cache_read: CacheReadStatus::Bypass,
-                    }),
             }
-        } else {
-            engine_v2::Response::error("Unauthorized")
+            None => prepared_execution
+                .await
                 .into_cacheable(serde_json::to_vec)
-                .map(|bytes| CachedExecutionResponse::Origin {
-                    response: Arc::new(bytes),
+                .map(|response| CachedExecutionResponse::Origin {
+                    response: Arc::new(response),
                     cache_read: CacheReadStatus::Bypass,
-                })
+                }),
         };
         let mut response = cached_response
             .map(CachedExecutionResponse::into_response_and_headers)
@@ -135,36 +164,27 @@ impl Gateway {
         response
     }
 
-    pub fn execute_stream(
-        &self,
-        ctx: impl RequestContext,
-        request: engine::Request,
-    ) -> impl Stream<Item = engine_v2::Response> {
-        self.engine.execute_stream(request, headers(&ctx))
-    }
-
-    fn build_cache_key(
-        &self,
-        prepared_execution: &PreparedExecution,
-        token: &auth::AccessToken,
-    ) -> Option<runtime::cache::Key> {
-        let PreparedExecution::PreparedRequest(prepared) = prepared_execution else {
-            return None;
-        };
-        // necessary later for cache scopes and if there is no cache config, there isn't any key.
-        let _cache_config = prepared.computed_cache_config()?;
-        let mut hasher = DefaultHasher::new();
-        prepared.operation_hash(&mut hasher);
-        token.hash(&mut hasher);
-        let h = hasher.finish();
-
-        Some(self.env.cache.build_key(&h.to_string()))
+    pub fn execute_stream(self, request: engine::Request) -> impl Stream<Item = engine_v2::Response> {
+        self.gateway.engine.execute_stream(request, self.headers)
     }
 }
 
-fn headers(ctx: &impl RequestContext) -> RequestHeaders {
+impl Response {
+    pub fn unauthorized() -> Self {
+        let response = engine_v2::Response::error("Unauthorized");
+        Response {
+            status: http::StatusCode::UNAUTHORIZED,
+            headers: Default::default(),
+            bytes: serde_json::to_vec(&response).expect("this serialization should be fine"),
+            metadata: ExecutionMetadata::default(),
+            has_errors: true,
+        }
+    }
+}
+
+fn build_request_headers(headers: &http::HeaderMap) -> RequestHeaders {
     RequestHeaders::from_iter(
-        ctx.headers()
+        headers
             .iter()
             .map(|(name, value)| (name.to_string(), String::from_utf8_lossy(value.as_bytes()).to_string())),
     )

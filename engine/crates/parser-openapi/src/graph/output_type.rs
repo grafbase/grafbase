@@ -216,7 +216,7 @@ impl OutputFieldType {
             .graph
             .neighbors(self.target_index)
             .filter_map(|index| match &graph.graph[index] {
-                Node::PossibleValue(value) => Some(value),
+                Node::PossibleValue(value) => Some(&**value),
                 _ => None,
             })
             .collect()

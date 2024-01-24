@@ -1,14 +1,14 @@
 {
   "src → target": [
     {
-      "kind": "RemoveSchemaDefinition",
-      "path": ""
+      "path": "",
+      "kind": "RemoveSchemaDefinition"
     }
   ],
   "target → src": [
     {
-      "kind": "AddSchemaDefinition",
-      "path": ""
+      "path": "",
+      "kind": "AddSchemaDefinition"
     }
   ]
 }

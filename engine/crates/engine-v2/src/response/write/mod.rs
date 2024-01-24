@@ -5,6 +5,7 @@ mod writer;
 
 use std::{collections::BTreeMap, sync::Arc};
 
+pub(crate) use deserialize::SeedContext;
 pub use ids::*;
 use itertools::Either;
 pub use manual::*;
@@ -228,16 +229,17 @@ impl ExecutorOutput {
         self.errors.push(error.into());
     }
 
-    pub fn push_errors(&mut self, errors: impl IntoIterator<Item = GraphqlError>) {
-        self.errors.extend(errors);
-    }
-
     pub fn push_error_path_to_propagate(&mut self, path: ResponsePath) {
         self.error_paths_to_propagate.push(path);
     }
 
     pub fn has_errors(&self) -> bool {
         !self.errors.is_empty()
+    }
+
+    /// This does not change how errors were propagated.
+    pub fn replace_errors(&mut self, errors: Vec<GraphqlError>) {
+        self.errors = errors;
     }
 }
 

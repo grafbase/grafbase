@@ -16,7 +16,7 @@ chrono = "0.4"
 const_format = { version = "0.2", features = ["rust_1_64"] }
 cynic = { workspace = true, features = ["http-reqwest"] }
 dirs = "5"
-http-cache-reqwest = "0.12"
+http-cache-reqwest = "0.13"
 reqwest = { version = "0.11", features = [
     "rustls-tls",
     "stream",
@@ -37,8 +37,8 @@ url = "2"
 urlencoding = "2"
 walkdir = "2"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.52.4" }
-server = { package = "grafbase-local-server", path = "../server", version = "0.52.4" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.53.0" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.53.0" }
 
 [build-dependencies]
 cynic-codegen = { version = "3", features = ["rkyv"] }

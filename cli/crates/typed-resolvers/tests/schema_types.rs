@@ -15,7 +15,9 @@ fn run_test(path: &Path) -> datatest_stable::Result<()> {
     let mut expected = fs::read_to_string(&expected_file_path).unwrap_or_default();
     let generated = {
         let mut out = String::with_capacity(graphql.len() / 2);
-        typed_resolvers::generate_ts_resolver_types(&graphql, &mut out).unwrap();
+        let parsed = typed_resolvers::parse_schema(graphql).unwrap();
+        let analyzed = typed_resolvers::analyze_schema(&parsed);
+        typed_resolvers::generate_ts_resolver_types(&analyzed, &mut out).unwrap();
         out
     };
 

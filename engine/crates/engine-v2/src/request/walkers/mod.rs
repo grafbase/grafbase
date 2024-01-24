@@ -4,6 +4,7 @@ mod field_definition;
 mod flat;
 mod fragment;
 mod inline_fragment;
+mod operation_limits;
 mod plan;
 mod plan_selection_set;
 mod selection_set;

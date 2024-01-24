@@ -110,7 +110,7 @@ impl<'a> Context<'a> {
         let interface = federated::Interface {
             name,
             implements_interfaces: Vec::new(),
-            resolvable_keys: Vec::new(),
+            keys: Vec::new(),
             composed_directives,
             description,
         };
@@ -124,13 +124,14 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_interface_resolvable_key(
         &mut self,
         id: federated::InterfaceId,
-        key_id: subgraphs::KeyId,
+        key: subgraphs::KeyWalker<'_>,
         is_interface_object: bool,
     ) {
-        self.ir.resolvable_keys.push(ir::KeyIr {
+        self.ir.keys.push(ir::KeyIr {
             parent: federated::Definition::Interface(id),
-            key_id,
+            key_id: key.id,
             is_interface_object,
+            resolvable: key.is_resolvable(),
         });
     }
 
@@ -145,7 +146,7 @@ impl<'a> Context<'a> {
         let object = federated::Object {
             name,
             implements_interfaces: Vec::new(),
-            resolvable_keys: Vec::new(),
+            keys: Vec::new(),
             composed_directives,
             description,
         };
@@ -211,11 +212,12 @@ impl<'a> Context<'a> {
         self.ir.union_members.insert((union_name, member_name));
     }
 
-    pub(crate) fn insert_resolvable_key(&mut self, id: federated::ObjectId, key_id: subgraphs::KeyId) {
-        self.ir.resolvable_keys.push(ir::KeyIr {
+    pub(crate) fn insert_key(&mut self, id: federated::ObjectId, key: subgraphs::KeyWalker<'_>) {
+        self.ir.keys.push(ir::KeyIr {
             parent: federated::Definition::Object(id),
-            key_id,
+            key_id: key.id,
             is_interface_object: false,
+            resolvable: key.is_resolvable(),
         });
     }
 

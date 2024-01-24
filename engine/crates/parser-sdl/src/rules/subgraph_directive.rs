@@ -149,6 +149,13 @@ mod tests {
                     },
                 },
                 default_headers: [],
+                operation_limits: OperationLimits {
+                    depth: None,
+                    height: None,
+                    aliases: None,
+                    root_fields: None,
+                    complexity: None,
+                },
                 global_cache_rules: GlobalCacheRules(
                     {},
                 ),

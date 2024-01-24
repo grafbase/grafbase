@@ -61,15 +61,22 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
         write_composed_directives(&object.composed_directives, graph, &mut sdl)?;
 
-        if !object.resolvable_keys.is_empty() {
+        if !object.keys.is_empty() {
             sdl.push('\n');
-            for resolvable_key in &object.resolvable_keys {
-                let selection_set = FieldSetDisplay(&resolvable_key.fields, graph);
-                let subgraph_name = GraphEnumVariantName(&graph[graph[resolvable_key.subgraph_id].name]);
-                writeln!(
-                    sdl,
-                    r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}")"#
-                )?;
+            for key in &object.keys {
+                let selection_set = FieldSetDisplay(&key.fields, graph);
+                let subgraph_name = GraphEnumVariantName(&graph[graph[key.subgraph_id].name]);
+                if key.resolvable {
+                    writeln!(
+                        sdl,
+                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}")"#
+                    )?;
+                } else {
+                    writeln!(
+                        sdl,
+                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}", resolvable: false)"#
+                    )?;
+                }
             }
         }
 
@@ -80,7 +87,7 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
             .peekable();
 
         if fields.peek().is_some() {
-            if object.resolvable_keys.is_empty() {
+            if object.keys.is_empty() {
                 sdl.push(' ');
             }
             sdl.push_str("{\n");
@@ -117,11 +124,11 @@ pub fn render_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
 
         write_composed_directives(&interface.composed_directives, graph, &mut sdl)?;
 
-        if interface.resolvable_keys.is_empty() {
+        if interface.keys.is_empty() {
             sdl.push_str(" {\n");
         } else {
             sdl.push('\n');
-            for resolvable_key in &interface.resolvable_keys {
+            for resolvable_key in &interface.keys {
                 let selection_set = FieldSetDisplay(&resolvable_key.fields, graph);
                 let subgraph_name = GraphEnumVariantName(&graph[graph[resolvable_key.subgraph_id].name]);
                 let is_interface_object = if resolvable_key.is_interface_object {
@@ -243,6 +250,7 @@ fn write_prelude(sdl: &mut String) -> fmt::Result {
         directive @join__type(
             graph: join__Graph!
             key: String!
+            resolvable: Boolean = true
         ) repeatable on OBJECT | INTERFACE
 
         directive @join__field(
@@ -307,7 +315,7 @@ fn write_field(field_id: FieldId, graph: &FederatedGraphV1, sdl: &mut String) ->
 
     write!(sdl, "{INDENT}{field_name}{args}: {field_type}")?;
 
-    if let Some(subgraph) = &field.resolvable_in {
+    for subgraph in &field.resolvable_in {
         write_resolvable_in(*subgraph, field, graph, sdl)?;
     }
 
@@ -371,7 +379,7 @@ fn write_provides(field: &Field, graph: &FederatedGraphV1, sdl: &mut String) -> 
     for provides in field
         .provides
         .iter()
-        .filter(|provide| Some(provide.subgraph_id) != field.resolvable_in)
+        .filter(|provide| !field.resolvable_in.contains(&provide.subgraph_id))
     {
         let subgraph_name = GraphEnumVariantName(&graph[graph[provides.subgraph_id].name]);
         let fields = FieldSetDisplay(&provides.fields, graph);
@@ -385,7 +393,7 @@ fn write_requires(field: &Field, graph: &FederatedGraphV1, sdl: &mut String) -> 
     for requires in field
         .requires
         .iter()
-        .filter(|require| Some(require.subgraph_id) != field.resolvable_in)
+        .filter(|requires| !field.resolvable_in.contains(&requires.subgraph_id))
     {
         let subgraph_name = GraphEnumVariantName(&graph[graph[requires.subgraph_id].name]);
         let fields = FieldSetDisplay(&requires.fields, graph);
@@ -587,6 +595,7 @@ fn test_render_empty() {
         directive @join__type(
             graph: join__Graph!
             key: String!
+            resolvable: Boolean = true
         ) repeatable on OBJECT | INTERFACE
 
         directive @join__field(

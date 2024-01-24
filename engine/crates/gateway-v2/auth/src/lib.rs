@@ -6,7 +6,7 @@ use runtime::kv::KvStore;
 
 mod jwt;
 
-#[derive(Hash, Debug)]
+#[derive(Hash, Debug, Clone)]
 pub enum AccessToken {
     Public,
     // boxing as clippy complains about enum size.

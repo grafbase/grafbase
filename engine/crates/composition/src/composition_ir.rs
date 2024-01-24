@@ -33,7 +33,7 @@ pub(crate) struct CompositionIr {
     pub(crate) strings: StringsIr,
     pub(crate) fields: Vec<FieldIr>,
     pub(crate) union_members: BTreeSet<(federated::StringId, federated::StringId)>,
-    pub(crate) resolvable_keys: Vec<KeyIr>,
+    pub(crate) keys: Vec<KeyIr>,
 
     /// Fields of an interface entity that are contributed by other subgraphs and must be added to
     /// the interface's implementers in the federated schema"
@@ -46,7 +46,7 @@ pub(crate) struct FieldIr {
     pub(crate) field_type: subgraphs::FieldTypeId,
     pub(crate) arguments: Vec<ArgumentIr>,
 
-    pub(crate) resolvable_in: Option<federated::SubgraphId>,
+    pub(crate) resolvable_in: Vec<federated::SubgraphId>,
 
     /// Subgraph fields corresponding to this federated graph field that have an `@provides`.
     pub(crate) provides: Vec<subgraphs::FieldId>,
@@ -93,4 +93,5 @@ pub(crate) struct KeyIr {
     pub(crate) parent: federated::Definition,
     pub(crate) key_id: subgraphs::KeyId,
     pub(crate) is_interface_object: bool,
+    pub(crate) resolvable: bool,
 }

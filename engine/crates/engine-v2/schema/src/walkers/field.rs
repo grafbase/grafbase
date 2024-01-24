@@ -1,5 +1,7 @@
+use std::borrow::Cow;
+
 use super::{resolver::ResolverWalker, SchemaWalker};
-use crate::{CacheConfig, FieldId, FieldResolver, FieldSet, InputValueWalker, StringId, TypeWalker};
+use crate::{CacheConfig, FieldId, FieldProvides, FieldResolver, FieldSet, InputValueWalker, StringId, TypeWalker};
 
 pub type FieldWalker<'a> = SchemaWalker<'a, FieldId>;
 
@@ -34,17 +36,29 @@ impl<'a> FieldWalker<'a> {
 
     pub fn resolvers(&self) -> impl ExactSizeIterator<Item = FieldResolverWalker<'a>> + 'a {
         let walker = self.walk(());
-        self.schema[self.item]
-            .resolvers
-            .iter()
-            .map(move |FieldResolver { resolver_id, requires }| FieldResolverWalker {
+        self.schema[self.item].resolvers.iter().map(
+            move |FieldResolver {
+                      resolver_id,
+                      field_requires,
+                  }| FieldResolverWalker {
                 resolver: walker.walk(*resolver_id),
-                requires,
-            })
+                field_requires,
+            },
+        )
     }
 
-    pub fn provides(&self) -> &'a FieldSet {
-        &self.as_ref().provides
+    pub fn provides_for(&self, resolver: &ResolverWalker<'_>) -> Option<Cow<'a, FieldSet>> {
+        let resolver_group = resolver.group();
+        self.as_ref()
+            .provides
+            .iter()
+            .filter_map(|provide| match provide {
+                FieldProvides::IfResolverGroup { group, field_set } if Some(group) == resolver_group.as_ref() => {
+                    Some(Cow::Borrowed(field_set))
+                }
+                _ => None,
+            })
+            .reduce(|a, b| Cow::Owned(FieldSet::merge(&a, &b)))
     }
 
     pub fn arguments(&self) -> impl Iterator<Item = InputValueWalker<'a>> + 'a {
@@ -73,7 +87,7 @@ impl<'a> FieldWalker<'a> {
 
 pub struct FieldResolverWalker<'a> {
     pub resolver: ResolverWalker<'a>,
-    pub requires: &'a FieldSet,
+    pub field_requires: &'a FieldSet,
 }
 
 impl<'a> std::fmt::Debug for FieldWalker<'a> {
@@ -82,7 +96,7 @@ impl<'a> std::fmt::Debug for FieldWalker<'a> {
             .field("id", &usize::from(self.item))
             .field("name", &self.name())
             .field("type", &self.ty().to_string())
-            .field("resolvers", &self.resolvers().map(|fr| fr.resolver).collect::<Vec<_>>())
+            .field("resolvers", &self.resolvers().collect::<Vec<_>>())
             .field(
                 "arguments",
                 &self
@@ -90,6 +104,15 @@ impl<'a> std::fmt::Debug for FieldWalker<'a> {
                     .map(|arg| (arg.name(), arg.ty().to_string()))
                     .collect::<Vec<_>>(),
             )
+            .finish()
+    }
+}
+
+impl<'a> std::fmt::Debug for FieldResolverWalker<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FieldResolver")
+            .field("resolver", &self.resolver)
+            .field("requires", &self.resolver.walk(self.field_requires))
             .finish()
     }
 }

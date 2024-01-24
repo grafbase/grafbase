@@ -41,9 +41,9 @@ webbrowser = "0.8"
 lru = "0.12"
 futures-util = "0.3"
 
-server = { package = "grafbase-local-server", path = "../server", version = "0.52.4" }
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.52.4" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.52.4" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.53.0" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.53.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.53.0" }
 graphql-introspection = { package = "grafbase-graphql-introspection", path = "../graphql-introspection" }
 federated-dev = { path = "../federated-dev" }
 atty = "0.2.14"
@@ -91,7 +91,7 @@ sysinfo = "0.30"
 tempfile = "3"
 tokio = { version = "1", features = ["full"] }
 url = "2"
-which = "5"
+which = "6"
 wiremock = "0.5"
 
 [[bin]]

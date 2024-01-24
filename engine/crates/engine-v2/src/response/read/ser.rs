@@ -32,7 +32,6 @@ impl serde::Serialize for Response {
             }
             Response::RequestError(RequestErrorResponse { errors, .. }) => {
                 let mut map = serializer.serialize_map(Some(1))?;
-                map.serialize_entry("data", &serde_json::Value::Null)?;
                 // Shouldn't happen, but better safe than sorry.
                 if !errors.is_empty() {
                     let empty_keys = ResponseKeys::default();

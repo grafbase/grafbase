@@ -5,6 +5,7 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 directive @join__type(
     graph: join__Graph!
     key: String!
+    resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
@@ -33,7 +34,7 @@ type Manufacturer {
 }
 
 type Query {
-    fidgetSpinners(filter: SpinnerFilter!): [FidgetSpinner]
+    fidgetSpinners(filter: SpinnerFilter!): [FidgetSpinner] @join__field(graph: SPINNERS_A) @join__field(graph: SPINNERS_B)
 }
 
 interface Spinner {

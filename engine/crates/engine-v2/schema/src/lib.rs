@@ -57,6 +57,7 @@ pub struct Schema {
 
     cache_configs: Vec<CacheConfig>,
     pub auth_config: Option<config::latest::AuthConfig>,
+    pub operation_limits: config::latest::OperationLimits,
 }
 
 #[derive(Default)]
@@ -196,12 +197,7 @@ pub struct Field {
     pub resolvers: Vec<FieldResolver>,
     pub is_deprecated: bool,
     pub deprecation_reason: Option<StringId>,
-
-    /// Special case when only going through this field children are accessible.
-    /// If this field is shared across different sources, we assume identical behavior
-    /// and thus identical `@provides` if any.
-    pub provides: FieldSet,
-
+    provides: Vec<FieldProvides>,
     pub arguments: Vec<InputValueId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
@@ -211,9 +207,15 @@ pub struct Field {
 }
 
 #[derive(Debug)]
+pub enum FieldProvides {
+    // provided only if the current resolver is part of the group.
+    IfResolverGroup { group: ResolverGroup, field_set: FieldSet },
+}
+
+#[derive(Debug)]
 pub struct FieldResolver {
     resolver_id: ResolverId,
-    requires: FieldSet,
+    field_requires: FieldSet,
 }
 
 #[derive(Debug)]

@@ -377,10 +377,10 @@ pub enum Error {
     #[error("Could not complete request to GraphQL server: {0}")]
     HttpRequestError(#[from] CynicReqwestError),
 
-    #[error("Could not parse the GraphQL inspection query: {0}")]
+    #[error("Could not parse the GraphQL inspection result: {0}")]
     JsonParsingError(#[from] serde_json::Error),
 
-    #[error("Could not parse the GraphQL inspection query: {0}")]
+    #[error("Error returned when running introspection: {0}")]
     GraphqlError(#[from] GraphQlError),
 
     #[error("Could not parse the GraphQL schema: {0}")]

@@ -1,5 +1,7 @@
 //! graphql-ws-client glue code
 
+use std::collections::BTreeMap;
+
 use futures_util::Stream;
 use http::Method;
 use serde_json::json;
@@ -10,21 +12,30 @@ impl<Response> GqlRequestBuilder<Response>
 where
     Response: serde::de::DeserializeOwned + 'static,
 {
-    pub async fn into_websocket_stream(mut self) -> impl Stream<Item = Response> {
+    pub async fn into_websocket_stream(mut self) -> Result<impl Stream<Item = Response>, graphql_ws_client::Error> {
         use async_tungstenite::tungstenite::{client::IntoClientRequest, http::HeaderValue};
         use futures_util::StreamExt;
 
         let mut client = {
-            let mut request = {
+            let (mut request, payload_headers) = {
                 let (client, request) = self.reqwest_builder.build_split();
+                let request = request.unwrap();
 
                 // make sure we can still use self below
                 self.reqwest_builder = client.request(Method::GET, "http://example.com");
 
-                let mut url = request.unwrap().url().clone();
+                let payload_headers = request
+                    .headers()
+                    .iter()
+                    .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or_default().to_string()))
+                    .collect::<BTreeMap<_, _>>();
+
+                let mut url = request.url().clone();
                 url.set_path("/ws");
                 url.set_scheme("ws").unwrap();
-                url.into_client_request().unwrap()
+                let request = url.into_client_request().unwrap();
+
+                (request, payload_headers)
             };
 
             request.headers_mut().insert(
@@ -37,18 +48,18 @@ where
             let (sink, stream) = connection.split();
 
             graphql_ws_client::AsyncWebsocketClientBuilder::<CliGraphqlClient>::new()
+                .payload(json!({ "headers": payload_headers }))
                 .build(stream, sink, TokioSpawner::current())
-                .await
-                .unwrap()
+                .await?
         };
 
-        client.streaming_operation(self).await.unwrap().map(move |item| {
+        Ok(client.streaming_operation(self).await?.map(move |item| {
             // Ignore this next line, I'm just tricking rust into
             // moving the client into this closure.
             let _client = &client;
 
             item.unwrap()
-        })
+        }))
     }
 }
 

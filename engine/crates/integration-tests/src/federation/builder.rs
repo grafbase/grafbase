@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use async_graphql_parser::types::ServiceDocument;
 use gateway_v2::Gateway;
@@ -68,7 +68,7 @@ impl FederationGatewayBuilder {
         let config = engine_config_builder::build_config(&federated_graph_config, graph).into_latest();
 
         TestFederationGateway {
-            gateway: Gateway::new(
+            gateway: Arc::new(Gateway::new(
                 config.into(),
                 engine_v2::EngineEnv {
                     fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
@@ -80,7 +80,7 @@ impl FederationGatewayBuilder {
                         ..Default::default()
                     }),
                 },
-            ),
+            )),
         }
     }
 }

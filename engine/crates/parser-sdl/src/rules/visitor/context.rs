@@ -206,6 +206,8 @@ impl<'a> VisitorContext<'a> {
             required_udfs.insert((UdfKind::Authorizer, name.clone()));
         }
 
+        self.federated_graph_config.operation_limits = registry.operation_limits.clone();
+
         // lets make sure we add the global rules to the federated graph config as well
         self.federated_graph_config.global_cache_rules = self.global_cache_rules.clone();
 
