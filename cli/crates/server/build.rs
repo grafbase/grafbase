@@ -96,7 +96,6 @@ fn main() -> io::Result<()> {
         origin_path.join("bun-multi-wrapper.ts"),
         dest_path.join("custom-resolvers/bun-multi-wrapper.ts"),
     )?;
-    let _ = fs::remove_file(dest_path.join("custom-resolvers/wrapper.js"));
     fs::metadata(origin_path.join("dist.js")).expect("Building the worker wrapper is required to continue. Please run `npm install && npm run build` in 'cli/udf-wrapper'");
     fs::copy(
         origin_path.join("dist.js"),
