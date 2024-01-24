@@ -2574,6 +2574,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "typed-resolvers",
+ "uuid",
  "version-compare",
  "which",
 ]
