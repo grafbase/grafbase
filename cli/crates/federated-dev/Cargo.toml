@@ -35,7 +35,7 @@ ulid.workspace = true
 tower-service.workspace = true
 url = "2.5.0"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.52.5" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.53.0" }
 engine = { path = "../../../engine/crates/engine" }
 engine-config-builder = { path = "../../../engine/crates/engine-config-builder" }
 engine-v2.workspace = true
