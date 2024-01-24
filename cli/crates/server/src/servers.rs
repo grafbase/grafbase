@@ -510,8 +510,8 @@ where
 {
     for port in range {
         if let Ok(listener) = TcpListener::bind((Ipv4Addr::LOCALHOST, port)).await {
-            return listener.into_std().map_err(|_| ServerError::AvailablePortNode);
+            return listener.into_std().map_err(|_| ServerError::AvailablePortBun);
         }
     }
-    Err(ServerError::AvailablePortNode)
+    Err(ServerError::AvailablePortBun)
 }

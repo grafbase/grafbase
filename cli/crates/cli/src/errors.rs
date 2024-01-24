@@ -90,7 +90,7 @@ impl CliError {
             Self::BackendError(BackendError::UnsupportedTemplateURL(_)) => Some("try using a GitHub URL of the following structure: 'https://github.com/org/repo'".to_owned()),
             Self::BackendError(BackendError::MalformedTemplateURL(_)) => Some("try including the URL scheme (e.g. 'https://') and verifying the URL contents".to_owned()),
             Self::CommonError(CommonError::FindGrafbaseDirectory) => Some("try running the CLI in your Grafbase project or any nested directory".to_owned()),
-            Self::ServerError(ServerError::AvailablePortNode) => Some("try supplying a larger port range to search by supplying a lower --port number".to_owned()),
+            Self::ServerError(ServerError::AvailablePortBun) => Some("try supplying a larger port range to search by supplying a lower --port number".to_owned()),
             Self::ServerError(ServerError::NodeInPath) => Some("please install Node.js and make sure it is in your $PATH to continue (https://nodejs.org/en/download/)".to_owned()),
             Self::ServerError(ServerError::OutdatedNode(_, min_version)) => Some(format!("please update your Node.js version to {min_version} or higher to continue (https://nodejs.org/en/download)")),
             Self::ServerError(ServerError::PortInUse(_)) => Some("try using a different --port number or supplying the --search flag".to_owned()),

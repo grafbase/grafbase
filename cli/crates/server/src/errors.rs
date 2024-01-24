@@ -148,7 +148,7 @@ pub enum ServerError {
     /// returned if no port is available.
     /// used specifically when searching for ports
     #[error("could not find an available port")]
-    AvailablePortNode,
+    AvailablePortBun,
 
     /// returned if a given port is in use and the search option is not used
     #[error("port {0} is currently in use")]
