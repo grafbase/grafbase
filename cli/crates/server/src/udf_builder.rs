@@ -155,12 +155,15 @@ pub(crate) async fn build(
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_build_package_json_path.clone(), udf_kind, err))?;
 
+    // TODO: this should just output directly to the `dist` dir
+    let build_id = uuid::Uuid::new_v4().to_string();
+
     let bun_arguments: &[&str] = &[
         "build",
         &udf_build_entrypoint_path.display().to_string(),
         "--minify",
         "--target=bun",
-        &format!("--outdir={}", udf_name),
+        &format!("--outdir={}", build_id),
     ];
 
     async {
@@ -230,13 +233,13 @@ pub(crate) async fn build(
     tokio::fs::copy(
         environment
             .bun_installation_path
-            .join(format!("{udf_name}/entrypoint.js")),
+            .join(format!("{build_id}/entrypoint.js")),
         &entrypoint_path,
     )
     .await
     .map_err(|error| UdfBuildError::CreateUdfArtifactFile(entrypoint_path, udf_kind, error))?;
 
-    let temp_dir_path = environment.bun_installation_path.join(udf_name);
+    let temp_dir_path = environment.bun_installation_path.join(build_id);
     tokio::fs::remove_dir_all(&temp_dir_path)
         .await
         .map_err(|error| UdfBuildError::RemoveTemporaryDir(temp_dir_path, udf_kind, error))?;
