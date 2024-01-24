@@ -238,11 +238,12 @@ export const invoke = async (request: Request) => {
   logEntries = []
   fetchRequests = []
 
-  const { parent, args, context, info } = (await request.json()) as UdfRequestPayload
+  let { parent, args, context, info } = (await request.json()) as UdfRequestPayload
 
   let returnValue: unknown = null
 
   try {
+    context ??= {}
     context.kv = new KVNamespace(new MemoryStorage())
 
     returnValue = udf(parent, args, context, info)
