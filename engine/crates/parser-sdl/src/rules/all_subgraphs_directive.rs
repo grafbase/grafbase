@@ -113,6 +113,7 @@ mod tests {
                 subgraphs: {
                     "Products": SubgraphConfig {
                         name: "Products",
+                        websocket_url: None,
                         headers: [
                             (
                                 "Other",

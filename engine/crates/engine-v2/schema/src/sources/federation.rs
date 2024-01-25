@@ -9,6 +9,7 @@ pub struct DataSource {
 pub struct Subgraph {
     pub name: StringId,
     pub url: StringId,
+    pub websocket_url: Option<StringId>,
     pub headers: Vec<HeaderId>,
 }
 
@@ -108,6 +109,13 @@ impl<'a> SubgraphWalker<'a> {
 
     pub fn url(&self) -> &'a str {
         &self.schema[self.item.url]
+    }
+
+    pub fn websocket_url(&self) -> &'a str {
+        match self.item.websocket_url {
+            Some(websocket_id) => &self.schema[websocket_id],
+            None => self.url(),
+        }
     }
 
     pub fn headers(&self) -> impl Iterator<Item = SubgraphHeaderWalker<'a>> + '_ {
