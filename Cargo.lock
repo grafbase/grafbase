@@ -420,8 +420,11 @@ dependencies = [
  "futures-util",
  "log 0.4.20",
  "pin-project-lite",
+ "rustls-pki-types",
  "tokio",
+ "tokio-rustls 0.25.0",
  "tungstenite",
+ "webpki-roots 0.26.0",
 ]
 
 [[package]]
@@ -5243,7 +5246,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
- "webpki-roots",
+ "webpki-roots 0.25.3",
  "winreg",
 ]
 
@@ -7035,6 +7038,8 @@ dependencies = [
  "httparse",
  "log 0.4.20",
  "rand 0.8.5",
+ "rustls 0.22.2",
+ "rustls-pki-types",
  "sha1",
  "thiserror",
  "url",
@@ -7436,6 +7441,15 @@ name = "webpki-roots"
 version = "0.25.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1778a42e8b3b90bff8d0f5032bf22250792889a5cdc752aa0020c84abe3aaf10"
+
+[[package]]
+name = "webpki-roots"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0de2cfda980f21be5a7ed2eadb3e6fe074d56022bea2cdeb1a62eb220fc04188"
+dependencies = [
+ "rustls-pki-types",
+]
 
 [[package]]
 name = "which"

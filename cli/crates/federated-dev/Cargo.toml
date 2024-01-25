@@ -31,8 +31,8 @@ thiserror = "1.0.56"
 tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }
 tokio-stream = "0.1"
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
-ulid.workspace = true
 tower-service.workspace = true
+ulid.workspace = true
 url = "2.5.0"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.53.0" }
