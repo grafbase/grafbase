@@ -8,7 +8,7 @@ use super::{
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
 #[strum(serialize_all = "lowercase")]
 pub enum SubCommand {
-    /// Run your Grafbase project locally
+    /// Start the Grafbase local development server
     Dev(DevCommand),
     /// Output completions for the chosen shell to use, write the output to the
     /// appropriate location for your shell
@@ -27,25 +27,25 @@ pub enum SubCommand {
     Link(LinkCommand),
     /// Disconnect a local project from a remote project
     Unlink,
-    /// Tails logs from a remote project
+    /// Tail logs from a standalone graph
     Logs(LogsCommand),
-    /// Run your Grafbase project locally in production mode
+    /// Start Grafbase in production mode
     Start(StartCommand),
     /// Build the Grafbase project in advance to avoid the resolver build step in the start
     /// command.
     Build(BuildCommand),
-    /// Introspect a subgraph endpoint and print its schema
+    /// Introspect a graph and print its schema
     Introspect(IntrospectCommand),
     /// List subgraphs
     Subgraphs(SubgraphsCommand),
     /// Fetch a federated graph or a subgraph
     Schema(SchemaCommand),
-    /// Publish a subgraph to a federated graph
+    /// Publish a subgraph schema
     Publish(PublishCommand),
     /// Dump the registry as JSON.
     #[clap(hide = true)]
     DumpConfig,
-    /// Check a graph or a subgraph for validation, composition and breaking change errors.
+    /// Check a graph for validation, composition and breaking change errors
     Check(CheckCommand),
 }
 
