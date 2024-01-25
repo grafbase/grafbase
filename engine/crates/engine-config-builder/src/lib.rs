@@ -29,9 +29,17 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
             continue;
         };
 
-        let headers = context.insert_headers(&config.headers);
+        let parser_sdl::federation::SubgraphConfig {
+            name: _,
+            websocket_url,
+            headers,
+        } = config;
 
-        subgraph_configs.insert(subgraph_id, config::SubgraphConfig { headers });
+        let headers = context.insert_headers(headers);
+
+        let websocket_url = websocket_url.as_ref().map(|url| context.strings.intern(url));
+
+        subgraph_configs.insert(subgraph_id, config::SubgraphConfig { headers, websocket_url });
     }
 
     let cache_config = build_cache_config(config, &graph);

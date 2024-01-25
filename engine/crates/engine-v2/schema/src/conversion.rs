@@ -10,6 +10,8 @@ use super::sources::*;
 impl From<Config> for Schema {
     fn from(config: Config) -> Self {
         let graph = config.graph;
+        let base_string_index = graph.strings.len();
+
         let mut schema = Schema {
             description: None,
             root_operation_types: RootOperationTypes {
@@ -27,14 +29,25 @@ impl From<Config> for Schema {
             unions: graph.unions.into_iter().map(Into::into).collect(),
             scalars: Vec::with_capacity(graph.scalars.len()),
             input_objects: Vec::with_capacity(graph.input_objects.len()),
-            headers: convert_headers(config.headers, graph.strings.len()),
+            headers: convert_headers(config.headers, base_string_index),
             strings: graph.strings,
             resolvers: vec![],
             definitions: vec![],
             input_values: vec![],
             data_sources: DataSources {
                 federation: federation::DataSource {
-                    subgraphs: graph.subgraphs.into_iter().map(Into::into).collect(),
+                    subgraphs: graph
+                        .subgraphs
+                        .into_iter()
+                        .enumerate()
+                        .map(|(index, subgraph)| {
+                            federation::Subgraph::new(
+                                subgraph,
+                                config.subgraph_configs.get(&federated_graph::SubgraphId(index)),
+                                base_string_index,
+                            )
+                        })
+                        .collect(),
                 },
                 ..Default::default()
             },
@@ -325,11 +338,18 @@ impl From<Config> for Schema {
     }
 }
 
-impl From<federated_graph::Subgraph> for federation::Subgraph {
-    fn from(subgraph: federated_graph::Subgraph) -> Self {
+impl federation::Subgraph {
+    pub fn new(
+        subgraph: federated_graph::Subgraph,
+        config: Option<&config::latest::SubgraphConfig>,
+        base_string_index: usize,
+    ) -> Self {
         federation::Subgraph {
             name: subgraph.name.into(),
             url: subgraph.url.into(),
+            websocket_url: config
+                .and_then(|config| Some(config.websocket_url?.0 + base_string_index))
+                .map(Into::into),
             headers: vec![],
         }
     }
