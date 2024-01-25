@@ -99,7 +99,13 @@ impl Visitor<'_> for SubgraphDirectiveVisitor {
                 .or_default();
 
             subgraph.name = directive.name;
-            subgraph.websocket_url = directive.websocket_url.map(|url| url.to_string());
+
+            if let Some(url) = directive.websocket_url {
+                // We want to support multiple @subgraph directives for any given subgraph
+                // so if websocket_url isn't present on this one, don't set it at all
+                subgraph.websocket_url = Some(url.to_string())
+            }
+
             subgraph.headers.extend(
                 directive
                     .headers
