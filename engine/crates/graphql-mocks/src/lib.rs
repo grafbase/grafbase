@@ -76,6 +76,10 @@ impl MockGraphQlServer {
     pub fn url(&self) -> String {
         format!("http://localhost:{}", self.port)
     }
+
+    pub fn websocket_url(&self) -> String {
+        format!("ws://localhost:{}/ws", self.port)
+    }
 }
 
 async fn graphql_handler(State(state): State<AppState>, headers: HeaderMap, req: GraphQLRequest) -> GraphQLResponse {
