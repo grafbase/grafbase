@@ -13,6 +13,7 @@ use headers::HeaderMapExt;
 use runtime::cache::{CacheReadStatus, CachedExecutionResponse};
 
 pub mod streaming;
+pub mod websockets;
 
 pub struct Gateway {
     engine: Arc<Engine>,
