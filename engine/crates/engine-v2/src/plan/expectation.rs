@@ -111,7 +111,7 @@ pub struct ExpectedField {
     pub ty: ExpectedType<UndeterminedSelectionSetId>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExpectedType<Id> {
     Scalar(DataType),
     SelectionSet(Id),

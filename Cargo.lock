@@ -1763,7 +1763,6 @@ version = "3.0.31"
 dependencies = [
  "anyhow",
  "async-runtime",
- "derive_more",
  "engine",
  "engine-parser",
  "engine-v2-config",
@@ -1783,6 +1782,7 @@ dependencies = [
  "serde_with",
  "strum",
  "thiserror",
+ "tracing",
  "url",
 ]
 

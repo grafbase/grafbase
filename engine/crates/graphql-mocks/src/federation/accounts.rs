@@ -1,5 +1,5 @@
 // See https://github.com/async-graphql/examples
-use async_graphql::{EmptyMutation, EmptySubscription, Object, Schema, SimpleObject, ID};
+use async_graphql::{ComplexObject, EmptyMutation, EmptySubscription, Object, Schema, SimpleObject, ID};
 
 pub struct FakeFederationAccountsSchema;
 
@@ -34,6 +34,7 @@ impl super::super::Schema for FakeFederationAccountsSchema {
 }
 
 #[derive(SimpleObject)]
+#[graphql(complex)]
 struct User {
     id: ID,
     username: String,
@@ -58,6 +59,36 @@ impl User {
             joined_timestamp: 1,
         }
     }
+}
+
+#[ComplexObject]
+impl User {
+    async fn cart(&self) -> Cart {
+        Cart
+    }
+}
+
+struct Cart;
+
+#[Object]
+impl Cart {
+    async fn products(&self) -> Vec<Product> {
+        vec![
+            Product {
+                name: "Fedora".to_string(),
+            },
+            Product {
+                name: "Pink Jeans".to_string(),
+            },
+        ]
+    }
+}
+
+#[derive(SimpleObject)]
+#[graphql(unresolvable)]
+struct Product {
+    #[graphql(external)]
+    name: String,
 }
 
 #[derive(SimpleObject)]

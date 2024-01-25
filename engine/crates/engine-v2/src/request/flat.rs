@@ -4,10 +4,25 @@ use schema::{Definition, InterfaceId, ObjectId, Schema};
 
 use crate::request::{BoundFieldId, BoundSelectionSetId, SelectionSetType, TypeCondition};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FlatSelectionSetId(BoundSelectionSetId);
+
+impl From<BoundSelectionSetId> for FlatSelectionSetId {
+    fn from(value: BoundSelectionSetId) -> Self {
+        Self(value)
+    }
+}
+
+impl From<FlatSelectionSetId> for BoundSelectionSetId {
+    fn from(value: FlatSelectionSetId) -> Self {
+        value.0
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct FlatSelectionSet<Ty = SelectionSetType> {
     pub ty: Ty,
-    pub any_selection_set_id: BoundSelectionSetId,
+    pub id: FlatSelectionSetId,
     pub fields: Vec<FlatField>,
 }
 

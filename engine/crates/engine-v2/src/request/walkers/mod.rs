@@ -30,8 +30,8 @@ pub use variables::*;
 use crate::request::SelectionSetType;
 
 use super::{
-    BoundFieldId, BoundSelection, BoundSelectionSetId, FlatField, FlatSelectionSet, FlatTypeCondition, Operation,
-    TypeCondition,
+    BoundFieldId, BoundSelection, BoundSelectionSetId, FlatField, FlatSelectionSet, FlatSelectionSetId,
+    FlatTypeCondition, Operation, TypeCondition,
 };
 
 #[derive(Clone, Copy)]
@@ -139,7 +139,7 @@ impl<'a> OperationWalker<'a> {
         self.operation.root_object_id
     }
 
-    pub fn merged_selection_sets(&self, bound_field_ids: &[BoundFieldId]) -> FlatSelectionSetWalker<'a> {
+    pub fn merged_selection_sets(&self, bound_field_ids: &[BoundFieldId]) -> FlatSelectionSetWalker<'a, 'static> {
         self.flatten_selection_sets(
             bound_field_ids
                 .iter()
@@ -151,8 +151,8 @@ impl<'a> OperationWalker<'a> {
     pub fn flatten_selection_sets(
         &self,
         merged_selection_set_ids: Vec<BoundSelectionSetId>,
-    ) -> FlatSelectionSetWalker<'a> {
-        let any_selection_set_id = merged_selection_set_ids[0];
+    ) -> FlatSelectionSetWalker<'a, 'static> {
+        let id = FlatSelectionSetId::from(merged_selection_set_ids[0]);
         let selection_set_type = {
             let ty = merged_selection_set_ids
                 .iter()
@@ -208,7 +208,7 @@ impl<'a> OperationWalker<'a> {
         }
 
         self.walk(Cow::Owned(FlatSelectionSet {
-            any_selection_set_id,
+            id,
             ty: selection_set_type,
             fields,
         }))
