@@ -17,7 +17,7 @@ OPTIONS:
 SUBCOMMANDS:
     completions    Output completions for the chosen shell
                        To use, write the output to the appropriate location for your shell
-    dev            Run your grafbase project locally
+    dev            Start the Grafbase local development server
     help           Print this message or the help of the given subcommand(s)
     init           Sets up the current or a new project for Grafbase
 ```
@@ -30,7 +30,7 @@ Output completions for the chosen shell
 
 ### `dev`
 
-Run your grafbase project locally
+Start the Grafbase local development server
 
 #### Flags
 

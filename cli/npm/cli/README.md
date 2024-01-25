@@ -15,7 +15,7 @@ OPTIONS:
     -V, --version    Print version information
 
 SUBCOMMANDS:
-    dev          Run your Grafbase project locally
+    dev          Start the Grafbase local development server
     completions  Output completions for the chosen shell to use, write the output to the appropriate location for your shell
     init         Sets up the current or a new project for Grafbase
     login        Log in to your Grafbase account
@@ -24,14 +24,14 @@ SUBCOMMANDS:
     deploy       Deploy your project
     link         Connect a local project to a remote project
     unlink       Disconnect a local project from a remote project
-    logs         Tails logs from a remote project
-    start        Run your Grafbase project in production mode
+    logs         Tail logs from a standalone graph
+    start        Start Grafbase in production mode
     build        Build the Grafbase project in advance to avoid the resolver build step in the start command
-    introspect   Introspect a subgraph endpoint and print its schema
+    introspect   Introspect a graph and print its schema
     subgraphs    List subgraphs
     schema       Fetch a federated graph or a subgraph
     publish      Publish a subgraph schema
-    check        Check a graph or a subgraph for validation, composition and breaking change errors
+    check        Check a graph for validation, composition and breaking change errors
 ```
 
 ## Subcommand Flag and Argument Documentation
@@ -53,7 +53,7 @@ Commands:
 
 ### `dev`
 
-Run your grafbase project locally
+Start the Grafbase local development server
 
 ```
 Usage: grafbase dev [OPTIONS]
@@ -114,7 +114,7 @@ Options:
 
 ### `logs`
 
-Tail logs from a remote project
+Tail logs from a standalone graph
 
 ```
 Usage: grafbase logs [OPTIONS] [PROJECT_BRANCH]
@@ -129,7 +129,7 @@ Options:
 
 ### `start`
 
-Run your Grafbase project in production mode
+Start Grafbase in production mode
 
 ```
 Usage: grafbase start [OPTIONS]
@@ -156,7 +156,7 @@ Options:
 
 ### `introspect`
 
-Introspect a subgraph endpoint and print its schema
+Introspect a graph and print its schema
 
 ```
     Usage: grafbase introspect [OPTIONS] [URL]
@@ -196,7 +196,7 @@ Options:
 
 ### `publish`
 
-Publish a subgraph to a federated graph
+Publish a subgraph schema
 
 ```
 Usage: grafbase publish [OPTIONS] --name <SUBGRAPH_NAME> --url <URL> <--dev|PROJECT_REF> <--dev|--schema <SCHEMA_PATH>>
