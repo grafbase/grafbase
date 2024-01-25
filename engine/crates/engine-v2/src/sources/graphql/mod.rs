@@ -84,6 +84,7 @@ impl<'ctx> GraphqlExecutor<'ctx> {
             })
             .await?
             .bytes;
+        tracing::debug!("{}", String::from_utf8_lossy(&bytes));
         let err_path = self.boundary_item.response_path.child(
             self.ctx
                 .walker

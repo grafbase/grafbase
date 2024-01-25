@@ -1,7 +1,7 @@
 use integration_tests::runtime;
 
 #[test]
-fn simple_key() {
+fn simple_key_basic() {
     let response = runtime().block_on(super::execute(
         r"
         query ExampleQuery {

@@ -1,6 +1,9 @@
+mod bench;
+
 use std::{collections::HashMap, sync::Arc};
 
 use async_graphql_parser::types::ServiceDocument;
+pub use bench::*;
 use gateway_v2::Gateway;
 use graphql_mocks::MockGraphQlServer;
 use parser_sdl::connector_parsers::MockConnectorParsers;
