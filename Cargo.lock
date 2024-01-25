@@ -2554,6 +2554,7 @@ dependencies = [
  "futures-util",
  "gateway",
  "grafbase-local-common",
+ "graphql-federated-graph",
  "handlebars 5.1.1",
  "hyper",
  "hyper-util",

@@ -1,24 +1,26 @@
 use std::sync::Arc;
 
-use crate::ConfigReceiver;
+use crate::ConfigWatcher;
 
-use super::bus::{GatewaySender, GraphReceiver};
+use super::bus::{GatewaySender, GraphWatcher};
 use engine_v2::EngineEnv;
 use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
 use gateway_v2::{Gateway, GatewayEnv};
+use graphql_composition::FederatedGraph;
+use parser_sdl::federation::FederatedGraphConfig;
 use tokio_stream::wrappers::WatchStream;
 
 /// The GatewayNanny looks after the `Gateway` - on updates to the graph or config it'll
 /// create a new `Gateway` and publish it on the gateway channel
 pub(crate) struct GatewayNanny {
-    graph: GraphReceiver,
-    config: ConfigReceiver,
+    graph: GraphWatcher,
+    config: ConfigWatcher,
     sender: GatewaySender,
 }
 
 impl GatewayNanny {
-    pub fn new(graph: GraphReceiver, config: ConfigReceiver, sender: GatewaySender) -> Self {
+    pub fn new(graph: GraphWatcher, config: ConfigWatcher, sender: GatewaySender) -> Self {
         Self { graph, config, sender }
     }
 
@@ -34,17 +36,16 @@ impl GatewayNanny {
 
         while let Some(message) = stream.next().await {
             log::trace!("nanny received a {message:?}");
-            if let Err(error) = self.sender.send(new_gateway(&self.graph, &self.config).await) {
+            let config = self.config.borrow();
+            if let Err(error) = self.sender.send(new_gateway(self.graph.borrow().clone(), &config)) {
                 log::error!("Couldn't publish new gateway: {error:?}");
             }
         }
     }
 }
 
-async fn new_gateway(graph: &GraphReceiver, config: &ConfigReceiver) -> Option<Arc<Gateway>> {
-    let graph = graph.borrow().clone()?;
-
-    let config = engine_config_builder::build_config(&config.borrow(), graph);
+pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraphConfig) -> Option<Arc<Gateway>> {
+    let config = engine_config_builder::build_config(config, graph?);
     Some(Arc::new(Gateway::new(
         config.into_latest().into(),
         EngineEnv {

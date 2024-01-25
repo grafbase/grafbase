@@ -64,7 +64,7 @@ impl ConfigActor {
         Box::pin(WatchStream::new(self.receiver.clone()).filter_map(|result| result.ok()))
     }
 
-    pub fn into_federated_config_receiver(mut self) -> federated_dev::ConfigReceiver {
+    pub fn into_federated_config_receiver(mut self) -> federated_dev::ConfigWatcher {
         let initial_value = match self.receiver.borrow().as_ref() {
             Ok(config) => config.federated_graph_config.clone().unwrap_or_default(),
             Err(_) => Default::default(),

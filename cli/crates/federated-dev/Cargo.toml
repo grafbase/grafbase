@@ -29,7 +29,7 @@ serde = "1.0.195"
 serde_json.workspace = true
 thiserror = "1.0.56"
 tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }
-tokio-stream = "0.1"
+tokio-stream = { version = "0.1", features = ["sync"] }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 tower-service.workspace = true
 ulid.workspace = true

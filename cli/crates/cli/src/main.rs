@@ -128,7 +128,13 @@ fn try_main(args: Args) -> Result<(), CliError> {
                 process::exit(exitcode::OK);
             });
 
-            start(cmd.listen_address(), cmd.port, cmd.log_levels(), args.trace >= 2)
+            start(
+                cmd.listen_address(),
+                cmd.port,
+                cmd.log_levels(),
+                cmd.federated_graph_schema_path(),
+                args.trace >= 2,
+            )
         }
         SubCommand::Build(cmd) => {
             let _ = ctrlc::set_handler(|| {

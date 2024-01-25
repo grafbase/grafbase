@@ -28,7 +28,8 @@ FROM alpine:3.19
 
 WORKDIR /grafbase
 
-RUN apk add --no-cache nodejs npm
+# used curl to run a health check query against the server in a docker-compose file
+RUN apk add --no-cache nodejs npm curl
 
 RUN adduser -g wheel -D grafbase -h "/data" && mkdir -p /data && chown grafbase: /data
 USER grafbase
