@@ -28,10 +28,10 @@ worker = { workspace = true, optional = true }
 with-worker = ["worker"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-reqwest = { version = "0.11", default-features = false, features = ["json"] }
+reqwest = { workspace = true, features = ["json"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-reqwest = { version = "0.11", default-features = false, features = [
+reqwest = { workspace = true, features = [
   "json",
   "rustls-tls",
 ] }
