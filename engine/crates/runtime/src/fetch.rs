@@ -20,7 +20,7 @@ pub type FetchResult<T> = Result<T, FetchError>;
 
 // very minimal for now, but will be expanded as we need it.
 pub struct FetchRequest<'a> {
-    pub url: &'a str,
+    pub url: &'a url::Url,
     pub headers: Vec<(&'a str, &'a str)>,
     pub json_body: String,
 }
@@ -30,7 +30,7 @@ pub struct FetchResponse {
 }
 
 pub struct GraphqlRequest<'a> {
-    pub url: &'a str,
+    pub url: &'a url::Url,
     pub headers: Vec<(&'a str, &'a str)>,
     pub query: String,
     pub variables: Value,

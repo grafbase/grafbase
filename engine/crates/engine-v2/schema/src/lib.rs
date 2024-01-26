@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
+mod builder;
 mod cache;
-mod conversion;
 mod field_set;
 mod ids;
 mod names;
@@ -20,42 +20,37 @@ pub use walkers::*;
 /// the source of truth. If the cache is stale we would just re-create this Graph from its source:
 /// federated_graph::FederatedGraph.
 pub struct Schema {
-    pub description: Option<StringId>,
-    pub root_operation_types: RootOperationTypes,
     data_sources: DataSources,
 
+    pub description: Option<StringId>,
+    pub root_operation_types: RootOperationTypes,
     objects: Vec<Object>,
     // Sorted by object_id, field name (actual string)
     object_fields: Vec<ObjectField>,
-
     interfaces: Vec<Interface>,
     // Sorted by interface_id, field name (actual string)
     interface_fields: Vec<InterfaceField>,
-
     fields: Vec<Field>,
-
     enums: Vec<Enum>,
     unions: Vec<Union>,
     scalars: Vec<Scalar>,
     input_objects: Vec<InputObject>,
     input_values: Vec<InputValue>,
     resolvers: Vec<Resolver>,
-
-    /// All the strings, mostly deduplicated. FederatedGraph deduplicates them
-    /// but we're adding a few during config building. If you need those to be entirely
-    /// deduplicated, double check engine-config-builder.
-    strings: Vec<String>,
     /// All the field types in the supergraph, deduplicated.
     types: Vec<Type>,
     // All definitions sorted by their name (actual string)
     definitions: Vec<Definition>,
 
+    /// All strings deduplicated.
+    strings: Vec<String>,
+    urls: Vec<url::Url>,
+
     /// Headers we might want to send to a subgraph
     headers: Vec<Header>,
-
     default_headers: Vec<HeaderId>,
-
     cache_configs: Vec<CacheConfig>,
+
     pub auth_config: Option<config::latest::AuthConfig>,
     pub operation_limits: config::latest::OperationLimits,
 }
@@ -95,56 +90,6 @@ impl Schema {
     // Used as the default resolver
     pub fn introspection_resolver_id(&self) -> ResolverId {
         (self.resolvers.len() - 1).into()
-    }
-
-    fn finalize(mut self) -> Self {
-        self.definitions = Vec::with_capacity(
-            self.scalars.len()
-                + self.objects.len()
-                + self.interfaces.len()
-                + self.unions.len()
-                + self.enums.len()
-                + self.input_objects.len(),
-        );
-        // Adding all definitions for introspection & query binding
-        self.definitions
-            .extend((0..self.scalars.len()).map(|id| Definition::Scalar(ScalarId::from(id))));
-        self.definitions
-            .extend((0..self.objects.len()).map(|id| Definition::Object(ObjectId::from(id))));
-        self.definitions
-            .extend((0..self.interfaces.len()).map(|id| Definition::Interface(InterfaceId::from(id))));
-        self.definitions
-            .extend((0..self.unions.len()).map(|id| Definition::Union(UnionId::from(id))));
-        self.definitions
-            .extend((0..self.enums.len()).map(|id| Definition::Enum(EnumId::from(id))));
-        self.definitions
-            .extend((0..self.input_objects.len()).map(|id| Definition::InputObject(InputObjectId::from(id))));
-
-        let mut object_fields = std::mem::take(&mut self.object_fields);
-        object_fields
-            .sort_unstable_by_key(|ObjectField { object_id, field_id }| (*object_id, &self[self[*field_id].name]));
-        self.object_fields = object_fields;
-
-        let mut interface_fields = std::mem::take(&mut self.interface_fields);
-        interface_fields.sort_unstable_by_key(|InterfaceField { interface_id, field_id }| {
-            (*interface_id, &self[self[*field_id].name])
-        });
-        self.interface_fields = interface_fields;
-
-        let mut definitions = std::mem::take(&mut self.definitions);
-        definitions.sort_unstable_by_key(|definition| self.definition_name(*definition));
-        self.definitions = definitions;
-
-        for interface in &mut self.interfaces {
-            interface.possible_types.sort_unstable();
-        }
-        for union in &mut self.unions {
-            union.possible_types.sort_unstable();
-        }
-
-        assert!(matches!(self.resolvers.last(), Some(Resolver::Introspection(_))));
-
-        self
     }
 
     fn definition_name(&self, definition: Definition) -> &str {

@@ -1804,7 +1804,6 @@ dependencies = [
  "strum",
  "thiserror",
  "tracing",
- "url",
 ]
 
 [[package]]
@@ -1827,8 +1826,11 @@ name = "engine-v2-schema"
 version = "3.0.31"
 dependencies = [
  "engine-v2-config",
+ "fnv",
  "graphql-federated-graph",
+ "indexmap 2.2.0",
  "strum",
+ "url",
 ]
 
 [[package]]
@@ -5298,6 +5300,7 @@ dependencies = [
  "tracing",
  "tracing-futures",
  "ulid",
+ "url",
 ]
 
 [[package]]

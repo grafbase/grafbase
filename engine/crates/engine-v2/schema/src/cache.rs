@@ -26,8 +26,8 @@ impl Merge<Option<CacheConfig>> for Option<CacheConfig> {
     }
 }
 
-impl From<&config::latest::CacheConfig> for CacheConfig {
-    fn from(value: &config::latest::CacheConfig) -> Self {
+impl From<config::latest::CacheConfig> for CacheConfig {
+    fn from(value: config::latest::CacheConfig) -> Self {
         CacheConfig {
             max_age: value.max_age,
             stale_while_revalidate: value.stale_while_revalidate,
