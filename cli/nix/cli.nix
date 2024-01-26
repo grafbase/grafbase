@@ -34,6 +34,7 @@ let
     yarn.lock
 
     !/engine/crates/validation/README.md
+    !/engine/crates/graphql-schema-diff/README.md
     !/packages/grafbase-sdk/package.json
   '';
 
