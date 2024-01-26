@@ -9,14 +9,14 @@ use super::{
 };
 use crate::{
     plan::ConcreteType,
-    request::BoundAnyFieldDefinitionId,
+    request::BoundFieldId,
     response::{GraphqlError, ResponsePath, ResponseValue},
 };
 
 pub(super) struct FieldSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContextInner<'ctx>,
     pub path: ResponsePath,
-    pub definition_id: Option<BoundAnyFieldDefinitionId>,
+    pub bound_field_id: Option<BoundFieldId>,
     pub expected_type: &'parent ConcreteType,
     pub wrapping: Wrapping,
 }
@@ -24,7 +24,7 @@ pub(super) struct FieldSeed<'ctx, 'parent> {
 macro_rules! deserialize_nullable_scalar {
     ($field: expr, $scalar: expr, $deserializer: expr) => {
         NullableSeed {
-            definition_id: $field.definition_id,
+            bound_field_id: $field.bound_field_id,
             path: &$field.path,
             ctx: $field.ctx,
             seed: $scalar,
@@ -42,30 +42,30 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
         let result = if let Some(list_wrapping) = self.wrapping.list_wrapping.pop() {
             match list_wrapping {
                 ListWrapping::RequiredList => ListSeed {
-                    definition_id: self.definition_id,
+                    bound_field_id: self.bound_field_id,
                     path: &self.path,
                     ctx: self.ctx,
                     seed_builder: |path: ResponsePath| FieldSeed {
                         ctx: self.ctx,
                         path,
-                        definition_id: self.definition_id,
+                        bound_field_id: self.bound_field_id,
                         expected_type: self.expected_type,
                         wrapping: self.wrapping.clone(),
                     },
                 }
                 .deserialize(deserializer),
                 ListWrapping::NullableList => NullableSeed {
-                    definition_id: self.definition_id,
+                    bound_field_id: self.bound_field_id,
                     path: &self.path,
                     ctx: self.ctx,
                     seed: ListSeed {
-                        definition_id: self.definition_id,
+                        bound_field_id: self.bound_field_id,
                         path: &self.path,
                         ctx: self.ctx,
                         seed_builder: |path: ResponsePath| FieldSeed {
                             ctx: self.ctx,
                             path,
-                            definition_id: self.definition_id,
+                            bound_field_id: self.bound_field_id,
                             expected_type: self.expected_type,
                             wrapping: self.wrapping.clone(),
                         },
@@ -102,7 +102,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
                     DataType::Boolean => deserialize_nullable_scalar!(self, BooleanSeed, deserializer),
                 },
                 ConcreteType::SelectionSet(expected) => NullableSeed {
-                    definition_id: self.definition_id,
+                    bound_field_id: self.bound_field_id,
                     path: &self.path,
                     ctx: self.ctx,
                     seed: SelectionSetSeed {
@@ -120,7 +120,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
                 self.ctx.data.borrow_mut().push_error(GraphqlError {
                     message: err.to_string(),
                     locations: self
-                        .definition_id
+                        .bound_field_id
                         .map(|id| self.ctx.walker.walk(id).name_location())
                         .into_iter()
                         .collect(),

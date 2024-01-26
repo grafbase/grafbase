@@ -70,7 +70,7 @@ impl<'ctx> SeedContext<'ctx> {
 impl<'ctx> SeedContextInner<'ctx> {
     fn missing_field_error_message(&self, field: &ConcreteField) -> String {
         let missing_key = field
-            .definition_id
+            .bound_field_id
             .map(|id| self.walker.walk(id).response_key_str())
             .unwrap_or(&field.expected_key);
 

@@ -1838,6 +1838,7 @@ dependencies = [
  "engine-v2-config",
  "engine-v2-schema",
  "engine-value",
+ "fnv",
  "futures",
  "futures-util",
  "hex",

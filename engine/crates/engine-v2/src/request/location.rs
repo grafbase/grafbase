@@ -4,7 +4,7 @@ use super::bind::BindError;
 
 // 65 KB for query without any new lines is pretty huge. If a user ever has a QueryTooBig error
 // we'll increase it to u32. But for now it's just wasted memory.
-#[derive(Debug, PartialEq, Eq, Clone, Copy, serde::Serialize)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, serde::Serialize)]
 pub struct Location {
     /// One-based line number.
     pub line: u16,

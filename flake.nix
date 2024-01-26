@@ -65,10 +65,11 @@
             nodePackages.npm
             nodePackages.semver
             sd
-            
+
             # Node.js
             nodejs
             nodePackages.prettier
+            bun # for udf-wrapper
 
             # Native SSL
             openssl

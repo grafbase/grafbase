@@ -83,6 +83,7 @@ web-time = "1"
 which = "6"
 wiremock = "0.6.0-rc.3"
 worker = "0.0.18"
+fnv = "1"
 
 # Serde
 serde = { version = "1", features = ["derive"] }

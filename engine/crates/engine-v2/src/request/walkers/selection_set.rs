@@ -24,7 +24,7 @@ impl<'a> BoundSelectionSetWalker<'a, ()> {
         self.into_iter()
             .filter_map(|selection| match selection {
                 BoundSelectionWalker::Field(field) => {
-                    let cache_config = field.definition().as_field().and_then(|definition| {
+                    let cache_config = field.schema_field().and_then(|definition| {
                         definition
                             .cache_config()
                             .merge(definition.ty().inner().as_object().and_then(|obj| obj.cache_config()))
@@ -79,11 +79,9 @@ impl<'a, C: Copy> Iterator for SelectionIterator<'a, C> {
     fn next(&mut self) -> Option<Self::Item> {
         let selection = self.selections.pop_front()?;
         Some(match selection {
-            &BoundSelection::Field(id) => BoundSelectionWalker::Field(self.walker.walk(id)),
-            BoundSelection::FragmentSpread(spread) => BoundSelectionWalker::FragmentSpread(self.walker.walk(spread)),
-            BoundSelection::InlineFragment(fragment) => {
-                BoundSelectionWalker::InlineFragment(self.walker.walk(fragment))
-            }
+            BoundSelection::Field(id) => BoundSelectionWalker::Field(self.walker.walk(*id)),
+            BoundSelection::FragmentSpread(id) => BoundSelectionWalker::FragmentSpread(self.walker.walk(*id)),
+            BoundSelection::InlineFragment(id) => BoundSelectionWalker::InlineFragment(self.walker.walk(*id)),
         })
     }
 }

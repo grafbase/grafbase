@@ -4,7 +4,10 @@ use schema::{Definition, FieldId, InputValueId, InterfaceId, ObjectId, Schema, U
 
 use crate::response::{BoundResponseKey, ResponseKey};
 
-use super::{BoundAnyFieldDefinitionId, BoundFieldId, BoundFragmentDefinitionId, BoundSelectionSetId, Location};
+use super::{
+    BoundFieldArgumentsId, BoundFieldId, BoundFragmentId, BoundFragmentSpreadId, BoundInlineFragmentId,
+    BoundSelectionSetId, Location,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundSelectionSet {
@@ -34,23 +37,60 @@ impl SelectionSetType {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BoundSelection {
     Field(BoundFieldId),
-    FragmentSpread(BoundFragmentSpread),
-    InlineFragment(BoundInlineFragment),
+    FragmentSpread(BoundFragmentSpreadId),
+    InlineFragment(BoundInlineFragmentId),
 }
 
 /// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
 /// A BoundField is a field in the query *after* spreading all the named fragments.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct BoundField {
-    pub bound_response_key: BoundResponseKey,
-    pub definition_id: BoundAnyFieldDefinitionId,
-    pub selection_set_id: Option<BoundSelectionSetId>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BoundField {
+    // Keeping attributes inside the enum to allow Rust to optimize the size of BoundField. We rarely
+    // use the variants directly.
+    TypeName {
+        bound_response_key: BoundResponseKey,
+        location: Location,
+    },
+    Field {
+        bound_response_key: BoundResponseKey,
+        location: Location,
+        field_id: FieldId,
+        arguments_id: BoundFieldArgumentsId,
+        selection_set_id: Option<BoundSelectionSetId>,
+    },
+}
+
+impl BoundField {
+    pub fn response_key(&self) -> ResponseKey {
+        self.bound_response_key().into()
+    }
+
+    pub fn bound_response_key(&self) -> BoundResponseKey {
+        match self {
+            BoundField::TypeName { bound_response_key, .. } => *bound_response_key,
+            BoundField::Field { bound_response_key, .. } => *bound_response_key,
+        }
+    }
+
+    pub fn name_location(&self) -> Location {
+        match self {
+            BoundField::TypeName { location, .. } => *location,
+            BoundField::Field { location, .. } => *location,
+        }
+    }
+
+    pub fn selection_set_id(&self) -> Option<BoundSelectionSetId> {
+        match self {
+            BoundField::TypeName { .. } => None,
+            BoundField::Field { selection_set_id, .. } => *selection_set_id,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundFragmentSpread {
     pub location: Location,
-    pub fragment_id: BoundFragmentDefinitionId,
+    pub fragment_id: BoundFragmentId,
     // This selection set is bound to its actual position in the query.
     pub selection_set_id: BoundSelectionSetId,
 }
@@ -64,7 +104,7 @@ pub struct BoundInlineFragment {
 }
 
 #[derive(Debug)]
-pub struct BoundFragmentDefinition {
+pub struct BoundFragment {
     pub name: String,
     pub name_location: Location,
     pub type_condition: TypeCondition,
@@ -96,51 +136,6 @@ impl From<TypeCondition> for Definition {
             TypeCondition::Union(id) => Definition::Union(id),
         }
     }
-}
-
-/// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
-/// A BoundField is a field in the query *after* spreading all the named fragments.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BoundAnyFieldDefinition {
-    TypeName(BoundTypeNameFieldDefinition),
-    Field(BoundFieldDefinition),
-}
-
-impl BoundAnyFieldDefinition {
-    pub fn as_field(&self) -> Option<&BoundFieldDefinition> {
-        match self {
-            BoundAnyFieldDefinition::TypeName(_) => None,
-            BoundAnyFieldDefinition::Field(field) => Some(field),
-        }
-    }
-
-    pub fn response_key(&self) -> ResponseKey {
-        match self {
-            BoundAnyFieldDefinition::TypeName(field) => field.response_key,
-            BoundAnyFieldDefinition::Field(field) => field.response_key,
-        }
-    }
-
-    pub fn name_location(&self) -> Location {
-        match self {
-            BoundAnyFieldDefinition::TypeName(field) => field.name_location,
-            BoundAnyFieldDefinition::Field(field) => field.name_location,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BoundTypeNameFieldDefinition {
-    pub name_location: Location,
-    pub response_key: ResponseKey,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BoundFieldDefinition {
-    pub name_location: Location,
-    pub response_key: ResponseKey,
-    pub field_id: FieldId,
-    pub arguments: Vec<BoundFieldArgument>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

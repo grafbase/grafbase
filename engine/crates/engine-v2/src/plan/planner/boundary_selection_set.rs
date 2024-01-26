@@ -4,7 +4,7 @@ use schema::{FieldId, ResolverId};
 
 use crate::{
     plan::{attribution::ExtraField, PlanId},
-    request::{FlatSelectionSetId, GroupForFieldId, SelectionSetType},
+    request::{FlatSelectionSetId, GroupForFieldId, OperationWalker, SelectionSetType},
 };
 
 /// Currently Operation is immutable during the planning phase. That's something I need to fix,
@@ -19,15 +19,15 @@ use crate::{
 /// if any and then extended during the planning with any fields that were required by children.
 /// Ensuring any extra field added or providable field by one child is visible to the others
 #[derive(Debug)]
-pub(super) struct BoundarySelectionSet<'op> {
+pub(super) struct BoundarySelectionSet {
     pub id: FlatSelectionSetId,
-    pub fields: HashMap<FieldId, BoundaryField<'op>>,
+    pub fields: HashMap<FieldId, BoundaryField>,
 }
 
 #[derive(Debug)]
-pub(super) enum BoundaryField<'op> {
+pub(super) enum BoundaryField {
     // Field planned by either the parent plan or a child.
-    Planned(PlannedBoundaryField<'op>),
+    Planned(PlannedBoundaryField),
     // Extra field required by a child.
     Extra {
         plan_id: PlanId,
@@ -37,14 +37,14 @@ pub(super) enum BoundaryField<'op> {
 }
 
 #[derive(Debug)]
-pub(super) struct PlannedBoundaryField<'op> {
+pub(super) struct PlannedBoundaryField {
     pub(super) plan_id: PlanId,
-    pub(super) field: GroupForFieldId<'op>,
-    lazy_subselection: Option<BoundarySelectionSet<'op>>,
+    pub(super) field: GroupForFieldId,
+    lazy_subselection: Option<BoundarySelectionSet>,
 }
 
-impl<'op> PlannedBoundaryField<'op> {
-    pub(super) fn new(plan_id: PlanId, field: GroupForFieldId<'op>) -> Self {
+impl PlannedBoundaryField {
+    pub(super) fn new(plan_id: PlanId, field: GroupForFieldId) -> Self {
         Self {
             plan_id,
             field,
@@ -52,16 +52,12 @@ impl<'op> PlannedBoundaryField<'op> {
         }
     }
 
-    pub(super) fn subselection_mut(&mut self) -> Option<&mut BoundarySelectionSet<'op>> {
+    pub(super) fn subselection_mut(&mut self, walker: OperationWalker<'_>) -> Option<&mut BoundarySelectionSet> {
         if self.field.bound_field_ids.is_empty() {
             return None;
         }
         Some(self.lazy_subselection.get_or_insert_with(|| {
-            let flat_selection_set = self
-                .field
-                .definition
-                .walk_with((), ())
-                .merged_selection_sets(&self.field.bound_field_ids);
+            let flat_selection_set = walker.merged_selection_sets(&self.field.bound_field_ids);
             let id = flat_selection_set.id();
             let fields = flat_selection_set
                 .group_by_field_id()
@@ -81,7 +77,7 @@ impl<'op> PlannedBoundaryField<'op> {
         }))
     }
 
-    pub(super) fn take_subselection_if_read(self) -> Option<BoundarySelectionSet<'op>> {
+    pub(super) fn take_subselection_if_read(self) -> Option<BoundarySelectionSet> {
         self.lazy_subselection
     }
 }
