@@ -1,0 +1,16 @@
+{
+  "author": "",
+  "description": "",
+  "devDependencies": {
+    "@grafbase/sdk": "~0.16.0",
+    "@types/node": "^20.11.6"
+  },
+  "keywords": [],
+  "license": "ISC",
+  "main": "index.js",
+  "name": "graphql-vendure",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "1.0.0"
+}
