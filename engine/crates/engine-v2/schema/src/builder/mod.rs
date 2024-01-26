@@ -1,76 +1,143 @@
+mod interner;
+
 use std::collections::{HashMap, HashSet};
+use std::mem::take;
 
 use config::latest::{CacheConfigTarget, Config};
+use url::Url;
 
-use super::*;
-// All of that should be in federated_graph actually.
+use crate::sources::introspection::IntrospectionSchemaBuilder;
+
+use self::interner::Interner;
+
 use super::sources::*;
+use super::*;
 
-#[allow(clippy::panic)]
 impl From<Config> for Schema {
     fn from(config: Config) -> Self {
-        let graph = config.graph;
-        let base_string_index = graph.strings.len();
+        SchemaBuilder::build_schema(config)
+    }
+}
 
-        let mut schema = Schema {
-            description: None,
-            root_operation_types: RootOperationTypes {
-                query: graph.root_operation_types.query.into(),
-                mutation: graph.root_operation_types.mutation.map(Into::into),
-                subscription: graph.root_operation_types.subscription.map(Into::into),
-            },
-            objects: Vec::with_capacity(graph.objects.len()),
-            object_fields: Vec::with_capacity(graph.object_fields.len()),
-            fields: Vec::with_capacity(graph.fields.len()),
-            types: graph.field_types.into_iter().map(Into::into).collect(),
-            interfaces: graph.interfaces.into_iter().map(Into::into).collect(),
-            interface_fields: graph.interface_fields.into_iter().map(Into::into).collect(),
-            enums: graph.enums.into_iter().map(Into::into).collect(),
-            unions: graph.unions.into_iter().map(Into::into).collect(),
-            scalars: Vec::with_capacity(graph.scalars.len()),
-            input_objects: Vec::with_capacity(graph.input_objects.len()),
-            headers: convert_headers(config.headers, base_string_index),
-            strings: graph.strings,
-            resolvers: vec![],
-            definitions: vec![],
-            input_values: vec![],
-            data_sources: DataSources {
-                federation: federation::DataSource {
-                    subgraphs: graph
-                        .subgraphs
-                        .into_iter()
-                        .enumerate()
-                        .map(|(index, subgraph)| {
-                            federation::Subgraph::new(
-                                subgraph,
-                                config.subgraph_configs.get(&federated_graph::SubgraphId(index)),
-                                base_string_index,
-                            )
-                        })
-                        .collect(),
+pub(crate) struct SchemaBuilder {
+    pub schema: Schema,
+    pub strings: Interner<String, StringId>,
+    pub urls: Interner<Url, UrlId>,
+}
+
+impl SchemaBuilder {
+    fn build_schema(mut config: Config) -> Schema {
+        let mut builder = Self::initialize(&mut config);
+        builder.insert_headers(&mut config);
+        builder.insert_federation_datasource(&mut config);
+        builder.insert_graphql_schema(&mut config);
+        IntrospectionSchemaBuilder::insert_introspection_fields(&mut builder);
+        builder.build()
+    }
+
+    fn initialize(config: &mut Config) -> Self {
+        Self {
+            strings: Interner::from_vec(take(&mut config.graph.strings)),
+            urls: Interner::default(),
+            schema: Schema {
+                description: None,
+                root_operation_types: RootOperationTypes {
+                    query: config.graph.root_operation_types.query.into(),
+                    mutation: config.graph.root_operation_types.mutation.map(Into::into),
+                    subscription: config.graph.root_operation_types.subscription.map(Into::into),
                 },
-                ..Default::default()
+                objects: Vec::with_capacity(config.graph.objects.len()),
+                object_fields: Vec::with_capacity(config.graph.object_fields.len()),
+                fields: Vec::with_capacity(config.graph.fields.len()),
+                types: take(&mut config.graph.field_types)
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
+                interfaces: take(&mut config.graph.interfaces).into_iter().map(Into::into).collect(),
+                interface_fields: take(&mut config.graph.interface_fields)
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
+                enums: take(&mut config.graph.enums).into_iter().map(Into::into).collect(),
+                unions: take(&mut config.graph.unions).into_iter().map(Into::into).collect(),
+                scalars: Vec::with_capacity(config.graph.scalars.len()),
+                input_objects: Vec::with_capacity(config.graph.input_objects.len()),
+                headers: Vec::with_capacity(0),
+                strings: Vec::with_capacity(0),
+                resolvers: vec![],
+                definitions: vec![],
+                input_values: vec![],
+                data_sources: DataSources::default(),
+                default_headers: Vec::with_capacity(0),
+                cache_configs: vec![],
+                auth_config: take(&mut config.auth),
+                operation_limits: take(&mut config.operation_limits),
+                urls: Vec::with_capacity(0),
             },
-            default_headers: config.default_headers.into_iter().map(Into::into).collect(),
-            cache_configs: vec![],
-            auth_config: config.auth,
-            operation_limits: config.operation_limits,
-        };
-
-        schema.strings.extend(config.strings);
-        for (id, config) in config.subgraph_configs {
-            schema.update_subgraph_config(id, config);
         }
+    }
+
+    fn insert_headers(&mut self, config: &mut Config) {
+        self.schema.headers = take(&mut config.headers)
+            .into_iter()
+            .map(|header| Header {
+                name: self.strings.get_or_insert(&config[header.name]),
+                value: match header.value {
+                    config::latest::HeaderValue::Forward(id) => {
+                        HeaderValue::Forward(self.strings.get_or_insert(&config[id]))
+                    }
+                    config::latest::HeaderValue::Static(id) => {
+                        HeaderValue::Static(self.strings.get_or_insert(&config[id]))
+                    }
+                },
+            })
+            .collect();
+        self.schema.default_headers = take(&mut config.default_headers).into_iter().map(Into::into).collect();
+    }
+
+    fn insert_federation_datasource(&mut self, config: &mut Config) {
+        self.schema.data_sources.federation.subgraphs = take(&mut config.graph.subgraphs)
+            .into_iter()
+            .enumerate()
+            .map(|(index, subgraph)| {
+                let name = subgraph.name.into();
+                let url = self
+                    .urls
+                    .insert(url::Url::parse(&self.strings[subgraph.url.into()]).expect("valid url"));
+                match config.subgraph_configs.remove(&federated_graph::SubgraphId(index)) {
+                    Some(config::latest::SubgraphConfig { websocket_url, headers }) => federation::Subgraph {
+                        name,
+                        url,
+                        websocket_url: websocket_url
+                            .map(|url| self.urls.insert(url::Url::parse(&config[url]).expect("valid url"))),
+                        headers: headers.into_iter().map(Into::into).collect(),
+                    },
+
+                    None => federation::Subgraph {
+                        name,
+                        url,
+                        websocket_url: None,
+                        headers: Vec::with_capacity(0),
+                    },
+                }
+            })
+            .collect();
+    }
+
+    fn insert_graphql_schema(&mut self, config: &mut Config) {
+        let cache = take(&mut config.cache);
+        let graph = &mut config.graph;
+        let schema = &mut self.schema;
+        let mut cache_configs = Interner::<config::latest::CacheConfig, CacheConfigId>::default();
 
         // -- OBJECTS --
         let mut entity_resolvers = HashMap::<ObjectId, Vec<(ResolverId, SubgraphId)>>::new();
         let mut unresolvable_keys = HashMap::<ObjectId, HashMap<SubgraphId, FieldSet>>::new();
-        for object in graph.objects {
+        for object in take(&mut graph.objects) {
             let object_id = ObjectId::from(schema.objects.len());
-            let cache_config = config
-                .cache
+            let cache_config = cache
                 .rule(CacheConfigTarget::Object(federated_graph::ObjectId(object_id.into())))
-                .map(|config| schema.insert_cache_config(config));
+                .map(|config| cache_configs.get_or_insert(config));
 
             schema.objects.push(Object {
                 name: object.name.into(),
@@ -120,7 +187,7 @@ impl From<Config> for Schema {
 
         // -- OBJECT FIELDS --
         let mut field_id_to_maybe_object_id: Vec<Option<ObjectId>> = vec![None; graph.fields.len()];
-        for object_field in graph.object_fields {
+        for object_field in take(&mut graph.object_fields) {
             let object_field: ObjectField = object_field.into();
             field_id_to_maybe_object_id[usize::from(object_field.field_id)] = Some(object_field.object_id);
             schema.object_fields.push(object_field);
@@ -154,7 +221,7 @@ impl From<Config> for Schema {
         // 2. Field arguments are converted to input values. That's how the GraphQL spec defines
         //    them and having an id allows data sources to rename those more easily.
         let mut root_field_resolvers = HashMap::<SubgraphId, ResolverId>::new();
-        for (i, field) in graph.fields.into_iter().enumerate() {
+        for (i, field) in take(&mut graph.fields).into_iter().enumerate() {
             let field_id = FieldId::from(i);
             let mut resolvers = vec![];
             let subgraph_requires = field
@@ -273,10 +340,9 @@ impl From<Config> for Schema {
                 composed_directives: field.composed_directives.into_iter().map(Into::into).collect(),
                 is_deprecated: false,
                 deprecation_reason: None,
-                cache_config: config
-                    .cache
+                cache_config: cache
                     .rule(CacheConfigTarget::Field(federated_graph::FieldId(field_id.into())))
-                    .map(|config| schema.insert_cache_config(config)),
+                    .map(|config| cache_configs.get_or_insert(config)),
             };
             schema.fields.push(field);
         }
@@ -284,7 +350,7 @@ impl From<Config> for Schema {
         // -- INPUT OBJECTS --
         // Separating the input fields into a separate input_value vec with an id. This additional
         // indirection allows data sources to rename fields more easily.
-        for input_object in graph.input_objects {
+        for input_object in take(&mut graph.input_objects) {
             let input_object = InputObject {
                 name: input_object.name.into(),
                 description: None,
@@ -318,14 +384,13 @@ impl From<Config> for Schema {
         }
 
         // -- SCALARS --
-        schema.scalars = graph
-            .scalars
+        schema.scalars = take(&mut graph.scalars)
             .into_iter()
             .map(|scalar| {
                 let name = StringId::from(scalar.name);
                 Scalar {
                     name,
-                    data_type: DataType::from_scalar_name(&schema[name]),
+                    data_type: DataType::from_scalar_name(&self.strings[name]),
                     description: None,
                     specified_by_url: None,
                     composed_directives: scalar.composed_directives.into_iter().map(Into::into).collect(),
@@ -333,25 +398,68 @@ impl From<Config> for Schema {
             })
             .collect();
 
-        // -- INTROSPECTION --
-        introspection::Introspection::finalize_schema(schema)
+        // -- CACHE CONFIG --
+        schema.cache_configs = cache_configs.into_iter().map(Into::into).collect();
     }
-}
 
-impl federation::Subgraph {
-    pub fn new(
-        subgraph: federated_graph::Subgraph,
-        config: Option<&config::latest::SubgraphConfig>,
-        base_string_index: usize,
-    ) -> Self {
-        federation::Subgraph {
-            name: subgraph.name.into(),
-            url: subgraph.url.into(),
-            websocket_url: config
-                .and_then(|config| Some(config.websocket_url?.0 + base_string_index))
-                .map(Into::into),
-            headers: vec![],
+    fn build(self) -> Schema {
+        let mut schema = self.schema;
+        schema.strings = self.strings.into();
+        schema.urls = self.urls.into();
+
+        schema.definitions = Vec::with_capacity(
+            schema.scalars.len()
+                + schema.objects.len()
+                + schema.interfaces.len()
+                + schema.unions.len()
+                + schema.enums.len()
+                + schema.input_objects.len(),
+        );
+
+        // Adding all definitions for introspection & query binding
+        schema
+            .definitions
+            .extend((0..schema.scalars.len()).map(|id| Definition::Scalar(ScalarId::from(id))));
+        schema
+            .definitions
+            .extend((0..schema.objects.len()).map(|id| Definition::Object(ObjectId::from(id))));
+        schema
+            .definitions
+            .extend((0..schema.interfaces.len()).map(|id| Definition::Interface(InterfaceId::from(id))));
+        schema
+            .definitions
+            .extend((0..schema.unions.len()).map(|id| Definition::Union(UnionId::from(id))));
+        schema
+            .definitions
+            .extend((0..schema.enums.len()).map(|id| Definition::Enum(EnumId::from(id))));
+        schema
+            .definitions
+            .extend((0..schema.input_objects.len()).map(|id| Definition::InputObject(InputObjectId::from(id))));
+
+        let mut object_fields = take(&mut schema.object_fields);
+        object_fields
+            .sort_unstable_by_key(|ObjectField { object_id, field_id }| (*object_id, &schema[schema[*field_id].name]));
+        schema.object_fields = object_fields;
+
+        let mut interface_fields = take(&mut schema.interface_fields);
+        interface_fields.sort_unstable_by_key(|InterfaceField { interface_id, field_id }| {
+            (*interface_id, &schema[schema[*field_id].name])
+        });
+        schema.interface_fields = interface_fields;
+
+        let mut definitions = take(&mut schema.definitions);
+        definitions.sort_unstable_by_key(|definition| schema.definition_name(*definition));
+        schema.definitions = definitions;
+
+        for interface in &mut schema.interfaces {
+            interface.possible_types.sort_unstable();
         }
+        for union in &mut schema.unions {
+            union.possible_types.sort_unstable();
+        }
+
+        assert!(matches!(schema.resolvers.last(), Some(Resolver::Introspection(_))));
+        schema
     }
 }
 
@@ -514,40 +622,6 @@ impl From<federated_graph::InputObjectField> for InputValue {
             type_id: field.field_type_id.into(),
             default_value: None,
         }
-    }
-}
-
-fn convert_headers(headers: Vec<config::latest::Header>, base_string_index: usize) -> Vec<Header> {
-    headers
-        .into_iter()
-        .map(|header| Header {
-            name: (base_string_index + header.name.0).into(),
-            value: match header.value {
-                config::latest::HeaderValue::Forward(id) => HeaderValue::Forward((base_string_index + id.0).into()),
-                config::latest::HeaderValue::Static(id) => HeaderValue::Static((base_string_index + id.0).into()),
-            },
-        })
-        .collect()
-}
-
-impl Schema {
-    fn update_subgraph_config(&mut self, id: federated_graph::SubgraphId, config: config::latest::SubgraphConfig) {
-        let subgraph = &mut self.data_sources.federation[id.into()];
-        subgraph.headers = config.headers.into_iter().map(Into::into).collect()
-    }
-
-    fn insert_cache_config(&mut self, cache_config: &config::latest::CacheConfig) -> CacheConfigId {
-        let new_config: CacheConfig = cache_config.into();
-
-        for (i, existing_config) in self.cache_configs.iter().enumerate() {
-            if *existing_config == new_config {
-                return CacheConfigId::from(i);
-            }
-        }
-
-        self.cache_configs.push(new_config);
-
-        CacheConfigId::from(self.cache_configs.len() - 1)
     }
 }
 

@@ -26,7 +26,7 @@ impl FetcherInner for NativeFetcher {
     async fn post(&self, request: FetchRequest<'_>) -> FetchResult<FetchResponse> {
         let response = self
             .client
-            .post(request.url)
+            .post(request.url.clone())
             .body(request.json_body)
             .header("Content-Type", "application/json")
             .headers(
