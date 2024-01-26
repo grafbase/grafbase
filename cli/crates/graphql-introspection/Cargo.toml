@@ -12,7 +12,7 @@ workspace = true
 
 [dependencies]
 indoc = "2.0.4"
-reqwest = { version = "0.11.23", default-features = false, features = ["json", "rustls"] }
+reqwest = { workspace = true, features = ["json", "rustls"] }
 cynic = { workspace = true, features = ["http-reqwest"] }
 cynic-introspection.workspace = true
 serde = "1.0.195"

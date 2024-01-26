@@ -79,12 +79,12 @@ hex = "0.4.3"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 ulid = { workspace = true, features = ["wasm"] }
-reqwest = { version = "0.11", default-features = false, features = ["json"] }
+reqwest = { workspace = true, features = ["json"] }
 getrandom = { version = "0.2", features = ["js"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 ulid.workspace = true
-reqwest = { version = "0.11", default-features = false, features = [
+reqwest = { workspace = true, features = [
   "json",
   "rustls-tls",
 ] }
