@@ -166,6 +166,7 @@ async fn handle_engine_request(
     gateway: GatewayWatcher,
     headers: HeaderMap,
 ) -> impl IntoResponse {
+    log::debug!("engine request received");
     let Some(gateway) = gateway.borrow().clone() else {
         return Json(json!({
             "errors": [{"message": "there are no subgraphs registered currently"}]
