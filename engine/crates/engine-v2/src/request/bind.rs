@@ -14,7 +14,7 @@ use super::{
     selection_set::BoundField, variable::VariableDefinition, BoundAnyFieldDefinition, BoundAnyFieldDefinitionId,
     BoundFieldArgument, BoundFieldDefinition, BoundFieldId, BoundFragmentDefinition, BoundFragmentDefinitionId,
     BoundFragmentSpread, BoundInlineFragment, BoundSelection, BoundSelectionSet, BoundSelectionSetId,
-    BoundTypeNameFieldDefinition, Operation, Pos, ResponseKeys, SelectionSetType, TypeCondition, UnboundOperation,
+    BoundTypeNameFieldDefinition, Location, Operation, ResponseKeys, SelectionSetType, TypeCondition, UnboundOperation,
 };
 
 #[allow(clippy::enum_variant_names)]
@@ -35,59 +35,81 @@ pub enum OperationLimitExceededError {
 #[derive(thiserror::Error, Debug)]
 pub enum BindError {
     #[error("Unknown type named '{name}'")]
-    UnknownType { name: String, location: Pos },
+    UnknownType { name: String, location: Location },
     #[error("{container} does not have a field named '{name}'")]
     UnknownField {
         container: String,
         name: String,
-        location: Pos,
+        location: Location,
     },
     #[error("Field '{field}' does not have an argument named '{name}'")]
-    UnknownFieldArgument { field: String, name: String, location: Pos },
+    UnknownFieldArgument {
+        field: String,
+        name: String,
+        location: Location,
+    },
     #[error("Unknown fragment named '{name}'")]
-    UnknownFragment { name: String, location: Pos },
+    UnknownFragment { name: String, location: Location },
     #[error("Field '{name}' does not exists on {ty}, it's a union. Only interfaces and objects have fields, consider using a fragment with a type condition.")]
-    UnionHaveNoFields { name: String, ty: String, location: Pos },
+    UnionHaveNoFields {
+        name: String,
+        ty: String,
+        location: Location,
+    },
     #[error("Field '{name}' cannot have a selection set, it's a {ty}. Only interfaces, unions and objects can.")]
-    CannotHaveSelectionSet { name: String, ty: String, location: Pos },
+    CannotHaveSelectionSet {
+        name: String,
+        ty: String,
+        location: Location,
+    },
     #[error("Type conditions cannot be declared on '{name}', only on unions, interfaces or objects.")]
-    InvalidTypeConditionTargetType { name: String, location: Pos },
+    InvalidTypeConditionTargetType { name: String, location: Location },
     #[error("Type condition on '{name}' cannot be used in a '{parent}' selection_set")]
     DisjointTypeCondition {
         parent: String,
         name: String,
-        location: Pos,
+        location: Location,
     },
     #[error("Mutations are not defined on this schema.")]
     NoMutationDefined,
     #[error("Subscriptions are not defined on this schema.")]
     NoSubscriptionDefined,
     #[error("Leaf field '{name}' must be a scalar or an enum, but is a {ty}.")]
-    LeafMustBeAScalarOrEnum { name: String, ty: String, location: Pos },
+    LeafMustBeAScalarOrEnum {
+        name: String,
+        ty: String,
+        location: Location,
+    },
     #[error(
         "Variable named '${name}' does not have a valid input type. Can only be a scalar, enum or input object. Found: '{ty}'."
     )]
-    InvalidVariableType { name: String, ty: String, location: Pos },
+    InvalidVariableType {
+        name: String,
+        ty: String,
+        location: Location,
+    },
     #[error("Too many fields selection set.")]
-    TooManyFields { location: Pos },
+    TooManyFields { location: Location },
     #[error("There can only be one variable named '${name}'")]
-    DuplicateVariable { name: String, location: Pos },
+    DuplicateVariable { name: String, location: Location },
     #[error("Variable '${name}' is not defined{operation}")]
     UndefinedVariable {
         name: String,
         operation: ErrorOperationName,
-        location: Pos,
+        location: Location,
     },
     #[error("Variable '${name}' is not used{operation}")]
     UnusedVariable {
         name: String,
         operation: ErrorOperationName,
-        location: Pos,
+        location: Location,
     },
     #[error("Fragment cycle detected: {}", .cycle.iter().join(", "))]
-    FragmentCycle { cycle: Vec<String>, location: Pos },
+    FragmentCycle { cycle: Vec<String>, location: Location },
     #[error("{0}")]
     OperationLimitExceeded(OperationLimitExceededError),
+    #[error("Query is too big: {0}")]
+    QueryTooBig(String),
 }
 
 impl From<BindError> for GraphqlError {
@@ -110,6 +132,7 @@ impl From<BindError> for GraphqlError {
             | BindError::UnusedVariable { location, .. } => vec![location],
             BindError::NoMutationDefined
             | BindError::NoSubscriptionDefined
+            | BindError::QueryTooBig { .. }
             | BindError::OperationLimitExceeded { .. } => {
                 vec![]
             }
@@ -212,7 +235,7 @@ impl<'a> Binder<'a> {
 
         for Positioned { node, .. } in variables {
             let name = node.name.node.to_string();
-            let name_location = node.name.pos;
+            let name_location = node.name.pos.try_into()?;
 
             if seen_names.contains(&name) {
                 return Err(BindError::DuplicateVariable {
@@ -223,7 +246,7 @@ impl<'a> Binder<'a> {
             seen_names.insert(name.clone());
 
             let default_value = node.default_value.map(|Positioned { pos: _, node }| node);
-            let r#type = self.convert_type(&name, node.var_type.pos, node.var_type.node)?;
+            let r#type = self.convert_type(&name, node.var_type.pos.try_into()?, node.var_type.node)?;
 
             bound_variables.push(VariableDefinition {
                 name,
@@ -240,7 +263,7 @@ impl<'a> Binder<'a> {
     fn convert_type(
         &self,
         variable_name: &str,
-        location: Pos,
+        location: Location,
         ty: engine_parser::types::Type,
     ) -> BindResult<schema::Type> {
         match ty.base {
@@ -297,8 +320,7 @@ impl<'a> Binder<'a> {
         selection_set: Positioned<engine_parser::types::SelectionSet>,
     ) -> BindResult<BoundSelectionSetId> {
         let Positioned {
-            pos: _,
-            node: selection_set,
+            node: selection_set, ..
         } = selection_set;
         // Keeping the original ordering
         let items = selection_set
@@ -323,11 +345,9 @@ impl<'a> Binder<'a> {
     fn bind_field(
         &mut self,
         root: SelectionSetType,
-        Positioned {
-            pos: name_location,
-            node: field,
-        }: Positioned<engine_parser::types::Field>,
+        Positioned { pos, node: field }: Positioned<engine_parser::types::Field>,
     ) -> BindResult<BoundSelection> {
+        let name_location: Location = pos.try_into()?;
         let walker = self.schema.walker();
         let name = field.name.node.as_str();
         let response_key = self.response_keys.get_or_intern(
@@ -377,33 +397,25 @@ impl<'a> Binder<'a> {
                 let arguments = field
                     .arguments
                     .into_iter()
-                    .map(
-                        |(
-                            Positioned {
-                                pos: name_location,
-                                node: name,
-                            },
-                            Positioned {
-                                pos: value_location,
-                                node: value,
-                            },
-                        )| {
-                            let name = name.to_string();
-                            schema_field
-                                .argument_by_name(&name)
-                                .map(|input_value| BoundFieldArgument {
+                    .map(|(name, value)| {
+                        let name_location = name.pos.try_into()?;
+                        let name = name.node.to_string();
+                        schema_field
+                            .argument_by_name(&name)
+                            .ok_or_else(|| BindError::UnknownFieldArgument {
+                                field: schema_field.name().to_string(),
+                                name,
+                                location: name_location,
+                            })
+                            .and_then(|input_value| {
+                                Ok(BoundFieldArgument {
                                     name_location,
                                     input_value_id: input_value.id(),
-                                    value_location,
-                                    value,
+                                    value_location: value.pos.try_into()?,
+                                    value: value.node,
                                 })
-                                .ok_or_else(|| BindError::UnknownFieldArgument {
-                                    field: schema_field.name().to_string(),
-                                    name,
-                                    location: name_location,
-                                })
-                        },
-                    )
+                            })
+                    })
                     .collect::<BindResult<Vec<_>>>()?;
 
                 self.validate_argument_variables(&arguments)?;
@@ -465,11 +477,9 @@ impl<'a> Binder<'a> {
     fn bind_fragment_spread(
         &mut self,
         root: SelectionSetType,
-        Positioned {
-            pos: location,
-            node: spread,
-        }: Positioned<engine_parser::types::FragmentSpread>,
+        Positioned { pos, node: spread }: Positioned<engine_parser::types::FragmentSpread>,
     ) -> BindResult<BoundSelection> {
+        let location = pos.try_into()?;
         // We always create a new selection set from a named fragment. It may not be split in the
         // same way and we need to validate the type condition each time.
         let name = spread.fragment_name.node.to_string();
@@ -507,7 +517,7 @@ impl<'a> Binder<'a> {
                     // only keep it for errors (name/name_pos) and directives.
                     let fragment_definition = BoundFragmentDefinition {
                         name: name.to_string(),
-                        name_location: fragment_definition_pos,
+                        name_location: fragment_definition_pos.try_into()?,
                         type_condition,
                         directives: vec![],
                     };
@@ -524,10 +534,7 @@ impl<'a> Binder<'a> {
     fn bind_inline_fragment(
         &mut self,
         root: SelectionSetType,
-        Positioned {
-            pos: location,
-            node: fragment,
-        }: Positioned<engine_parser::types::InlineFragment>,
+        Positioned { pos, node: fragment }: Positioned<engine_parser::types::InlineFragment>,
     ) -> BindResult<BoundSelection> {
         let type_condition = fragment
             .type_condition
@@ -536,7 +543,7 @@ impl<'a> Binder<'a> {
         let fragment_root = type_condition.map(Into::into).unwrap_or(root);
         let selection_set_id = self.bind_selection_set(fragment_root, fragment.selection_set)?;
         Ok(BoundSelection::InlineFragment(BoundInlineFragment {
-            location,
+            location: pos.try_into()?,
             type_condition,
             selection_set_id,
             directives: vec![],
@@ -546,9 +553,9 @@ impl<'a> Binder<'a> {
     fn bind_type_condition(
         &self,
         root: SelectionSetType,
-        Positioned { pos: location, node }: &Positioned<engine_parser::types::TypeCondition>,
+        Positioned { pos, node }: &Positioned<engine_parser::types::TypeCondition>,
     ) -> BindResult<TypeCondition> {
-        let location = *location;
+        let location = (*pos).try_into()?;
         let name = node.on.node.as_str();
         let definition = self
             .schema

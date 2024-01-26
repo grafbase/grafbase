@@ -1,11 +1,10 @@
 use std::borrow::Cow;
 
-use engine_parser::Pos;
 use schema::{Definition, FieldId, InputValueId, InterfaceId, ObjectId, Schema, UnionId};
 
 use crate::response::{BoundResponseKey, ResponseKey};
 
-use super::{BoundAnyFieldDefinitionId, BoundFieldId, BoundFragmentDefinitionId, BoundSelectionSetId};
+use super::{BoundAnyFieldDefinitionId, BoundFieldId, BoundFragmentDefinitionId, BoundSelectionSetId, Location};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundSelectionSet {
@@ -50,7 +49,7 @@ pub struct BoundField {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundFragmentSpread {
-    pub location: Pos,
+    pub location: Location,
     pub fragment_id: BoundFragmentDefinitionId,
     // This selection set is bound to its actual position in the query.
     pub selection_set_id: BoundSelectionSetId,
@@ -58,7 +57,7 @@ pub struct BoundFragmentSpread {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundInlineFragment {
-    pub location: Pos,
+    pub location: Location,
     pub type_condition: Option<TypeCondition>,
     pub selection_set_id: BoundSelectionSetId,
     pub directives: Vec<()>,
@@ -67,7 +66,7 @@ pub struct BoundInlineFragment {
 #[derive(Debug)]
 pub struct BoundFragmentDefinition {
     pub name: String,
-    pub name_location: Pos,
+    pub name_location: Location,
     pub type_condition: TypeCondition,
     pub directives: Vec<()>,
 }
@@ -122,7 +121,7 @@ impl BoundAnyFieldDefinition {
         }
     }
 
-    pub fn name_location(&self) -> Pos {
+    pub fn name_location(&self) -> Location {
         match self {
             BoundAnyFieldDefinition::TypeName(field) => field.name_location,
             BoundAnyFieldDefinition::Field(field) => field.name_location,
@@ -132,13 +131,13 @@ impl BoundAnyFieldDefinition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundTypeNameFieldDefinition {
-    pub name_location: Pos,
+    pub name_location: Location,
     pub response_key: ResponseKey,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundFieldDefinition {
-    pub name_location: Pos,
+    pub name_location: Location,
     pub response_key: ResponseKey,
     pub field_id: FieldId,
     pub arguments: Vec<BoundFieldArgument>,
@@ -146,9 +145,9 @@ pub struct BoundFieldDefinition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundFieldArgument {
-    pub name_location: Pos,
+    pub name_location: Location,
     pub input_value_id: InputValueId,
-    pub value_location: Pos,
+    pub value_location: Location,
     // TODO: Should be validated, coerced and bound.
     pub value: engine_value::Value,
 }
