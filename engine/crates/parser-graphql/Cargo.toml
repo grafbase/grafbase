@@ -26,13 +26,11 @@ Inflector = { version = "0.11", default-features = false }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { workspace = true, features = [
-  "blocking",
   "json",
 ] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { workspace = true, features = [
-  "blocking",
   "json",
   "rustls-tls",
 ] }
