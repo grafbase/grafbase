@@ -8,10 +8,6 @@ impl<'a> InterfaceWalker<'a> {
         self.names.interface(self.schema, self.item)
     }
 
-    pub fn description(&self) -> Option<&'a str> {
-        self.as_ref().description.map(|id| self.schema[id].as_str())
-    }
-
     pub fn fields(&self) -> impl Iterator<Item = FieldWalker<'a>> + 'a {
         let start = self
             .schema
@@ -33,7 +29,7 @@ impl<'a> InterfaceWalker<'a> {
         }
     }
 
-    pub fn interfaces(&self) -> impl Iterator<Item = InterfaceWalker<'a>> + 'a {
+    pub fn interfaces(&self) -> impl ExactSizeIterator<Item = InterfaceWalker<'a>> + 'a {
         let walker = *self;
         self.as_ref()
             .interfaces
@@ -42,7 +38,7 @@ impl<'a> InterfaceWalker<'a> {
             .map(move |id| walker.walk(id))
     }
 
-    pub fn possible_types(&self) -> impl Iterator<Item = ObjectWalker<'a>> + 'a {
+    pub fn possible_types(&self) -> impl ExactSizeIterator<Item = ObjectWalker<'a>> + 'a {
         let walker = *self;
         self.as_ref()
             .possible_types
@@ -57,7 +53,6 @@ impl<'a> std::fmt::Debug for InterfaceWalker<'a> {
         f.debug_struct("Interface")
             .field("id", &usize::from(self.item))
             .field("name", &self.name())
-            .field("description", &self.description())
             .field("fields", &self.fields().map(|f| f.name()).collect::<Vec<_>>())
             .field("interfaces", &self.interfaces().map(|i| i.name()).collect::<Vec<_>>())
             .field(

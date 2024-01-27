@@ -1,37 +1,13 @@
 use std::borrow::Cow;
 
 use super::{resolver::ResolverWalker, SchemaWalker};
-use crate::{CacheConfig, FieldId, FieldProvides, FieldResolver, FieldSet, InputValueWalker, StringId, TypeWalker};
+use crate::{CacheConfig, FieldId, FieldProvides, FieldResolver, FieldSet, InputValueWalker, TypeWalker};
 
 pub type FieldWalker<'a> = SchemaWalker<'a, FieldId>;
 
 impl<'a> FieldWalker<'a> {
     pub fn name(&self) -> &'a str {
         self.names.field(self.schema, self.item)
-    }
-
-    pub fn name_string_id(&self) -> StringId {
-        self.as_ref().name
-    }
-
-    pub fn description(&self) -> Option<&'a str> {
-        self.as_ref().description.map(|id| self.schema[id].as_str())
-    }
-
-    pub fn description_string_id(&self) -> Option<StringId> {
-        self.as_ref().description
-    }
-
-    pub fn deprecation_reason(&self) -> Option<&'a str> {
-        self.as_ref().deprecation_reason.map(|id| self.schema[id].as_str())
-    }
-
-    pub fn deprecation_reason_string_id(&self) -> Option<StringId> {
-        self.as_ref().deprecation_reason
-    }
-
-    pub fn is_deprecated(&self) -> bool {
-        self.as_ref().is_deprecated
     }
 
     pub fn resolvers(&self) -> impl ExactSizeIterator<Item = FieldResolverWalker<'a>> + 'a {
@@ -61,7 +37,7 @@ impl<'a> FieldWalker<'a> {
             .reduce(|a, b| Cow::Owned(FieldSet::merge(&a, &b)))
     }
 
-    pub fn arguments(&self) -> impl Iterator<Item = InputValueWalker<'a>> + 'a {
+    pub fn arguments(&self) -> impl ExactSizeIterator<Item = InputValueWalker<'a>> + 'a {
         let walker = *self;
         self.schema[self.item].arguments.iter().map(move |id| walker.walk(*id))
     }

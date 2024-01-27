@@ -1782,7 +1782,6 @@ dependencies = [
 name = "engine-v2"
 version = "3.0.31"
 dependencies = [
- "anyhow",
  "async-runtime",
  "engine",
  "engine-parser",
@@ -1830,6 +1829,7 @@ dependencies = [
  "graphql-federated-graph",
  "indexmap 2.2.0",
  "strum",
+ "strum_macros",
  "url",
 ]
 
