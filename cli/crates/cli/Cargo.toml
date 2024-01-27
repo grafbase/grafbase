@@ -41,12 +41,12 @@ webbrowser = "0.8"
 lru = "0.12"
 futures-util = "0.3"
 
-server = { package = "grafbase-local-server", path = "../server", version = "0.53.0" }
+atty = "0.2"
 backend = { package = "grafbase-local-backend", path = "../backend", version = "0.53.0" }
 common = { package = "grafbase-local-common", path = "../common", version = "0.53.0" }
-graphql-introspection = { package = "grafbase-graphql-introspection", path = "../graphql-introspection" }
 federated-dev = { path = "../federated-dev" }
-atty = "0.2.14"
+graphql-introspection = { package = "grafbase-graphql-introspection", path = "../graphql-introspection" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.53.0" }
 
 [dev-dependencies]
 async-graphql-axum.workspace = true
@@ -65,8 +65,8 @@ fslock = "0.2"
 futures-util = "0.3"
 graphql-mocks.workspace = true
 graphql-ws-client = "0.7"
-http = "0.2"
-headers = "0.3"
+http.workspace = true
+headers.workspace = true
 insta = { version = "1.34", features = ["json", "redactions", "yaml"] }
 json_dotpath = "1"
 jwt-compact = { version = "0.8.0", default-features = false, features = [
@@ -79,7 +79,6 @@ regex = "1"
 reqwest = { workspace = true, features = [
   "rustls-tls",
   "json",
-  "blocking",
 ], default-features = false }
 reqwest-eventsource = "0.5"
 rsa = "0.9"

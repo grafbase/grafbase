@@ -33,7 +33,7 @@ flexbuffers.workspace = true
 fnv = "1"
 futures.workspace = true
 futures-util = { workspace = true, features = ["io", "sink"] }
-http = "0.2"
+http.workspace = true
 im = "15"
 indexmap.workspace = true
 indoc = "2"

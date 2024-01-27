@@ -1699,7 +1699,7 @@ dependencies = [
  "grafbase-sql-ast",
  "graph-entities",
  "hex",
- "http 0.2.11",
+ "http 1.0.0",
  "im",
  "indexmap 2.1.0",
  "indoc",
@@ -2286,7 +2286,7 @@ dependencies = [
  "engine",
  "engine-value",
  "futures-util",
- "headers 0.4.0",
+ "headers",
  "http 1.0.0",
  "jwt-verifier",
  "log 0.1.0",
@@ -2310,7 +2310,7 @@ dependencies = [
  "futures-util",
  "gateway-core",
  "gateway-v2-auth",
- "headers 0.4.0",
+ "headers",
  "http 1.0.0",
  "log 0.1.0",
  "runtime",
@@ -2431,8 +2431,8 @@ dependencies = [
  "grafbase-local-server",
  "graphql-mocks",
  "graphql-ws-client",
- "headers 0.3.9",
- "http 0.2.11",
+ "headers",
+ "http 1.0.0",
  "indicatif",
  "indoc",
  "inquire",
@@ -2833,41 +2833,17 @@ dependencies = [
 
 [[package]]
 name = "headers"
-version = "0.3.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06683b93020a07e3dbcf5f8c0f6d40080d725bea7936fc01ad345c01b97dc270"
-dependencies = [
- "base64 0.21.7",
- "bytes",
- "headers-core 0.2.0",
- "http 0.2.11",
- "httpdate",
- "mime",
- "sha1",
-]
-
-[[package]]
-name = "headers"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "322106e6bd0cba2d5ead589ddb8150a13d7c4217cf80d7c4f682ca994ccc6aa9"
 dependencies = [
  "base64 0.21.7",
  "bytes",
- "headers-core 0.3.0",
+ "headers-core",
  "http 1.0.0",
  "httpdate",
  "mime",
  "sha1",
-]
-
-[[package]]
-name = "headers-core"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7f66481bfee273957b1f20485a4ff3362987f85b2c236580d81b4eb7a326429"
-dependencies = [
- "http 0.2.11",
 ]
 
 [[package]]
@@ -3164,7 +3140,7 @@ dependencies = [
 [[package]]
 name = "hyper-util"
 version = "0.1.2"
-source = "git+https://github.com/grafbase/hyper-util?rev=3ad8fd132812dc1e33b5a4830b96dff01b8020a3#3ad8fd132812dc1e33b5a4830b96dff01b8020a3"
+source = "git+https://github.com/grafbase/hyper-util?rev=c7acf8968d96a4408e952a097d93602d2e8ed01a#c7acf8968d96a4408e952a097d93602d2e8ed01a"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -3379,7 +3355,7 @@ dependencies = [
  "graphql-composition",
  "graphql-mocks",
  "graphql-parser 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "headers 0.4.0",
+ "headers",
  "http 1.0.0",
  "indoc",
  "insta",
@@ -4415,7 +4391,7 @@ dependencies = [
  "cynic-introspection",
  "engine",
  "engine-parser",
- "http 0.2.11",
+ "http 1.0.0",
  "insta",
  "reqwest",
  "serde_json",
@@ -5134,9 +5110,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.11.23"
+version = "0.11.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37b1ae8d9ac08420c66222fb9096fc5de435c3c48542bc5336c51892cffafb41"
+checksum = "046cd98826c46c2ac8ddecae268eb5c2e58628688a5fc7a2643704a73faba95b"
 dependencies = [
  "base64 0.21.7",
  "bytes",
@@ -5364,7 +5340,7 @@ dependencies = [
  "common-types",
  "derive_more",
  "futures-util",
- "headers 0.4.0",
+ "headers",
  "http 1.0.0",
  "postgres-connector-types",
  "search-protocol",
