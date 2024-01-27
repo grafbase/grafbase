@@ -8,11 +8,7 @@ impl<'a> EnumWalker<'a> {
         self.names.r#enum(self.schema, self.item)
     }
 
-    pub fn description(&self) -> Option<&'a str> {
-        self.as_ref().description.map(|id| self.schema[id].as_str())
-    }
-
-    pub fn values(&self) -> impl Iterator<Item = &'a EnumValue> + 'a {
+    pub fn values(&self) -> impl ExactSizeIterator<Item = &'a EnumValue> + 'a {
         self.schema[self.item].values.iter()
     }
 }
@@ -22,7 +18,6 @@ impl<'a> std::fmt::Debug for EnumWalker<'a> {
         f.debug_struct("Enum")
             .field("id", &usize::from(self.item))
             .field("name", &self.name())
-            .field("description", &self.description())
             .field(
                 "values",
                 &self.values().map(|value| &self.schema[value.name]).collect::<Vec<_>>(),

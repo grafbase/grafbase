@@ -5,7 +5,7 @@ use super::Variables;
 use crate::{
     plan::PlanOutput,
     request::{ExecutorWalkContext, OperationWalker, PlanOperationWalker, VariablesWalker},
-    response::{ExecutorOutput, ResponseBoundaryItem, ResponseObjectWriter, SeedContext},
+    response::{ExecutorOutput, SeedContext},
     Engine,
 };
 
@@ -50,26 +50,6 @@ impl<'ctx> ExecutionContext<'ctx> {
             }),
             data_part,
             output,
-        )
-    }
-
-    pub fn writer<'a>(
-        &self,
-        data_part: &'a mut ExecutorOutput,
-        boundary_item: &'a ResponseBoundaryItem,
-        output: &'a PlanOutput,
-    ) -> ResponseObjectWriter<'a>
-    where
-        'ctx: 'a,
-    {
-        ResponseObjectWriter::new(
-            self.walker.with_ctx(ExecutorWalkContext {
-                attribution: &output.attribution,
-                variables: self.variables,
-            }),
-            data_part,
-            output,
-            boundary_item,
         )
     }
 

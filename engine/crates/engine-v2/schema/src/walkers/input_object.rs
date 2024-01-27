@@ -8,11 +8,7 @@ impl<'a> InputObjectWalker<'a> {
         self.names.input_object(self.schema, self.item)
     }
 
-    pub fn description(&self) -> Option<&'a str> {
-        self.as_ref().description.map(|id| self.schema[id].as_str())
-    }
-
-    pub fn input_fields(&self) -> impl Iterator<Item = InputValueWalker<'a>> + 'a {
+    pub fn input_fields(&self) -> impl ExactSizeIterator<Item = InputValueWalker<'a>> + 'a {
         let walker = *self;
         self.schema[self.item]
             .input_fields
@@ -26,7 +22,6 @@ impl<'a> std::fmt::Debug for InputObjectWalker<'a> {
         f.debug_struct("InputObject")
             .field("id", &usize::from(self.item))
             .field("name", &self.name())
-            .field("description", &self.description())
             .field(
                 "input_fields",
                 &self
