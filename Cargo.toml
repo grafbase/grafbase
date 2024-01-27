@@ -14,7 +14,7 @@ members = [
 [patch.crates-io]
 hyper-util = { git = "https://github.com/grafbase/hyper-util", rev = "c7acf8968d96a4408e952a097d93602d2e8ed01a" } # error-is-connect
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
-serde_with = { git = "https://github.com/grafbase/serde_with", rev = "7c8c63e03daf81b23dcbb39b43c3c1dbb5a25b01" } # minify-field-names-strum-0.25
+serde_with = { git = "https://github.com/grafbase/serde_with", rev = "f7200ec6b2ab8bbcdf90e810f697d942316626e6" } # minify-field-names
 # Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
 tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
 ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "299b52e08db0703b129063347584ce063da10721" } # 1.1.0-wasm-compatibility-web-time-1.0
