@@ -32,8 +32,8 @@ const JWT_ISSUER_URL: &str = "https://some.issuer.test";
 const JWT_SECRET: &str = "topsecret";
 
 #[ignore]
-#[test]
-fn jwt_provider() {
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn jwt_provider() {
     let mut env = Environment::init();
     env.grafbase_init(GraphType::Single);
     env.write_schema(AUTH_JWT_PROVIDER_SCHEMA);
@@ -44,39 +44,39 @@ fn jwt_provider() {
     env.grafbase_dev();
 
     let client = env.create_client();
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 
     // No auth header -> fail
-    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send();
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send().await;
     let error: String = dot_get_opt!(resp, "errors.0.message").expect("should end with an auth failure");
     assert!(error.contains("Unauthorized"), "error: {error:#?}");
 
     // introspection does not need an auth header locally.
-    insta::assert_json_snapshot!("introspection", client.gql::<Value>(INTROSPECTION_QUERY).send());
+    insta::assert_json_snapshot!("introspection", client.gql::<Value>(INTROSPECTION_QUERY).send().await);
 
     // Reject invalid token
     let client = client.with_header("Authorization", "Bearer invalid-token");
-    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send();
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send().await;
     let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
     assert_eq!(error, Some("Unauthorized".to_string()), "error: {error:#?}");
 
     // Reject valid token with wrong group
     let token = generate_hs512_token("cli_user", &["some-group"]);
     let client = client.with_header("Authorization", format!("Bearer {token}"));
-    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send();
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send().await;
     let error: String = dot_get_opt!(resp, "errors.0.message").expect("should end with an auth failure");
     assert!(error.contains("Unauthorized"), "error: {error:#?}");
 
     // Accept valid token with correct group
     let token = generate_hs512_token("cli_user", &["backend"]);
     let client = client.with_header("Authorization", format!("Bearer {token}"));
-    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send();
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send().await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
 
     // accept authorization via an API key
     let client = client.with_cleared_headers().with_api_key();
-    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send();
+    let resp = client.gql::<Value>(AUTH_QUERY_TODOS).send().await;
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
 }

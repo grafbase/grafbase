@@ -13,22 +13,22 @@ extend type Query {
 }
 "#;
 
-#[test]
-fn compilation_error_schema() {
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn compilation_error_schema() {
     let mut env = Environment::init();
     env.grafbase_init(GraphType::Single);
     env.write_schema("type Xyz e");
 
     env.grafbase_dev_watch();
     let mut client = env.create_client().with_api_key();
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 
-    let response = client.gql::<Value>("query { hello }").send();
+    let response = client.gql::<Value>("query { hello }").send().await;
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
 
     assert_eq!(errors.map(|errors| !errors.is_empty()), Some(true));
 
-    client.snapshot();
+    client.snapshot().await;
 
     env.write_resolver("hello.js", "export default function Resolver() { return 'hello'; }");
     env.write_schema(SCHEMA);
@@ -36,45 +36,45 @@ fn compilation_error_schema() {
     // the CI for Linux ARM is *extremely* slow to see those changes.
     std::thread::sleep(Duration::from_secs(10));
 
-    client.poll_endpoint_for_changes(30, 300);
+    client.poll_endpoint_for_changes(30, 300).await;
 
-    let response = client.gql::<Value>("query { hello }").send();
+    let response = client.gql::<Value>("query { hello }").send().await;
 
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
 
     assert!(errors.is_none());
 
-    client.snapshot();
+    client.snapshot().await;
 }
 
-#[test]
-fn post_startup_compilation_error() {
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn post_startup_compilation_error() {
     let mut env = Environment::init();
     env.grafbase_init(GraphType::Single);
     env.write_schema("");
 
     env.grafbase_dev_watch();
     let mut client = env.create_client().with_api_key();
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 
     env.write_schema("type Xyz e");
 
-    client.snapshot();
-    client.poll_endpoint(30, 300);
+    client.snapshot().await;
+    client.poll_endpoint(30, 300).await;
 
-    let response = client.gql::<Value>("query { hello }").send();
+    let response = client.gql::<Value>("query { hello }").send().await;
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
 
     assert_eq!(errors.map(|errors| !errors.is_empty()), Some(true));
 
     env.write_schema(SCHEMA);
 
-    client.snapshot();
-    client.poll_endpoint(30, 300);
+    client.snapshot().await;
+    client.poll_endpoint(30, 300).await;
 }
 
-#[test]
-fn compilation_error_resolvers() {
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn compilation_error_resolvers() {
     let mut env = Environment::init();
     env.grafbase_init(GraphType::Single);
     env.write_schema(SCHEMA);
@@ -93,15 +93,15 @@ fn compilation_error_resolvers() {
     let mut client = env
         .create_client_with_options(utils::client::ClientOptionsBuilder::default().http_timeout(60).build())
         .with_api_key();
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 
-    let response = client.gql::<Value>("query { hello }").send();
+    let response = client.gql::<Value>("query { hello }").send().await;
 
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
 
     assert_eq!(errors.map(|errors| !errors.is_empty()), Some(true));
 
-    client.snapshot();
+    client.snapshot().await;
 
     env.write_resolver(
         "hello.js",
@@ -118,7 +118,7 @@ fn compilation_error_resolvers() {
     // when running all tests.
     std::thread::sleep(Duration::from_secs(10));
 
-    let response = client.gql::<Value>("query { hello }").send();
+    let response = client.gql::<Value>("query { hello }").send().await;
 
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
 

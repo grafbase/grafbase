@@ -22,7 +22,7 @@ fn federation_start() {
 
     env.grafbase_start();
     let client = env.create_client();
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 
     let response = client
         .gql::<serde_json::Value>(
@@ -36,7 +36,8 @@ fn federation_start() {
         }
     ",
         )
-        .send();
+        .send()
+        .await;
     insta::assert_json_snapshot!(response, @r###"
     {
       "errors": [

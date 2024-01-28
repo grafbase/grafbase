@@ -19,21 +19,22 @@ mod global {
         use serde_json::{json, Value};
 
         #[ignore]
-        #[test]
-        fn entity_should_be_visible_only_to_the_owner() {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+        async fn entity_should_be_visible_only_to_the_owner() {
             let mut env = Environment::init();
             env.grafbase_init(GraphType::Single);
             env.write_schema(OWNER_TODO_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
-            client.poll_endpoint(30, 300);
+            client.poll_endpoint(30, 300).await;
 
             // user1 creates a todo.
             let todo_created = client
                 .gql::<Value>(OWNER_TODO_CREATE)
                 .bearer(&user_one_jwt())
                 .variables(json!({ "title": "1", "complete": false }))
-                .send();
+                .send()
+                .await;
 
             insta::assert_json_snapshot!("user1-create", todo_created, {".data.todoCreate.todo.id" => "[id]"});
             let id: String = todo_created
@@ -43,7 +44,11 @@ mod global {
             // user1.list should see the todo.
             insta::assert_json_snapshot!(
                 "user1-list",
-                client.gql::<Value>(OWNER_TODO_LIST).bearer(&user_one_jwt()).send()
+                client
+                    .gql::<Value>(OWNER_TODO_LIST)
+                    .bearer(&user_one_jwt())
+                    .send()
+                    .await
             );
             // user1 should be able to get the todo by id.
             insta::assert_json_snapshot!(
@@ -53,6 +58,7 @@ mod global {
                     .bearer(&user_one_jwt())
                     .variables(json!({ "id": id }))
                     .send()
+                    .await
             );
             // user1 updates the todo.
             insta::assert_json_snapshot!(
@@ -62,16 +68,25 @@ mod global {
                     .bearer(&user_one_jwt())
                     .variables(json!({"id": id, "input": { "complete": true }}))
                     .send()
+                    .await
             );
             // user1.list should see the todo with updated complete status.
             insta::assert_json_snapshot!(
                 "user1-list-2",
-                client.gql::<Value>(OWNER_TODO_LIST).bearer(&user_one_jwt()).send()
+                client
+                    .gql::<Value>(OWNER_TODO_LIST)
+                    .bearer(&user_one_jwt())
+                    .send()
+                    .await
             );
             // user2.list should be empty.
             insta::assert_json_snapshot!(
                 "list-empty",
-                client.gql::<Value>(OWNER_TODO_LIST).bearer(&user_two_jwt()).send()
+                client
+                    .gql::<Value>(OWNER_TODO_LIST)
+                    .bearer(&user_two_jwt())
+                    .send()
+                    .await
             );
             // user2 should not be able to get the todo by id.
             insta::assert_json_snapshot!(
@@ -81,26 +96,37 @@ mod global {
                     .bearer(&user_two_jwt())
                     .variables(json!({ "id": id }))
                     .send()
+                    .await
             );
             // an attempt by user2 to update the todo should fail.
             client
                 .gql::<Value>(OWNER_TODO_UPDATE)
                 .bearer(&user_two_jwt())
                 .variables(json!({"id": id, "input": { "complete": false }}))
-                .send();
+                .send()
+                .await;
             insta::assert_json_snapshot!(
                 "user1-list-2",
-                client.gql::<Value>(OWNER_TODO_LIST).bearer(&user_one_jwt()).send()
+                client
+                    .gql::<Value>(OWNER_TODO_LIST)
+                    .bearer(&user_one_jwt())
+                    .send()
+                    .await
             );
             // an attemt by user2 to delete the todo should fail.
             client
                 .gql::<Value>(OWNER_TODO_DELETE)
                 .bearer(&user_two_jwt())
                 .variables(json!({ "id": id }))
-                .send();
+                .send()
+                .await;
             insta::assert_json_snapshot!(
                 "user1-list-2",
-                client.gql::<Value>(OWNER_TODO_LIST).bearer(&user_one_jwt()).send()
+                client
+                    .gql::<Value>(OWNER_TODO_LIST)
+                    .bearer(&user_one_jwt())
+                    .send()
+                    .await
             );
             // user1 deletes the todo.
             insta::assert_json_snapshot!(
@@ -110,30 +136,36 @@ mod global {
                     .bearer(&user_one_jwt())
                     .variables(json!({ "id": id }))
                     .send()
+                    .await
             );
             // list of todos should be empty.
             insta::assert_json_snapshot!(
                 "list-empty",
-                client.gql::<Value>(OWNER_TODO_LIST).bearer(&user_one_jwt()).send()
+                client
+                    .gql::<Value>(OWNER_TODO_LIST)
+                    .bearer(&user_one_jwt())
+                    .send()
+                    .await
             );
         }
 
         #[ignore]
-        #[test]
-        fn owner_create_group_all_should_work() {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+        async fn owner_create_group_all_should_work() {
             let mut env = Environment::init();
             env.grafbase_init(GraphType::Single);
             env.write_schema(OWNER_TODO_OWNER_CREATE_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
-            client.poll_endpoint(30, 300);
+            client.poll_endpoint(30, 300).await;
 
             // user1 creates a todo.
             let todo_created = client
                 .gql::<Value>(OWNER_TODO_CREATE)
                 .bearer(&user_one_jwt())
                 .variables(json!({ "title": "1", "complete": false }))
-                .send();
+                .send()
+                .await;
             insta::assert_json_snapshot!("user1-create", todo_created, {".data.todoCreate.todo.id" => "[id]"});
             let id: String = todo_created
                 .dot_get("data.todoCreate.todo.id")
@@ -141,21 +173,36 @@ mod global {
                 .expect("id must be present");
 
             // // admin.list should see the todo.
-            insta::assert_json_snapshot!("list", client.gql::<Value>(OWNER_TODO_LIST).bearer(&admin_jwt()).send());
+            insta::assert_json_snapshot!(
+                "list",
+                client.gql::<Value>(OWNER_TODO_LIST).bearer(&admin_jwt()).send().await
+            );
             // user3.list should see the todo.
             insta::assert_json_snapshot!(
                 "list",
-                client.gql::<Value>(OWNER_TODO_LIST).bearer(&user_three_jwt()).send()
+                client
+                    .gql::<Value>(OWNER_TODO_LIST)
+                    .bearer(&user_three_jwt())
+                    .send()
+                    .await
             );
             // user1.list should be unauthorized.
             insta::assert_json_snapshot!(
                 "list-fail",
-                client.gql::<Value>(OWNER_TODO_LIST).bearer(&user_one_jwt()).send()
+                client
+                    .gql::<Value>(OWNER_TODO_LIST)
+                    .bearer(&user_one_jwt())
+                    .send()
+                    .await
             );
             // user2.list should be unauthorized.
             insta::assert_json_snapshot!(
                 "list-fail",
-                client.gql::<Value>(OWNER_TODO_LIST).bearer(&user_two_jwt()).send()
+                client
+                    .gql::<Value>(OWNER_TODO_LIST)
+                    .bearer(&user_two_jwt())
+                    .send()
+                    .await
             );
 
             // user1 should be able to get the todo by id.
@@ -166,6 +213,7 @@ mod global {
                     .bearer(&user_one_jwt())
                     .variables(json!({ "id": id }))
                     .send()
+                    .await
             );
             // user2 should not be able to get the todo by id.
             insta::assert_json_snapshot!(
@@ -175,6 +223,7 @@ mod global {
                     .bearer(&user_two_jwt())
                     .variables(json!({ "id": id }))
                     .send()
+                    .await
             );
             // admin should be able to get the todo by id.
             insta::assert_json_snapshot!(
@@ -184,6 +233,7 @@ mod global {
                     .bearer(&admin_jwt())
                     .variables(json!({ "id": id }))
                     .send()
+                    .await
             );
             // user3 should be able to get the todo by id.
             insta::assert_json_snapshot!(
@@ -193,25 +243,27 @@ mod global {
                     .bearer(&user_three_jwt())
                     .variables(json!({ "id": id }))
                     .send()
+                    .await
             );
         }
 
         #[ignore]
-        #[test]
-        fn group_should_supercede_owner_when_listing_entities() {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+        async fn group_should_supercede_owner_when_listing_entities() {
             let mut env = Environment::init();
             env.grafbase_init(GraphType::Single);
             env.write_schema(OWNER_TODO_MIXED_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
-            client.poll_endpoint(30, 300);
+            client.poll_endpoint(30, 300).await;
 
             // user1 creates a todo.
             let todo_created = client
                 .gql::<Value>(OWNER_TODO_CREATE)
                 .bearer(&user_one_jwt())
                 .variables(json!({ "title": "1", "complete": false }))
-                .send();
+                .send()
+                .await;
             insta::assert_json_snapshot!("user1-create", todo_created, {".data.todoCreate.todo.id" => "[id]"});
             let id: String = todo_created
                 .dot_get("data.todoCreate.todo.id")
@@ -219,21 +271,36 @@ mod global {
                 .expect("id must be present");
 
             // admin.list should see the todo.
-            insta::assert_json_snapshot!("list", client.gql::<Value>(OWNER_TODO_LIST).bearer(&admin_jwt()).send());
+            insta::assert_json_snapshot!(
+                "list",
+                client.gql::<Value>(OWNER_TODO_LIST).bearer(&admin_jwt()).send().await
+            );
             // user3.list should see the todo.
             insta::assert_json_snapshot!(
                 "list",
-                client.gql::<Value>(OWNER_TODO_LIST).bearer(&user_three_jwt()).send()
+                client
+                    .gql::<Value>(OWNER_TODO_LIST)
+                    .bearer(&user_three_jwt())
+                    .send()
+                    .await
             );
             // user1.list should see the todo.
             insta::assert_json_snapshot!(
                 "list",
-                client.gql::<Value>(OWNER_TODO_LIST).bearer(&user_one_jwt()).send()
+                client
+                    .gql::<Value>(OWNER_TODO_LIST)
+                    .bearer(&user_one_jwt())
+                    .send()
+                    .await
             );
             // user2.list should be unauthorized.
             insta::assert_json_snapshot!(
                 "list",
-                client.gql::<Value>(OWNER_TODO_LIST).bearer(&user_one_jwt()).send()
+                client
+                    .gql::<Value>(OWNER_TODO_LIST)
+                    .bearer(&user_one_jwt())
+                    .send()
+                    .await
             );
 
             // user1 should see the todo.
@@ -244,6 +311,7 @@ mod global {
                     .bearer(&user_one_jwt())
                     .variables(json!({ "id": id }))
                     .send()
+                    .await
             );
             // user2 should not be able to get the todo by id.
             insta::assert_json_snapshot!(
@@ -253,6 +321,7 @@ mod global {
                     .bearer(&user_two_jwt())
                     .variables(json!({ "id": id }))
                     .send()
+                    .await
             );
             // admin should see the todo.
             insta::assert_json_snapshot!(
@@ -262,6 +331,7 @@ mod global {
                     .bearer(&admin_jwt())
                     .variables(json!({ "id": id }))
                     .send()
+                    .await
             );
             // user3 should see the todo.
             insta::assert_json_snapshot!(
@@ -271,6 +341,7 @@ mod global {
                     .bearer(&user_three_jwt())
                     .variables(json!({ "id": id }))
                     .send()
+                    .await
             );
         }
     }
@@ -287,14 +358,14 @@ mod global {
         use serde_json::{json, Value};
 
         #[ignore]
-        #[test]
-        fn get_by_id_should_be_filtered_by_the_owner() {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+        async fn get_by_id_should_be_filtered_by_the_owner() {
             let mut env = Environment::init();
             env.grafbase_init(GraphType::Single);
             env.write_schema(OWNER_TWITTER_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
-            client.poll_endpoint(30, 300);
+            client.poll_endpoint(30, 300).await;
 
             // user1 creates a user entity.
             let email: &str = "user1@example.com";
@@ -304,7 +375,8 @@ mod global {
                 .variables(
                     json!({ "username": "user1", "email": email, "avatar": "http://example.com", "url": "http://example.com" }),
                 )
-                .send();
+                .send()
+                .await;
 
             insta::assert_json_snapshot!("user1-create", user_created, {".data.userCreate.user.id" => "[id]"});
             let id: String = user_created
@@ -319,6 +391,7 @@ mod global {
                     .bearer(&user_one_jwt())
                     .variables(json!({ "id": id }))
                     .send()
+                    .await
             );
             // user2 cannot get the user entity by id
             insta::assert_json_snapshot!(
@@ -328,18 +401,19 @@ mod global {
                     .bearer(&user_two_jwt())
                     .variables(json!({ "id": id }))
                     .send()
+                    .await
             );
         }
 
         #[ignore]
-        #[test]
-        fn get_by_email_should_be_filtered_by_the_owner() {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+        async fn get_by_email_should_be_filtered_by_the_owner() {
             let mut env = Environment::init();
             env.grafbase_init(GraphType::Single);
             env.write_schema(OWNER_TWITTER_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
-            client.poll_endpoint(30, 300);
+            client.poll_endpoint(30, 300).await;
 
             // user1 creates a user entity.
             let email: &str = "user1@example.com";
@@ -349,7 +423,8 @@ mod global {
                 .variables(
                     json!({ "username": "user1", "email": email, "avatar": "http://example.com", "url": "http://example.com" }),
                 )
-                .send();
+                .send()
+                .await;
 
             insta::assert_json_snapshot!("user1-create", user_created, {".data.userCreate.user.id" => "[id]"});
             // user1 can create a tweet
@@ -360,6 +435,7 @@ mod global {
                     .bearer(&user_one_jwt())
                     .variables(json!({ "email": email }))
                     .send()
+                    .await
             );
             // user2 cannot get the user entity by email
             insta::assert_json_snapshot!(
@@ -369,18 +445,19 @@ mod global {
                     .bearer(&user_two_jwt())
                     .variables(json!({ "email": email }))
                     .send()
+                    .await
             );
         }
 
         #[ignore]
-        #[test]
-        fn test_linking() {
+        #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+        async fn test_linking() {
             let mut env = Environment::init();
             env.grafbase_init(GraphType::Single);
             env.write_schema(OWNER_TWITTER_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
-            client.poll_endpoint(30, 300);
+            client.poll_endpoint(30, 300).await;
 
             // user1 creates a user entity.
             let email: &str = "user1@example.com";
@@ -390,7 +467,8 @@ mod global {
                 .variables(
                     json!({ "username": "user1", "email": email, "avatar": "http://example.com", "url": "http://example.com" }),
                 )
-                .send();
+                .send()
+                .await;
 
             insta::assert_json_snapshot!("user1-create", user_created, {".data.userCreate.user.id" => "[id]"});
             let id: String = user_created
@@ -404,7 +482,8 @@ mod global {
                     .gql::<Value>(OWNER_TWITTER_TWEET_CREATE)
                     .bearer(&user_one_jwt())
                     .variables(json!({ "userId": id }))
-                    .send(),
+                    .send()
+                    .await,
                 {".data.tweetCreate.tweet.id" => "[id]"}
             );
             // user2 cannot get the entity by id
@@ -415,6 +494,7 @@ mod global {
                     .bearer(&user_two_jwt())
                     .variables(json!({ "userId": id }))
                     .send()
+                    .await
             );
             // user1 can use get by id
             insta::assert_json_snapshot!(
@@ -424,6 +504,7 @@ mod global {
                     .bearer(&user_one_jwt())
                     .variables(json!({ "id": id }))
                     .send()
+                    .await
             );
         }
     }

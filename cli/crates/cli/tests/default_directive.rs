@@ -7,16 +7,16 @@ use serde_json::Value;
 use utils::environment::Environment;
 
 #[ignore]
-#[test]
-fn default_directive() {
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn default_directive() {
     let mut env = Environment::init();
     env.grafbase_init(GraphType::Single);
     env.write_schema(DEFAULT_DIRECTIVE_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 
-    let response = client.gql::<Value>(DEFAULT_DIRECTIVE_CREATE_USER1).send();
+    let response = client.gql::<Value>(DEFAULT_DIRECTIVE_CREATE_USER1).send().await;
 
     let user: serde_json::Value = dot_get!(response, "data.userCreate.user");
     assert_eq!(dot_get!(user, "signInCount", usize), 0);
@@ -29,7 +29,7 @@ fn default_directive() {
         serde_json::json!({ "content": "" })
     );
 
-    let response = client.gql::<Value>(DEFAULT_DIRECTIVE_CREATE_USER2).send();
+    let response = client.gql::<Value>(DEFAULT_DIRECTIVE_CREATE_USER2).send().await;
     let user: serde_json::Value = dot_get!(response, "data.userCreate.user");
     assert_eq!(dot_get!(user, "signInCount", usize), 1);
     assert_eq!(dot_get!(user, "country", String), "France");

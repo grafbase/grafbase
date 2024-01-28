@@ -5,8 +5,8 @@ use backend::project::GraphType;
 use utils::consts::ENVIRONMENT_SCHEMA;
 use utils::environment::Environment;
 
-#[test]
-fn environment_process() {
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn environment_process() {
     let mut env = Environment::init();
 
     env.grafbase_init(GraphType::Single);
@@ -19,7 +19,7 @@ fn environment_process() {
 
     let client = env.create_client();
 
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 }
 
 // TODO: add a test for precedence once we have a way to print variables

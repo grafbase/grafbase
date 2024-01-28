@@ -369,8 +369,9 @@ enum JavaScriptPackageManager {
         }
     "#))
 )]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
-fn test_field_resolver(
+async fn test_field_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,
     #[case] resolvers: &[(&str, &str)],
@@ -405,14 +406,15 @@ fn test_field_resolver(
     let client = env
         .create_client_with_options(utils::client::ClientOptionsBuilder::default().http_timeout(60).build())
         .with_api_key();
-    client.poll_endpoint(120, 250);
+    client.poll_endpoint(120, 250).await;
 
     // Run queries.
     for (index, (query_contents, path)) in queries.iter().enumerate() {
         let response = client
             .gql::<Value>(query_contents.to_owned())
             .header("x-test-header", "test-value")
-            .send();
+            .send()
+            .await;
         let errors = dot_get_opt!(response, "errors", Vec::<serde_json::Value>).unwrap_or_default();
         assert!(errors.is_empty(), "Error response: {errors:?}");
         let data = dot_get!(response, "data", serde_json::Value);
@@ -561,7 +563,8 @@ fn test_query_mutation_resolver(
 }
 
 #[apply(test_query_mutation_resolver)]
-fn test_query_mutation_resolver_dev(
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn test_query_mutation_resolver_dev(
     case_index: usize,
     schema: &str,
     resolver_files: &[(&str, &str)],
@@ -576,11 +579,11 @@ fn test_query_mutation_resolver_dev(
 
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
-    client.poll_endpoint(60, 300);
+    client.poll_endpoint(60, 300).await;
 
     // Run queries.
     for (index, (query_contents, path)) in queries.iter().enumerate() {
-        let response = client.gql::<Value>(query_contents.to_owned()).send();
+        let response = client.gql::<Value>(query_contents.to_owned()).send().await;
         let errors = dot_get_opt!(response, "errors", Vec::<serde_json::Value>).unwrap_or_default();
         assert!(errors.is_empty(), "Error response: {errors:?}");
         let value = dot_get_opt!(response, path, serde_json::Value).unwrap_or_default();
@@ -594,7 +597,8 @@ fn test_query_mutation_resolver_dev(
 }
 
 #[apply(test_query_mutation_resolver)]
-fn test_query_mutation_resolver_start(
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn test_query_mutation_resolver_start(
     case_index: usize,
     schema: &str,
     resolver_files: &[(&str, &str)],
@@ -609,11 +613,11 @@ fn test_query_mutation_resolver_start(
 
     env.grafbase_start();
     let client = env.create_client().with_api_key();
-    client.poll_endpoint(60, 300);
+    client.poll_endpoint(60, 300).await;
 
     // Run queries.
     for (index, (query_contents, path)) in queries.iter().enumerate() {
-        let response = client.gql::<Value>(query_contents.to_owned()).send();
+        let response = client.gql::<Value>(query_contents.to_owned()).send().await;
         let errors = dot_get_opt!(response, "errors", Vec::<serde_json::Value>).unwrap_or_default();
         assert!(errors.is_empty(), "Error response: {errors:?}");
         let value = dot_get_opt!(response, path, serde_json::Value).unwrap_or_default();
