@@ -12,14 +12,16 @@ members = [
 ]
 
 [patch.crates-io]
-hyper-util = { git = "https://github.com/grafbase/hyper-util", rev = "c7acf8968d96a4408e952a097d93602d2e8ed01a" } # error-is-connect
-multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
-serde_with = { git = "https://github.com/grafbase/serde_with", rev = "f7200ec6b2ab8bbcdf90e810f697d942316626e6" } # minify-field-names
 http-cache = { git = "https://github.com/grafbase/http-cache", rev = "a7812cc7ebea07ba21ed6fb5fdd74792f2438a73" } # http-v1
 http-cache-reqwest = { git = "https://github.com/grafbase/http-cache", rev = "a7812cc7ebea07ba21ed6fb5fdd74792f2438a73" } # http-v1
+hyper-util = { git = "https://github.com/grafbase/hyper-util", rev = "c7acf8968d96a4408e952a097d93602d2e8ed01a" } # error-is-connect
+multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
+oauth2 = { git = "https://github.com/grafbase/oauth2-rs", rev = "18b1f9a8b2fae61b50c0c6f2d44672ec176f4612" } # http-v1
+openidconnect = { git = "https://github.com/grafbase/openidconnect-rs", rev = "dee2958a8769dab1d86ef0070e5a185df454f8c2" } # http-v1
 reqwest = { git = "https://github.com/grafbase/reqwest", rev = "c786d48a4aaf37dce07118e067b66ecb02f9390a" } # hyper-v1-and-wasm-from-parts-build-split
 reqwest-middleware = { git = "https://github.com/grafbase/reqwest-middleware", rev = "030e178305b7b4352b8dfd8bb04aba970843afc1" } # http-v1
 rudderanalytics =  { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "58bd3a439453a6668fbfb98874e08cabd8bd616b" } # async
+serde_with = { git = "https://github.com/grafbase/serde_with", rev = "f7200ec6b2ab8bbcdf90e810f697d942316626e6" } # minify-field-names
 # Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
 tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
 ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "299b52e08db0703b129063347584ce063da10721" } # 1.1.0-wasm-compatibility-web-time-1.0
@@ -58,7 +60,6 @@ indexmap = "2"
 itertools = "0.12"
 jsonwebtoken = "9"
 num-traits = "0.2"
-oauth2 = "4"
 once_cell = "1"
 openidconnect = "3"
 regex = "1"

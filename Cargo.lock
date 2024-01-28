@@ -4049,13 +4049,12 @@ checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
 [[package]]
 name = "oauth2"
 version = "4.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c38841cdd844847e3e7c8d29cef9dcfed8877f8f56f9071f77843ecf3baf937f"
+source = "git+https://github.com/grafbase/oauth2-rs?rev=18b1f9a8b2fae61b50c0c6f2d44672ec176f4612#18b1f9a8b2fae61b50c0c6f2d44672ec176f4612"
 dependencies = [
  "base64 0.13.1",
  "chrono",
  "getrandom 0.2.12",
- "http 0.2.11",
+ "http 1.0.0",
  "rand 0.8.5",
  "reqwest",
  "serde",
@@ -4118,15 +4117,14 @@ dependencies = [
 [[package]]
 name = "openidconnect"
 version = "3.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62d6050f6a84b81f23c569f5607ad883293e57491036e318fafe6fc4895fadb1"
+source = "git+https://github.com/grafbase/openidconnect-rs?rev=dee2958a8769dab1d86ef0070e5a185df454f8c2#dee2958a8769dab1d86ef0070e5a185df454f8c2"
 dependencies = [
  "base64 0.13.1",
  "chrono",
  "dyn-clone",
  "ed25519-dalek",
  "hmac",
- "http 0.2.11",
+ "http 1.0.0",
  "itertools 0.10.5",
  "log 0.4.20",
  "oauth2",
