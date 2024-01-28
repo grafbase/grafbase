@@ -173,7 +173,6 @@ impl Analytics {
                     ..Default::default()
                 }))
                 .await;
-            ()
         });
     }
 
