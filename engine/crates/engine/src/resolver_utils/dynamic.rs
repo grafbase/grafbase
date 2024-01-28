@@ -193,7 +193,7 @@ fn resolve_present_input(
                         for (name, meta_input_value) in &input_object.input_fields {
                             if let Some(field_value) = resolve_maybe_absent_input(
                                 rctx.with_input(name, meta_input_value),
-                                fields.remove(&Name::new(name)),
+                                fields.shift_remove(&Name::new(name)),
                                 mode,
                             )? {
                                 let field_name = meta_input_value

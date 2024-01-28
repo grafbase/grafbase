@@ -309,8 +309,8 @@ impl Server {
             println!("{}", request.url);
 
             println!("## Headers");
-            for header in request.headers {
-                println!("- {}: {:?}", header.0, header.1);
+            for (name, value) in request.headers {
+                println!("- {name:?}: {value:?}");
             }
 
             println!("## Body");

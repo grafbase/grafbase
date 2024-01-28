@@ -33,7 +33,7 @@ flexbuffers.workspace = true
 fnv = "1"
 futures.workspace = true
 futures-util = { workspace = true, features = ["io", "sink"] }
-http = "0.2"
+http.workspace = true
 im = "15"
 indexmap.workspace = true
 indoc = "2"
@@ -97,5 +97,5 @@ rstest.workspace = true
 sanitize-filename = "0.5"
 tokio = { workspace = true, features = ["macros"] }
 urlencoding = "2.1"
-wiremock = "0.5"
+wiremock.workspace = true
 runtime = { workspace = true, features = ["test-utils"] }

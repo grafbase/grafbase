@@ -8,7 +8,8 @@ use utils::environment::Environment;
 #[rstest::rstest]
 #[case(true)]
 #[case(false)]
-fn test_kv_integration(#[case] enabled: bool) {
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn test_kv_integration(#[case] enabled: bool) {
     // prepare
     let mut env = Environment::init();
     env.grafbase_init(GraphType::Single);
@@ -44,10 +45,10 @@ fn test_kv_integration(#[case] enabled: bool) {
     let client = env
         .create_client_with_options(utils::client::ClientOptionsBuilder::default().http_timeout(60).build())
         .with_api_key();
-    client.poll_endpoint(120, 250);
+    client.poll_endpoint(120, 250).await;
 
     // act
-    let response = client.gql::<Value>("query { hello }").send();
+    let response = client.gql::<Value>("query { hello }").send().await;
 
     // asert
     if enabled {

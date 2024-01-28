@@ -89,7 +89,7 @@ impl<'a> Iterator for ByFilterIterator<'a> {
             .find_column_for_client_field(&field, table.id())
             .expect("column for input field not found");
 
-        self.constrained_columns.remove(&column.id());
+        self.constrained_columns.shift_remove(&column.id());
 
         match value {
             Value::Null => Some((table.database_name(), column.database_name()).is_null()),

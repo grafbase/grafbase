@@ -33,4 +33,4 @@ reqwest = { workspace = true, features = [
 chrono = "0.4"
 serde_json.workspace = true
 tokio = { version = "1", features = ["macros"] }
-wiremock = "0.5"
+wiremock.workspace = true

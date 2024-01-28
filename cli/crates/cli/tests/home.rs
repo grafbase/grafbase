@@ -8,8 +8,9 @@ use utils::environment::Environment;
 #[rstest::rstest]
 #[case(PathBuf::from("./temp"))]
 #[case(dirs::home_dir().unwrap())]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
-fn flag(#[case] case_path: PathBuf) {
+async fn flag(#[case] case_path: PathBuf) {
     let mut env = Environment::init().with_home(PathBuf::from(&case_path));
     env.write_schema(
         r#"
@@ -28,14 +29,15 @@ fn flag(#[case] case_path: PathBuf) {
     );
     env.grafbase_dev();
     let client = env.create_client();
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 }
 
 #[rstest::rstest]
 #[case(PathBuf::from("./temp"))]
 #[case(dirs::home_dir().unwrap())]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
-fn env_var(#[case] case_path: PathBuf) {
+async fn env_var(#[case] case_path: PathBuf) {
     std::env::set_var("GRAFBASE_HOME", case_path.as_os_str());
 
     let mut env = Environment::init();
@@ -57,20 +59,21 @@ fn env_var(#[case] case_path: PathBuf) {
     );
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 }
 
 #[rstest::rstest]
 #[case(PathBuf::from("./temp"))]
 #[case(dirs::home_dir().unwrap())]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[cfg(not(target_os = "windows"))]
 #[ignore]
-fn ts_config_flag(#[case] case_path: PathBuf) {
+async fn ts_config_flag(#[case] case_path: PathBuf) {
     let mut env = Environment::init().with_home(PathBuf::from(&case_path));
     env.set_typescript_config(include_str!("config/default.ts"));
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 
     let response = client
         .gql::<serde_json::Value>(
@@ -86,7 +89,8 @@ fn ts_config_flag(#[case] case_path: PathBuf) {
         }
     ",
         )
-        .send();
+        .send()
+        .await;
     assert_eq!(
         response,
         serde_json::json!({

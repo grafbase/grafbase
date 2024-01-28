@@ -21,18 +21,16 @@ url.workspace = true
 
 cynic = { workspace = true, features = ["http-reqwest"] }
 cynic-introspection.workspace = true
-http = { version = "0.2" }
+http.workspace = true
 Inflector = { version = "0.11", default-features = false }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { workspace = true, features = [
-  "blocking",
   "json",
 ] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { workspace = true, features = [
-  "blocking",
   "json",
   "rustls-tls",
 ] }
@@ -41,4 +39,4 @@ reqwest = { workspace = true, features = [
 [dev-dependencies]
 insta = { version = "1", features = ["json"] }
 tokio = { workspace = true, features = ["macros"] }
-wiremock = "0.5"
+wiremock.workspace = true

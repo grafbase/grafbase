@@ -7,8 +7,8 @@ use backend::project::GraphType;
 use serde_json::Value;
 use utils::environment::Environment;
 
-#[test]
-fn dev_watch() {
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn dev_watch() {
     let mut env = Environment::init();
 
     env.grafbase_init(GraphType::Single);
@@ -28,14 +28,14 @@ fn dev_watch() {
 
     let mut client = env.create_client().with_api_key();
 
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 
-    let response = client.gql::<Value>("query { hello }").send();
+    let response = client.gql::<Value>("query { hello }").send().await;
 
     let hello: String = dot_get!(response, "data.hello");
     assert_eq!(hello, "hello");
 
-    client.snapshot();
+    client.snapshot().await;
 
     env.write_schema(
         r#"
@@ -48,9 +48,9 @@ fn dev_watch() {
         "#,
     );
 
-    client.poll_endpoint_for_changes(30, 300);
+    client.poll_endpoint_for_changes(30, 300).await;
 
-    let response = client.gql::<Value>("query { helloAgain }").send();
+    let response = client.gql::<Value>("query { helloAgain }").send().await;
 
     let hello: String = dot_get!(response, "data.helloAgain");
     assert_eq!(hello, "hello");
@@ -61,7 +61,7 @@ fn dev_watch() {
     // We're not changing the schema this time so we can't just poll for changes to that
     std::thread::sleep(Duration::from_secs(10));
 
-    let response = client.gql::<Value>("query { hello helloAgain }").send();
+    let response = client.gql::<Value>("query { hello helloAgain }").send().await;
 
     let hello: String = dot_get!(response, "data.hello");
     assert_eq!(hello, "bye");

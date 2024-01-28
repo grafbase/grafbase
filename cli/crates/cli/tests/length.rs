@@ -8,8 +8,8 @@ use utils::consts::{LENGTH_CREATE_MUTATION, LENGTH_SCHEMA, LENGTH_UPDATE_MUTATIO
 use utils::environment::Environment;
 
 #[ignore]
-#[test]
-fn length() {
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn length() {
     let mut env = Environment::init();
 
     env.grafbase_init(GraphType::Single);
@@ -20,12 +20,13 @@ fn length() {
 
     let client = env.create_client().with_api_key();
 
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 
     let response = client
         .gql::<Value>(LENGTH_CREATE_MUTATION)
         .variables(json!({ "name": "hello", "age": 30 }))
-        .send();
+        .send()
+        .await;
 
     let errors: Option<Value> = response.dot_get("errors").unwrap();
     assert!(errors.is_none());
@@ -35,7 +36,8 @@ fn length() {
     let response = client
         .gql::<Value>(LENGTH_CREATE_MUTATION)
         .variables(json!({ "name": "1", "age": 30 }))
-        .send();
+        .send()
+        .await;
 
     let errors: Option<Value> = response.dot_get("errors").unwrap();
     assert!(errors.is_some());
@@ -49,7 +51,8 @@ fn length() {
     let response = client
         .gql::<Value>(LENGTH_CREATE_MUTATION)
         .variables(json!({ "name": "helloworld!", "age": 30 }))
-        .send();
+        .send()
+        .await;
 
     let errors: Option<Value> = response.dot_get("errors").unwrap();
 
@@ -58,7 +61,8 @@ fn length() {
     client
         .gql::<Value>(LENGTH_UPDATE_MUTATION)
         .variables(json!({ "id": first_author_id, "name": "helloworld!", "age": 40 }))
-        .send();
+        .send()
+        .await;
 
     let errors: Option<Value> = response.dot_get("errors").unwrap();
 
