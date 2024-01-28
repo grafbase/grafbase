@@ -565,8 +565,8 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
                 } else {
                     field.name().to_string()
                 };
-                let ty = match field.ty().inner().data_type() {
-                    Some(data_type) => ConcreteType::Scalar(data_type),
+                let ty = match field.ty().inner().scalar_type() {
+                    Some(scalar_type) => ConcreteType::Scalar(scalar_type),
                     None => {
                         ConcreteType::SelectionSet(self.child(field).expected_selection_set(group.bound_field_ids)?)
                     }
@@ -588,7 +588,7 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
                 expected_key: extra_field.expected_key.clone(),
                 definition_id: None,
                 ty: match extra_field.ty {
-                    ExpectedType::Scalar(data_type) => ConcreteType::Scalar(data_type),
+                    ExpectedType::Scalar(scalar_type) => ConcreteType::Scalar(scalar_type),
                     ExpectedType::SelectionSet(id) => ConcreteType::ExtraSelectionSet(self.attribution[id].clone()),
                 },
                 wrapping: self.walker.schema().walk(extra_field.field_id).ty().wrapping().clone(),
@@ -647,8 +647,8 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
             } else {
                 field.name().to_string()
             };
-            let ty = match field.ty().inner().data_type() {
-                Some(data_type) => ExpectedType::Scalar(data_type),
+            let ty = match field.ty().inner().scalar_type() {
+                Some(scalar_type) => ExpectedType::Scalar(scalar_type),
                 None => ExpectedType::SelectionSet(
                     self.child(field)
                         .expected_undetermined_nested_selection_set(&flat_field)?,

@@ -18,9 +18,10 @@ pub(super) struct NullableSeed<'ctx, 'parent, Seed> {
     pub seed: Seed,
 }
 
-impl<'de, 'ctx, 'parent, Seed> DeserializeSeed<'de> for NullableSeed<'ctx, 'parent, Seed>
+impl<'de, 'ctx, 'parent, Seed, Value> DeserializeSeed<'de> for NullableSeed<'ctx, 'parent, Seed>
 where
-    Seed: DeserializeSeed<'de, Value = ResponseValue>,
+    ResponseValue: From<Value>,
+    Seed: DeserializeSeed<'de, Value = Value>,
 {
     type Value = ResponseValue;
 
@@ -32,9 +33,10 @@ where
     }
 }
 
-impl<'de, 'ctx, 'parent, Seed> Visitor<'de> for NullableSeed<'ctx, 'parent, Seed>
+impl<'de, 'ctx, 'parent, Seed, Value> Visitor<'de> for NullableSeed<'ctx, 'parent, Seed>
 where
-    Seed: DeserializeSeed<'de, Value = ResponseValue>,
+    ResponseValue: From<Value>,
+    Seed: DeserializeSeed<'de, Value = Value>,
 {
     type Value = ResponseValue;
 
@@ -61,7 +63,7 @@ where
         D: Deserializer<'de>,
     {
         match self.seed.deserialize(deserializer) {
-            Ok(value) => Ok(value.into_nullable()),
+            Ok(value) => Ok(ResponseValue::from(value).into_nullable()),
             Err(err) => {
                 if !self.ctx.propagating_error.fetch_and(false, Ordering::Relaxed) {
                     self.ctx.data.borrow_mut().push_error(GraphqlError {

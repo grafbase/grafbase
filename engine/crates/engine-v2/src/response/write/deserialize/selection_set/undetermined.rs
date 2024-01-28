@@ -4,7 +4,7 @@ use std::{
     fmt,
 };
 
-use schema::{DataType, ObjectId, Wrapping};
+use schema::{ObjectId, ScalarType, Wrapping};
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::{
@@ -104,7 +104,7 @@ struct GroupForExtraField {
 }
 
 enum ExpectedTypeCollector<Id> {
-    Scalar(DataType),
+    Scalar(ScalarType),
     SelectionSet {
         ty: SelectionSetType,
         selection_set_ids: Vec<Id>,
@@ -186,7 +186,7 @@ impl<'ctx, 'parent> UndeterminedFieldsSeed<'ctx, 'parent> {
                                     definition_id: field.definition_id,
                                     expected_key: field.expected_key.clone(),
                                     ty: match field.ty {
-                                        ExpectedType::Scalar(data_type) => ExpectedTypeCollector::Scalar(data_type),
+                                        ExpectedType::Scalar(scalar_type) => ExpectedTypeCollector::Scalar(scalar_type),
                                         ExpectedType::SelectionSet(id) => ExpectedTypeCollector::SelectionSet {
                                             ty: SelectionSetType::maybe_from(schema_field.ty().inner().id()).unwrap(),
                                             selection_set_ids: vec![id],
@@ -217,7 +217,7 @@ impl<'ctx, 'parent> UndeterminedFieldsSeed<'ctx, 'parent> {
                                     edge: field.edge,
                                     expected_key: field.expected_key.clone(),
                                     ty: match field.ty {
-                                        ExpectedType::Scalar(data_type) => ExpectedTypeCollector::Scalar(data_type),
+                                        ExpectedType::Scalar(scalar_type) => ExpectedTypeCollector::Scalar(scalar_type),
                                         ExpectedType::SelectionSet(id) => ExpectedTypeCollector::SelectionSet {
                                             ty: SelectionSetType::maybe_from(schema_field.ty().inner().id()).unwrap(),
                                             selection_set_ids: vec![id],
@@ -234,7 +234,7 @@ impl<'ctx, 'parent> UndeterminedFieldsSeed<'ctx, 'parent> {
             .into_values()
             .map(|group| {
                 let ty = match group.ty {
-                    ExpectedTypeCollector::Scalar(data_type) => ConcreteType::Scalar(data_type),
+                    ExpectedTypeCollector::Scalar(scalar_type) => ConcreteType::Scalar(scalar_type),
                     ExpectedTypeCollector::SelectionSet { ty, selection_set_ids } => {
                         self.merge_selection_sets(ty, selection_set_ids)
                     }
@@ -250,7 +250,7 @@ impl<'ctx, 'parent> UndeterminedFieldsSeed<'ctx, 'parent> {
             .collect::<Vec<_>>();
         fields.extend(extra_fields.into_values().map(|group| {
             let ty = match group.ty {
-                ExpectedTypeCollector::Scalar(data_type) => ConcreteType::Scalar(data_type),
+                ExpectedTypeCollector::Scalar(scalar_type) => ConcreteType::Scalar(scalar_type),
                 ExpectedTypeCollector::SelectionSet { ty, selection_set_ids } => {
                     self.merge_extra_selection_set(ty, selection_set_ids)
                 }
@@ -320,7 +320,7 @@ impl<'ctx, 'parent> UndeterminedFieldsSeed<'ctx, 'parent> {
                         edge: field.edge,
                         expected_key: field.expected_key.clone(),
                         ty: match field.ty {
-                            ExpectedType::Scalar(data_type) => ExpectedTypeCollector::Scalar(data_type),
+                            ExpectedType::Scalar(scalar_type) => ExpectedTypeCollector::Scalar(scalar_type),
                             ExpectedType::SelectionSet(id) => ExpectedTypeCollector::SelectionSet {
                                 ty: SelectionSetType::maybe_from(schema_field.ty().inner().id()).unwrap(),
                                 selection_set_ids: vec![id],
@@ -334,7 +334,7 @@ impl<'ctx, 'parent> UndeterminedFieldsSeed<'ctx, 'parent> {
             .into_values()
             .map(|group| {
                 let ty = match group.ty {
-                    ExpectedTypeCollector::Scalar(data_type) => ConcreteType::Scalar(data_type),
+                    ExpectedTypeCollector::Scalar(scalar_type) => ConcreteType::Scalar(scalar_type),
                     ExpectedTypeCollector::SelectionSet { ty, selection_set_ids } => {
                         self.merge_extra_selection_set(ty, selection_set_ids)
                     }

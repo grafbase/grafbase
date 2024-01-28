@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 mod builder;
 mod cache;
 mod field_set;
@@ -7,6 +5,7 @@ mod ids;
 mod input_value;
 mod names;
 mod resolver;
+mod scalar_type;
 pub mod sources;
 mod walkers;
 
@@ -16,6 +15,7 @@ pub use ids::*;
 pub use input_value::*;
 pub use names::Names;
 pub use resolver::*;
+pub use scalar_type::*;
 pub use walkers::*;
 
 /// This does NOT need to be backwards compatible. We'll probably cache it for performance, but it is not
@@ -348,33 +348,11 @@ pub struct Union {
 #[derive(Debug)]
 pub struct Scalar {
     pub name: StringId,
-    pub data_type: DataType,
+    pub ty: ScalarType,
     pub description: Option<StringId>,
     pub specified_by_url: Option<StringId>,
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
-}
-
-/// Defines how a scalar should be represented and validated by the engine. They're almost the same
-/// as scalars, but scalars like ID which have no own data format are just mapped to String.
-/// https://the-guild.dev/graphql/scalars/docs
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
-pub enum DataType {
-    String,
-    Float,
-    Int,
-    BigInt,
-    JSON,
-    Boolean,
-}
-
-impl DataType {
-    pub fn from_scalar_name(name: &str) -> DataType {
-        DataType::from_str(name).ok().unwrap_or(match name {
-            "ID" => DataType::String,
-            _ => DataType::JSON,
-        })
-    }
 }
 
 #[derive(Debug)]

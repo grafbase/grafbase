@@ -22,13 +22,11 @@ mod field;
 mod key;
 mod list;
 mod nullable;
-mod scalar;
 mod selection_set;
 
 use field::FieldSeed;
 use list::ListSeed;
 use nullable::NullableSeed;
-use scalar::*;
 use selection_set::*;
 
 #[derive(Clone)]

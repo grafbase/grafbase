@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use schema::{ObjectId, StringId};
+use schema::{ObjectId, ScalarValue, StringId};
 
 use super::{ResponseEdge, ResponseKey, ResponseListId, ResponseObjectId};
 
@@ -146,5 +146,18 @@ impl From<ResponseListId> for ResponseValue {
 impl From<ResponseObjectId> for ResponseValue {
     fn from(id: ResponseObjectId) -> Self {
         Self::Object { id, nullable: false }
+    }
+}
+
+impl From<ScalarValue> for ResponseValue {
+    fn from(value: ScalarValue) -> Self {
+        match value {
+            ScalarValue::String(value) => ResponseValue::String { value, nullable: false },
+            ScalarValue::Int(value) => ResponseValue::Int { value, nullable: false },
+            ScalarValue::BigInt(value) => ResponseValue::BigInt { value, nullable: false },
+            ScalarValue::Float(value) => ResponseValue::Float { value, nullable: false },
+            ScalarValue::Boolean(value) => ResponseValue::Boolean { value, nullable: false },
+            ScalarValue::Json(value) => ResponseValue::Json { value, nullable: false },
+        }
     }
 }

@@ -1,4 +1,4 @@
-use schema::{DataType, FieldId, Wrapping};
+use schema::{FieldId, ScalarType, Wrapping};
 
 use super::{ExtraFieldId, ExtraSelectionSet, PlanBoundaryId};
 
@@ -113,7 +113,7 @@ pub struct ExpectedField {
 
 #[derive(Debug, Clone)]
 pub enum ExpectedType<Id> {
-    Scalar(DataType),
+    Scalar(ScalarType),
     SelectionSet(Id),
 }
 
@@ -137,7 +137,7 @@ pub struct ConcreteField {
 
 #[derive(Debug)]
 pub enum ConcreteType {
-    Scalar(DataType),
+    Scalar(ScalarType),
     SelectionSet(ExpectedSelectionSet),
     ExtraSelectionSet(ExtraSelectionSet),
 }
@@ -145,7 +145,7 @@ pub enum ConcreteType {
 impl std::fmt::Display for ConcreteType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ConcreteType::Scalar(data_type) => write!(f, "{data_type}"),
+            ConcreteType::Scalar(scalar_type) => write!(f, "{scalar_type}"),
             ConcreteType::SelectionSet(_) => write!(f, "Object"),
             ConcreteType::ExtraSelectionSet(_) => write!(f, "Extra"),
         }

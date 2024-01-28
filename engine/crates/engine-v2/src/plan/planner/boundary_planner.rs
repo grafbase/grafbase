@@ -436,7 +436,7 @@ impl<'op, 'a> PlanBoundaryChildrenPlanner<'op, 'a> {
                 },
                 ty: {
                     let definition = field.ty().inner();
-                    definition.data_type().map(ExpectedType::Scalar).unwrap_or_else(|| {
+                    definition.scalar_type().map(ExpectedType::Scalar).unwrap_or_else(|| {
                         ExpectedType::SelectionSet(ExtraBoundarySelectionSet {
                             ty: SelectionSetType::maybe_from(definition.id()).expect("not a scalar"),
                             fields: item

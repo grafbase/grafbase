@@ -1,8 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
-    builder::SchemaBuilder, DataType, Definition, EnumId, EnumValue, Field, FieldId, InputValue, InputValueDefinition,
-    InputValueDefinitionId, ObjectField, ObjectId, ScalarId, Schema, SchemaWalker, StringId, Type, TypeId, Wrapping,
+    builder::SchemaBuilder, Definition, EnumId, EnumValue, Field, FieldId, InputValue, InputValueDefinition,
+    InputValueDefinitionId, ObjectField, ObjectId, ScalarId, ScalarType, Schema, SchemaWalker, StringId, Type, TypeId,
+    Wrapping,
 };
 use strum::EnumCount;
 
@@ -191,10 +192,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
     #[allow(non_snake_case)]
     fn create_fields_and_insert_them(&mut self) {
-        let nullable_string = self.find_or_create_field_type("String", DataType::String, Wrapping::nullable());
-        let required_string = self.find_or_create_field_type("String", DataType::String, Wrapping::required());
-        let required_boolean = self.find_or_create_field_type("Boolean", DataType::Boolean, Wrapping::required());
-        let nullable_boolean = self.find_or_create_field_type("Boolean", DataType::Boolean, Wrapping::nullable());
+        let nullable_string = self.find_or_create_field_type("String", ScalarType::String, Wrapping::nullable());
+        let required_string = self.find_or_create_field_type("String", ScalarType::String, Wrapping::required());
+        let required_boolean = self.find_or_create_field_type("Boolean", ScalarType::Boolean, Wrapping::required());
+        let nullable_boolean = self.find_or_create_field_type("Boolean", ScalarType::Boolean, Wrapping::nullable());
 
         /*
         enum __TypeKind {
@@ -611,7 +612,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
     fn find_or_create_field_type(
         &mut self,
         scalar_name: &str,
-        data_type: DataType,
+        scalar_type: ScalarType,
         expected_wrapping: Wrapping,
     ) -> TypeId {
         let scalar_id = match self
@@ -626,7 +627,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 let name = self.builder.strings.get_or_insert(scalar_name);
                 self.scalars.push(crate::Scalar {
                     name,
-                    data_type,
+                    ty: scalar_type,
                     description: None,
                     specified_by_url: None,
                     composed_directives: vec![],

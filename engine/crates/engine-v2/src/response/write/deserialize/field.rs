@@ -1,12 +1,9 @@
 use std::sync::atomic::Ordering;
 
-use schema::{DataType, ListWrapping, Wrapping};
+use schema::{ListWrapping, Wrapping};
 use serde::de::DeserializeSeed;
 
-use super::{
-    BigIntSeed, BooleanSeed, FloatSeed, IntSeed, JSONSeed, ListSeed, NullableSeed, SeedContextInner, SelectionSetSeed,
-    StringSeed,
-};
+use super::{ListSeed, NullableSeed, SeedContextInner, SelectionSetSeed};
 use crate::{
     plan::ConcreteType,
     request::BoundAnyFieldDefinitionId,
@@ -19,18 +16,6 @@ pub(super) struct FieldSeed<'ctx, 'parent> {
     pub definition_id: Option<BoundAnyFieldDefinitionId>,
     pub expected_type: &'parent ConcreteType,
     pub wrapping: Wrapping,
-}
-
-macro_rules! deserialize_nullable_scalar {
-    ($field: expr, $scalar: expr, $deserializer: expr) => {
-        NullableSeed {
-            definition_id: $field.definition_id,
-            path: &$field.path,
-            ctx: $field.ctx,
-            seed: $scalar,
-        }
-        .deserialize($deserializer)
-    };
 }
 
 impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
@@ -75,14 +60,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
             }
         } else if self.wrapping.inner_is_required {
             match self.expected_type {
-                ConcreteType::Scalar(data_type) => match data_type {
-                    DataType::String => StringSeed.deserialize(deserializer),
-                    DataType::Float => FloatSeed.deserialize(deserializer),
-                    DataType::Int => IntSeed.deserialize(deserializer),
-                    DataType::BigInt => BigIntSeed.deserialize(deserializer),
-                    DataType::JSON => JSONSeed.deserialize(deserializer),
-                    DataType::Boolean => BooleanSeed.deserialize(deserializer),
-                },
+                ConcreteType::Scalar(scalar_type) => (*scalar_type).deserialize(deserializer).map(Into::into),
                 ConcreteType::SelectionSet(expected) => SelectionSetSeed {
                     ctx: self.ctx,
                     path: &self.path,
@@ -93,14 +71,14 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
             }
         } else {
             match self.expected_type {
-                ConcreteType::Scalar(data_type) => match data_type {
-                    DataType::String => deserialize_nullable_scalar!(self, StringSeed, deserializer),
-                    DataType::Float => deserialize_nullable_scalar!(self, FloatSeed, deserializer),
-                    DataType::Int => deserialize_nullable_scalar!(self, IntSeed, deserializer),
-                    DataType::BigInt => deserialize_nullable_scalar!(self, BigIntSeed, deserializer),
-                    DataType::JSON => deserialize_nullable_scalar!(self, JSONSeed, deserializer),
-                    DataType::Boolean => deserialize_nullable_scalar!(self, BooleanSeed, deserializer),
-                },
+                ConcreteType::Scalar(scalar_type) => NullableSeed {
+                    definition_id: self.definition_id,
+                    path: &self.path,
+                    ctx: self.ctx,
+                    seed: *scalar_type,
+                }
+                .deserialize(deserializer)
+                .map(Into::into),
                 ConcreteType::SelectionSet(expected) => NullableSeed {
                     definition_id: self.definition_id,
                     path: &self.path,
