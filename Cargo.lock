@@ -1822,14 +1822,17 @@ dependencies = [
 
 [[package]]
 name = "engine-v2-schema"
-version = "3.0.31"
+version = "0.0.0"
 dependencies = [
  "engine-v2-config",
  "fnv",
  "graphql-federated-graph",
  "indexmap 2.2.0",
+ "serde",
+ "serde_json",
  "strum",
  "strum_macros",
+ "thiserror",
  "url",
 ]
 

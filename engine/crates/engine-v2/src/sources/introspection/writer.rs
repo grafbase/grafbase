@@ -5,7 +5,7 @@ use schema::{
     sources::introspection::{
         IntrospectionField, IntrospectionObject, Metadata, __EnumValue, __Field, __InputValue, __Schema, __Type,
     },
-    Definition, DefinitionWalker, EnumValue, FieldWalker, InputValueWalker, SchemaWalker, TypeWalker,
+    Definition, DefinitionWalker, EnumValue, FieldWalker, InputValueDefinitionWalker, SchemaWalker, TypeWalker,
 };
 
 use crate::{
@@ -273,7 +273,11 @@ impl<'a> IntrospectionWriter<'a> {
         })
     }
 
-    fn __input_value(&self, target: InputValueWalker<'a>, selection_set: &CollectedSelectionSet) -> ResponseValue {
+    fn __input_value(
+        &self,
+        target: InputValueDefinitionWalker<'a>,
+        selection_set: &CollectedSelectionSet,
+    ) -> ResponseValue {
         self.object(
             &self.metadata.__input_value,
             selection_set,
@@ -281,8 +285,12 @@ impl<'a> IntrospectionWriter<'a> {
                 __InputValue::Name => target.as_ref().name.into(),
                 __InputValue::Description => target.as_ref().description.into(),
                 __InputValue::Type => self.__type(target.ty(), field.concrete_selection_set().unwrap()),
-                // TODO: default value...
-                __InputValue::DefaultValue => ResponseValue::Null,
+                __InputValue::DefaultValue => target
+                    .as_ref()
+                    .default_value
+                    .as_ref()
+                    .map(|value| value.as_displayable(self.schema).to_string())
+                    .into(),
             },
         )
     }

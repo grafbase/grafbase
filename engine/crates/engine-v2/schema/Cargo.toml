@@ -1,6 +1,5 @@
 [package]
 name = "engine-v2-schema"
-version = "3.0.31"
 authors = ["Grafbase"]
 description = "The engine schema graph"
 edition = "2021"
@@ -14,8 +13,11 @@ keywords = ["graphql", "engine", "grafbase"]
 strum = { workspace = true, features = ["derive"] }
 strum_macros.workspace = true
 url.workspace = true
-fnv = "1"
+fnv.workspace = true
+thiserror.workspace = true
 indexmap.workspace = true
+serde_json.workspace = true
+serde.workspace = true
 
 config = { package = "engine-v2-config", path = "../config" }
 federated-graph = { package = "graphql-federated-graph", path = "../../federated-graph" }

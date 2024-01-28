@@ -4,6 +4,7 @@ mod builder;
 mod cache;
 mod field_set;
 mod ids;
+mod input_value;
 mod names;
 mod resolver;
 pub mod sources;
@@ -12,6 +13,7 @@ mod walkers;
 pub use cache::*;
 pub use field_set::*;
 pub use ids::*;
+pub use input_value::*;
 pub use names::Names;
 pub use resolver::*;
 pub use walkers::*;
@@ -35,7 +37,7 @@ pub struct Schema {
     unions: Vec<Union>,
     scalars: Vec<Scalar>,
     input_objects: Vec<InputObject>,
-    input_values: Vec<InputValue>,
+    input_value_definitions: Vec<InputValueDefinition>,
     resolvers: Vec<Resolver>,
     /// All the field types in the supergraph, deduplicated.
     types: Vec<Type>,
@@ -143,7 +145,7 @@ pub struct Field {
     pub is_deprecated: bool,
     pub deprecation_reason: Option<StringId>,
     provides: Vec<FieldProvides>,
-    pub arguments: Vec<InputValueId>,
+    pub arguments: Vec<InputValueDefinitionId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
@@ -166,18 +168,7 @@ pub struct FieldResolver {
 #[derive(Debug)]
 pub struct Directive {
     pub name: StringId,
-    pub arguments: Vec<(StringId, Value)>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Value {
-    String(StringId),
-    Int(i64),
-    Float(StringId),
-    Boolean(bool),
-    EnumValue(StringId),
-    Object(Vec<(StringId, Value)>),
-    List(Vec<Value>),
+    pub arguments: Vec<(StringId, InputValue)>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -390,18 +381,18 @@ impl DataType {
 pub struct InputObject {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub input_fields: Vec<InputValueId>,
+    pub input_fields: Vec<InputValueDefinitionId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
 }
 
 #[derive(Debug, Clone)]
-pub struct InputValue {
+pub struct InputValueDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
     pub type_id: TypeId,
-    pub default_value: Option<Value>,
+    pub default_value: Option<InputValue>,
 }
 
 impl Schema {

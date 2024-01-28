@@ -13,8 +13,18 @@ use self::interner::Interner;
 use super::sources::*;
 use super::*;
 
-impl From<Config> for Schema {
-    fn from(config: Config) -> Self {
+#[derive(Debug, thiserror::Error)]
+pub enum BuildError {
+    #[error("Could not parse float: {0}")]
+    InvalidFloat(#[from] std::num::ParseFloatError),
+    #[error("Default object are not supported")]
+    UnsupportedDefaultObject,
+}
+
+impl TryFrom<Config> for Schema {
+    type Error = BuildError;
+
+    fn try_from(config: Config) -> Result<Schema, BuildError> {
         SchemaBuilder::build_schema(config)
     }
 }
@@ -26,13 +36,13 @@ pub(crate) struct SchemaBuilder {
 }
 
 impl SchemaBuilder {
-    fn build_schema(mut config: Config) -> Schema {
+    fn build_schema(mut config: Config) -> Result<Schema, BuildError> {
         let mut builder = Self::initialize(&mut config);
         builder.insert_headers(&mut config);
         builder.insert_federation_datasource(&mut config);
-        builder.insert_graphql_schema(&mut config);
+        builder.insert_graphql_schema(&mut config)?;
         IntrospectionSchemaBuilder::insert_introspection_fields(&mut builder);
-        builder.build()
+        Ok(builder.build())
     }
 
     fn initialize(config: &mut Config) -> Self {
@@ -53,20 +63,20 @@ impl SchemaBuilder {
                     .into_iter()
                     .map(Into::into)
                     .collect(),
-                interfaces: take(&mut config.graph.interfaces).into_iter().map(Into::into).collect(),
+                interfaces: Vec::with_capacity(0),
                 interface_fields: take(&mut config.graph.interface_fields)
                     .into_iter()
                     .map(Into::into)
                     .collect(),
-                enums: take(&mut config.graph.enums).into_iter().map(Into::into).collect(),
-                unions: take(&mut config.graph.unions).into_iter().map(Into::into).collect(),
+                enums: Vec::with_capacity(0),
+                unions: Vec::with_capacity(0),
                 scalars: Vec::with_capacity(config.graph.scalars.len()),
                 input_objects: Vec::with_capacity(config.graph.input_objects.len()),
                 headers: Vec::with_capacity(0),
                 strings: Vec::with_capacity(0),
                 resolvers: vec![],
                 definitions: vec![],
-                input_values: vec![],
+                input_value_definitions: vec![],
                 data_sources: DataSources::default(),
                 default_headers: Vec::with_capacity(0),
                 cache_configs: vec![],
@@ -124,26 +134,37 @@ impl SchemaBuilder {
             .collect();
     }
 
-    fn insert_graphql_schema(&mut self, config: &mut Config) {
+    fn insert_graphql_schema(&mut self, config: &mut Config) -> Result<(), BuildError> {
         let cache = take(&mut config.cache);
         let graph = &mut config.graph;
-        let schema = &mut self.schema;
         let mut cache_configs = Interner::<config::latest::CacheConfig, CacheConfigId>::default();
+
+        // -- UNIONS --
+        self.schema.unions = take(&mut graph.unions)
+            .into_iter()
+            .map(|union| self.convert_union(union))
+            .collect::<Result<_, BuildError>>()?;
+
+        // -- ENUMS --
+        self.schema.enums = take(&mut graph.enums)
+            .into_iter()
+            .map(|r#enum| self.convert_enum(r#enum))
+            .collect::<Result<_, BuildError>>()?;
 
         // -- OBJECTS --
         let mut entity_resolvers = HashMap::<ObjectId, Vec<(ResolverId, SubgraphId)>>::new();
         let mut unresolvable_keys = HashMap::<ObjectId, HashMap<SubgraphId, FieldSet>>::new();
         for object in take(&mut graph.objects) {
-            let object_id = ObjectId::from(schema.objects.len());
+            let object_id = ObjectId::from(self.schema.objects.len());
             let cache_config = cache
                 .rule(CacheConfigTarget::Object(federated_graph::ObjectId(object_id.into())))
                 .map(|config| cache_configs.get_or_insert(config));
 
-            schema.objects.push(Object {
+            self.schema.objects.push(Object {
                 name: object.name.into(),
                 description: None,
                 interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
-                composed_directives: object.composed_directives.into_iter().map(Into::into).collect(),
+                composed_directives: self.convert_directives(object.composed_directives)?,
                 cache_config,
             });
 
@@ -154,8 +175,8 @@ impl SchemaBuilder {
                     continue;
                 }
                 if key.resolvable {
-                    let resolver_id = ResolverId::from(schema.resolvers.len());
-                    schema
+                    let resolver_id = ResolverId::from(self.schema.resolvers.len());
+                    self.schema
                         .resolvers
                         .push(Resolver::FederationEntity(federation::EntityResolver {
                             subgraph_id,
@@ -190,21 +211,21 @@ impl SchemaBuilder {
         for object_field in take(&mut graph.object_fields) {
             let object_field: ObjectField = object_field.into();
             field_id_to_maybe_object_id[usize::from(object_field.field_id)] = Some(object_field.object_id);
-            schema.object_fields.push(object_field);
+            self.schema.object_fields.push(object_field);
         }
 
         let root_fields = {
             let mut root_fields = vec![];
-            let walker = schema.walker();
-            for field in walker.walk(schema.root_operation_types.query).fields() {
+            let walker = self.schema.walker();
+            for field in walker.walk(self.schema.root_operation_types.query).fields() {
                 root_fields.push(field.item);
             }
-            if let Some(mutation) = schema.root_operation_types.mutation {
+            if let Some(mutation) = self.schema.root_operation_types.mutation {
                 for field in walker.walk(mutation).fields() {
                     root_fields.push(field.item);
                 }
             }
-            if let Some(subscription) = schema.root_operation_types.subscription {
+            if let Some(subscription) = self.schema.root_operation_types.subscription {
                 for field in walker.walk(subscription).fields() {
                     root_fields.push(field.item);
                 }
@@ -239,8 +260,8 @@ impl SchemaBuilder {
             if root_fields.binary_search(&field_id).is_ok() {
                 for subgraph_id in &resolvable_in {
                     let resolver_id = *root_field_resolvers.entry(*subgraph_id).or_insert_with(|| {
-                        let resolver_id = ResolverId::from(schema.resolvers.len());
-                        schema
+                        let resolver_id = ResolverId::from(self.schema.resolvers.len());
+                        self.schema
                             .resolvers
                             .push(Resolver::FederationRootField(federation::RootFieldResolver {
                                 subgraph_id: *subgraph_id,
@@ -269,7 +290,7 @@ impl SchemaBuilder {
                 },
             );
             // Whether the field returns an object
-            if let Definition::Object(object_id) = &schema[TypeId::from(field.field_type_id)].inner {
+            if let Definition::Object(object_id) = &self.schema[TypeId::from(field.field_type_id)].inner {
                 if let Some(keys) = unresolvable_keys.get(object_id) {
                     for (subgraph_id, field_set) in keys {
                         provides
@@ -286,7 +307,7 @@ impl SchemaBuilder {
                 if let Some(entity_resolvers) = entity_resolvers.get(&object_id) {
                     for (resolver_id, entity_subgraph_id) in entity_resolvers {
                         // Keys aren't in 'resolvable_in', so adding them
-                        if let Resolver::FederationEntity(resolver) = &schema[*resolver_id] {
+                        if let Resolver::FederationEntity(resolver) = &self.schema[*resolver_id] {
                             if let Some(item) = resolver.key.fields.get(field_id) {
                                 resolvable_in.insert(*entity_subgraph_id);
                                 provides
@@ -326,25 +347,25 @@ impl SchemaBuilder {
                         .arguments
                         .into_iter()
                         .map(|argument| {
-                            let input_value = InputValue {
+                            let input_value = InputValueDefinition {
                                 name: argument.name.into(),
                                 description: None,
                                 type_id: argument.type_id.into(),
                                 default_value: None,
                             };
-                            schema.input_values.push(input_value);
-                            InputValueId::from(schema.input_values.len() - 1)
+                            self.schema.input_value_definitions.push(input_value);
+                            InputValueDefinitionId::from(self.schema.input_value_definitions.len() - 1)
                         })
                         .collect()
                 },
-                composed_directives: field.composed_directives.into_iter().map(Into::into).collect(),
+                composed_directives: self.convert_directives(field.composed_directives)?,
                 is_deprecated: false,
                 deprecation_reason: None,
                 cache_config: cache
                     .rule(CacheConfigTarget::Field(federated_graph::FieldId(field_id.into())))
                     .map(|config| cache_configs.get_or_insert(config)),
             };
-            schema.fields.push(field);
+            self.schema.fields.push(field);
         }
 
         // -- INPUT OBJECTS --
@@ -359,47 +380,53 @@ impl SchemaBuilder {
                         .fields
                         .into_iter()
                         .map(|field| {
-                            let input_value = InputValue {
+                            let input_value = InputValueDefinition {
                                 name: field.name.into(),
                                 description: None,
                                 type_id: field.field_type_id.into(),
                                 default_value: None,
                             };
-                            schema.input_values.push(input_value);
-                            InputValueId::from(schema.input_values.len() - 1)
+                            self.schema.input_value_definitions.push(input_value);
+                            InputValueDefinitionId::from(self.schema.input_value_definitions.len() - 1)
                         })
                         .collect()
                 },
-                composed_directives: input_object.composed_directives.into_iter().map(Into::into).collect(),
+                composed_directives: self.convert_directives(input_object.composed_directives)?,
             };
-            schema.input_objects.push(input_object);
+            self.schema.input_objects.push(input_object);
         }
 
         // -- INTERFACES --
+        self.schema.interfaces = take(&mut graph.interfaces)
+            .into_iter()
+            .map(|interface| self.convert_interface(interface))
+            .collect::<Result<_, BuildError>>()?;
         // Adding all implementations of an interface, used during introspection.
-        for object_id in (0..schema.objects.len()).map(ObjectId::from) {
-            for interface_id in schema[object_id].interfaces.clone() {
-                schema[interface_id].possible_types.push(object_id);
+        for object_id in (0..self.schema.objects.len()).map(ObjectId::from) {
+            for interface_id in self.schema[object_id].interfaces.clone() {
+                self.schema[interface_id].possible_types.push(object_id);
             }
         }
 
         // -- SCALARS --
-        schema.scalars = take(&mut graph.scalars)
+        self.schema.scalars = take(&mut graph.scalars)
             .into_iter()
             .map(|scalar| {
                 let name = StringId::from(scalar.name);
-                Scalar {
+                Ok(Scalar {
                     name,
                     data_type: DataType::from_scalar_name(&self.strings[name]),
                     description: None,
                     specified_by_url: None,
-                    composed_directives: scalar.composed_directives.into_iter().map(Into::into).collect(),
-                }
+                    composed_directives: self.convert_directives(scalar.composed_directives)?,
+                })
             })
-            .collect();
+            .collect::<Result<_, BuildError>>()?;
 
         // -- CACHE CONFIG --
-        schema.cache_configs = cache_configs.into_iter().map(Into::into).collect();
+        self.schema.cache_configs = cache_configs.into_iter().map(Into::into).collect();
+
+        Ok(())
     }
 
     fn build(self) -> Schema {
@@ -461,30 +488,94 @@ impl SchemaBuilder {
         assert!(matches!(schema.resolvers.last(), Some(Resolver::Introspection(_))));
         schema
     }
-}
 
-impl From<federated_graph::Object> for Object {
-    fn from(object: federated_graph::Object) -> Self {
-        Object {
-            name: object.name.into(),
-            description: None,
-            interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
-            composed_directives: object.composed_directives.into_iter().map(Into::into).collect(),
-            cache_config: Default::default(),
-        }
+    fn convert_value(&self, value: federated_graph::Value) -> Result<InputValue, BuildError> {
+        Ok(match value {
+            federated_graph::Value::String(id) => InputValue::StringId(id.into()),
+            federated_graph::Value::Int(big) => match i32::try_from(big) {
+                Ok(small) => small.into(),
+                Err(_) => big.into(),
+            },
+            federated_graph::Value::Float(unparsed) => {
+                self.strings.get_by_id(unparsed.into()).unwrap().parse::<f64>()?.into()
+            }
+            federated_graph::Value::Boolean(b) => b.into(),
+            federated_graph::Value::EnumValue(id) => InputValue::StringId(id.into()),
+            federated_graph::Value::Object(_) => {
+                // Currently the FederatedGraph does not include default values and it only
+                // contains the string name, not the associated input_value_id.
+                return Err(BuildError::UnsupportedDefaultObject);
+            }
+            federated_graph::Value::List(values) => InputValue::List(
+                values
+                    .into_iter()
+                    .map(|value| self.convert_value(value))
+                    .collect::<Result<_, BuildError>>()?,
+            ),
+        })
     }
-}
 
-impl From<federated_graph::Directive> for Directive {
-    fn from(directive: federated_graph::Directive) -> Self {
-        Directive {
+    fn convert_directives(&self, directives: Vec<federated_graph::Directive>) -> Result<Vec<Directive>, BuildError> {
+        directives
+            .into_iter()
+            .map(|directive| self.convert_directive(directive))
+            .collect::<Result<_, BuildError>>()
+    }
+
+    fn convert_directive(&self, directive: federated_graph::Directive) -> Result<Directive, BuildError> {
+        Ok(Directive {
             name: directive.name.into(),
             arguments: directive
                 .arguments
                 .into_iter()
-                .map(|(id, value)| (id.into(), value.into()))
-                .collect(),
-        }
+                .map(|(id, value)| Ok((id.into(), self.convert_value(value)?)))
+                .collect::<Result<_, BuildError>>()?,
+        })
+    }
+
+    fn convert_interface(&self, interface: federated_graph::Interface) -> Result<Interface, BuildError> {
+        Ok(Interface {
+            name: interface.name.into(),
+            description: None,
+            interfaces: vec![],
+            possible_types: vec![],
+            composed_directives: self.convert_directives(interface.composed_directives)?,
+        })
+    }
+
+    fn convert_enum(&self, r#enum: federated_graph::Enum) -> Result<Enum, BuildError> {
+        Ok(Enum {
+            name: r#enum.name.into(),
+            description: None,
+            values: r#enum
+                .values
+                .into_iter()
+                .map(|value| {
+                    let value = self.convert_enum_value(value)?;
+                    Ok(value)
+                })
+                .collect::<Result<_, BuildError>>()?,
+            composed_directives: self.convert_directives(r#enum.composed_directives)?,
+        })
+    }
+
+    fn convert_enum_value(&self, value: federated_graph::EnumValue) -> Result<EnumValue, BuildError> {
+        Ok(EnumValue {
+            name: value.value.into(),
+            description: None,
+            deprecation_reason: None,
+            is_deprecated: false,
+            composed_directives: self.convert_directives(value.composed_directives)?,
+        })
+    }
+
+    fn convert_union(&self, union: federated_graph::Union) -> Result<Union, BuildError> {
+        Ok(Union {
+            name: union.name.into(),
+            description: None,
+            possible_types: union.members.into_iter().map(Into::into).collect(),
+            composed_directives: self.convert_directives(union.composed_directives)?,
+        })
     }
 }
 
@@ -493,25 +584,6 @@ impl From<federated_graph::ObjectField> for ObjectField {
         ObjectField {
             object_id: object_field.object_id.into(),
             field_id: object_field.field_id.into(),
-        }
-    }
-}
-
-impl From<federated_graph::Value> for Value {
-    fn from(value: federated_graph::Value) -> Self {
-        match value {
-            federated_graph::Value::String(s) => Value::String(s.into()),
-            federated_graph::Value::Int(i) => Value::Int(i),
-            federated_graph::Value::Float(f) => Value::Float(f.into()),
-            federated_graph::Value::Boolean(b) => Value::Boolean(b),
-            federated_graph::Value::EnumValue(s) => Value::EnumValue(s.into()),
-            federated_graph::Value::Object(fields) => Value::Object(
-                fields
-                    .into_iter()
-                    .map(|(id, value)| (id.into(), value.into()))
-                    .collect(),
-            ),
-            federated_graph::Value::List(l) => Value::List(l.into_iter().map(Into::into).collect()),
         }
     }
 }
@@ -550,45 +622,11 @@ impl From<federated_graph::ListWrapper> for ListWrapping {
     }
 }
 
-impl From<federated_graph::Interface> for Interface {
-    fn from(interface: federated_graph::Interface) -> Self {
-        Interface {
-            name: interface.name.into(),
-            description: None,
-            interfaces: vec![],
-            possible_types: vec![],
-            composed_directives: interface.composed_directives.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
 impl From<federated_graph::InterfaceField> for InterfaceField {
     fn from(interface_field: federated_graph::InterfaceField) -> Self {
         InterfaceField {
             interface_id: interface_field.interface_id.into(),
             field_id: interface_field.field_id.into(),
-        }
-    }
-}
-
-impl From<federated_graph::Enum> for Enum {
-    fn from(value: federated_graph::Enum) -> Self {
-        Enum {
-            name: value.name.into(),
-            description: None,
-            values: value.values.into_iter().map(Into::into).collect(),
-            composed_directives: value.composed_directives.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-impl From<federated_graph::Union> for Union {
-    fn from(union: federated_graph::Union) -> Self {
-        Union {
-            name: union.name.into(),
-            description: None,
-            possible_types: union.members.into_iter().map(Into::into).collect(),
-            composed_directives: union.composed_directives.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -602,21 +640,9 @@ impl From<federated_graph::FieldSetItem> for FieldSetItem {
     }
 }
 
-impl From<federated_graph::EnumValue> for EnumValue {
-    fn from(enum_value: federated_graph::EnumValue) -> Self {
-        EnumValue {
-            name: enum_value.value.into(),
-            description: None,
-            deprecation_reason: None,
-            is_deprecated: false,
-            composed_directives: enum_value.composed_directives.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-impl From<federated_graph::InputObjectField> for InputValue {
+impl From<federated_graph::InputObjectField> for InputValueDefinition {
     fn from(field: federated_graph::InputObjectField) -> Self {
-        InputValue {
+        InputValueDefinition {
             name: field.name.into(),
             description: None,
             type_id: field.field_type_id.into(),

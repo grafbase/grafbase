@@ -2,8 +2,8 @@
 /// They can only be created by From<usize>
 use crate::{
     sources::federation::{DataSource as FederationDataSource, Subgraph},
-    CacheConfig, Definition, Enum, Field, Header, InputObject, InputValue, Interface, Object, Resolver, Scalar, Schema,
-    Type, Union,
+    CacheConfig, Definition, Enum, Field, Header, InputObject, InputValueDefinition, Interface, Object, Resolver,
+    Scalar, Schema, Type, Union,
 };
 use url::Url;
 
@@ -66,7 +66,7 @@ id_newtypes! {
     Schema.unions[UnionId] => Union unless "Too many unions",
     Schema.resolvers[ResolverId] => Resolver unless "Too many resolvers",
     Schema.definitions[DefinitionId] => Definition unless "Too many definitions",
-    Schema.input_values[InputValueId] => InputValue unless "Too many input values",
+    Schema.input_value_definitions[InputValueDefinitionId] => InputValueDefinition unless "Too many input values",
     Schema.headers[HeaderId] => Header unless "Too many headers",
     Schema.urls[UrlId] => Url unless "Too many urls",
     Schema.strings[StringId] => String unless "Too many strings",

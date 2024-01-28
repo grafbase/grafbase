@@ -46,7 +46,7 @@ async fn new_gateway(graph: &GraphReceiver, config: &ConfigReceiver) -> Option<A
 
     let config = engine_config_builder::build_config(&config.borrow(), graph);
     Some(Arc::new(Gateway::new(
-        config.into_latest().into(),
+        config.into_latest().try_into().ok()?,
         EngineEnv {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         },

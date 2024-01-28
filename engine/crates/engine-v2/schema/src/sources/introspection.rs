@@ -1,8 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
-    builder::SchemaBuilder, DataType, Definition, EnumId, EnumValue, Field, FieldId, InputValue, InputValueId,
-    ObjectField, ObjectId, ScalarId, Schema, SchemaWalker, StringId, Type, TypeId, Value, Wrapping,
+    builder::SchemaBuilder, DataType, Definition, EnumId, EnumValue, Field, FieldId, InputValue, InputValueDefinition,
+    InputValueDefinitionId, ObjectField, ObjectId, ScalarId, Schema, SchemaWalker, StringId, Type, TypeId, Wrapping,
 };
 use strum::EnumCount;
 
@@ -416,7 +416,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 let field_id = self.insert_object_field(__type.id, "fields", nullable__field_list);
                 __type.fields.push((field_id, __Type::Fields));
                 let input_value_id =
-                    self.insert_input_value("includeDeprecated", nullable_boolean, Some(Value::Boolean(false)));
+                    self.insert_input_value("includeDeprecated", nullable_boolean, Some(InputValue::Boolean(false)));
                 self[field_id].arguments.push(input_value_id);
             }
             {
@@ -425,7 +425,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 let field_id = self.insert_object_field(__type.id, "enumValues", nullable__enum_value_list);
                 __type.fields.push((field_id, __Type::EnumValues));
                 let input_value_id =
-                    self.insert_input_value("includeDeprecated", nullable_boolean, Some(Value::Boolean(false)));
+                    self.insert_input_value("includeDeprecated", nullable_boolean, Some(InputValue::Boolean(false)));
                 self[field_id].arguments.push(input_value_id);
             }
             __type
@@ -592,21 +592,26 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         TypeId::from(self.types.len() - 1)
     }
 
-    fn insert_input_value(&mut self, name: &str, type_id: TypeId, default_value: Option<Value>) -> InputValueId {
+    fn insert_input_value(
+        &mut self,
+        name: &str,
+        type_id: TypeId,
+        default_value: Option<InputValue>,
+    ) -> InputValueDefinitionId {
         let name = self.get_or_intern(name);
-        self.input_values.push(InputValue {
+        self.input_value_definitions.push(InputValueDefinition {
             name,
             description: None,
             default_value,
             type_id,
         });
-        InputValueId::from(self.input_values.len() - 1)
+        InputValueDefinitionId::from(self.input_value_definitions.len() - 1)
     }
 
     fn find_or_create_field_type(
         &mut self,
         scalar_name: &str,
-        scalar_type: DataType,
+        data_type: DataType,
         expected_wrapping: Wrapping,
     ) -> TypeId {
         let scalar_id = match self
@@ -621,7 +626,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 let name = self.builder.strings.get_or_insert(scalar_name);
                 self.scalars.push(crate::Scalar {
                     name,
-                    data_type: scalar_type,
+                    data_type,
                     description: None,
                     specified_by_url: None,
                     composed_directives: vec![],

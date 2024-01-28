@@ -17,7 +17,7 @@ pub use definition::DefinitionWalker;
 pub use field::{FieldResolverWalker, FieldWalker};
 pub use field_set::{FieldSetItemWalker, FieldSetWalker};
 pub use input_object::InputObjectWalker;
-pub use input_value::InputValueWalker;
+pub use input_value::InputValueDefinitionWalker;
 pub use interface::InterfaceWalker;
 pub use object::ObjectWalker;
 pub use r#enum::EnumWalker;

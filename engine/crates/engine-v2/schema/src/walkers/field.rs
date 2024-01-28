@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use super::{resolver::ResolverWalker, SchemaWalker};
-use crate::{CacheConfig, FieldId, FieldProvides, FieldResolver, FieldSet, InputValueWalker, TypeWalker};
+use crate::{CacheConfig, FieldId, FieldProvides, FieldResolver, FieldSet, InputValueDefinitionWalker, TypeWalker};
 
 pub type FieldWalker<'a> = SchemaWalker<'a, FieldId>;
 
@@ -37,12 +37,12 @@ impl<'a> FieldWalker<'a> {
             .reduce(|a, b| Cow::Owned(FieldSet::merge(&a, &b)))
     }
 
-    pub fn arguments(&self) -> impl ExactSizeIterator<Item = InputValueWalker<'a>> + 'a {
+    pub fn arguments(&self) -> impl ExactSizeIterator<Item = InputValueDefinitionWalker<'a>> + 'a {
         let walker = *self;
         self.schema[self.item].arguments.iter().map(move |id| walker.walk(*id))
     }
 
-    pub fn argument_by_name(&self, name: &str) -> Option<InputValueWalker<'a>> {
+    pub fn argument_by_name(&self, name: &str) -> Option<InputValueDefinitionWalker<'a>> {
         self.as_ref()
             .arguments
             .iter()

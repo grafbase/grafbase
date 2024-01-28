@@ -1,14 +1,14 @@
 use std::ops::Deref;
 
 use engine_value::ConstValue;
-use schema::InputValueId;
+use schema::InputValueDefinitionId;
 
 use crate::request::BoundFieldArgument;
 
 use super::{ExecutorWalkContext, OperationWalker};
 
 pub type BoundFieldArgumentWalker<'a, CtxOrUnit = ()> =
-    OperationWalker<'a, &'a BoundFieldArgument, InputValueId, CtxOrUnit>;
+    OperationWalker<'a, &'a BoundFieldArgument, InputValueDefinitionId, CtxOrUnit>;
 
 impl<'a, C> BoundFieldArgumentWalker<'a, C> {
     // Value in the query, before variable resolution.
@@ -38,7 +38,7 @@ impl<'a> BoundFieldArgumentWalker<'a, ExecutorWalkContext<'a>> {
 }
 
 impl<'a, E> Deref for BoundFieldArgumentWalker<'a, E> {
-    type Target = schema::InputValueWalker<'a>;
+    type Target = schema::InputValueDefinitionWalker<'a>;
 
     fn deref(&self) -> &Self::Target {
         &self.schema_walker

@@ -30,7 +30,7 @@ chrono = { version = "0.4", default-features = false, features = [
 derivative = "2"
 fast_chemail = "0.9"
 flexbuffers.workspace = true
-fnv = "1"
+fnv.workspace = true
 futures.workspace = true
 futures-util = { workspace = true, features = ["io", "sink"] }
 http.workspace = true

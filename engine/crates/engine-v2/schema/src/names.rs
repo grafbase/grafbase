@@ -1,5 +1,6 @@
 use crate::{
-    Definition, EnumId, FieldId, InputObjectId, InputValueId, InterfaceId, ObjectId, ScalarId, Schema, UnionId,
+    Definition, EnumId, FieldId, InputObjectId, InputValueDefinitionId, InterfaceId, ObjectId, ScalarId, Schema,
+    UnionId,
 };
 
 /// Small abstraction over the actual names to make easier to deal with
@@ -22,7 +23,7 @@ pub trait Names: Send + Sync {
         &schema[schema[interface_id].name]
     }
 
-    fn input_value<'s>(&self, schema: &'s Schema, input_value_id: InputValueId) -> &'s str {
+    fn input_value<'s>(&self, schema: &'s Schema, input_value_id: InputValueDefinitionId) -> &'s str {
         &schema[schema[input_value_id].name]
     }
 

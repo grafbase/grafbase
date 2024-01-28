@@ -116,6 +116,15 @@ impl<T: Into<ResponseValue>> From<Option<T>> for ResponseValue {
     }
 }
 
+impl From<String> for ResponseValue {
+    fn from(value: String) -> Self {
+        Self::String {
+            value: value.into_boxed_str(),
+            nullable: false,
+        }
+    }
+}
+
 impl From<StringId> for ResponseValue {
     fn from(id: StringId) -> Self {
         Self::StringId { id, nullable: false }

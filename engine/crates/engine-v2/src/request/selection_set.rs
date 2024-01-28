@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use engine_parser::Pos;
-use schema::{Definition, FieldId, InputValueId, InterfaceId, ObjectId, Schema, UnionId};
+use schema::{Definition, FieldId, InputValueDefinitionId, InterfaceId, ObjectId, Schema, UnionId};
 
 use crate::response::{BoundResponseKey, ResponseKey};
 
@@ -147,7 +147,7 @@ pub struct BoundFieldDefinition {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundFieldArgument {
     pub name_location: Pos,
-    pub input_value_id: InputValueId,
+    pub input_value_id: InputValueDefinitionId,
     pub value_location: Pos,
     // TODO: Should be validated, coerced and bound.
     pub value: engine_value::Value,
