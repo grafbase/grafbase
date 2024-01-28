@@ -66,7 +66,11 @@ async fn test_header_passthrough() {
                 .filter(|(name, _)| {
                     // Host changes on every test, we need to filter it out.
                     // The others are just noise so I'm also ditching them.
-                    name != "host" && name != "connection" && name != "accept-encoding" && name != "mf-loop"
+                    name != "host"
+                        && name != "connection"
+                        && name != "accept-encoding"
+                        && name != "mf-loop"
+                        && name != "content-length"
                 })
                 .collect::<BTreeMap<_, _>>()
         })
@@ -74,10 +78,11 @@ async fn test_header_passthrough() {
 
     insta::assert_yaml_snapshot!(headers, @r###"
     ---
-    - accept: "[\"*/*\"]"
-      another-one: "[\"yes\"]"
-      authorization: "[\"Bearer BLAH\"]"
-      wow-what-a-header: "[\"isn't it the best\"]"
+    - accept: "*/*"
+      another-one: "yes"
+      authorization: Bearer BLAH
+      wow-what-a-header: "isn't it the best"
+
     "###);
 }
 
