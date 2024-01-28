@@ -14,7 +14,6 @@ use std::sync::OnceLock;
 use std::{
     fmt::{self, Display},
     path::PathBuf,
-    thread,
 };
 use ulid::Ulid;
 
@@ -149,22 +148,33 @@ impl Analytics {
 
     pub fn track(event_name: &str, properties: Option<Value>) {
         let event_name = event_name.to_owned();
-        Self::get()
-            .as_ref()
-            .zip(Self::read_data().ok().flatten().and_then(|data| data.anonymous_id))
-            .map(|(analytics, anonymous_id)| {
-                // purposely ignoring errors
-                // TODO possibly change this to a long lived thread once we add more events
-                thread::spawn(move || {
-                    let _: Result<_, _> = analytics.client.send(&Message::Track(Track {
-                        event: event_name,
-                        anonymous_id: Some(anonymous_id.to_string()),
-                        properties,
-                        context: Some(analytics.get_context()),
-                        ..Default::default()
-                    }));
-                })
-            });
+
+        let Some(analytics) = Self::get() else {
+            return;
+        };
+        let Some(anonymous_id) = Self::read_data().ok().flatten().and_then(|data| data.anonymous_id) else {
+            return;
+        };
+
+        // FIXME: This should all be happening within an async context…
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("must succeed");
+        runtime.block_on(async move {
+            // Purposely ignoring errors.
+            let _ = analytics
+                .client
+                .send(&Message::Track(Track {
+                    event: event_name,
+                    anonymous_id: Some(anonymous_id.to_string()),
+                    properties,
+                    context: Some(analytics.get_context()),
+                    ..Default::default()
+                }))
+                .await;
+            ()
+        });
     }
 
     pub fn command_executed(command_name: &str, command_arguments: Option<Vec<&'static str>>) {
