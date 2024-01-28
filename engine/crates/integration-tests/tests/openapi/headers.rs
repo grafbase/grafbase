@@ -75,10 +75,11 @@ fn test_header_passthrough() {
         insta::assert_json_snapshot!(headers, @r###"
         [
           {
-            "accept": "[\"*/*\"]",
-            "another-one": "[\"yes\"]",
-            "authorization": "[\"Bearer BLAH\"]",
-            "wow-what-a-header": "[\"isn't it the best\"]"
+            "accept": "*/*",
+            "another-one": "yes",
+            "authorization": "Bearer BLAH",
+            "content-length": "0",
+            "wow-what-a-header": "isn't it the best"
           }
         ]
         "###);
