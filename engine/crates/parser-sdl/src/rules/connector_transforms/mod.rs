@@ -25,10 +25,10 @@ pub fn run_transforms(registry: &mut Registry, transforms: &Transforms) {
     for SelectedField { ty, field } in fields_to_remove {
         match registry.types.get_mut(&ty) {
             Some(MetaType::Object(ObjectType { fields, .. }) | MetaType::Interface(InterfaceType { fields, .. })) => {
-                fields.shift_remove(&field);
+                fields.swap_remove(&field);
             }
             Some(MetaType::InputObject(InputObjectType { input_fields, .. })) => {
-                input_fields.shift_remove(&field);
+                input_fields.swap_remove(&field);
             }
             _ => {}
         }
