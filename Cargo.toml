@@ -79,6 +79,7 @@ ulid = "1"
 wasm-bindgen = "0.2"
 web-time = "1"
 which = "6"
+wiremock = "0.6.0-rc.3"
 worker = "0.0.18"
 
 # Serde

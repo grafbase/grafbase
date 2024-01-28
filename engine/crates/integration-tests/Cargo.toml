@@ -34,7 +34,7 @@ serde.workspace = true
 serde_json.workspace = true
 ulid.workspace = true
 url.workspace = true
-wiremock = "0.5"
+wiremock.workspace = true
 runtime-local = { path = "../runtime-local" }
 ory-client = "1"
 tracing-subscriber = { version = "0.3", default-features = false, features = [

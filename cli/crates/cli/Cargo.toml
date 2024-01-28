@@ -91,7 +91,7 @@ tempfile = "3"
 tokio = { version = "1", features = ["full"] }
 url = "2"
 which = "6"
-wiremock = "0.5"
+wiremock.workspace = true
 
 [[bin]]
 name = "grafbase"

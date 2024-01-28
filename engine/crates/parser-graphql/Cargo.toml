@@ -39,4 +39,4 @@ reqwest = { workspace = true, features = [
 [dev-dependencies]
 insta = { version = "1", features = ["json"] }
 tokio = { workspace = true, features = ["macros"] }
-wiremock = "0.5"
+wiremock.workspace = true
