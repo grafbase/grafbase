@@ -47,6 +47,7 @@ pub enum Message {
         id: String,
     },
     ConnectionAck {
+        #[serde(skip_serializing_if = "Option::is_none")]
         payload: Option<serde_json::Value>,
     },
     Ping {

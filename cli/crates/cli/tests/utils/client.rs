@@ -14,7 +14,7 @@ use super::environment::CommandHandles;
 pub struct Client {
     endpoint: String,
     playground_endpoint: String,
-    client: reqwest::blocking::Client,
+    client: reqwest::Client,
     headers: HeaderMap,
     snapshot: Option<String>,
     commands: CommandHandles,
@@ -51,7 +51,7 @@ impl Client {
             endpoint,
             playground_endpoint,
             headers: HeaderMap::new(),
-            client: reqwest::blocking::Client::builder()
+            client: reqwest::Client::builder()
                 .connect_timeout(Duration::from_secs(1))
                 .timeout(Duration::from_secs(client_options.http_timeout))
                 .build()
@@ -90,27 +90,30 @@ impl Client {
         }
     }
 
-    fn introspect(&self) -> String {
+    async fn introspect(&self) -> String {
         self.client
             .post(&self.endpoint)
             .body(json!({"operationName":"IntrospectionQuery", "query": INTROSPECTION_QUERY}).to_string())
             .headers(self.headers.clone())
             .send()
+            .await
             .unwrap()
             .text()
+            .await
             .unwrap()
     }
 
-    fn safe_introspect(&self) -> Option<String> {
+    async fn safe_introspect(&self) -> Option<String> {
         if let Ok(response) = self
             .client
             .post(&self.endpoint)
             .body(json!({"operationName":"IntrospectionQuery", "query": INTROSPECTION_QUERY}).to_string())
             .headers(self.headers.clone())
             .send()
+            .await
         {
             if response.status() != StatusCode::SERVICE_UNAVAILABLE {
-                if let Ok(text) = response.text() {
+                if let Ok(text) = response.text().await {
                     return Some(text);
                 }
             }
@@ -122,7 +125,7 @@ impl Client {
     /// # Panics
     ///
     /// panics if the set timeout is reached
-    pub fn poll_endpoint(&self, timeout_secs: u64, interval_millis: u64) {
+    pub async fn poll_endpoint(&self, timeout_secs: u64, interval_millis: u64) {
         let start = SystemTime::now();
 
         loop {
@@ -135,6 +138,7 @@ impl Client {
                 .client
                 .head(&self.endpoint)
                 .send()
+                .await
                 .is_ok_and(|response| response.status() != StatusCode::SERVICE_UNAVAILABLE);
             if valid_response {
                 break;
@@ -146,18 +150,18 @@ impl Client {
         }
     }
 
-    pub fn snapshot(&mut self) {
-        self.snapshot = Some(self.introspect());
+    pub async fn snapshot(&mut self) {
+        self.snapshot = Some(self.introspect().await);
     }
 
-    pub fn poll_endpoint_for_changes(&mut self, timeout_secs: u64, interval_millis: u64) {
+    pub async fn poll_endpoint_for_changes(&mut self, timeout_secs: u64, interval_millis: u64) {
         let start = SystemTime::now();
 
         loop {
             // panic if a snapshot was not taken
             let snapshot = self.snapshot.clone().unwrap();
 
-            match self.safe_introspect() {
+            match self.safe_introspect().await {
                 Some(current) => {
                     if snapshot != current {
                         self.snapshot = Some(current);
@@ -172,12 +176,14 @@ impl Client {
         }
     }
 
-    pub fn get_playground_html(&self) -> String {
+    pub async fn get_playground_html(&self) -> String {
         self.client
             .get(&self.playground_endpoint)
             .send()
+            .await
             .unwrap()
             .text()
+            .await
             .unwrap()
     }
 }
@@ -194,7 +200,7 @@ pub struct GqlRequestBuilder<Response> {
     #[serde(skip)]
     phantom: PhantomData<fn() -> Response>,
     #[serde(skip)]
-    reqwest_builder: reqwest::blocking::RequestBuilder,
+    reqwest_builder: reqwest::RequestBuilder,
     #[serde(skip)]
     bearer: Option<String>,
 }
@@ -228,7 +234,7 @@ impl<Response> GqlRequestBuilder<Response> {
         }
     }
 
-    pub fn send(self) -> Response
+    pub async fn send(self) -> Response
     where
         Response: for<'de> serde::de::Deserialize<'de>,
     {
@@ -241,8 +247,10 @@ impl<Response> GqlRequestBuilder<Response> {
         }
         .json(&json)
         .send()
+        .await
         .unwrap()
         .json::<Response>()
+        .await
         .unwrap()
     }
 }

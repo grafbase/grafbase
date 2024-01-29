@@ -3,13 +3,18 @@ use crate::{dev::admin::Header, error::Error};
 use async_graphql_parser::types::ServiceDocument;
 use url::Url;
 
-pub(crate) struct AdminBus {
-    compose_sender: ComposeSender,
+pub(crate) enum AdminBus {
+    DynamicGraph { compose_sender: ComposeSender },
+    StaticGraph,
 }
 
 impl AdminBus {
-    pub fn new(compose_sender: ComposeSender) -> Self {
-        Self { compose_sender }
+    pub fn new_dynamic(compose_sender: ComposeSender) -> Self {
+        Self::DynamicGraph { compose_sender }
+    }
+
+    pub fn new_static() -> Self {
+        Self::StaticGraph
     }
 
     pub async fn compose_graph(
@@ -19,7 +24,12 @@ impl AdminBus {
         headers: Vec<Header>,
         schema: ServiceDocument,
     ) -> Result<(), Error> {
-        super::compose_graph(&self.compose_sender, name, url, headers, schema).await
+        match self {
+            AdminBus::DynamicGraph { compose_sender } => {
+                super::compose_graph(compose_sender, name, url, headers, schema).await
+            }
+            AdminBus::StaticGraph => Err(Error::internal("Cannot compose a new subgraph with a schema file.")),
+        }
     }
 
     pub async fn introspect_schema(
@@ -28,6 +38,11 @@ impl AdminBus {
         url: Url,
         headers: Vec<Header>,
     ) -> Result<ServiceDocument, Error> {
-        super::introspect_schema(&self.compose_sender, name, url, headers).await
+        match self {
+            AdminBus::DynamicGraph { compose_sender } => {
+                super::introspect_schema(compose_sender, name, url, headers).await
+            }
+            AdminBus::StaticGraph => Err(Error::internal("Nothing to introspect")),
+        }
     }
 }

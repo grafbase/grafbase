@@ -7,7 +7,7 @@ use graphql_mocks::{
 };
 use integration_tests::{federation::GatewayV2Ext, runtime};
 
-const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("./graphql/introspection.graphql");
+const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../../data/introspection.graphql");
 
 #[test]
 fn can_run_pathfinder_introspection_query() {
@@ -814,6 +814,10 @@ fn introspection_on_multiple_federation_subgraphs() {
     assert!(response.errors().is_empty(), "{response}");
 
     insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
+    type Cart {
+      products: [Product!]!
+    }
+
     type Picture {
       altText: String!
       height: Int!
@@ -852,6 +856,7 @@ fn introspection_on_multiple_federation_subgraphs() {
     }
 
     type User {
+      cart: Cart!
       id: ID!
       joinedTimestamp: Int!
       profilePicture: Picture

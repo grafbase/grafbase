@@ -8,9 +8,9 @@ use reqwest_eventsource::RequestBuilderExt;
 use serde_json::{json, Value};
 use utils::environment::Environment;
 
-#[test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-fn federation_start() {
+async fn federation_start() {
     use duct::cmd;
 
     let mut env = Environment::init();
@@ -22,7 +22,7 @@ fn federation_start() {
 
     env.grafbase_start();
     let client = env.create_client();
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 
     let response = client
         .gql::<serde_json::Value>(
@@ -36,7 +36,8 @@ fn federation_start() {
         }
     ",
         )
-        .send();
+        .send()
+        .await;
     insta::assert_json_snapshot!(response, @r###"
     {
       "errors": [
@@ -48,7 +49,8 @@ fn federation_start() {
     "###);
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore] // Need to ignore till the sdk is released :(
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_sse_transport() {
     let mut env = Environment::init_async().await;
@@ -103,6 +105,7 @@ async fn test_sse_transport() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore] // Need to ignore till the sdk is released :(
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_sse_transport_with_auth() {
     let mut env = Environment::init_async().await;
@@ -229,6 +232,7 @@ async fn test_sse_transport_with_failed_auth() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore] // Need to ignore till the sdk is released :(
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_multipart_transport() {
     let mut env = Environment::init_async().await;
@@ -284,6 +288,7 @@ async fn test_multipart_transport() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore] // Need to ignore till the sdk is released :(
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_multipart_transport_with_auth() {
     let mut env = Environment::init_async().await;
@@ -412,6 +417,7 @@ async fn test_multipart_transport_with_bad_auth() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore] // Need to ignore till the sdk is released :(
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_websocket_transport() {
     let mut env = Environment::init_async().await;
@@ -468,6 +474,7 @@ async fn test_websocket_transport() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[ignore] // Need to ignore till the sdk is released :(
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_websocket_transport_with_auth() {
     let mut env = Environment::init_async().await;

@@ -25,6 +25,10 @@ import { FederatedGraphHeaders } from './federated/headers'
 import { CacheParams, GlobalCache } from './cache'
 import scalar from './scalar'
 import define from './define'
+import {
+  FederatedGraphSubscriptions,
+  FederatedSubgraphSubscription
+} from './federated/subscriptions'
 
 export type PartialDatasource =
   | PartialOpenAPI
@@ -550,11 +554,13 @@ export class Graph {
 
 export interface FederatedGraphInput {
   headers?: (headers: FederatedGraphHeaders) => void
+  subscriptions?: (subscriptions: FederatedGraphSubscriptions) => void
   cache?: CacheParams
 }
 
 export class FederatedGraph {
   private readonly headers: FederatedGraphHeaders
+  private readonly subscriptions: FederatedGraphSubscriptions
   private readonly cache?: GlobalCache
 
   public constructor(input?: FederatedGraphInput) {
@@ -563,15 +569,20 @@ export class FederatedGraph {
       input.headers(this.headers)
     }
 
+    this.subscriptions = new FederatedGraphSubscriptions()
+    if (input?.subscriptions) {
+      input.subscriptions(this.subscriptions)
+    }
+
     if (input?.cache) {
       this.cache = new GlobalCache({ rules: input.cache.rules })
     }
   }
 
   public toString(): string {
-    return `\nextend schema\n  @graph(type: federated)${this.headers}\n${
-      this.cache || ''
-    }`
+    return `\nextend schema\n  @graph(type: federated)${this.headers}${
+      this.subscriptions
+    }\n${this.cache || ''}`
   }
 }
 

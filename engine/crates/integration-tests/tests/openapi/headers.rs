@@ -62,7 +62,7 @@ fn test_header_passthrough() {
                 request
                     .headers
                     .into_iter()
-                    .map(|(name, value)| (name.to_string(), value.to_string()))
+                    .filter_map(|(name, value)| Some((name?.to_string(), value.to_str().ok()?.to_owned())))
                     .filter(|(name, _)| {
                         // Host changes on every test, we need to filter it out.
                         // The others are just noise so I'm also ditching them.
@@ -75,10 +75,11 @@ fn test_header_passthrough() {
         insta::assert_json_snapshot!(headers, @r###"
         [
           {
-            "accept": "[\"*/*\"]",
-            "another-one": "[\"yes\"]",
-            "authorization": "[\"Bearer BLAH\"]",
-            "wow-what-a-header": "[\"isn't it the best\"]"
+            "accept": "*/*",
+            "another-one": "yes",
+            "authorization": "Bearer BLAH",
+            "content-length": "0",
+            "wow-what-a-header": "isn't it the best"
           }
         ]
         "###);

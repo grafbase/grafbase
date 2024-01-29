@@ -1,0 +1,5 @@
+---
+source: engine/crates/integration-tests/benches/federation.rs
+expression: "String::from_utf8_lossy(&response.bytes)"
+---
+{"data":{"me":{"id":"1234","username":"Me","reviews":[{"body":"A highly effective form of birth control.","product":{"reviews":[{"author":{"id":"1234","username":"Me"},"body":"A highly effective form of birth control."}]}},{"body":"Fedoras are one of the most fashionable hats around and can look great with a variety of outfits.","product":{"reviews":[{"author":{"id":"1234","username":"Me"},"body":"Fedoras are one of the most fashionable hats around and can look great with a variety of outfits."}]}}]}}}

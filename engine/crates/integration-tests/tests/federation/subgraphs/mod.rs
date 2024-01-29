@@ -1,40 +1,48 @@
 use gateway_v2::Gateway;
-use graphql_mocks::{FakeFederationAccountsSchema, FakeFederationProductsSchema, MockGraphQlServer};
-use integration_tests::{federation::GatewayV2Ext, runtime};
+use graphql_mocks::{
+    FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema, MockGraphQlServer,
+};
+use integration_tests::{
+    federation::{GatewayV2Ext, GraphqlResponse},
+    runtime,
+};
 
+mod sibling_dependencies;
 mod simple_key;
+
+async fn execute(request: &str) -> GraphqlResponse {
+    let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
+    let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
+    let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
+
+    let engine = Gateway::builder()
+        .with_schema("accounts", &accounts)
+        .await
+        .with_schema("products", &products)
+        .await
+        .with_schema("reviews", &reviews)
+        .await
+        .finish()
+        .await;
+    engine.execute(request).await
+}
 
 #[test]
 fn root_fields_from_different_subgraphs() {
-    let response = runtime().block_on(async move {
-        let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
-        let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
-
-        let engine = Gateway::builder()
-            .with_schema("accounts", &accounts)
-            .await
-            .with_schema("products", &products)
-            .await
-            .finish()
-            .await;
-
-        engine
-            .execute(
-                r"
-                query {
-                    me {
-                        id
-                        username
-                    }
-                    topProducts {
-                        name
-                        price
-                    }
-                }
-                ",
-            )
-            .await
-    });
+    let response = runtime().block_on(execute(
+        r"
+        query {
+            me {
+                id
+                username
+            }
+            topProducts {
+                name
+                price
+            }
+        }
+        ",
+    ));
 
     insta::assert_json_snapshot!(response, @r###"
     {
@@ -72,39 +80,24 @@ fn root_fields_from_different_subgraphs() {
 
 #[test]
 fn root_fragment_on_different_subgraphs() {
-    let response = runtime().block_on(async move {
-        let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
-        let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
+    let response = runtime().block_on(execute(
+        r"
+        query {
+            ...Test
+        }
 
-        let engine = Gateway::builder()
-            .with_schema("accounts", &accounts)
-            .await
-            .with_schema("products", &products)
-            .await
-            .finish()
-            .await;
-
-        engine
-            .execute(
-                r"
-                query {
-                    ...Test
-                }
-
-                fragment Test on Query {
-                    me {
-                        id
-                        username
-                    }
-                    topProducts {
-                        name
-                        price
-                    }
-                }
-                ",
-            )
-            .await
-    });
+        fragment Test on Query {
+            me {
+                id
+                username
+            }
+            topProducts {
+                name
+                price
+            }
+        }
+        ",
+    ));
 
     insta::assert_json_snapshot!(response, @r###"
     {

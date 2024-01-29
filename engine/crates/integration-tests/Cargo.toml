@@ -29,12 +29,12 @@ http.workspace = true
 indoc = "2"
 names = "0.14"
 openidconnect.workspace = true
-reqwest = "0.11"
+reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 ulid.workspace = true
 url.workspace = true
-wiremock = "0.5"
+wiremock.workspace = true
 runtime-local = { path = "../runtime-local" }
 ory-client = "1"
 tracing-subscriber = { version = "0.3", default-features = false, features = [
@@ -81,3 +81,8 @@ base64.workspace = true
 rstest.workspace = true
 const_format = "0.2"
 headers.workspace = true
+criterion = { version = "0.5", features = ["async_tokio"] }
+
+[[bench]]
+name = "federation"
+harness = false

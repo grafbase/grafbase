@@ -8,11 +8,14 @@ use axum::{
     Json,
 };
 use common::environment::Environment;
+
 use futures_util::{
     future::{join_all, BoxFuture},
     stream,
 };
 use gateway_v2::streaming::{encode_stream_response, StreamingFormat};
+
+use graphql_composition::FederatedGraph;
 use handlebars::Handlebars;
 use runtime::context::RequestContext as _;
 use serde_json::json;
@@ -28,7 +31,7 @@ use crate::{
         gateway_nanny::GatewayNanny,
         websockets::{WebsocketAccepter, WebsocketService},
     },
-    ConfigReceiver,
+    ConfigWatcher,
 };
 
 use self::{
@@ -54,43 +57,54 @@ struct ProxyState {
     gateway: GatewayWatcher,
 }
 
-pub(super) async fn run(port: u16, expose: bool, config: ConfigReceiver) -> Result<(), crate::Error> {
+pub(super) async fn run(
+    port: u16,
+    expose: bool,
+    config: ConfigWatcher,
+    graph: Option<FederatedGraph>,
+) -> Result<(), crate::Error> {
     log::trace!("starting the federated dev server");
 
-    let (graph_sender, graph_receiver) = watch::channel(None);
-    let (refresh_sender, refresh_receiver) = mpsc::channel(16);
-    let (compose_sender, compose_receiver) = mpsc::channel(16);
-    let (gateway_sender, gateway) = watch::channel(None);
+    let (gateway_sender, gateway) = watch::channel(gateway_nanny::new_gateway(graph, &config.borrow()));
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
-
-    let compose_bus = ComposeBus::new(graph_sender, refresh_sender, compose_sender.clone(), compose_receiver);
-    let refresh_bus = RefreshBus::new(refresh_receiver, compose_sender.clone());
-    let admin_bus = AdminBus::new(compose_sender.clone());
-
-    let composer = Composer::new(compose_bus);
-    tokio::spawn(composer.handler());
-
-    let refresher = Refresher::new(refresh_bus);
-    tokio::spawn(refresher.handler());
-
-    let nanny = GatewayNanny::new(graph_receiver, config, gateway_sender);
-    tokio::spawn(nanny.handler());
-
-    let ticker = Ticker::new(REFRESH_INTERVAL, compose_sender);
-    tokio::spawn(ticker.handler());
 
     let websocket_accepter = WebsocketAccepter::new(websocket_receiver, gateway.clone());
     tokio::spawn(websocket_accepter.handler());
 
-    let schema = Schema::build(admin::QueryRoot, admin::MutationRoot, EmptySubscription)
-        .data(admin_bus)
-        .finish();
+    let admin_schema = if gateway.borrow().is_some() {
+        Schema::build(admin::QueryRoot, admin::MutationRoot, EmptySubscription)
+            .data(AdminBus::new_static())
+            .finish()
+    } else {
+        let (graph_sender, graph_receiver) = watch::channel(None);
+        let (compose_sender, compose_receiver) = mpsc::channel(16);
+        let (refresh_sender, refresh_receiver) = mpsc::channel(16);
+        let refresh_bus = RefreshBus::new(refresh_receiver, compose_sender.clone());
+        let compose_bus = ComposeBus::new(graph_sender, refresh_sender, compose_sender.clone(), compose_receiver);
+        let composer = Composer::new(compose_bus);
+        tokio::spawn(composer.handler());
+
+        let ticker = Ticker::new(REFRESH_INTERVAL, compose_sender.clone());
+        tokio::spawn(ticker.handler());
+
+        let refresher = Refresher::new(refresh_bus);
+        tokio::spawn(refresher.handler());
+
+        let nanny = GatewayNanny::new(graph_receiver, config, gateway_sender);
+        tokio::spawn(nanny.handler());
+
+        let admin_bus = AdminBus::new_dynamic(compose_sender);
+
+        Schema::build(admin::QueryRoot, admin::MutationRoot, EmptySubscription)
+            .data(admin_bus)
+            .finish()
+    };
 
     let environment = Environment::get();
     let static_asset_path = environment.user_dot_grafbase_path.join("static");
 
     let app = axum::Router::new()
-        .route("/admin", get(admin).post_service(GraphQL::new(schema)))
+        .route("/admin", get(admin).post_service(GraphQL::new(admin_schema)))
         .route("/graphql", get(engine_get).post(engine_post))
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .nest_service("/static", tower_http::services::ServeDir::new(static_asset_path))
@@ -166,6 +180,7 @@ async fn handle_engine_request(
     gateway: GatewayWatcher,
     headers: HeaderMap,
 ) -> impl IntoResponse {
+    log::debug!("engine request received");
     let Some(gateway) = gateway.borrow().clone() else {
         return Json(json!({
             "errors": [{"message": "there are no subgraphs registered currently"}]

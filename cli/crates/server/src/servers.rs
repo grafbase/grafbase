@@ -16,24 +16,31 @@ use common::environment::{Environment, Project};
 use engine::registry::Registry;
 use flate2::read::GzDecoder;
 use futures_util::StreamExt;
+use graphql_federated_graph::FederatedGraph;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::future::IntoFuture;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::num::NonZeroUsize;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::task::JoinSet;
 
-pub struct ProductionServer {
-    registry: Arc<Registry>,
-    bridge_app: axum::Router,
-    environment_variables: HashMap<String, String>,
-    message_sender: MessageSender,
-    federated_graph_config: Option<parser_sdl::federation::FederatedGraphConfig>,
+pub enum ProductionServer {
+    V1 {
+        message_sender: MessageSender,
+        registry: Arc<Registry>,
+        bridge_app: axum::Router,
+        environment_variables: HashMap<String, String>,
+    },
+    Federated {
+        message_sender: MessageSender,
+        config: parser_sdl::federation::FederatedGraphConfig,
+        graph: Option<FederatedGraph>,
+    },
 }
 
 impl ProductionServer {
@@ -41,6 +48,7 @@ impl ProductionServer {
         message_sender: MessageSender,
         parallelism: NonZeroUsize,
         tracing: bool,
+        federated_graph_schema_path: Option<PathBuf>,
     ) -> Result<Self, ServerError> {
         export_embedded_files()?;
         create_project_dot_grafbase_directory()?;
@@ -52,12 +60,32 @@ impl ProductionServer {
             federated_graph_config,
             ..
         } = build_config(&environment_variables, None).await?;
-        let registry = Arc::new(registry);
 
-        let (bridge_app, bridge_state) =
-            bridge::build_router(message_sender.clone(), Arc::clone(&registry), tracing).await?;
-        if !detected_udfs.is_empty() {
-            validate_node().await?;
+=======
+        if let Some(config) = federated_graph_config {
+            let graph = match federated_graph_schema_path {
+                Some(path) => {
+                    let sdl = tokio::fs::read_to_string(&path)
+                        .await
+                        .map_err(|err| ServerError::InvalidFederatedGraphSdl(err.to_string()))?;
+                    Some(graphql_federated_graph::from_sdl(&sdl).map_err(|err| {
+                        ServerError::InvalidFederatedGraphSdl(format!("Invalid federated graph SDL: {}", err))
+                    })?)
+                }
+                None => None,
+            };
+            Ok(Self::Federated {
+                config,
+                message_sender,
+                graph,
+            })
+        } else {
+            let registry = Arc::new(registry);
+
+            let (bridge_app, bridge_state) =
+                bridge::build_router(message_sender.clone(), Arc::clone(&registry), tracing).await?;
+            if !detected_udfs.is_empty() {
+                validate_node().await?;
             // TODO: the compile function also spawns Bun, we need to separate them if we want to do it conditionally
             // let project = Project::get();
 
@@ -87,66 +115,71 @@ impl ProductionServer {
             //     // If we fail to write the hash, we're just going to recompile the UDFs.
             //     let _ = tokio::fs::write(hash_path, hash.to_string()).await;
             // }
+            Ok(Self::V1 {
+                registry,
+                bridge_app,
+                environment_variables,
+                message_sender,
         }
-        Ok(Self {
-            registry,
-            bridge_app,
-            environment_variables,
-            message_sender,
-            federated_graph_config,
-        })
     }
 
     pub async fn serve(self, listen_address: IpAddr, port: u16) -> Result<(), ServerError> {
-        let is_federated = self.federated_graph_config.is_some();
-
-        if let Some(config) = self.federated_graph_config {
-            let _ = self.message_sender.send(ServerMessage::Ready {
-                listen_address,
-                port,
-                is_federated,
-            });
-            return federated_dev::run(port, true, constant_watch_receiver(config))
-                .await
-                .map_err(|error| ServerError::GatewayError(error.to_string()));
-        }
-
-        let tcp_listener = tokio::net::TcpListener::bind(&SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .await
-            .map_err(ServerError::StartBridgeApi)?;
-        let bridge_port = tcp_listener.local_addr().unwrap().port();
-        let bridge_server = axum::serve(tcp_listener, self.bridge_app);
-
-        let gateway_app = gateway::Gateway::new(
-            self.environment_variables,
-            gateway::Bridge::new(bridge_port),
-            self.registry,
-        )
-        .await
-        .map_err(|error| ServerError::GatewayError(error.to_string()))?
-        .into_router();
-
-        let gateway_server = axum::serve(
-            tokio::net::TcpListener::bind(&SocketAddr::new(listen_address, port))
-                .await
-                .map_err(ServerError::StartGatewayServer)?,
-            gateway_app,
-        );
-
-        let _ = self.message_sender.send(ServerMessage::Ready {
-            listen_address,
-            port,
-            is_federated,
-        });
-        tokio::select! {
-            result = gateway_server.into_future() => {
-                result.map_err(ServerError::StartGatewayServer)?;
+        match self {
+            ProductionServer::Federated {
+                config,
+                message_sender,
+                graph,
+            } => {
+                let _ = message_sender.send(ServerMessage::Ready {
+                    listen_address,
+                    port,
+                    is_federated: true,
+                });
+                federated_dev::run(port, true, constant_watch_receiver(config), graph)
+                    .await
+                    .map_err(|error| ServerError::GatewayError(error.to_string()))
             }
-            result = bridge_server.into_future() => {
-                result.map_err(ServerError::StartBridgeApi)?
+            ProductionServer::V1 {
+                registry,
+                bridge_app,
+                environment_variables,
+                message_sender,
+            } => {
+                let tcp_listener = tokio::net::TcpListener::bind(&SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
+                    .await
+                    .map_err(ServerError::StartBridgeApi)?;
+                let bridge_port = tcp_listener.local_addr().unwrap().port();
+                let bridge_server = axum::serve(tcp_listener, bridge_app);
+
+                let gateway_app =
+                    gateway::Gateway::new(environment_variables, gateway::Bridge::new(bridge_port), registry)
+                        .await
+                        .map_err(|error| ServerError::GatewayError(error.to_string()))?
+                        .into_router();
+
+                let gateway_server = axum::serve(
+                    tokio::net::TcpListener::bind(&SocketAddr::new(listen_address, port))
+                        .await
+                        .map_err(ServerError::StartGatewayServer)?,
+                    gateway_app,
+                );
+
+                let _ = message_sender.send(ServerMessage::Ready {
+                    listen_address,
+                    port,
+                    is_federated: false,
+                });
+                tokio::select! {
+                    result = gateway_server.into_future() => {
+                        result.map_err(ServerError::StartGatewayServer)?;
+                    }
+                    result = bridge_server.into_future() => {
+                        result.map_err(ServerError::StartBridgeApi)?
+                    }
+                }
+                Ok(())
             }
         }
-        Ok(())
     }
 }
 
@@ -221,7 +254,7 @@ async fn federated_dev(
         })
         .ok();
 
-    let server = federated_dev::run(worker_port, false, config.into_federated_config_receiver());
+    let server = federated_dev::run(worker_port, false, config.into_federated_config_receiver(), None);
 
     tokio::select! {
         result = proxy.join() => {

@@ -88,7 +88,7 @@ where
 }
 
 impl<'a> SchemaWalker<'a, ()> {
-    pub fn definitions(&self) -> impl Iterator<Item = DefinitionWalker<'a>> + 'a {
+    pub fn definitions(&self) -> impl ExactSizeIterator<Item = DefinitionWalker<'a>> + 'a {
         let walker = *self;
         self.schema
             .definitions

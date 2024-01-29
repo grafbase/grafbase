@@ -9,12 +9,18 @@ use utils::consts::{SCALARS_CREATE_OPTIONAL, SCALARS_CREATE_REQUIRED, SCALARS_SC
 use utils::environment::Environment;
 
 impl Client {
-    fn create_opt(&self, variables: Value) -> Value {
-        self.gql::<Value>(SCALARS_CREATE_OPTIONAL).variables(variables).send()
+    async fn create_opt(&self, variables: Value) -> Value {
+        self.gql::<Value>(SCALARS_CREATE_OPTIONAL)
+            .variables(variables)
+            .send()
+            .await
     }
 
-    fn create_req(&self, variables: Value) -> Value {
-        self.gql::<Value>(SCALARS_CREATE_REQUIRED).variables(variables).send()
+    async fn create_req(&self, variables: Value) -> Value {
+        self.gql::<Value>(SCALARS_CREATE_REQUIRED)
+            .variables(variables)
+            .send()
+            .await
     }
 }
 
@@ -25,9 +31,9 @@ struct TestCase {
 }
 
 impl TestCase {
-    fn run_with(self, client: &Client) {
+    async fn run_with(self, client: &Client) {
         let TestCase { ty, input, expected } = self;
-        let response = client.create_opt(json!({ ty: input }));
+        let response = client.create_opt(json!({ ty: input })).await;
         match expected {
             Ok(expected) => {
                 let result: Value = dot_get!(response, &format!("data.scalarsCreate.scalars.{}", &ty));
@@ -51,15 +57,15 @@ fn error_matching(pattern: &str) -> Result<Value, Regex> {
 
 // There's no point in splitting test cases
 #[allow(clippy::too_many_lines)]
-#[test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore]
-fn scalars() {
+async fn scalars() {
     let mut env = Environment::init();
     env.grafbase_init(GraphType::Single);
     env.write_schema(SCALARS_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 
     let variables = json!({
         "ip": "127.0.0.1",
@@ -80,10 +86,10 @@ fn scalars() {
     });
     // Ensure everything works with correctly formatted inputs whether optional or required.
     for (prefix, response) in [
-        ("data.scalarsCreate.scalars", client.create_opt(variables.clone())),
+        ("data.scalarsCreate.scalars", client.create_opt(variables.clone()).await),
         (
             "data.requiredScalarsCreate.requiredScalars",
-            client.create_req(variables.clone()),
+            client.create_req(variables.clone()).await,
         ),
     ] {
         assert_eq!(
@@ -175,7 +181,7 @@ fn scalars() {
             expected: error_matching("URL without a base"),
         },
     ] {
-        test_case.run_with(&client);
+        test_case.run_with(&client).await;
     }
 
     for invalid_email in [
@@ -191,7 +197,8 @@ fn scalars() {
             input: json!(invalid_email),
             expected: error_matching("invalid email address"),
         }
-        .run_with(&client);
+        .run_with(&client)
+        .await;
     }
 
     for invalid_phone in ["0", "-33612121212", "number"] {
@@ -200,7 +207,8 @@ fn scalars() {
             input: json!(invalid_phone),
             expected: error_matching("Phone"),
         }
-        .run_with(&client);
+        .run_with(&client)
+        .await;
     }
 
     for invalid_date in [
@@ -218,7 +226,8 @@ fn scalars() {
             input: json!(invalid_date),
             expected: error_matching("Date"),
         }
-        .run_with(&client);
+        .run_with(&client)
+        .await;
     }
 
     for invalid_dateime in [
@@ -238,6 +247,7 @@ fn scalars() {
             input: json!(invalid_dateime),
             expected: error_matching("DateTime"),
         }
-        .run_with(&client);
+        .run_with(&client)
+        .await;
     }
 }

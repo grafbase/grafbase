@@ -14,6 +14,9 @@ pub(crate) async fn publish(
     let project_ref = project_ref.ok_or_else(|| CliError::MissingArgument("PROJECT_REF"))?;
     let schema = match schema_path {
         Some(path) => fs::read_to_string(path).map_err(CliError::SchemaReadError)?,
+        None if atty::is(atty::Stream::Stdin) => {
+            return Err(CliError::MissingArgument("--schema or a schema piped through stdin"))
+        }
         None => {
             let mut schema = String::new();
 

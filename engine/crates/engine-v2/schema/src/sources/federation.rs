@@ -1,4 +1,6 @@
-use crate::{FieldSet, Header, HeaderId, HeaderValue, SchemaWalker, StringId, SubgraphId};
+use url::Url;
+
+use crate::{FieldSet, Header, HeaderId, HeaderValue, SchemaWalker, StringId, SubgraphId, UrlId};
 
 #[derive(Default)]
 pub struct DataSource {
@@ -8,7 +10,8 @@ pub struct DataSource {
 #[derive(Debug)]
 pub struct Subgraph {
     pub name: StringId,
-    pub url: StringId,
+    pub url: UrlId,
+    pub websocket_url: Option<UrlId>,
     pub headers: Vec<HeaderId>,
 }
 
@@ -106,8 +109,15 @@ impl<'a> SubgraphWalker<'a> {
         &self.schema[self.item.name]
     }
 
-    pub fn url(&self) -> &'a str {
+    pub fn url(&self) -> &'a Url {
         &self.schema[self.item.url]
+    }
+
+    pub fn websocket_url(&self) -> &'a Url {
+        match self.item.websocket_url {
+            Some(websocket_id) => &self.schema[websocket_id],
+            None => self.url(),
+        }
     }
 
     pub fn headers(&self) -> impl Iterator<Item = SubgraphHeaderWalker<'a>> + '_ {

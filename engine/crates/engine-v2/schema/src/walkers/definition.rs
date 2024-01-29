@@ -51,7 +51,7 @@ impl<'a> DefinitionWalker<'a> {
         }
     }
 
-    pub fn interfaces(&self) -> Option<Box<dyn Iterator<Item = InterfaceWalker<'a>> + 'a>> {
+    pub fn interfaces(&self) -> Option<Box<dyn ExactSizeIterator<Item = InterfaceWalker<'a>> + 'a>> {
         match self.item {
             Definition::Object(o) => Some(Box::new(self.walk(o).interfaces())),
             Definition::Interface(i) => Some(Box::new(self.walk(i).interfaces())),
@@ -59,7 +59,7 @@ impl<'a> DefinitionWalker<'a> {
         }
     }
 
-    pub fn possible_types(&self) -> Option<Box<dyn Iterator<Item = ObjectWalker<'a>> + 'a>> {
+    pub fn possible_types(&self) -> Option<Box<dyn ExactSizeIterator<Item = ObjectWalker<'a>> + 'a>> {
         match self.item {
             Definition::Interface(i) => Some(Box::new(self.walk(i).possible_types())),
             Definition::Union(u) => Some(Box::new(self.walk(u).possible_types())),

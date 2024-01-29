@@ -43,6 +43,7 @@ pub struct Config {
 /// Additional configuration for a particular subgraph
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct SubgraphConfig {
+    pub websocket_url: Option<StringId>,
     pub headers: Vec<HeaderId>,
 }
 

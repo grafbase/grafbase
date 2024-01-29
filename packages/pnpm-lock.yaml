@@ -21,8 +21,8 @@ importers:
   cli-app:
     dependencies:
       '@pathfinder-ide/react':
-        specifier: 0.3.4
-        version: 0.3.4(@types/react@18.2.48)(prettier@3.2.4)(react-dom@18.2.0)(react@18.2.0)
+        specifier: 0.4.0
+        version: 0.4.0(@types/react@18.2.48)(prettier@3.2.4)(react-dom@18.2.0)(react@18.2.0)
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -185,8 +185,8 @@ importers:
         specifier: ^16.1.4
         version: 16.1.4
       type-fest:
-        specifier: ^3.9.0
-        version: 3.9.0
+        specifier: ^4.0.0
+        version: 4.10.1
     devDependencies:
       '@jest/globals':
         specifier: '=29.7.0'
@@ -216,8 +216,8 @@ importers:
         specifier: ^7.5.1
         version: 7.5.4
       ts-jest:
-        specifier: '=29.1.1'
-        version: 29.1.1(@babel/core@7.21.8)(jest@29.7.0)(typescript@5.2.2)
+        specifier: '=29.1.2'
+        version: 29.1.2(@babel/core@7.21.8)(jest@29.7.0)(typescript@5.2.2)
       ts-node:
         specifier: ^10.9.1
         version: 10.9.1(@types/node@20.10.7)(typescript@5.2.2)
@@ -978,13 +978,14 @@ packages:
       graphql: 16.8.1
     dev: false
 
-  /@headlessui/react@1.7.17(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-4am+tzvkqDSSgiwrsEpGWqgGo9dz8qU5M3znCkC4PgkpY4HcCZzEDEvozltGGGHIKl9jbXbZPSH5TWn4sWJdow==}
+  /@headlessui/react@1.7.18(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-4i5DOrzwN4qSgNsL4Si61VMkUcWbcSKueUV7sFhpHzQcSShdlHENE5+QBntMSRvHt8NyoFO2AGG8si9lq+w4zQ==}
     engines: {node: '>=10'}
     peerDependencies:
       react: ^16 || ^17 || ^18
       react-dom: ^16 || ^17 || ^18
     dependencies:
+      '@tanstack/react-virtual': 3.0.2(react-dom@18.2.0)(react@18.2.0)
       client-only: 0.0.1
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
@@ -1476,13 +1477,13 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.15.0
 
-  /@pathfinder-ide/react@0.3.4(@types/react@18.2.48)(prettier@3.2.4)(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-0oHWffLgGhmfmvlQGvCC73/zsF5D3j0Se6gA861UdpWaBdtyveHXyr4JDpLcyLBe1fDw9uVq6uBAUGj0j9Ctnw==}
+  /@pathfinder-ide/react@0.4.0(@types/react@18.2.48)(prettier@3.2.4)(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-fov19CxQ54AYCqolXgDwSLiHUdPAZYbyYZfwOBXiyjgab4JsUW7E/GsXFiE8yMc2qkChQohsckWjvRl0XGzCvg==}
     peerDependencies:
       react: ^18.2.0
       react-dom: ^18.2.0
     dependencies:
-      '@headlessui/react': 1.7.17(react-dom@18.2.0)(react@18.2.0)
+      '@headlessui/react': 1.7.18(react-dom@18.2.0)(react@18.2.0)
       graphql: 16.8.1
       idb-keyval: 6.2.1
       lodash: 4.17.21
@@ -1644,6 +1645,21 @@ packages:
     dependencies:
       tslib: 2.5.0
     dev: true
+
+  /@tanstack/react-virtual@3.0.2(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-9XbRLPKgnhMwwmuQMnJMv+5a9sitGNCSEtf/AZXzmJdesYk7XsjYHaEDny+IrJzvPNwZliIIDwCRiaUqR3zzCA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      '@tanstack/virtual-core': 3.0.0
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
+    dev: false
+
+  /@tanstack/virtual-core@3.0.0:
+    resolution: {integrity: sha512-SYXOBTjJb05rXa2vl55TTwO40A6wKu0R5i1qQwhJYNDIqaIGF7D0HsLw+pJAyi2OvntlEIVusx3xtbbgSUi6zg==}
+    dev: false
 
   /@tsconfig/node10@1.0.9:
     resolution: {integrity: sha512-jNsYVVxU8v5g43Erja32laIDHXeoNvFEpX33OK4d6hljo3jDhCBDhx5dhCCTMWUojscpAagGiRkBKxpdl9fxqA==}
@@ -3278,7 +3294,7 @@ packages:
       minimatch: 3.1.2
       object.entries: 1.1.6
       object.fromentries: 2.0.6
-      semver: 6.3.0
+      semver: 6.3.1
     dev: false
 
   /eslint-plugin-react-hooks@4.6.0(eslint@8.39.0):
@@ -5962,11 +5978,6 @@ packages:
     hasBin: true
     dev: true
 
-  /semver@6.3.0:
-    resolution: {integrity: sha512-b39TBaTSfV6yBrapU89p5fKekE2m/NwnDocOVruQFS1/veMgdzuPcnOM34M6CwxW8jH/lxEa5rBoDeUwu5HHTw==}
-    hasBin: true
-    dev: false
-
   /semver@6.3.1:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
     hasBin: true
@@ -6376,9 +6387,9 @@ packages:
       tslib: 2.5.0
     dev: false
 
-  /ts-jest@29.1.1(@babel/core@7.21.8)(jest@29.7.0)(typescript@5.2.2):
-    resolution: {integrity: sha512-D6xjnnbP17cC85nliwGiL+tpoKN0StpgE0TeOjXQTU6MVCfsB4v7aW05CgQ/1OywGb0x/oy9hHFnN+sczTiRaA==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+  /ts-jest@29.1.2(@babel/core@7.21.8)(jest@29.7.0)(typescript@5.2.2):
+    resolution: {integrity: sha512-br6GJoH/WUX4pu7FbZXuWGKGNDuU7b8Uj77g/Sp7puZV6EXzuByl6JrECvm0MzVzSTkSHWTihsXt+5XYER5b+g==}
+    engines: {node: ^16.10.0 || ^18.0.0 || >=20.0.0}
     hasBin: true
     peerDependencies:
       '@babel/core': '>=7.0.0-beta.0 <8'
@@ -6625,9 +6636,9 @@ packages:
     engines: {node: '>=10'}
     dev: true
 
-  /type-fest@3.9.0:
-    resolution: {integrity: sha512-hR8JP2e8UiH7SME5JZjsobBlEiatFoxpzCP+R3ZeCo7kAaG1jXQE5X/buLzogM6GJu8le9Y4OcfNuIQX0rZskA==}
-    engines: {node: '>=14.16'}
+  /type-fest@4.10.1:
+    resolution: {integrity: sha512-7ZnJYTp6uc04uYRISWtiX3DSKB/fxNQT0B5o1OUeCqiQiwF+JC9+rJiZIDrPrNCLLuTqyQmh4VdQqh/ZOkv9MQ==}
+    engines: {node: '>=16'}
     dev: false
 
   /typed-array-buffer@1.0.0:

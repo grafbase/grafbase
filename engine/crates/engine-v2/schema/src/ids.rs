@@ -5,6 +5,7 @@ use crate::{
     CacheConfig, Definition, Enum, Field, Header, InputObject, InputValue, Interface, Object, Resolver, Scalar, Schema,
     Type, Union,
 };
+use url::Url;
 
 /// Reserving the 4 upper bits for some fun with bit packing. It still leaves 268 million possible values.
 /// And it's way easier to increase that limit if needed that to reserve some bits later!
@@ -62,12 +63,13 @@ id_newtypes! {
     Schema.interfaces[InterfaceId] => Interface unless "Too many interfaces",
     Schema.objects[ObjectId] => Object unless "Too many objects",
     Schema.scalars[ScalarId] => Scalar unless "Too many scalars",
-    Schema.strings[StringId] => String unless "Too many strings",
     Schema.unions[UnionId] => Union unless "Too many unions",
     Schema.resolvers[ResolverId] => Resolver unless "Too many resolvers",
     Schema.definitions[DefinitionId] => Definition unless "Too many definitions",
     Schema.input_values[InputValueId] => InputValue unless "Too many input values",
     Schema.headers[HeaderId] => Header unless "Too many headers",
+    Schema.urls[UrlId] => Url unless "Too many urls",
+    Schema.strings[StringId] => String unless "Too many strings",
     FederationDataSource.subgraphs[SubgraphId] => Subgraph unless "Too many subgraphs",
     Schema.cache_configs[CacheConfigId] => CacheConfig unless "Too many cache configs",
 }

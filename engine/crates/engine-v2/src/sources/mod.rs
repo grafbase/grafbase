@@ -94,6 +94,14 @@ impl<'exc> Executor<'exc> {
             Executor::FederationEntity(executor) => executor.execute().await,
         }
     }
+
+    pub fn plan_id(&self) -> PlanId {
+        match self {
+            Executor::GraphQL(executor) => executor.plan_id,
+            Executor::Introspection(executor) => executor.plan_id,
+            Executor::FederationEntity(executor) => executor.plan_id,
+        }
+    }
 }
 
 #[allow(dead_code)]
@@ -140,8 +148,6 @@ impl<'exc> SubscriptionExecutor<'exc> {
 pub enum ExecutorError {
     #[error("Internal error: {0}")]
     Internal(String),
-    #[error(transparent)]
-    Write(#[from] crate::response::WriteError),
     #[error(transparent)]
     Fetch(#[from] runtime::fetch::FetchError),
 }

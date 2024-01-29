@@ -23,7 +23,7 @@ use super::{admin::Header, refresher::RefreshMessage};
 pub(crate) type GraphSender = watch::Sender<Option<FederatedGraph>>;
 
 /// A channel to receive a composed federated graph, typically for a router.
-pub(crate) type GraphReceiver = watch::Receiver<Option<FederatedGraph>>;
+pub(crate) type GraphWatcher = watch::Receiver<Option<FederatedGraph>>;
 
 /// A channel to send a refresh message with a collection of graphs.
 pub(crate) type RefreshSender = mpsc::Sender<Vec<RefreshMessage>>;

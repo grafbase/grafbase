@@ -10,17 +10,17 @@ use serde_json::{json, Value};
 use utils::environment::Environment;
 
 #[ignore]
-#[test]
-fn reserved_dates() {
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn reserved_dates() {
     // TODO: Create simpler client setup (one-line)
     let mut env = Environment::init();
     env.grafbase_init(GraphType::Single);
     env.write_schema(RESERVED_DATES_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 
-    let response = client.gql::<Value>(RESERVED_DATES_NESTED_CREATION).send();
+    let response = client.gql::<Value>(RESERVED_DATES_NESTED_CREATION).send().await;
 
     let user: Value = dot_get!(response, "data.userCreate.user");
     assert_eq!(dot_get!(user, "name", String), "John");
@@ -60,7 +60,8 @@ fn reserved_dates() {
         .variables(json!({
                 "title": "Champion"
         }))
-        .send();
+        .send()
+        .await;
     let todo: Value = dot_get!(response, "data.todoCreate.todo");
     let todo_created_at = dot_get!(todo, "createdAt", String);
     assert!(todo_created_at
@@ -75,7 +76,8 @@ fn reserved_dates() {
             "title": "Champion List",
             "todoId": dot_get!(todo, "id", String)
         }))
-        .send();
+        .send()
+        .await;
     let todo_list: Value = dot_get!(response, "data.todoListCreate.todoList");
     let todo_list_created_at = dot_get!(todo_list, "createdAt", String);
     assert!(todo_list_created_at

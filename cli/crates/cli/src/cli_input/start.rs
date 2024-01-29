@@ -1,4 +1,7 @@
-use std::net::{IpAddr, Ipv4Addr};
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    path::PathBuf,
+};
 
 use super::{LogLevelFilter, LogLevelFilters, DEFAULT_SUBGRAPH_PORT};
 
@@ -22,6 +25,9 @@ pub struct StartCommand {
     /// IP address on which the server will listen for incomming connections. Defaults to 127.0.0.1.
     #[arg(long)]
     pub listen_address: Option<IpAddr>,
+    /// Path to federated graph SDL. If provided, the graph will be static and cannot be updated.
+    #[arg(long)]
+    pub federated_graph_schema: Option<PathBuf>,
 }
 
 impl StartCommand {
@@ -44,5 +50,13 @@ impl StartCommand {
 
     pub fn listen_address(&self) -> IpAddr {
         self.listen_address.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED))
+    }
+
+    pub fn federated_graph_schema_path(&self) -> Option<PathBuf> {
+        self.federated_graph_schema
+            .as_ref()
+            .zip(std::env::current_dir().ok())
+            .map(|(path, cwd)| cwd.join(path))
+            .or(self.federated_graph_schema.clone())
     }
 }

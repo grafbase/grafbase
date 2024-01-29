@@ -189,6 +189,9 @@ pub enum ServerError {
 
     #[error("Error in gateway initialization: {0}")]
     GatewayError(String),
+
+    #[error("Failed loading the federated graph from the SDL: {0}")]
+    InvalidFederatedGraphSdl(String),
 }
 
 #[derive(Debug, Error)]

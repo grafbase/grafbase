@@ -84,6 +84,12 @@ impl Query {
         let hats = ctx.data_unchecked::<Vec<Product>>();
         hats.iter().find(|product| product.upc == upc)
     }
+
+    #[graphql(entity)]
+    async fn find_product_by_name<'a>(&self, ctx: &'a Context<'_>, name: String) -> Option<&'a Product> {
+        let hats = ctx.data_unchecked::<Vec<Product>>();
+        hats.iter().find(|product| product.name == name)
+    }
 }
 
 struct Subscription;

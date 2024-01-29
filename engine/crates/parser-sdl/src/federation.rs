@@ -23,6 +23,11 @@ pub struct SubgraphConfig {
     /// The name of the subgrah
     pub name: String,
 
+    /// The URL to use for GraphQL-WS calls.
+    ///
+    /// This will default to the normal URL if not present.
+    pub websocket_url: Option<String>,
+
     /// Any headers we should forward for this subgraph
     pub headers: Vec<(String, SubgraphHeaderValue)>,
 }

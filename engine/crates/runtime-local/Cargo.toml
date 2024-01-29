@@ -15,7 +15,7 @@ workspace = true
 [dependencies]
 async-runtime.workspace = true
 async-trait = "0.1"
-async-tungstenite = { version = "0.24.0", features = ["tokio-runtime"] }
+async-tungstenite = { version = "0.24.0", features = ["tokio-runtime", "tokio-rustls-webpki-roots"] }
 futures-util.workspace = true
 graphql-ws-client = "0.7"
 tokio.workspace = true
@@ -30,7 +30,7 @@ log = { workspace = true, features = ["with-worker"] }
 search-protocol.workspace = true
 postgres-connector-types = { path = "../postgres-connector-types" }
 
-reqwest = { version = "0.11", default-features = false, features = [
+reqwest = { workspace = true, features = [
   "json",
   "rustls-tls",
 ] }

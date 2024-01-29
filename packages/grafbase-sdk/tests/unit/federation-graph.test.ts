@@ -1,4 +1,4 @@
-import { config, graph } from '../../src/index'
+import { SubscriptionTransport, config, graph } from '../../src/index'
 import { describe, expect, it } from '@jest/globals'
 import { renderGraphQL } from '../utils'
 
@@ -46,6 +46,28 @@ describe('Federation config', () => {
     `)
   })
 
+  it('supports subscription settings', () => {
+    const cfg = config({
+      graph: graph.Federated({
+        subscriptions: (subscriptions) => {
+          subscriptions
+            .subgraph('Product')
+            .transport(SubscriptionTransport.GraphQlOverWebsockets, {
+              url: 'http://example.com'
+            })
+        }
+      })
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "
+      extend schema
+        @graph(type: federated)
+        @subgraph(name: "Product", websocketUrl: "http://example.com")
+      "
+    `)
+  })
+
   it('supports cache configuration', () => {
     const cfg = config({
       graph: graph.Federated({
@@ -71,7 +93,7 @@ describe('Federation config', () => {
             maxAge: 60
           }
         ])
-      
+
       "
     `)
   })

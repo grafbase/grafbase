@@ -14,6 +14,13 @@ fn single_subgraph_subscription() {
         let engine = Gateway::builder()
             .with_schema("products", &products)
             .await
+            .with_supergraph_config(indoc::formatdoc!(
+                r#"
+                    extend schema
+                      @subgraph(name: "products", websocketUrl: "{}")
+                "#,
+                products.websocket_url(),
+            ))
             .finish()
             .await;
 
@@ -72,6 +79,17 @@ fn actual_federated_subscription() {
             .await
             .with_schema("reviews", &reviews)
             .await
+            .with_supergraph_config(indoc::formatdoc!(
+                r#"
+                    extend schema
+                      @subgraph(name: "accounts", websocketUrl: "{}")
+                      @subgraph(name: "products", websocketUrl: "{}")
+                      @subgraph(name: "reviews", websocketUrl: "{}")
+                "#,
+                accounts.websocket_url(),
+                products.websocket_url(),
+                reviews.websocket_url(),
+            ))
             .finish()
             .await;
 

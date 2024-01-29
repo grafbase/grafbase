@@ -8,10 +8,6 @@ impl<'a> ObjectWalker<'a> {
         self.names.object(self.schema, self.item)
     }
 
-    pub fn description(&self) -> Option<&'a str> {
-        self.as_ref().description.map(|id| self.schema[id].as_str())
-    }
-
     pub fn fields(&self) -> impl Iterator<Item = FieldWalker<'a>> + 'a {
         let start = self
             .schema
@@ -33,7 +29,7 @@ impl<'a> ObjectWalker<'a> {
         }
     }
 
-    pub fn interfaces(&self) -> impl Iterator<Item = InterfaceWalker<'a>> + 'a {
+    pub fn interfaces(&self) -> impl ExactSizeIterator<Item = InterfaceWalker<'a>> + 'a {
         let walker = *self;
         self.as_ref()
             .interfaces
@@ -54,7 +50,6 @@ impl<'a> std::fmt::Debug for ObjectWalker<'a> {
         f.debug_struct("Object")
             .field("id", &usize::from(self.item))
             .field("name", &self.name())
-            .field("description", &self.description())
             .field("fields", &self.fields().map(|f| f.name()).collect::<Vec<_>>())
             .field("interfaces", &self.interfaces().map(|i| i.name()).collect::<Vec<_>>())
             .finish()

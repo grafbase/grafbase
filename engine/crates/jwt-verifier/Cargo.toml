@@ -21,10 +21,10 @@ runtime.workspace = true
 log.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-reqwest = { version = "0.11", default-features = false, features = ["json"] }
+reqwest = { workspace = true, features = ["json"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-reqwest = { version = "0.11", default-features = false, features = [
+reqwest = { workspace = true, features = [
   "json",
   "rustls-tls",
 ] }
@@ -33,4 +33,4 @@ reqwest = { version = "0.11", default-features = false, features = [
 chrono = "0.4"
 serde_json.workspace = true
 tokio = { version = "1", features = ["macros"] }
-wiremock = "0.5"
+wiremock.workspace = true

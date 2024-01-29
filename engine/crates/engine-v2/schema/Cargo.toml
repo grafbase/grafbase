@@ -12,6 +12,10 @@ keywords = ["graphql", "engine", "grafbase"]
 
 [dependencies]
 strum = { workspace = true, features = ["derive"] }
+strum_macros.workspace = true
+url.workspace = true
+fnv = "1"
+indexmap.workspace = true
 
 config = { package = "engine-v2-config", path = "../config" }
 federated-graph = { package = "graphql-federated-graph", path = "../../federated-graph" }

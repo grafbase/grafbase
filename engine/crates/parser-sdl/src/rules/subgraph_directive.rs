@@ -1,4 +1,5 @@
 use engine_parser::types::SchemaDefinition;
+use url::Url;
 
 use crate::directive_de::parse_directive;
 
@@ -16,6 +17,11 @@ pub struct SubgraphDirective {
     /// The name of the subgraph
     name: String,
 
+    /// The URL to use for GraphQL-WS calls.
+    ///
+    /// This will default to the normal URL if not present.
+    websocket_url: Option<Url>,
+
     /// Any additional headers we want to send to this subgraph
     #[serde(default)]
     headers: Vec<Header>,
@@ -27,6 +33,14 @@ impl Directive for SubgraphDirective {
         directive @subgraph(
           "The name of the subgraph"
           name: String!
+
+          """
+          The URL to use for GraphQL-WS calls.
+
+          This will default to the normal URL if not present.
+          """
+          websocketUrl: String!
+
           "Any additional headers we want to send to this subgraph"
           headers: [SubgraphHeader!]
         ) on SCHEMA
@@ -63,6 +77,7 @@ impl Visitor<'_> for SubgraphDirectiveVisitor {
         }
 
         for directive in directives {
+            let position = directive.pos;
             let directive = match parse_directive::<SubgraphDirective>(directive, ctx.variables) {
                 Ok(directive) => directive,
                 Err(error) => {
@@ -71,6 +86,12 @@ impl Visitor<'_> for SubgraphDirectiveVisitor {
                 }
             };
 
+            if let Some(url) = &directive.websocket_url {
+                if url.scheme() != "ws" && url.scheme() != "wss" {
+                    ctx.report_error(vec![position], "Websocket URLs must have a scheme of ws or wss");
+                }
+            }
+
             let subgraph = ctx
                 .federated_graph_config
                 .subgraphs
@@ -78,6 +99,13 @@ impl Visitor<'_> for SubgraphDirectiveVisitor {
                 .or_default();
 
             subgraph.name = directive.name;
+
+            if let Some(url) = directive.websocket_url {
+                // We want to support multiple @subgraph directives for any given subgraph
+                // so if websocket_url isn't present on this one, don't set it at all
+                subgraph.websocket_url = Some(url.to_string())
+            }
+
             subgraph.headers.extend(
                 directive
                     .headers
@@ -121,6 +149,7 @@ mod tests {
                 subgraphs: {
                     "Products": SubgraphConfig {
                         name: "Products",
+                        websocket_url: None,
                         headers: [
                             (
                                 "Auth",
@@ -138,6 +167,7 @@ mod tests {
                     },
                     "Reviews": SubgraphConfig {
                         name: "Reviews",
+                        websocket_url: None,
                         headers: [
                             (
                                 "Auth",

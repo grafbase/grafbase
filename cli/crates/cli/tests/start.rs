@@ -3,14 +3,14 @@ mod utils;
 
 use utils::environment::Environment;
 #[ignore]
-#[test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[cfg(not(target_os = "windows"))]
-fn start_with_ts_config() {
+async fn start_with_ts_config() {
     let mut env = Environment::init();
     env.set_typescript_config(include_str!("config/default.ts"));
     env.grafbase_start();
     let client = env.create_client().with_api_key();
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint(30, 300).await;
 
     let response = client
         .gql::<serde_json::Value>(
@@ -26,7 +26,8 @@ fn start_with_ts_config() {
         }
     ",
         )
-        .send();
+        .send()
+        .await;
     assert_eq!(
         response,
         serde_json::json!({

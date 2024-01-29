@@ -1,8 +1,11 @@
 mod websockets;
 
+use std::collections::HashMap;
+
 use futures_util::stream::BoxStream;
 use reqwest::header::HeaderValue;
 use runtime::fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, Fetcher, FetcherInner, GraphqlRequest};
+use serde_json::json;
 
 use self::websockets::{EngineGraphqlClient, StreamingRequest, TokioSpawner};
 
@@ -23,7 +26,7 @@ impl FetcherInner for NativeFetcher {
     async fn post(&self, request: FetchRequest<'_>) -> FetchResult<FetchResponse> {
         let response = self
             .client
-            .post(request.url)
+            .post(request.url.clone())
             .body(request.json_body)
             .header("Content-Type", "application/json")
             .headers(
@@ -51,6 +54,7 @@ impl FetcherInner for NativeFetcher {
         use futures_util::StreamExt;
 
         let mut client = {
+            let init_headers = request.headers.iter().copied().collect::<HashMap<_, _>>();
             let mut request = request.url.into_client_request().unwrap();
             request.headers_mut().insert(
                 "Sec-WebSocket-Protocol",
@@ -62,6 +66,7 @@ impl FetcherInner for NativeFetcher {
             let (sink, stream) = connection.split();
 
             graphql_ws_client::AsyncWebsocketClientBuilder::<EngineGraphqlClient>::new()
+                .payload(json!({"headers": init_headers}))
                 .build(stream, sink, TokioSpawner::current())
                 .await
                 .map_err(FetchError::any)?
