@@ -25,7 +25,7 @@ http.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls"] }
 runtime.workspace = true
 runtime-local.workspace = true
-serde = "1.0.195"
+serde = "1.0.196"
 serde_json.workspace = true
 thiserror = "1.0.56"
 tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }

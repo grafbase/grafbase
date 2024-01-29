@@ -302,7 +302,7 @@ dependencies = [
  "proc-macro-crate 1.3.1",
  "proc-macro2",
  "quote",
- "strum",
+ "strum 0.25.0",
  "syn 2.0.48",
  "thiserror",
 ]
@@ -976,7 +976,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "strum",
+ "strum 0.26.1",
 ]
 
 [[package]]
@@ -1507,18 +1507,18 @@ dependencies = [
 
 [[package]]
 name = "derive_builder"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d67778784b508018359cbc8696edb3db78160bab2c2a28ba7f56ef6932997f8"
+checksum = "660047478bc508c0fde22c868991eec0c40a63e48d610befef466d48e2bee574"
 dependencies = [
  "derive_builder_macro",
 ]
 
 [[package]]
 name = "derive_builder_core"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c11bdc11a0c47bc7d37d582b5285da6849c96681023680b906673c5707af7b0f"
+checksum = "9b217e6dd1011a54d12f3b920a411b5abd44b1716ecfe94f5f2f2f7b52e08ab7"
 dependencies = [
  "darling 0.14.4",
  "proc-macro2",
@@ -1528,9 +1528,9 @@ dependencies = [
 
 [[package]]
 name = "derive_builder_macro"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebcda35c7a396850a55ffeac740804b40ffec779b98fffbb1738f4033f0ee79e"
+checksum = "7a5f77d7e20ac9153428f7ca14a88aba652adfc7a0ef0a06d654386310ef663b"
 dependencies = [
  "derive_builder_core",
  "syn 1.0.109",
@@ -1851,7 +1851,7 @@ dependencies = [
  "serde-value",
  "serde_json",
  "serde_with",
- "strum",
+ "strum 0.26.1",
  "thiserror",
  "tracing",
 ]
@@ -1879,7 +1879,7 @@ dependencies = [
  "fnv",
  "graphql-federated-graph",
  "indexmap 2.2.0",
- "strum",
+ "strum 0.26.1",
  "url",
 ]
 
@@ -2514,7 +2514,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "slugify",
- "strum",
+ "strum 0.26.1",
  "sysinfo",
  "tempfile",
  "thiserror",
@@ -2583,7 +2583,7 @@ dependencies = [
  "rudderanalytics",
  "serde",
  "serde_json",
- "strum",
+ "strum 0.26.1",
  "thiserror",
  "tokio",
  "ulid",
@@ -2627,7 +2627,7 @@ dependencies = [
  "sha2",
  "slug",
  "strip-ansi-escapes",
- "strum",
+ "strum 0.26.1",
  "tar",
  "tempfile",
  "thiserror",
@@ -3695,7 +3695,7 @@ dependencies = [
  "reqwest",
  "secrecy",
  "serde",
- "strum",
+ "strum 0.26.1",
  "thiserror",
  "web-time",
  "worker",
@@ -4428,7 +4428,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml 0.9.30",
- "strum",
+ "strum 0.26.1",
  "thiserror",
  "tracing",
  "tracing-subscriber",
@@ -5380,7 +5380,7 @@ dependencies = [
  "search-protocol",
  "serde",
  "serde_json",
- "strum",
+ "strum 0.26.1",
  "thiserror",
  "tokio",
  "tracing",
@@ -5623,7 +5623,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "strum",
+ "strum 0.26.1",
  "thiserror",
  "ulid",
 ]
@@ -5845,7 +5845,7 @@ dependencies = [
  "itertools 0.12.0",
  "proc-macro2",
  "quote",
- "strum",
+ "strum 0.25.0",
  "syn 2.0.48",
 ]
 
@@ -6189,7 +6189,16 @@ version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "290d54ea6f91c969195bdbcd7442c8c2a2ba87da8bf60a7ee86a235d4bc1e125"
 dependencies = [
- "strum_macros",
+ "strum_macros 0.25.3",
+]
+
+[[package]]
+name = "strum"
+version = "0.26.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "723b93e8addf9aa965ebe2d11da6d7540fa2283fcea14b3371ff055f7ba13f5f"
+dependencies = [
+ "strum_macros 0.26.1",
 ]
 
 [[package]]
@@ -6197,6 +6206,19 @@ name = "strum_macros"
 version = "0.25.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23dc1fa9ac9c169a78ba62f0b841814b7abae11bdd047b9c58f893439e309ea0"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn 2.0.48",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.26.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a3417fc93d76740d974a01654a09777cb500428cc874ca9f45edfe0c4d4cd18"
 dependencies = [
  "heck",
  "proc-macro2",

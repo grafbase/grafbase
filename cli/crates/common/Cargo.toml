@@ -10,7 +10,7 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-chrono = "0.4.31"
+chrono = "0.4.33"
 derivative = "2.2.0"
 dirs = "5"
 rudderanalytics = { version = "1", features = [
@@ -18,7 +18,7 @@ rudderanalytics = { version = "1", features = [
 ], default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json.workspace = true
-strum = { version = "0.25", features = ["derive"] }
+strum = { version = "0.26", features = ["derive"] }
 thiserror = "1"
 tokio.workspace = true
 ulid = { version = "1", features = ["serde"] }
