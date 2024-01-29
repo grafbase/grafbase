@@ -85,35 +85,36 @@ impl ProductionServer {
                 bridge::build_router(message_sender.clone(), Arc::clone(&registry), tracing).await?;
             if !detected_udfs.is_empty() {
                 validate_node().await?;
-            // TODO: the compile function also spawns Bun, we need to separate them if we want to do it conditionally
-            // let project = Project::get();
+                // TODO: the compile function also spawns Bun, we need to separate them if we want to do it conditionally
+                // let project = Project::get();
 
-            // let mut hasher = FnvHasher::default();
+                // let mut hasher = FnvHasher::default();
 
-            // for entry in WalkBuilder::new(&project.path)
-            //     .hidden(false)
-            //     .follow_links(false)
-            //     .build()
-            //     .filter_map(Result::ok)
-            //     // Only path we can somewhat safely ignore is the schema one
-            //     .filter(|entry| {
-            //         !entry.file_type().is_some_and(|file_type| file_type.is_dir())
-            //             && entry.path() != project.schema_path.path()
-            //     })
-            // {
-            //     let content =
-            //         std::fs::read(entry.path()).map_err(|err| ServerError::ReadFile(entry.path().into(), err))?;
-            //     hasher.write(entry.path().to_string_lossy().as_bytes());
-            //     hasher.write(&content);
-            // }
-            // let hash = hasher.finish();
-            // let hash_path = project.dot_grafbase_directory_path.join("grafbase_hash");
-            // if hash.to_string() != tokio::fs::read_to_string(&hash_path).await.unwrap_or_default() {
-            install_bun(Environment::get(), tracing).await?;
-            bridge_state.build_all_udfs(detected_udfs, parallelism).await?;
-            //     // If we fail to write the hash, we're just going to recompile the UDFs.
-            //     let _ = tokio::fs::write(hash_path, hash.to_string()).await;
-            // }
+                // for entry in WalkBuilder::new(&project.path)
+                //     .hidden(false)
+                //     .follow_links(false)
+                //     .build()
+                //     .filter_map(Result::ok)
+                //     // Only path we can somewhat safely ignore is the schema one
+                //     .filter(|entry| {
+                //         !entry.file_type().is_some_and(|file_type| file_type.is_dir())
+                //             && entry.path() != project.schema_path.path()
+                //     })
+                // {
+                //     let content =
+                //         std::fs::read(entry.path()).map_err(|err| ServerError::ReadFile(entry.path().into(), err))?;
+                //     hasher.write(entry.path().to_string_lossy().as_bytes());
+                //     hasher.write(&content);
+                // }
+                // let hash = hasher.finish();
+                // let hash_path = project.dot_grafbase_directory_path.join("grafbase_hash");
+                // if hash.to_string() != tokio::fs::read_to_string(&hash_path).await.unwrap_or_default() {
+                install_bun(Environment::get(), tracing).await?;
+                bridge_state.build_all_udfs(detected_udfs, parallelism).await?;
+                //     // If we fail to write the hash, we're just going to recompile the UDFs.
+                //     let _ = tokio::fs::write(hash_path, hash.to_string()).await;
+                // }
+            }
             Ok(Self::V1 {
                 registry,
                 bridge_app,
