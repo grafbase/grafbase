@@ -21,8 +21,11 @@ importers:
   cli-app:
     dependencies:
       '@pathfinder-ide/react':
-        specifier: 0.4.0
-        version: 0.4.0(@types/react@18.2.48)(prettier@3.2.4)(react-dom@18.2.0)(react@18.2.0)
+        specifier: 0.5.0
+        version: 0.5.0(@types/react@18.2.48)(graphql@16.8.1)(prettier@3.2.4)(react-dom@18.2.0)(react@18.2.0)
+      graphql:
+        specifier: ^16.8.1
+        version: 16.8.1
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -1477,9 +1480,10 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.15.0
 
-  /@pathfinder-ide/react@0.4.0(@types/react@18.2.48)(prettier@3.2.4)(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-fov19CxQ54AYCqolXgDwSLiHUdPAZYbyYZfwOBXiyjgab4JsUW7E/GsXFiE8yMc2qkChQohsckWjvRl0XGzCvg==}
+  /@pathfinder-ide/react@0.5.0(@types/react@18.2.48)(graphql@16.8.1)(prettier@3.2.4)(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-zuP5hM53qmjUmP2CZJtejHQCpdOrB2gGt7PAWk8brbLm9RTnYklY0DiuJoLznu2hg+VL4SqbQLUNyUdlCncPPg==}
     peerDependencies:
+      graphql: '>=16.0.0'
       react: ^18.2.0
       react-dom: ^18.2.0
     dependencies:
