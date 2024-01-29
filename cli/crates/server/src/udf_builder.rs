@@ -1,6 +1,5 @@
 use common::environment::Environment;
 use common::types::UdfKind;
-use std::io;
 
 use itertools::Itertools;
 use std::path::{Path, PathBuf};
@@ -8,6 +7,7 @@ use std::process::Stdio;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
+use crate::consts::ENTRYPOINT_SCRIPT_FILE_NAME;
 use crate::errors::{JavascriptPackageManagerComamndError, ServerError, UdfBuildError};
 
 async fn run_command<P: AsRef<Path>>(
@@ -101,8 +101,7 @@ pub(crate) async fn build(
     udf_kind: UdfKind,
     udf_name: &str,
     tracing: bool,
-    enable_kv: bool,
-) -> Result<(PathBuf, PathBuf), UdfBuildError> {
+) -> Result<PathBuf, UdfBuildError> {
     use path_slash::PathBufExt as _;
 
     let project = environment.project.as_ref().expect("must be present");
@@ -134,14 +133,9 @@ pub(crate) async fn build(
     tokio::fs::create_dir_all(&udf_build_artifact_directory_path)
         .await
         .map_err(|_err| UdfBuildError::CreateDir(udf_build_artifact_directory_path.clone(), udf_kind))?;
-    let udf_build_entrypoint_path = udf_build_artifact_directory_path.join("entrypoint.js");
+    let udf_build_entrypoint_path = udf_build_artifact_directory_path.join(ENTRYPOINT_SCRIPT_FILE_NAME);
 
     let udf_build_package_json_path = udf_build_artifact_directory_path.join("package.json");
-
-    let artifact_directory_modules_path = udf_build_artifact_directory_path.join("node_modules");
-    let artifact_directory_modules_path_string = artifact_directory_modules_path
-        .to_str()
-        .expect("must be valid if `artifact_directory_path_string` is valid");
 
     let udf_wrapper_worker_contents = udf_wrapper_worker_contents.replace(
         "${UDF_MAIN_FILE_PATH}",
@@ -151,78 +145,107 @@ pub(crate) async fn build(
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_build_entrypoint_path.clone(), udf_kind, err))?;
 
-    let wrangler_output_directory_path = udf_build_artifact_directory_path.join("wrangler");
-    let outdir_argument = format!(
-        "--outdir={}",
-        wrangler_output_directory_path.to_str().expect("must be valid utf-8"),
-    );
-
-    trace!("writing the package.json file for '{udf_name}' used by wrangler");
-
     let package_json = serde_json::json!({
-        "module": "wrangler/entrypoint.js",
-        "type": "module"
+        "main": ENTRYPOINT_SCRIPT_FILE_NAME,
     });
     let new_package_json_contents = serde_json::to_string_pretty(&package_json).expect("must be valid JSON");
     trace!("new package.json contents:\n{new_package_json_contents}");
-
-    // symlink to grafbase-wasm-sdk
-    symlink_grafbase_wasm_sdk(environment, &udf_build_artifact_directory_path)
-        .await
-        .map_err(UdfBuildError::SymlinkFailure)?;
 
     tokio::fs::write(&udf_build_package_json_path, new_package_json_contents)
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_build_package_json_path.clone(), udf_kind, err))?;
 
-    let wrangler_toml_file_path = udf_build_artifact_directory_path.join("wrangler.toml");
+    // TODO: this should just output directly to the `dist` dir
+    let build_id = uuid::Uuid::new_v4().to_string();
 
-    let _: Result<_, _> = tokio::fs::remove_file(&wrangler_toml_file_path).await;
+    let bun_arguments: &[&str] = &[
+        "build",
+        &udf_build_entrypoint_path.display().to_string(),
+        "--minify",
+        "--target=bun",
+        &format!("--outdir={}", build_id),
+    ];
 
-    // Not great. We use wrangler to produce the JS file that is then used as the input for the udf-specific worker.
-    // FIXME: Swap out for the internal logic that wrangler effectively uses under the hood.
-    {
-        let wrangler_arguments = &[
-            "exec",
-            "--no",
-            "--prefix",
-            environment.wrangler_installation_path.to_str().expect("must be valid"),
-            "--",
-            "wrangler",
-            "publish",
-            "--dry-run",
-            &outdir_argument,
-            "--compatibility-date",
-            "2023-05-14",
-            "--name",
-            "STUB",
-            udf_build_entrypoint_path.to_str().expect("must be valid utf-8"),
-        ];
-        let wrangler_environment = &[
-            ("CLOUDFLARE_API_TOKEN", "STUB"),
-            ("FORCE_COLOR", "0"),
-            ("NODE_PATH", artifact_directory_modules_path_string),
-            ("WRANGLER_LOG", if tracing { "warn" } else { "error" }),
-            ("WRANGLER_SEND_METRICS", "false"),
-        ];
-        run_command(
-            JavaScriptPackageManager::Npm,
-            wrangler_arguments,
-            &environment.wrangler_installation_path,
-            tracing,
-            wrangler_environment,
-        )
-        .await
-        .map_err(|err| match err {
-            JavascriptPackageManagerComamndError::OutputError(_, output) => {
-                UdfBuildError::WranglerBuildFailed { output }
-            }
-            other => other.into(),
-        })?;
+    async {
+        let current_directory = &environment.bun_installation_path;
+        match current_directory.try_exists() {
+            Ok(true) => Ok(()),
+            Ok(false) => Err(JavascriptPackageManagerComamndError::WorkingDirectoryNotFound(
+                current_directory.to_owned(),
+            )),
+            Err(err) => Err(JavascriptPackageManagerComamndError::WorkingDirectoryCannotBeRead(
+                current_directory.to_owned(),
+                err,
+            )),
+        }?;
+        // Use `which` to work-around weird path search issues on Windows.
+        // See https://github.com/rust-lang/rust/issues/37519.
+
+        let mut command = Command::new(
+            environment
+                .bun_installation_path
+                .join("node_modules")
+                .join("bun")
+                .join("bin")
+                .join("bun"),
+        );
+        command
+            .args(bun_arguments)
+            .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
+            .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
+            .current_dir(current_directory);
+
+        trace!("Spawning {command:?}");
+        let command = command
+            .spawn()
+            .map_err(JavascriptPackageManagerComamndError::BunCommandError)?;
+
+        let output = command
+            .wait_with_output()
+            .await
+            .map_err(JavascriptPackageManagerComamndError::BunCommandError)?;
+
+        if output.status.success() {
+            Ok(Some(output.stdout).filter(|output| !output.is_empty()))
+        } else {
+            Err(JavascriptPackageManagerComamndError::BunOutputError(
+                String::from_utf8_lossy(&output.stderr).into_owned(),
+            ))
+        }
     }
+    .await
+    .map_err(|err| match err {
+        JavascriptPackageManagerComamndError::OutputError(_, output) => UdfBuildError::BunBuildFailed { output },
+        other => other.into(),
+    })?;
+
+    let dist_path = udf_build_entrypoint_path
+        .parent()
+        .expect("must have parent")
+        .join("dist");
+
+    tokio::fs::create_dir_all(&dist_path)
+        .await
+        .map_err(|_| UdfBuildError::CreateDir(dist_path.clone(), udf_kind))?;
+
+    let entrypoint_path = dist_path.join(ENTRYPOINT_SCRIPT_FILE_NAME);
+
+    tokio::fs::copy(
+        environment
+            .bun_installation_path
+            .join(format!("{build_id}/entrypoint.js")),
+        &entrypoint_path,
+    )
+    .await
+    .map_err(|error| UdfBuildError::CreateUdfArtifactFile(entrypoint_path, udf_kind, error))?;
+
+    let temp_dir_path = environment.bun_installation_path.join(build_id);
+    tokio::fs::remove_dir_all(&temp_dir_path)
+        .await
+        .map_err(|error| UdfBuildError::RemoveTemporaryDir(temp_dir_path, udf_kind, error))?;
 
     let process_env_prelude = format!(
-        "globalThis.process = {{ env: {} }};",
+        "globalThis.process.env = {};",
         serde_json::to_string(&environment_variables).expect("must be valid JSON")
     );
 
@@ -237,113 +260,39 @@ pub(crate) async fn build(
             .await
             .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
         temp_file
-            .write_all(
-                &tokio::fs::read(wrangler_output_directory_path.join("entrypoint.js"))
-                    .await
-                    .expect("must succeed"),
-            )
+            .write_all(&tokio::fs::read(&udf_build_entrypoint_path).await.expect("must succeed"))
             .await
             .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
     }
-    let entrypoint_js_path = wrangler_output_directory_path.join("entrypoint.js");
+    let entrypoint_js_path = dist_path.join(ENTRYPOINT_SCRIPT_FILE_NAME);
     tokio::fs::copy(temp_file_path, &entrypoint_js_path)
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(entrypoint_js_path.clone(), udf_kind, err))?;
 
-    let grafbase_kv_data_path = environment
-        .user_dot_grafbase_path
-        .join(crate::consts::GRAFBASE_KV_DATA_PATH);
-    let grafbase_kv_data_path = grafbase_kv_data_path.to_str().ok_or(UdfBuildError::InvalidKvDataPath(
-        grafbase_kv_data_path.to_string_lossy().to_string(),
-    ))?;
-
-    let slugified_udf_name = slug::slugify(udf_name);
-    let udf_url_path = udf_url_path(udf_kind, udf_name);
-    tokio::fs::write(
-        &wrangler_toml_file_path,
-        format!(
-            r#"
-                name = "{slugified_udf_name}"
-
-                kv_namespaces = [
-                  {{ binding = "LOCAL", id = "<ignored>", preview_id = "<ignored>" }},
-                ]
-
-                [vars]
-                KV_ENABLED = "{enable_kv}"
-                KV_BASE_PREFIX = "/"
-                KV_ID = "LOCAL"
-
-                [build.upload]
-                format = "modules"
-
-                [[build.upload.rules]]
-                type = "CompiledWasm"
-                globs = ["*.wasm"]
-                fallthrough = true
-
-                [miniflare]
-                routes = ["127.0.0.1{udf_url_path}"]
-                kv_persist = '{grafbase_kv_data_path}'
-            "#,
-        ),
-    )
-    .await
-    .map_err(UdfBuildError::CreateTemporaryFile)?;
-
-    Ok((udf_build_package_json_path, wrangler_toml_file_path))
+    Ok(udf_build_package_json_path)
 }
 
 pub(crate) fn udf_url_path(kind: UdfKind, name: &str) -> String {
-    format!("/{kind}/{}/invoke", slug::slugify(name))
+    format!("/{}/{}/invoke", kind.to_string().to_lowercase(), slug::slugify(name))
 }
 
-async fn symlink_grafbase_wasm_sdk(
-    environment: &Environment,
-    udf_build_artifact_directory_path: &Path,
-) -> io::Result<()> {
-    let grafbase_wasm_sdk_src = environment
-        .user_dot_grafbase_path
-        .join(crate::consts::GRAFBASE_WASM_SDK_PATH);
-    let grafbase_wasm_sdk_exists = grafbase_wasm_sdk_src.exists();
-    let grafbase_wasm_sdk_dst = udf_build_artifact_directory_path.join(crate::consts::GRAFBASE_WASM_SDK_NAME);
-    let udf_wasm_symlink_exists = grafbase_wasm_sdk_dst.exists();
+const BUN_VERSION: &str = "1.0.23";
 
-    let symlink_function = {
-        cfg_if::cfg_if! {
-            if #[cfg(unix)] {
-                move || std::os::unix::fs::symlink(grafbase_wasm_sdk_src, grafbase_wasm_sdk_dst)
-            }  else {
-                move || std::os::windows::fs::symlink_file(grafbase_wasm_sdk_src, grafbase_wasm_sdk_dst)
-            }
-        }
-    };
-
-    if !udf_wasm_symlink_exists && grafbase_wasm_sdk_exists {
-        return match tokio::task::spawn_blocking(symlink_function).await {
-            Ok(res) => res,
-            Err(_) => Err(io::Error::new(io::ErrorKind::Other, "symlink os task failed")),
-        };
-    }
-
-    Ok(())
-}
-
-async fn installed_wrangler_version(wrangler_installation_path: impl AsRef<Path>) -> Option<String> {
-    let wrangler_installation_path = wrangler_installation_path.as_ref();
-    let wrangler_arguments = &[
+async fn installed_bun_version(bun_installation_path: impl AsRef<Path>) -> Option<String> {
+    let bun_installation_path = bun_installation_path.as_ref();
+    let bun_arguments = &[
         "exec",
         "--no",
         "--prefix",
-        wrangler_installation_path.to_str().expect("must be valid"),
+        bun_installation_path.to_str().expect("must be valid"),
         "--",
-        "wrangler",
+        "bun",
         "--version",
     ];
     let output_bytes = run_command(
         JavaScriptPackageManager::Npm,
-        wrangler_arguments,
-        wrangler_installation_path,
+        bun_arguments,
+        bun_installation_path,
         false,
         &[],
     )
@@ -352,10 +301,8 @@ async fn installed_wrangler_version(wrangler_installation_path: impl AsRef<Path>
     Some(String::from_utf8(output_bytes).ok()?.trim().to_owned())
 }
 
-const WRANGLER_VERSION: &str = "2.20.1";
-
-pub(crate) async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
-    let lock_file_path = environment.user_dot_grafbase_path.join(".wrangler.install.lock");
+pub(crate) async fn install_bun(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
+    let lock_file_path = environment.user_dot_grafbase_path.join(".bun.install.lock");
     let mut lock_file = tokio::task::spawn_blocking(move || {
         let mut file = fslock::LockFile::open(&lock_file_path)?;
         file.lock()?;
@@ -364,32 +311,31 @@ pub(crate) async fn install_wrangler(environment: &Environment, tracing: bool) -
     .await?
     .map_err(ServerError::Lock)?;
 
-    if let Some(installed_wrangler_version) = installed_wrangler_version(&environment.wrangler_installation_path).await
-    {
-        info!("Installed wrangler version: {installed_wrangler_version}");
-        if installed_wrangler_version == WRANGLER_VERSION {
-            info!("wrangler of the desired version already installed, skipping…");
+    if let Some(installed_bun_version) = installed_bun_version(&environment.bun_installation_path).await {
+        info!("Installed bun version: {installed_bun_version}");
+        if installed_bun_version == BUN_VERSION {
+            info!("bun of the desired version already installed, skipping…");
             return Ok(());
         }
     }
 
-    let wrangler_installation_path_str = environment.wrangler_installation_path.to_str().expect("must be valid");
+    let bun_installation_path_str = environment.bun_installation_path.to_str().expect("must be valid");
 
-    info!("Installing wrangler…");
-    tokio::fs::create_dir_all(&environment.wrangler_installation_path)
+    info!("Installing bun…");
+    tokio::fs::create_dir_all(&environment.bun_installation_path)
         .await
-        .map_err(|_| ServerError::CreateDir(environment.wrangler_installation_path.clone()))?;
-    // Install wrangler once and for all.
+        .map_err(|_| ServerError::CreateDir(environment.bun_installation_path.clone()))?;
+    // Install bun once and for all.
     run_command(
         JavaScriptPackageManager::Npm,
         &[
             "add",
             "--save-dev",
-            &format!("wrangler@{WRANGLER_VERSION}"),
+            &format!("bun@{BUN_VERSION}"),
             "--prefix",
-            wrangler_installation_path_str,
+            bun_installation_path_str,
         ],
-        wrangler_installation_path_str,
+        bun_installation_path_str,
         tracing,
         &[],
     )

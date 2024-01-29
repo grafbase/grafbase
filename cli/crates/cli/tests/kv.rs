@@ -7,7 +7,6 @@ use utils::environment::Environment;
 
 #[rstest::rstest]
 #[case(true)]
-#[case(false)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn test_kv_integration(#[case] enabled: bool) {
     // prepare

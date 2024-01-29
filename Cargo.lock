@@ -2596,7 +2596,6 @@ dependencies = [
  "async-trait",
  "async-tungstenite",
  "axum",
- "cfg-if",
  "common-types",
  "dotenv",
  "engine",
@@ -2624,7 +2623,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "sha2",
  "slug",
  "strip-ansi-escapes",
  "strum 0.26.1",
@@ -2636,8 +2634,8 @@ dependencies = [
  "tower-http",
  "tracing",
  "typed-resolvers",
+ "uuid",
  "version-compare",
- "walkdir",
  "which",
 ]
 

@@ -18,7 +18,10 @@ use tokio::process::Command;
 
 use crate::{
     atomics::REGISTRY_PARSED_EPOCH_OFFSET_MILLIS,
-    consts::{CONFIG_PARSER_SCRIPT_CJS, CONFIG_PARSER_SCRIPT_ESM, SCHEMA_PARSER_DIR, TS_NODE_SCRIPT_PATH},
+    consts::{
+        CONFIG_PARSER_SCRIPT_CJS, CONFIG_PARSER_SCRIPT_ESM, ENTRYPOINT_SCRIPT_FILE_NAME, SCHEMA_PARSER_DIR,
+        TS_NODE_SCRIPT_PATH,
+    },
     node::validate_node,
 };
 
@@ -77,18 +80,18 @@ pub(crate) async fn build_config(
     let registry_mtime = SystemTime::UNIX_EPOCH.checked_add(Duration::from_millis(offset));
     let detected_resolvers = futures_util::future::join_all(required_udfs.into_iter().map(|(udf_kind, udf_name)| {
         // Last file to be written to in the build process.
-        let wrangler_toml_path = project
+        let entrypoint_path = project
             .udfs_build_artifact_path(udf_kind)
             .join(&udf_name)
-            .join("wrangler.toml");
+            .join(ENTRYPOINT_SCRIPT_FILE_NAME);
         async move {
-            let wrangler_toml_mtime = tokio::fs::metadata(&wrangler_toml_path)
+            let entrypoint_mtime = tokio::fs::metadata(&entrypoint_path)
                 .await
                 .ok()
                 .map(|metadata| metadata.modified().expect("must be supported"));
             let fresh = registry_mtime
-                .zip(wrangler_toml_mtime)
-                .map(|(registry_mtime, wrangler_toml_mtime)| wrangler_toml_mtime > registry_mtime)
+                .zip(entrypoint_mtime)
+                .map(|(registry_mtime, entrypoint_mtime)| entrypoint_mtime > registry_mtime)
                 .unwrap_or_default();
             DetectedUdf {
                 udf_name,

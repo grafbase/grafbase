@@ -31,6 +31,13 @@ pub enum JavascriptPackageManagerComamndError {
     /// returned if any of the npm/pnpm/yarn commands exits unsuccessfully
     #[error("{0} failed with output:\n{1}")]
     OutputError(JavaScriptPackageManager, String),
+    /// returned if any of the bun commands exits unsuccessfully
+    #[error("bun encountered an error: {0}")]
+    BunCommandError(IoError),
+
+    /// returned if any of the bun commands exits unsuccessfully
+    #[error("bun failed with output:\n{0}")]
+    BunOutputError(String),
 }
 
 #[derive(Error, Debug)]
@@ -59,13 +66,13 @@ pub enum ServerError {
     #[error("the gateway server could not be started: {0}")]
     StartGatewayServer(std::io::Error),
 
-    /// returned if the miniflare command returns an error
-    #[error("miniflare encountered an error: {0}")]
-    MiniflareCommandError(IoError),
+    /// returned if the node command returns an error
+    #[error("node encountered an error: {0}")]
+    NodeCommandError(IoError),
 
-    /// returned if the miniflare command exits unsuccessfully
-    #[error("miniflare encountered an error\ncause:\n{0}")]
-    MiniflareError(String),
+    /// returned if the node command exits unsuccessfully
+    #[error("node encountered an error\ncause:\n{0}")]
+    NodeError(String),
 
     /// returned if the schema parser command returns an error
     #[error(transparent)]
@@ -108,7 +115,7 @@ pub enum ServerError {
 
     /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
     #[error("command error: {0}")]
-    WranglerInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
+    BunInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
 
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully
     #[error("resolver {0} failed to build:\n{1}")]
@@ -141,7 +148,7 @@ pub enum ServerError {
     /// returned if no port is available.
     /// used specifically when searching for ports
     #[error("could not find an available port")]
-    AvailablePortMiniflare,
+    AvailablePortServer,
 
     /// returned if a given port is in use and the search option is not used
     #[error("port {0} is currently in use")]
@@ -171,10 +178,10 @@ pub enum ServerError {
     #[error("could not start the proxy server\nCaused by:{0}")]
     StartProxyServer(std::io::Error),
 
-    #[error("Could not create a lock for the wrangler installation: {0}")]
+    #[error("Could not create a lock for the bun installation: {0}")]
     Lock(fslock::Error),
 
-    #[error("Could not release the lock for the wrangler installation: {0}")]
+    #[error("Could not release the lock for the bun installation: {0}")]
     Unlock(fslock::Error),
 
     #[error(transparent)]
@@ -200,6 +207,10 @@ pub enum UdfBuildError {
     /// returned if a write to a UDF artifact file fails
     #[error("could not create a file {0} during a {1} build: {2}")]
     CreateUdfArtifactFile(PathBuf, UdfKind, IoError),
+
+    /// returned if removing a temporary directoryh fails
+    #[error("could not remove the temporary directory {0} during a {1} build: {2}")]
+    RemoveTemporaryDir(PathBuf, UdfKind, IoError),
 
     /// returned if the directory cannot be created
     #[error("could not create path '{0}' for {1} build artifacts")]
@@ -228,25 +239,24 @@ pub enum UdfBuildError {
     #[error("could not find a {0} referenced in the schema under the path {1}.{{js,ts}}")]
     UdfDoesNotExist(UdfKind, PathBuf),
 
+    // returned if the node process for a given UDF fails to spawn
+    #[error("unknown spawn error")]
+    BunSpawnFailed,
+
+    // returned if the node process for a given UDF fails to spawn, with more details
+    #[error("\n{output}")]
+    BunSpawnFailedWithOutput { output: String },
+
     /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
     #[error("command error: {0}")]
-    WranglerInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
-
-    /// returned if the wrangler build step failed
-    #[error("\n{output}")]
-    WranglerBuildFailed { output: String },
-
-    // returned if miniflare for a given UDF fails to spawn
-    #[error("unknown spawn error")]
-    MiniflareSpawnFailed,
-
-    // returned if miniflare for a given UDF fails to spawn, with more details
-    #[error("\n{output}")]
-    MiniflareSpawnFailedWithOutput { output: String },
+    BunInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
 
     /// returned if a spawned task panics
     #[error(transparent)]
     SpawnedTaskPanic(#[from] JoinError),
+
+    #[error("bun encountered an error: \n{output}")]
+    BunBuildFailed { output: String },
 }
 
 impl IntoResponse for ServerError {

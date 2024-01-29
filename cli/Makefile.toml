@@ -167,3 +167,12 @@ npx --yes pnpm i
 npx --yes pnpm run cli-app:build
 popd
 '''
+
+[tasks.build-udf-wrapper]
+description = "Build cli/udf-wrapper"
+script = '''
+pushd udf-wrapper
+npx i
+npm run build
+popd
+'''
