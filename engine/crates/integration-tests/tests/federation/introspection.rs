@@ -7,7 +7,7 @@ use graphql_mocks::{
 };
 use integration_tests::{federation::GatewayV2Ext, runtime};
 
-const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("./graphql/introspection.graphql");
+const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../../data/introspection.graphql");
 
 #[test]
 fn can_run_pathfinder_introspection_query() {

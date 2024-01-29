@@ -81,4 +81,8 @@ base64.workspace = true
 rstest.workspace = true
 const_format = "0.2"
 headers.workspace = true
+criterion = { version = "0.5", features = ["async_tokio"] }
 
+[[bench]]
+name = "federation"
+harness = false

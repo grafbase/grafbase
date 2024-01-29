@@ -25,6 +25,7 @@ pub struct FetchRequest<'a> {
     pub json_body: String,
 }
 
+#[derive(Clone)]
 pub struct FetchResponse {
     pub bytes: Bytes,
 }
