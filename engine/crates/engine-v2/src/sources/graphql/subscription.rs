@@ -1,7 +1,6 @@
 use futures_util::{stream::BoxStream, StreamExt};
-use runtime::fetch::{FetchError, GraphqlRequest};
+use runtime::fetch::GraphqlRequest;
 use schema::sources::federation::{RootFieldResolverWalker, SubgraphHeaderValueRef, SubgraphWalker};
-use url::Url;
 
 use super::{
     deserialize::deserialize_response_into_output,
@@ -56,14 +55,7 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
         } = self;
 
         let url = {
-            let Ok(mut url) = Url::parse(subgraph.websocket_url()) else {
-                // I'm intentionally not putting the error into this message, because the underlying
-                // subgraph URL could be something we don't want to share with users
-                return Err(ExecutorError::Fetch(FetchError::any(
-                    "could not make a websocket call - the websocket URL was malformed",
-                )));
-            };
-
+            let mut url = subgraph.websocket_url().clone();
             // If the user doesn't provide an explicit websocket URL we use the normal URL,
             // so make sure to convert the scheme to something appropriate
             match url.scheme() {
@@ -71,7 +63,7 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
                 "https" => url.set_scheme("wss").expect("this to work"),
                 _ => {}
             }
-            url.to_string()
+            url
         };
 
         let stream = ctx

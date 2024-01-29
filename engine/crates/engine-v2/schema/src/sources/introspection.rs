@@ -1,11 +1,8 @@
-use std::{
-    collections::HashMap,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 use crate::{
-    DataType, Definition, EnumId, EnumValue, Field, FieldId, InputValue, InputValueId, ObjectField, ObjectId, ScalarId,
-    Schema, SchemaWalker, StringId, Type, TypeId, Value, Wrapping,
+    builder::SchemaBuilder, DataType, Definition, EnumId, EnumValue, Field, FieldId, InputValue, InputValueId,
+    ObjectField, ObjectId, ScalarId, Schema, SchemaWalker, StringId, Type, TypeId, Value, Wrapping,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -69,35 +66,26 @@ pub struct DirectiveLocation {
     pub input_field_definition: StringId,
 }
 
-pub struct Introspection {
-    schema: Schema,
-    strings_map: HashMap<String, StringId>,
+pub(crate) struct IntrospectionSchemaBuilder<'a> {
+    builder: &'a mut SchemaBuilder,
 }
 
-impl Deref for Introspection {
+impl<'a> Deref for IntrospectionSchemaBuilder<'a> {
     type Target = Schema;
     fn deref(&self) -> &Self::Target {
-        &self.schema
+        &self.builder.schema
     }
 }
 
-impl DerefMut for Introspection {
+impl<'a> DerefMut for IntrospectionSchemaBuilder<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.schema
+        &mut self.builder.schema
     }
 }
 
-impl Introspection {
-    pub fn finalize_schema(schema: Schema) -> Schema {
-        let strings_map = schema
-            .strings
-            .iter()
-            .enumerate()
-            .map(|(id, s)| (s.to_string(), StringId::from(id)))
-            .collect();
-        let mut inserter = Self { schema, strings_map };
-        inserter.create_fields_and_insert_them();
-        inserter.schema.finalize()
+impl<'a> IntrospectionSchemaBuilder<'a> {
+    pub fn insert_introspection_fields(builder: &'a mut SchemaBuilder) {
+        Self { builder }.create_fields_and_insert_them()
     }
 
     #[allow(non_snake_case)]
@@ -496,12 +484,12 @@ impl Introspection {
             .scalars
             .iter()
             .enumerate()
-            .find(|(_, scalar)| self[scalar.name] == scalar_name)
+            .find(|(_, scalar)| self.builder.strings[scalar.name] == scalar_name)
             .map(|(id, _)| ScalarId::from(id))
         {
             Some(id) => id,
             None => {
-                let name = self.get_or_intern(scalar_name);
+                let name = self.builder.strings.get_or_insert(scalar_name);
                 self.scalars.push(crate::Scalar {
                     name,
                     data_type: scalar_type,
@@ -525,9 +513,6 @@ impl Introspection {
     }
 
     fn get_or_intern(&mut self, value: &str) -> StringId {
-        *(self.strings_map.entry(value.to_string()).or_insert_with_key(|key| {
-            self.schema.strings.push(key.to_string());
-            StringId::from(self.schema.strings.len() - 1)
-        }))
+        self.builder.strings.get_or_insert(value)
     }
 }
