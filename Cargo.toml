@@ -21,7 +21,7 @@ openidconnect = { git = "https://github.com/grafbase/openidconnect-rs", rev = "d
 reqwest = { git = "https://github.com/grafbase/reqwest", rev = "c786d48a4aaf37dce07118e067b66ecb02f9390a" } # hyper-v1-and-wasm-from-parts-build-split
 reqwest-middleware = { git = "https://github.com/grafbase/reqwest-middleware", rev = "030e178305b7b4352b8dfd8bb04aba970843afc1" } # http-v1
 rudderanalytics =  { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "58bd3a439453a6668fbfb98874e08cabd8bd616b" } # async
-serde_with = { git = "https://github.com/grafbase/serde_with", rev = "f7200ec6b2ab8bbcdf90e810f697d942316626e6" } # minify-field-names
+serde_with = { git = "https://github.com/grafbase/serde_with", rev = "2fadab3a17e6e62320c899c7bc315eb7b404165d" } # minify-field-names-strum-0.26
 # Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
 tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
 ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "299b52e08db0703b129063347584ce063da10721" } # 1.1.0-wasm-compatibility-web-time-1.0
