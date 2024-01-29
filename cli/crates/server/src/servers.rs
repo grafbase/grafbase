@@ -61,7 +61,6 @@ impl ProductionServer {
             ..
         } = build_config(&environment_variables, None).await?;
 
-=======
         if let Some(config) = federated_graph_config {
             let graph = match federated_graph_schema_path {
                 Some(path) => {
