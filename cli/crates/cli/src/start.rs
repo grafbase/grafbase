@@ -7,6 +7,7 @@ use futures_util::Future;
 use server::{errors::ServerError, types::NestedRequestScopedMessage};
 use std::net::IpAddr;
 use std::num::NonZeroUsize;
+use std::path::PathBuf;
 use std::thread;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
@@ -23,10 +24,12 @@ impl MessageGroup {
         }
     }
 }
+
 pub fn start(
     listen_address: IpAddr,
     port: u16,
     log_level_filters: LogLevelFilters,
+    federated_graph_schema_path: Option<PathBuf>,
     tracing: bool,
 ) -> Result<(), CliError> {
     trace!("attempting to start server");
@@ -34,7 +37,7 @@ pub fn start(
         // not sure we'll keep building in the start command, so keeping the same behavior as
         // before building UDFs serially.
         let parallelism = NonZeroUsize::new(1).expect("strictly positive");
-        server::ProductionServer::build(message_sender, parallelism, tracing)
+        server::ProductionServer::build(message_sender, parallelism, tracing, federated_graph_schema_path)
             .await?
             .serve(listen_address, port)
             .await
