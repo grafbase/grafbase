@@ -119,6 +119,7 @@ impl ProductionServer {
                 bridge_app,
                 environment_variables,
                 message_sender,
+            })
         }
     }
 
