@@ -185,8 +185,8 @@ importers:
         specifier: ^16.1.4
         version: 16.1.4
       type-fest:
-        specifier: ^3.9.0
-        version: 3.9.0
+        specifier: ^4.0.0
+        version: 4.10.1
     devDependencies:
       '@jest/globals':
         specifier: '=29.7.0'
@@ -6625,9 +6625,9 @@ packages:
     engines: {node: '>=10'}
     dev: true
 
-  /type-fest@3.9.0:
-    resolution: {integrity: sha512-hR8JP2e8UiH7SME5JZjsobBlEiatFoxpzCP+R3ZeCo7kAaG1jXQE5X/buLzogM6GJu8le9Y4OcfNuIQX0rZskA==}
-    engines: {node: '>=14.16'}
+  /type-fest@4.10.1:
+    resolution: {integrity: sha512-7ZnJYTp6uc04uYRISWtiX3DSKB/fxNQT0B5o1OUeCqiQiwF+JC9+rJiZIDrPrNCLLuTqyQmh4VdQqh/ZOkv9MQ==}
+    engines: {node: '>=16'}
     dev: false
 
   /typed-array-buffer@1.0.0:
