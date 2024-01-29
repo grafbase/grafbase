@@ -5,7 +5,7 @@ use url::Url;
 
 pub(crate) enum AdminBus {
     DynamicGraph { compose_sender: ComposeSender },
-    StatisGraph,
+    StaticGraph,
 }
 
 impl AdminBus {
@@ -14,7 +14,7 @@ impl AdminBus {
     }
 
     pub fn new_static() -> Self {
-        Self::StatisGraph
+        Self::StaticGraph
     }
 
     pub async fn compose_graph(
@@ -28,7 +28,7 @@ impl AdminBus {
             AdminBus::DynamicGraph { compose_sender } => {
                 super::compose_graph(compose_sender, name, url, headers, schema).await
             }
-            AdminBus::StatisGraph => Err(Error::internal("Cannot compose a new subgraph with a schema file.")),
+            AdminBus::StaticGraph => Err(Error::internal("Cannot compose a new subgraph with a schema file.")),
         }
     }
 
@@ -42,7 +42,7 @@ impl AdminBus {
             AdminBus::DynamicGraph { compose_sender } => {
                 super::introspect_schema(compose_sender, name, url, headers).await
             }
-            AdminBus::StatisGraph => Err(Error::internal("Nothing to introspect")),
+            AdminBus::StaticGraph => Err(Error::internal("Nothing to introspect")),
         }
     }
 }
