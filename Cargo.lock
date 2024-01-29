@@ -5821,7 +5821,7 @@ dependencies = [
 [[package]]
 name = "serde_with"
 version = "3.5.1"
-source = "git+https://github.com/grafbase/serde_with?rev=f7200ec6b2ab8bbcdf90e810f697d942316626e6#f7200ec6b2ab8bbcdf90e810f697d942316626e6"
+source = "git+https://github.com/grafbase/serde_with?rev=2fadab3a17e6e62320c899c7bc315eb7b404165d#2fadab3a17e6e62320c899c7bc315eb7b404165d"
 dependencies = [
  "base64 0.21.7",
  "chrono",
@@ -5837,13 +5837,13 @@ dependencies = [
 [[package]]
 name = "serde_with_macros"
 version = "3.5.1"
-source = "git+https://github.com/grafbase/serde_with?rev=f7200ec6b2ab8bbcdf90e810f697d942316626e6#f7200ec6b2ab8bbcdf90e810f697d942316626e6"
+source = "git+https://github.com/grafbase/serde_with?rev=2fadab3a17e6e62320c899c7bc315eb7b404165d#2fadab3a17e6e62320c899c7bc315eb7b404165d"
 dependencies = [
  "darling 0.20.3",
  "itertools 0.12.0",
  "proc-macro2",
  "quote",
- "strum 0.25.0",
+ "strum 0.26.1",
  "syn 2.0.48",
 ]
 
