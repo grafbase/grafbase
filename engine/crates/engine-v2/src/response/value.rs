@@ -106,3 +106,36 @@ impl ResponseValue {
         }
     }
 }
+
+impl<T: Into<ResponseValue>> From<Option<T>> for ResponseValue {
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(value) => value.into(),
+            None => Self::Null,
+        }
+    }
+}
+
+impl From<StringId> for ResponseValue {
+    fn from(id: StringId) -> Self {
+        Self::StringId { id, nullable: false }
+    }
+}
+
+impl From<bool> for ResponseValue {
+    fn from(value: bool) -> Self {
+        Self::Boolean { value, nullable: false }
+    }
+}
+
+impl From<ResponseListId> for ResponseValue {
+    fn from(id: ResponseListId) -> Self {
+        Self::List { id, nullable: false }
+    }
+}
+
+impl From<ResponseObjectId> for ResponseValue {
+    fn from(id: ResponseObjectId) -> Self {
+        Self::Object { id, nullable: false }
+    }
+}

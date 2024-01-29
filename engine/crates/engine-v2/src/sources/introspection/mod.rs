@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use schema::sources::introspection::{Metadata, ResolverWalker};
 
 use super::{Executor, ExecutorError, ResolverInput};
@@ -41,18 +43,13 @@ impl<'ctx> IntrospectionExecutionPlan<'ctx> {
     }
 
     pub async fn execute(mut self) -> Result<ExecutorOutput, ExecutorError> {
-        let introspection_writer = writer::IntrospectionWriter {
-            schema: &self.ctx.engine.schema,
-            types: self.metadata,
-        };
-        self.ctx
-            .writer(&mut self.output, &self.response_object, &self.plan_output)
-            .update_with(|writer| match writer.expected_field.name() {
-                "__type" => introspection_writer.write_type_field(writer),
-                "__schema" => introspection_writer.write_schema_field(writer),
-                name => writer::unresolvable(name),
-            });
-
+        writer::IntrospectionWriter {
+            schema: self.ctx.schema(),
+            metadata: self.metadata,
+            walker: self.ctx.walk(&self.plan_output),
+            output: RefCell::new(&mut self.output),
+        }
+        .update_output(self.response_object, &self.plan_output.expectations.root_selection_set);
         Ok(self.output)
     }
 }

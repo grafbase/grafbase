@@ -12,6 +12,7 @@ keywords = ["graphql", "engine", "grafbase"]
 
 [dependencies]
 strum = { workspace = true, features = ["derive"] }
+strum_macros.workspace = true
 url.workspace = true
 fnv = "1"
 indexmap.workspace = true

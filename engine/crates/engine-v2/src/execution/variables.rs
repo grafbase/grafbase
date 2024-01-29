@@ -369,7 +369,7 @@ fn coerce_input_object(
             Some(value) => {
                 coerced.insert(
                     Name::new(field.name()),
-                    coerce_value(value, field.ty().as_ref(), schema, path.child(field.name_string_id()))?,
+                    coerce_value(value, field.ty().as_ref(), schema, path.child(field.as_ref().name))?,
                 );
             }
         }

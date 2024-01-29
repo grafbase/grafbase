@@ -149,8 +149,6 @@ pub enum ExecutorError {
     #[error("Internal error: {0}")]
     Internal(String),
     #[error(transparent)]
-    Write(#[from] crate::response::WriteError),
-    #[error(transparent)]
     Fetch(#[from] runtime::fetch::FetchError),
 }
 
