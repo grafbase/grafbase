@@ -1,23 +1,25 @@
-use std::collections::VecDeque;
-
 use schema::{CacheConfig, Definition, DefinitionWalker, Merge};
 
-use super::{
-    BoundFieldWalker, BoundFragmentSpreadWalker, BoundInlineFragmentWalker, ExecutorWalkContext, OperationWalker,
-};
+use super::{BoundFieldWalker, BoundFragmentSpreadWalker, BoundInlineFragmentWalker, OperationWalker};
 use crate::request::{BoundSelection, BoundSelectionSetId, SelectionSetType};
 
-pub type BoundSelectionSetWalker<'a, CtxOrUnit = ()> = OperationWalker<'a, BoundSelectionSetId, (), CtxOrUnit>;
-pub type SelectionSetTypeWalker<'a, CtxOrUnit = ()> = OperationWalker<'a, SelectionSetType, Definition, CtxOrUnit>;
+pub type BoundSelectionSetWalker<'a> = OperationWalker<'a, BoundSelectionSetId>;
+pub type SelectionSetTypeWalker<'a> = OperationWalker<'a, SelectionSetType, Definition>;
 
-impl<'a, C> BoundSelectionSetWalker<'a, C> {
-    pub fn ty(&self) -> SelectionSetTypeWalker<'a, ()> {
+impl<'a> BoundSelectionSetWalker<'a> {
+    pub fn ty(&self) -> SelectionSetTypeWalker<'a> {
         let ty = self.as_ref().ty;
-        self.without_ctx().walk_with(ty, Definition::from(ty))
+        self.walk_with(ty, Definition::from(ty))
+    }
+
+    pub fn fields(self) -> SelectionSetFieldsIterator<'a> {
+        SelectionSetFieldsIterator {
+            selections: vec![self.into_iter()],
+        }
     }
 }
 
-impl<'a> BoundSelectionSetWalker<'a, ()> {
+impl<'a> BoundSelectionSetWalker<'a> {
     // this merely traverses the selection set recursively and merge all cache_config present in the
     // selected fields
     pub fn cache_config(self) -> Option<CacheConfig> {
@@ -41,7 +43,7 @@ impl<'a> BoundSelectionSetWalker<'a, ()> {
     }
 }
 
-impl<'a, C> std::ops::Deref for SelectionSetTypeWalker<'a, C> {
+impl<'a> std::ops::Deref for SelectionSetTypeWalker<'a> {
     type Target = DefinitionWalker<'a>;
 
     fn deref(&self) -> &Self::Target {
@@ -49,74 +51,82 @@ impl<'a, C> std::ops::Deref for SelectionSetTypeWalker<'a, C> {
     }
 }
 
-pub enum BoundSelectionWalker<'a, C = ()> {
-    Field(BoundFieldWalker<'a, C>),
-    FragmentSpread(BoundFragmentSpreadWalker<'a, C>),
-    InlineFragment(BoundInlineFragmentWalker<'a, C>),
+pub(crate) enum BoundSelectionWalker<'a> {
+    Field(BoundFieldWalker<'a>),
+    FragmentSpread(BoundFragmentSpreadWalker<'a>),
+    InlineFragment(BoundInlineFragmentWalker<'a>),
 }
 
-impl<'a, C: Copy> IntoIterator for BoundSelectionSetWalker<'a, C> {
-    type Item = BoundSelectionWalker<'a, C>;
+impl<'a> IntoIterator for BoundSelectionSetWalker<'a> {
+    type Item = BoundSelectionWalker<'a>;
 
-    type IntoIter = SelectionIterator<'a, C>;
+    type IntoIter = SelectionSetIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        SelectionIterator {
-            walker: self.walk(()),
-            selections: self.operation[self.item].items.iter().collect(),
+        SelectionSetIterator {
+            selection_set: self,
+            next_index: 0,
         }
     }
 }
 
-pub struct SelectionIterator<'a, C> {
-    walker: OperationWalker<'a, (), (), C>,
-    selections: VecDeque<&'a BoundSelection>,
+pub(crate) struct SelectionSetIterator<'a> {
+    selection_set: BoundSelectionSetWalker<'a>,
+    next_index: usize,
 }
 
-impl<'a, C: Copy> Iterator for SelectionIterator<'a, C> {
-    type Item = BoundSelectionWalker<'a, C>;
+impl<'a> Iterator for SelectionSetIterator<'a> {
+    type Item = BoundSelectionWalker<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let selection = self.selections.pop_front()?;
+        let selection = self.selection_set.as_ref().items.get(self.next_index)?;
+        self.next_index += 1;
         Some(match selection {
-            BoundSelection::Field(id) => BoundSelectionWalker::Field(self.walker.walk(*id)),
-            BoundSelection::FragmentSpread(id) => BoundSelectionWalker::FragmentSpread(self.walker.walk(*id)),
-            BoundSelection::InlineFragment(id) => BoundSelectionWalker::InlineFragment(self.walker.walk(*id)),
+            BoundSelection::Field(id) => BoundSelectionWalker::Field(self.selection_set.walk(*id)),
+            BoundSelection::FragmentSpread(id) => BoundSelectionWalker::FragmentSpread(self.selection_set.walk(*id)),
+            BoundSelection::InlineFragment(id) => BoundSelectionWalker::InlineFragment(self.selection_set.walk(*id)),
         })
     }
 }
 
-impl<'a> std::fmt::Debug for BoundSelectionSetWalker<'a, ()> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("BoundSelectionSet")
-            .field("id", &self.id())
-            .field("ty", &self.ty().name())
-            .field("items", &self.into_iter().collect::<Vec<_>>())
-            .finish()
-    }
+pub(crate) struct SelectionSetFieldsIterator<'a> {
+    selections: Vec<SelectionSetIterator<'a>>,
 }
 
-impl<'a> std::fmt::Debug for BoundSelectionSetWalker<'a, ExecutorWalkContext<'a>> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("BoundSelectionSet")
-            .field("id", &self.id())
-            .field("ty", &self.ty().name())
-            .field("items", &self.into_iter().collect::<Vec<_>>())
-            .finish()
-    }
-}
+impl<'a> Iterator for SelectionSetFieldsIterator<'a> {
+    type Item = BoundFieldWalker<'a>;
 
-impl<'a> std::fmt::Debug for BoundSelectionWalker<'a, ()> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Field(field) => field.fmt(f),
-            Self::FragmentSpread(spread) => spread.fmt(f),
-            Self::InlineFragment(fragment) => fragment.fmt(f),
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let selections = self.selections.last_mut()?;
+            if let Some(selection) = selections.next() {
+                match selection {
+                    BoundSelectionWalker::Field(field) => return Some(field),
+                    BoundSelectionWalker::InlineFragment(inline) => {
+                        self.selections.push(inline.selection_set().into_iter());
+                    }
+                    BoundSelectionWalker::FragmentSpread(spread) => {
+                        self.selections.push(spread.selection_set().into_iter());
+                    }
+                };
+            } else {
+                self.selections.pop();
+            }
         }
     }
 }
 
-impl<'a> std::fmt::Debug for BoundSelectionWalker<'a, ExecutorWalkContext<'a>> {
+impl<'a> std::fmt::Debug for BoundSelectionSetWalker<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BoundSelectionSet")
+            .field("id", &self.id())
+            .field("ty", &self.ty().name())
+            .field("items", &self.into_iter().collect::<Vec<_>>())
+            .finish()
+    }
+}
+
+impl<'a> std::fmt::Debug for BoundSelectionWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Field(field) => field.fmt(f),

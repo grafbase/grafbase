@@ -24,7 +24,7 @@ pub struct StreamingRequest {
 impl From<GraphqlRequest<'_>> for StreamingRequest {
     fn from(value: GraphqlRequest<'_>) -> Self {
         StreamingRequest {
-            query: value.query,
+            query: value.query.to_string(),
             variables: value.variables,
         }
     }

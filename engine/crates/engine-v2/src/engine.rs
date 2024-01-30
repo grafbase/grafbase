@@ -9,6 +9,7 @@ use schema::Schema;
 
 use crate::{
     execution::{ExecutorCoordinator, PreparedExecution, PreparedRequest, Variables},
+    plan::OperationPlan,
     request::{parse_operation, Operation},
     response::{ExecutionMetadata, GraphqlError, Response},
 };
@@ -111,9 +112,10 @@ impl Engine {
         Ok(ExecutorCoordinator::new(self, operation, variables, headers))
     }
 
-    fn prepare_operation(&self, request: &engine::Request) -> Result<Operation, GraphqlError> {
-        let unbound_operation = parse_operation(request)?;
-        let operation = Operation::build(&self.schema, unbound_operation, !request.disable_operation_limits)?;
-        Ok(operation)
+    fn prepare_operation(&self, request: &engine::Request) -> Result<Arc<OperationPlan>, GraphqlError> {
+        let parsed_operation = parse_operation(request)?;
+        let bound_operation = Operation::build(&self.schema, parsed_operation, !request.disable_operation_limits)?;
+        let prepared = OperationPlan::prepare(&self.schema, bound_operation)?;
+        Ok(Arc::new(prepared))
     }
 }

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use schema::{Definition, FieldId, InputValueId, InterfaceId, ObjectId, Schema, UnionId};
 
-use crate::response::{BoundResponseKey, ResponseKey};
+use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
 use super::{
     BoundFieldArgumentsId, BoundFieldId, BoundFragmentId, BoundFragmentSpreadId, BoundInlineFragmentId,
@@ -10,7 +10,7 @@ use super::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BoundSelectionSet {
+pub(crate) struct BoundSelectionSet {
     pub ty: SelectionSetType,
     // Ordering matters and must be respected in the response.
     pub items: Vec<BoundSelection>,
@@ -35,7 +35,7 @@ impl SelectionSetType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BoundSelection {
+pub(crate) enum BoundSelection {
     Field(BoundFieldId),
     FragmentSpread(BoundFragmentSpreadId),
     InlineFragment(BoundInlineFragmentId),
@@ -58,24 +58,34 @@ pub enum BoundField {
         arguments_id: BoundFieldArgumentsId,
         selection_set_id: Option<BoundSelectionSetId>,
     },
+    Extra {
+        edge: ResponseEdge,
+        field_id: FieldId,
+        selection_set_id: Option<BoundSelectionSetId>,
+        read: bool,
+    },
 }
 
 impl BoundField {
-    pub fn response_key(&self) -> ResponseKey {
-        self.bound_response_key().into()
-    }
-
-    pub fn bound_response_key(&self) -> BoundResponseKey {
+    pub fn response_edge(&self) -> ResponseEdge {
         match self {
-            BoundField::TypeName { bound_response_key, .. } => *bound_response_key,
-            BoundField::Field { bound_response_key, .. } => *bound_response_key,
+            BoundField::TypeName { bound_response_key, .. } => (*bound_response_key).into(),
+            BoundField::Field { bound_response_key, .. } => (*bound_response_key).into(),
+            BoundField::Extra { edge, .. } => *edge,
         }
     }
 
-    pub fn name_location(&self) -> Location {
+    pub fn response_key(&self) -> ResponseKey {
+        self.response_edge()
+            .as_response_key()
+            .expect("bound fields cannot have an index as a ResponseEdge")
+    }
+
+    pub fn name_location(&self) -> Option<Location> {
         match self {
-            BoundField::TypeName { location, .. } => *location,
-            BoundField::Field { location, .. } => *location,
+            BoundField::TypeName { location, .. } => Some(*location),
+            BoundField::Field { location, .. } => Some(*location),
+            BoundField::Extra { .. } => None,
         }
     }
 
@@ -83,6 +93,31 @@ impl BoundField {
         match self {
             BoundField::TypeName { .. } => None,
             BoundField::Field { selection_set_id, .. } => *selection_set_id,
+            BoundField::Extra { selection_set_id, .. } => *selection_set_id,
+        }
+    }
+
+    pub fn schema_field_id(&self) -> Option<FieldId> {
+        match self {
+            BoundField::TypeName { .. } => None,
+            BoundField::Field { field_id, .. } => Some(*field_id),
+            BoundField::Extra { field_id, .. } => Some(*field_id),
+        }
+    }
+
+    pub fn mark_as_read(&mut self) {
+        match self {
+            BoundField::TypeName { .. } => {}
+            BoundField::Field { .. } => {}
+            BoundField::Extra { read, .. } => *read = true,
+        }
+    }
+
+    pub fn is_read(&self) -> bool {
+        match self {
+            BoundField::TypeName { .. } => true,
+            BoundField::Field { .. } => true,
+            BoundField::Extra { read, .. } => *read,
         }
     }
 }
@@ -145,20 +180,6 @@ pub struct BoundFieldArgument {
     pub value_location: Location,
     // TODO: Should be validated, coerced and bound.
     pub value: engine_value::Value,
-}
-
-impl BoundSelectionSet {
-    pub fn len(&self) -> usize {
-        self.items.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.items.is_empty()
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &BoundSelection> {
-        self.items.iter()
-    }
 }
 
 impl IntoIterator for BoundSelectionSet {

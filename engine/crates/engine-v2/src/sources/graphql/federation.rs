@@ -1,75 +1,100 @@
+use std::sync::Arc;
+
 use runtime::fetch::FetchRequest;
-use schema::sources::federation::{EntityResolverWalker, SubgraphHeaderValueRef, SubgraphWalker};
+use schema::{
+    sources::federation::{EntityResolverWalker, SubgraphHeaderValueRef, SubgraphWalker},
+    SubgraphId,
+};
 
 use crate::{
     execution::ExecutionContext,
-    plan::{PlanId, PlanOutput},
-    request::EntityType,
-    response::{ExecutorOutput, ResponseBoundaryItem},
-    sources::{Executor, ExecutorError, ExecutorResult, ResolverInput},
+    plan::{PlanWalker, PlanningResult},
+    response::{ResponseBoundaryItem, ResponsePart},
+    sources::{graphql::query::OutboundVariables, ExecutionPlan, ExecutionResult, Executor, ExecutorInput},
 };
 
 use super::{
-    deserialize::{deserialize_response_into_output, EntitiesDataSeed},
-    query,
+    deserialize::{ingest_deserializer_into_response, EntitiesDataSeed},
+    query::PreparedFederationEntityOperation,
 };
+
+pub(crate) struct FederationEntityExecutionPlan {
+    subgraph_id: SubgraphId,
+    operation: PreparedFederationEntityOperation,
+}
+
+impl FederationEntityExecutionPlan {
+    pub fn build(resolver: EntityResolverWalker<'_>, plan: PlanWalker<'_>) -> PlanningResult<ExecutionPlan> {
+        let subgraph = resolver.subgraph();
+        let operation =
+            PreparedFederationEntityOperation::build(plan).map_err(|err| format!("Failed to build query: {err}"))?;
+        Ok(ExecutionPlan::FederationEntity(Self {
+            subgraph_id: subgraph.id(),
+            operation,
+        }))
+    }
+
+    pub fn new_executor<'ctx>(&'ctx self, input: ExecutorInput<'ctx, '_>) -> ExecutionResult<Executor<'ctx>> {
+        let ExecutorInput {
+            ctx,
+            boundary_objects_view,
+            plan,
+            response_part,
+        } = input;
+
+        let boundary_objects_view = boundary_objects_view.with_extra_constant_fields(vec![(
+            "__typename".to_string(),
+            serde_json::Value::String(
+                ctx.engine
+                    .schema
+                    .walker()
+                    .walk(schema::Definition::from(plan.output().entity_type))
+                    .name()
+                    .to_string(),
+            ),
+        )]);
+        let response_boundary_items = boundary_objects_view.items().clone();
+        let mut variables = OutboundVariables::new(&self.operation.variable_references, ctx.variables);
+        variables
+            .inputs
+            .push((&self.operation.entities_variable, boundary_objects_view));
+
+        let subgraph = ctx.engine.schema.walk(self.subgraph_id);
+        tracing::debug!(
+            "Query {}\n{}\n{}",
+            subgraph.name(),
+            self.operation.query,
+            serde_json::to_string_pretty(&variables).unwrap_or_default()
+        );
+        let json_body = serde_json::to_string(&serde_json::json!({
+            "query": self.operation.query,
+            "variables": variables
+        }))
+        .map_err(|err| format!("Failed to serialize query: {err}"))?;
+
+        Ok(Executor::FederationEntity(FederationEntityExecutor {
+            ctx,
+            subgraph,
+            json_body,
+            response_boundary_items,
+            plan,
+            response_part,
+        }))
+    }
+}
 
 pub(crate) struct FederationEntityExecutor<'ctx> {
     ctx: ExecutionContext<'ctx>,
     subgraph: SubgraphWalker<'ctx>,
     json_body: String,
-    response_boundary: Vec<ResponseBoundaryItem>,
-    pub(in crate::sources) plan_id: PlanId,
-    plan_output: PlanOutput,
-    output: ExecutorOutput,
+    response_boundary_items: Arc<Vec<ResponseBoundaryItem>>,
+    plan: PlanWalker<'ctx>,
+    response_part: ResponsePart,
 }
 
 impl<'ctx> FederationEntityExecutor<'ctx> {
-    #[tracing::instrument(skip_all, fields(plan_id = %input.plan_id, federated_subgraph = %resolver.subgraph().name()))]
-    pub fn build<'input>(
-        resolver: EntityResolverWalker<'ctx>,
-        entity_type: EntityType,
-        input: ResolverInput<'ctx, 'input>,
-    ) -> ExecutorResult<Executor<'ctx>> {
-        let ResolverInput {
-            ctx,
-            boundary_objects_view,
-            plan_id,
-            plan_output,
-            output,
-        } = input;
-        let subgraph = resolver.subgraph();
-        let boundary_objects_view = boundary_objects_view.with_extra_constant_fields(vec![(
-            "__typename".to_string(),
-            serde_json::Value::String(
-                ctx.schema()
-                    .walk(schema::Definition::from(entity_type))
-                    .name()
-                    .to_string(),
-            ),
-        )]);
-        let response_boundary = boundary_objects_view.boundary();
-        let query = query::FederationEntityQuery::build(ctx, plan_id, &plan_output, boundary_objects_view)
-            .map_err(|err| ExecutorError::Internal(format!("Failed to build query: {err}")))?;
-        tracing::debug!(
-            "Query\n{}\n{}",
-            query.query,
-            serde_json::to_string_pretty(&query.variables).unwrap_or_default()
-        );
-        Ok(Executor::FederationEntity(Self {
-            ctx,
-            subgraph,
-            json_body: serde_json::to_string(&query)
-                .map_err(|err| ExecutorError::Internal(format!("Failed to serialize query: {err}")))?,
-            response_boundary,
-            plan_id,
-            plan_output,
-            output,
-        }))
-    }
-
-    #[tracing::instrument(skip_all, fields(plan_id = %self.plan_id, federated_subgraph = %self.subgraph.name()))]
-    pub async fn execute(mut self) -> ExecutorResult<ExecutorOutput> {
+    #[tracing::instrument(skip_all, fields(plan_id = %self.plan.id(), federated_subgraph = %self.subgraph.name()))]
+    pub async fn execute(mut self) -> ExecutionResult<ResponsePart> {
         let bytes = self
             .ctx
             .engine
@@ -95,23 +120,20 @@ impl<'ctx> FederationEntityExecutor<'ctx> {
             .await?
             .bytes;
         tracing::debug!("{}", String::from_utf8_lossy(&bytes));
-        let err_path = self.response_boundary[0].response_path.child(
-            self.ctx
-                .walker
-                .walk(self.plan_output.root_fields[0])
-                .bound_response_key(),
-        );
-        let seed_ctx = self.ctx.seed_ctx(&mut self.output, &self.plan_output);
-        deserialize_response_into_output(
+        let root_err_path = self
+            .plan
+            .root_error_path(&self.response_boundary_items[0].response_path);
+        let seed_ctx = self.plan.new_seed(&mut self.response_part);
+        ingest_deserializer_into_response(
             &seed_ctx,
-            &err_path,
+            &root_err_path,
             EntitiesDataSeed {
                 ctx: seed_ctx.clone(),
-                response_boundary: &self.response_boundary,
+                response_boundary: &self.response_boundary_items,
             },
             &mut serde_json::Deserializer::from_slice(&bytes),
         );
 
-        Ok(self.output)
+        Ok(self.response_part)
     }
 }

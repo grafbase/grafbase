@@ -1,37 +1,180 @@
-use std::cmp::Ordering;
+use std::{borrow::Borrow, cmp::Ordering, collections::VecDeque};
 
+use fnv::FnvHashSet;
+use itertools::Itertools;
 use schema::{Definition, InterfaceId, ObjectId, Schema};
 
 use crate::request::{BoundFieldId, BoundSelectionSetId, SelectionSetType, TypeCondition};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FlatSelectionSetId(BoundSelectionSetId);
+use super::{BoundSelection, OperationWalker};
 
-impl From<BoundSelectionSetId> for FlatSelectionSetId {
-    fn from(value: BoundSelectionSetId) -> Self {
-        Self(value)
+impl<'a> OperationWalker<'a> {
+    pub fn flatten_subselection_sets<Item: Borrow<BoundFieldId>>(
+        &self,
+        items: impl IntoIterator<Item = Item>,
+    ) -> Option<FlatSelectionSet> {
+        let selection_set_ids = items
+            .into_iter()
+            .filter_map(|item| self.operation[*item.borrow()].selection_set_id())
+            .collect::<Vec<_>>();
+        if selection_set_ids.is_empty() {
+            None
+        } else {
+            Some(self.flatten_selection_sets(selection_set_ids))
+        }
     }
-}
 
-impl From<FlatSelectionSetId> for BoundSelectionSetId {
-    fn from(value: FlatSelectionSetId) -> Self {
-        value.0
+    pub fn flatten_selection_sets(&self, root_selection_set_ids: Vec<BoundSelectionSetId>) -> FlatSelectionSet {
+        let ty = {
+            let selection_set_types = root_selection_set_ids
+                .iter()
+                .map(|id| self.operation[*id].ty)
+                .collect::<FnvHashSet<SelectionSetType>>();
+            assert_eq!(
+                selection_set_types.len(),
+                1,
+                "{}",
+                selection_set_types
+                    .into_iter()
+                    .map(|ty| self.schema_walker.walk(Definition::from(ty)).name())
+                    .join(", ")
+            );
+            selection_set_types.into_iter().next().unwrap()
+        };
+        let mut flat_selection_set = FlatSelectionSet {
+            root_selection_set_ids,
+            ty,
+            fields: Vec::new(),
+        };
+        let mut selections = VecDeque::from_iter(flat_selection_set.root_selection_set_ids.iter().flat_map(
+            |&selection_set_id| {
+                self.operation[selection_set_id]
+                    .items
+                    .iter()
+                    .map(move |selection| (Vec::<TypeCondition>::new(), vec![selection_set_id], selection))
+            },
+        ));
+        while let Some((mut type_condition_chain, mut selection_set_path, selection)) = selections.pop_front() {
+            match selection {
+                &BoundSelection::Field(bound_field_id) => {
+                    let type_condition =
+                        FlatTypeCondition::flatten(&self.schema_walker, flat_selection_set.ty, type_condition_chain);
+                    if FlatTypeCondition::is_possible(&type_condition) {
+                        flat_selection_set.fields.push(FlatField {
+                            type_condition,
+                            selection_set_path,
+                            bound_field_id,
+                        });
+                    }
+                }
+                BoundSelection::FragmentSpread(spread_id) => {
+                    let spread = &self.operation[*spread_id];
+                    let fragment = &self.operation[spread.fragment_id];
+                    type_condition_chain.push(fragment.type_condition);
+                    selection_set_path.push(spread.selection_set_id);
+                    selections.extend(
+                        self.operation[spread.selection_set_id]
+                            .items
+                            .iter()
+                            .map(|selection| (type_condition_chain.clone(), selection_set_path.clone(), selection)),
+                    );
+                }
+                BoundSelection::InlineFragment(inline_fragment_id) => {
+                    let inline_fragment = &self.operation[*inline_fragment_id];
+                    if let Some(type_condition) = inline_fragment.type_condition {
+                        type_condition_chain.push(type_condition);
+                    }
+                    selection_set_path.push(inline_fragment.selection_set_id);
+                    selections.extend(
+                        self.operation[inline_fragment.selection_set_id]
+                            .items
+                            .iter()
+                            .map(|selection| (type_condition_chain.clone(), selection_set_path.clone(), selection)),
+                    );
+                }
+            }
+        }
+
+        flat_selection_set
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct FlatSelectionSet<Ty = SelectionSetType> {
-    pub ty: Ty,
-    pub id: FlatSelectionSetId,
+pub(crate) struct FlatSelectionSet {
+    pub ty: SelectionSetType,
+    pub root_selection_set_ids: Vec<BoundSelectionSetId>,
     pub fields: Vec<FlatField>,
 }
 
+impl FlatSelectionSet {
+    pub fn partition_fields(self, predicate: impl Fn(&FlatField) -> bool) -> (Self, Self) {
+        let (left, right) = self.fields.into_iter().partition(predicate);
+        (
+            Self {
+                ty: self.ty,
+                root_selection_set_ids: self.root_selection_set_ids.clone(),
+                fields: left,
+            },
+            Self { fields: right, ..self },
+        )
+    }
+
+    pub fn clone_with_fields(&self, fields: Vec<FlatField>) -> Self {
+        Self {
+            ty: self.ty,
+            root_selection_set_ids: self.root_selection_set_ids.clone(),
+            fields,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.fields.is_empty()
+    }
+}
+
+impl IntoIterator for FlatSelectionSet {
+    type Item = FlatField;
+
+    type IntoIter = <Vec<FlatField> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.fields.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a FlatSelectionSet {
+    type Item = &'a FlatField;
+
+    type IntoIter = <&'a Vec<FlatField> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.fields.iter()
+    }
+}
+
 #[derive(Debug, Clone)]
-pub struct FlatField {
+pub(crate) struct FlatField {
     pub type_condition: Option<FlatTypeCondition>,
     // There is always at least one element.
     pub selection_set_path: Vec<BoundSelectionSetId>,
     pub bound_field_id: BoundFieldId,
+}
+
+impl Borrow<BoundFieldId> for FlatField {
+    fn borrow(&self) -> &BoundFieldId {
+        &self.bound_field_id
+    }
+}
+impl Borrow<BoundFieldId> for &FlatField {
+    fn borrow(&self) -> &BoundFieldId {
+        &self.bound_field_id
+    }
+}
+
+impl FlatField {
+    pub fn parent_selection_set_id(&self) -> BoundSelectionSetId {
+        self.selection_set_path.last().copied().unwrap()
+    }
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]

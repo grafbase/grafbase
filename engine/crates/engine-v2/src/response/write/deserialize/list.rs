@@ -13,7 +13,7 @@ use crate::{
 
 pub(super) struct ListSeed<'ctx, 'parent, F> {
     pub path: &'parent ResponsePath,
-    pub bound_field_id: Option<BoundFieldId>,
+    pub bound_field_id: BoundFieldId,
     pub ctx: &'parent SeedContextInner<'ctx>,
     pub seed_builder: F,
 }
@@ -64,11 +64,13 @@ where
                 Ok(None) => break,
                 Err(err) => {
                     if !self.ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
-                        self.ctx.data.borrow_mut().push_error(GraphqlError {
+                        self.ctx.response_part.borrow_mut().push_error(GraphqlError {
                             message: err.to_string(),
                             locations: self
-                                .bound_field_id
-                                .map(|id| self.ctx.walker.walk(id).name_location())
+                                .ctx
+                                .plan
+                                .bound_walk_with(self.bound_field_id, ())
+                                .name_location()
                                 .into_iter()
                                 .collect(),
                             path: Some(self.path.clone()),
@@ -83,7 +85,7 @@ where
         }
 
         Ok(ResponseValue::List {
-            id: self.ctx.data.borrow_mut().push_list(&values),
+            id: self.ctx.response_part.borrow_mut().push_list(&values),
             nullable: false,
         })
     }

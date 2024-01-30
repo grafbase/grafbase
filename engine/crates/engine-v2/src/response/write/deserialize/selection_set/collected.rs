@@ -6,21 +6,21 @@ use std::{
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::{
-    plan::CollectedSelectionSet,
+    plan::ConcreteSelectionSetId,
     response::{
         write::deserialize::{key::Key, FieldSeed, SeedContextInner},
-        ResponseEdge, ResponseObject, ResponsePath, ResponseValue,
+        ResponseBoundaryItem, ResponseEdge, ResponseObject, ResponsePath, ResponseValue,
     },
 };
 
-pub(crate) struct CollectedFieldsSeed<'ctx, 'parent> {
+pub(crate) struct ConcreteCollectionSetSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContextInner<'ctx>,
     pub path: &'parent ResponsePath,
-    pub expected: &'parent CollectedSelectionSet,
+    pub id: ConcreteSelectionSetId,
 }
 
-impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for CollectedFieldsSeed<'ctx, 'parent> {
-    type Value = ResponseObject;
+impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for ConcreteCollectionSetSeed<'ctx, 'parent> {
+    type Value = ResponseValue;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
@@ -30,8 +30,8 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for CollectedFieldsSeed<'ctx, 'par
     }
 }
 
-impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedFieldsSeed<'ctx, 'parent> {
-    type Value = ResponseObject;
+impl<'de, 'ctx, 'parent> Visitor<'de> for ConcreteCollectionSetSeed<'ctx, 'parent> {
+    type Value = ResponseValue;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("an object")
@@ -42,51 +42,51 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedFieldsSeed<'ctx, 'parent> {
     where
         A: MapAccess<'de>,
     {
-        let mut identifier = super::ObjectIdentifier::new(self.ctx, self.expected.ty);
-        let mut fields = BTreeMap::<ResponseEdge, ResponseValue>::new();
+        let plan = self.ctx.plan;
+        let keys = plan.response_keys();
+        let selection_set = &plan[self.id];
+        let mut identifier = super::ObjectIdentifier::new(self.ctx, selection_set.ty);
+        let mut response_fields = BTreeMap::<ResponseEdge, ResponseValue>::new();
+        let fields = &plan[selection_set.fields];
+
         while let Some(key) = map.next_key::<Key<'_>>()? {
             let key = key.as_ref();
-            let start = self
-                .expected
-                .fields
-                .partition_point(|field| field.expected_key.as_str() < key);
+            let start = fields.partition_point(|field| &keys[field.expected_key] < key);
 
-            if start < self.expected.fields.len() && self.expected.fields[start].expected_key == key {
+            if start < fields.len() && &keys[fields[start].expected_key] == key {
                 let mut end = start + 1;
                 // All fields with the same expected_key (when aliases aren't support by upsteam)
-                while self
-                    .expected
-                    .fields
+                while fields
                     .get(end + 1)
-                    .map(|field| field.expected_key == key)
+                    .map(|field| &keys[field.expected_key] == key)
                     .unwrap_or_default()
                 {
                     end += 1;
                 }
                 if end - start == 1 {
-                    let field = &self.expected.fields[start];
+                    let field = &fields[start];
                     let value = map.next_value_seed(FieldSeed {
                         ctx: self.ctx,
                         path: self.path.child(field.edge),
                         bound_field_id: field.bound_field_id,
-                        expected_type: &field.ty,
+                        ty: &field.ty,
                         wrapping: field.wrapping.clone(),
                     })?;
-                    fields.insert(field.edge, value);
+                    response_fields.insert(field.edge, value);
                 } else {
                     // if we found more than one field with the same expected_key we need to store the
                     // value first.
                     let stored_value = map.next_value::<serde_value::Value>()?;
-                    for field in &self.expected.fields[start..end] {
+                    for field in &fields[start..end] {
                         let value = FieldSeed {
                             ctx: self.ctx,
                             path: self.path.child(field.edge),
                             bound_field_id: field.bound_field_id,
-                            expected_type: &field.ty,
+                            ty: &field.ty,
                             wrapping: field.wrapping.clone(),
                         }
                         .deserialize(serde_value::ValueDeserializer::new(stored_value.clone()))?;
-                        fields.insert(field.edge, value);
+                        response_fields.insert(field.edge, value);
                     }
                 }
             // This supposes that the discriminant is never part of the schema.
@@ -102,9 +102,9 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedFieldsSeed<'ctx, 'parent> {
         let object_id = identifier.try_into_object_id()?;
 
         // Checking if we're missing fields
-        if fields.len() < self.expected.fields.len() {
-            for field in &self.expected.fields {
-                if let Entry::Vacant(entry) = fields.entry(field.edge) {
+        if response_fields.len() < fields.len() {
+            for field in fields {
+                if let Entry::Vacant(entry) = response_fields.entry(field.edge) {
                     if field.wrapping.is_required() {
                         return Err(serde::de::Error::custom(self.ctx.missing_field_error_message(field)));
                     }
@@ -113,16 +113,30 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedFieldsSeed<'ctx, 'parent> {
             }
         }
 
-        for edge in &self.expected.typename_fields {
-            fields.insert(
+        let name_id = plan.schema()[object_id].name;
+        for edge in &selection_set.typename_fields {
+            response_fields.insert(
                 *edge,
                 ResponseValue::StringId {
-                    id: self.ctx.walker.schema()[object_id].name,
+                    id: name_id,
                     nullable: false,
                 },
             );
         }
 
-        Ok(ResponseObject { object_id, fields })
+        let mut data = self.ctx.response_part.borrow_mut();
+        let id = data.push_object(ResponseObject {
+            object_id,
+            fields: response_fields,
+        });
+        if let Some(boundary_id) = selection_set.maybe_boundary_id {
+            data[boundary_id].push(ResponseBoundaryItem {
+                response_object_id: id,
+                response_path: self.path.clone(),
+                object_id,
+            });
+        }
+
+        Ok(ResponseValue::Object { id, nullable: false })
     }
 }

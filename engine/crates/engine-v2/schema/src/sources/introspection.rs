@@ -25,7 +25,7 @@ impl<'a> ResolverWalker<'a> {
 #[derive(Default)]
 pub struct DataSource {
     // Ugly until we have some from of SchemaBuilder
-    metadata: Option<Metadata>,
+    pub metadata: Option<Metadata>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

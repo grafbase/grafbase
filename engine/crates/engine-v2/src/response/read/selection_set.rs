@@ -22,6 +22,10 @@ impl ReadSelectionSet {
     pub fn extend_disjoint(&mut self, other: Self) {
         self.items.extend(other.items);
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
 }
 
 impl<'a> IntoIterator for &'a ReadSelectionSet {

@@ -9,36 +9,30 @@ use schema::{
 };
 
 use crate::{
-    plan::{CollectedSelectionSet, ConcreteField, ConcreteType, ExpectedSelectionSet},
-    request::PlanOperationWalker,
-    response::{ExecutorOutput, ResponseBoundaryItem, ResponseObject, ResponseObjectUpdate, ResponseValue},
+    plan::{ConcreteField, PlanConcreteField, PlanConcreteSelectionSet, PlanWalker},
+    response::{ResponseBoundaryItem, ResponseObject, ResponseObjectUpdate, ResponsePart, ResponseValue},
 };
 
 pub(super) struct IntrospectionWriter<'a> {
     pub schema: SchemaWalker<'a, ()>,
     pub metadata: &'a Metadata,
-    pub walker: PlanOperationWalker<'a>,
-    pub output: RefCell<&'a mut ExecutorOutput>,
-}
-
-impl ConcreteField {
-    fn concrete_selection_set(&self) -> Option<&CollectedSelectionSet> {
-        match &self.ty {
-            ConcreteType::SelectionSet(ExpectedSelectionSet::Collected(selection_set)) => Some(selection_set),
-            _ => None,
-        }
-    }
+    pub plan: PlanWalker<'a>,
+    pub output: RefCell<&'a mut ResponsePart>,
 }
 
 impl<'a> IntrospectionWriter<'a> {
-    pub(super) fn update_output(&self, response_object: ResponseBoundaryItem, selection_set: &CollectedSelectionSet) {
+    pub(super) fn update_output(&self, response_object: ResponseBoundaryItem) {
         let mut fields = BTreeMap::new();
-        for field in &selection_set.fields {
-            let bound_field = field.bound_field_id.map(|id| self.walker.walk(id)).unwrap();
-            match self.metadata.root_field(bound_field.schema_field().unwrap().id()) {
+        let selection_set = self.plan.collected_selection_set();
+        for field in selection_set.fields() {
+            let &ConcreteField {
+                edge, schema_field_id, ..
+            } = field.as_ref();
+            match self.metadata.root_field(schema_field_id) {
                 IntrospectionField::Type => {
-                    let name = bound_field
-                        .bound_arguments()
+                    let name = field
+                        .as_bound_field()
+                        .arguments()
                         .next()
                         .map(|arg| match arg.resolved_value() {
                             ConstValue::String(s) => s,
@@ -46,7 +40,7 @@ impl<'a> IntrospectionWriter<'a> {
                         })
                         .expect("Validation failure: missing argument");
                     fields.insert(
-                        field.edge,
+                        edge,
                         self.schema
                             .definition_by_name(&name)
                             .map(|definition| {
@@ -56,13 +50,13 @@ impl<'a> IntrospectionWriter<'a> {
                     );
                 }
                 IntrospectionField::Schema => {
-                    fields.insert(field.edge, self.__schema(field.concrete_selection_set().unwrap()));
+                    fields.insert(edge, self.__schema(field.concrete_selection_set().unwrap()));
                 }
             };
         }
-        if !selection_set.typename_fields.is_empty() {
-            let name = self.schema.walk(Definition::from(selection_set.ty)).schema_name_id();
-            for edge in &selection_set.typename_fields {
+        if !selection_set.as_ref().typename_fields.is_empty() {
+            let name = selection_set.ty().schema_name_id();
+            for edge in &selection_set.as_ref().typename_fields {
                 fields.insert(*edge, name.into());
             }
         }
@@ -75,18 +69,19 @@ impl<'a> IntrospectionWriter<'a> {
     fn object<E: Copy, const N: usize>(
         &self,
         object: &'a IntrospectionObject<E, N>,
-        selection_set: &CollectedSelectionSet,
-        build: impl Fn(&ConcreteField, E) -> ResponseValue,
+        selection_set: PlanConcreteSelectionSet<'_>,
+        build: impl Fn(PlanConcreteField<'_>, E) -> ResponseValue,
     ) -> ResponseValue {
         let mut fields = BTreeMap::new();
-        for field in &selection_set.fields {
-            let bound_field = field.bound_field_id.map(|id| self.walker.walk(id)).unwrap();
-            let field_id = bound_field.schema_field().unwrap().id();
-            fields.insert(field.edge, build(field, object[field_id]));
+        for field in selection_set.fields() {
+            let &ConcreteField {
+                edge, schema_field_id, ..
+            } = field.as_ref();
+            fields.insert(edge, build(field, object[schema_field_id]));
         }
-        if !selection_set.typename_fields.is_empty() {
-            let name = self.schema.walk(Definition::from(selection_set.ty)).schema_name_id();
-            for edge in &selection_set.typename_fields {
+        if !selection_set.as_ref().typename_fields.is_empty() {
+            let name = selection_set.ty().schema_name_id();
+            for edge in &selection_set.as_ref().typename_fields {
                 fields.insert(*edge, name.into());
             }
         }
@@ -100,27 +95,29 @@ impl<'a> IntrospectionWriter<'a> {
             .into()
     }
 
-    fn __schema(&self, selection_set: &CollectedSelectionSet) -> ResponseValue {
-        let schema = self.walker.walk_with((), ()).schema();
+    fn __schema(&self, selection_set: PlanConcreteSelectionSet<'_>) -> ResponseValue {
         self.object(&self.metadata.__schema, selection_set, |field, __schema| {
             match __schema {
-                __Schema::Description => schema.description.into(),
+                __Schema::Description => self.schema.description.into(),
                 __Schema::Types => {
                     let selection_set = field.concrete_selection_set().unwrap();
-                    let values = schema
+                    let values = self
+                        .schema
                         .definitions()
                         .map(|definition| self.__type_inner(definition, selection_set))
                         .collect::<Vec<_>>();
                     self.output.borrow_mut().push_list(&values).into()
                 }
                 __Schema::QueryType => {
-                    self.__type_inner(schema.query().into(), field.concrete_selection_set().unwrap())
+                    self.__type_inner(self.schema.query().into(), field.concrete_selection_set().unwrap())
                 }
-                __Schema::MutationType => schema
+                __Schema::MutationType => self
+                    .schema
                     .mutation()
                     .map(|mutation| self.__type_inner(mutation.into(), field.concrete_selection_set().unwrap()))
                     .unwrap_or_default(),
-                __Schema::SubscriptionType => schema
+                __Schema::SubscriptionType => self
+                    .schema
                     .subscription()
                     .map(|subscription| self.__type_inner(subscription.into(), field.concrete_selection_set().unwrap()))
                     .unwrap_or_default(),
@@ -130,7 +127,7 @@ impl<'a> IntrospectionWriter<'a> {
         })
     }
 
-    fn __type(&self, ty: TypeWalker<'a>, selection_set: &CollectedSelectionSet) -> ResponseValue {
+    fn __type(&self, ty: TypeWalker<'a>, selection_set: PlanConcreteSelectionSet<'_>) -> ResponseValue {
         // Building it from outermost to innermost
         let mut wrapping = Wrapping::new();
         let mut schema_wrapping = ty.wrapping().clone();
@@ -151,7 +148,7 @@ impl<'a> IntrospectionWriter<'a> {
         &self,
         definition: DefinitionWalker<'a>,
         mut wrapping: Wrapping,
-        selection_set: &CollectedSelectionSet,
+        selection_set: PlanConcreteSelectionSet<'_>,
     ) -> ResponseValue {
         match wrapping.pop() {
             Some(wrapping_type) => self.object(&self.metadata.__type, selection_set, |field, __type| match __type {
@@ -169,7 +166,11 @@ impl<'a> IntrospectionWriter<'a> {
         }
     }
 
-    fn __type_inner(&self, definition: DefinitionWalker<'a>, selection_set: &CollectedSelectionSet) -> ResponseValue {
+    fn __type_inner(
+        &self,
+        definition: DefinitionWalker<'a>,
+        selection_set: PlanConcreteSelectionSet<'_>,
+    ) -> ResponseValue {
         self.object(&self.metadata.__type, selection_set, |field, __type| match __type {
             __Type::Kind => match definition.id() {
                 Definition::Scalar(_) => self.metadata.type_kind.scalar,
@@ -186,9 +187,9 @@ impl<'a> IntrospectionWriter<'a> {
                 .fields()
                 .map(|fields| {
                     let selection_set = field.concrete_selection_set().unwrap();
-                    let bound_field = field.bound_field_id.map(|id| self.walker.walk(id)).unwrap();
-                    let include_deprecated = bound_field
-                        .bound_arguments()
+                    let include_deprecated = field
+                        .as_bound_field()
+                        .arguments()
                         .next()
                         .map(|arg| match arg.resolved_value() {
                             ConstValue::Boolean(b) => b,
@@ -255,7 +256,7 @@ impl<'a> IntrospectionWriter<'a> {
         })
     }
 
-    fn __field(&self, target: FieldWalker<'a>, selection_set: &CollectedSelectionSet) -> ResponseValue {
+    fn __field(&self, target: FieldWalker<'a>, selection_set: PlanConcreteSelectionSet<'_>) -> ResponseValue {
         self.object(&self.metadata.__field, selection_set, |field, __field| match __field {
             __Field::Name => target.as_ref().name.into(),
             __Field::Description => target.as_ref().description.into(),
@@ -274,7 +275,11 @@ impl<'a> IntrospectionWriter<'a> {
         })
     }
 
-    fn __input_value(&self, target: InputValueWalker<'a>, selection_set: &CollectedSelectionSet) -> ResponseValue {
+    fn __input_value(
+        &self,
+        target: InputValueWalker<'a>,
+        selection_set: PlanConcreteSelectionSet<'_>,
+    ) -> ResponseValue {
         self.object(
             &self.metadata.__input_value,
             selection_set,
@@ -288,7 +293,7 @@ impl<'a> IntrospectionWriter<'a> {
         )
     }
 
-    fn __enum_value(&self, target: &'a EnumValue, selection_set: &CollectedSelectionSet) -> ResponseValue {
+    fn __enum_value(&self, target: &'a EnumValue, selection_set: PlanConcreteSelectionSet<'_>) -> ResponseValue {
         self.object(
             &self.metadata.__enum_value,
             selection_set,

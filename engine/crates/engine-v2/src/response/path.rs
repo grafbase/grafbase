@@ -1,5 +1,3 @@
-use schema::FieldId;
-
 /// ResponseEdge is a single u32 with all the information bitpacked to have an effecient key
 /// for the BTreeMap storing fields. It structured as follows:
 ///
@@ -24,7 +22,7 @@ use schema::FieldId;
 ///
 ///     1000_0000_0000_0000_0000_0000_0000_0000
 ///       └───────────────────────────────────┘
-///         ↑ FieldId
+///         ↑ ResponseKey, created during planning, so could be over 32_768.
 ///
 ///      1 -> Index
 ///
@@ -69,7 +67,24 @@ pub struct ResponseEdge(u32);
 pub enum UnpackedResponseEdge {
     Index(usize),
     BoundResponseKey(BoundResponseKey),
-    ExtraField(FieldId),
+    ExtraField(ResponseKey),
+}
+
+impl UnpackedResponseEdge {
+    #[allow(clippy::panic)]
+    pub fn pack(self) -> ResponseEdge {
+        match self {
+            UnpackedResponseEdge::Index(index) => {
+                let index = index as u32;
+                if index > OTHER_DATA_MASK {
+                    panic!("Index is too high.");
+                }
+                ResponseEdge(index | INDEX_FLAG)
+            }
+            UnpackedResponseEdge::BoundResponseKey(key) => ResponseEdge(key.0),
+            UnpackedResponseEdge::ExtraField(key) => ResponseEdge(EXTRA_FIELD_FLAG | key.0),
+        }
+    }
 }
 
 impl ResponseEdge {
@@ -79,12 +94,20 @@ impl ResponseEdge {
         } else if self.0 & !OTHER_DATA_MASK == INDEX_FLAG {
             UnpackedResponseEdge::Index((self.0 & OTHER_DATA_MASK) as usize)
         } else {
-            UnpackedResponseEdge::ExtraField(FieldId::from((self.0 & OTHER_DATA_MASK) as usize))
+            UnpackedResponseEdge::ExtraField(ResponseKey(self.0 & OTHER_DATA_MASK))
         }
     }
 
     pub fn is_extra(&self) -> bool {
         self.0 & !OTHER_DATA_MASK == EXTRA_FIELD_FLAG
+    }
+
+    pub fn as_response_key(&self) -> Option<ResponseKey> {
+        match self.unpack() {
+            UnpackedResponseEdge::BoundResponseKey(key) => Some(key.into()),
+            UnpackedResponseEdge::ExtraField(key) => Some(key),
+            _ => None,
+        }
     }
 }
 
@@ -106,24 +129,14 @@ impl ResponsePath {
 
 impl From<BoundResponseKey> for ResponseEdge {
     fn from(value: BoundResponseKey) -> Self {
-        ResponseEdge(value.0)
+        UnpackedResponseEdge::BoundResponseKey(value).pack()
     }
 }
 
 impl From<usize> for ResponseEdge {
     #[allow(clippy::panic)]
     fn from(index: usize) -> Self {
-        let index = index as u32;
-        if index > OTHER_DATA_MASK {
-            panic!("Index is too high.");
-        }
-        ResponseEdge(index | INDEX_FLAG)
-    }
-}
-
-impl From<FieldId> for ResponseEdge {
-    fn from(field_id: FieldId) -> Self {
-        ResponseEdge((u32::from(field_id) & OTHER_DATA_MASK) | EXTRA_FIELD_FLAG)
+        UnpackedResponseEdge::Index(index).pack()
     }
 }
 
@@ -144,13 +157,25 @@ impl ResponseKeys {
     pub fn contains(&self, s: &str) -> bool {
         self.0.contains(s)
     }
+
+    pub fn try_resolve(&self, key: ResponseKey) -> Option<&str> {
+        self.0.try_resolve(&key)
+    }
+}
+
+impl std::ops::Index<BoundResponseKey> for ResponseKeys {
+    type Output = str;
+
+    fn index(&self, key: BoundResponseKey) -> &Self::Output {
+        self.0.resolve(&ResponseKey::from(key))
+    }
 }
 
 impl std::ops::Index<ResponseKey> for ResponseKeys {
     type Output = str;
 
     fn index(&self, key: ResponseKey) -> &Self::Output {
-        &self.0[key]
+        self.0.resolve(&key)
     }
 }
 

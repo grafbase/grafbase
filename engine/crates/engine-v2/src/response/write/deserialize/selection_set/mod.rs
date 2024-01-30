@@ -1,24 +1,27 @@
 mod collected;
-mod undetermined;
+mod conditional;
+mod runtime_concrete;
 
 use std::borrow::Cow;
 
 pub(crate) use collected::*;
+use conditional::*;
 use schema::ObjectId;
 use serde::de::DeserializeSeed;
-use undetermined::*;
+
+use self::runtime_concrete::RuntimeConcreteCollectionSetSeed;
 
 use super::SeedContextInner;
 use crate::{
-    plan::ExpectedSelectionSet,
+    plan::CollectedSelectionSet,
     request::SelectionSetType,
-    response::{ResponseBoundaryItem, ResponsePath, ResponseValue},
+    response::{ResponsePath, ResponseValue},
 };
 
 pub(super) struct SelectionSetSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContextInner<'ctx>,
     pub path: &'parent ResponsePath,
-    pub expected: &'parent ExpectedSelectionSet,
+    pub collected: &'parent CollectedSelectionSet,
 }
 
 impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for SelectionSetSeed<'ctx, 'parent> {
@@ -28,54 +31,34 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for SelectionSetSeed<'ctx, 'parent
     where
         D: serde::Deserializer<'de>,
     {
-        let (boundary_ids, response_object) = match self.expected {
-            ExpectedSelectionSet::Collected(expected) => {
-                let object = CollectedFieldsSeed {
-                    ctx: self.ctx,
-                    path: self.path,
-                    expected,
-                }
-                .deserialize(deserializer)?;
-                (Cow::Borrowed(&expected.boundary_ids), object)
+        match self.collected {
+            &CollectedSelectionSet::Concrete(id) => ConcreteCollectionSetSeed {
+                ctx: self.ctx,
+                path: self.path,
+                id,
             }
-            ExpectedSelectionSet::Undetermined(id) => {
-                let expected = &self.ctx.expectations[*id];
-                let boundary_ids = expected.maybe_boundary_id.into_iter().collect();
-                let object = UndeterminedFieldsSeed {
-                    ctx: self.ctx,
-                    path: self.path,
-                    ty: expected.ty,
-                    selection_set_ids: Cow::Owned(vec![*id]),
-                }
-                .deserialize(deserializer)?;
-                (Cow::Owned(boundary_ids), object)
+            .deserialize(deserializer),
+            &CollectedSelectionSet::Conditional(id) => ConditionalSelectionSetSeed {
+                ctx: self.ctx,
+                path: self.path,
+                ty: self.ctx.plan[id].ty,
+                selection_set_ids: Cow::Owned(vec![id]),
             }
-            ExpectedSelectionSet::MergedUndetermined { ty, selection_set_ids } => {
-                let boundary_ids = selection_set_ids
-                    .iter()
-                    .filter_map(|id| self.ctx.expectations[*id].maybe_boundary_id)
-                    .collect();
-                let object = UndeterminedFieldsSeed {
-                    ctx: self.ctx,
-                    path: self.path,
-                    ty: *ty,
-                    selection_set_ids: Cow::Borrowed(selection_set_ids),
-                }
-                .deserialize(deserializer)?;
-                (Cow::Owned(boundary_ids), object)
+            .deserialize(deserializer),
+            CollectedSelectionSet::MergedConditionals { ty, selection_set_ids } => ConditionalSelectionSetSeed {
+                ctx: self.ctx,
+                path: self.path,
+                ty: *ty,
+                selection_set_ids: Cow::Borrowed(selection_set_ids),
             }
-        };
-        let mut data = self.ctx.data.borrow_mut();
-        let object_id = response_object.object_id;
-        let id = data.push_object(response_object);
-        for boundary_id in boundary_ids.iter() {
-            data[*boundary_id].push(ResponseBoundaryItem {
-                response_object_id: id,
-                response_path: self.path.clone(),
-                object_id,
-            });
+            .deserialize(deserializer),
+            CollectedSelectionSet::RuntimeConcrete(selection_set) => RuntimeConcreteCollectionSetSeed {
+                ctx: self.ctx,
+                path: self.path,
+                selection_set,
+            }
+            .deserialize(deserializer),
         }
-        Ok(ResponseValue::Object { id, nullable: false })
     }
 }
 
@@ -96,15 +79,15 @@ enum ObjectIdentifier<'ctx, 'parent> {
 
 impl<'ctx, 'parent> ObjectIdentifier<'ctx, 'parent> {
     fn new(ctx: &'parent SeedContextInner<'ctx>, root: SelectionSetType) -> Self {
-        let schema = ctx.walker.schema().as_ref();
+        let schema = ctx.plan.schema();
         match root {
             SelectionSetType::Interface(interface_id) => Self::Unknown {
-                discriminant_key: ctx.walker.names().interface_discriminant_key(schema, interface_id),
+                discriminant_key: schema.names().interface_discriminant_key(schema.as_ref(), interface_id),
                 root,
                 ctx,
             },
             SelectionSetType::Union(union_id) => Self::Unknown {
-                discriminant_key: ctx.walker.names().union_discriminant_key(schema, union_id),
+                discriminant_key: schema.names().union_discriminant_key(schema.as_ref(), union_id),
                 root,
                 ctx,
             },
@@ -126,16 +109,16 @@ impl<'ctx, 'parent> ObjectIdentifier<'ctx, 'parent> {
             root,
         } = self
         {
+            let schema = ctx.plan.schema();
             let maybe_object_id = match root {
-                SelectionSetType::Interface(interface_id) => ctx
-                    .walker
+                SelectionSetType::Interface(interface_id) => schema
                     .names()
-                    .concrete_object_id_from_interface_discriminant(&ctx.walker.schema(), *interface_id, discriminant),
-                SelectionSetType::Union(union_id) => ctx.walker.names().concrete_object_id_from_union_discriminant(
-                    &ctx.walker.schema(),
-                    *union_id,
-                    discriminant,
-                ),
+                    .concrete_object_id_from_interface_discriminant(&schema, *interface_id, discriminant),
+                SelectionSetType::Union(union_id) => {
+                    schema
+                        .names()
+                        .concrete_object_id_from_union_discriminant(&schema, *union_id, discriminant)
+                }
                 SelectionSetType::Object(_) => unreachable!("We wouldn't be trying to guess it otherwise."),
             };
             if let Some(object_id) = maybe_object_id {
@@ -164,7 +147,7 @@ impl<'ctx, 'parent> ObjectIdentifier<'ctx, 'parent> {
             } => Err(serde::de::Error::custom(format!(
                 "Upstream response error: Could not infer object. Discriminant key '{}' wasn't found for type named '{}'.",
                 discriminant_key,
-                ctx.walker.schema().walk(schema::Definition::from(root)).name()
+                ctx.plan.schema().walk(schema::Definition::from(root)).name()
             ))),
             ObjectIdentifier::Failure {
                 discriminant_key,
@@ -175,7 +158,7 @@ impl<'ctx, 'parent> ObjectIdentifier<'ctx, 'parent> {
                 "Upstream response error: Could not infer object. Unknown discriminant '{}' (key: '{}') for type named '{}'.",
                 discriminant,
                 discriminant_key,
-                ctx.walker.schema().walk(schema::Definition::from(root)).name()
+                ctx.plan.schema().walk(schema::Definition::from(root)).name()
             ))),
         }
     }

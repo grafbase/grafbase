@@ -43,7 +43,7 @@ impl<'a> RootFieldResolverWalker<'a> {
     }
 
     pub fn subgraph(&self) -> SubgraphWalker<'a> {
-        self.walk(&self.data_source()[self.subgraph_id])
+        self.walk(self.subgraph_id)
     }
 }
 
@@ -89,7 +89,7 @@ impl<'a> EntityResolverWalker<'a> {
     }
 
     pub fn subgraph(&self) -> SubgraphWalker<'a> {
-        self.walk(&self.data_source()[self.subgraph_id])
+        self.walk(self.subgraph_id)
     }
 }
 
@@ -102,19 +102,28 @@ impl<'a> std::fmt::Debug for EntityResolverWalker<'a> {
     }
 }
 
-pub type SubgraphWalker<'a> = SchemaWalker<'a, &'a Subgraph>;
+pub type SubgraphWalker<'a> = SchemaWalker<'a, SubgraphId>;
 
 impl<'a> SubgraphWalker<'a> {
+    pub fn id(&self) -> SubgraphId {
+        self.item
+    }
+
+    #[allow(clippy::should_implement_trait)]
+    pub fn as_ref(&self) -> &'a Subgraph {
+        &self.schema.data_sources.federation[self.item]
+    }
+
     pub fn name(&self) -> &'a str {
-        &self.schema[self.item.name]
+        &self.schema[self.as_ref().name]
     }
 
     pub fn url(&self) -> &'a Url {
-        &self.schema[self.item.url]
+        &self.schema[self.as_ref().url]
     }
 
     pub fn websocket_url(&self) -> &'a Url {
-        match self.item.websocket_url {
+        match self.as_ref().websocket_url {
             Some(websocket_id) => &self.schema[websocket_id],
             None => self.url(),
         }
@@ -124,7 +133,7 @@ impl<'a> SubgraphWalker<'a> {
         self.schema
             .default_headers
             .iter()
-            .chain(self.item.headers.iter())
+            .chain(self.as_ref().headers.iter())
             .map(|id| self.walk(&self.schema[*id]))
     }
 }

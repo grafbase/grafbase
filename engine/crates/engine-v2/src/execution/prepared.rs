@@ -8,7 +8,7 @@ use engine::RequestHeaders;
 use futures_util::future::BoxFuture;
 use schema::CacheConfig;
 
-use crate::{request::Operation, Engine, Response};
+use crate::{plan::OperationPlan, Engine, Response};
 
 use super::{ExecutorCoordinator, Variables};
 
@@ -28,7 +28,7 @@ pub struct BadRequest {
 }
 
 pub struct PreparedRequest {
-    pub(crate) operation: Operation,
+    pub(crate) operation: Arc<OperationPlan>,
     pub(crate) variables: Variables,
     // Keeping the original query for a simpler hash.
     pub(crate) query: String,

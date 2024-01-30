@@ -1,16 +1,14 @@
-use std::sync::Arc;
-
-pub use bind::BindResult;
-pub use engine_parser::types::OperationType;
-pub use flat::*;
-pub use ids::*;
-pub use location::Location;
-pub use parse::{parse_operation, UnboundOperation};
-pub use path::QueryPath;
+pub(crate) use bind::BindResult;
+pub(crate) use engine_parser::types::OperationType;
+pub(crate) use flat::*;
+pub(crate) use ids::*;
+pub(crate) use location::Location;
+pub(crate) use parse::{parse_operation, ParsedOperation};
+pub(crate) use path::QueryPath;
 use schema::{CacheConfig, Merge, ObjectId, Schema, SchemaWalker};
-pub use selection_set::*;
-pub use variable::VariableDefinition;
-pub use walkers::*;
+pub(crate) use selection_set::*;
+pub(crate) use variable::VariableDefinition;
+pub(crate) use walkers::*;
 
 use crate::response::ResponseKeys;
 
@@ -26,14 +24,15 @@ mod selection_set;
 mod variable;
 mod walkers;
 
-pub struct Operation {
+pub(crate) struct Operation {
     pub ty: OperationType,
     pub root_object_id: ObjectId,
     pub name: Option<String>,
+    pub response_keys: ResponseKeys,
     pub root_selection_set_id: BoundSelectionSetId,
     pub selection_sets: Vec<BoundSelectionSet>,
     pub fields: Vec<BoundField>,
-    pub response_keys: Arc<ResponseKeys>,
+    pub field_to_parent: Vec<BoundSelectionSetId>,
     pub fragments: Vec<BoundFragment>,
     pub fragment_spreads: Vec<BoundFragmentSpread>,
     pub inline_fragments: Vec<BoundInlineFragment>,
@@ -45,7 +44,11 @@ pub struct Operation {
 pub type BoundFieldArguments = Vec<BoundFieldArgument>;
 
 impl Operation {
-    fn empty_arguments(&self) -> &BoundFieldArguments {
+    pub fn parent_selection_set_id(&self, id: BoundFieldId) -> BoundSelectionSetId {
+        self.field_to_parent[usize::from(id)]
+    }
+
+    pub fn empty_arguments(&self) -> &BoundFieldArguments {
         &self.field_arguments[0]
     }
 
@@ -97,7 +100,7 @@ impl Operation {
     /// At this stage the operation might not be resolvable but it should make sense given the schema types.
     pub fn build(
         schema: &Schema,
-        unbound_operation: UnboundOperation,
+        unbound_operation: ParsedOperation,
         operation_limits_enabled: bool,
     ) -> BindResult<Self> {
         let mut operation = bind::bind(schema, unbound_operation)?;
@@ -124,17 +127,16 @@ impl Operation {
         Ok(operation)
     }
 
-    pub fn walker_with<'op, 'schema>(
+    pub fn walker_with<'op, 'schema, SI>(
         &'op self,
-        schema_walker: SchemaWalker<'schema, ()>,
-    ) -> OperationWalker<'op, (), (), ()>
+        schema_walker: SchemaWalker<'schema, SI>,
+    ) -> OperationWalker<'op, (), SI>
     where
         'schema: 'op,
     {
         OperationWalker {
             operation: self,
             schema_walker,
-            ctx: (),
             item: (),
         }
     }

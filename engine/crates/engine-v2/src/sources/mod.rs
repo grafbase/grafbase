@@ -1,23 +1,4 @@
-use futures_util::stream::BoxStream;
-use schema::{Resolver, ResolverWalker};
-
-use crate::{
-    execution::ExecutionContext,
-    plan::{PlanBoundary, PlanId, PlanOutput},
-    request::EntityType,
-    response::{ExecutorOutput, GraphqlError, ResponseBoundaryObjectsView, ResponseBuilder},
-};
-
-mod graphql;
-mod introspection;
-
-use graphql::federation::FederationEntityExecutor;
-use graphql::GraphqlExecutor;
-use introspection::IntrospectionExecutionPlan;
-
-use self::graphql::GraphqlSubscriptionExecutor;
-
-/// Executors are responsible to retrieve a selection_set from a certain point in the query.
+/// Execution plans are responsible to retrieve a selection_set from a certain point in the query.
 ///
 /// Supposing we have a query like this:
 /// ```graphql
@@ -30,6 +11,7 @@ use self::graphql::GraphqlSubscriptionExecutor;
 ///     }
 /// }
 /// ```
+///
 /// If `prices` comes from a different data source we would have two plans like:
 /// ```graphql
 /// # Catalog plan
@@ -42,6 +24,7 @@ use self::graphql::GraphqlSubscriptionExecutor;
 ///     }
 /// }
 /// ```
+///
 /// ```graphql
 /// # Price plan
 /// query {
@@ -53,124 +36,109 @@ use self::graphql::GraphqlSubscriptionExecutor;
 /// }
 /// ```
 ///
+/// Execution plans define what to do at runtime for a given query. They only depend on the
+/// operation and thus can be cached and do not depend on any context. On the other hand,
+/// Executors are context (variables, response, headers, etc.) depend and built from the execution plans
+///
 /// The executor for the catalog plan would have a single response object root and the price plan
 /// executor will have a root for each product in the response.
-pub(crate) enum Executor<'a> {
-    GraphQL(GraphqlExecutor<'a>),
-    Introspection(IntrospectionExecutionPlan<'a>),
-    FederationEntity(FederationEntityExecutor<'a>),
+use futures_util::stream::BoxStream;
+use schema::{Resolver, ResolverWalker};
+
+use crate::{
+    execution::{ExecutionContext, ExecutionError, ExecutionResult},
+    plan::{PlanWalker, PlanningResult},
+    response::{ResponseBoundaryObjectsView, ResponseBuilder, ResponsePart},
+};
+
+use self::{
+    graphql::{
+        FederationEntityExecutionPlan, FederationEntityExecutor, GraphqlExecutionPlan, GraphqlExecutor,
+        GraphqlSubscriptionExecutor,
+    },
+    introspection::{IntrospectionExecutionPlan, IntrospectionExecutor},
+};
+
+mod graphql;
+mod introspection;
+
+pub(crate) enum ExecutionPlan {
+    GraphQL(GraphqlExecutionPlan),
+    FederationEntity(FederationEntityExecutionPlan),
+    Introspection(IntrospectionExecutionPlan),
 }
 
-pub(crate) struct ResolverInput<'ctx, 'input> {
-    pub ctx: ExecutionContext<'ctx>,
-    pub boundary_objects_view: ResponseBoundaryObjectsView<'input>,
-    pub plan_id: PlanId,
-    pub plan_output: PlanOutput,
-    pub output: ExecutorOutput,
-}
-
-impl<'exc> Executor<'exc> {
-    pub fn build<'ctx, 'input>(
-        walker: ResolverWalker<'ctx>,
-        entity_type: EntityType,
-        input: ResolverInput<'ctx, 'input>,
-    ) -> ExecutorResult<Self>
-    where
-        'ctx: 'exc,
-    {
+impl ExecutionPlan {
+    pub fn build(walker: ResolverWalker<'_>, plan: PlanWalker<'_>) -> PlanningResult<Self> {
         match walker.as_ref() {
-            Resolver::Introspection(resolver) => IntrospectionExecutionPlan::build(walker.walk(resolver), input),
-            Resolver::FederationRootField(resolver) => GraphqlExecutor::build(walker.walk(resolver), input),
-            Resolver::FederationEntity(resolver) => {
-                FederationEntityExecutor::build(walker.walk(resolver), entity_type, input)
-            }
+            Resolver::Introspection(_) => Ok(ExecutionPlan::Introspection(IntrospectionExecutionPlan)),
+            Resolver::FederationRootField(resolver) => GraphqlExecutionPlan::build(walker.walk(resolver), plan),
+            Resolver::FederationEntity(resolver) => FederationEntityExecutionPlan::build(walker.walk(resolver), plan),
+        }
+    }
+}
+
+pub(crate) struct ExecutorInput<'ctx, 'input> {
+    pub ctx: ExecutionContext<'ctx>,
+    pub plan: PlanWalker<'ctx>,
+    pub boundary_objects_view: ResponseBoundaryObjectsView<'input>,
+    pub response_part: ResponsePart,
+}
+
+pub(crate) struct SubscriptionInput<'ctx> {
+    pub ctx: ExecutionContext<'ctx>,
+    pub plan: PlanWalker<'ctx>,
+}
+
+impl ExecutionPlan {
+    pub fn new_executor<'ctx>(&'ctx self, input: ExecutorInput<'ctx, '_>) -> Result<Executor<'ctx>, ExecutionError> {
+        match self {
+            ExecutionPlan::Introspection(execution_plan) => execution_plan.new_executor(input),
+            ExecutionPlan::GraphQL(execution_plan) => execution_plan.new_executor(input),
+            ExecutionPlan::FederationEntity(execution_plan) => execution_plan.new_executor(input),
         }
     }
 
-    pub async fn execute(self) -> ExecutorResult<ExecutorOutput> {
+    pub fn new_subscription_executor<'ctx>(
+        &'ctx self,
+        input: SubscriptionInput<'ctx>,
+    ) -> Result<SubscriptionExecutor<'ctx>, ExecutionError> {
+        match self {
+            ExecutionPlan::GraphQL(execution_plan) => execution_plan.new_subscription_executor(input),
+            ExecutionPlan::Introspection(_) => Err(ExecutionError::Internal(
+                "Subscriptions can't contain introspection".into(),
+            )),
+            ExecutionPlan::FederationEntity(_) => Err(ExecutionError::Internal(
+                "Subscriptions can only be at the root of a query so can't contain federated entitites".into(),
+            )),
+        }
+    }
+}
+
+pub(crate) enum Executor<'ctx> {
+    GraphQL(GraphqlExecutor<'ctx>),
+    Introspection(IntrospectionExecutor<'ctx>),
+    FederationEntity(FederationEntityExecutor<'ctx>),
+}
+
+impl<'ctx> Executor<'ctx> {
+    pub async fn execute(self) -> ExecutionResult<ResponsePart> {
         match self {
             Executor::GraphQL(executor) => executor.execute().await,
             Executor::Introspection(executor) => executor.execute().await,
             Executor::FederationEntity(executor) => executor.execute().await,
         }
     }
-
-    pub fn plan_id(&self) -> PlanId {
-        match self {
-            Executor::GraphQL(executor) => executor.plan_id,
-            Executor::Introspection(executor) => executor.plan_id,
-            Executor::FederationEntity(executor) => executor.plan_id,
-        }
-    }
 }
 
-#[allow(dead_code)]
-pub(crate) struct SubscriptionResolverInput<'ctx> {
-    pub ctx: ExecutionContext<'ctx>,
-    pub plan_id: PlanId,
-    pub plan_output: PlanOutput,
-    pub plan_boundaries: Vec<PlanBoundary>,
-}
-
-#[allow(dead_code)]
-pub(crate) enum SubscriptionExecutor<'a> {
-    Graphql(GraphqlSubscriptionExecutor<'a>),
+pub(crate) enum SubscriptionExecutor<'ctx> {
+    Graphql(GraphqlSubscriptionExecutor<'ctx>),
 }
 
 impl<'exc> SubscriptionExecutor<'exc> {
-    pub fn build<'ctx>(
-        walker: ResolverWalker<'ctx>,
-        _entity_type: EntityType,
-        input: SubscriptionResolverInput<'ctx>,
-    ) -> ExecutorResult<Self>
-    where
-        'ctx: 'exc,
-    {
-        match walker.as_ref() {
-            Resolver::FederationRootField(resolver) => GraphqlSubscriptionExecutor::build(walker.walk(resolver), input),
-            Resolver::Introspection(_) => Err(ExecutorError::Internal(
-                "Subscriptions can't contain introspection".into(),
-            )),
-            Resolver::FederationEntity(_) => Err(ExecutorError::Internal(
-                "Subscriptions can only be at the root of a query so can't contain federated entitites".into(),
-            )),
-        }
-    }
-
-    pub async fn execute(self) -> ExecutorResult<BoxStream<'exc, (ResponseBuilder, ExecutorOutput)>> {
+    pub async fn execute(self) -> ExecutionResult<BoxStream<'exc, (ResponseBuilder, ResponsePart)>> {
         match self {
             SubscriptionExecutor::Graphql(executor) => executor.execute().await,
         }
-    }
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum ExecutorError {
-    #[error("Internal error: {0}")]
-    Internal(String),
-    #[error(transparent)]
-    Fetch(#[from] runtime::fetch::FetchError),
-}
-
-pub type ExecutorResult<T> = Result<T, ExecutorError>;
-
-impl From<ExecutorError> for GraphqlError {
-    fn from(err: ExecutorError) -> Self {
-        GraphqlError {
-            message: err.to_string(),
-            ..Default::default()
-        }
-    }
-}
-
-impl From<&str> for ExecutorError {
-    fn from(message: &str) -> Self {
-        Self::Internal(message.to_string())
-    }
-}
-
-impl From<String> for ExecutorError {
-    fn from(message: String) -> Self {
-        Self::Internal(message)
     }
 }

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{borrow::Cow, sync::Arc};
 
 use async_runtime::make_send_on_wasm;
 use engine::RequestHeaders;
@@ -6,23 +6,24 @@ use engine_parser::types::OperationType;
 use futures_util::{
     future::BoxFuture,
     stream::{BoxStream, FuturesUnordered},
-    Future, FutureExt, SinkExt, StreamExt,
+    Future, SinkExt, StreamExt,
 };
 
 use crate::{
     execution::{ExecutionContext, Variables},
-    plan::{Plan, PlanBoundary, PlanId, Planner},
-    request::Operation,
-    response::{ExecutionMetadata, ExecutorOutput, GraphqlError, Response, ResponseBoundaryItem, ResponseBuilder},
-    sources::{Executor, ExecutorResult, ResolverInput, SubscriptionExecutor, SubscriptionResolverInput},
+    plan::{ExecutionPlanId, OperationExecutionState, OperationPlan},
+    response::{ExecutionMetadata, GraphqlError, Response, ResponseBuilder, ResponsePart},
+    sources::{Executor, ExecutorInput, SubscriptionExecutor, SubscriptionInput},
     Engine,
 };
+
+use super::ExecutionResult;
 
 pub type ResponseSender = futures::channel::mpsc::Sender<Response>;
 
 pub struct ExecutorCoordinator<'ctx> {
     engine: &'ctx Engine,
-    operation: Operation,
+    operation: Arc<OperationPlan>,
     variables: Variables,
     request_headers: RequestHeaders,
 }
@@ -30,7 +31,7 @@ pub struct ExecutorCoordinator<'ctx> {
 impl<'ctx> ExecutorCoordinator<'ctx> {
     pub fn new(
         engine: &'ctx Engine,
-        operation: Operation,
+        operation: Arc<OperationPlan>,
         variables: Variables,
         request_headers: RequestHeaders,
     ) -> Self {
@@ -51,42 +52,23 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
             !matches!(self.operation.ty, OperationType::Subscription),
             "execute shouldn't be called for subscriptions"
         );
-
-        let mut planner = Planner::new(&self.engine.schema, &self.operation);
-        let mut response = ResponseBuilder::new(self.operation.root_object_id);
-
-        let response_boundary = vec![response
-            .root_response_boundary()
-            .expect("a fresh response should always have a root")];
-
-        let mut plans_with_dependencies = PlansWithDependencies::default();
-        let executors = match planner.generate_root_plan_boundary() {
-            Ok(boundary) => self.generate_executors(
-                &mut planner,
-                &mut plans_with_dependencies,
-                &mut response,
-                vec![(boundary, response_boundary)],
-            ),
-            Err(error) => {
-                response.push_error(error);
-                Vec::with_capacity(0)
-            }
-        };
-
-        let mut futures = ExecutorFutureSet::new();
-        for executor in executors {
-            futures.execute(executor);
+        OperationExecution {
+            coordinator: &self,
+            futures: ExecutorFutureSet::new(),
+            state: self.operation.new_execution_state(),
+            response: ResponseBuilder::new(self.operation.root_object_id),
         }
-        self.execute_once(futures, response, &mut planner, plans_with_dependencies)
-            .await
+        .execute()
+        .await
     }
 
     pub async fn execute_subscription(self, mut responses: ResponseSender) {
         assert!(matches!(self.operation.ty, OperationType::Subscription));
 
-        let mut planner = Planner::new(&self.engine.schema, &self.operation);
+        let mut state = self.operation.new_execution_state();
+        let subscription_plan_id = state.pop_unique_root_plan_id();
 
-        let mut stream = match self.build_subscription_stream(&mut planner).await {
+        let mut stream = match self.build_subscription_stream(subscription_plan_id).await {
             Ok(stream) => stream,
             Err(error) => {
                 responses
@@ -95,7 +77,7 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
                             .with_error(error)
                             .build(
                                 self.engine.schema.clone(),
-                                self.operation.response_keys.clone(),
+                                self.operation.clone(),
                                 ExecutionMetadata::build(&self.operation),
                             ),
                     )
@@ -108,17 +90,19 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
         while let Some((response, output)) = stream.next().await {
             let mut futures = ExecutorFutureSet::new();
             futures.push(async move {
-                ExecutorFutResult {
+                ExecutorFutureResult {
                     result: Ok(output),
-                    // Hack, we just know that the subscription plan is necessarily the first and
-                    // there are no sibling plans anyway. So doesn't matter for now.
-                    plan_id: PlanId::from(0),
+                    plan_id: subscription_plan_id,
                 }
             });
-
-            let response = self
-                .execute_once(futures, response, &mut planner, PlansWithDependencies::default())
-                .await;
+            let response = OperationExecution {
+                coordinator: &self,
+                futures,
+                state: state.clone(),
+                response,
+            }
+            .execute()
+            .await;
 
             if responses.send(response).await.is_err() {
                 return;
@@ -126,216 +110,146 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
         }
     }
 
-    /// Runs a single execution to completion, returning its response
-    async fn execute_once(
-        &'ctx self,
-        mut futures: ExecutorFutureSet<'ctx>,
-        mut response: ResponseBuilder,
-        planner: &mut Planner<'ctx>,
-        mut plans_with_dependencies: PlansWithDependencies,
-    ) -> Response {
-        while let Some(ExecutorFutResult { result, plan_id }) = futures.next().await {
-            let output = match result {
-                Ok(output) => output,
-                Err(err) => {
-                    response.push_error(err);
-                    continue;
-                }
-            };
-
-            // Ingesting data first to propagate errors and next plans likely rely on it
-            let boundaries = response.ingest(output);
-
-            // Hack to ensure we don't execute any subsequent mutation root fields if a
-            // previous one failed and the error propagated up to the root `data` field.
-            if response.root_response_object_id().is_none() {
-                continue;
-            }
-
-            for plan in plans_with_dependencies.get_executable_plans(plan_id) {
-                match self.executor_from_plan(plan, &mut response) {
-                    Ok(executor) => futures.execute(executor),
-                    Err(error) => response.push_error(error),
-                }
-            }
-
-            let executors = self.generate_executors(planner, &mut plans_with_dependencies, &mut response, boundaries);
-
-            for executor in executors {
-                futures.execute(executor);
-            }
-        }
-
-        response.build(
-            self.engine.schema.clone(),
-            self.operation.response_keys.clone(),
-            ExecutionMetadata::build(&self.operation),
-        )
-    }
-
     async fn build_subscription_stream<'a>(
         &'a self,
-        planner: &mut Planner<'a>,
-    ) -> Result<BoxStream<'a, (ResponseBuilder, ExecutorOutput)>, GraphqlError> {
-        let plan = planner
-            .generate_root_plan_boundary()
-            .and_then(|boundary| planner.generate_subscription_plan(boundary))?;
-
-        let executor = self.subscription_executor_from_plan(plan)?;
-
+        plan_id: ExecutionPlanId,
+    ) -> Result<BoxStream<'a, (ResponseBuilder, ResponsePart)>, GraphqlError> {
+        let executor = self.build_subscription_executor(plan_id)?;
         Ok(executor.execute().await?)
     }
 
-    fn generate_executors(
-        &self,
-        planner: &mut Planner<'ctx>,
-        plans_with_dependencies: &mut PlansWithDependencies,
-        response: &mut ResponseBuilder, // mutable_bits: &mut TheMutableBits<'ctx>,
-        boundaries: Vec<(PlanBoundary, Vec<ResponseBoundaryItem>)>,
-    ) -> Vec<Executor<'_>> {
-        // Ordering of the executors MUST match the plan boundary order for mutation root
-        let mut executors = vec![];
+    fn build_subscription_executor(&self, plan_id: ExecutionPlanId) -> ExecutionResult<SubscriptionExecutor<'_>> {
+        let execution_plan = &self.operation[plan_id];
+        let plan = self
+            .operation
+            .plan_walker(&self.engine.schema, plan_id, Some(&self.variables));
+        let input = SubscriptionInput {
+            ctx: ExecutionContext {
+                engine: self.engine,
+                variables: &self.variables,
+                request_headers: &self.request_headers,
+            },
+            plan,
+        };
+        execution_plan.new_subscription_executor(input)
+    }
+}
 
-        for (plan_boundary, response_boundaries) in boundaries {
-            let plans = match planner.generate_plans(plan_boundary, &response_boundaries) {
-                Ok(plans) => plans,
-                Err(error) => {
-                    response.push_error(error);
+pub struct OperationExecution<'ctx> {
+    coordinator: &'ctx ExecutorCoordinator<'ctx>,
+    futures: ExecutorFutureSet<'ctx>,
+    state: OperationExecutionState,
+    response: ResponseBuilder,
+}
+
+impl<'ctx> OperationExecution<'ctx> {
+    /// Runs a single execution to completion, returning its response
+    async fn execute(mut self) -> Response {
+        for plan_id in self.state.get_executable_plans() {
+            tracing::debug!(%plan_id, "Starting plan");
+            match self.build_executor(plan_id) {
+                Ok(Some(executor)) => self.futures.execute(plan_id, executor),
+                Ok(None) => (),
+                Err(error) => self.response.push_error(error),
+            }
+        }
+
+        while let Some(ExecutorFutureResult { result, plan_id }) = self.futures.next().await {
+            let output = match result {
+                Ok(output) => output,
+                Err(err) => {
+                    tracing::debug!(%plan_id, "Failed");
+                    self.response.push_error(err);
                     continue;
                 }
             };
+            tracing::debug!(%plan_id, "Succeeded");
 
-            for plan in plans {
-                if plan.sibling_dependencies.is_empty() {
-                    match self.executor_from_plan(plan, response) {
-                        Ok(executor) => executors.push(executor),
-                        Err(error) => response.push_error(error),
-                    }
-                } else {
-                    plans_with_dependencies.push(plan);
+            // Ingesting data first to propagate errors and next plans likely rely on it
+            for (plan_bounday_id, boundary) in self.response.ingest(output) {
+                self.state.add_boundary_items(plan_bounday_id, boundary);
+            }
+
+            for plan_id in self.state.get_next_plans(&self.coordinator.operation, plan_id) {
+                match self.build_executor(plan_id) {
+                    Ok(Some(executor)) => self.futures.execute(plan_id, executor),
+                    Ok(None) => (),
+                    Err(error) => self.response.push_error(error),
                 }
             }
         }
 
-        executors
-    }
-
-    fn executor_from_plan<'a>(&'a self, plan: Plan, response: &mut ResponseBuilder) -> ExecutorResult<Executor<'a>> {
-        let resolver = self.engine.schema.walker().walk(plan.resolver_id);
-        let schema = self.engine.schema.walker_with(resolver.names());
-        let output = response.new_output(plan.boundaries);
-        // Ensuring that all walkers the executors has access to have a consistent
-        // `Names`.
-        let resolver = schema.walk(plan.resolver_id);
-        Executor::build(
-            resolver,
-            plan.output.entity_type,
-            ResolverInput {
-                ctx: ExecutionContext {
-                    engine: self.engine,
-                    variables: &self.variables,
-                    walker: self.operation.walker_with(schema),
-                    request_headers: &self.request_headers,
-                },
-                boundary_objects_view: response
-                    .read(schema, plan.input.expect("all but the subscription plan to have input")),
-                plan_id: plan.id,
-                plan_output: plan.output,
-                output,
-            },
+        self.response.build(
+            self.coordinator.engine.schema.clone(),
+            self.coordinator.operation.clone(),
+            ExecutionMetadata::build(&self.coordinator.operation),
         )
     }
 
-    fn subscription_executor_from_plan(&self, plan: Plan) -> ExecutorResult<SubscriptionExecutor<'_>> {
-        let resolver = self.engine.schema.walker().walk(plan.resolver_id);
-        let schema = self.engine.schema.walker_with(resolver.names());
+    fn build_executor(&mut self, plan_id: ExecutionPlanId) -> ExecutionResult<Option<Executor<'ctx>>> {
+        let operation: &'ctx OperationPlan = &self.coordinator.operation;
+        let engine = self.coordinator.engine;
+        let response_boundary_items =
+            self.state
+                .retrieve_boundary_items(&engine.schema, operation, &self.response, plan_id);
 
-        // Ensuring that all walkers the executors has access to have a consistent
-        // `Names`.
-        let resolver = schema.walk(plan.resolver_id);
+        tracing::debug!(%plan_id, "Found {} response boundary items", response_boundary_items.len());
+        if response_boundary_items.is_empty() {
+            return Ok(None);
+        }
 
-        SubscriptionExecutor::build(
-            resolver,
-            plan.output.entity_type,
-            SubscriptionResolverInput {
-                ctx: ExecutionContext {
-                    engine: self.engine,
-                    variables: &self.variables,
-                    walker: self.operation.walker_with(schema),
-                    request_headers: &self.request_headers,
-                },
-                plan_id: plan.id,
-                plan_output: plan.output,
-                plan_boundaries: plan.boundaries,
+        let execution_plan = &operation[plan_id];
+        let plan = self
+            .coordinator
+            .operation
+            .plan_walker(&engine.schema, plan_id, Some(&self.coordinator.variables));
+        let response_part = self.response.new_part(plan.output().boundary_ids);
+        let input = ExecutorInput {
+            ctx: ExecutionContext {
+                engine,
+                variables: &self.coordinator.variables,
+                request_headers: &self.coordinator.request_headers,
             },
-        )
+            plan,
+            boundary_objects_view: self.response.read(
+                plan.schema(),
+                response_boundary_items,
+                plan.input()
+                    .map(|input| Cow::Borrowed(&input.selection_set))
+                    .unwrap_or_default(),
+            ),
+            response_part,
+        };
+
+        tracing::debug!("{:#?}", input.plan.collected_selection_set());
+        execution_plan.new_executor(input).map(Some)
     }
 }
 
-pub struct ExecutorFutureSet<'a>(FuturesUnordered<BoxFuture<'a, ExecutorFutResult>>);
+pub struct ExecutorFutureSet<'a>(FuturesUnordered<BoxFuture<'a, ExecutorFutureResult>>);
 
 impl<'a> ExecutorFutureSet<'a> {
     fn new() -> Self {
         ExecutorFutureSet(FuturesUnordered::new())
     }
 
-    fn execute(&mut self, executor: Executor<'a>) {
-        let plan_id = executor.plan_id();
-        self.push(make_send_on_wasm(
-            executor
-                .execute()
-                .map(move |result| ExecutorFutResult { result, plan_id }),
-        ))
+    fn execute(&mut self, plan_id: ExecutionPlanId, executor: Executor<'a>) {
+        self.push(make_send_on_wasm(async move {
+            let result = executor.execute().await;
+            ExecutorFutureResult { plan_id, result }
+        }))
     }
 
-    fn push(&mut self, fut: impl Future<Output = ExecutorFutResult> + Send + 'a) {
+    fn push(&mut self, fut: impl Future<Output = ExecutorFutureResult> + Send + 'a) {
         self.0.push(Box::pin(fut));
     }
 
-    async fn next(&mut self) -> Option<ExecutorFutResult> {
+    async fn next(&mut self) -> Option<ExecutorFutureResult> {
         self.0.next().await
     }
 }
 
-struct ExecutorFutResult {
-    result: ExecutorResult<ExecutorOutput>,
-    plan_id: PlanId,
-}
-
-#[derive(Default)]
-struct PlansWithDependencies {
-    dependency_to_dependents: HashMap<PlanId, Vec<PlanId>>,
-    plans: HashMap<PlanId, Plan>,
-}
-
-impl PlansWithDependencies {
-    fn push(&mut self, plan: Plan) {
-        assert!(!plan.sibling_dependencies.is_empty());
-        for dependency in &plan.sibling_dependencies {
-            self.dependency_to_dependents
-                .entry(*dependency)
-                .or_default()
-                .push(plan.id);
-        }
-        self.plans.insert(plan.id, plan);
-    }
-
-    fn get_executable_plans(&mut self, plan_id: PlanId) -> Vec<Plan> {
-        let mut executable_plans = vec![];
-        for dependent in self.dependency_to_dependents.remove(&plan_id).unwrap_or_default() {
-            let executable = self
-                .plans
-                .get_mut(&dependent)
-                .map(|plan| {
-                    plan.sibling_dependencies.remove(&plan_id);
-                    plan.sibling_dependencies.is_empty()
-                })
-                .unwrap_or_default();
-            if executable {
-                executable_plans.push(self.plans.remove(&dependent).unwrap());
-            }
-        }
-
-        executable_plans
-    }
+struct ExecutorFutureResult {
+    plan_id: ExecutionPlanId,
+    result: ExecutionResult<ResponsePart>,
 }

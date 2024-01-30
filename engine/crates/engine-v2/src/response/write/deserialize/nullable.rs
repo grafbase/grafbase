@@ -13,7 +13,7 @@ use crate::{
 
 pub(super) struct NullableSeed<'ctx, 'parent, Seed> {
     pub path: &'parent ResponsePath,
-    pub bound_field_id: Option<BoundFieldId>,
+    pub bound_field_id: BoundFieldId,
     pub ctx: &'parent SeedContextInner<'ctx>,
     pub seed: Seed,
 }
@@ -64,11 +64,13 @@ where
             Ok(value) => Ok(value.into_nullable()),
             Err(err) => {
                 if !self.ctx.propagating_error.fetch_and(false, Ordering::Relaxed) {
-                    self.ctx.data.borrow_mut().push_error(GraphqlError {
+                    self.ctx.response_part.borrow_mut().push_error(GraphqlError {
                         message: err.to_string(),
                         locations: self
-                            .bound_field_id
-                            .map(|id| self.ctx.walker.walk(id).name_location())
+                            .ctx
+                            .plan
+                            .bound_walk_with(self.bound_field_id, ())
+                            .name_location()
                             .into_iter()
                             .collect(),
                         path: Some(self.path.clone()),
