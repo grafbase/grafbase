@@ -6999,10 +6999,8 @@ name = "ulid"
 version = "1.1.0"
 source = "git+https://github.com/grafbase/ulid-rs?rev=299b52e08db0703b129063347584ce063da10721#299b52e08db0703b129063347584ce063da10721"
 dependencies = [
- "getrandom 0.2.12",
  "rand 0.8.5",
  "serde",
- "web-time",
 ]
 
 [[package]]
