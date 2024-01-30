@@ -18,18 +18,8 @@ pub(super) fn collect_composed_directives<'a>(
     };
 
     if let Some(deprecated) = sites.clone().find_map(|directives| directives.deprecated()) {
-        let directive = federated::Directive {
-            name: ctx.insert_static_str("deprecated"),
-            arguments: deprecated
-                .reason()
-                .map(|reason| {
-                    (
-                        ctx.insert_static_str("reason"),
-                        federated::Value::String(ctx.insert_string(reason.id)),
-                    )
-                })
-                .map(|arg| vec![arg])
-                .unwrap_or_default(),
+        let directive = federated::Directive::Deprecated {
+            reason: deprecated.reason().map(|reason| ctx.insert_string(reason.id)),
         };
         push_directive(ctx, directive);
     }
@@ -47,22 +37,17 @@ pub(super) fn collect_composed_directives<'a>(
                 .map(|(name, value)| (ctx.insert_string(*name), subgraphs_value_to_federated_value(value, ctx)))
                 .collect();
 
-            extra_directives.push(federated::Directive { name, arguments });
+            extra_directives.push(federated::Directive::Other { name, arguments });
         }
     }
 
     if is_inaccessible {
-        let directive = federated::Directive {
-            name: ctx.insert_static_str("inaccessible"),
-            arguments: Vec::new(),
-        };
-
-        push_directive(ctx, directive);
+        push_directive(ctx, federated::Directive::Inaccessible);
     }
 
     for tag in tags {
         let name = ctx.insert_string(tag);
-        let directive = federated::Directive {
+        let directive = federated::Directive::Other {
             name: ctx.insert_static_str("tag"),
             arguments: vec![(ctx.insert_static_str("name"), federated::Value::String(name))],
         };

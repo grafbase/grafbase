@@ -804,17 +804,35 @@ fn collect_composed_directives(directives: &[Positioned<ast::ConstDirective>], s
         .filter(|dir| dir.node.name.node != JOIN_FIELD_DIRECTIVE_NAME)
         .filter(|dir| dir.node.name.node != JOIN_TYPE_DIRECTIVE_NAME)
     {
-        let name = state.insert_string(directive.node.name.node.as_str());
-        let arguments = directive
-            .node
-            .arguments
-            .iter()
-            .map(|(name, value)| -> (StringId, Value) {
-                (state.insert_string(name.node.as_str()), state.insert_value(&value.node))
-            })
-            .collect();
+        match directive.node.name.node.as_str() {
+            "inaccessible" => state.directives.push(Directive::Inaccessible),
+            "deprecated" => {
+                let directive = Directive::Deprecated {
+                    reason: directive
+                        .node
+                        .get_argument("reason")
+                        .and_then(|value| match &value.node {
+                            async_graphql_value::ConstValue::String(s) => Some(state.insert_string(s.as_str())),
+                            _ => None,
+                        }),
+                };
 
-        state.directives.push(Directive { name, arguments })
+                state.directives.push(directive)
+            }
+            other => {
+                let name = state.insert_string(other);
+                let arguments = directive
+                    .node
+                    .arguments
+                    .iter()
+                    .map(|(name, value)| -> (StringId, Value) {
+                        (state.insert_string(name.node.as_str()), state.insert_value(&value.node))
+                    })
+                    .collect();
+
+                state.directives.push(Directive::Other { name, arguments })
+            }
+        }
     }
 
     (DirectiveId(start), state.directives.len() - start)

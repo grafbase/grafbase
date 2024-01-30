@@ -175,12 +175,7 @@ pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
             }
 
             write!(sdl, "{INDENT}{value_name}")?;
-
-            for directive in &graph[value.composed_directives] {
-                let directive_name = &graph[directive.name];
-                let arguments = DirectiveArguments(&directive.arguments, &graph);
-                write!(sdl, " @{directive_name}{arguments}")?;
-            }
+            write_composed_directives(value.composed_directives, &graph, &mut sdl)?;
 
             sdl.push('\n');
         }
@@ -330,9 +325,18 @@ fn write_field(field_id: FieldId, graph: &FederatedGraphV2, sdl: &mut String) ->
 
 fn write_composed_directives(directives: Directives, graph: &FederatedGraphV2, sdl: &mut String) -> fmt::Result {
     for directive in &graph[directives] {
-        let directive_name = &graph[directive.name];
-        let arguments = DirectiveArguments(&directive.arguments, graph);
-        write!(sdl, " @{directive_name}{arguments}")?;
+        match directive {
+            Directive::Inaccessible => write!(sdl, "@inaccessible")?,
+            Directive::Deprecated { reason: Some(reason) } => {
+                write!(sdl, r#"@deprecated(reason: "{reason}""#, reason = graph[*reason])?
+            }
+            Directive::Deprecated { reason: None } => write!(sdl, r#"@deprecated"#)?,
+            Directive::Other { name, arguments } => {
+                let directive_name = &graph[*name];
+                let arguments = DirectiveArguments(arguments, graph);
+                write!(sdl, " @{directive_name}{arguments}")?;
+            }
+        }
     }
 
     Ok(())

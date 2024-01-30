@@ -66,9 +66,15 @@ pub enum Value {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
-pub struct Directive {
-    pub name: StringId,
-    pub arguments: Vec<(StringId, Value)>,
+pub enum Directive {
+    Inaccessible,
+    Deprecated {
+        reason: Option<StringId>,
+    },
+    Other {
+        name: StringId,
+        arguments: Vec<(StringId, Value)>,
+    },
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -287,14 +293,20 @@ impl From<super::v1::FederatedGraphV1> for FederatedGraphV2 {
             let start = directives.len();
 
             for directive in original {
-                directives.push(Directive {
-                    name: directive.name,
-                    arguments: directive
-                        .arguments
-                        .into_iter()
-                        .map(|(name, value)| (name, (value, strings.as_slice()).into()))
-                        .collect(),
-                })
+                let directive = if strings[directive.name.0] == "inaccessible" {
+                    Directive::Inaccessible
+                } else {
+                    Directive::Other {
+                        name: directive.name,
+                        arguments: directive
+                            .arguments
+                            .into_iter()
+                            .map(|(name, value)| (name, (value, strings.as_slice()).into()))
+                            .collect(),
+                    }
+                };
+
+                directives.push(directive);
             }
 
             let end = directives.len();
