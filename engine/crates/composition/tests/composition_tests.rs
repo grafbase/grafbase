@@ -43,7 +43,7 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
     let expected = fs::read_to_string(federated_graph_path)
         .map_err(|err| miette::miette!("Error trying to read federated.graphql: {}", err))?;
     let actual = match graphql_composition::compose(&subgraphs).into_result() {
-        Ok(sdl) => graphql_federated_graph::render_sdl(&sdl).unwrap(),
+        Ok(sdl) => graphql_federated_graph::render_sdl(sdl).unwrap(),
         Err(diagnostics) => format!(
             "{}\n",
             diagnostics
@@ -89,7 +89,7 @@ fn test_sdl_roundtrip(federated_graph_path: &Path) -> datatest_stable::Result<()
     }
 
     let roundtripped = graphql_federated_graph::render_sdl(
-        &graphql_federated_graph::from_sdl(&sdl)
+        graphql_federated_graph::from_sdl(&sdl)
             .map_err(|err| miette::miette!("Error ingesting SDL: {err}\n\nSDL:\n{sdl}"))?,
     )?;
 

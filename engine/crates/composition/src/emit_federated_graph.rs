@@ -3,7 +3,7 @@ mod field_types_map;
 
 use self::context::Context;
 use crate::{
-    composition_ir::{CompositionIr, FieldIr, KeyIr},
+    composition_ir::{CompositionIr, FieldIr, InputValueDefinitionIr, KeyIr},
     subgraphs, Subgraphs, VecExt,
 };
 use federated::RootOperationTypes;
@@ -13,13 +13,15 @@ use std::{collections::BTreeSet, mem};
 
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
 pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::FederatedGraph {
-    let mut out = federated::FederatedGraphV1 {
+    let mut out = federated::FederatedGraphV2 {
         enums: mem::take(&mut ir.enums),
         objects: mem::take(&mut ir.objects),
         interfaces: mem::take(&mut ir.interfaces),
         unions: mem::take(&mut ir.unions),
         scalars: mem::take(&mut ir.scalars),
         input_objects: mem::take(&mut ir.input_objects),
+        directives: mem::take(&mut ir.directives),
+        input_value_definitions: vec![],
         strings: Vec::new(),
         subgraphs: vec![],
         root_operation_types: RootOperationTypes {
@@ -40,11 +42,31 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     emit_fields(mem::take(&mut ir.fields), &mut ctx);
     emit_union_members(&ir.union_members, &mut ctx);
     emit_keys(&ir.keys, &mut ctx);
+    emit_input_value_definitions(&ir.input_value_definitions, &mut ctx);
     push_object_fields_from_interface_entities(&ir.object_fields_from_entity_interfaces, &mut ctx);
 
     drop(ctx);
 
-    federated::FederatedGraph::V1(out)
+    federated::FederatedGraph::V2(out)
+}
+
+fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionIr], ctx: &mut Context<'_>) {
+    ctx.out.input_value_definitions = input_value_definitions
+        .iter()
+        .map(
+            |InputValueDefinitionIr {
+                 name,
+                 r#type,
+                 directives,
+                 description,
+             }| federated::InputValueDefinition {
+                name: *name,
+                field_type_id: ctx.insert_field_type(ctx.subgraphs.walk(*r#type)),
+                directives: *directives,
+                description: *description,
+            },
+        )
+        .collect()
 }
 
 fn push_object_fields_from_interface_entities(
@@ -111,23 +133,14 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
         description,
     } in ir_fields
     {
-        let field_type_id = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
+        let r#type = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
         let field_name = ctx.insert_string(ctx.subgraphs.walk(field_name));
-        let arguments = arguments
-            .iter()
-            .map(|argument| federated::FieldArgument {
-                name: ctx.insert_string(ctx.subgraphs.walk(argument.argument_name)),
-                type_id: ctx.insert_field_type(ctx.subgraphs.walk(argument.argument_type)),
-                composed_directives: argument.composed_directives.clone(),
-                description,
-            })
-            .collect();
 
         let push_field =
-            |ctx: &mut Context<'a>, parent: federated::Definition, composed_directives: Vec<federated::Directive>| {
+            |ctx: &mut Context<'a>, parent: federated::Definition, composed_directives: federated::Directives| {
                 let field = federated::Field {
                     name: field_name,
-                    field_type_id,
+                    field_type_id: r#type,
                     arguments,
                     overrides,
 
@@ -177,14 +190,6 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
             parent @ federated::Definition::Interface(interface_id) => {
                 let field_id = push_field(ctx, parent, composed_directives);
                 ctx.push_interface_field(interface_id, field_id);
-            }
-            federated::Definition::InputObject(input_object_id) => {
-                ctx.out[input_object_id].fields.push(federated::InputObjectField {
-                    name: field_name,
-                    field_type_id,
-                    composed_directives,
-                    description,
-                });
             }
             _ => unreachable!(),
         }

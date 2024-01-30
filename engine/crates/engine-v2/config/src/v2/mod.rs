@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 pub use auth::*;
 pub use cache_config::{CacheConfig, CacheConfigTarget, CacheConfigs};
-use federated_graph::{FederatedGraphV1, SubgraphId};
+use federated_graph::v1::{FederatedGraphV1, SubgraphId};
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -89,7 +89,7 @@ impl std::ops::Index<HeaderId> for Config {
 #[cfg(test)]
 mod tests {
     use crate::v2::{CacheConfig, CacheConfigTarget, CacheConfigs, Config};
-    use federated_graph::{FederatedGraphV1, FieldId, ObjectId, RootOperationTypes};
+    use federated_graph::v1::{FederatedGraphV1, FieldId, ObjectId, RootOperationTypes};
     use std::collections::BTreeMap;
     use std::time::Duration;
 

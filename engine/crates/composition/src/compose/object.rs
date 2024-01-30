@@ -6,10 +6,10 @@ pub(super) fn merge_field_arguments<'a>(
     first: FieldWalker<'a>,
     fields: &[FieldWalker<'a>],
     ctx: &mut Context<'a>,
-) -> Vec<ir::ArgumentIr> {
+) -> federated::InputValueDefinitions {
     let parent_definition_name = first.parent_definition().name().id;
     let field_name = first.name().id;
-    let mut arguments_ir = Vec::new();
+    let mut ids: Option<federated::InputValueDefinitions> = None;
 
     // We want to take the intersection of the field sets.
     let intersection: HashSet<StringId> = first
@@ -79,14 +79,22 @@ pub(super) fn merge_field_arguments<'a>(
             ));
         }
 
-        arguments_ir.push(ir::ArgumentIr {
-            argument_name,
-            argument_type,
-            composed_directives,
-        })
+        let name = ctx.insert_string(argument_name);
+        let id = ctx.insert_input_value_definition(ir::InputValueDefinitionIr {
+            name,
+            r#type: argument_type,
+            directives: composed_directives,
+            description: None,
+        });
+
+        if let Some((_start, len)) = &mut ids {
+            *len += 1;
+        } else {
+            ids = Some((id, 1));
+        }
     }
 
-    arguments_ir
+    ids.unwrap_or(federated::NO_INPUT_VALUE_DEFINITION)
 }
 
 fn required_argument_not_in_intersection_error(

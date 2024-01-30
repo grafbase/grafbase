@@ -57,7 +57,7 @@ fn enum_is_used_in_return_position(enum_name: StringId, subgraphs: &Subgraphs) -
 fn merge_intersection<'a>(
     first: &DefinitionWalker<'a>,
     definitions: &[DefinitionWalker<'a>],
-    composed_directives: Vec<federated::Directive>,
+    composed_directives: federated::Directives,
     ctx: &mut Context<'a>,
 ) {
     let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
@@ -92,7 +92,7 @@ fn merge_intersection<'a>(
 fn merge_union<'a>(
     first: &DefinitionWalker<'a>,
     definitions: &[DefinitionWalker<'a>],
-    composed_directives: Vec<federated::Directive>,
+    composed_directives: federated::Directives,
     ctx: &mut Context<'a>,
 ) {
     let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
@@ -123,7 +123,7 @@ fn merge_union<'a>(
 fn merge_exactly_matching<'a>(
     first: &DefinitionWalker<'a>,
     definitions: &[DefinitionWalker<'a>],
-    composed_directives: Vec<federated::Directive>,
+    composed_directives: federated::Directives,
     ctx: &mut Context<'a>,
 ) {
     let expected: Vec<_> = first.enum_values().map(|v| v.name().id).collect();

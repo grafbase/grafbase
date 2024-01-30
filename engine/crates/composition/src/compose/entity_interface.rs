@@ -68,31 +68,21 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
     let mut fields = BTreeMap::new();
 
     for field in interface_def.fields() {
-        fields.entry(field.name().id).or_insert_with(|| ir::FieldIr {
-            parent_definition: federated::Definition::Interface(interface_id),
-            field_name: field.name().id,
-            field_type: field.r#type().id,
-            arguments: field
-                .arguments()
-                .map(|arg| ir::ArgumentIr {
-                    argument_name: arg.name().id,
-                    argument_type: arg.r#type().id,
-                    composed_directives: if arg.directives().inaccessible() {
-                        vec![federated::Directive {
-                            name: ctx.insert_static_str("inaccessible"),
-                            arguments: Vec::new(),
-                        }]
-                    } else {
-                        Vec::new()
-                    },
-                })
-                .collect(),
-            resolvable_in: Vec::new(),
-            provides: Vec::new(),
-            requires: Vec::new(),
-            composed_directives: Vec::new(),
-            overrides: Vec::new(),
-            description: field.description().map(|description| ctx.insert_string(description.id)),
+        fields.entry(field.name().id).or_insert_with(|| {
+            let arguments = translate_arguments(field, ctx);
+
+            ir::FieldIr {
+                parent_definition: federated::Definition::Interface(interface_id),
+                field_name: field.name().id,
+                field_type: field.r#type().id,
+                arguments,
+                resolvable_in: Vec::new(),
+                provides: Vec::new(),
+                requires: Vec::new(),
+                composed_directives: federated::NO_DIRECTIVES,
+                overrides: Vec::new(),
+                description: field.description().map(|description| ctx.insert_string(description.id)),
+            }
         });
     }
 
@@ -137,25 +127,11 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                 parent_definition: federated::Definition::Interface(interface_id),
                 field_name: field.name().id,
                 field_type: field.r#type().id,
-                arguments: field
-                    .arguments()
-                    .map(|arg| ir::ArgumentIr {
-                        argument_name: arg.name().id,
-                        argument_type: arg.r#type().id,
-                        composed_directives: if arg.directives().inaccessible() {
-                            vec![federated::Directive {
-                                name: ctx.insert_static_str("inaccessible"),
-                                arguments: Vec::new(),
-                            }]
-                        } else {
-                            Vec::new()
-                        },
-                    })
-                    .collect(),
+                arguments: translate_arguments(field, ctx),
                 resolvable_in: vec![graphql_federated_graph::SubgraphId(definition.subgraph_id().idx())],
                 provides: Vec::new(),
                 requires: Vec::new(),
-                composed_directives: Vec::new(),
+                composed_directives: federated::NO_DIRECTIVES,
                 overrides: Vec::new(),
                 description,
             });
@@ -187,4 +163,29 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
             ctx.insert_object_field_from_entity_interface(object_name, *field_id);
         }
     }
+}
+
+fn translate_arguments(
+    field: subgraphs::Walker<'_, (subgraphs::FieldId, subgraphs::FieldTuple)>,
+    ctx: &mut ComposeContext<'_>,
+) -> federated::InputValueDefinitions {
+    let mut ids: Option<federated::InputValueDefinitions> = None;
+    for arg in field.arguments() {
+        let directives = collect_composed_directives(std::iter::once(arg.directives()), ctx);
+        let name = ctx.insert_string(arg.name().id);
+        let id = ctx.insert_input_value_definition(ir::InputValueDefinitionIr {
+            name,
+            r#type: arg.r#type().id,
+            directives,
+            description: None,
+        });
+
+        if let Some((_start, len)) = &mut ids {
+            *len += 1;
+        } else {
+            ids = Some((id, 1));
+        }
+    }
+
+    ids.unwrap_or(federated::NO_INPUT_VALUE_DEFINITION)
 }

@@ -1,4 +1,4 @@
-use federated_graph::FederatedGraphV1;
+use federated_graph::v1::FederatedGraphV1;
 
 // The specific version modules should be kept private, users of this crate
 // should only access types via `latest`

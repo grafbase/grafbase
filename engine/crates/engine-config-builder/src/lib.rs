@@ -10,14 +10,16 @@ use engine_v2_config::{
     latest::{self as config, Header, HeaderId},
     VersionedConfig,
 };
-use federated_graph::{FederatedGraph, FederatedGraphV1, FieldId, ObjectId, SubgraphId};
+use federated_graph::{v1::FederatedGraphV1, FederatedGraph, FieldId, ObjectId, SubgraphId};
 use parser_sdl::federation::{FederatedGraphConfig, SubgraphHeaderValue};
 use parser_sdl::{AuthV2Provider, GlobalCacheTarget};
 
 mod strings;
 
 pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> VersionedConfig {
-    let FederatedGraph::V1(graph) = graph;
+    let FederatedGraph::V1(graph) = graph else {
+        todo!("turn into v2 with graph.into_v2()");
+    };
 
     let mut context = BuildContext::default();
     let mut subgraph_configs = BTreeMap::new();

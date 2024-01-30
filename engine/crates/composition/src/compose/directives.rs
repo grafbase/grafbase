@@ -3,14 +3,22 @@ use super::*;
 pub(super) fn collect_composed_directives<'a>(
     sites: impl Iterator<Item = subgraphs::DirectiveSiteWalker<'a>> + Clone,
     ctx: &mut ComposeContext<'_>,
-) -> Vec<federated::Directive> {
+) -> federated::Directives {
     let mut tags: BTreeSet<StringId> = BTreeSet::new();
     let mut is_inaccessible = false;
-    let mut extra_directives = BTreeSet::new();
-    let mut composed_directives = Vec::new();
+    let mut extra_directives = Vec::new();
+    let mut ids: Option<federated::Directives> = None;
+    let mut push_directive = |ctx: &mut ComposeContext<'_>, directive| {
+        let id = ctx.insert_directive(directive);
+        if let Some((_start, len)) = &mut ids {
+            *len += 1;
+        } else {
+            ids = Some((id, 1));
+        }
+    };
 
     if let Some(deprecated) = sites.clone().find_map(|directives| directives.deprecated()) {
-        composed_directives.push(federated::Directive {
+        let directive = federated::Directive {
             name: ctx.insert_static_str("deprecated"),
             arguments: deprecated
                 .reason()
@@ -22,7 +30,8 @@ pub(super) fn collect_composed_directives<'a>(
                 })
                 .map(|arg| vec![arg])
                 .unwrap_or_default(),
-        });
+        };
+        push_directive(ctx, directive);
     }
 
     for site in sites {
@@ -38,34 +47,42 @@ pub(super) fn collect_composed_directives<'a>(
                 .map(|(name, value)| (ctx.insert_string(*name), subgraphs_value_to_federated_value(value, ctx)))
                 .collect();
 
-            extra_directives.insert(federated::Directive { name, arguments });
+            extra_directives.push(federated::Directive { name, arguments });
         }
     }
 
     if is_inaccessible {
-        composed_directives.push(federated::Directive {
+        let directive = federated::Directive {
             name: ctx.insert_static_str("inaccessible"),
             arguments: Vec::new(),
-        });
+        };
+
+        push_directive(ctx, directive);
     }
 
     for tag in tags {
         let name = ctx.insert_string(tag);
-        composed_directives.push(federated::Directive {
+        let directive = federated::Directive {
             name: ctx.insert_static_str("tag"),
             arguments: vec![(ctx.insert_static_str("name"), federated::Value::String(name))],
-        });
+        };
+        push_directive(ctx, directive);
     }
 
-    composed_directives.extend(extra_directives);
-    composed_directives
+    extra_directives.dedup();
+
+    for directive in extra_directives {
+        push_directive(ctx, directive)
+    }
+
+    ids.unwrap_or((federated::DirectiveId(0), 0))
 }
 
 fn subgraphs_value_to_federated_value(value: &subgraphs::Value, ctx: &mut ComposeContext<'_>) -> federated::Value {
     match value {
         subgraphs::Value::String(value) => federated::Value::String(ctx.insert_string(*value)),
         subgraphs::Value::Int(value) => federated::Value::Int(*value),
-        subgraphs::Value::Float(value) => federated::Value::Float(ctx.insert_string(*value)),
+        subgraphs::Value::Float(value) => federated::Value::Float(*value),
         subgraphs::Value::Boolean(value) => federated::Value::Boolean(*value),
         subgraphs::Value::Enum(value) => federated::Value::EnumValue(ctx.insert_string(*value)),
         subgraphs::Value::Object(value) => federated::Value::Object(

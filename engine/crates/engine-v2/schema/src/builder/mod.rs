@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::mem::take;
 
 use config::latest::{CacheConfigTarget, Config};
+use federated_graph::v1 as federated_graph;
 use url::Url;
 
 use crate::sources::introspection::IntrospectionSchemaBuilder;

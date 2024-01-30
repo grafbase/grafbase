@@ -1,5 +1,8 @@
 use crate::{federated_graph::*, FederatedGraph};
-use async_graphql_parser::{types as ast, Positioned};
+use async_graphql_parser::{
+    types::{self as ast},
+    Positioned,
+};
 use indexmap::IndexSet;
 use std::{collections::HashMap, error::Error as StdError, fmt};
 
@@ -30,6 +33,9 @@ struct State<'a> {
     interface_fields: Vec<InterfaceField>,
 
     fields: Vec<Field>,
+
+    directives: Vec<Directive>,
+    input_value_definitions: Vec<InputValueDefinition>,
 
     enums: Vec<Enum>,
     unions: Vec<Union>,
@@ -132,7 +138,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     // This needs to happen after all fields have been ingested, in order to attach selection sets.
     ingest_selection_sets(&parsed, &mut state)?;
 
-    Ok(FederatedGraph::V1(FederatedGraphV1 {
+    Ok(FederatedGraph::V2(FederatedGraphV2 {
         root_operation_types: state.root_operation_types()?,
         subgraphs: state.subgraphs,
         objects: state.objects,
@@ -146,6 +152,8 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         input_objects: state.input_objects,
         strings: state.strings.into_iter().collect(),
         field_types: state.field_types.into_iter().collect(),
+        directives: state.directives,
+        input_value_definitions: state.input_value_definitions,
     }))
 }
 
@@ -499,7 +507,7 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                     ast::TypeKind::InputObject(_) => {
                         let input_object_id = InputObjectId(state.input_objects.push_return_idx(InputObject {
                             name: type_name_id,
-                            fields: Vec::new(),
+                            fields: NO_INPUT_VALUE_DEFINITION,
                             composed_directives,
                             description,
                         }));
@@ -522,7 +530,7 @@ fn insert_builtin_scalars(state: &mut State<'_>) {
         let name = state.insert_string(name_str);
         let id = ScalarId(state.scalars.push_return_idx(Scalar {
             name,
-            composed_directives: Vec::new(),
+            composed_directives: (DirectiveId(0), 0),
             description: None,
         }));
         state.definition_names.insert(name_str, Definition::Scalar(id));
@@ -540,24 +548,27 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
     let field_name = ast_field.name.node.as_str();
     let field_type_id = state.insert_field_type(&ast_field.ty.node);
     let name = state.insert_string(field_name);
-    let arguments = ast_field
-        .arguments
-        .iter()
-        .map(|arg| {
-            let description = arg
-                .node
-                .description
-                .as_ref()
-                .map(|description| state.insert_string(description.node.as_str()));
-            let composed_directives = collect_composed_directives(&arg.node.directives, state);
-            FieldArgument {
-                name: state.insert_string(arg.node.name.node.as_str()),
-                type_id: state.insert_field_type(&arg.node.ty.node),
-                composed_directives,
-                description,
-            }
-        })
-        .collect();
+    let args_start = state.input_value_definitions.len();
+
+    for arg in &ast_field.arguments {
+        let description = arg
+            .node
+            .description
+            .as_ref()
+            .map(|description| state.insert_string(description.node.as_str()));
+        let composed_directives = collect_composed_directives(&arg.node.directives, state);
+        let name = state.insert_string(arg.node.name.node.as_str());
+        let field_type_id = state.insert_field_type(&arg.node.ty.node);
+
+        state.input_value_definitions.push(InputValueDefinition {
+            name,
+            field_type_id,
+            directives: composed_directives,
+            description,
+        });
+    }
+
+    let args_end = state.input_value_definitions.len();
 
     let resolvable_in = ast_field
         .directives
@@ -620,7 +631,7 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
         resolvable_in,
         provides: Vec::new(),
         requires: Vec::new(),
-        arguments,
+        arguments: (InputValueDefinitionId(args_start), args_end - args_start),
         composed_directives,
         overrides,
         description,
@@ -651,6 +662,7 @@ fn ingest_input_object<'a>(
     input_object: &'a ast::InputObjectType,
     state: &mut State<'a>,
 ) {
+    let start = state.input_value_definitions.len();
     for field in &input_object.fields {
         let name = state.insert_string(field.node.name.node.as_str());
         let field_type_id = state.insert_field_type(&field.node.ty.node);
@@ -660,13 +672,16 @@ fn ingest_input_object<'a>(
             .description
             .as_ref()
             .map(|description| state.insert_string(description.node.as_str()));
-        state.input_objects[input_object_id.0].fields.push(InputObjectField {
+        state.input_value_definitions.push(InputValueDefinition {
             name,
             field_type_id,
-            composed_directives,
+            directives: composed_directives,
             description,
         });
     }
+    let end = state.input_value_definitions.len();
+
+    state.input_objects[input_object_id.0].fields = (InputValueDefinitionId(start), end - start);
 }
 
 fn ingest_object_fields<'a>(object_id: ObjectId, object: &'a ast::ObjectType, state: &mut State<'a>) {
@@ -781,26 +796,28 @@ impl<T> VecExt<T> for Vec<T> {
     }
 }
 
-fn collect_composed_directives(
-    directives: &[Positioned<ast::ConstDirective>],
-    state: &mut State<'_>,
-) -> Vec<Directive> {
-    directives
+fn collect_composed_directives(directives: &[Positioned<ast::ConstDirective>], state: &mut State<'_>) -> Directives {
+    let start = state.directives.len();
+
+    for directive in directives
         .iter()
         .filter(|dir| dir.node.name.node != JOIN_FIELD_DIRECTIVE_NAME)
         .filter(|dir| dir.node.name.node != JOIN_TYPE_DIRECTIVE_NAME)
-        .map(|directive| Directive {
-            name: state.insert_string(directive.node.name.node.as_str()),
-            arguments: directive
-                .node
-                .arguments
-                .iter()
-                .map(|(name, value)| -> (StringId, Value) {
-                    (state.insert_string(name.node.as_str()), state.insert_value(&value.node))
-                })
-                .collect(),
-        })
-        .collect()
+    {
+        let name = state.insert_string(directive.node.name.node.as_str());
+        let arguments = directive
+            .node
+            .arguments
+            .iter()
+            .map(|(name, value)| -> (StringId, Value) {
+                (state.insert_string(name.node.as_str()), state.insert_value(&value.node))
+            })
+            .collect();
+
+        state.directives.push(Directive { name, arguments })
+    }
+
+    (DirectiveId(start), state.directives.len() - start)
 }
 
 #[cfg(test)]

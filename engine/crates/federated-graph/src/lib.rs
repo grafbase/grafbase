@@ -16,7 +16,8 @@ pub use from_sdl::{from_sdl, DomainError};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub enum FederatedGraph {
-    V1(FederatedGraphV1),
+    V1(v1::FederatedGraphV1),
+    V2(v2::FederatedGraphV2),
 }
 
 impl std::fmt::Debug for FederatedGraph {
@@ -26,11 +27,23 @@ impl std::fmt::Debug for FederatedGraph {
 }
 
 impl FederatedGraph {
-    pub fn to_sdl(&self) -> Result<String, std::fmt::Error> {
+    pub fn into_sdl(self) -> Result<String, std::fmt::Error> {
         render_sdl(self)
+    }
+
+    #[deprecated(note = "Use into_sdl() instead")]
+    pub fn to_sdl(&self) -> Result<String, std::fmt::Error> {
+        self.clone().into_sdl()
     }
 
     pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         from_sdl(sdl)
+    }
+
+    pub fn into_v2(self) -> FederatedGraphV2 {
+        match self {
+            FederatedGraph::V1(v1) => v1.into(),
+            FederatedGraph::V2(v2) => v2,
+        }
     }
 }
