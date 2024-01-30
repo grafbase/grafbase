@@ -45,9 +45,15 @@ impl From<CurrentDateTime> for DateTime<Utc> {
     }
 }
 
-impl From<CurrentDateTime> for SystemTime {
+impl From<CurrentDateTime> for std::time::SystemTime {
     fn from(value: CurrentDateTime) -> Self {
-        value.0
+        #[cfg(target_arch = "wasm32")]
+        {
+            use web_time::web::SystemTimeExt;
+            return value.0.to_std();
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        return value.0;
     }
 }
 
