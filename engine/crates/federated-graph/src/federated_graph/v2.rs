@@ -32,6 +32,7 @@ pub struct FederatedGraphV2 {
     pub unions: Vec<Union>,
     pub scalars: Vec<Scalar>,
     pub input_objects: Vec<InputObject>,
+    pub enum_values: Vec<EnumValue>,
 
     /// All [input value definitions](http://spec.graphql.org/October2021/#InputValueDefinition) in the federated graph. Concretely, these are arguments of output fields, and input object fields.
     pub input_value_definitions: Vec<InputValueDefinition>,
@@ -60,6 +61,9 @@ pub enum Value {
     Int(i64),
     Float(f64),
     Boolean(bool),
+    /// Different from `String`.
+    ///
+    /// `@tag(name: "SOMETHING")` vs `@tag(name: SOMETHING)`
     EnumValue(StringId),
     Object(Box<[(StringId, Value)]>),
     List(Box<[Value]>),
@@ -80,12 +84,12 @@ pub enum Directive {
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct Enum {
     pub name: StringId,
-    pub values: Vec<EnumValue>,
+    pub values: EnumValues,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<StringId>,
 }
 
@@ -96,7 +100,7 @@ pub struct EnumValue {
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<StringId>,
 }
 
@@ -128,7 +132,7 @@ pub struct Field {
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<StringId>,
 }
 
@@ -144,7 +148,7 @@ pub struct Object {
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<StringId>,
 }
 
@@ -161,7 +165,7 @@ pub struct Interface {
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<StringId>,
 }
 
@@ -172,7 +176,7 @@ pub struct Scalar {
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<StringId>,
 }
 
@@ -184,7 +188,7 @@ pub struct Union {
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<StringId>,
 }
 
@@ -197,7 +201,7 @@ pub struct InputObject {
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<StringId>,
 }
 
@@ -217,6 +221,14 @@ pub type InputValueDefinitions = (InputValueDefinitionId, usize);
 
 pub const NO_INPUT_VALUE_DEFINITION: InputValueDefinitions = (InputValueDefinitionId(0), 0);
 
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct EnumValueId(pub usize);
+
+/// A (start, len) range in FederatedSchema.
+pub type EnumValues = (EnumValueId, usize);
+
+pub const NO_ENUM_VALUE: EnumValues = (EnumValueId(0), 0);
+
 impl std::ops::Index<Directives> for FederatedGraphV2 {
     type Output = [Directive];
 
@@ -232,6 +244,15 @@ impl std::ops::Index<InputValueDefinitions> for FederatedGraphV2 {
     fn index(&self, index: InputValueDefinitions) -> &Self::Output {
         let (InputValueDefinitionId(start), len) = index;
         &self.input_value_definitions[start..(start + len)]
+    }
+}
+
+impl std::ops::Index<EnumValues> for FederatedGraphV2 {
+    type Output = [EnumValue];
+
+    fn index(&self, index: EnumValues) -> &Self::Output {
+        let (EnumValueId(start), len) = index;
+        &self.enum_values[start..(start + len)]
     }
 }
 
@@ -288,6 +309,7 @@ impl From<super::v1::FederatedGraphV1> for FederatedGraphV2 {
     ) -> Self {
         let mut directives = vec![];
         let mut input_value_definitions = vec![];
+        let mut enum_values = vec![];
 
         let convert_directives = |original: Vec<super::v1::Directive>, directives: &mut Vec<Directive>| -> Directives {
             let start = directives.len();
@@ -360,6 +382,29 @@ impl From<super::v1::FederatedGraphV1> for FederatedGraphV2 {
 
             (InputValueDefinitionId(start), input_value_definitions.len() - start)
         };
+
+        let convert_enum_values = |original: Vec<super::v1::EnumValue>,
+                                   enum_values: &mut Vec<EnumValue>,
+                                   directives: &mut Vec<Directive>|
+         -> EnumValues {
+            let start = enum_values.len();
+
+            for super::v1::EnumValue {
+                value,
+                composed_directives,
+                description,
+            } in original
+            {
+                enum_values.push(EnumValue {
+                    value,
+                    composed_directives: convert_directives(composed_directives, directives),
+                    description,
+                })
+            }
+
+            (EnumValueId(start), enum_values.len() - start)
+        };
+
         FederatedGraphV2 {
             subgraphs,
             root_operation_types,
@@ -437,22 +482,7 @@ impl From<super::v1::FederatedGraphV1> for FederatedGraphV2 {
                          description,
                      }| Enum {
                         name,
-                        values: values
-                            .into_iter()
-                            .map(
-                                |super::v1::EnumValue {
-                                     value,
-                                     composed_directives,
-                                     description,
-                                 }| {
-                                    EnumValue {
-                                        value,
-                                        composed_directives: convert_directives(composed_directives, &mut directives),
-                                        description,
-                                    }
-                                },
-                            )
-                            .collect(),
+                        values: convert_enum_values(values, &mut enum_values, &mut directives),
                         composed_directives: convert_directives(composed_directives, &mut directives),
                         description,
                     },
@@ -508,6 +538,7 @@ impl From<super::v1::FederatedGraphV1> for FederatedGraphV2 {
             strings,
             field_types,
             directives,
+            enum_values,
         }
     }
 }

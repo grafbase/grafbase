@@ -18,6 +18,7 @@ pub(crate) struct CompositionIr {
     pub(crate) interfaces: Vec<federated::Interface>,
     pub(crate) unions: Vec<federated::Union>,
     pub(crate) enums: Vec<federated::Enum>,
+    pub(crate) enum_values: Vec<federated::EnumValue>,
     pub(crate) scalars: Vec<federated::Scalar>,
     pub(crate) input_objects: Vec<federated::InputObject>,
     pub(crate) directives: Vec<federated::Directive>,

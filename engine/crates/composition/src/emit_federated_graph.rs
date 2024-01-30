@@ -15,6 +15,7 @@ use std::{collections::BTreeSet, mem};
 pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::FederatedGraph {
     let mut out = federated::FederatedGraphV2 {
         enums: mem::take(&mut ir.enums),
+        enum_values: mem::take(&mut ir.enum_values),
         objects: mem::take(&mut ir.objects),
         interfaces: mem::take(&mut ir.interfaces),
         unions: mem::take(&mut ir.unions),

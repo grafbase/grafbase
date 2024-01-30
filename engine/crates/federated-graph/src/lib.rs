@@ -40,7 +40,7 @@ impl FederatedGraph {
         from_sdl(sdl)
     }
 
-    pub fn into_v2(self) -> FederatedGraphV2 {
+    pub fn into_latest(self) -> FederatedGraphV2 {
         match self {
             FederatedGraph::V1(v1) => v1.into(),
             FederatedGraph::V2(v2) => v2,

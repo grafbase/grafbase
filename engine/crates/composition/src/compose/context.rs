@@ -44,13 +44,14 @@ impl<'a> Context<'a> {
         enum_name: &str,
         description: Option<&str>,
         composed_directives: federated::Directives,
+        values: federated::EnumValues,
     ) -> federated::EnumId {
         let name = self.ir.strings.insert(enum_name);
         let description = description.map(|description| self.ir.strings.insert(description));
 
         let r#enum = federated::Enum {
             name,
-            values: Vec::new(),
+            values,
             composed_directives,
             description,
         };
@@ -63,20 +64,18 @@ impl<'a> Context<'a> {
 
     pub(crate) fn insert_enum_value(
         &mut self,
-        enum_id: federated::EnumId,
         value: &str,
         description: Option<&str>,
         composed_directives: federated::Directives,
-    ) {
+    ) -> federated::EnumValueId {
         let value = self.ir.strings.insert(value);
         let description = description.map(|description| self.ir.strings.insert(description));
-        let r#enum = &mut self.ir.enums[enum_id.0];
 
-        r#enum.values.push(federated::EnumValue {
+        federated::EnumValueId(self.ir.enum_values.push_return_idx(federated::EnumValue {
             value,
             composed_directives,
             description,
-        });
+        }))
     }
 
     pub(crate) fn insert_field(&mut self, ir: ir::FieldIr) -> federated::FieldId {

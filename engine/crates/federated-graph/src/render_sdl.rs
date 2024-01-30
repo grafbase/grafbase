@@ -8,7 +8,7 @@ const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
 /// directives](https://specs.apollo.dev/join/v0.3/) about subgraphs and entities.
 pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
     let mut sdl = String::new();
-    let graph = graph.into_v2();
+    let graph = graph.into_latest();
 
     write_prelude(&mut sdl)?;
 
@@ -167,7 +167,7 @@ pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
         write_composed_directives(r#enum.composed_directives, &graph, &mut sdl)?;
         sdl.push_str(" {\n");
 
-        for value in &r#enum.values {
+        for value in &graph[r#enum.values] {
             let value_name = &graph[value.value];
 
             if let Some(description) = value.description {
@@ -326,11 +326,11 @@ fn write_field(field_id: FieldId, graph: &FederatedGraphV2, sdl: &mut String) ->
 fn write_composed_directives(directives: Directives, graph: &FederatedGraphV2, sdl: &mut String) -> fmt::Result {
     for directive in &graph[directives] {
         match directive {
-            Directive::Inaccessible => write!(sdl, "@inaccessible")?,
+            Directive::Inaccessible => write!(sdl, " @inaccessible")?,
             Directive::Deprecated { reason: Some(reason) } => {
-                write!(sdl, r#"@deprecated(reason: "{reason}""#, reason = graph[*reason])?
+                write!(sdl, r#" @deprecated(reason: "{reason}")"#, reason = graph[*reason])?
             }
-            Directive::Deprecated { reason: None } => write!(sdl, r#"@deprecated"#)?,
+            Directive::Deprecated { reason: None } => write!(sdl, r#" @deprecated"#)?,
             Directive::Other { name, arguments } => {
                 let directive_name = &graph[*name];
                 let arguments = DirectiveArguments(arguments, graph);
