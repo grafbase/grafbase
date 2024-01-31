@@ -8,6 +8,9 @@ pub struct IntrospectCommand {
     /// Pass this argument to introspect the local project. --url and --dev cannot be used together
     #[clap(long)]
     pub(crate) dev: bool,
+    /// Disable syntax highlighting of the introspected GraphQL
+    #[clap(long)]
+    pub(crate) no_color: bool,
 }
 
 impl IntrospectCommand {
