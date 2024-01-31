@@ -1,5 +1,3 @@
-import { Header } from '../connector/header'
-
 export enum SubscriptionTransport {
   GraphQlOverWebsockets
 }
