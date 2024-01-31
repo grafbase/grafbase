@@ -31,6 +31,7 @@ serde_derive = "1"
 serde_json.workspace = true
 slugify = "0.1.0"
 strum = { version = "0.26", features = ["derive"] }
+syntect = "5"
 thiserror = "1"
 tokio = { version = "1", features = ["full"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
