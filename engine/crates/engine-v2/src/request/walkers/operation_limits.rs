@@ -26,7 +26,11 @@ impl<'a> BoundSelectionSetWalker<'a, ()> {
             .into_iter()
             .map(|selection| match selection {
                 BoundSelectionWalker::Field(field) => {
-                    (field.definition().schema_name() == field.response_key_str()) as u16
+                    field.alias().is_some() as u16
+                        + field
+                            .selection_set()
+                            .map(|selection_set| selection_set.alias_count())
+                            .unwrap_or_default()
                 }
                 BoundSelectionWalker::InlineFragment(inline) => inline.selection_set().alias_count(),
                 BoundSelectionWalker::FragmentSpread(spread) => spread.selection_set().alias_count(),
@@ -68,7 +72,7 @@ impl<'a> BoundSelectionSetWalker<'a, ()> {
             .into_iter()
             .map(|selection| match selection {
                 BoundSelectionWalker::Field(field) => {
-                    (if fields_seen.insert(field.definition().as_field().map(|field| field.id())) {
+                    (if fields_seen.insert(field.schema_field().map(|field| field.id())) {
                         1
                     } else {
                         0

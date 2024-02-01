@@ -3,7 +3,7 @@ use schema::{DataType, FieldId, Wrapping};
 use super::{ExtraFieldId, ExtraSelectionSet, PlanBoundaryId};
 
 use crate::{
-    request::{BoundAnyFieldDefinitionId, FlatTypeCondition, SelectionSetType},
+    request::{BoundFieldId, FlatTypeCondition, SelectionSetType},
     response::{BoundResponseKey, ResponseEdge},
 };
 
@@ -107,7 +107,7 @@ pub struct ExpectedField {
     pub bound_response_key: BoundResponseKey,
     pub expected_key: String,
     pub field_id: FieldId,
-    pub definition_id: BoundAnyFieldDefinitionId,
+    pub bound_field_id: BoundFieldId,
     pub ty: ExpectedType<UndeterminedSelectionSetId>,
 }
 
@@ -130,7 +130,7 @@ pub struct CollectedSelectionSet {
 pub struct ConcreteField {
     pub edge: ResponseEdge,
     pub expected_key: String,
-    pub definition_id: Option<BoundAnyFieldDefinitionId>,
+    pub bound_field_id: Option<BoundFieldId>,
     pub ty: ConcreteType,
     pub wrapping: Wrapping,
 }

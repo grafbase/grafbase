@@ -39,7 +39,7 @@ impl<'a, I> SchemaWalker<'a, I> {
         Self { item, schema, names }
     }
 
-    pub fn walk<Other>(self, item: Other) -> SchemaWalker<'a, Other> {
+    pub fn walk<Other>(&self, item: Other) -> SchemaWalker<'a, Other> {
         SchemaWalker {
             item,
             schema: self.schema,

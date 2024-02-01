@@ -12,7 +12,7 @@ use crate::{
         CollectedSelectionSet, ConcreteField, ConcreteType, ExpectedSelectionSet, ExpectedType, ExtraSelectionSetId,
         PossibleField, UndeterminedSelectionSetId,
     },
-    request::{BoundAnyFieldDefinitionId, FlatTypeCondition, SelectionSetType},
+    request::{BoundFieldId, FlatTypeCondition, SelectionSetType},
     response::{
         write::deserialize::{key::Key, CollectedFieldsSeed, SeedContextInner},
         ResponseEdge, ResponseKey, ResponseObject, ResponsePath,
@@ -90,7 +90,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for UndeterminedFieldsSeed<'ctx, 'parent> 
 
 struct GroupForResponseKey {
     edge: ResponseEdge,
-    definition_id: BoundAnyFieldDefinitionId,
+    bound_field_id: BoundFieldId,
     expected_key: String,
     ty: ExpectedTypeCollector<UndeterminedSelectionSetId>,
     wrapping: Wrapping,
@@ -183,7 +183,7 @@ impl<'ctx, 'parent> UndeterminedFieldsSeed<'ctx, 'parent> {
                                 })
                                 .or_insert_with(|| GroupForResponseKey {
                                     edge: field.bound_response_key.into(),
-                                    definition_id: field.definition_id,
+                                    bound_field_id: field.bound_field_id,
                                     expected_key: field.expected_key.clone(),
                                     ty: match field.ty {
                                         ExpectedType::Scalar(data_type) => ExpectedTypeCollector::Scalar(data_type),
@@ -243,7 +243,7 @@ impl<'ctx, 'parent> UndeterminedFieldsSeed<'ctx, 'parent> {
                     edge: group.edge,
                     expected_key: group.expected_key,
                     ty,
-                    definition_id: Some(group.definition_id),
+                    bound_field_id: Some(group.bound_field_id),
                     wrapping: group.wrapping,
                 }
             })
@@ -259,7 +259,7 @@ impl<'ctx, 'parent> UndeterminedFieldsSeed<'ctx, 'parent> {
                 edge: group.edge,
                 expected_key: group.expected_key,
                 ty,
-                definition_id: None,
+                bound_field_id: None,
                 wrapping: group.wrapping,
             }
         }));
@@ -343,7 +343,7 @@ impl<'ctx, 'parent> UndeterminedFieldsSeed<'ctx, 'parent> {
                     edge: group.edge,
                     expected_key: group.expected_key,
                     ty,
-                    definition_id: None,
+                    bound_field_id: None,
                     wrapping: group.wrapping,
                 }
             })

@@ -1,6 +1,5 @@
 mod field;
 mod field_argument;
-mod field_definition;
 mod flat;
 mod fragment;
 mod inline_fragment;
@@ -17,13 +16,12 @@ use std::{
 
 pub use field::*;
 pub use field_argument::*;
-pub use field_definition::*;
 pub use flat::*;
 pub use fragment::*;
 pub use inline_fragment::*;
 pub use plan::*;
 pub use plan_selection_set::*;
-use schema::{ObjectId, SchemaWalker};
+use schema::{ObjectId, Schema, SchemaWalker};
 pub use selection_set::*;
 pub use variables::*;
 
@@ -70,6 +68,15 @@ where
     }
 }
 
+impl<'a, I, SI: Copy, C> OperationWalker<'a, I, SI, C>
+where
+    Schema: std::ops::Index<SI>,
+{
+    pub fn schema_id(&self) -> SI {
+        self.schema_walker.id()
+    }
+}
+
 impl<'a, C> OperationWalker<'a, (), (), C> {
     pub fn schema(&self) -> SchemaWalker<'a, ()> {
         self.schema_walker
@@ -96,7 +103,6 @@ impl<'a, I, SI, C> OperationWalker<'a, I, SI, C> {
 
     pub fn walk_with<I2, SI2>(&self, item: I2, schema_item: SI2) -> OperationWalker<'a, I2, SI2, C>
     where
-        SI: Copy,
         C: Copy,
     {
         OperationWalker {
@@ -143,7 +149,7 @@ impl<'a> OperationWalker<'a> {
         self.flatten_selection_sets(
             bound_field_ids
                 .iter()
-                .filter_map(|id| self.operation[*id].selection_set_id)
+                .filter_map(|id| self.operation[*id].selection_set_id())
                 .collect(),
         )
     }
@@ -181,7 +187,8 @@ impl<'a> OperationWalker<'a> {
                         });
                     }
                 }
-                BoundSelection::FragmentSpread(spread) => {
+                BoundSelection::FragmentSpread(spread_id) => {
+                    let spread = &self.operation[*spread_id];
                     let fragment = &self.operation[spread.fragment_id];
                     type_condition_chain.push(fragment.type_condition);
                     selection_set_path.push(spread.selection_set_id);
@@ -192,13 +199,14 @@ impl<'a> OperationWalker<'a> {
                             .map(|selection| (type_condition_chain.clone(), selection_set_path.clone(), selection)),
                     );
                 }
-                BoundSelection::InlineFragment(fragment) => {
-                    if let Some(type_condition) = fragment.type_condition {
+                BoundSelection::InlineFragment(inline_fragment_id) => {
+                    let inline_fragment = &self.operation[*inline_fragment_id];
+                    if let Some(type_condition) = inline_fragment.type_condition {
                         type_condition_chain.push(type_condition);
                     }
-                    selection_set_path.push(fragment.selection_set_id);
+                    selection_set_path.push(inline_fragment.selection_set_id);
                     selections.extend(
-                        self.operation[fragment.selection_set_id]
+                        self.operation[inline_fragment.selection_set_id]
                             .items
                             .iter()
                             .map(|selection| (type_condition_chain.clone(), selection_set_path.clone(), selection)),

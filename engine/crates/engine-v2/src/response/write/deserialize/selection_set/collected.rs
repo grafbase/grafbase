@@ -68,7 +68,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedFieldsSeed<'ctx, 'parent> {
                     let value = map.next_value_seed(FieldSeed {
                         ctx: self.ctx,
                         path: self.path.child(field.edge),
-                        definition_id: field.definition_id,
+                        bound_field_id: field.bound_field_id,
                         expected_type: &field.ty,
                         wrapping: field.wrapping.clone(),
                     })?;
@@ -81,7 +81,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedFieldsSeed<'ctx, 'parent> {
                         let value = FieldSeed {
                             ctx: self.ctx,
                             path: self.path.child(field.edge),
-                            definition_id: field.definition_id,
+                            bound_field_id: field.bound_field_id,
                             expected_type: &field.ty,
                             wrapping: field.wrapping.clone(),
                         }

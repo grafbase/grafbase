@@ -14,7 +14,7 @@ use crate::{
         PossibleField, UndeterminedSelectionSet,
     },
     request::{
-        BoundFieldDefinitionWalker, BoundFieldId, BoundSelectionSetId, FlatField, FlatFieldWalker, FlatSelectionSet,
+        BoundFieldId, BoundFieldWalker, BoundSelectionSetId, FlatField, FlatFieldWalker, FlatSelectionSet,
         FlatSelectionSetWalker, Operation, OperationWalker, QueryPath, SelectionSetType,
     },
     response::{GraphqlError, ReadSelectionSet, ResponseBoundaryItem, ResponseEdge},
@@ -87,8 +87,7 @@ impl<'op> Planner<'op> {
         let (providable, missing) = flat_selection_set.partition_fields(|flat_field| {
             flat_field
                 .bound_field()
-                .definition()
-                .as_field()
+                .schema_field()
                 .map(|field| field.resolvers().len() == 0)
                 .unwrap_or(true)
         });
@@ -245,8 +244,8 @@ impl<'op> Planner<'op> {
                     resolver,
                     field_requires,
                 } = walker
-                    .walk(group.definition_id)
-                    .as_field()
+                    .walk(group.bound_field_ids[0])
+                    .schema_field()
                     .expect("Introspection resolver should have taken metadata fields")
                     .resolvers()
                     .next()
@@ -522,9 +521,8 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
         let (providable, missing) = flat_selection_set.partition_fields(|flat_field| {
             flat_field
                 .bound_field()
-                .definition()
-                .as_field()
-                .map(|field| self.logic.is_providable(*field))
+                .schema_field()
+                .map(|field| self.logic.is_providable(field))
                 .unwrap_or(true)
         });
 
@@ -559,23 +557,25 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
             self.attribution
                 .attributed_selection_sets
                 .extend(group.origin_selection_set_ids);
-            if let Some(field) = self.walker.walk(group.definition_id).as_field() {
+            let bound_field = self.walker.walk(group.bound_field_ids[0]);
+            if let Some(schema_field) = bound_field.schema_field() {
                 let expected_key = if self.resolver.supports_aliases() {
-                    field.response_key_str().to_string()
+                    bound_field.response_key_str().to_string()
                 } else {
-                    field.name().to_string()
+                    schema_field.name().to_string()
                 };
-                let ty = match field.ty().inner().data_type() {
+                let ty = match schema_field.ty().inner().data_type() {
                     Some(data_type) => ConcreteType::Scalar(data_type),
-                    None => {
-                        ConcreteType::SelectionSet(self.child(field).expected_selection_set(group.bound_field_ids)?)
-                    }
+                    None => ConcreteType::SelectionSet(
+                        self.child(bound_field, schema_field)
+                            .expected_selection_set(group.bound_field_ids)?,
+                    ),
                 };
                 fields.push(ConcreteField {
                     expected_key,
                     edge: group.key.into(),
-                    definition_id: Some(group.definition_id),
-                    wrapping: field.ty().wrapping().clone(),
+                    bound_field_id: Some(bound_field.id()),
+                    wrapping: schema_field.ty().wrapping().clone(),
                     ty,
                 });
             } else {
@@ -586,7 +586,7 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
             fields.extend(extra_fields.map(|extra_field| ConcreteField {
                 edge: extra_field.edge,
                 expected_key: extra_field.expected_key.clone(),
-                definition_id: None,
+                bound_field_id: None,
                 ty: match extra_field.ty {
                     ExpectedType::Scalar(data_type) => ConcreteType::Scalar(data_type),
                     ExpectedType::SelectionSet(id) => ConcreteType::ExtraSelectionSet(self.attribution[id].clone()),
@@ -641,27 +641,26 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
             .extend(flat_field.selection_set_path.clone());
         let bound_field = flat_field.bound_field();
 
-        if let Some(field) = bound_field.definition().as_field() {
+        if let Some(schema_field) = bound_field.schema_field() {
             let expected_key = if self.resolver.supports_aliases() {
-                field.response_key_str().to_string()
+                bound_field.response_key_str().to_string()
             } else {
-                field.name().to_string()
+                schema_field.name().to_string()
             };
-            let ty = match field.ty().inner().data_type() {
+            let ty = match schema_field.ty().inner().data_type() {
                 Some(data_type) => ExpectedType::Scalar(data_type),
                 None => ExpectedType::SelectionSet(
-                    self.child(field)
+                    self.child(bound_field, schema_field)
                         .expected_undetermined_nested_selection_set(&flat_field)?,
                 ),
             };
-            let bound_field = flat_field.bound_field();
             Ok(PossibleField::Query(self.expectations.push_field(ExpectedField {
                 type_condition: flat_field.into_item().type_condition,
                 expected_key,
                 ty,
-                field_id: field.id(),
+                field_id: schema_field.id(),
                 bound_response_key: bound_field.bound_response_key(),
-                definition_id: bound_field.definition_id(),
+                bound_field_id: bound_field.id(),
             })))
         } else {
             Ok(PossibleField::TypeName {
@@ -677,14 +676,18 @@ impl<'op, 'plan> PlanOutputBuilderContext<'op, 'plan> {
         id
     }
 
-    fn child<'s>(&'s mut self, field: BoundFieldDefinitionWalker<'_>) -> PlanOutputBuilderContext<'op, 's> {
+    fn child<'s>(
+        &'s mut self,
+        bound_field: BoundFieldWalker<'_>,
+        field: FieldWalker<'_>,
+    ) -> PlanOutputBuilderContext<'op, 's> {
         PlanOutputBuilderContext {
             plan_id: self.plan_id,
             planner: self.planner,
-            path: self.path.child(field.response_key()),
+            path: self.path.child(bound_field.response_key()),
             walker: self.walker,
             resolver: self.resolver,
-            logic: self.logic.child(*field),
+            logic: self.logic.child(field),
             attribution: self.attribution,
             boundaries: self.boundaries,
             expectations: self.expectations,

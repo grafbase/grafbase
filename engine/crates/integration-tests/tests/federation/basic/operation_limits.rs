@@ -3,7 +3,7 @@ use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::{federation::GatewayV2Ext, runtime};
 
 #[rstest::rstest]
-#[case(
+#[case( // 1
     "@operationLimits(depth: 1)",
     r#"query {
         allBotPullRequests {
@@ -12,8 +12,8 @@ use integration_tests::{federation::GatewayV2Ext, runtime};
     }"#,
     Some("Query is nested too deep.")
 )]
-#[case(
-    "@operationLimits(depth: 2)",
+#[case( // 2
+   "@operationLimits(depth: 2)",
     r#"query {
         allBotPullRequests {
             title
@@ -21,7 +21,7 @@ use integration_tests::{federation::GatewayV2Ext, runtime};
     }"#,
     None
 )]
-#[case(
+#[case( // 3
     "@operationLimits(height: 1)",
     r#"query {
         favoriteRepository
@@ -29,7 +29,7 @@ use integration_tests::{federation::GatewayV2Ext, runtime};
     }"#,
     Some("Query is too high.")
 )]
-#[case(
+#[case( // 4
     "@operationLimits(height: 2)",
     r#"query {
         favoriteRepository
@@ -37,7 +37,7 @@ use integration_tests::{federation::GatewayV2Ext, runtime};
     }"#,
     None
 )]
-#[case(
+#[case( // 5
     "@operationLimits(height: 2)",
     r#"query {
         favoriteRepository
@@ -46,7 +46,7 @@ use integration_tests::{federation::GatewayV2Ext, runtime};
     }"#,
     None
 )]
-#[case(
+#[case( // 6
     "@operationLimits(complexity: 1)",
     r#"query {
         favoriteRepository
@@ -54,7 +54,7 @@ use integration_tests::{federation::GatewayV2Ext, runtime};
     }"#,
     Some("Query is too complex.")
 )]
-#[case(
+#[case( // 7
     "@operationLimits(complexity: 2)",
     r#"query {
         favoriteRepository
@@ -62,7 +62,7 @@ use integration_tests::{federation::GatewayV2Ext, runtime};
     }"#,
     None
 )]
-#[case(
+#[case( // 8
     "@operationLimits(complexity: 2)",
     r#"query {
         favoriteRepository
@@ -71,7 +71,7 @@ use integration_tests::{federation::GatewayV2Ext, runtime};
     }"#,
     Some("Query is too complex.")
 )]
-#[case(
+#[case( // 9
     "@operationLimits(complexity: 3)",
     r#"query {
         favoriteRepository
@@ -82,7 +82,7 @@ use integration_tests::{federation::GatewayV2Ext, runtime};
     }"#,
     Some("Query is too complex.")
 )]
-#[case(
+#[case( // 10
     "@operationLimits(aliases: 2)",
     r#"query {
         favoriteRepository
@@ -94,7 +94,7 @@ use integration_tests::{federation::GatewayV2Ext, runtime};
     }"#,
     None
 )]
-#[case(
+#[case( // 11
     "@operationLimits(aliases: 1)",
     r#"query {
         favoriteRepository
@@ -106,7 +106,7 @@ use integration_tests::{federation::GatewayV2Ext, runtime};
     }"#,
     Some("Query contains too many aliases.")
 )]
-#[case(
+#[case( // 12
     "@operationLimits(rootFields: 2)",
     r#"query {
         favoriteRepository
@@ -115,7 +115,7 @@ use integration_tests::{federation::GatewayV2Ext, runtime};
     }"#,
     Some("Query contains too many root fields.")
 )]
-#[case(
+#[case( // 13
     "@operationLimits(rootFields: 3)",
     r#"query {
         favoriteRepository
