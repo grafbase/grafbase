@@ -1,5 +1,3 @@
-/// @ts-expect-error set individually for each UDF
-import udf from '${UDF_MAIN_FILE_PATH}'
 // import { IncomingMessage, ServerResponse, createServer } from 'http'
 // import { Readable } from 'stream'
 import { KVNamespace } from '@miniflare/kv'
@@ -233,6 +231,8 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
   }
   return btoa(binaryString)
 }
+
+const udf = require('${UDF_MAIN_FILE_PATH}').default
 
 export const invoke = async (request: Request) => {
   logEntries = []
