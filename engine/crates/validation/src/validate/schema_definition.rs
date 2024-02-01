@@ -72,7 +72,7 @@ pub(crate) fn validate_schema_definition_references(ctx: &mut Context<'_>) {
                 )];
                 ctx.push_error(miette::miette!(
                     labels = labels,
-                    "Cannot set schema {} root to unknown type type `{actual}`",
+                    "Cannot set schema {} root to unknown type `{actual}`",
                     default.to_lowercase()
                 ));
             }
