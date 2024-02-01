@@ -30,7 +30,7 @@ chrono = { version = "0.4", default-features = false, features = [
 derivative = "2"
 fast_chemail = "0.9"
 flexbuffers.workspace = true
-fnv = "1"
+fnv.workspace = true
 futures.workspace = true
 futures-util = { workspace = true, features = ["io", "sink"] }
 http.workspace = true
@@ -54,6 +54,7 @@ serde_with = { workspace = true, features = ["base64"] }
 static_assertions = "1"
 tempfile = "3"
 thiserror.workspace = true
+ulid.workspace = true
 url = { workspace = true, features = ["serde"] }
 web-time.workspace = true
 
@@ -78,12 +79,10 @@ uuid.workspace = true
 hex = "0.4.3"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-ulid = { workspace = true, features = ["wasm"] }
 reqwest = { workspace = true, features = ["json"] }
 getrandom = { version = "0.2", features = ["js"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-ulid.workspace = true
 reqwest = { workspace = true, features = [
   "json",
   "rustls-tls",

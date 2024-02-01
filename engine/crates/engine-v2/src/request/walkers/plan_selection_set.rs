@@ -94,9 +94,9 @@ impl<'a> Iterator for PlanSelectionIterator<'a> {
             if let Some(id) = self.bound_field_ids.pop_front() {
                 let bound_field = self.walker.walk(id);
                 // Skipping over metadata fields. The plan doesn't provide them.
-                let field = bound_field.definition().as_field().map(|definition| {
+                let field = bound_field.schema_field().map(|schema_field| {
                     PlanSelection::Field(PlanField::Query(
-                        bound_field.walk_with((bound_field.id(), definition.item), definition.id()),
+                        bound_field.walk_with(bound_field.id(), schema_field.id()),
                     ))
                 });
                 if field.is_some() {
@@ -109,14 +109,26 @@ impl<'a> Iterator for PlanSelectionIterator<'a> {
                             self.bound_field_ids.push_back(id);
                         }
                     }
-                    BoundSelection::FragmentSpread(spread) => {
-                        if self.walker.ctx.attribution.selection_set(spread.selection_set_id) {
-                            return Some(PlanSelection::FragmentSpread(self.walker.walk(spread)));
+                    BoundSelection::FragmentSpread(id) => {
+                        let spread = self.walker.walk(*id);
+                        if self
+                            .walker
+                            .ctx
+                            .attribution
+                            .selection_set(spread.as_ref().selection_set_id)
+                        {
+                            return Some(PlanSelection::FragmentSpread(spread));
                         }
                     }
-                    BoundSelection::InlineFragment(fragment) => {
-                        if self.walker.ctx.attribution.selection_set(fragment.selection_set_id) {
-                            return Some(PlanSelection::InlineFragment(self.walker.walk(fragment)));
+                    BoundSelection::InlineFragment(id) => {
+                        let inline_fragment = self.walker.walk(*id);
+                        if self
+                            .walker
+                            .ctx
+                            .attribution
+                            .selection_set(inline_fragment.as_ref().selection_set_id)
+                        {
+                            return Some(PlanSelection::InlineFragment(inline_fragment));
                         }
                     }
                 }

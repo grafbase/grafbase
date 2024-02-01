@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 pub use bind::BindResult;
-pub use engine_parser::{types::OperationType, Pos};
+pub use engine_parser::types::OperationType;
 pub use flat::*;
 pub use ids::*;
+pub use location::Location;
 pub use parse::{parse_operation, UnboundOperation};
 pub use path::QueryPath;
 use schema::{CacheConfig, Merge, ObjectId, Schema, SchemaWalker};
@@ -18,6 +19,7 @@ use self::bind::{BindError, OperationLimitExceededError};
 mod bind;
 mod flat;
 pub mod ids;
+mod location;
 mod parse;
 mod path;
 mod selection_set;
@@ -32,13 +34,21 @@ pub struct Operation {
     pub selection_sets: Vec<BoundSelectionSet>,
     pub fields: Vec<BoundField>,
     pub response_keys: Arc<ResponseKeys>,
-    pub fragment_definitions: Vec<BoundFragmentDefinition>,
-    pub field_definitions: Vec<BoundAnyFieldDefinition>,
+    pub fragments: Vec<BoundFragment>,
+    pub fragment_spreads: Vec<BoundFragmentSpread>,
+    pub inline_fragments: Vec<BoundInlineFragment>,
     pub variable_definitions: Vec<VariableDefinition>,
     pub cache_config: Option<CacheConfig>,
+    pub field_arguments: Vec<BoundFieldArguments>,
 }
 
+pub type BoundFieldArguments = Vec<BoundFieldArgument>;
+
 impl Operation {
+    fn empty_arguments(&self) -> &BoundFieldArguments {
+        &self.field_arguments[0]
+    }
+
     fn enforce_operation_limits(&self, schema: &Schema) -> Result<(), OperationLimitExceededError> {
         let selection_set = self.walker_with(schema.walker()).walk(self.root_selection_set_id);
 
@@ -90,7 +100,7 @@ impl Operation {
         unbound_operation: UnboundOperation,
         operation_limits_enabled: bool,
     ) -> BindResult<Self> {
-        let mut operation = Self::bind(schema, unbound_operation)?;
+        let mut operation = bind::bind(schema, unbound_operation)?;
 
         if operation_limits_enabled {
             operation
@@ -112,10 +122,6 @@ impl Operation {
         }
 
         Ok(operation)
-    }
-
-    fn bind(schema: &Schema, unbound_operation: UnboundOperation) -> BindResult<Self> {
-        bind::bind(schema, unbound_operation)
     }
 
     pub fn walker_with<'op, 'schema>(

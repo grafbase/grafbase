@@ -14,7 +14,7 @@ workspace = true
 
 [dependencies]
 async-trait = { version = "0.1", default-features = false }
-fnv = { version = "1", default-features = false, features = ["std"] }
+fnv.workspace = true
 futures-channel = { version = "0.3", default-features = false }
 futures-timer = { version = "3", default-features = false, features = ["wasm-bindgen"] }
 futures-util = { workspace = true, features = ["io", "sink"] }

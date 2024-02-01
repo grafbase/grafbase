@@ -50,13 +50,30 @@ async fn federation_start() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore] // Need to ignore till the sdk is released :(
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_sse_transport() {
     let mut env = Environment::init_async().await;
     let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
 
     env.grafbase_init(GraphType::Federated);
+    env.set_typescript_config(format!(
+        r#"
+        import {{ config, graph, SubscriptionTransport }} from '@grafbase/sdk'
+
+        export default config({{
+            graph: graph.Federated({{
+              subscriptions: (subscriptions) => {{
+                subscriptions
+                  .subgraph("subscriptions")
+                  .transport(SubscriptionTransport.GraphQlOverWebsockets, {{
+                    url: '{}'
+                  }})
+              }}
+            }}),
+        }})
+        "#,
+        subscription_server.websocket_url(),
+    ));
     env.prepare_ts_config_dependencies();
     env.grafbase_dev_watch();
 
@@ -105,7 +122,6 @@ async fn test_sse_transport() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[ignore] // Need to ignore till the sdk is released :(
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_sse_transport_with_auth() {
     let mut env = Environment::init_async().await;
@@ -115,13 +131,22 @@ async fn test_sse_transport_with_auth() {
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
         r#"
-        import {{ auth, config, graph }} from '@grafbase/sdk'
+        import {{ auth, config, graph, SubscriptionTransport }} from '@grafbase/sdk'
 
         export default config({{
-            graph: graph.Federated(),
+            graph: graph.Federated({{
+              subscriptions: (subscriptions) => {{
+                subscriptions
+                  .subgraph("subscriptions")
+                  .transport(SubscriptionTransport.GraphQlOverWebsockets, {{
+                    url: '{}'
+                  }})
+              }}
+            }}),
             auth: {{ providers: [{}] }},
         }})
         "#,
+        subscription_server.websocket_url(),
         identity_server.ts_auth_provider()
     ));
     env.prepare_ts_config_dependencies();
@@ -182,13 +207,22 @@ async fn test_sse_transport_with_failed_auth() {
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
         r#"
-        import {{ auth, config, graph }} from '@grafbase/sdk'
+        import {{ auth, config, graph, SubscriptionTransport }} from '@grafbase/sdk'
 
         export default config({{
-            graph: graph.Federated(),
+            graph: graph.Federated({{
+              subscriptions: (subscriptions) => {{
+                subscriptions
+                  .subgraph("subscriptions")
+                  .transport(SubscriptionTransport.GraphQlOverWebsockets, {{
+                    url: '{}'
+                  }})
+              }}
+            }}),
             auth: {{ providers: [{}] }},
         }})
         "#,
+        subscription_server.websocket_url(),
         identity_server.ts_auth_provider()
     ));
     env.prepare_ts_config_dependencies();
@@ -232,13 +266,30 @@ async fn test_sse_transport_with_failed_auth() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[ignore] // Need to ignore till the sdk is released :(
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_multipart_transport() {
     let mut env = Environment::init_async().await;
     let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
 
     env.grafbase_init(GraphType::Federated);
+    env.set_typescript_config(format!(
+        r#"
+        import {{ config, graph, SubscriptionTransport }} from '@grafbase/sdk'
+
+        export default config({{
+            graph: graph.Federated({{
+              subscriptions: (subscriptions) => {{
+                subscriptions
+                  .subgraph("subscriptions")
+                  .transport(SubscriptionTransport.GraphQlOverWebsockets, {{
+                    url: '{}'
+                  }})
+              }}
+            }}),
+        }})
+        "#,
+        subscription_server.websocket_url(),
+    ));
     env.prepare_ts_config_dependencies();
     env.grafbase_dev_watch();
 
@@ -288,7 +339,6 @@ async fn test_multipart_transport() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[ignore] // Need to ignore till the sdk is released :(
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_multipart_transport_with_auth() {
     let mut env = Environment::init_async().await;
@@ -298,13 +348,22 @@ async fn test_multipart_transport_with_auth() {
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
         r#"
-        import {{ auth, config, graph }} from '@grafbase/sdk'
+        import {{ auth, config, graph, SubscriptionTransport }} from '@grafbase/sdk'
 
         export default config({{
-            graph: graph.Federated(),
+            graph: graph.Federated({{
+              subscriptions: (subscriptions) => {{
+                subscriptions
+                  .subgraph("subscriptions")
+                  .transport(SubscriptionTransport.GraphQlOverWebsockets, {{
+                    url: '{}'
+                  }})
+              }}
+            }}),
             auth: {{ providers: [{}] }},
         }})
         "#,
+        subscription_server.websocket_url(),
         identity_server.ts_auth_provider()
     ));
     env.prepare_ts_config_dependencies();
@@ -366,13 +425,22 @@ async fn test_multipart_transport_with_bad_auth() {
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
         r#"
-        import {{ auth, config, graph }} from '@grafbase/sdk'
+        import {{ auth, config, graph, SubscriptionTransport }} from '@grafbase/sdk'
 
         export default config({{
-            graph: graph.Federated(),
+            graph: graph.Federated({{
+              subscriptions: (subscriptions) => {{
+                subscriptions
+                  .subgraph("subscriptions")
+                  .transport(SubscriptionTransport.GraphQlOverWebsockets, {{
+                    url: '{}'
+                  }})
+              }}
+            }}),
             auth: {{ providers: [{}] }},
         }})
         "#,
+        subscription_server.websocket_url(),
         identity_server.ts_auth_provider()
     ));
     env.prepare_ts_config_dependencies();
@@ -417,13 +485,30 @@ async fn test_multipart_transport_with_bad_auth() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[ignore] // Need to ignore till the sdk is released :(
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_websocket_transport() {
     let mut env = Environment::init_async().await;
     let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
 
     env.grafbase_init(GraphType::Federated);
+    env.set_typescript_config(format!(
+        r#"
+        import {{ config, graph, SubscriptionTransport }} from '@grafbase/sdk'
+
+        export default config({{
+            graph: graph.Federated({{
+              subscriptions: (subscriptions) => {{
+                subscriptions
+                  .subgraph("subscriptions")
+                  .transport(SubscriptionTransport.GraphQlOverWebsockets, {{
+                    url: '{}'
+                  }})
+              }}
+            }}),
+        }})
+        "#,
+        subscription_server.websocket_url(),
+    ));
     env.prepare_ts_config_dependencies();
     env.grafbase_dev_watch();
 
@@ -474,7 +559,6 @@ async fn test_websocket_transport() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[ignore] // Need to ignore till the sdk is released :(
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_websocket_transport_with_auth() {
     let mut env = Environment::init_async().await;
@@ -484,13 +568,22 @@ async fn test_websocket_transport_with_auth() {
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
         r#"
-        import {{ auth, config, graph }} from '@grafbase/sdk'
+        import {{ auth, config, graph, SubscriptionTransport }} from '@grafbase/sdk'
 
         export default config({{
-            graph: graph.Federated(),
+            graph: graph.Federated({{
+              subscriptions: (subscriptions) => {{
+                subscriptions
+                  .subgraph("subscriptions")
+                  .transport(SubscriptionTransport.GraphQlOverWebsockets, {{
+                    url: '{}'
+                  }})
+              }}
+            }}),
             auth: {{ providers: [{}] }},
         }})
         "#,
+        subscription_server.websocket_url(),
         identity_server.ts_auth_provider()
     ));
     env.prepare_ts_config_dependencies();
@@ -553,13 +646,22 @@ async fn test_websocket_transport_with_bad_auth() {
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
         r#"
-        import {{ auth, config, graph }} from '@grafbase/sdk'
+        import {{ auth, config, graph, SubscriptionTransport }} from '@grafbase/sdk'
 
         export default config({{
-            graph: graph.Federated(),
+            graph: graph.Federated({{
+              subscriptions: (subscriptions) => {{
+                subscriptions
+                  .subgraph("subscriptions")
+                  .transport(SubscriptionTransport.GraphQlOverWebsockets, {{
+                    url: '{}'
+                  }})
+              }}
+            }}),
             auth: {{ providers: [{}] }},
         }})
         "#,
+        subscription_server.websocket_url(),
         identity_server.ts_auth_provider()
     ));
     env.prepare_ts_config_dependencies();

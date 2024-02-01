@@ -34,10 +34,10 @@ impl<'a> IntrospectionWriter<'a> {
     pub(super) fn update_output(&self, response_object: ResponseBoundaryItem, selection_set: &CollectedSelectionSet) {
         let mut fields = BTreeMap::new();
         for field in &selection_set.fields {
-            let definition = self.walker.walk(field.definition_id.unwrap()).as_field().unwrap();
-            match self.metadata.root_field(definition.id()) {
+            let bound_field = field.bound_field_id.map(|id| self.walker.walk(id)).unwrap();
+            match self.metadata.root_field(bound_field.schema_field().unwrap().id()) {
                 IntrospectionField::Type => {
-                    let name = definition
+                    let name = bound_field
                         .bound_arguments()
                         .next()
                         .map(|arg| match arg.resolved_value() {
@@ -80,7 +80,8 @@ impl<'a> IntrospectionWriter<'a> {
     ) -> ResponseValue {
         let mut fields = BTreeMap::new();
         for field in &selection_set.fields {
-            let field_id = self.walker.walk(field.definition_id.unwrap()).as_field().unwrap().id();
+            let bound_field = field.bound_field_id.map(|id| self.walker.walk(id)).unwrap();
+            let field_id = bound_field.schema_field().unwrap().id();
             fields.insert(field.edge, build(field, object[field_id]));
         }
         if !selection_set.typename_fields.is_empty() {
@@ -185,8 +186,8 @@ impl<'a> IntrospectionWriter<'a> {
                 .fields()
                 .map(|fields| {
                     let selection_set = field.concrete_selection_set().unwrap();
-                    let definition = self.walker.walk(field.definition_id.unwrap()).as_field().unwrap();
-                    let include_deprecated = definition
+                    let bound_field = field.bound_field_id.map(|id| self.walker.walk(id)).unwrap();
+                    let include_deprecated = bound_field
                         .bound_arguments()
                         .next()
                         .map(|arg| match arg.resolved_value() {

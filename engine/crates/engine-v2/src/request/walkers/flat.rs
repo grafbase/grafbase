@@ -7,13 +7,13 @@ use schema::{Definition, FieldId};
 
 use crate::{
     request::{
-        BoundAnyFieldDefinitionId, BoundFieldId, BoundSelectionSetId, EntityType, FlatField, FlatSelectionSet,
-        FlatSelectionSetId, FlatTypeCondition, SelectionSetType,
+        BoundFieldId, BoundSelectionSetId, EntityType, FlatField, FlatSelectionSet, FlatSelectionSetId,
+        FlatTypeCondition, SelectionSetType,
     },
     response::{BoundResponseKey, ResponseKey},
 };
 
-use super::{BoundFieldDefinitionWalker, BoundFieldWalker, OperationWalker};
+use super::{BoundFieldWalker, OperationWalker};
 
 pub type FlatSelectionSetWalker<'op, 'a, Ty = SelectionSetType> = OperationWalker<'op, Cow<'a, FlatSelectionSet<Ty>>>;
 pub type FlatFieldWalker<'op, 'a> = OperationWalker<'op, Cow<'a, FlatField>>;
@@ -39,10 +39,10 @@ impl<'op, 'a, Ty: Copy> FlatSelectionSetWalker<'op, 'a, Ty> {
             .map(move |flat_field| walker.walk(Cow::Borrowed(flat_field)))
     }
 
-    pub fn group_by_field_id(&self) -> HashMap<FieldId, GroupForFieldId<'op>> {
+    pub fn group_by_field_id(&self) -> HashMap<FieldId, GroupForFieldId> {
         self.item.fields.iter().fold(HashMap::new(), |mut map, flat_field| {
             let bound_field = self.walk(flat_field.bound_field_id);
-            if let Some(field) = bound_field.definition().as_field() {
+            if let Some(field) = bound_field.schema_field() {
                 map.entry(field.id())
                     .and_modify(|group| {
                         group.key = bound_field.bound_response_key().min(group.key);
@@ -50,7 +50,6 @@ impl<'op, 'a, Ty: Copy> FlatSelectionSetWalker<'op, 'a, Ty> {
                     })
                     .or_insert_with(|| GroupForFieldId {
                         key: bound_field.bound_response_key(),
-                        definition: field,
                         bound_field_ids: vec![bound_field.id()],
                     });
             }
@@ -63,19 +62,15 @@ impl<'op, 'a, Ty: Copy> FlatSelectionSetWalker<'op, 'a, Ty> {
             HashMap::<ResponseKey, GroupForResponseKey>::new(),
             |mut groups, flat_field| {
                 let field = &self.operation[flat_field.bound_field_id];
-                let definition = &self.operation[field.definition_id];
+                let key = field.bound_response_key();
                 let group = groups
-                    .entry(definition.response_key())
+                    .entry(field.response_key())
                     .or_insert_with(|| GroupForResponseKey {
-                        key: field.bound_response_key,
-                        definition_id: field.definition_id,
+                        key,
                         origin_selection_set_ids: HashSet::new(),
                         bound_field_ids: vec![],
                     });
-                if field.bound_response_key < group.key {
-                    group.key = field.bound_response_key;
-                    group.definition_id = field.definition_id;
-                }
+                group.key = group.key.min(key);
                 group.bound_field_ids.push(flat_field.bound_field_id);
                 group.origin_selection_set_ids.extend(&flat_field.selection_set_path);
 
@@ -156,15 +151,13 @@ impl<'op, 'a> std::ops::Deref for FlatFieldWalker<'op, 'a> {
 }
 
 #[derive(Debug)]
-pub struct GroupForFieldId<'a> {
+pub struct GroupForFieldId {
     pub key: BoundResponseKey,
-    pub definition: BoundFieldDefinitionWalker<'a>,
     pub bound_field_ids: Vec<BoundFieldId>,
 }
 
 pub struct GroupForResponseKey {
     pub key: BoundResponseKey,
-    pub definition_id: BoundAnyFieldDefinitionId,
     pub origin_selection_set_ids: HashSet<BoundSelectionSetId>,
     pub bound_field_ids: Vec<BoundFieldId>,
 }
@@ -190,7 +183,7 @@ impl<'op, 'a> std::fmt::Debug for FlatFieldWalker<'op, 'a> {
         if let Some(type_condition) = self.item.type_condition.as_ref() {
             fmt.field("type_condition", &self.walk_with(type_condition, ()));
         }
-        fmt.field("field", &self.bound_field().definition()).finish()
+        fmt.field("field", &self.bound_field()).finish()
     }
 }
 

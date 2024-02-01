@@ -1,12 +1,11 @@
 use std::collections::BTreeMap;
 
 use super::ResponsePath;
-use crate::request::Pos;
 
 #[derive(Debug, Default)]
 pub(crate) struct GraphqlError {
     pub message: String,
-    pub locations: Vec<Pos>,
+    pub locations: Vec<crate::request::Location>,
     pub path: Option<ResponsePath>,
     // ensures consistent ordering for tests
     pub extensions: BTreeMap<String, serde_json::Value>,
