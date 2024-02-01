@@ -41,7 +41,7 @@ pub enum Message {
     },
     Error {
         id: String,
-        payload: Vec<serde_json::Value>,
+        payload: engine_v2::Response,
     },
     Complete {
         id: String,

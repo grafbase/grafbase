@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use ::axum::extract::ws::{self, WebSocket};
+use engine_v2::Response;
 use futures_util::{pin_mut, stream::SplitStream, SinkExt, StreamExt};
 use gateway_v2::{
     websockets::messages::{Event, Message},
@@ -19,6 +20,8 @@ pub use axum::WebsocketService;
 pub type WebsocketSender = tokio::sync::mpsc::Sender<WebSocket>;
 pub type WebsocketReceiver = tokio::sync::mpsc::Receiver<WebSocket>;
 
+const CONNECTION_INIT_WAIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
+
 /// An actor that manages websocket connections for federated dev
 pub(crate) struct WebsocketAccepter {
     sockets: WebsocketReceiver,
@@ -31,16 +34,32 @@ impl WebsocketAccepter {
     }
 
     pub async fn handler(mut self) {
-        while let Some(connection) = self.sockets.recv().await {
+        while let Some(mut connection) = self.sockets.recv().await {
             let gateway = self.gateway.clone();
 
             tokio::spawn(async move {
-                let Some((websocket, session)) = accept_websocket(connection, &gateway).await else {
-                    log::warn!("Failed to accept websocket connection");
-                    return;
-                };
+                let accept_future = tokio::time::timeout(
+                    CONNECTION_INIT_WAIT_TIMEOUT,
+                    accept_websocket(&mut connection, &gateway),
+                );
 
-                websocket_loop(websocket, session).await;
+                match accept_future.await {
+                    Ok(Some(session)) => websocket_loop(connection, session).await,
+                    Ok(None) => {
+                        log::warn!("Failed to accept websocket connection");
+                    }
+                    Err(_) => {
+                        log::info!("Connection wasn't initialised on time, dropping");
+                        connection
+                            .send(
+                                Message::close(4408, "Connection initialisation timeout")
+                                    .to_axum_message()
+                                    .unwrap(),
+                            )
+                            .await
+                            .ok();
+                    }
+                }
             });
         }
     }
@@ -136,6 +155,18 @@ async fn subscription_loop(
 
     pin_mut!(stream);
     while let Some(response) = stream.next().await {
+        if matches!(response, Response::RequestError(_)) {
+            sender
+                .send(Message::Error {
+                    id: id.clone(),
+                    payload: response,
+                })
+                .await
+                .ok();
+
+            return;
+        }
+
         let result = sender
             .send(Message::Next {
                 id: id.clone(),
@@ -151,7 +182,7 @@ async fn subscription_loop(
     sender.send(Message::Complete { id }).await.ok();
 }
 
-async fn accept_websocket(mut websocket: WebSocket, gateway: &GatewayWatcher) -> Option<(WebSocket, Session)> {
+async fn accept_websocket(websocket: &mut WebSocket, gateway: &GatewayWatcher) -> Option<Session> {
     while let Some(event) = websocket.recv_graphql().await {
         match event {
             Event::ConnectionInit { payload } => {
@@ -180,7 +211,7 @@ async fn accept_websocket(mut websocket: WebSocket, gateway: &GatewayWatcher) ->
                     .await
                     .ok()?;
 
-                return Some((websocket, session));
+                return Some(session);
             }
             Event::Ping { .. } => {
                 websocket
@@ -191,6 +222,13 @@ async fn accept_websocket(mut websocket: WebSocket, gateway: &GatewayWatcher) ->
                     )
                     .await
                     .ok()?;
+            }
+            Event::Subscribe { .. } => {
+                websocket
+                    .send(Message::close(4401, "Unauthorized").to_axum_message().unwrap())
+                    .await
+                    .ok();
+                return None;
             }
             _ => {}
         }
