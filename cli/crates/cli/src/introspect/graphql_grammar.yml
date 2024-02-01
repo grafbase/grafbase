@@ -271,19 +271,19 @@ contexts:
     - match: \(
       scope: punctuation.section.group.begin.graphql
       set:
-      - match: \)
-        scope: punctuation.section.group.end.graphql
-        pop: true
-      - match: '(\$)({{name}})'
-        captures:
-          1: punctuation.definition.variable.graphql
-          2: variable.parameter.graphql
-        push:
-          - - include: default-value
-          - - match: ':'
-              scope: punctuation.separator.type.graphql
-              set: type
-            - include: else-pop
+        - match: \)
+          scope: punctuation.section.group.end.graphql
+          pop: true
+        - match: '(\$)({{name}})'
+          captures:
+            1: punctuation.definition.variable.graphql
+            2: variable.parameter.graphql
+          push:
+            - - include: default-value
+            - - match: ':'
+                scope: punctuation.separator.type.graphql
+                set: type
+              - include: else-pop
     - include: else-pop
 
   directives:
@@ -325,26 +325,26 @@ contexts:
     - match: ':'
       scope: punctuation.separator.key-value.graphql
       set:
-      - match: '{{name}}'
-        scope: variable.parameter.graphql
-        pop: true
-      - include: else-pop
+        - match: '{{name}}'
+          scope: variable.parameter.graphql
+          pop: true
+        - include: else-pop
     - include: else-pop
 
   field-arguments:
     - match: \(
       scope: punctuation.section.group.begin.graphql
       set:
-      - match: \)
-        scope: punctuation.section.group.end.graphql
-        pop: true
-      - match: '{{name}}'
-        scope: variable.parameter.graphql
-        push:
-          - - match: ':'
-              scope: punctuation.separator.type.graphql
-              set: value
-            - include: else-pop
+        - match: \)
+          scope: punctuation.section.group.end.graphql
+          pop: true
+        - match: '{{name}}'
+          scope: variable.parameter.graphql
+          push:
+            - - match: ':'
+                scope: punctuation.separator.type.graphql
+                set: value
+              - include: else-pop
     - include: else-pop
 
   schema-definition:
@@ -495,17 +495,17 @@ contexts:
     - match: \(
       scope: punctuation.section.group.begin.graphql
       set:
-      - match: \)
-        scope: punctuation.section.group.end.graphql
-        pop: true
-      - match: '{{name}}'
-        scope: variable.parameter.graphql
-        push:
-          - match: ':'
-            scope: punctuation.separator.key-value.graphql
-            set: value
-          - include: else-pop
-      - include: else-pop
+        - match: \)
+          scope: punctuation.section.group.end.graphql
+          pop: true
+        - match: '{{name}}'
+          scope: variable.parameter.graphql
+          push:
+            - match: ':'
+              scope: punctuation.separator.key-value.graphql
+              set: value
+            - include: else-pop
+        - include: else-pop
     - include: else-pop
 
   value:
