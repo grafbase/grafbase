@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 pub use bind::BindResult;
-pub use engine_parser::{types::OperationType, Pos};
+pub use engine_parser::types::OperationType;
 pub use flat::*;
 pub use ids::*;
+pub use location::Location;
 pub use parse::{parse_operation, UnboundOperation};
 pub use path::QueryPath;
 use schema::{CacheConfig, Merge, ObjectId, Schema, SchemaWalker};
@@ -18,6 +19,7 @@ use self::bind::{BindError, OperationLimitExceededError};
 mod bind;
 mod flat;
 pub mod ids;
+mod location;
 mod parse;
 mod path;
 mod selection_set;

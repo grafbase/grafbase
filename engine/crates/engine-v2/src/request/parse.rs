@@ -24,7 +24,7 @@ impl From<ParseError> for GraphqlError {
         match err {
             ParseError::ParserError(err) => GraphqlError {
                 message: err.to_string(),
-                locations: err.positions().collect(),
+                locations: err.positions().filter_map(|pos| pos.try_into().ok()).collect(),
                 ..Default::default()
             },
             err => GraphqlError {

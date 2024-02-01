@@ -1,8 +1,7 @@
-use engine_parser::Pos;
 use schema::{FieldId, FieldWalker};
 
 use crate::{
-    request::{BoundAnyFieldDefinition, BoundAnyFieldDefinitionId, BoundFieldDefinition},
+    request::{BoundAnyFieldDefinition, BoundAnyFieldDefinitionId, BoundFieldDefinition, Location},
     response::ResponseKey,
 };
 
@@ -28,7 +27,7 @@ impl<'a, C: Copy> BoundAnyFieldDefinitionWalker<'a, C> {
         }
     }
 
-    pub fn name_location(&self) -> Pos {
+    pub fn name_location(&self) -> Location {
         match self.as_ref() {
             BoundAnyFieldDefinition::TypeName(definition) => definition.name_location,
             BoundAnyFieldDefinition::Field(definition) => definition.name_location,

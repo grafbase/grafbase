@@ -1,24 +1,23 @@
 use std::{collections::HashMap, fmt::Write};
 
-use engine_parser::Pos;
 use engine_value::{ConstValue, Name};
 use indexmap::IndexMap;
 use schema::{DataType, InputObjectId, ListWrapping, Schema, StringId};
 
 use crate::{
-    request::{Operation, VariableDefinition, VariableDefinitionId},
+    request::{Location, Operation, VariableDefinition, VariableDefinitionId},
     response::GraphqlError,
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum VariableError {
     #[error("Missing variable '{name}'")]
-    MissingVariable { name: String, location: Pos },
+    MissingVariable { name: String, location: Location },
     #[error("Variable ${name} got an invalid value: {error}")]
     Coercion {
         name: String,
         error: CoercionError,
-        location: Pos,
+        location: Location,
     },
 }
 
