@@ -244,8 +244,8 @@ pub enum UdfBuildError {
     BunSpawnFailed,
 
     // returned if the node process for a given UDF fails to spawn, with more details
-    #[error("\n{output}")]
-    BunSpawnFailedWithOutput { output: String },
+    #[error("\n{output}\n{stderr}")]
+    BunSpawnFailedWithOutput { output: String, stderr: String },
 
     /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
     #[error("command error: {0}")]
