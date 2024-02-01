@@ -27,7 +27,7 @@ tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44fa
 ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "05499bd1609f9ac4dd5f39e0bbf70da529179aed" } # web-time-wasm32-unknown-unknown
 
 [workspace.package]
-version = "0.54.1"
+version = "0.55.0"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://grafbase.com"
