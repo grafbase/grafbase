@@ -232,6 +232,7 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
   return btoa(binaryString)
 }
 
+// TODO: if we're doing this we can use an argument rather than building this for each UDF
 const udf = require('${UDF_MAIN_FILE_PATH}').default
 
 export const invoke = async (request: Request) => {
