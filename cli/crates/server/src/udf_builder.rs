@@ -230,7 +230,7 @@ pub(crate) async fn build(
 
     let entrypoint_path = dist_path.join(ENTRYPOINT_SCRIPT_FILE_NAME);
 
-    tokio::fs::copy(
+    tokio::fs::rename(
         environment
             .bun_installation_path
             .join(format!("{build_id}/entrypoint.js")),
