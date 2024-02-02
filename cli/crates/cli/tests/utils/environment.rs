@@ -6,12 +6,11 @@ use super::{cargo_bin::cargo_bin, client::Client};
 use backend::project::GraphType;
 use common::consts::GRAFBASE_SCHEMA_FILE_NAME;
 use duct::{cmd, Handle};
-use std::env::VarError;
+use std::io;
 use std::path::Path;
 use std::process::Output;
 use std::sync::{Arc, Mutex};
 use std::{env, fs, io::Write, path::PathBuf};
-use std::{io, mem};
 use tempfile::{tempdir, TempDir};
 
 pub struct Environment {
