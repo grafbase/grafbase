@@ -340,7 +340,7 @@ impl QueryResponse {
     pub fn into_compact_value(mut self) -> serde_json::Result<CompactValue> {
         Ok(match self.root {
             Some(root_id) => self
-                .take_node_into_const_value(root_id)
+                .take_node_into_compact_value(root_id)
                 .expect("graph root should always exist"),
             None => CompactValue::Object(Default::default()),
         })
@@ -355,14 +355,14 @@ impl QueryResponse {
     }
 
     /// Removes a node and it's children from the Graph, and returns a CompactValue of its data.
-    pub fn take_node_into_const_value(&mut self, node_id: ResponseNodeId) -> Option<CompactValue> {
+    pub fn take_node_into_compact_value(&mut self, node_id: ResponseNodeId) -> Option<CompactValue> {
         match self.delete_node(node_id).ok()? {
             QueryResponseNode::Container(container) => {
                 let ResponseContainer { children, .. } = *container;
                 let mut fields = Vec::with_capacity(children.len());
 
                 for (relation, nested_id) in children {
-                    match self.take_node_into_const_value(nested_id)? {
+                    match self.take_node_into_compact_value(nested_id)? {
                         // Skipping nested empty objects
                         CompactValue::Object(fields) if fields.is_empty() => (),
                         value => {
@@ -376,7 +376,7 @@ impl QueryResponse {
                 let ResponseList { children, .. } = *list;
                 let mut list = Vec::with_capacity(children.len());
                 for node in children {
-                    list.push(self.take_node_into_const_value(node)?);
+                    list.push(self.take_node_into_compact_value(node)?);
                 }
                 Some(CompactValue::List(list))
             }

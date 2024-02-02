@@ -1,9 +1,13 @@
 use std::collections::{BTreeSet, HashMap};
 
-use engine::registry::{field_set::Selection, resolvers::join::JoinResolver, FieldSet};
-use engine_parser::{parse_field, types::ConstDirective, Positioned};
+use engine::registry::{field_set, resolvers::join::JoinResolver, FieldSet};
+use engine_parser::{
+    parse_field,
+    types::{ConstDirective, Field},
+    Positioned,
+};
 use engine_value::{Name, Value};
-use serde::de::Error;
+use serde::{de::Error, Serialize};
 
 use super::{directive::Directive, visitor::VisitorContext};
 use crate::directive_de::parse_directive;
@@ -15,10 +19,16 @@ pub struct JoinDirective {
 }
 
 #[derive(Debug)]
-pub struct FieldSelection {
+struct FieldSelection {
+    selections: Vec<Selection>,
+    required_fields: Vec<String>,
+}
+
+// TODO: Better name innit
+#[derive(Debug)]
+struct Selection {
     field_name: String,
     arguments: Vec<(Name, Value)>,
-    required_fields: Vec<String>,
 }
 
 impl Directive for JoinDirective {
@@ -53,14 +63,20 @@ impl FieldSelection {
             return None;
         }
 
-        Some(FieldSet::new(self.required_fields.iter().map(|field| Selection {
-            field: field.clone(),
-            selections: vec![],
+        Some(FieldSet::new(self.required_fields.iter().map(|field| {
+            field_set::Selection {
+                field: field,
+                selections: vec![],
+            }
         })))
     }
 
     pub fn to_join_resolver(&self) -> JoinResolver {
-        JoinResolver::new(self.field_name.clone(), self.arguments.clone())
+        JoinResolver::new(
+            self.selections
+                .iter()
+                .map(|selection| (selection.field_name.clone(), selection.arguments.clone())),
+        )
     }
 }
 
@@ -73,11 +89,7 @@ impl<'de> serde::Deserialize<'de> for FieldSelection {
 
         let field = parse_field(select).map_err(|error| D::Error::custom(format!("Could not parse join: {error}")))?;
 
-        if !field.node.selection_set.items.is_empty() {
-            return Err(D::Error::custom(
-                "this join attempts to select children, but joins can only select a single field",
-            ));
-        }
+        validate_field(&field).map_err(D::Error::custom)?;
 
         let arguments = field
             .node
@@ -95,10 +107,54 @@ impl<'de> serde::Deserialize<'de> for FieldSelection {
             .collect::<Vec<_>>();
 
         Ok(FieldSelection {
-            field_name: field.node.name.node.to_string(),
-            arguments,
+            selections: SelectionIter(&field.node).collect(),
             required_fields,
         })
+    }
+}
+
+fn validate_field(mut field: &Positioned<Field>) -> Result<(), String> {
+    loop {
+        match field.node.selection_set.node.items.as_slice() {
+            [] => return Ok(()),
+            [item] => match &item.node {
+                engine_parser::types::Selection::Field(inner_field) => {
+                    field = inner_field;
+                    continue;
+                }
+                _ => return Err("joins can't make use of spreads".into()),
+            },
+            _ => return Err("joins can contain at most a single field per selection set".into()),
+        }
+    }
+}
+
+struct SelectionIter<'a> {
+    field: Option<&'a Field>,
+}
+
+impl Iterator for SelectionIter<'_> {
+    type Item = Selection;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let field = self.field?;
+
+        let next = Selection {
+            field_name: field,
+            arguments: field.arguments.clone(),
+        };
+
+        self.field = field
+            .selection_set
+            .node
+            .items
+            .first()
+            .filter_map(|selection| match selection.node {
+                engine_parser::types::Selection::Field(inner_field) => Some(inner_field),
+                _ => None,
+            });
+
+        Some(next)
     }
 }
 
@@ -150,6 +206,11 @@ mod tests {
     }
 
     #[test]
+    fn nested_join_with_arguments_and_such() {
+        todo!()
+    }
+
+    #[test]
     fn join_with_missing_required_argument() {
         assert_validation_error!(
             r#"
@@ -165,6 +226,44 @@ mod tests {
             }
             "#,
             "The field nickname on the type User is trying to join with the field named blah, but does not provide the non-nullable argument name"
+        );
+    }
+
+    #[test]
+    fn join_with_multiple_fields() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!): String! @resolver(name: "blah")
+            }
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                nickname: String! @join(select: "blah(id: $id) foo")
+            }
+            "#,
+            ""
+        );
+    }
+
+    #[test]
+    fn join_with_nested_multiple_fields() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!, name: String!): String! @resolver(name: "blah")
+            }
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                nickname: String! @join(select: "blah(id: $id) { foo bar }")
+            }
+            "#,
+            "joins can contain at most a single field per selection set"
         );
     }
 

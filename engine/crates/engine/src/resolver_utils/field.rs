@@ -64,6 +64,57 @@ pub async fn resolve_field(
         parent_resolver_value = resolve_requires_fieldset(parent_resolver_value, requires, ctx).await?;
     }
 
+    // TODO: Ok, so _here_
+    // _if_ the current field has a Join resolver on it.
+    // Then we don't bother going into any of the below functions.
+    //
+    // And instead we generate a _new_ SelectionSet out of the
+    // join select with the queries select _inside_ and then resolve that.
+    // and start resolving that instead?
+    //
+    // This would absolutely work but ofc would fuck any error paths up somewhat horribly.
+    //
+    // We could just translate these back to normal...?
+    // _or_ we could go down a slightly different code path for joins.
+    //
+    // Which may be a better option?  Not sure....
+    //
+    // I guess we've essentially ruled out the presence of arrays in the join path.
+    // We can have scalars, but not until the leaf field.
+    // No spreads.
+    // It's _mostly_ containers w/ one entry.
+    // Ban __typenam
+    // So the normal code path is basically:
+    //
+    // resolve_container
+    // -> FieldExecutionSet::add_selection_set (w/ one field)
+    // -> FieldExecutionSet::add_field
+    // creates a future that does:
+    //  -> resolve_field
+    //  -> resolve_container_field
+    //  -> run_field_resolver -> resolve_container
+    //  -> resolve_container etc.
+    // resolves all futures
+    //
+    // I may be missing something, but seems like it would be easy to bypass much of
+    // that heirarchy and just do a `resolve_join` that takes the simple path we need...?
+    //
+    // Dumb join version:
+    // fn resolve_join(
+    //
+    //   for field in the thing {
+    //      let current_value = run_field_resolver(resolver, last_value);
+    //      let context = dunno_but_do_this_somehow()
+    //      let last_value = current_value;
+    //   }
+    // }
+    //
+    // at the end of the loop current_value _should_ be the value we use for the current field.
+    // (e.g. the return value of run_field_resolver, assuming we were able to implement
+    // this in there (can we - there's a question?))
+
+    //
+
     let result = match CurrentResolverType::new(field, ctx) {
         CurrentResolverType::PRIMITIVE => resolve_primitive_field(ctx, field, parent_resolver_value).await,
         CurrentResolverType::CONTAINER => resolve_container_field(ctx, field, parent_resolver_value).await,
@@ -272,24 +323,30 @@ async fn run_field_resolver(
     ctx: &ContextField<'_>,
     parent_resolver_value: ResolvedValue,
 ) -> Result<ResolvedValue, Error> {
-    let mut final_result = parent_resolver_value;
+    let resolver = &ctx.field.resolver;
+    // TODO: OK so maybe _here_ is where I want to do the joiny funtimes?
+    // Maybe?
+    // I think yeah maybe
 
     if let Some(QueryPathSegment::Index(idx)) = ctx.path.last() {
-        // If we are in an index segment, it means we do not have a current resolver (YET).
-        final_result = final_result.get_index(*idx).unwrap_or_default();
-    } else {
-        let resolver = &ctx.field.resolver;
-        // Avoiding the early return when we're just propagating downwards data. Container
-        // fields used as namespaces have no value (so Null) but their fields have resolvers.
-        if !resolver.is_parent() {
-            let resolver_context = ResolverContext::new(ctx);
+        // Items in lists don't have resolvers - we just look them up by index
+        return Ok(parent_resolver_value.get_index(*idx).unwrap_or_default());
+    }
 
-            final_result = resolver.resolve(ctx, &resolver_context, Some(final_result)).await?;
+    if resolver.is_parent() {
+        // Some fields just pass their parents data down to their children (or have no data at all).
+        // For those, we just early return
+        return Ok(parent_resolver_value);
+    }
 
-            if final_result.data_resolved().is_null() {
-                final_result = final_result.with_early_return();
-            }
-        }
+    let resolver_context = ResolverContext::new(ctx);
+
+    let final_result = resolver
+        .resolve(ctx, &resolver_context, Some(parent_resolver_value))
+        .await?;
+
+    if final_result.data_resolved().is_null() {
+        final_result = final_result.with_early_return();
     }
 
     Ok(final_result)

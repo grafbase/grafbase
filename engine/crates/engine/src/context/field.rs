@@ -80,6 +80,24 @@ impl<'a> ContextField<'a> {
         }
     }
 
+    pub fn with_joined_selection_set(&self, selection_set: &'a Positioned<SelectionSet>) -> ContextSelectionSet<'a> {
+        let ty = self
+            .schema_env()
+            .registry
+            .root_type(engine_parser::types::OperationType::Query);
+
+        // TODO: Ok, so we _somehow_ need to swap out the variables in here.
+        // FFS, urgh
+
+        ContextSelectionSet {
+            ty,
+            path: self.path.clone(),
+            item: selection_set,
+            schema_env: self.schema_env,
+            query_env: self.query_env,
+        }
+    }
+
     /// Builds a context for resolving an `@requires` FieldSet for this contexts field.
     pub fn with_requires_selection_set(&self, selection_set: &'a Positioned<SelectionSet>) -> ContextSelectionSet<'a> {
         ContextSelectionSet {

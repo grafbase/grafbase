@@ -142,6 +142,14 @@ fn validate_join(
     coord: SchemaCoord<'_>,
     expected_return_type: &MetaFieldType,
 ) -> Vec<RuleError> {
+    todo!("better join error handling");
+    // TODO: Things needed:
+    // - Need the same shit below on the _inner_ field.
+    // - Need to make sure there's no scalars or lists in between the root and this field.
+    // - Probably need to make sure all intermediate fields are somewhat concrete.
+    //   Definitely no unions, interfaces maybe but only fields of the interface.
+    // - Need to check all required arguments on intermediate fields are present.
+    // - Ban __typename & anything introspection adjacent
     let mut errors = vec![];
 
     let root_query_type = registry.root_type(engine_parser::types::OperationType::Query);
@@ -176,6 +184,9 @@ fn validate_join(
             format!("{coord} is trying to join with the field named {}, but does not provide the non-nullable argument {name}", join.field_name),
             ));
         }
+
+        // TODO: I think argument type validation is probably more important
+        // now that we're doing nested stuff so seriously consider this...
 
         // I'd like to check that the argument type matches, but unfortunately
         // we don't have type information by the time we get here...
