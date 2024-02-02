@@ -56,7 +56,8 @@ async fn dev_watch() {
     assert_eq!(hello, "hello");
 
     // Update the resolver, check that causes changes
-    env.write_resolver("hello.js", "export default function Resolver() { return 'bye'; }");
+    env.write_resolver_async("hello.js", "export default function Resolver() { return 'bye'; }")
+        .await;
     // File watcher is on a 1 second debounce so we need to give it a chance to do its thing
     // We're not changing the schema this time so we can't just poll for changes to that
     tokio::time::sleep(Duration::from_secs(10)).await;

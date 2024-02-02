@@ -163,6 +163,11 @@ impl Environment {
         self.write_file(Path::new("resolvers").join(path.as_ref()), contents);
     }
 
+    pub async fn write_resolver_async(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
+        self.write_file_async(Path::new("resolvers").join(path.as_ref()), contents)
+            .await;
+    }
+
     #[track_caller]
     pub fn write_authorizer(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
         self.write_file(Path::new("auth").join(path.as_ref()), contents);
@@ -173,6 +178,12 @@ impl Environment {
         let target_path = self.schema_path.parent().unwrap().join(path.as_ref());
         fs::create_dir_all(target_path.parent().unwrap()).unwrap();
         fs::write(target_path, contents.as_ref()).unwrap();
+    }
+
+    pub async fn write_file_async(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
+        let target_path = self.schema_path.parent().unwrap().join(path.as_ref());
+        tokio::fs::create_dir_all(target_path.parent().unwrap()).await.unwrap();
+        tokio::fs::write(target_path, contents.as_ref()).await.unwrap();
     }
 
     #[track_caller]
