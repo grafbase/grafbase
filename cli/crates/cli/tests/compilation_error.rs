@@ -34,7 +34,7 @@ async fn compilation_error_schema() {
     env.write_schema(SCHEMA);
 
     // the CI for Linux ARM is *extremely* slow to see those changes.
-    std::thread::sleep(Duration::from_secs(10));
+    tokio::time::sleep(Duration::from_secs(10)).await;
 
     client.poll_endpoint_for_changes(30, 300).await;
 
