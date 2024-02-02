@@ -19,7 +19,7 @@ pub struct Environment {
     pub playground_endpoint: String,
     pub directory_path: PathBuf,
     pub port: u16,
-    temp_dir: Option<Arc<TempDir>>,
+    temp_dir: Arc<TempDir>,
     schema_path: PathBuf,
     commands: CommandHandles,
     home: Option<PathBuf>,
@@ -74,15 +74,7 @@ impl Environment {
         println!("Using temporary directory {:?}", directory_path.as_os_str());
         let endpoint = format!("http://127.0.0.1:{port}/graphql");
         let playground_endpoint = format!("http://127.0.0.1:{port}");
-        let keep_temp_dir = std::env::var("KEEP_TEMP_DIR")
-            .and_then(|val| val.parse().map_err(|_| VarError::NotPresent))
-            .unwrap_or_default();
-        let temp_dir = if keep_temp_dir {
-            mem::forget(temp_dir);
-            None
-        } else {
-            Some(Arc::new(temp_dir))
-        };
+        let temp_dir = Arc::new(temp_dir);
         Self {
             endpoint,
             playground_endpoint,
