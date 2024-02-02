@@ -3,7 +3,6 @@ use reqwest::{header::HeaderMap, StatusCode};
 use serde_json::json;
 use std::{
     marker::PhantomData,
-    thread::sleep,
     time::{Duration, SystemTime},
 };
 
@@ -146,7 +145,7 @@ impl Client {
 
             assert!(start.elapsed().unwrap().as_secs() < timeout_secs, "timeout");
 
-            sleep(Duration::from_millis(interval_millis));
+            tokio::time::sleep(Duration::from_millis(interval_millis)).await;
         }
     }
 
@@ -172,7 +171,7 @@ impl Client {
             };
 
             assert!(start.elapsed().unwrap().as_secs() < timeout_secs, "timeout");
-            sleep(Duration::from_millis(interval_millis));
+            tokio::time::sleep(Duration::from_millis(interval_millis)).await;
         }
     }
 

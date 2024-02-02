@@ -59,7 +59,7 @@ async fn dev_watch() {
     env.write_resolver("hello.js", "export default function Resolver() { return 'bye'; }");
     // File watcher is on a 1 second debounce so we need to give it a chance to do its thing
     // We're not changing the schema this time so we can't just poll for changes to that
-    std::thread::sleep(Duration::from_secs(10));
+    tokio::time::sleep(Duration::from_secs(10)).await;
 
     let response = client.gql::<Value>("query { hello helloAgain }").send().await;
 
