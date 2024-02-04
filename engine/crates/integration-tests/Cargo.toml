@@ -46,7 +46,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
 ctor = "0.2"
 
 [dependencies.tokio]
-version = "1.35"
+version = "1.36"
 features = ["macros"]
 
 [dependencies.insta]
