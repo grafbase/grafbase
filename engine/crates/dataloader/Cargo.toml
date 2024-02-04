@@ -22,7 +22,7 @@ lru = { version = "0.12", default-features = false }
 tracing = { workspace = true, optional = true }
 
 [dev-dependencies]
-tokio = { version = "1.35", features = [
+tokio = { version = "1.36", features = [
   "macros",
   "sync",
   "time",
