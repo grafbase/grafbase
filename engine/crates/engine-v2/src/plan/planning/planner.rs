@@ -1,7 +1,10 @@
 use engine_parser::types::OperationType;
-use fnv::{FnvHashMap, FnvHashSet};
 use schema::{FieldId, FieldResolverWalker, ResolverId, Schema};
-use std::{borrow::Cow, collections::hash_map::Entry, num::NonZeroU16};
+use std::{
+    borrow::Cow,
+    collections::{hash_map::Entry, HashMap, HashSet},
+    num::NonZeroU16,
+};
 
 use super::{
     attribution::AttributionLogic,
@@ -49,7 +52,7 @@ pub(super) struct Planner<'schema> {
     // else. As only extra field for a given FieldId can be present in selection set we re-use the
     // same ResponseKey between extra fields of the same type. Otherwise we would generate new ones
     // each time as we check for collisions within *all* response keys.
-    extra_field_response_keys: FnvHashMap<FieldId, ResponseKey>,
+    extra_field_response_keys: HashMap<FieldId, ResponseKey>,
 
     // -- Operation --
     // Associates for each field/selection a plan. Attributions is added incrementally
@@ -66,7 +69,7 @@ pub(super) struct Planner<'schema> {
     // PlanId -> PlanRootSelectionSet
     plan_root_selection_sets: Vec<PlanRootSelectionSet>,
     // Child -> Parent(s)
-    plan_to_dependencies: FnvHashMap<PlanId, FnvHashSet<PlanId>>,
+    plan_to_dependencies: HashMap<PlanId, HashSet<PlanId>>,
     plan_boundaries_count: usize,
     // PlanId -> Vec<PlanBoundaryId>
     plan_to_children_tmp_boundary_ids: Vec<Vec<TemporaryPlanBoundaryId>>,
@@ -98,7 +101,7 @@ impl<'schema> Planner<'schema> {
     pub(super) fn new(schema: &'schema Schema, operation: Operation) -> Self {
         Self {
             schema,
-            extra_field_response_keys: FnvHashMap::default(),
+            extra_field_response_keys: HashMap::default(),
             field_attribution: vec![None; operation.fields.len()],
             selection_set_attribution: vec![None; operation.selection_sets.len()],
             operation,
@@ -108,7 +111,7 @@ impl<'schema> Planner<'schema> {
             plan_boundaries_count: 0,
             plan_to_children_tmp_boundary_ids: Vec::new(),
             plan_to_parent_tmp_boundary_id: Vec::new(),
-            plan_to_dependencies: FnvHashMap::default(),
+            plan_to_dependencies: HashMap::default(),
         }
     }
 }

@@ -33,7 +33,6 @@ thiserror.workspace = true
 futures-util.workspace = true
 hex = "0.4.3"
 tracing.workspace = true
-fnv.workspace = true
 mini-moka = { version = "0.10", optional = true, features = ["sync"] }
 
 config = { package = "engine-v2-config", path = "./config" }
