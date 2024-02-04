@@ -57,6 +57,8 @@
             # Testing
             cargo-insta
             cargo-nextest
+            # Benchmark tool to send multiple requests
+            hey
 
             # Versioning, automation and releasing
             cargo-about

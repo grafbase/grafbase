@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use async_runtime::stream::StreamExt as _;
 use engine::RequestHeaders;
@@ -19,6 +19,8 @@ pub struct Engine {
     // needs access to the schema strings
     pub(crate) schema: Arc<Schema>,
     pub(crate) env: EngineEnv,
+    #[cfg(feature = "plan_cache")]
+    plan_cache: moka::sync::Cache<String, Arc<OperationPlan>>,
 }
 
 pub struct EngineEnv {
@@ -30,6 +32,12 @@ impl Engine {
         Self {
             schema: Arc::new(schema),
             env,
+            #[cfg(feature = "plan_cache")]
+            plan_cache: moka::sync::Cache::builder()
+                .max_capacity(64)
+                // A cached entry will be expired after the specified duration past from get or insert
+                .time_to_idle(Duration::from_secs(5 * 60))
+                .build(),
         }
     }
 
@@ -113,9 +121,19 @@ impl Engine {
     }
 
     fn prepare_operation(&self, request: &engine::Request) -> Result<Arc<OperationPlan>, GraphqlError> {
+        #[cfg(feature = "plan_cache")]
+        {
+            if let Some(cached) = self.plan_cache.get(&request.query) {
+                return Ok(cached);
+            }
+        }
         let parsed_operation = parse_operation(request)?;
         let bound_operation = Operation::build(&self.schema, parsed_operation, !request.disable_operation_limits)?;
-        let prepared = OperationPlan::prepare(&self.schema, bound_operation)?;
-        Ok(Arc::new(prepared))
+        let prepared = Arc::new(OperationPlan::prepare(&self.schema, bound_operation)?);
+        #[cfg(feature = "plan_cache")]
+        {
+            self.plan_cache.insert(request.query.clone(), prepared.clone())
+        }
+        Ok(prepared)
     }
 }
