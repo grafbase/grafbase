@@ -6,6 +6,7 @@ Dockerfile
 node_modules
 templates
 examples
+grafbase
 /target
 .direnv
 .idea
