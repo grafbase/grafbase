@@ -7093,8 +7093,9 @@ checksum = "ed646292ffc8188ef8ea4d1e0e0150fb15a5c2e12ad9b8fc191ae7a8a7f3c4b9"
 
 [[package]]
 name = "ulid"
-version = "1.1.0"
-source = "git+https://github.com/grafbase/ulid-rs?rev=05499bd1609f9ac4dd5f39e0bbf70da529179aed#05499bd1609f9ac4dd5f39e0bbf70da529179aed"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34778c17965aa2a08913b57e1f34db9b4a63f5de31768b55bf20d2795f921259"
 dependencies = [
  "getrandom 0.2.12",
  "rand 0.8.5",
