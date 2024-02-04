@@ -41,6 +41,7 @@ url = "2"
 webbrowser = "0.8"
 lru = "0.12"
 futures-util = "0.3"
+mimalloc = "0.1"
 
 atty = "0.2"
 backend = { package = "grafbase-local-backend", path = "../backend", version = "0.55.0" }
