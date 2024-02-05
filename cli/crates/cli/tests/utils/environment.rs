@@ -6,12 +6,11 @@ use super::{cargo_bin::cargo_bin, client::Client};
 use backend::project::GraphType;
 use common::consts::GRAFBASE_SCHEMA_FILE_NAME;
 use duct::{cmd, Handle};
-use std::env::VarError;
+use std::io;
 use std::path::Path;
 use std::process::Output;
 use std::sync::{Arc, Mutex};
 use std::{env, fs, io::Write, path::PathBuf};
-use std::{io, mem};
 use tempfile::{tempdir, TempDir};
 
 pub struct Environment {
@@ -19,7 +18,7 @@ pub struct Environment {
     pub playground_endpoint: String,
     pub directory_path: PathBuf,
     pub port: u16,
-    temp_dir: Option<Arc<TempDir>>,
+    temp_dir: Arc<TempDir>,
     schema_path: PathBuf,
     commands: CommandHandles,
     home: Option<PathBuf>,
@@ -74,15 +73,7 @@ impl Environment {
         println!("Using temporary directory {:?}", directory_path.as_os_str());
         let endpoint = format!("http://127.0.0.1:{port}/graphql");
         let playground_endpoint = format!("http://127.0.0.1:{port}");
-        let keep_temp_dir = std::env::var("KEEP_TEMP_DIR")
-            .and_then(|val| val.parse().map_err(|_| VarError::NotPresent))
-            .unwrap_or_default();
-        let temp_dir = if keep_temp_dir {
-            mem::forget(temp_dir);
-            None
-        } else {
-            Some(Arc::new(temp_dir))
-        };
+        let temp_dir = Arc::new(temp_dir);
         Self {
             endpoint,
             playground_endpoint,
@@ -172,6 +163,11 @@ impl Environment {
         self.write_file(Path::new("resolvers").join(path.as_ref()), contents);
     }
 
+    pub async fn write_resolver_async(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
+        self.write_file_async(Path::new("resolvers").join(path.as_ref()), contents)
+            .await;
+    }
+
     #[track_caller]
     pub fn write_authorizer(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
         self.write_file(Path::new("auth").join(path.as_ref()), contents);
@@ -182,6 +178,12 @@ impl Environment {
         let target_path = self.schema_path.parent().unwrap().join(path.as_ref());
         fs::create_dir_all(target_path.parent().unwrap()).unwrap();
         fs::write(target_path, contents.as_ref()).unwrap();
+    }
+
+    pub async fn write_file_async(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
+        let target_path = self.schema_path.parent().unwrap().join(path.as_ref());
+        tokio::fs::create_dir_all(target_path.parent().unwrap()).await.unwrap();
+        tokio::fs::write(target_path, contents.as_ref()).await.unwrap();
     }
 
     #[track_caller]

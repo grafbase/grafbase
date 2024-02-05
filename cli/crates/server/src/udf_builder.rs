@@ -230,7 +230,7 @@ pub(crate) async fn build(
 
     let entrypoint_path = dist_path.join(ENTRYPOINT_SCRIPT_FILE_NAME);
 
-    tokio::fs::copy(
+    tokio::fs::rename(
         environment
             .bun_installation_path
             .join(format!("{build_id}/entrypoint.js")),
@@ -276,7 +276,7 @@ pub(crate) fn udf_url_path(kind: UdfKind, name: &str) -> String {
     format!("/{}/{}/invoke", kind.to_string().to_lowercase(), slug::slugify(name))
 }
 
-const BUN_VERSION: &str = "1.0.23";
+const BUN_VERSION: &str = "1.0.25";
 
 async fn installed_bun_version(bun_installation_path: impl AsRef<Path>) -> Option<String> {
     let bun_installation_path = bun_installation_path.as_ref();
