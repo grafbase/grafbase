@@ -6,7 +6,7 @@ use schema::{
 
 use self::query::PreparedGraphqlOperation;
 
-use super::{ExecutionContext, ExecutionPlan, ExecutionResult, Executor, ExecutorInput};
+use super::{ExecutionContext, ExecutionResult, Executor, ExecutorInput, Plan};
 use crate::{
     plan::{PlanWalker, PlanningResult},
     response::{ResponseBoundaryItem, ResponsePart},
@@ -27,11 +27,11 @@ pub(crate) struct GraphqlExecutionPlan {
 }
 
 impl GraphqlExecutionPlan {
-    pub fn build(resolver: RootFieldResolverWalker<'_>, plan: PlanWalker<'_>) -> PlanningResult<ExecutionPlan> {
+    pub fn build(resolver: RootFieldResolverWalker<'_>, plan: PlanWalker<'_>) -> PlanningResult<Plan> {
         let subgraph = resolver.subgraph();
         let operation =
             query::PreparedGraphqlOperation::build(plan).map_err(|err| format!("Failed to build query: {err}"))?;
-        Ok(ExecutionPlan::GraphQL(Self {
+        Ok(Plan::GraphQL(Self {
             subgraph_id: subgraph.id(),
             operation,
         }))

@@ -9,7 +9,7 @@ use schema::{
 };
 
 use crate::{
-    plan::{ConcreteField, PlanConcreteField, PlanConcreteSelectionSet, PlanWalker},
+    plan::{CollectedField, PlanCollectedField, PlanCollectedSelectionSet, PlanWalker},
     response::{ResponseBoundaryItem, ResponseObject, ResponseObjectUpdate, ResponsePart, ResponseValue},
 };
 
@@ -25,7 +25,7 @@ impl<'a> IntrospectionWriter<'a> {
         let mut fields = BTreeMap::new();
         let selection_set = self.plan.collected_selection_set();
         for field in selection_set.fields() {
-            let &ConcreteField {
+            let &CollectedField {
                 edge, schema_field_id, ..
             } = field.as_ref();
             match self.metadata.root_field(schema_field_id) {
@@ -69,12 +69,12 @@ impl<'a> IntrospectionWriter<'a> {
     fn object<E: Copy, const N: usize>(
         &self,
         object: &'a IntrospectionObject<E, N>,
-        selection_set: PlanConcreteSelectionSet<'_>,
-        build: impl Fn(PlanConcreteField<'_>, E) -> ResponseValue,
+        selection_set: PlanCollectedSelectionSet<'_>,
+        build: impl Fn(PlanCollectedField<'_>, E) -> ResponseValue,
     ) -> ResponseValue {
         let mut fields = BTreeMap::new();
         for field in selection_set.fields() {
-            let &ConcreteField {
+            let &CollectedField {
                 edge, schema_field_id, ..
             } = field.as_ref();
             fields.insert(edge, build(field, object[schema_field_id]));
@@ -95,7 +95,7 @@ impl<'a> IntrospectionWriter<'a> {
             .into()
     }
 
-    fn __schema(&self, selection_set: PlanConcreteSelectionSet<'_>) -> ResponseValue {
+    fn __schema(&self, selection_set: PlanCollectedSelectionSet<'_>) -> ResponseValue {
         self.object(&self.metadata.__schema, selection_set, |field, __schema| {
             match __schema {
                 __Schema::Description => self.schema.description.into(),
@@ -127,7 +127,7 @@ impl<'a> IntrospectionWriter<'a> {
         })
     }
 
-    fn __type(&self, ty: TypeWalker<'a>, selection_set: PlanConcreteSelectionSet<'_>) -> ResponseValue {
+    fn __type(&self, ty: TypeWalker<'a>, selection_set: PlanCollectedSelectionSet<'_>) -> ResponseValue {
         // Building it from outermost to innermost
         let mut wrapping = Wrapping::new();
         let mut schema_wrapping = ty.wrapping().clone();
@@ -148,7 +148,7 @@ impl<'a> IntrospectionWriter<'a> {
         &self,
         definition: DefinitionWalker<'a>,
         mut wrapping: Wrapping,
-        selection_set: PlanConcreteSelectionSet<'_>,
+        selection_set: PlanCollectedSelectionSet<'_>,
     ) -> ResponseValue {
         match wrapping.pop() {
             Some(wrapping_type) => self.object(&self.metadata.__type, selection_set, |field, __type| match __type {
@@ -169,7 +169,7 @@ impl<'a> IntrospectionWriter<'a> {
     fn __type_inner(
         &self,
         definition: DefinitionWalker<'a>,
-        selection_set: PlanConcreteSelectionSet<'_>,
+        selection_set: PlanCollectedSelectionSet<'_>,
     ) -> ResponseValue {
         self.object(&self.metadata.__type, selection_set, |field, __type| match __type {
             __Type::Kind => match definition.id() {
@@ -256,7 +256,7 @@ impl<'a> IntrospectionWriter<'a> {
         })
     }
 
-    fn __field(&self, target: FieldWalker<'a>, selection_set: PlanConcreteSelectionSet<'_>) -> ResponseValue {
+    fn __field(&self, target: FieldWalker<'a>, selection_set: PlanCollectedSelectionSet<'_>) -> ResponseValue {
         self.object(&self.metadata.__field, selection_set, |field, __field| match __field {
             __Field::Name => target.as_ref().name.into(),
             __Field::Description => target.as_ref().description.into(),
@@ -278,7 +278,7 @@ impl<'a> IntrospectionWriter<'a> {
     fn __input_value(
         &self,
         target: InputValueWalker<'a>,
-        selection_set: PlanConcreteSelectionSet<'_>,
+        selection_set: PlanCollectedSelectionSet<'_>,
     ) -> ResponseValue {
         self.object(
             &self.metadata.__input_value,
@@ -293,7 +293,7 @@ impl<'a> IntrospectionWriter<'a> {
         )
     }
 
-    fn __enum_value(&self, target: &'a EnumValue, selection_set: PlanConcreteSelectionSet<'_>) -> ResponseValue {
+    fn __enum_value(&self, target: &'a EnumValue, selection_set: PlanCollectedSelectionSet<'_>) -> ResponseValue {
         self.object(
             &self.metadata.__enum_value,
             selection_set,

@@ -13,7 +13,7 @@ use serde::{
 
 use super::{ResponseObjectUpdate, ResponsePart};
 use crate::{
-    plan::{ConcreteField, ConcreteSelectionSetId, PlanWalker},
+    plan::{CollectedField, CollectedSelectionSetId, PlanWalker},
     response::{GraphqlError, ResponseBoundaryItem, ResponseValue},
 };
 
@@ -63,7 +63,7 @@ impl<'ctx> SeedContext<'ctx> {
 }
 
 impl<'ctx> SeedContextInner<'ctx> {
-    fn missing_field_error_message(&self, field: &ConcreteField) -> String {
+    fn missing_field_error_message(&self, field: &CollectedField) -> String {
         let bound_field = self.plan.walk_with(field.bound_field_id, field.schema_field_id);
 
         if bound_field.response_key() == field.expected_key {
@@ -84,7 +84,7 @@ impl<'ctx> SeedContextInner<'ctx> {
 pub(crate) struct UpdateSeed<'ctx> {
     ctx: SeedContext<'ctx>,
     boundary_item: &'ctx ResponseBoundaryItem,
-    id: ConcreteSelectionSetId,
+    id: CollectedSelectionSetId,
 }
 
 impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {

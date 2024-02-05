@@ -1,9 +1,12 @@
 use schema::{ResolverId, Schema};
 
-use crate::execution::Variables;
-use crate::request::{EntityType, FlatTypeCondition, Operation, QueryPath};
-use crate::response::ReadSelectionSet;
-use crate::utils::IdRange;
+use crate::{
+    execution::Variables,
+    request::{EntityType, FlatTypeCondition, Operation, QueryPath},
+    response::ReadSelectionSet,
+    sources::Plan,
+    utils::IdRange,
+};
 
 mod collected;
 mod ids;
@@ -16,44 +19,62 @@ pub(crate) use planning::*;
 pub(crate) use state::*;
 pub(crate) use walkers::*;
 
+/// All the necessary information for the operation to be executed that can be prepared & cached.
 pub(crate) struct OperationPlan {
-    // -- Operation --
-    bound_operation: Operation,
-    /// BoundFieldId -> PlanId
+    operation: Operation,
+
+    // -- Attibution --
+    // Association between fields & selection sets and plans. Used when traversing the operation
+    // for a plan filtering out other plans fields and to build the collected selection set.
+    //
+    // BoundFieldId -> PlanId
     field_attribution: Vec<PlanId>,
-    /// BoundSelectionSetId -> PlanId
+    // BoundSelectionSetId -> PlanId
     selection_set_attribution: Vec<PlanId>,
 
     // -- Plans --
-    /// PlanId -> LogicalPlan
-    plans: Vec<LogicalPlan>,
-    /// PlanBoundaryId -> u8
-    plan_boundary_consummers_count: Vec<u8>,
-    /// PlanId/ExecutionPlanId -> PlanInput
+    // Actual plans for the operation. A plan defines what do for a given selection set at a
+    // certain query path.
+    //
+    // Its information is split into multiple Vecs as it's built over several steps.
+    //
+    // PlanId -> PlannedResolver
+    planned_resolvers: Vec<PlannedResolver>,
+    // PlanId -> Plan
+    plans: Vec<Plan>,
+    // PlanId -> PlanInput
     plan_inputs: Vec<Option<PlanInput>>,
-    /// PlanId/ExecutionPlanId -> PlanOutput
+    // PlanId -> PlanOutput
     plan_outputs: Vec<PlanOutput>,
-
-    // -- Execution plans --
-    /// ExecutionPlanId -> ExecutionPlan
-    execution_plans: Vec<crate::sources::ExecutionPlan>,
     // sorted by parent plan id
-    execution_plans_parent_to_child_edges: Vec<ParentToChildEdge<ExecutionPlanId>>,
-    /// ExecutionPlanId -> u8
-    execution_plan_dependencies_count: Vec<u8>,
+    plan_parent_to_child_edges: Vec<ParentToChildEdge>,
+    // PlanId -> u8
+    plan_dependencies_count: Vec<u8>,
+    // PlanBoundaryId -> u8
+    plan_boundary_consummers_count: Vec<u8>,
 
     // -- Collected fields & selection sets --
-    collected_conditional_selection_sets: Vec<ConditionalSelectionSet>,
-    collected_conditional_fields: Vec<ConditionalField>,
-    collected_concrete_selection_sets: Vec<ConcreteSelectionSet>,
-    collected_concrete_fields: Vec<ConcreteField>,
+    // Once all fields have been planned, we collect fields to know what to expect from the
+    // response. It can be used in two different ways:
+    // - to deserialize a JSON and ingest it directly into the response
+    // - by introspection plan, and maybe others later, to know what to add to the response.
+    //   As fields are already collected, it doesn't need to deal with GraphQL logic anymore.
+    //
+    // ConditionalSelectionSetId -> ConditionalSelectionSet
+    conditional_selection_sets: Vec<ConditionalSelectionSet>,
+    // ConditionalFieldId -> ConditionalField
+    conditional_fields: Vec<ConditionalField>,
+    // CollectedSelectionSetId -> CollectedSelectionSet
+    collected_selection_sets: Vec<CollectedSelectionSet>,
+    // CollectedFieldId -> CollectedField
+    collected_fields: Vec<CollectedField>,
 }
 
 impl std::ops::Deref for OperationPlan {
     type Target = Operation;
 
     fn deref(&self) -> &Self::Target {
-        &self.bound_operation
+        &self.operation
     }
 }
 
@@ -63,13 +84,13 @@ where
 {
     type Output = <Operation as std::ops::Index<I>>::Output;
     fn index(&self, index: I) -> &Self::Output {
-        &self.bound_operation[index]
+        &self.operation[index]
     }
 }
 
 impl OperationPlan {
     pub fn prepare(schema: &Schema, operation: Operation) -> PlanningResult<Self> {
-        planning::prepare(schema, operation)
+        planning::plan_operation(schema, operation)
     }
 
     pub fn new_execution_state(&self) -> OperationExecutionState {
@@ -79,14 +100,17 @@ impl OperationPlan {
     pub fn plan_walker<'s>(
         &'s self,
         schema: &'s Schema,
-        plan_id: ExecutionPlanId,
+        plan_id: PlanId,
         variables: Option<&'s Variables>,
     ) -> PlanWalker<'s> {
         let plan_id = PlanId::from(usize::from(plan_id));
-        let schema_walker = schema.walk(self[plan_id].resolver_id).with_own_names().walk(());
+        let schema_walker = schema
+            .walk(self.planned_resolvers[usize::from(plan_id)].resolver_id)
+            .with_own_names()
+            .walk(());
         PlanWalker {
             schema_walker,
-            operation: self,
+            operation_plan: self,
             variables,
             plan_id,
             item: (),
@@ -95,7 +119,7 @@ impl OperationPlan {
 }
 
 #[derive(Debug)]
-pub struct LogicalPlan {
+pub struct PlannedResolver {
     pub resolver_id: ResolverId,
     pub path: QueryPath,
 }
@@ -111,12 +135,12 @@ pub struct PlanInput {
 pub struct PlanOutput {
     pub type_condition: Option<FlatTypeCondition>,
     pub entity_type: EntityType,
-    pub collected_selection_set_id: ConcreteSelectionSetId,
+    pub collected_selection_set_id: CollectedSelectionSetId,
     pub boundary_ids: IdRange<PlanBoundaryId>,
 }
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy, Debug, PartialOrd, Ord)]
-pub struct ParentToChildEdge<Id> {
-    pub parent: Id,
-    pub child: Id,
+pub struct ParentToChildEdge {
+    pub parent: PlanId,
+    pub child: PlanId,
 }

@@ -5,7 +5,9 @@ use schema::{DataType, FieldId, ObjectId, Schema};
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::{
-    plan::{CollectedSelectionSet, ConcreteField, ConditionalSelectionSetId, FieldType, RuntimeConcreteSelectionSet},
+    plan::{
+        AnyCollectedSelectionSet, CollectedField, ConditionalSelectionSetId, FieldType, RuntimeCollectedSelectionSet,
+    },
     request::{BoundFieldId, FlatTypeCondition, SelectionSetType},
     response::{
         write::deserialize::{key::Key, SeedContextInner},
@@ -116,7 +118,7 @@ impl<'ctx, 'parent> ConditionalSelectionSetSeed<'ctx, 'parent> {
         &self,
         object_id: ObjectId,
         selection_sets: &[ConditionalSelectionSetId],
-    ) -> RuntimeConcreteSelectionSet {
+    ) -> RuntimeCollectedSelectionSet {
         let plan = self.ctx.plan;
         let schema = plan.schema();
         let mut fields = FnvHashMap::<ResponseKey, GroupForResponseKey>::default();
@@ -185,7 +187,7 @@ impl<'ctx, 'parent> ConditionalSelectionSetSeed<'ctx, 'parent> {
                         }
                     };
                     let wrapping = schema.walk(schema_field_id).ty().wrapping().clone();
-                    ConcreteField {
+                    CollectedField {
                         edge,
                         expected_key,
                         ty,
@@ -198,7 +200,7 @@ impl<'ctx, 'parent> ConditionalSelectionSetSeed<'ctx, 'parent> {
             .collect::<Vec<_>>();
         let keys = plan.response_keys();
         fields.sort_unstable_by(|a, b| keys[a.expected_key].cmp(&keys[b.expected_key]));
-        RuntimeConcreteSelectionSet {
+        RuntimeCollectedSelectionSet {
             ty: SelectionSetType::Object(object_id),
             boundary_ids: selection_sets
                 .iter()
@@ -215,11 +217,11 @@ impl<'ctx, 'parent> ConditionalSelectionSetSeed<'ctx, 'parent> {
         selection_set_ids: Vec<ConditionalSelectionSetId>,
     ) -> FieldType {
         if let SelectionSetType::Object(object_id) = ty {
-            FieldType::SelectionSet(CollectedSelectionSet::RuntimeConcrete(Box::new(
+            FieldType::SelectionSet(AnyCollectedSelectionSet::RuntimeCollected(Box::new(
                 self.collect_fields(object_id, &selection_set_ids),
             )))
         } else {
-            FieldType::SelectionSet(CollectedSelectionSet::MergedConditionals { ty, selection_set_ids })
+            FieldType::SelectionSet(AnyCollectedSelectionSet::RuntimeMergedConditionals { ty, selection_set_ids })
         }
     }
 }

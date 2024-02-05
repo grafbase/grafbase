@@ -59,8 +59,8 @@ impl From<&str> for PlanningError {
     }
 }
 
-pub(super) fn prepare(schema: &Schema, operation: Operation) -> PlanningResult<OperationPlan> {
+pub(super) fn plan_operation(schema: &Schema, operation: Operation) -> PlanningResult<OperationPlan> {
     let mut planner = planner::Planner::new(schema, operation);
-    planner.plan_all()?;
+    planner.plan_all_fields()?;
     planner.finalize_operation()
 }

@@ -13,7 +13,7 @@ use self::runtime_concrete::RuntimeConcreteCollectionSetSeed;
 
 use super::SeedContextInner;
 use crate::{
-    plan::CollectedSelectionSet,
+    plan::AnyCollectedSelectionSet,
     request::SelectionSetType,
     response::{ResponsePath, ResponseValue},
 };
@@ -21,7 +21,7 @@ use crate::{
 pub(super) struct SelectionSetSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContextInner<'ctx>,
     pub path: &'parent ResponsePath,
-    pub collected: &'parent CollectedSelectionSet,
+    pub collected: &'parent AnyCollectedSelectionSet,
 }
 
 impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for SelectionSetSeed<'ctx, 'parent> {
@@ -32,27 +32,29 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for SelectionSetSeed<'ctx, 'parent
         D: serde::Deserializer<'de>,
     {
         match self.collected {
-            &CollectedSelectionSet::Concrete(id) => ConcreteCollectionSetSeed {
+            &AnyCollectedSelectionSet::Collected(id) => ConcreteCollectionSetSeed {
                 ctx: self.ctx,
                 path: self.path,
                 id,
             }
             .deserialize(deserializer),
-            &CollectedSelectionSet::Conditional(id) => ConditionalSelectionSetSeed {
+            &AnyCollectedSelectionSet::Conditional(id) => ConditionalSelectionSetSeed {
                 ctx: self.ctx,
                 path: self.path,
                 ty: self.ctx.plan[id].ty,
                 selection_set_ids: Cow::Owned(vec![id]),
             }
             .deserialize(deserializer),
-            CollectedSelectionSet::MergedConditionals { ty, selection_set_ids } => ConditionalSelectionSetSeed {
-                ctx: self.ctx,
-                path: self.path,
-                ty: *ty,
-                selection_set_ids: Cow::Borrowed(selection_set_ids),
+            AnyCollectedSelectionSet::RuntimeMergedConditionals { ty, selection_set_ids } => {
+                ConditionalSelectionSetSeed {
+                    ctx: self.ctx,
+                    path: self.path,
+                    ty: *ty,
+                    selection_set_ids: Cow::Borrowed(selection_set_ids),
+                }
+                .deserialize(deserializer)
             }
-            .deserialize(deserializer),
-            CollectedSelectionSet::RuntimeConcrete(selection_set) => RuntimeConcreteCollectionSetSeed {
+            AnyCollectedSelectionSet::RuntimeCollected(selection_set) => RuntimeConcreteCollectionSetSeed {
                 ctx: self.ctx,
                 path: self.path,
                 selection_set,

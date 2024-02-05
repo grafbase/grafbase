@@ -6,7 +6,7 @@ use std::{
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::{
-    plan::ConcreteSelectionSetId,
+    plan::CollectedSelectionSetId,
     response::{
         write::deserialize::{key::Key, FieldSeed, SeedContextInner},
         ResponseBoundaryItem, ResponseEdge, ResponseObject, ResponsePath, ResponseValue,
@@ -16,7 +16,7 @@ use crate::{
 pub(crate) struct ConcreteCollectionSetSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContextInner<'ctx>,
     pub path: &'parent ResponsePath,
-    pub id: ConcreteSelectionSetId,
+    pub id: CollectedSelectionSetId,
 }
 
 impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for ConcreteCollectionSetSeed<'ctx, 'parent> {

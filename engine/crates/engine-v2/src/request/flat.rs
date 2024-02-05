@@ -9,21 +9,6 @@ use crate::request::{BoundFieldId, BoundSelectionSetId, SelectionSetType, TypeCo
 use super::{BoundSelection, OperationWalker};
 
 impl<'a> OperationWalker<'a> {
-    pub fn flatten_subselection_sets<Item: Borrow<BoundFieldId>>(
-        &self,
-        items: impl IntoIterator<Item = Item>,
-    ) -> Option<FlatSelectionSet> {
-        let selection_set_ids = items
-            .into_iter()
-            .filter_map(|item| self.operation[*item.borrow()].selection_set_id())
-            .collect::<Vec<_>>();
-        if selection_set_ids.is_empty() {
-            None
-        } else {
-            Some(self.flatten_selection_sets(selection_set_ids))
-        }
-    }
-
     pub fn flatten_selection_sets(&self, root_selection_set_ids: Vec<BoundSelectionSetId>) -> FlatSelectionSet {
         let ty = {
             let selection_set_types = root_selection_set_ids

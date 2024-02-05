@@ -10,7 +10,7 @@ use crate::{
     execution::ExecutionContext,
     plan::{PlanWalker, PlanningResult},
     response::{ResponseBoundaryItem, ResponsePart},
-    sources::{graphql::query::OutboundVariables, ExecutionPlan, ExecutionResult, Executor, ExecutorInput},
+    sources::{graphql::query::OutboundVariables, ExecutionResult, Executor, ExecutorInput, Plan},
 };
 
 use super::{
@@ -24,11 +24,11 @@ pub(crate) struct FederationEntityExecutionPlan {
 }
 
 impl FederationEntityExecutionPlan {
-    pub fn build(resolver: EntityResolverWalker<'_>, plan: PlanWalker<'_>) -> PlanningResult<ExecutionPlan> {
+    pub fn build(resolver: EntityResolverWalker<'_>, plan: PlanWalker<'_>) -> PlanningResult<Plan> {
         let subgraph = resolver.subgraph();
         let operation =
             PreparedFederationEntityOperation::build(plan).map_err(|err| format!("Failed to build query: {err}"))?;
-        Ok(ExecutionPlan::FederationEntity(Self {
+        Ok(Plan::FederationEntity(Self {
             subgraph_id: subgraph.id(),
             operation,
         }))

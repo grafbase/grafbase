@@ -2,7 +2,7 @@ use schema::Definition;
 
 use crate::{
     plan::{
-        CollectedSelectionSet, ConcreteField, ConcreteFieldId, ConcreteSelectionSet, ConcreteSelectionSetId,
+        AnyCollectedSelectionSet, CollectedField, CollectedFieldId, CollectedSelectionSet, CollectedSelectionSetId,
         ConditionalField, ConditionalFieldId, ConditionalSelectionSet, ConditionalSelectionSetId, FieldType,
     },
     request::SelectionSetTypeWalker,
@@ -11,22 +11,22 @@ use crate::{
 
 use super::{PlanField, PlanWalker};
 
-pub type PlanConcreteSelectionSet<'a> = PlanWalker<'a, ConcreteSelectionSetId, ()>;
-pub type PlanConcreteField<'a> = PlanWalker<'a, ConcreteFieldId, ()>;
+pub type PlanCollectedSelectionSet<'a> = PlanWalker<'a, CollectedSelectionSetId, ()>;
+pub type PlanCollectedField<'a> = PlanWalker<'a, CollectedFieldId, ()>;
 pub type PlanConditionalSelectionSet<'a> = PlanWalker<'a, ConditionalSelectionSetId, ()>;
 pub type PlanConditionalField<'a> = PlanWalker<'a, ConditionalFieldId, ()>;
 
-pub enum PlanCollectedSelectionSet<'a> {
-    Concrete(PlanConcreteSelectionSet<'a>),
-    Provisional(PlanConditionalSelectionSet<'a>),
+pub enum PlanAnyCollectedSelectionSet<'a> {
+    Collected(PlanCollectedSelectionSet<'a>),
+    Conditional(PlanConditionalSelectionSet<'a>),
 }
 
-impl<'a> PlanConcreteSelectionSet<'a> {
-    pub fn as_ref(&self) -> &'a ConcreteSelectionSet {
-        &self.operation[self.item]
+impl<'a> PlanCollectedSelectionSet<'a> {
+    pub fn as_ref(&self) -> &'a CollectedSelectionSet {
+        &self.operation_plan[self.item]
     }
 
-    pub fn id(&self) -> ConcreteSelectionSetId {
+    pub fn id(&self) -> CollectedSelectionSetId {
         self.item
     }
 
@@ -35,14 +35,14 @@ impl<'a> PlanConcreteSelectionSet<'a> {
         self.bound_walk_with(ty, Definition::from(ty))
     }
 
-    pub fn fields(self) -> impl ExactSizeIterator<Item = PlanConcreteField<'a>> + 'a {
+    pub fn fields(self) -> impl ExactSizeIterator<Item = PlanCollectedField<'a>> + 'a {
         self.as_ref().fields.iter().map(move |id| self.walk(id))
     }
 }
 
-impl<'a> PlanConcreteField<'a> {
-    pub fn as_ref(&self) -> &'a ConcreteField {
-        &self.operation[self.item]
+impl<'a> PlanCollectedField<'a> {
+    pub fn as_ref(&self) -> &'a CollectedField {
+        &self.operation_plan[self.item]
     }
 
     pub fn as_bound_field(&self) -> PlanField<'a> {
@@ -50,21 +50,21 @@ impl<'a> PlanConcreteField<'a> {
         self.walk_with(field.bound_field_id, field.schema_field_id)
     }
 
-    pub fn concrete_selection_set(&self) -> Option<PlanConcreteSelectionSet<'a>> {
-        if let FieldType::SelectionSet(CollectedSelectionSet::Concrete(id)) = self.as_ref().ty {
+    pub fn concrete_selection_set(&self) -> Option<PlanCollectedSelectionSet<'a>> {
+        if let FieldType::SelectionSet(AnyCollectedSelectionSet::Collected(id)) = self.as_ref().ty {
             Some(self.walk(id))
         } else {
             None
         }
     }
 
-    pub fn selection_set(&self) -> Option<PlanCollectedSelectionSet<'a>> {
+    pub fn selection_set(&self) -> Option<PlanAnyCollectedSelectionSet<'a>> {
         match self.as_ref().ty {
-            FieldType::SelectionSet(CollectedSelectionSet::Concrete(id)) => {
-                Some(PlanCollectedSelectionSet::Concrete(self.walk(id)))
+            FieldType::SelectionSet(AnyCollectedSelectionSet::Collected(id)) => {
+                Some(PlanAnyCollectedSelectionSet::Collected(self.walk(id)))
             }
-            FieldType::SelectionSet(CollectedSelectionSet::Conditional(id)) => {
-                Some(PlanCollectedSelectionSet::Provisional(self.walk(id)))
+            FieldType::SelectionSet(AnyCollectedSelectionSet::Conditional(id)) => {
+                Some(PlanAnyCollectedSelectionSet::Conditional(self.walk(id)))
             }
             _ => None,
         }
@@ -73,7 +73,7 @@ impl<'a> PlanConcreteField<'a> {
 
 impl<'a> PlanConditionalSelectionSet<'a> {
     pub fn as_ref(&self) -> &'a ConditionalSelectionSet {
-        &self.operation[self.item]
+        &self.operation_plan[self.item]
     }
 
     pub fn fields(self) -> impl Iterator<Item = PlanConditionalField<'a>> + 'a {
@@ -83,7 +83,7 @@ impl<'a> PlanConditionalSelectionSet<'a> {
 
 impl<'a> PlanConditionalField<'a> {
     pub fn as_ref(&self) -> &'a ConditionalField {
-        &self.operation[self.item]
+        &self.operation_plan[self.item]
     }
 
     pub fn as_bound_field(&self) -> PlanField<'a> {
@@ -99,16 +99,16 @@ impl<'a> PlanConditionalField<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for PlanCollectedSelectionSet<'a> {
+impl<'a> std::fmt::Debug for PlanAnyCollectedSelectionSet<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PlanCollectedSelectionSet::Concrete(selection_set) => selection_set.fmt(f),
-            PlanCollectedSelectionSet::Provisional(selection_set) => selection_set.fmt(f),
+            PlanAnyCollectedSelectionSet::Collected(selection_set) => selection_set.fmt(f),
+            PlanAnyCollectedSelectionSet::Conditional(selection_set) => selection_set.fmt(f),
         }
     }
 }
 
-impl<'a> std::fmt::Debug for PlanConcreteSelectionSet<'a> {
+impl<'a> std::fmt::Debug for PlanCollectedSelectionSet<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ConcreteSelectionSet")
             .field("fields", &self.fields().collect::<Vec<_>>())
@@ -120,8 +120,10 @@ impl<'a> std::fmt::Debug for PlanConcreteSelectionSet<'a> {
                     .iter()
                     .map(|edge| match edge.unpack() {
                         UnpackedResponseEdge::Index(i) => format!("index: {i}"),
-                        UnpackedResponseEdge::BoundResponseKey(key) => self.operation.response_keys[key].to_string(),
-                        UnpackedResponseEdge::ExtraField(key) => self.operation.response_keys[key].to_string(),
+                        UnpackedResponseEdge::BoundResponseKey(key) => {
+                            self.operation_plan.response_keys[key].to_string()
+                        }
+                        UnpackedResponseEdge::ExtraField(key) => self.operation_plan.response_keys[key].to_string(),
                     })
                     .collect::<Vec<_>>(),
             )
@@ -129,14 +131,14 @@ impl<'a> std::fmt::Debug for PlanConcreteSelectionSet<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for PlanConcreteField<'a> {
+impl<'a> std::fmt::Debug for PlanCollectedField<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut fmt = f.debug_struct("ConcreteField");
+        let mut fmt = f.debug_struct("CollectedField");
         fmt.field("key", &self.as_bound_field().response_key_str());
         if self.as_bound_field().response_key() != self.as_ref().expected_key {
             fmt.field(
                 "expected_key",
-                &&self.operation.response_keys[self.as_ref().expected_key],
+                &&self.operation_plan.response_keys[self.as_ref().expected_key],
             );
         }
         if let Some(selection_set) = self.selection_set() {
@@ -156,7 +158,7 @@ impl<'a> std::fmt::Debug for PlanConditionalSelectionSet<'a> {
                     .as_ref()
                     .typename_fields
                     .iter()
-                    .map(|(_, edge)| &self.operation.response_keys[edge.as_response_key().unwrap()])
+                    .map(|(_, edge)| &self.operation_plan.response_keys[edge.as_response_key().unwrap()])
                     .collect::<Vec<_>>(),
             )
             .finish()
@@ -170,7 +172,7 @@ impl<'a> std::fmt::Debug for PlanConditionalField<'a> {
         if self.as_bound_field().response_key() != self.as_ref().expected_key {
             fmt.field(
                 "expected_key",
-                &&self.operation.response_keys[self.as_ref().expected_key],
+                &&self.operation_plan.response_keys[self.as_ref().expected_key],
             );
         }
         if let Some(selection_set) = self.selection_set() {

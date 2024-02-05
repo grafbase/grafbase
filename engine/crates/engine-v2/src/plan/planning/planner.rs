@@ -1,7 +1,11 @@
 use engine_parser::types::OperationType;
 use fnv::{FnvHashMap, FnvHashSet};
 use schema::{FieldId, FieldResolverWalker, ResolverId, Schema};
-use std::{borrow::Cow, collections::hash_map::Entry, num::NonZeroU16};
+use std::{
+    borrow::Cow,
+    collections::{hash_map::Entry, HashMap},
+    num::NonZeroU16,
+};
 
 use super::{
     attribution::AttributionLogic,
@@ -11,21 +15,44 @@ use super::{
     PlanningError, PlanningResult,
 };
 use crate::{
-    plan::{
-        ExecutionPlanId, LogicalPlan, OperationPlan, ParentToChildEdge, PlanBoundaryId, PlanId, PlanInput, PlanOutput,
-    },
+    plan::{OperationPlan, ParentToChildEdge, PlanBoundaryId, PlanId, PlanInput, PlanOutput, PlannedResolver},
     request::{
         BoundField, BoundFieldId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, EntityType, FlatSelectionSet,
-        FlatTypeCondition, Operation, OperationWalker, QueryPath,
+        FlatTypeCondition, Operation, OperationWalker, QueryPath, SelectionSetType,
     },
     response::{ReadSelectionSet, ResponseEdge, ResponseKeys, UnpackedResponseEdge},
-    sources::ExecutionPlan,
+    sources::Plan,
     utils::IdRange,
 };
 
-pub(in crate::plan) struct Planner<'schema> {
+/// The planner is responsible to attribute a plan id for every field & selection set in the
+/// operation and ensuring that all requirements from resolvers and fields are satisfied.
+///
+/// The planning works in three steps:
+///
+/// 1. Attribute the fields and adding any extra ones:
+///     - We have unplanned (missing) fields
+///     - Flatten the selection set, removing fragments & inline fragments, for easier
+///       manipulation.
+///     - Detect which part is providable by the current plan if any and which aren't.
+///     - Attribute relevant fields & selection sets to the current plan.
+///     - If there are missing fields, create a new plan boundary. This allows us to know that we
+///       should keep a reference to response objects for that selection sets so that children plan
+///       don't need to search for for them. We plan any missing fields with the same logic.
+/// 2. Collect attributed fields to know what to expect from the response. This follows the field
+///    collection logic from GraphQL. If the selection set is simple enough (no type conditions
+///    typically), we can do it in advance and store it. Otherwise we generate what we can for
+///    later.
+/// 3. Generate the actual plans for each resolver, allowing them to cache what they can for later.
+///    During execution, those Plans create Executors with the actual response objects that do the
+///    real work.
+///
+pub(super) struct Planner<'schema> {
     pub(super) schema: &'schema Schema,
     pub(super) operation: Operation,
+    /// For extra fields, if we need to generate a response key for them (because of aliases), we
+    /// re-use the same edge for the same field id. It's not strictly necessary, but it's
+    /// practical.
     extra_field_edges: FnvHashMap<FieldId, ResponseEdge>,
 
     // -- Operation --
@@ -33,7 +60,7 @@ pub(in crate::plan) struct Planner<'schema> {
     selection_set_attribution: Vec<Option<PlanId>>,
 
     // -- Plans --
-    plans: Vec<LogicalPlan>,
+    planned_resolvers: Vec<PlannedResolver>,
     plan_input_selection_sets: Vec<Option<ReadSelectionSet>>,
     // PlanId -> PlanRootSelectionSet
     plan_root_selection_sets: Vec<PlanRootSelectionSet>,
@@ -67,14 +94,14 @@ impl From<TemporaryPlanBoundaryId> for usize {
 }
 
 impl<'schema> Planner<'schema> {
-    pub fn new(schema: &'schema Schema, operation: Operation) -> Self {
+    pub(super) fn new(schema: &'schema Schema, operation: Operation) -> Self {
         Self {
             schema,
             extra_field_edges: FnvHashMap::default(),
             field_attribution: vec![None; operation.fields.len()],
             selection_set_attribution: vec![None; operation.selection_sets.len()],
             operation,
-            plans: Vec::new(),
+            planned_resolvers: Vec::new(),
             plan_input_selection_sets: Vec::new(),
             plan_root_selection_sets: Vec::new(),
             plan_boundaries_count: 0,
@@ -83,186 +110,59 @@ impl<'schema> Planner<'schema> {
             plan_to_dependencies: FnvHashMap::default(),
         }
     }
-
-    pub fn finalize_operation(mut self) -> PlanningResult<OperationPlan> {
-        let field_attribution = self
-            .field_attribution
-            .iter()
-            .enumerate()
-            .map(|(i, maybe_plan_id)| match maybe_plan_id {
-                Some(plan_id) => *plan_id,
-                None => {
-                    let bound_field_id = BoundFieldId::from(i);
-                    let bound_field = &self.walker().walk(bound_field_id);
-                    unreachable!("No plan was associated with field:\n{bound_field:#?}");
-                }
-            })
-            .collect();
-
-        self.selection_set_attribution[usize::from(self.operation.root_selection_set_id)] = Some(PlanId::from(0));
-        let selection_set_attribution = self
-            .selection_set_attribution
-            .iter()
-            .enumerate()
-            .map(|(i, maybe_plan_id)| match maybe_plan_id {
-                Some(plan_id) => *plan_id,
-                None => {
-                    let bound_selection_set_id = BoundSelectionSetId::from(i);
-                    let bound_selection_set = self.walker().walk(bound_selection_set_id);
-                    unreachable!("No plan was associated with selection set:\n{bound_selection_set:#?})");
-                }
-            })
-            .collect();
-
-        let Self {
-            schema,
-            operation: bound_operation,
-            plans,
-            plan_input_selection_sets,
-            plan_root_selection_sets,
-            plan_to_dependencies,
-            plan_boundaries_count,
-            plan_to_children_tmp_boundary_ids,
-            plan_to_parent_tmp_boundary_id,
-            ..
-        } = self;
-
-        let mut plan_to_output_boundary_ids = Vec::with_capacity(plans.len());
-        let tmp_boundary_id_to_boundary_id = {
-            let mut mapping = vec![PlanBoundaryId::from(0); plan_boundaries_count];
-            let mut n: usize = 0;
-            for tmp_boundary_ids in &plan_to_children_tmp_boundary_ids {
-                let start = PlanBoundaryId::from(n);
-                for tmp_boundary_id in tmp_boundary_ids {
-                    let id = PlanBoundaryId::from(n);
-                    n += 1;
-                    mapping[usize::from(*tmp_boundary_id)] = id;
-                }
-                let end = PlanBoundaryId::from(n);
-                plan_to_output_boundary_ids.push(IdRange { start, end });
-            }
-            mapping
-        };
-
-        let mut plan_boundary_consummers_count = vec![0; plan_boundaries_count];
-        let mut plan_inputs = Vec::with_capacity(plans.len());
-        for (maybe_tmp_id, maybe_selection_set) in plan_to_parent_tmp_boundary_id
-            .into_iter()
-            .zip(plan_input_selection_sets)
-        {
-            if let Some(tmp_id) = maybe_tmp_id {
-                let boundary_id = tmp_boundary_id_to_boundary_id[usize::from(tmp_id)];
-                plan_boundary_consummers_count[usize::from(boundary_id)] += 1;
-                plan_inputs.push(Some(PlanInput {
-                    selection_set: maybe_selection_set.expect("Missing input selection set"),
-                    boundary_id,
-                }));
-            } else {
-                plan_inputs.push(None);
-            }
-        }
-
-        let mut execution_plan_dependencies_count = vec![0; plans.len()];
-        let mut execution_plans_parent_to_child_edges = Vec::with_capacity(plans.len());
-        for (&child, dependencies) in &plan_to_dependencies {
-            for &parent in dependencies {
-                // For now there is a 1to1 mapping between logical plans and execution plans.
-                let parent = ExecutionPlanId::from(usize::from(parent));
-                let child = ExecutionPlanId::from(usize::from(child));
-                execution_plan_dependencies_count[usize::from(child)] += 1;
-                execution_plans_parent_to_child_edges.push(ParentToChildEdge { parent, child });
-            }
-        }
-
-        let mut operation = OperationPlan {
-            bound_operation,
-            field_attribution,
-            selection_set_attribution,
-            plan_inputs,
-            plan_outputs: Vec::with_capacity(plans.len()),
-            collected_concrete_selection_sets: Vec::with_capacity(plans.len()),
-            collected_concrete_fields: Vec::with_capacity(plans.len()),
-            plans,
-            execution_plans: Vec::new(),
-            execution_plans_parent_to_child_edges,
-            execution_plan_dependencies_count,
-            plan_boundary_consummers_count,
-            collected_conditional_selection_sets: Vec::new(),
-            collected_conditional_fields: Vec::new(),
-        };
-        operation.execution_plans_parent_to_child_edges.sort_unstable();
-
-        for (i, PlanRootSelectionSet { ids, entity_type }) in plan_root_selection_sets.into_iter().enumerate() {
-            let plan_id = PlanId::from(i);
-            let ty = operation[ids[0]].ty;
-            let collected_selection_set_id = Collector::new(schema, &mut operation, plan_id).collect(ids)?;
-            operation.plan_outputs.push(PlanOutput {
-                type_condition: FlatTypeCondition::flatten(self.schema, ty, vec![entity_type.into()]),
-                entity_type,
-                collected_selection_set_id,
-                boundary_ids: plan_to_output_boundary_ids[i],
-            });
-        }
-
-        // For now there is a 1to1 mapping between logical plans and execution plans.
-        let mut execution_plans = Vec::with_capacity(operation.plans.len());
-        for (i, plan) in operation.plans.iter().enumerate() {
-            let resolver = self.schema.walker().walk(plan.resolver_id).with_own_names();
-            let plan_id = ExecutionPlanId::from(i);
-            execution_plans.push(ExecutionPlan::build(
-                resolver,
-                operation.plan_walker(self.schema, plan_id, None),
-            )?);
-        }
-        operation.execution_plans = execution_plans;
-
-        Ok(operation)
-    }
 }
 
 impl<'schema> Planner<'schema> {
-    pub(super) fn plan_all(&mut self) -> PlanningResult<()> {
+    /// Step 1 of the planning, attributed all fields to a plan and satisfying their requirements.
+    pub(super) fn plan_all_fields(&mut self) -> PlanningResult<()> {
+        // The root plan is always introspection which also lets us handle operations like:
+        // query { __typename }
+        let introspection_resolver_id = self.schema.introspection_resolver_id();
         let (introspection_selection_set, selection_set) = self
             .walker()
             .flatten_selection_sets(vec![self.operation.root_selection_set_id])
             .partition_fields(|flat_field| {
                 let bound_field = &self.operation[flat_field.bound_field_id];
                 if let Some(schema_field_id) = bound_field.schema_field_id() {
-                    self.schema.walker().walk(schema_field_id).resolvers().len() == 0
+                    self.schema
+                        .walker()
+                        .walk(schema_field_id)
+                        .resolvers()
+                        .any(|FieldResolverWalker { resolver, .. }| resolver.id() == introspection_resolver_id)
                 } else {
                     true
                 }
             });
 
-        // Planning introspection fields first.
-        self.plan_introspection(introspection_selection_set)?;
+        if !introspection_selection_set.is_empty() {
+            self.push_plan(
+                QueryPath::default(),
+                introspection_resolver_id,
+                EntityType::Object(self.operation.root_object_id),
+                introspection_selection_set,
+            )?;
+        }
 
         if matches!(self.operation.ty, OperationType::Mutation) {
             self.plan_mutation(selection_set)?;
         } else {
+            // Subscription are considered to be Queries for planning, they just happen to have
+            // only one root field.
             self.plan_query(selection_set)?;
         }
 
         Ok(())
     }
 
+    /// A query is simply treated as a plan boundary with no parent.
     fn plan_query(&mut self, selection_set: FlatSelectionSet) -> PlanningResult<()> {
         BoundaryPlanner::plan(self, &QueryPath::default(), None, selection_set)?;
         Ok(())
     }
 
-    fn plan_introspection(&mut self, selection_set: FlatSelectionSet) -> PlanningResult<()> {
-        if !selection_set.is_empty() {
-            self.push_plan(
-                QueryPath::default(),
-                self.schema.introspection_resolver_id(),
-                EntityType::Object(self.operation.root_object_id),
-                selection_set,
-            )?;
-        }
-        Ok(())
-    }
-
+    /// Mutation is a special case because root fields need to execute in order. So planning each
+    /// field individually and setting up plan dependencies between them to ensures proper
+    /// execution order.
     fn plan_mutation(&mut self, mut selection_set: FlatSelectionSet) -> PlanningResult<()> {
         let entity_type = EntityType::Object(self.operation.root_object_id);
 
@@ -272,7 +172,11 @@ impl<'schema> Planner<'schema> {
             .into_values()
             .collect::<Vec<_>>();
         // Ordering groups by their position in the query, ensuring proper ordering of plans.
-        groups.sort_unstable_by(|a, b| a.edge.cmp(&b.edge));
+        groups.sort_unstable_by(|a, b| {
+            let a = self.operation[a.final_bound_field_id].response_edge();
+            let b = self.operation[b.final_bound_field_id].response_edge();
+            a.cmp(&b)
+        });
 
         let mut maybe_previous_plan_id: Option<PlanId> = None;
 
@@ -320,25 +224,41 @@ impl<'schema> Planner<'schema> {
         Ok(())
     }
 
-    fn plan_children(
+    /// After planning the indivial fields, we plan their selection sets if any.
+    fn plan_subselections(
         &mut self,
         path: &QueryPath,
         plan_id: PlanId,
         resolver_id: ResolverId,
         selection_set: FlatSelectionSet,
     ) -> PlanningResult<()> {
-        if let Some(subselections) = self.walker().flatten_subselection_sets(&selection_set.fields) {
+        let mut merged_selection_sets = HashMap::<SelectionSetType, Vec<BoundSelectionSetId>>::new();
+        for field in selection_set.fields {
+            if let Some(id) = self.operation[field.bound_field_id].selection_set_id() {
+                merged_selection_sets.entry(self.operation[id].ty).or_default().push(id);
+            }
+        }
+
+        for selection_set_ids in merged_selection_sets.into_values() {
             let logic = AttributionLogic::CompatibleResolver {
                 plan_id,
                 resolver: self.schema.walk(resolver_id),
                 providable: Default::default(),
             };
-            self.recursive_plan_children(path, &logic, subselections)?;
+            self.recursive_plan_subselections(path, &logic, self.walker().flatten_selection_sets(selection_set_ids))?;
         }
+
         Ok(())
     }
 
-    fn recursive_plan_children(
+    /// Recursively traverse the operation to attribute all fields, planning a boundary if not all
+    /// are providable by the current plan.
+    ///
+    /// The traversal order is important. We want the deepest selection sets to be planned first
+    /// ensuring that when we plan a boundary (~selection set with missing fields) we have a
+    /// complete picture of the providable fields. All of their fields and nested subselections
+    /// will be already attributed to plan.
+    fn recursive_plan_subselections(
         &mut self,
         path: &QueryPath,
         logic: &AttributionLogic<'schema>,
@@ -360,9 +280,14 @@ impl<'schema> Planner<'schema> {
         for (schema_field_id, group) in &grouped {
             let bound_field = &self.operation[group.final_bound_field_id];
             let key = bound_field.response_key();
-            if let Some(flat_selection_set) = self.walker().flatten_subselection_sets(&group.bound_field_ids) {
+            if !group.subselection_set_ids.is_empty() {
+                let flat_selection_set = self.walker().flatten_selection_sets(group.subselection_set_ids.clone());
                 self.attribute_selection_sets(&flat_selection_set.root_selection_set_ids, plan_id);
-                self.recursive_plan_children(&path.child(key), &logic.child(*schema_field_id), flat_selection_set)?;
+                self.recursive_plan_subselections(
+                    &path.child(key),
+                    &logic.child(*schema_field_id),
+                    flat_selection_set,
+                )?;
             }
         }
 
@@ -389,6 +314,159 @@ impl<'schema> Planner<'schema> {
         }
 
         Ok(())
+    }
+}
+
+impl<'schema> Planner<'schema> {
+    /// This function is a bit... heavy. it generates the OperationPlan and several parts need some
+    /// post-processing to return something that makes sense. It does the step 2 & 3 of the
+    /// planning.
+    pub(super) fn finalize_operation(mut self) -> PlanningResult<OperationPlan> {
+        //
+        // -- Ensuring we attributed all fields & selection set --
+        //
+        let field_attribution = self
+            .field_attribution
+            .iter()
+            .enumerate()
+            .map(|(i, maybe_plan_id)| match maybe_plan_id {
+                Some(plan_id) => *plan_id,
+                None => {
+                    let bound_field_id = BoundFieldId::from(i);
+                    let bound_field = &self.walker().walk(bound_field_id);
+                    unreachable!("No plan was associated with field:\n{bound_field:#?}");
+                }
+            })
+            .collect();
+
+        self.selection_set_attribution[usize::from(self.operation.root_selection_set_id)] = Some(PlanId::from(0));
+        let selection_set_attribution = self
+            .selection_set_attribution
+            .iter()
+            .enumerate()
+            .map(|(i, maybe_plan_id)| match maybe_plan_id {
+                Some(plan_id) => *plan_id,
+                None => {
+                    let bound_selection_set_id = BoundSelectionSetId::from(i);
+                    let bound_selection_set = self.walker().walk(bound_selection_set_id);
+                    unreachable!("No plan was associated with selection set:\n{bound_selection_set:#?})");
+                }
+            })
+            .collect();
+
+        let Self {
+            schema,
+            operation,
+            planned_resolvers,
+            plan_input_selection_sets,
+            plan_root_selection_sets,
+            plan_to_dependencies,
+            plan_boundaries_count,
+            plan_to_children_tmp_boundary_ids,
+            plan_to_parent_tmp_boundary_id,
+            ..
+        } = self;
+
+        //
+        // -- Generating the plan boundaries, dependencies & inputs --
+        //
+        // Before we used TemporaryPlanBoundaryId to keep track of the boundaries. But we need them
+        // to be sequential for a given plan. This allows us to access store boundaries in Vec and
+        // access them with an offset when ingesting data into the response.
+        // We also need plan boundary ids to be unique for the OperationExecutionState which needs
+        // the number of consummers (children plan) for a given boundary.
+        let mut plan_to_output_boundary_ids = Vec::with_capacity(planned_resolvers.len());
+        let tmp_boundary_id_to_boundary_id = {
+            let mut mapping = vec![PlanBoundaryId::from(0); plan_boundaries_count];
+            let mut n: usize = 0;
+            for tmp_boundary_ids in &plan_to_children_tmp_boundary_ids {
+                let start = PlanBoundaryId::from(n);
+                for tmp_boundary_id in tmp_boundary_ids {
+                    let id = PlanBoundaryId::from(n);
+                    n += 1;
+                    mapping[usize::from(*tmp_boundary_id)] = id;
+                }
+                let end = PlanBoundaryId::from(n);
+                plan_to_output_boundary_ids.push(IdRange { start, end });
+            }
+            mapping
+        };
+
+        let mut plan_boundary_consummers_count = vec![0; plan_boundaries_count];
+        let mut plan_inputs = Vec::with_capacity(planned_resolvers.len());
+        for (maybe_tmp_id, maybe_selection_set) in plan_to_parent_tmp_boundary_id
+            .into_iter()
+            .zip(plan_input_selection_sets)
+        {
+            if let Some(tmp_id) = maybe_tmp_id {
+                let boundary_id = tmp_boundary_id_to_boundary_id[usize::from(tmp_id)];
+                plan_boundary_consummers_count[usize::from(boundary_id)] += 1;
+                plan_inputs.push(Some(PlanInput {
+                    selection_set: maybe_selection_set.expect("Missing input selection set"),
+                    boundary_id,
+                }));
+            } else {
+                plan_inputs.push(None);
+            }
+        }
+
+        let mut plan_dependencies_count = vec![0; planned_resolvers.len()];
+        let mut plans_parent_to_child_edges = Vec::with_capacity(planned_resolvers.len());
+        for (&child, dependencies) in &plan_to_dependencies {
+            for &parent in dependencies {
+                plan_dependencies_count[usize::from(child)] += 1;
+                plans_parent_to_child_edges.push(ParentToChildEdge { parent, child });
+            }
+        }
+
+        //
+        // -- Collecting fields for the plan output --
+        //
+        let mut operation_plan = OperationPlan {
+            operation,
+            field_attribution,
+            selection_set_attribution,
+            plan_inputs,
+            plan_outputs: Vec::with_capacity(planned_resolvers.len()),
+            collected_selection_sets: Vec::with_capacity(planned_resolvers.len()),
+            collected_fields: Vec::with_capacity(planned_resolvers.len()),
+            plans: Vec::with_capacity(planned_resolvers.len()),
+            planned_resolvers,
+            plan_parent_to_child_edges: plans_parent_to_child_edges,
+            plan_dependencies_count,
+            plan_boundary_consummers_count,
+            conditional_selection_sets: Vec::new(),
+            conditional_fields: Vec::new(),
+        };
+        operation_plan.plan_parent_to_child_edges.sort_unstable();
+
+        for (i, PlanRootSelectionSet { ids, entity_type }) in plan_root_selection_sets.into_iter().enumerate() {
+            let plan_id = PlanId::from(i);
+            let ty = operation_plan[ids[0]].ty;
+            let collected_selection_set_id = Collector::new(schema, &mut operation_plan, plan_id).collect(ids)?;
+            operation_plan.plan_outputs.push(PlanOutput {
+                type_condition: FlatTypeCondition::flatten(self.schema, ty, vec![entity_type.into()]),
+                entity_type,
+                collected_selection_set_id,
+                boundary_ids: plan_to_output_boundary_ids[i],
+            });
+        }
+
+        //
+        // -- Generating the actual plans --
+        //
+        let mut execution_plans = Vec::with_capacity(operation_plan.plans.len());
+        for (i, PlannedResolver { resolver_id, .. }) in operation_plan.planned_resolvers.iter().enumerate() {
+            let resolver = self.schema.walker().walk(*resolver_id).with_own_names();
+            let plan_id = PlanId::from(i);
+            execution_plans.push(Plan::build(
+                resolver,
+                operation_plan.plan_walker(self.schema, plan_id, None),
+            )?);
+        }
+        operation_plan.plans = execution_plans;
+
+        Ok(operation_plan)
     }
 }
 
@@ -483,7 +561,7 @@ impl<'schema> Planner<'schema> {
         entity_type: EntityType,
         selection_set: FlatSelectionSet,
     ) -> PlanningResult<PlanId> {
-        let id = PlanId::from(self.plans.len());
+        let id = PlanId::from(self.planned_resolvers.len());
         tracing::debug!(
             "Creating new plan {id} at '{}' for entity '{}': {}",
             self.walker().walk(&path),
@@ -495,7 +573,7 @@ impl<'schema> Planner<'schema> {
                 .collect::<Vec<_>>()
                 .join(", ")
         );
-        self.plans.push(LogicalPlan {
+        self.planned_resolvers.push(PlannedResolver {
             resolver_id,
             path: path.clone(),
         });
@@ -507,7 +585,7 @@ impl<'schema> Planner<'schema> {
             entity_type,
         });
         self.attribute_selection_set(&selection_set, id);
-        self.plan_children(&path, id, resolver_id, selection_set)?;
+        self.plan_subselections(&path, id, resolver_id, selection_set)?;
         Ok(id)
     }
 
@@ -522,18 +600,18 @@ impl<'schema> Planner<'schema> {
         self.plan_input_selection_sets[usize::from(plan_id)] = Some(selection_set);
     }
 
-    pub fn get_plan(&self, plan_id: PlanId) -> &LogicalPlan {
-        &self.plans[usize::from(plan_id)]
+    pub fn get_planned_resolver(&self, plan_id: PlanId) -> &PlannedResolver {
+        &self.planned_resolvers[usize::from(plan_id)]
     }
 
-    pub fn insert_plan_dependency(&mut self, edge: ParentToChildEdge<PlanId>) {
+    pub fn insert_plan_dependency(&mut self, edge: ParentToChildEdge) {
         self.plan_to_dependencies
             .entry(edge.child)
             .or_default()
             .insert(edge.parent);
     }
 
-    pub fn insert_parent_plan(&mut self, plan_boundary_id: TemporaryPlanBoundaryId, edge: ParentToChildEdge<PlanId>) {
+    pub fn insert_parent_plan(&mut self, plan_boundary_id: TemporaryPlanBoundaryId, edge: ParentToChildEdge) {
         self.insert_plan_dependency(edge);
         self.plan_to_parent_tmp_boundary_id[usize::from(edge.child)] = Some(plan_boundary_id);
     }

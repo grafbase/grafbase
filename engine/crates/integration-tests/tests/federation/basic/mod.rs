@@ -63,6 +63,54 @@ fn top_level_typename() {
 }
 
 #[test]
+fn only_typename() {
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+
+        let engine = Gateway::builder()
+            .with_schema("schema", &github_mock)
+            .await
+            .finish()
+            .await;
+
+        engine
+            .execute(
+                r#"query { 
+                    pullRequestsAndIssues(filter: { search: "1" }) { __typename } 
+                    allBotPullRequests { __typename } 
+                }"#,
+            )
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "pullRequestsAndIssues": [
+          {
+            "__typename": "PullRequest"
+          },
+          {
+            "__typename": "PullRequest"
+          },
+          {
+            "__typename": "Issue"
+          }
+        ],
+        "allBotPullRequests": [
+          {
+            "__typename": "PullRequest"
+          },
+          {
+            "__typename": "PullRequest"
+          }
+        ]
+      }
+    }
+    "###);
+}
+
+#[test]
 fn response_with_lists() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;

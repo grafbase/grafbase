@@ -62,6 +62,9 @@ pub enum BoundField {
         edge: ResponseEdge,
         field_id: FieldId,
         selection_set_id: Option<BoundSelectionSetId>,
+        /// During planning some fields may be initially added to satisfy requirements for a plan
+        /// that may never be finalized. So only those marked as read should be considered part of
+        /// the operation.
         read: bool,
     },
 }

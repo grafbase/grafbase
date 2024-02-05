@@ -4,7 +4,7 @@ use schema::Schema;
 
 use crate::{
     plan::{
-        CollectedSelectionSet, ConcreteField, ConcreteFieldId, ConcreteSelectionSet, ConcreteSelectionSetId,
+        AnyCollectedSelectionSet, CollectedField, CollectedFieldId, CollectedSelectionSet, CollectedSelectionSetId,
         ConditionalField, ConditionalFieldId, ConditionalSelectionSet, ConditionalSelectionSetId, FieldType,
         OperationPlan, PlanBoundaryId, PlanId,
     },
@@ -26,7 +26,7 @@ pub(super) struct Collector<'schema, 'op> {
 impl<'schema, 'a> Collector<'schema, 'a> {
     pub(super) fn new(schema: &'schema Schema, operation: &'a mut OperationPlan, plan_id: PlanId) -> Self {
         let support_aliases = schema
-            .walk(operation.plans[usize::from(plan_id)].resolver_id)
+            .walk(operation.planned_resolvers[usize::from(plan_id)].resolver_id)
             .supports_aliases();
         Collector {
             schema,
@@ -43,7 +43,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
     pub(super) fn collect(
         &mut self,
         root_selection_set_ids: Vec<BoundSelectionSetId>,
-    ) -> PlanningResult<ConcreteSelectionSetId> {
+    ) -> PlanningResult<CollectedSelectionSetId> {
         let ty = self.operation[root_selection_set_ids[0]].ty;
         let fields = self.find_root_fields(root_selection_set_ids);
         tracing::debug!(
@@ -77,7 +77,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         &mut self,
         selection_set_ids: Vec<BoundSelectionSetId>,
         concrete_parent: bool,
-    ) -> PlanningResult<CollectedSelectionSet> {
+    ) -> PlanningResult<AnyCollectedSelectionSet> {
         let selection_set = self.walker().flatten_selection_sets(selection_set_ids);
 
         let mut maybe_boundary_id = None;
@@ -135,10 +135,10 @@ impl<'schema, 'a> Collector<'schema, 'a> {
                 plan_fields.into_iter().map(|field| field.bound_field_id).collect(),
                 maybe_boundary_id,
             )
-            .map(CollectedSelectionSet::Concrete)
+            .map(AnyCollectedSelectionSet::Collected)
         } else {
             self.create_conditional_selection_set(selection_set.ty, plan_fields, maybe_boundary_id)
-                .map(CollectedSelectionSet::Conditional)
+                .map(AnyCollectedSelectionSet::Conditional)
         }
     }
 
@@ -147,7 +147,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         ty: SelectionSetType,
         fields: Vec<BoundFieldId>,
         maybe_boundary_id: Option<PlanBoundaryId>,
-    ) -> PlanningResult<ConcreteSelectionSetId> {
+    ) -> PlanningResult<CollectedSelectionSetId> {
         let grouped_by_response_key = self.walker().group_by_response_key(fields).into_values();
 
         let mut fields = vec![];
@@ -161,7 +161,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
                     bound_field.response_key()
                 } else {
                     self.operation
-                        .bound_operation
+                        .operation
                         .response_keys
                         .get_or_intern(schema_field.name())
                 };
@@ -169,9 +169,9 @@ impl<'schema, 'a> Collector<'schema, 'a> {
                     Some(data_type) => FieldType::Scalar(data_type),
                     None => FieldType::SelectionSet(self.collect_selection_set(group.subselection_set_ids, true)?),
                 };
-                fields.push(ConcreteField {
+                fields.push(CollectedField {
                     expected_key,
-                    edge: group.edge,
+                    edge: bound_field.response_edge(),
                     bound_field_id,
                     schema_field_id: field_id,
                     wrapping: schema_field.ty().wrapping().clone(),
@@ -186,7 +186,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         let keys = &self.operation.response_keys;
         fields.sort_unstable_by(|a, b| keys[a.expected_key].cmp(&keys[b.expected_key]));
         let fields = self.push_concrete_fields(fields);
-        Ok(self.push_concrete_selection_set(ConcreteSelectionSet {
+        Ok(self.push_concrete_selection_set(CollectedSelectionSet {
             ty,
             maybe_boundary_id,
             fields,
@@ -210,7 +210,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
                     bound_field.response_key()
                 } else {
                     self.operation
-                        .bound_operation
+                        .operation
                         .response_keys
                         .get_or_intern(schema_field.name())
                 };
@@ -219,7 +219,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
                     None => {
                         let selection_set_id =
                             self.collect_selection_set(bound_field.selection_set_id().into_iter().collect(), false)?;
-                        let CollectedSelectionSet::Conditional(selection_set_id) = selection_set_id else {
+                        let AnyCollectedSelectionSet::Conditional(selection_set_id) = selection_set_id else {
                             unreachable!("undetermined selection set cannot produce concrete selecitons");
                         };
                         FieldType::SelectionSet(selection_set_id)
@@ -249,8 +249,8 @@ impl<'schema, 'a> Collector<'schema, 'a> {
     }
 
     fn push_provisional_selection_set(&mut self, selection_set: ConditionalSelectionSet) -> ConditionalSelectionSetId {
-        let id = ConditionalSelectionSetId::from(self.operation.collected_conditional_selection_sets.len());
-        self.operation.collected_conditional_selection_sets.push(selection_set);
+        let id = ConditionalSelectionSetId::from(self.operation.conditional_selection_sets.len());
+        self.operation.conditional_selection_sets.push(selection_set);
         id
     }
 
@@ -259,30 +259,30 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         if fields.is_empty() {
             return IdRange::empty();
         }
-        let start = ConditionalFieldId::from(self.operation.collected_conditional_fields.len());
-        self.operation.collected_conditional_fields.extend(fields);
+        let start = ConditionalFieldId::from(self.operation.conditional_fields.len());
+        self.operation.conditional_fields.extend(fields);
         IdRange {
             start,
-            end: ConditionalFieldId::from(self.operation.collected_conditional_fields.len()),
+            end: ConditionalFieldId::from(self.operation.conditional_fields.len()),
         }
     }
 
-    fn push_concrete_selection_set(&mut self, selection_set: ConcreteSelectionSet) -> ConcreteSelectionSetId {
-        let id = ConcreteSelectionSetId::from(self.operation.collected_concrete_selection_sets.len());
-        self.operation.collected_concrete_selection_sets.push(selection_set);
+    fn push_concrete_selection_set(&mut self, selection_set: CollectedSelectionSet) -> CollectedSelectionSetId {
+        let id = CollectedSelectionSetId::from(self.operation.collected_selection_sets.len());
+        self.operation.collected_selection_sets.push(selection_set);
         id
     }
 
-    fn push_concrete_fields(&mut self, fields: Vec<ConcreteField>) -> IdRange<ConcreteFieldId> {
+    fn push_concrete_fields(&mut self, fields: Vec<CollectedField>) -> IdRange<CollectedFieldId> {
         // Can be empty when only __typename fields are present.
         if fields.is_empty() {
             return IdRange::empty();
         }
-        let start = ConcreteFieldId::from(self.operation.collected_concrete_fields.len());
-        self.operation.collected_concrete_fields.extend(fields);
+        let start = CollectedFieldId::from(self.operation.collected_fields.len());
+        self.operation.collected_fields.extend(fields);
         IdRange {
             start,
-            end: ConcreteFieldId::from(self.operation.collected_concrete_fields.len()),
+            end: CollectedFieldId::from(self.operation.collected_fields.len()),
         }
     }
 }

@@ -11,7 +11,7 @@ use futures_util::{
 
 use crate::{
     execution::{ExecutionContext, Variables},
-    plan::{ExecutionPlanId, OperationExecutionState, OperationPlan},
+    plan::{OperationExecutionState, OperationPlan, PlanId},
     response::{ExecutionMetadata, GraphqlError, Response, ResponseBuilder, ResponsePart},
     sources::{Executor, ExecutorInput, SubscriptionExecutor, SubscriptionInput},
     Engine,
@@ -66,7 +66,7 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
         assert!(matches!(self.operation.ty, OperationType::Subscription));
 
         let mut state = self.operation.new_execution_state();
-        let subscription_plan_id = state.pop_unique_root_plan_id();
+        let subscription_plan_id = state.pop_subscription_plan_id();
 
         let mut stream = match self.build_subscription_stream(subscription_plan_id).await {
             Ok(stream) => stream,
@@ -112,13 +112,13 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
 
     async fn build_subscription_stream<'a>(
         &'a self,
-        plan_id: ExecutionPlanId,
+        plan_id: PlanId,
     ) -> Result<BoxStream<'a, (ResponseBuilder, ResponsePart)>, GraphqlError> {
         let executor = self.build_subscription_executor(plan_id)?;
         Ok(executor.execute().await?)
     }
 
-    fn build_subscription_executor(&self, plan_id: ExecutionPlanId) -> ExecutionResult<SubscriptionExecutor<'_>> {
+    fn build_subscription_executor(&self, plan_id: PlanId) -> ExecutionResult<SubscriptionExecutor<'_>> {
         let execution_plan = &self.operation[plan_id];
         let plan = self
             .operation
@@ -167,10 +167,13 @@ impl<'ctx> OperationExecution<'ctx> {
 
             // Ingesting data first to propagate errors and next plans likely rely on it
             for (plan_bounday_id, boundary) in self.response.ingest(output) {
-                self.state.add_boundary_items(plan_bounday_id, boundary);
+                self.state.push_boundary_items(plan_bounday_id, boundary);
             }
 
-            for plan_id in self.state.get_next_plans(&self.coordinator.operation, plan_id) {
+            for plan_id in self
+                .state
+                .get_next_executable_plans(&self.coordinator.operation, plan_id)
+            {
                 match self.build_executor(plan_id) {
                     Ok(Some(executor)) => self.futures.execute(plan_id, executor),
                     Ok(None) => (),
@@ -186,7 +189,7 @@ impl<'ctx> OperationExecution<'ctx> {
         )
     }
 
-    fn build_executor(&mut self, plan_id: ExecutionPlanId) -> ExecutionResult<Option<Executor<'ctx>>> {
+    fn build_executor(&mut self, plan_id: PlanId) -> ExecutionResult<Option<Executor<'ctx>>> {
         let operation: &'ctx OperationPlan = &self.coordinator.operation;
         let engine = self.coordinator.engine;
         let response_boundary_items =
@@ -233,7 +236,7 @@ impl<'a> ExecutorFutureSet<'a> {
         ExecutorFutureSet(FuturesUnordered::new())
     }
 
-    fn execute(&mut self, plan_id: ExecutionPlanId, executor: Executor<'a>) {
+    fn execute(&mut self, plan_id: PlanId, executor: Executor<'a>) {
         self.push(make_send_on_wasm(async move {
             let result = executor.execute().await;
             ExecutorFutureResult { plan_id, result }
@@ -250,6 +253,6 @@ impl<'a> ExecutorFutureSet<'a> {
 }
 
 struct ExecutorFutureResult {
-    plan_id: ExecutionPlanId,
+    plan_id: PlanId,
     result: ExecutionResult<ResponsePart>,
 }

@@ -16,7 +16,7 @@ impl<'a> PlanFragmentSpread<'a> {
 
 impl<'a> std::fmt::Debug for PlanFragmentSpread<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let fragment = &self.operation[self.as_ref().fragment_id];
+        let fragment = &self.operation_plan[self.as_ref().fragment_id];
         f.debug_struct("PlanFragmentSpread")
             .field("name", &fragment.name)
             .field("selection_set", &self.selection_set())

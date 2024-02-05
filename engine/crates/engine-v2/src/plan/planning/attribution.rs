@@ -2,6 +2,9 @@ use schema::{FieldId, FieldSet, ResolverWalker};
 
 use crate::plan::PlanId;
 
+/// Defines whether a field can be provided or not for a given resolver. Initially all fields with
+/// no resolver or a compatible one (same subgraph typically) can be planned. Once we hit a
+/// different resolver only those marked as `@providable` will be.
 #[derive(Debug, Clone)]
 pub(super) enum AttributionLogic<'schema> {
     /// Having a resolver in the same group or having no resolver at all.

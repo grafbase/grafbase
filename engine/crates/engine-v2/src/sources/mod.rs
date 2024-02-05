@@ -62,16 +62,16 @@ use self::{
 mod graphql;
 mod introspection;
 
-pub(crate) enum ExecutionPlan {
+pub(crate) enum Plan {
     GraphQL(GraphqlExecutionPlan),
     FederationEntity(FederationEntityExecutionPlan),
     Introspection(IntrospectionExecutionPlan),
 }
 
-impl ExecutionPlan {
+impl Plan {
     pub fn build(walker: ResolverWalker<'_>, plan: PlanWalker<'_>) -> PlanningResult<Self> {
         match walker.as_ref() {
-            Resolver::Introspection(_) => Ok(ExecutionPlan::Introspection(IntrospectionExecutionPlan)),
+            Resolver::Introspection(_) => Ok(Plan::Introspection(IntrospectionExecutionPlan)),
             Resolver::FederationRootField(resolver) => GraphqlExecutionPlan::build(walker.walk(resolver), plan),
             Resolver::FederationEntity(resolver) => FederationEntityExecutionPlan::build(walker.walk(resolver), plan),
         }
@@ -90,12 +90,12 @@ pub(crate) struct SubscriptionInput<'ctx> {
     pub plan: PlanWalker<'ctx>,
 }
 
-impl ExecutionPlan {
+impl Plan {
     pub fn new_executor<'ctx>(&'ctx self, input: ExecutorInput<'ctx, '_>) -> Result<Executor<'ctx>, ExecutionError> {
         match self {
-            ExecutionPlan::Introspection(execution_plan) => execution_plan.new_executor(input),
-            ExecutionPlan::GraphQL(execution_plan) => execution_plan.new_executor(input),
-            ExecutionPlan::FederationEntity(execution_plan) => execution_plan.new_executor(input),
+            Plan::Introspection(execution_plan) => execution_plan.new_executor(input),
+            Plan::GraphQL(execution_plan) => execution_plan.new_executor(input),
+            Plan::FederationEntity(execution_plan) => execution_plan.new_executor(input),
         }
     }
 
@@ -104,11 +104,11 @@ impl ExecutionPlan {
         input: SubscriptionInput<'ctx>,
     ) -> Result<SubscriptionExecutor<'ctx>, ExecutionError> {
         match self {
-            ExecutionPlan::GraphQL(execution_plan) => execution_plan.new_subscription_executor(input),
-            ExecutionPlan::Introspection(_) => Err(ExecutionError::Internal(
+            Plan::GraphQL(execution_plan) => execution_plan.new_subscription_executor(input),
+            Plan::Introspection(_) => Err(ExecutionError::Internal(
                 "Subscriptions can't contain introspection".into(),
             )),
-            ExecutionPlan::FederationEntity(_) => Err(ExecutionError::Internal(
+            Plan::FederationEntity(_) => Err(ExecutionError::Internal(
                 "Subscriptions can only be at the root of a query so can't contain federated entitites".into(),
             )),
         }

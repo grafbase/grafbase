@@ -1,18 +1,15 @@
 use std::num::NonZeroU16;
 
-use crate::sources::ExecutionPlan;
+use crate::sources::Plan;
 
-use super::{
-    ConcreteField, ConcreteSelectionSet, ConditionalField, ConditionalSelectionSet, LogicalPlan, OperationPlan,
-};
+use super::{CollectedField, CollectedSelectionSet, ConditionalField, ConditionalSelectionSet, OperationPlan};
 
 crate::utils::id_newtypes! {
-    OperationPlan.plans[PlanId] => LogicalPlan unless "Too many plans",
-    OperationPlan.execution_plans[ExecutionPlanId] => ExecutionPlan unless "Too many execution plans",
-    OperationPlan.collected_conditional_fields[ConditionalFieldId] => ConditionalField unless "Too many expected fields",
-    OperationPlan.collected_conditional_selection_sets[ConditionalSelectionSetId] => ConditionalSelectionSet unless "Too many ungrouped selection sets",
-    OperationPlan.collected_concrete_selection_sets[ConcreteSelectionSetId] => ConcreteSelectionSet unless "Too many grouped selection sets",
-    OperationPlan.collected_concrete_fields[ConcreteFieldId] => ConcreteField unless "Too many concrete fields",
+    OperationPlan.plans[PlanId] => Plan unless "Too many execution plans",
+    OperationPlan.conditional_fields[ConditionalFieldId] => ConditionalField unless "Too many expected fields",
+    OperationPlan.conditional_selection_sets[ConditionalSelectionSetId] => ConditionalSelectionSet unless "Too many ungrouped selection sets",
+    OperationPlan.collected_selection_sets[CollectedSelectionSetId] => CollectedSelectionSet unless "Too many grouped selection sets",
+    OperationPlan.collected_fields[CollectedFieldId] => CollectedField unless "Too many concrete fields",
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]

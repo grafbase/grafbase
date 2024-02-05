@@ -25,14 +25,14 @@ impl<'a> PlanField<'a> {
     }
 
     pub fn response_key_str(&self) -> &'a str {
-        &self.operation.response_keys[self.as_ref().response_key()]
+        &self.operation_plan.response_keys[self.as_ref().response_key()]
     }
 
     pub fn arguments(&self) -> impl ExactSizeIterator<Item = PlanInputValue<'a>> + 'a {
         let walker = *self;
         let arguments = match self.as_ref() {
-            BoundField::Field { arguments_id, .. } => &self.operation[*arguments_id],
-            _ => self.operation.empty_arguments(),
+            BoundField::Field { arguments_id, .. } => &self.operation_plan[*arguments_id],
+            _ => self.operation_plan.empty_arguments(),
         };
         arguments
             .iter()

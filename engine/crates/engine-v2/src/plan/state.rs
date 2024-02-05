@@ -7,8 +7,18 @@ use crate::response::{ResponseBoundaryItem, ResponseBuilder};
 
 use crate::plan::{OperationPlan, PlanBoundaryId};
 
-use super::ExecutionPlanId;
+use super::PlanId;
 
+/// Holds the current state of the operation execution:
+/// - which plans have been executed
+/// - boundary items between plans
+///
+/// It allows the `OperationPlan` to be entirely re-usable and immutable for a given request for
+/// subscriptions.
+///
+/// Response boundary items, so objects within the response provided by one plan and updated by
+/// other children plans, are also kept in this struct as long as any children plan might need
+/// it.
 #[derive(Clone)]
 pub struct OperationExecutionState {
     /// PlanId -> u8
@@ -28,13 +38,13 @@ struct BoundaryItems {
 impl OperationExecutionState {
     pub(super) fn new(operation: &OperationPlan) -> Self {
         Self {
-            plan_dependencies_count: operation.execution_plan_dependencies_count.clone(),
+            plan_dependencies_count: operation.plan_dependencies_count.clone(),
             plan_boundary_consummers_count: operation.plan_boundary_consummers_count.clone(),
             boundaries: vec![None; operation.plan_boundary_consummers_count.len()],
         }
     }
 
-    pub fn pop_unique_root_plan_id(&mut self) -> ExecutionPlanId {
+    pub fn pop_subscription_plan_id(&mut self) -> PlanId {
         let executable = self.get_executable_plans();
         assert!(executable.len() == 1);
         let plan_id = executable[0];
@@ -43,21 +53,15 @@ impl OperationExecutionState {
         plan_id
     }
 
-    pub fn get_executable_plans(&self) -> Vec<ExecutionPlanId> {
+    pub fn get_executable_plans(&self) -> Vec<PlanId> {
         self.plan_dependencies_count
             .iter()
             .enumerate()
-            .filter_map(|(i, &count)| {
-                if count == 0 {
-                    Some(ExecutionPlanId::from(i))
-                } else {
-                    None
-                }
-            })
+            .filter_map(|(i, &count)| if count == 0 { Some(PlanId::from(i)) } else { None })
             .collect()
     }
 
-    pub fn add_boundary_items(&mut self, boundary_id: PlanBoundaryId, items: Vec<ResponseBoundaryItem>) {
+    pub fn push_boundary_items(&mut self, boundary_id: PlanBoundaryId, items: Vec<ResponseBoundaryItem>) {
         self.boundaries[usize::from(boundary_id)] = Some(BoundaryItems {
             items: Arc::new(items),
             consummers_left: self.plan_boundary_consummers_count[usize::from(boundary_id)],
@@ -69,7 +73,7 @@ impl OperationExecutionState {
         schema: &Schema,
         operation: &OperationPlan,
         response: &ResponseBuilder,
-        plan_id: ExecutionPlanId,
+        plan_id: PlanId,
     ) -> Arc<Vec<ResponseBoundaryItem>> {
         // If there is no root, an error propagated up to it and data will be null. So there's
         // nothing to do anymore.
@@ -119,8 +123,8 @@ impl OperationExecutionState {
         }
     }
 
-    pub fn get_next_plans(&mut self, operation: &OperationPlan, plan_id: ExecutionPlanId) -> Vec<ExecutionPlanId> {
-        let edges = &operation.execution_plans_parent_to_child_edges;
+    pub fn get_next_executable_plans(&mut self, operation: &OperationPlan, plan_id: PlanId) -> Vec<PlanId> {
+        let edges = &operation.plan_parent_to_child_edges;
         let mut executable = Vec::new();
         let mut i = edges.partition_point(|edge| edge.parent < plan_id);
         while i < edges.len() && edges[i].parent == plan_id {

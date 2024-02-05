@@ -10,7 +10,9 @@ use crate::{
 
 #[derive(Debug)]
 pub(super) struct GroupForResponseKey<Item> {
-    pub edge: ResponseEdge,
+    /// edge of final_bound_field_id, present for convenience during grouping
+    edge: ResponseEdge,
+    /// BoundField with the lowest position within the query (lowest edge)
     pub final_bound_field_id: BoundFieldId,
     pub items: Vec<Item>,
     pub subselection_set_ids: Vec<BoundSelectionSetId>,
@@ -50,9 +52,10 @@ impl<'a> OperationWalker<'a> {
 
 #[derive(Debug)]
 pub(super) struct GroupedByFieldId {
+    /// edge of final_bound_field_id, present for convenience during grouping
+    edge: ResponseEdge,
+    /// BoundField with the lowest position within the query (lowest edge)
     pub final_bound_field_id: BoundFieldId,
-    pub edge: ResponseEdge,
-    pub bound_field_ids: Vec<BoundFieldId>,
     pub subselection_set_ids: Vec<BoundSelectionSetId>,
 }
 
@@ -69,7 +72,6 @@ impl<'a> OperationWalker<'a> {
                 let group = map.entry(field_id).or_insert_with(|| GroupedByFieldId {
                     final_bound_field_id: id,
                     edge: bound_field.response_edge(),
-                    bound_field_ids: Vec::new(),
                     subselection_set_ids: Vec::new(),
                 });
                 let edge = bound_field.response_edge();
@@ -77,7 +79,6 @@ impl<'a> OperationWalker<'a> {
                     group.edge = edge;
                     group.final_bound_field_id = id
                 }
-                group.bound_field_ids.push(id);
                 if let Some(id) = bound_field.selection_set_id() {
                     group.subselection_set_ids.push(id)
                 }
