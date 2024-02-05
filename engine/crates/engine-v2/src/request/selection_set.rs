@@ -47,10 +47,12 @@ pub(crate) enum BoundSelection {
 pub enum BoundField {
     // Keeping attributes inside the enum to allow Rust to optimize the size of BoundField. We rarely
     // use the variants directly.
+    /// __typename field
     TypeName {
         bound_response_key: BoundResponseKey,
         location: Location,
     },
+    /// Corresponds to an actual field within the operation
     Field {
         bound_response_key: BoundResponseKey,
         location: Location,
@@ -58,18 +60,26 @@ pub enum BoundField {
         arguments_id: BoundFieldArgumentsId,
         selection_set_id: Option<BoundSelectionSetId>,
     },
+    /// Extra field added during planning to satisfy resolver/field requirements
     Extra {
         edge: ResponseEdge,
         field_id: FieldId,
         selection_set_id: Option<BoundSelectionSetId>,
-        /// During planning some fields may be initially added to satisfy requirements for a plan
-        /// that may never be finalized. So only those marked as read should be considered part of
-        /// the operation.
-        read: bool,
+        /// During the planning we may add more extra fields than necessary. To prevent retrieving
+        /// unecessary data, only those marked as read are part of the opeartion.
+        is_read: bool,
     },
 }
 
 impl BoundField {
+    pub fn query_position(&self) -> usize {
+        match self {
+            BoundField::TypeName { bound_response_key, .. } => bound_response_key.position(),
+            BoundField::Field { bound_response_key, .. } => bound_response_key.position(),
+            BoundField::Extra { .. } => usize::MAX,
+        }
+    }
+
     pub fn response_edge(&self) -> ResponseEdge {
         match self {
             BoundField::TypeName { bound_response_key, .. } => (*bound_response_key).into(),
@@ -112,7 +122,7 @@ impl BoundField {
         match self {
             BoundField::TypeName { .. } => {}
             BoundField::Field { .. } => {}
-            BoundField::Extra { read, .. } => *read = true,
+            BoundField::Extra { is_read, .. } => *is_read = true,
         }
     }
 
@@ -120,7 +130,7 @@ impl BoundField {
         match self {
             BoundField::TypeName { .. } => true,
             BoundField::Field { .. } => true,
-            BoundField::Extra { read, .. } => *read,
+            BoundField::Extra { is_read, .. } => *is_read,
         }
     }
 }

@@ -1,47 +1,47 @@
-/// Execution plans are responsible to retrieve a selection_set from a certain point in the query.
-///
-/// Supposing we have a query like this:
-/// ```graphql
-/// query {
-///     catalog {
-///         products {
-///             name
-///             price
-///         }
-///     }
-/// }
-/// ```
-///
-/// If `prices` comes from a different data source we would have two plans like:
-/// ```graphql
-/// # Catalog plan
-/// query {
-///     catalog {
-///         products {
-///             id
-///             name
-///         }
-///     }
-/// }
-/// ```
-///
-/// ```graphql
-/// # Price plan
-/// query {
-///      _entities(representations: [...]) {
-///         ... on Product {
-///             price
-///         }
-///     }
-/// }
-/// ```
-///
-/// Execution plans define what to do at runtime for a given query. They only depend on the
-/// operation and thus can be cached and do not depend on any context. On the other hand,
-/// Executors are context (variables, response, headers, etc.) depend and built from the execution plans
-///
-/// The executor for the catalog plan would have a single response object root and the price plan
-/// executor will have a root for each product in the response.
+//! Execution plans are responsible to retrieve a selection_set from a certain point in the query.
+//!
+//! Supposing we have a query like this:
+//! ```graphql
+//! query {
+//!     catalog {
+//!         products {
+//!             name
+//!             price
+//!         }
+//!     }
+//! }
+//! ```
+//!
+//! If `prices` comes from a different data source we would have two plans like:
+//! ```graphql
+//! # Catalog plan
+//! query {
+//!     catalog {
+//!         products {
+//!             id
+//!             name
+//!         }
+//!     }
+//! }
+//! ```
+//!
+//! ```graphql
+//! # Price plan
+//! query {
+//!      _entities(representations: [...]) {
+//!         ... on Product {
+//!             price
+//!         }
+//!     }
+//! }
+//! ```
+//!
+//! Execution plans define what to do at runtime for a given query. They only depend on the
+//! operation and thus can be cached and do not depend on any context. On the other hand,
+//! Executors are context (variables, response, headers, etc.) depend and built from the execution plans
+//!
+//! The executor for the catalog plan would have a single response object root and the price plan
+//! executor will have a root for each product in the response.
 use futures_util::stream::BoxStream;
 use schema::{Resolver, ResolverWalker};
 

@@ -14,10 +14,7 @@ pub enum AnyCollectedSelectionSet {
     Collected(CollectedSelectionSetId),
     Conditional(ConditionalSelectionSetId),
     /// Generated at runtime from conditional selection sets
-    RuntimeMergedConditionals {
-        ty: SelectionSetType,
-        selection_set_ids: Vec<ConditionalSelectionSetId>,
-    },
+    RuntimeMergedConditionals(RuntimeMergedConditionals),
     RuntimeCollected(Box<RuntimeCollectedSelectionSet>),
 }
 
@@ -25,7 +22,9 @@ pub enum AnyCollectedSelectionSet {
 /// the actual type before collecting the fields.
 #[derive(Debug, Clone)]
 pub struct ConditionalSelectionSet {
-    // needed to know where to look for __typename
+    /// During the traversing of the subgraph response, we'll need to determine the actual
+    /// object type to collect fields at runtime. For a subgraph that talks GraphQL it's obviously
+    /// just '__typename'. But it doesn't need to. Supposing this is an interface, we'll use the [[schema::Names::interface_discriminant_key]] to know which key we should search for the discriminant and use the associated [[schema::Names::concrete_object_id_from_interface_discriminant]] to determine the actual object id at runtime. The same applies for unions.
     pub ty: SelectionSetType,
     pub maybe_boundary_id: Option<PlanBoundaryId>,
     pub fields: IdRange<ConditionalFieldId>,
@@ -57,7 +56,7 @@ pub enum FieldType<SelectionSet = AnyCollectedSelectionSet> {
 pub struct CollectedSelectionSet {
     pub ty: SelectionSetType,
     pub maybe_boundary_id: Option<PlanBoundaryId>,
-    // sorted by expected key
+    // the fields we point to are sorted by their expected_key
     pub fields: IdRange<CollectedFieldId>,
     pub typename_fields: Vec<ResponseEdge>,
 }
@@ -80,4 +79,10 @@ pub struct RuntimeCollectedSelectionSet {
     // sorted by expected key
     pub fields: Vec<CollectedField>,
     pub typename_fields: Vec<ResponseEdge>,
+}
+
+#[derive(Debug)]
+pub struct RuntimeMergedConditionals {
+    pub ty: SelectionSetType,
+    pub selection_set_ids: Vec<ConditionalSelectionSetId>,
 }

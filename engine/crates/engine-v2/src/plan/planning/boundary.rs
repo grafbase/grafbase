@@ -3,16 +3,14 @@ use std::{borrow::Cow, collections::hash_map::Entry};
 use fnv::FnvHashMap;
 use schema::{FieldId, FieldResolverWalker, FieldSet, FieldSetItem, ResolverId, ResolverWalker};
 
-use super::{
-    attribution::AttributionLogic, planner::Planner, walker_ext::GroupedByFieldId, PlanningError, PlanningResult,
-};
+use super::{attribution::AttributionLogic, planner::Planner, PlanningError, PlanningResult};
 use crate::{
     plan::{ParentToChildEdge, PlanId},
     request::{
         BoundField, BoundFieldId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, EntityType, FlatField,
         FlatSelectionSet, QueryPath, SelectionSetType,
     },
-    response::{ReadField, ReadSelectionSet},
+    response::{ReadField, ReadSelectionSet, UnpackedResponseEdge},
 };
 
 /// The Planner traverses the selection sets to plan all the fields, but it doesn't define the
@@ -33,17 +31,14 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
         unplanned: FlatSelectionSet,
     ) -> PlanningResult<Vec<PlanId>> {
         if let Some(BoundaryParent { logic, providable }) = maybe_parent {
-            let mut boundary_fields = providable
-                .into_iter()
-                .map(|(field_id, group)| (field_id, BoundaryField::new(logic.plan_id(), group)))
-                .collect();
-            Self {
+            let boundary_planner = Self {
                 planner,
                 query_path,
                 maybe_parent: Some(logic),
                 children: Vec::new(),
-            }
-            .plan_selection_set(&mut boundary_fields, unplanned)
+            };
+            let mut boundary_fields = boundary_planner.create_boundary_fields(providable)?;
+            boundary_planner.plan_selection_set(&mut boundary_fields, unplanned)
         } else {
             Self {
                 planner,
@@ -54,11 +49,32 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
             .plan_selection_set(&mut BoundaryFields::default(), unplanned)
         }
     }
+
+    fn create_boundary_fields(&self, providable: FlatSelectionSet) -> PlanningResult<BoundaryFields> {
+        let grouped = self.walker().group_by_schema_field_id_sorted_by_query_position(
+            providable.into_iter().map(|field| field.bound_field_id),
+        );
+
+        let mut fields = BoundaryFields::default();
+        for (field_id, bound_field_ids) in grouped {
+            // It doesn't matter which one we take, all fields with the same field id
+            // will necessarily be resolved by the same plan.
+            let bound_field_id = bound_field_ids[0];
+
+            // At this stage we're generating boundary fields for an existing selection set which
+            // was already planned. By construction, as soon as we create a new plan with
+            // push_plan() it plans all of the nested selection sets.
+            // And for extra fields we add during planning, those are attributed immediately.
+            let plan_id = self.get_field_plan(bound_field_id).expect("field should be planned");
+            fields.insert(field_id, BoundaryField::new(plan_id, bound_field_ids));
+        }
+        Ok(fields)
+    }
 }
 
 pub(super) struct BoundaryParent<'schema, 'a> {
     pub logic: &'a AttributionLogic<'schema>,
-    pub providable: FnvHashMap<FieldId, GroupedByFieldId>,
+    pub providable: FlatSelectionSet,
 }
 
 impl<'schema, 'a> std::ops::Deref for BoundaryPlanner<'schema, 'a> {
@@ -82,19 +98,15 @@ type BoundaryFields = FnvHashMap<FieldId, BoundaryField>;
 #[derive(Debug)]
 struct BoundaryField {
     plan_id: PlanId,
-    /// BoundaryField with the lowest position (lowest edge) within the query
-    /// for a give FieldId
-    final_bound_field_id: BoundFieldId,
-    subselection_set_ids: Vec<BoundSelectionSetId>,
+    bound_field_ids: Vec<BoundFieldId>,
     lazy_subselection: Option<BoundaryFields>,
 }
 
 impl BoundaryField {
-    fn new(plan_id: PlanId, group: GroupedByFieldId) -> Self {
+    pub(super) fn new(plan_id: PlanId, bound_field_ids: Vec<BoundFieldId>) -> Self {
         Self {
             plan_id,
-            final_bound_field_id: group.final_bound_field_id,
-            subselection_set_ids: group.subselection_set_ids,
+            bound_field_ids,
             lazy_subselection: None,
         }
     }
@@ -142,17 +154,14 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
     ) -> PlanningResult<Vec<PlanId>> {
         // Fields that couldn't be provided by the parent and that have yet to be planned by one
         // child plan.
-        let mut id_to_unplanned_fields: FnvHashMap<BoundFieldId, UnplannedField<'schema>> = self
-            .build_unplanned_fields(std::mem::replace(
-                &mut unplanned_selection_set.fields,
-                Vec::with_capacity(0),
-            ));
+        let mut id_to_unplanned_fields: FnvHashMap<BoundFieldId, UnplannedField<'schema>> =
+            self.build_unplanned_fields(std::mem::take(&mut unplanned_selection_set.fields));
 
         // Actual planning, we plan one child plan at a time.
         let mut candidates: FnvHashMap<ResolverId, ChildPlanCandidate<'schema>> = FnvHashMap::default();
         while !id_to_unplanned_fields.is_empty() {
             candidates.clear();
-            self.generate_all_candidates(id_to_unplanned_fields.values(), boundary_fields, &mut candidates);
+            self.generate_all_candidates(id_to_unplanned_fields.values(), boundary_fields, &mut candidates)?;
 
             let Some(candidate) = select_best_child_plan(&mut candidates) else {
                 let walker = self.walker();
@@ -185,21 +194,24 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
         &mut self,
         candidate: &mut ChildPlanCandidate<'schema>,
         requires: Cow<'_, FieldSet>,
-        selection_set: FlatSelectionSet,
+        providable: FlatSelectionSet,
         boundary_fields: &mut BoundaryFields,
     ) -> PlanningResult<()> {
-        let grouped_by_schema_field_id = self.walker().group_by_schema_field_id(&selection_set);
         let path = self.query_path.clone();
-        let plan_id = self.push_plan(path, candidate.resolver_id, candidate.entity_type, selection_set)?;
+        let plan_id = self.push_plan(path, candidate.resolver_id, candidate.entity_type, &providable)?;
         if !requires.is_empty() {
             let resolver = self.schema.walker().walk(candidate.resolver_id).with_own_names();
             let input_selection_set = self.create_input_selection_set(plan_id, &resolver, &requires, boundary_fields);
             self.insert_plan_input_selection_set(plan_id, input_selection_set);
         };
-        for (field_id, group) in grouped_by_schema_field_id {
+        let bound_field_ids_grouped_by_schema_field_id =
+            self.walker().group_by_schema_field_id_sorted_by_query_position(
+                providable.fields.iter().map(|field| field.bound_field_id),
+            );
+        for (field_id, bound_field_ids) in bound_field_ids_grouped_by_schema_field_id {
             boundary_fields
                 .entry(field_id)
-                .or_insert_with(|| BoundaryField::new(plan_id, group));
+                .or_insert_with(|| BoundaryField::new(plan_id, bound_field_ids));
         }
 
         self.children.push(plan_id);
@@ -226,15 +238,16 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
                 let boundary_field = boundary_fields
                     .get(&item.field_id)
                     .expect("field should be present, we could plan it");
+                let bound_field_id = boundary_field.bound_field_ids[0];
                 // We add a bunch of fields during the planning to the operation when trying to
                 // satisfy requirements. But only those marked as read will be retrieved.
-                self.operation[boundary_field.final_bound_field_id].mark_as_read();
-                let parent = self
-                    .get_field_plan(boundary_field.final_bound_field_id)
-                    .expect("Plan for a field we required should have been determined");
-                self.insert_plan_dependency(ParentToChildEdge { parent, child: plan_id });
+                self.operation[bound_field_id].mark_as_read();
+                self.insert_plan_dependency(ParentToChildEdge {
+                    parent: boundary_field.plan_id,
+                    child: plan_id,
+                });
                 ReadField {
-                    edge: self.operation[boundary_field.final_bound_field_id].response_edge(),
+                    edge: self.operation[bound_field_id].response_edge(),
                     name: resolver.walk(item.field_id).name().to_string(),
                     subselection: if item.subselection.is_empty() {
                         ReadSelectionSet::default()
@@ -280,7 +293,8 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
         unplanned_fields: impl IntoIterator<Item = &'field UnplannedField<'schema>>,
         boundary_fields: &mut BoundaryFields,
         candidates: &mut FnvHashMap<ResolverId, ChildPlanCandidate<'schema>>,
-    ) where
+    ) -> PlanningResult<()>
+    where
         'schema: 'field,
     {
         for field in unplanned_fields {
@@ -292,13 +306,13 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
                 match candidates.entry(resolver.id()) {
                     Entry::Occupied(mut entry) => {
                         let candidate = entry.get_mut();
-                        if self.could_plan_requirements(boundary_fields, field.bound_field_id, field_requires) {
+                        if self.could_plan_requirements(boundary_fields, field.bound_field_id, field_requires)? {
                             candidate.providable_fields.push((field.bound_field_id, field_requires));
                         }
                     }
                     Entry::Vacant(entry) => {
-                        if self.could_plan_requirements(boundary_fields, field.bound_field_id, &resolver.requires())
-                            && self.could_plan_requirements(boundary_fields, field.bound_field_id, field_requires)
+                        if self.could_plan_requirements(boundary_fields, field.bound_field_id, &resolver.requires())?
+                            && self.could_plan_requirements(boundary_fields, field.bound_field_id, field_requires)?
                         {
                             entry.insert(ChildPlanCandidate {
                                 entity_type: field.entity_type,
@@ -310,6 +324,7 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
                 }
             }
         }
+        Ok(())
     }
 
     /// Allows us to know whether a field requirements can be provided at all to order the next child
@@ -319,9 +334,9 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
         boundary_fields: &mut BoundaryFields,
         origin_bound_field_id: BoundFieldId,
         requires: &FieldSet,
-    ) -> bool {
+    ) -> PlanningResult<bool> {
         if requires.is_empty() {
-            return true;
+            return Ok(true);
         }
         let parent_field_plan_id = self
             .maybe_parent
@@ -341,9 +356,9 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
         boundary_fields: &mut BoundaryFields,
         origin_bound_field_id: BoundFieldId,
         requires: &FieldSet,
-    ) -> bool {
+    ) -> PlanningResult<bool> {
         if requires.is_empty() {
-            return true;
+            return Ok(true);
         }
         let parent_selection_set_id = self.operation.parent_selection_set_id(origin_bound_field_id);
         'requires: for item in requires {
@@ -353,30 +368,24 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
                     continue;
                 }
                 if boundary_field.lazy_subselection.is_none() {
-                    let walker = self.walker();
-                    let flat_selection_set = walker.flatten_selection_sets(boundary_field.subselection_set_ids.clone());
-                    let fields = walker
-                        .group_by_schema_field_id(&flat_selection_set)
-                        .into_iter()
-                        .map(|(field_id, group)| {
-                            let plan_id = self
-                                .get_field_plan(group.final_bound_field_id)
-                                .expect("Nested fields should already have been planned");
-                            let boundary_field = BoundaryField::new(plan_id, group);
-                            (field_id, boundary_field)
-                        })
+                    let subselection_set_ids = boundary_field
+                        .bound_field_ids
+                        .iter()
+                        .filter_map(|id| self.operation[*id].selection_set_id())
                         .collect();
+                    let flat_selection_set = self.walker().flatten_selection_sets(subselection_set_ids);
+                    let fields = self.create_boundary_fields(flat_selection_set)?;
                     boundary_field.lazy_subselection = Some(fields)
                 }
                 if self.could_plan_requirements_on_previous_plans(
                     boundary_field.plan_id,
                     boundary_field.lazy_subselection.as_mut().unwrap(),
-                    boundary_field.final_bound_field_id,
+                    boundary_field.bound_field_ids[0],
                     &item.subselection,
-                ) {
+                )? {
                     continue;
                 } else {
-                    return false;
+                    return Ok(false);
                 }
             }
 
@@ -417,7 +426,7 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
                             boundary_fields,
                             origin_bound_field_id,
                             field_requires,
-                        )
+                        )?
                     {
                         let logic = &AttributionLogic::CompatibleResolver {
                             plan_id,
@@ -437,14 +446,11 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
                 }
             }
 
-            // -- Add new child plan --
-            // eventually?
-
             // -- Not plannable --
-            return false;
+            return Ok(false);
         }
 
-        true
+        Ok(true)
     }
 
     fn try_planning_boundary_field(
@@ -456,8 +462,7 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
         self.try_planning_extra_fields_with_subselection(logic, Some(parent_selection_set_id), item)
             .map(|bound_field_id| BoundaryField {
                 plan_id: logic.plan_id(),
-                final_bound_field_id: bound_field_id,
-                subselection_set_ids: self.operation[bound_field_id].selection_set_id().into_iter().collect(),
+                bound_field_ids: vec![bound_field_id],
                 lazy_subselection: None,
             })
     }
@@ -502,11 +507,12 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
             self.schema.walker().walk(item.field_id).name(),
             logic.plan_id()
         );
+        let key = self.generate_unique_response_key_for(item.field_id);
         let bound_field = BoundField::Extra {
-            edge: self.generate_unique_edge_for(item.field_id),
+            edge: UnpackedResponseEdge::ExtraField(key).pack(),
             field_id: item.field_id,
             selection_set_id,
-            read: false,
+            is_read: true,
         };
         Some(self.push_extra_field(logic.plan_id(), parent_selection_set_id, bound_field))
     }

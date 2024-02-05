@@ -38,11 +38,10 @@ impl PreparedGraphqlOperation {
 
         let mut query = String::new();
         match plan.operation().as_ref().ty {
-            OperationType::Query => write!(query, "query ")?,
-            OperationType::Mutation => write!(query, "mutation ")?,
-            OperationType::Subscription => write!(query, "subscription ")?,
+            OperationType::Query => write!(query, "query")?,
+            OperationType::Mutation => write!(query, "mutation")?,
+            OperationType::Subscription => write!(query, "subscription")?,
         };
-        query.push_str(&QueryBuilder::operation_name(plan));
 
         if !builder.variable_references.is_empty() {
             query.push('(');
@@ -113,8 +112,7 @@ impl<'a> serde::Serialize for OutboundVariables<'a> {
 impl PreparedFederationEntityOperation {
     pub(super) fn build(plan: PlanWalker<'_>) -> Result<Self, Error> {
         let mut builder = QueryBuilder::default();
-        let mut query = String::from("query ");
-        query.push_str(&QueryBuilder::operation_name(plan));
+        let mut query = String::from("query");
 
         let selection_set = {
             let mut buffer = Buffer::default();
@@ -156,16 +154,6 @@ pub struct QueryBuilder {
 }
 
 impl QueryBuilder {
-    fn operation_name(plan: PlanWalker<'_>) -> String {
-        let plan_id = plan.id();
-        plan.operation()
-            .as_ref()
-            .name
-            .as_ref()
-            .map(|name| format!("{name}_Plan{plan_id}"))
-            .unwrap_or_else(|| format!("Plan{plan_id}"))
-    }
-
     fn write_operation_arguments_without_parenthesis(&self, plan: PlanWalker<'_>, out: &mut String) {
         out.push_str(&format!(
             "{}",

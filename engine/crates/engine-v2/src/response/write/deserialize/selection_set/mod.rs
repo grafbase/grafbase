@@ -13,7 +13,7 @@ use self::runtime_concrete::RuntimeConcreteCollectionSetSeed;
 
 use super::SeedContextInner;
 use crate::{
-    plan::AnyCollectedSelectionSet,
+    plan::{AnyCollectedSelectionSet, RuntimeMergedConditionals},
     request::SelectionSetType,
     response::{ResponsePath, ResponseValue},
 };
@@ -45,15 +45,16 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for SelectionSetSeed<'ctx, 'parent
                 selection_set_ids: Cow::Owned(vec![id]),
             }
             .deserialize(deserializer),
-            AnyCollectedSelectionSet::RuntimeMergedConditionals { ty, selection_set_ids } => {
-                ConditionalSelectionSetSeed {
-                    ctx: self.ctx,
-                    path: self.path,
-                    ty: *ty,
-                    selection_set_ids: Cow::Borrowed(selection_set_ids),
-                }
-                .deserialize(deserializer)
+            AnyCollectedSelectionSet::RuntimeMergedConditionals(RuntimeMergedConditionals {
+                ty,
+                selection_set_ids,
+            }) => ConditionalSelectionSetSeed {
+                ctx: self.ctx,
+                path: self.path,
+                ty: *ty,
+                selection_set_ids: Cow::Borrowed(selection_set_ids),
             }
+            .deserialize(deserializer),
             AnyCollectedSelectionSet::RuntimeCollected(selection_set) => RuntimeConcreteCollectionSetSeed {
                 ctx: self.ctx,
                 path: self.path,

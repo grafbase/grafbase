@@ -113,11 +113,14 @@ impl<'a> serde::Serialize for SerializableResponsePath<'a> {
         for edge in self.path.iter() {
             match edge.unpack() {
                 UnpackedResponseEdge::Index(index) => seq.serialize_element(&index)?,
+                // for requrest errors, keys will be empty. There shouldn't be any path within
+                // those errors to begin with, but just in case better to output somthing than
+                // crashing.
                 UnpackedResponseEdge::BoundResponseKey(key) => {
-                    seq.serialize_element(&self.keys.try_resolve(key.into()).unwrap_or("???"))?
+                    seq.serialize_element(&self.keys.try_resolve(key.into()).unwrap_or("<unknown>"))?
                 }
                 UnpackedResponseEdge::ExtraField(key) => {
-                    seq.serialize_element(&self.keys.try_resolve(key).unwrap_or("???"))?
+                    seq.serialize_element(&self.keys.try_resolve(key).unwrap_or("<unknown>"))?
                 }
             }
         }

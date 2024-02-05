@@ -1,17 +1,14 @@
 use std::{borrow::Cow, collections::VecDeque, fmt};
 
-use fnv::FnvHashMap;
-use schema::{DataType, FieldId, ObjectId, Schema};
+use schema::ObjectId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::{
-    plan::{
-        AnyCollectedSelectionSet, CollectedField, ConditionalSelectionSetId, FieldType, RuntimeCollectedSelectionSet,
-    },
-    request::{BoundFieldId, FlatTypeCondition, SelectionSetType},
+    plan::ConditionalSelectionSetId,
+    request::SelectionSetType,
     response::{
         write::deserialize::{key::Key, SeedContextInner},
-        ResponseEdge, ResponseKey, ResponsePath, ResponseValue,
+        ResponsePath, ResponseValue,
     },
 };
 
@@ -84,28 +81,12 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for ConditionalSelectionSetSeed<'ctx, 'par
     }
 }
 
-struct GroupForResponseKey {
-    edge: ResponseEdge,
-    bound_field_id: BoundFieldId,
-    expected_key: ResponseKey,
-    schema_field_id: FieldId,
-    ty: ExpectedTypeCollector<ConditionalSelectionSetId>,
-}
-
-enum ExpectedTypeCollector<Id> {
-    Scalar(DataType),
-    SelectionSet {
-        ty: SelectionSetType,
-        selection_set_ids: Vec<Id>,
-    },
-}
-
 impl<'ctx, 'parent> ConditionalSelectionSetSeed<'ctx, 'parent> {
     fn deserialize_concrete_object<'de, A>(self, object_id: ObjectId, map: A) -> Result<ResponseValue, A::Error>
     where
         A: MapAccess<'de>,
     {
-        let selection_set = &self.collect_fields(object_id, &self.selection_set_ids);
+        let selection_set = &self.ctx.plan.collect_fields(object_id, &self.selection_set_ids);
         RuntimeConcreteCollectionSetSeed {
             path: self.path,
             ctx: self.ctx,
@@ -113,124 +94,6 @@ impl<'ctx, 'parent> ConditionalSelectionSetSeed<'ctx, 'parent> {
         }
         .visit_map(map)
     }
-
-    fn collect_fields(
-        &self,
-        object_id: ObjectId,
-        selection_sets: &[ConditionalSelectionSetId],
-    ) -> RuntimeCollectedSelectionSet {
-        let plan = self.ctx.plan;
-        let schema = plan.schema();
-        let mut fields = FnvHashMap::<ResponseKey, GroupForResponseKey>::default();
-        let mut typename_fields = FnvHashMap::<ResponseKey, ResponseEdge>::default();
-
-        for selection_set_id in selection_sets {
-            let selection_set = &plan[*selection_set_id];
-            for (type_condition, edge) in &selection_set.typename_fields {
-                if !does_type_condition_apply(&schema, type_condition, object_id) {
-                    continue;
-                }
-                typename_fields.entry(edge.as_response_key().unwrap()).or_insert(*edge);
-            }
-            for field in &plan[selection_set.fields] {
-                if !does_type_condition_apply(&schema, &field.type_condition, object_id) {
-                    continue;
-                }
-                fields
-                    .entry(field.edge.as_response_key().unwrap())
-                    .and_modify(|group| {
-                        // All other cases should have been catched during validation,
-                        // inconsistent field types aren't allowed.
-                        if let FieldType::SelectionSet(id) = &field.ty {
-                            if let ExpectedTypeCollector::SelectionSet {
-                                ref mut selection_set_ids,
-                                ..
-                            } = group.ty
-                            {
-                                selection_set_ids.push(*id);
-                            }
-                        }
-                        if field.edge < group.edge {
-                            group.edge = field.edge;
-                        }
-                    })
-                    .or_insert_with(|| GroupForResponseKey {
-                        edge: field.edge,
-                        bound_field_id: field.bound_field_id,
-                        expected_key: field.expected_key,
-                        schema_field_id: field.schema_field_id,
-                        ty: match field.ty {
-                            FieldType::Scalar(data_type) => ExpectedTypeCollector::Scalar(data_type),
-                            FieldType::SelectionSet(id) => ExpectedTypeCollector::SelectionSet {
-                                ty: SelectionSetType::maybe_from(schema.walk(field.schema_field_id).ty().inner().id())
-                                    .unwrap(),
-                                selection_set_ids: vec![id],
-                            },
-                        },
-                    });
-            }
-        }
-        let mut fields = fields
-            .into_values()
-            .map(
-                |GroupForResponseKey {
-                     edge,
-                     bound_field_id,
-                     expected_key,
-                     schema_field_id,
-                     ty,
-                 }| {
-                    let ty = match ty {
-                        ExpectedTypeCollector::Scalar(data_type) => FieldType::Scalar(data_type),
-                        ExpectedTypeCollector::SelectionSet { ty, selection_set_ids } => {
-                            self.merge_selection_sets(ty, selection_set_ids)
-                        }
-                    };
-                    let wrapping = schema.walk(schema_field_id).ty().wrapping().clone();
-                    CollectedField {
-                        edge,
-                        expected_key,
-                        ty,
-                        bound_field_id,
-                        schema_field_id,
-                        wrapping,
-                    }
-                },
-            )
-            .collect::<Vec<_>>();
-        let keys = plan.response_keys();
-        fields.sort_unstable_by(|a, b| keys[a.expected_key].cmp(&keys[b.expected_key]));
-        RuntimeCollectedSelectionSet {
-            ty: SelectionSetType::Object(object_id),
-            boundary_ids: selection_sets
-                .iter()
-                .filter_map(|id| plan[*id].maybe_boundary_id)
-                .collect(),
-            fields,
-            typename_fields: typename_fields.into_values().collect(),
-        }
-    }
-
-    fn merge_selection_sets(
-        &self,
-        ty: SelectionSetType,
-        selection_set_ids: Vec<ConditionalSelectionSetId>,
-    ) -> FieldType {
-        if let SelectionSetType::Object(object_id) = ty {
-            FieldType::SelectionSet(AnyCollectedSelectionSet::RuntimeCollected(Box::new(
-                self.collect_fields(object_id, &selection_set_ids),
-            )))
-        } else {
-            FieldType::SelectionSet(AnyCollectedSelectionSet::RuntimeMergedConditionals { ty, selection_set_ids })
-        }
-    }
-}
-
-fn does_type_condition_apply(schema: &Schema, type_condition: &Option<FlatTypeCondition>, object_id: ObjectId) -> bool {
-    type_condition
-        .as_ref()
-        .map(|cond| cond.matches(schema, object_id))
-        .unwrap_or(true)
 }
 
 struct ChainedMapAcces<'de, A> {

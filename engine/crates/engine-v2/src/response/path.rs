@@ -197,6 +197,12 @@ impl ResponseKey {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BoundResponseKey(u32);
 
+impl BoundResponseKey {
+    pub(crate) fn position(self) -> usize {
+        (self.0 & POSITION_MASK) as usize >> POSITION_BIT_SHIFT
+    }
+}
+
 impl std::fmt::Debug for BoundResponseKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let position = (self.0 & POSITION_MASK) >> POSITION_BIT_SHIFT;

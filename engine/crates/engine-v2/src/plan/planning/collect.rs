@@ -54,7 +54,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
                 .map(|id| self.walker().walk(*id).response_key_str())
                 .join(", ")
         );
-        self.collect_concrete_selection_set(ty, fields, None)
+        self.collect_fields(ty, fields, None)
     }
 
     fn find_root_fields(&self, root_selection_set_ids: Vec<BoundSelectionSetId>) -> Vec<BoundFieldId> {
@@ -130,33 +130,36 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         //   `animal { ... on Dog { name } }` would have a single condition, but we may still see
         //   cat objects. A ConcreteSelectionSet would require `name`.
         if concrete_parent && !too_complex && conditions.len() == 1 && conditions.contains(&None) {
-            self.collect_concrete_selection_set(
+            self.collect_fields(
                 selection_set.ty,
                 plan_fields.into_iter().map(|field| field.bound_field_id).collect(),
                 maybe_boundary_id,
             )
             .map(AnyCollectedSelectionSet::Collected)
         } else {
-            self.create_conditional_selection_set(selection_set.ty, plan_fields, maybe_boundary_id)
+            self.collected_conditional_fields(selection_set.ty, plan_fields, maybe_boundary_id)
                 .map(AnyCollectedSelectionSet::Conditional)
         }
     }
 
-    fn collect_concrete_selection_set(
+    fn collect_fields(
         &mut self,
         ty: SelectionSetType,
         fields: Vec<BoundFieldId>,
         maybe_boundary_id: Option<PlanBoundaryId>,
     ) -> PlanningResult<CollectedSelectionSetId> {
-        let grouped_by_response_key = self.walker().group_by_response_key(fields).into_values();
+        let grouped_by_response_key = self
+            .walker()
+            .group_by_response_key_sorted_by_query_position(fields)
+            .into_values();
 
         let mut fields = vec![];
         let mut typename_fields = vec![];
-        for group in grouped_by_response_key {
-            let bound_field_id = group.final_bound_field_id;
+        for bound_field_ids in grouped_by_response_key {
+            let bound_field_id: BoundFieldId = bound_field_ids[0];
             let bound_field = self.operation[bound_field_id].clone();
-            if let Some(field_id) = bound_field.schema_field_id() {
-                let schema_field = self.schema.walk(field_id);
+            if let Some(schema_field_id) = bound_field.schema_field_id() {
+                let schema_field = self.schema.walk(schema_field_id);
                 let expected_key = if self.support_aliases {
                     bound_field.response_key()
                 } else {
@@ -167,13 +170,19 @@ impl<'schema, 'a> Collector<'schema, 'a> {
                 };
                 let ty = match schema_field.ty().inner().data_type() {
                     Some(data_type) => FieldType::Scalar(data_type),
-                    None => FieldType::SelectionSet(self.collect_selection_set(group.subselection_set_ids, true)?),
+                    None => {
+                        let subselection_set_ids = bound_field_ids
+                            .into_iter()
+                            .filter_map(|id| self.operation[id].selection_set_id())
+                            .collect();
+                        FieldType::SelectionSet(self.collect_selection_set(subselection_set_ids, true)?)
+                    }
                 };
                 fields.push(CollectedField {
                     expected_key,
                     edge: bound_field.response_edge(),
                     bound_field_id,
-                    schema_field_id: field_id,
+                    schema_field_id,
                     wrapping: schema_field.ty().wrapping().clone(),
                     ty,
                 });
@@ -185,8 +194,8 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         // Sorting by expected_key for deserialization
         let keys = &self.operation.response_keys;
         fields.sort_unstable_by(|a, b| keys[a.expected_key].cmp(&keys[b.expected_key]));
-        let fields = self.push_concrete_fields(fields);
-        Ok(self.push_concrete_selection_set(CollectedSelectionSet {
+        let fields = self.push_collecteded_fields(fields);
+        Ok(self.push_collected_selection_set(CollectedSelectionSet {
             ty,
             maybe_boundary_id,
             fields,
@@ -194,7 +203,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         }))
     }
 
-    fn create_conditional_selection_set(
+    fn collected_conditional_fields(
         &mut self,
         ty: SelectionSetType,
         fields: Vec<FlatField>,
@@ -239,8 +248,8 @@ impl<'schema, 'a> Collector<'schema, 'a> {
             }
         }
 
-        let fields = self.push_provisional_fields(conditional_fields);
-        Ok(self.push_provisional_selection_set(ConditionalSelectionSet {
+        let fields = self.push_conditional_fields(conditional_fields);
+        Ok(self.push_conditional_selection_set(ConditionalSelectionSet {
             ty,
             maybe_boundary_id,
             fields,
@@ -248,13 +257,13 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         }))
     }
 
-    fn push_provisional_selection_set(&mut self, selection_set: ConditionalSelectionSet) -> ConditionalSelectionSetId {
+    fn push_conditional_selection_set(&mut self, selection_set: ConditionalSelectionSet) -> ConditionalSelectionSetId {
         let id = ConditionalSelectionSetId::from(self.operation.conditional_selection_sets.len());
         self.operation.conditional_selection_sets.push(selection_set);
         id
     }
 
-    fn push_provisional_fields(&mut self, fields: Vec<ConditionalField>) -> IdRange<ConditionalFieldId> {
+    fn push_conditional_fields(&mut self, fields: Vec<ConditionalField>) -> IdRange<ConditionalFieldId> {
         // Can be empty when only __typename fields are present.
         if fields.is_empty() {
             return IdRange::empty();
@@ -267,13 +276,13 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         }
     }
 
-    fn push_concrete_selection_set(&mut self, selection_set: CollectedSelectionSet) -> CollectedSelectionSetId {
+    fn push_collected_selection_set(&mut self, selection_set: CollectedSelectionSet) -> CollectedSelectionSetId {
         let id = CollectedSelectionSetId::from(self.operation.collected_selection_sets.len());
         self.operation.collected_selection_sets.push(selection_set);
         id
     }
 
-    fn push_concrete_fields(&mut self, fields: Vec<CollectedField>) -> IdRange<CollectedFieldId> {
+    fn push_collecteded_fields(&mut self, fields: Vec<CollectedField>) -> IdRange<CollectedFieldId> {
         // Can be empty when only __typename fields are present.
         if fields.is_empty() {
             return IdRange::empty();

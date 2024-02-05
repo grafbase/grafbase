@@ -1,89 +1,50 @@
 use schema::FieldId;
-use std::borrow::Borrow;
 
 use fnv::FnvHashMap;
 
 use crate::{
-    request::{BoundFieldId, BoundSelectionSetId, OperationWalker},
-    response::{ResponseEdge, ResponseKey},
+    request::{BoundFieldId, OperationWalker},
+    response::ResponseKey,
 };
 
-#[derive(Debug)]
-pub(super) struct GroupForResponseKey<Item> {
-    /// edge of final_bound_field_id, present for convenience during grouping
-    edge: ResponseEdge,
-    /// BoundField with the lowest position within the query (lowest edge)
-    pub final_bound_field_id: BoundFieldId,
-    pub items: Vec<Item>,
-    pub subselection_set_ids: Vec<BoundSelectionSetId>,
-}
-
 impl<'a> OperationWalker<'a> {
-    pub(super) fn group_by_response_key<Item: Borrow<BoundFieldId>>(
+    /// Sorting is used to ensure we always pick the BoundFieldId with the lowest query position.
+    pub(super) fn group_by_response_key_sorted_by_query_position(
         &self,
-        items: impl IntoIterator<Item = Item>,
-    ) -> FnvHashMap<ResponseKey, GroupForResponseKey<Item>> {
+        values: impl IntoIterator<Item = BoundFieldId>,
+    ) -> FnvHashMap<ResponseKey, Vec<BoundFieldId>> {
         let operation = self.as_ref();
-        items.into_iter().fold(Default::default(), |mut groups, item| {
-            let id = *item.borrow();
-            let field = &operation[id];
-            let edge = field.response_edge();
-            let group = groups
-                .entry(field.response_key())
-                .or_insert_with(|| GroupForResponseKey {
-                    edge,
-                    final_bound_field_id: id,
-                    items: Vec::new(),
-                    subselection_set_ids: Vec::new(),
-                });
-            if edge < group.edge {
-                group.edge = edge;
-                group.final_bound_field_id = id;
-            }
-            group.items.push(item);
-            if let Some(id) = operation[id].selection_set_id() {
-                group.subselection_set_ids.push(id);
-            }
-
-            groups
-        })
+        let mut grouped: FnvHashMap<ResponseKey, Vec<BoundFieldId>> =
+            values.into_iter().fold(Default::default(), |mut groups, id| {
+                let field = &operation[id];
+                groups.entry(field.response_key()).or_default().push(id);
+                groups
+            });
+        for group in grouped.values_mut() {
+            group.sort_unstable_by_key(|id| operation[*id].query_position())
+        }
+        grouped
     }
 }
 
-#[derive(Debug)]
-pub(super) struct GroupedByFieldId {
-    /// edge of final_bound_field_id, present for convenience during grouping
-    edge: ResponseEdge,
-    /// BoundField with the lowest position within the query (lowest edge)
-    pub final_bound_field_id: BoundFieldId,
-    pub subselection_set_ids: Vec<BoundSelectionSetId>,
-}
-
 impl<'a> OperationWalker<'a> {
-    pub(super) fn group_by_schema_field_id<Item: Borrow<BoundFieldId>>(
+    /// Sorting is used to ensure we always pick the BoundFieldId with the lowest query position.
+    pub(super) fn group_by_schema_field_id_sorted_by_query_position(
         &self,
-        fields: impl IntoIterator<Item = Item>,
-    ) -> FnvHashMap<FieldId, GroupedByFieldId> {
+        values: impl IntoIterator<Item = BoundFieldId>,
+    ) -> FnvHashMap<FieldId, Vec<BoundFieldId>> {
         let operation = self.as_ref();
-        fields.into_iter().fold(Default::default(), |mut map, id| {
-            let id = *id.borrow();
-            let bound_field = &operation[id];
-            if let Some(field_id) = bound_field.schema_field_id() {
-                let group = map.entry(field_id).or_insert_with(|| GroupedByFieldId {
-                    final_bound_field_id: id,
-                    edge: bound_field.response_edge(),
-                    subselection_set_ids: Vec::new(),
-                });
-                let edge = bound_field.response_edge();
-                if edge < group.edge {
-                    group.edge = edge;
-                    group.final_bound_field_id = id
+        let mut grouped: FnvHashMap<FieldId, Vec<BoundFieldId>> =
+            values.into_iter().fold(Default::default(), |mut groups, id| {
+                let bound_field = &operation[id];
+                if let Some(field_id) = bound_field.schema_field_id() {
+                    groups.entry(field_id).or_default().push(id);
                 }
-                if let Some(id) = bound_field.selection_set_id() {
-                    group.subselection_set_ids.push(id)
-                }
-            }
-            map
-        })
+                groups
+            });
+        for group in grouped.values_mut() {
+            group.sort_unstable_by_key(|id| operation[*id].query_position())
+        }
+        grouped
     }
 }
