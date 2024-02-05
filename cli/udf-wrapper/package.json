@@ -12,6 +12,6 @@
     "@miniflare/storage-memory": "^2.14.1"
   },
   "scripts": {
-    "build": "bun build index.ts --external=\"\\${UDF_MAIN_FILE_PATH}\" --target=bun > dist.js"
+    "build": "bun build index.ts --external=\"\\${UDF_MAIN_FILE_PATH}\" --minify --target=bun > dist.js"
   }
 }
