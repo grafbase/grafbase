@@ -1,8 +1,9 @@
-use federated_graph::v1::FederatedGraphV1;
+use federated_graph::{v1::FederatedGraphV1, FederatedGraph};
 
 // The specific version modules should be kept private, users of this crate
 // should only access types via `latest`
 mod v2;
+mod v3;
 
 /// The latest version of the configuration.
 ///
@@ -10,7 +11,7 @@ mod v2;
 /// of older versions isolated in this crate.
 pub mod latest {
     // If you introduce a new version you should update this export to the latest
-    pub use super::v2::*;
+    pub use super::v3::*;
 }
 
 /// Configuration for engine-v2
@@ -26,13 +27,15 @@ pub enum VersionedConfig {
     V1(FederatedGraphV1),
     /// V2 introduced some other configuration concerns
     V2(v2::Config),
+    /// V3 is like V2 but with FederatedGraphV2
+    V3(v3::Config),
 }
 
 impl VersionedConfig {
     /// Converts a config of any version into whatever the latest version is.
     pub fn into_latest(self) -> latest::Config {
         match self {
-            VersionedConfig::V1(graph) => v2::Config {
+            VersionedConfig::V1(graph) => VersionedConfig::V2(v2::Config {
                 graph,
                 strings: Default::default(),
                 headers: Default::default(),
@@ -41,8 +44,31 @@ impl VersionedConfig {
                 cache: Default::default(),
                 auth: None,
                 operation_limits: Default::default(),
-            },
-            VersionedConfig::V2(latest) => latest,
+            })
+            .into_latest(),
+
+            VersionedConfig::V2(v2::Config {
+                graph,
+                strings,
+                headers,
+                default_headers,
+                subgraph_configs,
+                cache,
+                auth,
+                operation_limits,
+            }) => VersionedConfig::V3(v3::Config {
+                graph: FederatedGraph::V1(graph).into_latest(),
+                strings,
+                headers,
+                default_headers,
+                subgraph_configs,
+                cache,
+                auth,
+                operation_limits,
+            })
+            .into_latest(),
+
+            VersionedConfig::V3(latest) => latest,
         }
     }
 }

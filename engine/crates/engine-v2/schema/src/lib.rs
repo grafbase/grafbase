@@ -43,6 +43,8 @@ pub struct Schema {
     types: Vec<Type>,
     // All definitions sorted by their name (actual string)
     definitions: Vec<Definition>,
+    directives: Vec<Directive>,
+    enum_values: Vec<EnumValue>,
 
     /// All strings deduplicated.
     strings: Vec<String>,
@@ -126,9 +128,11 @@ pub struct Object {
     pub description: Option<StringId>,
     pub interfaces: Vec<InterfaceId>,
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
     pub cache_config: Option<CacheConfigId>,
 }
+
+pub type Directives = (DirectiveId, usize);
 
 #[derive(PartialOrd, Ord, PartialEq, Eq)]
 pub struct ObjectField {
@@ -145,7 +149,7 @@ pub struct Field {
     pub is_deprecated: bool,
     pub deprecation_reason: Option<StringId>,
     provides: Vec<FieldProvides>,
-    pub arguments: Vec<InputValueId>,
+    pub arguments: InputValueDefinitions,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Vec<Directive>,
@@ -244,7 +248,7 @@ pub struct Interface {
     pub possible_types: Vec<ObjectId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
 
 #[derive(Debug)]
@@ -260,7 +264,7 @@ pub struct Enum {
     pub values: Vec<EnumValue>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
 
 #[derive(Debug)]
@@ -271,7 +275,7 @@ pub struct EnumValue {
     pub deprecation_reason: Option<StringId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
 
 #[derive(Debug)]

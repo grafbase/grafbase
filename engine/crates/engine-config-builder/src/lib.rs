@@ -10,16 +10,14 @@ use engine_v2_config::{
     latest::{self as config, Header, HeaderId},
     VersionedConfig,
 };
-use federated_graph::{v1::FederatedGraphV1, FederatedGraph, FieldId, ObjectId, SubgraphId};
+use federated_graph::{FederatedGraph, FederatedGraphV2, FieldId, ObjectId, SubgraphId};
 use parser_sdl::federation::{FederatedGraphConfig, SubgraphHeaderValue};
 use parser_sdl::{AuthV2Provider, GlobalCacheTarget};
 
 mod strings;
 
 pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> VersionedConfig {
-    let FederatedGraph::V1(graph) = graph else {
-        todo!("turn into v2 with graph.into_v2()");
-    };
+    let graph = graph.into_latest();
 
     let mut context = BuildContext::default();
     let mut subgraph_configs = BTreeMap::new();
@@ -46,7 +44,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
 
     let cache_config = build_cache_config(config, &graph);
 
-    VersionedConfig::V2(config::Config {
+    VersionedConfig::V3(config::Config {
         graph,
         default_headers,
         strings: context.strings.into_vec(),
@@ -92,7 +90,7 @@ fn build_auth_config(config: &FederatedGraphConfig) -> Option<AuthConfig> {
     })
 }
 
-fn build_cache_config(config: &FederatedGraphConfig, graph: &FederatedGraphV1) -> CacheConfigs {
+fn build_cache_config(config: &FederatedGraphConfig, graph: &FederatedGraphV2) -> CacheConfigs {
     let mut cache_config = BTreeMap::new();
 
     for (target, cache_control) in config.global_cache_rules.iter() {
@@ -166,7 +164,7 @@ pub trait FederatedGraphExt {
     fn find_object_field(&self, object_name: &str, field_name: &str) -> Option<FieldId>;
 }
 
-impl FederatedGraphExt for FederatedGraphV1 {
+impl FederatedGraphExt for FederatedGraphV2 {
     fn find_subgraph(&self, name: &str) -> Option<SubgraphId> {
         self.subgraphs
             .iter()
