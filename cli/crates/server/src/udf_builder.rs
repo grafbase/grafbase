@@ -165,18 +165,6 @@ pub(crate) async fn build(
         .await
         .map_err(|_| UdfBuildError::CreateDir(dist_path.clone(), udf_kind))?;
 
-    let entrypoint_path = dist_path.join(ENTRYPOINT_SCRIPT_FILE_NAME);
-
-    tokio::fs::copy(
-        environment
-            .user_dot_grafbase_path
-            .join("custom-resolvers")
-            .join("wrapper.js"),
-        &entrypoint_path,
-    )
-    .await
-    .map_err(|error| UdfBuildError::CreateUdfArtifactFile(entrypoint_path, udf_kind, error))?;
-
     let process_env_prelude = format!(
         "globalThis.process.env = {};",
         serde_json::to_string(&environment_variables).expect("must be valid JSON")
