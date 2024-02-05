@@ -105,7 +105,7 @@ pub struct FieldSetItem {
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct Field {
     pub name: StringId,
-    pub field_type_id: FieldTypeId,
+    pub field_type_id: TypeId,
 
     /// This is populated only of fields of entities. The Vec includes all subgraphs the field can
     /// be resolved in. For a regular field of an entity, it will be one subgraph, the subgraph
@@ -138,7 +138,7 @@ pub struct Field {
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct FieldArgument {
     pub name: StringId,
-    pub type_id: FieldTypeId,
+    pub type_id: TypeId,
     #[serde(default)]
     pub composed_directives: Vec<Directive>,
     #[serde(default)]
@@ -346,7 +346,7 @@ pub struct InputObject {
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct InputObjectField {
     pub name: StringId,
-    pub field_type_id: FieldTypeId,
+    pub field_type_id: TypeId,
     pub composed_directives: Vec<Directive>,
     #[serde(default)]
     pub description: Option<StringId>,
@@ -378,7 +378,7 @@ macro_rules! id_newtypes {
 id_newtypes! {
     EnumId + enums + Enum,
     FieldId + fields + Field,
-    FieldTypeId + field_types + FieldType,
+    TypeId + field_types + FieldType,
     InputObjectId + input_objects + InputObject,
     InterfaceId + interfaces + Interface,
     ObjectId + objects + Object,

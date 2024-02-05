@@ -284,7 +284,7 @@ fn write_subgraphs_enum(graph: &FederatedGraphV2, sdl: &mut String) -> fmt::Resu
 
 fn write_input_field(field: &InputValueDefinition, graph: &FederatedGraphV2, sdl: &mut String) -> fmt::Result {
     let field_name = &graph[field.name];
-    let field_type = render_field_type(&graph[field.field_type_id], graph);
+    let field_type = render_field_type(&graph[field.type_id], graph);
 
     if let Some(description) = field.description {
         write!(sdl, "{}", Description(&graph[description], INDENT))?;
@@ -438,7 +438,7 @@ fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraphV
             .iter()
             .map(|arg| {
                 let name = &graph[arg.name];
-                let r#type = render_field_type(&graph[arg.field_type_id], graph);
+                let r#type = render_field_type(&graph[arg.type_id], graph);
                 let directives = arg.directives;
                 (name, r#type, directives)
             })

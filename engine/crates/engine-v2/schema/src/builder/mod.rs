@@ -638,7 +638,7 @@ macro_rules! from_id_newtypes {
 from_id_newtypes! {
     federated_graph::EnumId => EnumId,
     federated_graph::FieldId => FieldId,
-    federated_graph::FieldTypeId => TypeId,
+    federated_graph::TypeId => TypeId,
     federated_graph::InputObjectId => InputObjectId,
     federated_graph::InterfaceId => InterfaceId,
     federated_graph::ObjectId => ObjectId,

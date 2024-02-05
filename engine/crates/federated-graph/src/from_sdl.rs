@@ -58,7 +58,7 @@ struct State<'a> {
 }
 
 impl<'a> State<'a> {
-    fn insert_field_type(&mut self, field_type: &'a ast::Type) -> FieldTypeId {
+    fn insert_field_type(&mut self, field_type: &'a ast::Type) -> TypeId {
         let mut list_wrappers = Vec::new();
         let mut ty = field_type;
 
@@ -84,7 +84,7 @@ impl<'a> State<'a> {
                 list_wrappers,
             })
             .0;
-        FieldTypeId(idx)
+        TypeId(idx)
     }
 
     fn insert_string(&mut self, s: &str) -> StringId {
@@ -566,11 +566,11 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
             .map(|description| state.insert_string(description.node.as_str()));
         let composed_directives = collect_composed_directives(&arg.node.directives, state);
         let name = state.insert_string(arg.node.name.node.as_str());
-        let field_type_id = state.insert_field_type(&arg.node.ty.node);
+        let type_id = state.insert_field_type(&arg.node.ty.node);
 
         state.input_value_definitions.push(InputValueDefinition {
             name,
-            field_type_id,
+            type_id,
             directives: composed_directives,
             description,
         });
@@ -673,7 +673,7 @@ fn ingest_input_object<'a>(
     let start = state.input_value_definitions.len();
     for field in &input_object.fields {
         let name = state.insert_string(field.node.name.node.as_str());
-        let field_type_id = state.insert_field_type(&field.node.ty.node);
+        let type_id = state.insert_field_type(&field.node.ty.node);
         let composed_directives = collect_composed_directives(&field.node.directives, state);
         let description = field
             .node
@@ -682,7 +682,7 @@ fn ingest_input_object<'a>(
             .map(|description| state.insert_string(description.node.as_str()));
         state.input_value_definitions.push(InputValueDefinition {
             name,
-            field_type_id,
+            type_id,
             directives: composed_directives,
             description,
         });

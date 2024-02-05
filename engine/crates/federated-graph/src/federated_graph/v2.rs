@@ -1,7 +1,7 @@
 pub use super::v1::{
-    Definition, EnumId, FieldId, FieldProvides, FieldRequires, FieldSet, FieldSetItem, FieldType, FieldTypeId,
-    InputObjectId, InterfaceField, InterfaceId, Key, ListWrapper, ObjectField, ObjectId, Override, OverrideSource,
-    RootOperationTypes, ScalarId, StringId, Subgraph, SubgraphId, UnionId,
+    Definition, EnumId, FieldId, FieldProvides, FieldRequires, FieldSet, FieldSetItem, FieldType, InputObjectId,
+    InterfaceField, InterfaceId, Key, ListWrapper, ObjectField, ObjectId, Override, OverrideSource, RootOperationTypes,
+    ScalarId, StringId, Subgraph, SubgraphId, TypeId, UnionId,
 };
 
 /// A composed federated graph.
@@ -50,7 +50,7 @@ pub struct FederatedGraphV2 {
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct InputValueDefinition {
     pub name: StringId,
-    pub field_type_id: FieldTypeId,
+    pub type_id: TypeId,
     pub directives: Directives,
     pub description: Option<StringId>,
 }
@@ -107,7 +107,7 @@ pub struct EnumValue {
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct Field {
     pub name: StringId,
-    pub field_type_id: FieldTypeId,
+    pub field_type_id: TypeId,
 
     pub arguments: InputValueDefinitions,
 
@@ -279,7 +279,7 @@ macro_rules! id_newtypes {
 id_newtypes! {
     EnumId + enums + Enum,
     FieldId + fields + Field,
-    FieldTypeId + field_types + FieldType,
+    TypeId + field_types + FieldType,
     InputObjectId + input_objects + InputObject,
     InterfaceId + interfaces + Interface,
     ObjectId + objects + Object,
@@ -350,7 +350,7 @@ impl From<super::v1::FederatedGraphV1> for FederatedGraphV2 {
             {
                 input_value_definitions.push(InputValueDefinition {
                     name,
-                    field_type_id: type_id,
+                    type_id,
                     directives: convert_directives(composed_directives, directives),
                     description,
                 });
@@ -374,7 +374,7 @@ impl From<super::v1::FederatedGraphV1> for FederatedGraphV2 {
             {
                 input_value_definitions.push(InputValueDefinition {
                     name,
-                    field_type_id,
+                    type_id: field_type_id,
                     directives: convert_directives(composed_directives, directives),
                     description,
                 });

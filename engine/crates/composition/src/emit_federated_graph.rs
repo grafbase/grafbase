@@ -62,7 +62,7 @@ fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionI
                  description,
              }| federated::InputValueDefinition {
                 name: *name,
-                field_type_id: ctx.insert_field_type(ctx.subgraphs.walk(*r#type)),
+                type_id: ctx.insert_field_type(ctx.subgraphs.walk(*r#type)),
                 directives: *directives,
                 description: *description,
             },
