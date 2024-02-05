@@ -1,9 +1,7 @@
 use common::environment::Environment;
 use common::types::UdfKind;
 
-use futures_util::FutureExt;
 use itertools::Itertools;
-use std::panic::RefUnwindSafe;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tokio::io::AsyncWriteExt;
