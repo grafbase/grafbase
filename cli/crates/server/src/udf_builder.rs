@@ -210,6 +210,8 @@ pub(crate) async fn build(
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(entrypoint_js_path.clone(), udf_kind, err))?;
 
+    drop(temp_file);
+
     Ok(udf_build_package_json_path)
 }
 
