@@ -472,17 +472,6 @@ async fn spawn_bun(
             Ok(port) => port,
             Err(skipped_over_lines) => {
                 let outcome = bun.wait_with_output().await.unwrap();
-                let file = tokio::fs::read_to_string(&script_path).await.expect("must exist");
-                let file2 = tokio::fs::read_to_string(
-                    Environment::get()
-                        .user_dot_grafbase_path
-                        .join("custom-resolvers")
-                        .join("wrapper.js"),
-                )
-                .await
-                .expect("must exist");
-                dbg!(file);
-                dbg!(file2);
                 return Err(UdfBuildError::BunSpawnFailedWithOutput {
                     output: skipped_over_lines.join("\n"),
                     stderr: String::from_utf8_lossy(&outcome.stderr).into_owned(),
