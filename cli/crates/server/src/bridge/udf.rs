@@ -429,6 +429,7 @@ async fn spawn_bun(
             .join(ENTRYPOINT_SCRIPT_FILE_NAME)
             .display()
             .to_string();
+
         let bun_arguments = vec!["run", &script_path];
 
         let environment = Environment::get();
