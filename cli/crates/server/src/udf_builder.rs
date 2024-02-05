@@ -186,17 +186,17 @@ pub(crate) async fn build(
         .await?
         .map_err(UdfBuildError::CreateTemporaryFile)?
         .into_parts();
-    {
-        let mut temp_file: tokio::fs::File = temp_file.into();
-        temp_file
-            .write_all(process_env_prelude.as_bytes())
-            .await
-            .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
-        temp_file
-            .write_all(&tokio::fs::read(&udf_build_entrypoint_path).await.expect("must succeed"))
-            .await
-            .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
-    }
+
+    let mut temp_file: tokio::fs::File = temp_file.into();
+    temp_file
+        .write_all(process_env_prelude.as_bytes())
+        .await
+        .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
+    temp_file
+        .write_all(&tokio::fs::read(&udf_build_entrypoint_path).await.expect("must succeed"))
+        .await
+        .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
+
     let entrypoint_js_path = dist_path.join(ENTRYPOINT_SCRIPT_FILE_NAME);
     tokio::fs::copy(temp_file_path, &entrypoint_js_path)
         .await
