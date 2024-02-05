@@ -42,7 +42,6 @@ slug = "0.1"
 strip-ansi-escapes = "0.2"
 strum = { version = "0.26", features = ["derive"] }
 tar.workspace = true
-tempfile = "3"
 thiserror = "1"
 tokio = { workspace = true, features = ["full"] }
 tokio-stream = { version = "0.1", features = ["sync", "io-util"] }
