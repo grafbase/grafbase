@@ -1,7 +1,9 @@
 use common::environment::Environment;
 use common::types::UdfKind;
 
+use futures_util::FutureExt;
 use itertools::Itertools;
+use std::panic::RefUnwindSafe;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tokio::io::AsyncWriteExt;
@@ -198,6 +200,12 @@ pub(crate) async fn build(
         .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
 
     let entrypoint_js_path = dist_path.join(ENTRYPOINT_SCRIPT_FILE_NAME);
+
+    temp_file
+        .flush()
+        .await
+        .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
+
     tokio::fs::copy(temp_file_path, &entrypoint_js_path)
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(entrypoint_js_path.clone(), udf_kind, err))?;
