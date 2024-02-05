@@ -472,6 +472,8 @@ async fn spawn_bun(
             Ok(port) => port,
             Err(skipped_over_lines) => {
                 let outcome = bun.wait_with_output().await.unwrap();
+                let file = tokio::fs::read_to_string(&script_path).await.expect("must exist");
+                dbg!(file);
                 return Err(UdfBuildError::BunSpawnFailedWithOutput {
                     output: skipped_over_lines.join("\n"),
                     stderr: String::from_utf8_lossy(&outcome.stderr).into_owned(),
