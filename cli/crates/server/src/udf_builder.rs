@@ -161,7 +161,6 @@ pub(crate) async fn build(
     let bun_arguments: &[&str] = &[
         "build",
         &udf_build_entrypoint_path.display().to_string(),
-        "--minify",
         "--target=bun",
         &format!("--outdir={}", build_id),
     ];
