@@ -221,13 +221,13 @@ fn coerce_value(
 
     if r#type.wrapping.is_list() && !&value.is_array() && !value.is_null() {
         value = coerce_named_type(value, r#type, schema, path)?;
-        for _ in &r#type.wrapping.list_wrapping {
+        for _ in r#type.wrapping.list_wrappings() {
             value = ConstValue::List(vec![value]);
         }
         return Ok(value);
     }
 
-    let lists = r#type.wrapping.list_wrapping.iter().rev().copied().collect::<Vec<_>>();
+    let lists = r#type.wrapping.list_wrappings().rev().collect::<Vec<_>>();
     coerce_list(&lists, value, r#type, schema, path)
 }
 
@@ -269,7 +269,7 @@ fn coerce_named_type(
     path: VariablePath,
 ) -> Result<ConstValue, CoercionError> {
     if value.is_null() {
-        return if r#type.wrapping.inner_is_required {
+        return if r#type.wrapping.inner_is_required() {
             Err(CoercionError::UnexpectedNull {
                 expected: unwrapped_type_to_string(r#type, schema, &[]),
                 path: path.to_error_string(schema),
@@ -428,7 +428,7 @@ impl VariablePath {
 }
 
 fn type_to_string(ty: &schema::Type, schema: &Schema) -> String {
-    unwrapped_type_to_string(ty, schema, &ty.wrapping.list_wrapping)
+    unwrapped_type_to_string(ty, schema, &ty.wrapping.list_wrappings().collect::<Vec<_>>())
 }
 
 fn unwrapped_type_to_string(ty: &schema::Type, schema: &Schema, wrapping: &[ListWrapping]) -> String {
@@ -437,7 +437,7 @@ fn unwrapped_type_to_string(ty: &schema::Type, schema: &Schema, wrapping: &[List
         write!(&mut output, "[").ok();
     }
     write!(&mut output, "{}", schema.walker().walk(ty.inner).name()).ok();
-    if ty.wrapping.inner_is_required {
+    if ty.wrapping.inner_is_required() {
         write!(&mut output, "!").ok();
     }
     for wrapping in wrapping.iter().rev() {

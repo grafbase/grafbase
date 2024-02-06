@@ -70,7 +70,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for ConcreteCollectionSetSeed<'ctx, 'paren
                         path: self.path.child(field.edge),
                         bound_field_id: field.bound_field_id,
                         ty: &field.ty,
-                        wrapping: field.wrapping.clone(),
+                        wrapping: field.wrapping,
                     })?;
                     response_fields.insert(field.edge, value);
                 } else {
@@ -83,7 +83,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for ConcreteCollectionSetSeed<'ctx, 'paren
                             path: self.path.child(field.edge),
                             bound_field_id: field.bound_field_id,
                             ty: &field.ty,
-                            wrapping: field.wrapping.clone(),
+                            wrapping: field.wrapping,
                         }
                         .deserialize(serde_value::ValueDeserializer::new(stored_value.clone()))?;
                         response_fields.insert(field.edge, value);
