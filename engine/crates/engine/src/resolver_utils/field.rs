@@ -230,7 +230,7 @@ async fn resolve_container_field(
         .await
         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
-    if resolved_value.is_early_returned() {
+    if resolved_value.data_resolved().is_null() {
         if field.ty.is_non_null() {
             return Err(ServerError::new(
                 format!(
@@ -341,15 +341,9 @@ async fn run_field_resolver(
 
     let resolver_context = ResolverContext::new(ctx);
 
-    let final_result = resolver
+    resolver
         .resolve(ctx, &resolver_context, Some(parent_resolver_value))
-        .await?;
-
-    if final_result.data_resolved().is_null() {
-        final_result = final_result.with_early_return();
-    }
-
-    Ok(final_result)
+        .await
 }
 
 async fn resolve_requires_fieldset(
@@ -382,7 +376,7 @@ async fn resolve_requires_fieldset(
     let data = ctx
         .response()
         .await
-        .take_node_into_const_value(node_id)
+        .take_node_into_compact_value(node_id)
         .expect("this has to work");
 
     Ok(ResolvedValue::new(data.into()))

@@ -440,10 +440,6 @@ impl Resolver {
                 None => data,
             });
 
-            if resolved_value.data_resolved().is_null() {
-                resolved_value.early_return_null = true;
-            }
-
             Ok(resolved_value)
         }))
     }

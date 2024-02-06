@@ -33,7 +33,7 @@ pub struct ResolvedValue {
     pub pagination: Option<ResolvedPaginationInfo>,
     /// Resolvers can set this value when resolving so the engine will know it's
     /// not usefull to continue iterating over the ResolverChain.
-    pub early_return_null: bool,
+    early_return_null: bool,
     /// Selection-specific data for resolvers to use.
     pub selection_data: Option<SelectionData>,
 }
@@ -97,11 +97,6 @@ impl ResolvedValue {
         self
     }
 
-    pub fn with_early_return(mut self) -> Self {
-        self.early_return_null = true;
-        self
-    }
-
     pub fn with_selection_data(mut self, connector_data: SelectionData) -> Self {
         self.selection_data = Some(connector_data);
         self
@@ -143,10 +138,6 @@ impl ResolvedValue {
                     }
                 })
         })
-    }
-
-    pub fn is_early_returned(&self) -> bool {
-        self.early_return_null
     }
 
     pub fn data_resolved(&self) -> &Value {
