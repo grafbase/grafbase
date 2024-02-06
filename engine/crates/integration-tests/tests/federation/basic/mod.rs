@@ -4,6 +4,7 @@
 //! that our engine supports all the things a normal GraphQL server should.
 
 mod caching;
+mod errors;
 mod fragments;
 mod headers;
 mod mutation;

@@ -1,4 +1,4 @@
-use schema::{DataType, FieldId, Wrapping};
+use schema::{DataType, FieldId, ObjectId, Wrapping};
 
 use crate::{
     request::{BoundFieldId, FlatTypeCondition, SelectionSetType},
@@ -7,6 +7,14 @@ use crate::{
 };
 
 use super::{CollectedFieldId, CollectedSelectionSetId, ConditionalFieldId, ConditionalSelectionSetId, PlanBoundaryId};
+
+// TODO: The two AnyCollectedSelectionSet aren't great, need to split better the ones which are computed
+// during planning and the others.
+#[derive(Debug, Clone, Copy)]
+pub enum AnyCollectedSelectionSetId {
+    Collected(CollectedSelectionSetId),
+    Conditional(ConditionalSelectionSetId),
+}
 
 #[derive(Debug)]
 pub enum AnyCollectedSelectionSet {
@@ -91,7 +99,7 @@ pub struct CollectedField {
 
 #[derive(Debug)]
 pub struct RuntimeCollectedSelectionSet {
-    pub ty: SelectionSetType,
+    pub object_id: ObjectId,
     pub boundary_ids: Vec<PlanBoundaryId>,
     // sorted by expected key
     pub fields: Vec<CollectedField>,

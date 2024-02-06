@@ -87,13 +87,7 @@ impl<'a> IntrospectionWriter<'a> {
             }
         }
 
-        self.output
-            .borrow_mut()
-            .push_object(ResponseObject {
-                object_id: object.id,
-                fields,
-            })
-            .into()
+        self.output.borrow_mut().push_object(ResponseObject { fields }).into()
     }
 
     fn __schema(&self, selection_set: PlanCollectedSelectionSet<'_>) -> ResponseValue {

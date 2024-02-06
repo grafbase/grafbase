@@ -32,6 +32,13 @@ impl SelectionSetType {
             _ => None,
         }
     }
+
+    pub fn as_object_id(&self) -> Option<ObjectId> {
+        match self {
+            SelectionSetType::Object(id) => Some(*id),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

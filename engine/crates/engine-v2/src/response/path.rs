@@ -59,7 +59,7 @@ const INDEX_FLAG: u32 = OTHER_FLAG | 0b0100_0000_0000_0000_0000_0000_0000_0000;
 const OTHER_DATA_MASK: u32 = 0b0011_1111_1111_1111_1111_1111_1111_1111;
 
 #[derive(Default, Debug, Clone)]
-pub struct ResponsePath(im::Vector<ResponseEdge>);
+pub struct ResponsePath(Vec<ResponseEdge>);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ResponseEdge(u32);
@@ -114,8 +114,12 @@ impl ResponseEdge {
 impl ResponsePath {
     pub fn child(&self, segment: impl Into<ResponseEdge>) -> ResponsePath {
         let mut path = self.0.clone();
-        path.push_back(segment.into());
+        path.push(segment.into());
         ResponsePath(path)
+    }
+
+    pub fn push(&mut self, edge: ResponseEdge) {
+        self.0.push(edge);
     }
 
     pub fn len(&self) -> usize {
@@ -124,6 +128,12 @@ impl ResponsePath {
 
     pub fn iter(&self) -> impl Iterator<Item = &ResponseEdge> {
         self.0.iter()
+    }
+}
+
+impl From<Vec<ResponseEdge>> for ResponsePath {
+    fn from(value: Vec<ResponseEdge>) -> Self {
+        ResponsePath(value)
     }
 }
 
@@ -167,6 +177,7 @@ impl std::ops::Index<BoundResponseKey> for ResponseKeys {
     type Output = str;
 
     fn index(&self, key: BoundResponseKey) -> &Self::Output {
+        // SAFETY: We only generate a BoundResponseKey for a key that exist.
         self.0.resolve(&ResponseKey::from(key))
     }
 }
@@ -175,6 +186,7 @@ impl std::ops::Index<ResponseKey> for ResponseKeys {
     type Output = str;
 
     fn index(&self, key: ResponseKey) -> &Self::Output {
+        // SAFETY: We only generate a ResponseKey for a key that exist.
         self.0.resolve(&key)
     }
 }

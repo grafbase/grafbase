@@ -5,7 +5,7 @@ use std::{
 
 use schema::{FieldId, FieldResolverWalker, FieldSet, FieldSetItem, ResolverId, ResolverWalker};
 
-use super::{attribution::AttributionLogic, planner::Planner, PlanningError, PlanningResult};
+use super::{logic::PlanningLogic, planner::Planner, PlanningError, PlanningResult};
 use crate::{
     plan::{ParentToChildEdge, PlanId},
     request::{
@@ -21,7 +21,7 @@ use crate::{
 pub(super) struct BoundaryPlanner<'schema, 'a> {
     planner: &'a mut Planner<'schema>,
     query_path: &'a QueryPath,
-    maybe_parent: Option<&'a AttributionLogic<'schema>>,
+    maybe_parent: Option<&'a PlanningLogic<'schema>>,
     children: Vec<PlanId>,
 }
 
@@ -75,7 +75,7 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
 }
 
 pub(super) struct BoundaryParent<'schema, 'a> {
-    pub logic: &'a AttributionLogic<'schema>,
+    pub logic: &'a PlanningLogic<'schema>,
     pub providable: FlatSelectionSet,
 }
 
@@ -430,7 +430,7 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
                             field_requires,
                         )?
                     {
-                        let logic = &AttributionLogic::CompatibleResolver {
+                        let logic = &PlanningLogic::CompatibleResolver {
                             plan_id,
                             resolver,
                             providable: field
@@ -457,7 +457,7 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
 
     fn try_planning_boundary_field(
         &mut self,
-        logic: &AttributionLogic<'schema>,
+        logic: &PlanningLogic<'schema>,
         parent_selection_set_id: BoundSelectionSetId,
         item: &FieldSetItem,
     ) -> Option<BoundaryField> {
@@ -471,7 +471,7 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
 
     fn try_planning_extra_fields_with_subselection(
         &mut self,
-        logic: &AttributionLogic<'schema>,
+        logic: &PlanningLogic<'schema>,
         parent_selection_set_id: Option<BoundSelectionSetId>,
         item: &FieldSetItem,
     ) -> Option<BoundFieldId> {

@@ -1,26 +1,22 @@
 mod collected;
 mod conditional;
-mod runtime_concrete;
 
 use std::borrow::Cow;
 
 pub(crate) use collected::*;
 use conditional::*;
-use schema::ObjectId;
+use schema::{ObjectId, SchemaWalker};
 use serde::de::DeserializeSeed;
-
-use self::runtime_concrete::RuntimeConcreteCollectionSetSeed;
 
 use super::SeedContextInner;
 use crate::{
     plan::{AnyCollectedSelectionSet, RuntimeMergedConditionals},
     request::SelectionSetType,
-    response::{ResponsePath, ResponseValue},
+    response::ResponseValue,
 };
 
 pub(super) struct SelectionSetSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContextInner<'ctx>,
-    pub path: &'parent ResponsePath,
     pub collected: &'parent AnyCollectedSelectionSet,
 }
 
@@ -32,16 +28,12 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for SelectionSetSeed<'ctx, 'parent
         D: serde::Deserializer<'de>,
     {
         match self.collected {
-            &AnyCollectedSelectionSet::Collected(id) => ConcreteCollectionSetSeed {
-                ctx: self.ctx,
-                path: self.path,
-                id,
+            &AnyCollectedSelectionSet::Collected(id) => {
+                CollectedSelectionSetSeed::new_from_id(self.ctx, id).deserialize(deserializer)
             }
-            .deserialize(deserializer),
             &AnyCollectedSelectionSet::Conditional(id) => ConditionalSelectionSetSeed {
                 ctx: self.ctx,
-                path: self.path,
-                ty: self.ctx.plan[id].ty,
+                selection_set_ty: self.ctx.plan[id].ty,
                 selection_set_ids: Cow::Owned(vec![id]),
             }
             .deserialize(deserializer),
@@ -50,119 +42,57 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for SelectionSetSeed<'ctx, 'parent
                 selection_set_ids,
             }) => ConditionalSelectionSetSeed {
                 ctx: self.ctx,
-                path: self.path,
-                ty: *ty,
+                selection_set_ty: *ty,
                 selection_set_ids: Cow::Borrowed(selection_set_ids),
             }
             .deserialize(deserializer),
-            AnyCollectedSelectionSet::RuntimeCollected(selection_set) => RuntimeConcreteCollectionSetSeed {
-                ctx: self.ctx,
-                path: self.path,
-                selection_set,
+            AnyCollectedSelectionSet::RuntimeCollected(selection_set) => {
+                CollectedSelectionSetSeed::new(self.ctx, selection_set).deserialize(deserializer)
             }
-            .deserialize(deserializer),
         }
     }
 }
 
-enum ObjectIdentifier<'ctx, 'parent> {
-    Known(ObjectId),
-    Unknown {
-        discriminant_key: &'ctx str,
-        ctx: &'parent SeedContextInner<'ctx>,
-        root: SelectionSetType,
-    },
-    Failure {
-        discriminant_key: &'ctx str,
-        discriminant: String,
-        ctx: &'parent SeedContextInner<'ctx>,
-        root: SelectionSetType,
-    },
+struct ObjectIdentifier<'ctx> {
+    discriminant_key: &'ctx str,
+    schema: SchemaWalker<'ctx, ()>,
+    root: SelectionSetType,
 }
 
-impl<'ctx, 'parent> ObjectIdentifier<'ctx, 'parent> {
-    fn new(ctx: &'parent SeedContextInner<'ctx>, root: SelectionSetType) -> Self {
+impl<'ctx> ObjectIdentifier<'ctx> {
+    fn new(ctx: &SeedContextInner<'ctx>, root: SelectionSetType) -> Self {
         let schema = ctx.plan.schema();
         match root {
-            SelectionSetType::Interface(interface_id) => Self::Unknown {
+            SelectionSetType::Interface(interface_id) => Self {
                 discriminant_key: schema.names().interface_discriminant_key(schema.as_ref(), interface_id),
+                schema,
                 root,
-                ctx,
             },
-            SelectionSetType::Union(union_id) => Self::Unknown {
+            SelectionSetType::Union(union_id) => Self {
                 discriminant_key: schema.names().union_discriminant_key(schema.as_ref(), union_id),
+                schema,
                 root,
-                ctx,
             },
-            SelectionSetType::Object(object_id) => Self::Known(object_id),
+            _ => unreachable!("Wouldn't be necessary"),
         }
     }
 
     fn discriminant_key_matches(&self, key: &str) -> bool {
-        match self {
-            ObjectIdentifier::Unknown { discriminant_key, .. } => key == *discriminant_key,
-            _ => false,
-        }
+        key == self.discriminant_key
     }
 
-    fn determine_object_id_from_discriminant(&mut self, discriminant: &str) {
-        if let ObjectIdentifier::Unknown {
-            discriminant_key,
-            ctx,
-            root,
-        } = self
-        {
-            let schema = ctx.plan.schema();
-            let maybe_object_id = match root {
-                SelectionSetType::Interface(interface_id) => schema
-                    .names()
-                    .concrete_object_id_from_interface_discriminant(&schema, *interface_id, discriminant),
-                SelectionSetType::Union(union_id) => {
-                    schema
-                        .names()
-                        .concrete_object_id_from_union_discriminant(&schema, *union_id, discriminant)
-                }
-                SelectionSetType::Object(_) => unreachable!("We wouldn't be trying to guess it otherwise."),
-            };
-            if let Some(object_id) = maybe_object_id {
-                *self = ObjectIdentifier::Known(object_id);
-            } else {
-                *self = Self::Failure {
-                    discriminant_key,
-                    discriminant: discriminant.to_string(),
-                    root: *root,
-                    ctx,
-                }
-            }
-        };
-    }
-
-    fn try_into_object_id<E>(self) -> Result<ObjectId, E>
-    where
-        E: serde::de::Error,
-    {
-        match self {
-            ObjectIdentifier::Known(object_id) => Ok(object_id),
-            ObjectIdentifier::Unknown {
-                discriminant_key,
-                ctx,
-                root,
-            } => Err(serde::de::Error::custom(format!(
-                "Upstream response error: Could not infer object. Discriminant key '{}' wasn't found for type named '{}'.",
-                discriminant_key,
-                ctx.plan.schema().walk(schema::Definition::from(root)).name()
-            ))),
-            ObjectIdentifier::Failure {
-                discriminant_key,
+    fn determine_object_id_from_discriminant(&mut self, discriminant: &str) -> Option<ObjectId> {
+        match self.root {
+            SelectionSetType::Interface(interface_id) => self
+                .schema
+                .names()
+                .concrete_object_id_from_interface_discriminant(self.schema.as_ref(), interface_id, discriminant),
+            SelectionSetType::Union(union_id) => self.schema.names().concrete_object_id_from_union_discriminant(
+                self.schema.as_ref(),
+                union_id,
                 discriminant,
-                ctx,
-                root,
-            } => Err(serde::de::Error::custom(format!(
-                "Upstream response error: Could not infer object. Unknown discriminant '{}' (key: '{}') for type named '{}'.",
-                discriminant,
-                discriminant_key,
-                ctx.plan.schema().walk(schema::Definition::from(root)).name()
-            ))),
+            ),
+            SelectionSetType::Object(_) => unreachable!("We wouldn't be trying to guess it otherwise."),
         }
     }
 }
