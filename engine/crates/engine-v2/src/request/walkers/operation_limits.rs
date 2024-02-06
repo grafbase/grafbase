@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use super::{BoundSelectionSetWalker, BoundSelectionWalker};
 
-impl<'a> BoundSelectionSetWalker<'a, ()> {
+impl<'a> BoundSelectionSetWalker<'a> {
     pub(crate) fn max_depth(&self) -> u16 {
         (*self)
             .into_iter()

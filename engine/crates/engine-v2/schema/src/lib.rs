@@ -20,7 +20,7 @@ pub use walkers::*;
 /// the source of truth. If the cache is stale we would just re-create this Graph from its source:
 /// federated_graph::FederatedGraph.
 pub struct Schema {
-    data_sources: DataSources,
+    pub data_sources: DataSources,
 
     pub description: Option<StringId>,
     pub root_operation_types: RootOperationTypes,
@@ -56,9 +56,9 @@ pub struct Schema {
 }
 
 #[derive(Default)]
-struct DataSources {
+pub struct DataSources {
     federation: sources::federation::DataSource,
-    introspection: sources::introspection::DataSource,
+    pub introspection: sources::introspection::DataSource,
 }
 
 impl Schema {
@@ -405,6 +405,10 @@ pub struct InputValue {
 }
 
 impl Schema {
+    pub fn walk<I>(&self, item: I) -> SchemaWalker<'_, I> {
+        SchemaWalker::new(item, self, &())
+    }
+
     pub fn walker(&self) -> SchemaWalker<'_, ()> {
         self.walker_with(&())
     }

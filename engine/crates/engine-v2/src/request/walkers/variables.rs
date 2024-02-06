@@ -1,26 +1,15 @@
 use engine_value::ConstValue;
 use schema::ListWrapping;
 
-use crate::execution::{Variable, Variables};
+use crate::request::VariableDefinitionId;
 
 use super::OperationWalker;
 
-pub type VariablesWalker<'a> = OperationWalker<'a, &'a Variables>;
-pub type VariableWalker<'a> = OperationWalker<'a, &'a Variable>;
+pub type VariableDefinitionWalker<'a> = OperationWalker<'a, VariableDefinitionId>;
 
-impl<'a> VariablesWalker<'a> {
-    pub fn get(&self, name: &str) -> Option<VariableWalker<'a>> {
-        self.item.get(name).map(|variable| self.walk(variable))
-    }
-}
-
-impl<'a> VariableWalker<'a> {
-    pub fn value(&self) -> Option<&'a ConstValue> {
-        self.item.value.as_ref()
-    }
-
+impl<'a> VariableDefinitionWalker<'a> {
     pub fn type_name(&self) -> String {
-        let ty = &self.walk(self.item.definition_id).as_ref().r#type;
+        let ty = &self.as_ref().r#type;
         let mut name = self.schema_walker.walk(ty.inner).name().to_string();
         if ty.wrapping.inner_is_required {
             name.push('!');
@@ -35,6 +24,6 @@ impl<'a> VariableWalker<'a> {
     }
 
     pub fn default_value(&self) -> Option<&ConstValue> {
-        self.walk(self.item.definition_id).as_ref().default_value.as_ref()
+        self.as_ref().default_value.as_ref()
     }
 }

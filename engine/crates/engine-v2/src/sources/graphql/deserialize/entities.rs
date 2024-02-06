@@ -7,7 +7,7 @@ use serde::{
 
 use crate::{
     response::{ResponseBoundaryItem, SeedContext},
-    sources::ExecutorError,
+    sources::ExecutionError,
 };
 
 pub(in crate::sources::graphql) struct EntitiesDataSeed<'a> {
@@ -93,7 +93,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for EntitiesSeed<'ctx, 'parent> {
         loop {
             if index >= self.response_boundary.len() {
                 if seq.next_element::<IgnoredAny>()?.is_some() {
-                    self.ctx.borrow_mut_output().push_error(ExecutorError::Internal(
+                    self.ctx.borrow_mut_response_part().push_error(ExecutionError::Internal(
                         "Received more entities than expected".to_string(),
                     ));
                     while seq.next_element::<IgnoredAny>()?.is_some() {}

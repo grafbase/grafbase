@@ -1,75 +1,146 @@
-use std::collections::{HashMap, HashSet};
-
-use schema::ResolverId;
+use schema::{ResolverId, Schema};
 
 use crate::{
-    request::{
-        BoundFieldId, BoundSelectionSetId, EntityType, FlatSelectionSet, FlatTypeCondition, QueryPath, SelectionSetType,
-    },
-    response::{ReadSelectionSet, ResponseBoundaryItem},
+    execution::Variables,
+    request::{EntityType, FlatTypeCondition, Operation, QueryPath},
+    response::ReadSelectionSet,
+    sources::Plan,
+    utils::IdRange,
 };
 
-mod attribution;
-mod expectation;
+mod collected;
 mod ids;
-mod planner;
+mod planning;
+mod state;
+mod walkers;
+pub(crate) use collected::*;
+pub(crate) use ids::*;
+pub(crate) use planning::*;
+pub(crate) use state::*;
+pub(crate) use walkers::*;
 
-pub use attribution::*;
-pub use expectation::*;
-pub use ids::*;
-pub use planner::Planner;
+/// All the necessary information for the operation to be executed that can be prepared & cached.
+pub(crate) struct OperationPlan {
+    operation: Operation,
+
+    // -- Attibution --
+    // Association between fields & selection sets and plans. Used when traversing the operation
+    // for a plan filtering out other plans fields and to build the collected selection set.
+    //
+    // BoundFieldId -> PlanId
+    field_attribution: Vec<PlanId>,
+    // BoundSelectionSetId -> PlanId
+    selection_set_attribution: Vec<PlanId>,
+
+    // -- Plans --
+    // Actual plans for the operation. A plan defines what do for a given selection set at a
+    // certain query path.
+    //
+    // Its information is split into multiple Vecs as it's built over several steps.
+    //
+    // PlanId -> PlannedResolver
+    planned_resolvers: Vec<PlannedResolver>,
+    // PlanId -> Plan
+    plans: Vec<Plan>,
+    // PlanId -> PlanInput
+    plan_inputs: Vec<Option<PlanInput>>,
+    // PlanId -> PlanOutput
+    plan_outputs: Vec<PlanOutput>,
+    // sorted by parent plan id
+    plan_parent_to_child_edges: Vec<ParentToChildEdge>,
+    // PlanId -> u8
+    plan_dependencies_count: Vec<u8>,
+    // PlanBoundaryId -> u8
+    plan_boundary_consummers_count: Vec<u8>,
+
+    // -- Collected fields & selection sets --
+    // Once all fields have been planned, we collect fields to know what to expect from the
+    // response. It can be used in two different ways:
+    // - to deserialize a JSON and ingest it directly into the response
+    // - by introspection plan, and maybe others later, to know what to add to the response.
+    //   As fields are already collected, it doesn't need to deal with GraphQL logic anymore.
+    //
+    // ConditionalSelectionSetId -> ConditionalSelectionSet
+    conditional_selection_sets: Vec<ConditionalSelectionSet>,
+    // ConditionalFieldId -> ConditionalField
+    conditional_fields: Vec<ConditionalField>,
+    // CollectedSelectionSetId -> CollectedSelectionSet
+    collected_selection_sets: Vec<CollectedSelectionSet>,
+    // CollectedFieldId -> CollectedField
+    collected_fields: Vec<CollectedField>,
+}
+
+impl std::ops::Deref for OperationPlan {
+    type Target = Operation;
+
+    fn deref(&self) -> &Self::Target {
+        &self.operation
+    }
+}
+
+impl<I> std::ops::Index<I> for OperationPlan
+where
+    Operation: std::ops::Index<I>,
+{
+    type Output = <Operation as std::ops::Index<I>>::Output;
+    fn index(&self, index: I) -> &Self::Output {
+        &self.operation[index]
+    }
+}
+
+impl OperationPlan {
+    pub fn prepare(schema: &Schema, operation: Operation) -> PlanningResult<Self> {
+        planning::plan_operation(schema, operation)
+    }
+
+    pub fn new_execution_state(&self) -> OperationExecutionState {
+        OperationExecutionState::new(self)
+    }
+
+    pub fn plan_walker<'s>(
+        &'s self,
+        schema: &'s Schema,
+        plan_id: PlanId,
+        variables: Option<&'s Variables>,
+    ) -> PlanWalker<'s> {
+        let plan_id = PlanId::from(usize::from(plan_id));
+        let schema_walker = schema
+            .walk(self.planned_resolvers[usize::from(plan_id)].resolver_id)
+            .with_own_names()
+            .walk(());
+        PlanWalker {
+            schema_walker,
+            operation_plan: self,
+            variables,
+            plan_id,
+            item: (),
+        }
+    }
+}
 
 #[derive(Debug)]
-pub struct Plan {
-    pub id: PlanId,
+pub struct PlannedResolver {
     pub resolver_id: ResolverId,
-    pub sibling_dependencies: HashSet<PlanId>,
-    pub input: Option<PlanInput>,
-    pub output: PlanOutput,
-    /// Boundaries between this plan and its children. ResponseObjectRoots will be collected at
-    /// those during execution.
-    pub boundaries: Vec<PlanBoundary>,
+    pub path: QueryPath,
 }
 
 #[derive(Debug)]
 pub struct PlanInput {
-    /// Response objects which the plan must update.
-    pub response_boundary: Vec<ResponseBoundaryItem>,
+    pub boundary_id: PlanBoundaryId,
     /// if the plan `@requires` any data it will be included in the ReadSelectionSet.
     pub selection_set: ReadSelectionSet,
 }
 
 #[derive(Debug)]
 pub struct PlanOutput {
-    pub root_selection_set_id: BoundSelectionSetId,
+    pub type_condition: Option<FlatTypeCondition>,
     pub entity_type: EntityType,
-    /// Part of the selection set the plan is responsible for.
-    pub root_fields: Vec<BoundFieldId>,
-    /// Attribution is necessary to filter the nested selection sets.
-    pub attribution: Attribution,
-    /// Expectation of the actual output data.
-    pub expectations: Expectations,
+    pub collected_selection_set_id: CollectedSelectionSetId,
+    pub boundary_ids: IdRange<PlanBoundaryId>,
 }
 
-#[derive(Debug, Clone)]
-pub struct PlanBoundary {
-    pub selection_set_type: SelectionSetType,
-    pub query_path: QueryPath,
-    /// A child plan isn't entirely planned yet. We only ensure that any `@requires` of children
-    /// will be provided by the parent. Its actual output is only planned once we have the
-    /// ResponseObjectRoots.
-    pub children: Vec<ChildPlan>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ChildPlan {
-    pub id: PlanId,
-    pub resolver_id: ResolverId,
-    pub input_selection_set: ReadSelectionSet,
-    pub root_selection_set: FlatSelectionSet<EntityType>,
-    pub sibling_dependencies: HashSet<PlanId>,
-    // Only includes extra fields necessary for other child plans within the same
-    // plan boundary. They're indexed by BoundSelectionSetId as that's what allows us find the
-    // extra fields during the traversal of the operation for the a plan.
-    extra_selection_sets: HashMap<BoundSelectionSetId, planner::ExtraBoundarySelectionSet>,
+#[derive(Hash, PartialEq, Eq, Clone, Copy, Debug, PartialOrd, Ord)]
+pub struct ParentToChildEdge {
+    pub parent: PlanId,
+    pub child: PlanId,
 }

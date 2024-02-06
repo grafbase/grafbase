@@ -33,7 +33,7 @@ pub struct FetchResponse {
 pub struct GraphqlRequest<'a> {
     pub url: &'a url::Url,
     pub headers: Vec<(&'a str, &'a str)>,
-    pub query: String,
+    pub query: &'a str,
     pub variables: Value,
 }
 

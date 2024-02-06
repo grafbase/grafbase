@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::collections::{HashMap, HashSet};
 
 pub use engine_parser::types::OperationType;
 use engine_parser::Positioned;
@@ -16,7 +13,7 @@ use super::{
     selection_set::BoundField, variable::VariableDefinition, BoundFieldArgument, BoundFieldArguments,
     BoundFieldArgumentsId, BoundFieldId, BoundFragment, BoundFragmentId, BoundFragmentSpread, BoundFragmentSpreadId,
     BoundInlineFragment, BoundInlineFragmentId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, Location,
-    Operation, ResponseKeys, SelectionSetType, TypeCondition, UnboundOperation,
+    Operation, ParsedOperation, ResponseKeys, SelectionSetType, TypeCondition,
 };
 
 #[allow(clippy::enum_variant_names)]
@@ -149,7 +146,7 @@ impl From<BindError> for GraphqlError {
 
 pub type BindResult<T> = Result<T, BindError>;
 
-pub fn bind(schema: &Schema, mut unbound: UnboundOperation) -> BindResult<Operation> {
+pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operation> {
     let root_object_id = match unbound.definition.ty {
         OperationType::Query => schema.root_operation_types.query,
         OperationType::Mutation => schema
@@ -167,7 +164,7 @@ pub fn bind(schema: &Schema, mut unbound: UnboundOperation) -> BindResult<Operat
         operation_name: ErrorOperationName(unbound.name.clone()),
         response_keys: ResponseKeys::default(),
         fragments: FnvHashMap::default(),
-        field_arguments: vec![Vec::with_capacity(0)], // first one for all empty arguments.
+        field_arguments: vec![Vec::new()], // first one for all empty arguments.
         location_to_field_arguments: FnvHashMap::default(),
         fields: Vec::new(),
         selection_sets: vec![],
@@ -178,6 +175,7 @@ pub fn bind(schema: &Schema, mut unbound: UnboundOperation) -> BindResult<Operat
         current_fragments_stack: Vec::new(),
         fragment_spreads: Vec::new(),
         inline_fragments: Vec::new(),
+        field_to_parent: Vec::new(),
     };
 
     binder.variable_definitions = binder.bind_variables(unbound.definition.variable_definitions)?;
@@ -200,13 +198,14 @@ pub fn bind(schema: &Schema, mut unbound: UnboundOperation) -> BindResult<Operat
             fragment_definitions.sort_unstable_by_key(|(id, _)| *id);
             fragment_definitions.into_iter().map(|(_, def)| def).collect()
         },
-        response_keys: Arc::new(binder.response_keys),
         field_arguments: binder.field_arguments,
+        response_keys: binder.response_keys,
         fields: binder.fields,
         variable_definitions: binder.variable_definitions,
         cache_config: None,
         fragment_spreads: binder.fragment_spreads,
         inline_fragments: binder.inline_fragments,
+        field_to_parent: binder.field_to_parent,
     })
 }
 
@@ -219,6 +218,7 @@ pub struct Binder<'a> {
     field_arguments: Vec<BoundFieldArguments>,
     location_to_field_arguments: FnvHashMap<Location, BoundFieldArgumentsId>,
     fields: Vec<BoundField>,
+    field_to_parent: Vec<BoundSelectionSetId>,
     fragment_spreads: Vec<BoundFragmentSpread>,
     inline_fragments: Vec<BoundInlineFragment>,
     selection_sets: Vec<BoundSelectionSet>,
@@ -341,6 +341,11 @@ impl<'a> Binder<'a> {
         let id = BoundSelectionSetId::from(self.selection_sets.len());
         let selection_set = BoundSelectionSet { ty: root, items };
         self.selection_sets.push(selection_set);
+        for item in &self.selection_sets[usize::from(id)].items {
+            if let BoundSelection::Field(bound_field_id) = item {
+                self.field_to_parent[usize::from(*bound_field_id)] = id;
+            }
+        }
         Ok(id)
     }
 
@@ -429,6 +434,8 @@ impl<'a> Binder<'a> {
         };
         let bound_field_id = BoundFieldId::from(self.fields.len());
         self.fields.push(bound_field);
+        // Adding a placeholder.
+        self.field_to_parent.push(BoundSelectionSetId::from(0));
         Ok(BoundSelection::Field(bound_field_id))
     }
 
@@ -518,7 +525,7 @@ impl<'a> Binder<'a> {
                         name: fragment_name.clone(),
                         name_location: fragment_definition_location,
                         type_condition,
-                        directives: Vec::with_capacity(0),
+                        directives: Vec::new(),
                     };
                     (next_id, fragment_definition)
                 })
@@ -555,7 +562,7 @@ impl<'a> Binder<'a> {
             location: (*pos).try_into()?,
             type_condition,
             selection_set_id,
-            directives: Vec::with_capacity(0),
+            directives: Vec::new(),
         });
         Ok(BoundSelection::InlineFragment(inline_fragment_id))
     }

@@ -8,6 +8,8 @@ use schema::Schema;
 pub use value::{ResponseObject, ResponseValue};
 pub use write::*;
 
+use crate::plan::OperationPlan;
+
 pub(crate) mod cacheable;
 mod error;
 mod metadata;
@@ -31,7 +33,7 @@ pub struct InitialResponse {
 
 struct ResponseData {
     schema: Arc<Schema>,
-    keys: Arc<ResponseKeys>,
+    operation: Arc<OperationPlan>,
     root: Option<ResponseObjectId>,
     parts: Vec<ResponseDataPart>,
 }

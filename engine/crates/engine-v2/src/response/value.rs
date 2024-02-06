@@ -20,10 +20,9 @@ impl ResponseObject {
     // So should be a decent tradeoff as this allows us to serialize the whole response without any
     // additional metadata as both position and key are encoded.
     pub(super) fn find(&self, edge: ResponseEdge) -> Option<&ResponseValue> {
-        self.fields.get(&edge).or_else(|| match edge.unpack() {
-            super::UnpackedResponseEdge::BoundResponseKey(key) => self.find_by_name(key.into()),
-            _ => None,
-        })
+        self.fields
+            .get(&edge)
+            .or_else(|| edge.as_response_key().and_then(|key| self.find_by_name(key)))
     }
 
     fn find_by_name(&self, target: ResponseKey) -> Option<&ResponseValue> {

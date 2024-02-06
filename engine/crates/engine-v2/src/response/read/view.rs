@@ -1,16 +1,16 @@
+use std::{borrow::Cow, sync::Arc};
+
 use schema::{ObjectId, SchemaWalker};
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use super::ReadSelectionSet;
-use crate::{
-    plan::PlanInput,
-    response::{ResponseBuilder, ResponseObject, ResponseObjectId, ResponsePath, ResponseValue},
-};
+use crate::response::{ResponseBuilder, ResponseObject, ResponseObjectId, ResponsePath, ResponseValue};
 
 pub struct ResponseBoundaryObjectsView<'a> {
     pub(super) schema: SchemaWalker<'a, ()>,
     pub(super) response: &'a ResponseBuilder,
-    pub(super) plan_input: PlanInput,
+    pub(super) items: Arc<Vec<ResponseBoundaryItem>>,
+    pub(super) selection_set: Cow<'a, ReadSelectionSet>,
     pub(super) extra_constant_fields: Vec<(String, serde_json::Value)>,
 }
 
@@ -23,16 +23,16 @@ pub struct ResponseBoundaryItem {
 
 impl<'a> ResponseBoundaryObjectsView<'a> {
     pub fn into_single_boundary_item(self) -> ResponseBoundaryItem {
-        self.plan_input
-            .response_boundary
-            .into_iter()
+        self.items
+            .iter()
             .next()
+            .cloned()
             .expect("There is always at least one input, there would be no plan otherwise.")
     }
 
     // Guaranteed to be in the same order as the response objects themselves
-    pub fn boundary(&self) -> Vec<ResponseBoundaryItem> {
-        self.plan_input.response_boundary.clone()
+    pub fn items(&self) -> &Arc<Vec<ResponseBoundaryItem>> {
+        &self.items
     }
 
     pub fn with_extra_constant_fields(
@@ -49,13 +49,13 @@ impl<'a> serde::Serialize for ResponseBoundaryObjectsView<'a> {
     where
         S: serde::Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(self.plan_input.response_boundary.len()))?;
-        for item in &self.plan_input.response_boundary {
+        let mut seq = serializer.serialize_seq(Some(self.items.len()))?;
+        for item in self.items.as_ref() {
             seq.serialize_element(&SerializableFilteredResponseObject {
                 schema: self.schema,
                 response: self.response,
                 response_object: &self.response[item.response_object_id],
-                selection_set: &self.plan_input.selection_set,
+                selection_set: &self.selection_set,
                 extra_constant_fields: &self.extra_constant_fields,
             })?;
         }

@@ -62,17 +62,17 @@ impl SchemaBuilder {
                 unions: take(&mut config.graph.unions).into_iter().map(Into::into).collect(),
                 scalars: Vec::with_capacity(config.graph.scalars.len()),
                 input_objects: Vec::with_capacity(config.graph.input_objects.len()),
-                headers: Vec::with_capacity(0),
-                strings: Vec::with_capacity(0),
+                headers: Vec::new(),
+                strings: Vec::new(),
                 resolvers: vec![],
                 definitions: vec![],
                 input_values: vec![],
                 data_sources: DataSources::default(),
-                default_headers: Vec::with_capacity(0),
+                default_headers: Vec::new(),
                 cache_configs: vec![],
                 auth_config: take(&mut config.auth),
                 operation_limits: take(&mut config.operation_limits),
-                urls: Vec::with_capacity(0),
+                urls: Vec::new(),
             },
         }
     }
@@ -117,7 +117,7 @@ impl SchemaBuilder {
                         name,
                         url,
                         websocket_url: None,
-                        headers: Vec::with_capacity(0),
+                        headers: Vec::new(),
                     },
                 }
             })

@@ -1,8 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
-    builder::SchemaBuilder, DataType, Definition, EnumId, EnumValue, Field, FieldId, InputValue, InputValueId,
-    ObjectField, ObjectId, ScalarId, Schema, SchemaWalker, StringId, Type, TypeId, Value, Wrapping,
+    builder::SchemaBuilder, DataType, Definition, EnumId, EnumValue, Field, FieldId, FieldResolver, InputValue,
+    InputValueId, ObjectField, ObjectId, ResolverId, ScalarId, Schema, SchemaWalker, StringId, Type, TypeId, Value,
+    Wrapping,
 };
 use strum::EnumCount;
 
@@ -25,7 +26,7 @@ impl<'a> ResolverWalker<'a> {
 #[derive(Default)]
 pub struct DataSource {
     // Ugly until we have some from of SchemaBuilder
-    metadata: Option<Metadata>,
+    pub metadata: Option<Metadata>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -480,17 +481,28 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             ],
         );
 
+        let resolver_id = ResolverId::from(self.resolvers.len());
+        self.resolvers.push(crate::Resolver::Introspection(Resolver));
+
         /*
         __schema: __Schema!
         */
         let field_type_id = self.insert_field_type(__schema.id, Wrapping::required());
         let __schema_field_id = self.insert_object_field(self.root_operation_types.query, "__schema", field_type_id);
+        self[__schema_field_id].resolvers.push(FieldResolver {
+            resolver_id,
+            field_requires: Default::default(),
+        });
 
         /*
         __type(name: String!): __Type
         */
         let field_type_id = self.insert_field_type(__type.id, Wrapping::nullable());
         let __type_field_id = self.insert_object_field(self.root_operation_types.query, "__type", field_type_id);
+        self[__type_field_id].resolvers.push(FieldResolver {
+            resolver_id,
+            field_requires: Default::default(),
+        });
         let input_value_id = self.insert_input_value("name", required_string, None);
         self[__type_field_id].arguments.push(input_value_id);
 
@@ -506,10 +518,6 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             __field: __field.into(),
             __directive: __directive.into(),
         });
-
-        // Introspection resolver is used as the default one which allows to also handle the query
-        // `query { __typename }` in a more natural way.
-        self.resolvers.push(crate::Resolver::Introspection(Resolver));
     }
 
     fn insert_enum(&mut self, name: &str, values: &[&str]) -> EnumId {

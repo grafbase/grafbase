@@ -27,7 +27,7 @@ pub use scalar::ScalarWalker;
 pub use union::UnionWalker;
 
 #[derive(Clone, Copy)]
-pub struct SchemaWalker<'a, I> {
+pub struct SchemaWalker<'a, I = ()> {
     // 'item' instead of 'inner' to avoid confusion with TypeWalker.inner()
     pub(crate) item: I,
     pub(crate) schema: &'a Schema,
