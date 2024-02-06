@@ -20,7 +20,7 @@ pub struct Engine {
     pub(crate) schema: Arc<Schema>,
     pub(crate) env: EngineEnv,
     #[cfg(feature = "plan_cache")]
-    plan_cache: mini_moka::sync::Cache<String, Arc<OperationPlan>>,
+    plan_cache: mini_moka::sync::Cache<engine::OperationPlanCacheKey, Arc<OperationPlan>>,
 }
 
 pub struct EngineEnv {
@@ -66,7 +66,7 @@ impl Engine {
         }
 
         PreparedExecution::PreparedRequest(PreparedRequest {
-            query: request.query,
+            key: request.operation_plan_cache_key,
             operation,
             variables,
             headers,
@@ -123,16 +123,17 @@ impl Engine {
     fn prepare_operation(&self, request: &engine::Request) -> Result<Arc<OperationPlan>, GraphqlError> {
         #[cfg(feature = "plan_cache")]
         {
-            if let Some(cached) = self.plan_cache.get(&request.query) {
+            if let Some(cached) = self.plan_cache.get(&request.operation_plan_cache_key) {
                 return Ok(cached);
             }
         }
         let parsed_operation = parse_operation(request)?;
-        let bound_operation = Operation::build(&self.schema, parsed_operation, !request.disable_operation_limits)?;
+        let bound_operation = Operation::build(&self.schema, parsed_operation, !request.operation_limits_disabled())?;
         let prepared = Arc::new(OperationPlan::prepare(&self.schema, bound_operation)?);
         #[cfg(feature = "plan_cache")]
         {
-            self.plan_cache.insert(request.query.clone(), prepared.clone())
+            self.plan_cache
+                .insert(request.operation_plan_cache_key.clone(), prepared.clone())
         }
         Ok(prepared)
     }

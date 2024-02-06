@@ -40,8 +40,8 @@ impl<'a, H: Hasher + Default> CacheKey<'a, H> {
 
 impl<HB: Hasher + Default> Hash for CacheKey<'_, HB> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.gql_request.query.hash(state);
-        self.gql_request.operation_name.hash(state);
+        self.gql_request.query().hash(state);
+        self.gql_request.operation_name().hash(state);
         self.subdomain.hash(state);
 
         fn hash_const_value<H: Hasher + Default>(value: &ConstValue) -> u64 {

@@ -67,7 +67,7 @@ async fn get_graphql(
     };
 
     let request = engine::Request::new(query)
-        .operation_name(params.remove(OPERATION_NAME_REQUEST_PARAMETER).unwrap_or_default())
+        .with_operation_name(params.remove(OPERATION_NAME_REQUEST_PARAMETER).unwrap_or_default())
         .variables(
             params
                 .get(VARIABLES_REQUEST_PARAMETER)

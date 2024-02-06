@@ -39,7 +39,7 @@ impl Extension for RuntimeLogExtension {
     ) -> ServerResult<Request> {
         let start = web_time::SystemTime::now();
 
-        let operation_name = request.operation_name.clone();
+        let operation_name = request.operation_name().map(ToString::to_string);
         let prepare_result = next.run(ctx, request).await;
         let end = web_time::SystemTime::now();
         let duration: std::time::Duration = end.duration_since(start).unwrap();
@@ -52,7 +52,7 @@ impl Extension for RuntimeLogExtension {
                     runtime_ctx.ray_id(),
                     runtime_ctx.log.request_log_event_id,
                     LogEventType::BadRequest {
-                        name: operation_name.as_deref().map(From::from),
+                        name: operation_name.map(From::from),
                         duration,
                     },
                 )
