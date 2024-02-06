@@ -1,6 +1,9 @@
-use std::{borrow::Borrow, cmp::Ordering, collections::VecDeque};
+use std::{
+    borrow::Borrow,
+    cmp::Ordering,
+    collections::{HashSet, VecDeque},
+};
 
-use fnv::FnvHashSet;
 use itertools::Itertools;
 use schema::{Definition, InterfaceId, ObjectId, Schema};
 
@@ -14,7 +17,7 @@ impl<'a> OperationWalker<'a> {
             let selection_set_types = root_selection_set_ids
                 .iter()
                 .map(|id| self.operation[*id].ty)
-                .collect::<FnvHashSet<SelectionSetType>>();
+                .collect::<HashSet<SelectionSetType>>();
             assert_eq!(
                 selection_set_types.len(),
                 1,

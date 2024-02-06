@@ -1,6 +1,6 @@
 use schema::FieldId;
 
-use fnv::FnvHashMap;
+use std::collections::HashMap;
 
 use crate::{
     request::{BoundFieldId, OperationWalker},
@@ -12,9 +12,9 @@ impl<'a> OperationWalker<'a> {
     pub(super) fn group_by_response_key_sorted_by_query_position(
         &self,
         values: impl IntoIterator<Item = BoundFieldId>,
-    ) -> FnvHashMap<ResponseKey, Vec<BoundFieldId>> {
+    ) -> HashMap<ResponseKey, Vec<BoundFieldId>> {
         let operation = self.as_ref();
-        let mut grouped: FnvHashMap<ResponseKey, Vec<BoundFieldId>> =
+        let mut grouped: HashMap<ResponseKey, Vec<BoundFieldId>> =
             values.into_iter().fold(Default::default(), |mut groups, id| {
                 let field = &operation[id];
                 groups.entry(field.response_key()).or_default().push(id);
@@ -32,9 +32,9 @@ impl<'a> OperationWalker<'a> {
     pub(super) fn group_by_schema_field_id_sorted_by_query_position(
         &self,
         values: impl IntoIterator<Item = BoundFieldId>,
-    ) -> FnvHashMap<FieldId, Vec<BoundFieldId>> {
+    ) -> HashMap<FieldId, Vec<BoundFieldId>> {
         let operation = self.as_ref();
-        let mut grouped: FnvHashMap<FieldId, Vec<BoundFieldId>> =
+        let mut grouped: HashMap<FieldId, Vec<BoundFieldId>> =
             values.into_iter().fold(Default::default(), |mut groups, id| {
                 let bound_field = &operation[id];
                 if let Some(field_id) = bound_field.schema_field_id() {

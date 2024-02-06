@@ -1,6 +1,8 @@
-use std::{borrow::Cow, collections::hash_map::Entry};
+use std::{
+    borrow::Cow,
+    collections::{hash_map::Entry, HashMap},
+};
 
-use fnv::FnvHashMap;
 use schema::{FieldId, FieldResolverWalker, FieldSet, FieldSetItem, ResolverId, ResolverWalker};
 
 use super::{attribution::AttributionLogic, planner::Planner, PlanningError, PlanningResult};
@@ -93,7 +95,7 @@ impl<'schema, 'a> std::ops::DerefMut for BoundaryPlanner<'schema, 'a> {
 /// During the planning of the boundary we need to keep track of fields by their FieldId
 /// to satisfy requirements. The goal is not only to know what's present but also to have the
 /// correct ResponseEdge for those when reading data from the response later.
-type BoundaryFields = FnvHashMap<FieldId, BoundaryField>;
+type BoundaryFields = HashMap<FieldId, BoundaryField>;
 
 #[derive(Debug)]
 struct BoundaryField {
@@ -154,11 +156,11 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
     ) -> PlanningResult<Vec<PlanId>> {
         // Fields that couldn't be provided by the parent and that have yet to be planned by one
         // child plan.
-        let mut id_to_unplanned_fields: FnvHashMap<BoundFieldId, UnplannedField<'schema>> =
+        let mut id_to_unplanned_fields: HashMap<BoundFieldId, UnplannedField<'schema>> =
             self.build_unplanned_fields(std::mem::take(&mut unplanned_selection_set.fields));
 
         // Actual planning, we plan one child plan at a time.
-        let mut candidates: FnvHashMap<ResolverId, ChildPlanCandidate<'schema>> = FnvHashMap::default();
+        let mut candidates: HashMap<ResolverId, ChildPlanCandidate<'schema>> = HashMap::default();
         while !id_to_unplanned_fields.is_empty() {
             candidates.clear();
             self.generate_all_candidates(id_to_unplanned_fields.values(), boundary_fields, &mut candidates)?;
@@ -263,9 +265,9 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
             .collect()
     }
 
-    fn build_unplanned_fields(&self, fields: Vec<FlatField>) -> FnvHashMap<BoundFieldId, UnplannedField<'schema>> {
+    fn build_unplanned_fields(&self, fields: Vec<FlatField>) -> HashMap<BoundFieldId, UnplannedField<'schema>> {
         let walker = self.schema.walker();
-        let mut id_to_unplanned_fields = FnvHashMap::default();
+        let mut id_to_unplanned_fields = HashMap::default();
         for field in fields {
             let entity_type = match self.operation[field.parent_selection_set_id()].ty {
                 SelectionSetType::Object(id) => EntityType::Object(id),
@@ -292,7 +294,7 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
         &mut self,
         unplanned_fields: impl IntoIterator<Item = &'field UnplannedField<'schema>>,
         boundary_fields: &mut BoundaryFields,
-        candidates: &mut FnvHashMap<ResolverId, ChildPlanCandidate<'schema>>,
+        candidates: &mut HashMap<ResolverId, ChildPlanCandidate<'schema>>,
     ) -> PlanningResult<()>
     where
         'schema: 'field,
@@ -519,7 +521,7 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
 }
 
 fn select_best_child_plan<'c, 'op>(
-    candidates: &'c mut FnvHashMap<ResolverId, ChildPlanCandidate<'op>>,
+    candidates: &'c mut HashMap<ResolverId, ChildPlanCandidate<'op>>,
 ) -> Option<&'c mut ChildPlanCandidate<'op>> {
     // We could be smarter, but we need to be sure there is no intersection between
     // candidates (which impacts ordering among other things) and some fields may now be

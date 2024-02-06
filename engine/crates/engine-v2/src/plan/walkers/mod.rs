@@ -1,4 +1,5 @@
-use fnv::FnvHashMap;
+use std::collections::HashMap;
+
 use schema::{FieldId, ObjectId, Schema, SchemaWalker};
 
 use crate::{
@@ -170,8 +171,8 @@ impl<'a> PlanWalker<'a> {
             ty: FieldType<RuntimeMergedConditionals>,
         }
 
-        let mut fields = FnvHashMap::<ResponseKey, GroupForResponseKey>::default();
-        let mut typename_fields = FnvHashMap::<ResponseKey, ResponseEdge>::default();
+        let mut fields = HashMap::<ResponseKey, GroupForResponseKey>::default();
+        let mut typename_fields = HashMap::<ResponseKey, ResponseEdge>::default();
 
         for selection_set_id in selection_sets {
             let selection_set = &self[*selection_set_id];
