@@ -23,6 +23,10 @@ pub struct CreateArguments<'a> {
 
 #[tokio::main]
 pub async fn create(arguments: &Option<CreateArguments<'_>>) -> Result<(), CliError> {
+    create_impl(arguments).await
+}
+
+pub async fn create_impl(arguments: &Option<CreateArguments<'_>>) -> Result<(), CliError> {
     match arguments {
         Some(arguments) => from_arguments(arguments).await,
         None => interactive().await,
