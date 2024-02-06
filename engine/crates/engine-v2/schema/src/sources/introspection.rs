@@ -2,8 +2,8 @@ use std::ops::{Deref, DerefMut};
 
 use crate::{
     builder::SchemaBuilder, DataType, Definition, EnumId, EnumValue, EnumValueId, Field, FieldId, FieldResolver,
-    InputValue, InputValueId, ObjectField, ObjectId, ResolverId, ScalarId, Schema, SchemaWalker, StringId, Type,
-    TypeId, Value, Wrapping, NO_DIRECTIVE, NO_ENUM_VALUE, NO_INPUT_VALUE,
+    IdRange, InputValue, InputValueId, ObjectField, ObjectId, ResolverId, ScalarId, Schema, SchemaWalker, StringId,
+    Type, TypeId, Value, Wrapping,
 };
 use strum::EnumCount;
 
@@ -419,18 +419,20 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                     self.insert_field_type(__field.id, Wrapping::required().wrapped_by_nullable_list());
                 let field_id = self.insert_object_field(__type.id, "fields", nullable__field_list);
                 __type.fields.push((field_id, __Type::Fields));
-                let input_value_id =
-                    self.insert_input_value("includeDeprecated", nullable_boolean, Some(Value::Boolean(false)));
-                self.insert_field_argument(field_id, input_value_id)
+                self.set_field_arguments(
+                    field_id,
+                    std::iter::once(("includeDeprecated", nullable_boolean, Some(Value::Boolean(false)))),
+                )
             }
             {
                 let nullable__enum_value_list =
                     self.insert_field_type(__enum_value.id, Wrapping::required().wrapped_by_nullable_list());
                 let field_id = self.insert_object_field(__type.id, "enumValues", nullable__enum_value_list);
                 __type.fields.push((field_id, __Type::EnumValues));
-                let input_value_id =
-                    self.insert_input_value("includeDeprecated", nullable_boolean, Some(Value::Boolean(false)));
-                self.insert_field_argument(field_id, input_value_id);
+                self.set_field_arguments(
+                    field_id,
+                    std::iter::once(("includeDeprecated", nullable_boolean, Some(Value::Boolean(false)))),
+                );
             }
             __type
         };
@@ -507,8 +509,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             resolver_id,
             field_requires: Default::default(),
         });
-        let input_value_id = self.insert_input_value("name", required_string, None);
-        self.insert_field_argument(__type_field_id, input_value_id);
+        self.set_field_arguments(__type_field_id, std::iter::once(("name", required_string, None)));
 
         // DataSource
         self.data_sources.introspection.metadata = Some(Metadata {
@@ -528,7 +529,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         let name = self.get_or_intern(name);
 
         let values = if values.is_empty() {
-            NO_ENUM_VALUE
+            IdRange::empty()
         } else {
             let start_idx = self.enum_values.len();
 
@@ -536,23 +537,24 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 let value = self.get_or_intern(value);
                 self.enum_values.push(EnumValue {
                     name: value,
-                    composed_directives: NO_DIRECTIVE,
+                    composed_directives: IdRange::empty(),
                     description: None,
                     is_deprecated: false,
                     deprecation_reason: None,
                 })
             }
 
-            let len = self.enum_values.len() - start_idx;
-
-            (EnumValueId::from(start_idx), len)
+            IdRange {
+                start: EnumValueId::from(start_idx),
+                end: EnumValueId::from(self.enum_values.len()),
+            }
         };
 
         self.enums.push(crate::Enum {
             name,
             description: None,
             values,
-            composed_directives: NO_DIRECTIVE,
+            composed_directives: IdRange::empty(),
         });
         let enum_id = EnumId::from(self.enums.len() - 1);
         self.definitions.push(Definition::Enum(enum_id));
@@ -565,7 +567,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             name,
             description: None,
             interfaces: vec![],
-            composed_directives: NO_DIRECTIVE,
+            composed_directives: IdRange::empty(),
             cache_config: None,
         });
         ObjectId::from(self.objects.len() - 1)
@@ -576,10 +578,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         self.fields.push(Field {
             name,
             type_id: field_type_id,
-            composed_directives: NO_DIRECTIVE,
+            composed_directives: IdRange::empty(),
             resolvers: vec![],
             provides: vec![],
-            arguments: NO_INPUT_VALUE,
+            arguments: IdRange::empty(),
             description: None,
             is_deprecated: false,
             deprecation_reason: None,
@@ -604,14 +606,24 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         }
     }
 
-    fn insert_field_argument(&mut self, field_id: FieldId, argument: InputValueId) {
-        let (start, len) = &mut self[field_id].arguments;
+    /// Warning: if you call this twice, the second call will overwrite the first.
+    fn set_field_arguments<'b>(
+        &mut self,
+        field_id: FieldId,
+        arguments: impl Iterator<Item = (&'b str, TypeId, Option<Value>)>,
+    ) {
+        let start = self.input_values.len();
 
-        if *len == 0 {
-            *start = argument;
+        for (name, type_id, default_value) in arguments {
+            self.insert_input_value(name, type_id, default_value);
         }
 
-        *len += 1;
+        let end = self.input_values.len();
+
+        self[field_id].arguments = IdRange {
+            start: start.into(),
+            end: end.into(),
+        };
     }
 
     fn insert_field_type(&mut self, kind: impl Into<Definition>, wrapping: Wrapping) -> TypeId {
@@ -654,7 +666,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                     data_type: scalar_type,
                     description: None,
                     specified_by_url: None,
-                    composed_directives: NO_DIRECTIVE,
+                    composed_directives: IdRange::empty(),
                 });
                 ScalarId::from(self.scalars.len() - 1)
             }

@@ -132,18 +132,7 @@ pub struct Object {
     pub cache_config: Option<CacheConfigId>,
 }
 
-pub type Directives = (DirectiveId, usize);
-
-pub const NO_DIRECTIVE: Directives = (DirectiveId::const_from_usize(0, "0 not valid"), 0);
-
-impl std::ops::Index<Directives> for Schema {
-    type Output = [Directive];
-
-    fn index(&self, (start, len): Directives) -> &Self::Output {
-        let start = usize::from(start);
-        &self.directives[start..(start + len)]
-    }
-}
+pub type Directives = IdRange<DirectiveId>;
 
 #[derive(PartialOrd, Ord, PartialEq, Eq)]
 pub struct ObjectField {
@@ -295,18 +284,7 @@ pub struct EnumValue {
     pub composed_directives: Directives,
 }
 
-type EnumValues = (EnumValueId, usize);
-
-pub const NO_ENUM_VALUE: EnumValues = (EnumValueId::const_from_usize(0, "0 not valid"), 0);
-
-impl std::ops::Index<EnumValues> for Schema {
-    type Output = [EnumValue];
-
-    fn index(&self, (start, len): EnumValues) -> &Self::Output {
-        let start = usize::from(start);
-        &self.enum_values[start..(start + len)]
-    }
-}
+type EnumValues = IdRange<EnumValueId>;
 
 #[derive(Debug)]
 pub struct Union {
@@ -369,18 +347,7 @@ pub struct InputValue {
     pub default_value: Option<Value>,
 }
 
-pub type InputValues = (InputValueId, usize);
-
-pub const NO_INPUT_VALUE: InputValues = (InputValueId::const_from_usize(0, "0 not valid"), 0);
-
-impl std::ops::Index<InputValues> for Schema {
-    type Output = [InputValue];
-
-    fn index(&self, (start, len): InputValues) -> &Self::Output {
-        let start = usize::from(start);
-        &self.input_values[start..(start + len)]
-    }
-}
+pub type InputValues = IdRange<InputValueId>;
 
 impl Schema {
     pub fn walk<I>(&self, item: I) -> SchemaWalker<'_, I> {

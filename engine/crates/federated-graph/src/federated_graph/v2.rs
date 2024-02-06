@@ -211,6 +211,11 @@ pub type Directives = (DirectiveId, usize);
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DirectiveId(pub usize);
 
+impl From<DirectiveId> for usize {
+    fn from(DirectiveId(index): DirectiveId) -> Self {
+        index
+    }
+}
 pub const NO_DIRECTIVES: Directives = (DirectiveId(0), 0);
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -219,10 +224,22 @@ pub struct InputValueDefinitionId(pub usize);
 /// A (start, len) range in FederatedSchema.
 pub type InputValueDefinitions = (InputValueDefinitionId, usize);
 
+impl From<InputValueDefinitionId> for usize {
+    fn from(InputValueDefinitionId(index): InputValueDefinitionId) -> Self {
+        index
+    }
+}
+
 pub const NO_INPUT_VALUE_DEFINITION: InputValueDefinitions = (InputValueDefinitionId(0), 0);
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EnumValueId(pub usize);
+
+impl From<EnumValueId> for usize {
+    fn from(EnumValueId(index): EnumValueId) -> Self {
+        index
+    }
+}
 
 /// A (start, len) range in FederatedSchema.
 pub type EnumValues = (EnumValueId, usize);

@@ -18,17 +18,6 @@ macro_rules! id_newtypes {
             #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
             pub struct $name(std::num::NonZeroU32);
 
-            impl $name {
-                pub const fn const_from_usize(index: usize, msg: &str) -> Self {
-                    assert!(index <= MAX_ID, "{}", msg);
-                    let Some(inner) = std::num::NonZeroU32::new((index + 1) as u32) else {
-                        panic!("{}", msg)
-                    };
-                    Self(inner)
-
-                }
-            }
-
             impl std::ops::Index<$name> for $ty {
                 type Output = $out;
 
@@ -43,10 +32,22 @@ macro_rules! id_newtypes {
                 }
             }
 
+            impl std::ops::Index<crate::ids::IdRange<$name>> for $ty {
+                type Output = [$out];
+
+                fn index(&self, range: crate::ids::IdRange<$name>) -> &Self::Output {
+                    let crate::ids::IdRange { start, end } = range;
+                    let start = usize::from(start);
+                    let end = usize::from(end);
+                    &self.$field[start..end]
+                }
+            }
+
 
             impl From<usize> for $name {
                 fn from(index: usize) -> Self {
-                    Self::const_from_usize(index, $msg)
+                    assert!(index <= MAX_ID, "{}", $msg);
+                    Self(std::num::NonZeroU32::new((index + 1) as u32).unwrap())
                 }
             }
 
@@ -84,4 +85,51 @@ id_newtypes! {
     Schema.strings[StringId] => String unless "Too many strings",
     FederationDataSource.subgraphs[SubgraphId] => Subgraph unless "Too many subgraphs",
     Schema.cache_configs[CacheConfigId] => CacheConfig unless "Too many cache configs",
+}
+
+// Not necessary anymore when Rust stabilize std::iter::Step
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct IdRange<Id: Copy> {
+    pub start: Id,
+    pub end: Id,
+}
+
+impl<Id> IdRange<Id>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
+    pub fn empty() -> Self {
+        Self {
+            start: Id::from(0),
+            end: Id::from(0),
+        }
+    }
+
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = Id> {
+        (usize::from(self.start)..usize::from(self.end)).map(Id::from)
+    }
+
+    pub fn get(&self, i: usize) -> Option<Id> {
+        let i = i + usize::from(self.start);
+        if i < usize::from(self.end) {
+            Some(Id::from(i))
+        } else {
+            None
+        }
+    }
+}
+
+impl<Src, Target> From<(Src, usize)> for IdRange<Target>
+where
+    Src: Copy,
+    usize: From<Src>,
+    Target: From<usize> + From<Src> + Copy,
+{
+    fn from((start, len): (Src, usize)) -> Self {
+        IdRange {
+            start: start.into(),
+            end: Target::from(usize::from(start) + len),
+        }
+    }
 }

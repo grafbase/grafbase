@@ -39,11 +39,7 @@ impl<'a> FieldWalker<'a> {
 
     pub fn arguments(&self) -> impl ExactSizeIterator<Item = InputValueWalker<'a>> + 'a {
         let walker = *self;
-        let (start, len) = self.schema[self.item].arguments;
-        let start_idx = usize::from(start);
-        (start_idx..(start_idx + len))
-            .map(crate::InputValueId::from)
-            .map(move |id| walker.walk(id))
+        self.schema[self.item].arguments.iter().map(move |id| walker.walk(id))
     }
 
     pub fn argument_by_name(&self, name: &str) -> Option<InputValueWalker<'a>> {
