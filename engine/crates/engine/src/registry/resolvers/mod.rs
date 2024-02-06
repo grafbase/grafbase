@@ -264,11 +264,9 @@ impl Resolver {
                 .instrument(info_span!("introspection_resolver"))
                 .await
                 .map_err(Into::into),
-            Resolver::Join(resolver) => resolver
-                .resolve(ctx, last_resolver_value)
-                .instrument(info_span!("join_resolver"))
-                .await
-                .map_err(Into::into),
+            Resolver::Join(_) => {
+                unreachable!("join resolvers should be dealt with in resolver_utils and not get here");
+            }
         }
     }
 

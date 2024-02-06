@@ -7,6 +7,7 @@ mod r#enum;
 mod field;
 mod fragment;
 mod introspection;
+mod joins;
 mod list;
 mod scalar;
 

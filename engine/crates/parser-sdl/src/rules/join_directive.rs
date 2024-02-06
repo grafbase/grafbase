@@ -19,7 +19,7 @@ pub struct JoinDirective {
 }
 
 #[derive(Debug)]
-struct FieldSelection {
+pub struct FieldSelection {
     selections: Vec<Selection>,
     required_fields: Vec<String>,
 }
@@ -65,7 +65,7 @@ impl FieldSelection {
 
         Some(FieldSet::new(self.required_fields.iter().map(|field| {
             field_set::Selection {
-                field: field,
+                field: field.clone(),
                 selections: vec![],
             }
         })))
@@ -107,7 +107,10 @@ impl<'de> serde::Deserialize<'de> for FieldSelection {
             .collect::<Vec<_>>();
 
         Ok(FieldSelection {
-            selections: SelectionIter(&field.node).collect(),
+            selections: SelectionIter {
+                field: Some(&field.node),
+            }
+            .collect(),
             required_fields,
         })
     }
@@ -140,8 +143,12 @@ impl Iterator for SelectionIter<'_> {
         let field = self.field?;
 
         let next = Selection {
-            field_name: field,
-            arguments: field.arguments.clone(),
+            field_name: field.name.to_string(),
+            arguments: field
+                .arguments
+                .into_iter()
+                .map(|(name, value)| (name.node, value.node))
+                .collect(),
         };
 
         self.field = field
@@ -149,8 +156,8 @@ impl Iterator for SelectionIter<'_> {
             .node
             .items
             .first()
-            .filter_map(|selection| match selection.node {
-                engine_parser::types::Selection::Field(inner_field) => Some(inner_field),
+            .and_then(|selection| match selection.node {
+                engine_parser::types::Selection::Field(inner_field) => Some(&inner_field.node),
                 _ => None,
             });
 

@@ -3,10 +3,10 @@ use engine_value::ConstValue;
 use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
 use serde_json::Value;
 
-use super::{introspection, resolve_container, resolve_list};
+use super::{introspection, joins::resolve_joined_field, resolve_container, resolve_list};
 use crate::{
     registry::{
-        resolvers::{ResolvedValue, ResolverContext},
+        resolvers::{ResolvedValue, Resolver, ResolverContext},
         scalars::{DynamicScalar, PossibleScalar},
         type_kinds::OutputType,
         FieldSet, MetaField, MetaType, ScalarParser, TypeReference,
@@ -319,30 +319,31 @@ async fn resolve_array_field(
     resolve_list(list_ctx, ctx.item, container_type, resolved_value).await
 }
 
-async fn run_field_resolver(
+pub(super) async fn run_field_resolver(
     ctx: &ContextField<'_>,
     parent_resolver_value: ResolvedValue,
 ) -> Result<ResolvedValue, Error> {
     let resolver = &ctx.field.resolver;
-    // TODO: OK so maybe _here_ is where I want to do the joiny funtimes?
-    // Maybe?
-    // I think yeah maybe
 
     if let Some(QueryPathSegment::Index(idx)) = ctx.path.last() {
         // Items in lists don't have resolvers - we just look them up by index
         return Ok(parent_resolver_value.get_index(*idx).unwrap_or_default());
     }
 
-    if resolver.is_parent() {
-        // Some fields just pass their parents data down to their children (or have no data at all).
-        // For those, we just early return
-        return Ok(parent_resolver_value);
+    match resolver {
+        Resolver::Parent => {
+            // Some fields just pass their parents data down to their children (or have no data at all).
+            // For those, we early return with the parent data
+            return Ok(parent_resolver_value);
+        }
+        Resolver::Join(join) => {
+            return resolve_joined_field(ctx, join, parent_resolver_value).await;
+        }
+        _ => {}
     }
 
-    let resolver_context = ResolverContext::new(ctx);
-
     resolver
-        .resolve(ctx, &resolver_context, Some(parent_resolver_value))
+        .resolve(ctx, &ResolverContext::new(ctx), Some(parent_resolver_value))
         .await
 }
 

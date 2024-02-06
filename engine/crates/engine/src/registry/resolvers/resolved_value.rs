@@ -31,9 +31,6 @@ pub struct ResolvedValue {
     data_path: Vec<QueryPathSegment>,
     /// Optional pagination data for Paginated Resolvers
     pub pagination: Option<ResolvedPaginationInfo>,
-    /// Resolvers can set this value when resolving so the engine will know it's
-    /// not usefull to continue iterating over the ResolverChain.
-    early_return_null: bool,
     /// Selection-specific data for resolvers to use.
     pub selection_data: Option<SelectionData>,
 }
@@ -83,7 +80,6 @@ impl ResolvedValue {
             data_root: Arc::new(value),
             data_path: vec![],
             pagination: None,
-            early_return_null: false,
             selection_data: None,
         }
     }
@@ -160,7 +156,6 @@ impl ResolvedValue {
         Some(ResolvedValue {
             data_root: Arc::clone(&self.data_root),
             data_path,
-            early_return_null: false,
             pagination: None,
             selection_data: self.selection_data.clone(),
         })
@@ -176,7 +171,6 @@ impl ResolvedValue {
         Some(ResolvedValue {
             data_root: Arc::clone(&self.data_root),
             data_path,
-            early_return_null: false,
             pagination: None,
             selection_data: self.selection_data.clone(),
         })
@@ -213,7 +207,6 @@ impl ResolvedValue {
                     ResolvedValue {
                         data_root: Arc::clone(&self.data_root),
                         data_path,
-                        early_return_null: false,
                         pagination: None,
                         selection_data: self.selection_data.clone(),
                     }

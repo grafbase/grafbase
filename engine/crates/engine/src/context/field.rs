@@ -86,9 +86,6 @@ impl<'a> ContextField<'a> {
             .registry
             .root_type(engine_parser::types::OperationType::Query);
 
-        // TODO: Ok, so we _somehow_ need to swap out the variables in here.
-        // FFS, urgh
-
         ContextSelectionSet {
             ty,
             path: self.path.clone(),
