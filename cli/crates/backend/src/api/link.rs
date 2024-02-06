@@ -1,11 +1,12 @@
 use super::{
     client::create_client,
-    consts::{API_URL, PROJECT_METADATA_FILE},
+    consts::API_URL,
     errors::ApiError,
     graphql::queries::viewer_for_link::{PersonalAccount, Viewer},
     types::{self, AccountWithProjects, ProjectMetadata},
     utils::has_project_linked,
 };
+use common::consts::PROJECT_METADATA_FILE;
 use common::environment::Project;
 use cynic::{http::ReqwestExt, QueryBuilder};
 use std::iter;

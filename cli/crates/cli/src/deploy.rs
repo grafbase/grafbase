@@ -1,6 +1,6 @@
 use crate::{create::create_impl, errors::CliError, link::link_impl, output::report, prompts::handle_inquire_error};
-use backend::api::{consts::PROJECT_METADATA_FILE, deploy};
-use common::environment::Project;
+use backend::api::deploy;
+use common::{consts::PROJECT_METADATA_FILE, environment::Project};
 use inquire::Select;
 use strum::{Display, VariantArray};
 

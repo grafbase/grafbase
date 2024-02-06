@@ -1,5 +1,5 @@
 use super::client::create_client;
-use super::consts::{API_URL, PACKAGE_JSON, PROJECT_METADATA_FILE, TAR_CONTENT_TYPE};
+use super::consts::{API_URL, PACKAGE_JSON, TAR_CONTENT_TYPE};
 use super::errors::{ApiError, DeployError};
 use super::graphql::mutations::{
     ArchiveFileSizeLimitExceededError, DailyDeploymentCountLimitExceededError, DeploymentCreate,
@@ -7,6 +7,7 @@ use super::graphql::mutations::{
 };
 use super::types::ProjectMetadata;
 use crate::consts::USER_AGENT;
+use common::consts::PROJECT_METADATA_FILE;
 use common::environment::Project;
 use cynic::http::ReqwestExt;
 use cynic::{Id, MutationBuilder};
