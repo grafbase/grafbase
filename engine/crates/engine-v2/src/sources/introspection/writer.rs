@@ -5,7 +5,8 @@ use schema::{
     sources::introspection::{
         IntrospectionField, IntrospectionObject, Metadata, __EnumValue, __Field, __InputValue, __Schema, __Type,
     },
-    Definition, DefinitionWalker, EnumValue, FieldWalker, InputValueWalker, SchemaWalker, TypeWalker,
+    Definition, DefinitionWalker, EnumValue, FieldWalker, InputValueWalker, ListWrapping, SchemaWalker, TypeWalker,
+    Wrapping,
 };
 
 use crate::{
@@ -128,42 +129,55 @@ impl<'a> IntrospectionWriter<'a> {
     }
 
     fn __type(&self, ty: TypeWalker<'a>, selection_set: PlanCollectedSelectionSet<'_>) -> ResponseValue {
-        // Building it from outermost to innermost
-        let mut wrapping = Wrapping::new();
-        let mut schema_wrapping = ty.wrapping().clone();
-        while let Some(list_wrapping) = schema_wrapping.list_wrapping.pop() {
-            match list_wrapping {
-                schema::ListWrapping::RequiredList => wrapping.extend([WrappingType::NonNull, WrappingType::List]),
-                schema::ListWrapping::NullableList => wrapping.push(WrappingType::List),
-            }
-        }
-        if schema_wrapping.inner_is_required {
-            wrapping.push(WrappingType::NonNull);
-        }
-        wrapping.reverse();
-        self.__type_recursive(ty.inner(), wrapping, selection_set)
+        self.__type_list_wrapping(ty.inner(), ty.wrapping(), selection_set)
     }
 
-    fn __type_recursive(
+    fn __type_list_wrapping(
         &self,
         definition: DefinitionWalker<'a>,
         mut wrapping: Wrapping,
         selection_set: PlanCollectedSelectionSet<'_>,
     ) -> ResponseValue {
-        match wrapping.pop() {
-            Some(wrapping_type) => self.object(&self.metadata.__type, selection_set, |field, __type| match __type {
-                __Type::Kind => match wrapping_type {
-                    WrappingType::NonNull => self.metadata.type_kind.non_null,
-                    WrappingType::List => self.metadata.type_kind.list,
+        match wrapping.pop_list_wrapping() {
+            Some(list_wrapping) => match list_wrapping {
+                ListWrapping::RequiredList => {
+                    self.__type_required_wrapping(definition, wrapping.wrapped_by_nullable_list(), selection_set)
                 }
-                .into(),
-                __Type::OfType => {
-                    self.__type_recursive(definition, wrapping.clone(), field.concrete_selection_set().unwrap())
+                ListWrapping::NullableList => {
+                    self.object(&self.metadata.__type, selection_set, |field, __type| match __type {
+                        __Type::Kind => self.metadata.type_kind.list.into(),
+                        __Type::OfType => {
+                            self.__type_list_wrapping(definition, wrapping, field.concrete_selection_set().unwrap())
+                        }
+                        _ => ResponseValue::Null,
+                    })
                 }
-                _ => ResponseValue::Null,
-            }),
-            None => self.__type_inner(definition, selection_set),
+            },
+            None => {
+                if wrapping.inner_is_required() {
+                    self.object(&self.metadata.__type, selection_set, |field, __type| match __type {
+                        __Type::Kind => self.metadata.type_kind.non_null.into(),
+                        __Type::OfType => self.__type_inner(definition, field.concrete_selection_set().unwrap()),
+                        _ => ResponseValue::Null,
+                    })
+                } else {
+                    self.__type_inner(definition, selection_set)
+                }
+            }
         }
+    }
+
+    fn __type_required_wrapping(
+        &self,
+        definition: DefinitionWalker<'a>,
+        wrapping: Wrapping,
+        selection_set: PlanCollectedSelectionSet<'_>,
+    ) -> ResponseValue {
+        self.object(&self.metadata.__type, selection_set, |field, __type| match __type {
+            __Type::Kind => self.metadata.type_kind.non_null.into(),
+            __Type::OfType => self.__type_list_wrapping(definition, wrapping, field.concrete_selection_set().unwrap()),
+            _ => ResponseValue::Null,
+        })
     }
 
     fn __type_inner(
@@ -305,13 +319,4 @@ impl<'a> IntrospectionWriter<'a> {
             },
         )
     }
-}
-
-// Innermort to outermost
-type Wrapping = Vec<WrappingType>;
-
-#[derive(Clone, Copy)]
-enum WrappingType {
-    NonNull,
-    List,
 }

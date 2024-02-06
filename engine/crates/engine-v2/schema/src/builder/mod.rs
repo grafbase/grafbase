@@ -533,10 +533,7 @@ impl From<federated_graph::FieldType> for Type {
     fn from(field_type: federated_graph::FieldType) -> Self {
         Type {
             inner: field_type.kind.into(),
-            wrapping: Wrapping {
-                inner_is_required: field_type.inner_is_required,
-                list_wrapping: field_type.list_wrappers.into_iter().rev().map(Into::into).collect(),
-            },
+            wrapping: Wrapping::from(field_type),
         }
     }
 }

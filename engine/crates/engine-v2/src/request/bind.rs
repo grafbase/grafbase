@@ -296,19 +296,16 @@ impl<'a> Binder<'a> {
                 }
                 Ok(schema::Type {
                     inner: definition,
-                    wrapping: schema::Wrapping {
-                        inner_is_required: !ty.nullable,
-                        list_wrapping: vec![],
-                    },
+                    wrapping: schema::Wrapping::new(!ty.nullable),
                 })
             }
             engine_parser::types::BaseType::List(nested) => {
                 self.convert_type(variable_name, location, *nested).map(|mut r#type| {
-                    r#type.wrapping.list_wrapping.push(if ty.nullable {
-                        schema::ListWrapping::NullableList
+                    if ty.nullable {
+                        r#type.wrapping = r#type.wrapping.wrapped_by_nullable_list();
                     } else {
-                        schema::ListWrapping::RequiredList
-                    });
+                        r#type.wrapping = r#type.wrapping.wrapped_by_required_list();
+                    }
                     r#type
                 })
             }

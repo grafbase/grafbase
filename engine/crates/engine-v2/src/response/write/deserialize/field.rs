@@ -39,7 +39,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
     where
         D: serde::Deserializer<'de>,
     {
-        let result = if let Some(list_wrapping) = self.wrapping.list_wrapping.pop() {
+        let result = if let Some(list_wrapping) = self.wrapping.pop_list_wrapping() {
             match list_wrapping {
                 ListWrapping::RequiredList => ListSeed {
                     bound_field_id: self.bound_field_id,
@@ -50,7 +50,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
                         path,
                         bound_field_id: self.bound_field_id,
                         ty: self.ty,
-                        wrapping: self.wrapping.clone(),
+                        wrapping: self.wrapping,
                     },
                 }
                 .deserialize(deserializer),
@@ -67,13 +67,13 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
                             path,
                             bound_field_id: self.bound_field_id,
                             ty: self.ty,
-                            wrapping: self.wrapping.clone(),
+                            wrapping: self.wrapping,
                         },
                     },
                 }
                 .deserialize(deserializer),
             }
-        } else if self.wrapping.inner_is_required {
+        } else if self.wrapping.inner_is_required() {
             match self.ty {
                 FieldType::Scalar(data_type) => match data_type {
                     DataType::String => StringSeed.deserialize(deserializer),

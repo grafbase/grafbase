@@ -8,6 +8,7 @@ mod names;
 mod resolver;
 pub mod sources;
 mod walkers;
+mod wrapping;
 
 pub use cache::*;
 pub use field_set::*;
@@ -15,6 +16,7 @@ pub use ids::*;
 pub use names::Names;
 pub use resolver::*;
 pub use walkers::*;
+pub use wrapping::*;
 
 /// This does NOT need to be backwards compatible. We'll probably cache it for performance, but it is not
 /// the source of truth. If the cache is stale we would just re-create this Graph from its source:
@@ -230,77 +232,6 @@ impl From<InputObjectId> for Definition {
 pub struct Type {
     pub inner: Definition,
     pub wrapping: Wrapping,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Wrapping {
-    /// Is the innermost type required?
-    ///
-    /// Examples:
-    ///
-    /// - `String` => false
-    /// - `String!` => true
-    /// - `[String!]` => true
-    /// - `[String]!` => false
-    pub inner_is_required: bool,
-
-    /// Innermost to outermost.
-    pub list_wrapping: Vec<ListWrapping>,
-}
-
-impl Wrapping {
-    pub fn is_required(&self) -> bool {
-        self.list_wrapping
-            .last()
-            .map(|lw| matches!(lw, ListWrapping::RequiredList))
-            .unwrap_or(self.inner_is_required)
-    }
-
-    pub fn is_list(&self) -> bool {
-        !self.list_wrapping.is_empty()
-    }
-
-    pub fn nullable() -> Self {
-        Wrapping {
-            inner_is_required: false,
-            list_wrapping: vec![],
-        }
-    }
-
-    pub fn required() -> Self {
-        Wrapping {
-            inner_is_required: true,
-            list_wrapping: vec![],
-        }
-    }
-
-    #[must_use]
-    pub fn nullable_list(self) -> Self {
-        Wrapping {
-            list_wrapping: [ListWrapping::NullableList]
-                .into_iter()
-                .chain(self.list_wrapping)
-                .collect(),
-            ..self
-        }
-    }
-
-    #[must_use]
-    pub fn required_list(self) -> Self {
-        Wrapping {
-            list_wrapping: [ListWrapping::RequiredList]
-                .into_iter()
-                .chain(self.list_wrapping)
-                .collect(),
-            ..self
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ListWrapping {
-    RequiredList,
-    NullableList,
 }
 
 #[derive(Debug)]

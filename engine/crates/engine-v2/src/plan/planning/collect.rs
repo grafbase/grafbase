@@ -183,7 +183,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
                     edge: bound_field.response_edge(),
                     bound_field_id,
                     schema_field_id,
-                    wrapping: schema_field.ty().wrapping().clone(),
+                    wrapping: schema_field.ty().wrapping(),
                     ty,
                 });
             } else {

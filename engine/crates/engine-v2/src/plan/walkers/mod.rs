@@ -231,7 +231,7 @@ impl<'a> PlanWalker<'a> {
                         FieldType::Scalar(data_type) => FieldType::Scalar(data_type),
                         FieldType::SelectionSet(selection_set) => self.try_collect_merged_selection_sets(selection_set),
                     };
-                    let wrapping = schema.walk(schema_field_id).ty().wrapping().clone();
+                    let wrapping = schema.walk(schema_field_id).ty().wrapping();
                     CollectedField {
                         edge,
                         expected_key,
