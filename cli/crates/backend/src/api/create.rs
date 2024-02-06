@@ -1,5 +1,5 @@
 use super::client::create_client;
-use super::consts::{API_URL, PROJECT_METADATA_FILE};
+use super::consts::API_URL;
 use super::deploy;
 use super::errors::{ApiError, CreateError};
 use super::graphql::mutations::{
@@ -9,6 +9,7 @@ use super::graphql::mutations::{
 use super::graphql::queries::viewer_for_create::{PersonalAccount, Viewer};
 use super::types::{Account, ProjectMetadata};
 use super::utils::has_project_linked;
+use common::consts::PROJECT_METADATA_FILE;
 use common::environment::Project;
 use cynic::http::ReqwestExt;
 use cynic::Id;
