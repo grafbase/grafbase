@@ -116,10 +116,13 @@ mod tests {
               },
               "default_headers": [],
               "graph": {
+                "directives": [],
+                "enum_values": [],
                 "enums": [],
                 "field_types": [],
                 "fields": [],
                 "input_objects": [],
+                "input_value_definitions": [],
                 "interface_fields": [],
                 "interfaces": [],
                 "object_fields": [],
