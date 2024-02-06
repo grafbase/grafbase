@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Write};
 
 use engine_value::{ConstValue, Name};
 use indexmap::IndexMap;
-use schema::{DataType, InputObjectId, ListWrapping, Schema, StringId};
+use schema::{InputObjectId, ListWrapping, ScalarType, Schema, StringId};
 
 use crate::{
     request::{Location, Operation, VariableDefinition, VariableDefinitionId},
@@ -295,15 +295,15 @@ fn coerce_scalar(
     schema: &Schema,
     path: VariablePath,
 ) -> Result<ConstValue, CoercionError> {
-    match (value, scalar.data_type) {
-        (ConstValue::Number(number), DataType::Int | DataType::BigInt) if !number.is_f64() => {
+    match (value, scalar.ty) {
+        (ConstValue::Number(number), ScalarType::Int | ScalarType::BigInt) if !number.is_f64() => {
             Ok(ConstValue::Number(number))
         }
-        (ConstValue::Number(number), DataType::Float) => Ok(ConstValue::Number(number)),
-        (ConstValue::String(value), DataType::String) => Ok(ConstValue::String(value)),
-        (ConstValue::Boolean(value), DataType::Boolean) => Ok(ConstValue::Boolean(value)),
-        (ConstValue::Binary(value), DataType::String) => Ok(ConstValue::Binary(value)),
-        (ConstValue::Enum(value), DataType::String) => Ok(ConstValue::Enum(value)),
+        (ConstValue::Number(number), ScalarType::Float) => Ok(ConstValue::Number(number)),
+        (ConstValue::String(value), ScalarType::String) => Ok(ConstValue::String(value)),
+        (ConstValue::Boolean(value), ScalarType::Boolean) => Ok(ConstValue::Boolean(value)),
+        (ConstValue::Binary(value), ScalarType::String) => Ok(ConstValue::Binary(value)),
+        (ConstValue::Enum(value), ScalarType::String) => Ok(ConstValue::Enum(value)),
         (actual, _) => Err(CoercionError::IncorrectScalar {
             actual: ValueKind::of_value(&actual),
             expected: schema[scalar.name].to_string(),

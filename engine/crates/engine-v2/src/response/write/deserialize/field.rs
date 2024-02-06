@@ -1,12 +1,9 @@
 use std::sync::atomic::Ordering;
 
-use schema::{DataType, ListWrapping, Wrapping};
+use schema::{ListWrapping, Wrapping};
 use serde::de::DeserializeSeed;
 
-use super::{
-    BigIntSeed, BooleanSeed, FloatSeed, IntSeed, JSONSeed, ListSeed, NullableSeed, SeedContextInner, SelectionSetSeed,
-    StringSeed,
-};
+use super::{ListSeed, NullableSeed, ScalarTypeSeed, SeedContextInner, SelectionSetSeed};
 use crate::{
     plan::{CollectedField, FieldType},
     response::{GraphqlError, ResponseValue},
@@ -17,17 +14,6 @@ pub(super) struct FieldSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContextInner<'ctx>,
     pub field: &'parent CollectedField,
     pub wrapping: Wrapping,
-}
-
-macro_rules! deserialize_nullable_scalar {
-    ($field: expr, $scalar: expr, $deserializer: expr) => {
-        NullableSeed {
-            bound_field_id: $field.field.bound_field_id,
-            ctx: $field.ctx,
-            seed: $scalar,
-        }
-        .deserialize($deserializer)
-    };
 }
 
 impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
@@ -53,14 +39,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
             }
         } else if self.wrapping.inner_is_required() {
             match &self.field.ty {
-                FieldType::Scalar(data_type) => match data_type {
-                    DataType::String => StringSeed.deserialize(deserializer),
-                    DataType::Float => FloatSeed.deserialize(deserializer),
-                    DataType::Int => IntSeed.deserialize(deserializer),
-                    DataType::BigInt => BigIntSeed.deserialize(deserializer),
-                    DataType::JSON => JSONSeed.deserialize(deserializer),
-                    DataType::Boolean => BooleanSeed.deserialize(deserializer),
-                },
+                FieldType::Scalar(scalar_type) => ScalarTypeSeed(*scalar_type).deserialize(deserializer),
                 FieldType::SelectionSet(collected) => SelectionSetSeed {
                     ctx: self.ctx,
                     collected,
@@ -69,14 +48,12 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
             }
         } else {
             match &self.field.ty {
-                FieldType::Scalar(data_type) => match data_type {
-                    DataType::String => deserialize_nullable_scalar!(self, StringSeed, deserializer),
-                    DataType::Float => deserialize_nullable_scalar!(self, FloatSeed, deserializer),
-                    DataType::Int => deserialize_nullable_scalar!(self, IntSeed, deserializer),
-                    DataType::BigInt => deserialize_nullable_scalar!(self, BigIntSeed, deserializer),
-                    DataType::JSON => deserialize_nullable_scalar!(self, JSONSeed, deserializer),
-                    DataType::Boolean => deserialize_nullable_scalar!(self, BooleanSeed, deserializer),
-                },
+                FieldType::Scalar(scalar_type) => NullableSeed {
+                    bound_field_id: self.field.bound_field_id,
+                    ctx: self.ctx,
+                    seed: ScalarTypeSeed(*scalar_type),
+                }
+                .deserialize(deserializer),
                 FieldType::SelectionSet(collected) => NullableSeed {
                     bound_field_id: self.field.bound_field_id,
                     ctx: self.ctx,
