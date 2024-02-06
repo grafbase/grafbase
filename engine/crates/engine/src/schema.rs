@@ -398,7 +398,7 @@ impl Schema {
 
         let request = extensions.prepare_request(request).await?;
         let mut document = {
-            let query = &request.query;
+            let query = request.query();
             let fut_parse = async { parse_query(query).map_err(Into::<ServerError>::into) };
             futures_util::pin_mut!(fut_parse);
             extensions
@@ -420,7 +420,7 @@ impl Schema {
             extensions.validation(&mut validation_fut).await?
         };
 
-        if !request.disable_operation_limits {
+        if !request.operation_limits_disabled() {
             // Check limits.
             if let Some(limit_complexity) = self.operation_limits.complexity {
                 if validation_result.complexity > limit_complexity as usize {
@@ -453,12 +453,12 @@ impl Schema {
             }
         }
 
-        let operation = if let Some(operation_name) = &request.operation_name {
+        let operation = if let Some(operation_name) = request.operation_name() {
             match document.operations {
                 DocumentOperations::Single(_) => None,
                 DocumentOperations::Multiple(mut operations) => operations
-                    .remove(operation_name.as_str())
-                    .map(|operation| (Some(operation_name.clone()), operation)),
+                    .remove(operation_name)
+                    .map(|operation| (Some(operation_name.to_string()), operation)),
             }
             .ok_or_else(|| ServerError::new(format!(r#"Unknown operation named "{operation_name}""#), None))
         } else {
@@ -487,6 +487,7 @@ impl Schema {
         // Or just print it for now.
         // LogicalQuery::build(document, registry);
 
+        let disable_introspection = request.introspection_disabled();
         let env = QueryEnvInner {
             extensions,
             variables: request.variables,
@@ -497,7 +498,7 @@ impl Schema {
             session_data,
             ctx_data: query_data,
             response_http_headers: Default::default(),
-            disable_introspection: request.disable_introspection,
+            disable_introspection,
             errors: Default::default(),
             current_datetime: CurrentDateTime::new(),
             cache_invalidations: validation_result.cache_invalidation_policies,

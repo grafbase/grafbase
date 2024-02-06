@@ -124,7 +124,7 @@ impl GraphQlRequest {
     pub fn into_engine_request(self) -> engine::Request {
         let mut request = Request::new(self.query);
         if let Some(name) = self.operation_name {
-            request = request.operation_name(name);
+            request = request.with_operation_name(name);
         }
         if let Some(variables) = self.variables {
             request = request.variables(variables);

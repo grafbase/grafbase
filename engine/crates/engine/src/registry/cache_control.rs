@@ -146,7 +146,7 @@ pub struct CachePartialRegistry {
 
 impl CachePartialRegistry {
     pub fn get_cache_control(&self, request: &crate::Request) -> Result<CacheControl, CacheControlError> {
-        let document = engine_parser::parse_query(&request.query).map_err(CacheControlError::Parse)?;
+        let document = engine_parser::parse_query(request.query()).map_err(CacheControlError::Parse)?;
 
         let registry_caching_view = Registry {
             enable_caching: self.enable_caching,
