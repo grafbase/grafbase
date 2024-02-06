@@ -1,9 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
-    builder::SchemaBuilder, DataType, Definition, EnumId, EnumValue, Field, FieldId, FieldResolver, InputValue,
-    InputValueId, ObjectField, ObjectId, ResolverId, ScalarId, Schema, SchemaWalker, StringId, Type, TypeId, Value,
-    Wrapping,
+    builder::SchemaBuilder, DataType, Definition, EnumId, EnumValue, EnumValueId, Field, FieldId, InputValue,
+    InputValueId, ObjectField, ObjectId, ScalarId, Schema, SchemaWalker, StringId, Type, TypeId, Value, Wrapping,
+    NO_DIRECTIVE, NO_ENUM_VALUE, NO_INPUT_VALUE,
 };
 use strum::EnumCount;
 
@@ -421,7 +421,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 __type.fields.push((field_id, __Type::Fields));
                 let input_value_id =
                     self.insert_input_value("includeDeprecated", nullable_boolean, Some(Value::Boolean(false)));
-                self[field_id].arguments.push(input_value_id);
+                self.insert_field_argument(field_id, input_value_id)
             }
             {
                 let nullable__enum_value_list =
@@ -430,7 +430,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 __type.fields.push((field_id, __Type::EnumValues));
                 let input_value_id =
                     self.insert_input_value("includeDeprecated", nullable_boolean, Some(Value::Boolean(false)));
-                self[field_id].arguments.push(input_value_id);
+                self.insert_field_argument(field_id, input_value_id);
             }
             __type
         };
@@ -508,7 +508,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             field_requires: Default::default(),
         });
         let input_value_id = self.insert_input_value("name", required_string, None);
-        self[__type_field_id].arguments.push(input_value_id);
+        self.insert_field_argument(__type_field_id, input_value_id);
 
         // DataSource
         self.data_sources.introspection.metadata = Some(Metadata {
@@ -526,25 +526,33 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
     fn insert_enum(&mut self, name: &str, values: &[&str]) -> EnumId {
         let name = self.get_or_intern(name);
-        let values = values
-            .iter()
-            .map(|value| {
+
+        let values = if values.is_empty() {
+            NO_ENUM_VALUE
+        } else {
+            let start_idx = self.enum_values.len();
+
+            for value in values {
                 let value = self.get_or_intern(value);
-                EnumValue {
+                self.enum_values.push(EnumValue {
                     name: value,
-                    composed_directives: vec![],
+                    composed_directives: NO_DIRECTIVE,
                     description: None,
                     is_deprecated: false,
                     deprecation_reason: None,
-                }
-            })
-            .collect();
+                })
+            }
+
+            let len = self.enum_values.len() - start_idx;
+
+            (EnumValueId::from(start_idx), len)
+        };
 
         self.enums.push(crate::Enum {
             name,
             description: None,
             values,
-            composed_directives: vec![],
+            composed_directives: NO_DIRECTIVE,
         });
         let enum_id = EnumId::from(self.enums.len() - 1);
         self.definitions.push(Definition::Enum(enum_id));
@@ -557,7 +565,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             name,
             description: None,
             interfaces: vec![],
-            composed_directives: vec![],
+            composed_directives: NO_DIRECTIVE,
             cache_config: None,
         });
         ObjectId::from(self.objects.len() - 1)
@@ -568,10 +576,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         self.fields.push(Field {
             name,
             type_id: field_type_id,
-            composed_directives: vec![],
+            composed_directives: NO_DIRECTIVE,
             resolvers: vec![],
             provides: vec![],
-            arguments: vec![],
+            arguments: NO_INPUT_VALUE,
             description: None,
             is_deprecated: false,
             deprecation_reason: None,
@@ -594,6 +602,16 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 })
                 .collect(),
         }
+    }
+
+    fn insert_field_argument(&mut self, field_id: FieldId, argument: InputValueId) {
+        let (start, len) = &mut self[field_id].arguments;
+
+        if *len == 0 {
+            *start = argument;
+        }
+
+        *len += 1;
     }
 
     fn insert_field_type(&mut self, kind: impl Into<Definition>, wrapping: Wrapping) -> TypeId {
@@ -636,7 +654,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                     data_type: scalar_type,
                     description: None,
                     specified_by_url: None,
-                    composed_directives: vec![],
+                    composed_directives: NO_DIRECTIVE,
                 });
                 ScalarId::from(self.scalars.len() - 1)
             }

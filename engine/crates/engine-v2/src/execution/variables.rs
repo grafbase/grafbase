@@ -281,7 +281,7 @@ fn coerce_named_type(
 
     match r#type.inner {
         schema::Definition::Scalar(scalar) => coerce_scalar(value, &schema[scalar], schema, path),
-        schema::Definition::Enum(id) => coerce_enum(value, &schema[id], schema, path),
+        schema::Definition::Enum(id) => coerce_enum(value, id, schema, path),
         schema::Definition::InputObject(object) => coerce_input_object(value, object, schema, path),
         schema::Definition::Object(_) | schema::Definition::Interface(_) | schema::Definition::Union(_) => {
             unreachable!("variables can't be output types.")
@@ -314,25 +314,27 @@ fn coerce_scalar(
 
 fn coerce_enum(
     value: ConstValue,
-    enum_: &schema::Enum,
+    enum_id: schema::EnumId,
     schema: &Schema,
     path: VariablePath,
 ) -> Result<ConstValue, CoercionError> {
+    let r#enum = schema.walker().walk(enum_id);
+
     let value_str = match &value {
         ConstValue::String(value) => value.as_str(),
         ConstValue::Enum(value) => value.as_str(),
         value => {
             return Err(CoercionError::IncorrectEnum {
-                name: schema[enum_.name].to_string(),
+                name: r#enum.name().to_owned(),
                 actual: ValueKind::of_value(value),
                 path: path.to_error_string(schema),
             })
         }
     };
 
-    if !enum_.values.iter().any(|value| schema[value.name] == value_str) {
+    if !r#enum.values().any(|value| schema[value.name] == value_str) {
         return Err(CoercionError::IncorrectEnumValue {
-            name: schema[enum_.name].to_string(),
+            name: r#enum.name().to_owned(),
             actual: value_str.to_string(),
             path: path.to_error_string(schema),
         });

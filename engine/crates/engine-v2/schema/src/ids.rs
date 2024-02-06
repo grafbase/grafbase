@@ -2,8 +2,8 @@
 /// They can only be created by From<usize>
 use crate::{
     sources::federation::{DataSource as FederationDataSource, Subgraph},
-    CacheConfig, Definition, Directive, Enum, Field, Header, InputObject, InputValue, Interface, Object, Resolver,
-    Scalar, Schema, Type, Union,
+    CacheConfig, Definition, Directive, Enum, EnumValue, Field, Header, InputObject, InputValue, Interface, Object,
+    Resolver, Scalar, Schema, Type, Union,
 };
 use url::Url;
 
@@ -17,6 +17,17 @@ macro_rules! id_newtypes {
         $(
             #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
             pub struct $name(std::num::NonZeroU32);
+
+            impl $name {
+                pub const fn const_from_usize(index: usize, msg: &str) -> Self {
+                    assert!(index <= MAX_ID, "{}", msg);
+                    let Some(inner) = std::num::NonZeroU32::new((index + 1) as u32) else {
+                        panic!("{}", msg)
+                    };
+                    Self(inner)
+
+                }
+            }
 
             impl std::ops::Index<$name> for $ty {
                 type Output = $out;
@@ -35,8 +46,7 @@ macro_rules! id_newtypes {
 
             impl From<usize> for $name {
                 fn from(index: usize) -> Self {
-                    assert!(index <= MAX_ID, $msg);
-                    Self(std::num::NonZeroU32::new((index + 1) as u32).unwrap())
+                    Self::const_from_usize(index, $msg)
                 }
             }
 
@@ -58,7 +68,7 @@ macro_rules! id_newtypes {
 id_newtypes! {
     Schema.definitions[DefinitionId] => Definition unless "Too many definitions",
     Schema.directives[DirectiveId] => Directive unless "Too many directives",
-    Schema.enum_values[EnumValueId] => EnumValueunless "Too many enum values",
+    Schema.enum_values[EnumValueId] => EnumValue unless "Too many enum values",
     Schema.enums[EnumId] => Enum unless "Too many enums",
     Schema.fields[FieldId] => Field unless "Too many fields",
     Schema.headers[HeaderId] => Header unless "Too many headers",
