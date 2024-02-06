@@ -207,7 +207,7 @@ impl<'a> PlanWalker<'a> {
                         expected_key: field.expected_key,
                         schema_field_id: field.schema_field_id,
                         ty: match field.ty {
-                            FieldType::Scalar(data_type) => FieldType::Scalar(data_type),
+                            FieldType::Scalar(scalar_type) => FieldType::Scalar(scalar_type),
                             FieldType::SelectionSet(id) => FieldType::SelectionSet(RuntimeMergedConditionals {
                                 ty: SelectionSetType::maybe_from(schema.walk(field.schema_field_id).ty().inner().id())
                                     .unwrap(),
@@ -228,7 +228,7 @@ impl<'a> PlanWalker<'a> {
                      ty,
                  }| {
                     let ty = match ty {
-                        FieldType::Scalar(data_type) => FieldType::Scalar(data_type),
+                        FieldType::Scalar(scalar_type) => FieldType::Scalar(scalar_type),
                         FieldType::SelectionSet(selection_set) => self.try_collect_merged_selection_sets(selection_set),
                     };
                     let wrapping = schema.walk(schema_field_id).ty().wrapping();
