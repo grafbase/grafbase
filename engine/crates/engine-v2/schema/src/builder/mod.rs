@@ -333,23 +333,8 @@ impl SchemaBuilder {
                         field_set,
                     })
                     .collect(),
-                arguments: {
-                    field
-                        .arguments
-                        .into_iter()
-                        .map(|argument| {
-                            let input_value = InputValue {
-                                name: argument.name.into(),
-                                description: None,
-                                type_id: argument.type_id.into(),
-                                default_value: None,
-                            };
-                            schema.input_values.push(input_value);
-                            InputValueId::from(schema.input_values.len() - 1)
-                        })
-                        .collect()
-                },
-                composed_directives: field.composed_directives.into_iter().map(Into::into).collect(),
+                arguments: convert_range(field.arguments),
+                composed_directives: convert_range(field.composed_directives),
                 is_deprecated: false,
                 deprecation_reason: None,
                 cache_config: cache
@@ -366,23 +351,8 @@ impl SchemaBuilder {
             let input_object = InputObject {
                 name: input_object.name.into(),
                 description: None,
-                input_fields: {
-                    input_object
-                        .fields
-                        .into_iter()
-                        .map(|field| {
-                            let input_value = InputValue {
-                                name: field.name.into(),
-                                description: None,
-                                type_id: field.field_type_id.into(),
-                                default_value: None,
-                            };
-                            schema.input_values.push(input_value);
-                            InputValueId::from(schema.input_values.len() - 1)
-                        })
-                        .collect()
-                },
-                composed_directives: input_object.composed_directives.into_iter().map(Into::into).collect(),
+                input_fields: convert_range(input_object.fields),
+                composed_directives: convert_range(input_object.composed_directives),
             };
             schema.input_objects.push(input_object);
         }
@@ -405,7 +375,7 @@ impl SchemaBuilder {
                     data_type: DataType::from_scalar_name(&self.strings[name]),
                     description: None,
                     specified_by_url: None,
-                    composed_directives: scalar.composed_directives.into_iter().map(Into::into).collect(),
+                    composed_directives: convert_range(scalar.composed_directives),
                 }
             })
             .collect();
@@ -481,7 +451,7 @@ impl From<federated_graph::Object> for Object {
             name: object.name.into(),
             description: None,
             interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
-            composed_directives: object.composed_directives.into_iter().map(Into::into).collect(),
+            composed_directives: convert_range(object.composed_directives),
             cache_config: Default::default(),
         }
     }
@@ -489,13 +459,18 @@ impl From<federated_graph::Object> for Object {
 
 impl From<federated_graph::Directive> for Directive {
     fn from(directive: federated_graph::Directive) -> Self {
-        Directive {
-            name: directive.name.into(),
-            arguments: directive
-                .arguments
-                .into_iter()
-                .map(|(id, value)| (id.into(), value.into()))
-                .collect(),
+        match directive {
+            federated_graph::Directive::Inaccessible => Directive::Inaccessible,
+            federated_graph::Directive::Deprecated { reason } => Directive::Deprecated {
+                reason: reason.map(Into::into),
+            },
+            federated_graph::Directive::Other { name, arguments } => Directive::Other {
+                name: name.into(),
+                arguments: arguments
+                    .into_iter()
+                    .map(|(id, value)| (id.into(), value.into()))
+                    .collect(),
+            },
         }
     }
 }
@@ -514,16 +489,17 @@ impl From<federated_graph::Value> for Value {
         match value {
             federated_graph::Value::String(s) => Value::String(s.into()),
             federated_graph::Value::Int(i) => Value::Int(i),
-            federated_graph::Value::Float(f) => Value::Float(f.into()),
+            federated_graph::Value::Float(f) => Value::Float(f),
             federated_graph::Value::Boolean(b) => Value::Boolean(b),
             federated_graph::Value::EnumValue(s) => Value::EnumValue(s.into()),
             federated_graph::Value::Object(fields) => Value::Object(
-                (*fields)
+                fields
+                    .into_vec()
                     .into_iter()
                     .map(|(id, value)| (id.into(), value.into()))
                     .collect(),
             ),
-            federated_graph::Value::List(l) => Value::List(l.into_iter().map(Into::into).collect()),
+            federated_graph::Value::List(l) => Value::List(l.into_vec().into_iter().map(Into::into).collect()),
         }
     }
 }
@@ -584,10 +560,10 @@ impl From<federated_graph::InterfaceField> for InterfaceField {
 impl From<federated_graph::InputObject> for InputObject {
     fn from(value: federated_graph::InputObject) -> Self {
         InputObject {
-            name: value.name,
-            description: value.description,
-            input_fields: value.fields,
-            composed_directives: value.composed_directives,
+            name: value.name.into(),
+            description: value.description.map(Into::into),
+            input_fields: convert_range(value.fields),
+            composed_directives: convert_range(value.composed_directives),
         }
     }
 }
@@ -596,7 +572,7 @@ impl From<federated_graph::InputValueDefinition> for InputValue {
     fn from(value: federated_graph::InputValueDefinition) -> Self {
         InputValue {
             name: value.name.into(),
-            description: value.description.into(),
+            description: value.description.map(Into::into),
             type_id: value.type_id.into(),
             default_value: None,
         }
@@ -608,8 +584,8 @@ impl From<federated_graph::Enum> for Enum {
         Enum {
             name: value.name.into(),
             description: None,
-            values: value.values.into_iter().map(Into::into).collect(),
-            composed_directives: value.composed_directives.into_iter().map(Into::into).collect(),
+            values: convert_range(value.values),
+            composed_directives: convert_range(value.composed_directives),
         }
     }
 }
@@ -620,7 +596,7 @@ impl From<federated_graph::Union> for Union {
             name: union.name.into(),
             description: None,
             possible_types: union.members.into_iter().map(Into::into).collect(),
-            composed_directives: union.composed_directives.into_iter().map(Into::into).collect(),
+            composed_directives: convert_range(union.composed_directives),
         }
     }
 }
@@ -641,7 +617,7 @@ impl From<federated_graph::EnumValue> for EnumValue {
             description: None,
             deprecation_reason: None,
             is_deprecated: false,
-            composed_directives: enum_value.composed_directives.into_iter().map(Into::into).collect(),
+            composed_directives: convert_range(enum_value.composed_directives),
         }
     }
 }
@@ -659,16 +635,22 @@ macro_rules! from_id_newtypes {
 }
 
 from_id_newtypes! {
-    federated_graph::EnumId => EnumId,
-    federated_graph::FieldId => FieldId,
-    federated_graph::TypeId => TypeId,
     federated_graph::DirectiveId => DirectiveId,
+    federated_graph::EnumId => EnumId,
+    federated_graph::EnumValueId => EnumValueId,
+    federated_graph::FieldId => FieldId,
     federated_graph::InputObjectId => InputObjectId,
+    federated_graph::InputValueDefinitionId => InputValueId,
     federated_graph::InterfaceId => InterfaceId,
     federated_graph::ObjectId => ObjectId,
     federated_graph::ScalarId => ScalarId,
     federated_graph::StringId => StringId,
     federated_graph::SubgraphId => SubgraphId,
+    federated_graph::TypeId => TypeId,
     federated_graph::UnionId => UnionId,
     config::latest::HeaderId => HeaderId,
+}
+
+fn convert_range<Src, Target: From<Src>>((src_start, len): (Src, usize)) -> (Target, usize) {
+    (src_start.into(), len)
 }
