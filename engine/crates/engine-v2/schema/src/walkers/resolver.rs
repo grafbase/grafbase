@@ -44,14 +44,21 @@ impl<'a> ResolverWalker<'a> {
 
     pub fn can_provide(&self, nested_field_id: FieldId) -> bool {
         let nested_field = self.walk(nested_field_id);
+        if nested_field.as_ref().resolvers.is_empty() {
+            return true;
+        }
+
+        if nested_field.resolvers().any(|fr| fr.resolver.id() == self.id()) {
+            return true;
+        }
+
         if let Some(compatible_group) = self.group() {
-            nested_field.as_ref().resolvers.is_empty()
-                || nested_field
-                    .resolvers()
-                    .filter_map(|fr| fr.resolver.group())
-                    .any(|group| group == compatible_group)
+            nested_field
+                .resolvers()
+                .filter_map(|fr| fr.resolver.group())
+                .any(|group| group == compatible_group)
         } else {
-            nested_field.as_ref().resolvers.is_empty()
+            false
         }
     }
 }

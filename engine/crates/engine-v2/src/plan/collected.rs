@@ -26,8 +26,18 @@ pub struct ConditionalSelectionSet {
     /// object type to collect fields at runtime. For a subgraph that talks GraphQL it's obviously
     /// just '__typename'. But it doesn't need to. Supposing this is an interface, we'll use the [[schema::Names::interface_discriminant_key]] to know which key we should search for the discriminant and use the associated [[schema::Names::concrete_object_id_from_interface_discriminant]] to determine the actual object id at runtime. The same applies for unions.
     pub ty: SelectionSetType,
+    // Plan boundary associated with this selection set. If present we need to push the a
+    // ResponseObjectBoundaryItem into the ResponsePart everytime for children plans.
     pub maybe_boundary_id: Option<PlanBoundaryId>,
     pub fields: IdRange<ConditionalFieldId>,
+    // Selection sets can have multiple __typename fields and eventually type conditions.
+    // {
+    //     ... on Dog {
+    //         __typename
+    //     }
+    //     myalias: __typename
+    //     __typename
+    // }
     pub typename_fields: Vec<(Option<FlatTypeCondition>, ResponseEdge)>,
 }
 
@@ -55,9 +65,16 @@ pub enum FieldType<SelectionSet = AnyCollectedSelectionSet> {
 #[derive(Debug)]
 pub struct CollectedSelectionSet {
     pub ty: SelectionSetType,
+    // Plan boundary associated with this selection set. If present we need to push the a
+    // ResponseObjectBoundaryItem into the ResponsePart everytime for children plans.
     pub maybe_boundary_id: Option<PlanBoundaryId>,
     // the fields we point to are sorted by their expected_key
     pub fields: IdRange<CollectedFieldId>,
+    // Selection sets can have multiple __typename fields.
+    // {
+    //     myalias: __typename
+    //     __typename
+    // }
     pub typename_fields: Vec<ResponseEdge>,
 }
 
