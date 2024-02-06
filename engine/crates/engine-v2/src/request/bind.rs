@@ -3,7 +3,6 @@ use std::collections::{HashMap, HashSet};
 pub use engine_parser::types::OperationType;
 use engine_parser::Positioned;
 use engine_value::Name;
-use fnv::FnvHashMap;
 use itertools::Itertools;
 use schema::{Definition, FieldWalker, Schema};
 
@@ -163,9 +162,9 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
         schema,
         operation_name: ErrorOperationName(unbound.name.clone()),
         response_keys: ResponseKeys::default(),
-        fragments: FnvHashMap::default(),
+        fragments: HashMap::default(),
         field_arguments: vec![Vec::new()], // first one for all empty arguments.
-        location_to_field_arguments: FnvHashMap::default(),
+        location_to_field_arguments: HashMap::default(),
         fields: Vec::new(),
         selection_sets: vec![],
         unbound_fragments: unbound.fragments,
@@ -214,9 +213,9 @@ pub struct Binder<'a> {
     operation_name: ErrorOperationName,
     response_keys: ResponseKeys,
     unbound_fragments: HashMap<String, Positioned<engine_parser::types::FragmentDefinition>>,
-    fragments: FnvHashMap<String, (BoundFragmentId, BoundFragment)>,
+    fragments: HashMap<String, (BoundFragmentId, BoundFragment)>,
     field_arguments: Vec<BoundFieldArguments>,
-    location_to_field_arguments: FnvHashMap<Location, BoundFieldArgumentsId>,
+    location_to_field_arguments: HashMap<Location, BoundFieldArgumentsId>,
     fields: Vec<BoundField>,
     field_to_parent: Vec<BoundSelectionSetId>,
     fragment_spreads: Vec<BoundFragmentSpread>,

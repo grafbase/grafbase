@@ -1,6 +1,6 @@
-use fnv::FnvHashSet;
 use itertools::Itertools;
 use schema::Schema;
+use std::collections::HashSet;
 
 use crate::{
     plan::{
@@ -100,7 +100,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
             }
         }
 
-        let mut conditions = FnvHashSet::<Option<EntityType>>::default();
+        let mut conditions = HashSet::<Option<EntityType>>::default();
         let mut too_complex = false;
         for field in &plan_fields {
             match &field.type_condition {
