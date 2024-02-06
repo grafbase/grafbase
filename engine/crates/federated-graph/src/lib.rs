@@ -19,6 +19,12 @@ pub enum FederatedGraph {
     V1(FederatedGraphV1),
 }
 
+impl std::fmt::Debug for FederatedGraph {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FederatedGraph").finish_non_exhaustive()
+    }
+}
+
 impl FederatedGraph {
     pub fn to_sdl(&self) -> Result<String, std::fmt::Error> {
         render_sdl(self)

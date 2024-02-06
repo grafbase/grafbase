@@ -15,7 +15,7 @@ workspace = true
 
 [features]
 default = []
-plan_cache = ["dep:moka"]
+plan_cache = ["dep:mini-moka"]
 
 [dependencies]
 async-runtime.workspace = true
@@ -34,7 +34,7 @@ futures-util.workspace = true
 hex = "0.4.3"
 tracing.workspace = true
 fnv.workspace = true
-moka = { version = "0.12", optional = true, features = ["sync"] }
+mini-moka = { version = "0.10", optional = true, features = ["sync"] }
 
 config = { package = "engine-v2-config", path = "./config" }
 engine-value = { path = "../engine/value" }

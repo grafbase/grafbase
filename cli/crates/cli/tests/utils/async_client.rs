@@ -210,11 +210,13 @@ impl<Response> GqlRequestBuilder<Response> {
             .await
             .unwrap();
 
-        assert!(response.status().is_success());
+        assert!(response.status().is_success(), "{}", response.text().await.unwrap());
 
         assert_eq!(
-            response.headers().get("content-type").unwrap(),
-            "multipart/mixed; boundary=\"-\""
+            response.headers().get("content-type").cloned().unwrap(),
+            "multipart/mixed; boundary=\"-\"",
+            "{}",
+            response.text().await.unwrap()
         );
 
         multipart_stream::parse(response.bytes_stream(), "-")

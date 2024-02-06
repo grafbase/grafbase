@@ -21,6 +21,12 @@ pub struct Gateway {
     authorizer: Box<dyn Authorizer>,
 }
 
+impl std::fmt::Debug for Gateway {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Gateway").finish_non_exhaustive()
+    }
+}
+
 pub struct GatewayEnv {
     pub kv: runtime::kv::KvStore,
     pub cache: runtime::cache::Cache,

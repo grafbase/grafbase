@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use async_runtime::stream::StreamExt as _;
 use engine::RequestHeaders;
@@ -20,7 +20,7 @@ pub struct Engine {
     pub(crate) schema: Arc<Schema>,
     pub(crate) env: EngineEnv,
     #[cfg(feature = "plan_cache")]
-    plan_cache: moka::sync::Cache<String, Arc<OperationPlan>>,
+    plan_cache: mini_moka::sync::Cache<String, Arc<OperationPlan>>,
 }
 
 pub struct EngineEnv {
@@ -33,10 +33,10 @@ impl Engine {
             schema: Arc::new(schema),
             env,
             #[cfg(feature = "plan_cache")]
-            plan_cache: moka::sync::Cache::builder()
+            plan_cache: mini_moka::sync::Cache::builder()
                 .max_capacity(64)
                 // A cached entry will be expired after the specified duration past from get or insert
-                .time_to_idle(Duration::from_secs(5 * 60))
+                .time_to_idle(std::time::Duration::from_secs(5 * 60))
                 .build(),
         }
     }
