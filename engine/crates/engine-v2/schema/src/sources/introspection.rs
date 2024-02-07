@@ -1,10 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
-    builder::SchemaBuilder, Definition, EnumId, EnumValue, EnumValueId, Field, FieldId, FieldResolver,
-    IdRange, InputValue, InputValueId,
-    ObjectField, ObjectId, ResolverId, ScalarId, ScalarType, Schema, SchemaWalker, StringId, Type, TypeId, Value,
-    Wrapping,
+    builder::SchemaBuilder, Definition, EnumId, EnumValue, EnumValueId, Field, FieldId, FieldResolver, IdRange,
+    InputValue, InputValueId, ObjectField, ObjectId, ResolverId, ScalarId, ScalarType, Schema, SchemaWalker, StringId,
+    Type, TypeId, Value, Wrapping,
 };
 use strum::EnumCount;
 

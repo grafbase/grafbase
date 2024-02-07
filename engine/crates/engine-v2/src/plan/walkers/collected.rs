@@ -123,7 +123,9 @@ impl<'a> std::fmt::Debug for PlanCollectedSelectionSet<'a> {
                         UnpackedResponseEdge::BoundResponseKey(key) => {
                             self.operation_plan.response_keys[key].to_string()
                         }
-                        UnpackedResponseEdge::ExtraField(key) => self.operation_plan.response_keys[key].to_string(),
+                        UnpackedResponseEdge::ExtraFieldResponseKey(key) => {
+                            self.operation_plan.response_keys[key].to_string()
+                        }
                     })
                     .collect::<Vec<_>>(),
             )
