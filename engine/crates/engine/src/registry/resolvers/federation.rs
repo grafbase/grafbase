@@ -5,6 +5,7 @@ use serde_json::Value;
 use super::{ResolvedValue, ResolverContext};
 use crate::{
     registry::{federation::FederationResolver, NamedType},
+    resolver_utils::resolve_joined_field,
     Context, ContextExt, ContextField, Error,
 };
 
@@ -69,10 +70,9 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
             resolver.resolve(ctx, &resolver_context, last_resolver_value).await
         }
         Some(FederationResolver::BasicType) => Ok(ResolvedValue::new(serde_json::to_value(&representation)?)),
-        Some(FederationResolver::Join(_)) => {
-            return Err(Error::new(
-                "join resolvers can't be queried via their representations".to_string(),
-            ))
+        Some(FederationResolver::Join(join)) => {
+            let last_resolver_value = ResolvedValue::new(representation.data);
+            resolve_joined_field(ctx, join, last_resolver_value).await
         }
         None => {
             return Err(Error::new(format!(

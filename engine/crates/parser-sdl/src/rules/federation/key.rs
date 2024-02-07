@@ -104,13 +104,17 @@ mod tests {
             ],
             "resolver": {
               "Join": {
-                "field_name": "blah",
-                "arguments": [
+                "fields": [
                   [
-                    "id",
-                    {
-                      "$var": "id"
-                    }
+                    "blah",
+                    [
+                      [
+                        "id",
+                        {
+                          "$var": "id"
+                        }
+                      ]
+                    ]
                   ]
                 ]
               }
@@ -149,13 +153,17 @@ mod tests {
             ],
             "resolver": {
               "Join": {
-                "field_name": "blah",
-                "arguments": [
+                "fields": [
                   [
-                    "id",
-                    {
-                      "$var": "id"
-                    }
+                    "blah",
+                    [
+                      [
+                        "id",
+                        {
+                          "$var": "id"
+                        }
+                      ]
+                    ]
                   ]
                 ]
               }
@@ -212,7 +220,7 @@ mod tests {
                 id: ID!
             }
             "#,
-            "The federation key `id` on the type User is trying to join with the field named blah, but those fields do not have compatible types"
+            "federation key `id` on the type User is trying to join with Query.blah, but those fields do not have compatible types"
         );
     }
 }

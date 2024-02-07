@@ -16,3 +16,5 @@ pub use dynamic::*;
 pub use list::*;
 pub use r#enum::*;
 pub use scalar::*;
+
+pub use joins::resolve_joined_field;
