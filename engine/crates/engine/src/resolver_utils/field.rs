@@ -64,57 +64,6 @@ pub async fn resolve_field(
         parent_resolver_value = resolve_requires_fieldset(parent_resolver_value, requires, ctx).await?;
     }
 
-    // TODO: Ok, so _here_
-    // _if_ the current field has a Join resolver on it.
-    // Then we don't bother going into any of the below functions.
-    //
-    // And instead we generate a _new_ SelectionSet out of the
-    // join select with the queries select _inside_ and then resolve that.
-    // and start resolving that instead?
-    //
-    // This would absolutely work but ofc would fuck any error paths up somewhat horribly.
-    //
-    // We could just translate these back to normal...?
-    // _or_ we could go down a slightly different code path for joins.
-    //
-    // Which may be a better option?  Not sure....
-    //
-    // I guess we've essentially ruled out the presence of arrays in the join path.
-    // We can have scalars, but not until the leaf field.
-    // No spreads.
-    // It's _mostly_ containers w/ one entry.
-    // Ban __typenam
-    // So the normal code path is basically:
-    //
-    // resolve_container
-    // -> FieldExecutionSet::add_selection_set (w/ one field)
-    // -> FieldExecutionSet::add_field
-    // creates a future that does:
-    //  -> resolve_field
-    //  -> resolve_container_field
-    //  -> run_field_resolver -> resolve_container
-    //  -> resolve_container etc.
-    // resolves all futures
-    //
-    // I may be missing something, but seems like it would be easy to bypass much of
-    // that heirarchy and just do a `resolve_join` that takes the simple path we need...?
-    //
-    // Dumb join version:
-    // fn resolve_join(
-    //
-    //   for field in the thing {
-    //      let current_value = run_field_resolver(resolver, last_value);
-    //      let context = dunno_but_do_this_somehow()
-    //      let last_value = current_value;
-    //   }
-    // }
-    //
-    // at the end of the loop current_value _should_ be the value we use for the current field.
-    // (e.g. the return value of run_field_resolver, assuming we were able to implement
-    // this in there (can we - there's a question?))
-
-    //
-
     let result = match CurrentResolverType::new(field, ctx) {
         CurrentResolverType::PRIMITIVE => resolve_primitive_field(ctx, field, parent_resolver_value).await,
         CurrentResolverType::CONTAINER => resolve_container_field(ctx, field, parent_resolver_value).await,
@@ -145,8 +94,8 @@ async fn resolve_primitive_field(
         .map_err(|err| err.into_server_error(ctx.item.pos));
 
     let result = match resolved_value {
-        Ok(result) => {
-            if field.ty.is_non_null() && *result.data_resolved() == serde_json::Value::Null {
+        Ok(Some(result)) if result.data_resolved().is_null() => {
+            if field.ty.is_non_null() {
                 log::warn!(
                     ctx.trace_id(),
                     "{}",
@@ -165,9 +114,11 @@ async fn resolve_primitive_field(
                     Some(ctx.item.pos),
                 ))
             } else {
-                Ok(result.take())
+                Ok(serde_json::Value::Null)
             }
         }
+        Ok(Some(result)) => Ok(result.take()),
+        Ok(None) => Ok(serde_json::Value::Null),
         Err(err) => return Err(err),
     }?;
 
@@ -230,7 +181,7 @@ async fn resolve_container_field(
         .await
         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
-    if resolved_value.data_resolved().is_null() {
+    if resolved_value.is_none() {
         if field.ty.is_non_null() {
             return Err(ServerError::new(
                 format!(
@@ -246,6 +197,7 @@ async fn resolve_container_field(
                 .insert_node(ResponsePrimitive::new(CompactValue::Null)));
         }
     }
+    let resolved_value = resolved_value.unwrap();
 
     let field_type = ctx
         .registry()
@@ -309,7 +261,8 @@ async fn resolve_array_field(
 
     let resolved_value = run_field_resolver(ctx, parent_resolver_value)
         .await
-        .map_err(|err| err.into_server_error(ctx.item.pos))?;
+        .map_err(|err| err.into_server_error(ctx.item.pos))?
+        .unwrap_or_default();
 
     field
         .check_cache_tag(ctx, container_type.name(), &field.name, None)
@@ -322,29 +275,36 @@ async fn resolve_array_field(
 pub(super) async fn run_field_resolver(
     ctx: &ContextField<'_>,
     parent_resolver_value: ResolvedValue,
-) -> Result<ResolvedValue, Error> {
+) -> Result<Option<ResolvedValue>, Error> {
     let resolver = &ctx.field.resolver;
 
     if let Some(QueryPathSegment::Index(idx)) = ctx.path.last() {
         // Items in lists don't have resolvers - we just look them up by index
-        return Ok(parent_resolver_value.get_index(*idx).unwrap_or_default());
+        return Ok(Some(parent_resolver_value.get_index(*idx).unwrap_or_default()));
     }
 
     match resolver {
         Resolver::Parent => {
             // Some fields just pass their parents data down to their children (or have no data at all).
-            // For those, we early return with the parent data
-            return Ok(parent_resolver_value);
+            // For those we early return with the parent data
+            return Ok(Some(parent_resolver_value));
         }
         Resolver::Join(join) => {
-            return resolve_joined_field(ctx, join, parent_resolver_value).await;
+            return resolve_joined_field(ctx, join, parent_resolver_value).await.map(Some);
         }
         _ => {}
     }
 
-    resolver
+    let resolved_value = resolver
         .resolve(ctx, &ResolverContext::new(ctx), Some(parent_resolver_value))
-        .await
+        .await?;
+
+    if resolved_value.data_resolved().is_null() {
+        // Convert nulls into `None` which will stop us executing child fields
+        return Ok(None);
+    }
+
+    Ok(Some(resolved_value))
 }
 
 async fn resolve_requires_fieldset(

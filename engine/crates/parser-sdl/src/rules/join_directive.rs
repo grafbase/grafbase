@@ -24,7 +24,6 @@ pub struct FieldSelection {
     required_fields: Vec<String>,
 }
 
-// TODO: Better name innit
 #[derive(Debug)]
 struct Selection {
     field_name: String,
@@ -369,6 +368,37 @@ mod tests {
             }
             "#,
             "The join on User.nickname tries to select children of String, but String is not a composite type"
+        );
+    }
+
+    #[test]
+    fn join_with_a_spread() {
+        assert_validation_error!(
+            r#"
+            extend type Query {
+                greetings(name: String!): Greetings @resolver(name: "greetings")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                id: ID!
+                name: String!
+                greeting: String! @join(
+                    select: """
+                        greetings(name: $name) {
+                            ... on Greetings {
+                                forTimeOfDay(id: $id, timeOfDay: "morning")
+                            }
+                        }
+                    """
+                )
+            }
+
+            type Greetings {
+                forTimeOfDay(id: String!, timeOfDay: String!): String! @resolver(name: "timeOfDayGreeting")
+            }
+            "#,
+            "joins can't make use of spreads"
         );
     }
 

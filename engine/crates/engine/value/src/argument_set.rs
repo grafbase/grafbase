@@ -42,7 +42,7 @@ impl ArgumentSet {
         self.0.is_empty()
     }
 
-    /// Returns true if the ArgumentSet is empty
+    /// Iterator over the names of the arguments
     pub fn iter_names(&self) -> impl Iterator<Item = &str> {
         self.0.iter().map(|(name, _)| name.as_str())
     }

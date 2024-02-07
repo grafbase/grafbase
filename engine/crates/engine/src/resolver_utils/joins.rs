@@ -35,7 +35,15 @@ pub async fn resolve_joined_field(
             .ok_or_else(|| Error::new(format!("Internal error: could not find joined field {}", &name)))?;
 
         let join_context = ctx.to_join_context(&query_field, meta_field, current_type);
-        resolved_value = run_field_resolver(&join_context, resolved_value).await?;
+
+        resolved_value = match run_field_resolver(&join_context, resolved_value).await? {
+            Some(value) => value,
+            None => {
+                // None indicates we should stop traversing so break out with null as our result
+                resolved_value = ResolvedValue::default();
+                break;
+            }
+        };
 
         if field_iter.peek().is_some() {
             current_type = ctx.registry().lookup_expecting(&meta_field.ty)?;
