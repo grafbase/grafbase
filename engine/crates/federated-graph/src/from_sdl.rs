@@ -1,5 +1,8 @@
 use crate::{federated_graph::*, FederatedGraph};
-use async_graphql_parser::{types as ast, Positioned};
+use async_graphql_parser::{
+    types::{self as ast},
+    Positioned,
+};
 use indexmap::IndexSet;
 use std::{collections::HashMap, error::Error as StdError, fmt};
 
@@ -31,7 +34,11 @@ struct State<'a> {
 
     fields: Vec<Field>,
 
+    directives: Vec<Directive>,
+    input_value_definitions: Vec<InputValueDefinition>,
+
     enums: Vec<Enum>,
+    enum_values: Vec<EnumValue>,
     unions: Vec<Union>,
     scalars: Vec<Scalar>,
     input_objects: Vec<InputObject>,
@@ -51,7 +58,7 @@ struct State<'a> {
 }
 
 impl<'a> State<'a> {
-    fn insert_field_type(&mut self, field_type: &'a ast::Type) -> FieldTypeId {
+    fn insert_field_type(&mut self, field_type: &'a ast::Type) -> TypeId {
         let mut list_wrappers = Vec::new();
         let mut ty = field_type;
 
@@ -77,7 +84,7 @@ impl<'a> State<'a> {
                 list_wrappers,
             })
             .0;
-        FieldTypeId(idx)
+        TypeId(idx)
     }
 
     fn insert_string(&mut self, s: &str) -> StringId {
@@ -132,7 +139,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     // This needs to happen after all fields have been ingested, in order to attach selection sets.
     ingest_selection_sets(&parsed, &mut state)?;
 
-    Ok(FederatedGraph::V1(FederatedGraphV1 {
+    Ok(FederatedGraph::V2(FederatedGraphV2 {
         root_operation_types: state.root_operation_types()?,
         subgraphs: state.subgraphs,
         objects: state.objects,
@@ -141,11 +148,14 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         interface_fields: state.interface_fields,
         fields: state.fields,
         enums: state.enums,
+        enum_values: state.enum_values,
         unions: state.unions,
         scalars: state.scalars,
         input_objects: state.input_objects,
         strings: state.strings.into_iter().collect(),
         field_types: state.field_types.into_iter().collect(),
+        directives: state.directives,
+        input_value_definitions: state.input_value_definitions,
     }))
 }
 
@@ -473,33 +483,39 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                         ingest_join_graph_enum(enm, state)?;
                     }
                     ast::TypeKind::Enum(enm) => {
+                        let values = {
+                            let start = state.enum_values.len();
+
+                            for value in &enm.values {
+                                let composed_directives = collect_composed_directives(&value.node.directives, state);
+                                let description = value
+                                    .node
+                                    .description
+                                    .as_ref()
+                                    .map(|description| state.insert_string(description.node.as_str()));
+                                let value = state.insert_string(value.node.value.node.as_str());
+                                state.enum_values.push(EnumValue {
+                                    value,
+                                    composed_directives,
+                                    description,
+                                });
+                            }
+
+                            (EnumValueId(start), state.enum_values.len() - start)
+                        };
+
                         let enum_id = EnumId(state.enums.push_return_idx(Enum {
                             name: type_name_id,
-                            values: Vec::new(),
+                            values,
                             composed_directives,
                             description,
                         }));
                         state.definition_names.insert(type_name, Definition::Enum(enum_id));
-
-                        for value in &enm.values {
-                            let composed_directives = collect_composed_directives(&value.node.directives, state);
-                            let description = value
-                                .node
-                                .description
-                                .as_ref()
-                                .map(|description| state.insert_string(description.node.as_str()));
-                            let value = state.insert_string(value.node.value.node.as_str());
-                            state.enums[enum_id.0].values.push(EnumValue {
-                                value,
-                                composed_directives,
-                                description,
-                            });
-                        }
                     }
                     ast::TypeKind::InputObject(_) => {
                         let input_object_id = InputObjectId(state.input_objects.push_return_idx(InputObject {
                             name: type_name_id,
-                            fields: Vec::new(),
+                            fields: NO_INPUT_VALUE_DEFINITION,
                             composed_directives,
                             description,
                         }));
@@ -522,7 +538,7 @@ fn insert_builtin_scalars(state: &mut State<'_>) {
         let name = state.insert_string(name_str);
         let id = ScalarId(state.scalars.push_return_idx(Scalar {
             name,
-            composed_directives: Vec::new(),
+            composed_directives: (DirectiveId(0), 0),
             description: None,
         }));
         state.definition_names.insert(name_str, Definition::Scalar(id));
@@ -540,24 +556,27 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
     let field_name = ast_field.name.node.as_str();
     let field_type_id = state.insert_field_type(&ast_field.ty.node);
     let name = state.insert_string(field_name);
-    let arguments = ast_field
-        .arguments
-        .iter()
-        .map(|arg| {
-            let description = arg
-                .node
-                .description
-                .as_ref()
-                .map(|description| state.insert_string(description.node.as_str()));
-            let composed_directives = collect_composed_directives(&arg.node.directives, state);
-            FieldArgument {
-                name: state.insert_string(arg.node.name.node.as_str()),
-                type_id: state.insert_field_type(&arg.node.ty.node),
-                composed_directives,
-                description,
-            }
-        })
-        .collect();
+    let args_start = state.input_value_definitions.len();
+
+    for arg in &ast_field.arguments {
+        let description = arg
+            .node
+            .description
+            .as_ref()
+            .map(|description| state.insert_string(description.node.as_str()));
+        let composed_directives = collect_composed_directives(&arg.node.directives, state);
+        let name = state.insert_string(arg.node.name.node.as_str());
+        let type_id = state.insert_field_type(&arg.node.ty.node);
+
+        state.input_value_definitions.push(InputValueDefinition {
+            name,
+            type_id,
+            directives: composed_directives,
+            description,
+        });
+    }
+
+    let args_end = state.input_value_definitions.len();
 
     let resolvable_in = ast_field
         .directives
@@ -620,7 +639,7 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
         resolvable_in,
         provides: Vec::new(),
         requires: Vec::new(),
-        arguments,
+        arguments: (InputValueDefinitionId(args_start), args_end - args_start),
         composed_directives,
         overrides,
         description,
@@ -651,22 +670,26 @@ fn ingest_input_object<'a>(
     input_object: &'a ast::InputObjectType,
     state: &mut State<'a>,
 ) {
+    let start = state.input_value_definitions.len();
     for field in &input_object.fields {
         let name = state.insert_string(field.node.name.node.as_str());
-        let field_type_id = state.insert_field_type(&field.node.ty.node);
+        let type_id = state.insert_field_type(&field.node.ty.node);
         let composed_directives = collect_composed_directives(&field.node.directives, state);
         let description = field
             .node
             .description
             .as_ref()
             .map(|description| state.insert_string(description.node.as_str()));
-        state.input_objects[input_object_id.0].fields.push(InputObjectField {
+        state.input_value_definitions.push(InputValueDefinition {
             name,
-            field_type_id,
-            composed_directives,
+            type_id,
+            directives: composed_directives,
             description,
         });
     }
+    let end = state.input_value_definitions.len();
+
+    state.input_objects[input_object_id.0].fields = (InputValueDefinitionId(start), end - start);
 }
 
 fn ingest_object_fields<'a>(object_id: ObjectId, object: &'a ast::ObjectType, state: &mut State<'a>) {
@@ -781,26 +804,46 @@ impl<T> VecExt<T> for Vec<T> {
     }
 }
 
-fn collect_composed_directives(
-    directives: &[Positioned<ast::ConstDirective>],
-    state: &mut State<'_>,
-) -> Vec<Directive> {
-    directives
+fn collect_composed_directives(directives: &[Positioned<ast::ConstDirective>], state: &mut State<'_>) -> Directives {
+    let start = state.directives.len();
+
+    for directive in directives
         .iter()
         .filter(|dir| dir.node.name.node != JOIN_FIELD_DIRECTIVE_NAME)
         .filter(|dir| dir.node.name.node != JOIN_TYPE_DIRECTIVE_NAME)
-        .map(|directive| Directive {
-            name: state.insert_string(directive.node.name.node.as_str()),
-            arguments: directive
-                .node
-                .arguments
-                .iter()
-                .map(|(name, value)| -> (StringId, Value) {
-                    (state.insert_string(name.node.as_str()), state.insert_value(&value.node))
-                })
-                .collect(),
-        })
-        .collect()
+    {
+        match directive.node.name.node.as_str() {
+            "inaccessible" => state.directives.push(Directive::Inaccessible),
+            "deprecated" => {
+                let directive = Directive::Deprecated {
+                    reason: directive
+                        .node
+                        .get_argument("reason")
+                        .and_then(|value| match &value.node {
+                            async_graphql_value::ConstValue::String(s) => Some(state.insert_string(s.as_str())),
+                            _ => None,
+                        }),
+                };
+
+                state.directives.push(directive)
+            }
+            other => {
+                let name = state.insert_string(other);
+                let arguments = directive
+                    .node
+                    .arguments
+                    .iter()
+                    .map(|(name, value)| -> (StringId, Value) {
+                        (state.insert_string(name.node.as_str()), state.insert_value(&value.node))
+                    })
+                    .collect();
+
+                state.directives.push(Directive::Other { name, arguments })
+            }
+        }
+    }
+
+    (DirectiveId(start), state.directives.len() - start)
 }
 
 #[cfg(test)]

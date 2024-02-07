@@ -37,8 +37,10 @@ impl<'a> FederationGatewayBench<'a> {
                 .collect(),
             dummy_responses_index.clone(),
         );
-        let FederatedGraph::V1(federated_graph) = FederatedGraph::from_sdl(schema).unwrap();
-        let config = engine_v2::VersionedConfig::V1(federated_graph).into_latest();
+        let federated_graph = FederatedGraph::from_sdl(schema).unwrap().into_latest();
+        let config =
+            engine_v2::VersionedConfig::V3(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
+
         let gateway = gateway_v2::Gateway::new(
             config.into(),
             engine_v2::EngineEnv { fetcher },

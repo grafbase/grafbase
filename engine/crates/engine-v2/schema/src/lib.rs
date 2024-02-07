@@ -43,6 +43,8 @@ pub struct Schema {
     types: Vec<Type>,
     // All definitions sorted by their name (actual string)
     definitions: Vec<Definition>,
+    directives: Vec<Directive>,
+    enum_values: Vec<EnumValue>,
 
     /// All strings deduplicated.
     strings: Vec<String>,
@@ -126,9 +128,11 @@ pub struct Object {
     pub description: Option<StringId>,
     pub interfaces: Vec<InterfaceId>,
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
     pub cache_config: Option<CacheConfigId>,
 }
+
+pub type Directives = IdRange<DirectiveId>;
 
 #[derive(PartialOrd, Ord, PartialEq, Eq)]
 pub struct ObjectField {
@@ -145,10 +149,10 @@ pub struct Field {
     pub is_deprecated: bool,
     pub deprecation_reason: Option<StringId>,
     provides: Vec<FieldProvides>,
-    pub arguments: Vec<InputValueId>,
+    pub arguments: InputValues,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 
     pub cache_config: Option<CacheConfigId>,
 }
@@ -166,16 +170,22 @@ pub struct FieldResolver {
 }
 
 #[derive(Debug)]
-pub struct Directive {
-    pub name: StringId,
-    pub arguments: Vec<(StringId, Value)>,
+pub enum Directive {
+    Inaccessible,
+    Deprecated {
+        reason: Option<StringId>,
+    },
+    Other {
+        name: StringId,
+        arguments: Vec<(StringId, Value)>,
+    },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     String(StringId),
     Int(i64),
-    Float(StringId),
+    Float(f64),
     Boolean(bool),
     EnumValue(StringId),
     Object(Vec<(StringId, Value)>),
@@ -244,7 +254,7 @@ pub struct Interface {
     pub possible_types: Vec<ObjectId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
 
 #[derive(Debug)]
@@ -257,10 +267,10 @@ pub struct InterfaceField {
 pub struct Enum {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub values: Vec<EnumValue>,
+    pub values: EnumValues,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
 
 #[derive(Debug)]
@@ -271,8 +281,10 @@ pub struct EnumValue {
     pub deprecation_reason: Option<StringId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
+
+type EnumValues = IdRange<EnumValueId>;
 
 #[derive(Debug)]
 pub struct Union {
@@ -282,7 +294,7 @@ pub struct Union {
     pub possible_types: Vec<ObjectId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
 
 #[derive(Debug)]
@@ -292,7 +304,7 @@ pub struct Scalar {
     pub description: Option<StringId>,
     pub specified_by_url: Option<StringId>,
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
 
 /// Defines how a scalar should be represented and validated by the engine. They're almost the same
@@ -321,10 +333,10 @@ impl DataType {
 pub struct InputObject {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub input_fields: Vec<InputValueId>,
+    pub input_fields: InputValues,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
 
 #[derive(Debug, Clone)]
@@ -334,6 +346,8 @@ pub struct InputValue {
     pub type_id: TypeId,
     pub default_value: Option<Value>,
 }
+
+pub type InputValues = IdRange<InputValueId>;
 
 impl Schema {
     pub fn walk<I>(&self, item: I) -> SchemaWalker<'_, I> {

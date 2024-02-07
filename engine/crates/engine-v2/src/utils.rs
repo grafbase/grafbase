@@ -1,3 +1,5 @@
+pub use schema::IdRange;
+
 macro_rules! id_newtypes {
     ($($ty:ident.$field:ident[$name:ident] => $out:ident unless $msg:literal,)*) => {
         $(
@@ -58,39 +60,6 @@ macro_rules! id_newtypes {
                 }
             }
         )*
-    }
-}
-
-// Not necessary anymore when Rust stabilize std::iter::Step
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct IdRange<Id: Copy> {
-    pub start: Id,
-    pub end: Id,
-}
-
-impl<Id> IdRange<Id>
-where
-    Id: From<usize> + Copy,
-    usize: From<Id>,
-{
-    pub fn empty() -> Self {
-        Self {
-            start: Id::from(0),
-            end: Id::from(0),
-        }
-    }
-
-    pub fn iter(&self) -> impl ExactSizeIterator<Item = Id> {
-        (usize::from(self.start)..usize::from(self.end)).map(Id::from)
-    }
-
-    pub fn get(&self, i: usize) -> Option<Id> {
-        let i = i + usize::from(self.start);
-        if i < usize::from(self.end) {
-            Some(Id::from(i))
-        } else {
-            None
-        }
     }
 }
 

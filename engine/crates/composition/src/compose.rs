@@ -114,13 +114,10 @@ fn merge_union_definitions(
 ) {
     let union_name = ctx.insert_string(first_union.name().id);
 
-    let is_inaccessible = definitions
-        .iter()
-        .any(|definition| definition.directives().inaccessible());
-
     let description = definitions.iter().find_map(|def| def.description());
+    let directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
 
-    ctx.insert_union(union_name, is_inaccessible, description);
+    ctx.insert_union(union_name, directives, description);
 
     for member in definitions
         .iter()

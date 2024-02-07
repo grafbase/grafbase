@@ -354,7 +354,7 @@ fn ast_value_to_subgraph_value(value: &ConstValue, subgraphs: &mut Subgraphs) ->
     match &value {
         ConstValue::Null | ConstValue::Binary(_) => unreachable!("null or bytes value in argument"),
         ConstValue::Number(n) if n.is_u64() || n.is_i64() => subgraphs::Value::Int(n.as_i64().unwrap()),
-        ConstValue::Number(n) => subgraphs::Value::Float(subgraphs.strings.intern(n.as_f64().unwrap().to_string())),
+        ConstValue::Number(n) => subgraphs::Value::Float(n.as_f64().unwrap()),
         ConstValue::String(s) => subgraphs::Value::String(subgraphs.strings.intern(s.as_str())),
         ConstValue::Boolean(b) => subgraphs::Value::Boolean(*b),
         ConstValue::Enum(e) => subgraphs::Value::Enum(subgraphs.strings.intern(e.as_str())),
