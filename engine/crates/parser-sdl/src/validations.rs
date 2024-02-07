@@ -142,7 +142,7 @@ fn validate_join(
     coord: SchemaCoord<'_>,
     expected_return_type: &MetaFieldType,
 ) -> Vec<RuleError> {
-    todo!("better join error handling");
+    vec![]
     // TODO: Things needed:
     // - Need the same shit below on the _inner_ field.
     // - Need to make sure there's no scalars or lists in between the root and this field.
@@ -150,49 +150,49 @@ fn validate_join(
     //   Definitely no unions, interfaces maybe but only fields of the interface.
     // - Need to check all required arguments on intermediate fields are present.
     // - Ban __typename & anything introspection adjacent
-    let mut errors = vec![];
+    // let mut errors = vec![];
 
-    let root_query_type = registry.root_type(engine_parser::types::OperationType::Query);
-    let Some(destination_field) = root_query_type.field(&join.field_name) else {
-        errors.push(RuleError::new(
-            vec![],
-            format!(
-                "{coord} is trying to join with a field named {}, which doesn't exist on the {} type",
-                join.field_name,
-                root_query_type.name()
-            ),
-        ));
-        return errors;
-    };
+    // let root_query_type = registry.root_type(engine_parser::types::OperationType::Query);
+    // let Some(destination_field) = root_query_type.field(&join.field_name) else {
+    //     errors.push(RuleError::new(
+    //         vec![],
+    //         format!(
+    //             "{coord} is trying to join with a field named {}, which doesn't exist on the {} type",
+    //             join.field_name,
+    //             root_query_type.name()
+    //         ),
+    //     ));
+    //     return errors;
+    // };
 
-    // TODO: Make this a bit more forgiving.
-    // If destination_field is non-null but expected_return is null that's fine...
-    if !types_are_compatible(&destination_field.ty, expected_return_type) {
-        errors.push(RuleError::new(
-            vec![],
-            format!(
-                "{coord} is trying to join with the field named {}, but those fields do not have compatible types",
-                join.field_name
-            ),
-        ));
-    }
+    // // TODO: Make this a bit more forgiving.
+    // // If destination_field is non-null but expected_return is null that's fine...
+    // if !types_are_compatible(&destination_field.ty, expected_return_type) {
+    //     errors.push(RuleError::new(
+    //         vec![],
+    //         format!(
+    //             "{coord} is trying to join with the field named {}, but those fields do not have compatible types",
+    //             join.field_name
+    //         ),
+    //     ));
+    // }
 
-    for (name, argument) in &destination_field.args {
-        if argument.ty.is_non_null() && !join.arguments.contains_argument(name) {
-            errors.push(RuleError::new(
-                vec![],
-            format!("{coord} is trying to join with the field named {}, but does not provide the non-nullable argument {name}", join.field_name),
-            ));
-        }
+    // for (name, argument) in &destination_field.args {
+    //     if argument.ty.is_non_null() && !join.arguments.contains_argument(name) {
+    //         errors.push(RuleError::new(
+    //             vec![],
+    //         format!("{coord} is trying to join with the field named {}, but does not provide the non-nullable argument {name}", join.field_name),
+    //         ));
+    //     }
 
-        // TODO: I think argument type validation is probably more important
-        // now that we're doing nested stuff so seriously consider this...
+    //     // TODO: I think argument type validation is probably more important
+    //     // now that we're doing nested stuff so seriously consider this...
 
-        // I'd like to check that the argument type matches, but unfortunately
-        // we don't have type information by the time we get here...
-    }
+    //     // I'd like to check that the argument type matches, but unfortunately
+    //     // we don't have type information by the time we get here...
+    // }
 
-    errors
+    // errors
 }
 
 fn types_are_compatible(actual_type: &MetaFieldType, expected_type: &MetaFieldType) -> bool {

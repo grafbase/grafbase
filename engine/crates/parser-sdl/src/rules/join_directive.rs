@@ -91,14 +91,9 @@ impl<'de> serde::Deserialize<'de> for FieldSelection {
 
         validate_field(&field).map_err(D::Error::custom)?;
 
-        let arguments = field
+        let required_fields = field
             .node
             .arguments
-            .into_iter()
-            .map(|(name, value)| (name.node, value.node))
-            .collect::<Vec<_>>();
-
-        let required_fields = arguments
             .iter()
             .flat_map(|(_, value)| value.variables_used())
             .map(|variable| variable.to_string())
@@ -108,7 +103,7 @@ impl<'de> serde::Deserialize<'de> for FieldSelection {
 
         Ok(FieldSelection {
             selections: SelectionIter {
-                field: Some(&field.node),
+                field: Some(field.node),
             }
             .collect(),
             required_fields,
@@ -132,15 +127,15 @@ fn validate_field(mut field: &Positioned<Field>) -> Result<(), String> {
     }
 }
 
-struct SelectionIter<'a> {
-    field: Option<&'a Field>,
+struct SelectionIter {
+    field: Option<Field>,
 }
 
-impl Iterator for SelectionIter<'_> {
+impl Iterator for SelectionIter {
     type Item = Selection;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let field = self.field?;
+        let field = std::mem::take(&mut self.field)?;
 
         let next = Selection {
             field_name: field.name.to_string(),
@@ -155,9 +150,10 @@ impl Iterator for SelectionIter<'_> {
             .selection_set
             .node
             .items
-            .first()
+            .into_iter()
+            .next()
             .and_then(|selection| match selection.node {
-                engine_parser::types::Selection::Field(inner_field) => Some(&inner_field.node),
+                engine_parser::types::Selection::Field(inner_field) => Some(inner_field.node),
                 _ => None,
             });
 
