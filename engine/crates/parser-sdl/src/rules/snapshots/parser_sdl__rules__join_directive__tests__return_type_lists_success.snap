@@ -1,16 +1,20 @@
 ---
-source: crates/parser-sdl/src/rules/join_directive.rs
+source: engine/crates/parser-sdl/src/rules/join_directive.rs
 expression: resolver
 ---
 {
   "J": {
-    "field_name": "blah",
-    "arguments": [
+    "fields": [
       [
-        "id",
-        {
-          "$var": "id"
-        }
+        "blah",
+        [
+          [
+            "id",
+            {
+              "$var": "id"
+            }
+          ]
+        ]
       ]
     ]
   }

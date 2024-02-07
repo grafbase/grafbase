@@ -7,7 +7,7 @@ use engine_parser::{
     Positioned,
 };
 use engine_value::{Name, Value};
-use serde::{de::Error, Serialize};
+use serde::de::Error;
 
 use super::{directive::Directive, visitor::VisitorContext};
 use crate::directive_de::parse_directive;
@@ -194,13 +194,17 @@ mod tests {
         assert_json_snapshot!(resolver, @r###"
         {
           "J": {
-            "field_name": "blah",
-            "arguments": [
+            "fields": [
               [
-                "id",
-                {
-                  "$var": "id"
-                }
+                "blah",
+                [
+                  [
+                    "id",
+                    {
+                      "$var": "id"
+                    }
+                  ]
+                ]
               ]
             ]
           }
@@ -210,7 +214,65 @@ mod tests {
 
     #[test]
     fn nested_join_with_arguments_and_such() {
-        todo!()
+        let schema = r#"
+            extend type Query {
+                greetings(name: String!): Greetings @resolver(name: "greetings")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                id: ID!
+                name: String!
+                greeting: String! @join(
+                    select: "greetings(name: $name) { forTimeOfDay(id: $id, timeOfDay: \"morning\") }"
+                )
+            }
+
+            type Greetings {
+                forTimeOfDay(id: String!, timeOfDay: String!): String! @resolver(name: "timeOfDayGreeting")
+            }
+        "#;
+
+        let registry = crate::to_parse_result_with_variables(schema, &HashMap::new())
+            .unwrap()
+            .registry;
+
+        let resolver = &registry.types["User"].fields().as_ref().unwrap()["greeting"].resolver;
+
+        assert_json_snapshot!(resolver, @r###"
+        {
+          "J": {
+            "fields": [
+              [
+                "greetings",
+                [
+                  [
+                    "name",
+                    {
+                      "$var": "name"
+                    }
+                  ]
+                ]
+              ],
+              [
+                "forTimeOfDay",
+                [
+                  [
+                    "id",
+                    {
+                      "$var": "id"
+                    }
+                  ],
+                  [
+                    "timeOfDay",
+                    "morning"
+                  ]
+                ]
+              ]
+            ]
+          }
+        }
+        "###);
     }
 
     #[test]
@@ -228,26 +290,32 @@ mod tests {
                 nickname: String! @join(select: "blah(id: $id)")
             }
             "#,
-            "The field nickname on the type User is trying to join with the field named blah, but does not provide the non-nullable argument name"
+            "User.nickname is trying to join with Query.blah, but does not provide the non-nullable argument name"
         );
     }
 
     #[test]
-    fn join_with_multiple_fields() {
+    fn join_with_list_in_path() {
         assert_validation_error!(
             r#"
-            extend schema @federation(version: "2.3")
-
             extend type Query {
-                blah(id: String!): String! @resolver(name: "blah")
+                greetings(name: String!): [Greetings] @resolver(name: "greetings")
+                user: User! @resolver(name: "user")
             }
 
-            type User @key(fields: "id", resolvable: false) {
+            type User {
                 id: ID!
-                nickname: String! @join(select: "blah(id: $id) foo")
+                name: String!
+                greeting: String! @join(
+                    select: "greetings(name: $name) { forTimeOfDay(id: $id, timeOfDay: \"morning\") }"
+                )
+            }
+
+            type Greetings {
+                forTimeOfDay(id: String!, timeOfDay: String!): String! @resolver(name: "timeOfDayGreeting")
             }
             "#,
-            ""
+            "The join on User.greeting passes through Query.greetings, which is a list.  This is not supported"
         );
     }
 
@@ -281,7 +349,26 @@ mod tests {
                 nickname: String! @join(select: "blah(id: $id)")
             }
             "#,
-            "The field nickname on the type User is trying to join with a field named blah, which doesn't exist on the Query type"
+            "User.nickname is trying to join with a field named blah, which doesn't exist on the Query type"
+        );
+    }
+
+    #[test]
+    fn join_through_scalar() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                foo: String! @resolver(name: "foo")
+            }
+
+            type User @key(fields: "id", resolvable: false) {
+                id: ID!
+                nickname: String! @join(select: "foo { bar }")
+            }
+            "#,
+            "The join on User.nickname tries to select children of String, but String is not a composite type"
         );
     }
 
@@ -300,7 +387,7 @@ mod tests {
                 nickname: String! @join(select: "blah(id: $id)")
             }
             "#,
-            "The field nickname on the type User is trying to join with the field named blah, but those fields do not have compatible types"
+            "User.nickname is trying to join with Query.blah, but those fields do not have compatible types"
         );
     }
 
@@ -319,7 +406,7 @@ mod tests {
                 nickname: String! @join(select: "blah(id: $whatever)")
             }
             "#,
-            "The field nickname on the type User declares that it requires the field whatever on User but that field doesn't exist"
+            "User.nickname declares that it requires the field whatever on User but that field doesn't exist"
         );
     }
 
@@ -362,7 +449,7 @@ mod tests {
                 nickname: String! @join(select: "blah(id: $id)")
             }
             "#,
-            "The field nickname on the type User is trying to join with the field named blah, but those fields do not have compatible types"
+            "User.nickname is trying to join with Query.blah, but those fields do not have compatible types"
         );
     }
 
@@ -405,7 +492,7 @@ mod tests {
                 nickname: [String]! @join(select: "blah(id: $id)")
             }
             "#,
-            "The field nickname on the type User is trying to join with the field named blah, but those fields do not have compatible types"
+            "User.nickname is trying to join with Query.blah, but those fields do not have compatible types"
         );
     }
 
@@ -424,7 +511,7 @@ mod tests {
                 nickname: String @join(select: "blah(id: $id)")
             }
             "#,
-            "The field nickname on the type User is trying to join with the field named blah, but those fields do not have compatible types"
+            "User.nickname is trying to join with Query.blah, but those fields do not have compatible types"
         );
     }
 
@@ -436,34 +523,38 @@ mod tests {
         Ok(
             JoinDirective {
                 select: FieldSelection {
-                    field_name: "findUser",
-                    arguments: [
-                        (
-                            Name(
-                                "name",
-                            ),
-                            Variable(
-                                Name(
-                                    "name",
-                                ),
-                            ),
-                        ),
-                        (
-                            Name(
-                                "filters",
-                            ),
-                            Object(
-                                {
+                    selections: [
+                        Selection {
+                            field_name: "findUser",
+                            arguments: [
+                                (
                                     Name(
-                                        "eq",
-                                    ): Variable(
+                                        "name",
+                                    ),
+                                    Variable(
                                         Name(
-                                            "filters",
+                                            "name",
                                         ),
                                     ),
-                                },
-                            ),
-                        ),
+                                ),
+                                (
+                                    Name(
+                                        "filters",
+                                    ),
+                                    Object(
+                                        {
+                                            Name(
+                                                "eq",
+                                            ): Variable(
+                                                Name(
+                                                    "filters",
+                                                ),
+                                            ),
+                                        },
+                                    ),
+                                ),
+                            ],
+                        },
                     ],
                     required_fields: [
                         "filters",
