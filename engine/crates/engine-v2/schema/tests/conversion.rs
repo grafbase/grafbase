@@ -96,16 +96,6 @@ type User
 #[test]
 fn should_not_fail() {
     let graph = FederatedGraph::from_sdl(SCHEMA).unwrap().into_latest();
-    let config = config::VersionedConfig::V3(config::latest::Config {
-        graph,
-        strings: vec![],
-        headers: vec![],
-        default_headers: vec![],
-        subgraph_configs: Default::default(),
-        cache: Default::default(),
-        auth: Default::default(),
-        operation_limits: Default::default(),
-    })
-    .into_latest();
+    let config = config::VersionedConfig::V3(config::latest::Config::from_graph(graph)).into_latest();
     let _schema = Schema::from(config);
 }

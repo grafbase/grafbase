@@ -30,6 +30,21 @@ pub struct Config {
     pub operation_limits: OperationLimits,
 }
 
+impl Config {
+    pub fn from_graph(graph: FederatedGraphV2) -> Self {
+        Config {
+            graph,
+            strings: vec![],
+            headers: vec![],
+            default_headers: Default::default(),
+            subgraph_configs: Default::default(),
+            cache: Default::default(),
+            auth: Default::default(),
+            operation_limits: Default::default(),
+        }
+    }
+}
+
 impl std::ops::Index<StringId> for Config {
     type Output = String;
 

@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 pub use auth::*;
 pub use cache_config::{CacheConfig, CacheConfigTarget, CacheConfigs};
-use federated_graph::v1::{FederatedGraphV1, SubgraphId};
+use federated_graph::{v1::FederatedGraphV1, SubgraphId};
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
