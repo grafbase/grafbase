@@ -21,6 +21,7 @@ pub async fn resolve_joined_field(
     join: &JoinResolver,
     parent_resolve_value_for_join: ResolvedValue,
 ) -> Result<ResolvedValue, Error> {
+    let mut query_field = fake_query_ast(ctx.item, join, parent_resolve_value_for_join)?;
     let mut field_iter = join.fields.iter().peekable();
     let mut resolved_value = ResolvedValue::default();
     let mut current_type = ctx

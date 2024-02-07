@@ -11,7 +11,7 @@ use crate::{
         type_kinds::OutputType,
         FieldSet, MetaField, MetaType, ScalarParser, TypeReference,
     },
-    Context, ContextExt, ContextField, Error, QueryPathSegment, ServerError,
+    Context, ContextExt, ContextField, Error, ServerError,
 };
 
 /// Resolves the field inside `ctx` within the type `root`
@@ -94,7 +94,7 @@ async fn resolve_primitive_field(
         .map_err(|err| err.into_server_error(ctx.item.pos));
 
     let result = match resolved_value {
-        Ok(Some(result)) if &result.data_resolved().is_null() => handle_null_primitive(field, ctx),
+        Ok(Some(result)) if result.data_resolved().is_null() => handle_null_primitive(field, ctx),
         Ok(None) => handle_null_primitive(field, ctx),
         Ok(Some(result)) => Ok(result.take()),
         Err(err) => return Err(err),
@@ -279,11 +279,6 @@ pub(super) async fn run_field_resolver(
     parent_resolver_value: ResolvedValue,
 ) -> Result<Option<ResolvedValue>, Error> {
     let resolver = &ctx.field.resolver;
-
-    if let Some(QueryPathSegment::Index(idx)) = ctx.path.last() {
-        // Items in lists don't have resolvers - we just look them up by index
-        return Ok(Some(parent_resolver_value.get_index(*idx).unwrap_or_default()));
-    }
 
     match resolver {
         Resolver::Parent => {

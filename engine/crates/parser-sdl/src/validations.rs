@@ -162,7 +162,7 @@ fn validate_join(
         ));
     }
 
-    // I'd like to check that the argument type matches, but unfortunately
+    // I'd like to check that the argument types matches, but unfortunately
     // we don't have type information by the time we get here...
 
     errors
@@ -205,9 +205,6 @@ fn traverse_join_fields<'a>(
                     ),
                 ));
             }
-
-            // TODO: I think argument type validation is probably more important
-            // now that we're doing nested stuff so seriously consider this...
         }
 
         if field_iter.peek().is_none() {

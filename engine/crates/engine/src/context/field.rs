@@ -91,6 +91,13 @@ impl<'a> ContextField<'a> {
         }
     }
 
+    pub fn with_alternative_field(&self, field: &'a Positioned<Field>) -> Self {
+        ContextField {
+            item: field,
+            ..self.clone()
+        }
+    }
+
     pub fn to_join_context(
         &self,
         item: &'a Positioned<Field>,
