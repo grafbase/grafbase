@@ -182,3 +182,66 @@ fn multiple_joins_on_graphql_connector() {
         );
     });
 }
+
+#[test]
+fn nested_joins() {
+    runtime().block_on(async {
+        let schema = r#"
+            extend type Query {
+                greetings(name: String!): Greetings @resolver(name: "greetings")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                id: ID!
+                name: String!
+                greeting: String! @join(
+                    select: "greetings(name: $name) { forTimeOfDay(id: $id, timeOfDay: \"morning\") }"
+                )
+            }
+
+            type Greetings {
+                forTimeOfDay(id: String!, timeOfDay: String!): String! @resolver(name: "timeOfDayGreeting")
+            }
+        "#;
+
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(
+                RustUdfs::new()
+                    .resolver(
+                        "user",
+                        CustomResolverResponse::Success(json!({"id": "123", "name": "Bob"})),
+                    )
+                    .resolver("greetings", |input: CustomResolverRequestPayload| {
+                        Ok(CustomResolverResponse::Success(
+                            json!({"name": input.arguments["name"]}),
+                        ))
+                    })
+                    .resolver("timeOfDayGreeting", |input: CustomResolverRequestPayload| {
+                        let time_of_day = input.arguments["timeOfDay"].as_str().unwrap();
+                        let id = input.arguments["id"].as_str().unwrap();
+                        let name = input.parent.as_ref().unwrap()["name"].as_str().unwrap();
+
+                        Ok(CustomResolverResponse::Success(
+                            format!("Good {time_of_day} {name} your ID is {id}").into(),
+                        ))
+                    }),
+            )
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute("{ user { greeting } }")
+                .await
+                .into_data::<Value>(),
+                @r###"
+        {
+          "user": {
+            "greeting": "Good morning Bob your ID is 123"
+          }
+        }
+        "###
+        );
+    });
+}
