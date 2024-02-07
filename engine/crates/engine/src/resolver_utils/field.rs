@@ -94,31 +94,9 @@ async fn resolve_primitive_field(
         .map_err(|err| err.into_server_error(ctx.item.pos));
 
     let result = match resolved_value {
-        Ok(Some(result)) if result.data_resolved().is_null() => {
-            if field.ty.is_non_null() {
-                log::warn!(
-                    ctx.trace_id(),
-                    "{}",
-                    serde_json::to_string_pretty(&serde_json::json!({
-                        "message": "Something went wrong here",
-                        "expected": serde_json::Value::String(field.ty.to_string()),
-                        "path": serde_json::Value::String(ctx.path.to_string()),
-                    }))
-                    .unwrap(),
-                );
-                Err(ServerError::new(
-                    format!(
-                        "An error happened while fetching `{}`, expected a non null value but found a null",
-                        field.name
-                    ),
-                    Some(ctx.item.pos),
-                ))
-            } else {
-                Ok(serde_json::Value::Null)
-            }
-        }
+        Ok(Some(result)) if &result.data_resolved().is_null() => handle_null_primitive(field, ctx),
+        Ok(None) => handle_null_primitive(field, ctx),
         Ok(Some(result)) => Ok(result.take()),
-        Ok(None) => Ok(serde_json::Value::Null),
         Err(err) => return Err(err),
     }?;
 
@@ -168,6 +146,30 @@ async fn resolve_primitive_field(
     };
 
     Ok(ctx.response().await.insert_node(ResponsePrimitive::new(result.into())))
+}
+
+fn handle_null_primitive(field: &MetaField, ctx: &ContextField<'_>) -> Result<Value, ServerError> {
+    if field.ty.is_non_null() {
+        log::warn!(
+            ctx.trace_id(),
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "message": "Something went wrong here",
+                "expected": serde_json::Value::String(field.ty.to_string()),
+                "path": serde_json::Value::String(ctx.path.to_string()),
+            }))
+            .unwrap(),
+        );
+        return Err(ServerError::new(
+            format!(
+                "An error happened while fetching `{}`, expected a non null value but found a null",
+                field.name
+            ),
+            Some(ctx.item.pos),
+        ));
+    }
+
+    Ok(serde_json::Value::Null)
 }
 
 async fn resolve_container_field(

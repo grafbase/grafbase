@@ -21,7 +21,6 @@ pub async fn resolve_joined_field(
     join: &JoinResolver,
     parent_resolve_value_for_join: ResolvedValue,
 ) -> Result<ResolvedValue, Error> {
-    let mut query_field = fake_query_ast(ctx.item, join, parent_resolve_value_for_join)?;
     let mut field_iter = join.fields.iter().peekable();
     let mut resolved_value = ResolvedValue::default();
     let mut current_type = ctx
@@ -80,16 +79,15 @@ fn fake_query_ast(
 ) -> Result<Positioned<Field>, Error> {
     let pos = actual_field.pos;
 
-    let mut field = actual_field.clone();
-    for (name, arguments) in join.fields.iter().rev() {
+    let mut selection_set = actual_field.selection_set.clone();
+
+    let mut iter = join.fields.iter().rev().peekable();
+    let mut field = loop {
+        let Some((name, arguments)) = iter.next() else {
+            return Err(Error::new("internal error in join directive"));
+        };
         let arguments = resolve_arguments(arguments, &parent_resolve_value_for_join)?;
-        let selection_set = Positioned::new(
-            SelectionSet {
-                items: vec![Positioned::new(engine_parser::types::Selection::Field(field), pos)],
-            },
-            pos,
-        );
-        field = Positioned::new(
+        let field = Positioned::new(
             Field {
                 name: Positioned::new(Name::new(name), pos),
                 alias: None,
@@ -102,7 +100,18 @@ fn fake_query_ast(
             },
             pos,
         );
-    }
+
+        if iter.peek().is_none() {
+            break field;
+        }
+
+        selection_set = Positioned::new(
+            SelectionSet {
+                items: vec![Positioned::new(engine_parser::types::Selection::Field(field), pos)],
+            },
+            pos,
+        );
+    };
 
     // The GraphQL connector might end up batching multiple joined fields into a single operation.
     // In order for that to work we need to make sure we put an alias on our top level field.  This
