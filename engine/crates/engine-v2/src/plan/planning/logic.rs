@@ -6,7 +6,7 @@ use crate::plan::PlanId;
 /// no resolver or a compatible one (same subgraph typically) can be planned. Once we hit a
 /// different resolver only those marked as `@providable` will be.
 #[derive(Debug, Clone)]
-pub(super) enum AttributionLogic<'schema> {
+pub(super) enum PlanningLogic<'schema> {
     /// Having a resolver in the same group or having no resolver at all.
     CompatibleResolver {
         plan_id: PlanId,
@@ -22,13 +22,13 @@ pub(super) enum AttributionLogic<'schema> {
     },
 }
 
-impl<'schema> AttributionLogic<'schema> {
+impl<'schema> PlanningLogic<'schema> {
     pub(super) fn is_providable(&self, field_id: FieldId) -> bool {
         match self {
-            AttributionLogic::CompatibleResolver {
+            PlanningLogic::CompatibleResolver {
                 resolver, providable, ..
             } => providable.get(field_id).is_some() || resolver.can_provide(field_id),
-            AttributionLogic::OnlyProvidable { providable, .. } => providable.get(field_id).is_some(),
+            PlanningLogic::OnlyProvidable { providable, .. } => providable.get(field_id).is_some(),
         }
     }
 
@@ -36,7 +36,7 @@ impl<'schema> AttributionLogic<'schema> {
     // just use ResponsePath. Not sure.
     pub(super) fn child(&self, field_id: FieldId) -> Self {
         match self {
-            AttributionLogic::CompatibleResolver {
+            PlanningLogic::CompatibleResolver {
                 resolver,
                 providable,
                 plan_id,
@@ -46,24 +46,24 @@ impl<'schema> AttributionLogic<'schema> {
                     resolver.walk(field_id).provides_for(resolver).as_deref(),
                 );
                 if resolver.can_provide(field_id) {
-                    AttributionLogic::CompatibleResolver {
+                    PlanningLogic::CompatibleResolver {
                         plan_id: *plan_id,
                         resolver: *resolver,
                         providable,
                     }
                 } else {
-                    AttributionLogic::OnlyProvidable {
+                    PlanningLogic::OnlyProvidable {
                         plan_id: *plan_id,
                         resolver: *resolver,
                         providable,
                     }
                 }
             }
-            AttributionLogic::OnlyProvidable {
+            PlanningLogic::OnlyProvidable {
                 resolver,
                 providable,
                 plan_id,
-            } => AttributionLogic::OnlyProvidable {
+            } => PlanningLogic::OnlyProvidable {
                 plan_id: *plan_id,
                 resolver: *resolver,
                 providable: providable
@@ -77,15 +77,15 @@ impl<'schema> AttributionLogic<'schema> {
 
     pub(super) fn resolver(&self) -> &ResolverWalker<'schema> {
         match self {
-            AttributionLogic::CompatibleResolver { resolver, .. } => resolver,
-            AttributionLogic::OnlyProvidable { resolver, .. } => resolver,
+            PlanningLogic::CompatibleResolver { resolver, .. } => resolver,
+            PlanningLogic::OnlyProvidable { resolver, .. } => resolver,
         }
     }
 
     pub(super) fn plan_id(&self) -> PlanId {
         match self {
-            AttributionLogic::CompatibleResolver { plan_id, .. } => *plan_id,
-            AttributionLogic::OnlyProvidable { plan_id, .. } => *plan_id,
+            PlanningLogic::CompatibleResolver { plan_id, .. } => *plan_id,
+            PlanningLogic::OnlyProvidable { plan_id, .. } => *plan_id,
         }
     }
 }

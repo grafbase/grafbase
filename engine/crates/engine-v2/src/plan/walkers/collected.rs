@@ -110,7 +110,7 @@ impl<'a> std::fmt::Debug for PlanAnyCollectedSelectionSet<'a> {
 
 impl<'a> std::fmt::Debug for PlanCollectedSelectionSet<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ConcreteSelectionSet")
+        f.debug_struct("CollectedSelectionSet")
             .field("fields", &self.fields().collect::<Vec<_>>())
             .field(
                 "typename_fields",

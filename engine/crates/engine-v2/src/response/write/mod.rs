@@ -32,7 +32,7 @@ impl ResponseDataPart {
 
 pub(crate) struct ResponseBuilder {
     // will be None if an error propagated up to the root.
-    pub(super) root: Option<ResponseObjectId>,
+    pub(super) root: Option<(ResponseObjectId, ObjectId)>,
     parts: Vec<ResponseDataPart>,
     errors: Vec<GraphqlError>,
 }
@@ -46,11 +46,10 @@ impl ResponseBuilder {
     pub fn new(root_object_id: ObjectId) -> Self {
         let mut builder = ResponsePart::new(ResponseDataPartId::from(0), IdRange::empty());
         let root_id = builder.push_object(ResponseObject {
-            object_id: root_object_id,
             fields: BTreeMap::new(),
         });
         Self {
-            root: Some(root_id),
+            root: Some((root_id, root_object_id)),
             parts: vec![builder.data],
             errors: vec![],
         }
@@ -66,10 +65,10 @@ impl ResponseBuilder {
     }
 
     pub fn root_response_boundary_item(&self) -> Option<ResponseBoundaryItem> {
-        self.root.map(|root| ResponseBoundaryItem {
-            response_object_id: root,
+        self.root.map(|(response_object_id, object_id)| ResponseBoundaryItem {
+            response_object_id,
             response_path: ResponsePath::default(),
-            object_id: self[root].object_id,
+            object_id,
         })
     }
 
@@ -105,7 +104,7 @@ impl ResponseBuilder {
             data: ResponseData {
                 schema,
                 operation,
-                root: self.root,
+                root: self.root.map(|(id, _)| id),
                 parts: self.parts,
             },
             errors: self.errors,
@@ -118,7 +117,7 @@ impl ResponseBuilder {
     // To correctly propagate error we're finding the last nullable element in the path and make it
     // nullable. If there's nothing, then root will be null.
     fn propagate_error(&mut self, path: &ResponsePath) {
-        let Some(root) = self.root else {
+        let Some((root, _)) = self.root else {
             return;
         };
         let mut last_nullable: Option<ResponseValueId> = None;

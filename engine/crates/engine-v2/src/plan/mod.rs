@@ -23,14 +23,15 @@ pub(crate) use walkers::*;
 pub(crate) struct OperationPlan {
     operation: Operation,
 
-    // -- Attibution --
     // Association between fields & selection sets and plans. Used when traversing the operation
     // for a plan filtering out other plans fields and to build the collected selection set.
     //
     // BoundFieldId -> PlanId
-    field_attribution: Vec<PlanId>,
+    bound_field_to_plan_id: Vec<PlanId>,
     // BoundSelectionSetId -> PlanId
-    selection_set_attribution: Vec<PlanId>,
+    bound_selection_to_plan_id: Vec<PlanId>,
+    /// BoundSelectionSetId -> Option<CollectedSelectionSetId>
+    bound_to_collected_selection_set: Vec<Option<AnyCollectedSelectionSetId>>,
 
     // -- Plans --
     // Actual plans for the operation. A plan defines what do for a given selection set at a

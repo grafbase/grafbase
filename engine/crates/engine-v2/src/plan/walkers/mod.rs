@@ -246,7 +246,7 @@ impl<'a> PlanWalker<'a> {
         let keys = self.response_keys();
         fields.sort_unstable_by(|a, b| keys[a.expected_key].cmp(&keys[b.expected_key]));
         RuntimeCollectedSelectionSet {
-            ty: SelectionSetType::Object(object_id),
+            object_id,
             boundary_ids: selection_sets
                 .iter()
                 .filter_map(|id| self[*id].maybe_boundary_id)

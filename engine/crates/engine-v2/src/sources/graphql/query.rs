@@ -189,7 +189,7 @@ impl QueryBuilder {
         buffer.write_str(" {\n")?;
         buffer.indent += 1;
         let n = buffer.len();
-        if !selection_set.ty().is_object() {
+        if selection_set.requires_typename() {
             // We always need to know the concrete object.
             buffer.indent_write("__typename\n")?;
         }

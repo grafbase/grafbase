@@ -4,9 +4,9 @@ use std::collections::HashSet;
 
 use crate::{
     plan::{
-        AnyCollectedSelectionSet, CollectedField, CollectedFieldId, CollectedSelectionSet, CollectedSelectionSetId,
-        ConditionalField, ConditionalFieldId, ConditionalSelectionSet, ConditionalSelectionSetId, FieldType,
-        OperationPlan, PlanBoundaryId, PlanId,
+        AnyCollectedSelectionSet, AnyCollectedSelectionSetId, CollectedField, CollectedFieldId, CollectedSelectionSet,
+        CollectedSelectionSetId, ConditionalField, ConditionalFieldId, ConditionalSelectionSet,
+        ConditionalSelectionSetId, FieldType, OperationPlan, PlanBoundaryId, PlanId,
     },
     request::{
         BoundFieldId, BoundSelectionSetId, EntityType, FlatField, FlatTypeCondition, OperationWalker, SelectionSetType,
@@ -63,7 +63,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
             .into_iter()
             .flat_map(|id| walker.walk(id).fields())
             .filter_map(|field| {
-                let field_plan_id = self.operation.field_attribution[usize::from(field.id())];
+                let field_plan_id = self.operation.bound_field_to_plan_id[usize::from(field.id())];
                 if field_plan_id == self.plan_id {
                     Some(field.id())
                 } else {
@@ -87,7 +87,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
                 continue;
             }
 
-            let field_plan_id = self.operation.field_attribution[usize::from(field.bound_field_id)];
+            let field_plan_id = self.operation.bound_field_to_plan_id[usize::from(field.bound_field_id)];
             if field_plan_id == self.plan_id {
                 plan_fields.push(field);
             } else if maybe_boundary_id.is_none() {
@@ -129,17 +129,27 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         //   If a single condition is left, we can only work with None. A selection set like
         //   `animal { ... on Dog { name } }` would have a single condition, but we may still see
         //   cat objects. A ConcreteSelectionSet would require `name`.
-        if concrete_parent && !too_complex && conditions.len() == 1 && conditions.contains(&None) {
+        let id = if concrete_parent && !too_complex && conditions.len() == 1 && conditions.contains(&None) {
             self.collect_fields(
                 selection_set.ty,
                 plan_fields.into_iter().map(|field| field.bound_field_id).collect(),
                 maybe_boundary_id,
             )
-            .map(AnyCollectedSelectionSet::Collected)
+            .map(AnyCollectedSelectionSetId::Collected)?
         } else {
             self.collected_conditional_fields(selection_set.ty, plan_fields, maybe_boundary_id)
-                .map(AnyCollectedSelectionSet::Conditional)
+                .map(AnyCollectedSelectionSetId::Conditional)?
+        };
+
+        // We keep track of which collected selection set matches which bound selection sets.
+        // This allows us to know whether `__typename` is necessary in the generated subgraph query.
+        for root_id in selection_set.root_selection_set_ids {
+            self.operation.bound_to_collected_selection_set[usize::from(root_id)] = Some(id);
         }
+        Ok(match id {
+            AnyCollectedSelectionSetId::Collected(id) => AnyCollectedSelectionSet::Collected(id),
+            AnyCollectedSelectionSetId::Conditional(id) => AnyCollectedSelectionSet::Conditional(id),
+        })
     }
 
     fn collect_fields(

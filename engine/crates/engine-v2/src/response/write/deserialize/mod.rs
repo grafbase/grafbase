@@ -14,7 +14,7 @@ use serde::{
 use super::{ResponseObjectUpdate, ResponsePart};
 use crate::{
     plan::{CollectedField, CollectedSelectionSetId, PlanWalker},
-    response::{GraphqlError, ResponseBoundaryItem, ResponseValue},
+    response::{GraphqlError, ResponseBoundaryItem, ResponseEdge, ResponsePath, ResponseValue},
 };
 
 mod field;
@@ -38,6 +38,7 @@ struct SeedContextInner<'ctx> {
     // We could probably avoid the RefCell, but didn't took the time to properly deal with it.
     response_part: RefCell<&'ctx mut ResponsePart>,
     propagating_error: AtomicBool, // using an atomic bool for convenience of fetch_or & fetch_and
+    path: RefCell<Vec<ResponseEdge>>,
 }
 
 impl<'ctx> SeedContext<'ctx> {
@@ -46,6 +47,7 @@ impl<'ctx> SeedContext<'ctx> {
             plan,
             response_part: RefCell::new(response_part),
             propagating_error: AtomicBool::new(false),
+            path: RefCell::new(Vec::new()),
         }))
     }
 
@@ -79,6 +81,24 @@ impl<'ctx> SeedContextInner<'ctx> {
             )
         }
     }
+
+    fn push_edge(&self, edge: ResponseEdge) {
+        self.path.borrow_mut().push(edge);
+    }
+
+    fn pop_edge(&self) {
+        self.path.borrow_mut().pop();
+    }
+
+    fn response_path(&self) -> ResponsePath {
+        ResponsePath::from(self.path.borrow().clone())
+    }
+
+    fn set_response_path(&self, path: &ResponsePath) {
+        let mut current = self.path.borrow_mut();
+        current.clear();
+        current.extend(path.iter());
+    }
 }
 
 pub(crate) struct UpdateSeed<'ctx> {
@@ -95,11 +115,10 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
         D: serde::Deserializer<'de>,
     {
         let ctx = &self.ctx.0;
-        let result = deserializer.deserialize_option(NullableVisitor(ConcreteCollectionSetSeed {
-            ctx,
-            path: &self.boundary_item.response_path,
-            id: self.id,
-        }));
+        ctx.set_response_path(&self.boundary_item.response_path);
+
+        let result =
+            deserializer.deserialize_option(NullableVisitor(CollectedSelectionSetSeed::new_from_id(ctx, self.id)));
 
         let mut response_part = ctx.response_part.borrow_mut();
         match result {
@@ -113,7 +132,7 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
                     if field.wrapping.is_required() {
                         response_part.push_error(GraphqlError {
                             message: ctx.missing_field_error_message(field),
-                            path: Some(self.boundary_item.response_path.child(field.edge)),
+                            path: Some(ctx.response_path().child(field.edge)),
                             ..Default::default()
                         });
                         response_part.push_error_path_to_propagate(self.boundary_item.response_path.clone());
@@ -128,7 +147,7 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
                 if !ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
                     response_part.push_error(GraphqlError {
                         message: err.to_string(),
-                        path: Some(self.boundary_item.response_path.clone()),
+                        path: Some(ctx.response_path()),
                         ..Default::default()
                     });
                 }
@@ -139,7 +158,7 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
     }
 }
 
-struct NullableVisitor<'ctx, 'parent>(ConcreteCollectionSetSeed<'ctx, 'parent>);
+struct NullableVisitor<'ctx, 'parent>(CollectedSelectionSetSeed<'ctx, 'parent>);
 
 impl<'de, 'ctx, 'parent> Visitor<'de> for NullableVisitor<'ctx, 'parent> {
     type Value = Option<ResponseValue>;

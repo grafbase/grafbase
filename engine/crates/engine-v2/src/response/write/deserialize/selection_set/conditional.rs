@@ -8,16 +8,15 @@ use crate::{
     request::SelectionSetType,
     response::{
         write::deserialize::{key::Key, SeedContextInner},
-        ResponsePath, ResponseValue,
+        ResponseValue,
     },
 };
 
-use super::{runtime_concrete::RuntimeConcreteCollectionSetSeed, ObjectIdentifier};
+use super::{CollectedSelectionSetSeed, ObjectIdentifier};
 
 pub(crate) struct ConditionalSelectionSetSeed<'ctx, 'parent> {
-    pub path: &'parent ResponsePath,
     pub ctx: &'parent SeedContextInner<'ctx>,
-    pub ty: SelectionSetType,
+    pub selection_set_ty: SelectionSetType,
     pub selection_set_ids: Cow<'parent, [ConditionalSelectionSetId]>,
 }
 
@@ -44,19 +43,18 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for ConditionalSelectionSetSeed<'ctx, 'par
     where
         A: MapAccess<'de>,
     {
-        let mut identifier = ObjectIdentifier::new(self.ctx, self.ty);
         // Ideally we should never have an ProvisionalSelectionSet with a known object id, it
         // means we could have collected fields earlier. But it can happen when a parent had
         // complex type conditions for which we couldn't collect fields.
-        if let ObjectIdentifier::Known(object_id) = identifier {
+        if let SelectionSetType::Object(object_id) = self.selection_set_ty {
             return self.deserialize_concrete_object(object_id, map);
         }
+        let mut identifier = ObjectIdentifier::new(self.ctx, self.selection_set_ty);
         let mut content = VecDeque::<(_, serde_value::Value)>::new();
         while let Some(key) = map.next_key::<Key<'de>>()? {
             if identifier.discriminant_key_matches(key.as_ref()) {
-                identifier.determine_object_id_from_discriminant(map.next_value()?);
-                return match identifier.try_into_object_id() {
-                    Ok(object_id) => self.deserialize_concrete_object(
+                return match identifier.determine_object_id_from_discriminant(map.next_value()?) {
+                    Some(object_id) => self.deserialize_concrete_object(
                         object_id,
                         ChainedMapAcces {
                             before: content,
@@ -64,20 +62,17 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for ConditionalSelectionSetSeed<'ctx, 'par
                             after: map,
                         },
                     ),
-                    Err(err) => {
+                    _ => {
                         // Discarding the rest of the data.
                         while map.next_entry::<IgnoredAny, IgnoredAny>().unwrap_or_default().is_some() {}
-                        Err(err)
+                        return Err(serde::de::Error::custom("Couldn't determine the object type"));
                     }
                 };
             }
             // keeping the fields until we find the actual type discriminant.
             content.push_back((key, map.next_value()?));
         }
-        identifier.try_into_object_id()?;
-        unreachable!(
-            "if we're here it means we couldn't determine the object id, so previous statement should have returned an error."
-        );
+        Err(serde::de::Error::custom("Couldn't determine the object type"))
     }
 }
 
@@ -86,13 +81,8 @@ impl<'ctx, 'parent> ConditionalSelectionSetSeed<'ctx, 'parent> {
     where
         A: MapAccess<'de>,
     {
-        let selection_set = &self.ctx.plan.collect_fields(object_id, &self.selection_set_ids);
-        RuntimeConcreteCollectionSetSeed {
-            path: self.path,
-            ctx: self.ctx,
-            selection_set,
-        }
-        .visit_map(map)
+        let selection_set = self.ctx.plan.collect_fields(object_id, &self.selection_set_ids);
+        CollectedSelectionSetSeed::new(self.ctx, &selection_set).visit_map(map)
     }
 }
 

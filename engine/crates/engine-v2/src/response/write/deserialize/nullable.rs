@@ -8,11 +8,10 @@ use serde::{
 use super::SeedContextInner;
 use crate::{
     request::BoundFieldId,
-    response::{GraphqlError, ResponsePath, ResponseValue},
+    response::{GraphqlError, ResponseValue},
 };
 
 pub(super) struct NullableSeed<'ctx, 'parent, Seed> {
-    pub path: &'parent ResponsePath,
     pub bound_field_id: BoundFieldId,
     pub ctx: &'parent SeedContextInner<'ctx>,
     pub seed: Seed,
@@ -73,7 +72,7 @@ where
                             .name_location()
                             .into_iter()
                             .collect(),
-                        path: Some(self.path.clone()),
+                        path: Some(self.ctx.response_path()),
                         ..Default::default()
                     });
                 }

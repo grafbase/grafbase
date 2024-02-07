@@ -4,9 +4,9 @@ use schema::Schema;
 
 use crate::{request::Operation, response::GraphqlError};
 
-mod attribution;
 mod boundary;
 mod collect;
+mod logic;
 mod planner;
 mod walker_ext;
 

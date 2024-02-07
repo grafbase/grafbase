@@ -1,12 +1,11 @@
 use std::collections::BTreeMap;
 
-use schema::{ObjectId, StringId};
+use schema::StringId;
 
 use super::{ResponseEdge, ResponseKey, ResponseListId, ResponseObjectId};
 
 #[derive(Debug)]
 pub struct ResponseObject {
-    pub object_id: ObjectId,
     // fields are ordered by the position they appear in the query.
     pub fields: BTreeMap<ResponseEdge, ResponseValue>,
 }

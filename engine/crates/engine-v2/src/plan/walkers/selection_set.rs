@@ -1,6 +1,9 @@
 use schema::Definition;
 
-use crate::request::{BoundSelection, BoundSelectionSetId, SelectionSetTypeWalker};
+use crate::{
+    plan::AnyCollectedSelectionSetId,
+    request::{BoundSelection, BoundSelectionSetId, SelectionSetTypeWalker},
+};
 
 use super::{PlanField, PlanFragmentSpread, PlanInlineFragment, PlanWalker};
 
@@ -21,6 +24,32 @@ impl<'a> PlanSelectionSet<'a> {
             PlanSelectionSet::SelectionSet(selection_set) => {
                 let ty = selection_set.as_ref().ty;
                 selection_set.bound_walk_with(ty, Definition::from(ty))
+            }
+        }
+    }
+
+    // Whether the subgraph should provide __typename (or whatever field is necessary to detect the object type)
+    pub fn requires_typename(&self) -> bool {
+        match self {
+            PlanSelectionSet::RootFields(_) => false,
+            PlanSelectionSet::SelectionSet(walker) => {
+                let selection_set_id = walker.item;
+                let n = usize::from(selection_set_id);
+                let Some(id) = walker.operation_plan.bound_to_collected_selection_set[n] else {
+                    // Means we're not a root selection set, meaning we're flattened inside another
+                    // one. We're a inline fragment / fragment spread.
+                    return false;
+                };
+                let AnyCollectedSelectionSetId::Collected(id) = id else {
+                    // If we're not "concrete", it means there are type conditions we couldn't
+                    // resolve during planning and thus need the __typename
+                    return true;
+                };
+                // If we couldn't determine the object_id during planning and we have __typename
+                // fields, we need to have it
+                let collected = &walker.operation_plan[id];
+                collected.ty.as_object_id().is_none()
+                    && (!collected.typename_fields.is_empty() || collected.maybe_boundary_id.is_some())
             }
         }
     }
@@ -70,21 +99,21 @@ impl<'a> Iterator for PlanSelectionSetIterator<'a> {
                         let Some(field_id) = operation[*id].schema_field_id() else {
                             continue;
                         };
-                        if operation.field_attribution[usize::from(*id)] != plan_id {
+                        if operation.bound_field_to_plan_id[usize::from(*id)] != plan_id {
                             continue;
                         }
                         PlanSelection::Field(selection_set.walk_with(*id, field_id))
                     }
                     BoundSelection::FragmentSpread(id) => {
                         let spread = &operation[*id];
-                        if operation.selection_set_attribution[usize::from(spread.selection_set_id)] != plan_id {
+                        if operation.bound_selection_to_plan_id[usize::from(spread.selection_set_id)] != plan_id {
                             continue;
                         }
                         PlanSelection::FragmentSpread(selection_set.walk(*id))
                     }
                     BoundSelection::InlineFragment(id) => {
                         let fragment = &operation[*id];
-                        if operation.selection_set_attribution[usize::from(fragment.selection_set_id)] != plan_id {
+                        if operation.bound_selection_to_plan_id[usize::from(fragment.selection_set_id)] != plan_id {
                             continue;
                         }
                         PlanSelection::InlineFragment(selection_set.walk(*id))
