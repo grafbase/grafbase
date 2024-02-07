@@ -1,4 +1,4 @@
-use schema::{DataType, FieldId, ObjectId, Wrapping};
+use schema::{FieldId, ObjectId, ScalarType, Wrapping};
 
 use crate::{
     request::{BoundFieldId, FlatTypeCondition, SelectionSetType},
@@ -64,7 +64,7 @@ pub struct ConditionalField {
 
 #[derive(Debug, Clone)]
 pub enum FieldType<SelectionSet = AnyCollectedSelectionSet> {
-    Scalar(DataType),
+    Scalar(ScalarType),
     SelectionSet(SelectionSet),
 }
 

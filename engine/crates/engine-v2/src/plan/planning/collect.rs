@@ -178,8 +178,8 @@ impl<'schema, 'a> Collector<'schema, 'a> {
                         .response_keys
                         .get_or_intern(schema_field.name())
                 };
-                let ty = match schema_field.ty().inner().data_type() {
-                    Some(data_type) => FieldType::Scalar(data_type),
+                let ty = match schema_field.ty().inner().scalar_type() {
+                    Some(scalar_type) => FieldType::Scalar(scalar_type),
                     None => {
                         let subselection_set_ids = bound_field_ids
                             .into_iter()
@@ -233,7 +233,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
                         .response_keys
                         .get_or_intern(schema_field.name())
                 };
-                let ty = match schema_field.ty().inner().data_type() {
+                let ty = match schema_field.ty().inner().scalar_type() {
                     Some(data_type) => FieldType::Scalar(data_type),
                     None => {
                         let selection_set_id =

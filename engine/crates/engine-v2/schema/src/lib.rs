@@ -300,7 +300,7 @@ pub struct Union {
 #[derive(Debug)]
 pub struct Scalar {
     pub name: StringId,
-    pub data_type: DataType,
+    pub ty: ScalarType,
     pub description: Option<StringId>,
     pub specified_by_url: Option<StringId>,
     /// All directives that made it through composition. Notably includes `@tag`.
@@ -311,7 +311,7 @@ pub struct Scalar {
 /// as scalars, but scalars like ID which have no own data format are just mapped to String.
 /// https://the-guild.dev/graphql/scalars/docs
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
-pub enum DataType {
+pub enum ScalarType {
     String,
     Float,
     Int,
@@ -320,11 +320,11 @@ pub enum DataType {
     Boolean,
 }
 
-impl DataType {
-    pub fn from_scalar_name(name: &str) -> DataType {
-        DataType::from_str(name).ok().unwrap_or(match name {
-            "ID" => DataType::String,
-            _ => DataType::JSON,
+impl ScalarType {
+    pub fn from_scalar_name(name: &str) -> ScalarType {
+        ScalarType::from_str(name).ok().unwrap_or(match name {
+            "ID" => ScalarType::String,
+            _ => ScalarType::JSON,
         })
     }
 }

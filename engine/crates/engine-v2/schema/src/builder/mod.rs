@@ -371,7 +371,7 @@ impl SchemaBuilder {
                 let name = StringId::from(scalar.name);
                 Scalar {
                     name,
-                    data_type: DataType::from_scalar_name(&self.strings[name]),
+                    ty: ScalarType::from_scalar_name(&self.strings[name]),
                     description: None,
                     specified_by_url: None,
                     composed_directives: scalar.composed_directives.into(),
