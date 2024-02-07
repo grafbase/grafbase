@@ -1,6 +1,10 @@
 #![allow(clippy::panic)] // this is a build script, an explicit panic is more readable than Result
 
-use std::{env, fs, io, path::Path, time};
+use std::{
+    env, fs, io,
+    path::{Path, PathBuf},
+    time,
+};
 
 /// Env var name
 const GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH: &str = "GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH";
@@ -64,6 +68,26 @@ fn recompress_assets(assets_path: &Path) -> io::Result<()> {
     Ok(())
 }
 
+fn copy_udf_wrapper(dest_path: &Path, target_path: &Path) -> io::Result<()> {
+    let origin_path = if let Ok(path) = env::var("GRAFBASE_CLI_UDF_WRAPPER_PATH") {
+        PathBuf::from(path)
+    } else {
+        Path::new("../../udf-wrapper").to_owned()
+    };
+    fs::create_dir_all(target_path)?;
+    fs::copy(
+        origin_path.join("bun-multi-wrapper.ts"),
+        dest_path.join("custom-resolvers/bun-multi-wrapper.ts"),
+    )?;
+    fs::metadata(origin_path.join("dist.js")).expect("Building the worker wrapper is required to continue. Please run `npm install && npm run build` in 'cli/udf-wrapper'");
+    fs::copy(
+        origin_path.join("dist.js"),
+        dest_path.join("custom-resolvers/wrapper.js"),
+    )?;
+
+    Ok(())
+}
+
 fn main() -> io::Result<()> {
     let start = time::Instant::now();
 
@@ -89,18 +113,9 @@ fn main() -> io::Result<()> {
     }
     eprintln!("⏱️ Timing after copy: {:?}", time::Instant::now().duration_since(start));
 
-    let origin_path = Path::new("../../udf-wrapper");
-    let dest_path = tmp_assets.path();
-    fs::create_dir_all(&target_path)?;
-    fs::copy(
-        origin_path.join("bun-multi-wrapper.ts"),
-        dest_path.join("custom-resolvers/bun-multi-wrapper.ts"),
-    )?;
-    fs::metadata(origin_path.join("dist.js")).expect("Building the worker wrapper is required to continue. Please run `npm install && npm run build` in 'cli/udf-wrapper'");
-    fs::copy(
-        origin_path.join("dist.js"),
-        dest_path.join("custom-resolvers/wrapper.js"),
-    )?;
+    eprintln!("Copying udf wrapper to the assets dir...");
+    copy_udf_wrapper(tmp_assets.path(), &target_path)?;
+
     recompress_assets(tmp_assets.path())?;
     eprintln!(
         "⏱️ Timing after recompress: {:?}",
