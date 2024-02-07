@@ -2,7 +2,7 @@ use schema::{FieldId, ObjectId, ScalarType, Wrapping};
 
 use crate::{
     request::{BoundFieldId, FlatTypeCondition, SelectionSetType},
-    response::{ResponseEdge, ResponseKey},
+    response::{ResponseEdge, SafeResponseKey},
     utils::IdRange,
 };
 
@@ -54,7 +54,7 @@ pub struct ConditionalField {
     pub edge: ResponseEdge,
     pub type_condition: Option<FlatTypeCondition>,
     /// Expected key from the upstream response when deserializing
-    pub expected_key: ResponseKey,
+    pub expected_key: SafeResponseKey,
     pub bound_field_id: BoundFieldId,
     pub schema_field_id: FieldId,
     /// a conditional field cannot have anything than a conditional selection set if any
@@ -90,7 +90,7 @@ pub struct CollectedSelectionSet {
 pub struct CollectedField {
     pub edge: ResponseEdge,
     /// Expected key from the upstream response when deserializing
-    pub expected_key: ResponseKey,
+    pub expected_key: SafeResponseKey,
     pub bound_field_id: BoundFieldId,
     pub schema_field_id: FieldId,
     pub ty: FieldType,

@@ -68,7 +68,7 @@ impl<'ctx> SeedContextInner<'ctx> {
     fn missing_field_error_message(&self, field: &CollectedField) -> String {
         let bound_field = self.plan.walk_with(field.bound_field_id, field.schema_field_id);
 
-        if bound_field.response_key() == field.expected_key {
+        if bound_field.response_key() == field.expected_key.into() {
             format!(
                 "Upstream response error: Missing required field named '{}'",
                 &self.plan.response_keys()[field.expected_key]

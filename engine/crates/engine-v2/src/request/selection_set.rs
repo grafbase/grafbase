@@ -87,18 +87,18 @@ impl BoundField {
         }
     }
 
+    pub fn response_key(&self) -> ResponseKey {
+        self.response_edge()
+            .as_response_key()
+            .expect("BoundField don't have indices as key")
+    }
+
     pub fn response_edge(&self) -> ResponseEdge {
         match self {
             BoundField::TypeName { bound_response_key, .. } => (*bound_response_key).into(),
             BoundField::Field { bound_response_key, .. } => (*bound_response_key).into(),
             BoundField::Extra { edge, .. } => *edge,
         }
-    }
-
-    pub fn response_key(&self) -> ResponseKey {
-        self.response_edge()
-            .as_response_key()
-            .expect("bound fields cannot have an index as a ResponseEdge")
     }
 
     pub fn name_location(&self) -> Option<Location> {

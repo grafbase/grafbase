@@ -23,7 +23,7 @@ impl<'a> OperationWalker<'a, BoundFieldId> {
     }
 
     pub fn response_key_str(&self) -> &'a str {
-        &self.operation.response_keys[self.response_key()]
+        self.operation.response_keys.try_resolve(self.response_key()).unwrap()
     }
 
     pub fn name_location(&self) -> Option<Location> {

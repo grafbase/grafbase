@@ -2,8 +2,8 @@ use serde::ser::{SerializeMap, SerializeSeq};
 
 use crate::{
     response::{
-        path::UnpackedResponseEdge, GraphqlError, InitialResponse, RequestErrorResponse, ResponseData, ResponseKeys,
-        ResponseObject, ResponsePath, ResponseValue,
+        GraphqlError, InitialResponse, RequestErrorResponse, ResponseData, ResponseKeys, ResponseObject, ResponsePath,
+        ResponseValue, UnpackedResponseEdge,
     },
     Response,
 };
@@ -117,9 +117,9 @@ impl<'a> serde::Serialize for SerializableResponsePath<'a> {
                 // those errors to begin with, but just in case better to output somthing than
                 // crashing.
                 UnpackedResponseEdge::BoundResponseKey(key) => {
-                    seq.serialize_element(&self.keys.try_resolve(key.into()).unwrap_or("<unknown>"))?
+                    seq.serialize_element(&self.keys.try_resolve(key.as_response_key()).unwrap_or("<unknown>"))?
                 }
-                UnpackedResponseEdge::ExtraField(key) => {
+                UnpackedResponseEdge::ExtraFieldResponseKey(key) => {
                     seq.serialize_element(&self.keys.try_resolve(key).unwrap_or("<unknown>"))?
                 }
             }

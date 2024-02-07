@@ -25,7 +25,10 @@ impl<'a> PlanField<'a> {
     }
 
     pub fn response_key_str(&self) -> &'a str {
-        &self.operation_plan.response_keys[self.as_ref().response_key()]
+        self.operation_plan
+            .response_keys
+            .try_resolve(self.response_key())
+            .unwrap()
     }
 
     pub fn arguments(&self) -> impl ExactSizeIterator<Item = PlanInputValue<'a>> + 'a {

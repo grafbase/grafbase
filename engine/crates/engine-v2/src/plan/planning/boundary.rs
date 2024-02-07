@@ -511,7 +511,7 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
         );
         let key = self.generate_unique_response_key_for(item.field_id);
         let bound_field = BoundField::Extra {
-            edge: UnpackedResponseEdge::ExtraField(key).pack(),
+            edge: UnpackedResponseEdge::ExtraFieldResponseKey(key.into()).pack(),
             field_id: item.field_id,
             selection_set_id,
             is_read: true,
