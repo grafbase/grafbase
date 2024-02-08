@@ -1,4 +1,9 @@
-import { AuthParams, AuthParamsV2, Authentication, AuthenticationV2 } from './auth'
+import {
+  AuthParams,
+  AuthParamsV2,
+  Authentication,
+  AuthenticationV2
+} from './auth'
 import { CacheParams, GlobalCache } from './cache'
 import { FederatedGraph, Graph } from './grafbase-schema'
 import { OperationLimits, OperationLimitsParams } from './operation-limits'
@@ -71,7 +76,9 @@ export class GraphConfig {
   public toString(): string {
     const graph = this.graph.toString()
     const auth = this.auth ? this.auth.toString() : ''
-    const operationLimits = this.operationLimits ? this.operationLimits.toString() : ''
+    const operationLimits = this.operationLimits
+      ? this.operationLimits.toString()
+      : ''
     const cache = this.cache ? this.cache.toString() : ''
     const experimental = this.experimental ? this.experimental.toString() : ''
 
@@ -97,7 +104,9 @@ export class FederatedGraphConfig {
   public toString(): string {
     const graph = this.graph.toString()
     const auth = this.auth ? this.auth.toString() : ''
-    const operationLimits = this.operationLimits ? this.operationLimits.toString() : ''
+    const operationLimits = this.operationLimits
+      ? this.operationLimits.toString()
+      : ''
 
     return `${auth}${graph}${operationLimits}`
   }
