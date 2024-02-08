@@ -51,6 +51,7 @@ futures = "0.3"
 futures-util = "0.3"
 handlebars = "5"
 headers = "0.4"
+hex = "0.4"
 http = "1"
 hyper = "1"
 hyper-util = "0.1"
@@ -82,6 +83,7 @@ which = "6"
 wiremock = "0.6.0-rc.3"
 worker = "0.0.18"
 fnv = "1"
+sha2 = "0.10"
 
 # Serde
 serde = { version = "1", features = ["derive"] }

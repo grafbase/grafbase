@@ -34,19 +34,38 @@ pub struct Request {
 
     /// The extensions config of the request.
     #[serde(default)]
-    pub extensions: HashMap<String, Value>,
+    pub extensions: RequestExtensions,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct RequestExtensions {
+    #[serde(default)]
+    pub persisted_query: Option<PersistedQueryRequestExtension>,
+    #[serde(flatten)]
+    pub custom: HashMap<String, Value>,
+}
+
+#[serde_with::serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PersistedQueryRequestExtension {
+    pub version: u32,
+    #[serde_as(as = "serde_with::hex::Hex")]
+    pub sha256_hash: Vec<u8>,
 }
 
 /// Contains everything that should be used in the key when caching the OperationPlan,
 /// defining what will be executed by the engine.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OperationPlanCacheKey {
     /// The query source of the request.
     #[serde(default)]
     pub query: String,
 
     /// The operation name of the request.
-    #[serde(default, rename = "operationName")]
+    #[serde(default)]
     pub operation_name: Option<String>,
 
     /// Disable introspection queries for this request.

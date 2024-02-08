@@ -58,6 +58,14 @@ impl<T> Entry<T> {
             }),
         }
     }
+
+    pub fn into_value(self) -> Option<T> {
+        match self {
+            Entry::Hit(value) => Some(value),
+            Entry::Miss => None,
+            Entry::Stale(StaleEntry { value, .. }) => Some(value),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

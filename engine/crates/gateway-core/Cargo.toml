@@ -33,6 +33,8 @@ multipart-stream = "0.1"
 runtime = { workspace = true, features = ["test-utils"] }
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
+hex.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 
