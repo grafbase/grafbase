@@ -126,7 +126,7 @@ impl ResponseBuilder {
             let (unique_id, value) = match (previous, edge.unpack()) {
                 (
                     Either::Left(object_id),
-                    UnpackedResponseEdge::BoundResponseKey(_) | UnpackedResponseEdge::ExtraField(_),
+                    UnpackedResponseEdge::BoundResponseKey(_) | UnpackedResponseEdge::ExtraFieldResponseKey(_),
                 ) => {
                     let unique_id = ResponseValueId::ObjectField { object_id, edge };
                     let value = self[object_id].fields.get(&edge);

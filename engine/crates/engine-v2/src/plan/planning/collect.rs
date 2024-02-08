@@ -171,12 +171,9 @@ impl<'schema, 'a> Collector<'schema, 'a> {
             if let Some(schema_field_id) = bound_field.schema_field_id() {
                 let schema_field = self.schema.walk(schema_field_id);
                 let expected_key = if self.support_aliases {
-                    bound_field.response_key()
+                    self.operation.response_keys.ensure_safety(bound_field.response_key())
                 } else {
-                    self.operation
-                        .operation
-                        .response_keys
-                        .get_or_intern(schema_field.name())
+                    self.operation.response_keys.get_or_intern(schema_field.name())
                 };
                 let ty = match schema_field.ty().inner().scalar_type() {
                     Some(scalar_type) => FieldType::Scalar(scalar_type),
@@ -226,12 +223,9 @@ impl<'schema, 'a> Collector<'schema, 'a> {
             if let Some(field_id) = bound_field.schema_field_id() {
                 let schema_field = self.schema.walker().walk(field_id);
                 let expected_key = if self.support_aliases {
-                    bound_field.response_key()
+                    self.operation.response_keys.ensure_safety(bound_field.response_key())
                 } else {
-                    self.operation
-                        .operation
-                        .response_keys
-                        .get_or_intern(schema_field.name())
+                    self.operation.response_keys.get_or_intern(schema_field.name())
                 };
                 let ty = match schema_field.ty().inner().scalar_type() {
                     Some(data_type) => FieldType::Scalar(data_type),

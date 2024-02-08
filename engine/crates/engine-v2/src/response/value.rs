@@ -6,7 +6,9 @@ use super::{ResponseEdge, ResponseKey, ResponseListId, ResponseObjectId};
 
 #[derive(Debug)]
 pub struct ResponseObject {
-    // fields are ordered by the position they appear in the query.
+    /// fields are ordered by the position they appear in the query.
+    /// We use ResponseEdge here, but it'll never be an index out of the 3 possible variants.
+    /// That's something we should rework at some point, but it's convenient for now.
     pub fields: BTreeMap<ResponseEdge, ResponseValue>,
 }
 
@@ -25,8 +27,8 @@ impl ResponseObject {
     }
 
     fn find_by_name(&self, target: ResponseKey) -> Option<&ResponseValue> {
-        self.fields.iter().find_map(|(key, field)| match key.unpack() {
-            super::UnpackedResponseEdge::BoundResponseKey(key) if ResponseKey::from(key) == target => Some(field),
+        self.fields.iter().find_map(|(key, field)| match key.as_response_key() {
+            Some(key) if key == target => Some(field),
             _ => None,
         })
     }

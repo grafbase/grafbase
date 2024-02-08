@@ -18,7 +18,7 @@ use crate::{
         BoundField, BoundFieldId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, EntityType, FlatField,
         FlatSelectionSet, FlatTypeCondition, Operation, OperationWalker, QueryPath,
     },
-    response::{ReadSelectionSet, ResponseKey, ResponseKeys},
+    response::{ReadSelectionSet, ResponseKeys, SafeResponseKey},
     sources::Plan,
     utils::IdRange,
 };
@@ -52,7 +52,7 @@ pub(super) struct Planner<'schema> {
     // else. As only extra field for a given FieldId can be present in selection set we re-use the
     // same ResponseKey between extra fields of the same type. Otherwise we would generate new ones
     // each time as we check for collisions within *all* response keys.
-    extra_field_response_keys: HashMap<FieldId, ResponseKey>,
+    extra_field_response_keys: HashMap<FieldId, SafeResponseKey>,
 
     // -- Operation --
     // Associates for each field/selection a plan. Attributions is added incrementally
@@ -472,7 +472,7 @@ impl<'schema> Planner<'schema> {
         self.operation.walker_with(self.schema.walker())
     }
 
-    pub fn generate_unique_response_key_for(&mut self, field_id: FieldId) -> ResponseKey {
+    pub fn generate_unique_response_key_for(&mut self, field_id: FieldId) -> SafeResponseKey {
         // When the resolver supports aliases, we must ensure that extra fields
         // don't collide with existing response keys. And to avoid duplicates
         // during field collection, we have a single unique name per field id.

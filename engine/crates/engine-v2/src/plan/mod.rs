@@ -79,6 +79,12 @@ impl std::ops::Deref for OperationPlan {
     }
 }
 
+impl std::ops::DerefMut for OperationPlan {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.operation
+    }
+}
+
 impl<I> std::ops::Index<I> for OperationPlan
 where
     Operation: std::ops::Index<I>,

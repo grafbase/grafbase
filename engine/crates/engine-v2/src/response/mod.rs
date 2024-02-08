@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 pub(crate) use error::GraphqlError;
+pub use key::*;
 pub use metadata::*;
 pub use path::*;
 pub use read::*;
@@ -12,6 +13,7 @@ use crate::plan::OperationPlan;
 
 pub(crate) mod cacheable;
 mod error;
+mod key;
 mod metadata;
 mod path;
 mod read;

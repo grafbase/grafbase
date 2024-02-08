@@ -8,7 +8,7 @@ use crate::{
     request::{
         BoundFieldId, FlatTypeCondition, Operation, OperationWalker, SelectionSetType, VariableDefinitionWalker,
     },
-    response::{ResponseEdge, ResponseKey, ResponseKeys, ResponsePart, ResponsePath, SeedContext},
+    response::{ResponseEdge, ResponseKey, ResponseKeys, ResponsePart, ResponsePath, SafeResponseKey, SeedContext},
 };
 
 use super::{
@@ -166,7 +166,7 @@ impl<'a> PlanWalker<'a> {
         struct GroupForResponseKey {
             edge: ResponseEdge,
             bound_field_id: BoundFieldId,
-            expected_key: ResponseKey,
+            expected_key: SafeResponseKey,
             schema_field_id: FieldId,
             ty: FieldType<RuntimeMergedConditionals>,
         }

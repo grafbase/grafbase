@@ -123,7 +123,9 @@ impl<'a> std::fmt::Debug for PlanCollectedSelectionSet<'a> {
                         UnpackedResponseEdge::BoundResponseKey(key) => {
                             self.operation_plan.response_keys[key].to_string()
                         }
-                        UnpackedResponseEdge::ExtraField(key) => self.operation_plan.response_keys[key].to_string(),
+                        UnpackedResponseEdge::ExtraFieldResponseKey(key) => {
+                            self.operation_plan.response_keys[key].to_string()
+                        }
                     })
                     .collect::<Vec<_>>(),
             )
@@ -135,7 +137,7 @@ impl<'a> std::fmt::Debug for PlanCollectedField<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut fmt = f.debug_struct("CollectedField");
         fmt.field("key", &self.as_bound_field().response_key_str());
-        if self.as_bound_field().response_key() != self.as_ref().expected_key {
+        if self.as_bound_field().response_key() != self.as_ref().expected_key.into() {
             fmt.field(
                 "expected_key",
                 &&self.operation_plan.response_keys[self.as_ref().expected_key],
@@ -169,7 +171,7 @@ impl<'a> std::fmt::Debug for PlanConditionalField<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut fmt = f.debug_struct("ProvisionalField");
         fmt.field("key", &self.as_bound_field().response_key_str());
-        if self.as_bound_field().response_key() != self.as_ref().expected_key {
+        if self.as_bound_field().response_key() != self.as_ref().expected_key.into() {
             fmt.field(
                 "expected_key",
                 &&self.operation_plan.response_keys[self.as_ref().expected_key],
