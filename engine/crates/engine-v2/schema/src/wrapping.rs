@@ -61,7 +61,7 @@ impl Wrapping {
     }
 
     /// Innermost to outermost.
-    pub fn list_wrappings(self) -> impl DoubleEndedIterator<Item = ListWrapping> + Copy + Clone {
+    pub fn list_wrappings(self) -> impl DoubleEndedIterator<Item = ListWrapping> + Copy {
         self
     }
 
