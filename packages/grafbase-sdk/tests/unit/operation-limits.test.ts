@@ -23,7 +23,6 @@ describe('Operation limits', () => {
     `)
   })
 
-
   it('renders the defined multiple operation limit values', async () => {
     const cfg = config({
       graph: g,
