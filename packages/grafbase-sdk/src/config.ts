@@ -1,9 +1,4 @@
-import {
-  AuthParams,
-  AuthParamsV2,
-  Authentication,
-  AuthenticationV2
-} from './auth'
+import { AuthParams, AuthParamsV2, Authentication, AuthenticationV2 } from './auth'
 import { CacheParams, GlobalCache } from './cache'
 import { FederatedGraph, Graph } from './grafbase-schema'
 import { OperationLimits, OperationLimitsParams } from './operation-limits'
