@@ -22,7 +22,7 @@ tracing.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 futures-util.workspace = true
-sha2 = "0.10"
+sha2.workspace = true
 
 config = { package = "engine-v2-config", path = "../../engine-v2/config" }
 # needed for errors, not entirely sure if we should be separate or not right now.

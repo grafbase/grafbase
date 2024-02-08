@@ -67,6 +67,7 @@ impl AsyncClient {
             query: query.into(),
             variables: None,
             phantom: PhantomData,
+            extensions: None,
             reqwest_builder,
         }
     }
@@ -177,6 +178,8 @@ pub struct GqlRequestBuilder<Response> {
     query: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     variables: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    extensions: Option<serde_json::Value>,
 
     // These won't
     #[serde(skip)]
@@ -193,6 +196,11 @@ impl<Response> GqlRequestBuilder<Response> {
 
     pub fn variables(mut self, variables: impl serde::Serialize) -> Self {
         self.variables = Some(serde_json::to_value(variables).expect("to be able to serialize variables"));
+        self
+    }
+
+    pub fn extensions(mut self, extensions: impl serde::Serialize) -> Self {
+        self.extensions = Some(serde_json::to_value(extensions).expect("to be able to serialize extensions"));
         self
     }
 

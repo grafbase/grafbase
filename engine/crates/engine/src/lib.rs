@@ -39,6 +39,8 @@ pub mod graph;
 
 mod deferred;
 mod directive;
+mod persisted_query;
+pub use persisted_query::AutomaticallyPersistedQuery;
 pub mod registry;
 
 #[doc(hidden)]
@@ -58,8 +60,8 @@ pub use engine_value::{
     from_value, to_value, value, ConstValue as Value, DeserializerError, Name, Number, SerializerError, Variables,
 };
 pub use error::{
-    Error, ErrorExtensionValues, ErrorExtensions, InputValueError, InputValueResult, ParseRequestError, Result,
-    ResultExt, ServerError, ServerResult,
+    Error, ErrorCode, ErrorExtensionValues, ErrorExtensions, InputValueError, InputValueResult, ParseRequestError,
+    Result, ResultExt, ServerError, ServerResult,
 };
 pub use extensions::ResolveFut;
 #[doc(hidden)]
@@ -76,7 +78,7 @@ pub use look_ahead::Lookahead;
 pub use parser::{Pos, Positioned};
 pub use query_path::{QueryPath, QueryPathSegment};
 pub use registry::{CacheControl, CacheInvalidation, Registry};
-pub use request::{BatchRequest, OperationPlanCacheKey, Request};
+pub use request::{BatchRequest, OperationPlanCacheKey, PersistedQueryRequestExtension, Request, RequestExtensions};
 #[doc(no_inline)]
 pub use resolver_utils::{ContainerType, LegacyEnumType, LegacyScalarType};
 pub use response::{
