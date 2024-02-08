@@ -1,5 +1,5 @@
-use super::{consts::PROJECT_METADATA_FILE, errors::ApiError, types::ProjectMetadata};
-use common::environment::Project;
+use super::{errors::ApiError, types::ProjectMetadata};
+use common::{consts::PROJECT_METADATA_FILE, environment::Project};
 use tokio::fs;
 
 pub async fn project_linked() -> Result<Option<ProjectMetadata>, ApiError> {
