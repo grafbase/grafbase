@@ -74,7 +74,6 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
         Some(FederationResolver::Join(join)) => {
             let mut field = ctx.item.clone();
             prune_entity_query(&mut field, representation.ty.borrow(), ctx);
-            eprintln!("{field:#?}");
             let ctx = ctx.with_alternative_field(&field);
 
             let last_resolver_value = ResolvedValue::new(representation.data);
@@ -120,10 +119,9 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
 ///
 /// Where `Foo` & `Bar` might be completely independent types.
 ///
-/// Some
-/// connectors (e.g. the GraphQL connector) pay attention to the
-/// query AST, and those would fail if they saw selections for
-/// `Bar` when they were trying to resolve `Foo`A
+/// Some connectors (e.g. the GraphQL connector) pay attention to the
+/// query AST, and those would fail if they saw selections for `Bar`
+/// when they were trying to resolve `Foo`.
 ///
 /// Pruning like this allows connectors to be unaware of this
 /// complication.
