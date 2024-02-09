@@ -58,8 +58,6 @@ mod tests {
             .unwrap()
             .registry;
 
-        dbg!(&registry);
-
         assert!(!registry.disable_introspection);
     }
 
