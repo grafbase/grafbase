@@ -7,6 +7,7 @@ mod r#enum;
 mod field;
 mod fragment;
 mod introspection;
+mod joins;
 mod list;
 mod scalar;
 
@@ -15,3 +16,5 @@ pub use dynamic::*;
 pub use list::*;
 pub use r#enum::*;
 pub use scalar::*;
+
+pub use joins::resolve_joined_field;

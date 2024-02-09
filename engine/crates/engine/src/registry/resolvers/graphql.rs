@@ -432,19 +432,13 @@ impl Resolver {
                 prefix_result_typename(&mut data, &prefix);
             }
 
-            let mut resolved_value = ResolvedValue::new(match wrapping_field {
+            Ok(ResolvedValue::new(match wrapping_field {
                 Some(field) => data
                     .as_object_mut()
                     .and_then(|m| m.remove(&field))
                     .unwrap_or(serde_json::Value::Null),
                 None => data,
-            });
-
-            if resolved_value.data_resolved().is_null() {
-                resolved_value.early_return_null = true;
-            }
-
-            Ok(resolved_value)
+            }))
         }))
     }
 }

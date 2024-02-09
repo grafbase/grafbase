@@ -106,7 +106,7 @@ pub fn parse_selection_set<T: AsRef<str>>(input: T) -> Result<Positioned<Selecti
 ///
 /// # Errors
 ///
-/// Fails if the input is not a valid GraphQL selection set
+/// Fails if the input is not a valid GraphQL field
 pub fn parse_field<T: AsRef<str>>(input: T) -> Result<Positioned<Field>> {
     let mut pc = PositionCalculator::new(input.as_ref());
 

@@ -36,6 +36,16 @@ impl ArgumentSet {
     pub fn contains_argument(&self, name: &str) -> bool {
         self.0.iter().any(|(argument_name, _)| argument_name == name)
     }
+
+    /// Returns true if the ArgumentSet is empty
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Iterator over the names of the arguments
+    pub fn iter_names(&self) -> impl Iterator<Item = &str> {
+        self.0.iter().map(|(name, _)| name.as_str())
+    }
 }
 
 impl IntoIterator for ArgumentSet {

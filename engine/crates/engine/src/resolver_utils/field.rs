@@ -3,15 +3,15 @@ use engine_value::ConstValue;
 use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
 use serde_json::Value;
 
-use super::{introspection, resolve_container, resolve_list};
+use super::{introspection, joins::resolve_joined_field, resolve_container, resolve_list};
 use crate::{
     registry::{
-        resolvers::{ResolvedValue, ResolverContext},
+        resolvers::{ResolvedValue, Resolver, ResolverContext},
         scalars::{DynamicScalar, PossibleScalar},
         type_kinds::OutputType,
         FieldSet, MetaField, MetaType, ScalarParser, TypeReference,
     },
-    Context, ContextExt, ContextField, Error, QueryPathSegment, ServerError,
+    Context, ContextExt, ContextField, Error, ServerError,
 };
 
 /// Resolves the field inside `ctx` within the type `root`
@@ -94,29 +94,9 @@ async fn resolve_primitive_field(
         .map_err(|err| err.into_server_error(ctx.item.pos));
 
     let result = match resolved_value {
-        Ok(result) => {
-            if field.ty.is_non_null() && *result.data_resolved() == serde_json::Value::Null {
-                log::warn!(
-                    ctx.trace_id(),
-                    "{}",
-                    serde_json::to_string_pretty(&serde_json::json!({
-                        "message": "Something went wrong here",
-                        "expected": serde_json::Value::String(field.ty.to_string()),
-                        "path": serde_json::Value::String(ctx.path.to_string()),
-                    }))
-                    .unwrap(),
-                );
-                Err(ServerError::new(
-                    format!(
-                        "An error happened while fetching `{}`, expected a non null value but found a null",
-                        field.name
-                    ),
-                    Some(ctx.item.pos),
-                ))
-            } else {
-                Ok(result.take())
-            }
-        }
+        Ok(Some(result)) if result.data_resolved().is_null() => handle_null_primitive(field, ctx),
+        Ok(None) => handle_null_primitive(field, ctx),
+        Ok(Some(result)) => Ok(result.take()),
         Err(err) => return Err(err),
     }?;
 
@@ -168,6 +148,30 @@ async fn resolve_primitive_field(
     Ok(ctx.response().await.insert_node(ResponsePrimitive::new(result.into())))
 }
 
+fn handle_null_primitive(field: &MetaField, ctx: &ContextField<'_>) -> Result<Value, ServerError> {
+    if field.ty.is_non_null() {
+        log::warn!(
+            ctx.trace_id(),
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "message": "Something went wrong here",
+                "expected": serde_json::Value::String(field.ty.to_string()),
+                "path": serde_json::Value::String(ctx.path.to_string()),
+            }))
+            .unwrap(),
+        );
+        return Err(ServerError::new(
+            format!(
+                "An error happened while fetching `{}`, expected a non null value but found a null",
+                field.name
+            ),
+            Some(ctx.item.pos),
+        ));
+    }
+
+    Ok(serde_json::Value::Null)
+}
+
 async fn resolve_container_field(
     ctx: &ContextField<'_>,
     field: &MetaField,
@@ -179,7 +183,7 @@ async fn resolve_container_field(
         .await
         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
-    if resolved_value.is_early_returned() {
+    if resolved_value.is_none() {
         if field.ty.is_non_null() {
             return Err(ServerError::new(
                 format!(
@@ -195,6 +199,7 @@ async fn resolve_container_field(
                 .insert_node(ResponsePrimitive::new(CompactValue::Null)));
         }
     }
+    let resolved_value = resolved_value.unwrap();
 
     let field_type = ctx
         .registry()
@@ -258,7 +263,8 @@ async fn resolve_array_field(
 
     let resolved_value = run_field_resolver(ctx, parent_resolver_value)
         .await
-        .map_err(|err| err.into_server_error(ctx.item.pos))?;
+        .map_err(|err| err.into_server_error(ctx.item.pos))?
+        .unwrap_or_default();
 
     field
         .check_cache_tag(ctx, container_type.name(), &field.name, None)
@@ -268,31 +274,34 @@ async fn resolve_array_field(
     resolve_list(list_ctx, ctx.item, container_type, resolved_value).await
 }
 
-async fn run_field_resolver(
+pub(super) async fn run_field_resolver(
     ctx: &ContextField<'_>,
     parent_resolver_value: ResolvedValue,
-) -> Result<ResolvedValue, Error> {
-    let mut final_result = parent_resolver_value;
+) -> Result<Option<ResolvedValue>, Error> {
+    let resolver = &ctx.field.resolver;
 
-    if let Some(QueryPathSegment::Index(idx)) = ctx.path.last() {
-        // If we are in an index segment, it means we do not have a current resolver (YET).
-        final_result = final_result.get_index(*idx).unwrap_or_default();
-    } else {
-        let resolver = &ctx.field.resolver;
-        // Avoiding the early return when we're just propagating downwards data. Container
-        // fields used as namespaces have no value (so Null) but their fields have resolvers.
-        if !resolver.is_parent() {
-            let resolver_context = ResolverContext::new(ctx);
-
-            final_result = resolver.resolve(ctx, &resolver_context, Some(final_result)).await?;
-
-            if final_result.data_resolved().is_null() {
-                final_result = final_result.with_early_return();
-            }
+    match resolver {
+        Resolver::Parent => {
+            // Some fields just pass their parents data down to their children (or have no data at all).
+            // For those we early return with the parent data
+            return Ok(Some(parent_resolver_value));
         }
+        Resolver::Join(join) => {
+            return resolve_joined_field(ctx, join, parent_resolver_value).await.map(Some);
+        }
+        _ => {}
     }
 
-    Ok(final_result)
+    let resolved_value = resolver
+        .resolve(ctx, &ResolverContext::new(ctx), Some(parent_resolver_value))
+        .await?;
+
+    if resolved_value.data_resolved().is_null() {
+        // Convert nulls into `None` which will stop us executing child fields
+        return Ok(None);
+    }
+
+    Ok(Some(resolved_value))
 }
 
 async fn resolve_requires_fieldset(
@@ -325,7 +334,7 @@ async fn resolve_requires_fieldset(
     let data = ctx
         .response()
         .await
-        .take_node_into_const_value(node_id)
+        .take_node_into_compact_value(node_id)
         .expect("this has to work");
 
     Ok(ResolvedValue::new(data.into()))

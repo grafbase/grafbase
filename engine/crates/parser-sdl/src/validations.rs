@@ -5,6 +5,7 @@ use engine::{
         federation::FederationResolver,
         field_set::Selection,
         resolvers::{join::JoinResolver, Resolver},
+        type_kinds::SelectionSetTarget,
         MetaField, MetaFieldType,
     },
     Registry,
@@ -144,44 +145,128 @@ fn validate_join(
 ) -> Vec<RuleError> {
     let mut errors = vec![];
 
-    let root_query_type = registry.root_type(engine_parser::types::OperationType::Query);
-    let Some(destination_field) = root_query_type.field(&join.field_name) else {
-        errors.push(RuleError::new(
-            vec![],
-            format!(
-                "{coord} is trying to join with a field named {}, which doesn't exist on the {} type",
-                join.field_name,
-                root_query_type.name()
-            ),
-        ));
-        return errors;
+    let (destination_field, containing_type) = match traverse_join_fields(join, registry, coord) {
+        Ok(field) => field,
+        Err(errors) => return errors,
     };
 
-    // TODO: Make this a bit more forgiving.
     // If destination_field is non-null but expected_return is null that's fine...
     if !types_are_compatible(&destination_field.ty, expected_return_type) {
         errors.push(RuleError::new(
             vec![],
             format!(
-                "{coord} is trying to join with the field named {}, but those fields do not have compatible types",
-                join.field_name
+                "{coord} is trying to join with {}.{}, but those fields do not have compatible types",
+                containing_type.name(),
+                &destination_field.name
             ),
         ));
     }
 
-    for (name, argument) in &destination_field.args {
-        if argument.ty.is_non_null() && !join.arguments.contains_argument(name) {
+    // I'd like to check that the argument types matches, but unfortunately
+    // we don't have type information by the time we get here...
+
+    errors
+}
+
+/// Traverses all the fields involved in a join, validating as we go.
+///
+/// Will return the target MetaField if succesful, errors if not
+fn traverse_join_fields<'a>(
+    join: &JoinResolver,
+    registry: &'a Registry,
+    coord: SchemaCoord<'_>,
+) -> Result<(&'a MetaField, SelectionSetTarget<'a>), Vec<RuleError>> {
+    let mut current_type = registry.root_type(engine_parser::types::OperationType::Query);
+
+    let mut errors = vec![];
+
+    let mut field_iter = join.fields.iter().peekable();
+    while let Some((name, join_arguments)) = field_iter.next() {
+        let Some(field) = current_type.field(name) else {
             errors.push(RuleError::new(
                 vec![],
-            format!("{coord} is trying to join with the field named {}, but does not provide the non-nullable argument {name}", join.field_name),
+                format!(
+                    "{coord} is trying to join with a field named {}, which doesn't exist on the {} type",
+                    name,
+                    current_type.name()
+                ),
+            ));
+            break;
+        };
+
+        for (name, argument) in &field.args {
+            if argument.ty.is_non_null() && !join_arguments.contains_argument(name) {
+                errors.push(RuleError::new(
+                    vec![],
+                    format!(
+                        "{coord} is trying to join with {}.{}, but does not provide the non-nullable argument {name}",
+                        current_type.name(),
+                        &field.name,
+                    ),
+                ));
+            }
+        }
+
+        for name in join_arguments.iter_names() {
+            if !field.args.contains_key(name) {
+                errors.push(RuleError::new(
+                    vec![],
+                    format!(
+                        "{coord} has a join that provides the {} argument to {}.{}, but there is no such argument",
+                        name,
+                        current_type.name(),
+                        &field.name,
+                    ),
+                ));
+            }
+        }
+
+        if field_iter.peek().is_none() {
+            if errors.is_empty() {
+                return Ok((field, current_type));
+            }
+            break;
+        }
+
+        if field.ty.is_list() {
+            errors.push(RuleError::new(
+                vec![],
+                format!(
+                    "The join on {coord} passes through {}.{}, which is a list.  This is not supported",
+                    current_type.name(),
+                    &field.name,
+                ),
             ));
         }
 
-        // I'd like to check that the argument type matches, but unfortunately
-        // we don't have type information by the time we get here...
+        // Lookup the type for the next iteration
+        let ty = match registry.lookup(&field.ty) {
+            Ok(ty) => ty,
+            Err(error) => {
+                errors.push(RuleError::new(vec![], error.message));
+                break;
+            }
+        };
+        match ty.try_into() {
+            Ok(ty) => {
+                current_type = ty;
+            }
+            Err(_) => {
+                let name = ty.name();
+                errors.push(RuleError::new(
+                    vec![],
+                    format!(
+                        "The join on {coord} tries to select children of {name}, but {name} is not a composite type",
+                    ),
+                ));
+                break;
+            }
+        }
     }
 
-    errors
+    assert!(!errors.is_empty(), "we shouldnt ger here if errors is empty");
+
+    Err(errors)
 }
 
 fn types_are_compatible(actual_type: &MetaFieldType, expected_type: &MetaFieldType) -> bool {
@@ -248,10 +333,10 @@ impl std::fmt::Display for SchemaCoord<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SchemaCoord::Field(ty, field) => {
-                write!(f, "The field {field} on the type {ty}")
+                write!(f, "{ty}.{field}")
             }
             SchemaCoord::Entity(ty, key) => {
-                write!(f, "The federation key `{key}` on the type {ty}")
+                write!(f, "federation key `{key}` on the type {ty}")
             }
         }
     }

@@ -31,9 +31,6 @@ pub struct ResolvedValue {
     data_path: Vec<QueryPathSegment>,
     /// Optional pagination data for Paginated Resolvers
     pub pagination: Option<ResolvedPaginationInfo>,
-    /// Resolvers can set this value when resolving so the engine will know it's
-    /// not usefull to continue iterating over the ResolverChain.
-    pub early_return_null: bool,
     /// Selection-specific data for resolvers to use.
     pub selection_data: Option<SelectionData>,
 }
@@ -83,7 +80,6 @@ impl ResolvedValue {
             data_root: Arc::new(value),
             data_path: vec![],
             pagination: None,
-            early_return_null: false,
             selection_data: None,
         }
     }
@@ -94,11 +90,6 @@ impl ResolvedValue {
 
     pub fn with_pagination(mut self, pagination: ResolvedPaginationInfo) -> Self {
         self.pagination = Some(pagination);
-        self
-    }
-
-    pub fn with_early_return(mut self) -> Self {
-        self.early_return_null = true;
         self
     }
 
@@ -145,10 +136,6 @@ impl ResolvedValue {
         })
     }
 
-    pub fn is_early_returned(&self) -> bool {
-        self.early_return_null
-    }
-
     pub fn data_resolved(&self) -> &Value {
         self.data_path.iter().fold(self.data_root.as_ref(), |value, index| {
             match index {
@@ -169,7 +156,6 @@ impl ResolvedValue {
         Some(ResolvedValue {
             data_root: Arc::clone(&self.data_root),
             data_path,
-            early_return_null: false,
             pagination: None,
             selection_data: self.selection_data.clone(),
         })
@@ -185,7 +171,6 @@ impl ResolvedValue {
         Some(ResolvedValue {
             data_root: Arc::clone(&self.data_root),
             data_path,
-            early_return_null: false,
             pagination: None,
             selection_data: self.selection_data.clone(),
         })
@@ -222,7 +207,6 @@ impl ResolvedValue {
                     ResolvedValue {
                         data_root: Arc::clone(&self.data_root),
                         data_path,
-                        early_return_null: false,
                         pagination: None,
                         selection_data: self.selection_data.clone(),
                     }
