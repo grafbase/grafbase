@@ -30,9 +30,13 @@ pub async fn resolve_joined_field(
         .root_type(engine_parser::types::OperationType::Query);
 
     while let Some((name, _)) = field_iter.next() {
-        let meta_field = current_type
-            .field(name)
-            .ok_or_else(|| Error::new(format!("Internal error: could not find joined field {}", &name)))?;
+        let meta_field = current_type.field(name).ok_or_else(|| {
+            Error::new(format!(
+                "Internal error: could not find joined field {}.{}",
+                current_type.name(),
+                &name
+            ))
+        })?;
 
         let join_context = ctx.to_join_context(&query_field, meta_field, current_type);
 

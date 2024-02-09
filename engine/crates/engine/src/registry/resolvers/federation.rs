@@ -127,7 +127,7 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
 /// complication.
 fn prune_entity_query(field: &mut Positioned<Field>, ty: NamedType<'_>, context: &dyn Context) {
     let is_type_compatible: Box<dyn Fn(&str) -> bool> = match context.registry().implements.get(ty.as_str()) {
-        Some(implements) => Box::new(|name: &str| implements.contains(name)),
+        Some(implements) => Box::new(|name: &str| name == ty.as_str() || implements.contains(name)),
         None => Box::new(|name: &str| name == ty.as_str()),
     };
 
