@@ -1443,7 +1443,7 @@ impl Default for Registry {
             query_type: Query.to_string().to_pascal_case(),
             mutation_type: None,
             subscription_type: None,
-            disable_introspection: false,
+            disable_introspection: true,
             enable_federation: false,
             federation_subscription: false,
             auth: Default::default(),
