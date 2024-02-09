@@ -29,6 +29,13 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::task::JoinSet;
 
+#[derive(Clone, Copy, Debug)]
+pub enum EnvironmentName {
+    Production,
+    Dev,
+    None,
+}
+
 pub enum ProductionServer {
     V1 {
         message_sender: MessageSender,
@@ -53,13 +60,13 @@ impl ProductionServer {
         export_embedded_files()?;
         create_project_dot_grafbase_directory()?;
 
-        let environment_variables: HashMap<_, _> = crate::environment::variables().collect();
+        let environment_variables: HashMap<_, _> = crate::environment::variables(EnvironmentName::Production).collect();
         let Config {
             registry,
             detected_udfs,
             federated_graph_config,
             ..
-        } = build_config(&environment_variables, None).await?;
+        } = build_config(&environment_variables, None, EnvironmentName::Production).await?;
 
         if let Some(config) = federated_graph_config {
             let graph = match federated_graph_schema_path {
@@ -81,8 +88,13 @@ impl ProductionServer {
         } else {
             let registry = Arc::new(registry);
 
-            let (bridge_app, bridge_state) =
-                bridge::build_router(message_sender.clone(), Arc::clone(&registry), tracing).await?;
+            let (bridge_app, bridge_state) = bridge::build_router(
+                message_sender.clone(),
+                Arc::clone(&registry),
+                tracing,
+                EnvironmentName::Production,
+            )
+            .await?;
             if !detected_udfs.is_empty() {
                 validate_node().await?;
                 // TODO: the compile function also spawns Bun, we need to separate them if we want to do it conditionally
@@ -219,7 +231,7 @@ pub async fn start(
     };
 
     let file_changes = watcher.as_ref().map(Watcher::file_changes);
-    let config = ConfigActor::new(file_changes.clone(), message_sender.clone()).await;
+    let config = ConfigActor::new(file_changes.clone(), message_sender.clone(), EnvironmentName::Dev).await;
     let is_federated = is_config_federated(&config, message_sender.clone()).await?;
 
     if is_federated {
@@ -347,7 +359,7 @@ async fn spawn_servers(
 ) -> Result<JoinSet<Result<(), ServerError>>, ServerError> {
     let mut join_set = JoinSet::new();
 
-    let environment_variables: HashMap<_, _> = crate::environment::variables().collect();
+    let environment_variables: HashMap<_, _> = crate::environment::variables(EnvironmentName::Dev).collect();
 
     let Config {
         registry,
@@ -403,7 +415,14 @@ async fn spawn_servers(
         let (start_sender, started) = tokio::sync::oneshot::channel();
 
         trace!("starting bridge at port {port}");
-        join_set.spawn(bridge::start(listen, message_sender, registry, start_sender, tracing));
+        join_set.spawn(bridge::start(
+            listen,
+            message_sender,
+            registry,
+            start_sender,
+            tracing,
+            EnvironmentName::Dev,
+        ));
 
         if started.await.is_err() {
             // The error is in the join_set which the layer above should listen for.

@@ -1,6 +1,7 @@
 use crate::{
     config::{build_config, Config},
     errors::ServerError,
+    servers::EnvironmentName,
 };
 
 pub enum IntrospectLocalOutput {
@@ -10,13 +11,13 @@ pub enum IntrospectLocalOutput {
 
 #[tokio::main]
 pub async fn introspect_local() -> Result<IntrospectLocalOutput, ServerError> {
-    let env = crate::environment::variables().collect();
+    let env = crate::environment::variables(EnvironmentName::None).collect();
 
     let Config {
         registry,
         federated_graph_config,
         ..
-    } = build_config(&env, None).await?;
+    } = build_config(&env, None, EnvironmentName::None).await?;
 
     let is_federated = federated_graph_config.is_some();
 

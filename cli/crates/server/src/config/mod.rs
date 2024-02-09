@@ -23,6 +23,7 @@ use crate::{
         TS_NODE_SCRIPT_PATH,
     },
     node::validate_node,
+    servers::EnvironmentName,
 };
 
 mod actor;
@@ -56,13 +57,14 @@ pub type ConfigStream = BoxStream<'static, Config>;
 pub(crate) async fn build_config(
     environment_variables: &HashMap<String, String>,
     triggering_file: Option<PathBuf>,
+    environment_name: EnvironmentName,
 ) -> Result<Config, ConfigError> {
     trace!("parsing schema");
     let project = Project::get();
 
     let schema_path = match project.schema_path.location() {
         SchemaLocation::TsConfig(ref ts_config_path) => {
-            let written_schema_path = parse_and_generate_config_from_ts(ts_config_path).await?;
+            let written_schema_path = parse_and_generate_config_from_ts(ts_config_path, environment_name).await?;
 
             Cow::Owned(written_schema_path)
         }
@@ -123,7 +125,10 @@ pub(crate) async fn build_config(
 
 /// Parses a TypeScript Grafbase configuration and generates a GraphQL schema
 /// file to the filesystem, returning a path to the generated file.
-async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<String, ConfigError> {
+async fn parse_and_generate_config_from_ts(
+    ts_config_path: &Path,
+    environment_name: EnvironmentName,
+) -> Result<String, ConfigError> {
     let environment = Environment::get();
     let project = Project::get();
 
@@ -171,6 +176,14 @@ async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<Stri
     validate_node().await?;
     let node_command = Command::new("node")
         .args(args)
+        .env(
+            "GRAFBASE_ENV",
+            match environment_name {
+                EnvironmentName::Production => "production",
+                EnvironmentName::Dev => "dev",
+                EnvironmentName::None => "",
+            },
+        )
         .stderr(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()?;

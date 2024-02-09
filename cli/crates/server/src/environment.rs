@@ -1,9 +1,9 @@
 use common::environment::Project;
 
-use crate::consts::DOT_ENV_FILE_NAME;
+use crate::{consts::DOT_ENV_FILE_NAME, servers::EnvironmentName};
 
 #[allow(deprecated)] // https://github.com/dotenv-rs/dotenv/pull/54
-pub fn variables() -> impl Iterator<Item = (String, String)> {
+pub fn variables(environment_name: EnvironmentName) -> impl Iterator<Item = (String, String)> {
     let project = Project::get();
     let dot_env_file_path = project
         .schema_path
@@ -21,5 +21,12 @@ pub fn variables() -> impl Iterator<Item = (String, String)> {
                 .flatten()
                 .filter_map(Result::ok),
         )
-        .chain(std::iter::once(("GRAFBASE_ENV".to_string(), "dev".to_string())))
+        .chain(std::iter::once((
+            "GRAFBASE_ENV".to_string(),
+            match environment_name {
+                EnvironmentName::Production => "production".to_string(),
+                EnvironmentName::Dev => "dev".to_string(),
+                EnvironmentName::None => String::new(),
+            },
+        )))
 }

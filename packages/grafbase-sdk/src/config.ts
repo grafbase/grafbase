@@ -91,9 +91,11 @@ export class GraphConfig {
     const experimental = this.experimental ? this.experimental.toString() : ''
     const introspection = this.introspection
       ? this.introspection.toString()
-      : ''
+      : new Introspection({
+          enabled: process.env.GRAFBASE_ENV === 'dev'
+        }).toString()
 
-    return `${experimental}${auth}${operationLimits}${cache}${graph}${introspection}`
+    return `${experimental}${auth}${operationLimits}${cache}${graph}${introspection}#${process.env.GRAFBASE_ENV}`
   }
 }
 
@@ -125,7 +127,7 @@ export class FederatedGraphConfig {
 
     const introspection = this.introspection
       ? this.introspection.toString()
-      : ''
+      : new Introspection({ enabled: process.env.GRAFBASE_ENV === 'dev' })
 
     return `${auth}${graph}${operationLimits}${introspection}`
   }
