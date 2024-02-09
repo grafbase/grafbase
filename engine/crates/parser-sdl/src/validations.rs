@@ -207,6 +207,20 @@ fn traverse_join_fields<'a>(
             }
         }
 
+        for name in join_arguments.iter_names() {
+            if !field.args.contains_key(name) {
+                errors.push(RuleError::new(
+                    vec![],
+                    format!(
+                        "{coord} has a join that provides the {} argument to {}.{}, but there is no such argument",
+                        name,
+                        current_type.name(),
+                        &field.name,
+                    ),
+                ));
+            }
+        }
+
         if field_iter.peek().is_none() {
             if errors.is_empty() {
                 return Ok((field, current_type));
