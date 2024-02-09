@@ -88,9 +88,12 @@ export class GraphConfig {
       : ''
     const cache = this.cache ? this.cache.toString() : ''
     const experimental = this.experimental ? this.experimental.toString() : ''
-    const introspection = this.introspection
-      ? `extend schema @introspection(enable: true)\n\n`
-      : `extend schema @introspection(enable: false)\n\n`
+    const introspection =
+      this.introspection !== undefined
+        ? `extend schema @introspection(enable: ${
+            this.introspection ? 'true' : 'false'
+          })\n\n`
+        : ''
 
     return `${experimental}${auth}${operationLimits}${cache}${graph}${introspection}`
   }
@@ -121,9 +124,13 @@ export class FederatedGraphConfig {
     const operationLimits = this.operationLimits
       ? this.operationLimits.toString()
       : ''
-    const introspection = this.introspection
-      ? `extend schema @introspection(enable: true)\n\n`
-      : `extend schema @introspection(enable: false)\n\n`
+
+    const introspection =
+      this.introspection !== undefined
+        ? `extend schema @introspection(enable: ${
+            this.introspection ? 'true' : 'false'
+          })\n\n`
+        : ''
 
     return `${auth}${graph}${operationLimits}${introspection}`
   }
