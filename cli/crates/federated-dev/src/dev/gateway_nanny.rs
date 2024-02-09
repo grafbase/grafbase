@@ -37,7 +37,8 @@ impl GatewayNanny {
         while let Some(message) = stream.next().await {
             log::trace!("nanny received a {message:?}");
             let config = self.config.borrow();
-            if let Err(error) = self.sender.send(new_gateway(self.graph.borrow().clone(), &config)) {
+            let gateway = new_gateway(self.graph.borrow().clone(), &config);
+            if let Err(error) = self.sender.send(gateway) {
                 log::error!("Couldn't publish new gateway: {error:?}");
             }
         }

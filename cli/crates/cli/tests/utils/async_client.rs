@@ -67,6 +67,7 @@ impl AsyncClient {
             query: query.into(),
             variables: None,
             phantom: PhantomData,
+            extensions: None,
             reqwest_builder,
         }
     }
@@ -177,6 +178,8 @@ pub struct GqlRequestBuilder<Response> {
     query: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     variables: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    extensions: Option<serde_json::Value>,
 
     // These won't
     #[serde(skip)]
@@ -196,6 +199,11 @@ impl<Response> GqlRequestBuilder<Response> {
         self
     }
 
+    pub fn extensions(mut self, extensions: impl serde::Serialize) -> Self {
+        self.extensions = Some(serde_json::to_value(extensions).expect("to be able to serialize extensions"));
+        self
+    }
+
     pub fn into_reqwest_builder(self) -> reqwest::RequestBuilder {
         let json = serde_json::to_value(&self).expect("to be able to serialize gql request");
 
@@ -210,11 +218,13 @@ impl<Response> GqlRequestBuilder<Response> {
             .await
             .unwrap();
 
-        assert!(response.status().is_success());
+        assert!(response.status().is_success(), "{}", response.text().await.unwrap());
 
         assert_eq!(
-            response.headers().get("content-type").unwrap(),
-            "multipart/mixed; boundary=\"-\""
+            response.headers().get("content-type").cloned().unwrap(),
+            "multipart/mixed; boundary=\"-\"",
+            "{}",
+            response.text().await.unwrap()
         );
 
         multipart_stream::parse(response.bytes_stream(), "-")

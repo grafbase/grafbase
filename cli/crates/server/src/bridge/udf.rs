@@ -211,12 +211,24 @@ impl UdfRuntime {
                     futures_util::future::ready(Ok(port))
                 });
             pin_mut!(filtered_lines_stream);
-            filtered_lines_stream.try_next().await.ok().flatten().ok_or_else(|| {
-                UdfBuildError::BunSpawnFailedWithOutput {
-                    output: lines_skipped_over.join("\n"),
-                }
-            })?
+            filtered_lines_stream
+                .try_next()
+                .await
+                .ok()
+                .flatten()
+                .ok_or(lines_skipped_over)
         };
+        let bound_port = match bound_port {
+            Ok(port) => port,
+            Err(skipped_over_lines) => {
+                let outcome = bun.wait_with_output().await.unwrap();
+                return Err(UdfBuildError::BunSpawnFailedWithOutput {
+                    output: skipped_over_lines.join("\n"),
+                    stderr: String::from_utf8_lossy(&outcome.stderr).into_owned(),
+                });
+            }
+        };
+
         trace!("Bound to port: {bound_port}");
         let join_handle = tokio::spawn(async move {
             let outcome = bun.wait_with_output().await.unwrap();
@@ -417,6 +429,7 @@ async fn spawn_bun(
             .join(ENTRYPOINT_SCRIPT_FILE_NAME)
             .display()
             .to_string();
+
         let bun_arguments = vec!["run", &script_path];
 
         let environment = Environment::get();
@@ -446,13 +459,28 @@ async fn spawn_bun(
                     futures_util::future::ready(Ok(port))
                 });
             pin_mut!(filtered_lines_stream);
-            filtered_lines_stream.try_next().await.ok().flatten().ok_or_else(|| {
-                UdfBuildError::BunSpawnFailedWithOutput {
-                    output: lines_skipped_over.join("\n"),
-                }
-            })?
+
+            filtered_lines_stream
+                .try_next()
+                .await
+                .ok()
+                .flatten()
+                .ok_or(lines_skipped_over)
         };
+
+        let bound_port = match bound_port {
+            Ok(port) => port,
+            Err(skipped_over_lines) => {
+                let outcome = bun.wait_with_output().await.unwrap();
+                return Err(UdfBuildError::BunSpawnFailedWithOutput {
+                    output: skipped_over_lines.join("\n"),
+                    stderr: String::from_utf8_lossy(&outcome.stderr).into_owned(),
+                });
+            }
+        };
+
         trace!("Bound to port: {bound_port}");
+
         let udf_name = udf_name.to_owned();
         let join_handle = tokio::spawn(async move {
             let outcome = bun.wait_with_output().await.unwrap();

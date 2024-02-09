@@ -2,12 +2,15 @@ use std::borrow::Cow;
 
 use schema::{Definition, FieldId, InputValueId, InterfaceId, ObjectId, Schema, UnionId};
 
-use crate::response::{BoundResponseKey, ResponseKey};
+use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
-use super::{BoundAnyFieldDefinitionId, BoundFieldId, BoundFragmentDefinitionId, BoundSelectionSetId, Location};
+use super::{
+    BoundFieldArgumentsId, BoundFieldId, BoundFragmentId, BoundFragmentSpreadId, BoundInlineFragmentId,
+    BoundSelectionSetId, Location,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BoundSelectionSet {
+pub(crate) struct BoundSelectionSet {
     pub ty: SelectionSetType,
     // Ordering matters and must be respected in the response.
     pub items: Vec<BoundSelection>,
@@ -29,28 +32,120 @@ impl SelectionSetType {
             _ => None,
         }
     }
+
+    pub fn as_object_id(&self) -> Option<ObjectId> {
+        match self {
+            SelectionSetType::Object(id) => Some(*id),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BoundSelection {
+pub(crate) enum BoundSelection {
     Field(BoundFieldId),
-    FragmentSpread(BoundFragmentSpread),
-    InlineFragment(BoundInlineFragment),
+    FragmentSpread(BoundFragmentSpreadId),
+    InlineFragment(BoundInlineFragmentId),
 }
 
 /// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
 /// A BoundField is a field in the query *after* spreading all the named fragments.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct BoundField {
-    pub bound_response_key: BoundResponseKey,
-    pub definition_id: BoundAnyFieldDefinitionId,
-    pub selection_set_id: Option<BoundSelectionSetId>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BoundField {
+    // Keeping attributes inside the enum to allow Rust to optimize the size of BoundField. We rarely
+    // use the variants directly.
+    /// __typename field
+    TypeName {
+        bound_response_key: BoundResponseKey,
+        location: Location,
+    },
+    /// Corresponds to an actual field within the operation
+    Field {
+        bound_response_key: BoundResponseKey,
+        location: Location,
+        field_id: FieldId,
+        arguments_id: BoundFieldArgumentsId,
+        selection_set_id: Option<BoundSelectionSetId>,
+    },
+    /// Extra field added during planning to satisfy resolver/field requirements
+    Extra {
+        edge: ResponseEdge,
+        field_id: FieldId,
+        selection_set_id: Option<BoundSelectionSetId>,
+        /// During the planning we may add more extra fields than necessary. To prevent retrieving
+        /// unecessary data, only those marked as read are part of the opeartion.
+        is_read: bool,
+    },
+}
+
+impl BoundField {
+    pub fn query_position(&self) -> usize {
+        match self {
+            BoundField::TypeName { bound_response_key, .. } => bound_response_key.position(),
+            BoundField::Field { bound_response_key, .. } => bound_response_key.position(),
+            BoundField::Extra { .. } => usize::MAX,
+        }
+    }
+
+    pub fn response_key(&self) -> ResponseKey {
+        self.response_edge()
+            .as_response_key()
+            .expect("BoundField don't have indices as key")
+    }
+
+    pub fn response_edge(&self) -> ResponseEdge {
+        match self {
+            BoundField::TypeName { bound_response_key, .. } => (*bound_response_key).into(),
+            BoundField::Field { bound_response_key, .. } => (*bound_response_key).into(),
+            BoundField::Extra { edge, .. } => *edge,
+        }
+    }
+
+    pub fn name_location(&self) -> Option<Location> {
+        match self {
+            BoundField::TypeName { location, .. } => Some(*location),
+            BoundField::Field { location, .. } => Some(*location),
+            BoundField::Extra { .. } => None,
+        }
+    }
+
+    pub fn selection_set_id(&self) -> Option<BoundSelectionSetId> {
+        match self {
+            BoundField::TypeName { .. } => None,
+            BoundField::Field { selection_set_id, .. } => *selection_set_id,
+            BoundField::Extra { selection_set_id, .. } => *selection_set_id,
+        }
+    }
+
+    pub fn schema_field_id(&self) -> Option<FieldId> {
+        match self {
+            BoundField::TypeName { .. } => None,
+            BoundField::Field { field_id, .. } => Some(*field_id),
+            BoundField::Extra { field_id, .. } => Some(*field_id),
+        }
+    }
+
+    pub fn mark_as_read(&mut self) {
+        match self {
+            BoundField::TypeName { .. } => {}
+            BoundField::Field { .. } => {}
+            BoundField::Extra { is_read, .. } => *is_read = true,
+        }
+    }
+
+    pub fn is_read(&self) -> bool {
+        match self {
+            BoundField::TypeName { .. } => true,
+            BoundField::Field { .. } => true,
+            BoundField::Extra { is_read, .. } => *is_read,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundFragmentSpread {
     pub location: Location,
-    pub fragment_id: BoundFragmentDefinitionId,
+    pub fragment_id: BoundFragmentId,
     // This selection set is bound to its actual position in the query.
     pub selection_set_id: BoundSelectionSetId,
 }
@@ -64,7 +159,7 @@ pub struct BoundInlineFragment {
 }
 
 #[derive(Debug)]
-pub struct BoundFragmentDefinition {
+pub struct BoundFragment {
     pub name: String,
     pub name_location: Location,
     pub type_condition: TypeCondition,
@@ -98,51 +193,6 @@ impl From<TypeCondition> for Definition {
     }
 }
 
-/// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
-/// A BoundField is a field in the query *after* spreading all the named fragments.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BoundAnyFieldDefinition {
-    TypeName(BoundTypeNameFieldDefinition),
-    Field(BoundFieldDefinition),
-}
-
-impl BoundAnyFieldDefinition {
-    pub fn as_field(&self) -> Option<&BoundFieldDefinition> {
-        match self {
-            BoundAnyFieldDefinition::TypeName(_) => None,
-            BoundAnyFieldDefinition::Field(field) => Some(field),
-        }
-    }
-
-    pub fn response_key(&self) -> ResponseKey {
-        match self {
-            BoundAnyFieldDefinition::TypeName(field) => field.response_key,
-            BoundAnyFieldDefinition::Field(field) => field.response_key,
-        }
-    }
-
-    pub fn name_location(&self) -> Location {
-        match self {
-            BoundAnyFieldDefinition::TypeName(field) => field.name_location,
-            BoundAnyFieldDefinition::Field(field) => field.name_location,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BoundTypeNameFieldDefinition {
-    pub name_location: Location,
-    pub response_key: ResponseKey,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BoundFieldDefinition {
-    pub name_location: Location,
-    pub response_key: ResponseKey,
-    pub field_id: FieldId,
-    pub arguments: Vec<BoundFieldArgument>,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundFieldArgument {
     pub name_location: Location,
@@ -150,20 +200,6 @@ pub struct BoundFieldArgument {
     pub value_location: Location,
     // TODO: Should be validated, coerced and bound.
     pub value: engine_value::Value,
-}
-
-impl BoundSelectionSet {
-    pub fn len(&self) -> usize {
-        self.items.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.items.is_empty()
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &BoundSelection> {
-        self.items.iter()
-    }
 }
 
 impl IntoIterator for BoundSelectionSet {

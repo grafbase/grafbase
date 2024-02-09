@@ -35,22 +35,22 @@ impl From<ParseError> for GraphqlError {
     }
 }
 
-pub struct UnboundOperation {
+pub struct ParsedOperation {
     pub name: Option<String>,
     pub definition: OperationDefinition,
     pub fragments: HashMap<String, Positioned<engine_parser::types::FragmentDefinition>>,
 }
 
 /// Returns a valid GraphQL operation from the query string before.
-pub fn parse_operation(request: &engine::Request) -> ParseResult<UnboundOperation> {
-    let document = engine_parser::parse_query(&request.query)?;
+pub fn parse_operation(request: &engine::Request) -> ParseResult<ParsedOperation> {
+    let document = engine_parser::parse_query(request.query())?;
 
-    let (operation_name, operation) = if let Some(operation_name) = &request.operation_name {
+    let (operation_name, operation) = if let Some(operation_name) = request.operation_name() {
         match document.operations {
             DocumentOperations::Single(_) => None,
             DocumentOperations::Multiple(mut operations) => operations
-                .remove(operation_name.as_str())
-                .map(|operation| (Some(operation_name.clone()), operation)),
+                .remove(operation_name)
+                .map(|operation| (Some(operation_name.to_string()), operation)),
         }
         .ok_or_else(|| ParseError::UnknowOperation(operation_name.to_string()))?
     } else {
@@ -64,7 +64,7 @@ pub fn parse_operation(request: &engine::Request) -> ParseResult<UnboundOperatio
         }
     };
 
-    Ok(UnboundOperation {
+    Ok(ParsedOperation {
         name: operation_name,
         definition: operation.node,
         fragments: document

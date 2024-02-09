@@ -27,7 +27,7 @@ pub use scalar::ScalarWalker;
 pub use union::UnionWalker;
 
 #[derive(Clone, Copy)]
-pub struct SchemaWalker<'a, I> {
+pub struct SchemaWalker<'a, I = ()> {
     // 'item' instead of 'inner' to avoid confusion with TypeWalker.inner()
     pub(crate) item: I,
     pub(crate) schema: &'a Schema,
@@ -39,7 +39,7 @@ impl<'a, I> SchemaWalker<'a, I> {
         Self { item, schema, names }
     }
 
-    pub fn walk<Other>(self, item: Other) -> SchemaWalker<'a, Other> {
+    pub fn walk<Other>(&self, item: Other) -> SchemaWalker<'a, Other> {
         SchemaWalker {
             item,
             schema: self.schema,

@@ -14,7 +14,6 @@ members = [
 [patch.crates-io]
 http-cache = { git = "https://github.com/grafbase/http-cache", rev = "a7812cc7ebea07ba21ed6fb5fdd74792f2438a73" } # http-v1
 http-cache-reqwest = { git = "https://github.com/grafbase/http-cache", rev = "a7812cc7ebea07ba21ed6fb5fdd74792f2438a73" } # http-v1
-hyper-util = { git = "https://github.com/grafbase/hyper-util", rev = "c7acf8968d96a4408e952a097d93602d2e8ed01a" } # error-is-connect
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
 oauth2 = { git = "https://github.com/grafbase/oauth2-rs", rev = "18b1f9a8b2fae61b50c0c6f2d44672ec176f4612" } # http-v1
 openidconnect = { git = "https://github.com/grafbase/openidconnect-rs", rev = "dee2958a8769dab1d86ef0070e5a185df454f8c2" } # http-v1
@@ -24,10 +23,9 @@ rudderanalytics =  { git = "https://github.com/grafbase/rudder-sdk-rust", rev = 
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "2fadab3a17e6e62320c899c7bc315eb7b404165d" } # minify-field-names-strum-0.26
 # Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
 tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
-ulid = { git = "https://github.com/grafbase/ulid-rs", rev = "05499bd1609f9ac4dd5f39e0bbf70da529179aed" } # web-time-wasm32-unknown-unknown
 
 [workspace.package]
-version = "0.55.0"
+version = "0.56.0"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://grafbase.com"
@@ -53,6 +51,7 @@ futures = "0.3"
 futures-util = "0.3"
 handlebars = "5"
 headers = "0.4"
+hex = "0.4"
 http = "1"
 hyper = "1"
 hyper-util = "0.1"
@@ -83,6 +82,8 @@ web-time = "1"
 which = "6"
 wiremock = "0.6.0-rc.3"
 worker = "0.0.18"
+fnv = "1"
+sha2 = "0.10"
 
 # Serde
 serde = { version = "1", features = ["derive"] }

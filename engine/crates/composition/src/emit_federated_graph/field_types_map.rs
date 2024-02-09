@@ -9,12 +9,12 @@ use std::collections::HashMap;
 /// [Context::insert_field_type()].
 #[derive(Default)]
 pub(super) struct FieldTypesMap {
-    map: HashMap<subgraphs::FieldTypeId, federated::FieldTypeId>,
+    map: HashMap<subgraphs::FieldTypeId, federated::TypeId>,
 }
 
 impl Context<'_> {
     /// Subgraphs field type -> federated graph field type.
-    pub(super) fn insert_field_type(&mut self, field_type: subgraphs::FieldTypeWalker<'_>) -> federated::FieldTypeId {
+    pub(super) fn insert_field_type(&mut self, field_type: subgraphs::FieldTypeWalker<'_>) -> federated::TypeId {
         let type_name = self.insert_string(field_type.type_name());
         *self.field_types_map.map.entry(field_type.id).or_insert_with(|| {
             let Some(kind) = self.definitions.get(&type_name).copied() else {
@@ -24,7 +24,7 @@ impl Context<'_> {
                 )
             };
 
-            federated::FieldTypeId(
+            federated::TypeId(
                 self.out.field_types.push_return_idx(federated::FieldType {
                     kind,
                     inner_is_required: field_type.inner_is_required(),

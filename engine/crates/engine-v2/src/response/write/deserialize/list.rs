@@ -7,21 +7,19 @@ use serde::{
 
 use super::SeedContextInner;
 use crate::{
-    request::BoundAnyFieldDefinitionId,
-    response::{GraphqlError, ResponsePath, ResponseValue},
+    request::BoundFieldId,
+    response::{GraphqlError, ResponseValue},
 };
 
-pub(super) struct ListSeed<'ctx, 'parent, F> {
-    pub path: &'parent ResponsePath,
-    pub definition_id: Option<BoundAnyFieldDefinitionId>,
+pub(super) struct ListSeed<'ctx, 'parent, Seed> {
+    pub bound_field_id: BoundFieldId,
     pub ctx: &'parent SeedContextInner<'ctx>,
-    pub seed_builder: F,
+    pub seed: &'parent Seed,
 }
 
-impl<'de, 'ctx, 'parent, F, Seed> DeserializeSeed<'de> for ListSeed<'ctx, 'parent, F>
+impl<'de, 'ctx, 'parent, Seed> DeserializeSeed<'de> for ListSeed<'ctx, 'parent, Seed>
 where
-    F: Fn(ResponsePath) -> Seed,
-    Seed: DeserializeSeed<'de, Value = ResponseValue>,
+    Seed: Clone + DeserializeSeed<'de, Value = ResponseValue>,
 {
     type Value = ResponseValue;
 
@@ -33,10 +31,9 @@ where
     }
 }
 
-impl<'de, 'ctx, 'parent, F, Seed> Visitor<'de> for ListSeed<'ctx, 'parent, F>
+impl<'de, 'ctx, 'parent, Seed> Visitor<'de> for ListSeed<'ctx, 'parent, Seed>
 where
-    F: Fn(ResponsePath) -> Seed,
-    Seed: DeserializeSeed<'de, Value = ResponseValue>,
+    Seed: Clone + DeserializeSeed<'de, Value = ResponseValue>,
 {
     type Value = ResponseValue;
 
@@ -56,22 +53,31 @@ where
         };
 
         loop {
-            match seq.next_element_seed((self.seed_builder)(self.path.child(index))) {
+            self.ctx.push_edge(index.into());
+            let result = seq.next_element_seed(self.seed.clone());
+            self.ctx.pop_edge();
+            match result {
                 Ok(Some(value)) => {
                     values.push(value);
                     index += 1;
                 }
-                Ok(None) => break,
+                Ok(None) => {
+                    break;
+                }
                 Err(err) => {
                     if !self.ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
-                        self.ctx.data.borrow_mut().push_error(GraphqlError {
+                        let mut path = self.ctx.response_path();
+                        path.push(index.into());
+                        self.ctx.response_part.borrow_mut().push_error(GraphqlError {
                             message: err.to_string(),
                             locations: self
-                                .definition_id
-                                .map(|id| self.ctx.walker.walk(id).name_location())
+                                .ctx
+                                .plan
+                                .bound_walk_with(self.bound_field_id, ())
+                                .name_location()
                                 .into_iter()
                                 .collect(),
-                            path: Some(self.path.clone()),
+                            path: Some(path),
                             ..Default::default()
                         });
                     }
@@ -83,7 +89,7 @@ where
         }
 
         Ok(ResponseValue::List {
-            id: self.ctx.data.borrow_mut().push_list(&values),
+            id: self.ctx.response_part.borrow_mut().push_list(&values),
             nullable: false,
         })
     }

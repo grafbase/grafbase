@@ -34,7 +34,7 @@ async fn compilation_error_schema() {
     env.write_schema(SCHEMA);
 
     // the CI for Linux ARM is *extremely* slow to see those changes.
-    std::thread::sleep(Duration::from_secs(10));
+    tokio::time::sleep(Duration::from_secs(10)).await;
 
     client.poll_endpoint_for_changes(30, 300).await;
 
@@ -116,7 +116,7 @@ async fn compilation_error_resolvers() {
     // We're not changing the schema this time so we can't just poll for changes to that
     // For some reason it takes a really long time on Linux ARM for this to be taken into account
     // when running all tests.
-    std::thread::sleep(Duration::from_secs(10));
+    tokio::time::sleep(Duration::from_secs(10)).await;
 
     let response = client.gql::<Value>("query { hello }").send().await;
 

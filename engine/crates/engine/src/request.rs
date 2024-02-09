@@ -15,13 +15,8 @@ use crate::{Data, ParseRequestError, UploadValue, Value, Variables};
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Request {
-    /// The query source of the request.
-    #[serde(default)]
-    pub query: String,
-
-    /// The operation name of the request.
-    #[serde(default, rename = "operationName")]
-    pub operation_name: Option<String>,
+    #[serde(flatten)]
+    pub operation_plan_cache_key: OperationPlanCacheKey,
 
     /// The variables of the request.
     #[serde(default)]
@@ -39,7 +34,39 @@ pub struct Request {
 
     /// The extensions config of the request.
     #[serde(default)]
-    pub extensions: HashMap<String, Value>,
+    pub extensions: RequestExtensions,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct RequestExtensions {
+    #[serde(default)]
+    pub persisted_query: Option<PersistedQueryRequestExtension>,
+    #[serde(flatten)]
+    pub custom: HashMap<String, Value>,
+}
+
+#[serde_with::serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PersistedQueryRequestExtension {
+    pub version: u32,
+    #[serde_as(as = "serde_with::hex::Hex")]
+    pub sha256_hash: Vec<u8>,
+}
+
+/// Contains everything that should be used in the key when caching the OperationPlan,
+/// defining what will be executed by the engine.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OperationPlanCacheKey {
+    /// The query source of the request.
+    #[serde(default)]
+    pub query: String,
+
+    /// The operation name of the request.
+    #[serde(default)]
+    pub operation_name: Option<String>,
 
     /// Disable introspection queries for this request.
     #[serde(skip)]
@@ -54,22 +81,27 @@ impl Request {
     /// Create a request object with query source.
     pub fn new(query: impl Into<String>) -> Self {
         Self {
-            query: query.into(),
-            operation_name: None,
+            operation_plan_cache_key: OperationPlanCacheKey {
+                query: query.into(),
+                operation_name: None,
+                disable_introspection: false,
+                disable_operation_limits: false,
+            },
             variables: Variables::default(),
             uploads: Vec::default(),
             data: Data::default(),
             extensions: Default::default(),
-            disable_introspection: false,
-            disable_operation_limits: false,
         }
     }
 
     /// Specify the operation name of the request.
     #[must_use]
-    pub fn operation_name<T: Into<String>>(self, name: T) -> Self {
+    pub fn with_operation_name<T: Into<String>>(self, name: T) -> Self {
         Self {
-            operation_name: Some(name.into()),
+            operation_plan_cache_key: OperationPlanCacheKey {
+                operation_name: Some(name.into()),
+                ..self.operation_plan_cache_key
+            },
             ..self
         }
     }
@@ -90,7 +122,7 @@ impl Request {
     /// Disable introspection queries for this request.
     #[must_use]
     pub fn disable_introspection(mut self) -> Self {
-        self.disable_introspection = true;
+        self.operation_plan_cache_key.disable_introspection = true;
         self
     }
 
@@ -124,6 +156,22 @@ impl Request {
         self.uploads.push(upload);
         *variable = Value::String(format!("#__graphql_file__:{}", self.uploads.len() - 1));
     }
+
+    pub fn query(&self) -> &str {
+        &self.operation_plan_cache_key.query
+    }
+
+    pub fn operation_name(&self) -> Option<&str> {
+        self.operation_plan_cache_key.operation_name.as_deref()
+    }
+
+    pub fn introspection_disabled(&self) -> bool {
+        self.operation_plan_cache_key.disable_introspection
+    }
+
+    pub fn operation_limits_disabled(&self) -> bool {
+        self.operation_plan_cache_key.disable_operation_limits
+    }
 }
 
 impl<T: Into<String>> From<T> for Request {
@@ -135,8 +183,8 @@ impl<T: Into<String>> From<T> for Request {
 impl Debug for Request {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         f.debug_struct("Request")
-            .field("query", &self.query)
-            .field("operation_name", &self.operation_name)
+            .field("query", &self.query())
+            .field("operation_name", &self.operation_name())
             .field("variables", &self.variables)
             .field("extensions", &self.extensions)
             .finish_non_exhaustive()
@@ -211,7 +259,7 @@ impl BatchRequest {
     #[must_use]
     pub fn disable_introspection(mut self) -> Self {
         for request in self.iter_mut() {
-            request.disable_introspection = true;
+            request.operation_plan_cache_key.disable_introspection = true;
         }
         self
     }
@@ -255,8 +303,8 @@ mod tests {
         }))
         .unwrap();
         assert!(request.variables.is_empty());
-        assert!(request.operation_name.is_none());
-        assert_eq!(request.query, "{ a b c }");
+        assert!(request.operation_name().is_none());
+        assert_eq!(request.query(), "{ a b c }");
     }
 
     #[test]
@@ -267,8 +315,8 @@ mod tests {
         }))
         .unwrap();
         assert!(request.variables.is_empty());
-        assert_eq!(request.operation_name.as_deref(), Some("a"));
-        assert_eq!(request.query, "{ a b c }");
+        assert_eq!(request.operation_name(), Some("a"));
+        assert_eq!(request.query(), "{ a b c }");
     }
 
     #[test]
@@ -283,15 +331,15 @@ mod tests {
         }))
         .unwrap();
         assert_eq!(
-            request.variables.into_value(),
+            request.variables.clone().into_value(),
             value!({
                 "v1": 100,
                 "v2": [1, 2, 3],
                 "v3": "str",
             })
         );
-        assert!(request.operation_name.is_none());
-        assert_eq!(request.query, "{ a b c }");
+        assert!(request.operation_name().is_none());
+        assert_eq!(request.query(), "{ a b c }");
     }
 
     #[test]
@@ -301,7 +349,7 @@ mod tests {
             "variables": null
         }))
         .unwrap();
-        assert!(request.operation_name.is_none());
+        assert!(request.operation_name().is_none());
         assert!(request.variables.is_empty());
     }
 
@@ -314,8 +362,8 @@ mod tests {
 
         if let BatchRequest::Single(request) = request {
             assert!(request.variables.is_empty());
-            assert!(request.operation_name.is_none());
-            assert_eq!(request.query, "{ a b c }");
+            assert!(request.operation_name().is_none());
+            assert_eq!(request.query(), "{ a b c }");
         } else {
             unreachable!()
         }
@@ -335,12 +383,12 @@ mod tests {
 
         if let BatchRequest::Batch(requests) = request {
             assert!(requests[0].variables.is_empty());
-            assert!(requests[0].operation_name.is_none());
-            assert_eq!(requests[0].query, "{ a b c }");
+            assert!(requests[0].operation_name().is_none());
+            assert_eq!(requests[0].query(), "{ a b c }");
 
             assert!(requests[1].variables.is_empty());
-            assert!(requests[1].operation_name.is_none());
-            assert_eq!(requests[1].query, "{ d e }");
+            assert!(requests[1].operation_name().is_none());
+            assert_eq!(requests[1].query(), "{ d e }");
         } else {
             unreachable!()
         }

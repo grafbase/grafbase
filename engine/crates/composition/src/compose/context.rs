@@ -25,7 +25,7 @@ impl<'a> Context<'a> {
         };
 
         for builtin_scalar in subgraphs.iter_builtin_scalars() {
-            context.insert_scalar(builtin_scalar.as_str(), None, Vec::new());
+            context.insert_scalar(builtin_scalar.as_str(), None, federated::NO_DIRECTIVES);
         }
 
         context
@@ -35,18 +35,23 @@ impl<'a> Context<'a> {
         self.ir
     }
 
+    pub(crate) fn insert_directive(&mut self, directive: federated::Directive) -> federated::DirectiveId {
+        federated::DirectiveId(self.ir.directives.push_return_idx(directive))
+    }
+
     pub(crate) fn insert_enum(
         &mut self,
         enum_name: &str,
         description: Option<&str>,
-        composed_directives: Vec<federated::Directive>,
+        composed_directives: federated::Directives,
+        values: federated::EnumValues,
     ) -> federated::EnumId {
         let name = self.ir.strings.insert(enum_name);
         let description = description.map(|description| self.ir.strings.insert(description));
 
         let r#enum = federated::Enum {
             name,
-            values: Vec::new(),
+            values,
             composed_directives,
             description,
         };
@@ -59,20 +64,18 @@ impl<'a> Context<'a> {
 
     pub(crate) fn insert_enum_value(
         &mut self,
-        enum_id: federated::EnumId,
         value: &str,
         description: Option<&str>,
-        composed_directives: Vec<federated::Directive>,
-    ) {
+        composed_directives: federated::Directives,
+    ) -> federated::EnumValueId {
         let value = self.ir.strings.insert(value);
         let description = description.map(|description| self.ir.strings.insert(description));
-        let r#enum = &mut self.ir.enums[enum_id.0];
 
-        r#enum.values.push(federated::EnumValue {
+        federated::EnumValueId(self.ir.enum_values.push_return_idx(federated::EnumValue {
             value,
             composed_directives,
             description,
-        });
+        }))
     }
 
     pub(crate) fn insert_field(&mut self, ir: ir::FieldIr) -> federated::FieldId {
@@ -83,12 +86,13 @@ impl<'a> Context<'a> {
         &mut self,
         name: federated::StringId,
         description: Option<&str>,
-        composed_directives: Vec<federated::Directive>,
+        composed_directives: federated::Directives,
+        fields: federated::InputValueDefinitions,
     ) -> federated::InputObjectId {
         let description = description.map(|description| self.ir.strings.insert(description));
         let object = federated::InputObject {
             name,
-            fields: Vec::new(),
+            fields,
             composed_directives,
             description,
         };
@@ -99,11 +103,18 @@ impl<'a> Context<'a> {
         id
     }
 
+    pub(crate) fn insert_input_value_definition(
+        &mut self,
+        definition: ir::InputValueDefinitionIr,
+    ) -> federated::InputValueDefinitionId {
+        federated::InputValueDefinitionId(self.ir.input_value_definitions.push_return_idx(definition))
+    }
+
     pub(crate) fn insert_interface(
         &mut self,
         name: federated::StringId,
         description: Option<&str>,
-        composed_directives: Vec<federated::Directive>,
+        composed_directives: federated::Directives,
     ) -> federated::InterfaceId {
         let description = description.map(|description| self.ir.strings.insert(description));
 
@@ -139,7 +150,7 @@ impl<'a> Context<'a> {
         &mut self,
         name: federated::StringId,
         description: Option<StringWalker<'_>>,
-        composed_directives: Vec<federated::Directive>,
+        composed_directives: federated::Directives,
     ) -> federated::ObjectId {
         let description = description.map(|description| self.ir.strings.insert(description.as_str()));
 
@@ -162,7 +173,7 @@ impl<'a> Context<'a> {
         &mut self,
         scalar_name: &str,
         description: Option<&str>,
-        composed_directives: Vec<federated::Directive>,
+        composed_directives: federated::Directives,
     ) {
         let name = self.ir.strings.insert(scalar_name);
         let description = description.map(|description| self.ir.strings.insert(description));
@@ -182,19 +193,11 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_union(
         &mut self,
         name: federated::StringId,
-        is_inaccessible: bool,
+        composed_directives: federated::Directives,
         description: Option<StringWalker<'_>>,
     ) -> federated::UnionId {
         let description = description.map(|description| self.ir.strings.insert(description.as_str()));
 
-        let composed_directives = if is_inaccessible {
-            vec![federated::Directive {
-                name: self.insert_static_str("inaccessible"),
-                arguments: Vec::new(),
-            }]
-        } else {
-            Vec::new()
-        };
         let union = federated::Union {
             name,
             members: Vec::new(),

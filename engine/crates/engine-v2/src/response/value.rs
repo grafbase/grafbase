@@ -1,13 +1,14 @@
 use std::collections::BTreeMap;
 
-use schema::{ObjectId, StringId};
+use schema::StringId;
 
 use super::{ResponseEdge, ResponseKey, ResponseListId, ResponseObjectId};
 
 #[derive(Debug)]
 pub struct ResponseObject {
-    pub object_id: ObjectId,
-    // fields are ordered by the position they appear in the query.
+    /// fields are ordered by the position they appear in the query.
+    /// We use ResponseEdge here, but it'll never be an index out of the 3 possible variants.
+    /// That's something we should rework at some point, but it's convenient for now.
     pub fields: BTreeMap<ResponseEdge, ResponseValue>,
 }
 
@@ -20,15 +21,14 @@ impl ResponseObject {
     // So should be a decent tradeoff as this allows us to serialize the whole response without any
     // additional metadata as both position and key are encoded.
     pub(super) fn find(&self, edge: ResponseEdge) -> Option<&ResponseValue> {
-        self.fields.get(&edge).or_else(|| match edge.unpack() {
-            super::UnpackedResponseEdge::BoundResponseKey(key) => self.find_by_name(key.into()),
-            _ => None,
-        })
+        self.fields
+            .get(&edge)
+            .or_else(|| edge.as_response_key().and_then(|key| self.find_by_name(key)))
     }
 
     fn find_by_name(&self, target: ResponseKey) -> Option<&ResponseValue> {
-        self.fields.iter().find_map(|(key, field)| match key.unpack() {
-            super::UnpackedResponseEdge::BoundResponseKey(key) if ResponseKey::from(key) == target => Some(field),
+        self.fields.iter().find_map(|(key, field)| match key.as_response_key() {
+            Some(key) if key == target => Some(field),
             _ => None,
         })
     }
@@ -137,5 +137,38 @@ impl From<ResponseListId> for ResponseValue {
 impl From<ResponseObjectId> for ResponseValue {
     fn from(id: ResponseObjectId) -> Self {
         Self::Object { id, nullable: false }
+    }
+}
+
+impl From<i32> for ResponseValue {
+    fn from(value: i32) -> Self {
+        Self::Int { value, nullable: false }
+    }
+}
+
+impl From<i64> for ResponseValue {
+    fn from(value: i64) -> Self {
+        Self::BigInt { value, nullable: false }
+    }
+}
+
+impl From<f64> for ResponseValue {
+    fn from(value: f64) -> Self {
+        Self::Float { value, nullable: false }
+    }
+}
+
+impl From<String> for ResponseValue {
+    fn from(value: String) -> Self {
+        Self::String {
+            value: value.into_boxed_str(),
+            nullable: false,
+        }
+    }
+}
+
+impl From<Box<serde_json::Value>> for ResponseValue {
+    fn from(value: Box<serde_json::Value>) -> Self {
+        Self::Json { value, nullable: false }
     }
 }

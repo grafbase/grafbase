@@ -1,43 +1,21 @@
 use std::ops::Deref;
 
-use engine_value::ConstValue;
 use schema::InputValueId;
 
 use crate::request::BoundFieldArgument;
 
-use super::{ExecutorWalkContext, OperationWalker};
+use super::OperationWalker;
 
-pub type BoundFieldArgumentWalker<'a, CtxOrUnit = ()> =
-    OperationWalker<'a, &'a BoundFieldArgument, InputValueId, CtxOrUnit>;
+pub type BoundFieldArgumentWalker<'a> = OperationWalker<'a, &'a BoundFieldArgument, InputValueId>;
 
-impl<'a, C> BoundFieldArgumentWalker<'a, C> {
+impl<'a> BoundFieldArgumentWalker<'a> {
     // Value in the query, before variable resolution.
     pub fn query_value(&self) -> &engine_value::Value {
         &self.item.value
     }
 }
 
-impl<'a> BoundFieldArgumentWalker<'a, ExecutorWalkContext<'a>> {
-    pub fn resolved_value(&self) -> ConstValue {
-        // not really efficient, but works.
-        self.item
-            .value
-            .clone()
-            .into_const_with::<()>(|name| {
-                Ok(self
-                    .ctx
-                    .variables
-                    .get(&name)
-                    .expect("Would have failed at validation")
-                    .value
-                    .clone()
-                    .unwrap_or_default())
-            })
-            .unwrap()
-    }
-}
-
-impl<'a, E> Deref for BoundFieldArgumentWalker<'a, E> {
+impl<'a> Deref for BoundFieldArgumentWalker<'a> {
     type Target = schema::InputValueWalker<'a>;
 
     fn deref(&self) -> &Self::Target {
@@ -45,7 +23,7 @@ impl<'a, E> Deref for BoundFieldArgumentWalker<'a, E> {
     }
 }
 
-impl<'a, E> std::fmt::Debug for BoundFieldArgumentWalker<'a, E> {
+impl<'a> std::fmt::Debug for BoundFieldArgumentWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FieldArgumentWalker")
             .field("name", &self.name())

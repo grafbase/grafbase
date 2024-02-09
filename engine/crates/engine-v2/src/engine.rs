@@ -9,6 +9,7 @@ use schema::Schema;
 
 use crate::{
     execution::{ExecutorCoordinator, PreparedExecution, PreparedRequest, Variables},
+    plan::OperationPlan,
     request::{parse_operation, Operation},
     response::{ExecutionMetadata, GraphqlError, Response},
 };
@@ -18,6 +19,8 @@ pub struct Engine {
     // needs access to the schema strings
     pub(crate) schema: Arc<Schema>,
     pub(crate) env: EngineEnv,
+    #[cfg(feature = "plan_cache")]
+    plan_cache: mini_moka::sync::Cache<engine::OperationPlanCacheKey, Arc<OperationPlan>>,
 }
 
 pub struct EngineEnv {
@@ -29,6 +32,12 @@ impl Engine {
         Self {
             schema: Arc::new(schema),
             env,
+            #[cfg(feature = "plan_cache")]
+            plan_cache: mini_moka::sync::Cache::builder()
+                .max_capacity(64)
+                // A cached entry will be expired after the specified duration past from get or insert
+                .time_to_idle(std::time::Duration::from_secs(5 * 60))
+                .build(),
         }
     }
 
@@ -57,7 +66,7 @@ impl Engine {
         }
 
         PreparedExecution::PreparedRequest(PreparedRequest {
-            query: request.query,
+            key: request.operation_plan_cache_key,
             operation,
             variables,
             headers,
@@ -111,9 +120,21 @@ impl Engine {
         Ok(ExecutorCoordinator::new(self, operation, variables, headers))
     }
 
-    fn prepare_operation(&self, request: &engine::Request) -> Result<Operation, GraphqlError> {
-        let unbound_operation = parse_operation(request)?;
-        let operation = Operation::build(&self.schema, unbound_operation, !request.disable_operation_limits)?;
-        Ok(operation)
+    fn prepare_operation(&self, request: &engine::Request) -> Result<Arc<OperationPlan>, GraphqlError> {
+        #[cfg(feature = "plan_cache")]
+        {
+            if let Some(cached) = self.plan_cache.get(&request.operation_plan_cache_key) {
+                return Ok(cached);
+            }
+        }
+        let parsed_operation = parse_operation(request)?;
+        let bound_operation = Operation::build(&self.schema, parsed_operation, !request.operation_limits_disabled())?;
+        let prepared = Arc::new(OperationPlan::prepare(&self.schema, bound_operation)?);
+        #[cfg(feature = "plan_cache")]
+        {
+            self.plan_cache
+                .insert(request.operation_plan_cache_key.clone(), prepared.clone())
+        }
+        Ok(prepared)
     }
 }

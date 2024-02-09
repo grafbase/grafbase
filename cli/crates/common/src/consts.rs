@@ -38,6 +38,7 @@ pub const GRAFBASE_SDK_PACKAGE_VERSION: &str = env!("GRAFBASE_SDK_PACKAGE_VERSIO
 pub const PACKAGE_JSON_FILE_NAME: &str = "package.json";
 /// the package.json dev dependencies key
 pub const PACKAGE_JSON_DEV_DEPENDENCIES: &str = "devDependencies";
-
 /// The directory we generate the schema.graphql file inside
 pub const GENERATED_SCHEMAS_DIR: &str = "generated/schemas";
+/// The file used for project metadata and linking
+pub const PROJECT_METADATA_FILE: &str = "project.json";

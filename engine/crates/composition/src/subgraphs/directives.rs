@@ -9,7 +9,7 @@ type Arguments = Vec<(StringId, Value)>;
 pub(crate) enum Value {
     String(StringId),
     Int(i64),
-    Float(StringId),
+    Float(f64),
     Boolean(bool),
     Enum(StringId),
     Object(Vec<(StringId, Value)>),

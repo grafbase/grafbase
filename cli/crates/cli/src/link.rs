@@ -26,6 +26,10 @@ impl Display for ProjectSelection {
 
 #[tokio::main]
 pub async fn link(project_id: Option<Ulid>) -> Result<(), CliError> {
+    link_impl(project_id).await
+}
+
+pub async fn link_impl(project_id: Option<Ulid>) -> Result<(), CliError> {
     project_link_validations().await.map_err(CliError::BackendApiError)?;
 
     if let Some(project_id) = project_id {

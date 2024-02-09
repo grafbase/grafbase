@@ -14,7 +14,7 @@ pub struct ExecutionMetadata {
 }
 
 impl ExecutionMetadata {
-    pub fn build(operation: &Operation) -> Self {
+    pub(crate) fn build(operation: &Operation) -> Self {
         Self {
             operation_name: operation.name.clone(),
             operation_type: Some(operation.ty),

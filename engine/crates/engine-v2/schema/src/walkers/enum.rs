@@ -9,7 +9,8 @@ impl<'a> EnumWalker<'a> {
     }
 
     pub fn values(&self) -> impl ExactSizeIterator<Item = &'a EnumValue> + 'a {
-        self.schema[self.item].values.iter()
+        let values = self.schema[self.item].values;
+        self.schema[values].iter()
     }
 }
 

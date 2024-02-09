@@ -59,6 +59,9 @@ pub enum CliError {
     SchemaReadError(#[source] io::Error),
     #[error("error in publish: {0}")]
     Publish(String),
+    /// returned if .grafbase/project.json could not be read
+    #[error("could not read '.grafbase/project.json'\nCaused by: {0}")]
+    ReadProjectMetadataFile(#[source] io::Error),
 }
 
 #[cfg(target_family = "windows")]

@@ -4,7 +4,6 @@ use common::types::UdfKind;
 use itertools::Itertools;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
 use crate::consts::ENTRYPOINT_SCRIPT_FILE_NAME;
@@ -100,7 +99,7 @@ pub(crate) async fn build(
     environment_variables: &std::collections::HashMap<String, String>,
     udf_kind: UdfKind,
     udf_name: &str,
-    tracing: bool,
+    _tracing: bool,
 ) -> Result<PathBuf, UdfBuildError> {
     use path_slash::PathBufExt as _;
 
@@ -130,20 +129,16 @@ pub(crate) async fn build(
     let udf_input_file_path = udf_input_file_path
         .ok_or_else(|| UdfBuildError::UdfDoesNotExist(udf_kind, udf_input_file_path_without_extension.clone()))?;
 
-    tokio::fs::create_dir_all(&udf_build_artifact_directory_path)
-        .await
-        .map_err(|_err| UdfBuildError::CreateDir(udf_build_artifact_directory_path.clone(), udf_kind))?;
-    let udf_build_entrypoint_path = udf_build_artifact_directory_path.join(ENTRYPOINT_SCRIPT_FILE_NAME);
-
-    let udf_build_package_json_path = udf_build_artifact_directory_path.join("package.json");
-
     let udf_wrapper_worker_contents = udf_wrapper_worker_contents.replace(
         "${UDF_MAIN_FILE_PATH}",
         udf_input_file_path.to_slash().expect("must be valid UTF-8").as_ref(),
     );
-    tokio::fs::write(&udf_build_entrypoint_path, udf_wrapper_worker_contents)
+
+    tokio::fs::create_dir_all(&udf_build_artifact_directory_path)
         .await
-        .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_build_entrypoint_path.clone(), udf_kind, err))?;
+        .map_err(|_err| UdfBuildError::CreateDir(udf_build_artifact_directory_path.clone(), udf_kind))?;
+
+    let udf_build_package_json_path = udf_build_artifact_directory_path.join("package.json");
 
     let package_json = serde_json::json!({
         "main": ENTRYPOINT_SCRIPT_FILE_NAME,
@@ -155,71 +150,7 @@ pub(crate) async fn build(
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(udf_build_package_json_path.clone(), udf_kind, err))?;
 
-    // TODO: this should just output directly to the `dist` dir
-    let build_id = uuid::Uuid::new_v4().to_string();
-
-    let bun_arguments: &[&str] = &[
-        "build",
-        &udf_build_entrypoint_path.display().to_string(),
-        "--minify",
-        "--target=bun",
-        &format!("--outdir={}", build_id),
-    ];
-
-    async {
-        let current_directory = &environment.bun_installation_path;
-        match current_directory.try_exists() {
-            Ok(true) => Ok(()),
-            Ok(false) => Err(JavascriptPackageManagerComamndError::WorkingDirectoryNotFound(
-                current_directory.to_owned(),
-            )),
-            Err(err) => Err(JavascriptPackageManagerComamndError::WorkingDirectoryCannotBeRead(
-                current_directory.to_owned(),
-                err,
-            )),
-        }?;
-        // Use `which` to work-around weird path search issues on Windows.
-        // See https://github.com/rust-lang/rust/issues/37519.
-
-        let mut command = Command::new(
-            environment
-                .bun_installation_path
-                .join("node_modules")
-                .join("bun")
-                .join("bin")
-                .join("bun"),
-        );
-        command
-            .args(bun_arguments)
-            .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
-            .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
-            .current_dir(current_directory);
-
-        trace!("Spawning {command:?}");
-        let command = command
-            .spawn()
-            .map_err(JavascriptPackageManagerComamndError::BunCommandError)?;
-
-        let output = command
-            .wait_with_output()
-            .await
-            .map_err(JavascriptPackageManagerComamndError::BunCommandError)?;
-
-        if output.status.success() {
-            Ok(Some(output.stdout).filter(|output| !output.is_empty()))
-        } else {
-            Err(JavascriptPackageManagerComamndError::BunOutputError(
-                String::from_utf8_lossy(&output.stderr).into_owned(),
-            ))
-        }
-    }
-    .await
-    .map_err(|err| match err {
-        JavascriptPackageManagerComamndError::OutputError(_, output) => UdfBuildError::BunBuildFailed { output },
-        other => other.into(),
-    })?;
-
-    let dist_path = udf_build_entrypoint_path
+    let dist_path = udf_build_package_json_path
         .parent()
         .expect("must have parent")
         .join("dist");
@@ -228,44 +159,16 @@ pub(crate) async fn build(
         .await
         .map_err(|_| UdfBuildError::CreateDir(dist_path.clone(), udf_kind))?;
 
-    let entrypoint_path = dist_path.join(ENTRYPOINT_SCRIPT_FILE_NAME);
-
-    tokio::fs::copy(
-        environment
-            .bun_installation_path
-            .join(format!("{build_id}/entrypoint.js")),
-        &entrypoint_path,
-    )
-    .await
-    .map_err(|error| UdfBuildError::CreateUdfArtifactFile(entrypoint_path, udf_kind, error))?;
-
-    let temp_dir_path = environment.bun_installation_path.join(build_id);
-    tokio::fs::remove_dir_all(&temp_dir_path)
-        .await
-        .map_err(|error| UdfBuildError::RemoveTemporaryDir(temp_dir_path, udf_kind, error))?;
-
     let process_env_prelude = format!(
         "globalThis.process.env = {};",
         serde_json::to_string(&environment_variables).expect("must be valid JSON")
     );
 
-    let (temp_file, temp_file_path) = tokio::task::spawn_blocking(tempfile::NamedTempFile::new)
-        .await?
-        .map_err(UdfBuildError::CreateTemporaryFile)?
-        .into_parts();
-    {
-        let mut temp_file: tokio::fs::File = temp_file.into();
-        temp_file
-            .write_all(process_env_prelude.as_bytes())
-            .await
-            .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
-        temp_file
-            .write_all(&tokio::fs::read(&udf_build_entrypoint_path).await.expect("must succeed"))
-            .await
-            .map_err(|err| UdfBuildError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
-    }
+    let content_with_env = format!("{process_env_prelude}\n{udf_wrapper_worker_contents}");
+
     let entrypoint_js_path = dist_path.join(ENTRYPOINT_SCRIPT_FILE_NAME);
-    tokio::fs::copy(temp_file_path, &entrypoint_js_path)
+
+    tokio::fs::write(&entrypoint_js_path, content_with_env)
         .await
         .map_err(|err| UdfBuildError::CreateUdfArtifactFile(entrypoint_js_path.clone(), udf_kind, err))?;
 
@@ -276,7 +179,7 @@ pub(crate) fn udf_url_path(kind: UdfKind, name: &str) -> String {
     format!("/{}/{}/invoke", kind.to_string().to_lowercase(), slug::slugify(name))
 }
 
-const BUN_VERSION: &str = "1.0.23";
+const BUN_VERSION: &str = "1.0.26";
 
 async fn installed_bun_version(bun_installation_path: impl AsRef<Path>) -> Option<String> {
     let bun_installation_path = bun_installation_path.as_ref();

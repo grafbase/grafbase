@@ -8,6 +8,7 @@ mod names;
 mod resolver;
 pub mod sources;
 mod walkers;
+mod wrapping;
 
 pub use cache::*;
 pub use field_set::*;
@@ -15,12 +16,13 @@ pub use ids::*;
 pub use names::Names;
 pub use resolver::*;
 pub use walkers::*;
+pub use wrapping::*;
 
 /// This does NOT need to be backwards compatible. We'll probably cache it for performance, but it is not
 /// the source of truth. If the cache is stale we would just re-create this Graph from its source:
 /// federated_graph::FederatedGraph.
 pub struct Schema {
-    data_sources: DataSources,
+    pub data_sources: DataSources,
 
     pub description: Option<StringId>,
     pub root_operation_types: RootOperationTypes,
@@ -41,6 +43,8 @@ pub struct Schema {
     types: Vec<Type>,
     // All definitions sorted by their name (actual string)
     definitions: Vec<Definition>,
+    directives: Vec<Directive>,
+    enum_values: Vec<EnumValue>,
 
     /// All strings deduplicated.
     strings: Vec<String>,
@@ -56,9 +60,9 @@ pub struct Schema {
 }
 
 #[derive(Default)]
-struct DataSources {
+pub struct DataSources {
     federation: sources::federation::DataSource,
-    introspection: sources::introspection::DataSource,
+    pub introspection: sources::introspection::DataSource,
 }
 
 impl Schema {
@@ -124,9 +128,11 @@ pub struct Object {
     pub description: Option<StringId>,
     pub interfaces: Vec<InterfaceId>,
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
     pub cache_config: Option<CacheConfigId>,
 }
+
+pub type Directives = IdRange<DirectiveId>;
 
 #[derive(PartialOrd, Ord, PartialEq, Eq)]
 pub struct ObjectField {
@@ -143,10 +149,10 @@ pub struct Field {
     pub is_deprecated: bool,
     pub deprecation_reason: Option<StringId>,
     provides: Vec<FieldProvides>,
-    pub arguments: Vec<InputValueId>,
+    pub arguments: InputValues,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 
     pub cache_config: Option<CacheConfigId>,
 }
@@ -164,16 +170,22 @@ pub struct FieldResolver {
 }
 
 #[derive(Debug)]
-pub struct Directive {
-    pub name: StringId,
-    pub arguments: Vec<(StringId, Value)>,
+pub enum Directive {
+    Inaccessible,
+    Deprecated {
+        reason: Option<StringId>,
+    },
+    Other {
+        name: StringId,
+        arguments: Vec<(StringId, Value)>,
+    },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     String(StringId),
     Int(i64),
-    Float(StringId),
+    Float(f64),
     Boolean(bool),
     EnumValue(StringId),
     Object(Vec<(StringId, Value)>),
@@ -232,77 +244,6 @@ pub struct Type {
     pub wrapping: Wrapping,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Wrapping {
-    /// Is the innermost type required?
-    ///
-    /// Examples:
-    ///
-    /// - `String` => false
-    /// - `String!` => true
-    /// - `[String!]` => true
-    /// - `[String]!` => false
-    pub inner_is_required: bool,
-
-    /// Innermost to outermost.
-    pub list_wrapping: Vec<ListWrapping>,
-}
-
-impl Wrapping {
-    pub fn is_required(&self) -> bool {
-        self.list_wrapping
-            .last()
-            .map(|lw| matches!(lw, ListWrapping::RequiredList))
-            .unwrap_or(self.inner_is_required)
-    }
-
-    pub fn is_list(&self) -> bool {
-        !self.list_wrapping.is_empty()
-    }
-
-    pub fn nullable() -> Self {
-        Wrapping {
-            inner_is_required: false,
-            list_wrapping: vec![],
-        }
-    }
-
-    pub fn required() -> Self {
-        Wrapping {
-            inner_is_required: true,
-            list_wrapping: vec![],
-        }
-    }
-
-    #[must_use]
-    pub fn nullable_list(self) -> Self {
-        Wrapping {
-            list_wrapping: [ListWrapping::NullableList]
-                .into_iter()
-                .chain(self.list_wrapping)
-                .collect(),
-            ..self
-        }
-    }
-
-    #[must_use]
-    pub fn required_list(self) -> Self {
-        Wrapping {
-            list_wrapping: [ListWrapping::RequiredList]
-                .into_iter()
-                .chain(self.list_wrapping)
-                .collect(),
-            ..self
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ListWrapping {
-    RequiredList,
-    NullableList,
-}
-
 #[derive(Debug)]
 pub struct Interface {
     pub name: StringId,
@@ -313,7 +254,7 @@ pub struct Interface {
     pub possible_types: Vec<ObjectId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
 
 #[derive(Debug)]
@@ -326,10 +267,10 @@ pub struct InterfaceField {
 pub struct Enum {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub values: Vec<EnumValue>,
+    pub values: EnumValues,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
 
 #[derive(Debug)]
@@ -340,8 +281,10 @@ pub struct EnumValue {
     pub deprecation_reason: Option<StringId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
+
+type EnumValues = IdRange<EnumValueId>;
 
 #[derive(Debug)]
 pub struct Union {
@@ -351,24 +294,24 @@ pub struct Union {
     pub possible_types: Vec<ObjectId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
 
 #[derive(Debug)]
 pub struct Scalar {
     pub name: StringId,
-    pub data_type: DataType,
+    pub ty: ScalarType,
     pub description: Option<StringId>,
     pub specified_by_url: Option<StringId>,
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
 
 /// Defines how a scalar should be represented and validated by the engine. They're almost the same
 /// as scalars, but scalars like ID which have no own data format are just mapped to String.
 /// https://the-guild.dev/graphql/scalars/docs
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
-pub enum DataType {
+pub enum ScalarType {
     String,
     Float,
     Int,
@@ -377,11 +320,11 @@ pub enum DataType {
     Boolean,
 }
 
-impl DataType {
-    pub fn from_scalar_name(name: &str) -> DataType {
-        DataType::from_str(name).ok().unwrap_or(match name {
-            "ID" => DataType::String,
-            _ => DataType::JSON,
+impl ScalarType {
+    pub fn from_scalar_name(name: &str) -> ScalarType {
+        ScalarType::from_str(name).ok().unwrap_or(match name {
+            "ID" => ScalarType::String,
+            _ => ScalarType::JSON,
         })
     }
 }
@@ -390,10 +333,10 @@ impl DataType {
 pub struct InputObject {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub input_fields: Vec<InputValueId>,
+    pub input_fields: InputValues,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Vec<Directive>,
+    pub composed_directives: Directives,
 }
 
 #[derive(Debug, Clone)]
@@ -404,7 +347,13 @@ pub struct InputValue {
     pub default_value: Option<Value>,
 }
 
+pub type InputValues = IdRange<InputValueId>;
+
 impl Schema {
+    pub fn walk<I>(&self, item: I) -> SchemaWalker<'_, I> {
+        SchemaWalker::new(item, self, &())
+    }
+
     pub fn walker(&self) -> SchemaWalker<'_, ()> {
         self.walker_with(&())
     }

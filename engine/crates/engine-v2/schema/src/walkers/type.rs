@@ -4,8 +4,8 @@ use crate::{DefinitionWalker, ListWrapping, TypeId, Wrapping};
 pub type TypeWalker<'a> = SchemaWalker<'a, TypeId>;
 
 impl<'a> TypeWalker<'a> {
-    pub fn wrapping(&self) -> &'a Wrapping {
-        &self.as_ref().wrapping
+    pub fn wrapping(&self) -> Wrapping {
+        self.as_ref().wrapping
     }
 
     pub fn inner(&self) -> DefinitionWalker<'a> {
@@ -15,16 +15,16 @@ impl<'a> TypeWalker<'a> {
 
 impl std::fmt::Display for TypeWalker<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for _ in self.as_ref().wrapping.list_wrapping.iter().rev() {
+        for _ in self.as_ref().wrapping.list_wrappings().rev() {
             write!(f, "[")?;
         }
         write!(f, "{}", self.inner().name())?;
-        if self.as_ref().wrapping.inner_is_required {
+        if self.as_ref().wrapping.inner_is_required() {
             write!(f, "!")?;
         }
-        for wrapping in &self.as_ref().wrapping.list_wrapping {
+        for wrapping in self.as_ref().wrapping.list_wrappings() {
             write!(f, "]")?;
-            if *wrapping == ListWrapping::RequiredList {
+            if wrapping == ListWrapping::RequiredList {
                 write!(f, "!")?;
             }
         }

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 pub(crate) use error::GraphqlError;
+pub use key::*;
 pub use metadata::*;
 pub use path::*;
 pub use read::*;
@@ -8,8 +9,11 @@ use schema::Schema;
 pub use value::{ResponseObject, ResponseValue};
 pub use write::*;
 
+use crate::plan::OperationPlan;
+
 pub(crate) mod cacheable;
 mod error;
+mod key;
 mod metadata;
 mod path;
 mod read;
@@ -31,7 +35,7 @@ pub struct InitialResponse {
 
 struct ResponseData {
     schema: Arc<Schema>,
-    keys: Arc<ResponseKeys>,
+    operation: Arc<OperationPlan>,
     root: Option<ResponseObjectId>,
     parts: Vec<ResponseDataPart>,
 }

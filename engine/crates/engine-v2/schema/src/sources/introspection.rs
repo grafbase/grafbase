@@ -1,8 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
-    builder::SchemaBuilder, DataType, Definition, EnumId, EnumValue, Field, FieldId, InputValue, InputValueId,
-    ObjectField, ObjectId, ScalarId, Schema, SchemaWalker, StringId, Type, TypeId, Value, Wrapping,
+    builder::SchemaBuilder, Definition, EnumId, EnumValue, EnumValueId, Field, FieldId, FieldResolver, IdRange,
+    InputValue, InputValueId, ObjectField, ObjectId, ResolverId, ScalarId, ScalarType, Schema, SchemaWalker, StringId,
+    Type, TypeId, Value, Wrapping,
 };
 use strum::EnumCount;
 
@@ -25,7 +26,7 @@ impl<'a> ResolverWalker<'a> {
 #[derive(Default)]
 pub struct DataSource {
     // Ugly until we have some from of SchemaBuilder
-    metadata: Option<Metadata>,
+    pub metadata: Option<Metadata>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -191,10 +192,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
     #[allow(non_snake_case)]
     fn create_fields_and_insert_them(&mut self) {
-        let nullable_string = self.find_or_create_field_type("String", DataType::String, Wrapping::nullable());
-        let required_string = self.find_or_create_field_type("String", DataType::String, Wrapping::required());
-        let required_boolean = self.find_or_create_field_type("Boolean", DataType::Boolean, Wrapping::required());
-        let nullable_boolean = self.find_or_create_field_type("Boolean", DataType::Boolean, Wrapping::nullable());
+        let nullable_string = self.find_or_create_field_type("String", ScalarType::String, Wrapping::nullable());
+        let required_string = self.find_or_create_field_type("String", ScalarType::String, Wrapping::required());
+        let required_boolean = self.find_or_create_field_type("Boolean", ScalarType::Boolean, Wrapping::required());
+        let nullable_boolean = self.find_or_create_field_type("Boolean", ScalarType::Boolean, Wrapping::nullable());
 
         /*
         enum __TypeKind {
@@ -336,7 +337,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 ("defaultValue", nullable_string, __InputValue::DefaultValue),
             ],
         );
-        let args = self.insert_field_type(__input_value.id, Wrapping::required().required_list());
+        let args = self.insert_field_type(__input_value.id, Wrapping::required().wrapped_by_required_list());
 
         /*
         type __Field {
@@ -370,7 +371,8 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         }
         */
         let __directive = {
-            let locations = self.insert_field_type(__directive_location, Wrapping::required().required_list());
+            let locations =
+                self.insert_field_type(__directive_location, Wrapping::required().wrapped_by_required_list());
             self.insert_object(
                 "__Directive",
                 vec![
@@ -399,7 +401,8 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         */
         let mut __type = {
             let kind = self.insert_field_type(__type_kind, Wrapping::required());
-            let input_fields = self.insert_field_type(__input_value.id, Wrapping::required().nullable_list());
+            let input_fields =
+                self.insert_field_type(__input_value.id, Wrapping::required().wrapped_by_nullable_list());
             let mut __type = self.insert_object(
                 "__Type",
                 vec![
@@ -412,29 +415,32 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 ],
             );
             {
-                let nullable__field_list = self.insert_field_type(__field.id, Wrapping::required().nullable_list());
+                let nullable__field_list =
+                    self.insert_field_type(__field.id, Wrapping::required().wrapped_by_nullable_list());
                 let field_id = self.insert_object_field(__type.id, "fields", nullable__field_list);
                 __type.fields.push((field_id, __Type::Fields));
-                let input_value_id =
-                    self.insert_input_value("includeDeprecated", nullable_boolean, Some(Value::Boolean(false)));
-                self[field_id].arguments.push(input_value_id);
+                self.set_field_arguments(
+                    field_id,
+                    std::iter::once(("includeDeprecated", nullable_boolean, Some(Value::Boolean(false)))),
+                )
             }
             {
                 let nullable__enum_value_list =
-                    self.insert_field_type(__enum_value.id, Wrapping::required().nullable_list());
+                    self.insert_field_type(__enum_value.id, Wrapping::required().wrapped_by_nullable_list());
                 let field_id = self.insert_object_field(__type.id, "enumValues", nullable__enum_value_list);
                 __type.fields.push((field_id, __Type::EnumValues));
-                let input_value_id =
-                    self.insert_input_value("includeDeprecated", nullable_boolean, Some(Value::Boolean(false)));
-                self[field_id].arguments.push(input_value_id);
+                self.set_field_arguments(
+                    field_id,
+                    std::iter::once(("includeDeprecated", nullable_boolean, Some(Value::Boolean(false)))),
+                );
             }
             __type
         };
 
         let required__type = self.insert_field_type(__type.id, Wrapping::required());
         let nullable__type = self.insert_field_type(__type.id, Wrapping::nullable());
-        let required__type_list = self.insert_field_type(__type.id, Wrapping::required().required_list());
-        let nullable__type_list = self.insert_field_type(__type.id, Wrapping::required().nullable_list());
+        let required__type_list = self.insert_field_type(__type.id, Wrapping::required().wrapped_by_required_list());
+        let nullable__type_list = self.insert_field_type(__type.id, Wrapping::required().wrapped_by_nullable_list());
 
         __input_value.fields.push((
             self.insert_object_field(__input_value.id, "type", required__type),
@@ -467,7 +473,8 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
           directives: [__Directive!]!
         }
         */
-        let required__directive_list = self.insert_field_type(__directive.id, Wrapping::required().required_list());
+        let required__directive_list =
+            self.insert_field_type(__directive.id, Wrapping::required().wrapped_by_required_list());
         let __schema = self.insert_object(
             "__Schema",
             vec![
@@ -480,19 +487,29 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             ],
         );
 
+        let resolver_id = ResolverId::from(self.resolvers.len());
+        self.resolvers.push(crate::Resolver::Introspection(Resolver));
+
         /*
         __schema: __Schema!
         */
         let field_type_id = self.insert_field_type(__schema.id, Wrapping::required());
         let __schema_field_id = self.insert_object_field(self.root_operation_types.query, "__schema", field_type_id);
+        self[__schema_field_id].resolvers.push(FieldResolver {
+            resolver_id,
+            field_requires: Default::default(),
+        });
 
         /*
         __type(name: String!): __Type
         */
         let field_type_id = self.insert_field_type(__type.id, Wrapping::nullable());
         let __type_field_id = self.insert_object_field(self.root_operation_types.query, "__type", field_type_id);
-        let input_value_id = self.insert_input_value("name", required_string, None);
-        self[__type_field_id].arguments.push(input_value_id);
+        self[__type_field_id].resolvers.push(FieldResolver {
+            resolver_id,
+            field_requires: Default::default(),
+        });
+        self.set_field_arguments(__type_field_id, std::iter::once(("name", required_string, None)));
 
         // DataSource
         self.data_sources.introspection.metadata = Some(Metadata {
@@ -506,33 +523,38 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             __field: __field.into(),
             __directive: __directive.into(),
         });
-
-        // Introspection resolver is used as the default one which allows to also handle the query
-        // `query { __typename }` in a more natural way.
-        self.resolvers.push(crate::Resolver::Introspection(Resolver));
     }
 
     fn insert_enum(&mut self, name: &str, values: &[&str]) -> EnumId {
         let name = self.get_or_intern(name);
-        let values = values
-            .iter()
-            .map(|value| {
+
+        let values = if values.is_empty() {
+            IdRange::empty()
+        } else {
+            let start_idx = self.enum_values.len();
+
+            for value in values {
                 let value = self.get_or_intern(value);
-                EnumValue {
+                self.enum_values.push(EnumValue {
                     name: value,
-                    composed_directives: vec![],
+                    composed_directives: IdRange::empty(),
                     description: None,
                     is_deprecated: false,
                     deprecation_reason: None,
-                }
-            })
-            .collect();
+                })
+            }
+
+            IdRange {
+                start: EnumValueId::from(start_idx),
+                end: EnumValueId::from(self.enum_values.len()),
+            }
+        };
 
         self.enums.push(crate::Enum {
             name,
             description: None,
             values,
-            composed_directives: vec![],
+            composed_directives: IdRange::empty(),
         });
         let enum_id = EnumId::from(self.enums.len() - 1);
         self.definitions.push(Definition::Enum(enum_id));
@@ -545,7 +567,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             name,
             description: None,
             interfaces: vec![],
-            composed_directives: vec![],
+            composed_directives: IdRange::empty(),
             cache_config: None,
         });
         ObjectId::from(self.objects.len() - 1)
@@ -556,10 +578,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         self.fields.push(Field {
             name,
             type_id: field_type_id,
-            composed_directives: vec![],
+            composed_directives: IdRange::empty(),
             resolvers: vec![],
             provides: vec![],
-            arguments: vec![],
+            arguments: IdRange::empty(),
             description: None,
             is_deprecated: false,
             deprecation_reason: None,
@@ -584,6 +606,26 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         }
     }
 
+    /// Warning: if you call this twice, the second call will overwrite the first.
+    fn set_field_arguments<'b>(
+        &mut self,
+        field_id: FieldId,
+        arguments: impl Iterator<Item = (&'b str, TypeId, Option<Value>)>,
+    ) {
+        let start = self.input_values.len();
+
+        for (name, type_id, default_value) in arguments {
+            self.insert_input_value(name, type_id, default_value);
+        }
+
+        let end = self.input_values.len();
+
+        self[field_id].arguments = IdRange {
+            start: start.into(),
+            end: end.into(),
+        };
+    }
+
     fn insert_field_type(&mut self, kind: impl Into<Definition>, wrapping: Wrapping) -> TypeId {
         self.types.push(Type {
             inner: kind.into(),
@@ -606,7 +648,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
     fn find_or_create_field_type(
         &mut self,
         scalar_name: &str,
-        scalar_type: DataType,
+        scalar_type: ScalarType,
         expected_wrapping: Wrapping,
     ) -> TypeId {
         let scalar_id = match self
@@ -621,10 +663,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 let name = self.builder.strings.get_or_insert(scalar_name);
                 self.scalars.push(crate::Scalar {
                     name,
-                    data_type: scalar_type,
+                    ty: scalar_type,
                     description: None,
                     specified_by_url: None,
-                    composed_directives: vec![],
+                    composed_directives: IdRange::empty(),
                 });
                 ScalarId::from(self.scalars.len() - 1)
             }

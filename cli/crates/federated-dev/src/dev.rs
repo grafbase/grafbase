@@ -72,6 +72,7 @@ pub(super) async fn run(
     tokio::spawn(websocket_accepter.handler());
 
     let admin_schema = if gateway.borrow().is_some() {
+        log::debug!("Disabling subgraph composition, federated graph was provided.");
         Schema::build(admin::QueryRoot, admin::MutationRoot, EmptySubscription)
             .data(AdminBus::new_static())
             .finish()

@@ -541,3 +541,7 @@ pub(crate) fn publish_command_composition_failure(messages: &[String]) {
         watercolor::output!("- {error}", @BrightRed);
     }
 }
+
+pub fn command_separator() {
+    println!();
+}

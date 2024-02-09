@@ -1,4 +1,4 @@
-use crate::response::{ResponseKey, ResponseKeys};
+use crate::response::ResponseKey;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct QueryPath(im::Vector<ResponseKey>);
@@ -32,9 +32,5 @@ impl QueryPath {
         let mut child = self.clone();
         child.0.push_back(id);
         child
-    }
-
-    pub fn iter_strings<'a>(&'a self, keys: &'a ResponseKeys) -> impl Iterator<Item = String> + 'a {
-        self.into_iter().map(move |key| keys[*key].to_string())
     }
 }

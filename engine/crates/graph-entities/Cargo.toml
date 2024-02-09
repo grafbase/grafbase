@@ -19,7 +19,7 @@ engine-value = { path = "../engine/value", version = "3" }
 internment = { version = "0.7", features = ["serde", "arc"] }
 serde_json.workspace = true
 serde.workspace = true
-sha2 = "0.10"
+sha2.workspace = true
 thiserror.workspace = true
 ulid.workspace = true
 

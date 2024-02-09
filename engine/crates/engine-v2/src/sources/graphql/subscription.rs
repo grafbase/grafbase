@@ -1,57 +1,48 @@
 use futures_util::{stream::BoxStream, StreamExt};
 use runtime::fetch::GraphqlRequest;
-use schema::sources::federation::{RootFieldResolverWalker, SubgraphHeaderValueRef, SubgraphWalker};
+use schema::sources::federation::{SubgraphHeaderValueRef, SubgraphWalker};
 
 use super::{
-    deserialize::deserialize_response_into_output,
-    query::{self, Query},
-    ExecutionContext,
+    deserialize::ingest_deserializer_into_response,
+    query::{OutboundVariables, PreparedGraphqlOperation},
+    ExecutionContext, GraphqlExecutionPlan,
 };
 use crate::{
-    plan::{PlanBoundary, PlanOutput},
-    response::{ExecutorOutput, ResponseBuilder},
-    sources::{ExecutorError, ExecutorResult, SubscriptionExecutor, SubscriptionResolverInput},
+    plan::PlanWalker,
+    response::{ResponseBuilder, ResponsePart},
+    sources::{ExecutionError, ExecutionResult, SubscriptionExecutor, SubscriptionInput},
 };
 
-pub struct GraphqlSubscriptionExecutor<'ctx> {
+pub(crate) struct GraphqlSubscriptionExecutor<'ctx> {
     ctx: ExecutionContext<'ctx>,
     subgraph: SubgraphWalker<'ctx>,
-    query: Query<'ctx>,
-    plan_output: PlanOutput,
-    plan_boundaries: Vec<PlanBoundary>,
+    operation: &'ctx PreparedGraphqlOperation,
+    plan: PlanWalker<'ctx>,
+}
+
+impl GraphqlExecutionPlan {
+    pub fn new_subscription_executor<'ctx>(
+        &'ctx self,
+        input: SubscriptionInput<'ctx>,
+    ) -> ExecutionResult<SubscriptionExecutor<'ctx>> {
+        let SubscriptionInput { ctx, plan } = input;
+        let subgraph = plan.schema().walk(self.subgraph_id);
+        Ok(SubscriptionExecutor::Graphql(GraphqlSubscriptionExecutor {
+            ctx,
+            subgraph,
+            operation: &self.operation,
+            plan,
+        }))
+    }
 }
 
 impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
-    pub fn build(
-        resolver: RootFieldResolverWalker<'ctx>,
-        SubscriptionResolverInput {
-            ctx,
-            plan_id,
-            plan_output,
-            plan_boundaries,
-        }: SubscriptionResolverInput<'ctx>,
-    ) -> ExecutorResult<SubscriptionExecutor<'ctx>> {
-        let subgraph = resolver.subgraph();
-
-        let query = query::Query::build(ctx, plan_id, &plan_output)
-            .map_err(|err| ExecutorError::Internal(format!("Failed to build query: {err}")))?;
-
-        Ok(SubscriptionExecutor::Graphql(Self {
-            ctx,
-            subgraph,
-            query,
-            plan_output,
-            plan_boundaries,
-        }))
-    }
-
-    pub async fn execute(self) -> ExecutorResult<BoxStream<'ctx, (ResponseBuilder, ExecutorOutput)>> {
+    pub async fn execute(self) -> ExecutionResult<BoxStream<'ctx, (ResponseBuilder, ResponsePart)>> {
         let Self {
             ctx,
             subgraph,
-            query,
-            plan_output,
-            plan_boundaries,
+            operation,
+            plan,
         } = self;
 
         let url = {
@@ -72,9 +63,9 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
             .fetcher
             .stream(GraphqlRequest {
                 url: &url,
-                query: query.query,
-                variables: serde_json::to_value(&query.variables)
-                    .map_err(|error| ExecutorError::Internal(error.to_string()))?,
+                query: &operation.query,
+                variables: serde_json::to_value(&OutboundVariables::new(&operation.variable_references, ctx.variables))
+                    .map_err(|error| ExecutionError::Internal(error.to_string()))?,
                 headers: subgraph
                     .headers()
                     .filter_map(|header| {
@@ -96,8 +87,7 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
                 .map(move |response| {
                     handle_response(
                         ctx,
-                        &plan_output,
-                        plan_boundaries.clone(),
+                        plan,
                         response.expect("errors to be filtered out by the above take_while"),
                     )
                 }),
@@ -106,29 +96,25 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
 }
 
 fn handle_response(
-    ctx: ExecutionContext<'_>,
-    plan_output: &PlanOutput,
-    boundaries: Vec<PlanBoundary>,
+    _ctx: ExecutionContext<'_>,
+    plan: PlanWalker<'_>,
     subgraph_response: serde_json::Value,
-) -> (ResponseBuilder, ExecutorOutput) {
-    let mut response = ResponseBuilder::new(ctx.walker.root_object_id());
-    let mut output = response.new_output(boundaries);
+) -> (ResponseBuilder, ResponsePart) {
+    let mut response = ResponseBuilder::new(plan.operation().as_ref().root_object_id);
+    let mut response_part = response.new_part(plan.output().boundary_ids);
 
     let boundary_item = response
-        .root_response_boundary()
+        .root_response_boundary_item()
         .expect("a fresh response should always have a root");
 
-    let err_path = boundary_item
-        .response_path
-        .child(ctx.walker.walk(plan_output.root_fields[0]).bound_response_key());
-
-    let seed_ctx = ctx.seed_ctx(&mut output, plan_output);
-    deserialize_response_into_output(
+    let err_path = plan.root_error_path(&boundary_item.response_path);
+    let seed_ctx = plan.new_seed(&mut response_part);
+    ingest_deserializer_into_response(
         &seed_ctx,
         &err_path,
         seed_ctx.create_root_seed(&boundary_item),
         subgraph_response,
     );
 
-    (response, output)
+    (response, response_part)
 }

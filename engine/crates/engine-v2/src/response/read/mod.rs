@@ -1,4 +1,4 @@
-use crate::plan::PlanInput;
+use std::{borrow::Cow, sync::Arc};
 
 use super::ResponseBuilder;
 mod selection_set;
@@ -10,11 +10,17 @@ pub use selection_set::{ReadField, ReadSelectionSet};
 pub use view::{ResponseBoundaryItem, ResponseBoundaryObjectsView};
 
 impl ResponseBuilder {
-    pub fn read<'a>(&'a self, schema: SchemaWalker<'a, ()>, plan_input: PlanInput) -> ResponseBoundaryObjectsView<'a> {
+    pub fn read<'a>(
+        &'a self,
+        schema: SchemaWalker<'a, ()>,
+        items: Arc<Vec<ResponseBoundaryItem>>,
+        selection_set: Cow<'a, ReadSelectionSet>,
+    ) -> ResponseBoundaryObjectsView<'a> {
         ResponseBoundaryObjectsView {
             schema,
             response: self,
-            plan_input,
+            items,
+            selection_set,
             extra_constant_fields: vec![],
         }
     }

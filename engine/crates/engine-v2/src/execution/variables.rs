@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Write};
 
 use engine_value::{ConstValue, Name};
 use indexmap::IndexMap;
-use schema::{DataType, InputObjectId, ListWrapping, Schema, StringId};
+use schema::{InputObjectId, ListWrapping, ScalarType, Schema, StringId};
 
 use crate::{
     request::{Location, Operation, VariableDefinition, VariableDefinitionId},
@@ -221,13 +221,13 @@ fn coerce_value(
 
     if r#type.wrapping.is_list() && !&value.is_array() && !value.is_null() {
         value = coerce_named_type(value, r#type, schema, path)?;
-        for _ in &r#type.wrapping.list_wrapping {
+        for _ in r#type.wrapping.list_wrappings() {
             value = ConstValue::List(vec![value]);
         }
         return Ok(value);
     }
 
-    let lists = r#type.wrapping.list_wrapping.iter().rev().copied().collect::<Vec<_>>();
+    let lists = r#type.wrapping.list_wrappings().rev().collect::<Vec<_>>();
     coerce_list(&lists, value, r#type, schema, path)
 }
 
@@ -269,7 +269,7 @@ fn coerce_named_type(
     path: VariablePath,
 ) -> Result<ConstValue, CoercionError> {
     if value.is_null() {
-        return if r#type.wrapping.inner_is_required {
+        return if r#type.wrapping.inner_is_required() {
             Err(CoercionError::UnexpectedNull {
                 expected: unwrapped_type_to_string(r#type, schema, &[]),
                 path: path.to_error_string(schema),
@@ -281,7 +281,7 @@ fn coerce_named_type(
 
     match r#type.inner {
         schema::Definition::Scalar(scalar) => coerce_scalar(value, &schema[scalar], schema, path),
-        schema::Definition::Enum(id) => coerce_enum(value, &schema[id], schema, path),
+        schema::Definition::Enum(id) => coerce_enum(value, id, schema, path),
         schema::Definition::InputObject(object) => coerce_input_object(value, object, schema, path),
         schema::Definition::Object(_) | schema::Definition::Interface(_) | schema::Definition::Union(_) => {
             unreachable!("variables can't be output types.")
@@ -295,15 +295,15 @@ fn coerce_scalar(
     schema: &Schema,
     path: VariablePath,
 ) -> Result<ConstValue, CoercionError> {
-    match (value, scalar.data_type) {
-        (ConstValue::Number(number), DataType::Int | DataType::BigInt) if !number.is_f64() => {
+    match (value, scalar.ty) {
+        (ConstValue::Number(number), ScalarType::Int | ScalarType::BigInt) if !number.is_f64() => {
             Ok(ConstValue::Number(number))
         }
-        (ConstValue::Number(number), DataType::Float) => Ok(ConstValue::Number(number)),
-        (ConstValue::String(value), DataType::String) => Ok(ConstValue::String(value)),
-        (ConstValue::Boolean(value), DataType::Boolean) => Ok(ConstValue::Boolean(value)),
-        (ConstValue::Binary(value), DataType::String) => Ok(ConstValue::Binary(value)),
-        (ConstValue::Enum(value), DataType::String) => Ok(ConstValue::Enum(value)),
+        (ConstValue::Number(number), ScalarType::Float) => Ok(ConstValue::Number(number)),
+        (ConstValue::String(value), ScalarType::String) => Ok(ConstValue::String(value)),
+        (ConstValue::Boolean(value), ScalarType::Boolean) => Ok(ConstValue::Boolean(value)),
+        (ConstValue::Binary(value), ScalarType::String) => Ok(ConstValue::Binary(value)),
+        (ConstValue::Enum(value), ScalarType::String) => Ok(ConstValue::Enum(value)),
         (actual, _) => Err(CoercionError::IncorrectScalar {
             actual: ValueKind::of_value(&actual),
             expected: schema[scalar.name].to_string(),
@@ -314,25 +314,27 @@ fn coerce_scalar(
 
 fn coerce_enum(
     value: ConstValue,
-    enum_: &schema::Enum,
+    enum_id: schema::EnumId,
     schema: &Schema,
     path: VariablePath,
 ) -> Result<ConstValue, CoercionError> {
+    let r#enum = schema.walker().walk(enum_id);
+
     let value_str = match &value {
         ConstValue::String(value) => value.as_str(),
         ConstValue::Enum(value) => value.as_str(),
         value => {
             return Err(CoercionError::IncorrectEnum {
-                name: schema[enum_.name].to_string(),
+                name: r#enum.name().to_owned(),
                 actual: ValueKind::of_value(value),
                 path: path.to_error_string(schema),
             })
         }
     };
 
-    if !enum_.values.iter().any(|value| schema[value.name] == value_str) {
+    if !r#enum.values().any(|value| schema[value.name] == value_str) {
         return Err(CoercionError::IncorrectEnumValue {
-            name: schema[enum_.name].to_string(),
+            name: r#enum.name().to_owned(),
             actual: value_str.to_string(),
             path: path.to_error_string(schema),
         });
@@ -428,7 +430,7 @@ impl VariablePath {
 }
 
 fn type_to_string(ty: &schema::Type, schema: &Schema) -> String {
-    unwrapped_type_to_string(ty, schema, &ty.wrapping.list_wrapping)
+    unwrapped_type_to_string(ty, schema, &ty.wrapping.list_wrappings().collect::<Vec<_>>())
 }
 
 fn unwrapped_type_to_string(ty: &schema::Type, schema: &Schema, wrapping: &[ListWrapping]) -> String {
@@ -437,7 +439,7 @@ fn unwrapped_type_to_string(ty: &schema::Type, schema: &Schema, wrapping: &[List
         write!(&mut output, "[").ok();
     }
     write!(&mut output, "{}", schema.walker().walk(ty.inner).name()).ok();
-    if ty.wrapping.inner_is_required {
+    if ty.wrapping.inner_is_required() {
         write!(&mut output, "!").ok();
     }
     for wrapping in wrapping.iter().rev() {

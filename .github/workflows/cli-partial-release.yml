@@ -29,6 +29,14 @@ jobs:
           VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
+      - name: Announce release attempt on slack
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          notification_title: '({workflow}) CLI release for ${{ env.VERSION_BUMP }} started'
+          footer: '<{run_url}|View Run>'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
       - name: Get sources
         uses: actions/checkout@v4
 

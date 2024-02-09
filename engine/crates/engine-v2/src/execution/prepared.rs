@@ -4,11 +4,11 @@ use std::{
     sync::Arc,
 };
 
-use engine::RequestHeaders;
+use engine::{OperationPlanCacheKey, RequestHeaders};
 use futures_util::future::BoxFuture;
 use schema::CacheConfig;
 
-use crate::{request::Operation, Engine, Response};
+use crate::{plan::OperationPlan, Engine, Response};
 
 use super::{ExecutorCoordinator, Variables};
 
@@ -28,10 +28,10 @@ pub struct BadRequest {
 }
 
 pub struct PreparedRequest {
-    pub(crate) operation: Operation,
+    pub(crate) operation: Arc<OperationPlan>,
     pub(crate) variables: Variables,
     // Keeping the original query for a simpler hash.
-    pub(crate) query: String,
+    pub(crate) key: OperationPlanCacheKey,
     pub(crate) headers: RequestHeaders,
     pub(crate) engine: Arc<Engine>,
 }
@@ -42,8 +42,7 @@ impl PreparedRequest {
     }
 
     pub fn operation_hash<H: Hasher>(&self, state: &mut H) {
-        self.query.hash::<H>(state);
-        self.operation.name.hash(state);
+        self.key.hash::<H>(state);
         state.write_usize(self.variables.len());
         for (name, variable) in self.variables.iter() {
             name.hash(state);

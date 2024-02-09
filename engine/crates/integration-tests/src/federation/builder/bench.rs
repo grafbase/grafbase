@@ -15,14 +15,14 @@ use runtime::fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, Graph
 use crate::engine::RequestContext;
 
 #[derive(Clone)]
-pub struct FederationGatewayBench<'a> {
+pub struct FederationGatewayWithoutIO<'a> {
     gateway: Arc<gateway_v2::Gateway>,
     query: &'a str,
     ctx: Arc<RequestContext>,
     dummy_responses_index: Arc<AtomicUsize>,
 }
 
-impl<'a> FederationGatewayBench<'a> {
+impl<'a> FederationGatewayWithoutIO<'a> {
     pub fn new<T: serde::Serialize, I>(schema: &str, query: &'a str, subgraphs_responses: I) -> Self
     where
         I: IntoIterator<Item = T>,
@@ -37,8 +37,10 @@ impl<'a> FederationGatewayBench<'a> {
                 .collect(),
             dummy_responses_index.clone(),
         );
-        let FederatedGraph::V1(federated_graph) = FederatedGraph::from_sdl(schema).unwrap();
-        let config = engine_v2::VersionedConfig::V1(federated_graph).into_latest();
+        let federated_graph = FederatedGraph::from_sdl(schema).unwrap().into_latest();
+        let config =
+            engine_v2::VersionedConfig::V3(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
+
         let gateway = gateway_v2::Gateway::new(
             config.into(),
             engine_v2::EngineEnv { fetcher },
@@ -61,17 +63,21 @@ impl<'a> FederationGatewayBench<'a> {
     }
 
     pub async fn execute(&self) -> Response {
-        self.dummy_responses_index.store(0, Ordering::Relaxed);
-        let session = self.gateway.authorize(RequestHeaders::default()).await.unwrap();
-        let response = session
-            .execute(self.ctx.as_ref(), engine::Request::new(self.query))
-            .await;
+        let response = self.unchecked_execute().await;
         assert!(
             response.status.is_success() && !response.has_errors,
             "Execution failed!\n{}",
             String::from_utf8_lossy(&response.bytes)
         );
         response
+    }
+
+    pub async fn unchecked_execute(&self) -> Response {
+        self.dummy_responses_index.store(0, Ordering::Relaxed);
+        let session = self.gateway.authorize(RequestHeaders::default()).await.unwrap();
+        session
+            .execute(self.ctx.as_ref(), engine::Request::new(self.query))
+            .await
     }
 }
 

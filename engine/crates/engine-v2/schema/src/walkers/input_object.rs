@@ -13,7 +13,7 @@ impl<'a> InputObjectWalker<'a> {
         self.schema[self.item]
             .input_fields
             .iter()
-            .map(move |id| walker.walk(*id))
+            .map(move |id| walker.walk(id))
     }
 }
 
