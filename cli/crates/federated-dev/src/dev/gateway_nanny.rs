@@ -47,18 +47,20 @@ impl GatewayNanny {
 
 pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraphConfig) -> Option<Arc<Gateway>> {
     let config = engine_config_builder::build_config(config, graph?);
+    let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
+        common_cache_tags: vec![],
+        enabled: true,
+        subdomain: "localhost".to_string(),
+    });
     Some(Arc::new(Gateway::new(
         config.into_latest().into(),
         EngineEnv {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
+            cache: cache.clone(),
         },
         GatewayEnv {
             kv: runtime_local::InMemoryKvStore::runtime(),
-            cache: runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
-                common_cache_tags: vec![],
-                enabled: true,
-                subdomain: "localhost".to_string(),
-            }),
+            cache,
         },
     )))
 }

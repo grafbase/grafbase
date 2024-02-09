@@ -2,7 +2,7 @@ mod builder;
 
 use std::{collections::HashMap, future::IntoFuture, sync::Arc};
 
-use engine::{Request, RequestHeaders, Response, Schema, StreamingPayload, Variables};
+use engine::{Request, RequestExtensions, RequestHeaders, Response, Schema, StreamingPayload, Variables};
 use futures::{future::BoxFuture, Stream, StreamExt};
 use serde::Deserialize;
 
@@ -118,6 +118,7 @@ pub struct GraphQlRequest {
     pub query: String,
     pub operation_name: Option<String>,
     pub variables: Option<Variables>,
+    pub extensions: Option<RequestExtensions>,
 }
 
 impl GraphQlRequest {
@@ -129,6 +130,9 @@ impl GraphQlRequest {
         if let Some(variables) = self.variables {
             request = request.variables(variables);
         }
+        if let Some(extensions) = self.extensions {
+            request.extensions = extensions;
+        }
         request
     }
 }
@@ -139,6 +143,7 @@ impl From<&str> for GraphQlRequest {
             query: val.into(),
             operation_name: None,
             variables: None,
+            extensions: None,
         }
     }
 }
@@ -149,6 +154,7 @@ impl From<String> for GraphQlRequest {
             query: val,
             operation_name: None,
             variables: None,
+            extensions: None,
         }
     }
 }
@@ -162,6 +168,7 @@ where
             query: operation.query,
             variables: Some(serde_json::from_value(serde_json::to_value(operation.variables).unwrap()).unwrap()),
             operation_name: operation.operation_name.map(|name| name.to_string()),
+            extensions: None,
         }
     }
 }
@@ -173,10 +180,11 @@ impl graphql_mocks::Schema for Engine {
         headers: Vec<(String, String)>,
         request: async_graphql::Request,
     ) -> async_graphql::Response {
-        let operation = crate::engine::GraphQlRequest {
+        let operation = GraphQlRequest {
             query: request.query,
             operation_name: request.operation_name,
             variables: Some(engine::Variables::deserialize(serde_json::to_value(request.variables).unwrap()).unwrap()),
+            extensions: None,
         };
 
         let mut request = self.execute(operation);

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use engine::{
-    parser::types::OperationType, AutomaticallyPersistedQuery, ErrorCode, ErrorExtensionValues,
+    parser::types::OperationType, AutomaticPersistedQuery, ErrorCode, ErrorExtensionValues,
     PersistedQueryRequestExtension, ServerError,
 };
 use futures_util::FutureExt;
@@ -185,7 +185,7 @@ where
                 .put_json(
                     &key,
                     runtime::cache::EntryState::Fresh,
-                    &AutomaticallyPersistedQuery::V1 {
+                    &AutomaticPersistedQuery::V1 {
                         query: request.query().to_string(),
                     },
                     runtime::cache::CacheMetadata {
@@ -204,9 +204,9 @@ where
             return Ok(());
         }
 
-        match self.cache.get_json::<AutomaticallyPersistedQuery>(&key).await {
+        match self.cache.get_json::<AutomaticPersistedQuery>(&key).await {
             Ok(entry) => {
-                if let Some(AutomaticallyPersistedQuery::V1 { query }) = entry.into_value() {
+                if let Some(AutomaticPersistedQuery::V1 { query }) = entry.into_value() {
                     request.operation_plan_cache_key.query = query;
                     Ok(())
                 } else {

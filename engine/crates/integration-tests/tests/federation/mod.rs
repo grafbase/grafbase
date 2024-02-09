@@ -1,3 +1,4 @@
+mod apq;
 mod auth;
 mod basic;
 mod introspection;

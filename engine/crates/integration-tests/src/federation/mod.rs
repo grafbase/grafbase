@@ -46,6 +46,13 @@ impl ExecutionRequest {
         ));
         self
     }
+
+    pub fn extensions(mut self, extensions: impl serde::Serialize) -> Self {
+        self.graphql.extensions =
+            serde_json::from_value(serde_json::to_value(extensions).expect("extensions to be serializable"))
+                .expect("extensions to be deserializable");
+        self
+    }
 }
 
 impl IntoFuture for ExecutionRequest {
@@ -62,7 +69,7 @@ impl IntoFuture for ExecutionRequest {
                 Some(session) => session,
                 None => {
                     return GraphqlResponse {
-                        gql_response: serde_json::to_value(engine_v2::Response::error("Unauthorized")).unwrap(),
+                        gql_response: serde_json::to_value(engine_v2::Response::error("Unauthorized", [])).unwrap(),
                         metadata: Default::default(),
                         headers: HeaderMap::new(),
                     }
@@ -92,7 +99,7 @@ impl ExecutionRequest {
                 Some(session) => session,
                 None => {
                     sender
-                        .send(engine_v2::Response::error("Unauthorized").into())
+                        .send(engine_v2::Response::error("Unauthorized", []).into())
                         .await
                         .ok();
                     return;

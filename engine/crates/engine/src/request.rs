@@ -32,6 +32,9 @@ pub struct Request {
     #[serde(skip)]
     pub data: Data,
 
+    #[serde(skip)]
+    pub ray_id: String,
+
     /// The extensions config of the request.
     #[serde(default)]
     pub extensions: RequestExtensions,
@@ -87,6 +90,7 @@ impl Request {
                 disable_introspection: false,
                 disable_operation_limits: false,
             },
+            ray_id: String::new(),
             variables: Variables::default(),
             uploads: Vec::default(),
             data: Data::default(),

@@ -40,7 +40,7 @@ pub mod graph;
 mod deferred;
 mod directive;
 mod persisted_query;
-pub use persisted_query::AutomaticallyPersistedQuery;
+pub use persisted_query::AutomaticPersistedQuery;
 pub mod registry;
 
 #[doc(hidden)]

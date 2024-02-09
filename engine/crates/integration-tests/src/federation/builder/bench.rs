@@ -41,15 +41,20 @@ impl<'a> FederationGatewayWithoutIO<'a> {
         let config =
             engine_v2::VersionedConfig::V3(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
 
+        let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
+            enabled: true,
+            ..Default::default()
+        });
+
         let gateway = gateway_v2::Gateway::new(
             config.into(),
-            engine_v2::EngineEnv { fetcher },
+            engine_v2::EngineEnv {
+                fetcher,
+                cache: cache.clone(),
+            },
             gateway_v2::GatewayEnv {
                 kv: runtime_local::InMemoryKvStore::runtime(),
-                cache: runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
-                    enabled: true,
-                    ..Default::default()
-                }),
+                cache,
             },
         );
         let (ctx, _) = RequestContext::new(HashMap::with_capacity(0));

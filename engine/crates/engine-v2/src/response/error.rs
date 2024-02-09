@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use engine::ErrorCode;
+
 use super::ResponsePath;
 
 #[derive(Debug, Default)]
@@ -17,5 +19,15 @@ impl GraphqlError {
             message: message.into(),
             ..Default::default()
         }
+    }
+
+    pub fn with_error_code(mut self, code: ErrorCode) -> Self {
+        self.extensions
+            .insert("code".to_string(), serde_json::Value::String(code.to_string()));
+        self
+    }
+
+    pub fn internal_server_error() -> Self {
+        GraphqlError::new("Internal server error").with_error_code(ErrorCode::InternalServerError)
     }
 }
