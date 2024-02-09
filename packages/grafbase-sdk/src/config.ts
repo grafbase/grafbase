@@ -8,6 +8,7 @@ import { CacheParams, GlobalCache } from './cache'
 import { FederatedGraph, Graph } from './grafbase-schema'
 import { OperationLimits, OperationLimitsParams } from './operation-limits'
 import { Experimental, ExperimentalParams } from './experimental'
+import { Introspection } from './introspection'
 
 /**
  * An interface to create the complete config definition.
@@ -54,7 +55,7 @@ export class GraphConfig {
   private readonly cache?: GlobalCache
   private readonly operationLimits?: OperationLimits
   private readonly experimental?: Experimental
-  private readonly introspection?: boolean
+  private readonly introspection?: Introspection
 
   /** @deprecated use `graph` instead of `schema` */
   constructor(input: GraphConfigInput | DeprecatedGraphConfigInput) {
@@ -76,7 +77,7 @@ export class GraphConfig {
       this.experimental = new Experimental(input.experimental)
     }
     if (input.introspection !== undefined) {
-      this.introspection = input.introspection
+      this.introspection = new Introspection({ enabled: input.introspection })
     }
   }
 
@@ -88,12 +89,9 @@ export class GraphConfig {
       : ''
     const cache = this.cache ? this.cache.toString() : ''
     const experimental = this.experimental ? this.experimental.toString() : ''
-    const introspection =
-      this.introspection !== undefined
-        ? `extend schema @introspection(enable: ${
-            this.introspection ? 'true' : 'false'
-          })\n\n`
-        : ''
+    const introspection = this.introspection
+      ? this.introspection.toString()
+      : ''
 
     return `${experimental}${auth}${operationLimits}${cache}${graph}${introspection}`
   }
@@ -103,7 +101,7 @@ export class FederatedGraphConfig {
   private graph: FederatedGraph
   private readonly operationLimits?: OperationLimits
   private readonly auth?: AuthenticationV2
-  private readonly introspection?: boolean
+  private readonly introspection?: Introspection
 
   constructor(input: FederatedGraphConfigInput) {
     this.graph = input.graph
@@ -114,7 +112,7 @@ export class FederatedGraphConfig {
       this.operationLimits = new OperationLimits(input.operationLimits)
     }
     if (input.introspection !== undefined) {
-      this.introspection = input.introspection
+      this.introspection = new Introspection({ enabled: input.introspection })
     }
   }
 
@@ -125,12 +123,9 @@ export class FederatedGraphConfig {
       ? this.operationLimits.toString()
       : ''
 
-    const introspection =
-      this.introspection !== undefined
-        ? `extend schema @introspection(enable: ${
-            this.introspection ? 'true' : 'false'
-          })\n\n`
-        : ''
+    const introspection = this.introspection
+      ? this.introspection.toString()
+      : ''
 
     return `${auth}${graph}${operationLimits}${introspection}`
   }
