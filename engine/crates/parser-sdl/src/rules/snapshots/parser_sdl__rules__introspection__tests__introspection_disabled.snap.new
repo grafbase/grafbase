@@ -1,6 +1,0 @@
----
-source: engine/crates/parser-sdl/src/rules/introspection.rs
-assertion_line: 74
-expression: registry.export_sdl(true)
----
-
