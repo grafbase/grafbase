@@ -54,7 +54,7 @@ server = { package = "grafbase-local-server", path = "../server", version = "0.5
 async-graphql-axum.workspace = true
 async-graphql.workspace = true
 async-trait = "0.1"
-async-tungstenite = "0.24"
+async-tungstenite = "0.25"
 axum.workspace = true
 cfg-if = "1"
 chrono = "0.4"
@@ -66,7 +66,7 @@ duct = "0.13"
 fslock = "0.2"
 futures-util = "0.3"
 graphql-mocks.workspace = true
-graphql-ws-client = "0.7"
+graphql-ws-client = { version = "0.8.0-rc.1", features = ["async-tungstenite"] }
 http.workspace = true
 hex.workspace = true
 headers.workspace = true

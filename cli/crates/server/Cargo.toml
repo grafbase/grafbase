@@ -15,7 +15,7 @@ workspace = true
 
 [dependencies]
 async-trait = "0.1"
-async-tungstenite = { version = "0.24", features = ["tokio"] }
+async-tungstenite = { version = "0.25", features = ["tokio-runtime"] }
 axum.workspace = true
 dotenv = "0.15"
 flate2 = "1.0"
