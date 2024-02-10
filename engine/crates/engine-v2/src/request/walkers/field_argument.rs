@@ -1,12 +1,12 @@
 use std::ops::Deref;
 
-use schema::InputValueId;
+use schema::InputValueDefinitionId;
 
 use crate::request::BoundFieldArgument;
 
 use super::OperationWalker;
 
-pub type BoundFieldArgumentWalker<'a> = OperationWalker<'a, &'a BoundFieldArgument, InputValueId>;
+pub type BoundFieldArgumentWalker<'a> = OperationWalker<'a, &'a BoundFieldArgument, InputValueDefinitionId>;
 
 impl<'a> BoundFieldArgumentWalker<'a> {
     // Value in the query, before variable resolution.

@@ -4,6 +4,7 @@ mod builder;
 mod cache;
 mod field_set;
 mod ids;
+mod input_value;
 mod names;
 mod resolver;
 pub mod sources;
@@ -13,6 +14,7 @@ mod wrapping;
 pub use cache::*;
 pub use field_set::*;
 pub use ids::*;
+pub use input_value::*;
 pub use names::Names;
 pub use resolver::*;
 pub use walkers::*;
@@ -37,7 +39,7 @@ pub struct Schema {
     unions: Vec<Union>,
     scalars: Vec<Scalar>,
     input_objects: Vec<InputObject>,
-    input_values: Vec<InputValue>,
+    input_value_definitions: Vec<InputValueDefinition>,
     resolvers: Vec<Resolver>,
     /// All the field types in the supergraph, deduplicated.
     types: Vec<Type>,
@@ -49,6 +51,8 @@ pub struct Schema {
     /// All strings deduplicated.
     strings: Vec<String>,
     urls: Vec<url::Url>,
+    /// Default input values & directive arguments
+    input_values: SchemaInputValues,
 
     /// Headers we might want to send to a subgraph
     headers: Vec<Header>,
@@ -108,6 +112,49 @@ impl Schema {
         };
         &self[name]
     }
+
+    #[cfg(test)]
+    pub(crate) fn empty() -> Self {
+        Self {
+            data_sources: Default::default(),
+            description: None,
+            root_operation_types: crate::RootOperationTypes {
+                query: ObjectId::from(0),
+                mutation: None,
+                subscription: None,
+            },
+            objects: vec![Object {
+                name: StringId::from(0),
+                description: None,
+                interfaces: Vec::new(),
+                composed_directives: Directives::empty(),
+                cache_config: None,
+            }],
+            object_fields: Vec::new(),
+            interfaces: Vec::new(),
+            interface_fields: Vec::new(),
+            fields: Vec::new(),
+            enums: Vec::new(),
+            unions: Vec::new(),
+            scalars: Vec::new(),
+            input_objects: Vec::new(),
+            input_value_definitions: Vec::new(),
+            resolvers: Vec::new(),
+            types: Vec::new(),
+            definitions: Vec::new(),
+            directives: Vec::new(),
+            enum_values: Vec::new(),
+            strings: vec![String::from("Query")],
+            urls: Vec::new(),
+            input_values: Default::default(),
+            headers: Vec::new(),
+            default_headers: Vec::new(),
+            cache_configs: Vec::new(),
+            auth_config: Default::default(),
+            operation_limits: Default::default(),
+            disable_introspection: false,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -147,10 +194,8 @@ pub struct Field {
     pub description: Option<StringId>,
     pub type_id: TypeId,
     pub resolvers: Vec<FieldResolver>,
-    pub is_deprecated: bool,
-    pub deprecation_reason: Option<StringId>,
     provides: Vec<FieldProvides>,
-    pub arguments: InputValues,
+    pub arguments: IdRange<InputValueDefinitionId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
@@ -173,24 +218,8 @@ pub struct FieldResolver {
 #[derive(Debug)]
 pub enum Directive {
     Inaccessible,
-    Deprecated {
-        reason: Option<StringId>,
-    },
-    Other {
-        name: StringId,
-        arguments: Vec<(StringId, Value)>,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Value {
-    String(StringId),
-    Int(i64),
-    Float(f64),
-    Boolean(bool),
-    EnumValue(StringId),
-    Object(Vec<(StringId, Value)>),
-    List(Vec<Value>),
+    Deprecated { reason: Option<StringId> },
+    Other { name: StringId, arguments: SchemaInputMap },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -278,8 +307,6 @@ pub struct Enum {
 pub struct EnumValue {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub is_deprecated: bool,
-    pub deprecation_reason: Option<StringId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
@@ -334,21 +361,19 @@ impl ScalarType {
 pub struct InputObject {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub input_fields: InputValues,
+    pub input_fields: IdRange<InputValueDefinitionId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
 }
 
 #[derive(Debug, Clone)]
-pub struct InputValue {
+pub struct InputValueDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
     pub type_id: TypeId,
-    pub default_value: Option<Value>,
+    pub default_value: Option<SchemaInputValueId>,
 }
-
-pub type InputValues = IdRange<InputValueId>;
 
 impl Schema {
     pub fn walk<I>(&self, item: I) -> SchemaWalker<'_, I> {

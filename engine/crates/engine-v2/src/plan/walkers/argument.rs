@@ -1,11 +1,11 @@
 use engine_value::ConstValue;
-use schema::{InputValueId, InputValueWalker};
+use schema::{InputValueDefinitionId, InputValueWalker};
 
 use crate::request::BoundFieldArgument;
 
 use super::PlanWalker;
 
-pub type PlanInputValue<'a> = PlanWalker<'a, &'a BoundFieldArgument, InputValueId>;
+pub type PlanInputValue<'a> = PlanWalker<'a, &'a BoundFieldArgument, InputValueDefinitionId>;
 
 impl<'a> PlanInputValue<'a> {
     // Value in the query, before variable resolution.

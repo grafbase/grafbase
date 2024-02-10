@@ -2,8 +2,8 @@ use std::ops::{Deref, DerefMut};
 
 use crate::{
     builder::SchemaBuilder, Definition, EnumId, EnumValue, EnumValueId, Field, FieldId, FieldResolver, IdRange,
-    InputValue, InputValueId, ObjectField, ObjectId, ResolverId, ScalarId, ScalarType, Schema, SchemaWalker, StringId,
-    Type, TypeId, Value, Wrapping,
+    InputValueDefinition, InputValueDefinitionId, ObjectField, ObjectId, ResolverId, ScalarId, ScalarType, Schema,
+    SchemaInputValue, SchemaInputValueId, SchemaWalker, StringId, Type, TypeId, Wrapping,
 };
 use strum::EnumCount;
 
@@ -414,6 +414,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                     // other fields added later
                 ],
             );
+            let default_value = Some(self.input_values.push_value(SchemaInputValue::Boolean(false)));
             {
                 let nullable__field_list =
                     self.insert_field_type(__field.id, Wrapping::required().wrapped_by_nullable_list());
@@ -421,7 +422,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 __type.fields.push((field_id, __Type::Fields));
                 self.set_field_arguments(
                     field_id,
-                    std::iter::once(("includeDeprecated", nullable_boolean, Some(Value::Boolean(false)))),
+                    std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
                 )
             }
             {
@@ -431,7 +432,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 __type.fields.push((field_id, __Type::EnumValues));
                 self.set_field_arguments(
                     field_id,
-                    std::iter::once(("includeDeprecated", nullable_boolean, Some(Value::Boolean(false)))),
+                    std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
                 );
             }
             __type
@@ -539,8 +540,6 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                     name: value,
                     composed_directives: IdRange::empty(),
                     description: None,
-                    is_deprecated: false,
-                    deprecation_reason: None,
                 })
             }
 
@@ -583,8 +582,6 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             provides: vec![],
             arguments: IdRange::empty(),
             description: None,
-            is_deprecated: false,
-            deprecation_reason: None,
             cache_config: None,
         });
         let field_id = FieldId::from(self.fields.len() - 1);
@@ -610,15 +607,15 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
     fn set_field_arguments<'b>(
         &mut self,
         field_id: FieldId,
-        arguments: impl Iterator<Item = (&'b str, TypeId, Option<Value>)>,
+        arguments: impl Iterator<Item = (&'b str, TypeId, Option<SchemaInputValueId>)>,
     ) {
-        let start = self.input_values.len();
+        let start = self.input_value_definitions.len();
 
         for (name, type_id, default_value) in arguments {
             self.insert_input_value(name, type_id, default_value);
         }
 
-        let end = self.input_values.len();
+        let end = self.input_value_definitions.len();
 
         self[field_id].arguments = IdRange {
             start: start.into(),
@@ -634,15 +631,20 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         TypeId::from(self.types.len() - 1)
     }
 
-    fn insert_input_value(&mut self, name: &str, type_id: TypeId, default_value: Option<Value>) -> InputValueId {
+    fn insert_input_value(
+        &mut self,
+        name: &str,
+        type_id: TypeId,
+        default_value: Option<SchemaInputValueId>,
+    ) -> InputValueDefinitionId {
         let name = self.get_or_intern(name);
-        self.input_values.push(InputValue {
+        self.input_value_definitions.push(InputValueDefinition {
             name,
             description: None,
             default_value,
             type_id,
         });
-        InputValueId::from(self.input_values.len() - 1)
+        InputValueDefinitionId::from(self.input_value_definitions.len() - 1)
     }
 
     fn find_or_create_field_type(

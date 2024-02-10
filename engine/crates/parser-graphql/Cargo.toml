@@ -37,6 +37,6 @@ reqwest = { workspace = true, features = [
 
 
 [dev-dependencies]
-insta = { version = "1", features = ["json"] }
+insta.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 wiremock.workspace = true
