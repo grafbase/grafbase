@@ -56,7 +56,6 @@ impl AsyncClient {
         self
     }
 
-    // TODO: update this one as well...
     pub fn gql<Response>(&self, query: impl Into<String>) -> GqlRequestBuilder<Response>
     where
         Response: serde::de::DeserializeOwned + 'static,
@@ -187,6 +186,31 @@ impl AsyncClient {
             .await
             .unwrap()
             .text()
+            .await
+            .unwrap()
+    }
+
+    /// Makes a batch GraphQL request.
+    ///
+    /// At the moment this is way less functional than the non-batch request builder
+    /// but is enough to test.
+    pub async fn batch_gql<T>(&self, queries: impl IntoIterator<Item = T>) -> serde_json::Value
+    where
+        T: AsRef<str>,
+    {
+        self.client
+            .post(&self.endpoint)
+            .headers(self.headers.clone())
+            .json(
+                &queries
+                    .into_iter()
+                    .map(|query| json!({"query": query.as_ref()}))
+                    .collect::<Vec<_>>(),
+            )
+            .send()
+            .await
+            .unwrap()
+            .json()
             .await
             .unwrap()
     }
