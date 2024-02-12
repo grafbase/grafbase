@@ -12,7 +12,7 @@ pub(crate) use walkers::*;
 
 use crate::response::ResponseKeys;
 
-use self::bind::{BindError, OperationLimitExceededError};
+use self::bind::{OperationError, OperationLimitExceededError};
 
 mod bind;
 mod flat;
@@ -102,25 +102,31 @@ impl Operation {
         schema: &Schema,
         unbound_operation: ParsedOperation,
         operation_limits_enabled: bool,
+        introspection_disabled_for_request: bool,
     ) -> BindResult<Self> {
         let mut operation = bind::bind(schema, unbound_operation)?;
 
         if operation_limits_enabled {
             operation
                 .enforce_operation_limits(schema)
-                .map_err(BindError::OperationLimitExceeded)?;
+                .map_err(OperationError::OperationLimitExceeded)?;
         }
 
         if operation.ty == OperationType::Query {
             let root_cache_config = schema[operation.root_object_id]
                 .cache_config
                 .map(|cache_config_id| schema[cache_config_id]);
-
-            let selection_set_cache_config = operation
+            let selection_set = operation
                 .walker_with(schema.walker())
-                .walk(operation.root_selection_set_id)
-                .cache_config();
+                .walk(operation.root_selection_set_id);
 
+            if let Some(location) = selection_set.find_introspection_field_location() {
+                if introspection_disabled_for_request || schema.disable_introspection {
+                    return Err(OperationError::IntrospectionWhenDisabled { location });
+                }
+            }
+
+            let selection_set_cache_config = selection_set.cache_config();
             operation.cache_config = root_cache_config.merge(selection_set_cache_config);
         }
 

@@ -37,7 +37,10 @@ impl<'a> Visitor<'a> for IntrospectionDirectiveVisitor {
 
         for directive in directives {
             match parse_directive::<IntrospectionDirective>(&directive.node, ctx.variables) {
-                Ok(parsed_directive) => ctx.registry.borrow_mut().disable_introspection = !parsed_directive.enable,
+                Ok(parsed_directive) => {
+                    ctx.registry.borrow_mut().disable_introspection = !parsed_directive.enable;
+                    ctx.federated_graph_config.disable_introspection = !parsed_directive.enable;
+                }
                 Err(err) => ctx.report_error(vec![directive.pos], err.to_string()),
             }
         }
