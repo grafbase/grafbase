@@ -25,7 +25,7 @@ pub fn process_execution_response<Error, Response>(
 ) -> Result<Response, Error>
 where
     Error: std::fmt::Display,
-    Response: super::Response<Error = Error>,
+    Response: super::ConstructableResponse<Error = Error>,
 {
     let (response, headers) = match response {
         Ok(execution_response) => execution_response.into_response_and_headers(),
@@ -34,7 +34,7 @@ where
             return Ok(Response::error(StatusCode::INTERNAL_SERVER_ERROR, "Execution error"));
         }
     };
-    Response::engine(response).map(|resp| resp.with_additional_headers(headers))
+    Response::engine(response, headers)
 }
 
 pub async fn cached_execution<Value, Error, ValueFut>(

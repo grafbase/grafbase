@@ -6,7 +6,12 @@ use common_types::auth::ExecutionAuth;
 pub trait Executor: Send + Sync {
     type Error;
     type Context;
-    type Response;
+
+    // The response used for streaming.
+    //
+    // This is generally some http Response type (e.g. http::Response, axum::Response)
+    // that reads from a Stream
+    type StreamingResponse;
 
     // Caching can defer the actual execution of the request when the data is stale for example.
     // To simplify our code, instead of having a 'ctx lifetime, we expect those "background"
@@ -24,5 +29,5 @@ pub trait Executor: Send + Sync {
         auth: ExecutionAuth,
         request: engine::Request,
         streaming_format: crate::StreamingFormat,
-    ) -> Result<Self::Response, Self::Error>;
+    ) -> Result<Self::StreamingResponse, Self::Error>;
 }

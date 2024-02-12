@@ -21,7 +21,7 @@ pub use crate::cache::build_cache_key;
 pub use auth::{authorize_request, AdminAuthError, AuthError, Authorizer};
 pub use cache::CacheConfig;
 pub use executor::Executor;
-pub use response::Response;
+pub use response::ConstructableResponse;
 pub use streaming::{encode_stream_response, format::StreamingFormat};
 
 #[derive(thiserror::Error, Debug)]
@@ -48,7 +48,7 @@ where
     Executor: self::Executor + 'static,
     Executor::Context: RequestContext,
     Executor::Error: From<Error> + std::error::Error + Send + 'static,
-    Executor::Response: self::Response<Error = Executor::Error>,
+    Executor::StreamingResponse: self::ConstructableResponse<Error = Executor::Error>,
 {
     pub fn new(
         executor: Arc<Executor>,
@@ -68,7 +68,7 @@ where
         &self,
         ctx: &Arc<Executor::Context>,
         request: async_graphql::Request,
-    ) -> Result<Executor::Response, Executor::Error> {
+    ) -> Result<Executor::StreamingResponse, Executor::Error> {
         if let Err(err) = self
             .authorizer
             .authorize_admin_request(ctx, &request)
@@ -77,12 +77,14 @@ where
         {
             return Ok(match err {
                 AdminAuthError::Unauthorized(msg) => {
-                    Executor::Response::error(http::StatusCode::UNAUTHORIZED, &format!("Unauthorized {msg}"))
+                    Executor::StreamingResponse::error(http::StatusCode::UNAUTHORIZED, &format!("Unauthorized {msg}"))
                 }
-                AdminAuthError::BadRequest(msg) => Executor::Response::error(http::StatusCode::BAD_REQUEST, &msg),
+                AdminAuthError::BadRequest(msg) => {
+                    Executor::StreamingResponse::error(http::StatusCode::BAD_REQUEST, &msg)
+                }
             });
         }
-        Executor::Response::admin(
+        Executor::StreamingResponse::admin(
             self::admin::handle_graphql_request(ctx.as_ref(), self.cache.clone(), &self.cache_config, request).await,
         )
     }
@@ -92,13 +94,13 @@ where
         ctx: &Arc<Executor::Context>,
         mut request: engine::Request,
         streaming_format: Option<StreamingFormat>,
-    ) -> Result<Executor::Response, Executor::Error> {
+    ) -> Result<Executor::StreamingResponse, Executor::Error> {
         if let Err(err) = self.handle_persisted_query(ctx, &mut request).await {
             let response = engine::Response {
                 errors: vec![err.into()],
                 ..Default::default()
             };
-            return Response::engine(Arc::new(response));
+            return ConstructableResponse::engine(Arc::new(response), Default::default());
         }
 
         let Ok(auth) = self
@@ -107,11 +109,14 @@ where
             .instrument(info_span!("authorize_request"))
             .await
         else {
-            return Executor::Response::engine(Arc::new(engine::Response::from_errors_with_type(
-                vec![engine::ServerError::new("Unauthorized", None)],
-                // doesn't really matter, this is not client facing
-                OperationType::Query,
-            )));
+            return Executor::StreamingResponse::engine(
+                Arc::new(engine::Response::from_errors_with_type(
+                    vec![engine::ServerError::new("Unauthorized", None)],
+                    // doesn't really matter, this is not client facing
+                    OperationType::Query,
+                )),
+                Default::default(),
+            );
         };
 
         if let Some(streaming_format) = streaming_format {
@@ -126,7 +131,7 @@ where
                     .instrument(info_span!("execute"))
                     .await?;
 
-                return Response::engine(Arc::new(result));
+                return ConstructableResponse::engine(Arc::new(result), Default::default());
             }
 
             match build_cache_key(&self.cache_config, ctx.as_ref(), &request, &auth) {
