@@ -203,7 +203,7 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                         .add_possible_values(&ty.enumeration.iter().flatten().rev().cloned().collect::<Vec<_>>());
                 }
             }
-            SchemaKind::Type(Type::Boolean {}) => {
+            SchemaKind::Type(Type::Boolean(_)) => {
                 ctx.add_type_node(parent, Node::Scalar(ScalarKind::Boolean), schema.schema_data.nullable)
                     .add_default(schema.schema_data.default.as_ref());
             }
