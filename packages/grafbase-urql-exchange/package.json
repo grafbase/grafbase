@@ -27,7 +27,7 @@
     "eslint": "^8.0.0",
     "eslint-config-grafbase": "workspace:*",
     "tsconfig": "workspace:*",
-    "tsup": "8.0.1",
+    "tsup": "8.0.2",
     "typescript": "^5.0.0"
   }
 }
