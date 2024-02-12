@@ -1,3 +1,5 @@
+extend schema @introspection(enable: true)
+
 type Author @model {
   name: String! @unique
 }

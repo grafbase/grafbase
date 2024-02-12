@@ -20,6 +20,8 @@ async fn graphql_test_with_transforms() {
         .await;
 
     insta::assert_snapshot!(response.data.unwrap().into_schema().unwrap().to_sdl(), @r###"
+    extend schema @introspection(enable: true)
+
     type Header {
       name: String!
       value: String!
@@ -63,6 +65,7 @@ async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> Async
 fn schema(port: u16) -> String {
     format!(
         r#"
+          extend schema @introspection(enable: true)
           extend schema
           @graphql(
             name: "test",

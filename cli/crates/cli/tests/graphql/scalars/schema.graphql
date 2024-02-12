@@ -1,3 +1,5 @@
+extend schema @introspection(enable: true)
+
 type Scalars @model {
   ip: IPAddress
   timestamp: Timestamp
