@@ -16,7 +16,7 @@ use http::{HeaderMap, StatusCode};
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tower_http::cors::CorsLayer;
 
-use crate::{Error, Gateway};
+use crate::{Error, Gateway, Response};
 
 pub(super) fn router(gateway: Gateway) -> Router {
     Router::new()
@@ -31,7 +31,8 @@ async fn post_graphql(
     Query(params): Query<HashMap<String, String>>,
     body: Bytes,
 ) -> crate::Response {
-    use gateway_core::Response;
+    use gateway_core::ConstructableResponse as _;
+
     let streaming_format = headers
         .get(http::header::ACCEPT)
         .and_then(|value| value.to_str().ok())
@@ -42,10 +43,15 @@ async fn post_graphql(
     let request: engine::Request = match serde_json::from_slice(&body[..]) {
         Ok(req) => req,
         Err(err) => {
-            return crate::Response::error(StatusCode::BAD_REQUEST, &format!("Could not parse JSON request: {err}"));
+            return Response::error(StatusCode::BAD_REQUEST, &format!("Could not parse JSON request: {err}"));
         }
     };
-    let response = gateway.execute(&ctx, request, streaming_format).await.into();
+
+    let response = match gateway.execute(&ctx, request, streaming_format).await {
+        Ok(response) => response,
+        Err(error) => crate::Response::from(error),
+    };
+
     tokio::spawn(wait(receiver));
     response
 }
@@ -75,7 +81,11 @@ async fn get_graphql(
                 .unwrap_or_default(),
         );
 
-    let response = gateway.execute(&ctx, request, streaming_format).await.into();
+    let response = match gateway.execute(&ctx, request, streaming_format).await {
+        Ok(response) => response,
+        Err(error) => Response::from(error),
+    };
+
     tokio::spawn(wait(receiver));
     response
 }

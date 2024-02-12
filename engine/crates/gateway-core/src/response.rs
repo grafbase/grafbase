@@ -2,13 +2,12 @@ use std::sync::Arc;
 
 use http::status::StatusCode;
 
-pub trait Response: Sized + Send {
+/// Consumers of gateway_core should implement this trait for their Response types
+/// to allow gateway_core to create responses
+pub trait ConstructableResponse: Sized + Send {
     type Error;
 
-    #[must_use]
-    fn with_additional_headers(self, headers: http::HeaderMap) -> Self;
-
     fn error(code: StatusCode, message: &str) -> Self;
-    fn engine(response: Arc<engine::Response>) -> Result<Self, Self::Error>;
+    fn engine(response: Arc<engine::Response>, headers: http::HeaderMap) -> Result<Self, Self::Error>;
     fn admin(response: async_graphql::Response) -> Result<Self, Self::Error>;
 }

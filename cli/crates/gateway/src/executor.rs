@@ -83,7 +83,7 @@ impl Executor {
 impl gateway_core::Executor for Executor {
     type Context = crate::Context;
     type Error = crate::Error;
-    type Response = crate::Response;
+    type StreamingResponse = crate::Response;
 
     async fn execute(
         self: Arc<Self>,
@@ -101,7 +101,7 @@ impl gateway_core::Executor for Executor {
         auth: ExecutionAuth,
         request: engine::Request,
         streaming_format: StreamingFormat,
-    ) -> Result<Self::Response, crate::Error> {
+    ) -> Result<Self::StreamingResponse, crate::Error> {
         use axum::response::IntoResponse;
         let schema = self.build_schema(&ctx, auth).await?;
         let payload_stream = Box::pin(schema.execute_stream(request));
