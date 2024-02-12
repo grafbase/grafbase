@@ -190,6 +190,7 @@ mod tests {
                     {},
                 ),
                 auth: None,
+                disable_introspection: false,
             },
         )
         "###);
