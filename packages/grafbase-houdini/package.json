@@ -46,7 +46,7 @@
     "eslint-config-grafbase": "workspace:*",
     "graphql": "^16.6.0",
     "tsconfig": "workspace:*",
-    "tsup": "8.0.1",
+    "tsup": "8.0.2",
     "typescript": "^5.0.0"
   }
 }

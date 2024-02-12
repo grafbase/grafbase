@@ -1,5 +1,5 @@
 # Build
-FROM rust:1.75-alpine3.18 AS build
+FROM rust:1.76-alpine3.18 AS build
 
 WORKDIR /grafbase
 

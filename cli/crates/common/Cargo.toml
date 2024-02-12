@@ -10,7 +10,7 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-chrono = "0.4.33"
+chrono = "0.4.34"
 derivative = "2.2.0"
 dirs = "5"
 rudderanalytics = { version = "1", features = [
