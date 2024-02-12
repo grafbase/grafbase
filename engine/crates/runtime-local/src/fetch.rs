@@ -7,7 +7,7 @@ use reqwest::header::HeaderValue;
 use runtime::fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, Fetcher, FetcherInner, GraphqlRequest};
 use serde_json::json;
 
-use self::websockets::{EngineGraphqlClient, StreamingRequest, TokioSpawner};
+use self::websockets::StreamingRequest;
 
 pub struct NativeFetcher {
     client: reqwest::Client,
@@ -53,37 +53,25 @@ impl FetcherInner for NativeFetcher {
         use async_tungstenite::tungstenite::{client::IntoClientRequest, http::HeaderValue};
         use futures_util::StreamExt;
 
-        let mut client = {
-            let init_headers = request.headers.iter().copied().collect::<HashMap<_, _>>();
+        let (connection, _) = {
             let mut request = request.url.into_client_request().unwrap();
             request.headers_mut().insert(
                 "Sec-WebSocket-Protocol",
                 HeaderValue::from_str("graphql-transport-ws").unwrap(),
             );
 
-            let (connection, _) = async_tungstenite::tokio::connect_async(request).await.unwrap();
-
-            let (sink, stream) = connection.split();
-
-            graphql_ws_client::AsyncWebsocketClientBuilder::<EngineGraphqlClient>::new()
-                .payload(json!({"headers": init_headers}))
-                .build(stream, sink, TokioSpawner::current())
-                .await
-                .map_err(FetchError::any)?
+            async_tungstenite::tokio::connect_async(request).await.unwrap()
         };
 
-        Ok(Box::pin(
-            client
-                .streaming_operation(StreamingRequest::from(request))
-                .await
-                .map_err(FetchError::any)?
-                .map(move |item| {
-                    // Ignore this next line, I'm just tricking rust into
-                    // moving the client into this closure.
-                    let _client = &client;
+        let headers = request.headers.iter().copied().collect::<HashMap<_, _>>();
 
-                    item.map_err(FetchError::any)
-                }),
-        ))
+        Ok(graphql_ws_client::Client::build(connection)
+            .payload(json!({"headers": headers}))
+            .map_err(FetchError::any)?
+            .subscribe(StreamingRequest::from(request))
+            .await
+            .map_err(FetchError::any)?
+            .map(|item| item.map_err(FetchError::any))
+            .boxed())
     }
 }

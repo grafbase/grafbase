@@ -692,8 +692,9 @@ async fn test_websocket_transport_with_bad_auth() {
     };
 
     insta::assert_debug_snapshot!(error, @r###"
-    Decode(
-        "got close frame, reason: Forbidden",
+    Close(
+        4403,
+        "Forbidden",
     )
     "###);
 }
