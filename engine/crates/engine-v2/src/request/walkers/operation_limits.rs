@@ -90,7 +90,7 @@ impl<'a> BoundSelectionSetWalker<'a> {
     }
 
     pub(crate) fn find_introspection_field_location(self) -> Option<Location> {
-        self.fields().into_iter().find_map(|field| {
+        self.fields().find_map(|field| {
             let schema_field = field.schema_field();
             if schema_field.is_some_and(|field| field.name() == "__type" || field.name() == "__schema") {
                 field.name_location()
