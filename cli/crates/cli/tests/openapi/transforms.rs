@@ -27,6 +27,7 @@ async fn test_openapi_with_transforms() {
         .await;
 
     insta::assert_snapshot!(response.data.unwrap().into_schema().unwrap().to_sdl(), @r###"
+    extend schema @introspection(enable: true)
     type PetstorePet {
       id: Int!
       name: String
