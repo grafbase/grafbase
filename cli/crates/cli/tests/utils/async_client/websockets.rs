@@ -6,7 +6,7 @@ use futures_util::Stream;
 use http::Method;
 use serde_json::json;
 
-use super::GqlRequestBuilder;
+use super::{GqlRequest, GqlRequestBuilder};
 
 impl<Response> GqlRequestBuilder<Response>
 where
@@ -46,13 +46,13 @@ where
 
         Ok(graphql_ws_client::Client::build(connection)
             .payload(json!({ "headers": payload_headers }))?
-            .subscribe(self)
+            .subscribe(self.request)
             .await?
             .map(|item| item.unwrap()))
     }
 }
 
-impl<T> graphql_ws_client::graphql::GraphqlOperation for GqlRequestBuilder<T>
+impl<T> graphql_ws_client::graphql::GraphqlOperation for GqlRequest<T>
 where
     T: serde::de::DeserializeOwned,
 {

@@ -11,7 +11,7 @@ pub struct Context {
     pub(crate) authorization_header: Option<String>,
     pub(crate) headers: HeaderMap,
     // TODO: or use a queue?
-    wait_until_sender: UnboundedSender<BoxFuture<'static, ()>>,
+    pub(crate) wait_until_sender: UnboundedSender<BoxFuture<'static, ()>>,
 }
 
 impl Context {

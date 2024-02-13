@@ -16,8 +16,11 @@ extend type Query {
 }
 "#;
 
+#[rstest::rstest]
+#[case::get(reqwest::Method::GET)]
+#[case::post(reqwest::Method::POST)]
 #[tokio::test(flavor = "multi_thread")]
-async fn automatically_persisted_queries() {
+async fn automatic_persisted_queries(#[case] method: reqwest::Method) {
     let mut env = Environment::init_async().await;
     env.grafbase_init(GraphType::Single);
     env.write_schema(SCHEMA);
@@ -48,7 +51,13 @@ async fn automatically_persisted_queries() {
         }
     "#;
 
-    let execute = |query: &'static str, extensions: &Value| client.gql::<Value>(query).extensions(extensions);
+    let execute = |query: &'static str, extensions: &Value| {
+        if method == reqwest::Method::GET {
+            client.gql_get::<Value>(query).extensions(extensions)
+        } else {
+            client.gql::<Value>(query).extensions(extensions)
+        }
+    };
 
     let apq_ext = serde_json::json!({
         "persistedQuery": {
