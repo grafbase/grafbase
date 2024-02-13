@@ -120,10 +120,10 @@ impl Operation {
                 .walker_with(schema.walker())
                 .walk(operation.root_selection_set_id);
 
-            match ctx.query_env.introspection_state {
-                IntrospectionState::ForceEnabled => {}
-                IntrospectionState::ForceDisabled => detect_introspection(&selection_set)?,
-                IntrospectionState::UserPreference => {
+            match introspection_state {
+                engine::IntrospectionState::ForceEnabled => {}
+                engine::IntrospectionState::ForceDisabled => detect_introspection(&selection_set)?,
+                engine::IntrospectionState::UserPreference => {
                     if schema.disable_introspection {
                         detect_introspection(&selection_set)?;
                     }

@@ -8,9 +8,7 @@ use common_types::auth::{ExecutionAuth, Operations};
 use engine::{
     extensions::{Extension, ExtensionContext, ExtensionFactory, NextResolve, ResolveInfo},
     graph_entities::ResponseNodeId,
-    registry::{
-        relations::MetaRelation, resolvers::IntrospectionResolver, ModelName, NamedType, Registry, TypeReference,
-    },
+    registry::{relations::MetaRelation, ModelName, NamedType, Registry, TypeReference},
     AuthConfig, ServerError, ServerResult,
 };
 use engine_value::ConstValue;
