@@ -332,7 +332,7 @@ fn coerce_enum(
         }
     };
 
-    if !r#enum.values().any(|value| schema[value.name] == value_str) {
+    if !r#enum.values().any(|value| value.name() == value_str) {
         return Err(CoercionError::IncorrectEnumValue {
             name: r#enum.name().to_owned(),
             actual: value_str.to_string(),

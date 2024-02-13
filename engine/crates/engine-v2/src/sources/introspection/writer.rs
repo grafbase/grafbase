@@ -5,8 +5,8 @@ use schema::{
     sources::introspection::{
         IntrospectionField, IntrospectionObject, Metadata, __EnumValue, __Field, __InputValue, __Schema, __Type,
     },
-    Definition, DefinitionWalker, EnumValue, FieldWalker, InputValueWalker, ListWrapping, SchemaWalker, TypeWalker,
-    Wrapping,
+    Definition, DefinitionWalker, EnumValueWalker, FieldWalker, InputValueWalker, ListWrapping, SchemaWalker,
+    TypeWalker, Wrapping,
 };
 
 use crate::{
@@ -301,15 +301,15 @@ impl<'a> IntrospectionWriter<'a> {
         )
     }
 
-    fn __enum_value(&self, target: &'a EnumValue, selection_set: PlanCollectedSelectionSet<'_>) -> ResponseValue {
+    fn __enum_value(&self, target: EnumValueWalker<'a>, selection_set: PlanCollectedSelectionSet<'_>) -> ResponseValue {
         self.object(
             &self.metadata.__enum_value,
             selection_set,
             |_, __enum_value| match __enum_value {
-                __EnumValue::Name => target.name.into(),
-                __EnumValue::Description => target.description.into(),
-                __EnumValue::IsDeprecated => target.is_deprecated.into(),
-                __EnumValue::DeprecationReason => target.deprecation_reason.into(),
+                __EnumValue::Name => target.as_ref().name.into(),
+                __EnumValue::Description => target.as_ref().description.into(),
+                __EnumValue::IsDeprecated => target.as_ref().is_deprecated.into(),
+                __EnumValue::DeprecationReason => target.as_ref().deprecation_reason.into(),
             },
         )
     }

@@ -20,7 +20,7 @@ pub use input_object::InputObjectWalker;
 pub use input_value::InputValueWalker;
 pub use interface::InterfaceWalker;
 pub use object::ObjectWalker;
-pub use r#enum::EnumWalker;
+pub use r#enum::{EnumValueWalker, EnumWalker};
 pub use r#type::TypeWalker;
 pub use resolver::ResolverWalker;
 pub use scalar::ScalarWalker;
