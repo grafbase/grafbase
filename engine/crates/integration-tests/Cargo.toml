@@ -82,6 +82,8 @@ rstest.workspace = true
 const_format = "0.2"
 headers.workspace = true
 criterion = { version = "0.5", features = ["async_tokio"] }
+sha2.workspace = true
+hex.workspace = true
 
 [[bench]]
 name = "federation"

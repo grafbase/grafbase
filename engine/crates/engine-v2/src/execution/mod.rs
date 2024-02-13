@@ -5,7 +5,7 @@ mod prepared;
 mod variables;
 
 pub(crate) use context::*;
-pub use coordinator::ExecutorCoordinator;
-pub use error::*;
-pub use prepared::*;
-pub use variables::*;
+pub(crate) use coordinator::ExecutionCoordinator;
+pub(crate) use error::*;
+pub use prepared::PreparedExecution;
+pub(crate) use variables::*;

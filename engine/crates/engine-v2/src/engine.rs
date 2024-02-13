@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use async_runtime::stream::StreamExt as _;
-use engine::RequestHeaders;
+use engine::{AutomaticPersistedQuery, ErrorCode, PersistedQueryRequestExtension, RequestHeaders};
 use engine_parser::types::OperationType;
 use futures::channel::mpsc;
 use futures_util::{SinkExt, Stream};
 use schema::Schema;
 
 use crate::{
-    execution::{ExecutorCoordinator, PreparedExecution, PreparedRequest, Variables},
+    execution::{ExecutionCoordinator, PreparedExecution, Variables},
     plan::OperationPlan,
     request::{parse_operation, Operation},
     response::{ExecutionMetadata, GraphqlError, Response},
@@ -25,6 +25,7 @@ pub struct Engine {
 
 pub struct EngineEnv {
     pub fetcher: runtime::fetch::Fetcher,
+    pub cache: runtime::cache::Cache,
 }
 
 impl Engine {
@@ -41,37 +42,20 @@ impl Engine {
         }
     }
 
-    pub fn execute(self: &Arc<Self>, mut request: engine::Request, headers: RequestHeaders) -> PreparedExecution {
-        let operation = match self.prepare_operation(&request) {
-            Ok(operation) => operation,
-            Err(error) => {
-                return PreparedExecution::bad_request(Response::from_error(error, ExecutionMetadata::default()))
-            }
-        };
-        let variables = match Variables::from_request(&operation, self.schema.as_ref(), &mut request.variables) {
-            Ok(variables) => variables,
-            Err(errors) => {
-                return PreparedExecution::bad_request(Response::from_errors(
-                    errors,
-                    ExecutionMetadata::build(&operation),
-                ))
-            }
+    pub async fn execute(self: &Arc<Self>, request: engine::Request, headers: RequestHeaders) -> PreparedExecution {
+        let coordinator = match self.prepare_coordinator(request, headers).await {
+            Ok(coordinator) => coordinator,
+            Err(response) => return PreparedExecution::bad_request(response),
         };
 
-        if matches!(operation.ty, OperationType::Subscription) {
+        if matches!(coordinator.operation().ty, OperationType::Subscription) {
             return PreparedExecution::bad_request(Response::from_error(
                 GraphqlError::new("Subscriptions are only suported on streaming transports.  Try making a request with SSE or WebSockets"),
-                ExecutionMetadata::build(&operation),
+                ExecutionMetadata::build(coordinator.operation())
             ));
         }
 
-        PreparedExecution::PreparedRequest(PreparedRequest {
-            key: request.operation_plan_cache_key,
-            operation,
-            variables,
-            headers,
-            engine: Arc::clone(self),
-        })
+        PreparedExecution::request(coordinator)
     }
 
     pub fn execute_stream(
@@ -83,7 +67,7 @@ impl Engine {
         let engine = Arc::clone(self);
 
         receiver.join(async move {
-            let coordinator = match engine.prepare_coordinator(request, headers) {
+            let coordinator = match engine.prepare_coordinator(request, headers).await {
                 Ok(coordinator) => coordinator,
                 Err(response) => {
                     sender.send(response).await.ok();
@@ -92,7 +76,7 @@ impl Engine {
             };
 
             if matches!(
-                coordinator.operation_type(),
+                coordinator.operation().ty,
                 OperationType::Query | OperationType::Mutation
             ) {
                 sender.send(coordinator.execute().await).await.ok();
@@ -103,24 +87,32 @@ impl Engine {
         })
     }
 
-    fn prepare_coordinator(
-        &self,
+    async fn prepare_coordinator(
+        self: &Arc<Self>,
         mut request: engine::Request,
         headers: RequestHeaders,
-    ) -> Result<ExecutorCoordinator<'_>, Response> {
-        let operation = match self.prepare_operation(&request) {
+    ) -> Result<ExecutionCoordinator, Response> {
+        let operation_plan = match self.prepare_operation(&mut request).await {
             Ok(operation) => operation,
             Err(error) => return Err(Response::from_error(error, ExecutionMetadata::default())),
         };
-        let variables = match Variables::from_request(&operation, self.schema.as_ref(), &mut request.variables) {
+        let variables = match Variables::from_request(&operation_plan, self.schema.as_ref(), &mut request.variables) {
             Ok(variables) => variables,
-            Err(errors) => return Err(Response::from_errors(errors, ExecutionMetadata::build(&operation))),
+            Err(errors) => return Err(Response::from_errors(errors, ExecutionMetadata::build(&operation_plan))),
         };
 
-        Ok(ExecutorCoordinator::new(self, operation, variables, headers))
+        Ok(ExecutionCoordinator::new(
+            Arc::clone(self),
+            request.operation_plan_cache_key,
+            operation_plan,
+            variables,
+            headers,
+        ))
     }
 
-    fn prepare_operation(&self, request: &engine::Request) -> Result<Arc<OperationPlan>, GraphqlError> {
+    async fn prepare_operation(&self, request: &mut engine::Request) -> Result<Arc<OperationPlan>, GraphqlError> {
+        self.handle_persisted_query(request).await?;
+
         #[cfg(feature = "plan_cache")]
         {
             if let Some(cached) = self.plan_cache.get(&request.operation_plan_cache_key) {
@@ -136,5 +128,62 @@ impl Engine {
                 .insert(request.operation_plan_cache_key.clone(), prepared.clone())
         }
         Ok(prepared)
+    }
+
+    async fn handle_persisted_query(&self, request: &mut engine::Request) -> Result<(), GraphqlError> {
+        let Some(PersistedQueryRequestExtension { version, sha256_hash }) = &request.extensions.persisted_query else {
+            return Ok(());
+        };
+
+        if *version != 1 {
+            return Err(GraphqlError::new("Persisted query version not supported"));
+        }
+
+        let cache = &self.env.cache;
+        let key = cache.build_key(&format!("apq/sha256_{}", hex::encode(sha256_hash)));
+        if !request.query().is_empty() {
+            use sha2::{Digest, Sha256};
+            let digest = <Sha256 as Digest>::digest(request.query().as_bytes()).to_vec();
+            if &digest != sha256_hash {
+                return Err(GraphqlError::new("Invalid persisted query sha256Hash"));
+            }
+            cache
+                .put_json(
+                    &key,
+                    runtime::cache::EntryState::Fresh,
+                    &AutomaticPersistedQuery::V1 {
+                        query: request.query().to_string(),
+                    },
+                    runtime::cache::CacheMetadata {
+                        max_age: std::time::Duration::from_secs(24 * 60 * 60),
+                        stale_while_revalidate: std::time::Duration::ZERO,
+                        tags: Vec::new(),
+                        should_purge_related: false,
+                        should_cache: true,
+                    },
+                )
+                .await
+                .map_err(|err| {
+                    log::error!(request.ray_id, "Cache error: {}", err);
+                    GraphqlError::internal_server_error()
+                })?;
+            return Ok(());
+        }
+
+        match cache.get_json::<AutomaticPersistedQuery>(&key).await {
+            Ok(entry) => {
+                if let Some(AutomaticPersistedQuery::V1 { query }) = entry.into_value() {
+                    request.operation_plan_cache_key.query = query;
+                    Ok(())
+                } else {
+                    Err(GraphqlError::new("Persisted query not found")
+                        .with_error_code(ErrorCode::PersistedQueryNotFound))
+                }
+            }
+            Err(err) => {
+                log::error!(request.ray_id, "Cache error: {}", err);
+                Err(GraphqlError::internal_server_error())
+            }
+        }
     }
 }

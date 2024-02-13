@@ -22,16 +22,18 @@ async-runtime.workspace = true
 futures.workspace = true
 im = "15"
 indexmap.workspace = true
-lasso = "0.7"
 itertools.workspace = true
+hex.workspace = true
+lasso = "0.7"
+log.workspace = true
 serde = { workspace = true, features = ["rc"] }
 serde_with.workspace = true
 serde_json.workspace = true
 serde-value = "0.7"
+sha2.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 futures-util.workspace = true
-hex = "0.4.3"
 tracing.workspace = true
 mini-moka = { version = "0.10", optional = true, features = ["sync"] }
 

@@ -1,4 +1,4 @@
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub enum AutomaticallyPersistedQuery {
+pub enum AutomaticPersistedQuery {
     V1 { query: String },
 }

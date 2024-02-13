@@ -177,7 +177,7 @@ async fn engine_post(
 }
 
 async fn handle_engine_request(
-    request: engine::Request,
+    mut request: engine::Request,
     gateway: GatewayWatcher,
     headers: HeaderMap,
 ) -> impl IntoResponse {
@@ -200,6 +200,7 @@ async fn handle_engine_request(
         headers,
         wait_until_sender: sender,
     };
+    request.ray_id = ctx.ray_id.clone();
 
     let session = gateway.authorize(ctx.headers_as_map().into()).await;
 
@@ -211,7 +212,7 @@ async fn handle_engine_request(
             _ => {
                 encode_stream_response(
                     ray_id,
-                    stream::once(async { engine_v2::Response::error("Unauthorized") }),
+                    stream::once(async { engine_v2::Response::error("Unauthorized", []) }),
                     streaming_format,
                 )
                 .await

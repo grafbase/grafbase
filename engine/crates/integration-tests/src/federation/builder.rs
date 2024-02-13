@@ -69,18 +69,21 @@ impl FederationGatewayBuilder {
 
         let config = engine_config_builder::build_config(&federated_graph_config, graph).into_latest();
 
+        let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
+            enabled: true,
+            ..Default::default()
+        });
+
         TestFederationGateway {
             gateway: Arc::new(Gateway::new(
                 config.into(),
                 engine_v2::EngineEnv {
                     fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
+                    cache: cache.clone(),
                 },
                 gateway_v2::GatewayEnv {
                     kv: runtime_local::InMemoryKvStore::runtime(),
-                    cache: runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
-                        enabled: true,
-                        ..Default::default()
-                    }),
+                    cache,
                 },
             )),
         }

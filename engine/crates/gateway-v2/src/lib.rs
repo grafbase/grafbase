@@ -5,7 +5,7 @@ use std::{
 };
 
 use auth::Authorizer;
-use engine::{Request, RequestHeaders};
+use engine::{ErrorCode, Request, RequestHeaders};
 use engine_v2::{Engine, EngineEnv, ExecutionMetadata, PreparedExecution, Schema};
 use futures_util::Stream;
 use gateway_core::RequestContext;
@@ -54,7 +54,7 @@ impl Gateway {
     // The Engine is directly accessible
     pub async fn unchecked_engine_execute(&self, ctx: &impl RequestContext, request: Request) -> Response {
         let request_headers = build_request_headers(ctx.headers());
-        let response = self.engine.execute(request, request_headers).await;
+        let response = self.engine.execute(request, request_headers).await.await;
         let has_errors = response.has_errors();
         match serde_json::to_vec(&response) {
             Ok(bytes) => Response {
@@ -64,16 +64,7 @@ impl Gateway {
                 metadata: response.take_metadata(),
                 has_errors,
             },
-            Err(_) => Response {
-                status: http::StatusCode::INTERNAL_SERVER_ERROR,
-                headers: http::HeaderMap::new(),
-                bytes: serde_json::to_vec(&serde_json::json!({
-                    "errors": [{"message": "Server error"}],
-                }))
-                .expect("Obviously valid JSON"),
-                metadata: ExecutionMetadata::default(),
-                has_errors,
-            },
+            Err(_) => Response::internal_server_error(),
         }
     }
 
@@ -116,7 +107,7 @@ pub struct Session {
 
 impl Session {
     pub async fn execute(self, ctx: &impl RequestContext, request: Request) -> Response {
-        let prepared_execution = self.gateway.engine.execute(request, self.headers);
+        let prepared_execution = self.gateway.engine.execute(request, self.headers).await;
         let cached_response = match self.gateway.build_cache_key(&prepared_execution, &self.token) {
             Some(key) => {
                 self.gateway
@@ -153,16 +144,7 @@ impl Session {
             })
             .unwrap_or_else(|err| {
                 log::error!(ctx.ray_id(), "Serialization error: {err}");
-                Response {
-                    status: http::StatusCode::INTERNAL_SERVER_ERROR,
-                    bytes: serde_json::to_vec(&serde_json::json!({
-                        "errors": [{"message": "Server error"}],
-                    }))
-                    .expect("Obviously valid JSON"),
-                    metadata: ExecutionMetadata::default(),
-                    has_errors: true,
-                    headers: http::HeaderMap::new(),
-                }
+                Response::internal_server_error()
             });
         response
             .headers
@@ -178,12 +160,29 @@ impl Session {
 
 impl Response {
     pub fn unauthorized() -> Self {
-        let response = engine_v2::Response::error("Unauthorized");
+        let response = engine_v2::Response::error("Unauthorized", []);
         Response {
             status: http::StatusCode::UNAUTHORIZED,
             headers: Default::default(),
             bytes: serde_json::to_vec(&response).expect("this serialization should be fine"),
-            metadata: ExecutionMetadata::default(),
+            metadata: response.take_metadata(),
+            has_errors: true,
+        }
+    }
+
+    fn internal_server_error() -> Self {
+        let response = engine_v2::Response::error(
+            "Internal Server Error",
+            [(
+                "code".to_string(),
+                serde_json::Value::String(ErrorCode::InternalServerError.to_string()),
+            )],
+        );
+        Response {
+            status: http::StatusCode::INTERNAL_SERVER_ERROR,
+            headers: Default::default(),
+            bytes: serde_json::to_vec(&response).expect("this serialization should be fine"),
+            metadata: response.take_metadata(),
             has_errors: true,
         }
     }

@@ -46,8 +46,18 @@ pub struct RequestErrorResponse {
 }
 
 impl Response {
-    pub fn error(message: impl Into<String>) -> Self {
-        Self::from_error(GraphqlError::new(message), ExecutionMetadata::default())
+    pub fn error(
+        message: impl Into<String>,
+        extensions: impl IntoIterator<Item = (String, serde_json::Value)>,
+    ) -> Self {
+        Self::from_error(
+            GraphqlError {
+                message: message.into(),
+                extensions: extensions.into_iter().collect(),
+                ..Default::default()
+            },
+            ExecutionMetadata::default(),
+        )
     }
 
     pub(crate) fn from_error(error: impl Into<GraphqlError>, metadata: ExecutionMetadata) -> Self {

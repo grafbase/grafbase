@@ -1,7 +1,7 @@
 use std::{borrow::Cow, sync::Arc};
 
 use async_runtime::make_send_on_wasm;
-use engine::RequestHeaders;
+use engine::{OperationPlanCacheKey, RequestHeaders};
 use engine_parser::types::OperationType;
 use futures_util::{
     future::BoxFuture,
@@ -12,6 +12,7 @@ use futures_util::{
 use crate::{
     execution::{ExecutionContext, Variables},
     plan::{OperationExecutionState, OperationPlan, PlanId},
+    request::Operation,
     response::{ExecutionMetadata, GraphqlError, Response, ResponseBuilder, ResponsePart},
     sources::{Executor, ExecutorInput, SubscriptionExecutor, SubscriptionInput},
     Engine,
@@ -21,51 +22,62 @@ use super::ExecutionResult;
 
 pub type ResponseSender = futures::channel::mpsc::Sender<Response>;
 
-pub struct ExecutorCoordinator<'ctx> {
-    engine: &'ctx Engine,
-    operation: Arc<OperationPlan>,
+pub(crate) struct ExecutionCoordinator {
+    engine: Arc<Engine>,
+    operation_plan_cache_key: OperationPlanCacheKey,
+    operation_plan: Arc<OperationPlan>,
     variables: Variables,
     request_headers: RequestHeaders,
 }
 
-impl<'ctx> ExecutorCoordinator<'ctx> {
+impl ExecutionCoordinator {
     pub fn new(
-        engine: &'ctx Engine,
-        operation: Arc<OperationPlan>,
+        engine: Arc<Engine>,
+        operation_plan_cache_key: OperationPlanCacheKey,
+        operation_plan: Arc<OperationPlan>,
         variables: Variables,
         request_headers: RequestHeaders,
     ) -> Self {
         Self {
             engine,
-            operation,
+            operation_plan_cache_key,
+            operation_plan,
             variables,
             request_headers,
         }
     }
 
-    pub fn operation_type(&self) -> OperationType {
-        self.operation.ty
+    pub fn operation_plan_cache_key(&self) -> &OperationPlanCacheKey {
+        &self.operation_plan_cache_key
+    }
+
+    pub fn operation(&self) -> &Operation {
+        &self.operation_plan
+    }
+
+    pub fn variables(&self) -> &Variables {
+        &self.variables
     }
 
     pub async fn execute(self) -> Response {
         assert!(
-            !matches!(self.operation.ty, OperationType::Subscription),
+            !matches!(self.operation_plan.ty, OperationType::Subscription),
             "execute shouldn't be called for subscriptions"
         );
         OperationExecution {
             coordinator: &self,
             futures: ExecutorFutureSet::new(),
-            state: self.operation.new_execution_state(),
-            response: ResponseBuilder::new(self.operation.root_object_id),
+            state: self.operation_plan.new_execution_state(),
+            response: ResponseBuilder::new(self.operation_plan.root_object_id),
         }
         .execute()
         .await
     }
 
     pub async fn execute_subscription(self, mut responses: ResponseSender) {
-        assert!(matches!(self.operation.ty, OperationType::Subscription));
+        assert!(matches!(self.operation_plan.ty, OperationType::Subscription));
 
-        let mut state = self.operation.new_execution_state();
+        let mut state = self.operation_plan.new_execution_state();
         let subscription_plan_id = state.pop_subscription_plan_id();
 
         let mut stream = match self.build_subscription_stream(subscription_plan_id).await {
@@ -73,12 +85,12 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
             Err(error) => {
                 responses
                     .send(
-                        ResponseBuilder::new(self.operation.root_object_id)
+                        ResponseBuilder::new(self.operation_plan.root_object_id)
                             .with_error(error)
                             .build(
                                 self.engine.schema.clone(),
-                                self.operation.clone(),
-                                ExecutionMetadata::build(&self.operation),
+                                self.operation_plan.clone(),
+                                ExecutionMetadata::build(&self.operation_plan),
                             ),
                     )
                     .await
@@ -110,22 +122,22 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
         }
     }
 
-    async fn build_subscription_stream<'a>(
-        &'a self,
+    async fn build_subscription_stream(
+        &self,
         plan_id: PlanId,
-    ) -> Result<BoxStream<'a, (ResponseBuilder, ResponsePart)>, GraphqlError> {
+    ) -> Result<BoxStream<'_, (ResponseBuilder, ResponsePart)>, GraphqlError> {
         let executor = self.build_subscription_executor(plan_id)?;
         Ok(executor.execute().await?)
     }
 
     fn build_subscription_executor(&self, plan_id: PlanId) -> ExecutionResult<SubscriptionExecutor<'_>> {
-        let execution_plan = &self.operation[plan_id];
+        let execution_plan = &self.operation_plan[plan_id];
         let plan = self
-            .operation
+            .operation_plan
             .plan_walker(&self.engine.schema, plan_id, Some(&self.variables));
         let input = SubscriptionInput {
             ctx: ExecutionContext {
-                engine: self.engine,
+                engine: self.engine.as_ref(),
                 variables: &self.variables,
                 request_headers: &self.request_headers,
             },
@@ -136,7 +148,7 @@ impl<'ctx> ExecutorCoordinator<'ctx> {
 }
 
 pub struct OperationExecution<'ctx> {
-    coordinator: &'ctx ExecutorCoordinator<'ctx>,
+    coordinator: &'ctx ExecutionCoordinator,
     futures: ExecutorFutureSet<'ctx>,
     state: OperationExecutionState,
     response: ResponseBuilder,
@@ -172,7 +184,7 @@ impl<'ctx> OperationExecution<'ctx> {
 
             for plan_id in self
                 .state
-                .get_next_executable_plans(&self.coordinator.operation, plan_id)
+                .get_next_executable_plans(&self.coordinator.operation_plan, plan_id)
             {
                 match self.build_executor(plan_id) {
                     Ok(Some(executor)) => self.futures.execute(plan_id, executor),
@@ -184,14 +196,14 @@ impl<'ctx> OperationExecution<'ctx> {
 
         self.response.build(
             self.coordinator.engine.schema.clone(),
-            self.coordinator.operation.clone(),
-            ExecutionMetadata::build(&self.coordinator.operation),
+            self.coordinator.operation_plan.clone(),
+            ExecutionMetadata::build(&self.coordinator.operation_plan),
         )
     }
 
     fn build_executor(&mut self, plan_id: PlanId) -> ExecutionResult<Option<Executor<'ctx>>> {
-        let operation: &'ctx OperationPlan = &self.coordinator.operation;
-        let engine = self.coordinator.engine;
+        let operation: &'ctx OperationPlan = &self.coordinator.operation_plan;
+        let engine = self.coordinator.engine.as_ref();
         let response_boundary_items =
             self.state
                 .retrieve_boundary_items(&engine.schema, operation, &self.response, plan_id);
@@ -202,10 +214,10 @@ impl<'ctx> OperationExecution<'ctx> {
         }
 
         let execution_plan = &operation[plan_id];
-        let plan = self
-            .coordinator
-            .operation
-            .plan_walker(&engine.schema, plan_id, Some(&self.coordinator.variables));
+        let plan =
+            self.coordinator
+                .operation_plan
+                .plan_walker(&engine.schema, plan_id, Some(&self.coordinator.variables));
         let response_part = self.response.new_part(plan.output().boundary_ids);
         let input = ExecutorInput {
             ctx: ExecutionContext {
