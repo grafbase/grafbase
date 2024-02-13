@@ -28,7 +28,6 @@ pub(crate) struct QueryRoot<T> {
 #[async_trait::async_trait]
 impl<T: ObjectType> ContainerType for QueryRoot<T> {
     async fn resolve_field(&self, ctx: &ContextField<'_>) -> ServerResult<Option<ResponseNodeId>> {
-        dbg!(ctx.query_env.introspection_state);
         let introspection_enabled = match ctx.query_env.introspection_state {
             IntrospectionState::ForceEnabled => true,
             IntrospectionState::ForceDisabled => false,
