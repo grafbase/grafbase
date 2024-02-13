@@ -64,10 +64,31 @@ impl AsyncClient {
         let reqwest_builder = self.client.post(&self.endpoint).headers(self.headers.clone());
 
         GqlRequestBuilder {
-            query: query.into(),
-            variables: None,
-            phantom: PhantomData,
-            extensions: None,
+            request: GqlRequest {
+                query: query.into(),
+                variables: None,
+                extensions: None,
+                phantom: PhantomData,
+            },
+            method: reqwest::Method::POST,
+            reqwest_builder,
+        }
+    }
+
+    pub fn gql_get<Response>(&self, query: impl Into<String>) -> GqlRequestBuilder<Response>
+    where
+        Response: serde::de::DeserializeOwned + 'static,
+    {
+        let reqwest_builder = self.client.get(&self.endpoint).headers(self.headers.clone());
+
+        GqlRequestBuilder {
+            request: GqlRequest {
+                query: query.into(),
+                variables: None,
+                extensions: None,
+                phantom: PhantomData,
+            },
+            method: reqwest::Method::GET,
             reqwest_builder,
         }
     }
@@ -171,21 +192,22 @@ impl AsyncClient {
     }
 }
 
-#[derive(serde::Serialize)]
 #[must_use]
 pub struct GqlRequestBuilder<Response> {
-    // These two will be serialized into the request
+    request: GqlRequest<Response>,
+    method: reqwest::Method,
+    reqwest_builder: reqwest::RequestBuilder,
+}
+
+#[derive(serde::Serialize)]
+struct GqlRequest<Response> {
     query: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     variables: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     extensions: Option<serde_json::Value>,
-
-    // These won't
     #[serde(skip)]
     phantom: PhantomData<fn() -> Response>,
-    #[serde(skip)]
-    reqwest_builder: reqwest::RequestBuilder,
 }
 
 impl<Response> GqlRequestBuilder<Response> {
@@ -195,19 +217,25 @@ impl<Response> GqlRequestBuilder<Response> {
     }
 
     pub fn variables(mut self, variables: impl serde::Serialize) -> Self {
-        self.variables = Some(serde_json::to_value(variables).expect("to be able to serialize variables"));
+        self.request.variables = Some(serde_json::to_value(variables).expect("to be able to serialize variables"));
         self
     }
 
     pub fn extensions(mut self, extensions: impl serde::Serialize) -> Self {
-        self.extensions = Some(serde_json::to_value(extensions).expect("to be able to serialize extensions"));
+        self.request.extensions = Some(serde_json::to_value(extensions).expect("to be able to serialize extensions"));
         self
     }
 
     pub fn into_reqwest_builder(self) -> reqwest::RequestBuilder {
-        let json = serde_json::to_value(&self).expect("to be able to serialize gql request");
-
-        self.reqwest_builder.json(&json)
+        match self.method {
+            reqwest::Method::POST => self.reqwest_builder.json(&self.request),
+            reqwest::Method::GET => self.reqwest_builder.query(&serde_json::json!({
+                "query": self.request.query,
+                "variables": serde_json::to_string(&self.request.variables).unwrap(),
+                "extensions": serde_json::to_string(&self.request.extensions).unwrap()
+            })),
+            _ => unimplemented!(),
+        }
     }
 
     pub async fn into_multipart_stream(self) -> impl Stream<Item = serde_json::Value> {

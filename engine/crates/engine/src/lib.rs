@@ -78,7 +78,9 @@ pub use look_ahead::Lookahead;
 pub use parser::{Pos, Positioned};
 pub use query_path::{QueryPath, QueryPathSegment};
 pub use registry::{CacheControl, CacheInvalidation, Registry};
-pub use request::{BatchRequest, OperationPlanCacheKey, PersistedQueryRequestExtension, Request, RequestExtensions};
+pub use request::{
+    BatchRequest, OperationPlanCacheKey, PersistedQueryRequestExtension, QueryParamRequest, Request, RequestExtensions,
+};
 #[doc(no_inline)]
 pub use resolver_utils::{ContainerType, LegacyEnumType, LegacyScalarType};
 pub use response::{

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     extract::{Query, State},
@@ -9,14 +9,14 @@ use axum::{
 use bytes::Bytes;
 use futures_util::future::{join_all, BoxFuture};
 use gateway_core::{
-    serving::{OPERATION_NAME_REQUEST_PARAMETER, QUERY_REQUEST_PARAMETER, VARIABLES_REQUEST_PARAMETER},
+    serving::{AUTHORIZATION_HEADER, X_API_KEY_HEADER},
     StreamingFormat,
 };
 use http::{HeaderMap, StatusCode};
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tower_http::cors::CorsLayer;
 
-use crate::{Error, Gateway, Response};
+use crate::{Gateway, Response};
 
 pub(super) fn router(gateway: Gateway) -> Router {
     Router::new()
@@ -56,31 +56,42 @@ async fn post_graphql(
     response
 }
 
+#[derive(serde::Deserialize)]
+struct GetRequestParams {
+    #[serde(flatten)]
+    request: engine::QueryParamRequest,
+    #[serde(default, rename = "x-api-key")]
+    x_api_key: Option<String>,
+    #[serde(default)]
+    authorization: Option<String>,
+}
+
 async fn get_graphql(
     State(gateway): State<Gateway>,
     headers: HeaderMap,
-    Query(mut params): Query<HashMap<String, String>>,
+    Query(params): Query<GetRequestParams>,
 ) -> crate::Response {
     let streaming_format = headers
         .get(http::header::ACCEPT)
         .and_then(|value| value.to_str().ok())
         .and_then(StreamingFormat::from_accept_header);
     let (sender, receiver) = mpsc::unbounded_channel();
-    let ctx = crate::Context::new(headers, &params, sender);
+    let ctx = Arc::new(crate::Context {
+        ray_id: ulid::Ulid::new().to_string(),
+        x_api_key_header: headers
+            .get(X_API_KEY_HEADER)
+            .and_then(|value| value.to_str().ok().map(ToString::to_string))
+            .or_else(|| params.x_api_key.clone()),
+        authorization_header: headers
+            .get(AUTHORIZATION_HEADER)
+            .and_then(|value| value.to_str().ok().map(ToString::to_string))
+            .or_else(|| params.authorization.clone()),
+        headers,
+        wait_until_sender: sender,
+    });
 
-    let Some(query) = params.remove(QUERY_REQUEST_PARAMETER) else {
-        return Error::BadRequest("Missing 'query' parameter".into()).into();
-    };
-
-    let request = engine::Request::new(query)
-        .with_operation_name(params.remove(OPERATION_NAME_REQUEST_PARAMETER).unwrap_or_default())
-        .variables(
-            params
-                .get(VARIABLES_REQUEST_PARAMETER)
-                .and_then(|variables| serde_json::from_str(variables).ok())
-                .unwrap_or_default(),
-        );
-
+    let mut request: engine::Request = params.request.into();
+    request.ray_id = ctx.ray_id.clone();
     let response = match gateway.execute(&ctx, request, streaming_format).await {
         Ok(response) => response,
         Err(error) => Response::from(error),

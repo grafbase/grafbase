@@ -8,6 +8,9 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{Data, ParseRequestError, UploadValue, Value, Variables};
 
+mod query;
+pub use query::QueryParamRequest;
+
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Debug, Clone, Copy, Hash)]
 #[serde(rename_all = "camelCase")]
 pub enum IntrospectionState {
