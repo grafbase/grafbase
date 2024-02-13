@@ -1,0 +1,9 @@
+---
+source: cli/crates/cli/tests/graphql-directive/main.rs
+assertion_line: 91
+expression: value
+---
+data: ~
+errors:
+  - "could not load grafbase/grafbase.config.ts\nCaused by: grafbase.config.ts(1,10): error TS2305: Module '\"@grafbase/sdk\"' has no exported member 'graph'.\ngrafbase.config.ts(22,3): error TS2353: Object literal may only specify known properties, and 'graph' does not exist in type 'ConfigInput'.\ngrafbase.config.ts(28,13): error TS7006: Parameter 'rules' implicitly has an 'any' type.\n\n"
+
