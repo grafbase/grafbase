@@ -161,11 +161,11 @@ async fn admin(
 }
 
 async fn engine_get(
-    Query(request): Query<engine::Request>,
+    Query(request): Query<engine::QueryParamRequest>,
     headers: HeaderMap,
     State(ProxyState { gateway, .. }): State<ProxyState>,
 ) -> impl IntoResponse {
-    handle_engine_request(request, gateway, headers).await
+    handle_engine_request(request.into(), gateway, headers).await
 }
 
 async fn engine_post(

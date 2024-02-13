@@ -8,6 +8,9 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{Data, ParseRequestError, UploadValue, Value, Variables};
 
+mod query;
+pub use query::QueryParamRequest;
+
 /// GraphQL request.
 ///
 /// This can be deserialized from a structure of the query string, the operation name and the
