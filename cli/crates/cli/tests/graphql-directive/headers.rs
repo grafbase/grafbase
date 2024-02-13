@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use backend::project::GraphType;
 use serde_json::{json, Value};
 
@@ -66,7 +68,7 @@ async fn test_header_forwarding() {
     "###);
 }
 
-async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> AsyncClient {
+async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str> + Display) -> AsyncClient {
     env.grafbase_init(GraphType::Single);
     env.write_schema(schema);
     env.set_variables([("API_KEY", "BLAH")]);

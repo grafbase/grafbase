@@ -57,6 +57,7 @@ pub struct Schema {
 
     pub auth_config: Option<config::latest::AuthConfig>,
     pub operation_limits: config::latest::OperationLimits,
+    pub disable_introspection: bool,
 }
 
 #[derive(Default)]

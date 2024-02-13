@@ -3,6 +3,7 @@ use crate::bridge::log::log_event_endpoint;
 use crate::bridge::udf::invoke_udf_endpoint;
 use crate::config::DetectedUdf;
 use crate::errors::ServerError;
+use crate::servers::EnvironmentName;
 use crate::types::MessageSender;
 use axum::{routing::post, Router};
 use common::environment::Project;
@@ -39,10 +40,12 @@ pub async fn build_router(
     message_sender: MessageSender,
     registry: Arc<engine::Registry>,
     tracing: bool,
+    environment_name: EnvironmentName,
 ) -> Result<(Router, Arc<HandlerState>), ServerError> {
     let project = Project::get();
 
-    let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
+    let environment_variables: std::collections::HashMap<_, _> =
+        crate::environment::variables(environment_name).collect();
 
     match project.database_directory_path.try_exists() {
         Ok(true) => {}
@@ -75,8 +78,9 @@ pub async fn start(
     registry: Arc<engine::Registry>,
     start_signal: tokio::sync::oneshot::Sender<()>,
     tracing: bool,
+    environment_name: EnvironmentName,
 ) -> Result<(), ServerError> {
-    let (router, ..) = build_router(message_sender, registry, tracing).await?;
+    let (router, ..) = build_router(message_sender, registry, tracing, environment_name).await?;
 
     let server = axum::serve(tokio::net::TcpListener::from_std(tcp_listener).unwrap(), router);
     start_signal.send(()).ok();

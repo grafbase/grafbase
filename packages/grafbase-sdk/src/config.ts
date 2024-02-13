@@ -8,6 +8,7 @@ import { CacheParams, GlobalCache } from './cache'
 import { FederatedGraph, Graph } from './grafbase-schema'
 import { OperationLimits, OperationLimitsParams } from './operation-limits'
 import { Experimental, ExperimentalParams } from './experimental'
+import { Introspection } from './introspection'
 
 /**
  * An interface to create the complete config definition.
@@ -18,6 +19,7 @@ export interface GraphConfigInput {
   cache?: CacheParams
   operationLimits?: OperationLimitsParams
   experimental?: ExperimentalParams
+  introspection?: boolean
 }
 
 /**
@@ -31,6 +33,7 @@ export interface DeprecatedGraphConfigInput {
   operationLimits?: OperationLimitsParams
   cache?: CacheParams
   experimental?: ExperimentalParams
+  introspection?: boolean
 }
 
 /**
@@ -40,6 +43,7 @@ export interface FederatedGraphConfigInput {
   graph: FederatedGraph
   auth?: AuthParamsV2
   operationLimits?: OperationLimitsParams
+  introspection?: boolean
 }
 
 /**
@@ -51,6 +55,7 @@ export class GraphConfig {
   private readonly cache?: GlobalCache
   private readonly operationLimits?: OperationLimits
   private readonly experimental?: Experimental
+  private readonly introspection?: Introspection
 
   /** @deprecated use `graph` instead of `schema` */
   constructor(input: GraphConfigInput | DeprecatedGraphConfigInput) {
@@ -71,6 +76,9 @@ export class GraphConfig {
     if (input.experimental) {
       this.experimental = new Experimental(input.experimental)
     }
+    if (input.introspection !== undefined) {
+      this.introspection = new Introspection({ enabled: input.introspection })
+    }
   }
 
   public toString(): string {
@@ -81,8 +89,13 @@ export class GraphConfig {
       : ''
     const cache = this.cache ? this.cache.toString() : ''
     const experimental = this.experimental ? this.experimental.toString() : ''
+    const introspection = this.introspection
+      ? this.introspection.toString()
+      : process.env.GRAFBASE_ENV === 'dev'
+      ? new Introspection({ enabled: true })
+      : ''
 
-    return `${experimental}${auth}${operationLimits}${cache}${graph}`
+    return `${experimental}${auth}${operationLimits}${cache}${graph}${introspection}`
   }
 }
 
@@ -90,6 +103,7 @@ export class FederatedGraphConfig {
   private graph: FederatedGraph
   private readonly operationLimits?: OperationLimits
   private readonly auth?: AuthenticationV2
+  private readonly introspection?: Introspection
 
   constructor(input: FederatedGraphConfigInput) {
     this.graph = input.graph
@@ -98,6 +112,9 @@ export class FederatedGraphConfig {
     }
     if (input.operationLimits) {
       this.operationLimits = new OperationLimits(input.operationLimits)
+    }
+    if (input.introspection !== undefined) {
+      this.introspection = new Introspection({ enabled: input.introspection })
     }
   }
 
@@ -108,6 +125,12 @@ export class FederatedGraphConfig {
       ? this.operationLimits.toString()
       : ''
 
-    return `${auth}${graph}${operationLimits}`
+    const introspection = this.introspection
+      ? this.introspection.toString()
+      : process.env.GRAFBASE_ENV === 'dev'
+      ? new Introspection({ enabled: true })
+      : ''
+
+    return `${auth}${graph}${operationLimits}${introspection}`
   }
 }

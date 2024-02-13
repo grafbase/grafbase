@@ -120,7 +120,12 @@ impl Engine {
             }
         }
         let parsed_operation = parse_operation(request)?;
-        let bound_operation = Operation::build(&self.schema, parsed_operation, !request.operation_limits_disabled())?;
+        let bound_operation = Operation::build(
+            &self.schema,
+            parsed_operation,
+            !request.operation_limits_disabled(),
+            request.introspection_state(),
+        )?;
         let prepared = Arc::new(OperationPlan::prepare(&self.schema, bound_operation)?);
         #[cfg(feature = "plan_cache")]
         {

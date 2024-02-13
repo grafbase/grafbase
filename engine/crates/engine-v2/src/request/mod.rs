@@ -12,7 +12,7 @@ pub(crate) use walkers::*;
 
 use crate::response::ResponseKeys;
 
-use self::bind::{BindError, OperationLimitExceededError};
+use self::bind::{OperationError, OperationLimitExceededError};
 
 mod bind;
 mod flat;
@@ -102,25 +102,35 @@ impl Operation {
         schema: &Schema,
         unbound_operation: ParsedOperation,
         operation_limits_enabled: bool,
+        introspection_state: engine::IntrospectionState,
     ) -> BindResult<Self> {
         let mut operation = bind::bind(schema, unbound_operation)?;
 
         if operation_limits_enabled {
             operation
                 .enforce_operation_limits(schema)
-                .map_err(BindError::OperationLimitExceeded)?;
+                .map_err(OperationError::OperationLimitExceeded)?;
         }
 
         if operation.ty == OperationType::Query {
             let root_cache_config = schema[operation.root_object_id]
                 .cache_config
                 .map(|cache_config_id| schema[cache_config_id]);
-
-            let selection_set_cache_config = operation
+            let selection_set = operation
                 .walker_with(schema.walker())
-                .walk(operation.root_selection_set_id)
-                .cache_config();
+                .walk(operation.root_selection_set_id);
 
+            match introspection_state {
+                engine::IntrospectionState::ForceEnabled => {}
+                engine::IntrospectionState::ForceDisabled => detect_introspection(&selection_set)?,
+                engine::IntrospectionState::UserPreference => {
+                    if schema.disable_introspection {
+                        detect_introspection(&selection_set)?;
+                    }
+                }
+            };
+
+            let selection_set_cache_config = selection_set.cache_config();
             operation.cache_config = root_cache_config.merge(selection_set_cache_config);
         }
 
@@ -140,4 +150,11 @@ impl Operation {
             item: (),
         }
     }
+}
+
+fn detect_introspection(selection_set: &OperationWalker<'_, BoundSelectionSetId>) -> Result<(), OperationError> {
+    if let Some(location) = selection_set.find_introspection_field_location() {
+        return Err(OperationError::IntrospectionWhenDisabled { location });
+    }
+    Ok(())
 }

@@ -11,6 +11,15 @@ use crate::{Data, ParseRequestError, UploadValue, Value, Variables};
 mod query;
 pub use query::QueryParamRequest;
 
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Debug, Clone, Copy, Hash)]
+#[serde(rename_all = "camelCase")]
+pub enum IntrospectionState {
+    ForceEnabled,
+    ForceDisabled,
+    #[default]
+    UserPreference,
+}
+
 /// GraphQL request.
 ///
 /// This can be deserialized from a structure of the query string, the operation name and the
@@ -74,9 +83,9 @@ pub struct OperationPlanCacheKey {
     #[serde(default)]
     pub operation_name: Option<String>,
 
-    /// Disable introspection queries for this request.
+    /// Force enable introspection queries for this request.
     #[serde(skip)]
-    pub disable_introspection: bool,
+    pub introspection_state: IntrospectionState,
 
     /// Disable validating operation limits.
     #[serde(skip)]
@@ -90,7 +99,7 @@ impl Request {
             operation_plan_cache_key: OperationPlanCacheKey {
                 query: query.into(),
                 operation_name: None,
-                disable_introspection: false,
+                introspection_state: IntrospectionState::UserPreference,
                 disable_operation_limits: false,
             },
             ray_id: String::new(),
@@ -126,10 +135,10 @@ impl Request {
         self
     }
 
-    /// Disable introspection queries for this request.
+    /// Set the introspection state for this request.
     #[must_use]
-    pub fn disable_introspection(mut self) -> Self {
-        self.operation_plan_cache_key.disable_introspection = true;
+    pub fn set_introspection_state(mut self, state: IntrospectionState) -> Self {
+        self.operation_plan_cache_key.introspection_state = state;
         self
     }
 
@@ -172,8 +181,8 @@ impl Request {
         self.operation_plan_cache_key.operation_name.as_deref()
     }
 
-    pub fn introspection_disabled(&self) -> bool {
-        self.operation_plan_cache_key.disable_introspection
+    pub fn introspection_state(&self) -> IntrospectionState {
+        self.operation_plan_cache_key.introspection_state
     }
 
     pub fn operation_limits_disabled(&self) -> bool {
@@ -262,11 +271,11 @@ impl BatchRequest {
         self
     }
 
-    /// Disable introspection queries for for each requests.
+    /// Set the introspection state for for all requests.
     #[must_use]
-    pub fn disable_introspection(mut self) -> Self {
+    pub fn set_introspection_state(mut self, state: IntrospectionState) -> Self {
         for request in self.iter_mut() {
-            request.operation_plan_cache_key.disable_introspection = true;
+            request.operation_plan_cache_key.introspection_state = state;
         }
         self
     }

@@ -37,6 +37,7 @@ use rules::{
     graph_directive::GraphVisitor,
     graphql_directive::GraphqlVisitor,
     input_object::InputObjectVisitor,
+    introspection::{IntrospectionDirective, IntrospectionDirectiveVisitor},
     join_directive::JoinDirective,
     length_directive::LengthDirective,
     map_directive::MapDirective,
@@ -163,7 +164,8 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<ShareableDirective>()
         .with::<SubgraphDirective>()
         .with::<TagDirective>()
-        .with::<UniqueDirective>();
+        .with::<UniqueDirective>()
+        .with::<IntrospectionDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",
@@ -351,7 +353,8 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(FederationDirectiveVisitor) // This will likely need moved.  Here'll do for now though
         .with(ExtendFieldVisitor)
         .with(SubgraphDirectiveVisitor)
-        .with(AllSubgraphsDirectiveVisitor);
+        .with(AllSubgraphsDirectiveVisitor)
+        .with(IntrospectionDirectiveVisitor);
 
     visit(&mut first_pass_rules, ctx, schema);
 

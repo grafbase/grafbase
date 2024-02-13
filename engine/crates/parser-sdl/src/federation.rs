@@ -15,6 +15,8 @@ pub struct FederatedGraphConfig {
     pub global_cache_rules: GlobalCacheRules<'static>,
 
     pub auth: Option<AuthV2Directive>,
+
+    pub disable_introspection: bool,
 }
 
 /// Configuration for a subgraph of the current federated graph

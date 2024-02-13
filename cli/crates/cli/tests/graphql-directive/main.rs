@@ -1,5 +1,7 @@
 #![allow(unused_crate_dependencies)]
 
+use std::fmt::Display;
+
 use backend::project::GraphType;
 use serde_json::{json, Value};
 use utils::async_client::AsyncClient;
@@ -160,7 +162,7 @@ async fn graphql_test_without_namespace() {
     });
 }
 
-async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> AsyncClient {
+async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str> + Display) -> AsyncClient {
     env.grafbase_init(GraphType::Single);
     env.write_schema(schema);
     env.set_variables([("API_KEY", "BLAH")]);

@@ -65,6 +65,7 @@ impl VersionedConfig {
                 cache,
                 auth,
                 operation_limits,
+                disable_introspection: Default::default(),
             })
             .into_latest(),
 

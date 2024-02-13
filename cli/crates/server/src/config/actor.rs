@@ -5,6 +5,7 @@ use tokio_stream::{wrappers::WatchStream, StreamExt};
 
 use crate::{
     file_watcher::ChangeStream,
+    servers::EnvironmentName,
     types::{MessageSender, ServerMessage},
 };
 
@@ -15,9 +16,13 @@ pub struct ConfigActor {
 }
 
 impl ConfigActor {
-    pub async fn new(files: Option<ChangeStream>, message_sender: MessageSender) -> Self {
-        let variables = crate::environment::variables().collect();
-        let initial_value = super::build_config(&variables, None).await;
+    pub async fn new(
+        files: Option<ChangeStream>,
+        message_sender: MessageSender,
+        environment_name: EnvironmentName,
+    ) -> Self {
+        let variables = crate::environment::variables(environment_name).collect();
+        let initial_value = super::build_config(&variables, None, environment_name).await;
 
         let Some(mut files) = files else {
             // If we don't have a watcher stream then we're not in watch mode
@@ -33,11 +38,11 @@ impl ConfigActor {
             while let Some(next) = files.next().await {
                 message_sender.send(ServerMessage::Reload(next.clone())).ok();
 
-                let next_result = super::build_config(&variables, Some(next)).await;
+                let next_result = super::build_config(&variables, Some(next), environment_name).await;
 
                 if sender.send(next_result).is_err() {
                     // Channel is closed, so shut down
-                    tracing::info!("config watcher shuttiing down");
+                    tracing::info!("config watcher shutting down");
                     return;
                 }
             }

@@ -49,7 +49,7 @@ impl Extension for AuthExtension {
         let request = if auth_context.is_introspection_allowed() {
             request
         } else {
-            request.disable_introspection()
+            request.set_introspection_state(engine::IntrospectionState::ForceDisabled)
         };
         next.run(ctx, request).await
     }

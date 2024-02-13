@@ -487,7 +487,7 @@ impl Schema {
         // Or just print it for now.
         // LogicalQuery::build(document, registry);
 
-        let disable_introspection = request.introspection_disabled();
+        let introspection_state = request.introspection_state();
         let env = QueryEnvInner {
             extensions,
             variables: request.variables,
@@ -498,7 +498,7 @@ impl Schema {
             session_data,
             ctx_data: query_data,
             response_http_headers: Default::default(),
-            disable_introspection,
+            introspection_state,
             errors: Default::default(),
             current_datetime: CurrentDateTime::new(),
             cache_invalidations: validation_result.cache_invalidation_policies,

@@ -53,6 +53,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
         cache: cache_config,
         auth: build_auth_config(config),
         operation_limits: build_operation_limits(config),
+        disable_introspection: config.disable_introspection,
     })
 }
 

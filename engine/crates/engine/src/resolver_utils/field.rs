@@ -11,6 +11,7 @@ use crate::{
         type_kinds::OutputType,
         FieldSet, MetaField, MetaType, ScalarParser, TypeReference,
     },
+    request::IntrospectionState,
     Context, ContextExt, ContextField, Error, ServerError,
 };
 
@@ -19,7 +20,11 @@ pub async fn resolve_field(
     ctx: &ContextField<'_>,
     parent_resolver_value: Option<ResolvedValue>,
 ) -> Result<ResponseNodeId, ServerError> {
-    let introspection_enabled = !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection;
+    let introspection_enabled = match ctx.query_env.introspection_state {
+        IntrospectionState::ForceEnabled => true,
+        IntrospectionState::ForceDisabled => false,
+        IntrospectionState::UserPreference => !ctx.schema_env.registry.disable_introspection,
+    };
 
     if ctx.item.node.name.node == "__schema" {
         if introspection_enabled {

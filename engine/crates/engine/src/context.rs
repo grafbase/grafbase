@@ -29,6 +29,7 @@ use crate::{
     parser::types::{Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet},
     query_path::QueryPath,
     registry::{relations::MetaRelation, type_kinds::SelectionSetTarget},
+    request::IntrospectionState,
     schema::SchemaEnv,
     CacheInvalidation, Name, Positioned, Result, ServerError, ServerResult, UploadValue,
 };
@@ -174,7 +175,7 @@ pub struct QueryEnvInner {
     pub session_data: Arc<Data>,
     pub ctx_data: Arc<Data>,
     pub response_http_headers: Mutex<HeaderMap>,
-    pub disable_introspection: bool,
+    pub introspection_state: IntrospectionState,
     pub errors: Mutex<Vec<ServerError>>,
     /// Defines the current timestamp to be used whenever Utc::now() is used to have consistent
     /// datetimes (createdAt/updatedAt typically) across objects

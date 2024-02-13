@@ -107,3 +107,5 @@ pub use engine_derive::{
     ComplexObject, Description, Enum, InputObject, Interface, MergedObject, MergedSubscription, NewType, Object,
     Scalar, SimpleObject, Union,
 };
+
+pub use crate::request::IntrospectionState;

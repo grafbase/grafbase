@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use crate::request::Location;
+
 use super::{BoundSelectionSetWalker, BoundSelectionWalker};
 
 impl<'a> BoundSelectionSetWalker<'a> {
@@ -85,5 +87,16 @@ impl<'a> BoundSelectionSetWalker<'a> {
                 BoundSelectionWalker::FragmentSpread(spread) => spread.selection_set().height(fields_seen),
             })
             .sum()
+    }
+
+    pub(crate) fn find_introspection_field_location(self) -> Option<Location> {
+        self.fields().find_map(|field| {
+            let schema_field = field.schema_field();
+            if schema_field.is_some_and(|field| field.name() == "__type" || field.name() == "__schema") {
+                field.name_location()
+            } else {
+                None
+            }
+        })
     }
 }
