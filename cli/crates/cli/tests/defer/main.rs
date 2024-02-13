@@ -2,7 +2,7 @@
 #[path = "../utils/mod.rs"]
 mod utils;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use backend::project::GraphType;
 use futures_util::StreamExt;
@@ -256,7 +256,7 @@ async fn test_auth_with_sse() {
     assert!(error.contains("Unauthorized"), "error: {error:#?}");
 }
 
-async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> AsyncClient {
+async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str> + Display) -> AsyncClient {
     env.grafbase_init(GraphType::Single);
     env.write_schema(schema);
     env.set_variables([("API_KEY", "BLAH")]);

@@ -6,6 +6,7 @@ use super::{cargo_bin::cargo_bin, client::Client};
 use backend::project::GraphType;
 use common::consts::GRAFBASE_SCHEMA_FILE_NAME;
 use duct::{cmd, Handle};
+use std::fmt::Display;
 use std::io;
 use std::path::Path;
 use std::process::Output;
@@ -135,7 +136,8 @@ impl Environment {
 
     // TODO: change this to set_schema
     //
-    pub fn write_schema(&self, schema: impl AsRef<str>) {
+    pub fn write_schema(&self, schema: impl AsRef<str> + Display) {
+        let schema = format!("extend schema @introspection(enable: true)\n{schema}");
         // TODO: this is temporary until we update all tests to use SDK
         let _ = fs::remove_file("grafbase.config.ts");
         let _ = fs::remove_file("grafbase/grafbase.config.ts");

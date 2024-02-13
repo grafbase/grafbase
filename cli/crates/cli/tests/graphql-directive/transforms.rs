@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use backend::project::GraphType;
 use cynic::{GraphQlResponse, QueryBuilder};
 use cynic_introspection::IntrospectionQuery;
@@ -20,8 +22,6 @@ async fn graphql_test_with_transforms() {
         .await;
 
     insta::assert_snapshot!(response.data.unwrap().into_schema().unwrap().to_sdl(), @r###"
-    extend schema @introspection(enable: true)
-
     type Header {
       name: String!
       value: String!
@@ -49,7 +49,7 @@ async fn graphql_test_with_transforms() {
     "###);
 }
 
-async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> AsyncClient {
+async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str> + Display) -> AsyncClient {
     env.grafbase_init(GraphType::Single);
     env.write_schema(schema);
     env.set_variables([("API_KEY", "BLAH")]);
@@ -65,7 +65,6 @@ async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> Async
 fn schema(port: u16) -> String {
     format!(
         r#"
-          extend schema @introspection(enable: true)
           extend schema
           @graphql(
             name: "test",

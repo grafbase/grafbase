@@ -1,5 +1,3 @@
-extend schema @introspection(enable: true)
-
 type Author @model {
   id: ID!
   age: Int!

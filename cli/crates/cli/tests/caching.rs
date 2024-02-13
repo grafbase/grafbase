@@ -1,6 +1,6 @@
 #![allow(unused_crate_dependencies, clippy::panic)]
 
-use std::time::Duration;
+use std::{fmt::Display, time::Duration};
 
 use backend::project::GraphType;
 use headers::{CacheControl, HeaderMapExt};
@@ -326,7 +326,7 @@ async fn no_cache_header_when_caching_is_not_used() {
     assert_eq!(response.headers().typed_get::<CacheControl>(), None);
 }
 
-async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> AsyncClient {
+async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str> + Display) -> AsyncClient {
     env.grafbase_init(GraphType::Single);
     env.write_schema(schema);
     env.grafbase_dev_watch();

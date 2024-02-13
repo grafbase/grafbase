@@ -23,7 +23,7 @@ pub async fn resolve_field(
     let introspection_enabled = match ctx.query_env.introspection_state {
         IntrospectionState::ForceEnabled => true,
         IntrospectionState::ForceDisabled => false,
-        IntrospectionState::UserPreference => ctx.schema_env.registry.disable_introspection,
+        IntrospectionState::UserPreference => !ctx.schema_env.registry.disable_introspection,
     };
 
     if ctx.item.node.name.node == "__schema" {
