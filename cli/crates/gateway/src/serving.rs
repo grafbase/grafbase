@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use axum::{
     extract::{Query, State},
@@ -66,6 +66,20 @@ struct GetRequestParams {
     authorization: Option<String>,
 }
 
+impl GetRequestParams {
+    fn auth_query_params(&self) -> HashMap<String, String> {
+        [
+            self.x_api_key.clone().map(|key| (X_API_KEY_HEADER.to_string(), key)),
+            self.authorization
+                .clone()
+                .map(|auth| (AUTHORIZATION_HEADER.to_string(), auth)),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+}
+
 async fn get_graphql(
     State(gateway): State<Gateway>,
     headers: HeaderMap,
@@ -76,19 +90,7 @@ async fn get_graphql(
         .and_then(|value| value.to_str().ok())
         .and_then(StreamingFormat::from_accept_header);
     let (sender, receiver) = mpsc::unbounded_channel();
-    let ctx = Arc::new(crate::Context {
-        ray_id: ulid::Ulid::new().to_string(),
-        x_api_key_header: headers
-            .get(X_API_KEY_HEADER)
-            .and_then(|value| value.to_str().ok().map(ToString::to_string))
-            .or_else(|| params.x_api_key.clone()),
-        authorization_header: headers
-            .get(AUTHORIZATION_HEADER)
-            .and_then(|value| value.to_str().ok().map(ToString::to_string))
-            .or_else(|| params.authorization.clone()),
-        headers,
-        wait_until_sender: sender,
-    });
+    let ctx = crate::Context::new(headers, &params.auth_query_params(), sender);
 
     let mut request: engine::Request = params.request.into();
     request.ray_id = ctx.ray_id.clone();
