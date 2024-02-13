@@ -39,7 +39,7 @@ impl<'a> FederationGatewayWithoutIO<'a> {
         );
         let federated_graph = FederatedGraph::from_sdl(schema).unwrap().into_latest();
         let config =
-            engine_v2::VersionedConfig::V4(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
+            engine_v2::VersionedConfig::V3(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
 
         let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
             enabled: true,

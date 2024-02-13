@@ -28,6 +28,9 @@ pub struct Config {
 
     #[serde(default)]
     pub operation_limits: OperationLimits,
+
+    #[serde(default)]
+    pub disable_introspection: bool,
 }
 
 impl Config {
@@ -41,6 +44,7 @@ impl Config {
             cache: Default::default(),
             auth: Default::default(),
             operation_limits: Default::default(),
+            disable_introspection: Default::default(),
         }
     }
 }
@@ -109,6 +113,7 @@ mod tests {
             cache: CacheConfigs { rules: cache_config },
             auth: None,
             operation_limits: Default::default(),
+            disable_introspection: Default::default(),
         };
 
         insta::with_settings!({sort_maps => true}, {
@@ -130,6 +135,7 @@ mod tests {
                 }
               },
               "default_headers": [],
+              "disable_introspection": false,
               "graph": {
                 "directives": [],
                 "enum_values": [],

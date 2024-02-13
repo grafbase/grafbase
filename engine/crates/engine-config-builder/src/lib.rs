@@ -44,7 +44,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
 
     let cache_config = build_cache_config(config, &graph);
 
-    VersionedConfig::V4(config::Config {
+    VersionedConfig::V3(config::Config {
         graph,
         default_headers,
         strings: context.strings.into_vec(),
