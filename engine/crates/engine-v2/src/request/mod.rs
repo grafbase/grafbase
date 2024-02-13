@@ -102,7 +102,7 @@ impl Operation {
         schema: &Schema,
         unbound_operation: ParsedOperation,
         operation_limits_enabled: bool,
-        introspection_disabled_for_request: bool,
+        introspection_state: engine::IntrospectionState,
     ) -> BindResult<Self> {
         let mut operation = bind::bind(schema, unbound_operation)?;
 
@@ -120,11 +120,15 @@ impl Operation {
                 .walker_with(schema.walker())
                 .walk(operation.root_selection_set_id);
 
-            if introspection_disabled_for_request || schema.disable_introspection {
-                if let Some(location) = selection_set.find_introspection_field_location() {
-                    return Err(OperationError::IntrospectionWhenDisabled { location });
+            match ctx.query_env.introspection_state {
+                IntrospectionState::ForceEnabled => {}
+                IntrospectionState::ForceDisabled => detect_introspection(&selection_set)?,
+                IntrospectionState::UserPreference => {
+                    if schema.disable_introspection {
+                        detect_introspection(&selection_set)?;
+                    }
                 }
-            }
+            };
 
             let selection_set_cache_config = selection_set.cache_config();
             operation.cache_config = root_cache_config.merge(selection_set_cache_config);
@@ -146,4 +150,11 @@ impl Operation {
             item: (),
         }
     }
+}
+
+fn detect_introspection(selection_set: &OperationWalker<'_, BoundSelectionSetId>) -> Result<(), OperationError> {
+    if let Some(location) = selection_set.find_introspection_field_location() {
+        return Err(OperationError::IntrospectionWhenDisabled { location });
+    }
+    Ok(())
 }

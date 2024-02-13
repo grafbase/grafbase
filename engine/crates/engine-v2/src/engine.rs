@@ -124,7 +124,7 @@ impl Engine {
             &self.schema,
             parsed_operation,
             !request.operation_limits_disabled(),
-            request.introspection_disabled(),
+            request.introspection_state(),
         )?;
         let prepared = Arc::new(OperationPlan::prepare(&self.schema, bound_operation)?);
         #[cfg(feature = "plan_cache")]

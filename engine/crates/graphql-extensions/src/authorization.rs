@@ -8,7 +8,9 @@ use common_types::auth::{ExecutionAuth, Operations};
 use engine::{
     extensions::{Extension, ExtensionContext, ExtensionFactory, NextResolve, ResolveInfo},
     graph_entities::ResponseNodeId,
-    registry::{relations::MetaRelation, ModelName, NamedType, Registry, TypeReference},
+    registry::{
+        relations::MetaRelation, resolvers::IntrospectionResolver, ModelName, NamedType, Registry, TypeReference,
+    },
     AuthConfig, ServerError, ServerResult,
 };
 use engine_value::ConstValue;
@@ -49,7 +51,7 @@ impl Extension for AuthExtension {
         let request = if auth_context.is_introspection_allowed() {
             request
         } else {
-            request.disable_introspection()
+            request.set_introspection_state(engine::IntrospectionState::ForceDisabled)
         };
         next.run(ctx, request).await
     }
