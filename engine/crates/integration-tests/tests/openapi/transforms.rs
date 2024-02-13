@@ -43,6 +43,8 @@ fn test_openapi_with_transforms() {
 fn petstore_schema_with_transforms(address: &SocketAddr) -> String {
     format!(
         r#"
+          extend schema @introspection(enable: true)
+
           extend schema
           @openapi(
             name: "petstore",

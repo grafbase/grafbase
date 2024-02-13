@@ -64,6 +64,7 @@ fn graphql_test_with_transforms() {
 fn schema(port: u16) -> String {
     format!(
         r#"
+          extend schema @introspection(enable: true)
           extend schema
           @graphql(
             name: "test",
