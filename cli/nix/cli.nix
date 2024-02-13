@@ -34,6 +34,7 @@ let
     yarn.lock
 
     !/engine/crates/validation/README.md
+    !/engine/crates/composition/README.md
     !/engine/crates/graphql-schema-diff/README.md
     !/packages/grafbase-sdk/package.json
   '';
@@ -51,6 +52,10 @@ let
   '';
 in
 {
+  imports = [
+    ./udf-wrapper.nix
+  ];
+
   packages.cli = craneLib.buildPackage {
     inherit src;
     pname = "grafbase";
@@ -66,6 +71,7 @@ in
 
     GRAFBASE_ASSETS_GZIP_PATH = assetsTarGz;
     GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH = config.packages.cli-app;
+    GRAFBASE_CLI_UDF_WRAPPER_PATH = config.packages.udf-wrapper;
 
     doCheck = false;
 
