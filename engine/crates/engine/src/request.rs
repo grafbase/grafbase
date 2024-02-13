@@ -268,7 +268,7 @@ impl BatchRequest {
         self
     }
 
-    /// Disable introspection queries for for each requests.
+    /// Set the introspection state for for all requests.
     #[must_use]
     pub fn set_introspection_state(mut self, state: IntrospectionState) -> Self {
         for request in self.iter_mut() {
