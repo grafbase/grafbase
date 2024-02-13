@@ -109,7 +109,9 @@ pub(crate) async fn build(
     // URL.
     let udf_wrapper_worker_contents = extract_udf_wrapper_worker_contents(udf_kind)
         .await?
-        .replace("\"/invoke\"", &format!("\"{}\"", udf_url_path(udf_kind, udf_name)));
+        .replace("/invoke", &udf_url_path(udf_kind, udf_name));
+
+    dbg!(&udf_wrapper_worker_contents);
 
     trace!("building {udf_kind} '{udf_name}'");
 

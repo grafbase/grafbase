@@ -536,6 +536,8 @@ async fn invoke(
         ApiError::UdfInvocation
     })?;
 
+    trace!("Invocation response: {value}");
+
     let mut messages = vec![];
 
     for UdfMessage {
