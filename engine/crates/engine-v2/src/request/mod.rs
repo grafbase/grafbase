@@ -120,8 +120,8 @@ impl Operation {
                 .walker_with(schema.walker())
                 .walk(operation.root_selection_set_id);
 
-            if let Some(location) = selection_set.find_introspection_field_location() {
-                if introspection_disabled_for_request || schema.disable_introspection {
+            if introspection_disabled_for_request || schema.disable_introspection {
+                if let Some(location) = selection_set.find_introspection_field_location() {
                     return Err(OperationError::IntrospectionWhenDisabled { location });
                 }
             }
