@@ -14,7 +14,7 @@ impl Directive for IntrospectionDirective {
         r#"
         directive @introspection(
           "Whether to enable introspection."
-          enabled: Boolean!,
+          enable: Boolean!,
         ) on SCHEMA
         "#
         .to_string()

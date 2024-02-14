@@ -23,7 +23,7 @@
     };
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
-          inputs = {
+      inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
       };
@@ -33,7 +33,7 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
-  outputs = inputs@{
+  outputs = inputs @ {
     flake-parts,
     nixpkgs,
     flake-utils,
@@ -49,7 +49,7 @@
         inherit system;
       };
 
-      aarch64DarwinExternalCargoCrates = concatStringsSep " " ["cargo-instruments@0.4.8"];
+      aarch64DarwinExternalCargoCrates = concatStringsSep " " ["cargo-instruments@0.4.8" "cargo-about@0.6.1"];
 
       defaultShellConf = {
         nativeBuildInputs = with pkgs;
@@ -61,7 +61,6 @@
             hey
 
             # Versioning, automation and releasing
-            cargo-about
             cargo-make
             cargo-release
             nodePackages.npm
@@ -93,6 +92,9 @@
             darwin.apple_sdk.frameworks.CoreServices
             darwin.apple_sdk.frameworks.Security
             darwin.apple_sdk.frameworks.SystemConfiguration
+          ]
+          ++ optional (system != systems.aarch64-darwin) [
+            cargo-about # broken build at the moment on darwin
           ];
 
         shellHook = ''
@@ -108,12 +110,16 @@
       devShells.default = pkgs.mkShell defaultShellConf;
     });
   in
-    flake-parts.lib.mkFlake { inherit inputs; } {
+    flake-parts.lib.mkFlake {inherit inputs;} {
       inherit flake;
 
       systems = flake-utils.lib.defaultSystems;
 
-      perSystem = { config, system, ... }: {
+      perSystem = {
+        config,
+        system,
+        ...
+      }: {
         _module.args = {
           inherit crane pnpm2nix;
           pkgs = import nixpkgs {
@@ -122,7 +128,7 @@
           };
         };
 
-        imports = [ ./cli/nix/cli.nix ./packages/nix/cli-app.nix ];
+        imports = [./cli/nix/cli.nix ./packages/nix/cli-app.nix];
       };
     };
 }

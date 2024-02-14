@@ -1,257 +1,72 @@
 #![allow(unused_crate_dependencies)]
-#![recursion_limit = "256"]
-
-#[path = "graphql-directive/server.rs"]
-mod server;
-
 mod utils;
 
-use serde_json::json;
+use backend::project::GraphType;
+use serde_json::Value;
 use utils::environment::Environment;
-use wiremock::{
-    matchers::{body_json, header, method, path},
-    Mock, MockServer, ResponseTemplate,
-};
 
-#[tokio::test(flavor = "multi_thread")]
-async fn subgraph() {
-    let env = Environment::init();
-    let server = MockServer::start().await;
+use crate::utils::consts::INTROSPECTION_QUERY;
 
-    let request = json!({
-        "query": "query {\n  _service {\n    sdl\n  }\n}\n",
-        "variables": {}
-    });
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn introspection_configuration() {
+    let mut env = Environment::init();
 
-    let response = ResponseTemplate::new(200).set_body_json(json!({
-        "data": {
-            "_service": {
-                "sdl": indoc::indoc! {r"
-                    type Test {
-                      id: ID!
-                    }
-                "}
-            }
+    env.grafbase_init(GraphType::Single);
+
+    env.write_schema_without_introspection(
+        r#"
+        extend type Query {
+            hello: String! @resolver(name: "hello")
         }
-    }));
+        "#,
+    );
+    env.write_resolver("hello.js", "export default function Resolver() { return 'hello'; }");
 
-    Mock::given(method("POST"))
-        .and(path("/graphql"))
-        .and(body_json(request))
-        .respond_with(response)
-        .mount(&server)
-        .await;
+    env.grafbase_dev_watch();
 
-    let address = server.address();
-    let url = format!("http://localhost:{}/graphql", address.port());
+    let mut client = env.create_client().with_api_key();
 
-    let output = env.grafbase_introspect(&url, &[]);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    client.poll_endpoint(30, 300).await;
 
-    println!("{stderr}");
-    assert!(output.stderr.is_empty());
+    let response = client.gql::<Value>(INTROSPECTION_QUERY).send().await;
 
-    insta::assert_snapshot!(&stdout, @r###"
-    type Test {
-      id: ID!
-    }
+    let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
+    assert!(!errors.is_some_and(|errors| !errors.is_empty()));
 
-    "###);
-}
+    client.snapshot().await;
 
-#[tokio::test(flavor = "multi_thread")]
-async fn header_no_whitespace() {
-    let env = Environment::init();
-    let server = MockServer::start().await;
-
-    let request = json!({
-        "query": "query {\n  _service {\n    sdl\n  }\n}\n",
-        "variables": {}
-    });
-
-    let response = ResponseTemplate::new(200).set_body_json(json!({
-        "data": {
-            "_service": {
-                "sdl": indoc::indoc! {r"
-                    type Test {
-                      id: ID!
-                    }
-                "}
-            }
+    env.write_schema_without_introspection(
+        r#"       
+        extend schema @introspection(enable: false)
+        extend type Query {
+            hello: String! @resolver(name: "hello")
         }
-    }));
+        "#,
+    );
 
-    Mock::given(method("POST"))
-        .and(path("/graphql"))
-        .and(body_json(request))
-        .and(header("x-api-key", "foo"))
-        .respond_with(response)
-        .mount(&server)
-        .await;
+    client.poll_endpoint_for_changes(30, 300).await;
 
-    let address = server.address();
-    let url = format!("http://localhost:{}/graphql", address.port());
+    let response = client.gql::<Value>(INTROSPECTION_QUERY).send().await;
 
-    let output = env.grafbase_introspect(&url, &["x-api-key:foo"]);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
+    assert!(errors.is_some_and(|errors| !errors.is_empty()));
 
-    println!("{stderr}");
-    assert!(output.stderr.is_empty());
+    client.snapshot().await;
 
-    insta::assert_snapshot!(&stdout, @r###"
-    type Test {
-      id: ID!
-    }
-
-    "###);
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn header_with_whitespace() {
-    let env = Environment::init();
-    let server = MockServer::start().await;
-
-    let request = json!({
-        "query": "query {\n  _service {\n    sdl\n  }\n}\n",
-        "variables": {}
-    });
-
-    let response = ResponseTemplate::new(200).set_body_json(json!({
-        "data": {
-            "_service": {
-                "sdl": indoc::indoc! {r"
-                    type Test {
-                      id: ID!
-                    }
-                "}
-            }
+    env.write_schema_without_introspection(
+        r#"       
+        extend schema @introspection(enable: true)
+        extend type Query {
+            hello: String! @resolver(name: "hello")
+            helloAgain: String! @resolver(name: "hello")
         }
-    }));
+        "#,
+    );
 
-    Mock::given(method("POST"))
-        .and(path("/graphql"))
-        .and(body_json(request))
-        .and(header("x-api-key", "foo"))
-        .respond_with(response)
-        .mount(&server)
-        .await;
+    client.poll_endpoint_for_changes(30, 300).await;
 
-    let address = server.address();
-    let url = format!("http://localhost:{}/graphql", address.port());
+    let response = client.gql::<Value>(INTROSPECTION_QUERY).send().await;
 
-    let output = env.grafbase_introspect(&url, &["x-api-key: foo"]);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let stdout = String::from_utf8_lossy(&output.stdout);
-
-    println!("{stderr}");
-    assert!(output.stderr.is_empty());
-
-    insta::assert_snapshot!(&stdout, @r###"
-    type Test {
-      id: ID!
-    }
-
-    "###);
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn two_headers() {
-    let env = Environment::init();
-    let server = MockServer::start().await;
-
-    let request = json!({
-        "query": "query {\n  _service {\n    sdl\n  }\n}\n",
-        "variables": {}
-    });
-
-    let response = ResponseTemplate::new(200).set_body_json(json!({
-        "data": {
-            "_service": {
-                "sdl": indoc::indoc! {r"
-                    type Test {
-                      id: ID!
-                    }
-                "}
-            }
-        }
-    }));
-
-    Mock::given(method("POST"))
-        .and(path("/graphql"))
-        .and(body_json(request))
-        .and(header("x-api-key", "foo"))
-        .and(header("x-other-key", "bar"))
-        .respond_with(response)
-        .mount(&server)
-        .await;
-
-    let address = server.address();
-    let url = format!("http://localhost:{}/graphql", address.port());
-
-    let output = env.grafbase_introspect(&url, &["x-api-key: foo", "x-other-key: bar"]);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let stdout = String::from_utf8_lossy(&output.stdout);
-
-    println!("{stderr}");
-    assert!(output.stderr.is_empty());
-
-    insta::assert_snapshot!(&stdout, @r###"
-    type Test {
-      id: ID!
-    }
-
-    "###);
-}
-
-#[tokio::test(flavor = "multi_thread")]
-#[allow(clippy::too_many_lines)]
-async fn standard() {
-    let port = server::run().await;
-
-    let env = Environment::init();
-
-    let url = format!("http://localhost:{port}/");
-
-    let output = env.grafbase_introspect(&url, &[]);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let stdout = String::from_utf8_lossy(&output.stdout);
-
-    println!("{stderr}");
-    assert!(output.stderr.is_empty());
-
-    insta::assert_snapshot!(&stdout, @r###"
-    type Bot {
-      id: ID!
-    }
-    type Header {
-      name: String!
-      value: String!
-    }
-    type Issue implements PullRequestOrIssue {
-      title: String!
-      author: UserOrBot!
-    }
-    type PullRequest implements PullRequestOrIssue {
-      title: String!
-      checks: [String!]!
-      author: UserOrBot!
-    }
-    type Query {
-      serverVersion: String!
-      pullRequestOrIssue(id: ID!): PullRequestOrIssue
-      headers: [Header!]!
-    }
-    type User {
-      name: String!
-      email: String!
-    }
-    interface PullRequestOrIssue {
-      title: String!
-      author: UserOrBot!
-    }
-    union UserOrBot = User | Bot
-
-    "###);
+    let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
+    assert!(!errors.is_some_and(|errors| !errors.is_empty()));
 }

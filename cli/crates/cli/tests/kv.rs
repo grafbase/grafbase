@@ -5,24 +5,23 @@ use backend::project::GraphType;
 use serde_json::Value;
 use utils::environment::Environment;
 
-#[rstest::rstest]
-#[case(true)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn test_kv_integration(#[case] enabled: bool) {
+async fn test_kv_integration() {
     // prepare
     let mut env = Environment::init();
     env.grafbase_init(GraphType::Single);
-    env.write_schema(format!(
+    env.write_schema(
         r#"
-                extend schema @experimental(kv: {enabled})
+                extend schema @experimental(kv: true)
 
-                extend type Query {{
-                    hello: String! @resolver(name: "test")
-                }}
-            "#
-    ));
+                extend type Query {
+                    hello: String! @resolver(name: "hello")
+                    other: String! @resolver(name: "other")
+                }
+            "#,
+    );
     env.write_resolver(
-        "test.js",
+        "hello.js",
         r#"
         export default async function Resolver(_, __, { kv }) {
             const kvKey = "test";
@@ -40,19 +39,34 @@ async fn test_kv_integration(#[case] enabled: bool) {
     "#,
     );
 
+    env.write_resolver(
+        "other.js",
+        r#"
+        export default async function Resolver(_, __, { kv }) {
+            const kvKey = "test";
+
+            let { value } = await kv.get(kvKey);
+
+            return value ?? "not found";
+        }
+    "#,
+    );
+
     env.grafbase_dev();
     let client = env
         .create_client_with_options(utils::client::ClientOptionsBuilder::default().http_timeout(60).build())
         .with_api_key();
     client.poll_endpoint(120, 250).await;
 
-    // act
-    let response = client.gql::<Value>("query { hello }").send().await;
+    let response = client.gql::<Value>("query { other }").send().await;
+    assert_eq!(dot_get!(response, "data.other", String), "not found");
 
-    // asert
-    if enabled {
-        assert_eq!(dot_get!(response, "data.hello", String), "hello kv!");
-    } else {
-        assert_eq!(dot_get!(response, "errors.0.message", String), "Invocation failed");
-    }
+    let response = client.gql::<Value>("query { hello }").send().await;
+    assert_eq!(dot_get!(response, "data.hello", String), "hello kv!");
+
+    let response = client.gql::<Value>("query { hello }").send().await;
+    assert_eq!(dot_get!(response, "data.hello", String), "hello kv!");
+
+    let response = client.gql::<Value>("query { other }").send().await;
+    assert_eq!(dot_get!(response, "data.other", String), "hello kv!");
 }
