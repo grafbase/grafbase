@@ -44,11 +44,11 @@ futures-util = "0.3"
 mimalloc = "0.1"
 
 atty = "0.2"
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.56.0" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.56.0" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.57.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.57.0" }
 federated-dev = { path = "../federated-dev" }
 graphql-introspection = { package = "grafbase-graphql-introspection", path = "../graphql-introspection" }
-server = { package = "grafbase-local-server", path = "../server", version = "0.56.0" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.57.0" }
 
 [dev-dependencies]
 async-graphql-axum.workspace = true
