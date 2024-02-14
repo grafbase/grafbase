@@ -4,12 +4,12 @@
   "devDependencies": {
     "@types/bun": "^1.0.2",
     "@types/node": "^20.10.5",
-    "typescript": "^5.3.3",
-    "bun": "1.0.26"
+    "bun": "1.0.26",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "@miniflare/kv": "^2.14.1",
-    "@miniflare/storage-memory": "^2.14.1"
+    "@miniflare/storage-file": "^2.14.2"
   },
   "scripts": {
     "build": "bun build index.ts --external=\"\\${UDF_MAIN_FILE_PATH}\" --minify --target=bun > dist.js"
