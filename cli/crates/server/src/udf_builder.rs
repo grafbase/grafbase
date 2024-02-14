@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tokio::process::Command;
 
-use crate::consts::{ENTRYPOINT_SCRIPT_FILE_NAME, KV_FILE_NAME};
+use crate::consts::{ENTRYPOINT_SCRIPT_FILE_NAME, KV_DIR_NAME};
 use crate::errors::{JavascriptPackageManagerComamndError, ServerError, UdfBuildError};
 
 async fn run_command<P: AsRef<Path>>(
@@ -138,7 +138,7 @@ pub(crate) async fn build(
             "${UDF_KV_FILE_PATH}",
             project
                 .dot_grafbase_directory_path
-                .join(KV_FILE_NAME)
+                .join(KV_DIR_NAME)
                 .to_slash()
                 .expect("must be valid UTF-8")
                 .as_ref(),
