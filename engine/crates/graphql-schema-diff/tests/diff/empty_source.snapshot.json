@@ -1,0 +1,14 @@
+{
+  "src → target": [
+    {
+      "path": "Cat",
+      "kind": "AddObjectType"
+    }
+  ],
+  "target → src": [
+    {
+      "path": "Cat",
+      "kind": "RemoveObjectType"
+    }
+  ]
+}

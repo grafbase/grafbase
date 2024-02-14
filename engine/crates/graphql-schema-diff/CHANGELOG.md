@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Handle empty schema strings gracefully
+
 ## 0.1.1 - 2024-02-06
 
 - Writte a better README
