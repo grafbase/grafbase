@@ -8,11 +8,10 @@ use serde_json::json;
 
 use super::{GqlRequest, GqlRequestBuilder};
 
-impl<Response> GqlRequestBuilder<Response>
-where
-    Response: serde::de::DeserializeOwned + 'static,
-{
-    pub async fn into_websocket_stream(mut self) -> Result<impl Stream<Item = Response>, graphql_ws_client::Error> {
+impl GqlRequestBuilder<serde_json::Value> {
+    pub async fn into_websocket_stream(
+        mut self,
+    ) -> Result<impl Stream<Item = serde_json::Value>, graphql_ws_client::Error> {
         use async_tungstenite::tungstenite::{client::IntoClientRequest, http::HeaderValue};
         use futures_util::StreamExt;
 
@@ -52,11 +51,8 @@ where
     }
 }
 
-impl<T> graphql_ws_client::graphql::GraphqlOperation for GqlRequest<T>
-where
-    T: serde::de::DeserializeOwned,
-{
-    type Response = T;
+impl graphql_ws_client::graphql::GraphqlOperation for GqlRequest {
+    type Response = serde_json::Value;
 
     type Error = serde_json::Error;
 

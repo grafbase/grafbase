@@ -93,14 +93,85 @@ where
         &self,
         ctx: &Arc<Executor::Context>,
         mut request: engine::Request,
-        streaming_format: Option<StreamingFormat>,
+    ) -> Result<(Arc<engine::Response>, http::HeaderMap), Executor::Error> {
+        if let Err(err) = self.handle_persisted_query(ctx, &mut request).await {
+            return Ok((
+                Arc::new(engine::Response {
+                    errors: vec![err.into()],
+                    ..Default::default()
+                }),
+                Default::default(),
+            ));
+        }
+
+        let Ok(auth) = self
+            .authorizer
+            .authorize_request(ctx, &request)
+            .instrument(info_span!("authorize_request"))
+            .await
+        else {
+            return Ok((
+                Arc::new(engine::Response::from_errors_with_type(
+                    vec![engine::ServerError::new("Unauthorized", None)],
+                    // doesn't really matter, this is not client facing
+                    OperationType::Query,
+                )),
+                Default::default(),
+            ));
+        };
+
+        if !self.cache_config.global_enabled || !self.cache_config.partial_registry.enable_caching {
+            let response = Arc::clone(&self.executor)
+                .execute(Arc::clone(ctx), auth, request)
+                .instrument(info_span!("execute"))
+                .await?;
+
+            return Ok((Arc::new(response), Default::default()));
+        }
+
+        match build_cache_key(&self.cache_config, ctx.as_ref(), &request, &auth) {
+            Ok(cache_key) => {
+                let execution_fut = Arc::clone(&self.executor)
+                    .execute(Arc::clone(ctx), auth, request)
+                    .instrument(info_span!("execute"))
+                    .map(|res| res.map(Arc::new));
+
+                let cached_execution =
+                    cache::cached_execution(&self.cache, cache_key, ctx.as_ref(), execution_fut).await;
+
+                cache::process_execution_response(ctx.as_ref(), cached_execution)
+            }
+            Err(_) => {
+                let result = Arc::clone(&self.executor)
+                    .execute(Arc::clone(ctx), auth, request)
+                    .instrument(info_span!("execute"))
+                    .map(|res| res.map(Arc::new))
+                    .await?;
+
+                let response = CachedExecutionResponse::Origin {
+                    response: result,
+                    cache_read: CacheReadStatus::Bypass,
+                };
+
+                cache::process_execution_response(ctx.as_ref(), Ok(response))
+            }
+        }
+    }
+
+    pub async fn execute_stream(
+        &self,
+        ctx: &Arc<Executor::Context>,
+        mut request: engine::Request,
+        streaming_format: StreamingFormat,
     ) -> Result<Executor::StreamingResponse, Executor::Error> {
         if let Err(err) = self.handle_persisted_query(ctx, &mut request).await {
-            let response = engine::Response {
-                errors: vec![err.into()],
-                ..Default::default()
-            };
-            return ConstructableResponse::engine(Arc::new(response), Default::default());
+            return Executor::StreamingResponse::engine(
+                Arc::new(engine::Response {
+                    errors: vec![err.into()],
+                    ..Default::default()
+                }),
+                Default::default(),
+            );
         }
 
         let Ok(auth) = self
@@ -119,49 +190,10 @@ where
             );
         };
 
-        if let Some(streaming_format) = streaming_format {
-            Arc::clone(&self.executor)
-                .execute_stream(Arc::clone(ctx), auth, request, streaming_format)
-                .instrument(info_span!("execute_stream"))
-                .await
-        } else {
-            if !self.cache_config.global_enabled || !self.cache_config.partial_registry.enable_caching {
-                let result = Arc::clone(&self.executor)
-                    .execute(Arc::clone(ctx), auth, request)
-                    .instrument(info_span!("execute"))
-                    .await?;
-
-                return ConstructableResponse::engine(Arc::new(result), Default::default());
-            }
-
-            match build_cache_key(&self.cache_config, ctx.as_ref(), &request, &auth) {
-                Ok(cache_key) => {
-                    let execution_fut = Arc::clone(&self.executor)
-                        .execute(Arc::clone(ctx), auth, request)
-                        .instrument(info_span!("execute"))
-                        .map(|res| res.map(Arc::new));
-
-                    let cached_execution =
-                        cache::cached_execution(&self.cache, cache_key, ctx.as_ref(), execution_fut).await;
-
-                    cache::process_execution_response(ctx.as_ref(), cached_execution)
-                }
-                Err(_) => {
-                    let result = Arc::clone(&self.executor)
-                        .execute(Arc::clone(ctx), auth, request)
-                        .instrument(info_span!("execute"))
-                        .map(|res| res.map(Arc::new))
-                        .await?;
-
-                    let response = CachedExecutionResponse::Origin {
-                        response: result,
-                        cache_read: CacheReadStatus::Bypass,
-                    };
-
-                    cache::process_execution_response(ctx.as_ref(), Ok(response))
-                }
-            }
-        }
+        Arc::clone(&self.executor)
+            .execute_stream(Arc::clone(ctx), auth, request, streaming_format)
+            .instrument(info_span!("execute_stream"))
+            .await
     }
 
     async fn handle_persisted_query(

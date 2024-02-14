@@ -7,6 +7,19 @@ pub struct Response {
     inner: axum::response::Response,
 }
 
+impl Response {
+    pub fn batch_response(responses: Vec<Arc<engine::Response>>) -> Self {
+        let body = axum::Json(
+            responses
+                .iter()
+                .map(|response| response.to_graphql_response())
+                .collect::<Vec<_>>(),
+        );
+
+        body.into_response().into()
+    }
+}
+
 impl From<crate::Error> for Response {
     fn from(err: crate::Error) -> Self {
         use crate::Error::{BadRequest, Cache, Internal, Serialization};

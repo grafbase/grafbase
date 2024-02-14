@@ -56,7 +56,6 @@ impl AsyncClient {
         self
     }
 
-    // TODO: update this one as well...
     pub fn gql<Response>(&self, query: impl Into<String>) -> GqlRequestBuilder<Response>
     where
         Response: serde::de::DeserializeOwned + 'static,
@@ -68,10 +67,10 @@ impl AsyncClient {
                 query: query.into(),
                 variables: None,
                 extensions: None,
-                phantom: PhantomData,
             },
             method: reqwest::Method::POST,
             reqwest_builder,
+            phantom: PhantomData,
         }
     }
 
@@ -86,10 +85,10 @@ impl AsyncClient {
                 query: query.into(),
                 variables: None,
                 extensions: None,
-                phantom: PhantomData,
             },
             method: reqwest::Method::GET,
             reqwest_builder,
+            phantom: PhantomData,
         }
     }
 
@@ -190,24 +189,53 @@ impl AsyncClient {
             .await
             .unwrap()
     }
+
+    /// Makes a batch GraphQL request.
+    ///
+    /// At the moment this is way less functional than the non-batch request builder
+    /// but is good enough for the test I want to write.
+    pub async fn batch_gql<T>(&self, queries: impl IntoIterator<Item = T>) -> serde_json::Value
+    where
+        T: Into<GqlRequest>,
+    {
+        self.client
+            .post(&self.endpoint)
+            .headers(self.headers.clone())
+            .json(&queries.into_iter().map(|query| json!(query.into())).collect::<Vec<_>>())
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap()
+    }
 }
 
 #[must_use]
 pub struct GqlRequestBuilder<Response> {
-    request: GqlRequest<Response>,
+    request: GqlRequest,
     method: reqwest::Method,
     reqwest_builder: reqwest::RequestBuilder,
+    phantom: PhantomData<fn() -> Response>,
 }
 
 #[derive(serde::Serialize)]
-struct GqlRequest<Response> {
+pub struct GqlRequest {
     query: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     variables: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     extensions: Option<serde_json::Value>,
-    #[serde(skip)]
-    phantom: PhantomData<fn() -> Response>,
+}
+
+impl From<&str> for GqlRequest {
+    fn from(query: &str) -> Self {
+        GqlRequest {
+            query: query.to_string(),
+            variables: None,
+            extensions: None,
+        }
+    }
 }
 
 impl<Response> GqlRequestBuilder<Response> {
