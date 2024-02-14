@@ -135,7 +135,7 @@ pub(crate) async fn build(
             udf_input_file_path.to_slash().expect("must be valid UTF-8").as_ref(),
         )
         .replace(
-            "${UDF_KV_FILE_PATH}",
+            "${UDF_KV_DIR_PATH}",
             project
                 .dot_grafbase_directory_path
                 .join(KV_DIR_NAME)

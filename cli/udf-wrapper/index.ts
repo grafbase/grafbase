@@ -240,7 +240,7 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
 const udf = require('${UDF_MAIN_FILE_PATH}').default
 
 // doing this here rather than only if import.meta.main since the multi-wrapper isn't compiled and doesn't have the miniflare deps
-globalThis.__grafbaseKv__ ??= new KVNamespace(new FileStorage('${UDF_KV_FILE_PATH}'))
+globalThis.__grafbaseKv__ ??= new KVNamespace(new FileStorage('${UDF_KV_DIR_PATH}'))
 
 export const invoke = async (request: Request) => {
   logEntries = []
