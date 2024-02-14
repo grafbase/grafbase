@@ -26,6 +26,10 @@ interface UdfRequestPayload {
   args: unknown
 }
 
+declare global {
+  var __grafbaseKv__: KVNamespace | undefined
+}
+
 // type NodeResponse = ServerResponse<IncomingMessage> & { req: IncomingMessage }
 
 // type Headers = Record<string, string | string[]>
@@ -84,10 +88,6 @@ const originalFetch = globalThis.fetch
 
 let logEntries: Array<LogEntry> = []
 let fetchRequests: Array<FetchRequest> = []
-
-declare global {
-  var __grafbaseKv__: KVNamespace | undefined
-}
 
 // // Node.js:
 
