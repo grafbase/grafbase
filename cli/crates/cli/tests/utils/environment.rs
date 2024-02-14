@@ -137,6 +137,10 @@ impl Environment {
     //
     pub fn write_schema(&self, schema: impl AsRef<str>) {
         let schema = format!("extend schema @introspection(enable: true)\n{}", schema.as_ref());
+        self.write_schema_without_introspection(schema)
+    }
+
+    pub fn write_schema_without_introspection(&self, schema: impl AsRef<str>) {
         // TODO: this is temporary until we update all tests to use SDK
         let _ = fs::remove_file("grafbase.config.ts");
         let _ = fs::remove_file("grafbase/grafbase.config.ts");

@@ -2216,7 +2216,7 @@ Registry {
         "Mutation",
     ),
     subscription_type: None,
-    disable_introspection: true,
+    disable_introspection: false,
     enable_federation: false,
     federation_subscription: false,
     auth: AuthConfig {

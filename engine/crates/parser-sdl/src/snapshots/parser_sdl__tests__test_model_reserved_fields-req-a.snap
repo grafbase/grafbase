@@ -77,7 +77,7 @@ expression: req_string_a
       "name": "skip"
     }
   },
-  "disable_introspection": true,
+  "disable_introspection": false,
   "enable_ai": false,
   "enable_caching": false,
   "enable_federation": false,
