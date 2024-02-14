@@ -1,7 +1,7 @@
 // import { IncomingMessage, ServerResponse, createServer } from 'http'
 // import { Readable } from 'stream'
 import { KVNamespace } from '@miniflare/kv'
-import { MemoryStorage } from '@miniflare/storage-memory'
+import { FileStorage } from '@miniflare/storage-file'
 
 interface LogEntry {
   loggedAt: number
@@ -84,6 +84,10 @@ const originalFetch = globalThis.fetch
 
 let logEntries: Array<LogEntry> = []
 let fetchRequests: Array<FetchRequest> = []
+
+declare global {
+  var __grafbaseKv__: KVNamespace | undefined
+}
 
 // // Node.js:
 
@@ -235,6 +239,9 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
 // TODO: if we're doing this we can use an argument rather than building this for each UDF
 const udf = require('${UDF_MAIN_FILE_PATH}').default
 
+// doing this here rather than only if import.meta.main since the multi-wrapper isn't compiled and doesn't have the miniflare deps
+globalThis.__grafbaseKv__ ??= new KVNamespace(new FileStorage('${UDF_KV_FILE_PATH}'))
+
 export const invoke = async (request: Request) => {
   logEntries = []
   fetchRequests = []
@@ -246,14 +253,14 @@ export const invoke = async (request: Request) => {
   try {
     context ??= {}
 
-    const kv = new KVNamespace(new MemoryStorage())
-
-    context.kv = {
-      get: (key: string, options: any) => Promise.resolve(kv.getWithMetadata(key, options)),
-      set: (key: string, value: any) => kv.put(key, value),
-      delete: (key: string) => kv.delete(key),
-      list: (options: any) => kv.list(options),
+    const kv = {
+      get: (key: string, options: any) => Promise.resolve(globalThis.__grafbaseKv__?.getWithMetadata(key, options)),
+      set: (key: string, value: any) => globalThis.__grafbaseKv__?.put(key, value),
+      delete: (key: string) => globalThis.__grafbaseKv__?.delete(key),
+      list: (options: any) => globalThis.__grafbaseKv__?.list(options),
     }
+
+    context.kv = kv
 
     returnValue = udf(parent, args, context, info)
 
