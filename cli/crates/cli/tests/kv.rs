@@ -12,8 +12,6 @@ async fn test_kv_integration() {
     env.grafbase_init(GraphType::Single);
     env.write_schema(
         r#"
-                extend schema @experimental(kv: true)
-
                 extend type Query {
                     hello: String! @resolver(name: "hello")
                     other: String! @resolver(name: "other")
