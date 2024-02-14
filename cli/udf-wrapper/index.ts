@@ -253,14 +253,12 @@ export const invoke = async (request: Request) => {
   try {
     context ??= {}
 
-    const kv = {
+    context.kv = {
       get: (key: string, options: any) => Promise.resolve(globalThis.__grafbaseKv__?.getWithMetadata(key, options)),
       set: (key: string, value: any) => globalThis.__grafbaseKv__?.put(key, value),
       delete: (key: string) => globalThis.__grafbaseKv__?.delete(key),
       list: (options: any) => globalThis.__grafbaseKv__?.list(options),
     }
-
-    context.kv = kv
 
     returnValue = udf(parent, args, context, info)
 
