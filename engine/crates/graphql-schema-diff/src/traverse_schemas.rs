@@ -2,13 +2,20 @@ use crate::{ast, ConstValue, DefinitionKind, DiffMap, DiffState, Positioned};
 use std::{collections::hash_map::Entry, hash::Hash};
 
 /// Traverse the source and target schemas, populating the `DiffState`.
-pub(crate) fn traverse_schemas<'a>([source, target]: [&'a ast::ServiceDocument; 2], state: &mut DiffState<'a>) {
-    let schema_size_approx = source.definitions.len().max(target.definitions.len());
+pub(crate) fn traverse_schemas<'a>([source, target]: [Option<&'a ast::ServiceDocument>; 2], state: &mut DiffState<'a>) {
+    let [source_definitions_len, target_definitions_len] =
+        [source, target].map(|schema| schema.map(|schema| schema.definitions.len()).unwrap_or_default());
+    let schema_size_approx = source_definitions_len.max(target_definitions_len);
     state.types_map.reserve(schema_size_approx);
     state.fields_map.reserve(schema_size_approx);
 
-    traverse_source(source, state);
-    traverse_target(target, state);
+    if let Some(source) = source {
+        traverse_source(source, state);
+    }
+
+    if let Some(target) = target {
+        traverse_target(target, state);
+    }
 }
 
 fn traverse_source<'a>(source: &'a ast::ServiceDocument, state: &mut DiffState<'a>) {
