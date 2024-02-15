@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::{cli_input::IntrospectCommand, errors::CliError, output::report};
 use tokio::runtime::Runtime;
 
@@ -43,9 +45,11 @@ fn introspect_remote(url: &str, headers: &[(&str, &str)], no_color: bool) -> Res
 fn print_introspected_schema(sdl: &str, no_color: bool) {
     use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
 
+    let mut stdout = std::io::stdout();
+
     // No highlighting when stdout is not a tty (likely a pipe) or when explicitly requested.
     if no_color || !atty::is(atty::Stream::Stdout) || no_color_env_var() {
-        println!("{sdl}");
+        stdout.write_all(sdl.as_bytes()).ok();
         return;
     }
 
@@ -72,7 +76,10 @@ fn print_introspected_schema(sdl: &str, no_color: bool) {
             .expect("line to be highlightable");
 
         let escaped = as_24_bit_terminal_escaped(&ranges[..], false);
-        print!("{}", escaped);
+
+        if stdout.write_all(escaped.as_bytes()).is_err() {
+            return;
+        }
     }
 }
 
