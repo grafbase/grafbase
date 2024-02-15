@@ -31,7 +31,7 @@ async fn introspection_configuration() {
     let response = client.gql::<Value>(INTROSPECTION_QUERY).send().await;
 
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
-    assert!(!errors.is_some_and(|errors| !errors.is_empty()));
+    assert_eq!(errors, None);
 
     client.snapshot().await;
 
@@ -47,6 +47,23 @@ async fn introspection_configuration() {
     client.poll_endpoint_for_changes(30, 300).await;
 
     let response = client.gql::<Value>(INTROSPECTION_QUERY).send().await;
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": null,
+      "errors": [
+        {
+          "message": "Unauthorized for introspection.",
+          "locations": [
+            {
+              "line": 4,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+    "###);
 
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
     assert!(errors.is_some_and(|errors| !errors.is_empty()));
@@ -68,5 +85,5 @@ async fn introspection_configuration() {
     let response = client.gql::<Value>(INTROSPECTION_QUERY).send().await;
 
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
-    assert!(!errors.is_some_and(|errors| !errors.is_empty()));
+    assert_eq!(errors, None);
 }
