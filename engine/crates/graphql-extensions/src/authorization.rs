@@ -46,7 +46,9 @@ impl Extension for AuthExtension {
         let auth_context = ctx
             .data::<ExecutionAuth>()
             .expect("auth must be injected into the context");
-        let request = if auth_context.is_introspection_allowed() {
+        let request = if auth_context.is_introspection_allowed()
+            || request.introspection_state() == engine::IntrospectionState::ForceEnabled
+        {
             request
         } else {
             request.set_introspection_state(engine::IntrospectionState::ForceDisabled)
