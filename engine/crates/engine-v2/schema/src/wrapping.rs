@@ -1,32 +1,32 @@
-/// Wrapping is compacted into a u32 to be Copy. It's copied at various places to keep track of
-/// current wrapping. It's functionally equivalent to:
-///
-/// ```rust
-/// struct Wrapping {
-///   inner_is_required: bool,
-///   list_wrappings: VecDeque<ListWrapping>
-/// }
-/// ```
-///
-/// Since `ListWrapping` has only two cases and we won't encounter absurd levels of wrapping, we
-/// can bitpack it. The current structure supports up to 21 list_wrappings.
-///
-/// It's structured as follows:
-///
-///       start (5 bits)
-///       ↓               ↓ list_wrapping (1 == Required / 0 == Nullable)
-///   ┌────┐      ┌────────────────────────┐
-///  0000_0000_0000_0000_0000_0000_0000_0000
-///         └────┘
-///            ↑ end (5 bits)
-///  ↑
-///  inner_is_required flag (1 == required)
-///
-/// The list_wrapping is stored from innermost to outermost and use the start and end
-/// as the positions within the list_wrapping bits. Acting like a simplified fixed capacity VecDeque.
-/// For simplicity of bit shifts the list wrapping is stored from right to left.
-///
-///
+//! Wrapping is compacted into a u32 to be Copy. It's copied at various places to keep track of
+//! current wrapping. It's functionally equivalent to:
+//!
+//! ```ignore
+//! struct Wrapping {
+//!   inner_is_required: bool,
+//!   list_wrappings: VecDeque<ListWrapping>
+//! }
+//! ```
+//!
+//! Since ListWrapping has only two cases and we won't encounter absurd levels of wrapping, we
+//! can bitpack it. The current structure supports up to 21 list_wrappings.
+//!
+//! It's structured as follows:
+//!
+//!```text
+//!       start (5 bits)
+//!       ↓               ↓ list_wrapping (1 == Required / 0 == Nullable)
+//!   ┌────┐      ┌────────────────────────┐
+//!  0000_0000_0000_0000_0000_0000_0000_0000
+//!         └────┘
+//!            ↑ end (5 bits)
+//!  ↑
+//!  inner_is_required flag (1 == required)
+//!```
+//!
+//! The list_wrapping is stored from innermost to outermost and use the start and end
+//! as the positions within the list_wrapping bits. Acting like a simplified fixed capacity VecDeque.
+//! For simplicity of bit shifts the list wrapping is stored from right to left.
 const START_MASK: u32 = 0b0111_1100_0000_0000_0000_0000_0000_0000;
 const START_SHIFT: u32 = START_MASK.trailing_zeros();
 const END_MASK: u32 = 0b0000_0011_1110_0000_0000_0000_0000_0000;

@@ -29,6 +29,7 @@ impl SchemaBuilder {
     fn build_schema(mut config: Config) -> Schema {
         let mut builder = Self::initialize(&mut config);
         builder.insert_headers(&mut config);
+        builder.insert_directives(&mut config);
         builder.insert_federation_datasource(&mut config);
         builder.insert_graphql_schema(&mut config);
         IntrospectionSchemaBuilder::insert_introspection_fields(&mut builder);
@@ -65,8 +66,8 @@ impl SchemaBuilder {
                     .into_iter()
                     .map(Into::into)
                     .collect(),
-                directives: take(&mut config.graph.directives).into_iter().map(Into::into).collect(),
-                input_values: take(&mut config.graph.input_value_definitions)
+                directives: Vec::new(),
+                input_value_definitions: take(&mut config.graph.input_value_definitions)
                     .into_iter()
                     .map(Into::into)
                     .collect(),
@@ -85,7 +86,54 @@ impl SchemaBuilder {
                 operation_limits: take(&mut config.operation_limits),
                 disable_introspection: config.disable_introspection,
                 urls: Vec::new(),
+                input_values: SchemaInputValues::default(),
             },
+        }
+    }
+
+    fn insert_directives(&mut self, config: &mut Config) {
+        let mut directives = Vec::with_capacity(config.graph.directives.len());
+        for directive in take(&mut config.graph.directives) {
+            let directive = match directive {
+                federated_graph::Directive::Inaccessible => Directive::Inaccessible,
+                federated_graph::Directive::Deprecated { reason } => Directive::Deprecated {
+                    reason: reason.map(Into::into),
+                },
+                federated_graph::Directive::Other { name, arguments } => Directive::Other {
+                    name: name.into(),
+                    arguments: {
+                        let map = arguments
+                            .into_iter()
+                            .map(|(id, value)| (id.into(), self.insert_value(value)))
+                            .collect();
+                        self.schema.input_values.push_map(map)
+                    },
+                },
+            };
+            directives.push(directive);
+        }
+        self.schema.directives = directives;
+    }
+
+    fn insert_value(&mut self, value: federated_graph::Value) -> SchemaInputValue {
+        match value {
+            federated_graph::Value::String(s) => SchemaInputValue::String(s.into()),
+            federated_graph::Value::Int(i) => SchemaInputValue::BigInt(i),
+            federated_graph::Value::Float(f) => SchemaInputValue::Float(f),
+            federated_graph::Value::Boolean(b) => SchemaInputValue::Boolean(b),
+            federated_graph::Value::EnumValue(id) => SchemaInputValue::UnknownEnumValue(id.into()),
+            federated_graph::Value::Object(fields) => {
+                let map = fields
+                    .into_vec()
+                    .into_iter()
+                    .map(|(id, value)| (id.into(), self.insert_value(value)))
+                    .collect();
+                SchemaInputValue::Map(self.schema.input_values.push_map(map))
+            }
+            federated_graph::Value::List(l) => {
+                let list = l.into_vec().into_iter().map(|value| self.insert_value(value)).collect();
+                SchemaInputValue::List(self.schema.input_values.push_list(list))
+            }
         }
     }
 
@@ -335,8 +383,6 @@ impl SchemaBuilder {
                     .collect(),
                 arguments: field.arguments.into(),
                 composed_directives: field.composed_directives.into(),
-                is_deprecated: false,
-                deprecation_reason: None,
                 cache_config: cache
                     .rule(CacheConfigTarget::Field(federated_graph::FieldId(field_id.into())))
                     .map(|config| cache_configs.get_or_insert(config)),
@@ -457,49 +503,11 @@ impl From<federated_graph::Object> for Object {
     }
 }
 
-impl From<federated_graph::Directive> for Directive {
-    fn from(directive: federated_graph::Directive) -> Self {
-        match directive {
-            federated_graph::Directive::Inaccessible => Directive::Inaccessible,
-            federated_graph::Directive::Deprecated { reason } => Directive::Deprecated {
-                reason: reason.map(Into::into),
-            },
-            federated_graph::Directive::Other { name, arguments } => Directive::Other {
-                name: name.into(),
-                arguments: arguments
-                    .into_iter()
-                    .map(|(id, value)| (id.into(), value.into()))
-                    .collect(),
-            },
-        }
-    }
-}
-
 impl From<federated_graph::ObjectField> for ObjectField {
     fn from(object_field: federated_graph::ObjectField) -> Self {
         ObjectField {
             object_id: object_field.object_id.into(),
             field_id: object_field.field_id.into(),
-        }
-    }
-}
-
-impl From<federated_graph::Value> for Value {
-    fn from(value: federated_graph::Value) -> Self {
-        match value {
-            federated_graph::Value::String(s) => Value::String(s.into()),
-            federated_graph::Value::Int(i) => Value::Int(i),
-            federated_graph::Value::Float(f) => Value::Float(f),
-            federated_graph::Value::Boolean(b) => Value::Boolean(b),
-            federated_graph::Value::EnumValue(s) => Value::EnumValue(s.into()),
-            federated_graph::Value::Object(fields) => Value::Object(
-                fields
-                    .into_vec()
-                    .into_iter()
-                    .map(|(id, value)| (id.into(), value.into()))
-                    .collect(),
-            ),
-            federated_graph::Value::List(l) => Value::List(l.into_vec().into_iter().map(Into::into).collect()),
         }
     }
 }
@@ -567,9 +575,9 @@ impl From<federated_graph::InputObject> for InputObject {
     }
 }
 
-impl From<federated_graph::InputValueDefinition> for InputValue {
+impl From<federated_graph::InputValueDefinition> for InputValueDefinition {
     fn from(value: federated_graph::InputValueDefinition) -> Self {
-        InputValue {
+        InputValueDefinition {
             name: value.name.into(),
             description: value.description.map(Into::into),
             type_id: value.type_id.into(),
@@ -614,8 +622,6 @@ impl From<federated_graph::EnumValue> for EnumValue {
         EnumValue {
             name: enum_value.value.into(),
             description: None,
-            deprecation_reason: None,
-            is_deprecated: false,
             composed_directives: enum_value.composed_directives.into(),
         }
     }
@@ -639,7 +645,7 @@ from_id_newtypes! {
     federated_graph::EnumValueId => EnumValueId,
     federated_graph::FieldId => FieldId,
     federated_graph::InputObjectId => InputObjectId,
-    federated_graph::InputValueDefinitionId => InputValueId,
+    federated_graph::InputValueDefinitionId => InputValueDefinitionId,
     federated_graph::InterfaceId => InterfaceId,
     federated_graph::ObjectId => ObjectId,
     federated_graph::ScalarId => ScalarId,

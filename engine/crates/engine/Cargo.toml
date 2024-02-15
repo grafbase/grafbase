@@ -92,7 +92,7 @@ reqwest = { workspace = true, features = [
 [dev-dependencies]
 indoc = "2"
 sha2.workspace = true
-insta = { version = "1", features = ["json"] }
+insta.workspace = true
 rstest.workspace = true
 sanitize-filename = "0.5"
 tokio = { workspace = true, features = ["macros"] }

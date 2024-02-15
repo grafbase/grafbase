@@ -5,8 +5,8 @@ use schema::{
     sources::introspection::{
         IntrospectionField, IntrospectionObject, Metadata, __EnumValue, __Field, __InputValue, __Schema, __Type,
     },
-    Definition, DefinitionWalker, EnumValueWalker, FieldWalker, InputValueWalker, ListWrapping, SchemaWalker,
-    TypeWalker, Wrapping,
+    Definition, DefinitionWalker, Directive, EnumValueWalker, FieldWalker, InputValueWalker, InputValuesContext,
+    ListWrapping, SchemaWalker, TypeWalker, Wrapping,
 };
 
 use crate::{
@@ -206,7 +206,7 @@ impl<'a> IntrospectionWriter<'a> {
                         .unwrap_or_default();
                     let values = fields
                         .filter(move |field| {
-                            (!field.as_ref().is_deprecated || include_deprecated)
+                            (!field.is_deprecated() || include_deprecated)
                                 && !self.metadata.meta_fields.contains(&field.id())
                         })
                         .map(|field| self.__field(field, selection_set))
@@ -278,8 +278,14 @@ impl<'a> IntrospectionWriter<'a> {
                 self.output.borrow_mut().push_list(&values).into()
             }
             __Field::Type => self.__type(target.ty(), field.concrete_selection_set().unwrap()),
-            __Field::IsDeprecated => target.as_ref().is_deprecated.into(),
-            __Field::DeprecationReason => target.as_ref().deprecation_reason.into(),
+            __Field::IsDeprecated => target.is_deprecated().into(),
+            __Field::DeprecationReason => target
+                .directives()
+                .find_map(|directive| match directive {
+                    Directive::Deprecated { reason } => *reason,
+                    _ => None,
+                })
+                .into(),
         })
     }
 
@@ -295,8 +301,11 @@ impl<'a> IntrospectionWriter<'a> {
                 __InputValue::Name => target.as_ref().name.into(),
                 __InputValue::Description => target.as_ref().description.into(),
                 __InputValue::Type => self.__type(target.ty(), field.concrete_selection_set().unwrap()),
-                // TODO: default value...
-                __InputValue::DefaultValue => ResponseValue::Null,
+                __InputValue::DefaultValue => target
+                    .as_ref()
+                    .default_value
+                    .map(|id| self.schema.input_value_as_graphql_display(id).to_string())
+                    .into(),
             },
         )
     }
@@ -308,8 +317,14 @@ impl<'a> IntrospectionWriter<'a> {
             |_, __enum_value| match __enum_value {
                 __EnumValue::Name => target.as_ref().name.into(),
                 __EnumValue::Description => target.as_ref().description.into(),
-                __EnumValue::IsDeprecated => target.as_ref().is_deprecated.into(),
-                __EnumValue::DeprecationReason => target.as_ref().deprecation_reason.into(),
+                __EnumValue::IsDeprecated => target.is_deprecated().into(),
+                __EnumValue::DeprecationReason => target
+                    .directives()
+                    .find_map(|directive| match directive {
+                        Directive::Deprecated { reason } => *reason,
+                        _ => None,
+                    })
+                    .into(),
             },
         )
     }

@@ -1,19 +1,21 @@
+use std::ops::Range;
+
 /// Isolating ids from the rest to prevent misuse of the NonZeroU32.
 /// They can only be created by From<usize>
 use crate::{
     sources::federation::{DataSource as FederationDataSource, Subgraph},
-    CacheConfig, Definition, Directive, Enum, EnumValue, Field, Header, InputObject, InputValue, Interface, Object,
-    Resolver, Scalar, Schema, Type, Union,
+    CacheConfig, Definition, Directive, Enum, EnumValue, Field, Header, InputObject, InputValueDefinition, Interface,
+    Object, Resolver, Scalar, Schema, Type, Union,
 };
 use url::Url;
 
 /// Reserving the 4 upper bits for some fun with bit packing. It still leaves 268 million possible values.
 /// And it's way easier to increase that limit if needed that to reserve some bits later!
 /// Currently, we use the two upper bits of the FieldId for the ResponseEdge in the engine.
-const MAX_ID: usize = (1 << 29) - 1;
+pub(crate) const MAX_ID: usize = (1 << 29) - 1;
 
 macro_rules! id_newtypes {
-    ($($ty:ident.$field:ident[$name:ident] => $out:ident unless $msg:literal,)*) => {
+    ($($ty:ident.$field:ident[$name:ident] => $out:ty | unless $msg:literal,)*) => {
         $(
             #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
             pub struct $name(std::num::NonZeroU32);
@@ -43,6 +45,14 @@ macro_rules! id_newtypes {
                 }
             }
 
+            impl std::ops::IndexMut<crate::ids::IdRange<$name>> for $ty {
+                fn index_mut(&mut self, range: crate::ids::IdRange<$name>) -> &mut Self::Output {
+                    let crate::ids::IdRange { start, end } = range;
+                    let start = usize::from(start);
+                    let end = usize::from(end);
+                    &mut self.$field[start..end]
+                }
+            }
 
             impl From<usize> for $name {
                 fn from(index: usize) -> Self {
@@ -67,24 +77,24 @@ macro_rules! id_newtypes {
 }
 
 id_newtypes! {
-    Schema.definitions[DefinitionId] => Definition unless "Too many definitions",
-    Schema.directives[DirectiveId] => Directive unless "Too many directives",
-    Schema.enum_values[EnumValueId] => EnumValue unless "Too many enum values",
-    Schema.enums[EnumId] => Enum unless "Too many enums",
-    Schema.fields[FieldId] => Field unless "Too many fields",
-    Schema.headers[HeaderId] => Header unless "Too many headers",
-    Schema.input_objects[InputObjectId] => InputObject unless "Too many input objects",
-    Schema.input_values[InputValueId] => InputValue unless "Too many input values",
-    Schema.interfaces[InterfaceId] => Interface unless "Too many interfaces",
-    Schema.objects[ObjectId] => Object unless "Too many objects",
-    Schema.resolvers[ResolverId] => Resolver unless "Too many resolvers",
-    Schema.scalars[ScalarId] => Scalar unless "Too many scalars",
-    Schema.types[TypeId] => Type unless "Too many types",
-    Schema.unions[UnionId] => Union unless "Too many unions",
-    Schema.urls[UrlId] => Url unless "Too many urls",
-    Schema.strings[StringId] => String unless "Too many strings",
-    FederationDataSource.subgraphs[SubgraphId] => Subgraph unless "Too many subgraphs",
-    Schema.cache_configs[CacheConfigId] => CacheConfig unless "Too many cache configs",
+    Schema.definitions[DefinitionId] => Definition | unless "Too many definitions",
+    Schema.directives[DirectiveId] => Directive | unless "Too many directives",
+    Schema.enum_values[EnumValueId] => EnumValue | unless "Too many enum values",
+    Schema.enums[EnumId] => Enum | unless "Too many enums",
+    Schema.fields[FieldId] => Field | unless "Too many fields",
+    Schema.headers[HeaderId] => Header | unless "Too many headers",
+    Schema.input_objects[InputObjectId] => InputObject | unless "Too many input objects",
+    Schema.input_value_definitions[InputValueDefinitionId] => InputValueDefinition | unless "Too many input value definitions",
+    Schema.interfaces[InterfaceId] => Interface | unless "Too many interfaces",
+    Schema.objects[ObjectId] => Object | unless "Too many objects",
+    Schema.resolvers[ResolverId] => Resolver | unless "Too many resolvers",
+    Schema.scalars[ScalarId] => Scalar | unless "Too many scalars",
+    Schema.types[TypeId] => Type | unless "Too many types",
+    Schema.unions[UnionId] => Union | unless "Too many unions",
+    Schema.urls[UrlId] => Url | unless "Too many urls",
+    Schema.strings[StringId] => String | unless "Too many strings",
+    FederationDataSource.subgraphs[SubgraphId] => Subgraph | unless "Too many subgraphs",
+    Schema.cache_configs[CacheConfigId] => CacheConfig | unless "Too many cache configs",
 }
 
 // Not necessary anymore when Rust stabilize std::iter::Step
@@ -94,16 +104,22 @@ pub struct IdRange<Id: Copy> {
     pub end: Id,
 }
 
+impl<Id: From<usize> + Copy> Default for IdRange<Id> {
+    fn default() -> Self {
+        Self {
+            start: Id::from(0),
+            end: Id::from(0),
+        }
+    }
+}
+
 impl<Id> IdRange<Id>
 where
     Id: From<usize> + Copy,
     usize: From<Id>,
 {
     pub fn empty() -> Self {
-        Self {
-            start: Id::from(0),
-            end: Id::from(0),
-        }
+        Self::default()
     }
 
     pub fn iter(&self) -> impl ExactSizeIterator<Item = Id> {
@@ -118,6 +134,14 @@ where
             None
         }
     }
+
+    pub fn len(&self) -> usize {
+        usize::from(self.end) - usize::from(self.start)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl<Src, Target> From<(Src, usize)> for IdRange<Target>
@@ -130,6 +154,15 @@ where
         IdRange {
             start: start.into(),
             end: Target::from(usize::from(start) + len),
+        }
+    }
+}
+
+impl<Id: From<usize> + Copy> From<Range<usize>> for IdRange<Id> {
+    fn from(value: Range<usize>) -> Self {
+        IdRange {
+            start: Id::from(value.start),
+            end: Id::from(value.end),
         }
     }
 }

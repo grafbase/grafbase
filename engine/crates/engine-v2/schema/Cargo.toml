@@ -16,6 +16,12 @@ strum_macros.workspace = true
 url.workspace = true
 fnv = "1"
 indexmap.workspace = true
+serde.workspace = true
+thiserror.workspace = true
 
 config = { package = "engine-v2-config", path = "../config" }
 federated-graph = { package = "graphql-federated-graph", path = "../../federated-graph" }
+
+[dev-dependencies]
+serde_json.workspace = true
+insta.workspace = true

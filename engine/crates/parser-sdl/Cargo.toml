@@ -37,7 +37,7 @@ url = { version = "2" }
 
 [dev-dependencies]
 assert_matches = "1"
-insta = { version = "1", features = ["json"] }
+insta.workspace = true
 maplit = "1"
 pretty_assertions = "1"
 rstest.workspace = true

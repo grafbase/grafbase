@@ -904,6 +904,102 @@ fn introspecting_with_grafbase_openapi_subgraph() {
     insta::assert_snapshot!(introspection_to_sdl(response.into_data()));
 }
 
+#[test]
+fn default_values() {
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+
+        let engine = Gateway::builder()
+            .with_schema("github", &github_mock)
+            .await
+            .finish()
+            .await;
+
+        engine
+            .execute(
+                r#"
+                    query {
+                        __type(name: "__Type") {
+                            kind
+                            name
+                            fields {
+                                name
+                                args {
+                                    name
+                                    defaultValue
+                                }
+                            }
+                        }
+                    }
+                    "#,
+            )
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "__type": {
+          "kind": "OBJECT",
+          "name": "__Type",
+          "fields": [
+            {
+              "name": "description",
+              "args": []
+            },
+            {
+              "name": "enumValues",
+              "args": [
+                {
+                  "name": "includeDeprecated",
+                  "defaultValue": "false"
+                }
+              ]
+            },
+            {
+              "name": "fields",
+              "args": [
+                {
+                  "name": "includeDeprecated",
+                  "defaultValue": "false"
+                }
+              ]
+            },
+            {
+              "name": "inputFields",
+              "args": []
+            },
+            {
+              "name": "interfaces",
+              "args": []
+            },
+            {
+              "name": "kind",
+              "args": []
+            },
+            {
+              "name": "name",
+              "args": []
+            },
+            {
+              "name": "ofType",
+              "args": []
+            },
+            {
+              "name": "possibleTypes",
+              "args": []
+            },
+            {
+              "name": "specifiedByURL",
+              "args": []
+            }
+          ]
+        }
+      }
+    }
+    "###);
+}
+
 #[allow(clippy::panic)]
 fn introspection_to_sdl(data: serde_json::Value) -> String {
     serde_json::from_value::<IntrospectionQuery>(data)
