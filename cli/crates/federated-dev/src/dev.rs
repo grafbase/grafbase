@@ -9,6 +9,7 @@ use axum::{
 };
 use common::environment::Environment;
 
+use engine::BatchRequest;
 use futures_util::{
     future::{join_all, BoxFuture},
     stream,
@@ -35,6 +36,7 @@ use crate::{
 };
 
 use self::{
+    batch_response::BatchResponse,
     bus::{AdminBus, ComposeBus, GatewayWatcher, RefreshBus},
     composer::Composer,
     refresher::Refresher,
@@ -42,6 +44,7 @@ use self::{
 };
 
 mod admin;
+mod batch_response;
 mod bus;
 mod composer;
 mod gateway_nanny;
@@ -165,19 +168,19 @@ async fn engine_get(
     headers: HeaderMap,
     State(ProxyState { gateway, .. }): State<ProxyState>,
 ) -> impl IntoResponse {
-    handle_engine_request(request.into(), gateway, headers).await
+    handle_engine_request(engine::BatchRequest::Single(request.into()), gateway, headers).await
 }
 
 async fn engine_post(
     State(ProxyState { gateway, .. }): State<ProxyState>,
     headers: HeaderMap,
-    Json(request): Json<engine::Request>,
+    Json(request): Json<engine::BatchRequest>,
 ) -> impl IntoResponse {
     handle_engine_request(request, gateway, headers).await
 }
 
 async fn handle_engine_request(
-    mut request: engine::Request,
+    request: engine::BatchRequest,
     gateway: GatewayWatcher,
     headers: HeaderMap,
 ) -> impl IntoResponse {
@@ -200,37 +203,61 @@ async fn handle_engine_request(
         headers,
         wait_until_sender: sender,
     };
-    request.ray_id = ctx.ray_id.clone();
+    let ray_id = ctx.ray_id.clone();
+    // request.ray_id = ctx.ray_id.clone();
 
-    let session = gateway.authorize(ctx.headers_as_map().into()).await;
-
-    if let Some(streaming_format) = streaming_format {
-        let ray_id = ctx.ray_id.clone();
-
-        let (headers, stream) = match session {
-            Some(session) => encode_stream_response(ray_id, session.execute_stream(request), streaming_format).await,
-            _ => {
-                encode_stream_response(
-                    ray_id,
-                    stream::once(async { engine_v2::Response::error("Unauthorized", []) }),
-                    streaming_format,
-                )
-                .await
-            }
-        };
-
-        tokio::spawn(wait(receiver));
-
-        return (headers, axum::body::Body::from_stream(stream)).into_response();
+    if matches!(request, BatchRequest::Batch(_)) && streaming_format.is_some() {
+        todo!("Error")
     }
 
-    let response = match session {
-        Some(session) => session.execute(&ctx, request).await,
-        None => gateway_v2::Response::unauthorized(),
+    let Some(session) = gateway.authorize(ctx.headers_as_map().into()).await else {
+        match (request, streaming_format) {
+            (BatchRequest::Single(_), None) => {
+                let response = gateway_v2::Response::unauthorized();
+
+                return (response.status, response.headers, response.bytes).into_response();
+            }
+            (BatchRequest::Single(_), Some(format)) => {
+                let (headers, stream) = encode_stream_response(
+                    ray_id,
+                    stream::once(async { engine_v2::Response::error("Unauthorized", []) }),
+                    format,
+                )
+                .await;
+
+                return (headers, axum::body::Body::from_stream(stream)).into_response();
+            }
+            (BatchRequest::Batch(_), _) => {
+                todo!("return multiple errors")
+            }
+        }
+    };
+
+    let response = match (request, streaming_format) {
+        (BatchRequest::Single(request), None) => BatchResponse::Single(session.execute(&ctx, request).await),
+        (BatchRequest::Single(request), Some(streaming_format)) => {
+            let (headers, stream) =
+                encode_stream_response(ray_id, session.execute_stream(request), streaming_format).await;
+
+            tokio::spawn(wait(receiver));
+
+            return (headers, axum::body::Body::from_stream(stream)).into_response();
+        }
+        (BatchRequest::Batch(requests), None) => {
+            let mut responses = Vec::with_capacity(requests.len());
+            for request in requests {
+                responses.push(session.clone().execute(&ctx, request).await)
+            }
+            BatchResponse::Batch(responses)
+        }
+        (BatchRequest::Batch(_), Some(_)) => {
+            unreachable!("should have been dealt with above")
+        }
     };
 
     tokio::spawn(wait(receiver));
-    (response.status, response.headers, response.bytes).into_response()
+
+    response.into_response()
 }
 
 #[derive(Clone)]
