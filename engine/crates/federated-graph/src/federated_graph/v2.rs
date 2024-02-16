@@ -218,7 +218,7 @@ impl From<DirectiveId> for usize {
 }
 pub const NO_DIRECTIVES: Directives = (DirectiveId(0), 0);
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct InputValueDefinitionId(pub usize);
 
 /// A (start, len) range in FederatedSchema.
