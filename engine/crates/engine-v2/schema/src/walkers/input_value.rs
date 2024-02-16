@@ -1,7 +1,7 @@
 use super::SchemaWalker;
-use crate::{InputValueId, TypeWalker};
+use crate::{InputValueDefinitionId, TypeWalker};
 
-pub type InputValueWalker<'a> = SchemaWalker<'a, InputValueId>;
+pub type InputValueWalker<'a> = SchemaWalker<'a, InputValueDefinitionId>;
 
 impl<'a> InputValueWalker<'a> {
     pub fn name(&self) -> &'a str {

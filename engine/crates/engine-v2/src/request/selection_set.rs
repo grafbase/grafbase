@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use schema::{Definition, FieldId, InputValueId, InterfaceId, ObjectId, Schema, UnionId};
+use schema::{Definition, FieldId, InputValueDefinitionId, InterfaceId, ObjectId, Schema, UnionId};
 
 use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
@@ -196,7 +196,7 @@ impl From<TypeCondition> for Definition {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundFieldArgument {
     pub name_location: Location,
-    pub input_value_id: InputValueId,
+    pub input_value_id: InputValueDefinitionId,
     pub value_location: Location,
     // TODO: Should be validated, coerced and bound.
     pub value: engine_value::Value,

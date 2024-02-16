@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use super::{resolver::ResolverWalker, SchemaWalker};
-use crate::{CacheConfig, FieldId, FieldProvides, FieldResolver, FieldSet, InputValueWalker, TypeWalker};
+use crate::{CacheConfig, Directive, FieldId, FieldProvides, FieldResolver, FieldSet, InputValueWalker, TypeWalker};
 
 pub type FieldWalker<'a> = SchemaWalker<'a, FieldId>;
 
@@ -54,6 +54,15 @@ impl<'a> FieldWalker<'a> {
         self.as_ref()
             .cache_config
             .map(|cache_config_id| self.schema[cache_config_id])
+    }
+
+    pub fn directives(&self) -> impl ExactSizeIterator<Item = &'a Directive> + 'a {
+        self.schema[self.as_ref().composed_directives].iter()
+    }
+
+    pub fn is_deprecated(&self) -> bool {
+        self.directives()
+            .any(|directive| matches!(directive, Directive::Deprecated { .. }))
     }
 }
 

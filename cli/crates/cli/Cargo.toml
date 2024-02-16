@@ -70,7 +70,7 @@ graphql-ws-client = { version = "0.8.0-rc.1", features = ["async-tungstenite"] }
 http.workspace = true
 hex.workspace = true
 headers.workspace = true
-insta = { version = "1.34", features = ["json", "redactions", "yaml"] }
+insta = { workspace = true, features = ["json", "redactions", "yaml"] }
 json_dotpath = "1"
 jwt-compact = { version = "0.8.0", default-features = false, features = [
   "clock",
