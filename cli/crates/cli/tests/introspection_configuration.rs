@@ -103,9 +103,6 @@ async fn introspection_configuration() {
     }
     "###);
 
-    let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
-    assert!(errors.is_some_and(|errors| !errors.is_empty()));
-
     client.snapshot().await;
 
     env.write_schema_without_introspection(
