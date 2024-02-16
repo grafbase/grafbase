@@ -21,7 +21,7 @@ itertools.workspace = true
 [dev-dependencies]
 datatest-stable = "0.2.3"
 similar = "2"
-miette = { version = "5.10.0", features = ["fancy"] }
+miette = { version = "7.1.0", features = ["fancy"] }
 
 [[test]]
 name = "composition_tests"
