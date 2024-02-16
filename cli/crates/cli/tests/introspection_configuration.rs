@@ -31,7 +31,26 @@ async fn introspection_configuration() {
     let response = client.gql::<Value>(INTROSPECTION_QUERY).send().await;
 
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
-    assert!(!errors.is_some_and(|errors| !errors.is_empty()));
+    assert_eq!(errors, None);
+
+    let response = client.gql::<Value>("query { hllo }").send().await;
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": null,
+      "errors": [
+        {
+          "message": "Unknown field \"hllo\" on type \"Query\". Did you mean \"hello\"?",
+          "locations": [
+            {
+              "line": 1,
+              "column": 9
+            }
+          ]
+        }
+      ]
+    }
+    "###);
 
     client.snapshot().await;
 
@@ -47,6 +66,42 @@ async fn introspection_configuration() {
     client.poll_endpoint_for_changes(30, 300).await;
 
     let response = client.gql::<Value>(INTROSPECTION_QUERY).send().await;
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": null,
+      "errors": [
+        {
+          "message": "Unauthorized for introspection.",
+          "locations": [
+            {
+              "line": 4,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+    "###);
+
+    let response = client.gql::<Value>("query { hllo }").send().await;
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": null,
+      "errors": [
+        {
+          "message": "Unknown field \"hllo\" on type \"Query\".",
+          "locations": [
+            {
+              "line": 1,
+              "column": 9
+            }
+          ]
+        }
+      ]
+    }
+    "###);
 
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
     assert!(errors.is_some_and(|errors| !errors.is_empty()));
@@ -68,5 +123,24 @@ async fn introspection_configuration() {
     let response = client.gql::<Value>(INTROSPECTION_QUERY).send().await;
 
     let errors: Option<Vec<Value>> = dot_get_opt!(response, "errors");
-    assert!(!errors.is_some_and(|errors| !errors.is_empty()));
+    assert_eq!(errors, None);
+
+    let response = client.gql::<Value>("query { hllo }").send().await;
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": null,
+      "errors": [
+        {
+          "message": "Unknown field \"hllo\" on type \"Query\". Did you mean \"hello\"?",
+          "locations": [
+            {
+              "line": 1,
+              "column": 9
+            }
+          ]
+        }
+      ]
+    }
+    "###);
 }
