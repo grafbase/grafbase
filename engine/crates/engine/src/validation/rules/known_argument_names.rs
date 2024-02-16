@@ -64,7 +64,11 @@ impl<'a> Visitor<'a> for KnownArgumentNames<'a> {
                                 name,
                                 field_name,
                                 type_name,
-                                self.get_suggestion(name.node.as_str())
+                                if ctx.registry.disable_introspection {
+                                    String::new()
+                                } else {
+                                    self.get_suggestion(name.node.as_str())
+                                }
                             ),
                         );
                     }
@@ -75,7 +79,11 @@ impl<'a> Visitor<'a> for KnownArgumentNames<'a> {
                                 "Unknown argument \"{}\" on directive \"{}\".{}",
                                 name,
                                 directive_name,
-                                self.get_suggestion(name.node.as_str())
+                                if ctx.registry.disable_introspection {
+                                    String::new()
+                                } else {
+                                    self.get_suggestion(name.node.as_str())
+                                }
                             ),
                         );
                     }
