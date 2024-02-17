@@ -204,10 +204,23 @@ async fn handle_engine_request(
         wait_until_sender: sender,
     };
     let ray_id = ctx.ray_id.clone();
-    // request.ray_id = ctx.ray_id.clone();
 
     if matches!(request, BatchRequest::Batch(_)) && streaming_format.is_some() {
-        todo!("Error")
+        let format = streaming_format.unwrap();
+
+        let (headers, stream) = encode_stream_response(
+            ray_id,
+            stream::once(async {
+                engine_v2::Response::error(
+                    "Batch requests cannot be combined with streaming response formats at present",
+                    [],
+                )
+            }),
+            format,
+        )
+        .await;
+
+        return (headers, axum::body::Body::from_stream(stream)).into_response();
     }
 
     let Some(session) = gateway.authorize(ctx.headers_as_map().into()).await else {
@@ -227,15 +240,26 @@ async fn handle_engine_request(
 
                 return (headers, axum::body::Body::from_stream(stream)).into_response();
             }
-            (BatchRequest::Batch(_), _) => {
-                todo!("return multiple errors")
+            (BatchRequest::Batch(requests), _) => {
+                let batch_response = BatchResponse::Batch(
+                    std::iter::repeat_with(gateway_v2::Response::unauthorized)
+                        .take(requests.len())
+                        .collect(),
+                );
+
+                return batch_response.into_response();
             }
         }
     };
 
     let response = match (request, streaming_format) {
-        (BatchRequest::Single(request), None) => BatchResponse::Single(session.execute(&ctx, request).await),
-        (BatchRequest::Single(request), Some(streaming_format)) => {
+        (BatchRequest::Single(mut request), None) => {
+            request.ray_id = ctx.ray_id.clone();
+            BatchResponse::Single(session.execute(&ctx, request).await)
+        }
+        (BatchRequest::Single(mut request), Some(streaming_format)) => {
+            request.ray_id = ctx.ray_id.clone();
+
             let (headers, stream) =
                 encode_stream_response(ray_id, session.execute_stream(request), streaming_format).await;
 
@@ -245,7 +269,8 @@ async fn handle_engine_request(
         }
         (BatchRequest::Batch(requests), None) => {
             let mut responses = Vec::with_capacity(requests.len());
-            for request in requests {
+            for mut request in requests {
+                request.ray_id = ctx.ray_id.clone();
                 responses.push(session.clone().execute(&ctx, request).await)
             }
             BatchResponse::Batch(responses)

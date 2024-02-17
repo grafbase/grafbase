@@ -21,7 +21,11 @@ impl IntoResponse for BatchResponse {
                 // response containing bytes is itself an optimisation - avoids serializing twice
                 // when caching and avoids a serde roundtrip when reading from the cache.  Urgh,
                 let Ok((headers, bytes)) = headers_and_body(responses, serialized_size) else {
-                    todo!("Error")
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Unknown error when serializing batch response",
+                    )
+                        .into_response();
                 };
 
                 (StatusCode::OK, headers, bytes).into_response()
