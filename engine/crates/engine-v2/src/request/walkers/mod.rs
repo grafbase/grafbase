@@ -1,20 +1,17 @@
 mod field;
-mod field_argument;
 mod fragment;
 mod inline_fragment;
 mod operation_limits;
 mod query_path;
 mod selection_set;
-mod variables;
 
 pub use field::*;
 pub use fragment::*;
 pub use inline_fragment::*;
 use schema::SchemaWalker;
 pub use selection_set::*;
-pub use variables::*;
 
-use super::{Operation, TypeCondition, VariableDefinitionId};
+use super::{Operation, TypeCondition};
 
 #[derive(Clone, Copy)]
 pub(crate) struct OperationWalker<'a, Item = (), SchemaItem = ()> {
@@ -45,15 +42,6 @@ where
 impl<'a> OperationWalker<'a, (), ()> {
     pub(crate) fn as_ref(&self) -> &'a Operation {
         self.operation
-    }
-
-    pub(crate) fn variable_definition(&self, name: &str) -> Option<VariableDefinitionWalker<'a>> {
-        for (i, variable) in self.operation.variable_definitions.iter().enumerate() {
-            if variable.name == name {
-                return Some(self.walk(VariableDefinitionId::from(i)));
-            }
-        }
-        None
     }
 }
 

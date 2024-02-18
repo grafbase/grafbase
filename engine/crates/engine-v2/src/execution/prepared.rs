@@ -1,22 +1,18 @@
-use std::{
-    future::IntoFuture,
-    hash::{Hash, Hasher},
-};
+use std::future::IntoFuture;
 
 use futures_util::future::BoxFuture;
-use schema::CacheConfig;
 
 use super::ExecutionCoordinator;
-use crate::Response;
+use crate::{request::OperationCacheControl, Response};
 
 pub enum PreparedExecution {
     BadRequest(BadRequest),
-    PreparedRequest(PreparedRequest),
+    PreparedRequest(PreparedOperation),
 }
 
 impl PreparedExecution {
     pub(crate) fn request(coordinator: ExecutionCoordinator) -> Self {
-        Self::PreparedRequest(PreparedRequest { coordinator })
+        Self::PreparedRequest(PreparedOperation { coordinator })
     }
 
     pub(crate) fn bad_request(response: Response) -> Self {
@@ -25,29 +21,16 @@ impl PreparedExecution {
 }
 
 pub struct BadRequest {
-    pub(crate) response: Response,
+    response: Response,
 }
 
-pub struct PreparedRequest {
-    pub(crate) coordinator: ExecutionCoordinator,
+pub struct PreparedOperation {
+    coordinator: ExecutionCoordinator,
 }
 
-impl PreparedRequest {
-    pub fn computed_cache_config(&self) -> Option<&CacheConfig> {
-        self.coordinator.operation().cache_config.as_ref()
-    }
-
-    pub fn operation_hash<H: Hasher>(&self, state: &mut H) {
-        self.coordinator.operation_plan_cache_key().hash::<H>(state);
-        state.write_usize(self.coordinator.variables().len());
-        for (name, variable) in self.coordinator.variables().iter() {
-            name.hash(state);
-            if let Some(value) = &variable.value {
-                value.hash::<H>(state);
-            } else {
-                state.write_u8(0);
-            }
-        }
+impl PreparedOperation {
+    pub fn cache_control(&self) -> Option<&OperationCacheControl> {
+        self.coordinator.operation().cache_control.as_ref()
     }
 }
 
@@ -59,7 +42,7 @@ impl IntoFuture for PreparedExecution {
     fn into_future(self) -> Self::IntoFuture {
         match self {
             PreparedExecution::BadRequest(BadRequest { response }) => Box::pin(async move { response }),
-            PreparedExecution::PreparedRequest(PreparedRequest { coordinator }) => Box::pin(coordinator.execute()),
+            PreparedExecution::PreparedRequest(PreparedOperation { coordinator }) => Box::pin(coordinator.execute()),
         }
     }
 }

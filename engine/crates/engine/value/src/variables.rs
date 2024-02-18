@@ -1,6 +1,7 @@
 use std::{
     collections::BTreeMap,
     fmt::{self, Display, Formatter},
+    hash::{Hash, Hasher},
     ops::{Deref, DerefMut},
 };
 
@@ -20,6 +21,15 @@ impl Display for Variables {
             write!(f, "{}{name}: {value}", if i == 0 { "" } else { ", " })?;
         }
         f.write_str("}")
+    }
+}
+
+impl Hash for Variables {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for (key, value) in &self.0 {
+            key.hash(state);
+            value.hash(state);
+        }
     }
 }
 

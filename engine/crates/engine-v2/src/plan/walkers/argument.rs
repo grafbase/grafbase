@@ -1,41 +1,30 @@
-use engine_value::ConstValue;
 use schema::{InputValueDefinitionId, InputValueDefinitionWalker};
 
-use crate::request::BoundFieldArgument;
+use crate::request::BoundFieldArgumentId;
 
-use super::PlanWalker;
+use super::{PlanInputValue, PlanWalker};
 
-pub type PlanInputValue<'a> = PlanWalker<'a, &'a BoundFieldArgument, InputValueDefinitionId>;
+pub type PlanFieldArgument<'a> = PlanWalker<'a, BoundFieldArgumentId, InputValueDefinitionId>;
 
-impl<'a> PlanInputValue<'a> {
-    // Value in the query, before variable resolution.
-    pub fn query_value(&self) -> &engine_value::Value {
-        &self.item.value
-    }
-
-    pub fn resolved_value(&self) -> ConstValue {
-        // TODO: ugly as hell
-        let variables = self.variables.unwrap();
-        // not really efficient, but works.
-        self.item
-            .value
-            .clone()
-            .into_const_with::<()>(|name| {
-                Ok(variables
-                    .get(&name)
-                    .expect("Would have failed at validation")
-                    .value
-                    .clone()
-                    .unwrap_or_default())
-            })
-            .unwrap()
+impl<'a> PlanFieldArgument<'a> {
+    pub fn value(&self) -> PlanInputValue<'a> {
+        self.walk_with(self.as_ref().input_value_id, ())
     }
 }
 
-impl<'a> std::ops::Deref for PlanInputValue<'a> {
+impl<'a> std::ops::Deref for PlanFieldArgument<'a> {
     type Target = InputValueDefinitionWalker<'a>;
 
     fn deref(&self) -> &Self::Target {
         &self.schema_walker
+    }
+}
+
+impl std::fmt::Debug for PlanFieldArgument<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FieldArgument")
+            .field("name", &self.name())
+            .field("value", &self.value())
+            .finish()
     }
 }

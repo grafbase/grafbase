@@ -3,8 +3,7 @@ use runtime::fetch::GraphqlRequest;
 use schema::sources::federation::{SubgraphHeaderValueRef, SubgraphWalker};
 
 use super::{
-    deserialize::ingest_deserializer_into_response,
-    query::{OutboundVariables, PreparedGraphqlOperation},
+    deserialize::ingest_deserializer_into_response, query::PreparedGraphqlOperation, variables::OutboundVariables,
     ExecutionContext, GraphqlExecutionPlan,
 };
 use crate::{
@@ -64,7 +63,7 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
             .stream(GraphqlRequest {
                 url: &url,
                 query: &operation.query,
-                variables: serde_json::to_value(&OutboundVariables::new(&operation.variable_references, ctx.variables))
+                variables: serde_json::to_value(&OutboundVariables::new(plan.variables().collect()))
                     .map_err(|error| ExecutionError::Internal(error.to_string()))?,
                 headers: subgraph
                     .headers()

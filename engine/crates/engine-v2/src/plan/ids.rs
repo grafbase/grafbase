@@ -4,7 +4,7 @@ use crate::sources::Plan;
 
 use super::{CollectedField, CollectedSelectionSet, ConditionalField, ConditionalSelectionSet, OperationPlan};
 
-crate::utils::id_newtypes! {
+crate::utils::id_newtypes_u16! {
     OperationPlan.plans[PlanId] => Plan unless "Too many execution plans",
     OperationPlan.conditional_fields[ConditionalFieldId] => ConditionalField unless "Too many expected fields",
     OperationPlan.conditional_selection_sets[ConditionalSelectionSetId] => ConditionalSelectionSet unless "Too many ungrouped selection sets",

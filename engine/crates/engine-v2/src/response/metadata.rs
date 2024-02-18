@@ -1,7 +1,7 @@
 pub use engine_parser::types::OperationType;
 use schema::CacheConfig;
 
-use crate::request::Operation;
+use crate::request::{Operation, OperationCacheControl};
 
 /// Metadata we provide to the caller on the operation and its execution.
 /// It's serialized when cached. Ignore anything that isn't relevant for a cached response.
@@ -18,7 +18,16 @@ impl ExecutionMetadata {
         Self {
             operation_name: operation.name.clone(),
             operation_type: Some(operation.ty),
-            cache_config: operation.cache_config,
+            cache_config: operation.cache_control.as_ref().map(
+                |OperationCacheControl {
+                     max_age,
+                     stale_while_revalidate,
+                     ..
+                 }| CacheConfig {
+                    max_age: *max_age,
+                    stale_while_revalidate: *stale_while_revalidate,
+                },
+            ),
         }
     }
 }

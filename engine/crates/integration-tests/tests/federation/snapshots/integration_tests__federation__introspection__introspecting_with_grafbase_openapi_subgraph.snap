@@ -123,5 +123,3 @@ input UserInput {
   lastName: String
   firstName: String
 }
-
-

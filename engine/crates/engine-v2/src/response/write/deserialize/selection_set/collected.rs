@@ -42,7 +42,7 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
                 ctx,
                 selection_set_ty: selection_set.ty,
 
-                fields: &ctx.plan[selection_set.fields],
+                fields: &ctx.plan[selection_set.field_ids],
                 typename_fields: &selection_set.typename_fields,
             },
         }

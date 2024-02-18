@@ -6,6 +6,7 @@ use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{extract::State, http::HeaderMap, routing::post, Router};
 
 mod almost_empty;
+mod disingenuous;
 mod echo;
 mod fake_github;
 mod federation;
@@ -13,6 +14,7 @@ mod state_mutation;
 
 pub use {
     almost_empty::AlmostEmptySchema,
+    disingenuous::DisingenuousSchema,
     echo::EchoSchema,
     fake_github::FakeGithubSchema,
     federation::{FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema},

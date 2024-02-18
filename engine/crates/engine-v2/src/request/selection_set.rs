@@ -1,12 +1,12 @@
 use std::borrow::Cow;
 
-use schema::{Definition, FieldId, InputValueDefinitionId, InterfaceId, ObjectId, Schema, UnionId};
+use schema::{Definition, FieldId, IdRange, InputValueDefinitionId, InterfaceId, ObjectId, Schema, UnionId};
 
 use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
 use super::{
-    BoundFieldArgumentsId, BoundFieldId, BoundFragmentId, BoundFragmentSpreadId, BoundInlineFragmentId,
-    BoundSelectionSetId, Location,
+    BoundFieldArgumentId, BoundFieldId, BoundFragmentId, BoundFragmentSpreadId, BoundInlineFragmentId,
+    BoundSelectionSetId, Location, OpInputValueId,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,6 +21,36 @@ pub enum SelectionSetType {
     Object(ObjectId),
     Interface(InterfaceId),
     Union(UnionId),
+}
+
+impl From<SelectionSetType> for TypeCondition {
+    fn from(parent: SelectionSetType) -> Self {
+        match parent {
+            SelectionSetType::Interface(id) => Self::Interface(id),
+            SelectionSetType::Object(id) => Self::Object(id),
+            SelectionSetType::Union(id) => Self::Union(id),
+        }
+    }
+}
+
+impl From<TypeCondition> for SelectionSetType {
+    fn from(cond: TypeCondition) -> Self {
+        match cond {
+            TypeCondition::Interface(id) => Self::Interface(id),
+            TypeCondition::Object(id) => Self::Object(id),
+            TypeCondition::Union(id) => Self::Union(id),
+        }
+    }
+}
+
+impl From<SelectionSetType> for Definition {
+    fn from(parent: SelectionSetType) -> Self {
+        match parent {
+            SelectionSetType::Interface(id) => Self::Interface(id),
+            SelectionSetType::Object(id) => Self::Object(id),
+            SelectionSetType::Union(id) => Self::Union(id),
+        }
+    }
 }
 
 impl SelectionSetType {
@@ -64,7 +94,7 @@ pub enum BoundField {
         bound_response_key: BoundResponseKey,
         location: Location,
         field_id: FieldId,
-        arguments_id: BoundFieldArgumentsId,
+        argument_ids: IdRange<BoundFieldArgumentId>,
         selection_set_id: Option<BoundSelectionSetId>,
     },
     /// Extra field added during planning to satisfy resolver/field requirements
@@ -140,6 +170,14 @@ impl BoundField {
             BoundField::Extra { is_read, .. } => *is_read,
         }
     }
+
+    pub fn argument_ids(&self) -> IdRange<BoundFieldArgumentId> {
+        match self {
+            BoundField::TypeName { .. } => IdRange::empty(),
+            BoundField::Field { argument_ids, .. } => *argument_ids,
+            BoundField::Extra { .. } => IdRange::empty(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -155,7 +193,6 @@ pub struct BoundInlineFragment {
     pub location: Location,
     pub type_condition: Option<TypeCondition>,
     pub selection_set_id: BoundSelectionSetId,
-    pub directives: Vec<()>,
 }
 
 #[derive(Debug)]
@@ -163,7 +200,6 @@ pub struct BoundFragment {
     pub name: String,
     pub name_location: Location,
     pub type_condition: TypeCondition,
-    pub directives: Vec<()>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -195,11 +231,10 @@ impl From<TypeCondition> for Definition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundFieldArgument {
-    pub name_location: Location,
-    pub input_value_id: InputValueDefinitionId,
-    pub value_location: Location,
-    // TODO: Should be validated, coerced and bound.
-    pub value: engine_value::Value,
+    pub name_location: Option<Location>,
+    pub value_location: Option<Location>,
+    pub input_value_definition_id: InputValueDefinitionId,
+    pub input_value_id: OpInputValueId,
 }
 
 impl IntoIterator for BoundSelectionSet {

@@ -21,7 +21,6 @@ plan_cache = ["dep:mini-moka"]
 async-runtime.workspace = true
 futures.workspace = true
 im = "15"
-indexmap.workspace = true
 itertools.workspace = true
 hex.workspace = true
 lasso = "0.7"

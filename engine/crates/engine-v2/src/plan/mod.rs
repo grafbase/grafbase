@@ -1,8 +1,7 @@
 use schema::{ResolverId, Schema};
 
 use crate::{
-    execution::Variables,
-    request::{EntityType, FlatTypeCondition, Operation, QueryPath},
+    request::{EntityType, FlatTypeCondition, OpInputValues, Operation, QueryPath},
     response::ReadSelectionSet,
     sources::Plan,
     utils::IdRange,
@@ -108,7 +107,7 @@ impl OperationPlan {
         &'s self,
         schema: &'s Schema,
         plan_id: PlanId,
-        variables: Option<&'s Variables>,
+        input_values: Option<&'s OpInputValues>,
     ) -> PlanWalker<'s> {
         let plan_id = PlanId::from(usize::from(plan_id));
         let schema_walker = schema
@@ -118,7 +117,7 @@ impl OperationPlan {
         PlanWalker {
             schema_walker,
             operation_plan: self,
-            variables,
+            input_values,
             plan_id,
             item: (),
         }

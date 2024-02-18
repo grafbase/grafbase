@@ -155,6 +155,7 @@ impl GraphqlResponse {
         self.gql_response
     }
 
+    #[track_caller]
     pub fn into_data(self) -> serde_json::Value {
         assert!(self.errors().is_empty(), "{self:#?}");
 

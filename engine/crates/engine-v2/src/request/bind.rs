@@ -4,16 +4,23 @@ pub use engine_parser::types::OperationType;
 use engine_parser::Positioned;
 use engine_value::Name;
 use itertools::Itertools;
-use schema::{Definition, FieldWalker, Schema};
+use schema::{Definition, FieldWalker, IdRange, Schema};
 
 use crate::response::GraphqlError;
 
+use self::coercion::{const_value::coerce_graphql_const_value, value::coerce_value};
+
 use super::{
-    selection_set::BoundField, variable::VariableDefinition, BoundFieldArgument, BoundFieldArguments,
-    BoundFieldArgumentsId, BoundFieldId, BoundFragment, BoundFragmentId, BoundFragmentSpread, BoundFragmentSpreadId,
-    BoundInlineFragment, BoundInlineFragmentId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, Location,
-    Operation, ParsedOperation, ResponseKeys, SelectionSetType, TypeCondition,
+    selection_set::BoundField, variable::VariableDefinition, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId,
+    BoundFragment, BoundFragmentId, BoundFragmentSpread, BoundFragmentSpreadId, BoundInlineFragment,
+    BoundInlineFragmentId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, Location, OpInputValue,
+    OpInputValues, Operation, ParsedOperation, ResponseKeys, SelectionSetType, TypeCondition,
 };
+
+mod coercion;
+mod variable;
+
+pub use variable::{bind_variables, VariableError};
 
 #[allow(clippy::enum_variant_names)]
 #[derive(thiserror::Error, Debug)]
@@ -37,12 +44,6 @@ pub enum OperationError {
     #[error("{container} does not have a field named '{name}'")]
     UnknownField {
         container: String,
-        name: String,
-        location: Location,
-    },
-    #[error("Field '{field}' does not have an argument named '{name}'")]
-    UnknownFieldArgument {
-        field: String,
         name: String,
         location: Location,
     },
@@ -90,12 +91,6 @@ pub enum OperationError {
     TooManyFields { location: Location },
     #[error("There can only be one variable named '${name}'")]
     DuplicateVariable { name: String, location: Location },
-    #[error("Variable '${name}' is not defined{operation}")]
-    UndefinedVariable {
-        name: String,
-        operation: ErrorOperationName,
-        location: Location,
-    },
     #[error("Variable '${name}' is not used{operation}")]
     UnusedVariable {
         name: String,
@@ -110,13 +105,20 @@ pub enum OperationError {
     QueryTooBig(String),
     #[error("GraphQL introspection is not allowed, but the query contained __schema or __type")]
     IntrospectionWhenDisabled { location: Location },
+    #[error("{0}")]
+    InvalidInputValue(#[from] coercion::InputValueError),
+    #[error("Missing argument named '{name}' for field '{field}'")]
+    MissingArgument {
+        field: String,
+        name: String,
+        location: Location,
+    },
 }
 
 impl From<OperationError> for GraphqlError {
     fn from(err: OperationError) -> Self {
         let locations = match err {
             OperationError::UnknownField { location, .. }
-            | OperationError::UnknownFieldArgument { location, .. }
             | OperationError::UnknownType { location, .. }
             | OperationError::UnknownFragment { location, .. }
             | OperationError::UnionHaveNoFields { location, .. }
@@ -127,10 +129,11 @@ impl From<OperationError> for GraphqlError {
             | OperationError::TooManyFields { location }
             | OperationError::LeafMustBeAScalarOrEnum { location, .. }
             | OperationError::DuplicateVariable { location, .. }
-            | OperationError::UndefinedVariable { location, .. }
             | OperationError::FragmentCycle { location, .. }
             | OperationError::IntrospectionWhenDisabled { location, .. }
+            | OperationError::MissingArgument { location, .. }
             | OperationError::UnusedVariable { location, .. } => vec![location],
+            OperationError::InvalidInputValue(ref err) => vec![err.location()],
             OperationError::NoMutationDefined
             | OperationError::NoSubscriptionDefined
             | OperationError::QueryTooBig { .. }
@@ -166,20 +169,21 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
         operation_name: ErrorOperationName(unbound.name.clone()),
         response_keys: ResponseKeys::default(),
         fragments: HashMap::default(),
-        field_arguments: vec![Vec::new()], // first one for all empty arguments.
+        field_arguments: Vec::new(),
         location_to_field_arguments: HashMap::default(),
         fields: Vec::new(),
-        selection_sets: vec![],
+        selection_sets: Vec::new(),
         unbound_fragments: unbound.fragments,
-        variable_definitions: vec![],
-        variables_used: HashSet::new(),
+        variable_definitions: Vec::new(),
         next_response_position: 0,
         current_fragments_stack: Vec::new(),
         fragment_spreads: Vec::new(),
         inline_fragments: Vec::new(),
         field_to_parent: Vec::new(),
+        input_values: OpInputValues::default(),
     };
 
+    // Must be executed before binding selection sets
     binder.variable_definitions = binder.bind_variables(unbound.definition.variable_definitions)?;
 
     let root_selection_set_id = binder.bind_selection_set(
@@ -204,10 +208,11 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
         response_keys: binder.response_keys,
         fields: binder.fields,
         variable_definitions: binder.variable_definitions,
-        cache_config: None,
+        cache_control: None,
         fragment_spreads: binder.fragment_spreads,
         inline_fragments: binder.inline_fragments,
         field_to_parent: binder.field_to_parent,
+        input_values: binder.input_values,
     })
 }
 
@@ -217,15 +222,15 @@ pub struct Binder<'a> {
     response_keys: ResponseKeys,
     unbound_fragments: HashMap<String, Positioned<engine_parser::types::FragmentDefinition>>,
     fragments: HashMap<String, (BoundFragmentId, BoundFragment)>,
-    field_arguments: Vec<BoundFieldArguments>,
-    location_to_field_arguments: HashMap<Location, BoundFieldArgumentsId>,
+    field_arguments: Vec<BoundFieldArgument>,
+    location_to_field_arguments: HashMap<Location, IdRange<BoundFieldArgumentId>>,
     fields: Vec<BoundField>,
     field_to_parent: Vec<BoundSelectionSetId>,
     fragment_spreads: Vec<BoundFragmentSpread>,
     inline_fragments: Vec<BoundInlineFragment>,
     selection_sets: Vec<BoundSelectionSet>,
     variable_definitions: Vec<VariableDefinition>,
-    variables_used: HashSet<String>,
+    input_values: OpInputValues,
     // We keep track of the position of fields within the response object that will be
     // returned. With type conditions it's not obvious to know which field will be present or
     // not, but we can order all bound fields. This needs to be done at the request binding
@@ -239,11 +244,11 @@ pub struct Binder<'a> {
 
 impl<'a> Binder<'a> {
     fn bind_variables(
-        &self,
+        &mut self,
         variables: Vec<Positioned<engine_parser::types::VariableDefinition>>,
     ) -> BindResult<Vec<VariableDefinition>> {
         let mut seen_names = HashSet::new();
-        let mut bound_variables = vec![];
+        let mut bound_variables = Vec::new();
 
         for Positioned { node, .. } in variables {
             let name = node.name.node.to_string();
@@ -257,15 +262,29 @@ impl<'a> Binder<'a> {
             }
             seen_names.insert(name.clone());
 
-            let default_value = node.default_value.map(|Positioned { pos: _, node }| node);
             let r#type = self.convert_type(&name, node.var_type.pos.try_into()?, node.var_type.node)?;
+            let default_value = node
+                .default_value
+                .map(|Positioned { pos: _, node: value }| {
+                    coerce_graphql_const_value(self.schema, &mut self.input_values, name_location, r#type, value)
+                })
+                .transpose()?;
+
+            // Using Null instead of Undefined is actually important here. With Undefined the
+            // variable would be ignored immediately if used for any input field. However, that's
+            // not what we want initially. This prevents us from generating proper GraphQL queries
+            // to subgraphs in advance. Undefined should only be after variables have been bound.
+            let future_input_value_id = self
+                .input_values
+                .push_value(default_value.map(OpInputValue::Ref).unwrap_or(OpInputValue::Null));
 
             bound_variables.push(VariableDefinition {
                 name,
                 name_location,
-                directives: vec![],
                 default_value,
                 r#type,
+                future_input_value_id,
+                used_by: Vec::new(),
             });
         }
 
@@ -323,12 +342,19 @@ impl<'a> Binder<'a> {
         let Positioned {
             node: selection_set, ..
         } = selection_set;
+
+        let id = BoundSelectionSetId::from(self.selection_sets.len());
+        self.selection_sets.push(BoundSelectionSet {
+            ty: root,
+            items: Vec::new(),
+        });
+
         // Keeping the original ordering
         let items = selection_set
             .items
             .iter_mut()
             .map(|Positioned { node: selection, .. }| match selection {
-                engine_parser::types::Selection::Field(selection) => self.bind_field(root, selection),
+                engine_parser::types::Selection::Field(selection) => self.bind_field(id, root, selection),
                 engine_parser::types::Selection::FragmentSpread(selection) => {
                     self.bind_fragment_spread(root, selection)
                 }
@@ -337,19 +363,14 @@ impl<'a> Binder<'a> {
                 }
             })
             .collect::<BindResult<Vec<_>>>()?;
-        let id = BoundSelectionSetId::from(self.selection_sets.len());
-        let selection_set = BoundSelectionSet { ty: root, items };
-        self.selection_sets.push(selection_set);
-        for item in &self.selection_sets[usize::from(id)].items {
-            if let BoundSelection::Field(bound_field_id) = item {
-                self.field_to_parent[usize::from(*bound_field_id)] = id;
-            }
-        }
+
+        self.selection_sets[usize::from(id)].items = items;
         Ok(id)
     }
 
     fn bind_field(
         &mut self,
+        parent: BoundSelectionSetId,
         root: SelectionSetType,
         Positioned { pos, node: field }: &mut Positioned<engine_parser::types::Field>,
     ) -> BindResult<BoundSelection> {
@@ -371,11 +392,14 @@ impl<'a> Binder<'a> {
                 })?;
         self.next_response_position += 1;
 
-        let bound_field = match name {
-            "__typename" => BoundField::TypeName {
-                bound_response_key,
-                location: name_location,
-            },
+        let bound_field_id = match name {
+            "__typename" => self.push_field(
+                parent,
+                BoundField::TypeName {
+                    bound_response_key,
+                    location: name_location,
+                },
+            ),
             name => {
                 let schema_field: FieldWalker<'_> = match root {
                     SelectionSetType::Object(object_id) => self.schema.object_field_by_name(object_id, name),
@@ -397,7 +421,19 @@ impl<'a> Binder<'a> {
                     location: name_location,
                 })?;
 
-                let arguments_id = self.bind_field_arguments(schema_field, name_location, &mut field.arguments)?;
+                let bound_field_id = self.push_field(
+                    parent,
+                    BoundField::Field {
+                        bound_response_key,
+                        location: name_location,
+                        field_id: schema_field.id(),
+                        argument_ids: Default::default(),
+                        selection_set_id: Default::default(),
+                    },
+                );
+
+                let argument_ids =
+                    self.bind_field_arguments(schema_field, bound_field_id, name_location, &mut field.arguments)?;
 
                 let selection_set_id = if field.selection_set.node.items.is_empty() {
                     if !matches!(
@@ -422,64 +458,78 @@ impl<'a> Binder<'a> {
                             .and_then(|ty| self.bind_selection_set(ty, &mut field.selection_set))?,
                     )
                 };
-                BoundField::Field {
-                    bound_response_key,
-                    location: name_location,
-                    field_id: schema_field.id(),
-                    arguments_id,
-                    selection_set_id,
-                }
+
+                // Ugly, yes.
+                let BoundField::Field {
+                    argument_ids: ref mut field_argument_ids,
+                    selection_set_id: ref mut field_selection_set_id,
+                    ..
+                } = &mut self.fields[usize::from(bound_field_id)]
+                else {
+                    unreachable!()
+                };
+                *field_argument_ids = argument_ids;
+                *field_selection_set_id = selection_set_id;
+                bound_field_id
             }
         };
-        let bound_field_id = BoundFieldId::from(self.fields.len());
-        self.fields.push(bound_field);
-        // Adding a placeholder.
-        self.field_to_parent.push(BoundSelectionSetId::from(0));
         Ok(BoundSelection::Field(bound_field_id))
+    }
+
+    fn push_field(&mut self, parent: BoundSelectionSetId, field: BoundField) -> BoundFieldId {
+        let id = BoundFieldId::from(self.fields.len());
+        self.fields.push(field);
+        self.field_to_parent.push(parent);
+        id
     }
 
     fn bind_field_arguments(
         &mut self,
         schema_field: FieldWalker<'_>,
+        bound_field_id: BoundFieldId,
         field_location: Location,
         arguments: &mut Vec<(Positioned<Name>, Positioned<engine_value::Value>)>,
-    ) -> BindResult<BoundFieldArgumentsId> {
-        if arguments.is_empty() {
-            return Ok(BoundFieldArgumentsId::from(0));
+    ) -> BindResult<IdRange<BoundFieldArgumentId>> {
+        // Avoid binding multiple times the same arguments (same fragments used at different places)
+        if let Some(ids) = self.location_to_field_arguments.get(&field_location) {
+            return Ok(*ids);
         }
 
-        // Avoid binding multiple times the same arguments (same framgnets used at different places)
-        if let Some(id) = self.location_to_field_arguments.get(&field_location) {
-            return Ok(*id);
+        let start = BoundFieldArgumentId::from(self.field_arguments.len());
+        for argument_def in schema_field.arguments() {
+            if let Some(index) = arguments
+                .iter()
+                .position(|(Positioned { node: name, .. }, _)| name.as_str() == argument_def.name())
+            {
+                let (name, value) = arguments.swap_remove(index);
+                let name_location = Some(name.pos.try_into()?);
+                let value_location = value.pos.try_into()?;
+                let value = value.node;
+                let input_value_id =
+                    coerce_value(self, bound_field_id, value_location, argument_def.ty().into(), value)?;
+                self.field_arguments.push(BoundFieldArgument {
+                    name_location,
+                    value_location: Some(value_location),
+                    input_value_definition_id: argument_def.id(),
+                    input_value_id,
+                });
+            } else if let Some(id) = argument_def.as_ref().default_value {
+                self.field_arguments.push(BoundFieldArgument {
+                    name_location: None,
+                    value_location: None,
+                    input_value_definition_id: argument_def.id(),
+                    input_value_id: self.input_values.push_value(OpInputValue::SchemaRef(id)),
+                });
+            } else if argument_def.ty().wrapping().is_required() {
+                return Err(OperationError::MissingArgument {
+                    field: schema_field.name().to_string(),
+                    name: argument_def.name().to_string(),
+                    location: field_location,
+                });
+            }
         }
-
-        let bound_arguments = std::mem::take(arguments)
-            .into_iter()
-            .map(|(name, value)| {
-                let name_location = name.pos.try_into()?;
-                let name = name.node.as_str();
-                schema_field
-                    .argument_by_name(name)
-                    .ok_or_else(|| OperationError::UnknownFieldArgument {
-                        field: schema_field.name().to_string(),
-                        name: name.to_string(),
-                        location: name_location,
-                    })
-                    .and_then(|input_value| {
-                        Ok(BoundFieldArgument {
-                            name_location,
-                            input_value_id: input_value.id(),
-                            value_location: value.pos.try_into()?,
-                            value: value.node,
-                        })
-                    })
-            })
-            .collect::<BindResult<Vec<_>>>()?;
-
-        self.validate_argument_variables(&bound_arguments)?;
-        let id = BoundFieldArgumentsId::from(self.field_arguments.len());
-        self.field_arguments.push(bound_arguments);
-        Ok(id)
+        let end = BoundFieldArgumentId::from(self.field_arguments.len());
+        Ok((start..end).into())
     }
 
     fn bind_fragment_spread(
@@ -524,7 +574,6 @@ impl<'a> Binder<'a> {
                         name: fragment_name.clone(),
                         name_location: fragment_definition_location,
                         type_condition,
-                        directives: Vec::new(),
                     };
                     (next_id, fragment_definition)
                 })
@@ -561,7 +610,6 @@ impl<'a> Binder<'a> {
             location: (*pos).try_into()?,
             type_condition,
             selection_set_id,
-            directives: Vec::new(),
         });
         Ok(BoundSelection::InlineFragment(inline_fragment_id))
     }
@@ -612,69 +660,18 @@ impl<'a> Binder<'a> {
         Ok(type_condition)
     }
 
-    fn validate_argument_variables(&mut self, arguments: &[BoundFieldArgument]) -> BindResult<()> {
-        for argument in arguments {
-            for variable in argument.value.variables_used() {
-                if !self
-                    .variable_definitions
-                    .iter()
-                    .any(|definition| definition.name == *variable)
-                {
-                    return Err(OperationError::UndefinedVariable {
-                        name: variable.to_string(),
-                        operation: self.operation_name.clone(),
-                        location: argument.value_location,
-                    });
-                }
-                self.variables_used.insert(variable.to_string());
-            }
-        }
-
-        Ok(())
-    }
-
     fn validate_all_variables_used(&self) -> BindResult<()> {
         for variable in &self.variable_definitions {
-            if !self.variables_used.contains(&variable.name) {
+            if variable.used_by.is_empty() {
                 return Err(OperationError::UnusedVariable {
                     name: variable.name.clone(),
-                    location: variable.name_location,
                     operation: self.operation_name.clone(),
+                    location: variable.name_location,
                 });
             }
         }
 
         Ok(())
-    }
-}
-
-impl From<SelectionSetType> for TypeCondition {
-    fn from(parent: SelectionSetType) -> Self {
-        match parent {
-            SelectionSetType::Interface(id) => Self::Interface(id),
-            SelectionSetType::Object(id) => Self::Object(id),
-            SelectionSetType::Union(id) => Self::Union(id),
-        }
-    }
-}
-
-impl From<TypeCondition> for SelectionSetType {
-    fn from(cond: TypeCondition) -> Self {
-        match cond {
-            TypeCondition::Interface(id) => Self::Interface(id),
-            TypeCondition::Object(id) => Self::Object(id),
-            TypeCondition::Union(id) => Self::Union(id),
-        }
-    }
-}
-
-impl From<SelectionSetType> for Definition {
-    fn from(parent: SelectionSetType) -> Self {
-        match parent {
-            SelectionSetType::Interface(id) => Self::Interface(id),
-            SelectionSetType::Object(id) => Self::Object(id),
-            SelectionSetType::Union(id) => Self::Union(id),
-        }
     }
 }
 
