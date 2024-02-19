@@ -13,6 +13,11 @@ impl Registry {
             }
 
             if federation {
+                writeln!(sdl, "extend schema @link(").ok();
+                writeln!(sdl, "\turl: \"https://specs.apollo.dev/federation/v2.3\",").ok();
+                writeln!(sdl, "\timport: [\"@key\", \"@tag\", \"@shareable\", \"@inaccessible\", \"@override\", \"@external\", \"@provides\", \"@requires\", \"@composeDirective\", \"@interfaceObject\"]").ok();
+                writeln!(sdl, ")").ok();
+
                 const FEDERATION_TYPES: &[&str] = &["_Any", "_Entity", "_Service"];
                 if FEDERATION_TYPES.contains(&ty.name()) {
                     continue;
