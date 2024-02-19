@@ -23,7 +23,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: public }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -43,7 +45,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: public, operations: [introspection] }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -63,7 +67,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: public, operations: [read, introspection] }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -91,7 +97,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -120,7 +128,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -149,7 +159,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -177,7 +189,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private, operations: [get] }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -205,7 +219,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private, operations: [list] }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -233,7 +249,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private, operations: [read] }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -261,7 +279,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private, operations: [create] }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -289,7 +309,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private, operations: [update] }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -317,7 +339,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private, operations: [delete] }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -345,7 +369,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private, operations: [get, list, read] }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -373,7 +399,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private, operations: [read, introspection] }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -401,7 +429,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: groups, groups: ["backend", "admin"] }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -429,7 +459,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: groups, groups: ["backend", "admin"], operations: [delete] }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -459,7 +491,9 @@ describe('OpenID auth provider', () => {
             { allow: private, operations: [read] }
             { allow: groups, groups: ["backend", "admin"], operations: [delete] }
           ]
-        )"
+        )
+
+      "
     `)
   })
 })

@@ -2,5 +2,6 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  setupFiles: ['<rootDir>/tests/setup.js']
+  setupFiles: ['<rootDir>/tests/setup.js'],
+  prettierPath: require.resolve('prettier-2'),
 }

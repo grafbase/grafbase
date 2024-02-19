@@ -31,7 +31,9 @@ describe('Authorizer auth provider', () => {
           rules: [
             { allow: private }
           ]
-        )"
+        )
+
+      "
     `)
   })
 })
