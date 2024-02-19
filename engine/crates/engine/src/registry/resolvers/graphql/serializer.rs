@@ -37,6 +37,7 @@ pub struct Serializer<'a, 'b> {
     /// These are linked to the known `fragment_definitions` to embed the required fragment
     /// definitions in the document.
     fragment_spreads: HashSet<Name>,
+    serialized_fragments: HashSet<Name>,
 
     /// Internal tracking of indentation to pretty-print query.
     indent: usize,
@@ -67,6 +68,7 @@ impl<'a, 'b> Serializer<'a, 'b> {
             buf,
             fragment_definitions,
             fragment_spreads: HashSet::new(),
+            serialized_fragments: HashSet::new(),
             indent: 0,
             variable_references: HashSet::new(),
             variable_definitions,
@@ -301,15 +303,16 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
     }
 
     fn serialize_fragment_definitions(&mut self, check_current_type: bool) -> Result<(), Error> {
-        if self.fragment_spreads.is_empty() {
-            return Ok(());
-        }
-
-        for name in self.fragment_spreads.clone() {
-            // If a spread references an unknown definition, the query will fail, but the failure
-            // will be reported by the GraphQL resolver, not this serializer.
-            if let Some(definition) = self.fragment_definitions.get(&name) {
-                self.serialize_fragment_definition(name, definition, check_current_type)?;
+        while !self.fragment_spreads.is_empty() {
+            for name in std::mem::take(&mut self.fragment_spreads) {
+                if self.serialized_fragments.contains(&name) {
+                    continue;
+                }
+                // If a spread references an unknown definition, the query will fail, but the failure
+                // will be reported by the GraphQL resolver, not this serializer.
+                if let Some(definition) = self.fragment_definitions.get(&name) {
+                    self.serialize_fragment_definition(name, definition, check_current_type)?;
+                }
             }
         }
 
@@ -322,6 +325,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
         definition: &'c FragmentDefinition,
         check_current_type: bool,
     ) -> Result<(), Error> {
+        self.serialized_fragments.insert(name.clone());
         self.write_str("fragment ")?;
         self.write_str(name)?;
 

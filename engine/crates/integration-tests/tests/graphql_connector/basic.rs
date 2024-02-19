@@ -29,11 +29,15 @@ const NAMESPACED_QUERY: &str = "
 
     fragment AuthorFragment on GothubUserOrBot {
         ... on GothubUser {
-            email
+            ...GothobUserFragment
         }
         ... on GothubBot {
             id
         }
+    }
+
+    fragment GothobUserFragment on GothubUser {
+        email
     }
 ";
 
