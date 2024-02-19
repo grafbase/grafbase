@@ -353,6 +353,27 @@ fn introspection_output_matches_source() {
 }
 
 #[test]
+fn raw_introspetion_output() {
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
+
+        let engine = Gateway::builder()
+            .with_schema("github", &github_mock)
+            .await
+            .with_schema("echo", &echo_mock)
+            .await
+            .finish()
+            .await;
+
+        engine.execute(IntrospectionQuery::build(())).await
+    });
+
+    // Some errors are just easier to understand with the actual introspection output.
+    insta::assert_json_snapshot!(response);
+}
+
+#[test]
 fn can_introsect_when_multiple_subgraphs() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
