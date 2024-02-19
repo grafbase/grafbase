@@ -13,10 +13,13 @@ use super::{
     PlanningError, PlanningResult,
 };
 use crate::{
-    plan::{OperationPlan, ParentToChildEdge, PlanBoundaryId, PlanId, PlanInput, PlanOutput, PlannedResolver},
+    plan::{
+        flatten_selection_sets, EntityType, FlatField, FlatSelectionSet, FlatTypeCondition, OperationPlan,
+        ParentToChildEdge, PlanBoundaryId, PlanId, PlanInput, PlanOutput, PlannedResolver,
+    },
     request::{
-        BoundField, BoundFieldId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, EntityType, FlatField,
-        FlatSelectionSet, FlatTypeCondition, Operation, OperationWalker, QueryPath,
+        BoundField, BoundFieldId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, Operation, OperationWalker,
+        QueryPath,
     },
     response::{ReadSelectionSet, ResponseKeys, SafeResponseKey},
     sources::Plan,
@@ -122,21 +125,20 @@ impl<'schema> Planner<'schema> {
         // The root plan is always introspection which also lets us handle operations like:
         // query { __typename }
         let introspection_resolver_id = self.schema.introspection_resolver_id();
-        let (introspection_selection_set, selection_set) = self
-            .walker()
-            .flatten_selection_sets(vec![self.operation.root_selection_set_id])
-            .partition_fields(|flat_field| {
-                let bound_field = &self.operation[flat_field.bound_field_id];
-                if let Some(schema_field_id) = bound_field.schema_field_id() {
-                    self.schema
-                        .walker()
-                        .walk(schema_field_id)
-                        .resolvers()
-                        .any(|FieldResolverWalker { resolver, .. }| resolver.id() == introspection_resolver_id)
-                } else {
-                    true
-                }
-            });
+        let (introspection_selection_set, selection_set) =
+            flatten_selection_sets(self.schema, &self.operation, vec![self.operation.root_selection_set_id])
+                .partition_fields(|flat_field| {
+                    let bound_field = &self.operation[flat_field.bound_field_id];
+                    if let Some(schema_field_id) = bound_field.schema_field_id() {
+                        self.schema
+                            .walker()
+                            .walk(schema_field_id)
+                            .resolvers()
+                            .any(|FieldResolverWalker { resolver, .. }| resolver.id() == introspection_resolver_id)
+                    } else {
+                        true
+                    }
+                });
 
         if !introspection_selection_set.is_empty() {
             self.push_plan(
@@ -252,7 +254,7 @@ impl<'schema> Planner<'schema> {
                 let schema_field_id = self.operation[bound_field_ids[0]]
                     .schema_field_id()
                     .expect("wouldn't have a subselection");
-                let flat_selection_set = self.walker().flatten_selection_sets(subselection_set_ids);
+                let flat_selection_set = flatten_selection_sets(self.schema, &self.operation, subselection_set_ids);
                 self.attribute_selection_sets(&flat_selection_set.root_selection_set_ids, plan_id);
                 self.recursive_plan_subselections(&path.child(key), &logic.child(schema_field_id), flat_selection_set)?;
             }

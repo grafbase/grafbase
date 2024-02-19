@@ -4,13 +4,12 @@ use std::collections::HashSet;
 
 use crate::{
     plan::{
-        AnyCollectedSelectionSet, AnyCollectedSelectionSetId, CollectedField, CollectedFieldId, CollectedSelectionSet,
-        CollectedSelectionSetId, ConditionalField, ConditionalFieldId, ConditionalSelectionSet,
-        ConditionalSelectionSetId, FieldType, OperationPlan, PlanBoundaryId, PlanId,
+        flatten_selection_sets, AnyCollectedSelectionSet, AnyCollectedSelectionSetId, CollectedField, CollectedFieldId,
+        CollectedSelectionSet, CollectedSelectionSetId, ConditionalField, ConditionalFieldId, ConditionalSelectionSet,
+        ConditionalSelectionSetId, EntityType, FieldType, FlatField, FlatTypeCondition, OperationPlan, PlanBoundaryId,
+        PlanId,
     },
-    request::{
-        BoundFieldId, BoundSelectionSetId, EntityType, FlatField, FlatTypeCondition, OperationWalker, SelectionSetType,
-    },
+    request::{BoundFieldId, BoundSelectionSetId, OperationWalker, SelectionSetType},
     utils::IdRange,
 };
 
@@ -78,7 +77,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         selection_set_ids: Vec<BoundSelectionSetId>,
         concrete_parent: bool,
     ) -> PlanningResult<AnyCollectedSelectionSet> {
-        let selection_set = self.walker().flatten_selection_sets(selection_set_ids);
+        let selection_set = flatten_selection_sets(self.schema, self.operation, selection_set_ids);
 
         let mut maybe_boundary_id = None;
         let mut plan_fields = Vec::new();

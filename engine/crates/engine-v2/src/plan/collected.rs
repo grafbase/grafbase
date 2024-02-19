@@ -1,12 +1,15 @@
 use schema::{FieldId, ObjectId, ScalarType, Wrapping};
 
 use crate::{
-    request::{BoundFieldId, FlatTypeCondition, SelectionSetType},
+    request::{BoundFieldId, SelectionSetType},
     response::{ResponseEdge, SafeResponseKey},
     utils::IdRange,
 };
 
-use super::{CollectedFieldId, CollectedSelectionSetId, ConditionalFieldId, ConditionalSelectionSetId, PlanBoundaryId};
+use super::{
+    CollectedFieldId, CollectedSelectionSetId, ConditionalFieldId, ConditionalSelectionSetId, FlatTypeCondition,
+    PlanBoundaryId,
+};
 
 // TODO: The two AnyCollectedSelectionSet aren't great, need to split better the ones which are computed
 // during planning and the others.

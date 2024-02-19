@@ -1,3 +1,6 @@
+mod coercion;
+mod variable;
+
 use std::collections::{HashMap, HashSet};
 
 pub use engine_parser::types::OperationType;
@@ -6,39 +9,23 @@ use engine_value::Name;
 use itertools::Itertools;
 use schema::{Definition, FieldWalker, IdRange, Schema};
 
-use crate::response::GraphqlError;
-
-use self::coercion::{const_value::coerce_graphql_const_value, value::coerce_value};
-
-use super::{
-    selection_set::BoundField, variable::VariableDefinition, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId,
-    BoundFragment, BoundFragmentId, BoundFragmentSpread, BoundFragmentSpreadId, BoundInlineFragment,
-    BoundInlineFragmentId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, Location, OpInputValue,
-    OpInputValues, Operation, ParsedOperation, ResponseKeys, SelectionSetType, TypeCondition,
+use crate::{
+    request::{
+        BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundFragment, BoundFragmentId,
+        BoundFragmentSpread, BoundFragmentSpreadId, BoundInlineFragment, BoundInlineFragmentId, BoundSelection,
+        BoundSelectionSet, BoundSelectionSetId, Location, OpInputValue, OpInputValues, Operation, SelectionSetType,
+        TypeCondition, VariableDefinition,
+    },
+    response::{GraphqlError, ResponseKeys},
 };
 
-mod coercion;
-mod variable;
+use self::coercion::{const_value::coerce_graphql_const_value, value::coerce_value};
+pub use variable::bind_variables;
 
-pub use variable::{bind_variables, VariableError};
-
-#[allow(clippy::enum_variant_names)]
-#[derive(thiserror::Error, Debug)]
-pub enum OperationLimitExceededError {
-    #[error("Query is too complex.")]
-    QueryTooComplex,
-    #[error("Query is nested too deep.")]
-    QueryTooDeep,
-    #[error("Query is too high.")]
-    QueryTooHigh,
-    #[error("Query contains too many root fields.")]
-    QueryContainsTooManyRootFields,
-    #[error("Query contains too many aliases.")]
-    QueryContainsTooManyAliases,
-}
+use super::parse::ParsedOperation;
 
 #[derive(thiserror::Error, Debug)]
-pub enum OperationError {
+pub enum BindError {
     #[error("Unknown type named '{name}'")]
     UnknownType { name: String, location: Location },
     #[error("{container} does not have a field named '{name}'")]
@@ -99,12 +86,8 @@ pub enum OperationError {
     },
     #[error("Fragment cycle detected: {}", .cycle.iter().join(", "))]
     FragmentCycle { cycle: Vec<String>, location: Location },
-    #[error("{0}")]
-    OperationLimitExceeded(OperationLimitExceededError),
     #[error("Query is too big: {0}")]
     QueryTooBig(String),
-    #[error("GraphQL introspection is not allowed, but the query contained __schema or __type")]
-    IntrospectionWhenDisabled { location: Location },
     #[error("{0}")]
     InvalidInputValue(#[from] coercion::InputValueError),
     #[error("Missing argument named '{name}' for field '{field}'")]
@@ -115,29 +98,25 @@ pub enum OperationError {
     },
 }
 
-impl From<OperationError> for GraphqlError {
-    fn from(err: OperationError) -> Self {
+impl From<BindError> for GraphqlError {
+    fn from(err: BindError) -> Self {
         let locations = match err {
-            OperationError::UnknownField { location, .. }
-            | OperationError::UnknownType { location, .. }
-            | OperationError::UnknownFragment { location, .. }
-            | OperationError::UnionHaveNoFields { location, .. }
-            | OperationError::InvalidTypeConditionTargetType { location, .. }
-            | OperationError::CannotHaveSelectionSet { location, .. }
-            | OperationError::DisjointTypeCondition { location, .. }
-            | OperationError::InvalidVariableType { location, .. }
-            | OperationError::TooManyFields { location }
-            | OperationError::LeafMustBeAScalarOrEnum { location, .. }
-            | OperationError::DuplicateVariable { location, .. }
-            | OperationError::FragmentCycle { location, .. }
-            | OperationError::IntrospectionWhenDisabled { location, .. }
-            | OperationError::MissingArgument { location, .. }
-            | OperationError::UnusedVariable { location, .. } => vec![location],
-            OperationError::InvalidInputValue(ref err) => vec![err.location()],
-            OperationError::NoMutationDefined
-            | OperationError::NoSubscriptionDefined
-            | OperationError::QueryTooBig { .. }
-            | OperationError::OperationLimitExceeded { .. } => {
+            BindError::UnknownField { location, .. }
+            | BindError::UnknownType { location, .. }
+            | BindError::UnknownFragment { location, .. }
+            | BindError::UnionHaveNoFields { location, .. }
+            | BindError::InvalidTypeConditionTargetType { location, .. }
+            | BindError::CannotHaveSelectionSet { location, .. }
+            | BindError::DisjointTypeCondition { location, .. }
+            | BindError::InvalidVariableType { location, .. }
+            | BindError::TooManyFields { location }
+            | BindError::LeafMustBeAScalarOrEnum { location, .. }
+            | BindError::DuplicateVariable { location, .. }
+            | BindError::FragmentCycle { location, .. }
+            | BindError::MissingArgument { location, .. }
+            | BindError::UnusedVariable { location, .. } => vec![location],
+            BindError::InvalidInputValue(ref err) => vec![err.location()],
+            BindError::NoMutationDefined | BindError::NoSubscriptionDefined | BindError::QueryTooBig { .. } => {
                 vec![]
             }
         };
@@ -149,7 +128,7 @@ impl From<OperationError> for GraphqlError {
     }
 }
 
-pub type BindResult<T> = Result<T, OperationError>;
+pub type BindResult<T> = Result<T, BindError>;
 
 pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operation> {
     let root_object_id = match unbound.definition.ty {
@@ -157,11 +136,11 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
         OperationType::Mutation => schema
             .root_operation_types
             .mutation
-            .ok_or(OperationError::NoMutationDefined)?,
+            .ok_or(BindError::NoMutationDefined)?,
         OperationType::Subscription => schema
             .root_operation_types
             .subscription
-            .ok_or(OperationError::NoSubscriptionDefined)?,
+            .ok_or(BindError::NoSubscriptionDefined)?,
     };
 
     let mut binder = Binder {
@@ -255,7 +234,7 @@ impl<'a> Binder<'a> {
             let name_location = node.name.pos.try_into()?;
 
             if seen_names.contains(&name) {
-                return Err(OperationError::DuplicateVariable {
+                return Err(BindError::DuplicateVariable {
                     name,
                     location: name_location,
                 });
@@ -302,7 +281,7 @@ impl<'a> Binder<'a> {
                 let definition =
                     self.schema
                         .definition_by_name(type_name.as_str())
-                        .ok_or_else(|| OperationError::UnknownType {
+                        .ok_or_else(|| BindError::UnknownType {
                             name: type_name.to_string(),
                             location,
                         })?;
@@ -310,7 +289,7 @@ impl<'a> Binder<'a> {
                     definition,
                     Definition::Enum(_) | Definition::Scalar(_) | Definition::InputObject(_)
                 ) {
-                    return Err(OperationError::InvalidVariableType {
+                    return Err(BindError::InvalidVariableType {
                         name: variable_name.to_string(),
                         ty: self.schema.walker().walk(definition).name().to_string(),
                         location,
@@ -387,7 +366,7 @@ impl<'a> Binder<'a> {
         let bound_response_key =
             response_key
                 .with_position(self.next_response_position)
-                .ok_or(OperationError::TooManyFields {
+                .ok_or(BindError::TooManyFields {
                     location: name_location,
                 })?;
         self.next_response_position += 1;
@@ -407,7 +386,7 @@ impl<'a> Binder<'a> {
                         self.schema.interface_field_by_name(interface_id, name)
                     }
                     SelectionSetType::Union(union_id) => {
-                        return Err(OperationError::UnionHaveNoFields {
+                        return Err(BindError::UnionHaveNoFields {
                             name: name.to_string(),
                             ty: walker.walk(union_id).name().to_string(),
                             location: name_location,
@@ -415,7 +394,7 @@ impl<'a> Binder<'a> {
                     }
                 }
                 .map(|field_id| walker.walk(field_id))
-                .ok_or_else(|| OperationError::UnknownField {
+                .ok_or_else(|| BindError::UnknownField {
                     container: walker.walk(Definition::from(root)).name().to_string(),
                     name: name.to_string(),
                     location: name_location,
@@ -440,7 +419,7 @@ impl<'a> Binder<'a> {
                         schema_field.ty().inner().id(),
                         Definition::Scalar(_) | Definition::Enum(_)
                     ) {
-                        return Err(OperationError::LeafMustBeAScalarOrEnum {
+                        return Err(BindError::LeafMustBeAScalarOrEnum {
                             name: name.to_string(),
                             ty: schema_field.ty().inner().name().to_string(),
                             location: name_location,
@@ -450,7 +429,7 @@ impl<'a> Binder<'a> {
                 } else {
                     Some(
                         SelectionSetType::maybe_from(schema_field.ty().inner().id())
-                            .ok_or_else(|| OperationError::CannotHaveSelectionSet {
+                            .ok_or_else(|| BindError::CannotHaveSelectionSet {
                                 name: name.to_string(),
                                 ty: schema_field.ty().to_string(),
                                 location: name_location,
@@ -521,7 +500,7 @@ impl<'a> Binder<'a> {
                     input_value_id: self.input_values.push_value(OpInputValue::SchemaRef(id)),
                 });
             } else if argument_def.ty().wrapping().is_required() {
-                return Err(OperationError::MissingArgument {
+                return Err(BindError::MissingArgument {
                     field: schema_field.name().to_string(),
                     name: argument_def.name().to_string(),
                     location: field_location,
@@ -543,7 +522,7 @@ impl<'a> Binder<'a> {
         let name = spread.fragment_name.node.to_string();
         if self.current_fragments_stack.contains(&name) {
             self.current_fragments_stack.push(name);
-            return Err(OperationError::FragmentCycle {
+            return Err(BindError::FragmentCycle {
                 cycle: std::mem::take(&mut self.current_fragments_stack),
                 location,
             });
@@ -554,7 +533,7 @@ impl<'a> Binder<'a> {
         let (fragment_name, mut fragment) =
             self.unbound_fragments
                 .remove_entry(&name)
-                .ok_or_else(|| OperationError::UnknownFragment {
+                .ok_or_else(|| BindError::UnknownFragment {
                     name: name.to_string(),
                     location,
                 })?;
@@ -624,7 +603,7 @@ impl<'a> Binder<'a> {
         let definition = self
             .schema
             .definition_by_name(name)
-            .ok_or_else(|| OperationError::UnknownType {
+            .ok_or_else(|| BindError::UnknownType {
                 name: name.to_string(),
                 location,
             })?;
@@ -633,7 +612,7 @@ impl<'a> Binder<'a> {
             Definition::Interface(interface_id) => TypeCondition::Interface(interface_id),
             Definition::Union(union_id) => TypeCondition::Union(union_id),
             _ => {
-                return Err(OperationError::InvalidTypeConditionTargetType {
+                return Err(BindError::InvalidTypeConditionTargetType {
                     name: name.to_string(),
                     location,
                 });
@@ -651,7 +630,7 @@ impl<'a> Binder<'a> {
             .collect::<HashSet<_>>();
         if possible_types.is_disjoint(&frament_possible_types) {
             let walker = self.schema.walker();
-            return Err(OperationError::DisjointTypeCondition {
+            return Err(BindError::DisjointTypeCondition {
                 parent: walker.walk(Definition::from(root)).name().to_string(),
                 name: name.to_string(),
                 location,
@@ -663,7 +642,7 @@ impl<'a> Binder<'a> {
     fn validate_all_variables_used(&self) -> BindResult<()> {
         for variable in &self.variable_definitions {
             if variable.used_by.is_empty() {
-                return Err(OperationError::UnusedVariable {
+                return Err(BindError::UnusedVariable {
                     name: variable.name.clone(),
                     operation: self.operation_name.clone(),
                     location: variable.name_location,

@@ -4,16 +4,13 @@ use schema::{FieldId, ObjectId, Schema, SchemaWalker};
 
 use crate::{
     plan::{CollectedField, FieldType, RuntimeMergedConditionals},
-    request::{
-        BoundFieldId, FlatTypeCondition, OpInputValues, Operation, OperationWalker, SelectionSetType,
-        VariableDefinitionId,
-    },
+    request::{BoundFieldId, OpInputValues, Operation, OperationWalker, SelectionSetType, VariableDefinitionId},
     response::{ResponseEdge, ResponseKey, ResponseKeys, ResponsePart, ResponsePath, SafeResponseKey, SeedContext},
 };
 
 use super::{
-    AnyCollectedSelectionSet, CollectedSelectionSetId, ConditionalSelectionSetId, OperationPlan, PlanId, PlanInput,
-    PlanOutput, RuntimeCollectedSelectionSet,
+    AnyCollectedSelectionSet, CollectedSelectionSetId, ConditionalSelectionSetId, FlatTypeCondition, OperationPlan,
+    PlanId, PlanInput, PlanOutput, RuntimeCollectedSelectionSet,
 };
 
 mod argument;

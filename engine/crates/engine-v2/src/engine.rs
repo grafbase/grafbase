@@ -10,7 +10,7 @@ use schema::Schema;
 use crate::{
     execution::{ExecutionCoordinator, PreparedExecution},
     plan::OperationPlan,
-    request::{parse_operation, Operation},
+    request::{bind_variables, Operation},
     response::{ExecutionMetadata, GraphqlError, Response},
 };
 
@@ -102,8 +102,7 @@ impl Engine {
             Err(error) => return Err(Response::from_error(error, ExecutionMetadata::default())),
         };
 
-        let input_values = operation_plan
-            .bind_variables(self.schema.as_ref(), &mut request.variables)
+        let input_values = bind_variables(self.schema.as_ref(), &operation_plan, &mut request.variables)
             .map_err(|errors| Response::from_errors(errors, ExecutionMetadata::build(&operation_plan)))?;
 
         Ok(ExecutionCoordinator::new(
@@ -121,15 +120,8 @@ impl Engine {
                 return Ok(cached);
             }
         }
-        let parsed_operation = parse_operation(request)?;
-        let bound_operation = Operation::build(
-            &self.schema,
-            parsed_operation,
-            !request.operation_limits_disabled(),
-            request.introspection_state(),
-            request,
-        )?;
-        let prepared = Arc::new(OperationPlan::prepare(&self.schema, bound_operation)?);
+        let operation = Operation::build(&self.schema, request)?;
+        let prepared = Arc::new(OperationPlan::prepare(&self.schema, operation)?);
         #[cfg(feature = "plan_cache")]
         {
             self.plan_cache

@@ -7,84 +7,83 @@ use std::{
 use itertools::Itertools;
 use schema::{Definition, InterfaceId, ObjectId, Schema};
 
-use crate::request::{BoundFieldId, BoundSelectionSetId, SelectionSetType, TypeCondition};
+use crate::request::{BoundFieldId, BoundSelection, BoundSelectionSetId, Operation, SelectionSetType, TypeCondition};
 
-use super::{BoundSelection, OperationWalker};
-
-impl<'a> OperationWalker<'a> {
-    pub fn flatten_selection_sets(&self, root_selection_set_ids: Vec<BoundSelectionSetId>) -> FlatSelectionSet {
-        let ty = {
-            let selection_set_types = root_selection_set_ids
+pub fn flatten_selection_sets(
+    schema: &Schema,
+    operation: &Operation,
+    root_selection_set_ids: Vec<BoundSelectionSetId>,
+) -> FlatSelectionSet {
+    let ty = {
+        let selection_set_types = root_selection_set_ids
+            .iter()
+            .map(|id| operation[*id].ty)
+            .collect::<HashSet<SelectionSetType>>();
+        assert_eq!(
+            selection_set_types.len(),
+            1,
+            "{}",
+            selection_set_types
+                .into_iter()
+                .map(|ty| schema.walk(Definition::from(ty)).name())
+                .join(", ")
+        );
+        selection_set_types.into_iter().next().unwrap()
+    };
+    let mut flat_selection_set = FlatSelectionSet {
+        root_selection_set_ids,
+        ty,
+        fields: Vec::new(),
+    };
+    let mut selections = VecDeque::from_iter(flat_selection_set.root_selection_set_ids.iter().flat_map(
+        |&selection_set_id| {
+            operation[selection_set_id]
+                .items
                 .iter()
-                .map(|id| self.operation[*id].ty)
-                .collect::<HashSet<SelectionSetType>>();
-            assert_eq!(
-                selection_set_types.len(),
-                1,
-                "{}",
-                selection_set_types
-                    .into_iter()
-                    .map(|ty| self.schema_walker.walk(Definition::from(ty)).name())
-                    .join(", ")
-            );
-            selection_set_types.into_iter().next().unwrap()
-        };
-        let mut flat_selection_set = FlatSelectionSet {
-            root_selection_set_ids,
-            ty,
-            fields: Vec::new(),
-        };
-        let mut selections = VecDeque::from_iter(flat_selection_set.root_selection_set_ids.iter().flat_map(
-            |&selection_set_id| {
-                self.operation[selection_set_id]
-                    .items
-                    .iter()
-                    .map(move |selection| (Vec::<TypeCondition>::new(), vec![selection_set_id], selection))
-            },
-        ));
-        while let Some((mut type_condition_chain, mut selection_set_path, selection)) = selections.pop_front() {
-            match selection {
-                &BoundSelection::Field(bound_field_id) => {
-                    let type_condition =
-                        FlatTypeCondition::flatten(&self.schema_walker, flat_selection_set.ty, type_condition_chain);
-                    if FlatTypeCondition::is_possible(&type_condition) {
-                        flat_selection_set.fields.push(FlatField {
-                            type_condition,
-                            selection_set_path,
-                            bound_field_id,
-                        });
-                    }
-                }
-                BoundSelection::FragmentSpread(spread_id) => {
-                    let spread = &self.operation[*spread_id];
-                    let fragment = &self.operation[spread.fragment_id];
-                    type_condition_chain.push(fragment.type_condition);
-                    selection_set_path.push(spread.selection_set_id);
-                    selections.extend(
-                        self.operation[spread.selection_set_id]
-                            .items
-                            .iter()
-                            .map(|selection| (type_condition_chain.clone(), selection_set_path.clone(), selection)),
-                    );
-                }
-                BoundSelection::InlineFragment(inline_fragment_id) => {
-                    let inline_fragment = &self.operation[*inline_fragment_id];
-                    if let Some(type_condition) = inline_fragment.type_condition {
-                        type_condition_chain.push(type_condition);
-                    }
-                    selection_set_path.push(inline_fragment.selection_set_id);
-                    selections.extend(
-                        self.operation[inline_fragment.selection_set_id]
-                            .items
-                            .iter()
-                            .map(|selection| (type_condition_chain.clone(), selection_set_path.clone(), selection)),
-                    );
+                .map(move |selection| (Vec::<TypeCondition>::new(), vec![selection_set_id], selection))
+        },
+    ));
+    while let Some((mut type_condition_chain, mut selection_set_path, selection)) = selections.pop_front() {
+        match selection {
+            &BoundSelection::Field(bound_field_id) => {
+                let type_condition = FlatTypeCondition::flatten(schema, flat_selection_set.ty, type_condition_chain);
+                if FlatTypeCondition::is_possible(&type_condition) {
+                    flat_selection_set.fields.push(FlatField {
+                        type_condition,
+                        selection_set_path,
+                        bound_field_id,
+                    });
                 }
             }
+            BoundSelection::FragmentSpread(spread_id) => {
+                let spread = &operation[*spread_id];
+                let fragment = &operation[spread.fragment_id];
+                type_condition_chain.push(fragment.type_condition);
+                selection_set_path.push(spread.selection_set_id);
+                selections.extend(
+                    operation[spread.selection_set_id]
+                        .items
+                        .iter()
+                        .map(|selection| (type_condition_chain.clone(), selection_set_path.clone(), selection)),
+                );
+            }
+            BoundSelection::InlineFragment(inline_fragment_id) => {
+                let inline_fragment = &operation[*inline_fragment_id];
+                if let Some(type_condition) = inline_fragment.type_condition {
+                    type_condition_chain.push(type_condition);
+                }
+                selection_set_path.push(inline_fragment.selection_set_id);
+                selections.extend(
+                    operation[inline_fragment.selection_set_id]
+                        .items
+                        .iter()
+                        .map(|selection| (type_condition_chain.clone(), selection_set_path.clone(), selection)),
+                );
+            }
         }
-
-        flat_selection_set
     }
+
+    flat_selection_set
 }
 
 #[derive(Debug, Clone)]

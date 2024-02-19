@@ -1,18 +1,20 @@
 use schema::{ResolverId, Schema};
 
 use crate::{
-    request::{EntityType, FlatTypeCondition, OpInputValues, Operation, QueryPath},
+    request::{OpInputValues, Operation, QueryPath},
     response::ReadSelectionSet,
     sources::Plan,
     utils::IdRange,
 };
 
 mod collected;
+mod flat;
 mod ids;
 mod planning;
 mod state;
 mod walkers;
 pub(crate) use collected::*;
+pub(crate) use flat::*;
 pub(crate) use ids::*;
 pub(crate) use planning::*;
 pub(crate) use state::*;
