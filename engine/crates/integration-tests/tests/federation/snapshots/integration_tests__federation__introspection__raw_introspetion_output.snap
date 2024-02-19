@@ -92,13 +92,13 @@ expression: response
           "interfaces": null,
           "enumValues": [
             {
-              "name": "YES",
+              "name": "NO",
               "description": null,
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "NO",
+              "name": "YES",
               "description": null,
               "isDeprecated": false,
               "deprecationReason": null

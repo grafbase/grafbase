@@ -195,7 +195,8 @@ pub struct Field {
     pub type_id: TypeId,
     pub resolvers: Vec<FieldResolver>,
     provides: Vec<FieldProvides>,
-    pub arguments: IdRange<InputValueDefinitionId>,
+    /// The arguments referenced by this range are sorted by their name (string)
+    pub argument_ids: IdRange<InputValueDefinitionId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
@@ -268,10 +269,28 @@ impl From<InputObjectId> for Definition {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Type {
     pub inner: Definition,
     pub wrapping: Wrapping,
+}
+
+impl Type {
+    /// Determines whether a varia
+    pub fn is_compatible_with(&self, other: Type) -> bool {
+        self.inner == other.inner
+            // if not a list, the current type can be coerced into the proper list wrapping.
+            && (!self.wrapping.is_list()
+                || self.wrapping.list_wrappings().len() == other.wrapping.list_wrappings().len())
+            && (other.wrapping.is_nullable() || self.wrapping.is_required())
+    }
+
+    pub fn wrapped_by(self, list_wrapping: ListWrapping) -> Self {
+        Self {
+            inner: self.inner,
+            wrapping: self.wrapping.wrapped_by(list_wrapping),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -297,7 +316,8 @@ pub struct InterfaceField {
 pub struct Enum {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub values: EnumValues,
+    /// The enum values referenced by this range are sorted by their name (string)
+    pub value_ids: IdRange<EnumValueId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
@@ -311,8 +331,6 @@ pub struct EnumValue {
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
 }
-
-type EnumValues = IdRange<EnumValueId>;
 
 #[derive(Debug)]
 pub struct Union {
@@ -361,7 +379,8 @@ impl ScalarType {
 pub struct InputObject {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub input_fields: IdRange<InputValueDefinitionId>,
+    /// The input fields referenced by this range are sorted by their name (string)
+    pub input_field_ids: IdRange<InputValueDefinitionId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,

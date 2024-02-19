@@ -5,8 +5,8 @@ use schema::{
     sources::introspection::{
         IntrospectionField, IntrospectionObject, Metadata, __EnumValue, __Field, __InputValue, __Schema, __Type,
     },
-    Definition, DefinitionWalker, Directive, EnumValueWalker, FieldWalker, InputValueWalker, InputValuesContext,
-    ListWrapping, SchemaWalker, TypeWalker, Wrapping,
+    Definition, DefinitionWalker, Directive, EnumValueWalker, FieldWalker, InputValueDefinitionWalker, ListWrapping,
+    RawInputValuesContext, SchemaWalker, TypeWalker, Wrapping,
 };
 
 use crate::{
@@ -293,7 +293,7 @@ impl<'a> IntrospectionWriter<'a> {
 
     fn __input_value(
         &self,
-        target: InputValueWalker<'a>,
+        target: InputValueDefinitionWalker<'a>,
         selection_set: PlanCollectedSelectionSet<'_>,
     ) -> ResponseValue {
         self.object(
@@ -306,7 +306,7 @@ impl<'a> IntrospectionWriter<'a> {
                 __InputValue::DefaultValue => target
                     .as_ref()
                     .default_value
-                    .map(|id| self.schema.input_value_as_graphql_display(id).to_string())
+                    .map(|id| RawInputValuesContext::walk(&self.schema, id).to_string())
                     .into(),
             },
         )

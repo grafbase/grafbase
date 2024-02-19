@@ -36,7 +36,7 @@ impl<'a> PlanCollectedSelectionSet<'a> {
     }
 
     pub fn fields(self) -> impl ExactSizeIterator<Item = PlanCollectedField<'a>> + 'a {
-        self.as_ref().fields.iter().map(move |id| self.walk(id))
+        self.as_ref().fields.map(move |id| self.walk(id))
     }
 }
 
@@ -77,7 +77,7 @@ impl<'a> PlanConditionalSelectionSet<'a> {
     }
 
     pub fn fields(self) -> impl Iterator<Item = PlanConditionalField<'a>> + 'a {
-        self.as_ref().fields.iter().map(move |id| self.walk(id))
+        self.as_ref().fields.map(move |id| self.walk(id))
     }
 }
 

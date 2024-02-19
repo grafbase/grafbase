@@ -260,8 +260,8 @@ fn echo_subgraph_introspection() {
 
     insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
     enum FancyBool {
-      YES
       NO
+      YES
     }
 
     input InputObj {
@@ -403,8 +403,8 @@ fn can_introsect_when_multiple_subgraphs() {
     scalar CustomRepoId
 
     enum FancyBool {
-      YES
       NO
+      YES
     }
 
     type Header {
@@ -870,9 +870,9 @@ fn introspection_on_multiple_federation_subgraphs() {
     }
 
     enum Trustworthiness {
-      REALLY_TRUSTED
       KINDA_TRUSTED
       NOT_TRUSTED
+      REALLY_TRUSTED
     }
 
     type User {

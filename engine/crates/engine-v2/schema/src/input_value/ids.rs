@@ -1,4 +1,4 @@
-use crate::{InputValue, InputValueDefinitionId, InputValues, MAX_ID};
+use crate::{InputValueDefinitionId, RawInputValue, RawInputValues, MAX_ID};
 
 macro_rules! input_ids {
     ($($field:ident[$name:ident] => $out:ty | unless $msg:literal,)*) => {
@@ -17,7 +17,7 @@ macro_rules! input_ids {
 
             impl<Str> Copy for $name<Str> {}
 
-            impl<Str> std::ops::Index<$name<Str>> for InputValues<Str> {
+            impl<Str> std::ops::Index<$name<Str>> for RawInputValues<Str> {
                 type Output = $out;
 
                 fn index(&self, id: $name<Str>) -> &$out {
@@ -25,13 +25,13 @@ macro_rules! input_ids {
                 }
             }
 
-            impl<Str> std::ops::IndexMut<$name<Str>> for InputValues<Str> {
+            impl<Str> std::ops::IndexMut<$name<Str>> for RawInputValues<Str> {
                 fn index_mut(&mut self, id: $name<Str>) -> &mut $out {
                     &mut self.$field[(id.index.get() - 1) as usize]
                 }
             }
 
-            impl<Str> std::ops::Index<crate::ids::IdRange<$name<Str>>> for InputValues<Str> {
+            impl<Str> std::ops::Index<crate::ids::IdRange<$name<Str>>> for RawInputValues<Str> {
                 type Output = [$out];
 
                 fn index(&self, range: crate::ids::IdRange<$name<Str>>) -> &Self::Output {
@@ -42,7 +42,7 @@ macro_rules! input_ids {
                 }
             }
 
-            impl<Str> std::ops::IndexMut<crate::ids::IdRange<$name<Str>>> for InputValues<Str> {
+            impl<Str> std::ops::IndexMut<crate::ids::IdRange<$name<Str>>> for RawInputValues<Str> {
                 fn index_mut(&mut self, range: crate::ids::IdRange<$name<Str>>) -> &mut Self::Output {
                     let crate::ids::IdRange { start, end } = range;
                     let start = usize::from(start);
@@ -77,7 +77,7 @@ macro_rules! input_ids {
 }
 
 input_ids!(
-    values[InputValueId] => InputValue<Str> | unless "Too many input values",
-    input_fields[InputObjectFieldValueId] => (InputValueDefinitionId, InputValue<Str>) | unless "Too many input object fields",
-    key_values[InputKeyValueId] => (Str, InputValue<Str>) | unless "Too many input fields",
+    values[RawInputValueId] => RawInputValue<Str> | unless "Too many input values",
+    input_fields[RawInputObjectFieldValueId] => (InputValueDefinitionId, RawInputValue<Str>) | unless "Too many input object fields",
+    key_values[RawInputKeyValueId] => (Str, RawInputValue<Str>) | unless "Too many input fields",
 );

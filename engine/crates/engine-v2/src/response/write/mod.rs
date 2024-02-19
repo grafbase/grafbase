@@ -227,7 +227,7 @@ impl ResponsePart {
             updates: Vec::new(),
             error_paths_to_propagate: Vec::new(),
             plan_boundary_ids_start: usize::from(plan_boundary_ids.start),
-            plan_boundaries: plan_boundary_ids.iter().map(|id| (id, Vec::new())).collect(),
+            plan_boundaries: plan_boundary_ids.map(|id| (id, Vec::new())).collect(),
         }
     }
 

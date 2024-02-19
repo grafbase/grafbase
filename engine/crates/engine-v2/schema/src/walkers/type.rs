@@ -1,7 +1,8 @@
 use super::SchemaWalker;
-use crate::{DefinitionWalker, ListWrapping, TypeId, Wrapping};
+use crate::{DefinitionWalker, ListWrapping, Type, TypeId, Wrapping};
 
 pub type TypeWalker<'a> = SchemaWalker<'a, TypeId>;
+pub type InputTypeWalker<'a> = SchemaWalker<'a, Type>;
 
 impl<'a> TypeWalker<'a> {
     pub fn wrapping(&self) -> Wrapping {
@@ -13,16 +14,57 @@ impl<'a> TypeWalker<'a> {
     }
 }
 
+impl From<TypeWalker<'_>> for Type {
+    fn from(input: TypeWalker) -> Self {
+        *input.as_ref()
+    }
+}
+
+struct Ty<'a> {
+    inner: DefinitionWalker<'a>,
+    wrapping: Wrapping,
+}
+
+impl<'a> From<SchemaWalker<'a, Type>> for Ty<'a> {
+    fn from(input: SchemaWalker<'a, Type>) -> Self {
+        Ty {
+            inner: input.walk(input.item.inner),
+            wrapping: input.item.wrapping,
+        }
+    }
+}
+
+impl<'a> From<TypeWalker<'a>> for Ty<'a> {
+    fn from(input: TypeWalker<'a>) -> Self {
+        Ty {
+            inner: input.inner(),
+            wrapping: input.wrapping(),
+        }
+    }
+}
+
 impl std::fmt::Display for TypeWalker<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for _ in self.as_ref().wrapping.list_wrappings().rev() {
+        Ty::from(*self).fmt(f)
+    }
+}
+
+impl std::fmt::Display for SchemaWalker<'_, Type> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Ty::from(*self).fmt(f)
+    }
+}
+
+impl std::fmt::Display for Ty<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for _ in self.wrapping.list_wrappings().rev() {
             write!(f, "[")?;
         }
-        write!(f, "{}", self.inner().name())?;
-        if self.as_ref().wrapping.inner_is_required() {
+        write!(f, "{}", self.inner.name())?;
+        if self.wrapping.inner_is_required() {
             write!(f, "!")?;
         }
-        for wrapping in self.as_ref().wrapping.list_wrappings() {
+        for wrapping in self.wrapping.list_wrappings() {
             write!(f, "]")?;
             if wrapping == ListWrapping::RequiredList {
                 write!(f, "!")?;
@@ -32,11 +74,23 @@ impl std::fmt::Display for TypeWalker<'_> {
     }
 }
 
-impl<'a> std::fmt::Debug for TypeWalker<'a> {
+impl std::fmt::Debug for SchemaWalker<'_, Type> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Ty::from(*self).fmt(f)
+    }
+}
+
+impl std::fmt::Debug for TypeWalker<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Ty::from(*self).fmt(f)
+    }
+}
+
+impl std::fmt::Debug for Ty<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Type")
             .field("name", &self.to_string())
-            .field("inner", &self.inner())
+            .field("inner", &self.inner)
             .finish()
     }
 }

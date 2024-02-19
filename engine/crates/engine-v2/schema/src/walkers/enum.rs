@@ -9,9 +9,16 @@ impl<'a> EnumWalker<'a> {
         self.names.r#enum(self.schema, self.item)
     }
 
-    pub fn values(&self) -> impl ExactSizeIterator<Item = EnumValueWalker<'a>> + 'a {
-        let walker: SchemaWalker<'a> = self.walk(());
-        self.schema[self.item].values.iter().map(move |id| walker.walk(id))
+    pub fn values(self) -> impl ExactSizeIterator<Item = EnumValueWalker<'a>> + 'a {
+        self.as_ref().value_ids.map(move |id| self.walk(id))
+    }
+
+    pub fn find_value_by_name(&self, name: &str) -> Option<EnumValueId> {
+        let ids = self.as_ref().value_ids;
+        self.schema[ids]
+            .binary_search_by(|enum_value| self.schema[enum_value.name].as_str().cmp(name))
+            .ok()
+            .map(EnumValueId::from)
     }
 }
 

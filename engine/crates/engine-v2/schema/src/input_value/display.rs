@@ -1,63 +1,56 @@
 use std::fmt::{Display, Formatter, Result, Write};
 
-use crate::{InputValue, InputValuesContext};
+use crate::{RawInputValue, RawInputValueWalker, RawInputValuesContext};
 
 /// Displays the input value with GraphQL syntax.
-pub struct GraphqlDisplayableInpuValue<'ctx, Str, Ctx> {
-    pub(super) ctx: Ctx,
-    pub(super) value: &'ctx InputValue<Str>,
-}
-
-impl<'ctx, Str, Ctx> Display for GraphqlDisplayableInpuValue<'ctx, Str, Ctx>
+impl<'ctx, Ctx> Display for RawInputValueWalker<'ctx, Ctx>
 where
-    Ctx: InputValuesContext<'ctx, Str>,
+    Ctx: RawInputValuesContext<'ctx>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.value {
-            InputValue::Null => f.write_str("null"),
-            InputValue::String(s) => write_quoted(self.ctx.get_str(s), f),
-            InputValue::Int(n) => write!(f, "{}", n),
-            InputValue::BigInt(n) => write!(f, "{}", n),
-            InputValue::Float(n) => write!(f, "{}", n),
-            InputValue::U64(n) => write!(f, "{}", n),
-            InputValue::Boolean(b) => {
+            RawInputValue::Null | RawInputValue::Undefined => f.write_str("null"),
+            RawInputValue::String(s) => write_quoted(self.ctx.get_str(s), f),
+            RawInputValue::Int(n) => write!(f, "{}", n),
+            RawInputValue::BigInt(n) => write!(f, "{}", n),
+            RawInputValue::Float(n) => write!(f, "{}", n),
+            RawInputValue::U64(n) => write!(f, "{}", n),
+            RawInputValue::Boolean(b) => {
                 if *b {
                     f.write_str("true")
                 } else {
                     f.write_str("false")
                 }
             }
-            &InputValue::InputObject(fields) => write_object(
-                self.ctx.input_values()[fields]
+            RawInputValue::InputObject(ids) => write_object(
+                self.ctx.input_values()[*ids]
                     .iter()
-                    .map(|(input_value_definition_id, value)| {
-                        (
-                            self.ctx.schema_walker().walk(*input_value_definition_id).name(),
-                            GraphqlDisplayableInpuValue { ctx: self.ctx, value },
-                        )
+                    .filter_map(|(input_value_definition_id, value)| {
+                        let value = self.walk(value);
+                        if value.is_undefined() {
+                            None
+                        } else {
+                            Some((self.ctx.schema_walker().walk(*input_value_definition_id).name(), value))
+                        }
                     }),
                 f,
             ),
-            &InputValue::Map(fields) => write_object(
-                self.ctx.input_values()[fields].iter().map(|(key, value)| {
-                    (
-                        self.ctx.get_str(key),
-                        GraphqlDisplayableInpuValue { ctx: self.ctx, value },
-                    )
+            RawInputValue::Map(ids) => write_object(
+                self.ctx.input_values()[*ids].iter().filter_map(|(key, value)| {
+                    let value = self.walk(value);
+                    if value.is_undefined() {
+                        None
+                    } else {
+                        Some((self.ctx.get_str(key), value))
+                    }
                 }),
                 f,
             ),
-            &InputValue::List(list) => write_list(
-                self.ctx.input_values()[list]
-                    .iter()
-                    .map(|v| GraphqlDisplayableInpuValue {
-                        ctx: self.ctx,
-                        value: v,
-                    }),
-                f,
-            ),
-            InputValue::EnumValue(id) => write!(f, "{}", self.ctx.schema_walker().walk(*id).name()),
-            InputValue::UnknownEnumValue(s) => write!(f, "{}", self.ctx.get_str(s)),
+            RawInputValue::List(ids) => write_list(ids.map(|id| self.ctx.walk(id)), f),
+            RawInputValue::EnumValue(id) => write!(f, "{}", self.ctx.schema_walker().walk(*id).name()),
+            RawInputValue::UnknownEnumValue(s) => write!(f, "{}", self.ctx.get_str(s)),
+            RawInputValue::Ref(id) => self.ctx.input_value_ref_display(*id).fmt(f),
+            RawInputValue::SchemaRef(id) => self.ctx.schema_walk(*id).fmt(f),
         }
     }
 }

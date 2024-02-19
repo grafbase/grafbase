@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 
 use super::{resolver::ResolverWalker, SchemaWalker};
-use crate::{CacheConfig, Directive, FieldId, FieldProvides, FieldResolver, FieldSet, InputValueWalker, TypeWalker};
+use crate::{
+    CacheConfig, Directive, FieldId, FieldProvides, FieldResolver, FieldSet, InputValueDefinitionWalker, TypeWalker,
+};
 
 pub type FieldWalker<'a> = SchemaWalker<'a, FieldId>;
 
@@ -10,14 +12,13 @@ impl<'a> FieldWalker<'a> {
         self.names.field(self.schema, self.item)
     }
 
-    pub fn resolvers(&self) -> impl ExactSizeIterator<Item = FieldResolverWalker<'a>> + 'a {
-        let walker = self.walk(());
+    pub fn resolvers(self) -> impl ExactSizeIterator<Item = FieldResolverWalker<'a>> + 'a {
         self.schema[self.item].resolvers.iter().map(
             move |FieldResolver {
                       resolver_id,
                       field_requires,
                   }| FieldResolverWalker {
-                resolver: walker.walk(*resolver_id),
+                resolver: self.walk(*resolver_id),
                 field_requires,
             },
         )
@@ -37,13 +38,8 @@ impl<'a> FieldWalker<'a> {
             .reduce(|a, b| Cow::Owned(FieldSet::merge(&a, &b)))
     }
 
-    pub fn arguments(&self) -> impl ExactSizeIterator<Item = InputValueWalker<'a>> + 'a {
-        let walker = *self;
-        self.schema[self.item].arguments.iter().map(move |id| walker.walk(id))
-    }
-
-    pub fn argument_by_name(&self, name: &str) -> Option<InputValueWalker<'a>> {
-        self.arguments().find(|arg| arg.name() == name)
+    pub fn arguments(self) -> impl ExactSizeIterator<Item = InputValueDefinitionWalker<'a>> + 'a {
+        self.schema[self.item].argument_ids.map(move |id| self.walk(id))
     }
 
     pub fn ty(self) -> TypeWalker<'a> {
@@ -63,6 +59,10 @@ impl<'a> FieldWalker<'a> {
     pub fn is_deprecated(&self) -> bool {
         self.directives()
             .any(|directive| matches!(directive, Directive::Deprecated { .. }))
+    }
+
+    pub fn argument_by_name(&self, name: &str) -> Option<InputValueDefinitionWalker<'a>> {
+        self.arguments().find(|arg| arg.name() == name)
     }
 }
 
