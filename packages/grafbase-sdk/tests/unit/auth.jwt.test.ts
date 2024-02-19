@@ -32,7 +32,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -62,7 +64,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -92,7 +96,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -117,6 +123,8 @@ describe('OpenID auth provider', () => {
             { type: jwt, jwks: { url: "https:://example.com/.well-known/jwks.json" } }
           ]
         )
+
+
       extend schema
         @graph(type: federated)
       "
@@ -152,6 +160,8 @@ describe('OpenID auth provider', () => {
             { type: jwt, jwks: { url: "https:://example.com/.well-known/jwks.json", issuer: "https://example.com", audience: "me", pollInterval: "60s" }, header: { name: "Authorization", valuePrefix: "Bearer " }, name: "my-jwt" }
           ]
         )
+
+
       extend schema
         @graph(type: federated)
       "

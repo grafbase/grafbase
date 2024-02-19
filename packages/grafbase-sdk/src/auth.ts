@@ -206,7 +206,7 @@ export class Authentication {
       rules = `\n    rules: ${rules}`
     }
 
-    return `extend schema\n  @auth(${providers}${rules}\n  )`
+    return `extend schema\n  @auth(${providers}${rules}\n  )\n\n`
   }
 }
 
@@ -230,6 +230,6 @@ export class AuthenticationV2 {
       providers = `\n    providers: [\n      ${providers}\n    ]`
     }
 
-    return `extend schema\n  @authz(${providers}\n  )`
+    return `extend schema\n  @authz(${providers}\n  )\n\n`
   }
 }

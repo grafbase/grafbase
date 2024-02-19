@@ -31,7 +31,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -59,7 +61,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -88,7 +92,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -117,7 +123,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private }
           ]
-        )"
+        )
+
+      "
     `)
   })
 
@@ -146,7 +154,9 @@ describe('OpenID auth provider', () => {
           rules: [
             { allow: private }
           ]
-        )"
+        )
+
+      "
     `)
   })
 })
