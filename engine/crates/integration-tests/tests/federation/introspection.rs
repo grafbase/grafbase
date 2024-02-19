@@ -840,7 +840,6 @@ fn introspection_on_multiple_federation_subgraphs() {
     }
 
     type Picture {
-      altText: String!
       height: Int!
       url: String!
       width: Int!
