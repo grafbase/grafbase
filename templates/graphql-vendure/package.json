@@ -2,7 +2,7 @@
   "author": "",
   "description": "",
   "devDependencies": {
-    "@grafbase/sdk": "~0.17.0",
+    "@grafbase/sdk": "~0.18.0",
     "@types/node": "^20.11.6"
   },
   "keywords": [],

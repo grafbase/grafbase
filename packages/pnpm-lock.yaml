@@ -21,8 +21,8 @@ importers:
   cli-app:
     dependencies:
       '@pathfinder-ide/react':
-        specifier: 0.6.0
-        version: 0.6.0(@types/react@18.2.55)(graphql@16.8.1)(prettier@3.2.5)(react-dom@18.2.0)(react@18.2.0)
+        specifier: 0.7.0
+        version: 0.7.0(@types/react@18.2.56)(graphql@16.8.1)(prettier@3.2.5)(react-dom@18.2.0)(react@18.2.0)
       graphql:
         specifier: ^16.8.1
         version: 16.8.1
@@ -34,20 +34,20 @@ importers:
         version: 18.2.0(react@18.2.0)
     devDependencies:
       '@types/react':
-        specifier: 18.2.55
-        version: 18.2.55
+        specifier: 18.2.56
+        version: 18.2.56
       '@types/react-dom':
         specifier: 18.2.19
         version: 18.2.19
       '@vitejs/plugin-react':
         specifier: ^4.0.0
-        version: 4.0.0(vite@5.1.1)
+        version: 4.0.0(vite@5.1.3)
       typescript:
         specifier: 5.3.3
         version: 5.3.3
       vite:
-        specifier: 5.1.1
-        version: 5.1.1
+        specifier: 5.1.3
+        version: 5.1.3
 
   eslint-config-grafbase:
     dependencies:
@@ -74,8 +74,8 @@ importers:
   grafbase-apollo-link:
     dependencies:
       '@apollo/client':
-        specifier: 3.9.4
-        version: 3.9.4(graphql@16.8.1)
+        specifier: 3.9.5
+        version: 3.9.5(graphql@16.8.1)
       '@n1ru4l/graphql-live-query':
         specifier: 0.10.0
         version: 0.10.0(graphql@16.8.1)
@@ -297,8 +297,8 @@ packages:
       '@jridgewell/trace-mapping': 0.3.18
     dev: true
 
-  /@apollo/client@3.9.4(graphql@16.8.1):
-    resolution: {integrity: sha512-Ip6dxjshDT2Dp6foLASTnKBW45Fytew/5JZutZwgc78hVrrGpO9UtZA9xteHXYdap0wIgCxCfeIQwbSu1ZdQpw==}
+  /@apollo/client@3.9.5(graphql@16.8.1):
+    resolution: {integrity: sha512-7y+c8MTPU+hhTwvcGVtMMGIgWduzrvG1mz5yJMRyqYbheBkkky3Lki6ADWVSBXG1lZoOtPYvB2zDgVfKb2HSsw==}
     peerDependencies:
       graphql: ^15.0.0 || ^16.0.0
       graphql-ws: ^5.5.5
@@ -324,7 +324,7 @@ packages:
       hoist-non-react-statics: 3.3.2
       optimism: 0.18.0
       prop-types: 15.8.1
-      rehackt: 0.0.4
+      rehackt: 0.0.5
       response-iterator: 0.2.6
       symbol-observable: 4.0.0
       ts-invariant: 0.10.3
@@ -1460,8 +1460,8 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.15.0
 
-  /@pathfinder-ide/react@0.6.0(@types/react@18.2.55)(graphql@16.8.1)(prettier@3.2.5)(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-aDwHLlSTUNiLHXXUi7ehZIOGeUIog3EVqt1VozKXfEM5xrEF8jDpZvVvXgoWUGYDA7dmashFOalnPC+ShwIhiQ==}
+  /@pathfinder-ide/react@0.7.0(@types/react@18.2.56)(graphql@16.8.1)(prettier@3.2.5)(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-y4YQqO7uUIRxFKbUOKLfeeYbUkaHheDQ9JT8DA78ZczIucZCQLPEZpbLxmGzsy6Ww2p9gmkK1RcSyNb2aFS6qg==}
     peerDependencies:
       graphql: '>=16.0.0'
       react: ^18.2.0
@@ -1475,8 +1475,8 @@ packages:
       monaco-graphql: 1.3.0(graphql@16.8.1)(monaco-editor@0.40.0)(prettier@3.2.5)
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
-      react-markdown: 9.0.1(@types/react@18.2.55)(react@18.2.0)
-      zustand: 4.4.7(@types/react@18.2.55)(react@18.2.0)
+      react-markdown: 9.0.1(@types/react@18.2.56)(react@18.2.0)
+      zustand: 4.4.7(@types/react@18.2.56)(react@18.2.0)
     transitivePeerDependencies:
       - '@types/react'
       - immer
@@ -1790,13 +1790,13 @@ packages:
   /@types/react-dom@18.2.14:
     resolution: {integrity: sha512-V835xgdSVmyQmI1KLV2BEIUgqEuinxp9O4G6g3FqO/SqLac049E53aysv0oEFD2kHfejeKU+ZqL2bcFWj9gLAQ==}
     dependencies:
-      '@types/react': 18.2.55
+      '@types/react': 18.2.56
     dev: true
 
   /@types/react-dom@18.2.19:
     resolution: {integrity: sha512-aZvQL6uUbIJpjZk4U8JZGbau9KDeAwMfmhyWorxgBkqDIEf6ROjRozcmPIicqsUwPUjbkDfHKgGee1Lq65APcA==}
     dependencies:
-      '@types/react': 18.2.55
+      '@types/react': 18.2.56
     dev: true
 
   /@types/react@18.2.35:
@@ -1807,8 +1807,8 @@ packages:
       csstype: 3.1.2
     dev: true
 
-  /@types/react@18.2.55:
-    resolution: {integrity: sha512-Y2Tz5P4yz23brwm2d7jNon39qoAtMMmalOQv6+fEFt1mT+FcM3D841wDpoUvFXhaYenuROCy3FZYqdTjM7qVyA==}
+  /@types/react@18.2.56:
+    resolution: {integrity: sha512-NpwHDMkS/EFZF2dONFQHgkPRwhvgq/OAvIaGQzxGSBmaeR++kTg6njr15Vatz0/2VcCEwJQFi6Jf4Q0qBu0rLA==}
     dependencies:
       '@types/prop-types': 15.7.5
       '@types/scheduler': 0.16.3
@@ -1979,7 +1979,7 @@ packages:
       - graphql
     dev: false
 
-  /@vitejs/plugin-react@4.0.0(vite@5.1.1):
+  /@vitejs/plugin-react@4.0.0(vite@5.1.3):
     resolution: {integrity: sha512-HX0XzMjL3hhOYm+0s95pb0Z7F8O81G7joUHgfDd/9J/ZZf5k4xX6QAMFkKsHFxaHlf6X7GD7+XuaZ66ULiJuhQ==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
@@ -1989,7 +1989,7 @@ packages:
       '@babel/plugin-transform-react-jsx-self': 7.22.5(@babel/core@7.21.8)
       '@babel/plugin-transform-react-jsx-source': 7.22.5(@babel/core@7.21.8)
       react-refresh: 0.14.0
-      vite: 5.1.1
+      vite: 5.1.3
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -5556,14 +5556,14 @@ packages:
     resolution: {integrity: sha512-xWGDIW6x921xtzPkhiULtthJHoJvBbF3q26fzloPCK0hsvxtPVelvftw3zjbHWSkR2km9Z+4uxbDDK/6Zw9B8w==}
     dev: true
 
-  /react-markdown@9.0.1(@types/react@18.2.55)(react@18.2.0):
+  /react-markdown@9.0.1(@types/react@18.2.56)(react@18.2.0):
     resolution: {integrity: sha512-186Gw/vF1uRkydbsOIkcGXw7aHq0sZOCRFFjGrr7b9+nVZg4UfA4enXCaxm4fUzecU38sWfrNDitGhshuU7rdg==}
     peerDependencies:
       '@types/react': '>=18'
       react: '>=18'
     dependencies:
       '@types/hast': 3.0.1
-      '@types/react': 18.2.55
+      '@types/react': 18.2.56
       devlop: 1.1.0
       hast-util-to-jsx-runtime: 2.2.0
       html-url-attributes: 3.0.0
@@ -5646,8 +5646,8 @@ packages:
       set-function-name: 2.0.1
     dev: false
 
-  /rehackt@0.0.4:
-    resolution: {integrity: sha512-xFroSGCbMEK/cTJVhq+c8l/AzIeMeojVyLqtZmr2jmIAFvePjapkCSGg9MnrcNk68HPaMxGf+Ndqozotu78ITw==}
+  /rehackt@0.0.5:
+    resolution: {integrity: sha512-BI1rV+miEkaHj8zd2n+gaMgzu/fKz7BGlb4zZ6HAiY9adDmJMkaDcmuXlJFv0eyKUob+oszs3/2gdnXUrzx2Tg==}
     peerDependencies:
       '@types/react': '*'
       react: '*'
@@ -6662,8 +6662,8 @@ packages:
       micromatch: 4.0.5
     dev: false
 
-  /vite@5.1.1:
-    resolution: {integrity: sha512-wclpAgY3F1tR7t9LL5CcHC41YPkQIpKUGeIuT8MdNwNZr6OqOTLs7JX5vIHAtzqLWXts0T+GDrh9pN2arneKqg==}
+  /vite@5.1.3:
+    resolution: {integrity: sha512-UfmUD36DKkqhi/F75RrxvPpry+9+tTkrXfMNZD+SboZqBCMsxKtO52XeGzzuh7ioz+Eo/SYDBbdb0Z7vgcDJew==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
     peerDependencies:
@@ -6869,7 +6869,7 @@ packages:
     resolution: {integrity: sha512-PQ2PC7R9rslx84ndNBZB/Dkv8V8fZEpk83RLgXtYd0fwUgEjseMn1Dgajh2x6S8QbZAFa9p2qVCEuYZNgve0dQ==}
     dev: false
 
-  /zustand@4.4.7(@types/react@18.2.55)(react@18.2.0):
+  /zustand@4.4.7(@types/react@18.2.56)(react@18.2.0):
     resolution: {integrity: sha512-QFJWJMdlETcI69paJwhSMJz7PPWjVP8Sjhclxmxmxv/RYI7ZOvR5BHX+ktH0we9gTWQMxcne8q1OY8xxz604gw==}
     engines: {node: '>=12.7.0'}
     peerDependencies:
@@ -6884,7 +6884,7 @@ packages:
       react:
         optional: true
     dependencies:
-      '@types/react': 18.2.55
+      '@types/react': 18.2.56
       react: 18.2.0
       use-sync-external-store: 1.2.0(react@18.2.0)
     dev: false
