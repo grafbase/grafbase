@@ -273,6 +273,7 @@ fn should_remove_all_inaccessible_items() {
         let query = schema.walk(query);
 
         assert!(!query.fields().any(|f| f.name() == "currentTime"));
+        assert!(query.fields().any(|f| f.name() == "getNew"));
     }
 
     // Enum values

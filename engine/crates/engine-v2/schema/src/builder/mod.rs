@@ -100,15 +100,11 @@ impl SchemaBuilder {
             }
         }
 
-        builder.schema.interface_fields = take(&mut config.graph.interface_fields)
-            .into_iter()
-            .filter_map(|federated_graph::InterfaceField { interface_id, field_id }| {
-                Some(InterfaceField {
-                    interface_id: interface_id.into(),
-                    field_id: builder.id_mapper.map(field_id)?,
-                })
-            })
-            .collect();
+        for (i, field) in config.graph.fields.iter().enumerate() {
+            if is_inaccessible(&config.graph, field.composed_directives) {
+                builder.id_mapper.skip(federated_graph::FieldId(i));
+            }
+        }
 
         builder.schema.input_objects = take(&mut config.graph.input_objects)
             .into_iter()
@@ -303,12 +299,6 @@ impl SchemaBuilder {
         }
 
         // -- OBJECT FIELDS --
-        for (i, field) in graph.fields.iter().enumerate() {
-            if is_inaccessible(graph, field.composed_directives) {
-                id_mapper.skip(federated_graph::FieldId(i));
-            }
-        }
-
         let mut field_id_to_maybe_object_id: Vec<Option<ObjectId>> = vec![None; graph.fields.len()];
         for object_field in take(&mut graph.object_fields) {
             let Some(field_id) = id_mapper.map(object_field.field_id) else {
@@ -475,7 +465,7 @@ impl SchemaBuilder {
             let input_object = InputObject {
                 name: input_object.name.into(),
                 description: None,
-                input_fields: self.id_mapper.map_range(input_object.fields),
+                input_fields: id_mapper.map_range(input_object.fields),
                 composed_directives: input_object.composed_directives.into(),
             };
             schema.input_objects.push(input_object);
@@ -488,6 +478,16 @@ impl SchemaBuilder {
                 schema[interface_id].possible_types.push(object_id);
             }
         }
+
+        schema.interface_fields = take(&mut graph.interface_fields)
+            .into_iter()
+            .filter_map(|federated_graph::InterfaceField { interface_id, field_id }| {
+                Some(InterfaceField {
+                    interface_id: interface_id.into(),
+                    field_id: id_mapper.map(field_id)?,
+                })
+            })
+            .collect();
 
         // -- SCALARS --
         schema.scalars = take(&mut graph.scalars)
@@ -509,7 +509,7 @@ impl SchemaBuilder {
     }
 
     fn build(self) -> Schema {
-        let mut schema = self.schema;
+        let SchemaBuilder { mut schema, .. } = self;
         schema.strings = self.strings.into();
         schema.urls = self.urls.into();
 
@@ -547,11 +547,13 @@ impl SchemaBuilder {
             .sort_unstable_by_key(|ObjectField { object_id, field_id }| (*object_id, &schema[schema[*field_id].name]));
         schema.object_fields = object_fields;
 
-        let mut interface_fields = take(&mut schema.interface_fields);
-        interface_fields.sort_unstable_by_key(|InterfaceField { interface_id, field_id }| {
-            (*interface_id, &schema[schema[*field_id].name])
-        });
-        schema.interface_fields = interface_fields;
+        {
+            let mut interface_fields = take(&mut schema.interface_fields);
+            interface_fields.sort_unstable_by_key(|InterfaceField { interface_id, field_id }| {
+                (*interface_id, &schema[schema[*field_id].name])
+            });
+            schema.interface_fields = interface_fields;
+        }
 
         let mut definitions = take(&mut schema.definitions);
         definitions.sort_unstable_by_key(|definition| schema.definition_name(*definition));

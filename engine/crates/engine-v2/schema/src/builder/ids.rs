@@ -20,7 +20,7 @@ macro_rules! mapped_ids {
         #[derive(Default, Debug)]
         pub(super) struct IdMapper {
             $(
-                /// The index of skipped ids.
+                /// The indexes of the skipped ids.
                 $name: Vec<usize>,
             )*
         }
@@ -52,6 +52,7 @@ mapped_ids!(
 );
 
 impl IdMapper {
+    /// Mark an id as skipped in the target schema. The element has to be actually filtered out, separately.
     pub(super) fn skip<Id: MappableId>(&mut self, id: Id) {
         let idx = id.get_idx();
         let entries = Id::get_map_mut(self);
@@ -63,6 +64,7 @@ impl IdMapper {
         entries.push(idx);
     }
 
+    /// Map a federated_graph id to an engine_schema id taking the skipped IDs into account.
     pub(super) fn map<Id: MappableId>(&self, id: Id) -> Option<Id::Counterpart> {
         let idx = id.get_idx();
         let map = Id::get_map(self);
@@ -179,6 +181,14 @@ mod tests {
     #[test]
     #[should_panic(expected = "assertion failed: last_entry < idx")]
     fn skip_out_of_order() {
+        let mut mapper = IdMapper::default();
+        mapper.skip(federated_graph::InputValueDefinitionId(5));
+        mapper.skip(federated_graph::InputValueDefinitionId(3)); // boom
+    }
+
+    #[test]
+    #[should_panic(expected = "assertion failed: last_entry < idx")]
+    fn skip_twice() {
         let mut mapper = IdMapper::default();
         mapper.skip(federated_graph::InputValueDefinitionId(5));
         mapper.skip(federated_graph::InputValueDefinitionId(5)); // boom

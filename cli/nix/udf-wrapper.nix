@@ -4,7 +4,7 @@
   packages.udf-wrapper = pkgs.buildNpmPackage {
     src = ../udf-wrapper;
     name = "udf-wrapper";
-    npmDepsHash = "sha256-+74Y5QTvYVpX7Yv8SLp9+lQT5qk3ZNTXE0RksdEF3HI=";
+    npmDepsHash = "sha256-DParovYHR4sH0wFGZIrW5u3TAqIkqoFxAGtxvBCzAGo=";
 
     nativeBuildInputs = [ pkgs.bun ];
 
