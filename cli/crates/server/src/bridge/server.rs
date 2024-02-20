@@ -6,7 +6,6 @@ use crate::errors::ServerError;
 use crate::servers::EnvironmentName;
 use crate::types::MessageSender;
 use axum::{routing::post, Router};
-use common::environment::Project;
 
 use std::net::TcpListener;
 use std::num::NonZeroUsize;
