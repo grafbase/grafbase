@@ -83,7 +83,7 @@ impl SchemaBuilder {
 
         for (idx, input_value_definition) in take(&mut config.graph.input_value_definitions).into_iter().enumerate() {
             if is_inaccessible(&config.graph, input_value_definition.directives) {
-                builder.id_mapper.skip(federated_graph::InputValueDefinitionId(idx))
+                ids::input_values::skip(&mut builder.id_mapper, federated_graph::InputValueDefinitionId(idx))
             } else {
                 builder
                     .schema
@@ -94,7 +94,7 @@ impl SchemaBuilder {
 
         for (idx, enum_value) in take(&mut config.graph.enum_values).into_iter().enumerate() {
             if is_inaccessible(&config.graph, enum_value.composed_directives) {
-                builder.id_mapper.skip(federated_graph::EnumValueId(idx))
+                ids::enum_values::skip(&mut builder.id_mapper, federated_graph::EnumValueId(idx))
             } else {
                 builder.schema.enum_values.push(enum_value.into());
             }
@@ -102,7 +102,7 @@ impl SchemaBuilder {
 
         for (i, field) in config.graph.fields.iter().enumerate() {
             if is_inaccessible(&config.graph, field.composed_directives) {
-                builder.id_mapper.skip(federated_graph::FieldId(i));
+                ids::fields::skip(&mut builder.id_mapper, federated_graph::FieldId(i));
             }
         }
 
@@ -143,7 +143,7 @@ impl SchemaBuilder {
                     reason: reason.map(Into::into),
                 },
                 federated_graph::Directive::Other { name, arguments } => Directive::Other {
-                    name: (*name).into(),
+                    name: name.into(),
                     arguments: {
                         let map = arguments
                             .iter()
@@ -301,7 +301,7 @@ impl SchemaBuilder {
         // -- OBJECT FIELDS --
         let mut field_id_to_maybe_object_id: Vec<Option<ObjectId>> = vec![None; graph.fields.len()];
         for object_field in take(&mut graph.object_fields) {
-            let Some(field_id) = id_mapper.map(object_field.field_id) else {
+            let Some(field_id) = ids::fields::map(id_mapper, object_field.field_id) else {
                 continue;
             };
             let object_field = ObjectField {
@@ -341,7 +341,7 @@ impl SchemaBuilder {
         //    them and having an id allows data sources to rename those more easily.
         let mut root_field_resolvers = HashMap::<SubgraphId, ResolverId>::new();
         for (i, field) in take(&mut graph.fields).into_iter().enumerate() {
-            let Some(field_id) = id_mapper.map(federated_graph::FieldId(i)) else {
+            let Some(field_id) = ids::fields::map(id_mapper, federated_graph::FieldId(i)) else {
                 continue;
             };
             let mut resolvers = vec![];
@@ -449,7 +449,7 @@ impl SchemaBuilder {
                         field_set,
                     })
                     .collect(),
-                arguments: id_mapper.map_range(field.arguments),
+                arguments: ids::input_values::map_range(id_mapper, field.arguments),
                 composed_directives: field.composed_directives.into(),
                 cache_config: cache
                     .rule(CacheConfigTarget::Field(federated_graph::FieldId(field_id.into())))
@@ -465,7 +465,7 @@ impl SchemaBuilder {
             let input_object = InputObject {
                 name: input_object.name.into(),
                 description: None,
-                input_fields: id_mapper.map_range(input_object.fields),
+                input_fields: ids::input_values::map_range(id_mapper, input_object.fields),
                 composed_directives: input_object.composed_directives.into(),
             };
             schema.input_objects.push(input_object);
@@ -484,7 +484,7 @@ impl SchemaBuilder {
             .filter_map(|federated_graph::InterfaceField { interface_id, field_id }| {
                 Some(InterfaceField {
                     interface_id: interface_id.into(),
-                    field_id: id_mapper.map(field_id)?,
+                    field_id: ids::fields::map(&id_mapper, field_id)?,
                 })
             })
             .collect();
@@ -574,7 +574,7 @@ impl SchemaBuilder {
         InputObject {
             name: value.name.into(),
             description: value.description.map(Into::into),
-            input_fields: self.id_mapper.map_range(value.fields),
+            input_fields: ids::input_values::map_range(&self.id_mapper, value.fields),
             composed_directives: value.composed_directives.into(),
         }
     }
@@ -583,7 +583,7 @@ impl SchemaBuilder {
         Enum {
             name: value.name.into(),
             description: None,
-            values: self.id_mapper.map_range(value.values),
+            values: ids::enum_values::map_range(&self.id_mapper, value.values),
             composed_directives: value.composed_directives.into(),
         }
     }
@@ -592,7 +592,7 @@ impl SchemaBuilder {
 impl ids::IdMapper {
     fn convert_field_set_item(&self, selection: federated_graph::FieldSetItem) -> Option<FieldSetItem> {
         Some(FieldSetItem {
-            field_id: self.map(selection.field)?,
+            field_id: ids::fields::map(self, selection.field)?,
             subselection: selection
                 .subselection
                 .into_iter()
