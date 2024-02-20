@@ -5,7 +5,7 @@ use common::consts::{
     GRAFBASE_DIRECTORY_NAME, GRAFBASE_ENV_FILE_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_SDK_PACKAGE_NAME,
     GRAFBASE_SDK_PACKAGE_VERSION, GRAFBASE_TS_CONFIG_FILE_NAME,
 };
-use common::environment::{self, Project};
+use common::environment::{self};
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
 use reqwest::{header, Client};
 use reqwest_middleware::ClientBuilder;
@@ -457,21 +457,6 @@ async fn stream_github_archive<'a>(
             .await
             .map_err(BackendError::MoveExtractedFiles)?;
     }
-
-    Ok(())
-}
-
-/// resets the local data for the current project by removing the `.grafbase` directory
-///
-/// # Errors
-///
-/// - returns [`BackendError::ReadCurrentDirectory`] if the current directory cannot be read
-///
-/// - returns [`BackendError::DeleteDatabaseDirectory`] if the `.grafbase` directory cannot be deleted
-pub fn reset() -> Result<(), BackendError> {
-    let project = Project::get();
-
-    fs::remove_dir_all(&project.database_directory_path).map_err(BackendError::DeleteDatabaseDirectory)?;
 
     Ok(())
 }

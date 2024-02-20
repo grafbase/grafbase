@@ -4,7 +4,7 @@ use crate::consts::{AUTHORIZERS_DIRECTORY_NAME, GENERATED_SCHEMAS_DIR, GRAFBASE_
 use crate::types::UdfKind;
 use crate::{
     consts::{
-        BUN_DIRECTORY_NAME, DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
+        BUN_DIRECTORY_NAME, DOT_GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
         GRAFBASE_TS_CONFIG_FILE_NAME, PACKAGE_JSON_DEV_DEPENDENCIES, PACKAGE_JSON_FILE_NAME, REGISTRY_FILE,
         RESOLVERS_DIRECTORY_NAME,
     },
@@ -115,8 +115,6 @@ pub struct Project {
     /// the path of `$PROJECT/.grafbase/registry.json`, the registry derived from `schema.graphql`,
     /// in the nearest ancestor directory with a `grabase/schema.graphql` file
     pub registry_path: PathBuf,
-    /// the path within '$PROJECT/.grafbase' containing the database
-    pub database_directory_path: PathBuf,
     /// the location of package.json in '$PROJECT' or its parent
     pub package_json_path: Option<PathBuf>,
 }
@@ -213,7 +211,6 @@ impl Project {
 
         let dot_grafbase_directory_path = path.join(DOT_GRAFBASE_DIRECTORY_NAME);
         let registry_path = dot_grafbase_directory_path.join(REGISTRY_FILE);
-        let database_directory_path = dot_grafbase_directory_path.join(DATABASE_DIRECTORY);
         let package_json_path = [path.as_path(), path.parent().expect("must have a parent")]
             .into_iter()
             .map(|candidate| candidate.join(PACKAGE_JSON_FILE_NAME))
@@ -224,7 +221,6 @@ impl Project {
             schema_path,
             dot_grafbase_directory_path,
             registry_path,
-            database_directory_path,
             package_json_path,
         })
     }

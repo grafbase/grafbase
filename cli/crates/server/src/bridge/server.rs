@@ -6,9 +6,6 @@ use crate::errors::ServerError;
 use crate::servers::EnvironmentName;
 use crate::types::MessageSender;
 use axum::{routing::post, Router};
-use common::environment::Project;
-
-use tokio::fs;
 
 use std::net::TcpListener;
 use std::num::NonZeroUsize;
@@ -42,18 +39,8 @@ pub async fn build_router(
     tracing: bool,
     environment_name: EnvironmentName,
 ) -> Result<(Router, Arc<HandlerState>), ServerError> {
-    let project = Project::get();
-
     let environment_variables: std::collections::HashMap<_, _> =
         crate::environment::variables(environment_name).collect();
-
-    match project.database_directory_path.try_exists() {
-        Ok(true) => {}
-        Ok(false) => fs::create_dir_all(&project.database_directory_path)
-            .await
-            .map_err(ServerError::CreateDatabaseDir)?,
-        Err(error) => return Err(ServerError::ReadDatabaseDir(error)),
-    }
 
     let udf_runtime = UdfRuntime::new(environment_variables, registry.clone(), tracing, message_sender.clone());
     let handler_state = Arc::new(HandlerState {
