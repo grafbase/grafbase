@@ -7,6 +7,13 @@ impl Registry {
     pub fn export_sdl(&self, federation: bool) -> String {
         let mut sdl = String::new();
 
+        if federation {
+            writeln!(sdl, "extend schema @link(").ok();
+            writeln!(sdl, "\turl: \"https://specs.apollo.dev/federation/v2.3\",").ok();
+            writeln!(sdl, "\timport: [\"@key\", \"@tag\", \"@shareable\", \"@inaccessible\", \"@override\", \"@external\", \"@provides\", \"@requires\", \"@composeDirective\", \"@interfaceObject\"]").ok();
+            writeln!(sdl, ")").ok();
+        }
+
         for ty in self.types.values() {
             if ty.name().starts_with("__") {
                 continue;

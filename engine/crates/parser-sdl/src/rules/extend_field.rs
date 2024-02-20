@@ -184,6 +184,10 @@ mod tests {
             futures::executor::block_on(crate::parse(schema, &HashMap::new(), false, &FakeConnectorParser)).unwrap();
 
         insta::assert_display_snapshot!(output.registry.export_sdl(true), @r###"
+        extend schema @link(
+        	url: "https://specs.apollo.dev/federation/v2.3",
+        	import: ["@key", "@tag", "@shareable", "@inaccessible", "@override", "@external", "@provides", "@requires", "@composeDirective", "@interfaceObject"]
+        )
         type Blah {
         	foo: String! @external @override(from: "Blah") @provides(fields: "id")
         	bar: ID! @shareable

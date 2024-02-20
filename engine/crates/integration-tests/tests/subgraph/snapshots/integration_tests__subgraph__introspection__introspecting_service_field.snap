@@ -2,6 +2,10 @@
 source: engine/crates/integration-tests/tests/subgraph/introspection.rs
 expression: schema
 ---
+extend schema @link(
+	url: "https://specs.apollo.dev/federation/v2.3",
+	import: ["@key", "@tag", "@shareable", "@inaccessible", "@override", "@external", "@provides", "@requires", "@composeDirective", "@interfaceObject"]
+)
 type User @key(fields: "id") {
 	id: ID!
 	name: String! @requires(fields: "id")

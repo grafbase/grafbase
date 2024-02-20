@@ -66,6 +66,10 @@ mod tests {
             .registry;
 
         insta::assert_display_snapshot!(registry.export_sdl(true), @r###"
+        extend schema @link(
+        	url: "https://specs.apollo.dev/federation/v2.3",
+        	import: ["@key", "@tag", "@shareable", "@inaccessible", "@override", "@external", "@provides", "@requires", "@composeDirective", "@interfaceObject"]
+        )
         type User @key(fields: "id" resolvable: false) {
         	id: ID!
         	name: Whatever! @tag(name: "woop")
