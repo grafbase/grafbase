@@ -115,8 +115,6 @@ pub struct Project {
     /// the path of `$PROJECT/.grafbase/registry.json`, the registry derived from `schema.graphql`,
     /// in the nearest ancestor directory with a `grabase/schema.graphql` file
     pub registry_path: PathBuf,
-    /// the path within '$PROJECT/.grafbase' containing the database
-    pub database_directory_path: PathBuf,
     /// the location of package.json in '$PROJECT' or its parent
     pub package_json_path: Option<PathBuf>,
 }
