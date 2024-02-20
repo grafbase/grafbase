@@ -8,8 +8,6 @@ use crate::types::MessageSender;
 use axum::{routing::post, Router};
 use common::environment::Project;
 
-use tokio::fs;
-
 use std::net::TcpListener;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
@@ -42,8 +40,6 @@ pub async fn build_router(
     tracing: bool,
     environment_name: EnvironmentName,
 ) -> Result<(Router, Arc<HandlerState>), ServerError> {
-    let project = Project::get();
-
     let environment_variables: std::collections::HashMap<_, _> =
         crate::environment::variables(environment_name).collect();
 
