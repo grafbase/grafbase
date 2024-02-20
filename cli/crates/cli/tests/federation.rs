@@ -698,3 +698,78 @@ async fn test_websocket_transport_with_bad_auth() {
     )
     "###);
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
+async fn test_batch_requests() {
+    let mut env = Environment::init_async().await;
+    let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
+
+    env.grafbase_init(GraphType::Federated);
+    env.set_typescript_config(
+        r#"
+        import { config, graph } from '@grafbase/sdk'
+
+        export default config({
+            graph: graph.Federated(),
+        })
+        "#,
+    );
+    env.prepare_ts_config_dependencies();
+    env.grafbase_dev_watch();
+
+    let client = env.create_async_client().with_api_key();
+    client.poll_endpoint(30, 300).await;
+    env.grafbase_publish_dev("subscriptions", subscription_server.url());
+
+    let results = client
+        .batch_gql(["{ topProducts { name } }", "{ topProducts { upc } }"])
+        .await;
+
+    insta::assert_json_snapshot!(results, @r###"
+    [
+      {
+        "data": {
+          "topProducts": [
+            {
+              "name": "Trilby"
+            },
+            {
+              "name": "Fedora"
+            },
+            {
+              "name": "Boater"
+            },
+            {
+              "name": "Jeans"
+            },
+            {
+              "name": "Pink Jeans"
+            }
+          ]
+        }
+      },
+      {
+        "data": {
+          "topProducts": [
+            {
+              "upc": "top-1"
+            },
+            {
+              "upc": "top-2"
+            },
+            {
+              "upc": "top-3"
+            },
+            {
+              "upc": "top-4"
+            },
+            {
+              "upc": "top-5"
+            }
+          ]
+        }
+      }
+    ]
+    "###);
+}
