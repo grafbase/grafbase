@@ -62,6 +62,7 @@ interface Account implements Node {
   id: ID!
   slug: String!
   name: String!
+  plan: GrafbasePlan!
   createdAt: DateTime!
   status: AccountStatus!
   projects(after: String, before: String, first: Int, last: Int): ProjectConnection!
@@ -183,10 +184,6 @@ type BranchConnection {
   nodes: [Branch!]!
 }
 
-type BranchDoesNotExistError {
-  query: Query!
-}
-
 """
 An edge in a connection.
 """
@@ -245,6 +242,48 @@ type BranchOperationCheckConfiguration {
   Whether to merge excluded operations with the project's.
   """
   excludedOperationsAppendProjectSettings: Boolean!
+}
+
+input BranchOperationCheckConfigurationInput {
+  projectId: ID!
+  branch: String!
+  """
+  Whether operation checks are enabled for the branch.
+  """
+  enabled: Boolean!
+  """
+  The time range in days to consider for operation checks. Operations older than the specificied
+  number of days are ignored. Overrides project configuration if defined.
+  """
+  timeRangeDaysOverride: Int
+  """
+  The request count threshold to consider for operation checks. Operations that have been
+  registered less than the specified number of occurrences are ignored. Overrides project
+  configuration if defined.
+  """
+  requestCountThresholdOverride: Int
+  """
+  The clients to exclude from operation checks.
+  """
+  excludedClients: [String!]!
+  """
+  Whether to merge excluded clients with the project's.
+  """
+  excludedClientsAppendProjectSettings: Boolean!
+  """
+  The operations to exclude from operation checks.
+  """
+  excludedOperations: [String!]!
+  """
+  Whether to merge excluded operations with the project's.
+  """
+  excludedOperationsAppendProjectSettings: Boolean!
+}
+
+union BranchOperationCheckConfigurationUpdatePayload = ProjectDoesNotExistError | BranchOperationCheckConfiguration
+
+type CannotUseInvitationsWithSSO {
+  query: Query!
 }
 
 type CompositionCheckError {
@@ -349,6 +388,7 @@ union DeleteSubgraphPayload =
   | SubgraphNotFoundError
   | ProjectDoesNotExistError
   | ProjectNotFederatedError
+  | ProjectBranchDoesNotExistError
   | FederatedGraphCompositionError
 
 type DeleteSubgraphSuccess {
@@ -365,6 +405,7 @@ type Deployment implements Node {
   createdAt: DateTime!
   startedAt: DateTime
   finishedAt: DateTime
+  isRedeployable: Boolean!
   triggerType: DeploymentTriggerType!
   """
   The duration of the deployment in milliseconds.
@@ -442,6 +483,7 @@ type DeploymentLogEntry {
 
 enum DeploymentLogLevel {
   ERROR
+  WARN
   INFO
 }
 
@@ -708,6 +750,12 @@ type GithubInstallationInsufficientPermissionsError {
   query: Query!
 }
 
+enum GrafbasePlan {
+  HOBBY
+  PRO
+  ENTERPRISE
+}
+
 type HasAlreadyPaymentMethodError {
   query: Query!
 }
@@ -762,7 +810,11 @@ input InviteAcceptInput {
   id: ID!
 }
 
-union InviteAcceptPayload = InviteAcceptSuccess | InviteDoesNotExistError | AlreadyMemberError
+union InviteAcceptPayload =
+  | InviteAcceptSuccess
+  | InviteDoesNotExistError
+  | AlreadyMemberError
+  | CannotUseInvitationsWithSSO
 
 type InviteAcceptSuccess {
   member: Member!
@@ -776,7 +828,7 @@ input InviteCancelInput {
 union InviteCancelPayload = InviteCancelSuccess | InviteDoesNotExistError | NotAllowedToCancelInvitesError
 
 type InviteCancelSuccess {
-  id: ID!
+  inviteId: ID!
   query: Query!
 }
 
@@ -802,7 +854,7 @@ input InviteDeclineInput {
 union InviteDeclinePayload = InviteDeclineSuccess | InviteDoesNotExistError
 
 type InviteDeclineSuccess {
-  id: ID!
+  inviteId: ID!
   query: Query!
 }
 
@@ -830,7 +882,11 @@ input InviteSendInput {
   role: MemberRole!
 }
 
-union InviteSendPayload = InviteSendSuccess | OrganizationDoesNotExistError | NotAllowedToSendInvitesError
+union InviteSendPayload =
+  | InviteSendSuccess
+  | OrganizationDoesNotExistError
+  | NotAllowedToSendInvitesError
+  | CannotUseInvitationsWithSSO
 
 type InviteSendSuccess {
   invite: Invite!
@@ -1100,6 +1156,11 @@ type Mutation {
   """
   deleteSubgraph(input: DeleteSubgraphInput!): DeleteSubgraphPayload!
   stripeSetupIntentCreate: StripeSetupIntentCreatePayload!
+  branchOperationCheckConfigurationUpdate(
+    input: BranchOperationCheckConfigurationInput!
+  ): BranchOperationCheckConfigurationUpdatePayload!
+  slackIntegrationCreate(input: SlackIntegrationCreateInput!): SlackNotificationCreatePayload!
+  slackNotificationDelete(id: String!): SlackNotificationDeletePayload!
 }
 
 type NameAlreadyExistsError {
@@ -1424,6 +1485,8 @@ type Organization implements Account {
   name: String!
   createdAt: DateTime!
   status: AccountStatus!
+  plan: GrafbasePlan!
+  samlDomain: String
   stripeCustomer: StripeCustomer
   orbCustomer: OrbCustomer
   orbActiveSubscription: OrbSubscription
@@ -1431,6 +1494,13 @@ type Organization implements Account {
   invites(after: String, before: String, first: Int, last: Int): InviteConnection!
   members(after: String, before: String, first: Int, last: Int): MemberConnection!
   projectsCountStatus: ResourceStatus!
+  slackIntegration: SlackIntegration
+  """
+  The url for the UI button to install the Grafbase slack app. It is
+  important to use this link and keep it private, since it contains the signed
+  account id of the authenticated user.
+  """
+  addToSlackLink: String!
   usage(filter: AccountResourcesUsageDashboardFilter): DatabaseUsage!
     @deprecated(reason: "Use resources_usage_dashboard")
   resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
@@ -1596,6 +1666,7 @@ type PersonalAccount implements Account {
   name: String!
   createdAt: DateTime!
   status: AccountStatus!
+  plan: GrafbasePlan!
   projects(after: String, before: String, first: Int, last: Int): ProjectConnection!
   projectsCountStatus: ResourceStatus!
   usage(filter: AccountResourcesUsageDashboardFilter): DatabaseUsage!
@@ -1734,6 +1805,10 @@ input ProjectApiKeyUpdateInput {
 union ProjectApiKeyUpdatePayload = ProjectApiKeyUpdateSuccess | KeyDoesNotExistError
 
 type ProjectApiKeyUpdateSuccess {
+  query: Query!
+}
+
+type ProjectBranchDoesNotExistError {
   query: Query!
 }
 
@@ -1982,7 +2057,8 @@ enum ProjectStatus {
 }
 
 enum ProjectType {
-  SINGLE
+  STANDALONE
+  SINGLE @deprecated(reason: "Renamed to STANDALONE")
   FEDERATED
 }
 
@@ -2019,7 +2095,7 @@ union PublishPayload =
   | ProjectDoesNotExistError
   | ProjectNotFederatedError
   | FederatedGraphCompositionError
-  | BranchDoesNotExistError
+  | SchemaRegistryBranchDoesNotExistError
 
 type PublishSuccess {
   query: Query!
@@ -2408,9 +2484,15 @@ input SchemaCheckGitCommitInput {
 
 union SchemaCheckPayload =
   | SchemaCheck
+  | ProjectBranchDoesNotExistError
   | ProjectDoesNotExistError
   | SubgraphNameProvidedOnSingleProjectError
+  | SubgraphNameProvidedOnStandaloneProjectError
   | SubgraphNameMissingOnFederatedProjectError
+
+type SchemaRegistryBranchDoesNotExistError {
+  query: Query!
+}
 
 type SchemaVersion {
   id: ID!
@@ -2498,6 +2580,36 @@ type SchemaVersionEdge {
   """
   cursor: String!
 }
+
+"""
+A Slack channel returned from the Slack API.
+"""
+type SlackChannel {
+  id: String!
+  name: String!
+}
+
+type SlackIntegration {
+  availableChannels: [SlackChannel!]!
+  notifications: [SlackNotification!]!
+}
+
+input SlackIntegrationCreateInput {
+  tokenId: String!
+  graphId: String!
+  channelId: String!
+  channelName: String!
+}
+
+type SlackNotification {
+  id: String!
+  graphId: String!
+  channelName: String!
+}
+
+union SlackNotificationCreatePayload = SlackNotification
+
+union SlackNotificationDeletePayload = Query
 
 type SlugAlreadyExistsError {
   query: Query!
@@ -2613,6 +2725,10 @@ type SubgraphNameMissingOnFederatedProjectError {
 }
 
 type SubgraphNameProvidedOnSingleProjectError {
+  query: Query! @deprecated(reason: "Type renamed to SubgraphNameProvidedOnStandaloneProjectError")
+}
+
+type SubgraphNameProvidedOnStandaloneProjectError {
   query: Query!
 }
 

@@ -191,7 +191,7 @@ pub struct FederatedGraphCompositionError {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-pub struct BranchDoesNotExistError {
+pub struct SchemaRegistryBranchDoesNotExistError {
     pub __typename: String,
 }
 
@@ -199,7 +199,7 @@ pub struct BranchDoesNotExistError {
 pub enum PublishPayload {
     PublishSuccess(PublishSuccess),
     FederatedGraphCompositionError(FederatedGraphCompositionError),
-    BranchDoesNotExistError(BranchDoesNotExistError),
+    BranchDoesNotExistError(SchemaRegistryBranchDoesNotExistError),
     #[cynic(fallback)]
     Unknown(String),
 }
