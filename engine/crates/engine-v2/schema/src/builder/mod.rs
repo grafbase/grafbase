@@ -136,7 +136,7 @@ impl SchemaBuilder {
 
     fn insert_directives(&mut self, config: &mut Config) {
         let mut directives = Vec::with_capacity(config.graph.directives.len());
-        for directive in &config.graph.directives {
+        for directive in take(&mut config.graph.directives) {
             let directive = match directive {
                 federated_graph::Directive::Inaccessible => Directive::Inaccessible,
                 federated_graph::Directive::Deprecated { reason } => Directive::Deprecated {
