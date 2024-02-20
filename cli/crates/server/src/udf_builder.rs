@@ -189,7 +189,7 @@ pub(crate) fn udf_url_path(kind: UdfKind, name: &str) -> String {
     format!("/{}/{}/invoke", kind.to_string().to_lowercase(), slug::slugify(name))
 }
 
-const BUN_VERSION: &str = "1.0.26";
+const BUN_VERSION: &str = "1.0.28";
 
 async fn installed_bun_version(bun_installation_path: impl AsRef<Path>) -> Option<String> {
     let bun_installation_path = bun_installation_path.as_ref();
