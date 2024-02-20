@@ -597,3 +597,19 @@ async fn invoke(
 
     Ok(value)
 }
+
+// it seems that some mix of using a mutex in the struct here
+// and using `join!` are keeping these handles alive if not explicitly aborted on Drop
+impl Drop for UdfRuntime {
+    fn drop(&mut self) {
+        self.udf_workers
+            .try_lock()
+            .expect("must not be in use")
+            .iter()
+            .for_each(|udf| {
+                if let UdfWorkerStatus::Available { bun_handle, .. } = udf.1 {
+                    bun_handle.abort();
+                }
+            })
+    }
+}
