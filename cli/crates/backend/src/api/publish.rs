@@ -3,7 +3,7 @@ use super::{
     consts::API_URL,
     errors::{ApiError, PublishError},
     graphql::mutations::{
-        BranchDoesNotExistError, FederatedGraphCompositionError, PublishPayload, SubgraphCreateArguments,
+        FederatedGraphCompositionError, PublishPayload, SchemaRegistryBranchDoesNotExistError, SubgraphCreateArguments,
         SubgraphPublish,
     },
 };
@@ -45,7 +45,7 @@ pub async fn publish(
             PublishPayload::FederatedGraphCompositionError(FederatedGraphCompositionError {
                 messages: composition_errors,
             }) => Ok(PublishOutcome { composition_errors }),
-            PublishPayload::BranchDoesNotExistError(BranchDoesNotExistError { .. }) => {
+            PublishPayload::BranchDoesNotExistError(SchemaRegistryBranchDoesNotExistError { .. }) => {
                 Err(ApiError::PublishError(PublishError::BranchDoesNotExist))
             }
             PublishPayload::Unknown(unknown_variant) => {
