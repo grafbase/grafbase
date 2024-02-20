@@ -460,18 +460,3 @@ async fn stream_github_archive<'a>(
 
     Ok(())
 }
-
-/// resets the local data for the current project by removing the `.grafbase` directory
-///
-/// # Errors
-///
-/// - returns [`BackendError::ReadCurrentDirectory`] if the current directory cannot be read
-///
-/// - returns [`BackendError::DeleteDatabaseDirectory`] if the `.grafbase` directory cannot be deleted
-pub fn reset() -> Result<(), BackendError> {
-    let project = Project::get();
-
-    fs::remove_dir_all(&project.database_directory_path).map_err(BackendError::DeleteDatabaseDirectory)?;
-
-    Ok(())
-}
