@@ -47,14 +47,6 @@ pub async fn build_router(
     let environment_variables: std::collections::HashMap<_, _> =
         crate::environment::variables(environment_name).collect();
 
-    match project.database_directory_path.try_exists() {
-        Ok(true) => {}
-        Ok(false) => fs::create_dir_all(&project.database_directory_path)
-            .await
-            .map_err(ServerError::CreateDatabaseDir)?,
-        Err(error) => return Err(ServerError::ReadDatabaseDir(error)),
-    }
-
     let udf_runtime = UdfRuntime::new(environment_variables, registry.clone(), tracing, message_sender.clone());
     let handler_state = Arc::new(HandlerState {
         message_sender,

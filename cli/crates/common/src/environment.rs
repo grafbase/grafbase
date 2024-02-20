@@ -4,7 +4,7 @@ use crate::consts::{AUTHORIZERS_DIRECTORY_NAME, GENERATED_SCHEMAS_DIR, GRAFBASE_
 use crate::types::UdfKind;
 use crate::{
     consts::{
-        BUN_DIRECTORY_NAME, DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
+        BUN_DIRECTORY_NAME, DOT_GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
         GRAFBASE_TS_CONFIG_FILE_NAME, PACKAGE_JSON_DEV_DEPENDENCIES, PACKAGE_JSON_FILE_NAME, REGISTRY_FILE,
         RESOLVERS_DIRECTORY_NAME,
     },
@@ -213,7 +213,6 @@ impl Project {
 
         let dot_grafbase_directory_path = path.join(DOT_GRAFBASE_DIRECTORY_NAME);
         let registry_path = dot_grafbase_directory_path.join(REGISTRY_FILE);
-        let database_directory_path = dot_grafbase_directory_path.join(DATABASE_DIRECTORY);
         let package_json_path = [path.as_path(), path.parent().expect("must have a parent")]
             .into_iter()
             .map(|candidate| candidate.join(PACKAGE_JSON_FILE_NAME))
@@ -224,7 +223,6 @@ impl Project {
             schema_path,
             dot_grafbase_directory_path,
             registry_path,
-            database_directory_path,
             package_json_path,
         })
     }
