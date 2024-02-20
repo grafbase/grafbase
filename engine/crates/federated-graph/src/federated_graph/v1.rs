@@ -358,6 +358,12 @@ macro_rules! id_newtypes {
             #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
             pub struct $name(pub usize);
 
+            impl From<$name> for usize {
+              fn from(value: $name) -> usize {
+                value.0
+              }
+            }
+
             impl std::ops::Index<$name> for FederatedGraphV1 {
                 type Output = $out;
 
