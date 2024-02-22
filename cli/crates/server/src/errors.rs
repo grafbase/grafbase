@@ -10,35 +10,9 @@ use std::path::PathBuf;
 use thiserror::Error;
 use tokio::task::JoinError;
 
+use crate::bun::BunError;
 use crate::config::ConfigError;
 use crate::node::NodeError;
-use crate::udf_builder::JavaScriptPackageManager;
-
-#[derive(Error, Debug)]
-pub enum JavascriptPackageManagerComamndError {
-    #[error("working directory '{0}' not found")]
-    WorkingDirectoryNotFound(PathBuf),
-    #[error("working directory '{0}' cannot be read.\nCaused by: {1}")]
-    WorkingDirectoryCannotBeRead(PathBuf, std::io::Error),
-    /// returned if npm/pnpm/yarn cannot be found
-    #[error("could not find {0}: {1}")]
-    NotFound(JavaScriptPackageManager, which::Error),
-
-    /// returned if any of the npm/pnpm/yarn commands exits unsuccessfully
-    #[error("{0} encountered an error: {1}")]
-    CommandError(JavaScriptPackageManager, IoError),
-
-    /// returned if any of the npm/pnpm/yarn commands exits unsuccessfully
-    #[error("{0} failed with output:\n{1}")]
-    OutputError(JavaScriptPackageManager, String),
-    /// returned if any of the bun commands exits unsuccessfully
-    #[error("bun encountered an error: {0}")]
-    BunCommandError(IoError),
-
-    /// returned if any of the bun commands exits unsuccessfully
-    #[error("bun failed with output:\n{0}")]
-    BunOutputError(String),
-}
 
 #[derive(Error, Debug)]
 pub enum ServerError {
@@ -113,10 +87,6 @@ pub enum ServerError {
     #[error("could not find a resolver referenced in the schema under the path {0}.{{js,ts}}")]
     ResolverDoesNotExist(PathBuf),
 
-    /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
-    #[error("command error: {0}")]
-    BunInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
-
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully
     #[error("resolver {0} failed to build:\n{1}")]
     ResolverBuild(String, String),
@@ -184,6 +154,9 @@ pub enum ServerError {
 
     #[error("Failed loading the federated graph from the SDL: {0}")]
     InvalidFederatedGraphSdl(String),
+
+    #[error(transparent)]
+    BunInstallError(#[from] BunError),
 }
 
 #[derive(Debug, Error)]
@@ -239,10 +212,6 @@ pub enum UdfBuildError {
     #[error("\n{output}\n{stderr}")]
     BunSpawnFailedWithOutput { output: String, stderr: String },
 
-    /// returned if any of the package manager commands ran during resolver build exits unsuccessfully
-    #[error("command error: {0}")]
-    BunInstallPackageManagerCommandError(#[from] JavascriptPackageManagerComamndError),
-
     /// returned if a spawned task panics
     #[error(transparent)]
     SpawnedTaskPanic(#[from] JoinError),
@@ -269,6 +238,7 @@ impl From<ConfigError> for ServerError {
             ConfigError::ParseSchema(inner) => ServerError::ParseSchema(inner),
             ConfigError::NodeError(inner) => inner.into(),
             ConfigError::LoadTsConfig(inner) => ServerError::LoadTsConfig(inner),
+            ConfigError::BunError(inner) => inner.into(),
         }
     }
 }

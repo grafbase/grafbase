@@ -1,4 +1,4 @@
-use crate::node::NodeError;
+use crate::{bun::BunError, node::NodeError};
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum ConfigError {
@@ -14,6 +14,9 @@ pub enum ConfigError {
 
     #[error(transparent)]
     NodeError(#[from] NodeError),
+
+    #[error(transparent)]
+    BunError(#[from] BunError),
 
     /// returned if the typescript config parser command exits unsuccessfully
     #[error("could not load grafbase/grafbase.config.ts\nCaused by: {0}")]

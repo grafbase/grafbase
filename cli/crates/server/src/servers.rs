@@ -2,10 +2,8 @@ use crate::atomics::WORKER_PORT;
 use crate::config::{build_config, Config, ConfigActor};
 use crate::consts::{ASSET_VERSION_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE};
 use crate::file_watcher::Watcher;
-use crate::node::validate_node;
 use crate::proxy::ProxyHandle;
 use crate::types::{MessageSender, ServerMessage, ASSETS_GZIP};
-use crate::udf_builder::install_bun;
 use crate::{bridge, errors::ServerError};
 use crate::{error_server, proxy};
 use bridge::BridgeState;
@@ -96,7 +94,6 @@ impl ProductionServer {
             )
             .await?;
             if !detected_udfs.is_empty() {
-                validate_node().await?;
                 // TODO: the compile function also spawns Bun, we need to separate them if we want to do it conditionally
                 // let project = Project::get();
 
@@ -121,7 +118,6 @@ impl ProductionServer {
                 // let hash = hasher.finish();
                 // let hash_path = project.dot_grafbase_directory_path.join("grafbase_hash");
                 // if hash.to_string() != tokio::fs::read_to_string(&hash_path).await.unwrap_or_default() {
-                install_bun(Environment::get(), tracing).await?;
                 bridge_state.build_all_udfs(detected_udfs, parallelism).await?;
                 //     // If we fail to write the hash, we're just going to recompile the UDFs.
                 //     let _ = tokio::fs::write(hash_path, hash.to_string()).await;
@@ -384,27 +380,6 @@ async fn spawn_servers(
     {
         for udf in &mut detected_udfs {
             udf.fresh = false;
-        }
-    }
-
-    let environment = Environment::get();
-
-    if detected_udfs.is_empty() {
-        trace!("Skipping bun installation");
-    } else {
-        validate_node().await?;
-        if let Err(error) = install_bun(environment, tracing).await {
-            message_sender
-                .send(ServerMessage::CompilationError(error.to_string()))
-                .ok();
-
-            // TODO consider disabling colored output from bun
-            let error = String::from_utf8(strip_ansi_escapes::strip(error.to_string().as_bytes()))
-                .ok()
-                .unwrap_or_else(|| error.to_string());
-
-            join_set.spawn(handle_config_error(error, message_sender.clone()));
-            return Ok(join_set);
         }
     }
 
