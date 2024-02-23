@@ -161,7 +161,7 @@ async fn parse_and_generate_config_from_ts(
         generated_config_path.to_string_lossy().to_string(),
     ];
 
-    let bun_command = Command::new(environment.bun_executable_path)
+    let bun_command = Command::new(&environment.bun_executable_path)
         .args(args)
         .env(
             "GRAFBASE_ENV",
