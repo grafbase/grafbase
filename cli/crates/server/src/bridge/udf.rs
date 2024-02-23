@@ -182,7 +182,7 @@ impl UdfRuntime {
         );
 
         let environment = Environment::get();
-        let mut bun = Command::new(environment.bun_executable_path);
+        let mut bun = Command::new(&environment.bun_executable_path);
         bun.args(bun_arguments)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -426,7 +426,7 @@ async fn spawn_bun(
         let bun_arguments = vec!["run", &script_path];
 
         let environment = Environment::get();
-        let mut bun = Command::new(environment.bun_executable_path);
+        let mut bun = Command::new(&environment.bun_executable_path);
         bun.args(bun_arguments)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
