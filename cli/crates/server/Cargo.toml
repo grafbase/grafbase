@@ -50,7 +50,7 @@ tracing = "0.1"
 version-compare = "0.1"
 which.workspace = true
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.58.1" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.59.0" }
 gateway = { path = "../gateway" }
 typed-resolvers = { path = "../typed-resolvers" }
 federated-dev = { path = "../federated-dev" }

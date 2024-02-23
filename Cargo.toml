@@ -26,7 +26,7 @@ serde_with = { git = "https://github.com/grafbase/serde_with", rev = "2fadab3a17
 tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
 
 [workspace.package]
-version = "0.58.1"
+version = "0.59.0"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://grafbase.com"
