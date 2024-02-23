@@ -2,15 +2,35 @@ use schema::StringId;
 
 use super::{ResponseDataPartId, ResponseEdge, ResponseKey, ResponseListId, ResponseObjectId};
 
-#[derive(Debug)]
+pub type ResponseObjectFields = Vec<(ResponseEdge, ResponseValue)>;
+
+#[derive(Default, Debug)]
 pub struct ResponseObject {
     /// fields are ordered by the position they appear in the query.
     /// We use ResponseEdge here, but it'll never be an index out of the 3 possible variants.
     /// That's something we should rework at some point, but it's convenient for now.
-    pub fields: Vec<(ResponseEdge, ResponseValue)>,
+    fields: ResponseObjectFields,
 }
 
 impl ResponseObject {
+    pub fn new(mut fields: ResponseObjectFields) -> Self {
+        fields.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        Self { fields }
+    }
+
+    pub fn extend(&mut self, fields: ResponseObjectFields) {
+        self.fields.extend(fields);
+        self.fields.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+    }
+
+    pub fn len(&self) -> usize {
+        self.fields.len()
+    }
+
+    pub fn fields(&self) -> impl Iterator<Item = &(ResponseEdge, ResponseValue)> {
+        self.fields.iter()
+    }
+
     // Until acutal field collection with the concrete object id we're not certain of which bound
     // response key (field position & name) will be used but the actual response key (field name)
     // should still be there. So, first trying with the bound key and then searching for a matching
@@ -19,10 +39,19 @@ impl ResponseObject {
     // So should be a decent tradeoff as this allows us to serialize the whole response without any
     // additional metadata as both position and key are encoded.
     pub(super) fn find(&self, edge: ResponseEdge) -> Option<&ResponseValue> {
-        self.fields
-            .iter()
-            .find_map(|(e, v)| if *e == edge { Some(v) } else { None })
-            .or_else(|| edge.as_response_key().and_then(|key| self.find_by_name(key)))
+        if let Some(pos) = self.field_position(edge) {
+            return Some(&self.fields[pos].1);
+        }
+        edge.as_response_key().and_then(|key| self.find_by_name(key))
+    }
+
+    pub(super) fn field_position(&self, edge: ResponseEdge) -> Option<usize> {
+        // Threshold defined a bit arbitrarily
+        if self.fields.len() > 64 {
+            self.fields.binary_search_by(|(e, _)| e.cmp(&edge)).ok()
+        } else {
+            self.fields.iter().position(|(e, _)| *e == edge)
+        }
     }
 
     fn find_by_name(&self, target: ResponseKey) -> Option<&ResponseValue> {
@@ -30,6 +59,20 @@ impl ResponseObject {
             Some(key) if key == target => Some(field),
             _ => None,
         })
+    }
+}
+
+impl std::ops::Index<usize> for ResponseObject {
+    type Output = ResponseValue;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.fields[index].1
+    }
+}
+
+impl std::ops::IndexMut<usize> for ResponseObject {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.fields[index].1
     }
 }
 

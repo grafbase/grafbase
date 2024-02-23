@@ -45,7 +45,7 @@ pub(crate) struct ResponseBuilder {
 impl ResponseBuilder {
     pub fn new(root_object_id: ObjectId) -> Self {
         let mut builder = ResponsePart::new(ResponseDataPartId::from(0), IdRange::empty());
-        let root_id = builder.push_object(ResponseObject { fields: Vec::new() });
+        let root_id = builder.push_object(ResponseObject::default());
         Self {
             root: Some((root_id, root_object_id)),
             parts: vec![builder.data],
@@ -76,8 +76,7 @@ impl ResponseBuilder {
         *reservation = output.data;
         self.errors.extend(output.errors);
         for update in output.updates {
-            self[update.id].fields.extend(update.fields);
-            self[update.id].fields.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+            self[update.id].extend(update.fields);
         }
         for path in output.error_paths_to_propagate {
             self.propagate_error(&path);
@@ -127,7 +126,7 @@ impl ResponseBuilder {
                     Either::Left(object_id),
                     UnpackedResponseEdge::BoundResponseKey(_) | UnpackedResponseEdge::ExtraFieldResponseKey(_),
                 ) => {
-                    let Some(field_position) = self[object_id].fields.iter().position(|(e, _)| *e == edge) else {
+                    let Some(field_position) = self[object_id].field_position(edge) else {
                         // Shouldn't happen but equivalent to null
                         return;
                     };
@@ -135,7 +134,7 @@ impl ResponseBuilder {
                         object_id,
                         field_position,
                     };
-                    let value = &self[object_id].fields[field_position].1;
+                    let value = &self[object_id][field_position];
                     (unique_id, value)
                 }
                 (Either::Right(list_id), UnpackedResponseEdge::Index(index)) => {
@@ -186,7 +185,7 @@ impl ResponseBuilder {
                     object_id,
                     field_position,
                 } => {
-                    self[object_id].fields[field_position].1 = ResponseValue::Null;
+                    self[object_id][field_position] = ResponseValue::Null;
                 }
                 ResponseValueId::ListItem { list_id, index } => {
                     self[list_id][index] = ResponseValue::Null;
@@ -251,15 +250,6 @@ impl ResponsePart {
     /// This does not change how errors were propagated.
     pub fn replace_errors(&mut self, errors: Vec<GraphqlError>) {
         self.errors = errors;
-    }
-
-    pub fn transform_last_object_as_update_for(&mut self, id: ResponseObjectId) {
-        if let Some(object) = self.data.objects.pop() {
-            self.updates.push(ResponseObjectUpdate {
-                id,
-                fields: object.fields,
-            });
-        }
     }
 }
 

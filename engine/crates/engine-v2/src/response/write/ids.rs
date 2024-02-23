@@ -108,9 +108,8 @@ impl std::ops::IndexMut<ResponseListId> for ResponseDataPart {
 }
 
 impl ResponsePart {
-    pub fn push_object(&mut self, mut object: ResponseObject) -> ResponseObjectId {
+    pub fn push_object(&mut self, object: ResponseObject) -> ResponseObjectId {
         let offset = self.data.objects.len() as u32;
-        object.fields.sort_unstable_by(|a, b| a.0.cmp(&b.0));
         self.data.objects.push(object);
         ResponseObjectId {
             part_id: self.id,
