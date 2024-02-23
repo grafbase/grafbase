@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::BTreeMap};
+use std::cell::RefCell;
 
 use engine_value::ConstValue;
 use schema::{
@@ -23,8 +23,9 @@ pub(super) struct IntrospectionWriter<'a> {
 
 impl<'a> IntrospectionWriter<'a> {
     pub(super) fn update_output(&self, response_object: ResponseBoundaryItem) {
-        let mut fields = BTreeMap::new();
         let selection_set = self.plan.collected_selection_set();
+        let mut fields =
+            Vec::with_capacity(selection_set.as_ref().fields.len() + selection_set.as_ref().typename_fields.len());
         for field in selection_set.fields() {
             let &CollectedField {
                 edge, schema_field_id, ..
@@ -40,7 +41,7 @@ impl<'a> IntrospectionWriter<'a> {
                             _ => unreachable!("Validation failure: Expected string argument"),
                         })
                         .expect("Validation failure: missing argument");
-                    fields.insert(
+                    fields.push((
                         edge,
                         self.schema
                             .definition_by_name(&name)
@@ -48,17 +49,17 @@ impl<'a> IntrospectionWriter<'a> {
                                 self.__type_inner(self.schema.walk(definition), field.concrete_selection_set().unwrap())
                             })
                             .into(),
-                    );
+                    ));
                 }
                 IntrospectionField::Schema => {
-                    fields.insert(edge, self.__schema(field.concrete_selection_set().unwrap()));
+                    fields.push((edge, self.__schema(field.concrete_selection_set().unwrap())));
                 }
             };
         }
         if !selection_set.as_ref().typename_fields.is_empty() {
             let name = selection_set.ty().schema_name_id();
             for edge in &selection_set.as_ref().typename_fields {
-                fields.insert(*edge, name.into());
+                fields.push((*edge, name.into()));
             }
         }
         self.output.borrow_mut().push_update(ResponseObjectUpdate {
@@ -73,17 +74,18 @@ impl<'a> IntrospectionWriter<'a> {
         selection_set: PlanCollectedSelectionSet<'_>,
         build: impl Fn(PlanCollectedField<'_>, E) -> ResponseValue,
     ) -> ResponseValue {
-        let mut fields = BTreeMap::new();
+        let mut fields =
+            Vec::with_capacity(selection_set.as_ref().fields.len() + selection_set.as_ref().typename_fields.len());
         for field in selection_set.fields() {
             let &CollectedField {
                 edge, schema_field_id, ..
             } = field.as_ref();
-            fields.insert(edge, build(field, object[schema_field_id]));
+            fields.push((edge, build(field, object[schema_field_id])));
         }
         if !selection_set.as_ref().typename_fields.is_empty() {
             let name = selection_set.ty().schema_name_id();
             for edge in &selection_set.as_ref().typename_fields {
-                fields.insert(*edge, name.into());
+                fields.push((*edge, name.into()));
             }
         }
 

@@ -1,6 +1,5 @@
 use std::{
     cell::{RefCell, RefMut},
-    collections::BTreeMap,
     fmt,
     rc::Rc,
     sync::atomic::{AtomicBool, Ordering},
@@ -126,7 +125,7 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
             Ok(None) => {
                 let mut update = ResponseObjectUpdate {
                     id: self.boundary_item.response_object_id,
-                    fields: BTreeMap::new(),
+                    fields: Vec::with_capacity(ctx.plan[self.id].fields.len()),
                 };
                 for field in &ctx.plan[ctx.plan[self.id].fields] {
                     if field.wrapping.is_required() {
@@ -138,7 +137,7 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
                         response_part.push_error_path_to_propagate(self.boundary_item.response_path.clone());
                         return Ok(());
                     } else {
-                        update.fields.insert(field.edge, ResponseValue::Null);
+                        update.fields.push((field.edge, ResponseValue::Null));
                     }
                 }
                 response_part.push_update(update);

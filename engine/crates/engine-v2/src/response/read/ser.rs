@@ -162,7 +162,7 @@ impl<'a> serde::Serialize for SerializableResponseObject<'a> {
         let keys = &self.data.operation.response_keys;
         // Thanks to the BoundResponseKey starting with the position and the fields being a BTreeMap
         // we're ensuring the fields are serialized in the order they appear in the query.
-        for (&key, value) in &self.object.fields {
+        for (key, value) in &self.object.fields {
             let UnpackedResponseEdge::BoundResponseKey(key) = key.unpack() else {
                 // Bound response keys are always first, anything after are extra fields which
                 // don't need to be serialized.

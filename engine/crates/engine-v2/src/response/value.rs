@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use schema::StringId;
 
 use super::{ResponseEdge, ResponseKey, ResponseListId, ResponseObjectId};
@@ -9,7 +7,7 @@ pub struct ResponseObject {
     /// fields are ordered by the position they appear in the query.
     /// We use ResponseEdge here, but it'll never be an index out of the 3 possible variants.
     /// That's something we should rework at some point, but it's convenient for now.
-    pub fields: BTreeMap<ResponseEdge, ResponseValue>,
+    pub fields: Vec<(ResponseEdge, ResponseValue)>,
 }
 
 impl ResponseObject {
@@ -22,7 +20,8 @@ impl ResponseObject {
     // additional metadata as both position and key are encoded.
     pub(super) fn find(&self, edge: ResponseEdge) -> Option<&ResponseValue> {
         self.fields
-            .get(&edge)
+            .iter()
+            .find_map(|(e, v)| if *e == edge { Some(v) } else { None })
             .or_else(|| edge.as_response_key().and_then(|key| self.find_by_name(key)))
     }
 

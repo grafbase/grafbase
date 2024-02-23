@@ -1,7 +1,7 @@
 mod deserialize;
 mod ids;
 
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
 pub(crate) use deserialize::SeedContext;
 pub use ids::*;
@@ -45,9 +45,7 @@ pub(crate) struct ResponseBuilder {
 impl ResponseBuilder {
     pub fn new(root_object_id: ObjectId) -> Self {
         let mut builder = ResponsePart::new(ResponseDataPartId::from(0), IdRange::empty());
-        let root_id = builder.push_object(ResponseObject {
-            fields: BTreeMap::new(),
-        });
+        let root_id = builder.push_object(ResponseObject { fields: Vec::new() });
         Self {
             root: Some((root_id, root_object_id)),
             parts: vec![builder.data],
@@ -79,6 +77,7 @@ impl ResponseBuilder {
         self.errors.extend(output.errors);
         for update in output.updates {
             self[update.id].fields.extend(update.fields);
+            self[update.id].fields.sort_unstable_by(|a, b| a.0.cmp(&b.0));
         }
         for path in output.error_paths_to_propagate {
             self.propagate_error(&path);
@@ -128,20 +127,26 @@ impl ResponseBuilder {
                     Either::Left(object_id),
                     UnpackedResponseEdge::BoundResponseKey(_) | UnpackedResponseEdge::ExtraFieldResponseKey(_),
                 ) => {
-                    let unique_id = ResponseValueId::ObjectField { object_id, edge };
-                    let value = self[object_id].fields.get(&edge);
+                    let Some(field_position) = self[object_id].fields.iter().position(|(e, _)| *e == edge) else {
+                        // Shouldn't happen but equivalent to null
+                        return;
+                    };
+                    let unique_id = ResponseValueId::ObjectField {
+                        object_id,
+                        field_position,
+                    };
+                    let value = &self[object_id].fields[field_position].1;
                     (unique_id, value)
                 }
                 (Either::Right(list_id), UnpackedResponseEdge::Index(index)) => {
                     let unique_id = ResponseValueId::ListItem { list_id, index };
-                    let value = self[list_id].get(index);
+                    let Some(value) = self[list_id].get(index) else {
+                        // Shouldn't happen but equivalent to null
+                        return;
+                    };
                     (unique_id, value)
                 }
                 _ => return,
-            };
-            let Some(value) = value else {
-                // Shouldn't happen but equivalent to null
-                return;
             };
             if value.is_null() {
                 return;
@@ -164,8 +169,11 @@ impl ResponseBuilder {
         }
         if let Some(last_nullable) = last_nullable {
             match last_nullable {
-                ResponseValueId::ObjectField { object_id, edge } => {
-                    self[object_id].fields.insert(edge, ResponseValue::Null);
+                ResponseValueId::ObjectField {
+                    object_id,
+                    field_position,
+                } => {
+                    self[object_id].fields[field_position].1 = ResponseValue::Null;
                 }
                 ResponseValueId::ListItem { list_id, index } => {
                     self[list_id][index] = ResponseValue::Null;
@@ -180,7 +188,7 @@ impl ResponseBuilder {
 pub enum ResponseValueId {
     ObjectField {
         object_id: ResponseObjectId,
-        edge: ResponseEdge,
+        field_position: usize,
     },
     ListItem {
         list_id: ResponseListId,
@@ -260,5 +268,5 @@ impl std::ops::IndexMut<PlanBoundaryId> for ResponsePart {
 
 pub struct ResponseObjectUpdate {
     pub id: ResponseObjectId,
-    pub fields: BTreeMap<ResponseEdge, ResponseValue>,
+    pub fields: Vec<(ResponseEdge, ResponseValue)>,
 }

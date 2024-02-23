@@ -1,7 +1,4 @@
-use std::{
-    collections::{btree_map::Entry, BTreeMap},
-    fmt,
-};
+use std::fmt;
 
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
@@ -76,7 +73,8 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedSelectionSetSeed<'ctx, 'paren
     {
         let plan = self.ctx.plan;
         let keys = plan.response_keys();
-        let mut response_fields = BTreeMap::<ResponseEdge, ResponseValue>::new();
+        let mut response_fields =
+            Vec::<(ResponseEdge, ResponseValue)>::with_capacity(self.fields.len() + self.typename_fields.len());
         let mut maybe_object_id = None;
         if let SelectionSetType::Object(object_id) = self.selection_set_ty {
             maybe_object_id = Some(object_id);
@@ -112,11 +110,11 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedSelectionSetSeed<'ctx, 'paren
         // Checking if we're missing fields
         if response_fields.len() < self.fields.len() {
             for field in self.fields {
-                if let Entry::Vacant(entry) = response_fields.entry(field.edge) {
+                if !response_fields.iter().any(|(e, _)| *e == field.edge) {
                     if field.wrapping.is_required() {
                         return Err(serde::de::Error::custom(self.ctx.missing_field_error_message(field)));
                     }
-                    entry.insert(ResponseValue::Null);
+                    response_fields.push((field.edge, ResponseValue::Null));
                 }
             }
         }
@@ -127,13 +125,13 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedSelectionSetSeed<'ctx, 'paren
             };
             let name_id = plan.schema()[object_id].name;
             for edge in self.typename_fields {
-                response_fields.insert(
+                response_fields.push((
                     *edge,
                     ResponseValue::StringId {
                         id: name_id,
                         nullable: false,
                     },
-                );
+                ));
             }
         }
 
@@ -163,7 +161,7 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
         &self,
         map: &mut A,
         start: usize,
-        response_fields: &mut BTreeMap<ResponseEdge, ResponseValue>,
+        response_fields: &mut Vec<(ResponseEdge, ResponseValue)>,
     ) -> Result<(), A::Error> {
         let mut end = start + 1;
         // All fields with the same expected_key (when aliases aren't supported by upsteam)
@@ -184,7 +182,7 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
                 wrapping: field.wrapping,
             });
             self.ctx.pop_edge();
-            response_fields.insert(field.edge, result?);
+            response_fields.push((field.edge, result?));
         } else {
             // if we found more than one field with the same expected_key we need to store the
             // value first.
@@ -198,7 +196,7 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
                 }
                 .deserialize(serde_value::ValueDeserializer::new(stored_value.clone()));
                 self.ctx.pop_edge();
-                response_fields.insert(field.edge, result?);
+                response_fields.push((field.edge, result?));
             }
         }
         Ok(())
