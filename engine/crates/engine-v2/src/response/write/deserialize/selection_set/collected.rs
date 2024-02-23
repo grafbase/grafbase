@@ -7,7 +7,7 @@ use crate::{
     plan::{CollectedField, CollectedSelectionSetId, PlanBoundaryId, RuntimeCollectedSelectionSet},
     request::SelectionSetType,
     response::{
-        value::ResponseObjectFields,
+        value::{ResponseObjectFields, RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD},
         write::deserialize::{key::Key, FieldSeed, SeedContextInner},
         ResponseBoundaryItem, ResponseEdge, ResponseObject, ResponseValue,
     },
@@ -166,12 +166,27 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedFieldsSeed<'ctx, 'parent> {
 
         // Checking if we're missing fields
         if response_fields.len() < self.fields.len() {
-            for field in self.fields {
-                if !response_fields.iter().any(|(e, _)| *e == field.edge) {
-                    if field.wrapping.is_required() {
-                        return Err(serde::de::Error::custom(self.ctx.missing_field_error_message(field)));
+            let n = response_fields.len();
+            if n <= RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD {
+                for field in self.fields {
+                    if !response_fields[0..n].iter().any(|(e, _)| *e == field.edge) {
+                        if field.wrapping.is_required() {
+                            return Err(serde::de::Error::custom(self.ctx.missing_field_error_message(field)));
+                        }
+                        response_fields.push((field.edge, ResponseValue::Null));
                     }
-                    response_fields.push((field.edge, ResponseValue::Null));
+                }
+            } else {
+                for field in self.fields {
+                    if response_fields[0..n]
+                        .binary_search_by(|(edge, _)| edge.cmp(&field.edge))
+                        .is_err()
+                    {
+                        if field.wrapping.is_required() {
+                            return Err(serde::de::Error::custom(self.ctx.missing_field_error_message(field)));
+                        }
+                        response_fields.push((field.edge, ResponseValue::Null));
+                    }
                 }
             }
         }

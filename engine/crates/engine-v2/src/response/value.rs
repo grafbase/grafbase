@@ -2,6 +2,8 @@ use schema::StringId;
 
 use super::{ResponseDataPartId, ResponseEdge, ResponseKey, ResponseListId, ResponseObjectId};
 
+// Threshold defined a bit arbitrarily
+pub const RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD: usize = 64;
 pub type ResponseObjectFields = Vec<(ResponseEdge, ResponseValue)>;
 
 #[derive(Default, Debug)]
@@ -46,11 +48,10 @@ impl ResponseObject {
     }
 
     pub(super) fn field_position(&self, edge: ResponseEdge) -> Option<usize> {
-        // Threshold defined a bit arbitrarily
-        if self.fields.len() > 64 {
-            self.fields.binary_search_by(|(e, _)| e.cmp(&edge)).ok()
-        } else {
+        if self.fields.len() <= RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD {
             self.fields.iter().position(|(e, _)| *e == edge)
+        } else {
+            self.fields.binary_search_by(|(e, _)| e.cmp(&edge)).ok()
         }
     }
 
@@ -120,8 +121,7 @@ pub enum ResponseValue {
     },
     // Ideally we would use ResponseListId and ResponseObjectId, but those are already padded by
     // Rust. So we miss the opportunity to include the nullable flag and the enum tag in that
-    // padding. And we really want ResponseValue to be as small as possible. This made 1%
-    // difference in the introspection benchmark on x86_64.
+    // padding. And we really want ResponseValue to be as small as possible.
     List {
         part_id: ResponseDataPartId,
         offset: u32,
