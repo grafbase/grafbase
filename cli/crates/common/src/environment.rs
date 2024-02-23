@@ -257,7 +257,6 @@ impl Environment {
         let bun_installation_path = user_dot_grafbase_path.join(BUN_DIRECTORY_NAME);
 
         let bun_executable_path = bun_installation_path
-            .bun_installation_path
             .join("node_modules")
             .join("bun")
             .join("bin")
@@ -288,12 +287,19 @@ impl Environment {
 
         let bun_installation_path = user_dot_grafbase_path.join(BUN_DIRECTORY_NAME);
 
+        let bun_executable_path = bun_installation_path
+            .join("node_modules")
+            .join("bun")
+            .join("bin")
+            .join("bun");
+
         ENVIRONMENT
             .set(Self {
                 project: None,
                 user_dot_grafbase_path,
                 warnings: Vec::new(),
                 bun_installation_path,
+                bun_executable_path,
             })
             .expect("cannot set environment twice");
 
