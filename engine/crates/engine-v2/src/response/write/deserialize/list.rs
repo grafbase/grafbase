@@ -88,9 +88,6 @@ where
             }
         }
 
-        Ok(ResponseValue::List {
-            id: self.ctx.response_part.borrow_mut().push_list(&values),
-            nullable: false,
-        })
+        Ok(self.ctx.response_part.borrow_mut().push_list(&values).into())
     }
 }

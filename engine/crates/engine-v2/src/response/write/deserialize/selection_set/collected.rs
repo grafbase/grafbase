@@ -151,8 +151,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedSelectionSetSeed<'ctx, 'paren
                 });
             }
         }
-
-        Ok(ResponseValue::Object { id, nullable: false })
+        Ok(id.into())
     }
 }
 

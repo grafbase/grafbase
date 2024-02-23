@@ -1,6 +1,6 @@
 use schema::StringId;
 
-use super::{ResponseEdge, ResponseKey, ResponseListId, ResponseObjectId};
+use super::{ResponseDataPartId, ResponseEdge, ResponseKey, ResponseListId, ResponseObjectId};
 
 #[derive(Debug)]
 pub struct ResponseObject {
@@ -75,12 +75,19 @@ pub enum ResponseValue {
         value: Box<serde_json::Value>,
         nullable: bool,
     },
+    // Ideally we would use ResponseListId and ResponseObjectId, but those are already padded by
+    // Rust. So we miss the opportunity to include the nullable flag and the enum tag in that
+    // padding. And we really want ResponseValue to be as small as possible. This made 1%
+    // difference in the introspection benchmark on x86_64.
     List {
-        id: ResponseListId,
+        part_id: ResponseDataPartId,
+        offset: u32,
+        length: u32,
         nullable: bool,
     },
     Object {
-        id: ResponseObjectId,
+        part_id: ResponseDataPartId,
+        index: u32,
         nullable: bool,
     },
 }
@@ -90,19 +97,20 @@ impl ResponseValue {
         matches!(self, Self::Null)
     }
 
-    pub(super) fn into_nullable(self) -> Self {
-        match self {
-            Self::Null => Self::Null,
-            Self::Boolean { value, .. } => Self::Boolean { value, nullable: true },
-            Self::Int { value, .. } => Self::Int { value, nullable: true },
-            Self::BigInt { value, .. } => Self::BigInt { value, nullable: true },
-            Self::Float { value, .. } => Self::Float { value, nullable: true },
-            Self::String { value, .. } => Self::String { value, nullable: true },
-            Self::StringId { id, .. } => Self::StringId { id, nullable: true },
-            Self::Json { value, .. } => Self::Json { value, nullable: true },
-            Self::List { id, .. } => Self::List { id, nullable: true },
-            Self::Object { id, .. } => Self::Object { id, nullable: true },
-        }
+    pub(super) fn into_nullable(mut self) -> Self {
+        match &mut self {
+            Self::Null => (),
+            Self::Boolean { nullable, .. } => *nullable = true,
+            Self::Int { nullable, .. } => *nullable = true,
+            Self::BigInt { nullable, .. } => *nullable = true,
+            Self::Float { nullable, .. } => *nullable = true,
+            Self::String { nullable, .. } => *nullable = true,
+            Self::StringId { nullable, .. } => *nullable = true,
+            Self::Json { nullable, .. } => *nullable = true,
+            Self::List { nullable, .. } => *nullable = true,
+            Self::Object { nullable, .. } => *nullable = true,
+        };
+        self
     }
 }
 
@@ -124,18 +132,6 @@ impl From<StringId> for ResponseValue {
 impl From<bool> for ResponseValue {
     fn from(value: bool) -> Self {
         Self::Boolean { value, nullable: false }
-    }
-}
-
-impl From<ResponseListId> for ResponseValue {
-    fn from(id: ResponseListId) -> Self {
-        Self::List { id, nullable: false }
-    }
-}
-
-impl From<ResponseObjectId> for ResponseValue {
-    fn from(id: ResponseObjectId) -> Self {
-        Self::Object { id, nullable: false }
     }
 }
 
@@ -169,5 +165,26 @@ impl From<String> for ResponseValue {
 impl From<Box<serde_json::Value>> for ResponseValue {
     fn from(value: Box<serde_json::Value>) -> Self {
         Self::Json { value, nullable: false }
+    }
+}
+
+impl From<ResponseListId> for ResponseValue {
+    fn from(id: ResponseListId) -> Self {
+        Self::List {
+            part_id: id.part_id,
+            offset: id.offset,
+            length: id.length,
+            nullable: false,
+        }
+    }
+}
+
+impl From<ResponseObjectId> for ResponseValue {
+    fn from(id: ResponseObjectId) -> Self {
+        Self::Object {
+            part_id: id.part_id,
+            index: id.index,
+            nullable: false,
+        }
     }
 }

@@ -151,18 +151,31 @@ impl ResponseBuilder {
             if value.is_null() {
                 return;
             }
-            match value {
-                ResponseValue::Object { id, nullable } => {
-                    if *nullable {
+            match *value {
+                ResponseValue::Object {
+                    nullable,
+                    part_id,
+                    index,
+                } => {
+                    if nullable {
                         last_nullable = Some(unique_id);
                     }
-                    previous = Either::Left(*id);
+                    previous = Either::Left(ResponseObjectId { part_id, index });
                 }
-                ResponseValue::List { id, nullable } => {
-                    if *nullable {
+                ResponseValue::List {
+                    nullable,
+                    part_id,
+                    offset,
+                    length,
+                } => {
+                    if nullable {
                         last_nullable = Some(unique_id);
                     }
-                    previous = Either::Right(*id);
+                    previous = Either::Right(ResponseListId {
+                        part_id,
+                        offset,
+                        length,
+                    });
                 }
                 _ => break,
             }

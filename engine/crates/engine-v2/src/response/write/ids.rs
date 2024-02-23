@@ -2,7 +2,7 @@ use super::{ResponseBuilder, ResponseDataPart, ResponsePart};
 use crate::response::{ResponseData, ResponseObject, ResponseValue};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct ResponseDataPartId(u32);
+pub struct ResponseDataPartId(u16);
 
 impl From<usize> for ResponseDataPartId {
     fn from(value: usize) -> Self {
@@ -18,15 +18,15 @@ impl From<ResponseDataPartId> for usize {
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct ResponseObjectId {
-    part_id: ResponseDataPartId,
-    index: u32,
+    pub(in crate::response) part_id: ResponseDataPartId,
+    pub(in crate::response) index: u32,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct ResponseListId {
-    part_id: ResponseDataPartId,
-    offset: u32,
-    length: u32,
+    pub(in crate::response) part_id: ResponseDataPartId,
+    pub(in crate::response) offset: u32,
+    pub(in crate::response) length: u32,
 }
 
 impl std::ops::Index<ResponseDataPartId> for ResponseBuilder {
