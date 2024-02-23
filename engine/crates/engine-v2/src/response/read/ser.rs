@@ -2,8 +2,8 @@ use serde::ser::{SerializeMap, SerializeSeq};
 
 use crate::{
     response::{
-        GraphqlError, InitialResponse, RequestErrorResponse, ResponseData, ResponseKeys, ResponseObject, ResponsePath,
-        ResponseValue, UnpackedResponseEdge,
+        GraphqlError, InitialResponse, RequestErrorResponse, ResponseData, ResponseKeys, ResponseListId,
+        ResponseObject, ResponseObjectId, ResponsePath, ResponseValue, UnpackedResponseEdge,
     },
     Response,
 };
@@ -158,11 +158,11 @@ impl<'a> serde::Serialize for SerializableResponseObject<'a> {
     where
         S: serde::Serializer,
     {
-        let mut map = serializer.serialize_map(Some(self.object.fields.len()))?;
+        let mut map = serializer.serialize_map(Some(self.object.len()))?;
         let keys = &self.data.operation.response_keys;
         // Thanks to the BoundResponseKey starting with the position and the fields being a BTreeMap
         // we're ensuring the fields are serialized in the order they appear in the query.
-        for (&key, value) in &self.object.fields {
+        for (key, value) in self.object.fields() {
             let UnpackedResponseEdge::BoundResponseKey(key) = key.unpack() else {
                 // Bound response keys are always first, anything after are extra fields which
                 // don't need to be serialized.
@@ -177,13 +177,22 @@ impl<'a> serde::Serialize for SerializableResponseObject<'a> {
                 ResponseValue::String { value, .. } => map.serialize_value(&value)?,
                 ResponseValue::StringId { id, .. } => map.serialize_value(&self.data.schema[*id])?,
                 ResponseValue::BigInt { value, .. } => map.serialize_value(value)?,
-                ResponseValue::List { id, .. } => map.serialize_value(&SerializableResponseList {
+                &ResponseValue::List {
+                    part_id,
+                    offset,
+                    length,
+                    ..
+                } => map.serialize_value(&SerializableResponseList {
                     data: self.data,
-                    value: &self.data[*id],
+                    value: &self.data[ResponseListId {
+                        part_id,
+                        offset,
+                        length,
+                    }],
                 })?,
-                ResponseValue::Object { id, .. } => map.serialize_value(&SerializableResponseObject {
+                &ResponseValue::Object { part_id, index, .. } => map.serialize_value(&SerializableResponseObject {
                     data: self.data,
-                    object: &self.data[*id],
+                    object: &self.data[ResponseObjectId { part_id, index }],
                 })?,
                 ResponseValue::Json { value, .. } => map.serialize_value(value)?,
             }
@@ -212,14 +221,25 @@ impl<'a> serde::Serialize for SerializableResponseList<'a> {
                 ResponseValue::String { value, .. } => seq.serialize_element(&value)?,
                 ResponseValue::StringId { id, .. } => seq.serialize_element(&self.data.schema[*id])?,
                 ResponseValue::BigInt { value, .. } => seq.serialize_element(value)?,
-                ResponseValue::List { id, .. } => seq.serialize_element(&SerializableResponseList {
+                &ResponseValue::List {
+                    part_id,
+                    offset,
+                    length,
+                    ..
+                } => seq.serialize_element(&SerializableResponseList {
                     data: self.data,
-                    value: &self.data[*id],
+                    value: &self.data[ResponseListId {
+                        part_id,
+                        offset,
+                        length,
+                    }],
                 })?,
-                ResponseValue::Object { id, .. } => seq.serialize_element(&SerializableResponseObject {
-                    data: self.data,
-                    object: &self.data[*id],
-                })?,
+                &ResponseValue::Object { part_id, index, .. } => {
+                    seq.serialize_element(&SerializableResponseObject {
+                        data: self.data,
+                        object: &self.data[ResponseObjectId { part_id, index }],
+                    })?
+                }
                 ResponseValue::Json { value, .. } => seq.serialize_element(value)?,
             }
         }

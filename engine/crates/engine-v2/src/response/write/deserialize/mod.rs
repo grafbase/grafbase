@@ -1,6 +1,5 @@
 use std::{
     cell::{RefCell, RefMut},
-    collections::BTreeMap,
     fmt,
     rc::Rc,
     sync::atomic::{AtomicBool, Ordering},
@@ -117,16 +116,22 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
         let ctx = &self.ctx.0;
         ctx.set_response_path(&self.boundary_item.response_path);
 
-        let result =
-            deserializer.deserialize_option(NullableVisitor(CollectedSelectionSetSeed::new_from_id(ctx, self.id)));
+        let result = deserializer.deserialize_option(NullableVisitor(
+            CollectedSelectionSetSeed::new_from_id(ctx, self.id).fields_seed,
+        ));
 
         let mut response_part = ctx.response_part.borrow_mut();
         match result {
-            Ok(Some(_)) => response_part.transform_last_object_as_update_for(self.boundary_item.response_object_id),
+            Ok(Some((_, fields))) => {
+                response_part.push_update(ResponseObjectUpdate {
+                    id: self.boundary_item.response_object_id,
+                    fields,
+                });
+            }
             Ok(None) => {
                 let mut update = ResponseObjectUpdate {
                     id: self.boundary_item.response_object_id,
-                    fields: BTreeMap::new(),
+                    fields: Vec::with_capacity(ctx.plan[self.id].fields.len()),
                 };
                 for field in &ctx.plan[ctx.plan[self.id].fields] {
                     if field.wrapping.is_required() {
@@ -138,7 +143,7 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
                         response_part.push_error_path_to_propagate(self.boundary_item.response_path.clone());
                         return Ok(());
                     } else {
-                        update.fields.insert(field.edge, ResponseValue::Null);
+                        update.fields.push((field.edge, ResponseValue::Null));
                     }
                 }
                 response_part.push_update(update);
@@ -158,10 +163,13 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
     }
 }
 
-struct NullableVisitor<'ctx, 'parent>(CollectedSelectionSetSeed<'ctx, 'parent>);
+struct NullableVisitor<Seed>(Seed);
 
-impl<'de, 'ctx, 'parent> Visitor<'de> for NullableVisitor<'ctx, 'parent> {
-    type Value = Option<ResponseValue>;
+impl<'de, Seed> Visitor<'de> for NullableVisitor<Seed>
+where
+    Seed: DeserializeSeed<'de>,
+{
+    type Value = Option<Seed::Value>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("a nullable object")

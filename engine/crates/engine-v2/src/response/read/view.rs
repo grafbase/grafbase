@@ -4,7 +4,7 @@ use schema::{ObjectId, SchemaWalker};
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use super::ReadSelectionSet;
-use crate::response::{ResponseBuilder, ResponseObject, ResponseObjectId, ResponsePath, ResponseValue};
+use crate::response::{ResponseBuilder, ResponseListId, ResponseObject, ResponseObjectId, ResponsePath, ResponseValue};
 
 pub struct ResponseBoundaryObjectsView<'a> {
     pub(super) schema: SchemaWalker<'a, ()>,
@@ -92,20 +92,31 @@ impl<'a> serde::Serialize for SerializableFilteredResponseObject<'a> {
                     ResponseValue::String { value, .. } => map.serialize_value(&value)?,
                     ResponseValue::StringId { id, .. } => map.serialize_value(&self.schema[*id])?,
                     ResponseValue::BigInt { value, .. } => map.serialize_value(value)?,
-                    ResponseValue::List { id, .. } => map.serialize_value(&SerializableFilteredResponseList {
+                    &ResponseValue::List {
+                        part_id,
+                        offset,
+                        length,
+                        ..
+                    } => map.serialize_value(&SerializableFilteredResponseList {
                         schema: self.schema,
                         response: self.response,
-                        response_list: &self.response[*id],
+                        response_list: &self.response[ResponseListId {
+                            part_id,
+                            offset,
+                            length,
+                        }],
                         selection_set: &selection.subselection,
                         extra_constant_fields: self.extra_constant_fields,
                     })?,
-                    ResponseValue::Object { id, .. } => map.serialize_value(&SerializableFilteredResponseObject {
-                        schema: self.schema,
-                        response: self.response,
-                        response_object: &self.response[*id],
-                        selection_set: &selection.subselection,
-                        extra_constant_fields: self.extra_constant_fields,
-                    })?,
+                    &ResponseValue::Object { part_id, index, .. } => {
+                        map.serialize_value(&SerializableFilteredResponseObject {
+                            schema: self.schema,
+                            response: self.response,
+                            response_object: &self.response[ResponseObjectId { part_id, index }],
+                            selection_set: &selection.subselection,
+                            extra_constant_fields: self.extra_constant_fields,
+                        })?
+                    }
                     ResponseValue::Json { value, .. } => map.serialize_value(value)?,
                 }
             } else {
@@ -140,20 +151,31 @@ impl<'a> serde::Serialize for SerializableFilteredResponseList<'a> {
                 ResponseValue::String { value, .. } => seq.serialize_element(&value)?,
                 ResponseValue::StringId { id, .. } => seq.serialize_element(&self.schema[*id])?,
                 ResponseValue::BigInt { value, .. } => seq.serialize_element(value)?,
-                ResponseValue::List { id, .. } => seq.serialize_element(&SerializableFilteredResponseList {
+                &ResponseValue::List {
+                    part_id,
+                    offset,
+                    length,
+                    ..
+                } => seq.serialize_element(&SerializableFilteredResponseList {
                     schema: self.schema,
                     response: self.response,
-                    response_list: &self.response[*id],
+                    response_list: &self.response[ResponseListId {
+                        part_id,
+                        offset,
+                        length,
+                    }],
                     selection_set: self.selection_set,
                     extra_constant_fields: self.extra_constant_fields,
                 })?,
-                ResponseValue::Object { id, .. } => seq.serialize_element(&SerializableFilteredResponseObject {
-                    schema: self.schema,
-                    response: self.response,
-                    response_object: &self.response[*id],
-                    selection_set: self.selection_set,
-                    extra_constant_fields: self.extra_constant_fields,
-                })?,
+                &ResponseValue::Object { part_id, index, .. } => {
+                    seq.serialize_element(&SerializableFilteredResponseObject {
+                        schema: self.schema,
+                        response: self.response,
+                        response_object: &self.response[ResponseObjectId { part_id, index }],
+                        selection_set: self.selection_set,
+                        extra_constant_fields: self.extra_constant_fields,
+                    })?
+                }
                 ResponseValue::Json { value, .. } => seq.serialize_element(value)?,
             }
         }

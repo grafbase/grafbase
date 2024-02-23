@@ -1,14 +1,13 @@
-use std::{
-    collections::{btree_map::Entry, BTreeMap},
-    fmt,
-};
+use std::fmt;
 
+use schema::ObjectId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::{
     plan::{CollectedField, CollectedSelectionSetId, PlanBoundaryId, RuntimeCollectedSelectionSet},
     request::SelectionSetType,
     response::{
+        value::{ResponseObjectFields, RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD},
         write::deserialize::{key::Key, FieldSeed, SeedContextInner},
         ResponseBoundaryItem, ResponseEdge, ResponseObject, ResponseValue,
     },
@@ -18,8 +17,13 @@ use crate::{
 /// or not. There is no field with type conditions anymore.
 pub(crate) struct CollectedSelectionSetSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContextInner<'ctx>,
-    pub selection_set_ty: SelectionSetType,
     pub boundary_ids: &'parent [PlanBoundaryId],
+    pub fields_seed: CollectedFieldsSeed<'ctx, 'parent>,
+}
+
+pub(crate) struct CollectedFieldsSeed<'ctx, 'parent> {
+    pub ctx: &'parent SeedContextInner<'ctx>,
+    pub selection_set_ty: SelectionSetType,
     pub fields: &'parent [CollectedField],
     pub typename_fields: &'parent [ResponseEdge],
 }
@@ -29,24 +33,31 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
         let selection_set = &ctx.plan[id];
         Self {
             ctx,
-            selection_set_ty: selection_set.ty,
             boundary_ids: if let Some(ref id) = selection_set.maybe_boundary_id {
                 std::array::from_ref(id)
             } else {
                 &[]
             },
-            fields: &ctx.plan[selection_set.fields],
-            typename_fields: &selection_set.typename_fields,
+            fields_seed: CollectedFieldsSeed {
+                ctx,
+                selection_set_ty: selection_set.ty,
+
+                fields: &ctx.plan[selection_set.fields],
+                typename_fields: &selection_set.typename_fields,
+            },
         }
     }
 
     pub fn new(ctx: &'parent SeedContextInner<'ctx>, selection_set: &'parent RuntimeCollectedSelectionSet) -> Self {
         Self {
             ctx,
-            selection_set_ty: SelectionSetType::Object(selection_set.object_id),
             boundary_ids: &selection_set.boundary_ids,
-            fields: &selection_set.fields,
-            typename_fields: &selection_set.typename_fields,
+            fields_seed: CollectedFieldsSeed {
+                ctx,
+                selection_set_ty: SelectionSetType::Object(selection_set.object_id),
+                fields: &selection_set.fields,
+                typename_fields: &selection_set.typename_fields,
+            },
         }
     }
 }
@@ -70,13 +81,57 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedSelectionSetSeed<'ctx, 'paren
     }
 
     // later we could also support visit_struct by using the schema as the reference structure.
+    fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let (maybe_object_id, fields) = self.fields_seed.visit_map(map)?;
+        let mut data = self.ctx.response_part.borrow_mut();
+
+        let id = data.push_object(ResponseObject::new(fields));
+        if !self.boundary_ids.is_empty() {
+            let Some(object_id) = maybe_object_id else {
+                return Err(serde::de::Error::custom("Could not determine the __typename"));
+            };
+            for boundary_id in self.boundary_ids {
+                data[*boundary_id].push(ResponseBoundaryItem {
+                    response_object_id: id,
+                    response_path: self.ctx.response_path(),
+                    object_id,
+                });
+            }
+        }
+
+        Ok(id.into())
+    }
+}
+
+impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for CollectedFieldsSeed<'ctx, 'parent> {
+    type Value = (Option<ObjectId>, ResponseObjectFields);
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_map(self)
+    }
+}
+
+impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedFieldsSeed<'ctx, 'parent> {
+    type Value = (Option<ObjectId>, ResponseObjectFields);
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("an object")
+    }
+
+    // later we could also support visit_struct by using the schema as the reference structure.
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
     where
         A: MapAccess<'de>,
     {
         let plan = self.ctx.plan;
         let keys = plan.response_keys();
-        let mut response_fields = BTreeMap::<ResponseEdge, ResponseValue>::new();
+        let mut response_fields = ResponseObjectFields::with_capacity(self.fields.len() + self.typename_fields.len());
         let mut maybe_object_id = None;
         if let SelectionSetType::Object(object_id) = self.selection_set_ty {
             maybe_object_id = Some(object_id);
@@ -111,12 +166,27 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedSelectionSetSeed<'ctx, 'paren
 
         // Checking if we're missing fields
         if response_fields.len() < self.fields.len() {
-            for field in self.fields {
-                if let Entry::Vacant(entry) = response_fields.entry(field.edge) {
-                    if field.wrapping.is_required() {
-                        return Err(serde::de::Error::custom(self.ctx.missing_field_error_message(field)));
+            let n = response_fields.len();
+            if n <= RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD {
+                for field in self.fields {
+                    if !response_fields[0..n].iter().any(|(e, _)| *e == field.edge) {
+                        if field.wrapping.is_required() {
+                            return Err(serde::de::Error::custom(self.ctx.missing_field_error_message(field)));
+                        }
+                        response_fields.push((field.edge, ResponseValue::Null));
                     }
-                    entry.insert(ResponseValue::Null);
+                }
+            } else {
+                for field in self.fields {
+                    if response_fields[0..n]
+                        .binary_search_by(|(edge, _)| edge.cmp(&field.edge))
+                        .is_err()
+                    {
+                        if field.wrapping.is_required() {
+                            return Err(serde::de::Error::custom(self.ctx.missing_field_error_message(field)));
+                        }
+                        response_fields.push((field.edge, ResponseValue::Null));
+                    }
                 }
             }
         }
@@ -127,43 +197,26 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedSelectionSetSeed<'ctx, 'paren
             };
             let name_id = plan.schema()[object_id].name;
             for edge in self.typename_fields {
-                response_fields.insert(
+                response_fields.push((
                     *edge,
                     ResponseValue::StringId {
                         id: name_id,
                         nullable: false,
                     },
-                );
+                ));
             }
         }
 
-        let mut data = self.ctx.response_part.borrow_mut();
-        let id = data.push_object(ResponseObject {
-            fields: response_fields,
-        });
-        if !self.boundary_ids.is_empty() {
-            let Some(object_id) = maybe_object_id else {
-                return Err(serde::de::Error::custom("Could not determine the __typename"));
-            };
-            for boundary_id in self.boundary_ids {
-                data[*boundary_id].push(ResponseBoundaryItem {
-                    response_object_id: id,
-                    response_path: self.ctx.response_path(),
-                    object_id,
-                });
-            }
-        }
-
-        Ok(ResponseValue::Object { id, nullable: false })
+        Ok((maybe_object_id, response_fields))
     }
 }
 
-impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
+impl<'ctx, 'parent> CollectedFieldsSeed<'ctx, 'parent> {
     fn visit_field<'de, A: MapAccess<'de>>(
         &self,
         map: &mut A,
         start: usize,
-        response_fields: &mut BTreeMap<ResponseEdge, ResponseValue>,
+        response_fields: &mut ResponseObjectFields,
     ) -> Result<(), A::Error> {
         let mut end = start + 1;
         // All fields with the same expected_key (when aliases aren't supported by upsteam)
@@ -184,7 +237,7 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
                 wrapping: field.wrapping,
             });
             self.ctx.pop_edge();
-            response_fields.insert(field.edge, result?);
+            response_fields.push((field.edge, result?));
         } else {
             // if we found more than one field with the same expected_key we need to store the
             // value first.
@@ -198,7 +251,7 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
                 }
                 .deserialize(serde_value::ValueDeserializer::new(stored_value.clone()));
                 self.ctx.pop_edge();
-                response_fields.insert(field.edge, result?);
+                response_fields.push((field.edge, result?));
             }
         }
         Ok(())

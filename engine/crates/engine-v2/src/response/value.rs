@@ -1,18 +1,38 @@
-use std::collections::BTreeMap;
-
 use schema::StringId;
 
-use super::{ResponseEdge, ResponseKey, ResponseListId, ResponseObjectId};
+use super::{ResponseDataPartId, ResponseEdge, ResponseKey, ResponseListId, ResponseObjectId};
 
-#[derive(Debug)]
+// Threshold defined a bit arbitrarily
+pub const RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD: usize = 64;
+pub type ResponseObjectFields = Vec<(ResponseEdge, ResponseValue)>;
+
+#[derive(Default, Debug)]
 pub struct ResponseObject {
     /// fields are ordered by the position they appear in the query.
     /// We use ResponseEdge here, but it'll never be an index out of the 3 possible variants.
     /// That's something we should rework at some point, but it's convenient for now.
-    pub fields: BTreeMap<ResponseEdge, ResponseValue>,
+    fields: ResponseObjectFields,
 }
 
 impl ResponseObject {
+    pub fn new(mut fields: ResponseObjectFields) -> Self {
+        fields.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        Self { fields }
+    }
+
+    pub fn extend(&mut self, fields: ResponseObjectFields) {
+        self.fields.extend(fields);
+        self.fields.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+    }
+
+    pub fn len(&self) -> usize {
+        self.fields.len()
+    }
+
+    pub fn fields(&self) -> impl Iterator<Item = &(ResponseEdge, ResponseValue)> {
+        self.fields.iter()
+    }
+
     // Until acutal field collection with the concrete object id we're not certain of which bound
     // response key (field position & name) will be used but the actual response key (field name)
     // should still be there. So, first trying with the bound key and then searching for a matching
@@ -21,9 +41,18 @@ impl ResponseObject {
     // So should be a decent tradeoff as this allows us to serialize the whole response without any
     // additional metadata as both position and key are encoded.
     pub(super) fn find(&self, edge: ResponseEdge) -> Option<&ResponseValue> {
-        self.fields
-            .get(&edge)
-            .or_else(|| edge.as_response_key().and_then(|key| self.find_by_name(key)))
+        if let Some(pos) = self.field_position(edge) {
+            return Some(&self.fields[pos].1);
+        }
+        edge.as_response_key().and_then(|key| self.find_by_name(key))
+    }
+
+    pub(super) fn field_position(&self, edge: ResponseEdge) -> Option<usize> {
+        if self.fields.len() <= RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD {
+            self.fields.iter().position(|(e, _)| *e == edge)
+        } else {
+            self.fields.binary_search_by(|(e, _)| e.cmp(&edge)).ok()
+        }
     }
 
     fn find_by_name(&self, target: ResponseKey) -> Option<&ResponseValue> {
@@ -31,6 +60,20 @@ impl ResponseObject {
             Some(key) if key == target => Some(field),
             _ => None,
         })
+    }
+}
+
+impl std::ops::Index<usize> for ResponseObject {
+    type Output = ResponseValue;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.fields[index].1
+    }
+}
+
+impl std::ops::IndexMut<usize> for ResponseObject {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.fields[index].1
     }
 }
 
@@ -76,12 +119,18 @@ pub enum ResponseValue {
         value: Box<serde_json::Value>,
         nullable: bool,
     },
+    // Ideally we would use ResponseListId and ResponseObjectId, but those are already padded by
+    // Rust. So we miss the opportunity to include the nullable flag and the enum tag in that
+    // padding. And we really want ResponseValue to be as small as possible.
     List {
-        id: ResponseListId,
+        part_id: ResponseDataPartId,
+        offset: u32,
+        length: u32,
         nullable: bool,
     },
     Object {
-        id: ResponseObjectId,
+        part_id: ResponseDataPartId,
+        index: u32,
         nullable: bool,
     },
 }
@@ -91,19 +140,20 @@ impl ResponseValue {
         matches!(self, Self::Null)
     }
 
-    pub(super) fn into_nullable(self) -> Self {
-        match self {
-            Self::Null => Self::Null,
-            Self::Boolean { value, .. } => Self::Boolean { value, nullable: true },
-            Self::Int { value, .. } => Self::Int { value, nullable: true },
-            Self::BigInt { value, .. } => Self::BigInt { value, nullable: true },
-            Self::Float { value, .. } => Self::Float { value, nullable: true },
-            Self::String { value, .. } => Self::String { value, nullable: true },
-            Self::StringId { id, .. } => Self::StringId { id, nullable: true },
-            Self::Json { value, .. } => Self::Json { value, nullable: true },
-            Self::List { id, .. } => Self::List { id, nullable: true },
-            Self::Object { id, .. } => Self::Object { id, nullable: true },
-        }
+    pub(super) fn into_nullable(mut self) -> Self {
+        match &mut self {
+            Self::Null => (),
+            Self::Boolean { nullable, .. } => *nullable = true,
+            Self::Int { nullable, .. } => *nullable = true,
+            Self::BigInt { nullable, .. } => *nullable = true,
+            Self::Float { nullable, .. } => *nullable = true,
+            Self::String { nullable, .. } => *nullable = true,
+            Self::StringId { nullable, .. } => *nullable = true,
+            Self::Json { nullable, .. } => *nullable = true,
+            Self::List { nullable, .. } => *nullable = true,
+            Self::Object { nullable, .. } => *nullable = true,
+        };
+        self
     }
 }
 
@@ -125,18 +175,6 @@ impl From<StringId> for ResponseValue {
 impl From<bool> for ResponseValue {
     fn from(value: bool) -> Self {
         Self::Boolean { value, nullable: false }
-    }
-}
-
-impl From<ResponseListId> for ResponseValue {
-    fn from(id: ResponseListId) -> Self {
-        Self::List { id, nullable: false }
-    }
-}
-
-impl From<ResponseObjectId> for ResponseValue {
-    fn from(id: ResponseObjectId) -> Self {
-        Self::Object { id, nullable: false }
     }
 }
 
@@ -170,5 +208,26 @@ impl From<String> for ResponseValue {
 impl From<Box<serde_json::Value>> for ResponseValue {
     fn from(value: Box<serde_json::Value>) -> Self {
         Self::Json { value, nullable: false }
+    }
+}
+
+impl From<ResponseListId> for ResponseValue {
+    fn from(id: ResponseListId) -> Self {
+        Self::List {
+            part_id: id.part_id,
+            offset: id.offset,
+            length: id.length,
+            nullable: false,
+        }
+    }
+}
+
+impl From<ResponseObjectId> for ResponseValue {
+    fn from(id: ResponseObjectId) -> Self {
+        Self::Object {
+            part_id: id.part_id,
+            index: id.index,
+            nullable: false,
+        }
     }
 }
