@@ -11,8 +11,8 @@ use common::environment::Environment;
 
 use engine::BatchRequest;
 use futures_util::{
-    future::{join_all, BoxFuture},
-    stream,
+    future::{join_all, try_join, BoxFuture},
+    stream, FutureExt, TryFutureExt,
 };
 use gateway_v2::streaming::{encode_stream_response, StreamingFormat};
 
@@ -118,7 +118,30 @@ pub(super) async fn run(
             gateway,
         });
 
-    serve(app, expose, port).await
+    let current = tokio::spawn(serve(app.clone(), expose, port)).map(Result::unwrap);
+    let other = tokio::spawn(async move {
+        let mut handlers = Vec::new();
+        // for _ in 1..4 {
+        let app = app.clone();
+        let h = std::thread::spawn(move || {
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap()
+                .block_on(serve(app, expose, port))
+        });
+        handlers.push(h);
+        // }
+
+        for h in handlers {
+            h.join().unwrap()?;
+        }
+
+        Result::<(), crate::Error>::Ok(())
+    })
+    .map(Result::unwrap);
+
+    try_join(current, other).await.map(|_| ())
 }
 
 async fn serve(app: axum::Router<()>, expose: bool, port: u16) -> Result<(), crate::Error> {
