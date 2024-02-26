@@ -49,7 +49,7 @@
     "ts-node": "^10.9.1",
     "tsconfig": "workspace:*",
     "typescript": "^5.0.2",
-    "prettier-2": "npm:prettier@^2"
+    "prettier-2": "npm:prettier@^3.0.0"
   },
   "dependencies": {
     "dotenv": "^16.1.4",
