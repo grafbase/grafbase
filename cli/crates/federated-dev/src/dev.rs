@@ -118,10 +118,8 @@ pub(super) async fn run(
             gateway,
         });
 
-    let current = tokio::spawn(serve(app.clone(), expose, port)).map(Result::unwrap);
-    let other = tokio::spawn(async move {
-        let mut handlers = Vec::new();
-        // for _ in 1..4 {
+    let mut handlers = Vec::new();
+    for _ in 0..2 {
         let app = app.clone();
         let h = std::thread::spawn(move || {
             tokio::runtime::Builder::new_current_thread()
@@ -131,17 +129,12 @@ pub(super) async fn run(
                 .block_on(serve(app, expose, port))
         });
         handlers.push(h);
-        // }
+    }
 
-        for h in handlers {
-            h.join().unwrap()?;
-        }
-
-        Result::<(), crate::Error>::Ok(())
-    })
-    .map(Result::unwrap);
-
-    try_join(current, other).await.map(|_| ())
+    for h in handlers {
+        h.join().unwrap()?;
+    }
+    Ok(())
 }
 
 async fn serve(app: axum::Router<()>, expose: bool, port: u16) -> Result<(), crate::Error> {
