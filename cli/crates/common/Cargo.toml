@@ -24,6 +24,7 @@ tokio.workspace = true
 ulid = { version = "1", features = ["serde"] }
 
 common-types = { path = "../../../engine/crates/common-types" }
+expect-test = "1.4.1"
 
 [build-dependencies]
 serde_json.workspace = true

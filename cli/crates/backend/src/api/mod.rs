@@ -14,5 +14,6 @@ pub mod logs;
 pub mod publish;
 pub mod schema;
 pub mod subgraphs;
+pub mod submit_trusted_documents;
 pub mod types;
 pub mod unlink;

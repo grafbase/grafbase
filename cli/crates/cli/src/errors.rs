@@ -55,6 +55,8 @@ pub enum CliError {
     LogsNoLinkedProject,
     #[error("error during graph introspection: {0}")]
     Introspection(String),
+    #[error("could not read the trusted documents manifest")]
+    TrustedDocumentsManifestReadError(#[source] io::Error),
     #[error("could not read the GraphQL schema")]
     SchemaReadError(#[source] io::Error),
     #[error("error in publish: {0}")]

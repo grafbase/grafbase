@@ -22,6 +22,7 @@ mod publish;
 mod schema;
 mod start;
 mod subgraphs;
+mod trust;
 mod unlink;
 mod watercolor;
 
@@ -181,5 +182,6 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Introspect(cmd) => introspect::introspect(&cmd),
         SubCommand::DumpConfig => dump_config::dump_config(),
         SubCommand::Check(cmd) => check::check(cmd),
+        SubCommand::Trust(cmd) => trust::trust(cmd),
     }
 }

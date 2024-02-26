@@ -6,8 +6,8 @@ use crate::{
 };
 use backend::types::{NestedRequestScopedMessage, RequestCompletedOutcome};
 use colored::Colorize;
-use common::consts::GRAFBASE_TS_CONFIG_FILE_NAME;
 use common::types::{LogLevel, UdfKind};
+use common::{consts::GRAFBASE_TS_CONFIG_FILE_NAME, trusted_documents::TrustedDocumentsManifest};
 use common::{consts::LOCALHOST, environment::Warning};
 use std::{net::IpAddr, path::Path};
 
@@ -544,4 +544,29 @@ pub(crate) fn publish_command_composition_failure(messages: &[String]) {
 
 pub fn command_separator() {
     println!();
+}
+
+pub(crate) fn trust_start(manifest: &TrustedDocumentsManifest) {
+    let format = match manifest {
+        TrustedDocumentsManifest::Apollo(_) => "apollo",
+        TrustedDocumentsManifest::Relay(_) => "relay",
+    };
+    watercolor::output!("📡 Submitting trusted documents manifest (format: {format})...", @BrightBlue);
+}
+
+pub(crate) fn trust_success(count: i32) {
+    watercolor::output!("✨ Successfully submitted {count} documents", @BrightGreen)
+}
+
+pub(crate) fn trust_failed() {
+    watercolor::output!("❌ Trusted document submission failed", @BrightRed)
+}
+
+pub(crate) fn trust_reused_ids(reused: &backend::api::submit_trusted_documents::ReusedIds) {
+    watercolor::output!("Error: there already exist trusted documents with the same ids, but a different body:", @BrightRed);
+
+    for reused_id in &reused.reused {
+        let id = &reused_id.document_id;
+        watercolor::output!("- {id}", @BrightRed);
+    }
 }
