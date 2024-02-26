@@ -43,6 +43,7 @@ axum = "0.7"
 base64 = "0.21"
 bitflags = "2"
 bytes = "1"
+chrono = { version = "0.4", default-features = false }
 cynic = "3"
 cynic-introspection = "3"
 derive_more = "1.0.0-beta.6"
@@ -59,11 +60,15 @@ indexmap = "2"
 insta = { version = "1", features = ["json"] }
 itertools = "0.12"
 jsonwebtoken = "9"
+num-traits = "0.2"
+once_cell = "1"
 openidconnect = "3"
 regex = "1"
 reqwest = { version = "0.11", default-features = false }
+rmp-serde = "1"
 rstest = "0.18"
 secrecy = "0.8"
+send_wrapper = "0.6"
 strum = "0.26"
 strum_macros = "0.26"
 tar = "0.4"
@@ -74,6 +79,7 @@ tower-service = "0.3"
 url = "2"
 uuid = "1"
 ulid = "1"
+wasm-bindgen = "0.2"
 web-time = "1"
 which = "6"
 wiremock = "0.6.0"
@@ -83,11 +89,15 @@ sha2 = "0.10"
 
 # Serde
 serde = { version = "1", features = ["derive"] }
+serde_dynamo = "4"
 serde_json = { version = "1", features = ["preserve_order"] }
+serde-wasm-bindgen = "0.6"
 serde_with = "3"
 
 # Tracing
 tracing = "0.1"
+# don't bump to 0.18, leads to memory access out of bounds in cloudflare workers
+tracing-subscriber = "0.3"
 tracing-futures = "0.2"
 
 async-runtime = { path = "engine/crates/async-runtime" }
@@ -97,16 +107,25 @@ engine-parser = { path = "engine/crates/engine/parser" }
 engine = { path = "engine/crates/engine" }
 engine-v2 = { path = "engine/crates/engine-v2" }
 engine-value = { path = "engine/crates/engine/value" }
+gateway-adapter-local = { path = "engine/crates/gateway-adapter-local" }
+gateway-adapter = { path = "engine/crates/gateway-adapter" }
 gateway-core = { path = "engine/crates/gateway-core" }
+gateway-types = { path = "engine/crates/gateway-types" }
 gateway-v2 = { path = "engine/crates/gateway-v2" }
 graph-entities = { path = "engine/crates/graph-entities" }
 graphql-composition = { path = "engine/crates/composition" }
+graphql-extensions = { path = "engine/crates/graphql-extensions" }
 graphql-mocks = { path = "engine/crates/graphql-mocks" }
 jwt-verifier = { path = "engine/crates/jwt-verifier" }
 log = { path = "engine/crates/log" }
+parser-graphql = { path = "engine/crates/parser-graphql" }
+parser-openapi = { path = "engine/crates/parser-openapi" }
+parser-postgres = { path = "engine/crates/parser-postgres" }
 runtime-local = { path = "engine/crates/runtime-local" }
+runtime-noop = { path = "engine/crates/runtime-noop" }
 runtime = { path = "engine/crates/runtime" }
 search-protocol = { path = "engine/crates/search-protocol" }
+worker-env = { path = "engine/crates/worker-env" }
 
 [profile.bench]
 debug = true
