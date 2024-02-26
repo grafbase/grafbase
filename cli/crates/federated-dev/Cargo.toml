@@ -29,11 +29,12 @@ serde = "1.0.197"
 serde_json.workspace = true
 thiserror = "1.0.57"
 tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }
-tokio-stream = { version = "0.1", features = ["sync"] }
+tokio-stream = { version = "0.1", features = ["sync", "net"] }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 tower-service.workspace = true
 ulid.workspace = true
 url = "2.5.0"
+socket2 = "0.5"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.59.0" }
 engine = { path = "../../../engine/crates/engine" }

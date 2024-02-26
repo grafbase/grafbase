@@ -20,7 +20,7 @@ use graphql_composition::FederatedGraph;
 use handlebars::Handlebars;
 use runtime::context::RequestContext as _;
 use serde_json::json;
-use std::time::Duration;
+use std::{net::SocketAddr, time::Duration};
 use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
     watch,
@@ -118,14 +118,34 @@ pub(super) async fn run(
             gateway,
         });
 
+    serve(app, expose, port).await
+}
+
+async fn serve(app: axum::Router<()>, expose: bool, port: u16) -> Result<(), crate::Error> {
     let host = if expose {
         format!("0.0.0.0:{port}")
     } else {
         format!("127.0.0.1:{port}")
     };
-    let address: std::net::SocketAddr = host.parse().expect("we just defined it above, it _must work_");
 
-    let listener = tokio::net::TcpListener::bind(&address).await.unwrap();
+    let addr: std::net::SocketAddr = host.parse().unwrap();
+    let sock = socket2::Socket::new(
+        match addr {
+            SocketAddr::V4(_) => socket2::Domain::IPV4,
+            SocketAddr::V6(_) => socket2::Domain::IPV6,
+        },
+        socket2::Type::STREAM,
+        None,
+    )
+    .unwrap();
+
+    sock.set_reuse_address(true).unwrap();
+    sock.set_reuse_port(true).unwrap();
+    sock.set_nonblocking(true).unwrap();
+    sock.bind(&addr.into()).unwrap();
+    sock.listen(8192).unwrap();
+
+    let listener = tokio::net::TcpListener::from_std(sock.into()).unwrap();
     axum::serve(listener, app)
         .await
         .map_err(|error| crate::Error::internal(error.to_string()))?;
