@@ -118,7 +118,6 @@ serde_with = "3"
 
 # Tracing
 tracing = "0.1"
-# don't bump to 0.18, leads to memory access out of bounds in cloudflare workers
 tracing-subscriber = "0.3"
 tracing-futures = "0.2"
 

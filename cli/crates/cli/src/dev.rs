@@ -6,6 +6,7 @@ use common::utils::get_thread_panic_message;
 use server::PortSelection;
 use std::sync::Once;
 use std::thread;
+use tokio::runtime::Handle;
 
 static READY: Once = Once::new();
 
@@ -23,6 +24,7 @@ pub fn dev(
     external_port: u16,
     log_level_filters: LogLevelFilters,
     tracing: bool,
+    reload_tx: oneshot::Sender<Handle>,
 ) -> Result<(), CliError> {
     const EXPIRY_TIME: tokio::time::Duration = tokio::time::Duration::from_secs(60);
 
@@ -107,6 +109,10 @@ pub fn dev(
     let handle = thread::spawn(move || {
         #[allow(clippy::ignored_unit_patterns)]
         tokio::runtime::Runtime::new().unwrap().block_on(async {
+            let _ = reload_tx
+                .send(Handle::current())
+                .inspect_err(|e| error!("error sending otel reload signal: {e}"));
+
             tokio::select! {
                 result = server => {
                     result?;

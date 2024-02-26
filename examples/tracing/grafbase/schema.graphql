@@ -1,0 +1,6 @@
+extend schema
+@experimental(ai: true)
+
+extend type Query {
+    instruct(prompt: String!): String! @resolver(name: "test")
+}

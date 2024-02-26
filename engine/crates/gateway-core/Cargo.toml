@@ -23,6 +23,7 @@ common-types.workspace = true
 engine.workspace = true
 engine-value.workspace = true
 futures-util.workspace = true
+grafbase-tracing = { package = "tracing", path = "../../../engine/crates/tracing"}
 headers.workspace = true
 http.workspace = true
 log = { path = "../log" }

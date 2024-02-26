@@ -47,12 +47,15 @@ use clap::Parser;
 use common::{analytics::Analytics, environment::Environment};
 use errors::CliError;
 use output::report;
-use std::process;
+use std::{process, thread};
 use toml as _;
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use tracing_subscriber::registry::LookupSpan;
+use tracing_subscriber::{fmt, prelude::*, EnvFilter, reload};
 use watercolor::ShouldColorize;
 
 use mimalloc::MiMalloc;
+use tokio::runtime::Handle;
+use tracing::Subscriber;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -78,8 +81,14 @@ fn main() {
 
 fn try_main(args: Args) -> Result<(), CliError> {
     let filter = EnvFilter::builder().parse_lossy(args.log_filter());
+    let (otel_layer, reload_handle) = grafbase_tracing::otel::TracingLayer::new_noop();
 
-    tracing_subscriber::registry().with(fmt::layer()).with(filter).init();
+    tracing_subscriber::registry()
+        .with(matches!(args.command, SubCommand::Dev(..) | SubCommand::Start(..)).then_some(otel_layer))
+        .with(fmt::layer())
+        .with(filter)
+        .init();
+
     trace!("subcommand: {}", args.command);
 
     // do not display header if we're in a pipe
@@ -114,12 +123,16 @@ fn try_main(args: Args) -> Result<(), CliError> {
                 process::exit(exitcode::OK);
             });
 
+            let (reload_tx, reload_rx) = oneshot::channel::<Handle>();
+            otel_reload(reload_handle, reload_rx);
+
             dev(
                 cmd.search,
                 !cmd.disable_watch,
                 cmd.subgraph_port(),
                 cmd.log_levels(),
                 args.trace >= 2,
+                reload_tx,
             )
         }
         SubCommand::Init(cmd) => init(cmd.name(), cmd.template(), cmd.graph),
@@ -151,11 +164,15 @@ fn try_main(args: Args) -> Result<(), CliError> {
                 process::exit(exitcode::OK);
             });
 
+            let (reload_tx, reload_rx) = oneshot::channel::<Handle>();
+            otel_reload(reload_handle, reload_rx);
+
             start(
                 cmd.listen_address(),
                 cmd.log_levels(),
                 cmd.federated_schema_path(),
                 args.trace >= 2,
+                reload_tx,
             )
         }
         SubCommand::Build(cmd) => {
@@ -200,4 +217,28 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Check(cmd) => check::check(cmd),
         SubCommand::Trust(cmd) => trust::trust(cmd),
     }
+}
+
+use grafbase_tracing::otel::opentelemetry_sdk::trace::Tracer;
+use grafbase_tracing::otel::tracing_opentelemetry::OpenTelemetryLayer;
+
+fn otel_reload<S>(reload_handle: reload::Handle<OpenTelemetryLayer<S, Tracer>, S>, reload_rx: oneshot::Receiver<Handle>)
+where
+    S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
+{
+    thread::spawn(move || match reload_rx.recv() {
+        Ok(rt_handle) => {
+            debug!("reloading otel layer");
+            // new_batched needs to be called within a tokio runtime context
+            rt_handle.spawn(async move {
+                let otel_layer = grafbase_tracing::otel::TracingLayer::new_batched::<S>();
+                reload_handle
+                    .reload(otel_layer)
+                    .expect("should successfully reload otel layer");
+            });
+        }
+        Err(e) => {
+            warn!("received an error while waiting for otel reload: {e}");
+        }
+    });
 }
