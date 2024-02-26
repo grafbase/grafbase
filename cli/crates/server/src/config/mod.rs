@@ -20,7 +20,6 @@ use crate::{
     atomics::REGISTRY_PARSED_EPOCH_OFFSET_MILLIS,
     bun::install_bun,
     consts::{CONFIG_PARSER_SCRIPT_CJS, CONFIG_PARSER_SCRIPT_ESM, ENTRYPOINT_SCRIPT_FILE_NAME, SCHEMA_PARSER_DIR},
-    node::validate_node,
     servers::EnvironmentName,
 };
 
@@ -60,11 +59,9 @@ pub(crate) async fn build_config(
     trace!("parsing schema");
     let project = Project::get();
 
-    validate_node().await?;
-    install_bun(Environment::get()).await?;
-
     let schema_path = match project.schema_path.location() {
         SchemaLocation::TsConfig(ref ts_config_path) => {
+            install_bun().await?;
             let written_schema_path = parse_and_generate_config_from_ts(ts_config_path, environment_name).await?;
 
             Cow::Owned(written_schema_path)
@@ -104,6 +101,11 @@ pub(crate) async fn build_config(
         }
     }))
     .await;
+
+    if !detected_resolvers.is_empty() {
+        // will immediately return if already installed for session
+        install_bun().await?;
+    }
 
     REGISTRY_PARSED_EPOCH_OFFSET_MILLIS.store(
         u64::try_from(

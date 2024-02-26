@@ -12,7 +12,6 @@ use tokio::task::JoinError;
 
 use crate::bun::BunError;
 use crate::config::ConfigError;
-use crate::node::NodeError;
 
 #[derive(Error, Debug)]
 pub enum ServerError {
@@ -39,14 +38,6 @@ pub enum ServerError {
     /// returned if the gateway server cannot be started
     #[error("the gateway server could not be started: {0}")]
     StartGatewayServer(std::io::Error),
-
-    /// returned if the node command returns an error
-    #[error("node encountered an error: {0}")]
-    NodeCommandError(IoError),
-
-    /// returned if the node command exits unsuccessfully
-    #[error("node encountered an error\ncause:\n{0}")]
-    NodeError(String),
 
     /// returned if the schema parser command returns an error
     #[error(transparent)]
@@ -120,18 +111,6 @@ pub enum ServerError {
     #[error(transparent)]
     SpawnedTaskPanic(#[from] JoinError),
 
-    /// returned if node is not in the user $PATH
-    #[error("Node.js does not seem to be installed")]
-    NodeInPath,
-
-    /// returned if the installed version of node is unsupported
-    #[error("Node.js version {0} is unsupported")]
-    OutdatedNode(String, String),
-
-    /// returned if the installed version of node could not be retreived
-    #[error("Could not retrive the installed version of Node.js")]
-    CheckNodeVersion,
-
     /// returned if a file watcher could not be initialized or was stopped due to an error
     #[error("A file watcher encountered an error\nCaused by: {0}")]
     FileWatcher(#[from] NotifyError),
@@ -204,11 +183,11 @@ pub enum UdfBuildError {
     #[error("could not find a {0} referenced in the schema under the path {1}.{{js,ts}}")]
     UdfDoesNotExist(UdfKind, PathBuf),
 
-    // returned if the node process for a given UDF fails to spawn
+    // returned if the bun process for a given UDF fails to spawn
     #[error("unknown spawn error")]
     BunSpawnFailed,
 
-    // returned if the node process for a given UDF fails to spawn, with more details
+    // returned if the bun process for a given UDF fails to spawn, with more details
     #[error("\n{output}\n{stderr}")]
     BunSpawnFailedWithOutput { output: String, stderr: String },
 
@@ -236,19 +215,8 @@ impl From<ConfigError> for ServerError {
             ConfigError::Io(inner) => ServerError::ParseSchema(inner),
             ConfigError::ProjectPath => ServerError::ProjectPath,
             ConfigError::ParseSchema(inner) => ServerError::ParseSchema(inner),
-            ConfigError::NodeError(inner) => inner.into(),
             ConfigError::LoadTsConfig(inner) => ServerError::LoadTsConfig(inner),
             ConfigError::BunError(inner) => inner.into(),
-        }
-    }
-}
-
-impl From<NodeError> for ServerError {
-    fn from(value: NodeError) -> Self {
-        match value {
-            NodeError::NodeInPath => ServerError::NodeInPath,
-            NodeError::OutdatedNode(one, two) => ServerError::OutdatedNode(one, two),
-            NodeError::CheckNodeVersion => ServerError::CheckNodeVersion,
         }
     }
 }

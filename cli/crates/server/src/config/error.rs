@@ -1,4 +1,4 @@
-use crate::{bun::BunError, node::NodeError};
+use crate::bun::BunError;
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum ConfigError {
@@ -11,9 +11,6 @@ pub enum ConfigError {
     /// returned if the schema parser errors
     #[error("{0}")]
     ParseSchema(String),
-
-    #[error(transparent)]
-    NodeError(#[from] NodeError),
 
     #[error(transparent)]
     BunError(#[from] BunError),

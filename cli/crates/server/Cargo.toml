@@ -17,6 +17,7 @@ workspace = true
 async-trait = "0.1"
 async-tungstenite = { version = "0.25", features = ["tokio-runtime"] }
 axum.workspace = true
+const_format = "0.2"
 dotenv = "0.15"
 flate2 = "1.0"
 fslock = "0.2"
@@ -41,13 +42,15 @@ serde_with.workspace = true
 slug = "0.1"
 strum = { version = "0.26", features = ["derive"] }
 tar.workspace = true
+tempfile = "3"
 thiserror = "1"
 tokio = { workspace = true, features = ["full"] }
-tokio-stream = { version = "0.1", features = ["sync", "io-util"] }
+tokio-stream = "0.1"
+tokio-util = "0.7"
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 tracing = "0.1"
-version-compare = "0.1"
 which.workspace = true
+zip = "0.6"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.59.0" }
 gateway = { path = "../gateway" }
