@@ -1,3 +1,8 @@
+mod configuration;
+
+#[allow(unused_imports)]
+pub use configuration::Config;
+
 use crate::cli_input::LogLevelFilters;
 use crate::output::report;
 use crate::CliError;

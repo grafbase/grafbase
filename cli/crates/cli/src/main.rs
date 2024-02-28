@@ -48,6 +48,7 @@ use common::{analytics::Analytics, environment::Environment};
 use errors::CliError;
 use output::report;
 use std::process;
+use toml as _;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use watercolor::ShouldColorize;
 
