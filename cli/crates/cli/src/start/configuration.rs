@@ -2,18 +2,10 @@
 #![allow(unused_imports)] // TODO: remove when we use the configuration
 
 mod cors;
-mod csrf;
-mod graph;
-mod network;
-mod operation_limits;
-mod tls;
+
+use std::{net::SocketAddr, path::PathBuf};
 
 pub use cors::{AnyOrAsciiStringArray, AnyOrHttpMethodArray, AnyOrUrlArray, CorsConfig, HttpMethod};
-pub use csrf::CsrfConfig;
-pub use graph::GraphConfig;
-pub use network::NetworkConfig;
-pub use operation_limits::OperationLimitsConfig;
-pub use tls::TlsConfig;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -35,6 +27,58 @@ pub struct Config {
     pub tls: Option<TlsConfig>,
     /// Graph operation limit settings
     pub operation_limits: Option<OperationLimitsConfig>,
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GraphConfig {
+    pub path: Option<String>,
+    #[serde(default)]
+    pub introspection: bool,
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CsrfConfig {
+    #[serde(default)]
+    pub enabled: bool,
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NetworkConfig {
+    pub listen_address: Option<SocketAddr>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TlsConfig {
+    pub certificate: PathBuf,
+    pub key: PathBuf,
+}
+
+#[derive(Debug, PartialEq, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OperationLimitsConfig {
+    /// Limits the deepest nesting of selection sets in an operation,
+    /// including fields in fragments.
+    pub depth: u16,
+    /// Limits the number of unique fields included in an operation,
+    /// including fields of fragments. If a particular field is included
+    /// multiple times via aliases, it's counted only once.
+    pub height: u16,
+    /// Limits the total number of aliased fields in an operation,
+    /// including fields of fragments.
+    pub aliases: u16,
+    /// Limits the number of root fields in an operation, including root
+    /// fields in fragments. If a particular root field is included multiple
+    /// times via aliases, each usage is counted.
+    pub root_fields: u16,
+    /// Query complexity takes the number of fields as well as the depth and
+    /// any pagination arguments into account. Every scalar field adds 1 point,
+    /// every nested field adds 2 points, and every pagination argument multiplies
+    /// the nested objects score by the number of records fetched.
+    pub complexity: u16,
 }
 
 #[cfg(test)]
@@ -61,7 +105,7 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let expected = Some(SocketAddr::new(std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 4000));
 
-        assert_eq!(expected, config.network.listen_address());
+        assert_eq!(expected, config.network.listen_address);
     }
 
     #[test]
@@ -78,15 +122,15 @@ mod tests {
             4000,
         ));
 
-        assert_eq!(expected, config.network.listen_address());
+        assert_eq!(expected, config.network.listen_address);
     }
 
     #[test]
     fn graph_defaults() {
         let config: Config = toml::from_str("").unwrap();
 
-        assert!(!config.graph.enable_introspection());
-        assert_eq!("/graphql", config.graph.path());
+        assert!(!config.graph.introspection);
+        assert_eq!(None, config.graph.path.as_deref());
     }
 
     #[test]
@@ -99,15 +143,15 @@ mod tests {
 
         let config: Config = toml::from_str(input).unwrap();
 
-        assert!(config.graph.enable_introspection());
-        assert_eq!("/enterprise", config.graph.path());
+        assert!(config.graph.introspection);
+        assert_eq!(Some("/enterprise"), config.graph.path.as_deref());
     }
 
     #[test]
     fn csrf_defaults() {
         let config: Config = toml::from_str("").unwrap();
 
-        assert!(!config.csrf.enabled());
+        assert!(!config.csrf.enabled);
     }
 
     #[test]
@@ -119,7 +163,7 @@ mod tests {
 
         let config: Config = toml::from_str(input).unwrap();
 
-        assert!(config.csrf.enabled());
+        assert!(config.csrf.enabled);
     }
 
     #[test]
@@ -132,7 +176,7 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        assert!(cors.allow_credentials());
+        assert!(cors.allow_credentials);
     }
 
     #[test]
@@ -144,7 +188,7 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        assert!(!cors.allow_credentials());
+        assert!(!cors.allow_credentials);
     }
 
     #[test]
@@ -156,7 +200,7 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        assert_eq!(None, cors.allow_origins())
+        assert_eq!(None, cors.allow_origins)
     }
 
     #[test]
@@ -169,7 +213,7 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        assert_eq!(Some(&AnyOrUrlArray::Any), cors.allow_origins())
+        assert_eq!(Some(AnyOrUrlArray::Any), cors.allow_origins)
     }
 
     #[test]
@@ -183,7 +227,7 @@ mod tests {
         let cors = config.cors.unwrap();
         let expected = AnyOrUrlArray::Explicit(vec!["https://app.grafbase.com".parse().unwrap()]);
 
-        assert_eq!(Some(&expected), cors.allow_origins())
+        assert_eq!(Some(expected), cors.allow_origins)
     }
 
     #[test]
@@ -213,7 +257,7 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        assert_eq!(None, cors.allow_methods())
+        assert_eq!(None, cors.allow_methods)
     }
 
     #[test]
@@ -226,7 +270,7 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        assert_eq!(Some(&AnyOrHttpMethodArray::Any), cors.allow_methods())
+        assert_eq!(Some(AnyOrHttpMethodArray::Any), cors.allow_methods)
     }
 
     #[test]
@@ -240,7 +284,7 @@ mod tests {
         let cors = config.cors.unwrap();
         let expected = AnyOrHttpMethodArray::Explicit(vec![HttpMethod::Post]);
 
-        assert_eq!(Some(&expected), cors.allow_methods())
+        assert_eq!(Some(expected), cors.allow_methods)
     }
 
     #[test]
@@ -270,7 +314,7 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        assert_eq!(None, cors.allow_headers())
+        assert_eq!(None, cors.allow_headers)
     }
 
     #[test]
@@ -283,7 +327,7 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        assert_eq!(Some(&AnyOrAsciiStringArray::Any), cors.allow_headers())
+        assert_eq!(Some(AnyOrAsciiStringArray::Any), cors.allow_headers)
     }
 
     #[test]
@@ -298,7 +342,7 @@ mod tests {
 
         let expected = AnyOrAsciiStringArray::Explicit(vec![AsciiString::from_ascii(b"Content-Type").unwrap()]);
 
-        assert_eq!(Some(&expected), cors.allow_headers())
+        assert_eq!(Some(expected), cors.allow_headers)
     }
 
     #[test]
@@ -328,7 +372,7 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        assert_eq!(None, cors.expose_headers())
+        assert_eq!(None, cors.expose_headers);
     }
 
     #[test]
@@ -341,7 +385,7 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        assert_eq!(Some(&AnyOrAsciiStringArray::Any), cors.expose_headers())
+        assert_eq!(Some(AnyOrAsciiStringArray::Any), cors.expose_headers);
     }
 
     #[test]
@@ -356,7 +400,7 @@ mod tests {
 
         let expected = AnyOrAsciiStringArray::Explicit(vec![AsciiString::from_ascii(b"Content-Type").unwrap()]);
 
-        assert_eq!(Some(&expected), cors.expose_headers())
+        assert_eq!(Some(expected), cors.expose_headers);
     }
 
     #[test]
@@ -375,6 +419,31 @@ mod tests {
           |                  ^^^^^^^^^^^^^^^^
         data did not match any variant of untagged enum AnyOrAsciiStringArray
         "###);
+    }
+
+    #[test]
+    fn cors_allow_private_network_default() {
+        let input = indoc! {r#"
+            [cors]
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+        let cors = config.cors.unwrap();
+
+        assert!(!cors.allow_private_network);
+    }
+
+    #[test]
+    fn cors_allow_private_network_explicit() {
+        let input = indoc! {r#"
+            [cors]
+            allow_private_network = true
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+        let cors = config.cors.unwrap();
+
+        assert!(cors.allow_private_network);
     }
 
     #[test]

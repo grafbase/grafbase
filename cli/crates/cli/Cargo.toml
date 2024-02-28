@@ -14,7 +14,7 @@ repository.workspace = true
 assert_matches = "1"
 backtrace = "0.3"
 chrono = "0.4"
-clap = { version = "4", features = ["cargo", "wrap_help", "derive"] }
+clap = { version = "4", features = ["cargo", "wrap_help", "derive", "env"] }
 clap_complete = "4"
 colored = "2"
 ctrlc = "3"

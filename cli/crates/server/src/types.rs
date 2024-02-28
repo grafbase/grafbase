@@ -1,5 +1,5 @@
 use common::types::{LogLevel, UdfKind};
-use std::{net::IpAddr, path::PathBuf};
+use std::{net::SocketAddr, path::PathBuf};
 
 pub const ASSETS_GZIP: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/assets.tar.gz"));
 
@@ -42,8 +42,7 @@ pub type MessageSender = tokio::sync::mpsc::UnboundedSender<ServerMessage>;
 #[derive(Clone, Debug)]
 pub enum ServerMessage {
     Ready {
-        listen_address: IpAddr,
-        port: u16,
+        listen_address: SocketAddr,
         is_federated: bool,
     },
     Reload(PathBuf),

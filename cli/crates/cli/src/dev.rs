@@ -50,12 +50,16 @@ pub fn dev(
 
         while let Some(message) = message_receiver.recv().await {
             match message {
-                ServerMessage::Ready { port, is_federated, .. } => {
+                ServerMessage::Ready {
+                    listen_address,
+                    is_federated,
+                    ..
+                } => {
                     READY.call_once(|| {
                         if is_federated {
-                            report::start_federated_dev_server(port);
+                            report::start_federated_dev_server(listen_address.port());
                         } else {
-                            report::start_dev_server(resolvers_reported, port, external_port);
+                            report::start_dev_server(resolvers_reported, listen_address.port(), external_port);
                         }
                     });
                 }

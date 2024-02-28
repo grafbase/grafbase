@@ -30,7 +30,7 @@ pub enum SubCommand {
     Unlink,
     /// Tail logs from a standalone graph
     Logs(LogsCommand),
-    /// Start Grafbase in production mode
+    /// Start Grafbase in self-hosted mode
     Start(StartCommand),
     /// Build the Grafbase project in advance to avoid the resolver build step in the start
     /// command.

@@ -137,9 +137,8 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
             start(
                 cmd.listen_address(),
-                cmd.port,
                 cmd.log_levels(),
-                cmd.federated_graph_schema_path(),
+                cmd.federated_schema_path(),
                 args.trace >= 2,
             )
         }

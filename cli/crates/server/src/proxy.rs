@@ -39,6 +39,7 @@ pub async fn start(port: PortSelection) -> Result<ProxyHandle, ServerError> {
     let listener = port.into_listener().await?;
     let port = listener.local_addr().expect("must have a local addr").port();
     let mut set = JoinSet::new();
+
     set.spawn(start_inner(listener));
 
     Ok(ProxyHandle { port, set })

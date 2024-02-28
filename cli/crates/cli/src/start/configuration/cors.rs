@@ -11,43 +11,21 @@ use crate::errors::CliError;
 #[serde(deny_unknown_fields)]
 pub struct CorsConfig {
     /// If false (or not defined), credentials are not allowed in requests
-    allow_credentials: Option<bool>,
+    #[serde(default)]
+    pub allow_credentials: bool,
     /// Origins from which we allow requests
-    allow_origins: Option<AnyOrUrlArray>,
+    pub allow_origins: Option<AnyOrUrlArray>,
     /// Maximum time between OPTIONS and the next request
-    max_age: Option<u64>,
+    pub max_age: Option<u64>,
     /// HTTP methods allowed to the endpoint.
-    allow_methods: Option<AnyOrHttpMethodArray>,
+    pub allow_methods: Option<AnyOrHttpMethodArray>,
     /// Headers allowed in incoming requests
-    allow_headers: Option<AnyOrAsciiStringArray>,
+    pub allow_headers: Option<AnyOrAsciiStringArray>,
     /// Headers exposed from the OPTIONS request
-    expose_headers: Option<AnyOrAsciiStringArray>,
-}
-
-impl CorsConfig {
-    pub fn allow_credentials(&self) -> bool {
-        self.allow_credentials.unwrap_or_default()
-    }
-
-    pub fn allow_origins(&self) -> Option<&AnyOrUrlArray> {
-        self.allow_origins.as_ref()
-    }
-
-    pub fn max_age(&self) -> Option<MaxAge> {
-        self.max_age.map(Duration::from_secs).map(MaxAge::exact)
-    }
-
-    pub fn allow_methods(&self) -> Option<&AnyOrHttpMethodArray> {
-        self.allow_methods.as_ref()
-    }
-
-    pub fn allow_headers(&self) -> Option<&AnyOrAsciiStringArray> {
-        self.allow_headers.as_ref()
-    }
-
-    pub fn expose_headers(&self) -> Option<&AnyOrAsciiStringArray> {
-        self.expose_headers.as_ref()
-    }
+    pub expose_headers: Option<AnyOrAsciiStringArray>,
+    /// If set, allows browsers from private network to connect
+    #[serde(default)]
+    pub allow_private_network: bool,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy, serde::Deserialize)]
@@ -88,8 +66,8 @@ pub enum AnyOrUrlArray {
     Explicit(Vec<Url>),
 }
 
-impl From<&AnyOrUrlArray> for AllowOrigin {
-    fn from(value: &AnyOrUrlArray) -> Self {
+impl From<AnyOrUrlArray> for AllowOrigin {
+    fn from(value: AnyOrUrlArray) -> Self {
         match value {
             AnyOrUrlArray::Any => AllowOrigin::any(),
             AnyOrUrlArray::Explicit(ref origins) => {
@@ -111,8 +89,8 @@ pub enum AnyOrHttpMethodArray {
     Explicit(Vec<HttpMethod>),
 }
 
-impl From<&AnyOrHttpMethodArray> for AllowMethods {
-    fn from(value: &AnyOrHttpMethodArray) -> Self {
+impl From<AnyOrHttpMethodArray> for AllowMethods {
+    fn from(value: AnyOrHttpMethodArray) -> Self {
         match value {
             AnyOrHttpMethodArray::Any => AllowMethods::any(),
             AnyOrHttpMethodArray::Explicit(methods) => {
@@ -131,8 +109,8 @@ pub enum AnyOrAsciiStringArray {
     Explicit(Vec<AsciiString>),
 }
 
-impl From<&AnyOrAsciiStringArray> for AllowHeaders {
-    fn from(value: &AnyOrAsciiStringArray) -> Self {
+impl From<AnyOrAsciiStringArray> for AllowHeaders {
+    fn from(value: AnyOrAsciiStringArray) -> Self {
         match value {
             AnyOrAsciiStringArray::Any => AllowHeaders::any(),
             AnyOrAsciiStringArray::Explicit(headers) => {
@@ -146,8 +124,8 @@ impl From<&AnyOrAsciiStringArray> for AllowHeaders {
     }
 }
 
-impl From<&AnyOrAsciiStringArray> for ExposeHeaders {
-    fn from(value: &AnyOrAsciiStringArray) -> Self {
+impl From<AnyOrAsciiStringArray> for ExposeHeaders {
+    fn from(value: AnyOrAsciiStringArray) -> Self {
         match value {
             AnyOrAsciiStringArray::Any => ExposeHeaders::any(),
             AnyOrAsciiStringArray::Explicit(headers) => {

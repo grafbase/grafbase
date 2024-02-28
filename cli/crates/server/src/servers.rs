@@ -136,7 +136,7 @@ impl ProductionServer {
         }
     }
 
-    pub async fn serve(self, listen_address: IpAddr, port: u16) -> Result<(), ServerError> {
+    pub async fn serve(self, listen_address: SocketAddr) -> Result<(), ServerError> {
         match self {
             ProductionServer::Federated {
                 config,
@@ -145,10 +145,9 @@ impl ProductionServer {
             } => {
                 let _ = message_sender.send(ServerMessage::Ready {
                     listen_address,
-                    port,
                     is_federated: true,
                 });
-                federated_dev::run(port, true, constant_watch_receiver(config), graph)
+                federated_dev::run(listen_address, constant_watch_receiver(config), graph)
                     .await
                     .map_err(|error| ServerError::GatewayError(error.to_string()))
             }
@@ -171,7 +170,7 @@ impl ProductionServer {
                         .into_router();
 
                 let gateway_server = axum::serve(
-                    tokio::net::TcpListener::bind(&SocketAddr::new(listen_address, port))
+                    tokio::net::TcpListener::bind(&listen_address)
                         .await
                         .map_err(ServerError::StartGatewayServer)?,
                     gateway_app,
@@ -179,9 +178,9 @@ impl ProductionServer {
 
                 let _ = message_sender.send(ServerMessage::Ready {
                     listen_address,
-                    port,
                     is_federated: false,
                 });
+
                 tokio::select! {
                     result = gateway_server.into_future() => {
                         result.map_err(ServerError::StartGatewayServer)?;
@@ -259,15 +258,17 @@ async fn federated_dev(
 ) -> Result<(), ServerError> {
     let worker_port = get_random_port_unchecked().await?;
     WORKER_PORT.store(worker_port, Ordering::Relaxed);
+
+    let listen_address = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), proxy.port);
+
     message_sender
         .send(ServerMessage::Ready {
-            listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
-            port: proxy.port,
+            listen_address,
             is_federated: true,
         })
         .ok();
 
-    let server = federated_dev::run(worker_port, false, config.into_federated_config_receiver(), None);
+    let server = federated_dev::run(listen_address, config.into_federated_config_receiver(), None);
 
     tokio::select! {
         result = proxy.join() => {
@@ -450,10 +451,11 @@ async fn spawn_servers(
     WORKER_PORT.store(gateway_port, Ordering::Relaxed);
     join_set.spawn(async move { gateway_server.await.map_err(ServerError::StartGatewayServer) });
 
+    let listen_address = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), proxy_port);
+
     message_sender
         .send(ServerMessage::Ready {
-            listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
-            port: proxy_port,
+            listen_address,
             is_federated: false,
         })
         .ok();
@@ -463,9 +465,7 @@ async fn spawn_servers(
 
 pub fn export_embedded_files() -> Result<(), ServerError> {
     let environment = Environment::get();
-
     let current_version = env!("CARGO_PKG_VERSION");
-
     let version_path = environment.user_dot_grafbase_path.join(ASSET_VERSION_FILE);
 
     let export_files = if env::var("GRAFBASE_SKIP_ASSET_VERSION_CHECK").is_ok() {

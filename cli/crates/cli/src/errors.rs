@@ -64,6 +64,9 @@ pub enum CliError {
     /// returned if .grafbase/project.json could not be read
     #[error("could not read '.grafbase/project.json'\nCaused by: {0}")]
     ReadProjectMetadataFile(#[source] io::Error),
+    /// the toml config load didn't succeed
+    #[error("configuration parsing\n\n{0}")]
+    ConfigurationError(String),
 }
 
 #[cfg(target_family = "windows")]
