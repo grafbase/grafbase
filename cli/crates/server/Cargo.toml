@@ -34,6 +34,7 @@ notify-debouncer-mini = { version = "0.4", default-features = false }
 path-slash = "0.2"
 reqwest = { workspace = true, features = [
   "rustls-tls",
+  "stream",
   "json",
 ], default-features = false }
 serde = { version = "1", features = ["serde_derive"] }
