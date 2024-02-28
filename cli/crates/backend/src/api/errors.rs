@@ -114,7 +114,7 @@ pub enum ApiError {
 
     /// returned if a project file could not be read
     #[error("could not read a project file\nCaused by: {0}")]
-    ReadProjectFile(walkdir::Error),
+    ReadProjectFile(ignore::Error),
 
     /// returned if a project file could not be opened
     #[error("could not open a project file\nCaused by: {0}")]

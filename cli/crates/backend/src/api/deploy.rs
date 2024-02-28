@@ -11,12 +11,12 @@ use common::consts::PROJECT_METADATA_FILE;
 use common::environment::Project;
 use cynic::http::ReqwestExt;
 use cynic::{Id, MutationBuilder};
+use ignore::DirEntry;
 use reqwest::{header, Body, Client};
 use std::ffi::OsStr;
 use std::path::Path;
 use tokio::fs::read_to_string;
 use tokio_util::codec::{BytesCodec, FramedRead};
-use walkdir::{DirEntry, WalkDir};
 
 const ENTRY_BLACKLIST: [&str; 2] = ["node_modules", ".env"];
 
@@ -54,9 +54,18 @@ pub async fn deploy() -> Result<(), ApiError> {
                 .map_err(ApiError::AppendToArchive)?;
         }
 
-        let walker = WalkDir::new(&project.path).min_depth(1).into_iter();
-        for entry in walker.filter_entry(|entry| should_traverse_entry(entry, &project.path)) {
+        let walker = ignore::WalkBuilder::new(&project.path)
+            .hidden(false)
+            .filter_entry(|entry| should_traverse_entry(entry, &project.path))
+            .build();
+
+        for entry in walker {
             let entry = entry.map_err(ApiError::ReadProjectFile)?;
+
+            if entry.path() == project.path {
+                // walker always includes the root path in its traversal, so skip that
+                continue;
+            }
 
             let entry_path = entry.path().to_owned();
             let path_in_tar = entry_path.strip_prefix(&project.path).expect("must include prefix");
