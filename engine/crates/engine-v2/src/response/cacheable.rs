@@ -33,6 +33,7 @@ impl Cacheable for CacheableResponse {
         let max_age = self
             .metadata
             .cache_config
+            .as_ref()
             .map(|config| config.max_age)
             .unwrap_or_default();
         CacheMetadata {
@@ -40,6 +41,7 @@ impl Cacheable for CacheableResponse {
             stale_while_revalidate: self
                 .metadata
                 .cache_config
+                .as_ref()
                 .map(|config| config.stale_while_revalidate)
                 .unwrap_or_default(),
             tags: vec![],

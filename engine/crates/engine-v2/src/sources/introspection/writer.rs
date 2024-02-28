@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 
-use engine_value::ConstValue;
 use schema::{
     sources::introspection::{
         IntrospectionField, IntrospectionObject, Metadata, __EnumValue, __Field, __InputValue, __Schema, __Type,
@@ -25,26 +24,18 @@ impl<'a> IntrospectionWriter<'a> {
     pub(super) fn update_output(&self, response_object: ResponseBoundaryItem) {
         let selection_set = self.plan.collected_selection_set();
         let mut fields =
-            Vec::with_capacity(selection_set.as_ref().fields.len() + selection_set.as_ref().typename_fields.len());
+            Vec::with_capacity(selection_set.as_ref().field_ids.len() + selection_set.as_ref().typename_fields.len());
         for field in selection_set.fields() {
             let &CollectedField {
                 edge, schema_field_id, ..
             } = field.as_ref();
             match self.metadata.root_field(schema_field_id) {
                 IntrospectionField::Type => {
-                    let name = field
-                        .as_bound_field()
-                        .arguments()
-                        .next()
-                        .map(|arg| match arg.resolved_value() {
-                            ConstValue::String(s) => s,
-                            _ => unreachable!("Validation failure: Expected string argument"),
-                        })
-                        .expect("Validation failure: missing argument");
+                    let name = field.as_bound_field().get_arg_as::<&str>("name");
                     fields.push((
                         edge,
                         self.schema
-                            .definition_by_name(&name)
+                            .definition_by_name(name)
                             .map(|definition| {
                                 self.__type_inner(self.schema.walk(definition), field.concrete_selection_set().unwrap())
                             })
@@ -75,7 +66,7 @@ impl<'a> IntrospectionWriter<'a> {
         build: impl Fn(PlanCollectedField<'_>, E) -> ResponseValue,
     ) -> ResponseValue {
         let mut fields =
-            Vec::with_capacity(selection_set.as_ref().fields.len() + selection_set.as_ref().typename_fields.len());
+            Vec::with_capacity(selection_set.as_ref().field_ids.len() + selection_set.as_ref().typename_fields.len());
         for field in selection_set.fields() {
             let &CollectedField {
                 edge, schema_field_id, ..
@@ -197,17 +188,9 @@ impl<'a> IntrospectionWriter<'a> {
                 .fields()
                 .map(|fields| {
                     let selection_set = field.concrete_selection_set().unwrap();
-                    let include_deprecated = field
-                        .as_bound_field()
-                        .arguments()
-                        .next()
-                        .map(|arg| match arg.resolved_value() {
-                            ConstValue::Boolean(b) => b,
-                            _ => unreachable!("Validation failure: Expected boolean argument"),
-                        })
-                        .unwrap_or_default();
+                    let include_deprecated = field.as_bound_field().get_arg_as::<bool>("includeDeprecated");
                     let values = fields
-                        .filter(move |field| {
+                        .filter(|field| {
                             (!field.is_deprecated() || include_deprecated)
                                 && !self.metadata.meta_fields.contains(&field.id())
                         })
@@ -240,8 +223,10 @@ impl<'a> IntrospectionWriter<'a> {
                 .as_enum()
                 .map(|r#enum| {
                     let selection_set = field.concrete_selection_set().unwrap();
+                    let include_deprecated = field.as_bound_field().get_arg_as::<bool>("includeDeprecated");
                     let values = r#enum
                         .values()
+                        .filter(|value| (!value.is_deprecated() || include_deprecated))
                         .map(|value| self.__enum_value(value, selection_set))
                         .collect::<Vec<_>>();
                     self.output.borrow_mut().push_list(&values)

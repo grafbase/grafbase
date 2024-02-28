@@ -1,5 +1,5 @@
 use gateway_v2::Gateway;
-use graphql_mocks::{EchoSchema, MockGraphQlServer};
+use graphql_mocks::{DisingenuousSchema, EchoSchema, MockGraphQlServer};
 use integration_tests::{
     federation::{GatewayV2Ext, GraphqlResponse},
     runtime,
@@ -139,7 +139,7 @@ fn input_objects() {
 
 #[test]
 fn test_default_values() {
-    let query = r#"query($input: String = "there") { listOfListOfStrings(input: $input) }"#;
+    let query = r#"query($input: String! = "there") { listOfListOfStrings(input: $input) }"#;
     let input = json!({"input": "hello"});
     assert_eq!(
         run_query(query, &input).into_data()["listOfListOfStrings"],
@@ -192,32 +192,32 @@ fn list_coercion() {
 fn invalid_ints() {
     insta::assert_json_snapshot!(error_test("int", "Int!", 1.5), @r###"
     [
-      "Variable $input got an invalid value: found a Float value where we expected a Int scalar at $input"
+      "Variable $input has an invalid value. Found value 1.5 which cannot be coerced into a Int scalar"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("int", "Int!", "blah"), @r###"
     [
-      "Variable $input got an invalid value: found a String value where we expected a Int scalar at $input"
+      "Variable $input has an invalid value. Found a String value where we expected a Int scalar"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("int", "Int!", true), @r###"
     [
-      "Variable $input got an invalid value: found a Boolean value where we expected a Int scalar at $input"
+      "Variable $input has an invalid value. Found a Boolean value where we expected a Int scalar"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("int", "Int!", json!(null)), @r###"
     [
-      "Variable $input got an invalid value: found a null where we expected a Int! at $input"
+      "Variable $input has an invalid value. Found a null where we expected a Int!"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("int", "Int!", json!({})), @r###"
     [
-      "Variable $input got an invalid value: found a Object value where we expected a Int scalar at $input"
+      "Variable $input has an invalid value. Found a Object value where we expected a Int scalar"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("int", "Int!", json!([])), @r###"
     [
-      "Variable $input got an invalid value: found a List value where we expected a Int scalar at $input"
+      "Variable $input has an invalid value. Found a List value where we expected a Int scalar"
     ]
     "###);
 }
@@ -226,32 +226,32 @@ fn invalid_ints() {
 fn invalid_strings() {
     insta::assert_json_snapshot!(error_test("string", "String!", 1.5), @r###"
     [
-      "Variable $input got an invalid value: found a Float value where we expected a String scalar at $input"
+      "Variable $input has an invalid value. Found a Float value where we expected a String scalar"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("string", "String!", 1), @r###"
     [
-      "Variable $input got an invalid value: found a Integer value where we expected a String scalar at $input"
+      "Variable $input has an invalid value. Found a Integer value where we expected a String scalar"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("string", "String!", true), @r###"
     [
-      "Variable $input got an invalid value: found a Boolean value where we expected a String scalar at $input"
+      "Variable $input has an invalid value. Found a Boolean value where we expected a String scalar"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("string", "String!", json!(null)), @r###"
     [
-      "Variable $input got an invalid value: found a null where we expected a String! at $input"
+      "Variable $input has an invalid value. Found a null where we expected a String!"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("string", "String!", json!({})), @r###"
     [
-      "Variable $input got an invalid value: found a Object value where we expected a String scalar at $input"
+      "Variable $input has an invalid value. Found a Object value where we expected a String scalar"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("string", "String!", json!([])), @r###"
     [
-      "Variable $input got an invalid value: found a List value where we expected a String scalar at $input"
+      "Variable $input has an invalid value. Found a List value where we expected a String scalar"
     ]
     "###);
 }
@@ -260,22 +260,22 @@ fn invalid_strings() {
 fn invalid_floats() {
     insta::assert_json_snapshot!(error_test("float", "Float!", true), @r###"
     [
-      "Variable $input got an invalid value: found a Boolean value where we expected a Float scalar at $input"
+      "Variable $input has an invalid value. Found a Boolean value where we expected a Float scalar"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("float", "Float!", json!(null)), @r###"
     [
-      "Variable $input got an invalid value: found a null where we expected a Float! at $input"
+      "Variable $input has an invalid value. Found a null where we expected a Float!"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("float", "Float!", json!({})), @r###"
     [
-      "Variable $input got an invalid value: found a Object value where we expected a Float scalar at $input"
+      "Variable $input has an invalid value. Found a Object value where we expected a Float scalar"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("float", "Float!", json!([])), @r###"
     [
-      "Variable $input got an invalid value: found a List value where we expected a Float scalar at $input"
+      "Variable $input has an invalid value. Found a List value where we expected a Float scalar"
     ]
     "###);
 }
@@ -284,22 +284,22 @@ fn invalid_floats() {
 fn invalid_id() {
     insta::assert_json_snapshot!(error_test("id", "ID!", true), @r###"
     [
-      "Variable $input got an invalid value: found a Boolean value where we expected a ID scalar at $input"
+      "Variable $input has an invalid value. Found a Boolean value where we expected a ID scalar"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("id", "ID!", json!(null)), @r###"
     [
-      "Variable $input got an invalid value: found a null where we expected a ID! at $input"
+      "Variable $input has an invalid value. Found a null where we expected a ID!"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("id", "ID!", json!({})), @r###"
     [
-      "Variable $input got an invalid value: found a Object value where we expected a ID scalar at $input"
+      "Variable $input has an invalid value. Found a Object value where we expected a ID scalar"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("id", "ID!", json!([])), @r###"
     [
-      "Variable $input got an invalid value: found a List value where we expected a ID scalar at $input"
+      "Variable $input has an invalid value. Found a List value where we expected a ID scalar"
     ]
     "###);
 }
@@ -308,37 +308,37 @@ fn invalid_id() {
 fn invalid_lists() {
     insta::assert_json_snapshot!(error_test("listOfStrings", "[String!]!", true), @r###"
     [
-      "Variable $input got an invalid value: found a Boolean value where we expected a String scalar at $input"
+      "Variable $input has an invalid value. Found a Boolean value where we expected a String scalar"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("listOfStrings", "[String!]!", json!(null)), @r###"
     [
-      "Variable $input got an invalid value: found a null where we expected a [String!]! at $input"
+      "Variable $input has an invalid value. Found a null where we expected a [String!]!"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("listOfStrings", "[String!]!", json!([1])), @r###"
     [
-      "Variable $input got an invalid value: found a Integer value where we expected a String scalar at $input.0"
+      "Variable $input has an invalid value. Found a Integer value where we expected a String scalar at path '.0'"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("listOfStrings", "[String!]!", json!([null])), @r###"
     [
-      "Variable $input got an invalid value: found a null where we expected a String! at $input.0"
+      "Variable $input has an invalid value. Found a null where we expected a String! at path '.0'"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("listOfStrings", "[String!]!", json!(["hello", 1, "there"])), @r###"
     [
-      "Variable $input got an invalid value: found a Integer value where we expected a String scalar at $input.1"
+      "Variable $input has an invalid value. Found a Integer value where we expected a String scalar at path '.1'"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("listOfStrings", "[String!]!", json!([[null]])), @r###"
     [
-      "Variable $input got an invalid value: found a List value where we expected a String scalar at $input.0"
+      "Variable $input has an invalid value. Found a List value where we expected a String scalar at path '.0'"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("listOfStrings", "[String!]!", json!([["hello"]])), @r###"
     [
-      "Variable $input got an invalid value: found a List value where we expected a String scalar at $input.0"
+      "Variable $input has an invalid value. Found a List value where we expected a String scalar at path '.0'"
     ]
     "###);
 }
@@ -347,37 +347,37 @@ fn invalid_lists() {
 fn invalid_nested_lists() {
     insta::assert_json_snapshot!(error_test("listOfListOfStrings", "[[String!]!]!", true), @r###"
     [
-      "Variable $input got an invalid value: found a Boolean value where we expected a String scalar at $input"
+      "Variable $input has an invalid value. Found a Boolean value where we expected a String scalar"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("listOfListOfStrings", "[[String!]!]!", json!(null)), @r###"
     [
-      "Variable $input got an invalid value: found a null where we expected a [[String!]!]! at $input"
+      "Variable $input has an invalid value. Found a null where we expected a [[String!]!]!"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("listOfListOfStrings", "[[String!]!]!", json!([1])), @r###"
     [
-      "Variable $input got an invalid value: found a Integer value where we expected a [String!]! at $input.0"
+      "Variable $input has an invalid value. Found a Integer value where we expected a [String!]! at path '.0'"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("listOfListOfStrings", "[[String!]!]!", json!([null])), @r###"
     [
-      "Variable $input got an invalid value: found a null where we expected a [String!]! at $input.0"
+      "Variable $input has an invalid value. Found a null where we expected a [String!]! at path '.0'"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("listOfListOfStrings", "[[String!]!]!", json!([[null]])), @r###"
     [
-      "Variable $input got an invalid value: found a null where we expected a String! at $input.0.0"
+      "Variable $input has an invalid value. Found a null where we expected a String! at path '.0.0'"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("listOfListOfStrings", "[[String!]!]!", json!([[1]])), @r###"
     [
-      "Variable $input got an invalid value: found a Integer value where we expected a String scalar at $input.0.0"
+      "Variable $input has an invalid value. Found a Integer value where we expected a String scalar at path '.0.0'"
     ]
     "###);
     insta::assert_json_snapshot!(error_test("listOfListOfStrings", "[[String!]!]!", json!([["hello", 1, "there"]])), @r###"
     [
-      "Variable $input got an invalid value: found a Integer value where we expected a String scalar at $input.0.1"
+      "Variable $input has an invalid value. Found a Integer value where we expected a String scalar at path '.0.1'"
     ]
     "###);
 }
@@ -388,7 +388,7 @@ fn invalid_input_objects() {
         error_test("inputObject", "InputObj!", json!({"string": 1})),
         @r###"
     [
-      "Variable $input got an invalid value: found a Integer value where we expected a String scalar at $input.string"
+      "Variable $input has an invalid value. Found a Integer value where we expected a String scalar at path '.string'"
     ]
     "###
     );
@@ -396,7 +396,7 @@ fn invalid_input_objects() {
         error_test("inputObject", "InputObj!", json!({"int": "hello"})),
         @r###"
     [
-      "Variable $input got an invalid value: found a String value where we expected a Int scalar at $input.int"
+      "Variable $input has an invalid value. Found a String value where we expected a Int scalar at path '.int'"
     ]
     "###
     );
@@ -404,7 +404,7 @@ fn invalid_input_objects() {
         error_test("inputObject", "InputObj!", json!({"recursiveObject": {"string": 1}})),
         @r###"
     [
-      "Variable $input got an invalid value: found a Integer value where we expected a String scalar at $input.recursiveObject.string"
+      "Variable $input has an invalid value. Found a Integer value where we expected a String scalar at path '.recursiveObject.string'"
     ]
     "###
     );
@@ -417,7 +417,7 @@ fn invalid_input_objects() {
         error_test("inputObject", "InputObj!", json!({"recursiveObjectList": [null]})),
         @r###"
     [
-      "Variable $input got an invalid value: found a null where we expected a InputObj! at $input.recursiveObjectList.0"
+      "Variable $input has an invalid value. Found a null where we expected a InputObj! at path '.recursiveObjectList.0'"
     ]
     "###
     );
@@ -430,7 +430,7 @@ fn invalid_input_objects() {
         error_test("inputObject", "InputObj!", json!({"recursiveObjectList": [{"recursiveObjectList": [null]}]})),
         @r###"
     [
-      "Variable $input got an invalid value: found a null where we expected a InputObj! at $input.recursiveObjectList.0.recursiveObjectList.0"
+      "Variable $input has an invalid value. Found a null where we expected a InputObj! at path '.recursiveObjectList.0.recursiveObjectList.0'"
     ]
     "###
     );
@@ -442,7 +442,7 @@ fn invalid_enum() {
         error_test("fancyBool", "FancyBool!", json!("bloo")),
         @r###"
     [
-      "Variable $input got an invalid value: found the value 'bloo' value where we expected a value of the 'FancyBool' enum at $input"
+      "Variable $input has an invalid value. Unknown enum value 'bloo' for enum FancyBool"
     ]
     "###
     );
@@ -450,7 +450,7 @@ fn invalid_enum() {
         error_test("inputObject", "InputObj!", json!({"fancyBool": "blah"})),
         @r###"
     [
-      "Variable $input got an invalid value: found the value 'blah' value where we expected a value of the 'FancyBool' enum at $input.fancyBool"
+      "Variable $input has an invalid value. Unknown enum value 'blah' for enum FancyBool at path '.fancyBool'"
     ]
     "###
     );
@@ -464,8 +464,8 @@ fn multiple_invalid_variables() {
 
     insta::assert_json_snapshot!(errors, @r###"
     [
-      "Variable $one got an invalid value: found a Boolean value where we expected a String scalar at $one",
-      "Variable $two got an invalid value: found a String value where we expected a Int scalar at $two"
+      "Variable $one has an invalid value. Found a Boolean value where we expected a String scalar",
+      "Variable $two has an invalid value. Found a String value where we expected a Int scalar"
     ]
     "###);
 }
@@ -509,7 +509,7 @@ fn variables_are_defined_validation() {
         ),
         @r###"
     [
-      "Variable '$one' is not defined"
+      "Unknown variable $one"
     ]
     "###
     );
@@ -521,7 +521,7 @@ fn variables_are_defined_validation() {
         ),
         @r###"
     [
-      "Variable '$one' is not defined by operation 'MyOperation'"
+      "Unknown variable $one"
     ]
     "###
     );
@@ -541,7 +541,7 @@ fn variables_are_defined_validation() {
         ),
         @r###"
     [
-      "Variable '$one' is not defined by operation 'Blah'"
+      "Unknown variable $one"
     ]
     "###
     );
@@ -559,7 +559,7 @@ fn variables_are_defined_validation() {
         ),
         @r###"
     [
-      "Variable '$one' is not defined"
+      "Unknown variable $one"
     ]
     "###
     );
@@ -609,6 +609,54 @@ fn variables_are_used_validation() {
     );
 }
 
+#[test]
+fn undefined_variable() {
+    let query = "query($var: String) { echo(input: { string: $var, int: 10 }) }";
+    let response = runtime().block_on({
+        async move {
+            let echo_mock = MockGraphQlServer::new(DisingenuousSchema::with_sdl(
+                r#"
+                scalar JSON
+
+                type Query {
+                    echo(input: InputObj!): JSON
+                }
+
+                input InputObj {
+                    string: String
+                    int: Int!
+                }
+                "#,
+            ))
+            .await;
+
+            let engine = Gateway::builder()
+                .with_schema("schema", &echo_mock)
+                .await
+                .finish()
+                .await;
+
+            engine.execute(query).variables(json!({})).await
+        }
+    });
+
+    // FIXME: This is incorrect with respect to the spec. "string" field should be undefined and
+    // not present. But async-graphql doesn't respect it... So until we support something else than
+    // GraphQL (UDFs typically), we're stuck.
+    // https://spec.graphql.org/October2021/#sec-Input-Objects.Input-Coercion
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "echo": {
+          "string": null,
+          "int": 10
+        }
+      }
+    }
+    "###);
+}
+
+#[track_caller]
 fn roundtrip_test<T>(field: &str, ty: &str, input: T)
 where
     T: Serialize,
@@ -618,6 +666,7 @@ where
     do_roundtrip_test(field, &query, serde_json::to_value(input).unwrap());
 }
 
+#[track_caller]
 fn do_roundtrip_test(field: &str, query: &str, input: serde_json::Value) {
     let response = run_query(query, &json!({"input": input}));
 

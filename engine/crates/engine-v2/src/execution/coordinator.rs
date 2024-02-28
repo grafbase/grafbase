@@ -1,7 +1,7 @@
 use std::{borrow::Cow, sync::Arc};
 
 use async_runtime::make_send_on_wasm;
-use engine::{OperationPlanCacheKey, RequestHeaders};
+use engine::RequestHeaders;
 use engine_parser::types::OperationType;
 use futures_util::{
     future::BoxFuture,
@@ -10,9 +10,9 @@ use futures_util::{
 };
 
 use crate::{
-    execution::{ExecutionContext, Variables},
+    execution::ExecutionContext,
     plan::{OperationExecutionState, OperationPlan, PlanId},
-    request::Operation,
+    request::{OpInputValues, Operation},
     response::{ExecutionMetadata, GraphqlError, Response, ResponseBuilder, ResponsePart},
     sources::{Executor, ExecutorInput, SubscriptionExecutor, SubscriptionInput},
     Engine,
@@ -24,39 +24,28 @@ pub type ResponseSender = futures::channel::mpsc::Sender<Response>;
 
 pub(crate) struct ExecutionCoordinator {
     engine: Arc<Engine>,
-    operation_plan_cache_key: OperationPlanCacheKey,
     operation_plan: Arc<OperationPlan>,
-    variables: Variables,
+    input_values: OpInputValues,
     request_headers: RequestHeaders,
 }
 
 impl ExecutionCoordinator {
     pub fn new(
         engine: Arc<Engine>,
-        operation_plan_cache_key: OperationPlanCacheKey,
         operation_plan: Arc<OperationPlan>,
-        variables: Variables,
+        input_values: OpInputValues,
         request_headers: RequestHeaders,
     ) -> Self {
         Self {
             engine,
-            operation_plan_cache_key,
             operation_plan,
-            variables,
+            input_values,
             request_headers,
         }
     }
 
-    pub fn operation_plan_cache_key(&self) -> &OperationPlanCacheKey {
-        &self.operation_plan_cache_key
-    }
-
     pub fn operation(&self) -> &Operation {
         &self.operation_plan
-    }
-
-    pub fn variables(&self) -> &Variables {
-        &self.variables
     }
 
     pub async fn execute(self) -> Response {
@@ -134,11 +123,10 @@ impl ExecutionCoordinator {
         let execution_plan = &self.operation_plan[plan_id];
         let plan = self
             .operation_plan
-            .plan_walker(&self.engine.schema, plan_id, Some(&self.variables));
+            .plan_walker(&self.engine.schema, plan_id, Some(&self.input_values));
         let input = SubscriptionInput {
             ctx: ExecutionContext {
                 engine: self.engine.as_ref(),
-                variables: &self.variables,
                 request_headers: &self.request_headers,
             },
             plan,
@@ -217,12 +205,11 @@ impl<'ctx> OperationExecution<'ctx> {
         let plan =
             self.coordinator
                 .operation_plan
-                .plan_walker(&engine.schema, plan_id, Some(&self.coordinator.variables));
+                .plan_walker(&engine.schema, plan_id, Some(&self.coordinator.input_values));
         let response_part = self.response.new_part(plan.output().boundary_ids);
         let input = ExecutorInput {
             ctx: ExecutionContext {
                 engine,
-                variables: &self.coordinator.variables,
                 request_headers: &self.coordinator.request_headers,
             },
             plan,

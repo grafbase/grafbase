@@ -5,18 +5,19 @@ use schema::{
 };
 
 use self::query::PreparedGraphqlOperation;
+use self::variables::OutboundVariables;
 
 use super::{ExecutionContext, ExecutionResult, Executor, ExecutorInput, Plan};
 use crate::{
     plan::{PlanWalker, PlanningResult},
     response::{ResponseBoundaryItem, ResponsePart},
-    sources::graphql::query::OutboundVariables,
 };
 
 mod deserialize;
 mod federation;
 mod query;
 mod subscription;
+mod variables;
 
 pub(crate) use federation::*;
 pub(crate) use subscription::*;
@@ -47,7 +48,7 @@ impl GraphqlExecutionPlan {
         } = input;
 
         let subgraph = plan.schema().walk(self.subgraph_id);
-        let variables = OutboundVariables::new(&self.operation.variable_references, ctx.variables);
+        let variables = OutboundVariables::new(plan.variables().collect());
         tracing::debug!(
             "Query {}\n{}\n{}",
             subgraph.name(),

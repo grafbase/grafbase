@@ -201,11 +201,11 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         // Sorting by expected_key for deserialization
         let keys = &self.operation.response_keys;
         fields.sort_unstable_by(|a, b| keys[a.expected_key].cmp(&keys[b.expected_key]));
-        let fields = self.push_collecteded_fields(fields);
+        let field_ids = self.push_collecteded_fields(fields);
         Ok(self.push_collected_selection_set(CollectedSelectionSet {
             ty,
             maybe_boundary_id,
-            fields,
+            field_ids,
             typename_fields,
         }))
     }
@@ -252,11 +252,11 @@ impl<'schema, 'a> Collector<'schema, 'a> {
             }
         }
 
-        let fields = self.push_conditional_fields(conditional_fields);
+        let field_ids = self.push_conditional_fields(conditional_fields);
         Ok(self.push_conditional_selection_set(ConditionalSelectionSet {
             ty,
             maybe_boundary_id,
-            fields,
+            field_ids,
             typename_fields,
         }))
     }

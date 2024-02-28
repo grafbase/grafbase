@@ -47,9 +47,17 @@ fn supports_unused_builtin_scalars() {
 
     insta::assert_json_snapshot!(response, @r###"
     {
-      "data": {
-        "string": "1"
-      }
+      "errors": [
+        {
+          "message": "Variable $id doesn't have the right type. Declared as 'ID!' but used as 'String!'",
+          "locations": [
+            {
+              "line": 1,
+              "column": 38
+            }
+          ]
+        }
+      ]
     }
     "###);
 }

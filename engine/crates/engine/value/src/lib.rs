@@ -34,8 +34,11 @@ pub use variables::Variables;
 /// A GraphQL name.
 ///
 /// [Reference](https://spec.graphql.org/June2018/#Name).
+///
+/// The Arc is useless in engine-v2 and couldn't find a simple way to convert an Arc<str> to Box<str>.
+/// Not even sure if it's useful for engine-v1 as we do a lot of `to_string()` with Name.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Name(Arc<str>);
+pub struct Name(Arc<Box<str>>);
 
 impl Serialize for Name {
     fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
@@ -46,13 +49,19 @@ impl Serialize for Name {
 impl Name {
     /// Create a new name.
     pub fn new(name: impl AsRef<str>) -> Self {
-        Self(name.as_ref().into())
+        Self(Arc::new(name.as_ref().to_string().into_boxed_str()))
     }
 
     /// Get the name as a string.
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+}
+
+impl From<Name> for Box<str> {
+    fn from(name: Name) -> Self {
+        Arc::unwrap_or_clone(name.0)
     }
 }
 
@@ -451,6 +460,21 @@ impl Hash for Value {
 }
 
 impl Value {
+    /// Check if this is a null
+    pub fn is_null(&self) -> bool {
+        matches!(self, Value::Null)
+    }
+
+    /// Check if this is a variable
+    pub fn is_variable(&self) -> bool {
+        matches!(self, Value::Variable(_))
+    }
+
+    /// Check the [`ConstValue`] is an array
+    pub fn is_array(&self) -> bool {
+        matches!(self, Value::List(_))
+    }
+
     /// Attempt to convert the value into a const value by using a function to get a variable.
     pub fn into_const_with<E>(self, mut f: impl FnMut(Name) -> Result<ConstValue, E>) -> Result<ConstValue, E> {
         self.into_const_with_mut(&mut f)

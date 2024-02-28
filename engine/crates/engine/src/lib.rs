@@ -79,7 +79,8 @@ pub use parser::{Pos, Positioned};
 pub use query_path::{QueryPath, QueryPathSegment};
 pub use registry::{CacheControl, CacheInvalidation, Registry};
 pub use request::{
-    BatchRequest, OperationPlanCacheKey, PersistedQueryRequestExtension, QueryParamRequest, Request, RequestExtensions,
+    BatchRequest, OperationPlanCacheKey, PersistedQueryRequestExtension, QueryParamRequest, Request, RequestCacheKey,
+    RequestExtensions,
 };
 #[doc(no_inline)]
 pub use resolver_utils::{ContainerType, LegacyEnumType, LegacyScalarType};

@@ -7,14 +7,29 @@ use super::bind::OperationError;
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, serde::Serialize)]
 pub struct Location {
     /// One-based line number.
-    pub line: u16,
+    line: u16,
     /// One-based column number.
-    pub column: u16,
+    column: u16,
+}
+
+impl Location {
+    // Might want to change Location to be a NonZeroU32 later to optimize Option<Location>
+    pub fn new(line: u16, column: u16) -> Self {
+        Self { line, column }
+    }
+
+    pub fn line(&self) -> u16 {
+        self.line
+    }
+
+    pub fn column(&self) -> u16 {
+        self.column
+    }
 }
 
 impl fmt::Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}", self.line, self.column)
+        write!(f, "{}:{}", self.line(), self.column())
     }
 }
 
@@ -22,15 +37,15 @@ impl TryFrom<engine_parser::Pos> for Location {
     type Error = OperationError;
 
     fn try_from(value: engine_parser::Pos) -> Result<Self, Self::Error> {
-        Ok(Self {
-            line: value
+        Ok(Self::new(
+            value
                 .line
                 .try_into()
                 .map_err(|_| OperationError::QueryTooBig(format!("Too many lines ({})", value.line)))?,
-            column: value
+            value
                 .column
                 .try_into()
                 .map_err(|_| OperationError::QueryTooBig(format!("Too many columns ({})", value.column)))?,
-        })
+        ))
     }
 }

@@ -1,19 +1,11 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Write,
-};
+use std::{collections::HashMap, fmt::Write};
 
 use engine_parser::types::OperationType;
-use engine_value::ConstValue;
 use itertools::Itertools;
-use serde::ser::SerializeMap;
 
-use crate::{
-    execution::Variables,
-    plan::{
-        PlanField, PlanFragmentSpread, PlanInlineFragment, PlanInputValue, PlanSelection, PlanSelectionSet, PlanWalker,
-    },
-    response::ResponseBoundaryObjectsView,
+use crate::plan::{
+    PlanField, PlanFieldArgument, PlanFragmentSpread, PlanInlineFragment, PlanSelection, PlanSelectionSet,
+    PlanVariable, PlanWalker,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -24,7 +16,6 @@ pub enum Error {
 
 pub(super) struct PreparedGraphqlOperation {
     pub query: String,
-    pub variable_references: Vec<String>,
 }
 
 impl PreparedGraphqlOperation {
@@ -43,70 +34,25 @@ impl PreparedGraphqlOperation {
             OperationType::Subscription => write!(query, "subscription")?,
         };
 
-        if !builder.variable_references.is_empty() {
+        let variables = plan.variables().collect::<Vec<_>>();
+
+        if !variables.is_empty() {
             query.push('(');
-            builder.write_operation_arguments_without_parenthesis(plan, &mut query);
+            builder.write_operation_arguments_without_parenthesis(&variables, &mut query);
             query.push(')');
         }
 
         query.push_str(&selection_set);
         builder.write_fragments(&mut query);
 
-        Ok(PreparedGraphqlOperation {
-            query,
-            variable_references: builder.variable_references.into_iter().collect(),
-        })
+        Ok(PreparedGraphqlOperation { query })
     }
 }
 
 #[derive(serde::Serialize)]
 pub(super) struct PreparedFederationEntityOperation {
     pub query: String,
-    pub variable_references: Vec<String>,
     pub entities_variable: String,
-}
-
-#[derive(Default)]
-pub(super) struct OutboundVariables<'a> {
-    pub query_variables: Vec<(&'a str, &'a ConstValue)>,
-    pub inputs: Vec<(&'a str, ResponseBoundaryObjectsView<'a>)>,
-}
-
-impl<'a> OutboundVariables<'a> {
-    pub fn new(variable_references: &'a [String], variables: &'a Variables) -> Self {
-        let query_variables = variable_references
-            .iter()
-            .map(|name| {
-                (
-                    name.as_str(),
-                    variables
-                        .get(name)
-                        .and_then(|variable| variable.value.as_ref())
-                        .unwrap(),
-                )
-            })
-            .collect();
-        Self {
-            query_variables,
-            inputs: Vec::new(),
-        }
-    }
-}
-
-impl<'a> serde::Serialize for OutboundVariables<'a> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut map = serializer.serialize_map(Some(self.query_variables.len() + self.inputs.len()))?;
-        for (key, value) in &self.query_variables {
-            map.serialize_entry(key, value)?;
-        }
-        for (key, response_objects) in &self.inputs {
-            map.serialize_entry(key, response_objects)?;
-        }
-        map.end()
-    }
 }
 
 impl PreparedFederationEntityOperation {
@@ -122,16 +68,18 @@ impl PreparedFederationEntityOperation {
         };
 
         query.push('(');
-        let entities_variable = format!("representationsPlan{}", plan.id());
-        query.push_str(&format!("${entities_variable}: [_Any!]!"));
-        if !builder.variable_references.is_empty() {
+        let entities_variable_name = format!("representationsPlan{}", plan.id());
+        query.push_str(&format!("${entities_variable_name}: [_Any!]!"));
+
+        let variables = plan.variables().collect::<Vec<_>>();
+        if !variables.is_empty() {
             query.push(',');
-            builder.write_operation_arguments_without_parenthesis(plan, &mut query);
+            builder.write_operation_arguments_without_parenthesis(&variables, &mut query);
         }
         query.push(')');
         let type_name = plan.selection_set().ty().name();
         query.push_str(" {");
-        query.push_str(&format!("\n\t_entities(representations: ${entities_variable}) {{"));
+        query.push_str(&format!("\n\t_entities(representations: ${entities_variable_name}) {{"));
         query.push_str("\n\t\t__typename");
         query.push_str(&format!("\n\t\t... on {type_name} {selection_set}\t}}"));
         query.push_str("\n}\n");
@@ -140,8 +88,7 @@ impl PreparedFederationEntityOperation {
 
         Ok(PreparedFederationEntityOperation {
             query,
-            variable_references: builder.variable_references.into_iter().collect(),
-            entities_variable,
+            entities_variable: entities_variable_name,
         })
     }
 }
@@ -150,26 +97,15 @@ impl PreparedFederationEntityOperation {
 pub struct QueryBuilder {
     fragment_content_to_name: HashMap<Buffer, String>,
     fragment_name_to_last_id: HashMap<String, usize>,
-    variable_references: HashSet<String>,
 }
 
 impl QueryBuilder {
-    fn write_operation_arguments_without_parenthesis(&self, plan: PlanWalker<'_>, out: &mut String) {
+    fn write_operation_arguments_without_parenthesis(&self, variables: &[PlanVariable<'_>], out: &mut String) {
         out.push_str(&format!(
             "{}",
-            self.variable_references.iter().format_with(", ", |name, f| {
-                let variable = plan
-                    .variable_definition(name)
-                    .expect("we just found it in the query so validation wouldn't have passed otherwise.");
-
-                if let Some(default_value) = variable.default_value() {
-                    f(&format_args!(
-                        "${name}: {ty} = {default_value}",
-                        ty = variable.type_name()
-                    ))
-                } else {
-                    f(&format_args!("${name}: {ty}", ty = variable.type_name()))
-                }
+            variables.iter().format_with(", ", |variable, f| {
+                // no need to add the default value, we'll always provide the variable.
+                f(&format_args!("${}: {}", variable.name(), variable.ty()))
             })
         ));
     }
@@ -263,23 +199,15 @@ impl QueryBuilder {
     fn write_arguments<'a>(
         &mut self,
         buffer: &mut Buffer,
-        arguments: impl ExactSizeIterator<Item = PlanInputValue<'a>>,
+        arguments: impl ExactSizeIterator<Item = PlanFieldArgument<'a>>,
     ) -> Result<(), Error> {
         if arguments.len() != 0 {
             buffer.write_str(&format!(
                 "({})",
-                arguments.format_with(", ", |argument, f| {
-                    let value = argument.query_value();
-                    self.add_variable_references(value.variables_used().map(|name| name.to_string()));
-                    f(&format_args!("{name}: {value}", name = argument.name()))
-                })
+                arguments.format_with(", ", |arg, f| { f(&format_args!("{}: {}", arg.name(), arg.value())) })
             ))?;
         }
         Ok(())
-    }
-
-    fn add_variable_references(&mut self, names: impl IntoIterator<Item = String>) {
-        self.variable_references.extend(names);
     }
 }
 

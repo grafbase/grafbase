@@ -82,7 +82,7 @@ impl<'a> Iterator for PlanSelectionSetIterator<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.selection_set {
             PlanSelectionSet::RootFields(plan) => {
-                let id = plan.collected_selection_set().as_ref().fields.get(self.next_index)?;
+                let id = plan.collected_selection_set().as_ref().field_ids.get(self.next_index)?;
                 self.next_index += 1;
                 let field = &plan.operation_plan[id];
                 return Some(PlanSelection::Field(

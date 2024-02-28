@@ -2,6 +2,7 @@ use std::{
     any::Any,
     collections::HashMap,
     fmt::{self, Debug, Formatter},
+    hash::{DefaultHasher, Hash, Hasher},
 };
 
 use serde::{Deserialize, Deserializer, Serialize};
@@ -92,6 +93,9 @@ pub struct OperationPlanCacheKey {
     pub disable_operation_limits: bool,
 }
 
+#[derive(Debug, Clone)]
+pub struct RequestCacheKey(pub u64);
+
 impl Request {
     /// Create a request object with query source.
     pub fn new(query: impl Into<String>) -> Self {
@@ -108,6 +112,17 @@ impl Request {
             data: Data::default(),
             extensions: Default::default(),
         }
+    }
+
+    /// Cache key used by engine-v2
+    pub fn cache_key(&self) -> RequestCacheKey {
+        // FIXME: There is no guarantee of this being stable nor being cryptographic which we
+        // definitely want for caching. Will replace it later with blake3. Just don't want to make
+        // an even bigger PR. For now it's not great.
+        let mut hasher = DefaultHasher::new();
+        self.operation_plan_cache_key.hash(&mut hasher);
+        self.variables.hash(&mut hasher);
+        RequestCacheKey(hasher.finish())
     }
 
     /// Specify the operation name of the request.

@@ -87,13 +87,12 @@ impl Gateway {
             return None;
         };
         // necessary later for cache scopes and if there is no cache config, there isn't any key.
-        let _cache_config = prepared.computed_cache_config()?;
+        let cache_control = prepared.cache_control()?;
         let mut hasher = DefaultHasher::new();
-        prepared.operation_hash(&mut hasher);
         token.hash(&mut hasher);
         let h = hasher.finish();
 
-        Some(self.env.cache.build_key(&h.to_string()))
+        Some(self.env.cache.build_key(&format!("{}_{h}", cache_control.key.0)))
     }
 }
 

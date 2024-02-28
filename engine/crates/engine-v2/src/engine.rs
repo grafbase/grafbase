@@ -8,7 +8,7 @@ use futures_util::{SinkExt, Stream};
 use schema::Schema;
 
 use crate::{
-    execution::{ExecutionCoordinator, PreparedExecution, Variables},
+    execution::{ExecutionCoordinator, PreparedExecution},
     plan::OperationPlan,
     request::{parse_operation, Operation},
     response::{ExecutionMetadata, GraphqlError, Response},
@@ -92,27 +92,29 @@ impl Engine {
         mut request: engine::Request,
         headers: RequestHeaders,
     ) -> Result<ExecutionCoordinator, Response> {
-        let operation_plan = match self.prepare_operation(&mut request).await {
+        // Injecting the query string if necessary.
+        self.handle_persisted_query(&mut request)
+            .await
+            .map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?;
+
+        let operation_plan = match self.prepare_operation(&request).await {
             Ok(operation) => operation,
             Err(error) => return Err(Response::from_error(error, ExecutionMetadata::default())),
         };
-        let variables = match Variables::from_request(&operation_plan, self.schema.as_ref(), &mut request.variables) {
-            Ok(variables) => variables,
-            Err(errors) => return Err(Response::from_errors(errors, ExecutionMetadata::build(&operation_plan))),
-        };
+
+        let input_values = operation_plan
+            .bind_variables(self.schema.as_ref(), &mut request.variables)
+            .map_err(|errors| Response::from_errors(errors, ExecutionMetadata::build(&operation_plan)))?;
 
         Ok(ExecutionCoordinator::new(
             Arc::clone(self),
-            request.operation_plan_cache_key,
             operation_plan,
-            variables,
+            input_values,
             headers,
         ))
     }
 
-    async fn prepare_operation(&self, request: &mut engine::Request) -> Result<Arc<OperationPlan>, GraphqlError> {
-        self.handle_persisted_query(request).await?;
-
+    async fn prepare_operation(&self, request: &engine::Request) -> Result<Arc<OperationPlan>, GraphqlError> {
         #[cfg(feature = "plan_cache")]
         {
             if let Some(cached) = self.plan_cache.get(&request.operation_plan_cache_key) {
@@ -125,6 +127,7 @@ impl Engine {
             parsed_operation,
             !request.operation_limits_disabled(),
             request.introspection_state(),
+            request,
         )?;
         let prepared = Arc::new(OperationPlan::prepare(&self.schema, bound_operation)?);
         #[cfg(feature = "plan_cache")]

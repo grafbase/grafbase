@@ -1808,7 +1808,6 @@ dependencies = [
  "futures-util",
  "hex",
  "im",
- "indexmap 2.2.2",
  "itertools 0.12.1",
  "lasso",
  "log 0.1.0",
@@ -2724,6 +2723,7 @@ dependencies = [
  "axum",
  "futures",
  "serde",
+ "serde_json",
  "tokio",
 ]
 

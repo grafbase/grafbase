@@ -131,9 +131,9 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
             Ok(None) => {
                 let mut update = ResponseObjectUpdate {
                     id: self.boundary_item.response_object_id,
-                    fields: Vec::with_capacity(ctx.plan[self.id].fields.len()),
+                    fields: Vec::with_capacity(ctx.plan[self.id].field_ids.len()),
                 };
-                for field in &ctx.plan[ctx.plan[self.id].fields] {
+                for field in &ctx.plan[ctx.plan[self.id].field_ids] {
                     if field.wrapping.is_required() {
                         response_part.push_error(GraphqlError {
                             message: ctx.missing_field_error_message(field),

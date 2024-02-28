@@ -10,12 +10,13 @@ use crate::{
     execution::ExecutionContext,
     plan::{PlanWalker, PlanningResult},
     response::{ResponseBoundaryItem, ResponsePart},
-    sources::{graphql::query::OutboundVariables, ExecutionResult, Executor, ExecutorInput, Plan},
+    sources::{ExecutionResult, Executor, ExecutorInput, Plan},
 };
 
 use super::{
     deserialize::{ingest_deserializer_into_response, EntitiesDataSeed},
     query::PreparedFederationEntityOperation,
+    variables::OutboundVariables,
 };
 
 pub(crate) struct FederationEntityExecutionPlan {
@@ -54,7 +55,7 @@ impl FederationEntityExecutionPlan {
             ),
         )]);
         let response_boundary_items = boundary_objects_view.items().clone();
-        let mut variables = OutboundVariables::new(&self.operation.variable_references, ctx.variables);
+        let mut variables = OutboundVariables::new(plan.variables().collect());
         variables
             .inputs
             .push((&self.operation.entities_variable, boundary_objects_view));

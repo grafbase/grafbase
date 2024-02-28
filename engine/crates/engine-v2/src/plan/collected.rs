@@ -37,7 +37,7 @@ pub struct ConditionalSelectionSet {
     // Plan boundary associated with this selection set. If present we need to push the a
     // ResponseObjectBoundaryItem into the ResponsePart everytime for children plans.
     pub maybe_boundary_id: Option<PlanBoundaryId>,
-    pub fields: IdRange<ConditionalFieldId>,
+    pub field_ids: IdRange<ConditionalFieldId>,
     // Selection sets can have multiple __typename fields and eventually type conditions.
     // {
     //     ... on Dog {
@@ -77,7 +77,7 @@ pub struct CollectedSelectionSet {
     // ResponseObjectBoundaryItem into the ResponsePart everytime for children plans.
     pub maybe_boundary_id: Option<PlanBoundaryId>,
     // the fields we point to are sorted by their expected_key
-    pub fields: IdRange<CollectedFieldId>,
+    pub field_ids: IdRange<CollectedFieldId>,
     // Selection sets can have multiple __typename fields.
     // {
     //     myalias: __typename

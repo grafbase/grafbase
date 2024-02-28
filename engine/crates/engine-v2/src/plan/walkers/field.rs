@@ -1,11 +1,11 @@
 use schema::{FieldId, FieldWalker};
 
 use crate::{
-    request::{BoundField, BoundFieldId},
+    request::BoundFieldId,
     response::{ResponseEdge, ResponseKey},
 };
 
-use super::{PlanInputValue, PlanSelectionSet, PlanWalker};
+use super::{PlanFieldArgument, PlanInputValue, PlanSelectionSet, PlanWalker};
 
 pub type PlanField<'a> = PlanWalker<'a, BoundFieldId, FieldId>;
 
@@ -31,15 +31,21 @@ impl<'a> PlanField<'a> {
             .unwrap()
     }
 
-    pub fn arguments(&self) -> impl ExactSizeIterator<Item = PlanInputValue<'a>> + 'a {
-        let walker = *self;
-        let arguments = match self.as_ref() {
-            BoundField::Field { arguments_id, .. } => &self.operation_plan[*arguments_id],
-            _ => self.operation_plan.empty_arguments(),
-        };
-        arguments
-            .iter()
-            .map(move |argument| walker.walk_with(argument, argument.input_value_id))
+    pub fn arguments(self) -> impl ExactSizeIterator<Item = PlanFieldArgument<'a>> + 'a {
+        self.as_ref()
+            .argument_ids()
+            .map(move |id| self.walk_with(id, self.operation_plan[id].input_value_definition_id))
+    }
+
+    pub fn get_arg(&self, name: &str) -> PlanInputValue<'a> {
+        self.arguments()
+            .find_map(|arg| if arg.name() == name { Some(arg.value()) } else { None })
+            .unwrap_or_else(|| self.walk_with(self.operation_plan.input_values.undefined_value_id(), ()))
+    }
+
+    #[track_caller]
+    pub fn get_arg_as<T: serde::Deserialize<'a>>(&self, name: &str) -> T {
+        T::deserialize(self.get_arg(name)).expect("Invalid argument type.")
     }
 }
 
@@ -58,6 +64,10 @@ impl<'a> std::fmt::Debug for PlanField<'a> {
         let response_key = self.response_key_str();
         if response_key != name {
             fmt.field("key", &response_key);
+        }
+        let arguments = self.arguments().collect::<Vec<_>>();
+        if !arguments.is_empty() {
+            fmt.field("arguments", &arguments);
         }
         fmt.field("name", &name)
             .field("selection_set", &self.selection_set())

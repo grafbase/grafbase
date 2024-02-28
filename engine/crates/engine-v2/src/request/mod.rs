@@ -1,7 +1,9 @@
 pub(crate) use bind::BindResult;
+pub use cache_control::OperationCacheControl;
 pub(crate) use engine_parser::types::OperationType;
 pub(crate) use flat::*;
 pub(crate) use ids::*;
+pub(crate) use input_value::*;
 pub(crate) use location::Location;
 pub(crate) use parse::{parse_operation, ParsedOperation};
 pub(crate) use path::QueryPath;
@@ -12,11 +14,13 @@ pub(crate) use walkers::*;
 
 use crate::response::ResponseKeys;
 
-use self::bind::{OperationError, OperationLimitExceededError};
+use self::bind::{OperationError, OperationLimitExceededError, VariableError};
 
 mod bind;
+mod cache_control;
 mod flat;
 pub mod ids;
+mod input_value;
 mod location;
 mod parse;
 mod path;
@@ -37,19 +41,14 @@ pub(crate) struct Operation {
     pub fragment_spreads: Vec<BoundFragmentSpread>,
     pub inline_fragments: Vec<BoundInlineFragment>,
     pub variable_definitions: Vec<VariableDefinition>,
-    pub cache_config: Option<CacheConfig>,
-    pub field_arguments: Vec<BoundFieldArguments>,
+    pub cache_control: Option<OperationCacheControl>,
+    pub field_arguments: Vec<BoundFieldArgument>,
+    pub input_values: OpInputValues,
 }
-
-pub type BoundFieldArguments = Vec<BoundFieldArgument>;
 
 impl Operation {
     pub fn parent_selection_set_id(&self, id: BoundFieldId) -> BoundSelectionSetId {
         self.field_to_parent[usize::from(id)]
-    }
-
-    pub fn empty_arguments(&self) -> &BoundFieldArguments {
-        &self.field_arguments[0]
     }
 
     fn enforce_operation_limits(&self, schema: &Schema) -> Result<(), OperationLimitExceededError> {
@@ -103,6 +102,7 @@ impl Operation {
         unbound_operation: ParsedOperation,
         operation_limits_enabled: bool,
         introspection_state: engine::IntrospectionState,
+        request: &engine::Request,
     ) -> BindResult<Self> {
         let mut operation = bind::bind(schema, unbound_operation)?;
 
@@ -131,7 +131,16 @@ impl Operation {
             };
 
             let selection_set_cache_config = selection_set.cache_config();
-            operation.cache_config = root_cache_config.merge(selection_set_cache_config);
+            operation.cache_control = root_cache_config.merge(selection_set_cache_config).map(
+                |CacheConfig {
+                     max_age,
+                     stale_while_revalidate,
+                 }| OperationCacheControl {
+                    max_age,
+                    key: request.cache_key(),
+                    stale_while_revalidate,
+                },
+            );
         }
 
         Ok(operation)
@@ -149,6 +158,14 @@ impl Operation {
             schema_walker,
             item: (),
         }
+    }
+
+    pub fn bind_variables(
+        &self,
+        schema: &Schema,
+        variables: &mut engine_value::Variables,
+    ) -> Result<OpInputValues, Vec<VariableError>> {
+        bind::bind_variables(schema, self, variables)
     }
 }
 

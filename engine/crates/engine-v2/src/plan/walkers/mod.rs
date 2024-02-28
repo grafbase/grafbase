@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use schema::{FieldId, ObjectId, Schema, SchemaWalker};
 
 use crate::{
-    execution::Variables,
     plan::{CollectedField, FieldType, RuntimeMergedConditionals},
     request::{
-        BoundFieldId, FlatTypeCondition, Operation, OperationWalker, SelectionSetType, VariableDefinitionWalker,
+        BoundFieldId, FlatTypeCondition, OpInputValues, Operation, OperationWalker, SelectionSetType,
+        VariableDefinitionId,
     },
     response::{ResponseEdge, ResponseKey, ResponseKeys, ResponsePart, ResponsePath, SafeResponseKey, SeedContext},
 };
@@ -21,20 +21,24 @@ mod collected;
 mod field;
 mod fragment_spread;
 mod inline_fragment;
+mod input_value;
 mod selection_set;
+mod variable;
 
 pub use argument::*;
 pub use collected::*;
 pub use field::*;
 pub use fragment_spread::*;
 pub use inline_fragment::*;
+pub use input_value::*;
 pub use selection_set::*;
+pub use variable::*;
 
 #[derive(Clone, Copy)]
 pub(crate) struct PlanWalker<'a, Item = (), SchemaItem = ()> {
     pub(super) schema_walker: SchemaWalker<'a, SchemaItem>,
     pub(super) operation_plan: &'a OperationPlan,
-    pub(super) variables: Option<&'a Variables>,
+    pub(super) input_values: Option<&'a OpInputValues>,
     pub(super) plan_id: PlanId,
     pub(super) item: Item,
 }
@@ -92,8 +96,22 @@ impl<'a> PlanWalker<'a> {
         self.walk(self.output().collected_selection_set_id)
     }
 
-    pub fn variable_definition(&self, name: &str) -> Option<VariableDefinitionWalker<'a>> {
-        self.bound_walk_with((), ()).variable_definition(name)
+    pub fn variables(self) -> impl Iterator<Item = PlanVariable<'a>> + 'a {
+        self.operation_plan
+            .variable_definitions
+            .iter()
+            .enumerate()
+            .filter_map(move |(id, variable)| {
+                if variable
+                    .used_by
+                    .iter()
+                    .any(|id| self.operation_plan.bound_field_to_plan_id[usize::from(*id)] == self.plan_id)
+                {
+                    Some(self.walk(VariableDefinitionId::from(id)))
+                } else {
+                    None
+                }
+            })
     }
 
     pub fn new_seed<'out>(self, output: &'out mut ResponsePart) -> SeedContext<'out>
@@ -130,7 +148,7 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
     {
         PlanWalker {
             operation_plan: self.operation_plan,
-            variables: self.variables,
+            input_values: self.input_values,
             plan_id: self.plan_id,
             schema_walker: self.schema_walker,
             item,
@@ -140,7 +158,7 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
     pub fn walk_with<I2, SI2>(&self, item: I2, schema_item: SI2) -> PlanWalker<'a, I2, SI2> {
         PlanWalker {
             operation_plan: self.operation_plan,
-            variables: self.variables,
+            input_values: self.input_values,
             plan_id: self.plan_id,
             schema_walker: self.schema_walker.walk(schema_item),
             item,
@@ -182,7 +200,7 @@ impl<'a> PlanWalker<'a> {
                 }
                 typename_fields.entry(edge.as_response_key().unwrap()).or_insert(*edge);
             }
-            for field in &self[selection_set.fields] {
+            for field in &self[selection_set.field_ids] {
                 if !does_type_condition_apply(&schema, &field.type_condition, object_id) {
                     continue;
                 }
