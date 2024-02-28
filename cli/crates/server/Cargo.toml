@@ -45,7 +45,7 @@ tar.workspace = true
 tempfile = "3"
 thiserror = "1"
 tokio = { workspace = true, features = ["full"] }
-tokio-stream = "0.1"
+tokio-stream = {version = "0.1", features = ["tokio-util"] }
 tokio-util = { version = "0.7", features = ["futures-io", "compat"] }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 tracing = "0.1"
