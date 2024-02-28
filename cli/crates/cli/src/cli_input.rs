@@ -16,8 +16,9 @@ mod schema;
 mod start;
 mod sub_command;
 mod subgraphs;
+mod trust;
 
-pub(crate) use self::check::CheckCommand;
+pub(crate) use self::{check::CheckCommand, trust::TrustCommand};
 pub(crate) use argument_names::{filter_existing_arguments, ArgumentNames};
 pub(crate) use build::BuildCommand;
 pub(crate) use completions::CompletionsCommand;

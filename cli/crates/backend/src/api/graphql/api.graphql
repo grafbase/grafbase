@@ -1161,6 +1161,13 @@ type Mutation {
   ): BranchOperationCheckConfigurationUpdatePayload!
   slackIntegrationCreate(input: SlackIntegrationCreateInput!): SlackNotificationCreatePayload!
   slackNotificationDelete(id: String!): SlackNotificationDeletePayload!
+  trustedDocumentsSubmit(
+    accountSlug: String!
+    projectSlug: String!
+    branchSlug: String!
+    clientName: String!
+    documents: [TrustedDocumentInput!]!
+  ): TrustedDocumentsSubmitPayload!
 }
 
 type NameAlreadyExistsError {
@@ -2337,6 +2344,31 @@ type ResourceStatus {
   percentage: Float
 }
 
+"""
+An occurrence of a trusted document that was submitted again (same id), but with a different document text. This is an error.
+"""
+type ReusedId {
+  """
+  The document id
+  """
+  documentId: String!
+  """
+  The existing document body
+  """
+  existingDocumentText: String!
+  """
+  The different, newly submitted document body
+  """
+  newDocumentText: String!
+}
+
+"""
+Trusted documents that were uploaded again (same id), but with a different document body. This is an error.
+"""
+type ReusedIds {
+  reused: [ReusedId!]!
+}
+
 enum SchemaChangeType {
   SCHEMA_DEFINITION_ADDED
   SCHEMA_DEFINITION_REMOVED
@@ -2768,6 +2800,23 @@ type TokenDoesNotExistError {
 
 type TokenLimitExceededError {
   query: Query!
+}
+
+type TrustedDocument {
+  documentId: String!
+  documentText: String!
+}
+
+input TrustedDocumentInput {
+  documentId: String!
+  documentText: String!
+}
+
+union TrustedDocumentsSubmitPayload = TrustedDocumentsSubmitSuccess | ReusedIds | ProjectDoesNotExistError
+
+type TrustedDocumentsSubmitSuccess {
+  count: Int!
+  documents: [TrustedDocument!]!
 }
 
 enum UnitType {

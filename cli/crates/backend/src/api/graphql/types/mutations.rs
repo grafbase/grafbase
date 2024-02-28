@@ -1,3 +1,5 @@
+pub(crate) mod submit_trusted_documents;
+
 use super::schema;
 
 #[derive(cynic::InputObject, Clone, Debug)]

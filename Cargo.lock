@@ -2578,6 +2578,7 @@ dependencies = [
  "common-types",
  "derivative",
  "dirs",
+ "expect-test",
  "rudderanalytics",
  "serde",
  "serde_json",

@@ -1,8 +1,9 @@
 use clap::Parser;
 
 use super::{
-    ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand, CreateCommand, DevCommand, InitCommand,
-    IntrospectCommand, LinkCommand, LogsCommand, PublishCommand, SchemaCommand, StartCommand, SubgraphsCommand,
+    trust::TrustCommand, ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand, CreateCommand, DevCommand,
+    InitCommand, IntrospectCommand, LinkCommand, LogsCommand, PublishCommand, SchemaCommand, StartCommand,
+    SubgraphsCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -47,6 +48,9 @@ pub enum SubCommand {
     DumpConfig,
     /// Check a graph for validation, composition and breaking change errors
     Check(CheckCommand),
+    /// Submit a trusted documents manifest
+    #[clap(hide = true)]
+    Trust(TrustCommand),
 }
 
 impl SubCommand {
@@ -94,6 +98,7 @@ impl ArgumentNames for SubCommand {
             | SubCommand::Build(_)
             | SubCommand::Completions(_)
             | SubCommand::DumpConfig
+            | SubCommand::Trust(_)
             | SubCommand::Logs(_) => None,
         }
     }
