@@ -183,12 +183,17 @@ pub(crate) async fn install_bun() -> Result<(), BunError> {
                         .map_err(Arc::new)
                         .map_err(BunError::RemoveStaleBunVersion)?;
                 }
-                tokio::fs::hard_link(system_bun_path, &environment.bun_executable_path)
+                // if we can't hard link the system version (can happen due to being on a different volume)
+                // continue to a normal download
+                if tokio::fs::hard_link(system_bun_path, &environment.bun_executable_path)
                     .await
-                    .map_err(Arc::new)
-                    .map_err(BunError::HardLink)?;
-                BUN_INSTALLED_FOR_SESSION.store(true, Ordering::Release);
-                return Ok(());
+                    .is_ok()
+                {
+                    BUN_INSTALLED_FOR_SESSION.store(true, Ordering::Release);
+                    return Ok(());
+                }
+
+                trace!("could not hard-link the system version of bun, continuing to download…");
             }
         }
     }
