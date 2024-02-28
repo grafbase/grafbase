@@ -16,7 +16,7 @@ impl<'a> BoundFieldArgumentWalker<'a> {
 }
 
 impl<'a> Deref for BoundFieldArgumentWalker<'a> {
-    type Target = schema::InputValueWalker<'a>;
+    type Target = schema::InputValueDefinitionWalker<'a>;
 
     fn deref(&self) -> &Self::Target {
         &self.schema_walker

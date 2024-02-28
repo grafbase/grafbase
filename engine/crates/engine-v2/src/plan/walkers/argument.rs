@@ -1,5 +1,5 @@
 use engine_value::ConstValue;
-use schema::{InputValueDefinitionId, InputValueWalker};
+use schema::{InputValueDefinitionId, InputValueDefinitionWalker};
 
 use crate::request::BoundFieldArgument;
 
@@ -33,7 +33,7 @@ impl<'a> PlanInputValue<'a> {
 }
 
 impl<'a> std::ops::Deref for PlanInputValue<'a> {
-    type Target = InputValueWalker<'a>;
+    type Target = InputValueDefinitionWalker<'a>;
 
     fn deref(&self) -> &Self::Target {
         &self.schema_walker

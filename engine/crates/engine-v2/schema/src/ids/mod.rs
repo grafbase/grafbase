@@ -1,5 +1,3 @@
-use std::ops::Range;
-
 /// Isolating ids from the rest to prevent misuse of the NonZeroU32.
 /// They can only be created by From<usize>
 use crate::{
@@ -8,6 +6,9 @@ use crate::{
     Object, Resolver, Scalar, Schema, Type, Union,
 };
 use url::Url;
+
+mod range;
+pub use range::*;
 
 /// Reserving the 4 upper bits for some fun with bit packing. It still leaves 268 million possible values.
 /// And it's way easier to increase that limit if needed that to reserve some bits later!
@@ -38,18 +39,16 @@ macro_rules! id_newtypes {
                 type Output = [$out];
 
                 fn index(&self, range: crate::ids::IdRange<$name>) -> &Self::Output {
-                    let crate::ids::IdRange { start, end } = range;
-                    let start = usize::from(start);
-                    let end = usize::from(end);
+                    let start = usize::from(range.start);
+                    let end = usize::from(range.end);
                     &self.$field[start..end]
                 }
             }
 
             impl std::ops::IndexMut<crate::ids::IdRange<$name>> for $ty {
                 fn index_mut(&mut self, range: crate::ids::IdRange<$name>) -> &mut Self::Output {
-                    let crate::ids::IdRange { start, end } = range;
-                    let start = usize::from(start);
-                    let end = usize::from(end);
+                    let start = usize::from(range.start);
+                    let end = usize::from(range.end);
                     &mut self.$field[start..end]
                 }
             }
@@ -95,74 +94,4 @@ id_newtypes! {
     Schema.strings[StringId] => String | unless "Too many strings",
     FederationDataSource.subgraphs[SubgraphId] => Subgraph | unless "Too many subgraphs",
     Schema.cache_configs[CacheConfigId] => CacheConfig | unless "Too many cache configs",
-}
-
-// Not necessary anymore when Rust stabilize std::iter::Step
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct IdRange<Id: Copy> {
-    pub start: Id,
-    pub end: Id,
-}
-
-impl<Id: From<usize> + Copy> Default for IdRange<Id> {
-    fn default() -> Self {
-        Self {
-            start: Id::from(0),
-            end: Id::from(0),
-        }
-    }
-}
-
-impl<Id> IdRange<Id>
-where
-    Id: From<usize> + Copy,
-    usize: From<Id>,
-{
-    pub fn empty() -> Self {
-        Self::default()
-    }
-
-    pub fn iter(&self) -> impl ExactSizeIterator<Item = Id> {
-        (usize::from(self.start)..usize::from(self.end)).map(Id::from)
-    }
-
-    pub fn get(&self, i: usize) -> Option<Id> {
-        let i = i + usize::from(self.start);
-        if i < usize::from(self.end) {
-            Some(Id::from(i))
-        } else {
-            None
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        usize::from(self.end) - usize::from(self.start)
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-}
-
-impl<Src, Target> From<(Src, usize)> for IdRange<Target>
-where
-    Src: Copy,
-    usize: From<Src>,
-    Target: From<usize> + From<Src> + Copy,
-{
-    fn from((start, len): (Src, usize)) -> Self {
-        IdRange {
-            start: start.into(),
-            end: Target::from(usize::from(start) + len),
-        }
-    }
-}
-
-impl<Id: From<usize> + Copy> From<Range<usize>> for IdRange<Id> {
-    fn from(value: Range<usize>) -> Self {
-        IdRange {
-            start: Id::from(value.start),
-            end: Id::from(value.end),
-        }
-    }
 }

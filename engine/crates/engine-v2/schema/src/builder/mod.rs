@@ -33,9 +33,11 @@ impl SchemaBuilder {
     fn build_schema(mut config: Config) -> Schema {
         let mut builder = Self::initialize(&mut config);
         builder.insert_headers(&mut config);
-        builder.insert_directives(&mut config);
         builder.insert_federation_datasource(&mut config);
+        builder.insert_enums(&mut config);
         builder.insert_graphql_schema(&mut config);
+        // has to be last for easier @inaccessible removal
+        builder.insert_directives(&mut config);
         IntrospectionSchemaBuilder::insert_introspection_fields(&mut builder);
         builder.build()
     }
@@ -70,13 +72,13 @@ impl SchemaBuilder {
                 directives: Vec::new(),
                 input_value_definitions: Vec::new(),
                 enum_values: Vec::new(),
-                headers: Vec::with_capacity(0),
-                strings: Vec::with_capacity(0),
-                resolvers: vec![],
-                definitions: vec![],
+                headers: Vec::new(),
+                strings: Vec::new(),
+                resolvers: Vec::new(),
+                definitions: Vec::new(),
                 data_sources: DataSources::default(),
                 default_headers: Vec::new(),
-                cache_configs: vec![],
+                cache_configs: Vec::new(),
                 auth_config: take(&mut config.auth),
                 operation_limits: take(&mut config.operation_limits),
                 disable_introspection: config.disable_introspection,
@@ -98,14 +100,6 @@ impl SchemaBuilder {
             }
         }
 
-        for (idx, enum_value) in take(&mut config.graph.enum_values).into_iter().enumerate() {
-            if is_inaccessible(&config.graph, enum_value.composed_directives) {
-                builder.enum_value_id_mapper.skip(federated_graph::EnumValueId(idx))
-            } else {
-                builder.schema.enum_values.push(enum_value.into());
-            }
-        }
-
         for (i, field) in config.graph.fields.iter().enumerate() {
             if is_inaccessible(&config.graph, field.composed_directives) {
                 builder.field_id_mapper.skip(federated_graph::FieldId(i))
@@ -115,11 +109,6 @@ impl SchemaBuilder {
         builder.schema.input_objects = take(&mut config.graph.input_objects)
             .into_iter()
             .map(|input_object| builder.convert_input_object(input_object))
-            .collect();
-
-        builder.schema.enums = take(&mut config.graph.enums)
-            .into_iter()
-            .map(|enm| builder.convert_enum(enm))
             .collect();
 
         builder.schema.unions = take(&mut config.graph.unions)
@@ -133,7 +122,7 @@ impl SchemaBuilder {
                     .filter(|object_id| !is_inaccessible(&config.graph, config.graph[*object_id].composed_directives))
                     .map(Into::into)
                     .collect(),
-                composed_directives: union.composed_directives.into(),
+                composed_directives: IdRange::from_start_and_length(union.composed_directives),
             })
             .collect();
 
@@ -151,11 +140,11 @@ impl SchemaBuilder {
                 federated_graph::Directive::Other { name, arguments } => Directive::Other {
                     name: name.into(),
                     arguments: {
-                        let map = arguments
-                            .into_iter()
-                            .map(|(id, value)| (id.into(), self.insert_value(&value)))
-                            .collect();
-                        self.schema.input_values.push_map(map)
+                        let ids = self.schema.input_values.reserve_map(StringId::from(0), arguments.len());
+                        for ((key, value), id) in arguments.into_iter().zip(ids) {
+                            self.schema.input_values[id] = (key.into(), self.insert_value(value));
+                        }
+                        ids
                     },
                 },
             };
@@ -164,23 +153,26 @@ impl SchemaBuilder {
         self.schema.directives = directives;
     }
 
-    fn insert_value(&mut self, value: &federated_graph::Value) -> SchemaInputValue {
+    fn insert_value(&mut self, value: federated_graph::Value) -> SchemaInputValue {
         match value {
-            federated_graph::Value::String(s) => SchemaInputValue::String((*s).into()),
-            federated_graph::Value::Int(i) => SchemaInputValue::BigInt(*i),
-            federated_graph::Value::Float(f) => SchemaInputValue::Float(*f),
-            federated_graph::Value::Boolean(b) => SchemaInputValue::Boolean(*b),
-            federated_graph::Value::EnumValue(id) => SchemaInputValue::UnknownEnumValue((*id).into()),
+            federated_graph::Value::String(s) => SchemaInputValue::String(s.into()),
+            federated_graph::Value::Int(i) => SchemaInputValue::BigInt(i),
+            federated_graph::Value::Float(f) => SchemaInputValue::Float(f),
+            federated_graph::Value::Boolean(b) => SchemaInputValue::Boolean(b),
+            federated_graph::Value::EnumValue(id) => SchemaInputValue::UnknownEnumValue(id.into()),
             federated_graph::Value::Object(fields) => {
-                let map = fields
-                    .iter()
-                    .map(|(id, value)| ((*id).into(), self.insert_value(value)))
-                    .collect();
-                SchemaInputValue::Map(self.schema.input_values.push_map(map))
+                let ids = self.schema.input_values.reserve_map(StringId::from(0), fields.len());
+                for ((key, value), id) in fields.into_vec().into_iter().zip(ids) {
+                    self.schema.input_values[id] = (key.into(), self.insert_value(value));
+                }
+                SchemaInputValue::Map(ids)
             }
             federated_graph::Value::List(l) => {
-                let list = l.iter().map(|value| self.insert_value(value)).collect();
-                SchemaInputValue::List(self.schema.input_values.push_list(list))
+                let ids = self.schema.input_values.reserve_list(l.len());
+                for (value, id) in l.into_vec().into_iter().zip(ids) {
+                    self.schema.input_values[id] = self.insert_value(value);
+                }
+                SchemaInputValue::List(ids)
             }
         }
     }
@@ -232,6 +224,32 @@ impl SchemaBuilder {
             .collect();
     }
 
+    fn insert_enums(&mut self, config: &mut Config) {
+        for (idx, enum_value) in take(&mut config.graph.enum_values).into_iter().enumerate() {
+            if is_inaccessible(&config.graph, enum_value.composed_directives) {
+                self.enum_value_id_mapper.skip(federated_graph::EnumValueId(idx))
+            } else {
+                self.schema.enum_values.push(enum_value.into());
+            }
+        }
+        let mut enums: Vec<Enum> = Vec::with_capacity(config.graph.enums.len());
+        for federated_enum in take(&mut config.graph.enums) {
+            let r#enum = Enum {
+                name: federated_enum.name.into(),
+                description: None,
+                value_ids: {
+                    let range = self.enum_value_id_mapper.map_range(federated_enum.values);
+                    self.schema[range].sort_unstable_by(|a, b| self.strings[a.name].cmp(&self.strings[b.name]));
+                    // The range is still valid even if individual ids don't match anymore.
+                    range
+                },
+                composed_directives: IdRange::from_start_and_length(federated_enum.composed_directives),
+            };
+            enums.push(r#enum);
+        }
+        self.schema.enums = enums;
+    }
+
     fn insert_graphql_schema(&mut self, config: &mut Config) {
         let cache = take(&mut config.cache);
         let graph = &mut config.graph;
@@ -253,7 +271,7 @@ impl SchemaBuilder {
                 name: object.name.into(),
                 description: None,
                 interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
-                composed_directives: object.composed_directives.into(),
+                composed_directives: IdRange::from_start_and_length(object.composed_directives),
                 cache_config,
             });
 
@@ -456,8 +474,8 @@ impl SchemaBuilder {
                         field_set,
                     })
                     .collect(),
-                arguments: input_value_mapper.map_range(field.arguments),
-                composed_directives: field.composed_directives.into(),
+                argument_ids: input_value_mapper.map_range(field.arguments),
+                composed_directives: IdRange::from_start_and_length(field.composed_directives),
                 cache_config: cache
                     .rule(CacheConfigTarget::Field(federated_graph::FieldId(field_id.into())))
                     .map(|config| cache_configs.get_or_insert(config)),
@@ -472,8 +490,8 @@ impl SchemaBuilder {
             let input_object = InputObject {
                 name: input_object.name.into(),
                 description: None,
-                input_fields: input_value_mapper.map_range(input_object.fields),
-                composed_directives: input_object.composed_directives.into(),
+                input_field_ids: input_value_mapper.map_range(input_object.fields),
+                composed_directives: IdRange::from_start_and_length(input_object.composed_directives),
             };
             schema.input_objects.push(input_object);
         }
@@ -506,7 +524,7 @@ impl SchemaBuilder {
                     ty: ScalarType::from_scalar_name(&self.strings[name]),
                     description: None,
                     specified_by_url: None,
-                    composed_directives: scalar.composed_directives.into(),
+                    composed_directives: IdRange::from_start_and_length(scalar.composed_directives),
                 }
             })
             .collect();
@@ -581,17 +599,8 @@ impl SchemaBuilder {
         InputObject {
             name: value.name.into(),
             description: value.description.map(Into::into),
-            input_fields: self.input_value_id_mapper.map_range(value.fields),
-            composed_directives: value.composed_directives.into(),
-        }
-    }
-
-    fn convert_enum(&self, value: federated_graph::Enum) -> Enum {
-        Enum {
-            name: value.name.into(),
-            description: None,
-            values: self.enum_value_id_mapper.map_range(value.values),
-            composed_directives: value.composed_directives.into(),
+            input_field_ids: self.input_value_id_mapper.map_range(value.fields),
+            composed_directives: IdRange::from_start_and_length(value.composed_directives),
         }
     }
 }
@@ -621,7 +630,7 @@ impl From<federated_graph::Object> for Object {
             name: object.name.into(),
             description: None,
             interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
-            composed_directives: object.composed_directives.into(),
+            composed_directives: IdRange::from_start_and_length(object.composed_directives),
             cache_config: Default::default(),
         }
     }
@@ -665,7 +674,7 @@ impl From<federated_graph::Interface> for Interface {
             description: None,
             interfaces: vec![],
             possible_types: vec![],
-            composed_directives: interface.composed_directives.into(),
+            composed_directives: IdRange::from_start_and_length(interface.composed_directives),
         }
     }
 }
@@ -686,7 +695,7 @@ impl From<federated_graph::EnumValue> for EnumValue {
         EnumValue {
             name: enum_value.value.into(),
             description: None,
-            composed_directives: enum_value.composed_directives.into(),
+            composed_directives: IdRange::from_start_and_length(enum_value.composed_directives),
         }
     }
 }
@@ -703,6 +712,8 @@ macro_rules! from_id_newtypes {
     }
 }
 
+// EnumValueId from federated_graph can't be directly
+// converted, we sort them by their name.
 from_id_newtypes! {
     federated_graph::DirectiveId => DirectiveId,
     federated_graph::EnumId => EnumId,

@@ -552,7 +552,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         self.enums.push(crate::Enum {
             name,
             description: None,
-            values,
+            value_ids: values,
             composed_directives: IdRange::empty(),
         });
         let enum_id = EnumId::from(self.enums.len() - 1);
@@ -580,7 +580,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             composed_directives: IdRange::empty(),
             resolvers: vec![],
             provides: vec![],
-            arguments: IdRange::empty(),
+            argument_ids: IdRange::empty(),
             description: None,
             cache_config: None,
         });
@@ -617,7 +617,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
         let end = self.input_value_definitions.len();
 
-        self[field_id].arguments = IdRange {
+        self[field_id].argument_ids = IdRange {
             start: start.into(),
             end: end.into(),
         };

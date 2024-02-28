@@ -29,22 +29,20 @@ impl<'a> InterfaceWalker<'a> {
         }
     }
 
-    pub fn interfaces(&self) -> impl ExactSizeIterator<Item = InterfaceWalker<'a>> + 'a {
-        let walker = *self;
+    pub fn interfaces(self) -> impl ExactSizeIterator<Item = InterfaceWalker<'a>> + 'a {
         self.as_ref()
             .interfaces
             .clone()
             .into_iter()
-            .map(move |id| walker.walk(id))
+            .map(move |id| self.walk(id))
     }
 
-    pub fn possible_types(&self) -> impl ExactSizeIterator<Item = ObjectWalker<'a>> + 'a {
-        let walker = *self;
+    pub fn possible_types(self) -> impl ExactSizeIterator<Item = ObjectWalker<'a>> + 'a {
         self.as_ref()
             .possible_types
             .clone()
             .into_iter()
-            .map(move |id| walker.walk(id))
+            .map(move |id| self.walk(id))
     }
 }
 

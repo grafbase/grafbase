@@ -1,5 +1,5 @@
 use super::SchemaWalker;
-use crate::{InputObjectId, InputValueWalker};
+use crate::{InputObjectId, InputValueDefinitionWalker};
 
 pub type InputObjectWalker<'a> = SchemaWalker<'a, InputObjectId>;
 
@@ -8,12 +8,8 @@ impl<'a> InputObjectWalker<'a> {
         self.names.input_object(self.schema, self.item)
     }
 
-    pub fn input_fields(&self) -> impl ExactSizeIterator<Item = InputValueWalker<'a>> + 'a {
-        let walker = *self;
-        self.schema[self.item]
-            .input_fields
-            .iter()
-            .map(move |id| walker.walk(id))
+    pub fn input_fields(self) -> impl ExactSizeIterator<Item = InputValueDefinitionWalker<'a>> + 'a {
+        self.schema[self.item].input_field_ids.map(move |id| self.walk(id))
     }
 }
 

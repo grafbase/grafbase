@@ -8,9 +8,8 @@ impl<'a> FieldSetWalker<'a> {
         self.item.is_empty()
     }
 
-    pub fn items(&self) -> impl Iterator<Item = FieldSetItemWalker<'a>> + 'a {
-        let walker = self.walk(());
-        self.item.iter().map(move |item| walker.walk(item))
+    pub fn items(self) -> impl Iterator<Item = FieldSetItemWalker<'a>> + 'a {
+        self.item.iter().map(move |item| self.walk(item))
     }
 }
 

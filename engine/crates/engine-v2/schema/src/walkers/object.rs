@@ -29,13 +29,12 @@ impl<'a> ObjectWalker<'a> {
         }
     }
 
-    pub fn interfaces(&self) -> impl ExactSizeIterator<Item = InterfaceWalker<'a>> + 'a {
-        let walker = *self;
+    pub fn interfaces(self) -> impl ExactSizeIterator<Item = InterfaceWalker<'a>> + 'a {
         self.as_ref()
             .interfaces
             .clone()
             .into_iter()
-            .map(move |id| walker.walk(id))
+            .map(move |id| self.walk(id))
     }
 
     pub fn cache_config(&self) -> Option<CacheConfig> {

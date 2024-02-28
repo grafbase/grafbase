@@ -13,18 +13,18 @@ mod scalar;
 mod r#type;
 mod union;
 
-pub use definition::DefinitionWalker;
-pub use field::{FieldResolverWalker, FieldWalker};
-pub use field_set::{FieldSetItemWalker, FieldSetWalker};
-pub use input_object::InputObjectWalker;
-pub use input_value::InputValueWalker;
-pub use interface::InterfaceWalker;
-pub use object::ObjectWalker;
-pub use r#enum::{EnumValueWalker, EnumWalker};
-pub use r#type::TypeWalker;
-pub use resolver::ResolverWalker;
-pub use scalar::ScalarWalker;
-pub use union::UnionWalker;
+pub use definition::*;
+pub use field::*;
+pub use field_set::*;
+pub use input_object::*;
+pub use input_value::*;
+pub use interface::*;
+pub use object::*;
+pub use r#enum::*;
+pub use r#type::*;
+pub use resolver::*;
+pub use scalar::*;
+pub use union::*;
 
 #[derive(Clone, Copy)]
 pub struct SchemaWalker<'a, I = ()> {

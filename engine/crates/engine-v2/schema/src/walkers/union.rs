@@ -8,13 +8,12 @@ impl<'a> UnionWalker<'a> {
         self.names.union(self.schema, self.item)
     }
 
-    pub fn possible_types(&self) -> impl ExactSizeIterator<Item = ObjectWalker<'a>> + 'a {
-        let walker = *self;
+    pub fn possible_types(self) -> impl ExactSizeIterator<Item = ObjectWalker<'a>> + 'a {
         self.as_ref()
             .possible_types
             .clone()
             .into_iter()
-            .map(move |id| walker.walk(id))
+            .map(move |id| self.walk(id))
     }
 }
 

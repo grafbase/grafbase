@@ -53,9 +53,9 @@ input OrderInput {
 }
 
 enum OrderStatus {
-  PLACED
   APPROVED
   DELIVERED
+  PLACED
 }
 
 type Pet {

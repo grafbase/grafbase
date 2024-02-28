@@ -4,6 +4,7 @@
 //! ```ignore
 //! struct Wrapping {
 //!   inner_is_required: bool,
+//!   /// Innermost to outermost.
 //!   list_wrappings: VecDeque<ListWrapping>
 //! }
 //! ```
@@ -61,8 +62,14 @@ impl Wrapping {
     }
 
     /// Innermost to outermost.
-    pub fn list_wrappings(self) -> impl DoubleEndedIterator<Item = ListWrapping> + Copy {
+    pub fn list_wrappings(
+        self,
+    ) -> impl DoubleEndedIterator<Item = ListWrapping> + Copy + ExactSizeIterator<Item = ListWrapping> {
         self
+    }
+
+    pub fn is_nullable(self) -> bool {
+        !self.is_required()
     }
 
     pub fn is_required(self) -> bool {
@@ -124,6 +131,12 @@ impl Iterator for Wrapping {
     }
 }
 
+impl ExactSizeIterator for Wrapping {
+    fn len(&self) -> usize {
+        (self.end() - self.start()) as usize
+    }
+}
+
 impl DoubleEndedIterator for Wrapping {
     fn next_back(&mut self) -> Option<Self::Item> {
         let end = self.end();
@@ -159,6 +172,14 @@ impl Wrapping {
     }
 
     #[must_use]
+    pub fn wrapped_by(self, list_wrapping: ListWrapping) -> Self {
+        match list_wrapping {
+            ListWrapping::RequiredList => self.wrapped_by_required_list(),
+            ListWrapping::NullableList => self.wrapped_by_nullable_list(),
+        }
+    }
+
+    #[must_use]
     pub fn wrapped_by_nullable_list(mut self) -> Self {
         let end = self.end();
         self.inc_end();
@@ -176,6 +197,7 @@ impl Wrapping {
         self
     }
 
+    /// Outermost wrapping
     pub fn pop_list_wrapping(&mut self) -> Option<ListWrapping> {
         self.next_back()
     }
