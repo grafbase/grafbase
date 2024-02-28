@@ -52,6 +52,8 @@ mod error;
 mod events;
 mod subgraph;
 
+use std::net::SocketAddr;
+
 pub use self::{
     error::Error,
     events::{subscribe, FederatedDevEvent},
@@ -76,6 +78,10 @@ pub fn add_subgraph(name: &str, url: &Url, dev_api_port: u16, headers: Vec<(&str
 }
 
 /// Runs the federated dev system.
-pub async fn run(port: u16, expose: bool, config: ConfigWatcher, graph: Option<FederatedGraph>) -> Result<(), Error> {
-    dev::run(port, expose, config, graph).await
+pub async fn run(
+    listen_address: SocketAddr,
+    config: ConfigWatcher,
+    graph: Option<FederatedGraph>,
+) -> Result<(), Error> {
+    dev::run(listen_address, config, graph).await
 }

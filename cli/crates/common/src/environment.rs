@@ -231,6 +231,7 @@ impl Project {
     ///
     /// panics if the Environment object was not previously initialized using `Environment::try_init_with_project()`
     #[must_use]
+    #[track_caller]
     pub fn get() -> &'static Project {
         Environment::get()
             .project
@@ -296,6 +297,7 @@ impl Environment {
     ///
     /// panics if the Environment object was not previously initialized using `Environment::try_init()`
     #[must_use]
+    #[track_caller]
     pub fn get() -> &'static Self {
         match ENVIRONMENT.get() {
             Some(environment) => environment,

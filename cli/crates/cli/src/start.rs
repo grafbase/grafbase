@@ -1,3 +1,8 @@
+mod configuration;
+
+#[allow(unused_imports)]
+pub use configuration::Config;
+
 use crate::cli_input::LogLevelFilters;
 use crate::output::report;
 use crate::CliError;
@@ -5,7 +10,7 @@ use backend::types::{LogEventType, ServerMessage};
 use common::utils::get_thread_panic_message;
 use futures_util::Future;
 use server::{errors::ServerError, types::NestedRequestScopedMessage};
-use std::net::IpAddr;
+use std::net::SocketAddr;
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use std::thread;
@@ -26,8 +31,7 @@ impl MessageGroup {
 }
 
 pub fn start(
-    listen_address: IpAddr,
-    port: u16,
+    listen_address: SocketAddr,
     log_level_filters: LogLevelFilters,
     federated_graph_schema_path: Option<PathBuf>,
     tracing: bool,
@@ -37,9 +41,10 @@ pub fn start(
         // not sure we'll keep building in the start command, so keeping the same behavior as
         // before building UDFs serially.
         let parallelism = NonZeroUsize::new(1).expect("strictly positive");
+
         server::ProductionServer::build(message_sender, parallelism, tracing, federated_graph_schema_path)
             .await?
-            .serve(listen_address, port)
+            .serve(listen_address)
             .await
     })
 }
@@ -90,10 +95,9 @@ async fn log_reporter(mut message_receiver: UnboundedReceiver<ServerMessage>, lo
         match message {
             ServerMessage::Ready {
                 listen_address,
-                port,
                 is_federated: _,
             } => {
-                report::start_prod_server(listen_address, port);
+                report::start_prod_server(listen_address.ip(), listen_address.port());
             }
             ServerMessage::RequestScopedMessage { event_type, request_id } => match event_type {
                 LogEventType::RequestCompleted {

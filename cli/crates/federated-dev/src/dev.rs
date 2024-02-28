@@ -20,7 +20,7 @@ use graphql_composition::FederatedGraph;
 use handlebars::Handlebars;
 use runtime::context::RequestContext as _;
 use serde_json::json;
-use std::time::Duration;
+use std::{net::SocketAddr, time::Duration};
 use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
     watch,
@@ -61,8 +61,7 @@ struct ProxyState {
 }
 
 pub(super) async fn run(
-    port: u16,
-    expose: bool,
+    listen_address: SocketAddr,
     config: ConfigWatcher,
     graph: Option<FederatedGraph>,
 ) -> Result<(), crate::Error> {
@@ -114,18 +113,11 @@ pub(super) async fn run(
         .nest_service("/static", tower_http::services::ServeDir::new(static_asset_path))
         .layer(CorsLayer::permissive())
         .with_state(ProxyState {
-            admin_pathfinder_html: Html(render_pathfinder(port, "/admin")),
+            admin_pathfinder_html: Html(render_pathfinder(listen_address.port(), "/admin")),
             gateway,
         });
 
-    let host = if expose {
-        format!("0.0.0.0:{port}")
-    } else {
-        format!("127.0.0.1:{port}")
-    };
-    let address: std::net::SocketAddr = host.parse().expect("we just defined it above, it _must work_");
-
-    let listener = tokio::net::TcpListener::bind(&address).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(&listen_address).await.unwrap();
     axum::serve(listener, app)
         .await
         .map_err(|error| crate::Error::internal(error.to_string()))?;

@@ -307,8 +307,8 @@ impl Environment {
             "--trace",
             "2",
             "start",
-            "--port",
-            self.port.to_string()
+            "--listen-address",
+            &format!("127.0.0.1:{}", self.port),
         )
         .dir(&self.directory_path);
         let command = command.start().unwrap();
