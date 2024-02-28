@@ -259,7 +259,7 @@ async fn federated_dev(
     let worker_port = get_random_port_unchecked().await?;
     WORKER_PORT.store(worker_port, Ordering::Relaxed);
 
-    let listen_address = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), proxy.port);
+    let listen_address = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), worker_port);
 
     message_sender
         .send(ServerMessage::Ready {

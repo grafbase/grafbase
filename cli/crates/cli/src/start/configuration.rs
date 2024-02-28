@@ -62,23 +62,23 @@ pub struct TlsConfig {
 pub struct OperationLimitsConfig {
     /// Limits the deepest nesting of selection sets in an operation,
     /// including fields in fragments.
-    pub depth: u16,
+    pub depth: Option<u16>,
     /// Limits the number of unique fields included in an operation,
     /// including fields of fragments. If a particular field is included
     /// multiple times via aliases, it's counted only once.
-    pub height: u16,
+    pub height: Option<u16>,
     /// Limits the total number of aliased fields in an operation,
     /// including fields of fragments.
-    pub aliases: u16,
+    pub aliases: Option<u16>,
     /// Limits the number of root fields in an operation, including root
     /// fields in fragments. If a particular root field is included multiple
     /// times via aliases, each usage is counted.
-    pub root_fields: u16,
+    pub root_fields: Option<u16>,
     /// Query complexity takes the number of fields as well as the depth and
     /// any pagination arguments into account. Every scalar field adds 1 point,
     /// every nested field adds 2 points, and every pagination argument multiplies
     /// the nested objects score by the number of records fetched.
-    pub complexity: u16,
+    pub complexity: Option<u16>,
 }
 
 #[cfg(test)]
@@ -461,33 +461,14 @@ mod tests {
         let operation_limits = config.operation_limits.unwrap();
 
         let expected = OperationLimitsConfig {
-            depth: 3,
-            height: 10,
-            aliases: 100,
-            root_fields: 10,
-            complexity: 1000,
+            depth: Some(3),
+            height: Some(10),
+            aliases: Some(100),
+            root_fields: Some(10),
+            complexity: Some(1000),
         };
 
         assert_eq!(expected, operation_limits);
-    }
-
-    #[test]
-    fn operation_limits_with_missing_values() {
-        let input = indoc! {r#"
-            [operation_limits]
-            depth = 3
-            height = 10
-        "#};
-
-        let error = toml::from_str::<Config>(input).unwrap_err();
-
-        insta::assert_snapshot!(&error.to_string(), @r###"
-        TOML parse error at line 1, column 1
-          |
-        1 | [operation_limits]
-          | ^^^^^^^^^^^^^^^^^^
-        missing field `aliases`
-        "###);
     }
 
     #[test]
