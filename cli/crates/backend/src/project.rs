@@ -1,9 +1,9 @@
-use crate::consts::{DEFAULT_DOT_ENV, DEFAULT_SCHEMA_FEDERATED, DEFAULT_SCHEMA_STANDALONE, USER_AGENT};
+use crate::consts::{DEFAULT_DOT_ENV, DEFAULT_SCHEMA_FEDERATED, DEFAULT_SCHEMA_STANDALONE};
 use crate::errors::BackendError;
 use async_compression::tokio::bufread::GzipDecoder;
 use common::consts::{
     GRAFBASE_DIRECTORY_NAME, GRAFBASE_ENV_FILE_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_SDK_PACKAGE_NAME,
-    GRAFBASE_SDK_PACKAGE_VERSION, GRAFBASE_TS_CONFIG_FILE_NAME,
+    GRAFBASE_SDK_PACKAGE_VERSION, GRAFBASE_TS_CONFIG_FILE_NAME, USER_AGENT,
 };
 use common::environment::{self};
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};

@@ -1,7 +1,10 @@
+use common::consts::USER_AGENT;
 use common::environment::Environment;
 use const_format::concatcp;
 use futures_util::StreamExt;
+use hyper::header;
 use reqwest::Client;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::atomic::Ordering;
@@ -18,11 +21,11 @@ pub enum CommandError {
     WorkingDirectoryNotFound(PathBuf),
 
     #[error("working directory '{0}' cannot be read.\nCaused by: {1}")]
-    WorkingDirectoryCannotBeRead(PathBuf, Arc<std::io::Error>),
+    WorkingDirectoryCannotBeRead(PathBuf, Arc<io::Error>),
 
     /// returned if any of the bun commands cannot be spawned
     #[error("bun encountered an error: {0}")]
-    Spawn(Arc<std::io::Error>),
+    Spawn(Arc<io::Error>),
 
     /// returned if any of the bun commands exits unsuccessfully
     #[error("bun failed with output:\n{0}")]
@@ -45,6 +48,24 @@ pub enum BunError {
     /// returned if a spawned task panics
     #[error("{0}")]
     SpawnedTaskPanic(Arc<JoinError>),
+
+    #[error("could not remove a stale verison of bun.\nCaused by: {0}")]
+    RemoveStaleBunVersion(Arc<io::Error>),
+
+    #[error("could not hard-link the system bun version.\nCaused by: {0}")]
+    HardLink(Arc<io::Error>),
+
+    #[error("encountered an error while downloading bun")]
+    DownloadBun,
+
+    #[error("could not create a temporary file")]
+    CreateTemporaryFile,
+
+    #[error("could not extract the bun archive")]
+    ExtractBunArchive,
+
+    #[error("could not set permissions for the bun executable")]
+    SetBunExecutablePermissions,
 }
 
 impl From<JoinError> for BunError {
@@ -69,7 +90,7 @@ const OS: &str = "darwin";
 #[cfg(target_os = "linux")]
 const OS: &str = "linux";
 
-const DOWNLOAD_URL: &str = concatcp!(
+const BUN_DOWNLOAD_URL: &str = concatcp!(
     "https://github.com/oven-sh/bun/releases/download/bun-v",
     BUN_VERSION,
     "/bun-",
@@ -111,7 +132,7 @@ async fn run_command<P: AsRef<Path>>(
         .map_err(CommandError::Spawn)?;
 
     if output.status.success() {
-        Ok(Some(output.stdout).filter(Vec::is_empty))
+        Ok(Some(output.stdout).filter(|output| !output.is_empty()))
     } else {
         Err(CommandError::OutputError(
             String::from_utf8_lossy(&output.stderr).into_owned(),
@@ -137,10 +158,11 @@ pub(crate) async fn install_bun() -> Result<(), BunError> {
     .await?
     .map_err(BunError::Lock)?;
 
-    if let Some(installed_bun_version) = installed_bun_version(&environment.bun_executable_path).await {
-        trace!("Installed bun version (grafbase): {installed_bun_version}");
-        if installed_bun_version == BUN_VERSION {
+    if let Some(installed_bun_version_string) = installed_bun_version(&environment.bun_executable_path).await {
+        trace!("Installed bun version (grafbase): {installed_bun_version_string}");
+        if installed_bun_version_string == BUN_VERSION {
             trace!("bun of the desired version already installed, skipping…");
+            BUN_INSTALLED_FOR_SESSION.store(true, Ordering::Release);
             return Ok(());
         }
     }
@@ -148,19 +170,24 @@ pub(crate) async fn install_bun() -> Result<(), BunError> {
     // if the user happens to have the bun binary installed globally with the exact version we require (not >= but ==, to avoid untested behavior)
     // we hard-link it instead of downloading.
     if let Ok(system_bun_path) = which::which("bun") {
-        if let Some(installed_bun_version) = installed_bun_version(&system_bun_path).await {
-            trace!("Installed bun version (system): {installed_bun_version}");
-            if installed_bun_version == BUN_VERSION {
+        if let Some(installed_bun_version_string) = installed_bun_version(&system_bun_path).await {
+            trace!("Installed bun version (system): {installed_bun_version_string}");
+            if installed_bun_version_string == BUN_VERSION {
                 trace!("bun of the desired version already installed system-wide, hard linking…");
                 tokio::fs::create_dir_all(&environment.bun_installation_path)
                     .await
                     .map_err(|_| BunError::CreateDir(environment.bun_installation_path.clone()))?;
                 if environment.bun_executable_path.exists() {
-                    tokio::fs::remove_file(&environment.bun_executable_path).await.unwrap();
+                    tokio::fs::remove_file(&environment.bun_executable_path)
+                        .await
+                        .map_err(Arc::new)
+                        .map_err(BunError::RemoveStaleBunVersion)?;
                 }
                 tokio::fs::hard_link(system_bun_path, &environment.bun_executable_path)
                     .await
-                    .unwrap();
+                    .map_err(Arc::new)
+                    .map_err(BunError::HardLink)?;
+                BUN_INSTALLED_FOR_SESSION.store(true, Ordering::Release);
                 return Ok(());
             }
         }
@@ -183,36 +210,57 @@ async fn download_bun(environment: &Environment) -> Result<(), BunError> {
     tokio::fs::create_dir_all(&environment.bun_installation_path)
         .await
         .map_err(|_| BunError::CreateDir(environment.bun_installation_path.clone()))?;
+
     if environment.bun_executable_path.exists() {
-        tokio::fs::remove_file(&environment.bun_executable_path).await.unwrap();
+        tokio::fs::remove_file(&environment.bun_executable_path)
+            .await
+            .map_err(Arc::new)
+            .map_err(BunError::RemoveStaleBunVersion)?;
     }
-    let zip_response = Client::new().get(DOWNLOAD_URL).send().await.unwrap();
+
+    let zip_response = Client::new()
+        .get(BUN_DOWNLOAD_URL)
+        .header(header::USER_AGENT, USER_AGENT)
+        .send()
+        .await
+        .map_err(|_| BunError::DownloadBun)?;
+
     if !zip_response.status().is_success() {
-        // return Err(BackendError::DownloadRepoArchive(org_and_repo.to_owned()));
+        return Err(BunError::DownloadBun);
     }
+
     let zip_stream = zip_response
         .bytes_stream()
         .map(|result| result.map_err(|error| std::io::Error::new(std::io::ErrorKind::Other, error)));
+
     let mut zip_reader = tokio_util::io::StreamReader::new(zip_stream);
+
     let (decompressed_file, decompressed_file_path) = tempfile::NamedTempFile::new()
-        .unwrap()
-        // .map_err(BackendError::CouldNotCreateTemporaryFile)?
+        .map_err(|_| BunError::CreateTemporaryFile)?
         .into_parts();
+
     let mut decompressed_file: tokio::fs::File = decompressed_file.into();
-    tokio::io::copy(&mut zip_reader, &mut decompressed_file).await.unwrap();
-    decompressed_file.sync_all().await.unwrap();
+
+    tokio::io::copy(&mut zip_reader, &mut decompressed_file)
+        .await
+        .map_err(|_| BunError::DownloadBun)?;
+
+    decompressed_file.sync_all().await.map_err(|_| BunError::DownloadBun)?;
+
     tokio::task::spawn_blocking(move || {
         let environment = Environment::get();
 
-        let decompressed_file = std::fs::File::open(&decompressed_file_path).unwrap();
+        let decompressed_file =
+            std::fs::File::open(&decompressed_file_path).map_err(|_| BunError::ExtractBunArchive)?;
         // .map_err(BackendError::CouldNotCreateTemporaryFile)?
-        let mut archive = zip::ZipArchive::new(decompressed_file).unwrap();
+        let mut archive = zip::ZipArchive::new(decompressed_file).map_err(|_| BunError::ExtractBunArchive)?;
 
         // the archive contains a directory which has a single file - the bun binary
-        let mut binary = archive.by_index(1).unwrap();
+        let mut binary = archive.by_index(1).map_err(|_| BunError::ExtractBunArchive)?;
 
-        let mut outfile = std::fs::File::create(&environment.bun_executable_path).unwrap();
-        std::io::copy(&mut binary, &mut outfile).unwrap();
+        let mut outfile =
+            std::fs::File::create(&environment.bun_executable_path).map_err(|_| BunError::ExtractBunArchive)?;
+        std::io::copy(&mut binary, &mut outfile).map_err(|_| BunError::ExtractBunArchive)?;
 
         #[cfg(unix)]
         {
@@ -222,15 +270,16 @@ async fn download_bun(environment: &Environment) -> Result<(), BunError> {
                 &environment.bun_executable_path,
                 std::fs::Permissions::from_mode(BUN_EXECUTABLE_PERMISSIONS),
             )
-            .unwrap();
+            .map_err(|_| BunError::SetBunExecutablePermissions)?;
         }
 
         Ok::<_, BunError>(())
     })
     .await
-    .expect("must succeed")
-    .unwrap();
+    .expect("must succeed")?;
+
     drop(decompressed_file);
+
     Ok(())
 }
 

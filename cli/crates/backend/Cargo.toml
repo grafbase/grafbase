@@ -13,7 +13,6 @@ repository.workspace = true
 axum.workspace = true
 async-compression = { version = "0.4", features = ["gzip", "tokio"] }
 chrono = "0.4"
-const_format = { version = "0.2", features = ["rust_1_64"] }
 cynic = { workspace = true, features = ["http-reqwest"] }
 dirs = "5"
 http-cache-reqwest = "0.13"

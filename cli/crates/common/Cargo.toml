@@ -11,8 +11,10 @@ repository.workspace = true
 
 [dependencies]
 chrono = "0.4.34"
+const_format = "0.2.32"
 derivative = "2.2.0"
 dirs = "5"
+expect-test = "1.4.1"
 rudderanalytics = { version = "1", features = [
   "rustls-tls",
 ], default-features = false }
@@ -24,7 +26,6 @@ tokio.workspace = true
 ulid = { version = "1", features = ["serde"] }
 
 common-types = { path = "../../../engine/crates/common-types" }
-expect-test = "1.4.1"
 
 [build-dependencies]
 serde_json.workspace = true
