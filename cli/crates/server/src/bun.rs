@@ -257,7 +257,6 @@ async fn download_bun(environment: &Environment) -> Result<(), BunError> {
 
         let decompressed_file =
             std::fs::File::open(&decompressed_file_path).map_err(|_| BunError::ExtractBunArchive)?;
-        // .map_err(BackendError::CouldNotCreateTemporaryFile)?
         let mut archive = zip::ZipArchive::new(decompressed_file).map_err(|_| BunError::ExtractBunArchive)?;
 
         // the archive contains a directory which has a single file - the bun binary
