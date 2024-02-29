@@ -19,7 +19,7 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: release/b8af78f-2024-01-24
+  ASSETS_VERSION: release/3dd760c-2024-02-29
   PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'
   CARGO_PROFILE_DEV_DEBUG: 0
@@ -229,16 +229,8 @@ jobs:
       matrix:
         archs:
           [
-            {
-              runner: buildjet-8vcpu-ubuntu-2204,
-              target: x86_64-unknown-linux-musl,
-              platform: linux
-            },
-            {
-              runner: buildjet-8vcpu-ubuntu-2204-arm,
-              target: aarch64-unknown-linux-musl,
-              platform: linux-arm
-            }
+            { runner: buildjet-8vcpu-ubuntu-2204, target: x86_64-unknown-linux-musl, platform: linux },
+            { runner: buildjet-8vcpu-ubuntu-2204-arm, target: aarch64-unknown-linux-musl, platform: linux-arm },
           ]
     runs-on: ${{ matrix.archs.runner }}
     steps:
