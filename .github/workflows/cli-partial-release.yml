@@ -146,6 +146,32 @@ jobs:
           (cd aarch64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd cli && npm publish "${PUBLISH_ARGUMENTS[@]}")
 
+      - name: Publish cargo
+        shell: bash
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_ACCESS_TOKEN }}
+        run: |
+          set -e
+          set -o pipefail
+          cd cli/crates
+          retryable() {
+            for i in {1..5}; do
+              $1 && break || echo 'Retrying in 5...'
+              sleep 5
+            done
+            if [ "$i" -ge 5 ]; then
+              echo "Failed to run $1"
+              exit 1
+            fi
+          }
+
+          if [[ $INPUT_PRERELEASE == "false" ]]; then
+            (cd common && retryable 'cargo publish --allow-dirty')
+            (cd server && retryable 'cargo publish --allow-dirty')
+            (cd backend && retryable 'cargo publish --allow-dirty')
+            (cd cli && retryable 'cargo publish --allow-dirty')
+          fi
+
       - name: Github Release
         id: gh-release
         uses: softprops/action-gh-release@v1
