@@ -1,9 +1,12 @@
-use crate::spans::GqlRecorderSpanExt;
 use tracing::{info_span, Span};
+
+use crate::spans::{GqlRecorderSpanExt, GqlResponseAttributes};
 
 /// A span for a graphql request
 #[derive(Default)]
 pub struct GqlRequestSpan<'a> {
+    /// True if the response contains errors
+    has_errors: Option<bool>,
     /// The operation name from the graphql query
     operation_name: Option<&'a str>,
     /// query|mutation|subscription
@@ -37,13 +40,15 @@ impl<'a> GqlRequestSpan<'a> {
             "gql_request",
             "gql.request.operation.name" = self.operation_name,
             "gql.request.operation.type" = self.operation_type,
+            "gql.response.has_errors" = self.has_errors,
             "gql.document" = self.document,
         )
     }
 }
 
 impl GqlRecorderSpanExt for Span {
-    fn record_gql_operation_type<'a>(&self, operation_type: impl Into<Option<&'a str>>) {
-        self.record("gql.request.operation.type", operation_type.into());
+    fn record_gql_response(&self, attributes: GqlResponseAttributes<'_>) {
+        self.record("gql.request.operation.type", attributes.operation_type);
+        self.record("gql.response.has_errors", attributes.has_errors);
     }
 }

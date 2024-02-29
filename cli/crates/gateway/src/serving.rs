@@ -1,18 +1,16 @@
 use std::collections::HashMap;
-use std::time::Duration;
 
 use axum::{
     extract::{Query, State},
     response::IntoResponse,
-    routing::post,
     Router,
+    routing::post,
 };
 use bytes::Bytes;
 use futures_util::future::{join_all, BoxFuture};
 use gateway_core::StreamingFormat;
 use http::{HeaderMap, StatusCode};
 use tokio::sync::mpsc::{self, UnboundedReceiver};
-use tower_http::classify::ServerErrorsFailureClass;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing::Span;
@@ -24,19 +22,7 @@ pub(super) fn router(gateway: Gateway) -> Router {
         .route("/graphql", post(post_graphql).options(options_any).get(get_graphql))
         .with_state(gateway)
         .layer(CorsLayer::permissive())
-        .layer(TraceLayer::new_for_http()
-            .make_span_with(grafbase_tracing::spans::request::MakeHttpRequestSpan)
-            .on_response(|response: &http::Response<_>, _latency: Duration, span: &Span| {
-                use grafbase_tracing::spans::HttpRecorderSpanExt;
-
-                span.record_response(response);
-            })
-            .on_failure(|error: ServerErrorsFailureClass, _latency: Duration, span: &Span| {
-                use grafbase_tracing::spans::HttpRecorderSpanExt;
-
-                span.record_failure(error.to_string().as_str());
-            })
-        )
+        .layer(grafbase_tracing::otel::trace::tower::tower_layer())
 }
 
 async fn post_graphql(State(gateway): State<Gateway>, headers: HeaderMap, body: Bytes) -> crate::Response {

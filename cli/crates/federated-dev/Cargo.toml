@@ -41,6 +41,7 @@ engine-config-builder = { path = "../../../engine/crates/engine-config-builder" 
 engine-v2 = { workspace = true, features = ["plan_cache"] }
 gateway-v2 = { workspace = true, features = ["axum"] }
 grafbase-graphql-introspection = { path = "../graphql-introspection" }
+grafbase-tracing = { package = "tracing", path = "../../../engine/crates/tracing", features = ["tower"] }
 parser-sdl = { path = "../../../engine/crates/parser-sdl" }
 
 [lints]

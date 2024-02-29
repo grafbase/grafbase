@@ -4,15 +4,15 @@ use tracing::{info_span, Span};
 pub struct SubgraphRequestSpan<'a> {
     name: &'a str,
     operation_name: Option<&'a str>,
-    operation_type: &'a str,
+    operation_type: Option<&'a str>,
     document: Option<&'a str>,
 }
 impl<'a> SubgraphRequestSpan<'a> {
-    pub fn new(name: &'a str, operation_type: &'a str) -> Self {
+    pub fn new(name: &'a str) -> Self {
         SubgraphRequestSpan {
             name,
             operation_name: None,
-            operation_type,
+            operation_type: None,
             document: None,
         }
     }
@@ -24,6 +24,11 @@ impl<'a> SubgraphRequestSpan<'a> {
 
     pub fn with_operation_name(mut self, operation_name: impl Into<Option<&'a str>>) -> Self {
         self.operation_name = operation_name.into();
+        self
+    }
+
+    pub fn with_operation_type(mut self, operation_type: impl Into<Option<&'a str>>) -> Self {
+        self.operation_type = operation_type.into();
         self
     }
 

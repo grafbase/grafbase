@@ -13,5 +13,12 @@ pub trait HttpRecorderSpanExt {
 
 /// Extension trait to record gql request attributes
 pub trait GqlRecorderSpanExt {
-    fn record_gql_operation_type<'a>(&self, operation_type: impl Into<Option<&'a str>>);
+    fn record_gql_response(&self, attributes: GqlResponseAttributes<'_>);
+}
+
+/// Wraps attributes of a graphql response intended to be recorded
+#[derive(Default)]
+pub struct GqlResponseAttributes<'a> {
+    pub has_errors: bool,
+    pub operation_type: Option<&'a str>,
 }

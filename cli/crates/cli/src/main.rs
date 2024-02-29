@@ -50,7 +50,7 @@ use output::report;
 use std::{process, thread};
 use toml as _;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{fmt, prelude::*, EnvFilter, reload};
+use tracing_subscriber::{fmt, prelude::*, reload, EnvFilter};
 use watercolor::ShouldColorize;
 
 use mimalloc::MiMalloc;
@@ -81,7 +81,7 @@ fn main() {
 
 fn try_main(args: Args) -> Result<(), CliError> {
     let filter = EnvFilter::builder().parse_lossy(args.log_filter());
-    let (otel_layer, reload_handle) = grafbase_tracing::otel::TracingLayer::new_noop();
+    let (otel_layer, reload_handle) = grafbase_tracing::otel::trace::new_noop_layer();
 
     tracing_subscriber::registry()
         .with(matches!(args.command, SubCommand::Dev(..) | SubCommand::Start(..)).then_some(otel_layer))
@@ -231,7 +231,7 @@ where
             debug!("reloading otel layer");
             // new_batched needs to be called within a tokio runtime context
             rt_handle.spawn(async move {
-                let otel_layer = grafbase_tracing::otel::TracingLayer::new_batched::<S>();
+                let otel_layer = grafbase_tracing::otel::trace::new_batched_layer::<S>();
                 reload_handle
                     .reload(otel_layer)
                     .expect("should successfully reload otel layer");

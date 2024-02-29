@@ -24,7 +24,7 @@ opentelemetry = "0.20"
 opentelemetry_sdk = { version = "0.20", features = ["rt-tokio"] }
 opentelemetry-stdout = { version = "0.1", features = ["trace"] }
 opentelemetry-otlp = { version = "0.13" , features = ["grpc-tonic"] }
-tower-http = { workspace = true, optional = true }
+tower-http = { workspace = true, optional = true, features = ["trace"] }
 
 [features]
 default = []

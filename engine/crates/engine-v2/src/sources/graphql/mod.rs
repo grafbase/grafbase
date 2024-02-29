@@ -20,6 +20,7 @@ mod subscription;
 mod variables;
 
 pub(crate) use federation::*;
+use grafbase_tracing::spans::{GqlRecorderSpanExt, GqlResponseAttributes};
 pub(crate) use subscription::*;
 
 pub(crate) struct GraphqlExecutionPlan {
@@ -84,6 +85,16 @@ pub(crate) struct GraphqlExecutor<'ctx> {
 impl<'ctx> GraphqlExecutor<'ctx> {
     #[tracing::instrument(skip_all, fields(plan_id = %self.plan.id(), federated_subgraph = %self.subgraph.name()))]
     pub async fn execute(mut self) -> ExecutionResult<ResponsePart> {
+        let operation_name = self.plan.operation().as_ref().name.as_ref();
+        let operation_type = self.plan.operation().as_ref().ty.as_ref();
+
+        let subgraph_request_span = grafbase_tracing::spans::subgraph::SubgraphRequestSpan::new(self.subgraph.name())
+            .with_operation_type(operation_type)
+            .with_operation_name(operation_name.map(|s| s.as_str()))
+            .with_document(self.json_body.as_str())
+            .into_span();
+        let _span_guard = subgraph_request_span.enter();
+
         let bytes = self
             .ctx
             .engine
@@ -117,6 +128,11 @@ impl<'ctx> GraphqlExecutor<'ctx> {
             seed_ctx.create_root_seed(&self.response_boundary_item),
             &mut serde_json::Deserializer::from_slice(&bytes),
         );
+
+        subgraph_request_span.record_gql_response(GqlResponseAttributes {
+            has_errors: self.response_part.has_errors(),
+            operation_type: Some(operation_type),
+        });
 
         Ok(self.response_part)
     }
