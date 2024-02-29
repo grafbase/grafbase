@@ -1,7 +1,7 @@
 use super::consts::GRAFBASE_ACCESS_TOKEN_ENV_VAR;
 use super::types::Credentials;
 use super::{consts::CREDENTIALS_FILE, errors::ApiError};
-use crate::consts::USER_AGENT;
+use common::consts::USER_AGENT;
 use common::environment::Environment;
 use reqwest::header::HeaderValue;
 use reqwest::{header, Client};

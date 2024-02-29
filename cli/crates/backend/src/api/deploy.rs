@@ -6,8 +6,7 @@ use super::graphql::mutations::{
     DeploymentCreateArguments, DeploymentCreateInput, DeploymentCreatePayload,
 };
 use super::types::ProjectMetadata;
-use crate::consts::USER_AGENT;
-use common::consts::PROJECT_METADATA_FILE;
+use common::consts::{PROJECT_METADATA_FILE, USER_AGENT};
 use common::environment::Project;
 use cynic::http::ReqwestExt;
 use cynic::{Id, MutationBuilder};

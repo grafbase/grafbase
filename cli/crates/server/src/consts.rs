@@ -4,7 +4,6 @@ pub const CONFIG_PARSER_SCRIPT_ESM: &str = "parse-config.mts";
 pub const DOT_ENV_FILE_NAME: &str = ".env";
 pub const GIT_IGNORE_CONTENTS: &str = "*\n";
 pub const GIT_IGNORE_FILE: &str = ".gitignore";
-pub const MIN_NODE_VERSION: &str = "v18.0.0";
 pub const SCHEMA_PARSER_DIR: &str = "parser";
 pub const WRAPPER_WORKER_JS_PATH: &str = "custom-resolvers/wrapper.js";
 pub const MULTI_WRAPPER_WORKER_JS_PATH: &str = "custom-resolvers/bun-multi-wrapper.ts";

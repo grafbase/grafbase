@@ -32,7 +32,6 @@ mod environment;
 mod error_server;
 mod file_watcher;
 mod introspect_local;
-mod node;
 mod proxy;
 mod servers;
 mod udf_builder;

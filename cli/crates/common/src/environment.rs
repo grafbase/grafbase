@@ -257,11 +257,7 @@ impl Environment {
 
         let bun_installation_path = user_dot_grafbase_path.join(BUN_DIRECTORY_NAME);
 
-        let bun_executable_path = bun_installation_path
-            .join("node_modules")
-            .join("bun")
-            .join("bin")
-            .join("bun");
+        let bun_executable_path = bun_installation_path.join("bun");
 
         let project = Project::try_init(&mut warnings)?;
 
@@ -288,11 +284,7 @@ impl Environment {
 
         let bun_installation_path = user_dot_grafbase_path.join(BUN_DIRECTORY_NAME);
 
-        let bun_executable_path = bun_installation_path
-            .join("node_modules")
-            .join("bun")
-            .join("bin")
-            .join("bun");
+        let bun_executable_path = bun_installation_path.join("bun");
 
         ENVIRONMENT
             .set(Self {
