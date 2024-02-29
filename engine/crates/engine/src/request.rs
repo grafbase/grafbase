@@ -299,6 +299,11 @@ impl BatchRequest {
         }
         self
     }
+
+    /// True, if the request contains multiple operations
+    pub fn has_multiple_operations(&self) -> bool {
+        matches!(self, Self::Batch(_))
+    }
 }
 
 fn deserialize_non_empty_vec<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>

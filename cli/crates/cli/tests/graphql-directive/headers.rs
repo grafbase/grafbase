@@ -63,6 +63,8 @@ async fn test_header_forwarding() {
           value: "yes"
         - name: accept
           value: "*/*"
+        - name: accept-encoding
+          value: gzip
         - name: content-length
           value: "96"
     "###);

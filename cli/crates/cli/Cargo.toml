@@ -51,8 +51,8 @@ federated-dev = { path = "../federated-dev" }
 graphql-introspection = { package = "grafbase-graphql-introspection", path = "../graphql-introspection" }
 server = { package = "grafbase-local-server", path = "../server", version = "0.60.0" }
 toml = "0.8.10"
-tower-http = { workspace = true, features = ["cors"]}
-http.workspace = true
+
+production-server = { path = "../production-server" }
 ascii = { version = "1.1.0", features = ["serde"] }
 
 [dev-dependencies]

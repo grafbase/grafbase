@@ -1,3 +1,4 @@
+use crate::{dev::gateway_nanny::GatewayNanny, ConfigWatcher};
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::GraphQL;
 use axum::{
@@ -8,14 +9,15 @@ use axum::{
     Json,
 };
 use common::environment::Environment;
-
 use engine::BatchRequest;
 use futures_util::{
     future::{join_all, BoxFuture},
     stream,
 };
-use gateway_v2::streaming::{encode_stream_response, StreamingFormat};
-
+use gateway_v2::{
+    local_server::{WebsocketAccepter, WebsocketService},
+    streaming::{encode_stream_response, StreamingFormat},
+};
 use graphql_composition::FederatedGraph;
 use handlebars::Handlebars;
 use runtime::context::RequestContext as _;
@@ -26,14 +28,6 @@ use tokio::sync::{
     watch,
 };
 use tower_http::cors::CorsLayer;
-
-use crate::{
-    dev::{
-        gateway_nanny::GatewayNanny,
-        websockets::{WebsocketAccepter, WebsocketService},
-    },
-    ConfigWatcher,
-};
 
 use self::{
     batch_response::BatchResponse,
@@ -50,7 +44,6 @@ mod composer;
 mod gateway_nanny;
 mod refresher;
 mod ticker;
-mod websockets;
 
 const REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 
@@ -190,11 +183,13 @@ async fn handle_engine_request(
         .and_then(StreamingFormat::from_accept_header);
 
     let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
+
     let ctx = RequestContext {
         ray_id: ulid::Ulid::new().to_string(),
         headers,
         wait_until_sender: sender,
     };
+
     let ray_id = ctx.ray_id.clone();
 
     if matches!(request, BatchRequest::Batch(_)) && streaming_format.is_some() {

@@ -115,6 +115,7 @@ tracing-futures = "0.2"
 async-runtime = { path = "engine/crates/async-runtime" }
 common-types = { path = "engine/crates/common-types" }
 dataloader = { path = "engine/crates/dataloader", features = ["tracing"] }
+engine-config-builder = { path = "engine/crates/engine-config-builder" }
 engine-parser = { path = "engine/crates/engine/parser" }
 engine = { path = "engine/crates/engine" }
 engine-v2 = { path = "engine/crates/engine-v2" }

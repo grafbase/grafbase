@@ -32,7 +32,6 @@ thiserror = "1.0.57"
 tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
-tower-service.workspace = true
 ulid.workspace = true
 url = "2.5.0"
 
@@ -40,7 +39,7 @@ common = { package = "grafbase-local-common", path = "../common", version = "0.6
 engine = { path = "../../../engine/crates/engine" }
 engine-config-builder = { path = "../../../engine/crates/engine-config-builder" }
 engine-v2 = { workspace = true, features = ["plan_cache"] }
-gateway-v2.workspace = true
+gateway-v2 = { workspace = true, features = ["axum"] }
 grafbase-graphql-introspection = { path = "../graphql-introspection" }
 parser-sdl = { path = "../../../engine/crates/parser-sdl" }
 
