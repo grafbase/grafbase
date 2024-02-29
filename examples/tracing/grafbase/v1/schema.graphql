@@ -1,0 +1,9 @@
+extend schema @auth(
+    rules: [
+        { allow: public, operations: [introspection] }
+    ]
+)
+
+extend type Query {
+    instruct(prompt: String!): String! @resolver(name: "test")
+}

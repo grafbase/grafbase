@@ -1,13 +1,13 @@
 version: "3"
 services:
-  # grafbase:
-  #   build:
-  #     context: ./grafbase
-  #   environment:
-  #     - ENDPOINT=otel-collector:4317
-  #   restart: always
-  #   depends_on:
-  #     - otel-collector#
+  #grafbase:
+  #  build:
+  #    context: ./grafbase
+  #  environment:
+  #    - ENDPOINT=otel-collector:4317
+  #  restart: always
+  #  depends_on:
+  #    - otel-collector
 
   otel-collector:
     image: otel/opentelemetry-collector:0.86.0

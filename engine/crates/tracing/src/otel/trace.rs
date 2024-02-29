@@ -5,7 +5,7 @@ use opentelemetry_sdk::export::trace::SpanExporter;
 use opentelemetry_sdk::runtime::RuntimeChannel;
 use opentelemetry_sdk::trace::{BatchConfig, BatchMessage, BatchSpanProcessor, RandomIdGenerator, Sampler, Tracer};
 use opentelemetry_sdk::Resource;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::Subscriber;
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::registry::LookupSpan;
@@ -50,13 +50,14 @@ pub fn new_batched_layer<S>() -> OpenTelemetryLayer<S, Tracer>
 where
     S: Subscriber + for<'span> LookupSpan<'span>,
 {
+    let random_name = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().subsec_nanos();
     let config = opentelemetry_sdk::trace::config()
         .with_sampler(Sampler::AlwaysOn)
         .with_id_generator(RandomIdGenerator::default())
         .with_max_events_per_span(64)
         .with_max_attributes_per_span(16)
         .with_max_events_per_span(16)
-        .with_resource(Resource::new(vec![KeyValue::new("service.name", "my-service-name")]));
+        .with_resource(Resource::new(vec![KeyValue::new("service.name", random_name.to_string())]));
 
     let builder = opentelemetry_sdk::trace::TracerProvider::builder().with_config(config);
     let builder = [

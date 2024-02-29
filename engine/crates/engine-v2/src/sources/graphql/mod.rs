@@ -93,7 +93,6 @@ impl<'ctx> GraphqlExecutor<'ctx> {
             .with_operation_name(operation_name.map(|s| s.as_str()))
             .with_document(self.json_body.as_str())
             .into_span();
-        let _span_guard = subgraph_request_span.enter();
 
         let bytes = self
             .ctx
