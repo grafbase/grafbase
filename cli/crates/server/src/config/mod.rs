@@ -18,10 +18,8 @@ use tokio::process::Command;
 
 use crate::{
     atomics::REGISTRY_PARSED_EPOCH_OFFSET_MILLIS,
-    consts::{
-        CONFIG_PARSER_SCRIPT_CJS, CONFIG_PARSER_SCRIPT_ESM, ENTRYPOINT_SCRIPT_FILE_NAME, SCHEMA_PARSER_DIR,
-        TS_NODE_SCRIPT_PATH,
-    },
+    bun::install_bun,
+    consts::{CONFIG_PARSER_SCRIPT_CJS, CONFIG_PARSER_SCRIPT_ESM, ENTRYPOINT_SCRIPT_FILE_NAME, SCHEMA_PARSER_DIR},
     node::validate_node,
     servers::EnvironmentName,
 };
@@ -61,6 +59,9 @@ pub(crate) async fn build_config(
 ) -> Result<Config, ConfigError> {
     trace!("parsing schema");
     let project = Project::get();
+
+    validate_node().await?;
+    install_bun(Environment::get()).await?;
 
     let schema_path = match project.schema_path.location() {
         SchemaLocation::TsConfig(ref ts_config_path) => {
@@ -153,28 +154,14 @@ async fn parse_and_generate_config_from_ts(
             ModuleType::Esm => CONFIG_PARSER_SCRIPT_ESM,
         });
 
-    let ts_node_path = environment.user_dot_grafbase_path.join(TS_NODE_SCRIPT_PATH);
+    let args = &[
+        "run".to_owned(),
+        config_parser_path.to_string_lossy().to_string(),
+        ts_config_path.to_string_lossy().to_string(),
+        generated_config_path.to_string_lossy().to_string(),
+    ];
 
-    let args = match module_type {
-        ModuleType::CommonJS => vec![
-            ts_node_path.to_string_lossy().to_string(),
-            config_parser_path.to_string_lossy().to_string(),
-            ts_config_path.to_string_lossy().to_string(),
-            generated_config_path.to_string_lossy().to_string(),
-        ],
-        ModuleType::Esm => vec![
-            ts_node_path.to_string_lossy().to_string(),
-            "--compilerOptions".to_string(),
-            r#"{"module": "esnext", "moduleResolution": "node", "esModuleInterop": true}"#.to_string(),
-            "--esm".to_string(),
-            config_parser_path.to_string_lossy().to_string(),
-            ts_config_path.to_string_lossy().to_string(),
-            generated_config_path.to_string_lossy().to_string(),
-        ],
-    };
-
-    validate_node().await?;
-    let node_command = Command::new("node")
+    let bun_command = Command::new(&environment.bun_executable_path)
         .args(args)
         .env(
             "GRAFBASE_ENV",
@@ -188,7 +175,7 @@ async fn parse_and_generate_config_from_ts(
         .stdout(Stdio::piped())
         .spawn()?;
 
-    let output = node_command.wait_with_output().await?;
+    let output = bun_command.wait_with_output().await?;
 
     if !output.status.success() {
         let msg = String::from_utf8_lossy(&output.stderr);

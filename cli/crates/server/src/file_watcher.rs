@@ -1,6 +1,5 @@
 use crate::consts::DOT_ENV_FILE_NAME;
 use crate::errors::ServerError;
-use crate::udf_builder::LOCK_FILE_NAMES;
 use common::consts::{
     DOT_GRAFBASE_DIRECTORY_NAME, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME,
 };
@@ -15,6 +14,20 @@ use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_stream::wrappers::BroadcastStream;
 
 const FILE_WATCHER_INTERVAL: Duration = Duration::from_secs(1);
+
+#[derive(Clone, Copy, Debug, strum::Display, strum::EnumString)]
+#[strum(serialize_all = "lowercase")]
+pub enum JavaScriptPackageManager {
+    Npm,
+    Pnpm,
+    Yarn,
+}
+
+pub(crate) const LOCK_FILE_NAMES: &[(&str, JavaScriptPackageManager)] = &[
+    ("package-lock.json", JavaScriptPackageManager::Npm),
+    ("pnpm-lock.yaml", JavaScriptPackageManager::Pnpm),
+    ("yarn.lock", JavaScriptPackageManager::Yarn),
+];
 
 pub struct Watcher {
     join_set: tokio::task::JoinSet<Result<(), ServerError>>,

@@ -181,6 +181,8 @@ pub struct Environment {
     pub warnings: Vec<Warning>,
     /// the path within `$HOME/.grafbase` where bun gets installed
     pub bun_installation_path: PathBuf,
+    /// the path within `$HOME/.grafbase` where the bun executable is located
+    pub bun_executable_path: PathBuf,
 }
 
 /// static singleton for the environment struct
@@ -255,6 +257,12 @@ impl Environment {
 
         let bun_installation_path = user_dot_grafbase_path.join(BUN_DIRECTORY_NAME);
 
+        let bun_executable_path = bun_installation_path
+            .join("node_modules")
+            .join("bun")
+            .join("bin")
+            .join("bun");
+
         let project = Project::try_init(&mut warnings)?;
 
         ENVIRONMENT
@@ -263,6 +271,7 @@ impl Environment {
                 user_dot_grafbase_path,
                 warnings,
                 bun_installation_path,
+                bun_executable_path,
             })
             .expect("cannot set environment twice");
 
@@ -279,12 +288,19 @@ impl Environment {
 
         let bun_installation_path = user_dot_grafbase_path.join(BUN_DIRECTORY_NAME);
 
+        let bun_executable_path = bun_installation_path
+            .join("node_modules")
+            .join("bun")
+            .join("bin")
+            .join("bun");
+
         ENVIRONMENT
             .set(Self {
                 project: None,
                 user_dot_grafbase_path,
                 warnings: Vec::new(),
                 bun_installation_path,
+                bun_executable_path,
             })
             .expect("cannot set environment twice");
 
