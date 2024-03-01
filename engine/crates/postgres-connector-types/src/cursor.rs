@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use search_protocol::query::GraphqlCursor;
+use graphql_cursor::GraphqlCursor;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 

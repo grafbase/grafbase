@@ -21,7 +21,7 @@ flexbuffers.workspace = true
 futures.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
-search-protocol.workspace = true
+graphql-cursor.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

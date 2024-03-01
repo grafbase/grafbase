@@ -12,7 +12,7 @@
 use engine_parser::types::SelectionSet;
 use engine_value::{ConstValue, Name};
 use graph_entities::ConstraintID;
-use runtime::search::GraphqlCursor;
+use graphql_cursor::GraphqlCursor;
 use ulid::Ulid;
 
 use self::{

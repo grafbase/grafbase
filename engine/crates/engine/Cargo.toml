@@ -64,9 +64,10 @@ dataloader.workspace = true
 engine-derive = { path = "derive", version = "3" }
 engine-value = { path = "value", version = "3" }
 engine-parser = { path = "parser", version = "3" }
-runtime.workspace = true
 graph-entities.workspace = true
+graphql-cursor.workspace = true
 log = { path = "../log" }
+runtime.workspace = true
 
 # Feature optional dependencies
 rust_decimal = { version = "1" }

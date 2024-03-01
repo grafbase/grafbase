@@ -1,4 +1,4 @@
-use runtime::search::GraphqlCursor;
+use graphql_cursor::GraphqlCursor;
 
 use super::{cursor::AtlasCursor, input::first, JsonMap};
 use crate::{

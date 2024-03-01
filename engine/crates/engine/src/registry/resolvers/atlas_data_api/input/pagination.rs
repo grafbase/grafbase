@@ -1,4 +1,4 @@
-use runtime::search::GraphqlCursor;
+use graphql_cursor::GraphqlCursor;
 use serde_json::{json, Value};
 
 use crate::{

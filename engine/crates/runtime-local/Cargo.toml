@@ -24,9 +24,7 @@ serde.workspace = true
 serde_json.workspace  = true
 
 runtime.workspace = true
-graph-entities.workspace = true
 log = { workspace = true, features = ["with-worker"] }
-search-protocol.workspace = true
 postgres-connector-types = { path = "../postgres-connector-types" }
 
 reqwest = { workspace = true, features = [
