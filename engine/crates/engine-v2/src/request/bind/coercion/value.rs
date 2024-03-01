@@ -4,8 +4,9 @@ use schema::{
     Type, Wrapping,
 };
 
-use crate::request::{bind::Binder, BoundFieldId, Location, OpInputValue, OpInputValueId};
+use crate::request::{BoundFieldId, Location, OpInputValue, OpInputValueId};
 
+use super::super::Binder;
 use super::{
     error::InputValueError,
     path::{value_path_to_string, ValuePathSegment},

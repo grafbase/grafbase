@@ -7,10 +7,9 @@ use schema::{FieldId, FieldResolverWalker, FieldSet, FieldSetItem, ResolverId, R
 
 use super::{logic::PlanningLogic, planner::Planner, PlanningError, PlanningResult};
 use crate::{
-    plan::{ParentToChildEdge, PlanId},
+    plan::{flatten_selection_sets, EntityType, FlatField, FlatSelectionSet, ParentToChildEdge, PlanId},
     request::{
-        BoundField, BoundFieldId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, EntityType, FlatField,
-        FlatSelectionSet, QueryPath, SelectionSetType,
+        BoundField, BoundFieldId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, QueryPath, SelectionSetType,
     },
     response::{ReadField, ReadSelectionSet, UnpackedResponseEdge},
 };
@@ -375,7 +374,7 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
                         .iter()
                         .filter_map(|id| self.operation[*id].selection_set_id())
                         .collect();
-                    let flat_selection_set = self.walker().flatten_selection_sets(subselection_set_ids);
+                    let flat_selection_set = flatten_selection_sets(self.schema, &self.operation, subselection_set_ids);
                     let fields = self.create_boundary_fields(flat_selection_set)?;
                     boundary_field.lazy_subselection = Some(fields)
                 }

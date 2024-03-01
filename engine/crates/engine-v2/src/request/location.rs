@@ -1,6 +1,6 @@
 use std::fmt;
 
-use super::bind::OperationError;
+use super::bind::BindError;
 
 // 65 KB for query without any new lines is pretty huge. If a user ever has a QueryTooBig error
 // we'll increase it to u32. But for now it's just wasted memory.
@@ -34,18 +34,18 @@ impl fmt::Display for Location {
 }
 
 impl TryFrom<engine_parser::Pos> for Location {
-    type Error = OperationError;
+    type Error = BindError;
 
     fn try_from(value: engine_parser::Pos) -> Result<Self, Self::Error> {
         Ok(Self::new(
             value
                 .line
                 .try_into()
-                .map_err(|_| OperationError::QueryTooBig(format!("Too many lines ({})", value.line)))?,
+                .map_err(|_| BindError::QueryTooBig(format!("Too many lines ({})", value.line)))?,
             value
                 .column
                 .try_into()
-                .map_err(|_| OperationError::QueryTooBig(format!("Too many columns ({})", value.column)))?,
+                .map_err(|_| BindError::QueryTooBig(format!("Too many columns ({})", value.column)))?,
         ))
     }
 }

@@ -1,30 +1,27 @@
-pub(crate) use bind::BindResult;
+pub(crate) use bind::bind_variables;
 pub use cache_control::OperationCacheControl;
 pub(crate) use engine_parser::types::OperationType;
-pub(crate) use flat::*;
 pub(crate) use ids::*;
 pub(crate) use input_value::*;
 pub(crate) use location::Location;
-pub(crate) use parse::{parse_operation, ParsedOperation};
 pub(crate) use path::QueryPath;
-use schema::{CacheConfig, Merge, ObjectId, Schema, SchemaWalker};
+use schema::{ObjectId, SchemaWalker};
 pub(crate) use selection_set::*;
 pub(crate) use variable::VariableDefinition;
 pub(crate) use walkers::*;
 
 use crate::response::ResponseKeys;
 
-use self::bind::{OperationError, OperationLimitExceededError, VariableError};
-
 mod bind;
+mod build;
 mod cache_control;
-mod flat;
 pub mod ids;
 mod input_value;
 mod location;
 mod parse;
 mod path;
 mod selection_set;
+mod validation;
 mod variable;
 mod walkers;
 
@@ -47,103 +44,22 @@ pub(crate) struct Operation {
 }
 
 impl Operation {
+    pub fn is_query(&self) -> bool {
+        matches!(self.ty, OperationType::Query)
+    }
+
     pub fn parent_selection_set_id(&self, id: BoundFieldId) -> BoundSelectionSetId {
         self.field_to_parent[usize::from(id)]
     }
 
-    fn enforce_operation_limits(&self, schema: &Schema) -> Result<(), OperationLimitExceededError> {
-        let selection_set = self.walker_with(schema.walker()).walk(self.root_selection_set_id);
-
-        if let Some(depth_limit) = schema.operation_limits.depth {
-            let max_depth = selection_set.max_depth();
-            if max_depth > depth_limit {
-                return Err(OperationLimitExceededError::QueryTooDeep);
-            }
-        }
-
-        if let Some(max_alias_count) = schema.operation_limits.aliases {
-            let alias_count = selection_set.alias_count();
-            if alias_count > max_alias_count {
-                return Err(OperationLimitExceededError::QueryContainsTooManyAliases);
-            }
-        }
-
-        if let Some(max_root_field_count) = schema.operation_limits.root_fields {
-            let root_field_count = selection_set.root_field_count();
-            if root_field_count > max_root_field_count {
-                return Err(OperationLimitExceededError::QueryContainsTooManyRootFields);
-            }
-        }
-
-        if let Some(max_height) = schema.operation_limits.height {
-            let height = selection_set.height(&mut Default::default());
-            if height > max_height {
-                return Err(OperationLimitExceededError::QueryTooHigh);
-            }
-        }
-
-        if let Some(max_complexity) = schema.operation_limits.complexity {
-            let complexity = selection_set.complexity();
-            if complexity > max_complexity {
-                return Err(OperationLimitExceededError::QueryTooComplex);
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Builds an `Operation` by binding unbound operation to a schema and configuring its non functional requirements
-    /// like caching, auth, ....
-    ///
-    /// All field names are mapped to their actual field id in the schema and respective configuration.
-    /// At this stage the operation might not be resolvable but it should make sense given the schema types.
-    pub fn build(
-        schema: &Schema,
-        unbound_operation: ParsedOperation,
-        operation_limits_enabled: bool,
-        introspection_state: engine::IntrospectionState,
-        request: &engine::Request,
-    ) -> BindResult<Self> {
-        let mut operation = bind::bind(schema, unbound_operation)?;
-
-        if operation_limits_enabled {
-            operation
-                .enforce_operation_limits(schema)
-                .map_err(OperationError::OperationLimitExceeded)?;
-        }
-
-        if operation.ty == OperationType::Query {
-            let root_cache_config = schema[operation.root_object_id]
-                .cache_config
-                .map(|cache_config_id| schema[cache_config_id]);
-            let selection_set = operation
-                .walker_with(schema.walker())
-                .walk(operation.root_selection_set_id);
-
-            match introspection_state {
-                engine::IntrospectionState::ForceEnabled => {}
-                engine::IntrospectionState::ForceDisabled => detect_introspection(&selection_set)?,
-                engine::IntrospectionState::UserPreference => {
-                    if schema.disable_introspection {
-                        detect_introspection(&selection_set)?;
-                    }
-                }
-            };
-
-            let selection_set_cache_config = selection_set.cache_config();
-            operation.cache_control = root_cache_config.merge(selection_set_cache_config).map(
-                |CacheConfig {
-                     max_age,
-                     stale_while_revalidate,
-                 }| OperationCacheControl {
-                    max_age,
-                    key: request.cache_key(),
-                    stale_while_revalidate,
-                },
-            );
-        }
-
-        Ok(operation)
+    pub fn walk_selection_set<'op, 'schema>(
+        &'op self,
+        schema_walker: SchemaWalker<'schema, ()>,
+    ) -> BoundSelectionSetWalker<'op>
+    where
+        'schema: 'op,
+    {
+        self.walker_with(schema_walker).walk(self.root_selection_set_id)
     }
 
     pub fn walker_with<'op, 'schema, SI>(
@@ -159,19 +75,4 @@ impl Operation {
             item: (),
         }
     }
-
-    pub fn bind_variables(
-        &self,
-        schema: &Schema,
-        variables: &mut engine_value::Variables,
-    ) -> Result<OpInputValues, Vec<VariableError>> {
-        bind::bind_variables(schema, self, variables)
-    }
-}
-
-fn detect_introspection(selection_set: &OperationWalker<'_, BoundSelectionSetId>) -> Result<(), OperationError> {
-    if let Some(location) = selection_set.find_introspection_field_location() {
-        return Err(OperationError::IntrospectionWhenDisabled { location });
-    }
-    Ok(())
 }

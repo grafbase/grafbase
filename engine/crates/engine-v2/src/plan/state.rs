@@ -2,12 +2,11 @@ use std::sync::Arc;
 
 use schema::Schema;
 
-use crate::request::FlatTypeCondition;
 use crate::response::{ResponseBoundaryItem, ResponseBuilder};
 
 use crate::plan::{OperationPlan, PlanBoundaryId};
 
-use super::PlanId;
+use super::{FlatTypeCondition, PlanId};
 
 /// Holds the current state of the operation execution:
 /// - which plans have been executed
