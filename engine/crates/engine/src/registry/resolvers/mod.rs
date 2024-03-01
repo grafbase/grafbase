@@ -10,8 +10,6 @@
 //! A Resolver always know how to apply the associated transformers.
 
 use engine_parser::types::SelectionSet;
-use engine_value::{ConstValue, Name};
-use graph_entities::ConstraintID;
 use graphql_cursor::GraphqlCursor;
 use ulid::Ulid;
 
@@ -24,7 +22,7 @@ use self::{
     transformer::Transformer,
 };
 pub use self::{introspection::IntrospectionResolver, resolved_value::ResolvedValue};
-use super::{type_kinds::OutputType, Constraint, MetaField};
+use super::{type_kinds::OutputType, MetaField};
 use crate::{Context, ContextExt, ContextField, Error, RequestHeaders};
 
 pub mod atlas_data_api;
@@ -318,37 +316,4 @@ pub enum Resolver {
     FederationEntitiesResolver,
     Introspection(IntrospectionResolver),
     Join(JoinResolver),
-}
-
-impl Constraint {
-    /// Extracts a ConstraintID for this constraint from the corresponding field
-    /// of a `*ByInput` type.
-    ///
-    /// If the constraint has one field we expect the value to just be a string.
-    /// If the constraint has multiple it should be an Object of fieldName: value
-    pub fn extract_id_from_by_input_field(&self, ty: &str, value: &ConstValue) -> Option<ConstraintID<'static>> {
-        let fields = self.fields();
-        if fields.len() == 1 {
-            return Some(ConstraintID::new(
-                ty.to_string(),
-                vec![(fields[0].clone(), value.clone().into_json().ok()?)],
-            ));
-        }
-
-        let ConstValue::Object(by_fields) = value else {
-            return None;
-        };
-
-        let constraint_fields = fields
-            .into_iter()
-            .map(|field| {
-                Some((
-                    field.clone(),
-                    by_fields.get(&Name::new(field))?.clone().into_json().ok()?,
-                ))
-            })
-            .collect::<Option<Vec<_>>>()?;
-
-        Some(ConstraintID::new(ty.to_string(), constraint_fields))
-    }
 }

@@ -1,10 +1,12 @@
-use graph_entities::NodeID;
+#![allow(unused_imports)]
+
 use runtime::search::{QueryError, Request, Response, SearchEngine, SearchEngineInner};
 use search_protocol::query::{Query, QueryRequest, QueryResponse, QueryResponseDiscriminants, QueryResponseParameters};
 
 use crate::bridge::Bridge;
 
 pub struct LocalSearchEngine {
+    #[allow(dead_code)]
     bridge: Bridge,
 }
 
@@ -23,7 +25,7 @@ impl SearchEngineInner for LocalSearchEngine {
             pagination,
             index,
         } = request;
-        let request = QueryRequest {
+        let _request = QueryRequest {
             query: Query::try_from(query)?,
             pagination,
             index: index.clone(),
@@ -33,13 +35,14 @@ impl SearchEngineInner for LocalSearchEngine {
                 version: QueryResponseDiscriminants::V1,
             },
         };
-        self.bridge
-            .request::<QueryRequest, QueryResponse>("search", request)
-            .await
-            .map_err(|error| {
-                log::error!(ctx.ray_id(), "Search Request failed with: {}", error);
-                QueryError::ServerError
-            })?
-            .normalized(|ulid| NodeID::new(&index, &ulid.to_string()).to_string())
+        todo!("reinstate this if you need it")
+        // self.bridge
+        //     .request::<QueryRequest, QueryResponse>("search", request)
+        //     .await
+        //     .map_err(|error| {
+        //         log::error!(ctx.ray_id(), "Search Request failed with: {}", error);
+        //         QueryError::ServerError
+        //     })?
+        //     .normalized(|ulid| NodeID::new(&index, &ulid.to_string()).to_string())
     }
 }

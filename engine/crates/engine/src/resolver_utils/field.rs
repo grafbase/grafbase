@@ -1,6 +1,6 @@
 use engine_parser::parse_selection_set;
 use engine_value::ConstValue;
-use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
+use graph_entities::{CompactValue, ResponseNodeId, ResponsePrimitive};
 use serde_json::Value;
 
 use super::{introspection, joins::resolve_joined_field, resolve_container, resolve_list};
@@ -211,33 +211,11 @@ async fn resolve_container_field(
         .lookup_expecting::<&MetaType>(&field.ty)
         .map_err(|error| error.into_server_error(ctx.item.pos))?;
 
-    // TEMP: Hack
-    // We can check from the schema definition if it's a node, if it is, we need to
-    // have a way to get it
-    // temp: Little hack here, we know that `ResolvedValue` are bound to have a format
-    // of:
-    // ```
-    // {
-    //   "Node": {
-    //     "__sk": {
-    //       "S": "node_id"
-    //     }
-    //   }
-    // }
-    // ```
-    // We use that fact without checking it here.
-    //
-    // This have to be removed when we rework registry & engine to have a proper query
-    // planning.
-    let node_id: Option<NodeID<'_>> = resolved_value
-        .node_id(field_type.name())
-        .and_then(|x| NodeID::from_owned(x).ok());
-
     let type_name = field_type.name().to_string();
 
     let selection_ctx = ctx.with_selection_set(&ctx.item.node.selection_set);
 
-    match resolve_container(&selection_ctx, node_id, resolved_value).await {
+    match resolve_container(&selection_ctx, resolved_value).await {
         result @ Ok(_) => {
             field.check_cache_tag(ctx, &type_name, &field.name, None).await;
             result
@@ -334,7 +312,7 @@ async fn resolve_requires_fieldset(
 
     let require_context = ctx.with_requires_selection_set(&selection_set);
 
-    let node_id = resolve_container(&require_context, None, parent_resolver_value.clone()).await?;
+    let node_id = resolve_container(&require_context, parent_resolver_value.clone()).await?;
 
     let data = ctx
         .response()
