@@ -8,8 +8,8 @@
 use std::borrow::{Borrow, Cow};
 
 use engine_value::{ConstValue, Name};
+use graphql_cursor::GraphqlCursor;
 use indexmap::IndexMap;
-use runtime::search::GraphqlCursor;
 use serde::{de::DeserializeOwned, Serialize};
 
 use self::oneof::OneOf;

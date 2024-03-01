@@ -2239,9 +2239,6 @@ Registry {
         ),
     },
     postgres_databases: {},
-    search_config: Config {
-        indices: {},
-    },
     enable_caching: false,
     enable_kv: false,
     federation_entities: {

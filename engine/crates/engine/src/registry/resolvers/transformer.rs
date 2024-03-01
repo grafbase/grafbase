@@ -3,9 +3,9 @@
 use std::hash::Hash;
 
 use grafbase_sql_ast::ast::Order;
+use graphql_cursor::GraphqlCursor;
 use indexmap::IndexMap;
 use postgres_connector_types::{cursor::SQLCursor, database_definition::TableId};
-use runtime::search::GraphqlCursor;
 use serde_json::Value;
 
 use super::{ResolvedPaginationInfo, ResolvedValue, Resolver};

@@ -1417,8 +1417,6 @@ pub struct Registry {
     #[serde(default)]
     pub postgres_databases: HashMap<String, DatabaseDefinition>,
     #[serde(default)]
-    pub search_config: runtime::search::Config,
-    #[serde(default)]
     pub enable_caching: bool,
     #[serde(default)]
     pub enable_kv: bool,
@@ -1450,7 +1448,6 @@ impl Default for Registry {
             mongodb_configurations: Default::default(),
             http_headers: Default::default(),
             postgres_databases: Default::default(),
-            search_config: Default::default(),
             enable_caching: false,
             enable_kv: false,
             federation_entities: Default::default(),

@@ -1,5 +1,5 @@
+use graphql_cursor::GraphqlCursor;
 use indexmap::IndexMap;
-use runtime::search::GraphqlCursor;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 

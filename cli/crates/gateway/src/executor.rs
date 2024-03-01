@@ -6,7 +6,7 @@ use gateway_core::{RequestContext, StreamingFormat};
 use graphql_extensions::{authorization::AuthExtension, runtime_log::RuntimeLogExtension};
 use postgres_connector_types::transport::DirectTcpTransport;
 use runtime::pg::PgTransportFactory;
-use runtime_local::{Bridge, LocalPgTransportFactory, LocalSearchEngine, UdfInvokerImpl};
+use runtime_local::{Bridge, LocalPgTransportFactory, UdfInvokerImpl};
 
 pub struct Executor {
     #[allow(dead_code)]
@@ -60,12 +60,10 @@ impl Executor {
         );
 
         let resolver_engine = UdfInvokerImpl::create_engine(self.bridge.clone());
-        let search_engine = LocalSearchEngine::new(self.bridge.clone());
 
         Ok(engine::Schema::build(engine::Registry::clone(&self.registry))
             .data(engine::TraceId(ctx.ray_id().to_string()))
             .data(graphql::QueryBatcher::new())
-            .data(search_engine)
             .data(resolver_engine)
             .data(auth)
             .data(PgTransportFactory::new(Box::new(self.postgres.clone())))

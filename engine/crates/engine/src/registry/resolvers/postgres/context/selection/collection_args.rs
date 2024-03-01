@@ -1,11 +1,11 @@
 use engine_value::{Name, Value};
 use grafbase_sql_ast::ast::{Aliasable, Column, Comparable, ConditionTree, Expression, Order, OrderDefinition};
+use graphql_cursor::GraphqlCursor;
 use indexmap::IndexMap;
 use postgres_connector_types::{
     cursor::{OrderDirection, SQLCursor},
     database_definition::{DatabaseDefinition, TableWalker},
 };
-use runtime::search::GraphqlCursor;
 use serde::Deserialize;
 
 use crate::{Error, SelectionField};

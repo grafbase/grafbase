@@ -1777,6 +1777,7 @@ dependencies = [
  "getrandom 0.2.12",
  "grafbase-sql-ast",
  "graph-entities",
+ "graphql-cursor",
  "hex",
  "http 1.0.0",
  "im",
@@ -2757,6 +2758,14 @@ dependencies = [
  "itertools 0.12.1",
  "miette",
  "similar",
+]
+
+[[package]]
+name = "graphql-cursor"
+version = "0.59.0"
+dependencies = [
+ "serde",
+ "serde_with",
 ]
 
 [[package]]
@@ -4945,12 +4954,12 @@ dependencies = [
  "deadpool-postgres",
  "flexbuffers",
  "futures",
+ "graphql-cursor",
  "indexmap 2.2.2",
  "itertools 0.12.1",
  "reqwest",
  "rustls",
  "rustls-native-certs",
- "search-protocol",
  "serde",
  "serde_json",
  "thiserror",
@@ -5600,7 +5609,6 @@ dependencies = [
  "headers",
  "http 1.0.0",
  "postgres-connector-types",
- "search-protocol",
  "serde",
  "serde_json",
  "strum 0.26.1",
@@ -5620,13 +5628,11 @@ dependencies = [
  "async-trait",
  "async-tungstenite",
  "futures-util",
- "graph-entities",
  "graphql-ws-client",
  "log 0.1.0",
  "postgres-connector-types",
  "reqwest",
  "runtime",
- "search-protocol",
  "serde",
  "serde_json",
  "tokio",
@@ -5842,20 +5848,6 @@ name = "seahash"
 version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c107b6f4780854c8b126e228ea8869f4d7b71260f962fefb57b996b8959ba6b"
-
-[[package]]
-name = "search-protocol"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "rstest",
- "serde",
- "serde_json",
- "serde_with",
- "strum 0.26.1",
- "thiserror",
- "ulid",
-]
 
 [[package]]
 name = "sec1"

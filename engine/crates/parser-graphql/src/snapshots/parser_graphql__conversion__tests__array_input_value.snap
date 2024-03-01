@@ -862,9 +862,6 @@ expression: registry_from_introspection(schema)
   "mongodb_configurations": {},
   "http_headers": {},
   "postgres_databases": {},
-  "search_config": {
-    "indices": {}
-  },
   "enable_caching": false,
   "enable_kv": false,
   "enable_ai": false,
