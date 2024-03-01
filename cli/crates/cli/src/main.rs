@@ -123,8 +123,9 @@ fn try_main(args: Args) -> Result<(), CliError> {
                 process::exit(exitcode::OK);
             });
 
+            // TODO: what's the story for dev and the toml config?
             let (reload_tx, reload_rx) = oneshot::channel::<Handle>();
-            otel_reload(reload_handle, reload_rx);
+            otel_reload(reload_handle, reload_rx, &Default::default());
 
             dev(
                 cmd.search,
@@ -164,8 +165,12 @@ fn try_main(args: Args) -> Result<(), CliError> {
                 process::exit(exitcode::OK);
             });
 
+            let toml_config = cmd.config()?;
             let (reload_tx, reload_rx) = oneshot::channel::<Handle>();
-            otel_reload(reload_handle, reload_rx);
+
+            if let Some(telemetry_config) = toml_config.telemetry.as_ref() {
+                otel_reload(reload_handle, reload_rx, telemetry_config);
+            }
 
             start(
                 cmd.listen_address(),
@@ -219,11 +224,15 @@ fn try_main(args: Args) -> Result<(), CliError> {
     }
 }
 
+use crate::start::TelemetryConfig;
 use grafbase_tracing::otel::opentelemetry_sdk::trace::Tracer;
 use grafbase_tracing::otel::tracing_opentelemetry::OpenTelemetryLayer;
 
-fn otel_reload<S>(reload_handle: reload::Handle<OpenTelemetryLayer<S, Tracer>, S>, reload_rx: oneshot::Receiver<Handle>)
-where
+fn otel_reload<S>(
+    reload_handle: reload::Handle<OpenTelemetryLayer<S, Tracer>, S>,
+    reload_rx: oneshot::Receiver<Handle>,
+    telemetry_config: &TelemetryConfig,
+) where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
 {
     thread::spawn(move || match reload_rx.recv() {
@@ -231,7 +240,9 @@ where
             debug!("reloading otel layer");
             // new_batched needs to be called within a tokio runtime context
             rt_handle.spawn(async move {
-                let otel_layer = grafbase_tracing::otel::trace::new_batched_layer::<S>();
+                let otel_layer = grafbase_tracing::otel::trace::new_batched_layer::<S>(
+                    telemetry_config
+                );
                 reload_handle
                     .reload(otel_layer)
                     .expect("should successfully reload otel layer");

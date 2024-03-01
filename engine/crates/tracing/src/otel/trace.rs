@@ -46,10 +46,12 @@ where
 }
 
 /// Creates a new OTEL tracing layer that uses a [`BatchSpanProcessor`] to collect and export traces
-pub fn new_batched_layer<S>() -> OpenTelemetryLayer<S, Tracer>
+// TODO: Make the telemetry config a separate crate
+pub fn new_batched_layer<S>(telemetry_config: &TelemetryConfig) -> OpenTelemetryLayer<S, Tracer>
 where
     S: Subscriber + for<'span> LookupSpan<'span>,
 {
+    //TODO: Perhaps use a filter layer instead of the sampler to be more efficient? Optimization from apollo router
     let random_name = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().subsec_nanos();
     let config = opentelemetry_sdk::trace::config()
         .with_sampler(Sampler::AlwaysOn)
@@ -85,6 +87,7 @@ pub fn new_noop_layer<S>() -> (ReloadableOtelLayer<S, Tracer>, ReloadableOtelLay
 where
     S: Subscriber + for<'span> LookupSpan<'span>,
 {
+    //TODO: make this an actual noop tracer OR add a filter layer to exclude everything
     let exporter = opentelemetry_stdout::SpanExporter::default();
     let provider = opentelemetry_sdk::trace::TracerProvider::builder()
         .with_simple_exporter(exporter)

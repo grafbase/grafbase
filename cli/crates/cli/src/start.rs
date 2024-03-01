@@ -1,3 +1,7 @@
+mod configuration;
+
+pub use configuration::{Config, TelemetryConfig};
+
 use crate::cli_input::LogLevelFilters;
 use crate::output::report;
 use crate::CliError;
