@@ -1,8 +1,7 @@
 use serde_json::Value;
 
 use crate::{
-    CompactValue, QueryResponse, QueryResponseNode, ResponseContainer, ResponseList, ResponseNodeId,
-    ResponseNodeRelation, ResponsePrimitive,
+    CompactValue, QueryResponse, QueryResponseNode, ResponseContainer, ResponseList, ResponseNodeId, ResponsePrimitive,
 };
 
 impl QueryResponse {
@@ -25,13 +24,8 @@ impl QueryResponse {
             Value::Object(val) => {
                 let nodes = val
                     .into_iter()
-                    .map(|(key, x)| {
-                        (
-                            ResponseNodeRelation::not_a_relation(key.into(), None),
-                            self.from_serde_value(x),
-                        )
-                    })
-                    .collect::<Vec<(ResponseNodeRelation, ResponseNodeId)>>();
+                    .map(|(key, x)| (key.into(), self.from_serde_value(x)))
+                    .collect::<Vec<_>>();
 
                 self.insert_node(ResponseContainer::with_children(nodes))
             }
@@ -80,12 +74,12 @@ impl serde::Serialize for NodeSerializer<'_> {
         match node {
             QueryResponseNode::Container(container) => serializer.collect_map(
                 container
-                    .children
+                    .0
                     .iter()
                     .filter(|(_, node_id)| self.graph.node_exists(*node_id))
                     .map(|(key, value)| {
                         (
-                            key.response_key(),
+                            key.as_str(),
                             NodeSerializer {
                                 node_id: *value,
                                 graph: self.graph,
@@ -94,7 +88,7 @@ impl serde::Serialize for NodeSerializer<'_> {
                     }),
             ),
             QueryResponseNode::List(list) => serializer.collect_seq(
-                list.children
+                list.0
                     .iter()
                     .filter(|node_id| self.graph.node_exists(**node_id))
                     .map(|value| NodeSerializer {
