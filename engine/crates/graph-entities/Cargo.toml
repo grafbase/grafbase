@@ -14,14 +14,8 @@ keywords = ["graphql", "types", "grafbase"]
 workspace = true
 
 [dependencies]
-base64 = "0.21"
 engine-value = { path = "../engine/value", version = "3" }
 internment = { version = "0.7", features = ["serde", "arc"] }
 serde_json.workspace = true
 serde.workspace = true
-sha2.workspace = true
 thiserror.workspace = true
-ulid.workspace = true
-
-[dev-dependencies]
-rstest.workspace = true

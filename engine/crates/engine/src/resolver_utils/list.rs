@@ -69,7 +69,7 @@ pub async fn resolve_list<'a>(
                     Box::pin(async move { resolve_leaf_field(field_ctx, item).await })
                 }
                 ContextWithIndex::SelectionSet(selection_ctx) => {
-                    Box::pin(async move { resolve_container(&selection_ctx, None, item).await })
+                    Box::pin(async move { resolve_container(&selection_ctx, item).await })
                 }
                 ContextWithIndex::List(list_context) => {
                     let resolve_future = inner(list_context.clone(), field, ty, item);

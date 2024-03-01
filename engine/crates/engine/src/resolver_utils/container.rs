@@ -2,7 +2,7 @@ use std::{future::Future, pin::Pin, sync::Arc};
 
 use engine_parser::Positioned;
 use futures_util::FutureExt;
-use graph_entities::{CompactValue, NodeID, ResponseContainer, ResponseNodeId, ResponseNodeRelation};
+use graph_entities::{CompactValue, ResponseContainer, ResponseNodeId, ResponseNodeRelation};
 
 use super::{field::resolve_field, fragment::FragmentDetails};
 use crate::{
@@ -109,19 +109,19 @@ impl<T: ContainerType, E: Into<Error> + Send + Sync + Clone> ContainerType for R
 
 /// Resolve an container by executing each of the fields concurrently.
 pub async fn resolve_root_container<'a>(ctx: &ContextSelectionSet<'a>) -> ServerResult<ResponseNodeId> {
-    resolve_container_inner(ctx, true, None, None).await
+    resolve_container_inner(ctx, true, None).await
 }
 
 /// Resolve an container by executing each of the fields serially.
 pub async fn resolve_root_container_serial<'a>(ctx: &ContextSelectionSet<'a>) -> ServerResult<ResponseNodeId> {
-    resolve_container_inner(ctx, false, None, None).await
+    resolve_container_inner(ctx, false, None).await
 }
 
 pub async fn resolve_deferred_container<'a>(
     ctx: &ContextSelectionSet<'a>,
     parent_resolver_value: Option<ResolvedValue>,
 ) -> ServerResult<ResponseNodeId> {
-    resolve_container_inner(ctx, true, None, parent_resolver_value).await
+    resolve_container_inner(ctx, true, parent_resolver_value).await
 }
 
 /// Resolve an container by executing each of the fields concurrently.
@@ -134,23 +134,20 @@ pub async fn resolve_container_native<'a, T: ContainerType + ?Sized>(
 
 pub(super) async fn resolve_container<'a>(
     ctx: &ContextSelectionSet<'a>,
-    node_id: Option<NodeID<'a>>,
     parent_resolver_value: ResolvedValue,
 ) -> ServerResult<ResponseNodeId> {
-    resolve_container_inner(ctx, true, node_id, Some(parent_resolver_value)).await
+    resolve_container_inner(ctx, true, Some(parent_resolver_value)).await
 }
 
 async fn resolve_container_inner<'a>(
     ctx: &ContextSelectionSet<'a>,
     parallel: bool,
-    node_id: Option<NodeID<'a>>,
     parent_resolver_value: Option<ResolvedValue>,
 ) -> ServerResult<ResponseNodeId> {
     log::trace!(ctx.trace_id(), "Where: {}", ctx.ty.name());
-    log::trace!(ctx.trace_id(), "Id: {:?}", node_id);
 
     let mut fields = FieldExecutionSet(Vec::new());
-    fields.add_selection_set(ctx, node_id.clone(), parent_resolver_value)?;
+    fields.add_selection_set(ctx, parent_resolver_value)?;
 
     let results = if parallel {
         futures_util::future::try_join_all(fields.0).await?
@@ -164,36 +161,20 @@ async fn resolve_container_inner<'a>(
 
     let results = results.flatten();
 
-    if let Some(node_id) = node_id {
-        let mut container = ResponseContainer::new_node(node_id);
-        for ((alias, name), value) in results {
-            let name = name.to_string();
-            let alias = alias.map(|x| x.to_string().into());
-            container.insert(
-                ResponseNodeRelation::NotARelation {
-                    field: name.into(),
-                    response_key: alias,
-                },
-                value,
-            );
-        }
-        Ok(ctx.response().await.insert_node(container))
-    } else {
-        let mut container = ResponseContainer::new_container();
-        for ((alias, name), value) in results {
-            let name = name.to_string();
-            let alias = alias.map(|x| x.to_string().into());
+    let mut container = ResponseContainer::new_container();
+    for ((alias, name), value) in results {
+        let name = name.to_string();
+        let alias = alias.map(|x| x.to_string().into());
 
-            container.insert(
-                ResponseNodeRelation::NotARelation {
-                    field: name.into(),
-                    response_key: alias,
-                },
-                value,
-            );
-        }
-        Ok(ctx.response().await.insert_node(container))
+        container.insert(
+            ResponseNodeRelation::NotARelation {
+                field: name.into(),
+                response_key: alias,
+            },
+            value,
+        );
     }
+    Ok(ctx.response().await.insert_node(container))
 }
 
 async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
@@ -257,12 +238,10 @@ impl<'a> FieldExecutionSet<'a> {
     pub fn add_selection_set(
         &mut self,
         ctx: &ContextSelectionSet<'a>,
-        current_node_id: Option<NodeID<'a>>,
         parent_resolver_value: Option<ResolvedValue>,
     ) -> ServerResult<()> {
         for selection in &ctx.item.node.items {
             let parent_resolver_value = parent_resolver_value.clone();
-            let current_node_id = current_node_id.clone();
             match &selection.node {
                 Selection::Field(field) => {
                     self.add_field(ctx, field, parent_resolver_value);
@@ -271,7 +250,6 @@ impl<'a> FieldExecutionSet<'a> {
                     self.add_spread(
                         ctx,
                         FragmentDetails::from_fragment_selection(ctx, &selection.node)?,
-                        current_node_id,
                         parent_resolver_value,
                     );
                 }
@@ -391,7 +369,6 @@ impl<'a> FieldExecutionSet<'a> {
         &mut self,
         ctx: &ContextSelectionSet<'a>,
         fragment_details: FragmentDetails<'a>,
-        current_node_id: Option<NodeID<'a>>,
         parent_resolver_value: Option<ResolvedValue>,
     ) {
         let ctx = ctx.clone();
@@ -421,7 +398,6 @@ impl<'a> FieldExecutionSet<'a> {
                 let mut subfields = FieldExecutionSet(Vec::new());
                 subfields.add_selection_set(
                     &ctx.with_selection_set(fragment_details.selection_set, subtype),
-                    current_node_id,
                     parent_resolver_value,
                 )?;
 
