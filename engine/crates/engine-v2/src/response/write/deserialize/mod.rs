@@ -69,12 +69,12 @@ impl<'ctx> SeedContextInner<'ctx> {
 
         if bound_field.response_key() == field.expected_key.into() {
             format!(
-                "Upstream response error: Missing required field named '{}'",
+                "Error decoding response from upstream: Missing required field named '{}'",
                 &self.plan.response_keys()[field.expected_key]
             )
         } else {
             format!(
-                "Upstream response error: Missing required field named '{}' (expected: '{}')",
+                "Error decoding response from upstream: Missing required field named '{}' (expected: '{}')",
                 bound_field.response_key_str(),
                 &self.plan.response_keys()[field.expected_key]
             )

@@ -5,7 +5,7 @@ const SCHEMA: &str = include_str!("../../../data/federated-graph-schema.graphql"
 
 #[test]
 fn simple_error() {
-    let bench = FederationGatewayWithoutIO::new(
+    let gateway = FederationGatewayWithoutIO::new(
         SCHEMA,
         r#"
         query ExampleQuery {
@@ -34,7 +34,7 @@ fn simple_error() {
             json!({"data":{"_entities":[{"__typename":"User","username":"Me"}]}}),
         ],
     );
-    let response = integration_tests::runtime().block_on(bench.unchecked_execute());
+    let response = integration_tests::runtime().block_on(gateway.unchecked_execute());
 
     let json = serde_json::from_slice::<serde_json::Value>(&response.bytes).unwrap();
     insta::assert_json_snapshot!(json, @r###"
@@ -74,7 +74,7 @@ fn simple_error() {
       },
       "errors": [
         {
-          "message": "Upstream response error: Missing required field named 'id' at line 1 column 140",
+          "message": "Error decoding response from upstream: Missing required field named 'id' at line 1 column 140",
           "locations": [
             {
               "line": 10,
@@ -90,6 +90,59 @@ fn simple_error() {
             0,
             "author"
           ]
+        }
+      ]
+    }
+    "###);
+}
+
+#[test]
+fn null_entity_with_error() {
+    let gateway = FederationGatewayWithoutIO::new(
+        SCHEMA,
+        r#"
+        query ExampleQuery {
+            me {
+                id
+                username
+                reviews {
+                    body
+                }
+            }
+        }
+        "#,
+        &[
+            json!({"data":{"me":{"id":"1234","username":"Me"}}}),
+            json!({"data":{"_entities":[null]}, "errors": [{"message":"I'm broken!", "path": ["_entities", 0, "body"]}]}),
+        ],
+    );
+    let response = integration_tests::runtime().block_on(gateway.unchecked_execute());
+
+    let json = serde_json::from_slice::<serde_json::Value>(&response.bytes).unwrap();
+    insta::assert_json_snapshot!(json, @r###"
+    {
+      "data": null,
+      "errors": [
+        {
+          "message": "Error decoding response from upstream: Missing required field named 'reviews'",
+          "path": [
+            "me",
+            "reviews"
+          ]
+        },
+        {
+          "message": "Upstream error: I'm broken!",
+          "path": [
+            "me",
+            "reviews"
+          ],
+          "extensions": {
+            "upstream_path": [
+              "_entities",
+              0,
+              "body"
+            ]
+          }
         }
       ]
     }

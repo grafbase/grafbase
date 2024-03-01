@@ -24,7 +24,11 @@ pub fn ingest_deserializer_into_response<'ctx, 'de, DataSeed, D>(
     }
     .deserialize(deserializer);
     if let Err(err) = result {
-        report_error_if_no_others(ctx, root_err_path, format!("Upstream response error: {err}"));
+        report_error_if_no_others(
+            ctx,
+            root_err_path,
+            format!("Error decoding response from upstream: {err}"),
+        );
     }
 }
 
@@ -87,8 +91,13 @@ where
                 }
             };
         }
-        if !errors.is_empty() && data_is_null {
-            self.ctx.borrow_mut_response_part().replace_errors(errors);
+        if !errors.is_empty() {
+            // Replacing the any serde errors if the data is null, they're not relevant.
+            if data_is_null {
+                self.ctx.borrow_mut_response_part().replace_errors(errors);
+            } else {
+                self.ctx.borrow_mut_response_part().push_errors(errors);
+            }
         }
         Ok(())
     }
