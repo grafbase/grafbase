@@ -2,7 +2,8 @@ use std::{future::Future, pin::Pin, sync::Arc};
 
 use engine_parser::Positioned;
 use futures_util::FutureExt;
-use graph_entities::{CompactValue, ResponseContainer, ResponseNodeId, ResponseNodeRelation};
+use graph_entities::{CompactValue, ResponseContainer, ResponseNodeId};
+use internment::ArcIntern;
 
 use super::{field::resolve_field, fragment::FragmentDetails};
 use crate::{
@@ -163,16 +164,7 @@ async fn resolve_container_inner<'a>(
 
     let mut container = ResponseContainer::new_container();
     for ((alias, name), value) in results {
-        let name = name.to_string();
-        let alias = alias.map(|x| x.to_string().into());
-
-        container.insert(
-            ResponseNodeRelation::NotARelation {
-                field: name.into(),
-                response_key: alias,
-            },
-            value,
-        );
+        container.insert(alias.as_ref().unwrap_or(&name).as_str(), value);
     }
     Ok(ctx.response().await.insert_node(container))
 }
@@ -195,12 +187,10 @@ async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
         results
     };
 
-    let container = ResponseContainer::with_children(res.into_iter().map(|(name, value)| {
-        (
-            ResponseNodeRelation::not_a_relation(name.to_string().into(), None),
-            value,
-        )
-    }));
+    let container = ResponseContainer::with_children(
+        res.into_iter()
+            .map(|(name, value)| (ArcIntern::new(name.to_string()), value)),
+    );
 
     Ok(ctx.response().await.insert_node(container))
 }

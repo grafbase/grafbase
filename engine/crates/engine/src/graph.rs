@@ -1,5 +1,5 @@
 use engine_value::ConstValue;
-use graph_entities::{ResponseContainer, ResponseList, ResponseNodeId, ResponseNodeRelation, ResponsePrimitive};
+use graph_entities::{ResponseContainer, ResponseList, ResponseNodeId, ResponsePrimitive};
 
 use crate::{ContextExt, ContextField, ContextSelectionSetLegacy};
 
@@ -18,12 +18,7 @@ pub async fn selection_set_into_node<'a>(value: ConstValue, ctx: &ContextSelecti
             let mut container = ResponseContainer::new_container();
             for (name, value) in value {
                 let id = selection_set_into_node(value, ctx).await;
-                let relation = name.to_string();
-                let rel = ResponseNodeRelation::NotARelation {
-                    field: relation.into(),
-                    response_key: None,
-                };
-                container.insert(rel, id);
+                container.insert(name.as_str(), id);
             }
             ctx.response().await.insert_node(container)
         }
@@ -50,12 +45,7 @@ pub async fn field_into_node<'a>(value: ConstValue, ctx: &ContextField<'a>) -> R
             let mut container = ResponseContainer::new_container();
             for (name, value) in value {
                 let id = field_into_node(value, ctx).await;
-                let relation = name.to_string();
-                let rel = ResponseNodeRelation::NotARelation {
-                    field: relation.into(),
-                    response_key: None,
-                };
-                container.insert(rel, id);
+                container.insert(name.as_str(), id);
             }
             ctx.response().await.insert_node(container)
         }

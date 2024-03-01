@@ -1,30 +1,11 @@
 //! `QueryResponse` is an AST which aims to represent a result of a `Engine` response.
 //!
-//! This structure is the **resolved** version of a query, the point is not to have a logic of any
-//! kind considering graph, the point is to be able to have a representation of a answer where we
-//! are able to remove and add elements **BY NODE ID** where it would be translated into JSON.
-//!
-//! # Why do we need that?
-//!
-//! The purpose of this structure is to be shared across multiple layers / application. It allow us
-//! to have an abstraction between the result of a query and the final representation for the user.
-//!
-//! If we create the final representation directly, then we can't add any metadata in the response
-//! for other services or application to use.
-//!
-//! For instance, live-queries are working by knowing what data is requested by an user, and
-//! process every events hapenning on the database to identify if the followed data changed. If the
-//! followed data changed, so it means the server will have to compute the diff between those. To
-//! be able to faithfully compute the diff, it's much more simplier to not use the path of this
-//! data but to use the unique ID of the data you are modifying. Hence, this representation.
-//!
 //! ### Serialization & Memory Use
 //!
 //! We've seen a lot of memory problems with this structure on larger query responses, so we need
 //! to be careful to keep both the in memory size and serialization size down.  As a result most
 //! of the types in this file have some serde attrs that make them more compact when serialized
 
-use core::fmt::{self, Display, Formatter};
 use std::collections::{HashMap, HashSet};
 
 use engine_value::Name;
@@ -89,12 +70,12 @@ impl<'a> Iterator for Children<'a> {
             self.response.get_node(id).map(|node| {
                 match &node {
                     QueryResponseNode::Container(container) => {
-                        container.children.iter().for_each(|(_, elt)| {
+                        container.0.iter().for_each(|(_, elt)| {
                             self.nodes.push(*elt);
                         });
                     }
                     QueryResponseNode::List(container) => {
-                        container.children.iter().for_each(|elt| {
+                        container.0.iter().for_each(|elt| {
                             self.nodes.push(*elt);
                         });
                     }
@@ -204,7 +185,7 @@ impl QueryResponse {
         &mut self,
         from_id: ResponseNodeId,
         to: T,
-        relation: ResponseNodeRelation,
+        field: &str,
     ) -> Result<ResponseNodeId, QueryResponseErrors>
     where
         T: IntoResponseNode,
@@ -213,7 +194,7 @@ impl QueryResponse {
         let from_node = self.get_node_mut(from_id).ok_or(QueryResponseErrors::NodeNotFound)?;
 
         if let QueryResponseNode::Container(container) = from_node {
-            container.insert(relation, id);
+            container.insert(field, id);
         } else {
             return Err(QueryResponseErrors::NotAContainer);
         }
@@ -230,7 +211,7 @@ impl QueryResponse {
         let from_node = self.get_node_mut(from_id).ok_or(QueryResponseErrors::NodeNotFound)?;
 
         if let QueryResponseNode::List(list) = from_node {
-            list.children.push(id);
+            list.0.push(id);
         } else {
             return Err(QueryResponseErrors::NotAContainer);
         }
@@ -259,22 +240,22 @@ impl QueryResponse {
     pub fn take_node_into_compact_value(&mut self, node_id: ResponseNodeId) -> Option<CompactValue> {
         match self.delete_node(node_id).ok()? {
             QueryResponseNode::Container(container) => {
-                let ResponseContainer { children, .. } = *container;
+                let ResponseContainer(children) = *container;
                 let mut fields = Vec::with_capacity(children.len());
 
-                for (relation, nested_id) in children {
+                for (name, nested_id) in children {
                     match self.take_node_into_compact_value(nested_id)? {
                         // Skipping nested empty objects
                         CompactValue::Object(fields) if fields.is_empty() => (),
                         value => {
-                            fields.push((Name::new(relation.to_string()), value));
+                            fields.push((Name::new(name.to_string()), value));
                         }
                     }
                 }
                 Some(CompactValue::Object(fields))
             }
             QueryResponseNode::List(list) => {
-                let ResponseList { children, .. } = *list;
+                let ResponseList(children) = *list;
                 let mut list = Vec::with_capacity(children.len());
                 for node in children {
                     list.push(self.take_node_into_compact_value(node)?);
@@ -306,67 +287,37 @@ impl QueryResponseNode {
         matches!(self, QueryResponseNode::Container(_))
     }
 
-    pub fn child(&self, relation: &ResponseNodeRelation) -> Option<&ResponseNodeId> {
-        self.children()?.iter().find_map(|(key, child)| {
-            if key.same_internal_field(relation) {
-                Some(child)
-            } else {
-                None
-            }
-        })
-    }
-
-    pub fn child_mut(&mut self, relation: &ResponseNodeRelation) -> Option<&mut ResponseNodeId> {
-        self.children_mut()?.iter_mut().find_map(|(key, child)| {
-            if key.same_internal_field(relation) {
-                Some(child)
-            } else {
-                None
-            }
-        })
-    }
-
-    pub fn children(&self) -> Option<&Vec<(ResponseNodeRelation, ResponseNodeId)>> {
+    pub fn children(&self) -> Option<&Vec<(ArcIntern<String>, ResponseNodeId)>> {
         match self {
-            Self::Container(container) => Some(&container.children),
+            Self::Container(container) => Some(&container.0),
             _ => None,
         }
     }
 
-    pub fn children_mut(&mut self) -> Option<&mut Vec<(ResponseNodeRelation, ResponseNodeId)>> {
+    pub fn children_mut(&mut self) -> Option<&mut Vec<(ArcIntern<String>, ResponseNodeId)>> {
         match self {
-            Self::Container(container) => Some(&mut container.children),
+            Self::Container(container) => Some(&mut container.0),
             _ => None,
         }
     }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
-pub struct ResponseList {
-    // Right now children are in an order based on the created_at which can be derived.
-    // What we should do is to add a a OrderedBy field where we would specified Ord applied to this
-    // List. Then on insert we'll be able to add new elements based on the Ord.
-    // order: Vec<todo!()>,
-    #[serde(rename = "c", default, skip_serializing_if = "Vec::is_empty")]
-    children: Vec<ResponseNodeId>,
-}
+pub struct ResponseList(Vec<ResponseNodeId>);
 
 impl ResponseList {
     pub fn with_children(children: Vec<ResponseNodeId>) -> Box<Self> {
-        Box::new(Self {
-            // id: ResponseNodeId::internal(),
-            children,
-        })
+        Box::new(Self(children))
     }
 
     /// Element at the specified index
     pub fn insert(&mut self, index: usize, id: ResponseNodeId) {
-        self.children.insert(index, id);
+        self.0.insert(index, id);
     }
 
     /// Push a new element into the `List` (at the end)
     pub fn push(&mut self, id: ResponseNodeId) {
-        self.children.push(id);
+        self.0.push(id);
     }
 }
 
@@ -389,169 +340,32 @@ impl Default for ResponsePrimitive {
     }
 }
 
-/// This structure represent a link between two node, this can be a Relation when two node are
-/// connected together or this can also be a `NotARelation`.
-///
-/// NB: `NotARelation` is hashed based on the field value **only**.
-// temp: might be interesting to invest time to change it at the root level to have vertices
-// flattened depending on the needs on the structure.
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub enum ResponseNodeRelation {
-    #[serde(rename = "R")]
-    Relation {
-        #[serde(rename = "rk")]
-        response_key: ArcIntern<String>,
-        #[serde(rename = "rn")]
-        relation_name: ArcIntern<String>,
-        #[serde(rename = "f", default, skip_serializing_if = "Option::is_none")]
-        from: Option<ArcIntern<String>>,
-        #[serde(rename = "t")]
-        to: ArcIntern<String>,
-    },
-    #[serde(rename = "NR")]
-    NotARelation {
-        #[serde(rename = "rk", default, skip_serializing_if = "Option::is_none")]
-        response_key: Option<ArcIntern<String>>,
-        #[serde(rename = "f")]
-        field: ArcIntern<String>,
-    },
-}
-
-impl ResponseNodeRelation {
-    pub fn relation(response_key: String, relation_name: String, from: Option<String>, to: String) -> Self {
-        Self::Relation {
-            response_key: ArcIntern::new(response_key),
-            relation_name: ArcIntern::new(relation_name),
-            from: from.map(ArcIntern::new),
-            to: ArcIntern::new(to.to_lowercase()),
-        }
-    }
-
-    pub const fn not_a_relation(value: ArcIntern<String>, response_key: Option<ArcIntern<String>>) -> Self {
-        Self::NotARelation {
-            field: value,
-            response_key,
-        }
-    }
-
-    /// Returns true if self & other appear to represent the same field of a model/type (i.e. ignoring response_key)
-    pub fn same_internal_field(&self, other: &ResponseNodeRelation) -> bool {
-        match (self, other) {
-            (
-                ResponseNodeRelation::Relation {
-                    relation_name: relation_name_lhs,
-                    from: from_lhs,
-                    to: to_lhs,
-                    ..
-                },
-                ResponseNodeRelation::Relation {
-                    relation_name: relation_name_rhs,
-                    from: from_rhs,
-                    to: to_rhs,
-                    ..
-                },
-            ) => relation_name_lhs == relation_name_rhs && from_lhs == from_rhs && to_lhs == to_rhs,
-            (
-                ResponseNodeRelation::NotARelation { field: field_lhs, .. },
-                ResponseNodeRelation::NotARelation { field: field_rhs, .. },
-            ) => field_lhs == field_rhs,
-            _ => false,
-        }
-    }
-
-    fn response_key(&self) -> &str {
-        match self {
-            ResponseNodeRelation::Relation { response_key, .. }
-            | ResponseNodeRelation::NotARelation {
-                response_key: Some(response_key),
-                ..
-            } => response_key.as_str(),
-            ResponseNodeRelation::NotARelation { field, .. } => field.as_str(),
-        }
-    }
-}
-
-impl Display for ResponseNodeRelation {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            ResponseNodeRelation::Relation { response_key, .. } => write!(f, "{response_key}"),
-            ResponseNodeRelation::NotARelation { response_key, field } => {
-                write!(f, "{}", response_key.as_ref().unwrap_or(field))
-            }
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum RelationOrigin {
-    #[serde(rename = "N")]
-    Node(ResponseNodeId),
-    #[serde(rename = "T")]
-    Type(ArcIntern<String>),
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ResponseContainer {
-    /// Children which are (relation_name, node)
-    #[serde(rename = "c")]
-    children: Vec<(ResponseNodeRelation, ResponseNodeId)>,
-
-    // /// Errors, not as `ServerError` yet as we do not have the position.
-    // errors: Vec<Error>,
-    /// # Hack
-    ///
-    /// temp: hack to have relation followed types, why this is a hack? because in fact we are doing
-    /// something wrong with this abstraction: we modelize it like we would do for a json response
-    /// with metadata, we shouldn't but we don't have the choice at first because it would imply to
-    /// work on other parts too (execution step).
-    /// For instance an "edge" node doesn't have any sense, nor does the pageInfo node too, these
-    /// are intersting for the end result based on the request and the end result, but this
-    /// representation either has to be agnostic of it, or the fact the the relation is followed
-    /// should belong here.
-    ///
-    /// We'll need to think a little about it while working on the execution step.
-    ///
-    /// To have the system of following relation working, we need to store here relations that are
-    /// OneToMany, and we need to follow the origin node (if any) or the origin type and the
-    /// relation.
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "r")]
-    relation: Option<(RelationOrigin, ArcIntern<String>)>,
-}
+pub struct ResponseContainer(
+    /// Children which are (field_name, node_id)
+    Vec<(ArcIntern<String>, ResponseNodeId)>,
+);
 
 impl ResponseContainer {
     pub fn new_container() -> Self {
-        Self {
-            children: Default::default(),
-            relation: None,
-            // errors: Vec::new(),
-        }
+        Self(Default::default())
     }
 
-    pub fn set_relation(&mut self, rel: Option<(RelationOrigin, ArcIntern<String>)>) {
-        self.relation = rel;
-    }
-
-    pub fn with_children(children: impl IntoIterator<Item = (ResponseNodeRelation, ResponseNodeId)>) -> Self {
-        Self {
-            children: children.into_iter().collect(),
-            relation: None,
-            // errors: Vec::new(),
-        }
+    pub fn with_children(children: impl IntoIterator<Item = (ArcIntern<String>, ResponseNodeId)>) -> Self {
+        Self(children.into_iter().collect())
     }
 
     /// Insert a new node with a relation, if an Old Node was present, the Old node will be
     /// replaced
-    pub fn insert(&mut self, name: ResponseNodeRelation, mut node: ResponseNodeId) -> Option<ResponseNodeId> {
+    pub fn insert(&mut self, name: &str, mut node: ResponseNodeId) {
         if let Some((_, existing)) = self
-            .children
+            .0
             .iter_mut()
-            .find(|(existing_relation, _)| existing_relation.response_key() == name.response_key())
+            .find(|(existing_name, _)| existing_name.as_str() == name)
         {
             std::mem::swap(existing, &mut node);
-            return Some(node);
         }
-        self.children.push((name, node));
-        None
+        self.0.push((ArcIntern::new(name.to_string()), node));
     }
 }
 
@@ -581,10 +395,7 @@ mod tests {
         assert_eq!(std::mem::size_of::<QueryResponseNode>(), 16);
         assert_eq!(std::mem::size_of::<ResponseNodeId>(), 4);
 
-        // TODO: Can I make this smaller?
-        assert_eq!(std::mem::size_of::<ResponseContainer>(), 56);
-
-        assert_eq!(std::mem::size_of::<ResponseNodeRelation>(), 32);
+        assert_eq!(std::mem::size_of::<ResponseContainer>(), 24);
     }
 
     #[test]
@@ -605,24 +416,13 @@ mod tests {
         let root_id = response.root.unwrap();
 
         let glossary_container = response
-            .append_unchecked(
-                root_id,
-                ResponseContainer::new_container(),
-                ResponseNodeRelation::NotARelation {
-                    response_key: None,
-                    field: "glossary".to_string().into(),
-                },
-            )
+            .append_unchecked(root_id, ResponseContainer::new_container(), "glossary")
             .unwrap();
 
         let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string()));
-        let relation = ResponseNodeRelation::NotARelation {
-            response_key: None,
-            field: "title".to_string().into(),
-        };
 
         response
-            .append_unchecked(glossary_container, example_primitive, relation)
+            .append_unchecked(glossary_container, example_primitive, "title")
             .unwrap();
 
         let output_json = serde_json::json!({
@@ -641,24 +441,13 @@ mod tests {
         let root_id = response.root.unwrap();
 
         let glossary_container = response
-            .append_unchecked(
-                root_id,
-                ResponseContainer::new_container(),
-                ResponseNodeRelation::NotARelation {
-                    response_key: None,
-                    field: "glossary".to_string().into(),
-                },
-            )
+            .append_unchecked(root_id, ResponseContainer::new_container(), "glossary")
             .unwrap();
 
         let example_primitive = ResponsePrimitive::new(CompactValue::Number(Number::from_f64(123.0).unwrap()));
-        let relation = ResponseNodeRelation::NotARelation {
-            response_key: None,
-            field: "age".to_string().into(),
-        };
 
         response
-            .append_unchecked(glossary_container, example_primitive, relation)
+            .append_unchecked(glossary_container, example_primitive, "age")
             .unwrap();
 
         let output_json = serde_json::json!({
@@ -680,12 +469,7 @@ mod tests {
 
         let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string()));
 
-        let relation = ResponseNodeRelation::NotARelation {
-            response_key: None,
-            field: "test".to_string().into(),
-        };
-
-        response.append_unchecked(node, example_primitive, relation).unwrap();
+        response.append_unchecked(node, example_primitive, "test").unwrap();
 
         let output_json = serde_json::Value::Array(vec![serde_json::json!({
             "test": "example"
@@ -706,12 +490,7 @@ mod tests {
 
         let example_primitive_enum = ResponsePrimitive::new(CompactValue::Enum(ArcIntern::new("example".to_owned())));
 
-        let relation = ResponseNodeRelation::NotARelation {
-            response_key: None,
-            field: "test".to_string().into(),
-        };
-
-        response.append_unchecked(node, example_primitive, relation).unwrap();
+        response.append_unchecked(node, example_primitive, "test").unwrap();
 
         response.push(root_id, example_primitive_enum).unwrap();
 
