@@ -11,6 +11,7 @@ use std::net::SocketAddr;
 mod joins;
 mod requires;
 
+use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};
 use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
 use serde_json::json;
@@ -253,6 +254,89 @@ fn test_nested_lists() {
         }
         "###
         );
+    });
+}
+
+#[test]
+fn nested_fragment_resolution() {
+    // We had a bug where fragments (particularly nested ones)
+    // that selected the same fields ended up overwriting each other.
+    // This covers that case.
+    runtime().block_on(async {
+        let graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let schema = indoc::formatdoc! {
+            r#"
+              extend schema
+                @graphql(
+                    name: "gothub",
+                    namespace: false,
+                    url: "http://127.0.0.1:{}",
+                )
+            "#,
+            graphql_mock.port()
+        };
+
+        let engine = EngineBuilder::new(schema).build().await;
+
+        const QUERY: &str = indoc::indoc! {
+            r#"
+                query {
+                    pullRequestsAndIssues(filter: {search: ""}) {
+                        ... on PullRequest {
+                            checks
+                            author {
+                                # This nested fragment spread should not clash
+                                # with the one used in the inline fragment below
+                                ...AuthorFragmentOne
+                            }
+                        }
+
+                        # This second fragment should not overwrite the checks
+                        # field from the previous fragment
+                        ... on PullRequest {
+                            author {
+                                # This nested fragment spread should not clash
+                                # with the one used in the inline fragment above
+                                ...AuthorFragmentTwo
+                            }
+                        }
+                    }
+                }
+
+                fragment AuthorFragmentOne on User {
+                    name
+                }
+
+                fragment AuthorFragmentTwo on User {
+                    email
+                }
+            "#
+        };
+
+        insta::assert_json_snapshot!(engine.execute(QUERY).variables(json!({"id": "1"})).await.into_value(), @r###"
+        {
+          "data": {
+            "pullRequestsAndIssues": [
+              {
+                "checks": [
+                  "Success!"
+                ],
+                "author": {
+                  "name": "Jim",
+                  "email": "jim@example.com"
+                }
+              },
+              {
+                "checks": [
+                  "Success!"
+                ],
+                "author": {}
+              },
+              {}
+            ]
+          }
+        }
+        "###);
     });
 }
 
