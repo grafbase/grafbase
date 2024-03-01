@@ -239,6 +239,10 @@ impl ResponsePart {
         self.errors.push(error.into());
     }
 
+    pub fn push_errors(&mut self, errors: Vec<GraphqlError>) {
+        self.errors.extend(errors);
+    }
+
     pub fn push_error_path_to_propagate(&mut self, path: ResponsePath) {
         self.error_paths_to_propagate.push(path);
     }
