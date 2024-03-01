@@ -5,7 +5,7 @@ pub use engine::names::*;
 use engine::registry::NamedType;
 use engine_parser::types::TypeDefinition;
 
-use crate::{registry::ParentRelation, utils::to_lower_camelcase};
+use crate::utils::to_lower_camelcase;
 
 pub const PAGINATION_INPUT_ARG_FIRST: &str = "first";
 pub const PAGINATION_INPUT_ARG_LAST: &str = "last";
@@ -274,24 +274,8 @@ impl MetaNames {
     /// Defines
     /// - without parent, the create mutation input type name.
     /// - with parent, the nested input type name to create said type when creating the parent.
-    pub fn create_input(
-        model_type_definition: &TypeDefinition,
-        maybe_parent_relation: Option<&ParentRelation<'_>>,
-    ) -> String {
-        let parent_relation = maybe_parent_relation.map(|parent| Self::relation_prefix(parent));
-        Self::create_input_by_str(&Self::model(model_type_definition), parent_relation.as_deref())
-    }
-
-    /// For a given relation, one can either link to an existing object or create a new one.
-    pub fn create_relation_input(
-        parent_relation: &ParentRelation<'_>,
-        field_model_type_definition: &TypeDefinition,
-    ) -> String {
-        format!(
-            "{}Create{}Relation",
-            Self::relation_prefix(parent_relation),
-            Self::model(field_model_type_definition)
-        )
+    pub fn create_input(model_type_definition: &TypeDefinition) -> String {
+        Self::create_input_by_str(&Self::model(model_type_definition), None)
     }
 
     //
@@ -341,23 +325,6 @@ impl MetaNames {
 
     pub fn update_many_input(model_type_definition: &TypeDefinition) -> String {
         format!("{}Input", Self::mutation_update_many(model_type_definition)).to_camel()
-    }
-
-    /// For a given relation, one can either change the (un)link to an existing object or create a new one
-    pub fn update_relation_input(
-        parent_relation: &ParentRelation<'_>,
-        field_model_type_definition: &TypeDefinition,
-    ) -> String {
-        format!(
-            "{}Update{}Relation",
-            Self::relation_prefix(parent_relation),
-            Self::model(field_model_type_definition)
-        )
-    }
-
-    /// Prefix used for any input/output type created for a relation.
-    fn relation_prefix(parent_relation: &ParentRelation<'_>) -> String {
-        parent_relation.meta.name.to_camel()
     }
 
     // Name of the struct that looks up a model by a composite index.

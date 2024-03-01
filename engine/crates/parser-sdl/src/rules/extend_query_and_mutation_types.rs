@@ -89,7 +89,6 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                         resolver_name: resolver_name.to_owned(),
                     }),
                     edges: Vec::new(),
-                    relation: None,
                     required_operation,
                     auth: None,
                     shareable: false,

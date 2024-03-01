@@ -5,7 +5,6 @@ pub mod enums;
 mod export_sdl;
 pub mod federation;
 pub mod field_set;
-pub mod relations;
 pub mod resolvers;
 pub mod scalars;
 mod serde_preserve_enum;
@@ -51,7 +50,6 @@ pub use self::{
 };
 use self::{
     federation::FederationEntity,
-    relations::MetaRelation,
     resolvers::Resolver,
     type_kinds::{SelectionSetTarget, TypeKind},
 };
@@ -304,14 +302,6 @@ pub struct MetaField {
     pub compute_complexity: Option<ComplexityType>,
     /// Deprecated, to remove
     pub edges: Vec<String>,
-    /// Define the relations of the Entity
-    ///
-    ///
-    /// @todo: rename it to relations (String, String) where
-    /// 0: RelationName,
-    /// 1: Type,
-    /// relation: (String, String)
-    pub relation: Option<MetaRelation>,
     #[serde(skip_serializing_if = "Resolver::is_parent", default)]
     pub resolver: Resolver,
     pub required_operation: Option<Operations>,
@@ -352,7 +342,6 @@ impl Hash for MetaField {
         self.requires.hash(state);
         self.provides.hash(state);
         self.edges.hash(state);
-        self.relation.hash(state);
         self.resolver.hash(state);
     }
 }
@@ -369,7 +358,6 @@ impl PartialEq for MetaField {
             && self.requires.eq(&other.requires)
             && self.provides.eq(&other.provides)
             && self.edges.eq(&other.edges)
-            && self.relation.eq(&other.relation)
             && self.resolver.eq(&other.resolver)
     }
 }
@@ -555,21 +543,6 @@ pub struct Edge<'a>(pub &'a str);
 impl<'a> ToString for Edge<'a> {
     fn to_string(&self) -> String {
         self.0.to_string()
-    }
-}
-
-impl ObjectType {
-    /// Get the relations of a current type
-    pub fn relations<'a>(&'a self) -> IndexMap<&'a str, &'a MetaRelation> {
-        let mut result: IndexMap<&'a str, &'a MetaRelation> = IndexMap::new();
-
-        for (field, ty) in &self.fields {
-            if let Some(relation) = &ty.relation {
-                result.insert(field.as_str(), relation);
-            }
-        }
-
-        result
     }
 }
 

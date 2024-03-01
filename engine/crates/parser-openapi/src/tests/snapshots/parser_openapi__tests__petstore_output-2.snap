@@ -30,7 +30,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Parent,
                         required_operation: None,
                         auth: None,
@@ -81,7 +80,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "message",
@@ -114,7 +112,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "type",
@@ -147,7 +144,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "code",
@@ -202,7 +198,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "name",
@@ -235,7 +230,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "id",
@@ -364,7 +358,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Http(
                             HttpResolver {
                                 method: "PUT",
@@ -423,7 +416,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Http(
                             HttpResolver {
                                 method: "POST",
@@ -492,7 +484,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Http(
                             HttpResolver {
                                 method: "POST",
@@ -559,7 +550,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Http(
                             HttpResolver {
                                 method: "POST",
@@ -618,7 +608,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Http(
                             HttpResolver {
                                 method: "POST",
@@ -688,7 +677,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "complete",
@@ -721,7 +709,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Composition(
                             [
                                 Transformer(
@@ -761,7 +748,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "shipDate",
@@ -794,7 +780,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "quantity",
@@ -827,7 +812,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "petId",
@@ -860,7 +844,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "id",
@@ -1018,7 +1001,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Composition(
                             [
                                 Transformer(
@@ -1058,7 +1040,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "tags",
@@ -1091,7 +1072,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "photoUrls",
@@ -1124,7 +1104,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "category",
@@ -1157,7 +1136,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "name",
@@ -1190,7 +1168,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "id",
@@ -1365,7 +1342,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Http(
                             HttpResolver {
                                 method: "GET",
@@ -1425,7 +1401,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Http(
                             HttpResolver {
                                 method: "GET",
@@ -1485,7 +1460,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Http(
                             HttpResolver {
                                 method: "GET",
@@ -1533,7 +1507,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Http(
                             HttpResolver {
                                 method: "GET",
@@ -1585,7 +1558,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Http(
                             HttpResolver {
                                 method: "GET",
@@ -1654,7 +1626,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Http(
                             HttpResolver {
                                 method: "GET",
@@ -1721,7 +1692,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Http(
                             HttpResolver {
                                 method: "GET",
@@ -1791,7 +1761,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "name",
@@ -1824,7 +1793,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "id",
@@ -1909,7 +1877,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "userStatus",
@@ -1942,7 +1909,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "phone",
@@ -1975,7 +1941,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "password",
@@ -2008,7 +1973,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "email",
@@ -2041,7 +2005,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "lastName",
@@ -2074,7 +2037,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "firstName",
@@ -2107,7 +2069,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "username",
@@ -2140,7 +2101,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Transformer(
                             Select {
                                 key: "id",
@@ -2285,7 +2245,6 @@ Registry {
                         requires: None,
                         provides: None,
                         edges: [],
-                        relation: None,
                         resolver: Parent,
                         required_operation: None,
                         auth: None,
