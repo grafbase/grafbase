@@ -28,7 +28,7 @@ use crate::{
     extensions::Extensions,
     parser::types::{Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet},
     query_path::QueryPath,
-    registry::{relations::MetaRelation, type_kinds::SelectionSetTarget},
+    registry::type_kinds::SelectionSetTarget,
     request::IntrospectionState,
     schema::SchemaEnv,
     CacheInvalidation, Name, Positioned, Result, ServerError, ServerResult, UploadValue,
@@ -93,75 +93,6 @@ impl Debug for Data {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         f.debug_tuple("Data").finish()
     }
-}
-
-/// Context when we're resolving a `SelectionSet`
-// pub type ContextSelectionSet<'a> = ContextBase<'a, &'a Positioned<SelectionSet>>;
-
-/// When inside a Connection, we get the subfields asked by alias which are a relation
-/// (response_key, relation)
-pub fn relations_edges<'a>(
-    ctx: &ContextSelectionSet<'a>,
-    root: SelectionSetTarget<'a>,
-) -> HashMap<String, &'a MetaRelation> {
-    let mut result = HashMap::new();
-    for selection in &ctx.item.node.items {
-        match &selection.node {
-            Selection::Field(field) => {
-                // We do take the name and not the alias
-                let field_name = field.node.name.node.as_str();
-                let field_response_key = field.node.response_key().node.as_str();
-                if let Some(relation) = root.field(field_name).and_then(|x| x.relation.as_ref()) {
-                    result.insert(field_response_key.to_string(), relation);
-                }
-            }
-            selection => {
-                let (type_condition, selection_set) = match selection {
-                    Selection::Field(_) => unreachable!(),
-                    Selection::FragmentSpread(spread) => {
-                        let fragment = ctx.query_env.fragments.get(&spread.node.fragment_name.node);
-                        let fragment = match fragment {
-                            Some(fragment) => fragment,
-                            None => {
-                                // Unknown fragment
-                                return HashMap::new();
-                            }
-                        };
-                        (Some(&fragment.node.type_condition), &fragment.node.selection_set)
-                    }
-                    Selection::InlineFragment(fragment) => {
-                        (fragment.node.type_condition.as_ref(), &fragment.node.selection_set)
-                    }
-                };
-                let type_condition = type_condition.map(|condition| condition.node.on.node.as_str());
-
-                let introspection_type_name = root.name();
-
-                let typename_matches = type_condition.map_or(true, |condition| {
-                    introspection_type_name == condition
-                        || ctx
-                            .registry()
-                            .implements
-                            .get(introspection_type_name)
-                            .map_or(false, |interfaces| interfaces.contains(condition))
-                });
-                if typename_matches {
-                    let new_target = type_condition
-                        .and_then(|name| {
-                            ctx.registry()
-                                .types
-                                .get(name)
-                                .and_then(|ty| SelectionSetTarget::try_from(ty).ok())
-                        })
-                        .unwrap_or(ctx.ty);
-
-                    let tailed = relations_edges(&ctx.with_selection_set(selection_set, new_target), root);
-                    result.extend(tailed);
-                }
-            }
-        }
-    }
-    result
 }
 
 #[doc(hidden)]

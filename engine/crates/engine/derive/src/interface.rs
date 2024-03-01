@@ -257,7 +257,6 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 requires: #requires,
                 visible: #visible,
                 edges: Vec::new(),
-                relation: None,
                 compute_complexity: ::std::option::Option::None,
                 resolver: #crate_name::registry::resolvers::Resolver::Parent,
                 ..Default::default()

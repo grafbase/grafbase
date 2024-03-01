@@ -18,7 +18,7 @@ use crate::{
 };
 
 pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTypeContext<'_>) -> String {
-    let input_type_name = MetaNames::create_input(create_ctx.r#type, None);
+    let input_type_name = MetaNames::create_input(create_ctx.r#type);
 
     let implicit_fields = std::iter::once({
         let mut input = MetaInputValue::new(OUTPUT_FIELD_ID, "ID");

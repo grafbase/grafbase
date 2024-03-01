@@ -2,17 +2,12 @@
 //!
 //! -> Split each of the creation and add tests with SDL
 //!
-use std::fmt::Display;
 
 use case::CaseExt;
-use engine::{
-    registry::{relations::MetaRelation, MetaInputValue},
-    validation::dynamic_validators::DynValidator,
-};
-use engine_parser::types::{FieldDefinition, ObjectType, TypeDefinition};
+use engine::{registry::MetaInputValue, validation::dynamic_validators::DynValidator};
+use engine_parser::types::{FieldDefinition, ObjectType};
 
 use crate::{
-    registry::names::MetaNames,
     rules::{
         length_directive::{LENGTH_DIRECTIVE, MAX_ARGUMENT, MIN_ARGUMENT},
         visitor::VisitorContext,
@@ -22,7 +17,6 @@ use crate::{
 
 pub mod names;
 pub(crate) mod pagination;
-mod relations;
 
 /// Create an input type for a non_primitive Type.
 pub fn add_input_type_non_primitive(ctx: &mut VisitorContext<'_>, object: &ObjectType, type_name: &str) -> String {
@@ -100,23 +94,4 @@ pub fn get_length_validator(field: &FieldDefinition) -> Option<DynValidator> {
             });
             DynValidator::length(min_value, max_value)
         })
-}
-
-/// Used to keep track of the parent relation when created nested input types
-/// TODO: Merge it with MetaRelation?
-pub struct ParentRelation<'a> {
-    /// TypeDefinition of @model type
-    model_type_definition: &'a TypeDefinition,
-    meta: &'a MetaRelation,
-}
-
-impl<'a> Display for ParentRelation<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} relation of {}",
-            self.meta.name,
-            MetaNames::model(self.model_type_definition)
-        )
-    }
 }

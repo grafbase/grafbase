@@ -8,16 +8,13 @@ use common_types::auth::{ExecutionAuth, Operations};
 use engine::{
     extensions::{Extension, ExtensionContext, ExtensionFactory, NextResolve, ResolveInfo},
     graph_entities::ResponseNodeId,
-    registry::{relations::MetaRelation, ModelName, NamedType, Registry, TypeReference},
+    registry::{NamedType, Registry, TypeReference},
     AuthConfig, ServerError, ServerResult,
 };
 use engine_value::ConstValue;
 use log::{trace, warn};
 
 const INPUT_ARG: &str = "input";
-const CREATE_FIELD: &str = "create";
-const LINK_FIELD: &str = "link";
-const UNLINK_FIELD: &str = "unlink";
 const MUTATION_TYPE: &str = "Mutation";
 
 /// Authorization extension
@@ -107,7 +104,6 @@ impl Extension for AuthExtension {
                         .iter()
                         .find_map(|(name, val)| val.as_ref().filter(|_| name.as_str() == INPUT_ARG))
                         .unwrap_or(&ConstValue::Null);
-                    let global_allowed_ops = execution_auth.global_ops();
 
                     if let Some(type_name) = guess_batch_operation_type_name(&info, required_op) {
                         let inputs = match input {
@@ -127,7 +123,6 @@ impl Extension for AuthExtension {
                                 registry: &ctx.schema_env.registry,
                                 required_op,
                                 model_allowed_ops,
-                                global_allowed_ops,
                                 auth_fn: &auth_fn,
                             })?;
                         }
@@ -139,7 +134,6 @@ impl Extension for AuthExtension {
                             registry: &ctx.schema_env.registry,
                             required_op,
                             model_allowed_ops,
-                            global_allowed_ops,
                             auth_fn: &auth_fn,
                         })?;
                     }
@@ -185,7 +179,6 @@ struct CheckInputOptions<'a, F: Fn(Option<&AuthConfig>, Operations) -> Operation
     registry: &'a Registry,
     required_op: Operations,
     model_allowed_ops: Operations,
-    global_allowed_ops: Operations,
     auth_fn: &'a F,
 }
 
@@ -213,7 +206,7 @@ impl AuthExtension {
             .fields()
             .expect("type must have fields");
 
-        for (field_name, field_value) in input_fields {
+        for field_name in input_fields.keys() {
             let field = type_fields.get(field_name.as_str()).expect("field must exist");
 
             let field_ops = (opts.auth_fn)(field.auth.as_ref(), opts.model_allowed_ops);
@@ -231,91 +224,9 @@ impl AuthExtension {
                 warn!(self.trace_id, "{msg} auth={auth:?}", auth = field.auth);
                 return Err(ServerError::new(msg, None));
             }
-
-            // Handle relations via create, link, and unlink
-            if let Some(MetaRelation { relation, .. }) = &field.relation {
-                let target_type = &relation.1;
-
-                match field_value {
-                    // Example: todoCreate(input: { items: { create: ... } })
-                    ConstValue::Object(obj) => {
-                        if let Some(input) = obj.get(CREATE_FIELD) {
-                            self.check_input(CheckInputOptions {
-                                input,
-                                type_name: target_type.as_str().into(),
-                                ..opts
-                            })?;
-                        }
-                        // Examples: todoCreate(input: { items: { link: "some-id" } })
-                        //           todoUpdate(input: { items: { unlink: "some-id" } })
-                        else if matches!(obj.get(LINK_FIELD), Some(ConstValue::String(_target_id)))
-                            || matches!(obj.get(UNLINK_FIELD), Some(ConstValue::String(_target_id)))
-                        {
-                            self.check_link_or_unlink(
-                                target_type,
-                                opts.mutation_name,
-                                opts.registry,
-                                opts.global_allowed_ops,
-                                opts.auth_fn,
-                            )?;
-                        }
-                    }
-                    // Examples: todoCreate(input: { items: [{ create: ... }, { create: ... }] })
-                    //           todoUpdate(input: { items: [{ link: "some-id" }, { link: "some-id" }] })
-                    ConstValue::List(list) => {
-                        for item in list {
-                            if let ConstValue::Object(obj) = item {
-                                if let Some(input) = obj.get(CREATE_FIELD) {
-                                    self.check_input(CheckInputOptions {
-                                        input,
-                                        type_name: target_type.named_type(),
-                                        ..opts
-                                    })?;
-                                } else if matches!(obj.get(LINK_FIELD), Some(ConstValue::String(_target_id)))
-                                    || matches!(obj.get(UNLINK_FIELD), Some(ConstValue::String(_target_id)))
-                                {
-                                    self.check_link_or_unlink(
-                                        target_type,
-                                        opts.mutation_name,
-                                        opts.registry,
-                                        opts.global_allowed_ops,
-                                        opts.auth_fn,
-                                    )?;
-                                }
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
         }
 
         Ok(())
-    }
-
-    // Only allow (un)link when the user can read the target type's id
-    fn check_link_or_unlink<F: Fn(Option<&AuthConfig>, Operations) -> Operations>(
-        &self,
-        type_name: &ModelName,
-        mutation_name: &str,
-        registry: &Registry,
-        global_ops: Operations,
-        auth_fn: &F,
-    ) -> Result<(), ServerError> {
-        self.check_input(CheckInputOptions {
-            input: &ConstValue::Object(
-                vec![(engine::Name::new("id"), ConstValue::String("ignored".to_string()))]
-                    .into_iter()
-                    .collect(),
-            ),
-            type_name: type_name.named_type(),
-            mutation_name,
-            registry,
-            required_op: Operations::GET,
-            model_allowed_ops: global_ops, // Fall back to global ops because id has inherited model-level auth already
-            global_allowed_ops: global_ops,
-            auth_fn,
-        })
     }
 
     // Only allow delete when the user is authorized to delete ALL fields of the type

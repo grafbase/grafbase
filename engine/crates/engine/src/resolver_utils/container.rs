@@ -13,8 +13,8 @@ use crate::{
         resolvers::ResolvedValue,
         type_kinds::{OutputType, SelectionSetTarget},
     },
-    relations_edges, Context, ContextExt, ContextField, ContextSelectionSet, ContextSelectionSetLegacy, Error,
-    LegacyOutputType, Name, ServerError, ServerResult, Value,
+    Context, ContextExt, ContextField, ContextSelectionSet, ContextSelectionSetLegacy, Error, LegacyOutputType, Name,
+    ServerError, ServerResult, Value,
 };
 
 /// Represents a GraphQL container object.
@@ -164,34 +164,18 @@ async fn resolve_container_inner<'a>(
 
     let results = results.flatten();
 
-    let relations = relations_edges(ctx, ctx.ty);
-
     if let Some(node_id) = node_id {
         let mut container = ResponseContainer::new_node(node_id);
         for ((alias, name), value) in results {
             let name = name.to_string();
             let alias = alias.map(|x| x.to_string().into());
-            // Temp: little hack while we rework the execution step, we should not do that here to
-            // follow OneToMany relations.
-            if let Some(relation) = relations.get(&name) {
-                container.insert(
-                    ResponseNodeRelation::relation(
-                        name,
-                        relation.name.clone(),
-                        relation.relation.0.as_ref().map(ToString::to_string),
-                        relation.relation.1.to_string(),
-                    ),
-                    value,
-                );
-            } else {
-                container.insert(
-                    ResponseNodeRelation::NotARelation {
-                        field: name.into(),
-                        response_key: alias,
-                    },
-                    value,
-                );
-            }
+            container.insert(
+                ResponseNodeRelation::NotARelation {
+                    field: name.into(),
+                    response_key: alias,
+                },
+                value,
+            );
         }
         Ok(ctx.response().await.insert_node(container))
     } else {
@@ -200,25 +184,13 @@ async fn resolve_container_inner<'a>(
             let name = name.to_string();
             let alias = alias.map(|x| x.to_string().into());
 
-            if let Some(relation) = relations.get(&name) {
-                container.insert(
-                    ResponseNodeRelation::relation(
-                        name,
-                        relation.name.clone(),
-                        relation.relation.0.as_ref().map(ToString::to_string),
-                        relation.relation.1.to_string(),
-                    ),
-                    value,
-                );
-            } else {
-                container.insert(
-                    ResponseNodeRelation::NotARelation {
-                        field: name.into(),
-                        response_key: alias,
-                    },
-                    value,
-                );
-            }
+            container.insert(
+                ResponseNodeRelation::NotARelation {
+                    field: name.into(),
+                    response_key: alias,
+                },
+                value,
+            );
         }
         Ok(ctx.response().await.insert_node(container))
     }
