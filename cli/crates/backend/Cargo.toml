@@ -16,6 +16,7 @@ chrono = "0.4"
 cynic = { workspace = true, features = ["http-reqwest"] }
 dirs = "5"
 http-cache-reqwest = "0.13"
+ignore = "0.4"
 reqwest = { workspace = true, features = [
     "rustls-tls",
     "stream",
@@ -34,7 +35,6 @@ tower-http = { workspace = true, features = ["trace"] }
 ulid = "1"
 url = "2"
 urlencoding = "2"
-walkdir = "2"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.59.0" }
 server = { package = "grafbase-local-server", path = "../server", version = "0.59.0" }
