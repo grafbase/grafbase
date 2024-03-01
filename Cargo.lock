@@ -2735,15 +2735,11 @@ dependencies = [
 name = "graph-entities"
 version = "0.1.0"
 dependencies = [
- "base64 0.21.7",
  "engine-value",
  "internment",
- "rstest",
  "serde",
  "serde_json",
- "sha2",
  "thiserror",
- "ulid",
 ]
 
 [[package]]

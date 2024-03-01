@@ -29,7 +29,6 @@ use std::{
 use common_types::auth::Operations;
 use engine_parser::types::OperationType::{self, Query};
 use engine_value::ConstValue;
-use graph_entities::NodeID;
 use indexmap::{map::IndexMap, set::IndexSet};
 use inflector::Inflector;
 use postgres_connector_types::database_definition::DatabaseDefinition;
@@ -1571,14 +1570,6 @@ impl Registry {
 
     pub fn mutation_root_mut(&mut self) -> &mut MetaType {
         self.types.get_mut(self.mutation_type.as_deref().unwrap()).unwrap()
-    }
-
-    pub fn find_ty_with_id(&self, node_id: &NodeID<'_>) -> Option<&MetaType> {
-        let ty = node_id.ty();
-        self.types
-            .iter()
-            .find(|(key, _value)| key.to_lowercase() == ty)
-            .map(|(_, val)| val)
     }
 }
 

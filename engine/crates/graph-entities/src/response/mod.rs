@@ -25,7 +25,7 @@
 //! of the types in this file have some serde attrs that make them more compact when serialized
 
 use core::fmt::{self, Display, Formatter};
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 
 use engine_value::Name;
 use internment::ArcIntern;
@@ -33,15 +33,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::CompactValue;
 
-mod entity_id;
 mod into_response_node;
 mod response_node_id;
 mod se;
 
 pub use se::GraphQlResponseSerializer;
 
-use self::response_node_id::ToEntityId;
-pub use self::{entity_id::EntityId, into_response_node::IntoResponseNode, response_node_id::ResponseNodeId};
+pub use self::{into_response_node::IntoResponseNode, response_node_id::ResponseNodeId};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct QueryResponse {
@@ -50,10 +48,6 @@ pub struct QueryResponse {
     /// Storage of every nodes
     #[serde(with = "vectorize")]
     data: HashMap<ResponseNodeId, QueryResponseNode>,
-    /// Map of database NodeId to the ID used in the data
-    ///
-    /// Database entities can appear more than once in a response, so we need to keep a list here.
-    entity_ids: HashMap<EntityId, Vec<ResponseNodeId>>,
     /// The next id we can use when we add a node.
     next_id: u32,
     /// Cache tags
@@ -134,66 +128,9 @@ impl QueryResponse {
         }
     }
 
-    pub fn relations(&self) -> RelationsIterator<'_> {
-        RelationsIterator {
-            nodes: self.children(),
-            items: VecDeque::new(),
-        }
-    }
-
     pub fn cache_tags(&self) -> &HashSet<String> {
         &self.cache_tags
     }
-}
-
-// TODO: iterator are little flawed right now as it's just a draft impl; it'll be switched to a
-// more compact and efficient form later.
-impl<'a> Iterator for RelationsIterator<'a> {
-    type Item = RelationsIteratorItem;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if let Some(relation) = self.items.pop_front() {
-                return Some(relation);
-            }
-
-            if let Some((node_id, node)) = self.nodes.next() {
-                match node {
-                    QueryResponseNode::Container(container) => {
-                        self.items.extend(container.children.iter().filter_map(|(rel, _)| {
-                            if matches!(rel, ResponseNodeRelation::Relation { .. }) {
-                                Some(RelationsIteratorItem {
-                                    relation: rel.clone(),
-                                    parent_node_id: node_id,
-                                    parent_entity_id: container.id.clone(),
-                                })
-                            } else {
-                                None
-                            }
-                        }));
-                        continue;
-                    }
-                    _ => {
-                        continue;
-                    }
-                }
-            }
-
-            return None;
-        }
-    }
-}
-
-/// An iterator of the IDs of the children of a given node with forward depth-first
-pub struct RelationsIterator<'a> {
-    nodes: Children<'a>,
-    items: VecDeque<RelationsIteratorItem>,
-}
-
-pub struct RelationsIteratorItem {
-    pub parent_node_id: ResponseNodeId,
-    pub parent_entity_id: Option<EntityId>,
-    pub relation: ResponseNodeRelation,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -215,17 +152,12 @@ impl QueryResponse {
         let id = ResponseNodeId(0);
         let mut this = Self {
             root: Some(id),
-            entity_ids: HashMap::new(),
             data: HashMap::new(),
             next_id: 0,
             cache_tags: HashSet::new(),
         };
         this.insert_node(node);
         this
-    }
-
-    pub fn ids_for_entity<T: ToEntityId>(&self, entity: &T) -> Vec<ResponseNodeId> {
-        self.entity_ids.get(&entity.entity_id()).cloned().unwrap_or_default()
     }
 
     fn next_id(&mut self) -> ResponseNodeId {
@@ -245,11 +177,7 @@ impl QueryResponse {
     where
         T: IntoResponseNode,
     {
-        let entity_id = node.entity_id();
         let node_id = self.next_id();
-        if let Some(entity_id) = entity_id {
-            self.entity_ids.entry(entity_id).or_default().push(node_id);
-        }
 
         self.data.insert(node_id, node.into_node());
         node_id
@@ -265,34 +193,7 @@ impl QueryResponse {
         self.data.get_mut(&id)
     }
 
-    pub fn get_entity_nodes<T: ToEntityId>(&self, entity_id: &T) -> impl Iterator<Item = &QueryResponseNode> {
-        self.ids_for_entity(entity_id)
-            .into_iter()
-            .filter_map(|node_id| self.data.get(&node_id))
-    }
-
-    /// Delete a Node by entity ID
-    pub fn delete_entity<S: ToEntityId>(&mut self, id: S) -> Result<(), QueryResponseErrors> {
-        let entity_id = id.entity_id();
-        let node_ids = self
-            .entity_ids
-            .remove(&entity_id)
-            .ok_or(QueryResponseErrors::NodeNotFound)?;
-
-        let mut error = None;
-        for id in node_ids {
-            if self.data.remove(&id).is_none() {
-                error = Some(QueryResponseErrors::NodeNotFound);
-            }
-        }
-
-        match error {
-            None => Ok(()),
-            Some(error) => Err(error),
-        }
-    }
-
-    // /// Delete a Node by node ID
+    /// Delete a Node by node ID
     pub fn delete_node(&mut self, id: ResponseNodeId) -> Result<QueryResponseNode, QueryResponseErrors> {
         self.data.remove(&id).ok_or(QueryResponseErrors::NodeNotFound)
     }
@@ -397,17 +298,6 @@ impl QueryResponse {
 }
 
 impl QueryResponseNode {
-    pub fn entity_id(&self) -> Option<EntityId> {
-        match self {
-            QueryResponseNode::Container(value) => value.id.clone(),
-            QueryResponseNode::List(_) | QueryResponseNode::Primitive(_) => None,
-        }
-    }
-
-    pub fn is_entity_node(&self) -> bool {
-        self.entity_id().is_some()
-    }
-
     pub const fn is_list(&self) -> bool {
         matches!(self, QueryResponseNode::List(_))
     }
@@ -602,9 +492,6 @@ pub enum RelationOrigin {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ResponseContainer {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    id: Option<EntityId>,
-
     /// Children which are (relation_name, node)
     #[serde(rename = "c")]
     children: Vec<(ResponseNodeRelation, ResponseNodeId)>,
@@ -632,18 +519,8 @@ pub struct ResponseContainer {
 }
 
 impl ResponseContainer {
-    pub fn new_node(id: impl Into<EntityId>) -> Self {
-        Self {
-            id: Some(id.into()),
-            children: Default::default(),
-            relation: None,
-            // errors: Vec::new(),
-        }
-    }
-
     pub fn new_container() -> Self {
         Self {
-            id: None,
             children: Default::default(),
             relation: None,
             // errors: Vec::new(),
@@ -656,7 +533,6 @@ impl ResponseContainer {
 
     pub fn with_children(children: impl IntoIterator<Item = (ResponseNodeRelation, ResponseNodeId)>) -> Self {
         Self {
-            id: None,
             children: children.into_iter().collect(),
             relation: None,
             // errors: Vec::new(),
@@ -696,7 +572,6 @@ mod tests {
     use serde_json::Number;
 
     use super::*;
-    use crate::NodeID;
 
     #[test]
     fn check_size_of_query_response_node() {
@@ -796,95 +671,6 @@ mod tests {
     }
 
     #[test]
-    fn should_be_able_to_delete_a_node() {
-        let root = ResponseContainer::new_container();
-        let mut response = QueryResponse::new_root(root);
-        let root_id = response.root.unwrap();
-
-        let glossary_id = NodeID::new("type", "a_id");
-        let glossary_container = response
-            .append_unchecked(
-                root_id,
-                ResponseContainer::new_node(&glossary_id),
-                ResponseNodeRelation::NotARelation {
-                    response_key: None,
-                    field: "glossary".to_string().into(),
-                },
-            )
-            .unwrap();
-
-        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string()));
-
-        let relation = ResponseNodeRelation::NotARelation {
-            response_key: None,
-            field: "title".to_string().into(),
-        };
-
-        response
-            .append_unchecked(glossary_container, example_primitive, relation)
-            .unwrap();
-
-        let output_json = serde_json::json!({
-            "glossary": {
-                "title": "example",
-            }
-        });
-
-        assert_eq!(response.to_json_value().unwrap().to_string(), output_json.to_string());
-        response.delete_entity(glossary_id).unwrap();
-        assert_eq!(response.to_json_value().unwrap().to_string(), "{}");
-    }
-
-    #[test]
-    fn delete_list_json() {
-        let root = ResponseList::with_children(Vec::new());
-        let mut response = QueryResponse::new_root(root);
-        let root_id = response.root.unwrap();
-
-        let node = response.push(root_id, ResponseContainer::new_container()).unwrap();
-
-        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string()));
-
-        let relation = ResponseNodeRelation::NotARelation {
-            response_key: None,
-            field: "test".to_string().into(),
-        };
-        response
-            .append_unchecked(node, example_primitive.clone(), relation)
-            .unwrap();
-
-        let glossary_id = NodeID::new("type", "a_id");
-        let glossary_container = response
-            .push(root_id, ResponseContainer::new_node(&glossary_id))
-            .unwrap();
-
-        let relation = ResponseNodeRelation::NotARelation {
-            response_key: None,
-            field: "title".to_string().into(),
-        };
-
-        response
-            .append_unchecked(glossary_container, example_primitive, relation)
-            .unwrap();
-
-        let output_json = serde_json::Value::Array(vec![
-            serde_json::json!({
-                "test": "example"
-            }),
-            serde_json::json!({
-                "title": "example"
-            }),
-        ]);
-
-        assert_eq!(response.to_json_value().unwrap().to_string(), output_json.to_string());
-        response.delete_entity(glossary_id).unwrap();
-        assert_eq!(
-            response.to_json_value().unwrap().to_string(),
-            "[{\"test\":\"example\"}]"
-        );
-    }
-
-    #[test]
     fn transform_list_json() {
         let root = ResponseList::with_children(Vec::new());
         let mut response = QueryResponse::new_root(root);
@@ -939,38 +725,5 @@ mod tests {
         ]);
 
         assert_eq!(output, output_json.to_string());
-    }
-
-    #[test]
-    fn test_insert_node_duplicates_if_same_entity_id() {
-        let node_id = NodeID::new_owned("todo".into(), ulid::Ulid::new().to_string());
-        let container = ResponseContainer::new_node(node_id.clone());
-
-        let mut response = QueryResponse::default();
-
-        let id_one = response.insert_node(container.clone());
-        let id_two = response.insert_node(container);
-
-        assert_ne!(id_one, id_two);
-        assert_eq!(response.data.len(), 2);
-        assert_eq!(response.entity_ids.len(), 1);
-    }
-
-    #[test]
-    fn test_insert_node_handles_different_entity_ids() {
-        let node_id = NodeID::new_owned("todo".into(), ulid::Ulid::new().to_string());
-        let node = ResponseContainer::new_node(node_id.clone());
-
-        let node_id_two = NodeID::new_owned("todo".into(), ulid::Ulid::new().to_string());
-        let node_two = ResponseContainer::new_node(node_id_two.clone());
-
-        let mut response = QueryResponse::default();
-
-        let id_one = response.insert_node(node);
-        let id_two = response.insert_node(node_two);
-
-        assert!(id_one != id_two);
-        assert_eq!(response.data.len(), 2);
-        assert_eq!(response.entity_ids.len(), 2);
     }
 }
