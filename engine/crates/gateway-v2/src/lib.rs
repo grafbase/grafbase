@@ -4,13 +4,16 @@ use std::{
     sync::Arc,
 };
 
-use auth::Authorizer;
+use auth::AuthService;
 use engine::{ErrorCode, Request, RequestHeaders};
 use engine_v2::{Engine, EngineEnv, ExecutionMetadata, PreparedExecution, Schema};
 use futures_util::Stream;
 use gateway_core::RequestContext;
 use headers::HeaderMapExt;
-use runtime::cache::{CacheReadStatus, CachedExecutionResponse};
+use runtime::{
+    auth::AccessToken,
+    cache::{CacheReadStatus, CachedExecutionResponse},
+};
 
 #[cfg(feature = "axum")]
 pub mod local_server;
@@ -21,7 +24,7 @@ pub mod websockets;
 pub struct Gateway {
     engine: Arc<Engine>,
     env: GatewayEnv,
-    authorizer: Box<dyn Authorizer>,
+    auth: AuthService,
 }
 
 impl std::fmt::Debug for Gateway {
@@ -45,19 +48,15 @@ pub struct Response {
 
 impl Gateway {
     pub fn new(schema: Schema, engine_env: EngineEnv, env: GatewayEnv) -> Self {
-        let authorizer = auth::build(schema.auth_config.as_ref(), &env.kv);
+        let auth = AuthService::new_v2(schema.auth_config.clone().unwrap_or_default(), env.kv.clone());
         let engine = Arc::new(Engine::new(schema, engine_env));
-        Self {
-            engine,
-            env,
-            authorizer,
-        }
+        Self { engine, env, auth }
     }
 
     // The Engine is directly accessible
     pub async fn unchecked_engine_execute(&self, ctx: &impl RequestContext, request: Request) -> Response {
-        let request_headers = build_request_headers(ctx.headers());
-        let response = self.engine.execute(request, request_headers).await.await;
+        let headers = build_request_headers(ctx.headers());
+        let response = self.engine.execute(request, headers).await.await;
         let has_errors = response.has_errors();
         match serde_json::to_vec(&response) {
             Ok(bytes) => Response {
@@ -71,20 +70,20 @@ impl Gateway {
         }
     }
 
-    pub async fn authorize(self: &Arc<Self>, headers: RequestHeaders) -> Option<Session> {
-        let token = self.authorizer.get_access_token(&headers).await?;
+    pub async fn authorize(self: &Arc<Self>, headers: &http::HeaderMap) -> Option<Session> {
+        let token = Arc::new(self.auth.get_access_token(headers).await?);
 
         Some(Session {
             gateway: Arc::clone(self),
             token,
-            headers,
+            headers: build_request_headers(headers),
         })
     }
 
     fn build_cache_key(
         &self,
         prepared_execution: &PreparedExecution,
-        token: &auth::AccessToken,
+        token: &AccessToken,
     ) -> Option<runtime::cache::Key> {
         let PreparedExecution::PreparedRequest(prepared) = prepared_execution else {
             return None;
@@ -103,7 +102,7 @@ impl Gateway {
 #[derive(Clone)]
 pub struct Session {
     gateway: Arc<Gateway>,
-    token: auth::AccessToken,
+    token: Arc<AccessToken>,
     headers: RequestHeaders,
 }
 

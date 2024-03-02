@@ -1,11 +1,10 @@
-mod auth;
 mod cache_config;
 
 use std::collections::BTreeMap;
 
-pub use auth::*;
 pub use cache_config::{CacheConfig, CacheConfigTarget, CacheConfigs};
 use federated_graph::{v1::FederatedGraphV1, SubgraphId};
+pub use gateway_auth_config::v2::*;
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]

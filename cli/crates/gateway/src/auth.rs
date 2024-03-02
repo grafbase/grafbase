@@ -1,14 +1,11 @@
 use std::sync::Arc;
 
 use common_types::auth::ExecutionAuth;
-use engine::AuthConfig;
-use gateway_core::{AdminAuthError, AuthError};
-use runtime_local::Bridge;
+use futures_util::future::BoxFuture;
+use gateway_core::{serving::X_API_KEY_HEADER, AdminAuthError};
+use runtime::auth::AccessToken;
 
-pub(crate) struct Authorizer {
-    pub(crate) auth_config: AuthConfig,
-    pub(crate) bridge: Bridge,
-}
+pub(crate) struct Authorizer;
 
 #[async_trait::async_trait]
 impl gateway_core::Authorizer for Authorizer {
@@ -21,24 +18,12 @@ impl gateway_core::Authorizer for Authorizer {
     ) -> Result<(), AdminAuthError> {
         Ok(())
     }
+}
 
-    async fn authorize_request(
-        &self,
-        ctx: &Arc<Self::Context>,
-        _request: &engine::Request,
-    ) -> Result<ExecutionAuth, AuthError> {
-        if ctx.x_api_key_header.is_some() {
-            Ok(ExecutionAuth::new_from_api_keys())
-        } else {
-            let auth_invoker = runtime_local::UdfInvokerImpl::new(self.bridge.clone());
-            gateway_core::authorize_request(
-                None,
-                &auth_invoker,
-                &self.auth_config,
-                ctx.as_ref(),
-                ctx.authorization_header.clone(),
-            )
-            .await
-        }
+pub(crate) struct AnyApiKeyProvider;
+
+impl gateway_v2_auth::Authorizer for AnyApiKeyProvider {
+    fn get_access_token<'a>(&'a self, headers: &'a http::HeaderMap) -> BoxFuture<'a, Option<AccessToken>> {
+        Box::pin(async { headers.get(X_API_KEY_HEADER).map(|_| ExecutionAuth::ApiKey.into()) })
     }
 }

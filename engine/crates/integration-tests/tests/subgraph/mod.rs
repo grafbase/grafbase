@@ -7,7 +7,7 @@ mod openapi;
 mod requires;
 
 use integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};
-use runtime::udf::{CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse};
+use runtime::udf::{CustomResolverRequestPayload, UdfError, UdfResponse};
 use serde_json::{json, Value};
 
 const TOOD_SCHEMA: &str = r#"
@@ -25,7 +25,7 @@ const TOOD_SCHEMA: &str = r#"
 
 fn resolver_returning_items_by_id(
     items: impl IntoIterator<Item = serde_json::Value>,
-) -> Box<dyn Fn(CustomResolverRequestPayload) -> Result<CustomResolverResponse, CustomResolverError> + Send + Sync> {
+) -> Box<dyn Fn(CustomResolverRequestPayload) -> Result<UdfResponse, UdfError> + Send + Sync> {
     let items: std::collections::HashMap<_, _> = items
         .into_iter()
         .map(|item| {
@@ -34,7 +34,7 @@ fn resolver_returning_items_by_id(
         })
         .collect();
     Box::new(move |payload| {
-        Ok(CustomResolverResponse::Success(
+        Ok(UdfResponse::Success(
             payload.arguments["id"]
                 .as_str()
                 .and_then(|id| items.get(id).cloned())
@@ -227,26 +227,24 @@ fn test_returning_unresolvable_representations() {
             .with_custom_resolvers(
                 RustUdfs::new()
                     .resolver("todo", move |payload: CustomResolverRequestPayload| {
-                        Ok(CustomResolverResponse::Success(
-                            match payload.arguments["id"].as_str() {
-                                Some(id) => {
-                                    if id == todo_without_list_id {
-                                        todo_without_list.clone()
-                                    } else if id == todo_with_list_id {
-                                        todo_with_list.clone()
-                                    } else {
-                                        json!(null)
-                                    }
+                        Ok(UdfResponse::Success(match payload.arguments["id"].as_str() {
+                            Some(id) => {
+                                if id == todo_without_list_id {
+                                    todo_without_list.clone()
+                                } else if id == todo_with_list_id {
+                                    todo_with_list.clone()
+                                } else {
+                                    json!(null)
                                 }
-                                _ => json!(null),
-                            },
-                        ))
+                            }
+                            _ => json!(null),
+                        }))
                     })
                     .resolver("todoListRepresentation", |payload: CustomResolverRequestPayload| {
                         Ok(if let Some(id) = payload.parent.unwrap()["todoListId"].as_str() {
-                            CustomResolverResponse::Success(json!({ "id": id }))
+                            UdfResponse::Success(json!({ "id": id }))
                         } else {
-                            CustomResolverResponse::Success(json!(null))
+                            UdfResponse::Success(json!(null))
                         })
                     }),
             )
@@ -325,7 +323,7 @@ fn test_contributing_fields_via_default_resolver() {
                 RustUdfs::new().resolver("todoListName", |payload: CustomResolverRequestPayload| {
                     let parent = payload.parent.unwrap();
                     let id = parent["id"].as_str().unwrap();
-                    Ok(CustomResolverResponse::Success(json!(format!("A List With ID {id}"))))
+                    Ok(UdfResponse::Success(json!(format!("A List With ID {id}"))))
                 }),
             )
             .build()
@@ -390,7 +388,7 @@ fn test_key_with_select() {
             .with_custom_resolvers(
                 RustUdfs::new().resolver("todoList", |payload: CustomResolverRequestPayload| {
                     let id = payload.arguments["id"].as_str().unwrap();
-                    Ok(CustomResolverResponse::Success(
+                    Ok(UdfResponse::Success(
                         json!({"id": id, "name": format!("A list With Id {id}")}),
                     ))
                 }),

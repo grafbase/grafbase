@@ -146,4 +146,8 @@ impl ExecutionAuthToken {
     pub fn get_claim(&self, claim_name: &str) -> Option<String> {
         self.token_claims.get(claim_name).map(ToString::to_string)
     }
+
+    pub fn claims(&self) -> &BTreeMap<String, Value> {
+        &self.token_claims
+    }
 }

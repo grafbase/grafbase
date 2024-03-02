@@ -4,6 +4,7 @@ members = [
   "cli/crates/*",
   "engine/crates/*",
   "engine/crates/gateway-v2/auth",
+  "engine/crates/gateway-v2/auth-config",
   "engine/crates/engine-v2/config",
   "engine/crates/engine-v2/schema",
   "engine/crates/engine/derive",
@@ -52,6 +53,7 @@ axum = { version = "0.7", default-features = false }
 axum-server = { version = "0.6", default-features = false }
 base64 = "0.22"
 bitflags = "2"
+blake3 = "1"
 bytes = "1"
 chrono = { version = "0.4", default-features = false }
 ctor = "0.2"
@@ -131,8 +133,9 @@ engine-value = { path = "engine/crates/engine/value" }
 gateway-adapter-local = { path = "engine/crates/gateway-adapter-local" }
 gateway-adapter = { path = "engine/crates/gateway-adapter" }
 gateway-core = { path = "engine/crates/gateway-core" }
-gateway-types = { path = "engine/crates/gateway-types" }
 gateway-v2 = { path = "engine/crates/gateway-v2" }
+gateway-v2-auth = { path = "engine/crates/gateway-v2/auth" }
+gateway-v2-auth-config = { path = "engine/crates/gateway-v2/auth-config" }
 graph-entities = { path = "engine/crates/graph-entities" }
 graphql-composition = { path = "engine/crates/composition" }
 graphql-cursor = { path = "engine/crates/graphql-cursor" }

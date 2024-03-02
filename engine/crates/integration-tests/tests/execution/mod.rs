@@ -13,7 +13,7 @@ mod requires;
 
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};
-use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
+use runtime::udf::{CustomResolverRequestPayload, UdfResponse};
 use serde_json::json;
 use wiremock::{
     matchers::{method, path},
@@ -86,9 +86,9 @@ fn test_nullable_list_validation() {
                 RustUdfs::new()
                     .resolver(
                         "list",
-                        CustomResolverResponse::Success(json!([null, [["hello"]], [["world"], null]])),
+                        UdfResponse::Success(json!([null, [["hello"]], [["world"], null]])),
                     )
-                    .resolver("name", CustomResolverResponse::Success(json!("Jim"))),
+                    .resolver("name", UdfResponse::Success(json!("Jim"))),
             )
             .build()
             .await;
@@ -147,15 +147,12 @@ fn test_nullable_list_item_validation() {
         let engine = EngineBuilder::new(schema)
             .with_custom_resolvers(
                 RustUdfs::new()
-                    .resolver(
-                        "list",
-                        CustomResolverResponse::Success(json!([[["hello", ""]], [["world"]]])),
-                    )
+                    .resolver("list", UdfResponse::Success(json!([[["hello", ""]], [["world"]]])))
                     .resolver("name", |payload: CustomResolverRequestPayload| {
                         if payload.parent == Some(json!("world")) {
-                            Ok(CustomResolverResponse::Success(json!(null)))
+                            Ok(UdfResponse::Success(json!(null)))
                         } else {
-                            Ok(CustomResolverResponse::Success(json!("Jim")))
+                            Ok(UdfResponse::Success(json!("Jim")))
                         }
                     }),
             )
@@ -220,11 +217,8 @@ fn test_nested_lists() {
         let engine = EngineBuilder::new(schema)
             .with_custom_resolvers(
                 RustUdfs::new()
-                    .resolver(
-                        "list",
-                        CustomResolverResponse::Success(json!([[["world"]], [["hello"]]])),
-                    )
-                    .resolver("name", CustomResolverResponse::Success(json!("Jim"))),
+                    .resolver("list", UdfResponse::Success(json!([[["world"]], [["hello"]]])))
+                    .resolver("name", UdfResponse::Success(json!("Jim"))),
             )
             .build()
             .await;

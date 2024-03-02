@@ -1,0 +1,24 @@
+[package]
+name = "gateway-v2-auth-config"
+version = "0.1.0"
+authors = ["Grafbase"]
+description = "Gateway auth config"
+edition = "2021"
+license = "MPL-2.0"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["graphql", "engine", "grafbase"]
+
+[lints]
+workspace = true
+
+[features]
+default = []
+
+[dependencies]
+serde.workspace = true
+serde_with.workspace = true
+common-types.workspace = true
+secrecy = { workspace = true, features = ["serde"] }
+url = { workspace = true, features = ["serde"] }
+

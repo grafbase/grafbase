@@ -54,13 +54,13 @@ use self::{
 };
 pub use crate::model::__DirectiveLocation;
 use crate::{
-    auth::AuthConfig,
     model,
     parser::types::{BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition},
     validation::dynamic_validators::DynValidator,
     Any, ContextExt, ContextField, Error, LegacyInputType, LegacyOutputType, Positioned, ServerResult,
     SubscriptionType, Value, VisitorContext,
 };
+use gateway_v2_auth_config::v1::AuthConfig;
 
 fn strip_brackets(type_name: &str) -> Option<&str> {
     type_name.strip_prefix('[').map(|rest| &rest[..rest.len() - 1])

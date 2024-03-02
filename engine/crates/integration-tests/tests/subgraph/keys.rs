@@ -1,5 +1,5 @@
 use integration_tests::{runtime, udfs::RustUdfs, EngineBuilder, ResponseExt};
-use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
+use runtime::udf::{CustomResolverRequestPayload, UdfResponse};
 use serde_json::{json, Value};
 
 #[test]
@@ -23,7 +23,7 @@ fn test_multi_field_keys() {
             .with_custom_resolvers(RustUdfs::new().resolver("todo", |input: CustomResolverRequestPayload| {
                 let id = input.arguments["id"].as_str().unwrap();
                 let list = input.arguments["list"].as_str().unwrap();
-                Ok(CustomResolverResponse::Success(json!({
+                Ok(UdfResponse::Success(json!({
                     "id": id,
                     "list": list,
                     "name": format!("Todo {id} in list {list}")
@@ -98,7 +98,7 @@ fn test_composite_keys() {
                 let input = input.arguments["input"].as_object().unwrap();
                 let id = input["id"].as_str().unwrap();
                 let list = input["list"]["id"].as_str().unwrap();
-                Ok(CustomResolverResponse::Success(json!({
+                Ok(UdfResponse::Success(json!({
                     "id": id,
                     "list": list,
                     "name": format!("Todo {id} in list {list}")
@@ -172,7 +172,7 @@ fn test_repeated_keys() {
                     .resolver("todoByListAndId", |input: CustomResolverRequestPayload| {
                         let id = input.arguments["id"].as_str().unwrap();
                         let list = input.arguments["list"].as_str().unwrap();
-                        Ok(CustomResolverResponse::Success(json!({
+                        Ok(UdfResponse::Success(json!({
                             "id": id,
                             "list": list,
                             "uid": id,
@@ -181,7 +181,7 @@ fn test_repeated_keys() {
                     })
                     .resolver("todoByUnique", |input: CustomResolverRequestPayload| {
                         let uid = input.arguments["uid"].as_str().unwrap();
-                        Ok(CustomResolverResponse::Success(json!({
+                        Ok(UdfResponse::Success(json!({
                             "id": uid,
                             "list": uid,
                             "uid": uid,

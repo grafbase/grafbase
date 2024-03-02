@@ -6,7 +6,6 @@ use std::{
     },
 };
 
-use engine::RequestHeaders;
 use futures::stream::BoxStream;
 use gateway_v2::Response;
 use graphql_composition::FederatedGraph;
@@ -80,7 +79,7 @@ impl<'a> FederationGatewayWithoutIO<'a> {
 
     pub async fn unchecked_execute(&self) -> Response {
         self.dummy_responses_index.store(0, Ordering::Relaxed);
-        let session = self.gateway.authorize(RequestHeaders::default()).await.unwrap();
+        let session = self.gateway.authorize(&Default::default()).await.unwrap();
         session
             .execute(self.ctx.as_ref(), engine::Request::new(self.query))
             .await

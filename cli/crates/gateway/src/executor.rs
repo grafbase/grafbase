@@ -59,7 +59,7 @@ impl Executor {
             },
         );
 
-        let resolver_engine = UdfInvokerImpl::create_engine(self.bridge.clone());
+        let resolver_engine = UdfInvokerImpl::custom_resolver(self.bridge.clone());
 
         Ok(engine::Schema::build(engine::Registry::clone(&self.registry))
             .data(engine::TraceId(ctx.ray_id().to_string()))

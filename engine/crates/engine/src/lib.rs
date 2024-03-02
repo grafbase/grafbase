@@ -25,7 +25,6 @@ mod schema;
 mod subscription;
 pub mod validation;
 
-pub mod auth;
 pub mod context;
 pub mod extensions;
 pub mod http;
@@ -47,7 +46,6 @@ pub mod registry;
 pub use async_stream;
 #[doc(hidden)]
 pub use async_trait;
-pub use auth::*;
 pub use base::{
     ComplexObject, Description, LegacyInputObjectType, LegacyInputType, LegacyInterfaceType, LegacyOutputType,
     LegacyUnionType, ObjectType,
@@ -66,6 +64,7 @@ pub use error::{
 pub use extensions::ResolveFut;
 #[doc(hidden)]
 pub use futures_util;
+pub use gateway_v2_auth_config::v1::*;
 #[doc(hidden)]
 pub use graph_entities;
 pub use graph_entities::ResponseNodeId;

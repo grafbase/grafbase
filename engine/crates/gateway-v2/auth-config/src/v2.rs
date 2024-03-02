@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct AuthConfig {
     pub providers: Vec<AuthProviderConfig>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[allow(clippy::large_enum_variant)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum AuthProviderConfig {
     Jwt(JwtConfig),
 }

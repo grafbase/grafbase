@@ -2,8 +2,8 @@ use std::hash::Hash;
 
 use common_types::UdfKind;
 use runtime::udf::{
-    CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse, CustomResolversEngine, UdfRequest,
-    UdfRequestContext, UdfRequestContextRequest,
+    CustomResolverInvoker, CustomResolverRequestPayload, UdfError, UdfRequest, UdfRequestContext,
+    UdfRequestContextRequest, UdfResponse,
 };
 
 use super::ResolvedValue;
@@ -41,7 +41,7 @@ impl CustomResolver {
         // -- End of hack
 
         let runtime_ctx = ctx.data::<runtime::Context>()?;
-        let custom_resolvers_engine = ctx.data::<CustomResolversEngine>()?;
+        let custom_resolvers_engine = ctx.data::<CustomResolverInvoker>()?;
         let arguments = ctx
             .field()
             .arguments()?
@@ -73,8 +73,8 @@ impl CustomResolver {
         );
 
         match future.await? {
-            CustomResolverResponse::Success(value) => Ok(ResolvedValue::new(value)),
-            CustomResolverResponse::GraphQLError { message, extensions } => {
+            UdfResponse::Success(value) => Ok(ResolvedValue::new(value)),
+            UdfResponse::GraphQLError { message, extensions } => {
                 let mut error = Error::new(message);
                 error.extensions = extensions.map(|extensions| {
                     ErrorExtensionValues(
@@ -86,7 +86,7 @@ impl CustomResolver {
                 });
                 Err(error)
             }
-            CustomResolverResponse::Error(_err) => Err(CustomResolverError::InvocationError.into()),
+            UdfResponse::Error(_err) => Err(UdfError::InvocationError.into()),
         }
     }
 }

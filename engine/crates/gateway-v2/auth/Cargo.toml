@@ -1,43 +1,37 @@
 [package]
-name = "gateway-v2-auth"
-version = "0.1.0"
 authors = ["Grafbase"]
 description = "Gateway auth"
 edition = "2021"
-license = "MPL-2.0"
 homepage = "https://grafbase.com"
-repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "engine", "grafbase"]
+license = "MPL-2.0"
+name = "gateway-v2-auth"
+repository = "https://github.com/grafbase/grafbase"
+version = "0.1.0"
 
 [lints]
 workspace = true
 
 [dependencies]
-async-runtime.workspace = true
 anyhow = "1"
-async-trait.workspace = true
+async-runtime.workspace = true
 base64.workspace = true
+common-types.workspace = true
+config = { package = "gateway-v2-auth-config", path = "../auth-config" }
+futures-util.workspace = true
+http.workspace = true
 jsonwebtoken.workspace = true
-tracing.workspace = true
+jwt-verifier.workspace = true
+log.workspace = true
+runtime.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-futures-util.workspace = true
 sha2.workspace = true
-
-config = { package = "engine-v2-config", path = "../../engine-v2/config" }
-# needed for errors, not entirely sure if we should be separate or not right now.
-# might move it back to engine, the goal isn't to rewrite everything from engine per se
-# but having more explicit dependencies for now.
-engine = { path = "../../engine" }
-runtime.workspace = true
+tracing.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-reqwest = { workspace = true, features = ["json"] }
 getrandom = { version = "0.2", features = ["js"] }
+reqwest = { workspace = true, features = ["json"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-reqwest = { workspace = true, features = [
-  "json",
-  "rustls-tls",
-] }
-
+reqwest = { workspace = true, features = ["json", "rustls-tls"] }

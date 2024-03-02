@@ -1806,6 +1806,7 @@ dependencies = [
  "fnv",
  "futures",
  "futures-util",
+ "gateway-v2-auth-config",
  "getrandom 0.2.12",
  "grafbase-sql-ast",
  "graph-entities",
@@ -1833,7 +1834,6 @@ dependencies = [
  "rust_decimal",
  "rustls",
  "sanitize-filename",
- "secrecy",
  "serde",
  "serde_json",
  "serde_with",
@@ -1920,6 +1920,7 @@ name = "engine-v2-config"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.0",
+ "gateway-v2-auth-config",
  "graphql-federated-graph",
  "insta",
  "secrecy",
@@ -2410,12 +2411,12 @@ dependencies = [
  "engine",
  "futures-util",
  "gateway-core",
+ "gateway-v2-auth",
  "graphql-extensions",
  "http",
  "postgres-connector-types",
  "runtime",
  "runtime-local",
- "serde",
  "serde_json",
  "thiserror",
  "tokio",
@@ -2436,10 +2437,10 @@ dependencies = [
  "engine",
  "engine-value",
  "futures-util",
+ "gateway-v2-auth",
  "headers",
  "hex",
  "http",
- "jwt-verifier",
  "log 0.1.0",
  "mediatype",
  "mime",
@@ -2481,19 +2482,32 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-runtime",
- "async-trait",
  "base64 0.22.0",
- "engine",
- "engine-v2-config",
+ "common-types",
  "futures-util",
+ "gateway-v2-auth-config",
  "getrandom 0.2.12",
+ "http",
  "jsonwebtoken",
+ "jwt-verifier",
+ "log 0.1.0",
  "reqwest",
  "runtime",
  "serde",
  "serde_json",
  "sha2",
  "tracing",
+]
+
+[[package]]
+name = "gateway-v2-auth-config"
+version = "0.1.0"
+dependencies = [
+ "common-types",
+ "secrecy",
+ "serde",
+ "serde_with",
+ "url",
 ]
 
 [[package]]

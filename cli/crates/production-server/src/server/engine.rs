@@ -74,7 +74,7 @@ async fn handle(headers: HeaderMap, request: BatchRequest, gateway: GatewayWatch
         _ => (),
     }
 
-    let Some(session) = gateway.authorize(ctx.headers_as_map().into()).await else {
+    let Some(session) = gateway.authorize(ctx.headers()).await else {
         match (request, streaming_format) {
             (BatchRequest::Single(_), None) => {
                 let response = gateway_v2::Response::unauthorized();

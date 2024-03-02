@@ -18,6 +18,7 @@ base64.workspace = true
 url = { workspace = true, features = ["serde"] }
 
 federated-graph = { package = "graphql-federated-graph", path = "../../federated-graph" }
+gateway-auth-config = { package = "gateway-v2-auth-config", path = "../../gateway-v2/auth-config" }
 
 [dev-dependencies]
 serde_json = "1.0"

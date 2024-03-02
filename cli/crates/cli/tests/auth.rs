@@ -31,6 +31,134 @@ use crate::utils::consts::{
 const JWT_ISSUER_URL: &str = "https://some.issuer.test";
 const JWT_SECRET: &str = "topsecret";
 
+#[tokio::test(flavor = "multi_thread")]
+async fn simple_authorizer() {
+    let mut env = Environment::init_async().await;
+    env.grafbase_init(GraphType::Single);
+    env.write_schema(
+        r###"
+        schema
+          @auth(
+            providers: [{ type: authorizer, name: "auth" }]
+            rules: [{ allow: groups, groups: ["backend"] }]
+          ) {
+          query: Query
+        }
+
+        extend type Query {
+          todo: Todo! @resolver(name: "todo")
+        }
+
+        type Todo {
+          id: ID!
+          title: String!
+          complete: Boolean!
+        }
+        "###,
+    );
+    env.write_authorizer(
+        "auth.js",
+        r"export default function(context) {
+            return { identity: { groups: [context.request.headers['h1']] } };
+        }",
+    );
+    env.write_resolver(
+        "todo.js",
+        r###"
+            export default function Resolver(parent, args, context, info) {
+                return { id: '1', title: 'todo1', complete: false };
+            }
+        "###,
+    );
+    env.grafbase_dev();
+
+    let client = env.create_async_client();
+    client.poll_endpoint(30, 300).await;
+    insta::assert_json_snapshot!(client.gql::<Value>("query { todo { id } }").await, @r###"
+    {
+      "data": null,
+      "errors": [
+        {
+          "message": "Unauthorized"
+        }
+      ]
+    }
+    "###);
+
+    let client = env.create_async_client().with_header("h1", "backend");
+    client.poll_endpoint(30, 300).await;
+    insta::assert_json_snapshot!(client.gql::<Value>("query { todo { id } }").await, @r###"
+    {
+      "data": {
+        "todo": {
+          "id": "1"
+        }
+      }
+    }
+    "###);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_naming_clash() {
+    let mut env = Environment::init_async().await;
+    env.grafbase_init(GraphType::Single);
+    env.write_schema(
+        r###"
+        schema
+          @auth(
+            providers: [{ type: authorizer, name: "auth" }]
+            rules: [{ allow: groups, groups: ["backend"] }, { allow: public, operations: [read] }]
+          ) {
+          query: Query
+        }
+
+        extend type Query {
+            clash: String! @resolver(name: "auth")
+        }
+        "###,
+    );
+    env.write_authorizer(
+        "auth.js",
+        r"
+        export default function(context) {
+            return { identity: { groups: [context.request.headers['h1']] } };
+        }
+        ",
+    );
+    env.write_resolver(
+        "auth.js",
+        r###"
+        export default function () {
+            return "world";
+        }
+        "###,
+    );
+    env.grafbase_dev();
+
+    let client = env.create_async_client();
+    client.poll_endpoint(30, 300).await;
+    insta::assert_json_snapshot!(client.gql::<Value>("query { clash }").await, @r###"
+    {
+      "data": null,
+      "errors": [
+        {
+          "message": "Unauthorized"
+        }
+      ]
+    }
+    "###);
+
+    let client = env.create_async_client().with_header("h1", "backend");
+    client.poll_endpoint(30, 300).await;
+    insta::assert_json_snapshot!(client.gql::<Value>("query { clash }").await, @r###"
+    {
+      "data": {
+        "clash": "world"
+      }
+    }
+    "###);
+}
+
 #[ignore]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn jwt_provider() {

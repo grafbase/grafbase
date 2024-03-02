@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, ops::Deref, sync::Arc};
+use std::{collections::BTreeMap, sync::Arc};
 
 use common_types::UdfKind;
 use serde::Serialize;
@@ -22,7 +22,7 @@ pub struct UdfRequest<'a, P: Serialize> {
 }
 
 #[derive(Clone, Debug, serde::Deserialize)]
-pub enum CustomResolverResponse {
+pub enum UdfResponse {
     Success(serde_json::Value),
     Error(String),
     GraphQLError {
@@ -32,19 +32,31 @@ pub enum CustomResolverResponse {
     },
 }
 
+#[derive(Clone)]
+pub struct UdfInvoker<Payload: Serialize>(Arc<dyn UdfInvokerInner<Payload>>);
+
+impl<P: Serialize> UdfInvoker<P> {
+    pub fn new(inner: impl UdfInvokerInner<P> + 'static) -> Self {
+        Self(Arc::new(inner))
+    }
+}
+
+impl<Payload: Serialize> std::ops::Deref for UdfInvoker<Payload> {
+    type Target = dyn UdfInvokerInner<Payload>;
+    fn deref(&self) -> &Self::Target {
+        self.0.deref()
+    }
+}
+
 #[async_trait::async_trait]
-pub trait UdfInvoker<Payload: Serialize> {
-    async fn invoke(
-        &self,
-        ray_id: &str,
-        request: UdfRequest<'_, Payload>,
-    ) -> Result<CustomResolverResponse, CustomResolverError>
+pub trait UdfInvokerInner<Payload: Serialize>: Send + Sync {
+    async fn invoke(&self, ray_id: &str, request: UdfRequest<'_, Payload>) -> Result<UdfResponse, UdfError>
     where
         Payload: 'async_trait;
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum CustomResolverError {
+pub enum UdfError {
     #[error("Invocation failed")]
     InvocationError,
     #[error("Internal service error")]
@@ -52,7 +64,7 @@ pub enum CustomResolverError {
 }
 
 // Custom resolvers
-type BoxedCustomResolversEngineImpl<P> = Box<dyn UdfInvoker<P> + Send + Sync>;
+pub type CustomResolverInvoker = UdfInvoker<CustomResolverRequestPayload>;
 
 #[derive(Debug, serde::Serialize)]
 pub struct CustomResolverRequestInfo {}
@@ -66,28 +78,8 @@ pub struct CustomResolverRequestPayload {
     pub info: Option<serde_json::Value>,
 }
 
-#[derive(Clone)]
-pub struct CustomResolversEngine {
-    inner: Arc<BoxedCustomResolversEngineImpl<CustomResolverRequestPayload>>,
-}
-
-impl CustomResolversEngine {
-    pub fn new(engine: BoxedCustomResolversEngineImpl<CustomResolverRequestPayload>) -> Self {
-        Self {
-            inner: Arc::new(engine),
-        }
-    }
-}
-
-impl Deref for CustomResolversEngine {
-    type Target = BoxedCustomResolversEngineImpl<CustomResolverRequestPayload>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
 // Authorizer
+pub type AuthorizerInvoker = UdfInvoker<AuthorizerRequestPayload>;
 
 // TODO: Switch to serde_tuple and use function.apply(null, args)
 #[derive(Debug, serde::Serialize)]
