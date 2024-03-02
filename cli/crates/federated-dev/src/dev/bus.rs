@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 pub(crate) use admin::AdminBus;
 pub(crate) use compose::ComposeBus;
-use gateway_v2::Gateway;
+use engine_v2::Engine;
 pub(crate) use message::*;
 pub(crate) use refresh::RefreshBus;
 
@@ -38,12 +38,12 @@ pub(crate) type ComposeSender = mpsc::Sender<ComposeMessage>;
 pub(crate) type ComposeReceiver = mpsc::Receiver<ComposeMessage>;
 
 /// Send half of the gateway watch channel
-pub(crate) type GatewaySender = watch::Sender<Option<Arc<Gateway>>>;
+pub(crate) type GatewaySender = watch::Sender<Option<Arc<Engine>>>;
 
 /// Receive half of the gateway watch channel.
 ///
 /// Anything part of the system that needs access to the gateway can use this
-pub(crate) type GatewayWatcher = watch::Receiver<Option<Arc<Gateway>>>;
+pub(crate) type EngineWatcher = watch::Receiver<Option<Arc<Engine>>>;
 
 async fn compose_graph(
     sender: &ComposeSender,

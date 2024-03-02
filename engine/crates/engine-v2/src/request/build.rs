@@ -47,10 +47,10 @@ impl Operation {
                 |CacheConfig {
                      max_age,
                      stale_while_revalidate,
-                 }| OperationCacheControl {
-                    max_age,
-                    key: request.cache_key(),
-                    stale_while_revalidate,
+                 }| {
+                    OperationCacheControl::default()
+                        .with_max_age(max_age)
+                        .with_max_stale(stale_while_revalidate)
                 },
             );
         }

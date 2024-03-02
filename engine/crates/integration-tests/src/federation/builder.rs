@@ -6,7 +6,7 @@ use std::{collections::HashMap, sync::Arc};
 use self::mock_trusted_documents::MockTrustedDocumentsClient;
 use async_graphql_parser::types::ServiceDocument;
 pub use bench::*;
-use gateway_v2::Gateway;
+use engine_v2::Engine;
 use graphql_mocks::MockGraphQlServer;
 use parser_sdl::connector_parsers::MockConnectorParsers;
 
@@ -21,7 +21,7 @@ pub struct FederationGatewayBuilder {
     config_sdl: Option<String>,
 }
 
-pub trait GatewayV2Ext {
+pub trait EngineV2Ext {
     fn builder() -> FederationGatewayBuilder {
         FederationGatewayBuilder {
             trusted_documents: None,
@@ -31,7 +31,7 @@ pub trait GatewayV2Ext {
     }
 }
 
-impl GatewayV2Ext for gateway_v2::Gateway {}
+impl EngineV2Ext for engine_v2::Engine {}
 
 #[async_trait::async_trait]
 pub trait SchemaSource {
@@ -79,26 +79,22 @@ impl FederationGatewayBuilder {
         .unwrap_or_default();
 
         let config = engine_config_builder::build_config(&federated_graph_config, graph).into_latest();
-
-        let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
-            enabled: true,
-            ..Default::default()
-        });
-
+        let async_runtime = runtime_local::TokioCurrentRuntime::runtime();
+        let cache = runtime_local::InMemoryCache::runtime(async_runtime.clone());
         TestFederationGateway {
-            gateway: Arc::new(Gateway::new(
+            gateway: Arc::new(Engine::new(
                 config.into(),
+                ulid::Ulid::new().to_string().into(),
                 engine_v2::EngineEnv {
                     fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
-                    cache: cache.clone(),
+                    cache,
+                    cache_opeartion_cache_control: false,
                     trusted_documents: self
                         .trusted_documents
                         .map(From::from)
                         .unwrap_or_else(|| runtime_noop::trusted_documents::NoopTrustedDocuments.into()),
-                },
-                gateway_v2::GatewayEnv {
+                    async_runtime,
                     kv: runtime_local::InMemoryKvStore::runtime(),
-                    cache,
                 },
             )),
         }

@@ -34,10 +34,8 @@ fn simple_error() {
             json!({"data":{"_entities":[{"__typename":"User","username":"Me"}]}}),
         ],
     );
-    let response = integration_tests::runtime().block_on(gateway.unchecked_execute());
-
-    let json = serde_json::from_slice::<serde_json::Value>(&response.bytes).unwrap();
-    insta::assert_json_snapshot!(json, @r###"
+    let response = integration_tests::runtime().block_on(gateway.execute());
+    insta::assert_json_snapshot!(response, @r###"
     {
       "data": {
         "me": {
@@ -116,10 +114,8 @@ fn null_entity_with_error() {
             json!({"data":{"_entities":[null]}, "errors": [{"message":"I'm broken!", "path": ["_entities", 0, "body"]}]}),
         ],
     );
-    let response = integration_tests::runtime().block_on(gateway.unchecked_execute());
-
-    let json = serde_json::from_slice::<serde_json::Value>(&response.bytes).unwrap();
-    insta::assert_json_snapshot!(json, @r###"
+    let response = integration_tests::runtime().block_on(gateway.execute());
+    insta::assert_json_snapshot!(response, @r###"
     {
       "data": null,
       "errors": [

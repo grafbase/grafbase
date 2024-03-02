@@ -30,6 +30,11 @@ pub trait Context<'a> {
 #[derive(Clone)]
 pub struct TraceId(pub String);
 
+pub struct LogContext {
+    pub fetch_log_endpoint_url: Option<String>,
+    pub request_log_event_id: Option<ulid::Ulid>,
+}
+
 /// Extension trait that defines shared behaviour for ContextSelectionSet & ContextField
 pub trait ContextExt<'a>: Context<'a> {
     fn response<'b>(&'b self) -> async_lock::futures::Lock<'b, QueryResponse>

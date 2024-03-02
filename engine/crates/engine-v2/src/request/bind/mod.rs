@@ -6,8 +6,9 @@ use std::collections::{HashMap, HashSet};
 pub use engine_parser::types::OperationType;
 use engine_parser::Positioned;
 use engine_value::Name;
+use id_newtypes::IdRange;
 use itertools::Itertools;
-use schema::{Definition, FieldWalker, IdRange, Schema};
+use schema::{Definition, FieldWalker, Schema};
 
 use crate::{
     request::{

@@ -1,16 +1,19 @@
-use std::{collections::BTreeMap, time::Duration};
+use std::collections::BTreeMap;
 
-use engine_parser::types::{OperationDefinition, OperationType, Selection};
+use engine_parser::{
+    types::{OperationDefinition, OperationType, Selection},
+    Positioned,
+};
+use engine_v2_common::HttpGraphqlResponse;
 use graph_entities::QueryResponse;
 use http::{
     header::{HeaderMap, HeaderName},
     HeaderValue,
 };
-use runtime::cache::{CacheMetadata, Cacheable};
 use serde::{ser::SerializeMap, Deserialize, Serialize};
 pub use streaming::*;
 
-use crate::{CacheControl, Result, ServerError, Value};
+use crate::{CacheControl, QueryEnv, Result, ServerError, Value};
 
 mod streaming;
 
@@ -48,6 +51,25 @@ pub struct Response {
     pub graphql_operation: Option<ResponseOperation>,
 }
 
+impl QueryEnv {
+    pub fn response_operation(&self) -> ResponseOperation {
+        let operation_name =
+            self.operation_name
+                .as_deref()
+                .or_else(|| match self.operation.selection_set.node.items.as_slice() {
+                    [Positioned {
+                        node: Selection::Field(field),
+                        ..
+                    }] => Some(field.node.name.node.as_str()),
+                    _ => None,
+                });
+        ResponseOperation {
+            name: operation_name.map(str::to_owned),
+            r#type: response_operation_for_definition(&self.operation),
+        }
+    }
+}
+
 fn response_operation_for_definition(operation: &OperationDefinition) -> common_types::OperationType {
     match operation.ty {
         OperationType::Query => common_types::OperationType::Query {
@@ -81,18 +103,11 @@ impl Response {
 
     /// Create a new successful response with the data.
     #[must_use]
-    pub fn new(
-        mut data: QueryResponse,
-        operation_name: Option<&str>,
-        operation_definition: &OperationDefinition,
-    ) -> Self {
+    pub fn new(mut data: QueryResponse, response_operation: ResponseOperation) -> Self {
         data.shrink_to_fit();
         Self {
             data,
-            graphql_operation: Some(ResponseOperation {
-                name: operation_name.map(str::to_owned),
-                r#type: response_operation_for_definition(operation_definition),
-            }),
+            graphql_operation: Some(response_operation),
             ..Default::default()
         }
     }
@@ -139,17 +154,10 @@ impl Response {
 
     /// Create a response from some errors.
     #[must_use]
-    pub fn from_errors(
-        errors: Vec<ServerError>,
-        operation_name: Option<&str>,
-        operation_definition: &OperationDefinition,
-    ) -> Self {
+    pub fn from_errors(errors: Vec<ServerError>, response_operation: ResponseOperation) -> Self {
         Self {
             errors,
-            graphql_operation: Some(ResponseOperation {
-                name: operation_name.map(str::to_owned),
-                r#type: response_operation_for_definition(operation_definition),
-            }),
+            graphql_operation: Some(response_operation),
             ..Default::default()
         }
     }
@@ -294,23 +302,25 @@ impl serde::Serialize for GraphQlResponse<'_> {
     }
 }
 
-impl Cacheable for Response {
-    fn metadata(&self) -> CacheMetadata {
-        CacheMetadata {
-            max_age: Duration::from_secs(self.cache_control.max_age as u64),
-            stale_while_revalidate: Duration::from_secs(self.cache_control.stale_while_revalidate as u64),
-            tags: self.data.cache_tags().iter().cloned().collect::<Vec<_>>(),
-            should_purge_related: self
-                .graphql_operation
-                .as_ref()
-                .is_some_and(|operation| operation.r#type == common_types::OperationType::Mutation)
-                && !self.data.cache_tags().is_empty(),
-            should_cache: !self
-                .graphql_operation
-                .as_ref()
-                .is_some_and(|operation| operation.r#type == common_types::OperationType::Mutation)
-                && self.errors.is_empty()
-                && self.cache_control.max_age != 0,
+impl Response {
+    pub fn into_json_bytes(&self) -> Result<Vec<u8>, Vec<u8>> {
+        serde_json::to_vec(&self.to_graphql_response()).map_err(|err| {
+            tracing::error!("Failed to serialize response: {}", err);
+            serde_json::to_vec(&serde_json::json!({
+                "errors": [
+                    {"message": "Internal server error"}
+                ]
+            }))
+            .unwrap()
+        })
+    }
+}
+
+impl From<Response> for HttpGraphqlResponse {
+    fn from(value: Response) -> Self {
+        match value.into_json_bytes() {
+            Ok(body) => Self::from_bytes(body.into()),
+            Err(body) => Self::from_bytes(body.into()),
         }
     }
 }

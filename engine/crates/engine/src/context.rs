@@ -33,6 +33,7 @@ use crate::{
     schema::SchemaEnv,
     CacheInvalidation, Name, Positioned, Result, ServerError, ServerResult, UploadValue,
 };
+pub use ext::LogContext;
 pub use ext::TraceId;
 
 mod ext;
@@ -153,6 +154,10 @@ impl QueryEnv {
             schema_env,
             query_env: self,
         }
+    }
+
+    pub fn operation_type(&self) -> OperationType {
+        self.0.operation.node.ty
     }
 }
 

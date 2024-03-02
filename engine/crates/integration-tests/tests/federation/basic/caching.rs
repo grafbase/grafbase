@@ -1,10 +1,9 @@
 //! Tests of caching behaviour
 
-use gateway_v2::Gateway;
+use engine_v2::Engine;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer, StateMutationSchema};
-use headers::HeaderMapExt;
 use integration_tests::federation::GraphqlResponse;
-use integration_tests::{federation::GatewayV2Ext, runtime};
+use integration_tests::{federation::EngineV2Ext, runtime};
 use std::time::Duration;
 
 #[test]
@@ -12,7 +11,7 @@ fn test_basic_query_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(StateMutationSchema::default()).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -27,20 +26,6 @@ fn test_basic_query_caching() {
             .await;
 
         let response = engine.execute("query { value }").await;
-        assert_eq!(
-            response.headers.typed_get::<headers::CacheControl>(),
-            Some(
-                headers::CacheControl::new()
-                    .with_public()
-                    .with_max_age(Duration::from_secs(2))
-            ),
-            "{}",
-            response
-                .headers
-                .get("Cache-Control")
-                .and_then(|v| v.to_str().ok())
-                .unwrap_or_default()
-        );
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -89,7 +74,7 @@ fn test_field_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -110,17 +95,10 @@ fn test_field_caching() {
             .await;
 
         let response: GraphqlResponse = engine.execute("query { serverVersion }").await;
-        assert_eq!(response.metadata.cache_config, None);
+        assert_eq!(response.cache_control(), None);
+        assert_eq!(response.cache_status(), None);
 
         let response: GraphqlResponse = engine.execute("query { favoriteRepository }").await;
-        assert_eq!(
-            response.metadata.cache_config,
-            Some(engine_v2::CacheConfig {
-                max_age: Duration::from_secs(10),
-                ..Default::default()
-            })
-        );
-
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -139,7 +117,7 @@ fn test_object_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -157,14 +135,6 @@ fn test_object_caching() {
             .await;
 
         let response: GraphqlResponse = engine.execute(r#"query { botPullRequests(bots: []) { title } }"#).await;
-        assert_eq!(
-            response.metadata.cache_config,
-            Some(engine_v2::CacheConfig {
-                max_age: Duration::from_secs(10),
-                ..Default::default()
-            })
-        );
-
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -187,7 +157,7 @@ fn test_non_object_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -207,8 +177,6 @@ fn test_non_object_caching() {
         let response: GraphqlResponse = engine
             .execute(r#"query { pullRequestsAndIssues(filter: { search: "1" }) { title } }"#)
             .await;
-        assert_eq!(response.metadata.cache_config, None);
-
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -234,7 +202,7 @@ fn test_min_object_field_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .with_supergraph_config(
@@ -259,25 +227,12 @@ fn test_min_object_field_caching() {
             .await;
 
         let response: GraphqlResponse = engine.execute(r#"query { botPullRequests(bots: []) { title } }"#).await;
-        assert_eq!(
-            response.metadata.cache_config,
-            Some(engine_v2::CacheConfig {
-                max_age: Duration::from_secs(5),
-                ..Default::default()
-            })
-        );
+        assert_eq!(response.cache_control(), None);
+        assert_eq!(response.cache_status(), None);
 
         let response: GraphqlResponse = engine
             .execute(r#"query { botPullRequests(bots: []) { checks } }"#)
             .await;
-        assert_eq!(
-            response.metadata.cache_config,
-            Some(engine_v2::CacheConfig {
-                max_age: Duration::from_secs(10),
-                ..Default::default()
-            })
-        );
-
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -304,15 +259,13 @@ fn test_no_caching() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .finish()
             .await;
 
         let response: GraphqlResponse = engine.execute(r#"query { botPullRequests(bots: []) { title } }"#).await;
-        assert_eq!(response.metadata.cache_config, None);
-
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -335,7 +288,7 @@ fn test_no_caching_on_mutation() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(StateMutationSchema::default()).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .finish()
@@ -354,9 +307,6 @@ fn test_no_caching_on_mutation() {
                 ",
             )
             .await;
-
-        assert_eq!(response.metadata.cache_config, None);
-
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {

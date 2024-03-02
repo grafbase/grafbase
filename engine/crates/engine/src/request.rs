@@ -1,13 +1,13 @@
+use crate::{Data, ParseRequestError, UploadValue, Value, Variables};
+pub use engine_v2_common::PersistedQueryRequestExtension;
+use engine_v2_common::{GraphqlRequest, HasPersistedQueryExtension};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::{
     any::Any,
     collections::HashMap,
     fmt::{self, Debug, Formatter},
     hash::{DefaultHasher, Hash, Hasher},
 };
-
-use serde::{Deserialize, Deserializer, Serialize};
-
-use crate::{Data, ParseRequestError, UploadValue, Value, Variables};
 
 mod query;
 pub use query::QueryParamRequest;
@@ -53,7 +53,7 @@ pub struct Request {
     pub extensions: RequestExtensions,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestExtensions {
     #[serde(default)]
@@ -62,13 +62,10 @@ pub struct RequestExtensions {
     pub custom: HashMap<String, Value>,
 }
 
-#[serde_with::serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PersistedQueryRequestExtension {
-    pub version: u32,
-    #[serde_as(as = "serde_with::hex::Hex")]
-    pub sha256_hash: Vec<u8>,
+impl HasPersistedQueryExtension for RequestExtensions {
+    fn persisted_query(&self) -> Option<&PersistedQueryRequestExtension> {
+        self.persisted_query.as_ref()
+    }
 }
 
 /// Contains everything that should be used in the key when caching the OperationPlan,
@@ -210,11 +207,11 @@ impl Request {
     }
 }
 
-impl<T: Into<String>> From<T> for Request {
-    fn from(query: T) -> Self {
-        Self::new(query)
-    }
-}
+// impl<T: Into<String>> From<T> for Request {
+//     fn from(query: T) -> Self {
+//         Self::new(query)
+//     }
+// }
 
 impl Debug for Request {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -330,6 +327,25 @@ impl From<Request> for BatchRequest {
 impl From<Vec<Request>> for BatchRequest {
     fn from(r: Vec<Request>) -> Self {
         BatchRequest::Batch(r)
+    }
+}
+
+impl Request {
+    pub fn build(request: &GraphqlRequest<'_, RequestExtensions>, ray_id: &str) -> Self {
+        Self {
+            operation_plan_cache_key: OperationPlanCacheKey {
+                query: request.query.as_ref().map(ToString::to_string).unwrap_or_default(),
+                doc_id: request.doc_id.as_ref().map(|s| s.to_string()),
+                operation_name: request.operation_name.as_ref().map(|s| s.to_string()),
+                introspection_state: IntrospectionState::UserPreference,
+                disable_operation_limits: false,
+            },
+            variables: (&request.variables).into(),
+            ray_id: ray_id.to_string(),
+            extensions: request.extensions.clone(),
+            uploads: Default::default(),
+            data: Default::default(),
+        }
     }
 }
 

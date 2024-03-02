@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
+use engine::HttpGraphqlResponse;
+pub use engine_v2_common::ExecutionMetadata;
 pub(crate) use error::GraphqlError;
 pub use key::*;
-pub use metadata::*;
 pub use path::*;
 pub use read::*;
 use schema::Schema;
@@ -11,10 +12,8 @@ pub use write::*;
 
 use crate::plan::OperationPlan;
 
-pub(crate) mod cacheable;
 mod error;
 mod key;
-mod metadata;
 mod path;
 mod read;
 mod value;
@@ -23,7 +22,7 @@ mod write;
 pub enum Response {
     Initial(InitialResponse),
     /// Engine could not execute the request.
-    RequestError(RequestErrorResponse),
+    BadRequest(BadRequest),
 }
 
 pub struct InitialResponse {
@@ -40,7 +39,7 @@ struct ResponseData {
     parts: Vec<ResponseDataPart>,
 }
 
-pub struct RequestErrorResponse {
+pub struct BadRequest {
     errors: Vec<GraphqlError>,
     metadata: ExecutionMetadata,
 }
@@ -60,8 +59,15 @@ impl Response {
         )
     }
 
+    pub(crate) fn bad_request(error: GraphqlError) -> Self {
+        Self::BadRequest(BadRequest {
+            errors: vec![error],
+            metadata: ExecutionMetadata::default(),
+        })
+    }
+
     pub(crate) fn from_error(error: impl Into<GraphqlError>, metadata: ExecutionMetadata) -> Self {
-        Self::RequestError(RequestErrorResponse {
+        Self::BadRequest(BadRequest {
             errors: vec![error.into()],
             metadata,
         })
@@ -71,7 +77,7 @@ impl Response {
     where
         E: Into<GraphqlError>,
     {
-        Self::RequestError(RequestErrorResponse {
+        Self::BadRequest(BadRequest {
             errors: errors.into_iter().map(Into::into).collect(),
             metadata,
         })
@@ -83,27 +89,45 @@ impl Response {
     pub fn has_errors(&self) -> bool {
         match self {
             Self::Initial(resp) => !resp.errors.is_empty(),
-            Self::RequestError(resp) => !resp.errors.is_empty(),
+            Self::BadRequest(resp) => !resp.errors.is_empty(),
         }
     }
 
     pub fn metadata(&self) -> &ExecutionMetadata {
         match self {
             Self::Initial(resp) => &resp.metadata,
-            Self::RequestError(resp) => &resp.metadata,
+            Self::BadRequest(resp) => &resp.metadata,
         }
     }
 
     pub fn take_metadata(self) -> ExecutionMetadata {
         match self {
             Self::Initial(initial) => initial.metadata,
-            Self::RequestError(request_error) => request_error.metadata,
+            Self::BadRequest(request_error) => request_error.metadata,
         }
+    }
+
+    pub fn to_json_bytes(&self) -> Result<Vec<u8>, Vec<u8>> {
+        serde_json::to_vec(self).map_err(|err| {
+            tracing::error!("Failed to serialize response: {}", err);
+            serde_json::to_vec(&serde_json::json!({
+                "errors": [
+                    {"message": "Internal server error"}
+                ]
+            }))
+            .unwrap()
+        })
     }
 }
 
 impl std::fmt::Debug for Response {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Response").finish_non_exhaustive()
+    }
+}
+
+impl From<Response> for HttpGraphqlResponse {
+    fn from(response: Response) -> Self {
+        HttpGraphqlResponse::from_json(&response).with_metadata(response.take_metadata())
     }
 }

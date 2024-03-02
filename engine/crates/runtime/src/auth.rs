@@ -18,7 +18,7 @@ pub enum AccessToken {
 
 /// Represents an *arbitrary* JWT token. It's only guaranteed to have been validated
 /// according to auth config, but there is no guarantee on the claims content.
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct JwtToken {
     /// Claims can be empty.
     pub claims: HashMap<String, serde_json::Value>,
@@ -35,6 +35,13 @@ impl Hash for JwtToken {
 }
 
 impl AccessToken {
+    pub fn is_anonymous(&self) -> bool {
+        matches!(
+            self,
+            AccessToken::Anonymous | AccessToken::V1(ExecutionAuth::Public { .. })
+        )
+    }
+
     pub fn stable_id(&self) -> u8 {
         match self {
             AccessToken::Anonymous => 0,

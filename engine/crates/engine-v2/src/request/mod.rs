@@ -1,10 +1,10 @@
 pub(crate) use bind::bind_variables;
-pub use cache_control::OperationCacheControl;
 pub(crate) use engine_parser::types::OperationType;
 pub(crate) use ids::*;
 pub(crate) use input_value::*;
 pub(crate) use location::Location;
 pub(crate) use path::QueryPath;
+use runtime::cache::OperationCacheControl;
 use schema::{ObjectId, SchemaWalker};
 pub(crate) use selection_set::*;
 pub(crate) use variable::VariableDefinition;
@@ -14,7 +14,6 @@ use crate::response::ResponseKeys;
 
 mod bind;
 mod build;
-mod cache_control;
 pub mod ids;
 mod input_value;
 mod location;

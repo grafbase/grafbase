@@ -1,6 +1,6 @@
-use gateway_v2::Gateway;
+use engine_v2::Engine;
 use graphql_mocks::{AlmostEmptySchema, FakeGithubSchema, MockGraphQlServer};
-use integration_tests::{federation::GatewayV2Ext, runtime};
+use integration_tests::{federation::EngineV2Ext, runtime};
 use serde_json::json;
 
 #[test]
@@ -8,7 +8,7 @@ fn supports_custom_scalars() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -34,7 +34,7 @@ fn supports_unused_builtin_scalars() {
     let response = runtime().block_on(async move {
         let mock = MockGraphQlServer::new(AlmostEmptySchema::default()).await;
 
-        let engine = Gateway::builder().with_schema("schema", &mock).await.finish().await;
+        let engine = Engine::builder().with_schema("schema", &mock).await.finish().await;
 
         engine
             .execute("query Blah($id: ID!) { string(input: $id) }")

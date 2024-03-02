@@ -1,10 +1,10 @@
 use tracing::Level;
 use tracing_mock::{expect, subscriber};
 
-use gateway_v2::Gateway;
+use engine_v2::Engine;
 use grafbase_tracing::span::gql::SPAN_NAME as GRAPHQL_SPAN_NAME;
 use graphql_mocks::{FakeFederationProductsSchema, FakeGithubSchema, MockGraphQlServer};
-use integration_tests::federation::GatewayV2Ext;
+use integration_tests::federation::EngineV2Ext;
 
 #[tokio::test(flavor = "current_thread")]
 async fn query_bad_request() {
@@ -25,7 +25,7 @@ async fn query_bad_request() {
 
     let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-    let engine = Gateway::builder()
+    let engine = Engine::builder()
         .with_schema("schema", &github_mock)
         .await
         .finish()
@@ -65,7 +65,7 @@ async fn query_named() {
 
     let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-    let engine = Gateway::builder()
+    let engine = Engine::builder()
         .with_schema("schema", &github_mock)
         .await
         .finish()
@@ -80,8 +80,6 @@ async fn query_named() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn subscription() {
-    use futures::StreamExt;
-
     // prepare
     let query = r"
                 subscription {
@@ -111,7 +109,7 @@ async fn subscription() {
 
     // engine
     let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
-    let engine = Gateway::builder()
+    let engine = Engine::builder()
         .with_schema("products", &products)
         .await
         .with_supergraph_config(indoc::formatdoc!(

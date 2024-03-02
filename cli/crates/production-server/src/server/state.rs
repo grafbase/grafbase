@@ -1,6 +1,6 @@
-use super::gateway::GatewayWatcher;
+use super::gateway::EngineWatcher;
 
 #[derive(Clone)]
 pub(super) struct ServerState {
-    pub gateway: GatewayWatcher,
+    pub gateway: EngineWatcher,
 }

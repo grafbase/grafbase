@@ -3,10 +3,9 @@ use std::sync::Arc;
 use crate::ConfigWatcher;
 
 use super::bus::{GatewaySender, GraphWatcher};
-use engine_v2::EngineEnv;
+use engine_v2::{Engine, EngineEnv};
 use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
-use gateway_v2::{Gateway, GatewayEnv};
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::FederatedGraphConfig;
 use tokio_stream::wrappers::WatchStream;
@@ -45,23 +44,20 @@ impl GatewayNanny {
     }
 }
 
-pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraphConfig) -> Option<Arc<Gateway>> {
+pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraphConfig) -> Option<Arc<Engine>> {
     let config = engine_config_builder::build_config(config, graph?);
-    let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
-        common_cache_tags: vec![],
-        enabled: true,
-        subdomain: "localhost".to_string(),
-    });
-    Some(Arc::new(Gateway::new(
+    let async_runtime = runtime_local::TokioCurrentRuntime::runtime();
+    let cache = runtime_local::InMemoryCache::runtime(async_runtime.clone());
+    Some(Arc::new(Engine::new(
         config.into_latest().into(),
+        ulid::Ulid::new().to_string().into(),
         EngineEnv {
-            fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
-            cache: cache.clone(),
-            trusted_documents: runtime_noop::trusted_documents::NoopTrustedDocuments.into(),
-        },
-        GatewayEnv {
-            kv: runtime_local::InMemoryKvStore::runtime(),
+            async_runtime,
             cache,
+            fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
+            trusted_documents: runtime_noop::trusted_documents::NoopTrustedDocuments.into(),
+            cache_opeartion_cache_control: false,
+            kv: runtime_local::InMemoryKvStore::runtime(),
         },
     )))
 }

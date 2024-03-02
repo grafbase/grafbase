@@ -12,17 +12,13 @@ workspace = true
 
 [dependencies]
 ascii = { version = "1.1.0", features = ["serde"] }
-async-trait = "0.1.77"
 axum = { workspace = true, features = ["macros", "ws", "query", "json"] }
 axum-server = { version = "0.6.0", features = ["tls-rustls"] }
 duration-str = "0.7.1"
 engine.workspace = true
 engine-config-builder.workspace = true
-engine-v2.workspace = true
-futures-util.workspace = true
+engine-v2 = { workspace = true, features = ["axum"] }
 grafbase-tracing = { workspace = true, features = ["tower"] }
-gateway-core.workspace = true
-gateway-v2 = { workspace = true, features = ["axum"] }
 graphql-composition.workspace = true
 http.workspace = true
 oneshot = "0.1"

@@ -1,5 +1,5 @@
 use super::{
-    gateway::{self, GatewayWatcher},
+    gateway::{self, EngineWatcher},
     graph_updater::GraphUpdater,
 };
 use crate::config::{AuthenticationConfig, OperationLimitsConfig};
@@ -36,7 +36,7 @@ impl GraphFetchMethod {
         enable_introspection: bool,
         operation_limits: Option<OperationLimitsConfig>,
         authentication: Option<AuthenticationConfig>,
-    ) -> crate::Result<GatewayWatcher> {
+    ) -> crate::Result<EngineWatcher> {
         let (sender, gateway) = watch::channel(None);
 
         match self {

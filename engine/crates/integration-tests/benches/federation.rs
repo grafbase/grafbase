@@ -1,18 +1,23 @@
 #![allow(unused_crate_dependencies)]
 
 use criterion::{criterion_group, criterion_main, Criterion};
+use engine::ResponseBody;
 use integration_tests::federation::FederationGatewayWithoutIO;
 use serde_json::json;
 
 const SCHEMA: &str = include_str!("../data/federated-graph-schema.graphql");
 const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../data/introspection.graphql");
 
+#[allow(clippy::panic)]
 pub fn introspection(c: &mut Criterion) {
     let bench = FederationGatewayWithoutIO::new(SCHEMA, PATHFINDER_INTROSPECTION_QUERY, &[json!({"data": null})]);
-    let response = integration_tests::runtime().block_on(bench.execute());
+    let response = integration_tests::runtime().block_on(bench.raw_execute());
+    let ResponseBody::Bytes(bytes) = response.body else {
+        panic!("expected bytes");
+    };
 
     // Sanity check it works.
-    insta::assert_snapshot!(String::from_utf8_lossy(&response.bytes));
+    insta::assert_snapshot!(String::from_utf8_lossy(&bytes));
 
     c.bench_function("introspection", |b| {
         // Insert a call to `to_async` to convert the bencher to async mode.
@@ -23,10 +28,11 @@ pub fn introspection(c: &mut Criterion) {
                 .build()
                 .unwrap(),
         )
-        .iter(|| bench.execute());
+        .iter(|| bench.raw_execute());
     });
 }
 
+#[allow(clippy::panic)]
 pub fn basic_federation(c: &mut Criterion) {
     let bench = FederationGatewayWithoutIO::new(
         SCHEMA,
@@ -56,10 +62,13 @@ pub fn basic_federation(c: &mut Criterion) {
             json!({"data":{"_entities":[{"__typename":"User","username":"Me"},{"__typename":"User","username":"Me"}]}}),
         ],
     );
-    let response = integration_tests::runtime().block_on(bench.execute());
+    let response = integration_tests::runtime().block_on(bench.raw_execute());
+    let ResponseBody::Bytes(bytes) = response.body else {
+        panic!("expected bytes");
+    };
 
     // Sanity check it works.
-    insta::assert_snapshot!(String::from_utf8_lossy(&response.bytes));
+    insta::assert_snapshot!(String::from_utf8_lossy(&bytes));
 
     c.bench_function("basic_federation", |b| {
         // Insert a call to `to_async` to convert the bencher to async mode.
@@ -70,7 +79,7 @@ pub fn basic_federation(c: &mut Criterion) {
                 .build()
                 .unwrap(),
         )
-        .iter(|| bench.execute());
+        .iter(|| bench.raw_execute());
     });
 }
 

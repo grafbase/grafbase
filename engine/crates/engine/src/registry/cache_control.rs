@@ -2,10 +2,12 @@ use std::{
     borrow::Borrow,
     collections::{BTreeMap, BTreeSet},
     hash::Hash,
+    time::Duration,
 };
 
 use engine_parser::types::OperationType::Query;
 use inflector::Inflector;
+use runtime::cache::{CacheScopeDefinition, OperationCacheControl};
 
 use crate::registry::{MetaType, Registry};
 
@@ -56,6 +58,35 @@ pub struct CacheControl {
 
     /// Access scopes
     pub access_scopes: Option<BTreeSet<CacheAccessScope>>,
+}
+
+impl From<&CacheControl> for OperationCacheControl {
+    fn from(value: &CacheControl) -> Self {
+        OperationCacheControl::default()
+            .with_max_age(Duration::from_secs(value.max_age as u64))
+            .with_max_stale(Duration::from_secs(value.stale_while_revalidate as u64))
+            .with_scopes(
+                value
+                    .access_scopes
+                    .as_ref()
+                    .map(|scopes| {
+                        scopes
+                            .iter()
+                            .map(|scope| match scope {
+                                CacheAccessScope::ApiKey => CacheScopeDefinition::Authenticated,
+                                CacheAccessScope::Jwt { claim } => CacheScopeDefinition::JwtClaim {
+                                    path: vec![claim.to_string()],
+                                },
+                                CacheAccessScope::Header { header } => CacheScopeDefinition::HeaderValue {
+                                    name: header.try_into().expect("Valid header name"),
+                                },
+                                CacheAccessScope::Public => CacheScopeDefinition::Public,
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+            )
+    }
 }
 
 impl CacheControl {

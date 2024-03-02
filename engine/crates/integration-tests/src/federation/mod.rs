@@ -2,17 +2,17 @@ mod builder;
 
 use std::{borrow::Cow, collections::HashMap, future::IntoFuture, ops::Deref, sync::Arc};
 
-use async_runtime::stream::StreamExt as _;
 pub use builder::*;
-use engine::Variables;
-use futures::{future::BoxFuture, SinkExt, Stream, StreamExt};
-use gateway_core::RequestContext as _;
-use http::HeaderMap;
+use engine::{HttpGraphqlRequest, HttpGraphqlResponse, ResponseBody, Variables};
+use futures::{future::BoxFuture, stream::BoxStream, StreamExt};
+use headers::HeaderMapExt;
+use runtime::cache::CacheStatus;
+use serde::{de::Error, Serialize};
 
-use crate::engine::{GraphQlRequest, RequestContext};
+use crate::engine::GraphQlRequest;
 
 pub struct TestFederationGateway {
-    gateway: Arc<gateway_v2::Gateway>,
+    gateway: Arc<engine_v2::Engine>,
 }
 
 impl TestFederationGateway {
@@ -30,7 +30,7 @@ pub struct ExecutionRequest {
     graphql: GraphQlRequest,
     #[allow(dead_code)]
     headers: HashMap<String, String>,
-    gateway: Arc<gateway_v2::Gateway>,
+    gateway: Arc<engine_v2::Engine>,
 }
 
 impl ExecutionRequest {
@@ -53,6 +53,14 @@ impl ExecutionRequest {
                 .expect("extensions to be deserializable");
         self
     }
+
+    fn http_headers(&self) -> http::HeaderMap {
+        TryFrom::try_from(&self.headers).unwrap()
+    }
+
+    pub fn into_stream(self) -> StreamRequest {
+        StreamRequest(self)
+    }
 }
 
 impl IntoFuture for ExecutionRequest {
@@ -61,26 +69,56 @@ impl IntoFuture for ExecutionRequest {
     type IntoFuture = BoxFuture<'static, Self::Output>;
 
     fn into_future(self) -> Self::IntoFuture {
-        let request = self.graphql.into_engine_request();
-
-        let (ctx, futures) = RequestContext::new(self.headers);
+        let headers = self.http_headers();
+        let bytes = serde_json::to_vec(&self.graphql.into_engine_request()).unwrap();
+        let ray_id = ulid::Ulid::new().to_string();
         Box::pin(async move {
-            let session = match self.gateway.authorize(ctx.headers()).await {
-                Some(session) => session,
-                None => {
-                    return GraphqlResponse {
-                        gql_response: serde_json::to_value(engine_v2::Response::error("Unauthorized", [])).unwrap(),
-                        metadata: Default::default(),
-                        headers: HeaderMap::new(),
-                    }
-                }
-            };
+            let response = self
+                .gateway
+                .execute(headers, &ray_id, HttpGraphqlRequest::JsonBody(bytes.into()))
+                .await;
 
-            let response = session.execute(&ctx, request).await;
-            tokio::spawn(RequestContext::wait_for_all(futures));
+            GraphqlResponse::try_from(response).unwrap()
+        })
+    }
+}
 
-            GraphqlResponse {
-                gql_response: serde_json::from_slice(&response.bytes).unwrap(),
+pub struct StreamRequest(ExecutionRequest);
+
+impl StreamRequest {
+    pub async fn collect<B>(self) -> B
+    where
+        B: Default + Extend<serde_json::Value>,
+    {
+        self.await.stream.collect().await
+    }
+}
+
+impl IntoFuture for StreamRequest {
+    type Output = GraphqlStreamingResponse;
+
+    type IntoFuture = BoxFuture<'static, Self::Output>;
+
+    fn into_future(self) -> Self::IntoFuture {
+        let headers = self.0.http_headers();
+        let bytes = serde_json::to_vec(&self.0.graphql.into_engine_request()).unwrap();
+        let ray_id = ulid::Ulid::new().to_string();
+        Box::pin(async move {
+            let response = self
+                .0
+                .gateway
+                .execute(headers, &ray_id, HttpGraphqlRequest::JsonBody(bytes.into()))
+                .await;
+            GraphqlStreamingResponse {
+                stream: match response.body {
+                    ResponseBody::Bytes(bytes) => Box::pin(futures::stream::once(async move {
+                        serde_json::from_slice(bytes.as_ref()).unwrap()
+                    })),
+                    ResponseBody::Stream(stream) => Box::pin(stream.map(|result| match result {
+                        Ok(bytes) => serde_json::from_slice(bytes.as_ref()).unwrap(),
+                        Err(message) => serde_json::Value::String(message),
+                    })),
+                },
                 metadata: response.metadata,
                 headers: response.headers,
             }
@@ -88,58 +126,61 @@ impl IntoFuture for ExecutionRequest {
     }
 }
 
-impl ExecutionRequest {
-    pub fn into_stream(self) -> impl Stream<Item = GraphqlResponse> {
-        let request = self.graphql.into_engine_request();
+pub struct GraphqlStreamingResponse {
+    pub stream: BoxStream<'static, serde_json::Value>,
+    pub metadata: engine::ExecutionMetadata,
+    pub headers: http::HeaderMap,
+}
 
-        let (mut sender, receiver) = futures::channel::mpsc::channel(4);
+impl TryFrom<HttpGraphqlResponse> for GraphqlResponse {
+    type Error = serde_json::Error;
 
-        receiver.join(async move {
-            let session = match self.gateway.authorize(&TryFrom::try_from(&self.headers).unwrap()).await {
-                Some(session) => session,
-                None => {
-                    sender
-                        .send(engine_v2::Response::error("Unauthorized", []).into())
-                        .await
-                        .ok();
-                    return;
-                }
-            };
-
-            session
-                .execute_stream(request)
-                .map(|response| Ok(response.into()))
-                .forward(sender)
-                .await
-                .ok();
+    fn try_from(response: HttpGraphqlResponse) -> Result<Self, Self::Error> {
+        Ok(GraphqlResponse {
+            gql_response: match response.body {
+                ResponseBody::Bytes(bytes) => serde_json::from_slice(bytes.as_ref())?,
+                ResponseBody::Stream(_) => return Err(serde_json::Error::custom("Unexpected stream response body"))?,
+            },
+            metadata: response.metadata,
+            headers: response.headers,
         })
     }
 }
 
-#[derive(serde::Serialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct GraphqlResponse {
     #[serde(flatten)]
     gql_response: serde_json::Value,
     #[serde(skip)]
-    pub metadata: engine_v2::ExecutionMetadata,
-    #[serde(skip)]
+    pub metadata: engine::ExecutionMetadata,
+    #[serde(serialize_with = "serialize_headers", skip_serializing_if = "has_not_ignored_header")]
     pub headers: http::HeaderMap,
-}
-
-impl From<engine_v2::Response> for GraphqlResponse {
-    fn from(value: engine_v2::Response) -> Self {
-        GraphqlResponse {
-            metadata: value.metadata().clone(),
-            gql_response: serde_json::to_value(value).unwrap(),
-            headers: Default::default(),
-        }
-    }
 }
 
 impl std::fmt::Display for GraphqlResponse {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", serde_json::to_string_pretty(&self.gql_response).unwrap())
     }
+}
+
+fn serialize_headers<S>(headers: &http::HeaderMap, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    headers
+        .iter()
+        .filter_map(|(name, value)| match name.as_str() {
+            "content-length" | "content-type" => None,
+            name => Some((name, value.to_str().ok()?)),
+        })
+        .collect::<HashMap<&str, &str>>()
+        .serialize(serializer)
+}
+
+fn has_not_ignored_header(headers: &http::HeaderMap) -> bool {
+    headers
+        .iter()
+        .any(|(name, _)| matches!(name.as_str(), "content-length" | "content-type"))
 }
 
 impl Deref for GraphqlResponse {
@@ -171,5 +212,13 @@ impl GraphqlResponse {
             .as_array()
             .map(Cow::Borrowed)
             .unwrap_or_else(|| Cow::Owned(Vec::new()))
+    }
+
+    pub fn cache_control(&self) -> Option<headers::CacheControl> {
+        self.headers.typed_get()
+    }
+
+    pub fn cache_status(&self) -> Option<CacheStatus> {
+        self.headers.typed_get()
     }
 }

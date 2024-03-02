@@ -16,13 +16,12 @@ async-trait.workspace = true
 cynic.workspace = true
 cynic-introspection.workspace = true
 engine-parser.workspace = true
-engine-v2 = { workspace = true, features = ["tracing"] }
-gateway-v2.workspace = true
+engine-v2 = { workspace = true, features = ["tracing", "auth"] }
 graphql-mocks.workspace = true
+headers.workspace = true
 engine-config-builder = { path = "../engine-config-builder" }
 expect-test = "1.4"
 futures = "0.3"
-gateway-core.workspace = true
 grafbase-graphql-introspection = { path = "../../../cli/crates/graphql-introspection" }
 graphql-composition.workspace = true
 graphql-parser = "0.4.0"

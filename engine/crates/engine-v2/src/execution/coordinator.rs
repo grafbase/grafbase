@@ -1,8 +1,9 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, sync::Arc, time::Duration};
 
 use async_runtime::make_send_on_wasm;
-use engine::RequestHeaders;
+use engine::HttpGraphqlResponse;
 use engine_parser::types::OperationType;
+use engine_v2_common::{OperationCacheControlCacheKey, ResponseCacheKey};
 use futures_util::{
     future::BoxFuture,
     stream::{BoxStream, FuturesUnordered},
@@ -10,14 +11,16 @@ use futures_util::{
 };
 #[cfg(feature = "tracing")]
 use grafbase_tracing::span::{GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
+use headers::HeaderMapExt;
+use runtime::{auth::AccessToken, cache::TaggedResponseContent};
 #[cfg(feature = "tracing")]
 use tracing::Span;
 
 use crate::{
     execution::ExecutionContext,
-    plan::{OperationExecutionState, OperationPlan, PlanId},
+    plan::{build_execution_metadata, OperationExecutionState, OperationPlan, PlanId},
     request::{OpInputValues, Operation},
-    response::{ExecutionMetadata, GraphqlError, Response, ResponseBuilder, ResponsePart},
+    response::{GraphqlError, Response, ResponseBuilder, ResponsePart},
     sources::{Executor, ExecutorInput, SubscriptionExecutor, SubscriptionInput},
     Engine,
 };
@@ -28,28 +31,69 @@ pub type ResponseSender = futures::channel::mpsc::Sender<Response>;
 
 pub(crate) struct ExecutionCoordinator {
     engine: Arc<Engine>,
+    headers: Arc<http::HeaderMap>,
+    _access_token: Arc<AccessToken>,
     operation_plan: Arc<OperationPlan>,
     input_values: OpInputValues,
-    request_headers: RequestHeaders,
+    response_cache_key: Option<ResponseCacheKey>,
+    operation_cache_control_cache_key: Option<OperationCacheControlCacheKey>,
 }
 
 impl ExecutionCoordinator {
     pub fn new(
         engine: Arc<Engine>,
+        headers: Arc<http::HeaderMap>,
+        _access_token: Arc<AccessToken>,
         operation_plan: Arc<OperationPlan>,
         input_values: OpInputValues,
-        request_headers: RequestHeaders,
+        response_cache_key: Option<ResponseCacheKey>,
+        operation_cache_control_cache_key: Option<OperationCacheControlCacheKey>,
     ) -> Self {
         Self {
             engine,
+            headers,
+            _access_token,
             operation_plan,
             input_values,
-            request_headers,
+            response_cache_key,
+            operation_cache_control_cache_key,
         }
     }
 
     pub fn operation(&self) -> &Operation {
         &self.operation_plan
+    }
+
+    pub async fn cached_execute(self) -> HttpGraphqlResponse {
+        if let Some(response_cache_key) = &self.response_cache_key {
+            if let Some(operation_cache_control_cache_key) = &self.operation_cache_control_cache_key {
+                self.background_cache_operation_cache_control(operation_cache_control_cache_key)
+            }
+            let cache = self.engine.env.cache.clone();
+            let request_cache_control = self.headers.typed_get();
+            let key = response_cache_key.to_string();
+            let operation_cache_control = self.operation().cache_control.clone().unwrap();
+            let result = cache
+                .cached_execution(&key, request_cache_control, operation_cache_control, async move {
+                    let response = self.execute().await;
+                    let body = response.to_json_bytes()?;
+                    if response.has_errors() {
+                        Ok(TaggedResponseContent {
+                            body,
+                            cache_tags: Vec::new(),
+                        })
+                    } else {
+                        Err(body)
+                    }
+                })
+                .await;
+            match result {
+                Ok(cached_response) => cached_response.into(),
+                Err(body) => HttpGraphqlResponse::from_json_bytes(body.into()),
+            }
+        } else {
+            self.execute().await.into()
+        }
     }
 
     pub async fn execute(self) -> Response {
@@ -65,7 +109,6 @@ impl ExecutionCoordinator {
             !matches!(self.operation_plan.ty, OperationType::Subscription),
             "execute shouldn't be called for subscriptions"
         );
-
         let response = OperationExecution {
             coordinator: &self,
             futures: ExecutorFutureSet::new(),
@@ -108,7 +151,7 @@ impl ExecutionCoordinator {
                             .build(
                                 self.engine.schema.clone(),
                                 self.operation_plan.clone(),
-                                ExecutionMetadata::build(&self.operation_plan),
+                                build_execution_metadata(&self.engine.schema, &self.operation_plan),
                             ),
                     )
                     .await
@@ -156,11 +199,33 @@ impl ExecutionCoordinator {
         let input = SubscriptionInput {
             ctx: ExecutionContext {
                 engine: self.engine.as_ref(),
-                request_headers: &self.request_headers,
+                headers: &self.headers,
             },
             plan,
         };
         execution_plan.new_subscription_executor(input)
+    }
+
+    fn background_cache_operation_cache_control(
+        &self,
+        operation_cache_control_cache_key: &OperationCacheControlCacheKey,
+    ) {
+        let operation_cache_control = self
+            .operation()
+            .cache_control
+            .clone()
+            .expect("Cannot have a cache key if empty");
+        let key = operation_cache_control_cache_key.to_string();
+        let cache = self.engine.env.cache.clone();
+        self.engine.env.async_runtime.spawn_faillible(async move {
+            cache
+                .put_json(
+                    &key.to_string(),
+                    &operation_cache_control,
+                    Duration::from_secs(24 * 60 * 60),
+                )
+                .await
+        });
     }
 }
 
@@ -214,7 +279,7 @@ impl<'ctx> OperationExecution<'ctx> {
         self.response.build(
             self.coordinator.engine.schema.clone(),
             self.coordinator.operation_plan.clone(),
-            ExecutionMetadata::build(&self.coordinator.operation_plan),
+            build_execution_metadata(&self.coordinator.engine.schema, &self.coordinator.operation_plan),
         )
     }
 
@@ -239,7 +304,7 @@ impl<'ctx> OperationExecution<'ctx> {
         let input = ExecutorInput {
             ctx: ExecutionContext {
                 engine,
-                request_headers: &self.coordinator.request_headers,
+                headers: &self.coordinator.headers,
             },
             plan,
             boundary_objects_view: self.response.read(

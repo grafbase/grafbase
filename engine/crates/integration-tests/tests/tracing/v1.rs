@@ -29,8 +29,7 @@ async fn query_bad_request() {
     let _default = tracing::subscriber::set_default(subscriber);
 
     // act
-
-    engine::Schema::build(Registry::new()).finish().execute("").await;
+    EngineBuilder::new("").build().await.execute("").await;
 
     // assert
     handle.assert_finished();
@@ -179,8 +178,6 @@ async fn batch() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn subscription() {
-    use engine::futures_util::StreamExt;
-
     // prepare
     let span = expect::span().at_level(Level::INFO).named(SPAN_NAME);
 
@@ -193,11 +190,7 @@ async fn subscription() {
     let _default = tracing::subscriber::set_default(subscriber);
 
     // act
-    let _: Vec<StreamingPayload> = engine::Schema::build(Registry::new())
-        .finish()
-        .execute_stream("")
-        .collect()
-        .await;
+    let _: Vec<StreamingPayload> = EngineBuilder::new("").build().await.execute_stream("").collect().await;
 
     // assert
     handle.assert_finished();

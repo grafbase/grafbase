@@ -6,12 +6,12 @@ mod graph_fetch_method;
 mod graph_updater;
 mod state;
 
+use engine_v2::{WebsocketAccepter, WebsocketService};
 pub use graph_fetch_method::GraphFetchMethod;
 
 use crate::config::{Config, TlsConfig};
 use axum::{routing::get, Router};
 use axum_server::tls_rustls::RustlsConfig;
-use gateway_v2::local_server::{WebsocketAccepter, WebsocketService};
 use state::ServerState;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use tokio::sync::mpsc;

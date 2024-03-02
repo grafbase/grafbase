@@ -19,18 +19,16 @@ async-tungstenite = { version = "0.25.0", features = ["tokio-runtime", "tokio-ru
 futures-util.workspace = true
 graphql-ws-client = { version = "0.8.0-rc.2", features = ["async-tungstenite"] }
 ulid.workspace = true
-
 serde.workspace = true
 serde_json.workspace  = true
-
 runtime.workspace = true
 log = { workspace = true, features = ["with-worker"] }
 postgres-connector-types = { path = "../postgres-connector-types" }
-
 reqwest = { workspace = true, features = [
   "json",
   "rustls-tls",
 ] }
+tokio.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros"] }

@@ -2,16 +2,15 @@
 //!
 //! Subscrition specific tests will probably live elsewhere
 
-use futures::StreamExt;
-use gateway_v2::Gateway;
+use engine_v2::Engine;
 use graphql_mocks::{MockGraphQlServer, StateMutationSchema};
-use integration_tests::{federation::GatewayV2Ext, runtime};
+use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn can_run_a_query_via_execute_stream() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(StateMutationSchema::default()).await;
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -39,7 +38,7 @@ fn can_run_a_query_via_execute_stream() {
 fn can_run_a_mutation_via_execute_stream() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(StateMutationSchema::default()).await;
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()

@@ -1,0 +1,45 @@
+[package]
+name = "engine-v2-common"
+version = "0.1.0"
+authors = ["Grafbase"]
+description = "Gateway request"
+edition = "2021"
+license = "MPL-2.0"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["graphql", "engine", "grafbase"]
+
+[lints]
+workspace = true
+
+[dependencies]
+serde.workspace = true
+bytes.workspace = true
+log.workspace = true
+async-sse = "5"
+async-runtime.workspace = true
+futures-util.workspace = true
+mediatype = "0.19"
+mime = "0.3"
+multipart-stream = "0.1"
+serde_with = { workspace = true, features = ["hex"] }
+itertools.workspace = true
+serde_json.workspace = true
+runtime.workspace = true
+headers.workspace = true
+http.workspace = true
+sha2.workspace = true
+base64.workspace = true
+id-newtypes.workspace = true
+serde_urlencoded = "0.7"
+common-types.workspace = true
+tracing.workspace = true
+
+axum = { workspace = true, optional = true }
+
+[dev-dependencies]
+insta.workspace = true
+
+
+[build-dependencies]
+built = { version = "0.7", features = ["git2"] }

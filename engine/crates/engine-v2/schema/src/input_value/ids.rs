@@ -31,20 +31,20 @@ macro_rules! input_ids {
                 }
             }
 
-            impl<Str> std::ops::Index<crate::ids::IdRange<$name<Str>>> for RawInputValues<Str> {
+            impl<Str> std::ops::Index<id_newtypes::IdRange<$name<Str>>> for RawInputValues<Str> {
                 type Output = [$out];
 
-                fn index(&self, range: crate::ids::IdRange<$name<Str>>) -> &Self::Output {
-                    let crate::ids::IdRange { start, end } = range;
+                fn index(&self, range: id_newtypes::IdRange<$name<Str>>) -> &Self::Output {
+                    let id_newtypes::IdRange { start, end } = range;
                     let start = usize::from(start);
                     let end = usize::from(end);
                     &self.$field[start..end]
                 }
             }
 
-            impl<Str> std::ops::IndexMut<crate::ids::IdRange<$name<Str>>> for RawInputValues<Str> {
-                fn index_mut(&mut self, range: crate::ids::IdRange<$name<Str>>) -> &mut Self::Output {
-                    let crate::ids::IdRange { start, end } = range;
+            impl<Str> std::ops::IndexMut<id_newtypes::IdRange<$name<Str>>> for RawInputValues<Str> {
+                fn index_mut(&mut self, range: id_newtypes::IdRange<$name<Str>>) -> &mut Self::Output {
+                    let id_newtypes::IdRange { start, end } = range;
                     let start = usize::from(start);
                     let end = usize::from(end);
                     &mut self.$field[start..end]

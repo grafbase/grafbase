@@ -1,3 +1,4 @@
+use id_newtypes::IdRange;
 use itertools::Itertools;
 use schema::Schema;
 use std::collections::HashSet;
@@ -10,7 +11,6 @@ use crate::{
         PlanId,
     },
     request::{BoundFieldId, BoundSelectionSetId, OperationWalker, SelectionSetType},
-    utils::IdRange,
 };
 
 use super::PlanningResult;

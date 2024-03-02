@@ -13,6 +13,7 @@ mod wrapping;
 
 pub use cache::*;
 pub use field_set::*;
+use id_newtypes::IdRange;
 pub use ids::*;
 pub use input_value::*;
 pub use names::Names;

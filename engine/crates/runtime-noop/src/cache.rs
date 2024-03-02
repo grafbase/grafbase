@@ -1,33 +1,48 @@
-use runtime::cache::{Cache, CacheInner, CacheMetadata, Entry, EntryState, GlobalCacheConfig, Key, Result};
+use futures_util::future::BoxFuture;
+use runtime::{
+    async_runtime::AsyncRuntime,
+    cache::{Cache, CacheError, RawCache},
+};
 
 #[derive(Default)]
 pub struct NoopCache;
 
 impl NoopCache {
-    pub fn runtime(config: GlobalCacheConfig) -> Cache {
-        Cache::new(Self, config)
+    pub fn runtime(async_runtime: AsyncRuntime) -> Cache {
+        Cache::new(Self, async_runtime)
     }
 }
 
-#[async_trait::async_trait]
-impl CacheInner for NoopCache {
-    async fn get(&self, _key: &Key) -> Result<Entry<Vec<u8>>> {
-        Ok(Entry::Miss)
+impl RawCache for NoopCache {
+    fn get<'a>(
+        &'a self,
+        _namespace: &'a str,
+        _key: &'a str,
+    ) -> BoxFuture<'a, Result<runtime::cache::Entry<Vec<u8>>, CacheError>> {
+        Box::pin(async move { Ok(runtime::cache::Entry::Miss) })
     }
 
-    async fn put(&self, _key: &Key, _state: EntryState, _value: Vec<u8>, _metadata: CacheMetadata) -> Result<()> {
-        Ok(())
+    fn put<'a>(
+        &'a self,
+        _namespace: &'a str,
+        _key: &'a str,
+        _value: std::borrow::Cow<'a, [u8]>,
+        _tags: Vec<String>,
+        _max_age: std::time::Duration,
+        _stale_while_revalidate: std::time::Duration,
+    ) -> BoxFuture<'a, Result<(), CacheError>> {
+        Box::pin(async move { Ok(()) })
     }
 
-    async fn delete(&self, _key: &Key) -> Result<()> {
-        Ok(())
+    fn delete<'a>(&'a self, _namespace: &'a str, _key: &'a str) -> BoxFuture<'a, Result<(), CacheError>> {
+        Box::pin(async move { Ok(()) })
     }
 
-    async fn purge_by_tags(&self, _tags: Vec<String>) -> Result<()> {
-        Ok(())
+    fn purge_by_tags(&self, _tags: Vec<String>) -> BoxFuture<'_, Result<(), CacheError>> {
+        Box::pin(async move { Ok(()) })
     }
 
-    async fn purge_by_hostname(&self, _hostname: String) -> Result<()> {
-        Ok(())
+    fn purge_all(&self) -> BoxFuture<'_, Result<(), CacheError>> {
+        Box::pin(async move { Ok(()) })
     }
 }

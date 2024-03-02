@@ -1,13 +1,13 @@
-use gateway_v2::Gateway;
+use engine_v2::Engine;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
-use integration_tests::{federation::GatewayV2Ext, runtime};
+use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn named_fragment_on_object() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -69,7 +69,7 @@ fn named_fragment_cycle() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -125,7 +125,7 @@ fn inline_fragment_on_object() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -174,7 +174,7 @@ fn inline_fragment_on_object_with_type_condition() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -234,7 +234,7 @@ fn inline_fragments_on_polymorphic_types() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -309,7 +309,7 @@ fn named_fragments_on_polymorphic_types() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()

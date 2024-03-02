@@ -1,3 +1,4 @@
+mod async_runtime;
 mod bridge;
 mod cache;
 mod fetch;
@@ -6,6 +7,7 @@ mod log;
 mod pg;
 mod ufd_invoker;
 
+pub use async_runtime::TokioCurrentRuntime;
 pub use bridge::Bridge;
 pub use cache::InMemoryCache;
 pub use fetch::NativeFetcher;

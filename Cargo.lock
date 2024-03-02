@@ -784,6 +784,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "built"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38d17f4d6e4dc36d1a02fbedc2753a096848e7c1b0772f7654eab8e2c927dd53"
+dependencies = [
+ "git2",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1637,27 +1646,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive_more"
-version = "1.0.0-beta.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7abbfc297053be59290e3152f8cbcd52c8642e0728b69ee187d991d4c1af08d"
-dependencies = [
- "derive_more-impl",
-]
-
-[[package]]
-name = "derive_more-impl"
-version = "1.0.0-beta.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bba3e9872d7c58ce7ef0fcf1844fcc3e23ef2a58377b50df35dd98e42a5726e"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.52",
- "unicode-xid",
-]
-
-[[package]]
 name = "deunicode"
 version = "1.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1846,6 +1834,7 @@ dependencies = [
  "derivative",
  "engine-derive",
  "engine-parser",
+ "engine-v2-common",
  "engine-value",
  "fast_chemail",
  "flexbuffers",
@@ -1858,6 +1847,7 @@ dependencies = [
  "grafbase-tracing",
  "graph-entities",
  "graphql-cursor",
+ "headers",
  "hex",
  "http 1.1.0",
  "im",
@@ -1938,15 +1928,23 @@ name = "engine-v2"
 version = "3.0.31"
 dependencies = [
  "async-runtime",
+ "async-trait",
+ "axum 0.7.4",
+ "common-types",
  "engine",
  "engine-parser",
+ "engine-v2-common",
  "engine-v2-config",
  "engine-v2-schema",
  "engine-value",
  "futures",
  "futures-util",
+ "gateway-v2-auth",
  "grafbase-tracing",
+ "headers",
  "hex",
+ "http 1.1.0",
+ "id-newtypes",
  "im",
  "itertools 0.12.1",
  "lasso",
@@ -1956,10 +1954,54 @@ dependencies = [
  "serde",
  "serde-value",
  "serde_json",
- "serde_with",
  "sha2",
  "strum 0.26.1",
  "thiserror",
+ "tokio",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "engine-v2-admin"
+version = "0.1.0"
+dependencies = [
+ "async-graphql",
+ "async-runtime",
+ "engine",
+ "log 0.1.0",
+ "runtime",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "engine-v2-common"
+version = "0.1.0"
+dependencies = [
+ "async-runtime",
+ "async-sse",
+ "axum 0.7.4",
+ "base64 0.22.0",
+ "built",
+ "bytes",
+ "common-types",
+ "futures-util",
+ "headers",
+ "http 1.1.0",
+ "id-newtypes",
+ "insta",
+ "itertools 0.12.1",
+ "log 0.1.0",
+ "mediatype",
+ "mime",
+ "multipart-stream",
+ "runtime",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "serde_with",
+ "sha2",
  "tracing",
 ]
 
@@ -1986,6 +2028,7 @@ dependencies = [
  "engine-v2-config",
  "fnv",
  "graphql-federated-graph",
+ "id-newtypes",
  "indexmap 2.2.5",
  "insta",
  "serde",
@@ -2001,6 +2044,7 @@ name = "engine-value"
 version = "3.0.31"
 dependencies = [
  "bytes",
+ "engine-v2-common",
  "indexmap 2.2.5",
  "serde",
  "serde_json",
@@ -2157,25 +2201,20 @@ dependencies = [
  "async-graphql",
  "async-graphql-axum",
  "async-graphql-parser",
- "async-trait",
  "axum 0.7.4",
- "engine",
  "engine-config-builder",
  "engine-v2",
  "futures-concurrency",
  "futures-util",
- "gateway-v2",
  "grafbase-graphql-introspection",
  "grafbase-local-common",
  "grafbase-tracing",
  "graphql-composition",
  "handlebars 5.1.0",
- "http 1.1.0",
  "indoc",
  "log 0.4.21",
  "parser-sdl",
  "reqwest",
- "runtime",
  "runtime-local",
  "runtime-noop",
  "serde",
@@ -2452,14 +2491,12 @@ dependencies = [
 name = "gateway"
 version = "0.60.0"
 dependencies = [
- "async-graphql",
- "async-trait",
  "axum 0.7.4",
  "bytes",
  "common-types",
  "engine",
+ "engine-v2-admin",
  "futures-util",
- "gateway-core",
  "gateway-v2-auth",
  "grafbase-tracing",
  "graphql-extensions",
@@ -2467,63 +2504,8 @@ dependencies = [
  "postgres-connector-types",
  "runtime",
  "runtime-local",
- "serde_json",
- "thiserror",
- "tokio",
  "tower-http",
  "ulid",
-]
-
-[[package]]
-name = "gateway-core"
-version = "3.0.31"
-dependencies = [
- "async-graphql",
- "async-runtime",
- "async-sse",
- "async-trait",
- "bytes",
- "common-types",
- "engine",
- "engine-value",
- "futures-util",
- "gateway-v2-auth",
- "headers",
- "hex",
- "http 1.1.0",
- "log 0.1.0",
- "mediatype",
- "mime",
- "multipart-stream",
- "runtime",
- "serde",
- "serde_json",
- "sha2",
- "thiserror",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "gateway-v2"
-version = "0.0.0"
-dependencies = [
- "async-trait",
- "axum 0.7.4",
- "engine",
- "engine-v2",
- "futures-util",
- "gateway-core",
- "gateway-v2-auth",
- "headers",
- "http 1.1.0",
- "log 0.1.0",
- "runtime",
- "serde",
- "serde_json",
- "tokio",
- "tower-service",
- "tracing",
 ]
 
 [[package]]
@@ -2613,6 +2595,19 @@ name = "gimli"
 version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4271d37baee1b8c7e4b708028c57d816cf9d2434acb33a549475f78c181f6253"
+
+[[package]]
+name = "git2"
+version = "0.18.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b3ba52851e73b46a4c3df1d89343741112003f0f6f13beb0dfac9e457c3fdcd"
+dependencies = [
+ "bitflags 2.4.2",
+ "libc",
+ "libgit2-sys",
+ "log 0.4.21",
+ "url",
+]
 
 [[package]]
 name = "glob"
@@ -3485,6 +3480,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "id-newtypes"
+version = "0.0.0"
+
+[[package]]
 name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3682,8 +3681,6 @@ dependencies = [
  "engine-v2",
  "expect-test",
  "futures",
- "gateway-core",
- "gateway-v2",
  "grafbase-graphql-introspection",
  "grafbase-tracing",
  "graphql-composition",
@@ -3959,6 +3956,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c198f91728a82281a64e1f4f9eeb25d82cb32a5de251c6bd1b5154d63a8e7bd"
 
 [[package]]
+name = "libgit2-sys"
+version = "0.16.2+1.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee4126d8b4ee5c9d9ea891dd875cfdc1e9d0950437179104b183d7d8a74d24e8"
+dependencies = [
+ "cc",
+ "libc",
+ "libz-sys",
+ "pkg-config",
+]
+
+[[package]]
 name = "libm"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4003,6 +4012,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "037731f5d3aaa87a5675e895b63ddff1a87624bc29f77004ea829809654e48f6"
 dependencies = [
  "cc",
+ "libc",
  "pkg-config",
  "vcpkg",
 ]
@@ -5440,16 +5450,12 @@ name = "production-server"
 version = "0.60.0"
 dependencies = [
  "ascii 1.1.0",
- "async-trait",
  "axum 0.7.4",
  "axum-server",
  "duration-str",
  "engine",
  "engine-config-builder",
  "engine-v2",
- "futures-util",
- "gateway-core",
- "gateway-v2",
  "grafbase-tracing",
  "graphql-composition",
  "http 1.1.0",
@@ -5999,22 +6005,18 @@ dependencies = [
 name = "runtime"
 version = "0.1.0"
 dependencies = [
- "async-runtime",
  "async-trait",
  "bytes",
  "common-types",
- "derive_more",
  "futures-util",
  "headers",
  "http 1.1.0",
  "postgres-connector-types",
  "serde",
  "serde_json",
- "strum 0.26.1",
+ "serde_with",
  "thiserror",
- "tokio",
  "tracing",
- "tracing-futures",
  "ulid",
  "url",
 ]
@@ -6043,6 +6045,7 @@ name = "runtime-noop"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "futures-util",
  "runtime",
  "thiserror",
 ]
@@ -7601,16 +7604,6 @@ source = "git+https://github.com/tokio-rs/tracing?branch=v0.1.x#571c5305bc4ab0e0
 dependencies = [
  "once_cell",
  "valuable",
-]
-
-[[package]]
-name = "tracing-futures"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97d095ae15e245a057c8e8451bab9b3ee1e1f68e9ba2b4fbc18d0ac5237835f2"
-dependencies = [
- "pin-project",
- "tracing",
 ]
 
 [[package]]

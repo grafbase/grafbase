@@ -1,6 +1,6 @@
-use gateway_v2::Gateway;
+use engine_v2::Engine;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
-use integration_tests::{federation::GatewayV2Ext, runtime};
+use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[rstest::rstest]
 #[case( // 1
@@ -132,7 +132,7 @@ fn test_operation_limits(
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_supergraph_config(format!("extend schema {operation_limits_config}"))
             .with_schema("schema", &github_mock)
             .await

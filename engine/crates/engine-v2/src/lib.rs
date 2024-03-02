@@ -4,12 +4,13 @@ mod plan;
 mod request;
 mod response;
 mod sources;
-mod utils;
+mod websocket;
 
-pub use ::engine::Request;
 pub use engine::{Engine, EngineEnv};
-pub use execution::PreparedExecution;
-pub use response::{cacheable::CacheableResponse, ExecutionMetadata, Response};
-pub use schema::{CacheConfig, Schema};
+pub use engine_v2_common::{ExecutionMetadata, HttpGraphqlRequest, HttpGraphqlResponse, ResponseBody};
+pub use schema::Schema;
+
+#[cfg(feature = "axum")]
+pub use websocket::axum::*;
 
 pub use ::config::{latest as config, VersionedConfig};

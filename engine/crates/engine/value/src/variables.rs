@@ -5,6 +5,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+use engine_v2_common::{BorrowedValue, BorrowedVariables};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{ConstValue, Name};
@@ -95,5 +96,37 @@ impl Deref for Variables {
 impl DerefMut for Variables {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl From<&BorrowedVariables<'_>> for Variables {
+    fn from(variables: &BorrowedVariables<'_>) -> Self {
+        let converter = ValueConverter(variables);
+        match converter.convert(&variables.root) {
+            ConstValue::Object(obj) => Self(obj.into_iter().collect()),
+            _ => Self::default(),
+        }
+    }
+}
+
+struct ValueConverter<'a>(&'a BorrowedVariables<'a>);
+
+impl ValueConverter<'_> {
+    fn convert(&self, value: &BorrowedValue<'_>) -> ConstValue {
+        match value {
+            BorrowedValue::Null => ConstValue::Null,
+            BorrowedValue::Bool(b) => ConstValue::Boolean(*b),
+            BorrowedValue::String(s) => ConstValue::String(s.to_string()),
+            BorrowedValue::F64(f) => (*f).into(),
+            BorrowedValue::I64(i) => (*i).into(),
+            BorrowedValue::U64(u) => (*u).into(),
+            BorrowedValue::List(range) => ConstValue::List(self.0[*range].iter().map(|v| self.convert(v)).collect()),
+            BorrowedValue::Map(range) => ConstValue::Object(
+                self.0[*range]
+                    .iter()
+                    .map(|(k, v)| (Name::new(k), self.convert(v)))
+                    .collect(),
+            ),
+        }
     }
 }

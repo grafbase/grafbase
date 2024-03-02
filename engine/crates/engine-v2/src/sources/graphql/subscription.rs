@@ -71,7 +71,9 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
                         Some((
                             header.name(),
                             match header.value() {
-                                SubgraphHeaderValueRef::Forward(name) => self.ctx.header(name)?,
+                                SubgraphHeaderValueRef::Forward(name) => {
+                                    self.ctx.headers.get(name).and_then(|value| value.to_str().ok())?
+                                }
                                 SubgraphHeaderValueRef::Static(value) => value,
                             },
                         ))

@@ -383,7 +383,7 @@ impl Schema {
         self.0.env.registry.names()
     }
 
-    fn create_extensions(&self, session_data: Arc<Data>) -> Extensions {
+    pub(crate) fn create_extensions(&self, session_data: Arc<Data>) -> Extensions {
         Extensions::new(
             self.extensions.iter().map(|f| f.create()),
             self.env.clone(),
@@ -391,7 +391,7 @@ impl Schema {
         )
     }
 
-    async fn prepare_request(
+    pub(crate) async fn prepare_request(
         &self,
         mut extensions: Extensions,
         request: Request,
@@ -513,7 +513,7 @@ impl Schema {
         Ok((QueryEnvBuilder::new(env), validation_result.cache_control))
     }
 
-    async fn execute_once(&self, env: QueryEnv) -> Response {
+    pub(crate) async fn execute_once(&self, env: QueryEnv) -> Response {
         // execute
         let ctx = ContextSelectionSet {
             ty: self.registry().root_type(env.operation.node.ty),
@@ -532,24 +532,13 @@ impl Schema {
             )),
         };
 
-        let operation_name =
-            env.operation_name
-                .as_deref()
-                .or_else(|| match env.operation.selection_set.node.items.as_slice() {
-                    [Positioned {
-                        node: Selection::Field(field),
-                        ..
-                    }] => Some(field.node.name.node.as_str()),
-                    _ => None,
-                });
-
         let mut resp = match res {
             Ok(value) => {
                 let response = &mut *ctx.response().await;
                 response.set_root_unchecked(value);
-                Response::new(std::mem::take(response), operation_name, &env.operation)
+                Response::new(std::mem::take(response), env.response_operation())
             }
-            Err(err) => Response::from_errors(vec![err], operation_name, &env.operation),
+            Err(err) => Response::from_errors(vec![err], env.response_operation()),
         }
         .http_headers(std::mem::take(&mut *env.response_http_headers.lock().unwrap()));
 

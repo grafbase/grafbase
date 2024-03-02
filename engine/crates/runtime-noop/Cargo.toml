@@ -16,3 +16,4 @@ workspace = true
 async-trait = "0.1"
 thiserror.workspace = true
 runtime.workspace = true
+futures-util.workspace = true

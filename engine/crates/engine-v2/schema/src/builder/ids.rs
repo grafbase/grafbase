@@ -6,7 +6,7 @@
 
 use std::marker::PhantomData;
 
-use crate::ids::*;
+use id_newtypes::IdRange;
 
 pub(super) struct IdMapper<FgId: Into<usize>, Id: From<usize> + Copy> {
     skipped_ids: Vec<usize>,
@@ -79,6 +79,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::InputValueDefinitionId;
+
     use super::*;
 
     type IdMapper = super::IdMapper<federated_graph::InputValueDefinitionId, InputValueDefinitionId>;

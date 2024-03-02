@@ -11,6 +11,7 @@ use getrandom as _;
 
 mod base;
 mod current_datetime;
+mod engine;
 mod error;
 mod guard;
 mod headers;
@@ -53,6 +54,7 @@ pub use base::{
 #[doc(hidden)]
 pub use context::ContextSelectionSet;
 pub use context::*;
+pub use engine::*;
 pub use engine_parser as parser;
 pub use engine_value::{
     from_value, to_value, value, ConstValue as Value, DeserializerError, Name, Number, SerializerError, Variables,

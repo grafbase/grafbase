@@ -3,10 +3,12 @@ resolver = "2"
 members = [
   "cli/crates/*",
   "engine/crates/*",
-  "engine/crates/gateway-v2/auth",
-  "engine/crates/gateway-v2/auth-config",
+  "engine/crates/engine-v2/auth",
+  "engine/crates/engine-v2/auth-config",
   "engine/crates/engine-v2/config",
   "engine/crates/engine-v2/schema",
+  "engine/crates/engine-v2/admin",
+  "engine/crates/engine-v2/common",
   "engine/crates/engine/derive",
   "engine/crates/engine/parser",
   "engine/crates/engine/value",
@@ -77,6 +79,7 @@ indexmap = "2"
 insta = { version = "1", features = ["json"] }
 itertools = "0.12"
 jsonwebtoken = "9"
+mini-moka = "0.10"
 num-traits = "0.2"
 once_cell = "1"
 openidconnect = "3"
@@ -131,19 +134,20 @@ engine-config-builder = { path = "engine/crates/engine-config-builder" }
 engine-parser = { path = "engine/crates/engine/parser" }
 engine = { path = "engine/crates/engine" }
 engine-v2 = { path = "engine/crates/engine-v2" }
+engine-v2-common = { path = "engine/crates/engine-v2/common" }
+engine-v2-admin = { path = "engine/crates/engine-v2/admin" }
 engine-value = { path = "engine/crates/engine/value" }
 gateway-adapter-local = { path = "engine/crates/gateway-adapter-local" }
 gateway-adapter = { path = "engine/crates/gateway-adapter" }
-gateway-core = { path = "engine/crates/gateway-core" }
-gateway-v2 = { path = "engine/crates/gateway-v2" }
-gateway-v2-auth = { path = "engine/crates/gateway-v2/auth" }
-gateway-v2-auth-config = { path = "engine/crates/gateway-v2/auth-config" }
+gateway-v2-auth = { path = "engine/crates/engine-v2/auth" }
+gateway-v2-auth-config = { path = "engine/crates/engine-v2/auth-config" }
 grafbase-tracing = { path = "engine/crates/tracing" }
 graph-entities = { path = "engine/crates/graph-entities" }
 graphql-composition = { path = "engine/crates/composition" }
 graphql-cursor = { path = "engine/crates/graphql-cursor" }
 graphql-extensions = { path = "engine/crates/graphql-extensions" }
 graphql-mocks = { path = "engine/crates/graphql-mocks" }
+id-newtypes = { path = "engine/crates/id-newtypes" }
 jwt-verifier = { path = "engine/crates/jwt-verifier" }
 log = { path = "engine/crates/log" }
 parser-graphql = { path = "engine/crates/parser-graphql" }

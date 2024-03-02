@@ -35,6 +35,7 @@ futures.workspace = true
 futures-util = { workspace = true, features = ["io", "sink"] }
 gateway-v2-auth-config.workspace = true
 http.workspace = true
+headers.workspace = true
 im = "15"
 indexmap.workspace = true
 indoc = "2"
@@ -51,6 +52,7 @@ regex.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64", "hex"] }
+sha2.workspace = true
 static_assertions = "1"
 strum_macros.workspace = true
 tempfile = "3"
@@ -74,6 +76,7 @@ grafbase-tracing = { workspace = true, optional = true }
 rust_decimal = { version = "1" }
 tracing.workspace = true
 async-runtime.workspace = true
+engine-v2-common.workspace = true
 
 # Non-feature optional dependencies
 base64.workspace = true
@@ -99,7 +102,7 @@ ctor = "0.2"
 indoc = "2"
 insta.workspace = true
 rstest.workspace = true
-runtime = { workspace = true, features = ["test-utils"] }
+runtime.workspace = true
 rustls = { workspace = true, features = ["ring"] }
 sanitize-filename = "0.5"
 sha2.workspace = true

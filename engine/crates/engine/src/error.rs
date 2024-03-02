@@ -6,6 +6,7 @@ use std::{
     sync::Arc,
 };
 
+use engine_v2_common::HttpGraphqlResponse;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -53,6 +54,12 @@ pub struct ServerError {
     /// Extensions to the error.
     #[serde(skip_serializing_if = "error_extensions_is_empty", default)]
     pub extensions: Option<ErrorExtensionValues>,
+}
+
+pub(crate) fn error_response(errors: Vec<ServerError>) -> HttpGraphqlResponse {
+    HttpGraphqlResponse::from_json(&serde_json::json!({
+        "errors": errors,
+    }))
 }
 
 fn error_extensions_is_empty(values: &Option<ErrorExtensionValues>) -> bool {

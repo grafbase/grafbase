@@ -1,10 +1,12 @@
+use engine_parser::types::OperationType;
+use engine_v2_common::ExecutionMetadata;
+use id_newtypes::IdRange;
 use schema::{ResolverId, Schema};
 
 use crate::{
     request::{OpInputValues, Operation, QueryPath},
     response::ReadSelectionSet,
     sources::Plan,
-    utils::IdRange,
 };
 
 mod collected;
@@ -151,4 +153,27 @@ pub struct PlanOutput {
 pub struct ParentToChildEdge {
     pub parent: PlanId,
     pub child: PlanId,
+}
+
+pub fn build_execution_metadata(schema: &Schema, plan: &OperationPlan) -> ExecutionMetadata {
+    ExecutionMetadata {
+        operation_name: plan.operation.name.clone(),
+        operation_type: Some(match plan.operation.ty {
+            OperationType::Query => common_types::OperationType::Query {
+                is_introspection: {
+                    let introspection_fields =
+                        &schema.data_sources.introspection.metadata.as_ref().unwrap().meta_fields;
+                    plan.walk_selection_set(schema.walker()).fields().all(|field| {
+                        field
+                            .schema_field()
+                            .map(|field| introspection_fields.contains(&field.id()))
+                            .unwrap_or_default()
+                    })
+                },
+            },
+            OperationType::Mutation => common_types::OperationType::Mutation,
+            OperationType::Subscription => common_types::OperationType::Subscription,
+        }),
+        has_errors: None,
+    }
 }

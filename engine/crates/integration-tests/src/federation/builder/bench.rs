@@ -1,28 +1,25 @@
-use std::{
-    collections::HashMap,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
 };
 
+use engine::{HttpGraphqlRequest, HttpGraphqlResponse};
+use engine_v2::Engine;
 use futures::stream::BoxStream;
-use gateway_v2::Response;
 use graphql_composition::FederatedGraph;
 use runtime::fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, GraphqlRequest};
 
-use crate::engine::RequestContext;
+use crate::federation::GraphqlResponse;
 
 #[derive(Clone)]
-pub struct FederationGatewayWithoutIO<'a> {
-    gateway: Arc<gateway_v2::Gateway>,
-    query: &'a str,
-    ctx: Arc<RequestContext>,
+pub struct FederationGatewayWithoutIO {
+    engine: Arc<Engine>,
+    request: Arc<HttpGraphqlRequest<'static>>,
     dummy_responses_index: Arc<AtomicUsize>,
 }
 
-impl<'a> FederationGatewayWithoutIO<'a> {
-    pub fn new<T: serde::Serialize, I>(schema: &str, query: &'a str, subgraphs_responses: I) -> Self
+impl FederationGatewayWithoutIO {
+    pub fn new<T: serde::Serialize, I>(schema: &str, query: &str, subgraphs_responses: I) -> Self
     where
         I: IntoIterator<Item = T>,
     {
@@ -39,50 +36,44 @@ impl<'a> FederationGatewayWithoutIO<'a> {
         let federated_graph = FederatedGraph::from_sdl(schema).unwrap().into_latest();
         let config =
             engine_v2::VersionedConfig::V3(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
+        let async_runtime = runtime_local::TokioCurrentRuntime::runtime();
+        let cache = runtime_local::InMemoryCache::runtime(async_runtime.clone());
 
-        let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
-            enabled: true,
-            ..Default::default()
-        });
-
-        let gateway = gateway_v2::Gateway::new(
+        let engine = Engine::new(
             config.into(),
+            ulid::Ulid::new().to_string().into(),
             engine_v2::EngineEnv {
                 fetcher,
-                cache: cache.clone(),
-                trusted_documents: runtime_noop::trusted_documents::NoopTrustedDocuments.into(),
-            },
-            gateway_v2::GatewayEnv {
-                kv: runtime_local::InMemoryKvStore::runtime(),
                 cache,
+                cache_opeartion_cache_control: false,
+                trusted_documents: runtime_noop::trusted_documents::NoopTrustedDocuments.into(),
+                async_runtime,
+                kv: runtime_local::InMemoryKvStore::runtime(),
             },
         );
-        let (ctx, _) = RequestContext::new(HashMap::with_capacity(0));
-        let ctx = Arc::new(ctx);
+
         Self {
-            gateway: Arc::new(gateway),
-            query,
-            ctx,
+            engine: Arc::new(engine),
+            request: Arc::new(HttpGraphqlRequest::JsonBody(
+                serde_json::to_vec(&serde_json::json!({
+                    "query": query
+                }))
+                .unwrap()
+                .into(),
+            )),
             dummy_responses_index,
         }
     }
 
-    pub async fn execute(&self) -> Response {
-        let response = self.unchecked_execute().await;
-        assert!(
-            response.status.is_success() && !response.has_errors,
-            "Execution failed!\n{}",
-            String::from_utf8_lossy(&response.bytes)
-        );
-        response
+    pub async fn raw_execute(&self) -> HttpGraphqlResponse {
+        self.dummy_responses_index.store(0, Ordering::Relaxed);
+        self.engine
+            .execute(http::HeaderMap::new(), "", self.request.as_ref().as_ref())
+            .await
     }
 
-    pub async fn unchecked_execute(&self) -> Response {
-        self.dummy_responses_index.store(0, Ordering::Relaxed);
-        let session = self.gateway.authorize(&Default::default()).await.unwrap();
-        session
-            .execute(self.ctx.as_ref(), engine::Request::new(self.query))
-            .await
+    pub async fn execute(&self) -> GraphqlResponse {
+        self.raw_execute().await.try_into().unwrap()
     }
 }
 

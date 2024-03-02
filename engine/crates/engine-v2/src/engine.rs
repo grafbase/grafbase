@@ -1,22 +1,28 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
+use async_runtime::stream::StreamExt as _;
+use engine::{HttpGraphqlRequest, HttpGraphqlResponse, RequestExtensions, SchemaVersion};
+use engine_parser::types::OperationType;
+use engine_v2_common::{
+    BatchGraphqlRequest, GraphqlRequest, OperationCacheControlCacheKey, ResponseCacheKey, StreamingFormat,
+};
 use futures::channel::mpsc;
+use futures::StreamExt;
 use futures_util::{SinkExt, Stream};
+#[cfg(feature = "tracing")]
+use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlResponseAttributes};
+use headers::HeaderMapExt;
+use runtime::auth::AccessToken;
+use schema::Schema;
 #[cfg(feature = "tracing")]
 use tracing::Instrument;
 
-use async_runtime::stream::StreamExt as _;
-use engine::RequestHeaders;
-use engine_parser::types::OperationType;
-#[cfg(feature = "tracing")]
-use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlResponseAttributes};
-use schema::Schema;
-
+use crate::plan::build_execution_metadata;
 use crate::{
-    execution::{ExecutionCoordinator, PreparedExecution},
+    execution::ExecutionCoordinator,
     plan::OperationPlan,
     request::{bind_variables, Operation},
-    response::{ExecutionMetadata, GraphqlError, Response},
+    response::{GraphqlError, Response},
 };
 
 mod trusted_documents;
@@ -27,75 +33,158 @@ pub struct Engine {
     // We use an Arc for the schema to have a self-contained response which may still
     // needs access to the schema strings
     pub(crate) schema: Arc<Schema>,
+    pub(crate) schema_version: SchemaVersion,
     pub(crate) env: EngineEnv,
     #[cfg(feature = "plan_cache")]
     plan_cache: mini_moka::sync::Cache<engine::OperationPlanCacheKey, Arc<OperationPlan>>,
+    // public for websockets
+    #[cfg(feature = "auth")]
+    pub(crate) auth: gateway_v2_auth::AuthService,
 }
 
 pub struct EngineEnv {
     pub fetcher: runtime::fetch::Fetcher,
     pub cache: runtime::cache::Cache,
+    pub cache_opeartion_cache_control: bool,
+    pub async_runtime: runtime::async_runtime::AsyncRuntime,
     pub trusted_documents: runtime::trusted_documents_service::TrustedDocumentsClient,
+    #[cfg(feature = "auth")]
+    pub kv: runtime::kv::KvStore,
 }
 
 impl Engine {
-    pub fn new(schema: Schema, env: EngineEnv) -> Self {
+    pub fn new(schema: Schema, schema_version: SchemaVersion, env: EngineEnv) -> Self {
+        #[cfg(feature = "auth")]
+        let auth = gateway_v2_auth::AuthService::new_v2(schema.auth_config.clone().unwrap_or_default(), env.kv.clone());
         Self {
             schema: Arc::new(schema),
+            schema_version,
             env,
             #[cfg(feature = "plan_cache")]
             plan_cache: mini_moka::sync::Cache::builder()
                 .max_capacity(64)
                 // A cached entry will be expired after the specified duration past from get or insert
-                .time_to_idle(std::time::Duration::from_secs(5 * 60))
+                .time_to_idle(Duration::from_secs(5 * 60))
                 .build(),
+            #[cfg(feature = "auth")]
+            auth,
         }
     }
 
-    pub async fn execute(self: &Arc<Self>, request: engine::Request, headers: RequestHeaders) -> PreparedExecution {
+    #[cfg(feature = "auth")]
+    pub async fn execute(
+        self: &Arc<Self>,
+        headers: http::HeaderMap,
+        // TODO: remove me once we have proper tracing...
+        ray_id: &str,
+        request: HttpGraphqlRequest<'_>,
+    ) -> HttpGraphqlResponse {
+        if let Some(access_token) = self.auth.authorize(&headers).await {
+            self.execute_with_access_token(headers, access_token, ray_id, request)
+                .await
+        } else {
+            HttpGraphqlResponse::error("Missing access token")
+        }
+    }
+
+    pub async fn execute_with_access_token(
+        self: &Arc<Self>,
+        headers: http::HeaderMap,
+        access_token: AccessToken,
+        // TODO: remove me once we have proper tracing...
+        ray_id: &str,
+        request: HttpGraphqlRequest<'_>,
+    ) -> HttpGraphqlResponse {
+        let batch_request = match BatchGraphqlRequest::<'_, RequestExtensions>::from_http_request(&request) {
+            Ok(r) => r,
+            Err(message) => return HttpGraphqlResponse::error(&message),
+        };
+
+        let headers = Arc::new(headers);
+        let access_token = Arc::new(access_token);
+        let streaming_format = headers.typed_get::<StreamingFormat>();
+        match batch_request {
+            BatchGraphqlRequest::Single(request) => {
+                if let Some(streaming_format) = streaming_format {
+                    HttpGraphqlResponse::from_stream(
+                        ray_id,
+                        streaming_format,
+                        self.execute_stream(headers, access_token, ray_id, request).await,
+                    )
+                    .await
+                } else {
+                    self.execute_single(headers, access_token, ray_id, request).await
+                }
+            }
+            BatchGraphqlRequest::Batch(requests) => {
+                if streaming_format.is_some() {
+                    return HttpGraphqlResponse::error("batch requests can't use multipart or event-stream responses");
+                }
+                HttpGraphqlResponse::batch_response(
+                    futures_util::stream::iter(requests.into_iter())
+                        .then(|request| async {
+                            self.execute_single(headers.clone(), access_token.clone(), ray_id, request)
+                                .await
+                        })
+                        .collect::<Vec<_>>()
+                        .await,
+                )
+                .await
+            }
+        }
+    }
+
+    async fn execute_single(
+        self: &Arc<Self>,
+        headers: Arc<http::HeaderMap>,
+        access_token: Arc<AccessToken>,
+        ray_id: &str,
+        request: GraphqlRequest<'_, RequestExtensions>,
+    ) -> HttpGraphqlResponse {
         #[cfg(feature = "tracing")]
-        let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
+        let gql_span = GqlRequestSpan::new()
+            .with_document(request.query.as_ref().map(|q| q.as_ref()))
+            .into_span();
         #[cfg(not(feature = "tracing"))]
         let gql_span = tracing::Span::none();
 
-        let coordinator = match self.prepare_coordinator(request, headers).await {
-            Ok(coordinator) => coordinator,
-            Err(response) => {
-                return {
+        match self.prepare_coordinator(headers, access_token, ray_id, request).await {
+            Ok(coordinator) => {
+                if matches!(coordinator.operation().ty, OperationType::Subscription) {
                     #[cfg(feature = "tracing")]
                     gql_span.record_gql_response(GqlResponseAttributes { has_errors: true });
-                    PreparedExecution::bad_request(response)
+                    return Response::bad_request(GraphqlError::new(
+                        "Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets",
+                    )).into();
                 }
+
+                coordinator.cached_execute().await
             }
-        };
-
-        if matches!(coordinator.operation().ty, OperationType::Subscription) {
-            #[cfg(feature = "tracing")]
-            gql_span.record_gql_response(GqlResponseAttributes { has_errors: true });
-
-            return PreparedExecution::bad_request(Response::from_error(
-                GraphqlError::new("Subscriptions are only suported on streaming transports.  Try making a request with SSE or WebSockets"),
-                ExecutionMetadata::build(coordinator.operation())
-            ));
+            Err(response) => {
+                gql_span.record_gql_response(GqlResponseAttributes { has_errors: true });
+                response.into()
+            }
         }
-
-        PreparedExecution::request(coordinator, gql_span)
     }
 
-    pub fn execute_stream(
+    // public for websockets
+    pub(crate) async fn execute_stream(
         self: &Arc<Self>,
-        request: engine::Request,
-        headers: RequestHeaders,
+        headers: Arc<http::HeaderMap>,
+        access_token: Arc<AccessToken>,
+        ray_id: &str,
+        request: GraphqlRequest<'_, RequestExtensions>,
     ) -> impl Stream<Item = Response> {
         #[cfg(feature = "tracing")]
-        let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
-
+        let gql_span = GqlRequestSpan::new()
+            .with_document(request.query.as_ref().map(|q| q.as_ref()))
+            .into_span();
         let (mut sender, receiver) = mpsc::channel(2);
-        let engine = Arc::clone(self);
 
+        let result = self.prepare_coordinator(headers, access_token, ray_id, request).await;
         receiver.join({
             let future = async move {
-                let coordinator = match engine.prepare_coordinator(request, headers).await {
+                let coordinator = match result {
                     Ok(coordinator) => coordinator,
                     Err(response) => {
                         sender.send(response).await.ok();
@@ -119,29 +208,56 @@ impl Engine {
         })
     }
 
-    async fn prepare_coordinator(
+    async fn prepare_coordinator<'a>(
         self: &Arc<Self>,
-        mut request: engine::Request,
-        headers: RequestHeaders,
+        headers: Arc<http::HeaderMap>,
+        access_token: Arc<AccessToken>,
+        ray_id: &str,
+        mut request: GraphqlRequest<'_, RequestExtensions>,
     ) -> Result<ExecutionCoordinator, Response> {
         // Injecting the query string if necessary.
-        self.handle_persisted_query(&mut request, headers.find(CLIENT_NAME_HEADER_NAME))
+        if let Err(err) = self
+            .handle_persisted_query(&mut request, headers.as_ref(), ray_id)
             .await
-            .map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?;
+        {
+            return Err(Response::bad_request(err));
+        }
 
-        let operation_plan = match self.prepare_operation(&request).await {
-            Ok(operation) => operation,
-            Err(error) => return Err(Response::from_error(error, ExecutionMetadata::default())),
-        };
+        // TODO: remove this useless conversion
+        let mut engine_request = engine::Request::build(&request, ray_id);
 
-        let input_values = bind_variables(self.schema.as_ref(), &operation_plan, &mut request.variables)
-            .map_err(|errors| Response::from_errors(errors, ExecutionMetadata::build(&operation_plan)))?;
+        let operation_plan = self
+            .prepare_operation(&engine_request)
+            .await
+            .map_err(Response::bad_request)?;
+
+        let response_cache_key = operation_plan
+            .cache_control
+            .as_ref()
+            .and_then(|operation_cache_control| {
+                ResponseCacheKey::build(
+                    headers.as_ref(),
+                    access_token.as_ref(),
+                    &request,
+                    operation_cache_control,
+                )
+            });
+
+        let operation_cache_control_cache_key = response_cache_key
+            .as_ref()
+            .map(|_| OperationCacheControlCacheKey::build(&self.schema_version, &request));
+
+        let input_values = bind_variables(self.schema.as_ref(), &operation_plan, &mut engine_request.variables)
+            .map_err(|errors| Response::from_errors(errors, build_execution_metadata(&self.schema, &operation_plan)))?;
 
         Ok(ExecutionCoordinator::new(
             Arc::clone(self),
+            headers,
+            access_token,
             operation_plan,
             input_values,
-            headers,
+            response_cache_key,
+            operation_cache_control_cache_key,
         ))
     }
 

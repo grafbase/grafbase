@@ -1,6 +1,6 @@
 use std::{borrow::Cow, sync::Arc, time::Duration};
 
-use super::gateway::GatewaySender;
+use super::gateway::EngineSender;
 use crate::config::{AuthenticationConfig, OperationLimitsConfig};
 use ascii::AsciiString;
 use http::{HeaderValue, StatusCode};
@@ -29,7 +29,7 @@ pub(super) struct GraphUpdater {
     uplink_url: Url,
     uplink_client: reqwest::Client,
     access_token: AsciiString,
-    sender: GatewaySender,
+    sender: EngineSender,
     current_id: Option<Ulid>,
     operation_limits_config: Option<OperationLimitsConfig>,
     authentication_config: Option<AuthenticationConfig>,
@@ -52,7 +52,7 @@ impl GraphUpdater {
         graph_ref: &str,
         branch: Option<&str>,
         access_token: AsciiString,
-        sender: GatewaySender,
+        sender: EngineSender,
     ) -> crate::Result<Self> {
         let uplink_client = reqwest::ClientBuilder::new()
             .gzip(true)
