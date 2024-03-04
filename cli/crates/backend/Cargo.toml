@@ -36,8 +36,8 @@ ulid = "1"
 url = "2"
 urlencoding = "2"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.59.0" }
-server = { package = "grafbase-local-server", path = "../server", version = "0.59.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.60.0" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.60.0" }
 
 [build-dependencies]
 cynic-codegen = { version = "3", features = ["rkyv"] }
