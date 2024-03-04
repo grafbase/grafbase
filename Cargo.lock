@@ -4640,6 +4640,7 @@ name = "parser-graphql"
 version = "0.1.0"
 dependencies = [
  "Inflector",
+ "ctor",
  "cynic",
  "cynic-introspection",
  "engine",
@@ -4647,6 +4648,7 @@ dependencies = [
  "http",
  "insta",
  "reqwest",
+ "rustls",
  "serde_json",
  "thiserror",
  "tokio",

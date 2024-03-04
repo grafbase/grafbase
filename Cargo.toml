@@ -52,6 +52,7 @@ base64 = "0.22"
 bitflags = "2"
 bytes = "1"
 chrono = { version = "0.4", default-features = false }
+ctor = "0.2"
 cynic = "3"
 cynic-introspection = "3"
 deadpool-postgres = "0.12"

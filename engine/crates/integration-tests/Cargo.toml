@@ -44,7 +44,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
   "ansi",
 ] }
 ctor = "0.2"
-rustls = { workspace = true, default-features = false, features = ["ring"] }
+rustls = { workspace = true, features = ["ring"] }
 
 [dependencies.tokio]
 version = "1.36"

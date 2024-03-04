@@ -411,6 +411,11 @@ mod tests {
         Mock, MockServer, ResponseTemplate,
     };
 
+    #[ctor::ctor]
+    fn setup_rustls() {
+        rustls::crypto::ring::default_provider().install_default().unwrap();
+    }
+
     use super::*;
 
     #[tokio::test]
