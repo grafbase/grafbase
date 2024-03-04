@@ -9,6 +9,11 @@ use super::*;
 
 const JWKS_PATH: &str = ".well-known/jwks.json";
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 async fn set_up_oidc_server(issuer: &Url, server: &MockServer) {
     assert!(issuer.path().ends_with('/'));
     let discovery_url = issuer.join(OIDC_DISCOVERY_PATH).unwrap();

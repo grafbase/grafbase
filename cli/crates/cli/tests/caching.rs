@@ -16,6 +16,11 @@ fn header<'r>(response: &'r reqwest::Response, name: &'static str) -> Option<&'r
     response.headers().get(name).map(|header| header.to_str().unwrap())
 }
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn global_caching() {
     let mut env = Environment::init_async().await;

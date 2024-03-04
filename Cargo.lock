@@ -1838,6 +1838,7 @@ dependencies = [
  "case",
  "chrono",
  "common-types",
+ "ctor",
  "dataloader",
  "derivative",
  "engine-derive",
@@ -1873,6 +1874,7 @@ dependencies = [
  "rstest",
  "runtime",
  "rust_decimal",
+ "rustls",
  "sanitize-filename",
  "secrecy",
  "serde",
@@ -2628,6 +2630,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "colored",
+ "ctor",
  "ctrlc",
  "cynic",
  "cynic-introspection",
@@ -2667,6 +2670,7 @@ dependencies = [
  "rsa",
  "rstest",
  "rstest_reuse",
+ "rustls",
  "serde",
  "serde_derive",
  "serde_json",
@@ -3732,12 +3736,14 @@ name = "jwt-verifier"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "ctor",
  "futures-util",
  "json_dotpath",
  "jwt-compact",
  "log 0.1.0",
  "reqwest",
  "runtime",
+ "rustls",
  "secrecy",
  "serde",
  "serde_json",
@@ -7311,7 +7317,7 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 [[package]]
 name = "tungstenite"
 version = "0.21.0"
-source = "git+https://github.com/snapview/tungstenite-rs?rev=4b8489f82ad43f2f70d9d43181055a6ac87da4bd#4b8489f82ad43f2f70d9d43181055a6ac87da4bd"
+source = "git+https://github.com/grafbase/tungstenite-rs?rev=783940b2e6cc02c7067efb07dc72ae49d75571b0#783940b2e6cc02c7067efb07dc72ae49d75571b0"
 dependencies = [
  "byteorder",
  "bytes",

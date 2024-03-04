@@ -91,12 +91,14 @@ reqwest = { workspace = true, features = [
 ] }
 
 [dev-dependencies]
+ctor = "0.2"
 indoc = "2"
-sha2.workspace = true
 insta.workspace = true
 rstest.workspace = true
+runtime = { workspace = true, features = ["test-utils"] }
+rustls = { workspace = true, features = ["ring"] }
 sanitize-filename = "0.5"
+sha2.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 urlencoding = "2.1"
 wiremock.workspace = true
-runtime = { workspace = true, features = ["test-utils"] }

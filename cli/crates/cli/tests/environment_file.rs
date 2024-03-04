@@ -6,6 +6,11 @@ use std::collections::HashMap;
 use utils::consts::ENVIRONMENT_SCHEMA;
 use utils::environment::Environment;
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn environment_file() {
     let mut env = Environment::init();

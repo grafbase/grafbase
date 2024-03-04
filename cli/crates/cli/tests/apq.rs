@@ -16,6 +16,11 @@ extend type Query {
 }
 "#;
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 #[rstest::rstest]
 #[case::get(reqwest::Method::GET)]
 #[case::post(reqwest::Method::POST)]

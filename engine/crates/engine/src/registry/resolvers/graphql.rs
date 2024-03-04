@@ -500,6 +500,11 @@ mod tests {
     use super::*;
     use crate::registry::builder::RegistryBuilder;
 
+    #[ctor::ctor]
+    fn setup_rustls() {
+        rustls::crypto::ring::default_provider().install_default().unwrap();
+    }
+
     #[tokio::test]
     async fn resolve() {
         let server = MockServer::start().await;

@@ -12,6 +12,11 @@ use utils::{async_client::AsyncClient, environment::Environment};
 
 use crate::utils::consts::AUTH_QUERY_TODOS;
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 const SCHEMA: &str = r#"
 type Todo {
     id: ID!

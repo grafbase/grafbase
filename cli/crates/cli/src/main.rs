@@ -60,6 +60,8 @@ static GLOBAL: MiMalloc = MiMalloc;
 fn main() {
     panic_hook!();
 
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+
     let args = Args::parse();
     ShouldColorize::from_env();
 

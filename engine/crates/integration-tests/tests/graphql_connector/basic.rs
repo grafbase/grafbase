@@ -41,6 +41,11 @@ const NAMESPACED_QUERY: &str = "
     }
 ";
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 #[test]
 fn graphql_test_with_namespace() {
     runtime().block_on(async {

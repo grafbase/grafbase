@@ -7,6 +7,11 @@ use utils::environment::Environment;
 
 use crate::utils::consts::INTROSPECTION_QUERY;
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn introspection_configuration() {
     let mut env = Environment::init();
