@@ -65,7 +65,7 @@ mod tests {
             .unwrap()
             .registry;
 
-        insta::assert_display_snapshot!(registry.export_sdl(true), @r###"
+        insta::assert_snapshot!(registry.export_sdl(true), @r###"
         extend schema @link(
         	url: "https://specs.apollo.dev/federation/v2.3",
         	import: ["@key", "@tag", "@shareable", "@inaccessible", "@override", "@external", "@provides", "@requires", "@composeDirective", "@interfaceObject"]

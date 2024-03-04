@@ -18,14 +18,18 @@ clap = { version = "4", features = ["cargo", "wrap_help", "derive", "env"] }
 clap_complete = "4"
 colored = "2"
 ctrlc = "3"
-indicatif = "0.17"
-inquire = "0.7"
 exitcode = "1"
+futures-util = "0.3"
+indicatif = "0.17"
 indoc = "2"
+inquire = "0.7"
 itertools.workspace = true
 log = "0.4"
+lru = "0.12"
+mimalloc = "0.1"
 once_cell = "1"
 os_type = "2"
+rustls = { workspace = true, features = ["ring"] }
 serde = "1"
 serde_derive = "1"
 serde_json.workspace = true
@@ -36,12 +40,9 @@ thiserror = "1"
 tokio = { version = "1", features = ["full"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 ulid = "1"
-uuid = { version = "1", features = ["v4"] }
 url = "2"
+uuid = { version = "1", features = ["v4"] }
 webbrowser = "0.8"
-lru = "0.12"
-futures-util = "0.3"
-mimalloc = "0.1"
 
 atty = "0.2"
 backend = { package = "grafbase-local-backend", path = "../backend", version = "0.60.0" }
@@ -62,8 +63,9 @@ async-tungstenite = "0.25"
 axum.workspace = true
 cfg-if = "1"
 chrono = "0.4"
-cynic.workspace = true
+ctor = "0.2"
 cynic-introspection.workspace = true
+cynic.workspace = true
 derive_builder = "0.20"
 dirs = "5"
 duct = "0.13"
@@ -71,9 +73,9 @@ fslock = "0.2"
 futures-util = "0.3"
 graphql-mocks.workspace = true
 graphql-ws-client = { version = "0.8.0-rc.2", features = ["async-tungstenite"] }
-http.workspace = true
-hex.workspace = true
 headers.workspace = true
+hex.workspace = true
+http.workspace = true
 insta = { workspace = true, features = ["json", "redactions", "yaml"] }
 json_dotpath = "1"
 jwt-compact = { version = "0.8.0", default-features = false, features = [

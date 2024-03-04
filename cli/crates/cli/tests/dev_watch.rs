@@ -7,6 +7,11 @@ use backend::project::GraphType;
 use serde_json::Value;
 use utils::environment::Environment;
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn dev_watch() {
     let mut env = Environment::init();

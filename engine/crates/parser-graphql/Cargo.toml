@@ -35,8 +35,9 @@ reqwest = { workspace = true, features = [
   "rustls-tls",
 ] }
 
-
 [dev-dependencies]
+ctor.workspace = true
+rustls = { workspace = true, features = ["ring"] }
 insta.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 wiremock.workspace = true

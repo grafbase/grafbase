@@ -17,6 +17,11 @@ extend type Query {
 }
 "#;
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn batching() {
     let mut env = Environment::init_async().await;

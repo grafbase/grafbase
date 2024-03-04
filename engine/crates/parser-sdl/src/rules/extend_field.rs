@@ -183,7 +183,7 @@ mod tests {
         let output =
             futures::executor::block_on(crate::parse(schema, &HashMap::new(), false, &FakeConnectorParser)).unwrap();
 
-        insta::assert_display_snapshot!(output.registry.export_sdl(true), @r###"
+        insta::assert_snapshot!(output.registry.export_sdl(true), @r###"
         extend schema @link(
         	url: "https://specs.apollo.dev/federation/v2.3",
         	import: ["@key", "@tag", "@shareable", "@inaccessible", "@override", "@external", "@provides", "@requires", "@composeDirective", "@interfaceObject"]
@@ -234,7 +234,7 @@ mod tests {
         let error = futures::executor::block_on(crate::parse(schema, &HashMap::new(), false, &FakeConnectorParser))
             .unwrap_err();
 
-        insta::assert_display_snapshot!(error, @r###"[RuleError { locations: [Pos(3:15)], message: "You tried to extend the field nope which does not exist on Blah" }]"###)
+        insta::assert_snapshot!(error, @r###"[RuleError { locations: [Pos(3:15)], message: "You tried to extend the field nope which does not exist on Blah" }]"###)
     }
 
     struct FakeConnectorParser;

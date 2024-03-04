@@ -149,11 +149,13 @@ where
 #[derive(Clone)]
 pub struct SchemaExecutor(Arc<dyn Schema>);
 
-#[async_trait::async_trait]
 impl async_graphql::Executor for SchemaExecutor {
     /// Execute a GraphQL query.
-    async fn execute(&self, request: async_graphql::Request) -> async_graphql::Response {
-        self.0.execute(Default::default(), request).await
+    fn execute(
+        &self,
+        request: async_graphql::Request,
+    ) -> impl futures::future::Future<Output = async_graphql::Response> {
+        self.0.execute(Default::default(), request)
     }
 
     /// Execute a GraphQL subscription with session data.

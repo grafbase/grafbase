@@ -32,6 +32,11 @@ const MONGODB_CONNECTOR: &str = "mongo";
 
 type JsonMap = serde_json::Map<String, Value>;
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 struct Server {
     action: &'static str,
     config: String,

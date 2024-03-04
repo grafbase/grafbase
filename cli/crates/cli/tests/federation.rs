@@ -8,6 +8,11 @@ use reqwest_eventsource::RequestBuilderExt;
 use serde_json::{json, Value};
 use utils::environment::Environment;
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 async fn federation_start() {

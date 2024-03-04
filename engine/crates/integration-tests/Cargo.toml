@@ -44,13 +44,14 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
   "ansi",
 ] }
 ctor = "0.2"
+rustls = { workspace = true, features = ["ring"] }
 
 [dependencies.tokio]
 version = "1.36"
 features = ["macros"]
 
 [dependencies.insta]
-version = "1.35"
+version = "1.36"
 features = ["json"]
 
 [dependencies.engine]

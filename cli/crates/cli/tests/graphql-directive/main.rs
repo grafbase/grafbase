@@ -14,6 +14,11 @@ mod headers;
 mod server;
 mod transforms;
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 const NAMESPACED_QUERY: &str = "
     query($id: ID!) {
         gothub {

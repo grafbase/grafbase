@@ -248,7 +248,7 @@ mod tests {
         let id = SchemaInputValueId::from(schema.input_values.values.len() - 1);
         let walker = RawInputValuesContext::walk(&schema.walker(), id);
 
-        insta::assert_display_snapshot!(walker, @r###"{inputObject:{fieldA:INACTIVE,fieldB:"some string value"},list:[null,ACTIVE,73],object:{null:null,string:"some string value",enumValue:ACTIVE,int:7,bigInt:8,u64:9,float:10,boolean:true}}"###);
+        insta::assert_snapshot!(walker, @r###"{inputObject:{fieldA:INACTIVE,fieldB:"some string value"},list:[null,ACTIVE,73],object:{null:null,string:"some string value",enumValue:ACTIVE,int:7,bigInt:8,u64:9,float:10,boolean:true}}"###);
     }
 
     #[test]

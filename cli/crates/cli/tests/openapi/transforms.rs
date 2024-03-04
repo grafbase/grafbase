@@ -13,6 +13,11 @@ use crate::utils::environment::Environment;
 
 use super::start_grafbase;
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn test_openapi_with_transforms() {
     let mock_server = wiremock::MockServer::start().await;

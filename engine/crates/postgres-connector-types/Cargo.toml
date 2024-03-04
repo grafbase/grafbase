@@ -34,14 +34,14 @@ pooling = ["deadpool-postgres"]
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { workspace = true, features = ["json"] }
 # https://github.com/sfackler/rust-postgres/pull/1067
-tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase", features = ["js"], default-features = false }
+tokio-postgres = { workspace = true, features = ["js"] }
 worker.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
-rustls = "0.22.2"
+rustls.workspace = true
 rustls-native-certs = "0.7.0"
 # https://github.com/sfackler/rust-postgres/pull/1067
-tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase" }
-tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rustls", rev = "8c9cd21d2b0919d00184be67f680e5619f488207" } # grafbase-tokio-postgres-ring-0.17
-deadpool-postgres = { git = "https://github.com/hfgbarrigas/deadpool/", branch = "grafbase", optional = true}
+tokio-postgres.workspace = true
+tokio-postgres-rustls.workspace = true
+deadpool-postgres = { workspace = true, optional = true }
