@@ -112,6 +112,32 @@ impl QueryResponse {
     pub fn cache_tags(&self) -> &HashSet<String> {
         &self.cache_tags
     }
+
+    pub fn merge(&mut self, source_container_id: ResponseNodeId, destination_container_id: ResponseNodeId) {
+        // We need to merge the contents of node_id into existing_id assuming they are both Containers
+        let entries_to_append = self.get_node(source_container_id).and_then(|node| match node {
+            QueryResponseNode::Container(container) => Some(container.iter().cloned().collect::<Vec<_>>()),
+            _ => None,
+        });
+
+        let mut nested_merge_ids = vec![];
+
+        if let Some((QueryResponseNode::Container(existing_container), entries_to_append)) =
+            self.get_node_mut(destination_container_id).zip(entries_to_append)
+        {
+            for (name, src_field_id) in entries_to_append {
+                if let Some(dest_field_id) = existing_container.child(name.as_str()) {
+                    nested_merge_ids.push((src_field_id, dest_field_id));
+                    continue;
+                }
+                existing_container.insert(name.as_str(), src_field_id);
+            }
+        }
+
+        for (src_id, dest_id) in nested_merge_ids {
+            self.merge(src_id, dest_id);
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -355,17 +381,27 @@ impl ResponseContainer {
         Self(children.into_iter().collect())
     }
 
-    /// Insert a new node with a relation, if an Old Node was present, the Old node will be
-    /// replaced
-    pub fn insert(&mut self, name: &str, mut node: ResponseNodeId) {
+    /// Insert a new node with the given name.  If the name was already present it will be replaced.
+    pub fn insert(&mut self, name: &str, node: ResponseNodeId) {
         if let Some((_, existing)) = self
             .0
             .iter_mut()
             .find(|(existing_name, _)| existing_name.as_str() == name)
         {
-            std::mem::swap(existing, &mut node);
+            *existing = node;
+            return;
         }
         self.0.push((ArcIntern::new(name.to_string()), node));
+    }
+
+    pub fn child(&self, needle: &str) -> Option<ResponseNodeId> {
+        let (_, id) = self.0.iter().find(|(name, _)| name.as_str() == needle)?;
+
+        Some(*id)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &(ArcIntern<String>, ResponseNodeId)> {
+        self.0.iter()
     }
 }
 

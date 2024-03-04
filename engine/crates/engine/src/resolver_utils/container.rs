@@ -1,8 +1,8 @@
-use std::{future::Future, pin::Pin, sync::Arc};
+use std::{collections::HashMap, future::Future, ops::DerefMut, pin::Pin, sync::Arc};
 
 use engine_parser::Positioned;
 use futures_util::FutureExt;
-use graph_entities::{CompactValue, ResponseContainer, ResponseNodeId};
+use graph_entities::{CompactValue, QueryResponse, ResponseContainer, ResponseNodeId};
 use internment::ArcIntern;
 
 use super::{field::resolve_field, fragment::FragmentDetails};
@@ -162,11 +162,39 @@ async fn resolve_container_inner<'a>(
 
     let results = results.flatten();
 
+    let results = results
+        .into_iter()
+        .map(|((alias, name), node)| (alias.unwrap_or(name), node))
+        .collect::<Vec<_>>();
+
+    let results = merge_duplicate_fields(ctx.response().await.deref_mut(), results);
+
     let mut container = ResponseContainer::new_container();
-    for ((alias, name), value) in results {
-        container.insert(alias.as_ref().unwrap_or(&name).as_str(), value);
+    for (name, value) in results {
+        container.insert(name.as_str(), value);
     }
     Ok(ctx.response().await.insert_node(container))
+}
+
+fn merge_duplicate_fields(
+    response: &mut QueryResponse,
+    fields: Vec<(Name, ResponseNodeId)>,
+) -> Vec<(Name, ResponseNodeId)> {
+    let mut dedup_map = HashMap::with_capacity(fields.len());
+    let mut results = Vec::with_capacity(fields.len());
+
+    for (name, node_id) in fields {
+        if let Some(existing_id) = dedup_map.get(&name) {
+            response.merge(node_id, *existing_id);
+            response.delete_node(node_id).ok();
+            continue;
+        }
+
+        dedup_map.insert(name.clone(), node_id);
+        results.push((name, node_id));
+    }
+
+    results
 }
 
 async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
