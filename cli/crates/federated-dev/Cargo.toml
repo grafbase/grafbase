@@ -20,7 +20,7 @@ futures-util = "0.3"
 graphql-composition.workspace = true
 handlebars.workspace = true
 indoc = "2.0.4"
-log = "0.4.20"
+log = "0.4.21"
 http.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls"] }
 runtime.workspace = true
