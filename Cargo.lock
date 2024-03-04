@@ -3293,7 +3293,7 @@ dependencies = [
  "http",
  "hyper",
  "hyper-util",
- "rustls 0.23.1",
+ "rustls",
  "rustls-pki-types",
  "tokio",
  "tokio-rustls",
@@ -3563,6 +3563,7 @@ dependencies = [
  "rstest",
  "runtime",
  "runtime-local",
+ "rustls",
  "serde",
  "serde_json",
  "sha2",
@@ -5035,7 +5036,7 @@ dependencies = [
  "indexmap 2.2.5",
  "itertools 0.12.1",
  "reqwest",
- "rustls 0.23.1",
+ "rustls",
  "rustls-native-certs",
  "serde",
  "serde_json",
@@ -5485,7 +5486,7 @@ dependencies = [
  "once_cell",
  "percent-encoding",
  "pin-project-lite",
- "rustls 0.23.1",
+ "rustls",
  "rustls-pemfile 1.0.4",
  "rustls-pki-types",
  "serde",
@@ -5778,20 +5779,6 @@ dependencies = [
  "libc",
  "linux-raw-sys",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "rustls"
-version = "0.22.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e87c9956bd9807afa1f77e0f7594af32566e830e088a5576d27c5b6f30f49d41"
-dependencies = [
- "log 0.4.21",
- "ring",
- "rustls-pki-types",
- "rustls-webpki",
- "subtle",
- "zeroize",
 ]
 
 [[package]]
@@ -7069,7 +7056,7 @@ version = "0.11.1"
 source = "git+https://github.com/grafbase/tokio-postgres-rustls?rev=ed33f65bdb9a6e6de4ad20962a49918e1a4d5d21#ed33f65bdb9a6e6de4ad20962a49918e1a4d5d21"
 dependencies = [
  "ring",
- "rustls 0.23.1",
+ "rustls",
  "tokio",
  "tokio-postgres",
  "tokio-rustls",
@@ -7081,7 +7068,7 @@ name = "tokio-rustls"
 version = "0.25.0"
 source = "git+https://github.com/rustls/tokio-rustls?rev=b3a2b143239d66253ba09f8ac4bfc4b7ab00cfac#b3a2b143239d66253ba09f8ac4bfc4b7ab00cfac"
 dependencies = [
- "rustls 0.23.1",
+ "rustls",
  "rustls-pki-types",
  "tokio",
 ]
@@ -7321,8 +7308,7 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 [[package]]
 name = "tungstenite"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ef1a641ea34f399a848dea702823bbecfb4c486f911735368f1f137cb8257e1"
+source = "git+https://github.com/snapview/tungstenite-rs?rev=4b8489f82ad43f2f70d9d43181055a6ac87da4bd#4b8489f82ad43f2f70d9d43181055a6ac87da4bd"
 dependencies = [
  "byteorder",
  "bytes",
@@ -7331,7 +7317,7 @@ dependencies = [
  "httparse",
  "log 0.4.21",
  "rand 0.8.5",
- "rustls 0.22.2",
+ "rustls",
  "rustls-pki-types",
  "sha1",
  "thiserror",

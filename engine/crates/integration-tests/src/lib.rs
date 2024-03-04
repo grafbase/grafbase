@@ -24,6 +24,11 @@ thread_local! {
 }
 
 #[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
+#[ctor::ctor]
 fn setup_logging() {
     let filter = tracing_subscriber::filter::EnvFilter::try_from_env("RUST_LOG").unwrap_or_default();
     tracing_subscriber::fmt()

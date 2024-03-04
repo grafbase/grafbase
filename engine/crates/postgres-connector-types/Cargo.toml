@@ -39,7 +39,7 @@ worker.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
-rustls = { version = "0.23", default-features = false }
+rustls.workspace = true
 rustls-native-certs = "0.7.0"
 # https://github.com/sfackler/rust-postgres/pull/1067
 tokio-postgres.workspace = true

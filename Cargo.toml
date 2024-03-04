@@ -31,6 +31,7 @@ tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rust
 # Drop when https://github.com/rustls/tokio-rustls/pull/44 is merged.
 tokio-rustls = { git = "https://github.com/rustls/tokio-rustls", rev = "b3a2b143239d66253ba09f8ac4bfc4b7ab00cfac" } # jbp-rustls-0.23
 worker = { git = "https://github.com/cloudflare/workers-rs", rev = "e06193a62157ec9ac4079132063a9716915f01cf" } # main
+tungstenite = { git = "https://github.com/snapview/tungstenite-rs", rev = "4b8489f82ad43f2f70d9d43181055a6ac87da4bd" } # dependabot/cargo/rustls-0.23.1
 
 [workspace.package]
 version = "0.59.0"
@@ -75,6 +76,7 @@ regex = "1"
 reqwest = { version = "0.11.24", default-features = false }
 rmp-serde = "1"
 rstest = "0.18"
+rustls = { version = "0.23", default-features = false }
 secrecy = "0.8"
 send_wrapper = "0.6"
 strum = "0.26"
