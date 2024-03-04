@@ -6134,8 +6134,8 @@ dependencies = [
 
 [[package]]
 name = "serde_with"
-version = "3.5.1"
-source = "git+https://github.com/grafbase/serde_with?rev=2fadab3a17e6e62320c899c7bc315eb7b404165d#2fadab3a17e6e62320c899c7bc315eb7b404165d"
+version = "3.6.1"
+source = "git+https://github.com/grafbase/serde_with?rev=31165b5a70f329b5e9c8a04284cccec6d76ea248#31165b5a70f329b5e9c8a04284cccec6d76ea248"
 dependencies = [
  "base64 0.21.7",
  "chrono",
@@ -6143,6 +6143,7 @@ dependencies = [
  "indexmap 1.9.3",
  "indexmap 2.2.5",
  "serde",
+ "serde_derive",
  "serde_json",
  "serde_with_macros",
  "time",
@@ -6150,8 +6151,8 @@ dependencies = [
 
 [[package]]
 name = "serde_with_macros"
-version = "3.5.1"
-source = "git+https://github.com/grafbase/serde_with?rev=2fadab3a17e6e62320c899c7bc315eb7b404165d#2fadab3a17e6e62320c899c7bc315eb7b404165d"
+version = "3.6.1"
+source = "git+https://github.com/grafbase/serde_with?rev=31165b5a70f329b5e9c8a04284cccec6d76ea248#31165b5a70f329b5e9c8a04284cccec6d76ea248"
 dependencies = [
  "darling",
  "itertools 0.12.1",
