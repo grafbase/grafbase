@@ -70,7 +70,7 @@ mod tests {
             .unwrap()
             .registry;
 
-        insta::assert_display_snapshot!(registry.export_sdl(true));
+        insta::assert_snapshot!(registry.export_sdl(true));
     }
 
     #[test]
