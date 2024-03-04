@@ -61,6 +61,7 @@ pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraph
         GatewayEnv {
             kv: runtime_local::InMemoryKvStore::runtime(),
             cache,
+            trusted_documents: runtime_noop::trusted_documents::NoopTrustedDocuments::runtime(),
         },
     )))
 }

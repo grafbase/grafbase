@@ -1,4 +1,5 @@
 mod bench;
+mod mock_trusted_documents;
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -8,15 +9,9 @@ use gateway_v2::Gateway;
 use graphql_mocks::MockGraphQlServer;
 use parser_sdl::connector_parsers::MockConnectorParsers;
 
-use super::TestFederationGateway;
+pub use self::mock_trusted_documents::TestTrustedDocument;
 
-#[derive(Debug, Clone)]
-pub struct TestTrustedDocument {
-    pub branch_id: &'static str,
-    pub client_name: &'static str,
-    pub document_id: &'static str,
-    pub document_text: &'static str,
-}
+use super::TestFederationGateway;
 
 #[must_use]
 pub struct FederationGatewayBuilder {
@@ -58,7 +53,7 @@ impl FederationGatewayBuilder {
         self
     }
 
-    pub async fn with_trusted_documents(mut self, trusted_documents: Vec<TestTrustedDocument>) -> Self {
+    pub fn with_trusted_documents(mut self, trusted_documents: Vec<TestTrustedDocument>) -> Self {
         self.trusted_documents = trusted_documents;
         self
     }
@@ -99,6 +94,11 @@ impl FederationGatewayBuilder {
                 gateway_v2::GatewayEnv {
                     kv: runtime_local::InMemoryKvStore::runtime(),
                     cache,
+                    trusted_documents: runtime::trusted_documents::TrustedDocuments(Box::new(
+                        mock_trusted_documents::MockTrustedDocuments {
+                            documents: self.trusted_documents,
+                        },
+                    )),
                 },
             )),
         }

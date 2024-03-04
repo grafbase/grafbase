@@ -30,6 +30,7 @@ impl std::fmt::Debug for Gateway {
 pub struct GatewayEnv {
     pub kv: runtime::kv::KvStore,
     pub cache: runtime::cache::Cache,
+    pub trusted_documents: runtime::trusted_documents::TrustedDocuments,
 }
 
 pub struct Response {
