@@ -14,20 +14,23 @@ members = [
 [patch.crates-io]
 http-cache = { git = "https://github.com/grafbase/http-cache", rev = "a7812cc7ebea07ba21ed6fb5fdd74792f2438a73" } # http-v1
 http-cache-reqwest = { git = "https://github.com/grafbase/http-cache", rev = "a7812cc7ebea07ba21ed6fb5fdd74792f2438a73" } # http-v1
+hyper-rustls = { git = "https://github.com/grafbase/hyper-rustls", rev = "e8e14ba34c081702297c74e544109be6c8ea5232" } # rustls-0.23
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
 names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" } # main
 oauth2 = { git = "https://github.com/grafbase/oauth2-rs", rev = "18b1f9a8b2fae61b50c0c6f2d44672ec176f4612" } # http-v1
 openidconnect = { git = "https://github.com/grafbase/openidconnect-rs", rev = "dee2958a8769dab1d86ef0070e5a185df454f8c2" } # http-v1
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "3f7d91b5b6aa936fafdb7629d92f1bd1a5720d86" } # hyper-v1-with-patches
+reqwest = { git = "https://github.com/grafbase/reqwest", rev = "bdc939fedadb4625d80a170238e04a0f962b105f" } # hyper-1.0-rustls-0.23-with-patches
 reqwest-middleware = { git = "https://github.com/grafbase/reqwest-middleware", rev = "030e178305b7b4352b8dfd8bb04aba970843afc1" } # http-v1
 rudderanalytics =  { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "58bd3a439453a6668fbfb98874e08cabd8bd616b" } # async
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "2fadab3a17e6e62320c899c7bc315eb7b404165d" } # minify-field-names-strum-0.26
 # Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
 tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
-# Drop when https://github.com/jbg/tokio-postgres-rustls/pull/22 is merged.
-tokio-postgres-rustls = { git = "https://github.com/aumetra/tokio-postgres-rustls", rev = "6f1b88f88edf743a1dd821951bcc3d804efc7b62"  } # rustls-0.23
+tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
+# Drop when https://github.com/jbg/tokio-postgres-rustls/pull/22 is merged and our fork is rebased.
+tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rustls", rev = "ed33f65bdb9a6e6de4ad20962a49918e1a4d5d21" } # rustls-0.23
 # Drop when https://github.com/rustls/tokio-rustls/pull/44 is merged.
 tokio-rustls = { git = "https://github.com/rustls/tokio-rustls", rev = "b3a2b143239d66253ba09f8ac4bfc4b7ab00cfac" } # jbp-rustls-0.23
+worker = { git = "https://github.com/cloudflare/workers-rs", rev = "e06193a62157ec9ac4079132063a9716915f01cf" } # main
 
 [workspace.package]
 version = "0.59.0"
@@ -50,6 +53,7 @@ bytes = "1"
 chrono = { version = "0.4", default-features = false }
 cynic = "3"
 cynic-introspection = "3"
+deadpool-postgres = "0.12"
 derive_more = "1.0.0-beta.6"
 flexbuffers = "2"
 futures = "0.3"
@@ -68,7 +72,7 @@ num-traits = "0.2"
 once_cell = "1"
 openidconnect = "3"
 regex = "1"
-reqwest = { version = "0.11", default-features = false }
+reqwest = { version = "0.11.24", default-features = false }
 rmp-serde = "1"
 rstest = "0.18"
 secrecy = "0.8"
@@ -78,6 +82,8 @@ strum_macros = "0.26"
 tar = "0.4"
 thiserror = "1"
 tokio = "1"
+tokio-postgres = { version = "0.7", default-features = false }
+tokio-postgres-rustls = "0.11"
 tower-http = "0.5"
 tower-service = "0.3"
 url = "2"
