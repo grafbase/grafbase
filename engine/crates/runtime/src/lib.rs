@@ -5,6 +5,7 @@ pub mod fetch;
 pub mod kv;
 pub mod log;
 pub mod pg;
+pub mod trusted_documents;
 pub mod udf;
 
 pub use context::Context;

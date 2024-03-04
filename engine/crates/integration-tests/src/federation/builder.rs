@@ -10,15 +10,25 @@ use parser_sdl::connector_parsers::MockConnectorParsers;
 
 use super::TestFederationGateway;
 
+#[derive(Debug, Clone)]
+pub struct TestTrustedDocument {
+    pub branch_id: &'static str,
+    pub client_name: &'static str,
+    pub document_id: &'static str,
+    pub document_text: &'static str,
+}
+
 #[must_use]
 pub struct FederationGatewayBuilder {
     schemas: Vec<(String, String, ServiceDocument)>,
+    trusted_documents: Vec<TestTrustedDocument>,
     config_sdl: Option<String>,
 }
 
 pub trait GatewayV2Ext {
     fn builder() -> FederationGatewayBuilder {
         FederationGatewayBuilder {
+            trusted_documents: Vec::new(),
             schemas: vec![],
             config_sdl: None,
         }
@@ -45,6 +55,11 @@ impl FederationGatewayBuilder {
             schema.url(),
             async_graphql_parser::parse_schema(schema.sdl().await).expect("schema to be well formed"),
         ));
+        self
+    }
+
+    pub async fn with_trusted_documents(mut self, trusted_documents: Vec<TestTrustedDocument>) -> Self {
+        self.trusted_documents = trusted_documents;
         self
     }
 
