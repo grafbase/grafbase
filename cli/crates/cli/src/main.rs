@@ -125,7 +125,14 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
             // TODO: what's the story for dev and the toml config?
             let (reload_tx, reload_rx) = oneshot::channel::<Handle>();
-            otel_reload(reload_handle, reload_rx, &Default::default());
+            otel_reload(
+                reload_handle,
+                reload_rx,
+                &TelemetryConfig {
+                    service_name: "grafbase_dev".to_string(),
+                    tracing: Default::default(),
+                },
+            );
 
             dev(
                 cmd.search,
@@ -224,27 +231,40 @@ fn try_main(args: Args) -> Result<(), CliError> {
     }
 }
 
-use crate::start::TelemetryConfig;
-use grafbase_tracing::otel::opentelemetry_sdk::trace::Tracer;
-use grafbase_tracing::otel::tracing_opentelemetry::OpenTelemetryLayer;
-
 fn otel_reload<S>(
-    reload_handle: reload::Handle<OpenTelemetryLayer<S, Tracer>, S>,
+    reload_handle: reload::Handle<FilteredLayer<S>, S>,
     reload_rx: oneshot::Receiver<Handle>,
     telemetry_config: &TelemetryConfig,
 ) where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
 {
+    let otel_service_name = telemetry_config.service_name.clone();
+    let tracing_config = telemetry_config.tracing.clone();
+
     thread::spawn(move || match reload_rx.recv() {
         Ok(rt_handle) => {
             debug!("reloading otel layer");
-            // new_batched needs to be called within a tokio runtime context
+            // new_batched will use the tokio runtime for its internals
             rt_handle.spawn(async move {
-                let otel_layer = grafbase_tracing::otel::trace::new_batched_layer::<S>(
-                    telemetry_config
-                );
+                // unfortunately I have to set the filters here due to: https://github.com/tokio-rs/tracing/issues/1629
+                let sampling_filter = RatioSamplingFilter::new(tracing_config.sampling);
+                let env_filter = EnvFilter::new(&tracing_config.filter);
+
+                // create the batched layer
+                let otel_layer = grafbase_tracing::otel::trace::new_batched_layer::<S, Tokio>(
+                    otel_service_name,
+                    tracing_config,
+                    Tokio,
+                )
+                .expect("should successfully build a batched otel layer for tracing");
+
+                // replace the existing layer with the new one and update its filters
+                // the explicit filters update shouldn't be required but the bug mentioned above makes it so
                 reload_handle
-                    .reload(otel_layer)
+                    .modify(|layer| {
+                        *layer.inner_mut() = otel_layer;
+                        *layer.filter_mut() = FilterExt::boxed(sampling_filter.and(env_filter));
+                    })
                     .expect("should successfully reload otel layer");
             });
         }

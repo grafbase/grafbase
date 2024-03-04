@@ -1,3 +1,3 @@
 ### Run
 
-    grafbase dev
+    grafbase start --config gateway-config.toml

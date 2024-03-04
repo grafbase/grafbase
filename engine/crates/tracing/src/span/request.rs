@@ -1,11 +1,12 @@
 use std::net::IpAddr;
 
-use crate::spans::HttpRecorderSpanExt;
+use crate::span::HttpRecorderSpanExt;
 use http::header::USER_AGENT;
 use http::Response;
 use http_body::Body;
 use tracing::{info_span, Span};
 
+pub(crate) const SPAN_NAME: &str = "gateway";
 pub(crate) const X_FORWARDED_FOR_HEADER: &str = "X-Forwarded-For";
 
 /// A span for a http request
@@ -52,7 +53,8 @@ impl<'a> HttpRequestSpan<'a> {
     }
     pub fn into_span(self) -> Span {
         info_span!(
-            "http_request",
+            target: crate::span::GRAFBASE_TARGET,
+            SPAN_NAME,
             "http.request.body.size" = self.request_body_size,
             "http.request.method" = self.request_method.as_str(),
             "http.response.body.size" = self.response_body_size,

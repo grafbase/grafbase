@@ -1,6 +1,8 @@
 use http::Response;
 use http_body::Body;
 
+pub(crate) const GRAFBASE_TARGET: &str = "grafbase";
+
 pub mod gql;
 pub mod request;
 pub mod subgraph;

@@ -20,7 +20,7 @@ mod subscription;
 mod variables;
 
 pub(crate) use federation::*;
-use grafbase_tracing::spans::{GqlRecorderSpanExt, GqlResponseAttributes};
+use grafbase_tracing::span::{GqlRecorderSpanExt, GqlResponseAttributes};
 pub(crate) use subscription::*;
 
 pub(crate) struct GraphqlExecutionPlan {
@@ -88,7 +88,7 @@ impl<'ctx> GraphqlExecutor<'ctx> {
         let operation_name = self.plan.operation().as_ref().name.as_ref();
         let operation_type = self.plan.operation().as_ref().ty.as_ref();
 
-        let subgraph_request_span = grafbase_tracing::spans::subgraph::SubgraphRequestSpan::new(self.subgraph.name())
+        let subgraph_request_span = grafbase_tracing::span::subgraph::SubgraphRequestSpan::new(self.subgraph.name())
             .with_operation_type(operation_type)
             .with_operation_name(operation_name.map(|s| s.as_str()))
             .with_document(self.json_body.as_str())

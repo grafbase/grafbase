@@ -52,7 +52,7 @@ common = { package = "grafbase-local-common", path = "../common", version = "0.6
 federated-dev = { path = "../federated-dev" }
 graphql-introspection = { package = "grafbase-graphql-introspection", path = "../graphql-introspection" }
 server = { package = "grafbase-local-server", path = "../server", version = "0.60.0" }
-grafbase-tracing = { package = "tracing", path = "../../../engine/crates/tracing", features = ["tower"] }
+grafbase-tracing = { path = "../../../engine/crates/tracing", features = ["tower"] }
 toml = "0.8.10"
 
 production-server = { path = "../production-server" }

@@ -1,5 +1,7 @@
 use tracing::{info_span, Span};
 
+pub(crate) const SPAN_NAME: &str = "subgraph";
+
 /// A span for a subgraph request
 pub struct SubgraphRequestSpan<'a> {
     name: &'a str,
@@ -34,7 +36,8 @@ impl<'a> SubgraphRequestSpan<'a> {
 
     pub fn into_span(self) -> Span {
         info_span!(
-            "subgraph_request",
+            target: crate::span::GRAFBASE_TARGET,
+            SPAN_NAME,
             "subgraph.name" = self.name,
             "subgraph.gql.operation.name" = self.operation_name.as_ref(),
             "subgraph.gql.operation.type" = self.operation_type,
