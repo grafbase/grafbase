@@ -41,7 +41,7 @@ pub fn runtime() -> &'static Runtime {
 fn listen_address() -> SocketAddr {
     let port = get_free_port();
 
-    SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 0), port))
+    SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), port))
 }
 
 fn with_static_server<F, T>(
