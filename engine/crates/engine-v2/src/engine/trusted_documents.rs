@@ -79,7 +79,7 @@ impl Engine {
             return Ok(());
         }
 
-        match self.env.trusted_documents.fetch(client_name, &document_id).await {
+        match self.env.trusted_documents.fetch(client_name, document_id).await {
             Err(TrustedDocumentsError::RetrievalError(err)) => Err(GraphqlError::new(format!(
                 "Internal server error while fetching trusted document: {err}"
             ))),
