@@ -153,3 +153,50 @@ fn trusted_document_queries_without_client_name_header_are_rejected() {
         "###);
     })
 }
+
+#[test]
+fn wrong_client_name() {
+    test(|engine| async move {
+        let response = engine
+            .execute("")
+            .extensions(&json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}))
+            .header("x-grafbase-client-name", "android-app")
+            .await;
+
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "errors": [
+            {
+              "message": "Document id unknown: df40d7fae090cfec1c7e96d78ffb4087f0421798d96c4c90df3556c7de585dc9"
+            }
+          ]
+        }
+        "###);
+    });
+}
+
+#[test]
+fn wrong_branch() {
+    test(|engine| async move {
+        let response = engine
+            .execute(GraphQlRequest {
+                query: String::new(),
+                operation_name: None,
+                variables: None,
+                extensions: None,
+                doc_id: Some(TRUSTED_DOCUMENTS.last().unwrap().document_id.to_owned()),
+            })
+            .header("x-grafbase-client-name", "ios-app")
+            .await;
+
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "errors": [
+            {
+              "message": "Document id unknown: this-one-should-not-be-reachable-on-my-branch"
+            }
+          ]
+        }
+        "###);
+    });
+}
