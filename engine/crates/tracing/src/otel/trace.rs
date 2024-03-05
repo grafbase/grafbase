@@ -64,9 +64,9 @@ where
             // the reasoning behind it is for sampling to be done as soon as possible during the tracing pipeline
             .with_sampler(Sampler::AlwaysOn)
             .with_id_generator(RandomIdGenerator::default())
-            .with_max_events_per_span(config.collect.max_events_per_span)
-            .with_max_attributes_per_span(config.collect.max_attributes_per_span)
-            .with_max_events_per_span(config.collect.max_events_per_span)
+            .with_max_events_per_span(config.collect.max_events_per_span as u32)
+            .with_max_attributes_per_span(config.collect.max_attributes_per_span as u32)
+            .with_max_events_per_span(config.collect.max_events_per_span as u32)
             .with_resource(Resource::new(vec![KeyValue::new("service.name", service_name)])),
     );
 

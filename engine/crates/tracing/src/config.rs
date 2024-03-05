@@ -12,6 +12,7 @@ use url::Url;
 
 use crate::error::TracingError;
 
+pub(crate) const DEFAULT_COLLECT_VALUE: usize = 128;
 pub(crate) const DEFAULT_FILTER: &str = "grafbase=info,off";
 pub(crate) const DEFAULT_SAMPLING: f64 = 0.15;
 const DEFAULT_EXPORT_TIMEOUT: chrono::Duration = chrono::Duration::seconds(60);
@@ -76,19 +77,24 @@ fn default_filter() -> String {
 pub struct TracingCollectConfig {
     /// The maximum events per span before discarding.
     /// The default is 128.
-    pub max_events_per_span: u32,
+    #[serde(default = "default_collect")]
+    pub max_events_per_span: usize,
     /// The maximum attributes per span before discarding.
     /// The default is 128.
-    pub max_attributes_per_span: u32,
+    #[serde(default = "default_collect")]
+    pub max_attributes_per_span: usize,
     /// The maximum links per span before discarding.
     /// The default is 128.
-    pub max_links_per_span: u32,
+    #[serde(default = "default_collect")]
+    pub max_links_per_span: usize,
     /// The maximum attributes per event before discarding.
     /// The default is 128.
-    pub max_attributes_per_event: u32,
+    #[serde(default = "default_collect")]
+    pub max_attributes_per_event: usize,
     /// The maximum attributes per link before discarding.
     /// The default is 128.
-    pub max_attributes_per_link: u32,
+    #[serde(default = "default_collect")]
+    pub max_attributes_per_link: usize,
 }
 
 impl Default for TracingCollectConfig {
@@ -103,23 +109,32 @@ impl Default for TracingCollectConfig {
     }
 }
 
+fn default_collect() -> usize {
+    DEFAULT_COLLECT_VALUE
+}
+
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TracingBatchExportConfig {
-    /// The delay, in milliseconds, between two consecutive processing of batches.
+    /// The delay, in seconds, between two consecutive processing of batches.
     /// The default value is 5 seconds.
-    #[serde(deserialize_with = "deserialize_duration")]
+    #[serde(
+        deserialize_with = "deserialize_duration",
+        default = "TracingBatchExportConfig::default_scheduled_delay"
+    )]
     pub(crate) scheduled_delay: chrono::Duration,
 
     /// The maximum queue size to buffer spans for delayed processing. If the
     /// queue gets full it drops the spans.
     /// The default value of is 2048.
+    #[serde(default = "TracingBatchExportConfig::default_max_queue_size")]
     pub(crate) max_queue_size: usize,
 
     /// The maximum number of spans to process in a single batch. If there are
     /// more than one batch worth of spans then it processes multiple batches
     /// of spans one batch after the other without any delay.
     /// The default value is 512.
+    #[serde(default = "TracingBatchExportConfig::default_max_export_batch_size")]
     pub(crate) max_export_batch_size: usize,
 
     /// Maximum number of concurrent exports
@@ -128,7 +143,23 @@ pub struct TracingBatchExportConfig {
     /// by an exporter. A value of 1 will cause exports to be performed
     /// synchronously on the [`BatchSpanProcessor`] task.
     /// The default is 1.
+    #[serde(default = "TracingBatchExportConfig::default_max_concurrent_exports")]
     pub(crate) max_concurrent_exports: usize,
+}
+
+impl TracingBatchExportConfig {
+    fn default_scheduled_delay() -> chrono::Duration {
+        chrono::Duration::seconds(5)
+    }
+    fn default_max_queue_size() -> usize {
+        2048
+    }
+    fn default_max_export_batch_size() -> usize {
+        512
+    }
+    fn default_max_concurrent_exports() -> usize {
+        1
+    }
 }
 
 fn deserialize_duration<'de, D>(deserializer: D) -> Result<chrono::Duration, D::Error>
@@ -143,10 +174,10 @@ where
 impl Default for TracingBatchExportConfig {
     fn default() -> Self {
         Self {
-            scheduled_delay: chrono::Duration::seconds(5),
-            max_queue_size: 2048,
-            max_export_batch_size: 512,
-            max_concurrent_exports: 1,
+            scheduled_delay: TracingBatchExportConfig::default_scheduled_delay(),
+            max_queue_size: TracingBatchExportConfig::default_max_queue_size(),
+            max_export_batch_size: TracingBatchExportConfig::default_max_export_batch_size(),
+            max_concurrent_exports: TracingBatchExportConfig::default_max_concurrent_exports(),
         }
     }
 }
@@ -442,6 +473,27 @@ pub mod tests {
     }
 
     #[test]
+    fn partial_custom_collect() {
+        // prepare
+        let input = indoc! {r#"
+            [collect]
+            max_events_per_span = 1
+        "#};
+
+        // act
+        let config: TracingConfig = toml::from_str(input).unwrap();
+
+        // assert
+        assert_eq!(
+            TracingCollectConfig {
+                max_events_per_span: 1,
+                ..Default::default()
+            },
+            config.collect
+        );
+    }
+
+    #[test]
     fn no_exporters() {
         // prepare
         let input = indoc! {r#"
@@ -477,6 +529,36 @@ pub mod tests {
                 grpc: None,
                 http: None,
                 timeout: DEFAULT_EXPORT_TIMEOUT,
+            }),
+            config.exporters.otlp
+        );
+    }
+
+    #[test]
+    fn otlp_exporter_custom_partial_batch_config() {
+        // prepare
+        let input = indoc! {r#"
+            [exporters.otlp]
+            enabled = true
+            endpoint = "http://localhost:1234"
+
+            [exporters.otlp.batch_export]
+            scheduled_delay = 10
+        "#};
+
+        // act
+        let config: TracingConfig = toml::from_str(input).unwrap();
+
+        // assert
+        assert_eq!(
+            Some(TracingOtlpExporterConfig {
+                endpoint: Url::parse("http://localhost:1234").unwrap(),
+                enabled: true,
+                batch_export: TracingBatchExportConfig {
+                    scheduled_delay: chrono::Duration::seconds(10),
+                    ..Default::default()
+                },
+                ..Default::default()
             }),
             config.exporters.otlp
         );
