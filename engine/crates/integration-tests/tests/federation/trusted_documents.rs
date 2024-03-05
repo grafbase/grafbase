@@ -118,7 +118,7 @@ fn apollo_client_style_happy_path() {
 }
 
 #[test]
-fn regular_non_persisted_query() {
+fn regular_non_persisted_queries_are_rejected() {
     test(|engine| async move {
         let response = engine.execute("query { __typename }").await;
 
@@ -134,59 +134,22 @@ fn regular_non_persisted_query() {
     });
 }
 
-// #[test]
-// fn trusted_documents() {
-//     test(|engine| async move {
-//         let execute = |query: &'static str, headers: &[(&str, &str)], extensions: &serde_json::Value| {
-//             let mut builder = engine.execute(query).extensions(extensions);
+#[test]
+fn trusted_document_queries_without_client_name_header_are_rejected() {
+    test(|engine| async move {
+        let response = engine
+            .execute("")
+            .extensions(&json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}))
+            .await;
 
-//             for (header_name, header_value) in headers {
-//                 builder = builder.header(*header_name, *header_value);
-//             }
-
-//             builder
-//         };
-
-//         // Non-trusted-document queries are rejected.
-//         {
-//             let response = execute("query { serverVersion }", &[], &serde_json::Value::Null).await;
-
-//             insta::assert_json_snapshot!(response, @r###"
-//             {
-//               "errors": [
-//                 {
-//                   "message": "Only trusted document queries are accepted."
-//                 }
-//               ]
-//             }
-//             "###);
-//         }
-
-//         // Trusted document queries without client name header are rejected
-//         {
-//             let response = execute(
-//                 "",
-//                 &[],
-//                 &json!({"persistedQuery": { "version": 1, "sha256Hash": &trusted_documents[0].document_id }}),
-//             )
-//             .await;
-
-//             insta::assert_json_snapshot!(response, @r###"
-//             {
-//               "errors": [
-//                 {
-//                   "message": "Trusted document queries must include the x-grafbase-client-name header"
-//                 }
-//               ]
-//             }
-//             "###)
-//         }
-
-//         // Apollo client style happy path
-//         {}
-
-//         // Relay style happy path
-
-//         // TODO test with variables
-//     });
-// }
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "errors": [
+            {
+              "message": "Trusted document queries must include the x-grafbase-client-name header"
+            }
+          ]
+        }
+        "###);
+    })
+}
