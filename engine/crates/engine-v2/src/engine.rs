@@ -3,6 +3,7 @@ use engine::{AutomaticPersistedQuery, ErrorCode, PersistedQueryRequestExtension,
 use engine_parser::types::OperationType;
 use futures::channel::mpsc;
 use futures_util::{SinkExt, Stream};
+use runtime::trusted_documents::TrustedDocumentsError;
 use schema::Schema;
 use std::{mem, sync::Arc};
 
@@ -12,6 +13,8 @@ use crate::{
     request::{bind_variables, Operation},
     response::{ExecutionMetadata, GraphqlError, Response},
 };
+
+const CLIENT_NAME_HEADER_NAME: &str = "x-grafbase-client-name";
 
 pub struct Engine {
     // We use an Arc for the schema to have a self-contained response which may still
@@ -93,7 +96,7 @@ impl Engine {
         headers: RequestHeaders,
     ) -> Result<ExecutionCoordinator, Response> {
         // Injecting the query string if necessary.
-        self.handle_persisted_query(&mut request, headers.find("x-grafbase-client-name"))
+        self.handle_persisted_query(&mut request, headers.find(CLIENT_NAME_HEADER_NAME))
             .await
             .map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?;
 
@@ -212,17 +215,26 @@ impl Engine {
         client_name: Option<&str>,
     ) -> Result<(), GraphqlError> {
         let Some(client_name) = client_name else {
-            return Err(GraphqlError::new(
-                "Trusted document queries must include the x-graphql-client-name header",
-            ));
+            return Err(GraphqlError::new(format!(
+                "Trusted document queries must include the {CLIENT_NAME_HEADER_NAME} header"
+            )));
         };
 
         let document_id: String = ext.sha256_hash.iter().map(|b| format!("{:02x}", b)).collect();
-        self.env
-            .trusted_documents
-            .fetch(client_name, &document_id)
-            .await
-            .unwrap();
-        todo!("handle trusted doc")
+
+        match self.env.trusted_documents.fetch(client_name, &document_id).await {
+            Err(TrustedDocumentsError::RetrievalError(err)) => {
+                return Err(GraphqlError::new(format!(
+                    "Internal server error while fetching trusted document: {err}"
+                )))
+            }
+            Err(TrustedDocumentsError::DocumentNotFound) => {
+                return Err(GraphqlError::new(format!("Document id unknown: {document_id}")))
+            }
+            Ok(document_text) => {
+                request.operation_plan_cache_key.query = document_text;
+                Ok(())
+            }
+        }
     }
 }

@@ -77,7 +77,7 @@ fn trusted_documents() {
             {
               "errors": [
                 {
-                  "message": "Trusted document queries must include the x-graphql-client-name header"
+                  "message": "Trusted document queries must include the x-grafbase-client-name header"
                 }
               ]
             }
@@ -93,7 +93,13 @@ fn trusted_documents() {
             )
             .await;
 
-            insta::assert_json_snapshot!(response, @"")
+            insta::assert_json_snapshot!(response, @r###"
+            {
+              "data": {
+                "serverVersion": "1"
+              }
+            }
+            "###)
         }
     });
 }
