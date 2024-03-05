@@ -57,7 +57,7 @@ pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraph
         EngineEnv {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
             cache: cache.clone(),
-            trusted_documents: runtime_noop::trusted_documents::NoopTrustedDocuments::runtime(),
+            trusted_documents: runtime_noop::trusted_documents::NoopTrustedDocuments.into(),
         },
         GatewayEnv {
             kv: runtime_local::InMemoryKvStore::runtime(),

@@ -1,11 +1,10 @@
-use std::sync::Arc;
-
 use async_runtime::stream::StreamExt as _;
 use engine::{AutomaticPersistedQuery, ErrorCode, PersistedQueryRequestExtension, RequestHeaders};
 use engine_parser::types::OperationType;
 use futures::channel::mpsc;
 use futures_util::{SinkExt, Stream};
 use schema::Schema;
+use std::{mem, sync::Arc};
 
 use crate::{
     execution::{ExecutionCoordinator, PreparedExecution},
@@ -94,7 +93,7 @@ impl Engine {
         headers: RequestHeaders,
     ) -> Result<ExecutionCoordinator, Response> {
         // Injecting the query string if necessary.
-        self.handle_persisted_query(&mut request)
+        self.handle_persisted_query(&mut request, headers.find("x-grafbase-client-name"))
             .await
             .map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?;
 
@@ -131,15 +130,29 @@ impl Engine {
         Ok(prepared)
     }
 
-    async fn handle_persisted_query(&self, request: &mut engine::Request) -> Result<(), GraphqlError> {
-        if self.env.trusted_documents.0.trusted_documents_enabled() {
-            return Err(GraphqlError::new("Only trusted document queries are accepted."));
+    /// Handle a request making use of APQ or trusted documents.
+    async fn handle_persisted_query(
+        &self,
+        request: &mut engine::Request,
+        client_name: Option<&str>,
+    ) -> Result<(), GraphqlError> {
+        let enforce_trusted_documents = self.env.trusted_documents.trusted_documents_enabled();
+        let persisted_query_extension = mem::take(&mut request.extensions.persisted_query);
+
+        match (enforce_trusted_documents, persisted_query_extension) {
+            (true, None) => Err(GraphqlError::new("Only trusted document queries are accepted.")),
+            (true, Some(ext)) => self.handle_trusted_document_query(request, ext, client_name).await,
+            (false, None) => Ok(()),
+            (false, Some(ext)) => self.handle_apq(request, &ext).await,
         }
+    }
 
-        let Some(PersistedQueryRequestExtension { version, sha256_hash }) = &request.extensions.persisted_query else {
-            return Ok(());
-        };
-
+    /// Handle a request using Automatic Persisted Queries.
+    async fn handle_apq(
+        &self,
+        request: &mut engine::Request,
+        PersistedQueryRequestExtension { version, sha256_hash }: &PersistedQueryRequestExtension,
+    ) -> Result<(), GraphqlError> {
         if *version != 1 {
             return Err(GraphqlError::new("Persisted query version not supported"));
         }
@@ -190,5 +203,26 @@ impl Engine {
                 Err(GraphqlError::internal_server_error())
             }
         }
+    }
+
+    async fn handle_trusted_document_query(
+        &self,
+        request: &mut engine::Request,
+        ext: PersistedQueryRequestExtension,
+        client_name: Option<&str>,
+    ) -> Result<(), GraphqlError> {
+        let Some(client_name) = client_name else {
+            return Err(GraphqlError::new(
+                "Trusted document queries must include the x-graphql-client-name header",
+            ));
+        };
+
+        let document_id: String = ext.sha256_hash.iter().map(|b| format!("{:02x}", b)).collect();
+        self.env
+            .trusted_documents
+            .fetch(client_name, &document_id)
+            .await
+            .unwrap();
+        todo!("handle trusted doc")
     }
 }

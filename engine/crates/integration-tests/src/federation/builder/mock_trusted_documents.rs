@@ -10,6 +10,14 @@ pub struct TestTrustedDocument {
 
 pub(super) struct MockTrustedDocuments {
     pub(super) documents: Vec<TestTrustedDocument>,
+    pub(super) branch_id: String,
+}
+
+impl From<MockTrustedDocuments> for runtime::trusted_documents::TrustedDocuments {
+    fn from(value: MockTrustedDocuments) -> Self {
+        let branch_name = value.branch_id.clone();
+        runtime::trusted_documents::TrustedDocuments::new(Box::new(value), branch_name)
+    }
 }
 
 #[async_trait::async_trait]

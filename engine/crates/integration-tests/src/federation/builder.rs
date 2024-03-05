@@ -3,6 +3,7 @@ mod mock_trusted_documents;
 
 use std::{collections::HashMap, sync::Arc};
 
+use self::mock_trusted_documents::MockTrustedDocuments;
 use async_graphql_parser::types::ServiceDocument;
 pub use bench::*;
 use gateway_v2::Gateway;
@@ -16,14 +17,14 @@ use super::TestFederationGateway;
 #[must_use]
 pub struct FederationGatewayBuilder {
     schemas: Vec<(String, String, ServiceDocument)>,
-    trusted_documents: Vec<TestTrustedDocument>,
+    trusted_documents: Option<MockTrustedDocuments>,
     config_sdl: Option<String>,
 }
 
 pub trait GatewayV2Ext {
     fn builder() -> FederationGatewayBuilder {
         FederationGatewayBuilder {
-            trusted_documents: Vec::new(),
+            trusted_documents: None,
             schemas: vec![],
             config_sdl: None,
         }
@@ -53,8 +54,8 @@ impl FederationGatewayBuilder {
         self
     }
 
-    pub fn with_trusted_documents(mut self, trusted_documents: Vec<TestTrustedDocument>) -> Self {
-        self.trusted_documents = trusted_documents;
+    pub fn with_trusted_documents(mut self, branch_id: String, documents: Vec<TestTrustedDocument>) -> Self {
+        self.trusted_documents = Some(MockTrustedDocuments { branch_id, documents });
         self
     }
 
@@ -90,11 +91,10 @@ impl FederationGatewayBuilder {
                 engine_v2::EngineEnv {
                     fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
                     cache: cache.clone(),
-                    trusted_documents: runtime::trusted_documents::TrustedDocuments(Box::new(
-                        mock_trusted_documents::MockTrustedDocuments {
-                            documents: self.trusted_documents,
-                        },
-                    )),
+                    trusted_documents: self
+                        .trusted_documents
+                        .map(From::from)
+                        .unwrap_or_else(|| runtime_noop::trusted_documents::NoopTrustedDocuments.into()),
                 },
                 gateway_v2::GatewayEnv {
                     kv: runtime_local::InMemoryKvStore::runtime(),

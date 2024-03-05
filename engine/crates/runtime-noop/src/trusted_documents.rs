@@ -2,9 +2,9 @@ use runtime::trusted_documents::TrustedDocumentsResult;
 
 pub struct NoopTrustedDocuments;
 
-impl NoopTrustedDocuments {
-    pub fn runtime() -> runtime::trusted_documents::TrustedDocuments {
-        runtime::trusted_documents::TrustedDocuments(Box::new(Self))
+impl From<NoopTrustedDocuments> for runtime::trusted_documents::TrustedDocuments {
+    fn from(_: NoopTrustedDocuments) -> Self {
+        runtime::trusted_documents::TrustedDocuments::new(Box::new(NoopTrustedDocuments), String::from("irrelevant"))
     }
 }
 
