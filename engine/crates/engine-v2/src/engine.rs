@@ -26,6 +26,7 @@ pub struct Engine {
 pub struct EngineEnv {
     pub fetcher: runtime::fetch::Fetcher,
     pub cache: runtime::cache::Cache,
+    pub trusted_documents: runtime::trusted_documents::TrustedDocuments,
 }
 
 impl Engine {
@@ -131,6 +132,10 @@ impl Engine {
     }
 
     async fn handle_persisted_query(&self, request: &mut engine::Request) -> Result<(), GraphqlError> {
+        if self.env.trusted_documents.0.trusted_documents_enabled() {
+            return Err(GraphqlError::new("Only trusted document queries are accepted."));
+        }
+
         let Some(PersistedQueryRequestExtension { version, sha256_hash }) = &request.extensions.persisted_query else {
             return Ok(());
         };

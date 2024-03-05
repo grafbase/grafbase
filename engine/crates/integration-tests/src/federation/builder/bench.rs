@@ -51,11 +51,11 @@ impl<'a> FederationGatewayWithoutIO<'a> {
             engine_v2::EngineEnv {
                 fetcher,
                 cache: cache.clone(),
+                trusted_documents: runtime_noop::trusted_documents::NoopTrustedDocuments::runtime(),
             },
             gateway_v2::GatewayEnv {
                 kv: runtime_local::InMemoryKvStore::runtime(),
                 cache,
-                trusted_documents: runtime_noop::trusted_documents::NoopTrustedDocuments::runtime(),
             },
         );
         let (ctx, _) = RequestContext::new(HashMap::with_capacity(0));

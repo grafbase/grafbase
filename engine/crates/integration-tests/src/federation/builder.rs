@@ -90,15 +90,15 @@ impl FederationGatewayBuilder {
                 engine_v2::EngineEnv {
                     fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
                     cache: cache.clone(),
-                },
-                gateway_v2::GatewayEnv {
-                    kv: runtime_local::InMemoryKvStore::runtime(),
-                    cache,
                     trusted_documents: runtime::trusted_documents::TrustedDocuments(Box::new(
                         mock_trusted_documents::MockTrustedDocuments {
                             documents: self.trusted_documents,
                         },
                     )),
+                },
+                gateway_v2::GatewayEnv {
+                    kv: runtime_local::InMemoryKvStore::runtime(),
+                    cache,
                 },
             )),
         }
