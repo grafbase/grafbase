@@ -61,16 +61,19 @@ where
 #[test]
 fn relay_style_happy_path() {
     test(|engine| async move {
-        let response = engine
-            .execute(GraphQlRequest {
-                query: String::new(),
-                operation_name: None,
-                variables: None,
-                extensions: None,
-                doc_id: Some(TRUSTED_DOCUMENTS[1].document_id.to_owned()),
-            })
-            .header("x-grafbase-client-name", "ios-app")
-            .await;
+        let send = || {
+            engine
+                .execute(GraphQlRequest {
+                    query: String::new(),
+                    operation_name: None,
+                    variables: None,
+                    extensions: None,
+                    doc_id: Some(TRUSTED_DOCUMENTS[1].document_id.to_owned()),
+                })
+                .header("x-grafbase-client-name", "ios-app")
+        };
+
+        let response = send().await;
 
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -78,18 +81,27 @@ fn relay_style_happy_path() {
             "__typename": "Query"
           }
         }
-        "###)
+        "###);
+
+        let second_response = send().await;
+
+        assert_eq!(response.to_string(), second_response.to_string());
     })
 }
 
 #[test]
 fn apollo_client_style_happy_path() {
     test(|engine| async move {
-        let response = engine
-            .execute("")
-            .extensions(&json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}))
-            .header("x-grafbase-client-name", "ios-app")
-            .await;
+        let send = || {
+            engine
+                .execute("")
+                .extensions(
+                    &json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}),
+                )
+                .header("x-grafbase-client-name", "ios-app")
+        };
+
+        let response = send().await;
 
         insta::assert_json_snapshot!(response, @r###"
             {
@@ -97,7 +109,11 @@ fn apollo_client_style_happy_path() {
                 "serverVersion": "1"
               }
             }
-            "###)
+            "###);
+
+        let second_response = send().await;
+
+        assert_eq!(response.to_string(), second_response.to_string());
     })
 }
 
