@@ -1,11 +1,12 @@
+mod trusted_documents;
+
 use async_runtime::stream::StreamExt as _;
 use engine::{AutomaticPersistedQuery, ErrorCode, PersistedQueryRequestExtension, RequestHeaders};
 use engine_parser::types::OperationType;
 use futures::channel::mpsc;
 use futures_util::{SinkExt, Stream};
-use runtime::trusted_documents::TrustedDocumentsError;
 use schema::Schema;
-use std::{mem, sync::Arc};
+use std::sync::Arc;
 
 use crate::{
     execution::{ExecutionCoordinator, PreparedExecution},
@@ -133,31 +134,6 @@ impl Engine {
         Ok(prepared)
     }
 
-    /// Handle a request making use of APQ or trusted documents.
-    async fn handle_persisted_query(
-        &self,
-        request: &mut engine::Request,
-        client_name: Option<&str>,
-    ) -> Result<(), GraphqlError> {
-        let enforce_trusted_documents = self.env.trusted_documents.trusted_documents_enabled();
-        let persisted_query_extension = mem::take(&mut request.extensions.persisted_query);
-        let doc_id = mem::take(&mut request.operation_plan_cache_key.doc_id);
-
-        match (enforce_trusted_documents, persisted_query_extension, doc_id) {
-            (true, None, None) => Err(GraphqlError::new("Only trusted document queries are accepted.")),
-            (true, Some(ext), _) => {
-                self.handle_apollo_client_style_trusted_document_query(request, ext, client_name)
-                    .await
-            }
-            (true, _, Some(document_id)) => {
-                self.handle_trusted_document_query(request, &document_id, client_name)
-                    .await
-            }
-            (false, None, _) => Ok(()),
-            (false, Some(ext), _) => self.handle_apq(request, &ext).await,
-        }
-    }
-
     /// Handle a request using Automatic Persisted Queries.
     async fn handle_apq(
         &self,
@@ -212,54 +188,6 @@ impl Engine {
             Err(err) => {
                 log::error!(request.ray_id, "Cache error: {}", err);
                 Err(GraphqlError::internal_server_error())
-            }
-        }
-    }
-
-    async fn handle_apollo_client_style_trusted_document_query(
-        &self,
-        request: &mut engine::Request,
-        ext: PersistedQueryRequestExtension,
-        client_name: Option<&str>,
-    ) -> Result<(), GraphqlError> {
-        use std::fmt::Write;
-
-        let document_id = {
-            let mut id = String::with_capacity(ext.sha256_hash.len() * 2);
-
-            for byte in &ext.sha256_hash {
-                write!(id, "{byte:02x}").expect("write to String to succeed");
-            }
-
-            id
-        };
-
-        self.handle_trusted_document_query(request, &document_id, client_name)
-            .await
-    }
-
-    async fn handle_trusted_document_query(
-        &self,
-        request: &mut engine::Request,
-        document_id: &str,
-        client_name: Option<&str>,
-    ) -> Result<(), GraphqlError> {
-        let Some(client_name) = client_name else {
-            return Err(GraphqlError::new(format!(
-                "Trusted document queries must include the {CLIENT_NAME_HEADER_NAME} header"
-            )));
-        };
-
-        match self.env.trusted_documents.fetch(client_name, &document_id).await {
-            Err(TrustedDocumentsError::RetrievalError(err)) => Err(GraphqlError::new(format!(
-                "Internal server error while fetching trusted document: {err}"
-            ))),
-            Err(TrustedDocumentsError::DocumentNotFound) => {
-                Err(GraphqlError::new(format!("Document id unknown: {document_id}")))
-            }
-            Ok(document_text) => {
-                request.operation_plan_cache_key.query = document_text;
-                Ok(())
             }
         }
     }
