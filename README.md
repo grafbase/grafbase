@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  The GraphQL platform
+  The future of APIs
 </p>
 
 <p align="center">
@@ -20,5 +20,5 @@
 </p>
 
 <p align="center">
-  Connect APIs, databases and microservices and deploy a GraphQL API to production in minutes
+  Compose all your data sources into a unified graph. At the edge close to your users or on premise in your infrastructure.
 </p>
