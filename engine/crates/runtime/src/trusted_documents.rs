@@ -6,6 +6,7 @@ pub enum TrustedDocumentsError {
 
 pub type TrustedDocumentsResult<T> = Result<T, TrustedDocumentsError>;
 
+/// A handle to trusted documents configuration and retrieval.
 pub struct TrustedDocuments {
     inner: Box<dyn TrustedDocumentsImpl>,
     branch_id: String,
