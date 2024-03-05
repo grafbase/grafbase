@@ -117,6 +117,23 @@ fn apollo_client_style_happy_path() {
     })
 }
 
+#[test]
+fn regular_non_persisted_query() {
+    test(|engine| async move {
+        let response = engine.execute("query { __typename }").await;
+
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "errors": [
+            {
+              "message": "Only trusted document queries are accepted."
+            }
+          ]
+        }
+        "###);
+    });
+}
+
 // #[test]
 // fn trusted_documents() {
 //     test(|engine| async move {
