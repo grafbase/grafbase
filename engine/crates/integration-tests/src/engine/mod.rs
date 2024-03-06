@@ -119,6 +119,7 @@ pub struct GraphQlRequest {
     pub operation_name: Option<String>,
     pub variables: Option<Variables>,
     pub extensions: Option<RequestExtensions>,
+    pub doc_id: Option<String>,
 }
 
 impl GraphQlRequest {
@@ -133,6 +134,7 @@ impl GraphQlRequest {
         if let Some(extensions) = self.extensions {
             request.extensions = extensions;
         }
+        request.operation_plan_cache_key.doc_id = self.doc_id;
         request
     }
 }
@@ -144,6 +146,7 @@ impl From<&str> for GraphQlRequest {
             operation_name: None,
             variables: None,
             extensions: None,
+            doc_id: None,
         }
     }
 }
@@ -155,6 +158,7 @@ impl From<String> for GraphQlRequest {
             operation_name: None,
             variables: None,
             extensions: None,
+            doc_id: None,
         }
     }
 }
@@ -169,6 +173,7 @@ where
             variables: Some(serde_json::from_value(serde_json::to_value(operation.variables).unwrap()).unwrap()),
             operation_name: operation.operation_name.map(|name| name.to_string()),
             extensions: None,
+            doc_id: None,
         }
     }
 }
@@ -185,6 +190,7 @@ impl graphql_mocks::Schema for Engine {
             operation_name: request.operation_name,
             variables: Some(engine::Variables::deserialize(serde_json::to_value(request.variables).unwrap()).unwrap()),
             extensions: None,
+            doc_id: None,
         };
 
         let mut request = self.execute(operation);

@@ -1,24 +1,30 @@
 mod bench;
+mod mock_trusted_documents;
 
 use std::{collections::HashMap, sync::Arc};
 
+use self::mock_trusted_documents::MockTrustedDocumentsClient;
 use async_graphql_parser::types::ServiceDocument;
 pub use bench::*;
 use gateway_v2::Gateway;
 use graphql_mocks::MockGraphQlServer;
 use parser_sdl::connector_parsers::MockConnectorParsers;
 
+pub use self::mock_trusted_documents::TestTrustedDocument;
+
 use super::TestFederationGateway;
 
 #[must_use]
 pub struct FederationGatewayBuilder {
     schemas: Vec<(String, String, ServiceDocument)>,
+    trusted_documents: Option<MockTrustedDocumentsClient>,
     config_sdl: Option<String>,
 }
 
 pub trait GatewayV2Ext {
     fn builder() -> FederationGatewayBuilder {
         FederationGatewayBuilder {
+            trusted_documents: None,
             schemas: vec![],
             config_sdl: None,
         }
@@ -45,6 +51,11 @@ impl FederationGatewayBuilder {
             schema.url(),
             async_graphql_parser::parse_schema(schema.sdl().await).expect("schema to be well formed"),
         ));
+        self
+    }
+
+    pub fn with_trusted_documents(mut self, branch_id: String, documents: Vec<TestTrustedDocument>) -> Self {
+        self.trusted_documents = Some(MockTrustedDocumentsClient { branch_id, documents });
         self
     }
 
@@ -80,6 +91,10 @@ impl FederationGatewayBuilder {
                 engine_v2::EngineEnv {
                     fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
                     cache: cache.clone(),
+                    trusted_documents: self
+                        .trusted_documents
+                        .map(From::from)
+                        .unwrap_or_else(|| runtime_noop::trusted_documents::NoopTrustedDocuments.into()),
                 },
                 gateway_v2::GatewayEnv {
                     kv: runtime_local::InMemoryKvStore::runtime(),

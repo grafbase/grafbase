@@ -35,7 +35,8 @@ serde_json.workspace = true
 ulid.workspace = true
 url.workspace = true
 wiremock.workspace = true
-runtime-local = { path = "../runtime-local" }
+runtime-local.workspace = true
+runtime-noop.workspace = true
 ory-client = "1"
 tracing-subscriber = { version = "0.3", default-features = false, features = [
   "fmt",
