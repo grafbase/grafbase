@@ -72,7 +72,9 @@ impl From<AnyOrUrlArray> for AllowOrigin {
             AnyOrUrlArray::Explicit(ref origins) => {
                 let origins = origins
                     .iter()
-                    .map(|origin| HeaderValue::from_str(origin.as_str()).expect("must be ascii"));
+                    .map(|url| url.as_str())
+                    .map(|url| url.strip_suffix('/').unwrap_or(url))
+                    .map(|url| HeaderValue::from_str(url).expect("must be ascii"));
 
                 AllowOrigin::list(origins)
             }
