@@ -1,4 +1,4 @@
-use runtime::trusted_documents::{TrustedDocumentsError, TrustedDocumentsResult};
+use runtime::trusted_documents_service::{TrustedDocumentsError, TrustedDocumentsResult};
 
 #[derive(Debug, Clone)]
 pub struct TestTrustedDocument {
@@ -8,21 +8,21 @@ pub struct TestTrustedDocument {
     pub document_text: &'static str,
 }
 
-pub(super) struct MockTrustedDocuments {
+pub(super) struct MockTrustedDocumentsClient {
     pub(super) documents: Vec<TestTrustedDocument>,
     pub(super) branch_id: String,
 }
 
-impl From<MockTrustedDocuments> for runtime::trusted_documents::TrustedDocuments {
-    fn from(value: MockTrustedDocuments) -> Self {
+impl From<MockTrustedDocumentsClient> for runtime::trusted_documents_service::TrustedDocumentsClient {
+    fn from(value: MockTrustedDocumentsClient) -> Self {
         let branch_name = value.branch_id.clone();
-        runtime::trusted_documents::TrustedDocuments::new(Box::new(value), branch_name)
+        runtime::trusted_documents_service::TrustedDocumentsClient::new(Box::new(value), branch_name)
     }
 }
 
 #[async_trait::async_trait]
-impl runtime::trusted_documents::TrustedDocumentsImpl for MockTrustedDocuments {
-    fn trusted_documents_enabled(&self) -> bool {
+impl runtime::trusted_documents_service::TrustedDocumentsClientImpl for MockTrustedDocumentsClient {
+    fn is_enabled(&self) -> bool {
         !self.documents.is_empty()
     }
 

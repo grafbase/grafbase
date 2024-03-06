@@ -7,18 +7,18 @@ pub enum TrustedDocumentsError {
 pub type TrustedDocumentsResult<T> = Result<T, TrustedDocumentsError>;
 
 /// A handle to trusted documents configuration and retrieval.
-pub struct TrustedDocuments {
-    inner: Box<dyn TrustedDocumentsImpl>,
+pub struct TrustedDocumentsClient {
+    inner: Box<dyn TrustedDocumentsClientImpl>,
     branch_id: String,
 }
 
-impl TrustedDocuments {
-    pub fn new(inner: Box<dyn TrustedDocumentsImpl>, branch_id: String) -> Self {
-        TrustedDocuments { inner, branch_id }
+impl TrustedDocumentsClient {
+    pub fn new(inner: Box<dyn TrustedDocumentsClientImpl>, branch_id: String) -> Self {
+        TrustedDocumentsClient { inner, branch_id }
     }
 
-    pub fn trusted_documents_enabled(&self) -> bool {
-        self.inner.trusted_documents_enabled()
+    pub fn is_enabled(&self) -> bool {
+        self.inner.is_enabled()
     }
 
     pub async fn fetch(&self, client_name: &str, document_id: &str) -> TrustedDocumentsResult<String> {
@@ -27,7 +27,7 @@ impl TrustedDocuments {
 }
 
 #[async_trait::async_trait]
-pub trait TrustedDocumentsImpl: Send + Sync {
-    fn trusted_documents_enabled(&self) -> bool;
+pub trait TrustedDocumentsClientImpl: Send + Sync {
+    fn is_enabled(&self) -> bool;
     async fn get(&self, branch_id: &str, client_name: &str, document_id: &str) -> TrustedDocumentsResult<String>;
 }

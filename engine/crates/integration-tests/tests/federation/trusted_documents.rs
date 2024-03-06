@@ -22,16 +22,6 @@ const TRUSTED_DOCUMENTS: &[TestTrustedDocument] = &[
         document_text: "query { __typename }",
     },
     TestTrustedDocument {
-        branch_id: "my-branch-id",
-        client_name: "ios-app",
-        document_id: r#"
-            query { 
-                pullRequestsAndIssues(filter: { search: "1" }) { __typename } 
-                allBotPullRequests { __typename } 
-            }"#,
-        document_text: "",
-    },
-    TestTrustedDocument {
         branch_id: "other-branch-id",
         client_name: "ios-app",
         document_id: "this-one-should-not-be-reachable-on-my-branch",
@@ -126,7 +116,7 @@ fn regular_non_persisted_queries_are_rejected() {
         {
           "errors": [
             {
-              "message": "Only trusted document queries are accepted."
+              "message": "Cannot execute a trusted document query: missing doc_id or the persistedQuery extension."
             }
           ]
         }
@@ -167,7 +157,7 @@ fn wrong_client_name() {
         {
           "errors": [
             {
-              "message": "Document id unknown: df40d7fae090cfec1c7e96d78ffb4087f0421798d96c4c90df3556c7de585dc9"
+              "message": "Unknown document id: 'df40d7fae090cfec1c7e96d78ffb4087f0421798d96c4c90df3556c7de585dc9'"
             }
           ]
         }
@@ -193,7 +183,7 @@ fn wrong_branch() {
         {
           "errors": [
             {
-              "message": "Document id unknown: this-one-should-not-be-reachable-on-my-branch"
+              "message": "Unknown document id: 'this-one-should-not-be-reachable-on-my-branch'"
             }
           ]
         }
