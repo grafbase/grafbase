@@ -15,7 +15,7 @@ use gateway_v2::local_server::{WebsocketAccepter, WebsocketService};
 use state::ServerState;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use tokio::sync::mpsc;
-use tower_http::{cors::CorsLayer, services::ServeDir};
+use tower_http::cors::CorsLayer;
 
 pub(super) async fn serve(
     listen_addr: Option<SocketAddr>,
@@ -40,7 +40,6 @@ pub(super) async fn serve(
     tokio::spawn(websocket_accepter.handler());
 
     let state = ServerState { gateway };
-    let static_asset_path = "/home/pimeys/.grafbase/static";
 
     let cors = match config.cors {
         Some(cors_config) => cors::generate(cors_config),
@@ -50,7 +49,6 @@ pub(super) async fn serve(
     let mut router = Router::new()
         .route(path, get(engine::get).post(engine::post))
         .route_service("/ws", WebsocketService::new(websocket_sender))
-        .nest_service("/static", ServeDir::new(static_asset_path))
         .layer(cors)
         .with_state(state);
 
@@ -58,7 +56,7 @@ pub(super) async fn serve(
         router = csrf::inject_layer(router);
     }
 
-    bind(addr, &path, router, config.tls).await?;
+    bind(addr, path, router, config.tls).await?;
 
     Ok(())
 }
