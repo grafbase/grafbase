@@ -123,7 +123,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
                 process::exit(exitcode::OK);
             });
 
-            // TODO: what's the story for dev and the toml config?
+            // FIXME: dev for now doesn't use but should in the future
             let (reload_tx, reload_rx) = oneshot::channel::<Handle>();
             otel_reload(
                 reload_handle,
@@ -251,12 +251,9 @@ fn otel_reload<S>(
                 let env_filter = EnvFilter::new(&tracing_config.filter);
 
                 // create the batched layer
-                let otel_layer = grafbase_tracing::otel::layer::new_batched::<S, Tokio>(
-                    otel_service_name,
-                    tracing_config,
-                    Tokio,
-                )
-                .expect("should successfully build a batched otel layer for tracing");
+                let otel_layer =
+                    grafbase_tracing::otel::layer::new_batched::<S, Tokio>(otel_service_name, tracing_config, Tokio)
+                        .expect("should successfully build a batched otel layer for tracing");
 
                 // replace the existing layer with the new one and update its filters
                 // the explicit filters update shouldn't be required but the bug mentioned above makes it so
