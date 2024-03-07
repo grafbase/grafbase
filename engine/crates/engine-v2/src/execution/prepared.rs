@@ -1,7 +1,7 @@
 use std::future::IntoFuture;
 
 use futures_util::future::BoxFuture;
-use tracing::Span;
+use tracing::{Instrument, Span};
 
 use grafbase_tracing::span::{GqlRecorderSpanExt, GqlResponseAttributes};
 
@@ -15,8 +15,8 @@ pub enum PreparedExecution {
 }
 
 impl PreparedExecution {
-    pub(crate) fn request(coordinator: ExecutionCoordinator) -> Self {
-        Self::PreparedRequest(PreparedOperation { coordinator })
+    pub(crate) fn request(coordinator: ExecutionCoordinator, gql_span: Span) -> Self {
+        Self::PreparedRequest(PreparedOperation { coordinator, gql_span })
     }
 
     pub(crate) fn bad_request(response: Response) -> Self {
@@ -30,6 +30,7 @@ pub struct BadRequest {
 
 pub struct PreparedOperation {
     coordinator: ExecutionCoordinator,
+    gql_span: Span,
 }
 
 impl PreparedOperation {
@@ -52,7 +53,9 @@ impl IntoFuture for PreparedExecution {
 
                 Box::pin(async move { response })
             }
-            PreparedExecution::PreparedRequest(PreparedOperation { coordinator }) => Box::pin(coordinator.execute()),
+            PreparedExecution::PreparedRequest(PreparedOperation { coordinator, gql_span }) => {
+                Box::pin(coordinator.execute().instrument(gql_span))
+            }
         }
     }
 }

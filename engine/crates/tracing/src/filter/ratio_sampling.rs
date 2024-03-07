@@ -10,9 +10,13 @@ fn get_random_value() -> f64 {
     rand::thread_rng().gen_range(0.0..=1.0)
 }
 
+/// [Filter] that excludes spans based on a provided ratio. Filtering is done at the root level, this means that
+/// any span other than `name==gateway` will be excluded. This filter is tightly coupled with [crate::span::request::HttpRequestSpan]
+/// and is plays nicely when used with [crate::otel::layer::tower::tower_layer].
 pub struct RatioSamplingFilter(f64);
 
 impl RatioSamplingFilter {
+    /// Create a new instance
     pub fn new(ratio: f64) -> Self {
         Self(ratio)
     }

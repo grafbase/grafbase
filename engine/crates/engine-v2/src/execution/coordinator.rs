@@ -51,8 +51,8 @@ impl ExecutionCoordinator {
     }
 
     pub async fn execute(self) -> Response {
-        let current_span = Span::current();
-        current_span.record_gql_request(GqlRequestAttributes {
+        let gql_span = Span::current();
+        gql_span.record_gql_request(GqlRequestAttributes {
             operation_type: self.operation().ty.as_ref(),
             operation_name: self.operation().name.as_deref(),
         });
@@ -71,7 +71,7 @@ impl ExecutionCoordinator {
         .execute()
         .await;
 
-        current_span.record_gql_response(GqlResponseAttributes {
+        gql_span.record_gql_response(GqlResponseAttributes {
             has_errors: response.has_errors(),
         });
 

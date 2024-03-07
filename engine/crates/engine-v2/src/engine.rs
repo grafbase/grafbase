@@ -8,6 +8,7 @@ use async_runtime::stream::StreamExt as _;
 use engine::RequestHeaders;
 use engine_parser::types::OperationType;
 use grafbase_tracing::span::gql::GqlRequestSpan;
+use grafbase_tracing::span::{GqlRecorderSpanExt, GqlResponseAttributes};
 use schema::Schema;
 
 use crate::{
@@ -55,19 +56,24 @@ impl Engine {
 
         let coordinator = match self.prepare_coordinator(request, headers).await {
             Ok(coordinator) => coordinator,
-            Err(response) => return PreparedExecution::bad_request(response),
+            Err(response) => {
+                return {
+                    gql_span.record_gql_response(GqlResponseAttributes { has_errors: true });
+                    PreparedExecution::bad_request(response)
+                }
+            }
         };
 
         if matches!(coordinator.operation().ty, OperationType::Subscription) {
+            gql_span.record_gql_response(GqlResponseAttributes { has_errors: true });
+
             return PreparedExecution::bad_request(Response::from_error(
                 GraphqlError::new("Subscriptions are only suported on streaming transports.  Try making a request with SSE or WebSockets"),
                 ExecutionMetadata::build(coordinator.operation())
             ));
         }
 
-        PreparedExecution::request(coordinator)
-            .instrument(gql_span)
-            .into_inner()
+        PreparedExecution::request(coordinator, gql_span)
     }
 
     pub fn execute_stream(
@@ -80,8 +86,8 @@ impl Engine {
         let (mut sender, receiver) = mpsc::channel(2);
         let engine = Arc::clone(self);
 
-        receiver
-            .join(async move {
+        receiver.join(
+            async move {
                 let coordinator = match engine.prepare_coordinator(request, headers).await {
                     Ok(coordinator) => coordinator,
                     Err(response) => {
@@ -99,9 +105,9 @@ impl Engine {
                 }
 
                 coordinator.execute_subscription(sender).await
-            })
-            .instrument(gql_span)
-            .into_inner()
+            }
+            .instrument(gql_span),
+        )
     }
 
     async fn prepare_coordinator(

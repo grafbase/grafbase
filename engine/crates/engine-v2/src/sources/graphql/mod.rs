@@ -85,12 +85,7 @@ pub(crate) struct GraphqlExecutor<'ctx> {
 impl<'ctx> GraphqlExecutor<'ctx> {
     #[tracing::instrument(skip_all, fields(plan_id = %self.plan.id(), federated_subgraph = %self.subgraph.name()))]
     pub async fn execute(mut self) -> ExecutionResult<ResponsePart> {
-        let operation_name = self.plan.operation().as_ref().name.as_ref();
-        let operation_type = self.plan.operation().as_ref().ty.as_ref();
-
         let subgraph_request_span = grafbase_tracing::span::subgraph::SubgraphRequestSpan::new(self.subgraph.name())
-            .with_operation_type(operation_type)
-            .with_operation_name(operation_name.map(|s| s.as_str()))
             // TODO: atm this contains variables and we shouldn't be considering those. A follow up effort will take of this
             // .with_document(self.json_body.as_str())
             .into_span();

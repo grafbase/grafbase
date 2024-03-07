@@ -32,7 +32,7 @@ pub type FilteredLayer<S> = Filtered<BoxedLayer<S>, BoxedFilter<S>, S>;
 /// enabling its replacement.
 // Note: this returns a `FilteredLayer` because of https://github.com/tokio-rs/tracing/issues/1629
 // it could very well just return `BoxedLayer<S>` and the handler for reload would just work with `.replace()` without panicking
-pub fn new_noop_layer<S>() -> (reload::Layer<FilteredLayer<S>, S>, reload::Handle<FilteredLayer<S>, S>)
+pub fn new_noop<S>() -> (reload::Layer<FilteredLayer<S>, S>, reload::Handle<FilteredLayer<S>, S>)
 where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
 {
@@ -47,7 +47,7 @@ where
 }
 
 /// Creates a new OTEL tracing layer that uses a [`BatchSpanProcessor`] to collect and export traces
-pub fn new_batched_layer<S, R>(
+pub fn new_batched<S, R>(
     service_name: impl Into<String>,
     config: TracingConfig,
     runtime: R,
@@ -182,38 +182,4 @@ where
                 .with_scheduled_delay(Duration::from_secs(config.scheduled_delay.num_seconds() as u64)),
         )
         .build()
-}
-
-#[cfg(feature = "tower")]
-pub mod tower {
-    use std::time::Duration;
-
-    use http::Response;
-    use http_body::Body;
-    use tower_http::classify::{ServerErrorsAsFailures, ServerErrorsFailureClass, SharedClassifier};
-    use tower_http::trace::{DefaultOnBodyChunk, DefaultOnEos, DefaultOnRequest};
-    use tracing::Span;
-
-    pub fn tower_layer<B: Body>() -> tower_http::trace::TraceLayer<
-        SharedClassifier<ServerErrorsAsFailures>,
-        crate::span::request::MakeHttpRequestSpan,
-        DefaultOnRequest,
-        impl Fn(&Response<B>, Duration, &Span) + Clone,
-        DefaultOnBodyChunk,
-        DefaultOnEos,
-        impl Fn(ServerErrorsFailureClass, Duration, &Span) + Clone,
-    > {
-        tower_http::trace::TraceLayer::new_for_http()
-            .make_span_with(crate::span::request::MakeHttpRequestSpan)
-            .on_response(|response: &Response<_>, _latency: Duration, span: &Span| {
-                use crate::span::HttpRecorderSpanExt;
-
-                span.record_response(response);
-            })
-            .on_failure(|error: ServerErrorsFailureClass, _latency: Duration, span: &Span| {
-                use crate::span::HttpRecorderSpanExt;
-
-                span.record_failure(error.to_string().as_str());
-            })
-    }
 }

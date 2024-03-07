@@ -17,6 +17,7 @@ pub(crate) const DEFAULT_FILTER: &str = "grafbase=info,off";
 pub(crate) const DEFAULT_SAMPLING: f64 = 0.15;
 const DEFAULT_EXPORT_TIMEOUT: chrono::Duration = chrono::Duration::seconds(60);
 
+/// Tracing configuration
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TracingConfig {
@@ -30,10 +31,13 @@ pub struct TracingConfig {
     /// Default is 0.15.
     #[serde(default = "default_sampling", deserialize_with = "deserialize_sampling")]
     pub sampling: f64,
+    /// Collection configuration
     #[serde(default)]
     pub collect: TracingCollectConfig,
+    /// Exporting configuration for batched operations
     #[serde(default)]
     pub batch_export: TracingBatchExportConfig,
+    /// Exporters configurations
     #[serde(default)]
     pub exporters: TracingExportersConfig,
 }
@@ -72,6 +76,7 @@ fn default_filter() -> String {
     DEFAULT_FILTER.to_string()
 }
 
+/// Tracing collection configuration
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TracingCollectConfig {
@@ -113,6 +118,7 @@ fn default_collect() -> usize {
     DEFAULT_COLLECT_VALUE
 }
 
+/// Configuration for batched exports
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TracingBatchExportConfig {
@@ -182,18 +188,24 @@ impl Default for TracingBatchExportConfig {
     }
 }
 
+/// Exporters configuration
 #[derive(Debug, Clone, PartialEq, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TracingExportersConfig {
+    /// Stdout exporter configuration
     pub stdout: Option<TracingStdoutExporterConfig>,
+    /// Otlp exporter configuration
     pub otlp: Option<TracingOtlpExporterConfig>,
 }
 
+/// Stdout exporter configuration
 #[derive(Debug, Clone, PartialEq, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TracingStdoutExporterConfig {
+    /// Enable or disable the exporter
     #[serde(default)]
     pub enabled: bool,
+    /// Batch export configuration
     #[serde(default)]
     pub batch_export: TracingBatchExportConfig,
     /// The maximum duration to export data.
@@ -202,17 +214,24 @@ pub struct TracingStdoutExporterConfig {
     pub timeout: chrono::Duration,
 }
 
+/// Otlp exporter configuration
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TracingOtlpExporterConfig {
+    /// Endpoint of the otlp collector
     pub endpoint: Url,
+    /// Enable or disable the exporter
     #[serde(default)]
     pub enabled: bool,
+    /// Batch export configuration
     #[serde(default)]
     pub batch_export: TracingBatchExportConfig,
+    /// Protocol to use when exporting
     #[serde(default)]
     pub protocol: TracingOtlpExporterProtocol,
+    /// GRPC exporting configuration
     pub grpc: Option<TracingOtlpExporterGrpcConfig>,
+    /// HTTP exporting configuration
     pub http: Option<TracingOtlpExporterHttpConfig>,
     /// The maximum duration to export data.
     /// The default value is 60 seconds.
@@ -234,22 +253,29 @@ impl Default for TracingOtlpExporterConfig {
     }
 }
 
+/// OTLP Exporter protocol
 #[derive(Debug, Clone, PartialEq, Default, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TracingOtlpExporterProtocol {
+    /// GRPC protocol
     #[default]
     Grpc,
+    /// HTTP protocol
     Http,
 }
 
+/// GRPC exporting configuration
 #[derive(Debug, Clone, PartialEq, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TracingOtlpExporterGrpcConfig {
+    /// Tls configuration to use on export requests
     pub tls: Option<TracingExporterTlsConfig>,
+    /// Headers to send on export requests
     #[serde(default)]
     pub headers: Headers,
 }
 
+/// OTLP GRPC TLS export configuration
 #[derive(Debug, Clone, PartialEq, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 /// Wraps tls configuration used when exporting data.
@@ -302,20 +328,25 @@ fn default_otlp_export_timeout() -> chrono::Duration {
     DEFAULT_EXPORT_TIMEOUT
 }
 
+/// OTLP HTTP exporting configuration
 #[derive(Debug, Clone, PartialEq, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TracingOtlpExporterHttpConfig {
+    /// Http headers to send on export requests
     #[serde(default)]
     pub headers: Headers,
 }
 
+/// List of headers to be sent on export requests
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Headers(Vec<(HeaderName, HeaderValue)>);
 impl Headers {
+    /// Consume self and return the inner list
     pub fn into_inner(self) -> Vec<(HeaderName, HeaderValue)> {
         self.0
     }
 
+    /// Consume self and return a map of header/header_value as ascii strings
     pub fn try_into_map(self) -> Result<HashMap<String, String>, TracingError> {
         self.into_inner()
             .into_iter()
@@ -337,7 +368,7 @@ impl<'de> Deserialize<'de> for Headers {
     }
 }
 
-pub struct HeaderMapVisitor;
+struct HeaderMapVisitor;
 impl<'de> Visitor<'de> for HeaderMapVisitor {
     type Value = Headers;
 

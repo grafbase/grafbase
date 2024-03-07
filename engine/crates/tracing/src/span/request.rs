@@ -6,7 +6,8 @@ use http::Response;
 use http_body::Body;
 use tracing::{info_span, Span};
 
-pub(crate) const SPAN_NAME: &str = "gateway";
+/// The name of the span that represents the root of an incoming request
+pub const SPAN_NAME: &str = "gateway";
 pub(crate) const X_FORWARDED_FOR_HEADER: &str = "X-Forwarded-For";
 
 /// A span for a http request
@@ -34,6 +35,7 @@ pub struct HttpRequestSpan<'a> {
 }
 
 impl<'a> HttpRequestSpan<'a> {
+    /// Create a new instance
     pub fn new<B>(request: &'a http::Request<B>) -> Self
     where
         B: Body,
@@ -51,6 +53,8 @@ impl<'a> HttpRequestSpan<'a> {
             server_port: None,
         }
     }
+
+    /// Consume self and turn into a [Span]
     pub fn into_span(self) -> Span {
         info_span!(
             target: crate::span::GRAFBASE_TARGET,
@@ -71,6 +75,8 @@ impl<'a> HttpRequestSpan<'a> {
     }
 }
 
+#[cfg(feature = "tower")]
+/// Type that implements [tower_http::trace::MakeSpan] to integrate with tower layer's
 #[derive(Clone)]
 pub struct MakeHttpRequestSpan;
 #[cfg(feature = "tower")]

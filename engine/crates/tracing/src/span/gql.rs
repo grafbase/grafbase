@@ -2,6 +2,7 @@ use tracing::{info_span, Span};
 
 use crate::span::{GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
 
+/// The name of the GraphQL span
 pub const SPAN_NAME: &str = "graphql";
 
 /// A span for a graphql request
@@ -18,6 +19,7 @@ pub struct GqlRequestSpan<'a> {
 }
 
 impl<'a> GqlRequestSpan<'a> {
+    /// Create a new instance
     pub fn new() -> Self {
         Self {
             has_errors: None,
@@ -27,21 +29,25 @@ impl<'a> GqlRequestSpan<'a> {
         }
     }
 
+    /// Set the GraphQL document as an attribute of the span
     pub fn with_document(mut self, document: impl Into<Option<&'a str>>) -> Self {
         self.document = document.into();
         self
     }
 
+    /// Set the operation name as an attribute of the span
     pub fn with_operation_name(mut self, operation_name: impl Into<Option<&'a str>>) -> Self {
         self.operation_name = operation_name.into();
         self
     }
 
-    pub fn with_operation_type(mut self, operation_type:impl Into<Option<&'a str>>) -> Self {
+    /// Set the operation type as an attribute of the span
+    pub fn with_operation_type(mut self, operation_type: impl Into<Option<&'a str>>) -> Self {
         self.operation_type = operation_type.into();
         self
     }
 
+    /// Consume self and turn into a [Span]
     pub fn into_span(self) -> Span {
         info_span!(
             target: crate::span::GRAFBASE_TARGET,
@@ -56,7 +62,9 @@ impl<'a> GqlRequestSpan<'a> {
 
 impl GqlRecorderSpanExt for Span {
     fn record_gql_request(&self, attributes: GqlRequestAttributes<'_>) {
-        self.record("gql.request.operation.name", attributes.operation_name);
+        if let Some(name) = attributes.operation_name {
+            self.record("gql.request.operation.name", name);
+        }
         self.record("gql.request.operation.type", attributes.operation_type);
     }
 

@@ -42,7 +42,7 @@ default = []
 tower = ["tower-http"]
 
 [dev-dependencies]
-toml = "0.8.10"
 indoc = "2.0.4"
 insta = "1.36.1"
 tempfile = "3.10"
+toml = "0.8.10"

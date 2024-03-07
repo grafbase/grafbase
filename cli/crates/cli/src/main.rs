@@ -81,7 +81,7 @@ fn main() {
 
 fn try_main(args: Args) -> Result<(), CliError> {
     let filter = EnvFilter::builder().parse_lossy(args.log_filter());
-    let (otel_layer, reload_handle) = grafbase_tracing::otel::trace::new_noop_layer();
+    let (otel_layer, reload_handle) = grafbase_tracing::otel::layer::new_noop();
 
     tracing_subscriber::registry()
         .with(matches!(args.command, SubCommand::Dev(..) | SubCommand::Start(..)).then_some(otel_layer))
@@ -251,7 +251,7 @@ fn otel_reload<S>(
                 let env_filter = EnvFilter::new(&tracing_config.filter);
 
                 // create the batched layer
-                let otel_layer = grafbase_tracing::otel::trace::new_batched_layer::<S, Tokio>(
+                let otel_layer = grafbase_tracing::otel::layer::new_batched::<S, Tokio>(
                     otel_service_name,
                     tracing_config,
                     Tokio,

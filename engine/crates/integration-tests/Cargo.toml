@@ -7,6 +7,7 @@ edition = "2021"
 workspace = true
 
 [dependencies]
+axum.workspace = true
 async-graphql-parser.workspace = true
 async-graphql.workspace = true
 async-once-cell = "0.5.3"
@@ -46,6 +47,8 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
 ] }
 ctor = "0.2"
 rustls = { workspace = true, features = ["ring"] }
+tracing.workspace = true
+tracing-mock = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x", version = "0.1" }
 
 [dependencies.tokio]
 version = "1.36"
@@ -76,6 +79,10 @@ path = "../runtime"
 
 [dependencies.parser-openapi]
 path = "../parser-openapi"
+
+[dependencies.grafbase-tracing]
+path = "../tracing"
+features = ["tower"]
 
 [dev-dependencies]
 similar-asserts = "1.5"
