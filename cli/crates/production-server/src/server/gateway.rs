@@ -4,7 +4,8 @@ use engine_v2::EngineEnv;
 use gateway_v2::{Gateway, GatewayEnv};
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::FederatedGraphConfig;
-use runtime::trusted_documents_service::TrustedDocumentsClient;
+use runtime::{cache::GlobalCacheConfig, trusted_documents_service::TrustedDocumentsClient};
+use runtime_local::{InMemoryCache, InMemoryKvStore};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;
 
@@ -42,7 +43,7 @@ pub(super) fn generate(
 
     let config = engine_config_builder::build_config(&graph_config, graph);
 
-    let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
+    let cache = InMemoryCache::runtime(GlobalCacheConfig {
         common_cache_tags: Vec::new(),
         enabled: true,
         subdomain: "localhost".to_string(),
@@ -51,12 +52,13 @@ pub(super) fn generate(
     let engine_env = EngineEnv {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         cache: cache.clone(),
-        // https://linear.app/grafbase/issue/GB-6168/support-trusted-documents-in-air-gapped-mode
+        // TODO: https://linear.app/grafbase/issue/GB-6168/support-trusted-documents-in-air-gapped-mode
+        // TODO: https://linear.app/grafbase/issue/GB-6169/support-trusted-documents-in-hybrid-mode
         trusted_documents: TrustedDocumentsClient::new(Box::new(NoopTrustedDocuments), String::new()),
     };
 
     let gateway_env = GatewayEnv {
-        kv: runtime_local::InMemoryKvStore::runtime(),
+        kv: InMemoryKvStore::runtime(),
         cache,
     };
 
