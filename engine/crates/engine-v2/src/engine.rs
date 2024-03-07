@@ -1,12 +1,14 @@
-mod trusted_documents;
+use std::sync::Arc;
+
+use futures::channel::mpsc;
+use futures_util::{SinkExt, Stream};
+use tracing::Instrument;
 
 use async_runtime::stream::StreamExt as _;
 use engine::RequestHeaders;
 use engine_parser::types::OperationType;
-use futures::channel::mpsc;
-use futures_util::{SinkExt, Stream};
+use grafbase_tracing::span::gql::GqlRequestSpan;
 use schema::Schema;
-use std::sync::Arc;
 
 use crate::{
     execution::{ExecutionCoordinator, PreparedExecution},
@@ -14,6 +16,8 @@ use crate::{
     request::{bind_variables, Operation},
     response::{ExecutionMetadata, GraphqlError, Response},
 };
+
+mod trusted_documents;
 
 const CLIENT_NAME_HEADER_NAME: &str = "x-grafbase-client-name";
 
@@ -47,6 +51,8 @@ impl Engine {
     }
 
     pub async fn execute(self: &Arc<Self>, request: engine::Request, headers: RequestHeaders) -> PreparedExecution {
+        let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
+
         let coordinator = match self.prepare_coordinator(request, headers).await {
             Ok(coordinator) => coordinator,
             Err(response) => return PreparedExecution::bad_request(response),
@@ -60,6 +66,8 @@ impl Engine {
         }
 
         PreparedExecution::request(coordinator)
+            .instrument(gql_span)
+            .into_inner()
     }
 
     pub fn execute_stream(
@@ -67,28 +75,33 @@ impl Engine {
         request: engine::Request,
         headers: RequestHeaders,
     ) -> impl Stream<Item = Response> {
+        let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
+
         let (mut sender, receiver) = mpsc::channel(2);
         let engine = Arc::clone(self);
 
-        receiver.join(async move {
-            let coordinator = match engine.prepare_coordinator(request, headers).await {
-                Ok(coordinator) => coordinator,
-                Err(response) => {
-                    sender.send(response).await.ok();
+        receiver
+            .join(async move {
+                let coordinator = match engine.prepare_coordinator(request, headers).await {
+                    Ok(coordinator) => coordinator,
+                    Err(response) => {
+                        sender.send(response).await.ok();
+                        return;
+                    }
+                };
+
+                if matches!(
+                    coordinator.operation().ty,
+                    OperationType::Query | OperationType::Mutation
+                ) {
+                    sender.send(coordinator.execute().await).await.ok();
                     return;
                 }
-            };
 
-            if matches!(
-                coordinator.operation().ty,
-                OperationType::Query | OperationType::Mutation
-            ) {
-                sender.send(coordinator.execute().await).await.ok();
-                return;
-            }
-
-            coordinator.execute_subscription(sender).await
-        })
+                coordinator.execute_subscription(sender).await
+            })
+            .instrument(gql_span)
+            .into_inner()
     }
 
     async fn prepare_coordinator(

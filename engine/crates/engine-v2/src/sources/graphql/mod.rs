@@ -131,7 +131,6 @@ impl<'ctx> GraphqlExecutor<'ctx> {
 
         subgraph_request_span.record_gql_response(GqlResponseAttributes {
             has_errors: self.response_part.has_errors(),
-            operation_type: Some(operation_type),
         });
 
         Ok(self.response_part)

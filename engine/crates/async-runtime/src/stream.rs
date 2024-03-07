@@ -13,7 +13,7 @@ pub trait StreamExt<'a> {
     /// If the future ends the stream will still continue till completion but if the stream
     /// ends the future will be cancelled.
     ///
-    /// This can be used when you have the receivng side of a channel and a future that sends
+    /// This can be used when you have the receiving side of a channel and a future that sends
     /// on that channel - combining the two into a single stream that'll run till the channel
     /// is exhausted.  If you drop the stream you also cancel the underlying process.
     fn join<F>(self, future: F) -> impl Stream<Item = Self::Item> + 'a

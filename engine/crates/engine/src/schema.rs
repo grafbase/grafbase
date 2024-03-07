@@ -1,8 +1,12 @@
 use std::{any::Any, ops::Deref, sync::Arc};
 
 use futures_util::stream::{self, Stream, StreamExt};
+use futures_util::FutureExt;
+use grafbase_tracing::span::gql::GqlRequestSpan;
+use grafbase_tracing::span::{GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
 use graph_entities::CompactValue;
 use indexmap::map::IndexMap;
+use tracing::{Instrument, Span};
 
 use crate::{
     context::{Data, QueryEnvInner},
@@ -555,6 +559,8 @@ impl Schema {
     /// Execute a GraphQL query.
     pub async fn execute(&self, request: impl Into<Request>) -> Response {
         let request = request.into();
+        let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
+
         let extensions = self.create_extensions(Default::default());
         let request_fut = {
             let extensions = extensions.clone();
@@ -562,6 +568,11 @@ impl Schema {
                 match self.prepare_request(extensions, request, Default::default()).await {
                     Ok((env_builder, cache_control)) => {
                         let env = env_builder.build();
+                        Span::current().record_gql_request(GqlRequestAttributes {
+                            operation_type: env.operation.ty.as_ref(),
+                            operation_name: env.operation_name.as_deref(),
+                        });
+
                         let fut = async { self.execute_once(env.clone()).await.cache_control(cache_control) };
                         futures_util::pin_mut!(fut);
                         env.extensions
@@ -573,7 +584,16 @@ impl Schema {
             }
         };
         futures_util::pin_mut!(request_fut);
-        extensions.request(&mut request_fut).await
+
+        extensions
+            .request(&mut request_fut)
+            .inspect(|response: &Response| {
+                Span::current().record_gql_response(GqlResponseAttributes {
+                    has_errors: response.is_err(),
+                });
+            })
+            .instrument(gql_span)
+            .await
     }
 
     /// Execute a GraphQL batch query.
@@ -603,6 +623,7 @@ impl Schema {
         let schema = self.clone();
         let request = request.into();
         let extensions = self.create_extensions(session_data.clone());
+        let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
 
         futures_util::stream::StreamExt::boxed({
             let extensions = extensions.clone();
@@ -610,10 +631,18 @@ impl Schema {
                 let (env_builder, cache_control) = match schema.prepare_request(extensions, request, session_data).await {
                     Ok(res) => res,
                     Err(errors) => {
+                        Span::current().record_gql_response(GqlResponseAttributes {
+                            has_errors: true,
+                        });
                         yield Response::from_errors_with_type(errors, OperationType::Subscription).into_streaming_payload(false);
                         return;
                     }
                 };
+
+                Span::current().record_gql_request(GqlRequestAttributes {
+                    operation_type: env_builder.operation_type().as_ref(),
+                    operation_name: None,
+                });
 
                 if env_builder.operation_type() != OperationType::Subscription {
                     let (sender, mut receiver) = deferred::workload_channel();
@@ -634,12 +663,19 @@ impl Schema {
                         let mut next_response = process_deferred_workload(workload, &schema, &env).await;
                         next_workload = receiver.receive();
                         next_response.has_next = next_workload.is_some();
-                        yield next_response.into()
+                        let response = next_response.into();
+
+                        yield response
                     }
                     return;
                 }
 
                 let env = env_builder.build();
+
+                Span::current().record_gql_request(GqlRequestAttributes {
+                    operation_type: env.operation.ty.as_ref(),
+                    operation_name: env.operation_name.as_deref(),
+                });
 
                 let ctx = env.create_context(
                     &schema.env,
@@ -659,6 +695,8 @@ impl Schema {
                 }
             }
         })
+            .instrument(gql_span)
+            .into_inner()
     }
 
     /// Execute a GraphQL streaming request.

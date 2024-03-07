@@ -1,6 +1,6 @@
 use tracing::{info_span, Span};
 
-use crate::span::{GqlRecorderSpanExt, GqlResponseAttributes};
+use crate::span::{GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
 
 pub const SPAN_NAME: &str = "graphql";
 
@@ -11,7 +11,7 @@ pub struct GqlRequestSpan<'a> {
     has_errors: Option<bool>,
     /// The operation name from the graphql query
     operation_name: Option<&'a str>,
-    /// query|mutation|subscription
+    /// The GraphQL operation type
     operation_type: Option<&'a str>,
     /// The GraphQL query
     document: Option<&'a str>,
@@ -19,7 +19,12 @@ pub struct GqlRequestSpan<'a> {
 
 impl<'a> GqlRequestSpan<'a> {
     pub fn new() -> Self {
-        Default::default()
+        Self {
+            has_errors: None,
+            operation_name: None,
+            operation_type: None,
+            document: None,
+        }
     }
 
     pub fn with_document(mut self, document: impl Into<Option<&'a str>>) -> Self {
@@ -32,7 +37,7 @@ impl<'a> GqlRequestSpan<'a> {
         self
     }
 
-    pub fn with_operation_type(mut self, operation_type: impl Into<Option<&'a str>>) -> Self {
+    pub fn with_operation_type(mut self, operation_type:impl Into<Option<&'a str>>) -> Self {
         self.operation_type = operation_type.into();
         self
     }
@@ -50,8 +55,12 @@ impl<'a> GqlRequestSpan<'a> {
 }
 
 impl GqlRecorderSpanExt for Span {
-    fn record_gql_response(&self, attributes: GqlResponseAttributes<'_>) {
+    fn record_gql_request(&self, attributes: GqlRequestAttributes<'_>) {
+        self.record("gql.request.operation.name", attributes.operation_name);
         self.record("gql.request.operation.type", attributes.operation_type);
+    }
+
+    fn record_gql_response(&self, attributes: GqlResponseAttributes) {
         self.record("gql.response.has_errors", attributes.has_errors);
     }
 }

@@ -1,9 +1,13 @@
 use std::future::IntoFuture;
 
 use futures_util::future::BoxFuture;
+use tracing::Span;
+
+use grafbase_tracing::span::{GqlRecorderSpanExt, GqlResponseAttributes};
+
+use crate::{request::OperationCacheControl, Response};
 
 use super::ExecutionCoordinator;
-use crate::{request::OperationCacheControl, Response};
 
 pub enum PreparedExecution {
     BadRequest(BadRequest),
@@ -41,7 +45,13 @@ impl IntoFuture for PreparedExecution {
 
     fn into_future(self) -> Self::IntoFuture {
         match self {
-            PreparedExecution::BadRequest(BadRequest { response }) => Box::pin(async move { response }),
+            PreparedExecution::BadRequest(BadRequest { response }) => {
+                Span::current().record_gql_response(GqlResponseAttributes {
+                    has_errors: response.has_errors(),
+                });
+
+                Box::pin(async move { response })
+            }
             PreparedExecution::PreparedRequest(PreparedOperation { coordinator }) => Box::pin(coordinator.execute()),
         }
     }

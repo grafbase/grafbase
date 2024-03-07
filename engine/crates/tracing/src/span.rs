@@ -15,12 +15,17 @@ pub trait HttpRecorderSpanExt {
 
 /// Extension trait to record gql request attributes
 pub trait GqlRecorderSpanExt {
-    fn record_gql_response(&self, attributes: GqlResponseAttributes<'_>);
+    fn record_gql_request(&self, attributes: GqlRequestAttributes<'_>);
+    fn record_gql_response(&self, attributes: GqlResponseAttributes);
+}
+
+/// Wraps attributes of a graphql request intended to be recorded
+pub struct GqlRequestAttributes<'a> {
+    pub operation_type: &'a str,
+    pub operation_name: Option<&'a str>,
 }
 
 /// Wraps attributes of a graphql response intended to be recorded
-#[derive(Default)]
-pub struct GqlResponseAttributes<'a> {
+pub struct GqlResponseAttributes {
     pub has_errors: bool,
-    pub operation_type: Option<&'a str>,
 }
