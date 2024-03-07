@@ -27,6 +27,9 @@ pub struct Config {
     pub tls: Option<TlsConfig>,
     /// Graph operation limit settings
     pub operation_limits: Option<OperationLimitsConfig>,
+    /// Configuration for Trusted Documents.
+    #[serde(default)]
+    pub trusted_documents: TrustedDocumentsConfig,
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
@@ -81,6 +84,20 @@ pub struct OperationLimitsConfig {
     pub complexity: Option<u16>,
 }
 
+#[derive(Debug, PartialEq, serde::Deserialize, Default)]
+#[serde(deny_unknown_fields)]
+pub struct TrustedDocumentsConfig {
+    /// If true, the engine will only accept trusted document queries. Default: false.
+    #[serde(default)]
+    pub enforce: bool,
+    /// Optional name of the header that can be set to bypass trusted documents enforcement, when `enforce = true`. Only meaningful in combination with `bypass_header_value`.
+    #[serde(default)]
+    pub bypass_header_name: Option<String>,
+    /// Optional value of the `bypass_header_name` header that can be set to bypass trusted documents enforcement, when `enforce = true`. Only meaningful in combination with `bypass_header_name`.
+    #[serde(default)]
+    pub bypass_header_value: Option<String>,
+}
+
 #[cfg(test)]
 mod tests {
     use crate::start::configuration::AnyOrAsciiStringArray;
@@ -90,6 +107,7 @@ mod tests {
     use super::AnyOrUrlArray;
     use super::Config;
     use super::OperationLimitsConfig;
+    use super::TrustedDocumentsConfig;
     use ascii::AsciiString;
     use indoc::indoc;
     use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
@@ -490,6 +508,69 @@ mod tests {
         4 | aliases = 1000000000000000000
           |           ^^^^^^^^^^^^^^^^^^^
         invalid value: integer `1000000000000000000`, expected u16
+        "###);
+    }
+
+    #[test]
+    fn trusted_documents_omitted() {
+        let input = "";
+
+        let config = toml::from_str::<Config>(input).unwrap();
+
+        let expected = TrustedDocumentsConfig::default();
+        assert_eq!(config.trusted_documents, expected);
+    }
+
+    #[test]
+    fn trusted_documents_just_enforce() {
+        let input = indoc! {r#"
+            [trusted_documents]
+            enforce = true
+        "#};
+
+        let config = toml::from_str::<Config>(input).unwrap();
+
+        let expected = TrustedDocumentsConfig {
+            enforce: true,
+            ..Default::default()
+        };
+        assert_eq!(config.trusted_documents, expected);
+    }
+
+    #[test]
+    fn trusted_documents_all_settings() {
+        let input = indoc! {r#"
+            [trusted_documents]
+            enforce = true # default: false
+            bypass_header_name = "my-header-name" # default null
+            bypass_header_value = "my-secret-value" # default null
+        "#};
+
+        let config = toml::from_str::<Config>(input).unwrap();
+
+        let expected = TrustedDocumentsConfig {
+            enforce: true,
+            bypass_header_name: Some("my-header-name".into()),
+            bypass_header_value: Some("my-secret-value".into()),
+        };
+
+        assert_eq!(config.trusted_documents, expected);
+    }
+
+    #[test]
+    fn trusted_documents_unknown_setting() {
+        let input = indoc! {r#"
+            [trusted_documents]
+            copacetic = false
+        "#};
+
+        let error = toml::from_str::<Config>(input).unwrap_err();
+        insta::assert_snapshot!(&error.to_string(), @r###"
+        TOML parse error at line 2, column 1
+          |
+        2 | copacetic = false
+          | ^^^^^^^^^
+        unknown field `copacetic`, expected one of `enforce`, `bypass_header_name`, `bypass_header_value`
         "###);
     }
 }
