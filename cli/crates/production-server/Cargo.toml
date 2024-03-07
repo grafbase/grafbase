@@ -23,7 +23,6 @@ futures-util.workspace = true
 gateway-core.workspace = true
 gateway-v2 = { workspace = true, features = ["axum"] }
 graphql-composition.workspace = true
-handlebars.workspace = true
 http.workspace = true
 parser-sdl = { version = "0.1.0", path = "../../../engine/crates/parser-sdl" }
 reqwest = { workspace = true, default-features = false, features = ["rustls-tls", "gzip", "json"] }

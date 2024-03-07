@@ -5125,7 +5125,6 @@ dependencies = [
  "gateway-core",
  "gateway-v2",
  "graphql-composition",
- "handlebars 5.1.0",
  "http",
  "indoc",
  "insta",

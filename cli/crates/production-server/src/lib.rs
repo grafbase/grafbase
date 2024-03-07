@@ -3,7 +3,6 @@
 //! and send tracing and metrics to either our own or a 3rd party collector.
 
 #![deny(missing_docs)]
-#![allow(unused_crate_dependencies)] // todo
 
 use ascii::AsciiString;
 use std::{fs, net::SocketAddr, path::Path};

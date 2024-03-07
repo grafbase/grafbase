@@ -3,11 +3,10 @@ mod csrf;
 mod engine;
 mod gateway;
 mod graph_updater;
-mod pathfinder;
 mod state;
 
 use crate::{config::Config, GraphFetchMethod};
-use axum::{response::Html, routing::get, Router};
+use axum::{routing::get, Router};
 use axum_server::tls_rustls::RustlsConfig;
 use gateway_v2::local_server::{WebsocketAccepter, WebsocketService};
 use state::ServerState;
@@ -30,12 +29,6 @@ pub(super) async fn serve(
     let addr = listen_addr
         .or(config.network.listen_address)
         .unwrap_or(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 4000));
-
-    let url = if config.tls.is_some() {
-        format!("https://{addr}")
-    } else {
-        format!("http://{addr}")
-    };
 
     let (sender, gateway) = watch::channel(None);
 
@@ -79,11 +72,7 @@ pub(super) async fn serve(
 
     tokio::spawn(websocket_accepter.handler());
 
-    let state = ServerState {
-        gateway,
-        pathfinder_html: Html(pathfinder::render(&url, path)),
-    };
-
+    let state = ServerState { gateway };
     let static_asset_path = "/home/pimeys/.grafbase/static";
 
     let cors = match config.cors {
@@ -93,7 +82,6 @@ pub(super) async fn serve(
 
     let mut router = Router::new()
         .route(path, get(engine::get).post(engine::post))
-        .route("/", get(pathfinder::get))
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .nest_service("/static", ServeDir::new(static_asset_path))
         .layer(cors)
