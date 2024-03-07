@@ -13,7 +13,7 @@ workspace = true
 [dependencies]
 ascii = { version = "1.1.0", features = ["serde"] }
 async-trait = "0.1.77"
-axum = { workspace = true, features = ["macros", "ws"] }
+axum = { workspace = true, features = ["macros", "ws", "query", "json"] }
 axum-server = { version = "0.6.0", features = ["tls-rustls"] }
 duration-str = "0.7.1"
 engine.workspace = true
@@ -25,7 +25,7 @@ gateway-v2 = { workspace = true, features = ["axum"] }
 graphql-composition.workspace = true
 http.workspace = true
 parser-sdl = { version = "0.1.0", path = "../../../engine/crates/parser-sdl" }
-reqwest = { workspace = true, default-features = false, features = ["rustls-tls", "gzip", "json"] }
+reqwest = { workspace = true, features = ["rustls", "gzip", "json"] }
 runtime.workspace = true
 runtime-local.workspace = true
 runtime-noop.workspace = true
