@@ -4,11 +4,11 @@
 
 #![deny(missing_docs)]
 
-use ascii::AsciiString;
 use std::{fs, net::SocketAddr, path::Path};
 use tokio::runtime;
 
 pub use error::Error;
+pub use server::GraphFetchMethod;
 
 mod config;
 mod error;
@@ -18,24 +18,6 @@ const THREAD_NAME: &str = "grafbase-gateway";
 
 /// The crate result type.
 pub type Result<T> = std::result::Result<T, Error>;
-
-/// The method of running the gateway.
-pub enum GraphFetchMethod {
-    /// The schema is fetched in regular intervals from the Grafbase API.
-    FromApi {
-        /// The access token for accessing the the API.
-        access_token: AsciiString,
-        /// The name of the graph
-        graph_name: String,
-        /// The graph branch
-        branch: Option<String>,
-    },
-    /// The schema is loaded from disk. No access to the Grafbase API.
-    FromLocal {
-        /// Static federated graph from a file
-        federated_schema: String,
-    },
-}
 
 /// Starts the self-hosted Grafbase gateway. If started with a schema path, will
 /// not connect our API for changes in the schema and if started without, we poll
