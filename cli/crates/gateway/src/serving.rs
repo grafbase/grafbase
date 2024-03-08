@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use axum::{
     extract::{Query, State},
     response::IntoResponse,
@@ -12,8 +10,6 @@ use gateway_core::StreamingFormat;
 use http::{HeaderMap, StatusCode};
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tower_http::cors::CorsLayer;
-use tower_http::trace::TraceLayer;
-use tracing::Span;
 
 use crate::{Gateway, Response};
 

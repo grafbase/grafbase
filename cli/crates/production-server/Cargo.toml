@@ -20,10 +20,12 @@ engine.workspace = true
 engine-config-builder.workspace = true
 engine-v2.workspace = true
 futures-util.workspace = true
+grafbase-tracing.workspace = true
 gateway-core.workspace = true
 gateway-v2 = { workspace = true, features = ["axum"] }
 graphql-composition.workspace = true
 http.workspace = true
+oneshot = "0.1"
 parser-sdl = { version = "0.1.0", path = "../../../engine/crates/parser-sdl" }
 reqwest = { workspace = true, features = ["rustls", "gzip", "json"] }
 runtime.workspace = true
@@ -36,6 +38,7 @@ tokio = { workspace = true, features = ["rt-multi-thread", "signal", "time", "ne
 toml = "0.8.10"
 tower-http = { version = "0.5.2", features = ["cors"] }
 tracing.workspace = true
+tracing-subscriber.workspace = true
 ulid = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }
 

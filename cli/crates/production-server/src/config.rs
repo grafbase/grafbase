@@ -1,10 +1,12 @@
 mod authentication;
 mod cors;
+mod telemetry;
 
 use std::{net::SocketAddr, path::PathBuf};
 
 pub use authentication::AuthenticationConfig;
 pub use cors::CorsConfig;
+pub use telemetry::TelemetryConfig;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -120,9 +122,9 @@ mod tests {
     use crate::config::cors::AnyOrUrlArray;
     use crate::config::cors::HttpMethod;
 
-    use super::Config;
     use super::OperationLimitsConfig;
     use super::TrustedDocumentsConfig;
+    use super::{Config, TelemetryConfig};
     use ascii::AsciiString;
     use indoc::indoc;
     use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};

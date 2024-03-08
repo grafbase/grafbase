@@ -1,7 +1,3 @@
-mod configuration;
-
-pub use configuration::{Config, TelemetryConfig};
-
 use crate::cli_input::LogLevelFilters;
 use crate::output::report;
 use crate::CliError;
@@ -13,7 +9,6 @@ use std::net::SocketAddr;
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use std::thread;
-use tokio::runtime::Handle;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 struct MessageGroup {
@@ -35,10 +30,9 @@ pub fn start(
     log_level_filters: LogLevelFilters,
     federated_graph_schema_path: Option<PathBuf>,
     tracing: bool,
-    otel_reload: oneshot::Sender<Handle>,
 ) -> Result<(), CliError> {
     trace!("attempting to start server");
-    run(log_level_filters, Some(otel_reload), |message_sender| async move {
+    run(log_level_filters, |message_sender| async move {
         // not sure we'll keep building in the start command, so keeping the same behavior as
         // before building UDFs serially.
         let parallelism = NonZeroUsize::new(1).expect("strictly positive");
@@ -52,7 +46,6 @@ pub fn start(
 
 pub(crate) fn run<F>(
     log_level_filters: LogLevelFilters,
-    otel_reload: Option<oneshot::Sender<Handle>>,
     build: impl FnOnce(UnboundedSender<ServerMessage>) -> F,
 ) -> Result<(), CliError>
 where
@@ -64,15 +57,7 @@ where
 
     let handle = thread::spawn(move || {
         #[allow(clippy::ignored_unit_patterns)]
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-        runtime.block_on(async {
-            let handle = Handle::current();
-            if let Some(otel_reload) = otel_reload {
-                let _ = otel_reload
-                    .send(handle)
-                    .inspect_err(|e| error!("error sending otel reload signal: {e}"));
-            };
-
+        tokio::runtime::Runtime::new().unwrap().block_on(async {
             tokio::select! {
                 result = action => {
                     result?;

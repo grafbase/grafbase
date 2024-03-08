@@ -1,6 +1,35 @@
 #![cfg_attr(test, allow(unused_crate_dependencies))]
 #![forbid(unsafe_code)]
 
+#[macro_use]
+extern crate log;
+
+use std::process;
+
+use clap::Parser;
+use mimalloc::MiMalloc;
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+
+use common::{analytics::Analytics, environment::Environment};
+use errors::CliError;
+use output::report;
+use watercolor::ShouldColorize;
+
+use crate::{
+    build::build,
+    cli_input::{Args, ArgumentNames, FederatedSubCommand, LogsCommand, SubCommand},
+    create::create,
+    deploy::deploy,
+    dev::dev,
+    init::init,
+    link::link,
+    login::login,
+    logout::logout,
+    logs::logs,
+    start::start,
+    unlink::unlink,
+};
+
 mod build;
 mod check;
 mod cli_input;
@@ -25,37 +54,6 @@ mod subgraphs;
 mod trust;
 mod unlink;
 mod watercolor;
-
-#[macro_use]
-extern crate log;
-
-use crate::{
-    build::build,
-    cli_input::{Args, ArgumentNames, FederatedSubCommand, LogsCommand, SubCommand},
-    create::create,
-    deploy::deploy,
-    dev::dev,
-    init::init,
-    link::link,
-    login::login,
-    logout::logout,
-    logs::logs,
-    start::start,
-    unlink::unlink,
-};
-use clap::Parser;
-use common::{analytics::Analytics, environment::Environment};
-use errors::CliError;
-use output::report;
-use std::{process, thread};
-use toml as _;
-use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{fmt, prelude::*, reload, EnvFilter};
-use watercolor::ShouldColorize;
-
-use mimalloc::MiMalloc;
-use tokio::runtime::Handle;
-use tracing::Subscriber;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -123,24 +121,12 @@ fn try_main(args: Args) -> Result<(), CliError> {
                 process::exit(exitcode::OK);
             });
 
-            // FIXME: dev for now doesn't use but should in the future
-            let (reload_tx, reload_rx) = oneshot::channel::<Handle>();
-            otel_reload(
-                reload_handle,
-                reload_rx,
-                &TelemetryConfig {
-                    service_name: "grafbase_dev".to_string(),
-                    tracing: Default::default(),
-                },
-            );
-
             dev(
                 cmd.search,
                 !cmd.disable_watch,
                 cmd.subgraph_port(),
                 cmd.log_levels(),
                 args.trace >= 2,
-                reload_tx,
             )
         }
         SubCommand::Init(cmd) => init(cmd.name(), cmd.template(), cmd.graph),
@@ -162,7 +148,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
                     process::exit(exitcode::OK);
                 });
 
-                production_server::start(cmd.listen_address, &cmd.config, cmd.fetch_method()?)
+                production_server::start(cmd.listen_address, &cmd.config, cmd.fetch_method()?, reload_handle)
                     .map_err(CliError::ProductionServerError)
             }
         },
@@ -172,19 +158,11 @@ fn try_main(args: Args) -> Result<(), CliError> {
                 process::exit(exitcode::OK);
             });
 
-            let toml_config = cmd.config()?;
-            let (reload_tx, reload_rx) = oneshot::channel::<Handle>();
-
-            if let Some(telemetry_config) = toml_config.telemetry.as_ref() {
-                otel_reload(reload_handle, reload_rx, telemetry_config);
-            }
-
             start(
                 cmd.listen_address(),
                 cmd.log_levels(),
                 cmd.federated_schema_path(),
                 args.trace >= 2,
-                reload_tx,
             )
         }
         SubCommand::Build(cmd) => {
@@ -229,44 +207,4 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Check(cmd) => check::check(cmd),
         SubCommand::Trust(cmd) => trust::trust(cmd),
     }
-}
-
-fn otel_reload<S>(
-    reload_handle: reload::Handle<FilteredLayer<S>, S>,
-    reload_rx: oneshot::Receiver<Handle>,
-    telemetry_config: &TelemetryConfig,
-) where
-    S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
-{
-    let otel_service_name = telemetry_config.service_name.clone();
-    let tracing_config = telemetry_config.tracing.clone();
-
-    thread::spawn(move || match reload_rx.recv() {
-        Ok(rt_handle) => {
-            debug!("reloading otel layer");
-            // new_batched will use the tokio runtime for its internals
-            rt_handle.spawn(async move {
-                // unfortunately I have to set the filters here due to: https://github.com/tokio-rs/tracing/issues/1629
-                let sampling_filter = RatioSamplingFilter::new(tracing_config.sampling);
-                let env_filter = EnvFilter::new(&tracing_config.filter);
-
-                // create the batched layer
-                let otel_layer =
-                    grafbase_tracing::otel::layer::new_batched::<S, Tokio>(otel_service_name, tracing_config, Tokio)
-                        .expect("should successfully build a batched otel layer for tracing");
-
-                // replace the existing layer with the new one and update its filters
-                // the explicit filters update shouldn't be required but the bug mentioned above makes it so
-                reload_handle
-                    .modify(|layer| {
-                        *layer.inner_mut() = otel_layer;
-                        *layer.filter_mut() = FilterExt::boxed(env_filter.and(sampling_filter));
-                    })
-                    .expect("should successfully reload otel layer");
-            });
-        }
-        Err(e) => {
-            warn!("received an error while waiting for otel reload: {e}");
-        }
-    });
 }

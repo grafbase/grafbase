@@ -28,7 +28,6 @@ log = "0.4"
 lru = "0.12"
 mimalloc = "0.1"
 once_cell = "1"
-oneshot = "0.1"
 os_type = "2"
 rustls = { workspace = true, features = ["ring"] }
 serde = "1"
@@ -39,8 +38,7 @@ strum = { version = "0.26", features = ["derive"] }
 syntect = "5"
 thiserror = "1"
 tokio = { version = "1", features = ["full"] }
-tracing = { workspace = true }
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
 ulid = "1"
 url = "2"
 uuid = { version = "1", features = ["v4"] }
@@ -53,7 +51,6 @@ federated-dev = { path = "../federated-dev" }
 graphql-introspection = { package = "grafbase-graphql-introspection", path = "../graphql-introspection" }
 server = { package = "grafbase-local-server", path = "../server", version = "0.60.0" }
 grafbase-tracing = { workspace = true , features = ["tower"] }
-toml = "0.8.10"
 
 production-server = { path = "../production-server" }
 ascii = { version = "1.1.0", features = ["serde"] }

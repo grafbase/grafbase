@@ -26,7 +26,6 @@ pub use crate::cache::build_cache_key;
 pub use auth::{AdminAuthError, Authorizer};
 pub use cache::CacheConfig;
 pub use executor::Executor;
-use grafbase_tracing::spans::GqlRecorderSpanExt;
 pub use response::ConstructableResponse;
 pub use streaming::{encode_stream_response, format::StreamingFormat};
 
@@ -130,19 +129,9 @@ where
         };
 
         if !self.cache_config.global_enabled || !self.cache_config.partial_registry.enable_caching {
-            let span = grafbase_tracing::spans::gql::GqlRequestSpan::new()
-                .with_operation_name(request.operation_name())
-                .with_document(request.query())
-                .into_span();
-            let _guard = span.enter();
-
             let response = Arc::clone(&self.executor)
                 .execute(Arc::clone(ctx), auth, request)
                 .await?;
-
-            if let Some(operation_type) = &response.graphql_operation {
-                span.record_gql_operation_type(operation_type.r#type.to_string().as_str());
-            }
 
             return Ok((Arc::new(response), Default::default()));
         }
