@@ -1,5 +1,5 @@
 [telemetry]
-service_name = "test"
+service_name = "v2"
 
 [telemetry.tracing]
 enabled = true

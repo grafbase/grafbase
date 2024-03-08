@@ -260,7 +260,7 @@ fn otel_reload<S>(
                 reload_handle
                     .modify(|layer| {
                         *layer.inner_mut() = otel_layer;
-                        *layer.filter_mut() = FilterExt::boxed(sampling_filter.and(env_filter));
+                        *layer.filter_mut() = FilterExt::boxed(env_filter.and(sampling_filter));
                     })
                     .expect("should successfully reload otel layer");
             });
