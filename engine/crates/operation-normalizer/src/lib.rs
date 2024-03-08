@@ -39,12 +39,16 @@ pub fn normalize(source_text: &str, operation_name: Option<&str>) -> anyhow::Res
     let mut document = graphql_parser::parse_query::<&str>(source_text)?;
     let mut used_fragments = HashMap::new();
 
-    document.definitions.retain(|definition| match definition {
-        Definition::Operation(OperationDefinition::Query(query)) => query.name == operation_name,
-        Definition::Operation(OperationDefinition::Mutation(mutation)) => mutation.name == operation_name,
-        Definition::Operation(OperationDefinition::Subscription(subscription)) => subscription.name == operation_name,
-        _ => true,
-    });
+    if let Some(operation_name) = operation_name {
+        document.definitions.retain(|definition| match definition {
+            Definition::Operation(OperationDefinition::Query(query)) => query.name == Some(operation_name),
+            Definition::Operation(OperationDefinition::Mutation(mutation)) => mutation.name == Some(operation_name),
+            Definition::Operation(OperationDefinition::Subscription(subscription)) => {
+                subscription.name == Some(operation_name)
+            }
+            _ => true,
+        });
+    }
 
     // iterate over operations first, so we know what fragments are in use
     for definition in &mut document.definitions {

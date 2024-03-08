@@ -3,6 +3,28 @@ use expect_test::expect;
 use indoc::indoc;
 
 #[test]
+fn no_operation_name() {
+    let input = indoc! {r#"
+        query Employees { employeeCollection(first: 5) { edges { node { id firstName lastName } } } }
+    "#};
+    let output = normalize(input, None).unwrap();
+    let expected = expect![[r#"
+        query Employees {
+          employeeCollection(first: 0) {
+            edges {
+              node {
+                firstName
+                id
+                lastName
+              }
+            }
+          }
+        }
+    "#]];
+    expected.assert_eq(&output);
+}
+
+#[test]
 fn apollo_example() {
     // https://www.apollographql.com/docs/graphos/metrics/operation-signatures/
     let input = indoc! {r#"
