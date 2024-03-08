@@ -1,9 +1,13 @@
 use std::future::IntoFuture;
 
 use futures_util::future::BoxFuture;
+use tracing::{Instrument, Span};
+
+use grafbase_tracing::span::{GqlRecorderSpanExt, GqlResponseAttributes};
+
+use crate::{request::OperationCacheControl, Response};
 
 use super::ExecutionCoordinator;
-use crate::{request::OperationCacheControl, Response};
 
 pub enum PreparedExecution {
     BadRequest(BadRequest),
@@ -11,8 +15,8 @@ pub enum PreparedExecution {
 }
 
 impl PreparedExecution {
-    pub(crate) fn request(coordinator: ExecutionCoordinator) -> Self {
-        Self::PreparedRequest(PreparedOperation { coordinator })
+    pub(crate) fn request(coordinator: ExecutionCoordinator, gql_span: Span) -> Self {
+        Self::PreparedRequest(PreparedOperation { coordinator, gql_span })
     }
 
     pub(crate) fn bad_request(response: Response) -> Self {
@@ -26,6 +30,7 @@ pub struct BadRequest {
 
 pub struct PreparedOperation {
     coordinator: ExecutionCoordinator,
+    gql_span: Span,
 }
 
 impl PreparedOperation {
@@ -41,8 +46,16 @@ impl IntoFuture for PreparedExecution {
 
     fn into_future(self) -> Self::IntoFuture {
         match self {
-            PreparedExecution::BadRequest(BadRequest { response }) => Box::pin(async move { response }),
-            PreparedExecution::PreparedRequest(PreparedOperation { coordinator }) => Box::pin(coordinator.execute()),
+            PreparedExecution::BadRequest(BadRequest { response }) => {
+                Span::current().record_gql_response(GqlResponseAttributes {
+                    has_errors: response.has_errors(),
+                });
+
+                Box::pin(async move { response })
+            }
+            PreparedExecution::PreparedRequest(PreparedOperation { coordinator, gql_span }) => {
+                Box::pin(coordinator.execute().instrument(gql_span))
+            }
         }
     }
 }

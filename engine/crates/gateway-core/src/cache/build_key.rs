@@ -1,4 +1,5 @@
 use std::collections::{hash_map::DefaultHasher, BTreeSet};
+use tracing::instrument;
 
 use common_types::auth::ExecutionAuth;
 use engine::registry::CacheAccessScope;
@@ -18,6 +19,7 @@ pub enum BuildKeyError {
     CouldNotDetermineCacheControl(String),
 }
 
+#[instrument(skip_all)]
 pub fn build_cache_key(
     config: &CacheConfig,
     ctx: &impl RequestContext,

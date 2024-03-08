@@ -48,7 +48,6 @@ use common::{analytics::Analytics, environment::Environment};
 use errors::CliError;
 use output::report;
 use std::process;
-use toml as _;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use watercolor::ShouldColorize;
 
@@ -78,8 +77,14 @@ fn main() {
 
 fn try_main(args: Args) -> Result<(), CliError> {
     let filter = EnvFilter::builder().parse_lossy(args.log_filter());
+    let (otel_layer, reload_handle) = grafbase_tracing::otel::layer::new_noop();
 
-    tracing_subscriber::registry().with(fmt::layer()).with(filter).init();
+    tracing_subscriber::registry()
+        .with(matches!(args.command, SubCommand::Federated(..)).then_some(otel_layer))
+        .with(fmt::layer())
+        .with(filter)
+        .init();
+
     trace!("subcommand: {}", args.command);
 
     // do not display header if we're in a pipe
@@ -141,7 +146,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
                     process::exit(exitcode::OK);
                 });
 
-                production_server::start(cmd.listen_address, &cmd.config, cmd.fetch_method()?)
+                production_server::start(cmd.listen_address, &cmd.config, cmd.fetch_method()?, reload_handle)
                     .map_err(CliError::ProductionServerError)
             }
         },

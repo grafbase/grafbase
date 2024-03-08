@@ -10,3 +10,5 @@ mod mongodb;
 mod openapi;
 mod postgres;
 mod subgraph;
+
+mod tracing;

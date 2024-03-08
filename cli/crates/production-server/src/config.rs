@@ -1,10 +1,12 @@
 mod authentication;
 mod cors;
+mod telemetry;
 
 use std::{net::SocketAddr, path::PathBuf};
 
 pub use authentication::AuthenticationConfig;
 pub use cors::CorsConfig;
+pub use telemetry::TelemetryConfig;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -26,6 +28,8 @@ pub struct Config {
     pub tls: Option<TlsConfig>,
     /// Graph operation limit settings
     pub operation_limits: Option<OperationLimitsConfig>,
+    /// Telemetry settings
+    pub telemetry: Option<TelemetryConfig>,
     /// Configuration for Trusted Documents.
     #[serde(default)]
     pub trusted_documents: TrustedDocumentsConfig,
@@ -118,9 +122,9 @@ mod tests {
     use crate::config::cors::AnyOrUrlArray;
     use crate::config::cors::HttpMethod;
 
-    use super::Config;
     use super::OperationLimitsConfig;
     use super::TrustedDocumentsConfig;
+    use super::{Config, TelemetryConfig};
     use ascii::AsciiString;
     use indoc::indoc;
     use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
@@ -718,5 +722,25 @@ mod tests {
            |                ^^^^^^^^^^^^^
         invalid value: string "Bearer🎠 ", expected an ascii string
         "###);
+    }
+
+    #[test]
+    fn telemetry() {
+        // prepare
+        let telemetry_config = TelemetryConfig {
+            service_name: "test".to_string(),
+            tracing: Default::default(),
+        };
+
+        let input = indoc! {r#"
+            [telemetry]
+            service_name = "test"
+        "#};
+
+        // act
+        let config: Config = toml::from_str(input).unwrap();
+
+        // assert
+        assert_eq!(telemetry_config, config.telemetry.unwrap());
     }
 }

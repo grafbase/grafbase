@@ -34,6 +34,9 @@ tokio-rustls = { git = "https://github.com/rustls/tokio-rustls", rev = "214a2b47
 tungstenite = { git = "https://github.com/grafbase/tungstenite-rs", rev = "783940b2e6cc02c7067efb07dc72ae49d75571b0" } # dependabot/cargo/rustls-0.23.1
 # Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
 axum-server = { git = "https://github.com/grafbase/axum-server", rev = "d5d746bc6b31602140147c3b03fca6c7d24b728d" }
+# https://github.com/tokio-rs/tracing/tree/v0.1.x/tracing-mock
+tracing = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" }
+tracing-core = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" }
 
 [workspace.package]
 version = "0.60.0"
@@ -118,7 +121,6 @@ serde_with = "3"
 
 # Tracing
 tracing = "0.1"
-# don't bump to 0.18, leads to memory access out of bounds in cloudflare workers
 tracing-subscriber = "0.3"
 tracing-futures = "0.2"
 
@@ -136,6 +138,7 @@ gateway-core = { path = "engine/crates/gateway-core" }
 gateway-v2 = { path = "engine/crates/gateway-v2" }
 gateway-v2-auth = { path = "engine/crates/gateway-v2/auth" }
 gateway-v2-auth-config = { path = "engine/crates/gateway-v2/auth-config" }
+grafbase-tracing = { path = "engine/crates/tracing" }
 graph-entities = { path = "engine/crates/graph-entities" }
 graphql-composition = { path = "engine/crates/composition" }
 graphql-cursor = { path = "engine/crates/graphql-cursor" }

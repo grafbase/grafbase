@@ -131,7 +131,6 @@ where
         if !self.cache_config.global_enabled || !self.cache_config.partial_registry.enable_caching {
             let response = Arc::clone(&self.executor)
                 .execute(Arc::clone(ctx), auth, request)
-                .instrument(info_span!("execute"))
                 .await?;
 
             return Ok((Arc::new(response), Default::default()));

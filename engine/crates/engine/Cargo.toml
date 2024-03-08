@@ -68,6 +68,7 @@ graph-entities.workspace = true
 graphql-cursor.workspace = true
 log = { path = "../log" }
 runtime.workspace = true
+grafbase-tracing.workspace = true
 
 # Feature optional dependencies
 rust_decimal = { version = "1" }

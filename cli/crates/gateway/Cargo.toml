@@ -27,6 +27,7 @@ graphql-extensions = { path = "../../../engine/crates/graphql-extensions", featu
   "local",
 ] }
 gateway-core = { path = "../../../engine/crates/gateway-core" }
+grafbase-tracing = { workspace = true , features = ["tower"] }
 runtime = { path = "../../../engine/crates/runtime" }
 runtime-local = { path = "../../../engine/crates/runtime-local" }
 common-types = { path = "../../../engine/crates/common-types" }

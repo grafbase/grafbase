@@ -1,0 +1,24 @@
+[telemetry]
+service_name = "federated"
+
+[telemetry.tracing]
+enabled = true
+sampling = 1
+
+[telemetry.tracing.collect]
+max_events_per_span = 10
+max_attributes_per_span = 10
+max_links_per_span = 10
+max_attributes_per_event = 10
+max_attributes_per_link = 10
+
+[telemetry.tracing.exporters.otlp]
+enabled = true
+endpoint = "http://localhost:4317"
+protocol = "grpc"
+
+[telemetry.tracing.exporters.otlp.batch_export]
+scheduled_delay = 10
+max_queue_size = 10
+max_export_batch_size = 10
+max_concurrent_exports = 10
