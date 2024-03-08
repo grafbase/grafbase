@@ -7,7 +7,7 @@ use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::{SpanExporterBuilder, WithExportConfig};
 use opentelemetry_sdk::export::trace::SpanExporter;
 use opentelemetry_sdk::runtime::RuntimeChannel;
-use opentelemetry_sdk::trace::{BatchConfig, BatchMessage, BatchSpanProcessor, Builder, RandomIdGenerator, Sampler};
+use opentelemetry_sdk::trace::{BatchConfigBuilder, BatchSpanProcessor, Builder, RandomIdGenerator, Sampler};
 use opentelemetry_sdk::Resource;
 use tonic::metadata::MetadataKey;
 use tonic::transport::ClientTlsConfig;
@@ -54,7 +54,7 @@ pub fn new_batched<S, R>(
 ) -> Result<BoxedLayer<S>, TracingError>
 where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
-    R: RuntimeChannel<BatchMessage>,
+    R: RuntimeChannel,
 {
     let service_name = service_name.into();
 
@@ -85,7 +85,7 @@ fn setup_exporters<R>(
     runtime: R,
 ) -> Result<Builder, TracingError>
 where
-    R: RuntimeChannel<BatchMessage>,
+    R: RuntimeChannel,
 {
     // stdout
     if let Some(stdout_exporter) = &config.exporters.stdout {
@@ -170,16 +170,17 @@ fn build_batched_span_processor<R>(
     runtime: R,
 ) -> BatchSpanProcessor<R>
 where
-    R: RuntimeChannel<BatchMessage>,
+    R: RuntimeChannel,
 {
     BatchSpanProcessor::builder(exporter, runtime)
         .with_batch_config(
-            BatchConfig::default()
+            BatchConfigBuilder::default()
                 .with_max_concurrent_exports(config.max_concurrent_exports)
                 .with_max_export_batch_size(config.max_export_batch_size)
                 .with_max_export_timeout(Duration::from_secs(timeout.num_seconds() as u64))
                 .with_max_queue_size(config.max_queue_size)
-                .with_scheduled_delay(Duration::from_secs(config.scheduled_delay.num_seconds() as u64)),
+                .with_scheduled_delay(Duration::from_secs(config.scheduled_delay.num_seconds() as u64))
+                .build(),
         )
         .build()
 }
