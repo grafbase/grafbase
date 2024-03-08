@@ -6,7 +6,7 @@ use engine::{BatchRequest, Registry, Request, StreamingPayload};
 use grafbase_tracing::span::gql::SPAN_NAME;
 use integration_tests::udfs::RustUdfs;
 use integration_tests::EngineBuilder;
-use runtime::udf::CustomResolverResponse;
+use runtime::udf::UdfResponse;
 
 #[tokio::test(flavor = "current_thread")]
 async fn query_bad_request() {
@@ -69,7 +69,7 @@ async fn query() {
             }
         "#;
     let engine = EngineBuilder::new(schema)
-        .with_custom_resolvers(RustUdfs::new().resolver("test", CustomResolverResponse::Success(json!("hello"))))
+        .with_custom_resolvers(RustUdfs::new().resolver("test", UdfResponse::Success(json!("hello"))))
         .build()
         .await;
 
@@ -117,7 +117,7 @@ async fn query_named() {
             }
         "#;
     let engine = EngineBuilder::new(schema)
-        .with_custom_resolvers(RustUdfs::new().resolver("test", CustomResolverResponse::Success(json!("hello"))))
+        .with_custom_resolvers(RustUdfs::new().resolver("test", UdfResponse::Success(json!("hello"))))
         .build()
         .await;
 
