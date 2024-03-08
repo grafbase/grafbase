@@ -89,11 +89,11 @@ pub struct OperationLimitsConfig {
 pub struct TrustedDocumentsConfig {
     /// If true, the engine will only accept trusted document queries. Default: false.
     #[serde(default)]
-    pub enforce: bool,
-    /// Optional name of the header that can be set to bypass trusted documents enforcement, when `enforce = true`. Only meaningful in combination with `bypass_header_value`.
+    pub enabled: bool,
+    /// Optional name of the header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_value`.
     #[serde(default)]
     pub bypass_header_name: Option<String>,
-    /// Optional value of the `bypass_header_name` header that can be set to bypass trusted documents enforcement, when `enforce = true`. Only meaningful in combination with `bypass_header_name`.
+    /// Optional value of the `bypass_header_name` header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_name`.
     #[serde(default)]
     pub bypass_header_value: Option<String>,
 }
@@ -522,16 +522,16 @@ mod tests {
     }
 
     #[test]
-    fn trusted_documents_just_enforce() {
+    fn trusted_documents_just_enabled() {
         let input = indoc! {r#"
             [trusted_documents]
-            enforce = true
+            enabled = true
         "#};
 
         let config = toml::from_str::<Config>(input).unwrap();
 
         let expected = TrustedDocumentsConfig {
-            enforce: true,
+            enabled: true,
             ..Default::default()
         };
         assert_eq!(config.trusted_documents, expected);
@@ -541,7 +541,7 @@ mod tests {
     fn trusted_documents_all_settings() {
         let input = indoc! {r#"
             [trusted_documents]
-            enforce = true # default: false
+            enabled = true # default: false
             bypass_header_name = "my-header-name" # default null
             bypass_header_value = "my-secret-value" # default null
         "#};
@@ -549,7 +549,7 @@ mod tests {
         let config = toml::from_str::<Config>(input).unwrap();
 
         let expected = TrustedDocumentsConfig {
-            enforce: true,
+            enabled: true,
             bypass_header_name: Some("my-header-name".into()),
             bypass_header_value: Some("my-secret-value".into()),
         };
@@ -570,7 +570,7 @@ mod tests {
           |
         2 | copacetic = false
           | ^^^^^^^^^
-        unknown field `copacetic`, expected one of `enforce`, `bypass_header_name`, `bypass_header_value`
+        unknown field `copacetic`, expected one of `enabled`, `bypass_header_name`, `bypass_header_value`
         "###);
     }
 }
