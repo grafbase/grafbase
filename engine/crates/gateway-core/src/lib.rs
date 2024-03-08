@@ -5,8 +5,12 @@ use engine::{
     PersistedQueryRequestExtension, ServerError,
 };
 use futures_util::FutureExt;
-use runtime::cache::{Cache, CacheReadStatus, CachedExecutionResponse};
+use gateway_v2_auth::AuthService;
 pub use runtime::context::RequestContext;
+use runtime::{
+    auth::AccessToken,
+    cache::{Cache, CacheReadStatus, CachedExecutionResponse},
+};
 use tracing::{info_span, Instrument};
 
 mod admin;
@@ -18,7 +22,8 @@ pub mod serving;
 mod streaming;
 
 pub use crate::cache::build_cache_key;
-pub use auth::{authorize_request, AdminAuthError, AuthError, Authorizer};
+
+pub use auth::{AdminAuthError, Authorizer};
 pub use cache::CacheConfig;
 pub use executor::Executor;
 pub use response::ConstructableResponse;
@@ -40,6 +45,7 @@ pub struct Gateway<Executor: self::Executor> {
     executor: Arc<Executor>,
     cache: Cache,
     cache_config: CacheConfig,
+    auth: AuthService,
     authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
 }
 
@@ -54,12 +60,14 @@ where
         executor: Arc<Executor>,
         cache: Cache,
         cache_config: CacheConfig,
+        auth: AuthService,
         authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
     ) -> Self {
         Self {
             executor,
             cache,
             cache_config,
+            auth,
             authorizer,
         }
     }
@@ -104,9 +112,9 @@ where
             ));
         }
 
-        let Ok(auth) = self
-            .authorizer
-            .authorize_request(ctx, &request)
+        let Some(AccessToken::V1(auth)) = self
+            .auth
+            .get_access_token(ctx.headers())
             .instrument(info_span!("authorize_request"))
             .await
         else {
@@ -174,9 +182,9 @@ where
             );
         }
 
-        let Ok(auth) = self
-            .authorizer
-            .authorize_request(ctx, &request)
+        let Some(AccessToken::V1(auth)) = self
+            .auth
+            .get_access_token(ctx.headers())
             .instrument(info_span!("authorize_request"))
             .await
         else {

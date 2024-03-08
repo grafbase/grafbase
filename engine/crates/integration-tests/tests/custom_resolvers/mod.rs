@@ -1,5 +1,5 @@
 use integration_tests::{runtime, udfs::RustUdfs, EngineBuilder, ResponseExt};
-use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
+use runtime::udf::{CustomResolverRequestPayload, UdfResponse};
 use serde_json::json;
 
 #[test]
@@ -11,9 +11,7 @@ fn simple_custom_resolver() {
             }
         "#;
         let engine = EngineBuilder::new(schema)
-            .with_custom_resolvers(
-                RustUdfs::new().resolver("hello", |_| Ok(CustomResolverResponse::Success(json!("world")))),
-            )
+            .with_custom_resolvers(RustUdfs::new().resolver("hello", |_| Ok(UdfResponse::Success(json!("world")))))
             .build()
             .await;
 
@@ -46,9 +44,9 @@ fn nested_custom_resolver() {
         let engine = EngineBuilder::new(schema)
             .with_custom_resolvers(
                 RustUdfs::new()
-                    .resolver("list", CustomResolverResponse::Success(json!([{"id": 1}, {"id": 2}])))
+                    .resolver("list", UdfResponse::Success(json!([{"id": 1}, {"id": 2}])))
                     .resolver("item", |payload: CustomResolverRequestPayload| {
-                        Ok(CustomResolverResponse::Success(payload.parent.unwrap()["id"].clone()))
+                        Ok(UdfResponse::Success(payload.parent.unwrap()["id"].clone()))
                     }),
             )
             .build()
@@ -89,9 +87,9 @@ fn custom_resolver_context() {
         let engine = EngineBuilder::new(schema)
             .with_custom_resolvers(
                 RustUdfs::new()
-                    .resolver("list", CustomResolverResponse::Success(json!([{"id": 1}, {"id": 2}])))
+                    .resolver("list", UdfResponse::Success(json!([{"id": 1}, {"id": 2}])))
                     .resolver("item", |payload: CustomResolverRequestPayload| {
-                        Ok(CustomResolverResponse::Success(payload.info.unwrap()))
+                        Ok(UdfResponse::Success(payload.info.unwrap()))
                     }),
             )
             .build()

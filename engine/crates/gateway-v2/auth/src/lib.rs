@@ -1,52 +1,48 @@
-use config::latest::{AuthConfig, AuthProviderConfig};
-use engine::RequestHeaders;
-use futures_util::{stream::FuturesOrdered, StreamExt};
-use jwt::JwtToken;
-use runtime::kv::KvStore;
-
+mod anonymous;
 mod jwt;
+mod v1;
 
-#[derive(Hash, Debug, Clone)]
-pub enum AccessToken {
-    Public,
-    // boxing as clippy complains about enum size.
-    Jwt(Box<JwtToken>),
+use anonymous::AnonymousAuthorizer;
+use futures_util::{future::BoxFuture, stream::FuturesOrdered, StreamExt};
+use runtime::{auth::AccessToken, kv::KvStore, udf::AuthorizerInvoker};
+
+pub trait Authorizer: Send + Sync + 'static {
+    fn get_access_token<'a>(&'a self, headers: &'a http::HeaderMap) -> BoxFuture<'a, Option<AccessToken>>;
 }
 
-#[async_trait::async_trait]
-pub trait Authorizer: Send + Sync {
-    async fn get_access_token(&self, headers: &RequestHeaders) -> Option<AccessToken>;
-}
-
-pub fn build(config: Option<&AuthConfig>, kv: &KvStore) -> Box<dyn Authorizer> {
-    if let Some(config) = config {
-        let authorizers = config
-            .providers
-            .iter()
-            .map(|config| {
-                let authorizer: Box<dyn Authorizer> = match config {
-                    AuthProviderConfig::Jwt(config) => Box::new(jwt::JwtProvider::build(config, kv)),
-                };
-                authorizer
-            })
-            .collect::<Vec<_>>();
-        match authorizers.len() {
-            0 => Box::new(PublicAuthorizer),
-            1 => authorizers.into_iter().next().expect("has one element"),
-            _ => Box::new(MultiAuthorizer { authorizers }),
-        }
-    } else {
-        Box::new(PublicAuthorizer)
-    }
-}
-
-struct MultiAuthorizer {
+#[derive(Default)]
+pub struct AuthService {
     authorizers: Vec<Box<dyn Authorizer>>,
 }
 
-#[async_trait::async_trait]
-impl Authorizer for MultiAuthorizer {
-    async fn get_access_token(&self, headers: &RequestHeaders) -> Option<AccessToken> {
+impl AuthService {
+    pub fn new_v1(config: config::v1::AuthConfig, kv: KvStore, udf_invoker: AuthorizerInvoker, ray_id: String) -> Self {
+        Self {
+            authorizers: vec![Box::new(v1::V1AuthProvider::new(ray_id, config, Some(kv), udf_invoker))],
+        }
+    }
+
+    pub fn new_v2(config: config::v2::AuthConfig, kv: KvStore) -> Self {
+        let authorizers: Vec<Box<dyn Authorizer>> = if config.providers.is_empty() {
+            vec![Box::new(AnonymousAuthorizer)]
+        } else {
+            config
+                .providers
+                .into_iter()
+                .map(|config| {
+                    let authorizer: Box<dyn Authorizer> = match config {
+                        config::v2::AuthProviderConfig::Jwt(config) => {
+                            Box::new(jwt::JwtProvider::new(config, kv.clone()))
+                        }
+                    };
+                    authorizer
+                })
+                .collect()
+        };
+        Self { authorizers }
+    }
+
+    pub async fn get_access_token(&self, headers: &http::HeaderMap) -> Option<AccessToken> {
         let fut = self
             .authorizers
             .iter()
@@ -56,13 +52,9 @@ impl Authorizer for MultiAuthorizer {
         futures_util::pin_mut!(fut);
         fut.next().await
     }
-}
 
-struct PublicAuthorizer;
-
-#[async_trait::async_trait]
-impl Authorizer for PublicAuthorizer {
-    async fn get_access_token(&self, _headers: &RequestHeaders) -> Option<AccessToken> {
-        Some(AccessToken::Public)
+    pub fn with_first_authorizer(mut self, authorizer: impl Authorizer) -> Self {
+        self.authorizers.insert(0, Box::new(authorizer));
+        self
     }
 }

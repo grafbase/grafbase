@@ -3,7 +3,7 @@
 use std::net::SocketAddr;
 
 use integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};
-use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
+use runtime::udf::{CustomResolverRequestPayload, UdfResponse};
 use serde_json::json;
 use wiremock::{
     matchers::{method, path},
@@ -124,7 +124,7 @@ fn error_handling_scalar_custom_resolver() {
         let engine = EngineBuilder::new(schema)
             .with_custom_resolvers(RustUdfs::new().resolver(
                 "error",
-                CustomResolverResponse::GraphQLError {
+                UdfResponse::GraphQLError {
                     message: "Shits on fire yo".into(),
                     extensions: None,
                 },
@@ -171,7 +171,7 @@ fn error_handling_list_custom_resolver() {
         let engine = EngineBuilder::new(schema)
             .with_custom_resolvers(RustUdfs::new().resolver(
                 "error",
-                CustomResolverResponse::GraphQLError {
+                UdfResponse::GraphQLError {
                     message: "Shits on fire yo".into(),
                     extensions: None,
                 },
@@ -222,12 +222,12 @@ fn error_handling_list_propagation() {
         let engine = EngineBuilder::new(schema)
             .with_custom_resolvers(
                 RustUdfs::new()
-                    .resolver("list", CustomResolverResponse::Success(json!([{"id": 1}, {"id": 2}])))
+                    .resolver("list", UdfResponse::Success(json!([{"id": 1}, {"id": 2}])))
                     .resolver("item", |payload: CustomResolverRequestPayload| {
                         if payload.parent.unwrap()["id"] == json!(1) {
-                            Ok(CustomResolverResponse::Success(json!("world")))
+                            Ok(UdfResponse::Success(json!("world")))
                         } else {
-                            Ok(CustomResolverResponse::GraphQLError {
+                            Ok(UdfResponse::GraphQLError {
                                 message: "get out of my pub".into(),
                                 extensions: None,
                             })

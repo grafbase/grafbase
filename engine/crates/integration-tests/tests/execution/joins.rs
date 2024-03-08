@@ -2,7 +2,7 @@
 
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::{runtime, udfs::RustUdfs, EngineBuilder, ResponseExt};
-use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
+use runtime::udf::{CustomResolverRequestPayload, UdfResponse};
 use serde_json::{json, Value};
 
 #[test]
@@ -24,12 +24,9 @@ fn join_on_basic_type() {
         let engine = EngineBuilder::new(schema)
             .with_custom_resolvers(
                 RustUdfs::new()
-                    .resolver(
-                        "user",
-                        CustomResolverResponse::Success(json!({"id": "123", "name": "Bob"})),
-                    )
+                    .resolver("user", UdfResponse::Success(json!({"id": "123", "name": "Bob"})))
                     .resolver("greetPerson", |input: CustomResolverRequestPayload| {
-                        Ok(CustomResolverResponse::Success(
+                        Ok(UdfResponse::Success(
                             format!("Hello {}", input.arguments["name"].as_str().unwrap(),).into(),
                         ))
                     }),
@@ -81,7 +78,7 @@ fn join_on_connector_type() {
         let engine = EngineBuilder::new(schema)
             .with_custom_resolvers(
                 RustUdfs::new().resolver("describeIssue", |input: CustomResolverRequestPayload| {
-                    Ok(CustomResolverResponse::Success(
+                    Ok(UdfResponse::Success(
                         format!("Oh no {}", input.arguments["name"].as_str().unwrap(),).into(),
                     ))
                 }),
@@ -208,21 +205,16 @@ fn nested_joins() {
         let engine = EngineBuilder::new(schema)
             .with_custom_resolvers(
                 RustUdfs::new()
-                    .resolver(
-                        "user",
-                        CustomResolverResponse::Success(json!({"id": "123", "name": "Bob"})),
-                    )
+                    .resolver("user", UdfResponse::Success(json!({"id": "123", "name": "Bob"})))
                     .resolver("greetings", |input: CustomResolverRequestPayload| {
-                        Ok(CustomResolverResponse::Success(
-                            json!({"name": input.arguments["name"]}),
-                        ))
+                        Ok(UdfResponse::Success(json!({"name": input.arguments["name"]})))
                     })
                     .resolver("timeOfDayGreeting", |input: CustomResolverRequestPayload| {
                         let time_of_day = input.arguments["timeOfDay"].as_str().unwrap();
                         let id = input.arguments["id"].as_str().unwrap();
                         let name = input.parent.as_ref().unwrap()["name"].as_str().unwrap();
 
-                        Ok(CustomResolverResponse::Success(
+                        Ok(UdfResponse::Success(
                             format!("Good {time_of_day} {name} your ID is {id}").into(),
                         ))
                     }),

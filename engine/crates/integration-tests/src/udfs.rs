@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use runtime::udf::{CustomResolverError, CustomResolverRequestPayload, CustomResolverResponse, UdfRequest};
+use runtime::udf::{CustomResolverRequestPayload, UdfError, UdfRequest, UdfResponse};
 
 /// A UdfInvoker implementation that calls into some rust functions.
 ///
@@ -31,12 +31,12 @@ impl RustUdfs {
 }
 
 #[async_trait::async_trait]
-impl runtime::udf::UdfInvoker<CustomResolverRequestPayload> for RustUdfs {
+impl runtime::udf::UdfInvokerInner<CustomResolverRequestPayload> for RustUdfs {
     async fn invoke(
         &self,
         _ray_id: &str,
         request: UdfRequest<'_, CustomResolverRequestPayload>,
-    ) -> Result<CustomResolverResponse, CustomResolverError>
+    ) -> Result<UdfResponse, UdfError>
     where
         CustomResolverRequestPayload: 'async_trait,
     {
@@ -58,26 +58,26 @@ impl runtime::udf::UdfInvoker<CustomResolverRequestPayload> for RustUdfs {
 /// - any Fn with the signature `Fn(CustomResolverRequestPayload) -> Result<CustomResolverResponse, CustomResolverError>`
 /// - CustomResolverResponse (if you just want to hard code a response)
 pub trait RustResolver: Send + Sync {
-    fn invoke(&self, payload: CustomResolverRequestPayload) -> Result<CustomResolverResponse, CustomResolverError>;
+    fn invoke(&self, payload: CustomResolverRequestPayload) -> Result<UdfResponse, UdfError>;
 }
 
 impl<F> RustResolver for F
 where
-    F: Fn(CustomResolverRequestPayload) -> Result<CustomResolverResponse, CustomResolverError> + Send + Sync,
+    F: Fn(CustomResolverRequestPayload) -> Result<UdfResponse, UdfError> + Send + Sync,
 {
-    fn invoke(&self, payload: CustomResolverRequestPayload) -> Result<CustomResolverResponse, CustomResolverError> {
+    fn invoke(&self, payload: CustomResolverRequestPayload) -> Result<UdfResponse, UdfError> {
         self(payload)
     }
 }
 
-impl RustResolver for CustomResolverResponse {
-    fn invoke(&self, _: CustomResolverRequestPayload) -> Result<CustomResolverResponse, CustomResolverError> {
+impl RustResolver for UdfResponse {
+    fn invoke(&self, _: CustomResolverRequestPayload) -> Result<UdfResponse, UdfError> {
         Ok(self.clone())
     }
 }
 
 impl RustResolver for serde_json::Value {
-    fn invoke(&self, _: CustomResolverRequestPayload) -> Result<CustomResolverResponse, CustomResolverError> {
-        Ok(CustomResolverResponse::Success(self.clone()))
+    fn invoke(&self, _: CustomResolverRequestPayload) -> Result<UdfResponse, UdfError> {
+        Ok(UdfResponse::Success(self.clone()))
     }
 }

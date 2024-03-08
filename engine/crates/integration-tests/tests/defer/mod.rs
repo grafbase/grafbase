@@ -3,7 +3,7 @@ mod type_conditions;
 use std::net::SocketAddr;
 
 use integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};
-use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
+use runtime::udf::{CustomResolverRequestPayload, UdfResponse};
 use serde_json::json;
 use wiremock::{
     matchers::{method, path},
@@ -715,9 +715,9 @@ fn defer_a_custom_resolver() {
         let engine = EngineBuilder::new(schema)
             .with_custom_resolvers(
                 RustUdfs::new()
-                    .resolver("list", CustomResolverResponse::Success(json!([{"id": 1}, {"id": 2}])))
+                    .resolver("list", UdfResponse::Success(json!([{"id": 1}, {"id": 2}])))
                     .resolver("item", |payload: CustomResolverRequestPayload| {
-                        Ok(CustomResolverResponse::Success(payload.parent.unwrap()["id"].clone()))
+                        Ok(UdfResponse::Success(payload.parent.unwrap()["id"].clone()))
                     }),
             )
             .build()
@@ -782,10 +782,10 @@ fn defer_a_custom_resolver_that_errors() {
         let engine = EngineBuilder::new(schema)
             .with_custom_resolvers(
                 RustUdfs::new()
-                    .resolver("list", CustomResolverResponse::Success(json!([{"id": 1}, {"id": 2}])))
+                    .resolver("list", UdfResponse::Success(json!([{"id": 1}, {"id": 2}])))
                     .resolver(
                         "item",
-                        CustomResolverResponse::GraphQLError {
+                        UdfResponse::GraphQLError {
                             message: "I'm afraid I can't do that Dave".into(),
                             extensions: None,
                         },

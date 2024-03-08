@@ -1,5 +1,5 @@
 use integration_tests::{runtime, udfs::RustUdfs, EngineBuilder, ResponseExt};
-use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
+use runtime::udf::{CustomResolverRequestPayload, UdfResponse};
 use serde_json::json;
 
 use crate::subgraph::todo_engine;
@@ -187,7 +187,7 @@ fn totally_malformed_representation() {
         let engine = EngineBuilder::new(SCHEMA)
             .with_custom_resolvers(
                 RustUdfs::new().resolver("todo", move |_payload: CustomResolverRequestPayload| {
-                    Ok(CustomResolverResponse::Success(json!(null)))
+                    Ok(UdfResponse::Success(json!(null)))
                 }),
             )
             .build()
@@ -251,7 +251,7 @@ fn representation_missing_typename() {
         let engine = EngineBuilder::new(SCHEMA)
             .with_custom_resolvers(
                 RustUdfs::new().resolver("todo", move |_payload: CustomResolverRequestPayload| {
-                    Ok(CustomResolverResponse::Success(json!(null)))
+                    Ok(UdfResponse::Success(json!(null)))
                 }),
             )
             .build()

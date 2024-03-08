@@ -210,7 +210,7 @@ async fn handle_engine_request(
         return (headers, axum::body::Body::from_stream(stream)).into_response();
     }
 
-    let Some(session) = gateway.authorize(ctx.headers_as_map().into()).await else {
+    let Some(session) = gateway.authorize(ctx.headers()).await else {
         match (request, streaming_format) {
             (BatchRequest::Single(_), None) => {
                 let response = gateway_v2::Response::unauthorized();

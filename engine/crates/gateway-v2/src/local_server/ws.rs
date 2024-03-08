@@ -199,7 +199,7 @@ async fn accept_websocket(
                     return None;
                 };
 
-                let Some(session) = gateway.authorize(payload.headers.into()).await else {
+                let Some(session) = gateway.authorize(&TryFrom::try_from(&payload.headers).unwrap()).await else {
                     websocket
                         .send(Message::close(4403, "Forbidden").to_axum_message().unwrap())
                         .await

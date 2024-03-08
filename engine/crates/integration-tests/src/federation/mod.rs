@@ -65,7 +65,7 @@ impl IntoFuture for ExecutionRequest {
 
         let (ctx, futures) = RequestContext::new(self.headers);
         Box::pin(async move {
-            let session = match self.gateway.authorize(ctx.headers_as_map().into()).await {
+            let session = match self.gateway.authorize(ctx.headers()).await {
                 Some(session) => session,
                 None => {
                     return GraphqlResponse {
@@ -95,7 +95,7 @@ impl ExecutionRequest {
         let (mut sender, receiver) = futures::channel::mpsc::channel(4);
 
         receiver.join(async move {
-            let session = match self.gateway.authorize(self.headers.into()).await {
+            let session = match self.gateway.authorize(&TryFrom::try_from(&self.headers).unwrap()).await {
                 Some(session) => session,
                 None => {
                     sender

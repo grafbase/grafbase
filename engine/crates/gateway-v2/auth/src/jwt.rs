@@ -1,57 +1,36 @@
-use std::{
-    collections::HashMap,
-    hash::{Hash, Hasher},
-};
-
-use config::latest::JwtConfig;
+use config::v2::JwtConfig;
+use futures_util::future::BoxFuture;
 use jsonwebtoken::{
     jwk::{AlgorithmParameters, JwkSet},
     Algorithm, DecodingKey, TokenData,
 };
-use runtime::kv::KvStore;
+use runtime::{auth::JwtToken, kv::KvStore};
 
 use super::{AccessToken, Authorizer};
 
 /// Same validation as Apollo's "JWT authentication".
-pub(super) struct JwtProvider {
+pub struct JwtProvider {
     config: JwtConfig,
     kv: KvStore,
     key: String,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
-pub struct JwtMetadata {
+struct JwtMetadata {
     jwks: JwkSet,
 }
 
-#[derive(Debug, Clone)]
-pub struct JwtToken {
-    pub data: TokenData<HashMap<String, serde_json::Value>>,
-    // Keeping signature to compute a hash for cache keys
-    signature: Vec<u8>,
-}
-
-impl Hash for JwtToken {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.signature.hash(state);
-    }
-}
-
 impl JwtProvider {
-    pub fn build(config: &JwtConfig, kv: &KvStore) -> Self {
+    pub fn new(config: JwtConfig, kv: KvStore) -> Self {
         let key: String = {
             use base64::{engine::general_purpose, Engine as _};
             use sha2::{Digest, Sha256};
             let mut key = String::from("jwks-metadata-");
-            let digest = Sha256::digest(config.jwks.url.to_string().as_bytes());
+            let digest = <Sha256 as Digest>::digest(config.jwks.url.to_string().as_bytes());
             key.push_str(&general_purpose::STANDARD_NO_PAD.encode(digest));
             key
         };
-        JwtProvider {
-            config: config.clone(),
-            kv: kv.clone(),
-            key,
-        }
+        JwtProvider { config, kv, key }
     }
 
     async fn load_metadata(&self) -> anyhow::Result<JwtMetadata> {
@@ -95,11 +74,17 @@ impl JwtProvider {
     }
 }
 
-#[async_trait::async_trait]
 impl Authorizer for JwtProvider {
-    async fn get_access_token(&self, headers: &engine::RequestHeaders) -> Option<AccessToken> {
+    fn get_access_token<'a>(&'a self, headers: &'a http::HeaderMap) -> BoxFuture<'a, Option<AccessToken>> {
+        Box::pin(self.get_access_token(headers))
+    }
+}
+
+impl JwtProvider {
+    async fn get_access_token(&self, headers: &http::HeaderMap) -> Option<AccessToken> {
         let token_str = headers
-            .find(&self.config.header_name)
+            .get(&self.config.header_name)
+            .and_then(|value| value.to_str().ok())
             .and_then(|value| value.strip_prefix(&self.config.header_value_prefix))?;
 
         let jose_header = jsonwebtoken::decode_header(token_str).ok()?;
@@ -120,15 +105,16 @@ impl Authorizer for JwtProvider {
         };
 
         for key in decoding_keys(&metadata.jwks, &jose_header) {
-            if let Ok(data) = jsonwebtoken::decode(token_str, &key, &validation) {
+            if let Ok(TokenData { claims, .. }) = jsonwebtoken::decode(token_str, &key, &validation) {
                 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
                 let signature = URL_SAFE_NO_PAD
                     .decode(token_str.rsplit('.').next().expect("valid jwt"))
                     .expect("valid jwt");
-                return Some(AccessToken::Jwt(Box::new(JwtToken { data, signature })));
+                return Some(AccessToken::Jwt(JwtToken { claims, signature }));
             }
         }
-        return None;
+
+        None
     }
 }
 

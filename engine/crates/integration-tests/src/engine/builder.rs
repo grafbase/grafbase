@@ -5,7 +5,7 @@ use engine::{registry::resolvers::graphql::QueryBatcher, Schema};
 use futures::future::{join_all, BoxFuture};
 use parser_sdl::{ConnectorParsers, GraphqlDirective, OpenApiDirective, ParseResult, PostgresDirective, Registry};
 use postgres_connector_types::transport::DirectTcpTransport;
-use runtime::udf::{CustomResolverRequestPayload, CustomResolversEngine, UdfInvoker};
+use runtime::udf::{CustomResolverInvoker, CustomResolverRequestPayload, UdfInvokerInner};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::Engine;
@@ -15,7 +15,7 @@ pub struct EngineBuilder {
     schema: String,
     openapi_specs: HashMap<String, String>,
     environment_variables: HashMap<String, String>,
-    custom_resolvers: Option<CustomResolversEngine>,
+    custom_resolvers: Option<CustomResolverInvoker>,
 }
 
 pub struct RequestContext {
@@ -87,10 +87,10 @@ impl EngineBuilder {
 
     pub fn with_custom_resolvers(
         self,
-        invoker: impl UdfInvoker<CustomResolverRequestPayload> + Send + Sync + 'static,
+        invoker: impl UdfInvokerInner<CustomResolverRequestPayload> + Send + Sync + 'static,
     ) -> Self {
         Self {
-            custom_resolvers: Some(CustomResolversEngine::new(Box::new(invoker))),
+            custom_resolvers: Some(CustomResolverInvoker::new(invoker)),
             ..self
         }
     }

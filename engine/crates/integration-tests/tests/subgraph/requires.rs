@@ -1,5 +1,5 @@
 use integration_tests::{runtime, udfs::RustUdfs, EngineBuilder, ResponseExt};
-use runtime::udf::{CustomResolverRequestPayload, CustomResolverResponse};
+use runtime::udf::{CustomResolverRequestPayload, UdfResponse};
 use serde_json::{json, Value};
 
 const USER_SCHEMA: &str = r#"
@@ -21,7 +21,7 @@ fn test_federation_with_required_field() {
             .with_custom_resolvers(
                 RustUdfs::new().resolver("greeting", |input: CustomResolverRequestPayload| {
                     let parent = input.parent.unwrap();
-                    Ok(CustomResolverResponse::Success(
+                    Ok(UdfResponse::Success(
                         format!(
                             "Hello {} (ID: {})",
                             parent["name"].as_str().unwrap(),

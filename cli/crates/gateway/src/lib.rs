@@ -1,6 +1,7 @@
+use auth::AnyApiKeyProvider;
 use engine::registry::CachePartialRegistry;
 use gateway_core::CacheConfig;
-use runtime_local::InMemoryCache;
+use runtime_local::{InMemoryCache, InMemoryKvStore};
 use std::{collections::HashMap, ops::Deref, sync::Arc};
 
 use self::executor::Executor;
@@ -37,10 +38,14 @@ impl Gateway {
             partial_registry: CachePartialRegistry::from(registry.as_ref()),
             common_cache_tags: vec![],
         };
-        let authorizer = Box::new(auth::Authorizer {
-            auth_config: registry.auth.clone(),
-            bridge: bridge.clone(),
-        });
+        let authorizer = Box::new(auth::Authorizer);
+        let auth = gateway_v2_auth::AuthService::new_v1(
+            registry.auth.clone(),
+            InMemoryKvStore::runtime(),
+            runtime_local::UdfInvokerImpl::authorizer(bridge.clone()),
+            String::new(),
+        )
+        .with_first_authorizer(AnyApiKeyProvider);
 
         let executor = Arc::new(Executor::new(env_vars, bridge, registry).await?);
 
@@ -53,6 +58,7 @@ impl Gateway {
                     subdomain: "localhost".to_string(),
                 }),
                 cache_config,
+                auth,
                 authorizer,
             )),
         })

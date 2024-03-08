@@ -25,7 +25,6 @@ engine-value.workspace = true
 futures-util.workspace = true
 headers.workspace = true
 http.workspace = true
-jwt-verifier.workspace = true
 log = { path = "../log" }
 mediatype = "0.19"
 mime = "0.3"
@@ -37,6 +36,7 @@ sha2.workspace = true
 hex.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+gateway-v2-auth = { path = "../gateway-v2/auth" }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros"] }
