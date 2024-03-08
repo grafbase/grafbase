@@ -23,9 +23,9 @@ pub const AUTHORIZERS_DIRECTORY_NAME: &str = "auth";
 /// the bun installation directory within ~/.grafbase
 pub const BUN_DIRECTORY_NAME: &str = "bun";
 /// the tracing filter to be used when tracing is on
-pub const TRACE_LOG_FILTER: &str = "grafbase=trace,grafbase_local_common=trace,grafbase_local_server=trace,grafbase_local_backend=trace,tower_http=debug,federated_dev=trace,postgres-connector-types=trace,engine_v2=debug";
+pub const TRACE_LOG_FILTER: &str = "grafbase=trace,grafbase_local_common=trace,grafbase_local_server=trace,grafbase_local_backend=trace,tower_http=debug,federated_dev=trace,postgres-connector-types=trace,engine_v2=debug,production_server=trace";
 /// the tracing filter to be used when tracing is off
-pub const DEFAULT_LOG_FILTER: &str = "off";
+pub const DEFAULT_LOG_FILTER: &str = "production_server=info";
 /// an environment variable that sets the path of the home directory
 pub const GRAFBASE_HOME: &str = "GRAFBASE_HOME";
 /// the name of the Grafbase SDK npm package

@@ -31,7 +31,7 @@ extern crate log;
 
 use crate::{
     build::build,
-    cli_input::{Args, ArgumentNames, LogsCommand, SubCommand},
+    cli_input::{Args, ArgumentNames, FederatedSubCommand, LogsCommand, SubCommand},
     create::create,
     deploy::deploy,
     dev::dev,
@@ -89,14 +89,17 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
     if args.command.in_project_context() {
         Environment::try_init_with_project(args.home).map_err(CliError::CommonError)?;
-    } else {
+    } else if !args.command.runs_production_server() {
+        // TODO: temporary if clause
         Environment::try_init(args.home).map_err(CliError::CommonError)?;
     }
 
-    Analytics::init().map_err(CliError::CommonError)?;
-    Analytics::command_executed(args.command.as_ref(), args.command.argument_names());
-
-    report::warnings(&Environment::get().warnings);
+    // TODO: temporary
+    if !args.command.runs_production_server() {
+        Analytics::init().map_err(CliError::CommonError)?;
+        Analytics::command_executed(args.command.as_ref(), args.command.argument_names());
+        report::warnings(&Environment::get().warnings);
+    }
 
     match args.command {
         SubCommand::Completions(cmd) => {
@@ -131,6 +134,17 @@ fn try_main(args: Args) -> Result<(), CliError> {
             limit,
             no_follow,
         }) => logs(project_branch, limit, !no_follow),
+        SubCommand::Federated(cmd) => match cmd.command {
+            FederatedSubCommand::Start(cmd) => {
+                let _ = ctrlc::set_handler(|| {
+                    report::goodbye();
+                    process::exit(exitcode::OK);
+                });
+
+                production_server::start(cmd.listen_address, &cmd.config, cmd.fetch_method()?)
+                    .map_err(CliError::ProductionServerError)
+            }
+        },
         SubCommand::Start(cmd) => {
             let _ = ctrlc::set_handler(|| {
                 report::goodbye();

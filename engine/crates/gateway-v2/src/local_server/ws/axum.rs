@@ -114,10 +114,10 @@ pub trait MessageConvert {
     fn to_axum_message(self) -> Result<ws::Message, serde_json::Error>;
 }
 
-impl MessageConvert for gateway_v2::websockets::messages::Message {
+impl MessageConvert for crate::websockets::messages::Message {
     fn to_axum_message(self) -> Result<ws::Message, serde_json::Error> {
         match self {
-            gateway_v2::websockets::messages::Message::Close { code, reason } => {
+            crate::websockets::messages::Message::Close { code, reason } => {
                 Ok(ws::Message::Close(Some(ws::CloseFrame {
                     code,
                     reason: reason.into(),

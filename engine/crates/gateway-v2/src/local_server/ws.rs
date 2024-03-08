@@ -1,17 +1,15 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
-use ::axum::extract::ws::{self, WebSocket};
-use engine_v2::Response;
-use futures_util::{pin_mut, stream::SplitStream, SinkExt, StreamExt};
-use gateway_v2::{
+use crate::{
     websockets::messages::{Event, Message},
     Session,
 };
-use tokio::sync::mpsc;
+use ::axum::extract::ws::{self, WebSocket};
+use engine_v2::Response;
+use futures_util::{pin_mut, stream::SplitStream, SinkExt, StreamExt};
+use tokio::sync::{mpsc, watch};
 
 use self::axum::MessageConvert;
-
-use super::bus::GatewayWatcher;
 
 mod axum;
 
@@ -23,13 +21,13 @@ pub type WebsocketReceiver = tokio::sync::mpsc::Receiver<WebSocket>;
 const CONNECTION_INIT_WAIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
 
 /// An actor that manages websocket connections for federated dev
-pub(crate) struct WebsocketAccepter {
+pub struct WebsocketAccepter {
     sockets: WebsocketReceiver,
-    gateway: GatewayWatcher,
+    gateway: watch::Receiver<Option<Arc<crate::Gateway>>>,
 }
 
 impl WebsocketAccepter {
-    pub fn new(sockets: WebsocketReceiver, gateway: GatewayWatcher) -> Self {
+    pub fn new(sockets: WebsocketReceiver, gateway: watch::Receiver<Option<Arc<crate::Gateway>>>) -> Self {
         Self { sockets, gateway }
     }
 
@@ -46,10 +44,10 @@ impl WebsocketAccepter {
                 match accept_future.await {
                     Ok(Some(session)) => websocket_loop(connection, session).await,
                     Ok(None) => {
-                        log::warn!("Failed to accept websocket connection");
+                        tracing::warn!("Failed to accept websocket connection");
                     }
                     Err(_) => {
-                        log::info!("Connection wasn't initialised on time, dropping");
+                        tracing::info!("Connection wasn't initialised on time, dropping");
                         connection
                             .send(
                                 Message::close(4408, "Connection initialisation timeout")
@@ -78,7 +76,7 @@ async fn websocket_loop(socket: WebSocket, session: Session) {
                 let message = match message.to_axum_message() {
                     Ok(message) => message,
                     Err(error) => {
-                        log::warn!("Couldn't encode websocket message: {error:?}");
+                        tracing::warn!("Couldn't encode websocket message: {error:?}");
                         return;
                     }
                 };
@@ -146,7 +144,7 @@ async fn handle_incoming_event(
 }
 
 async fn subscription_loop(
-    session: gateway_v2::Session,
+    session: crate::Session,
     request: engine::Request,
     id: String,
     sender: mpsc::Sender<Message>,
@@ -182,7 +180,10 @@ async fn subscription_loop(
     sender.send(Message::Complete { id }).await.ok();
 }
 
-async fn accept_websocket(websocket: &mut WebSocket, gateway: &GatewayWatcher) -> Option<Session> {
+async fn accept_websocket(
+    websocket: &mut WebSocket,
+    gateway: &watch::Receiver<Option<Arc<crate::Gateway>>>,
+) -> Option<Session> {
     while let Some(event) = websocket.recv_graphql().await {
         match event {
             Event::ConnectionInit { payload } => {
@@ -248,14 +249,14 @@ trait WebsocketExt {
                 Ok(ws::Message::Text(contents)) => serde_json::from_str::<Event>(&contents),
                 Ok(ws::Message::Binary(contents)) => serde_json::from_slice::<Event>(&contents),
                 Err(error) => {
-                    log::warn!("Error receiving websocket message: {error:?}");
+                    tracing::warn!("Error receiving websocket message: {error:?}");
                     return None;
                 }
             };
 
             return event
                 .map_err(|error| {
-                    log::warn!("error decoding websocket message: {error:?}");
+                    tracing::warn!("error decoding websocket message: {error:?}");
                     error
                 })
                 .ok();

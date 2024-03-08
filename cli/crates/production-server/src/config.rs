@@ -1,11 +1,10 @@
-#![allow(dead_code)] // TODO: remove when we use the configuration
-#![allow(unused_imports)] // TODO: remove when we use the configuration
-
+mod authentication;
 mod cors;
 
 use std::{net::SocketAddr, path::PathBuf};
 
-pub use cors::{AnyOrAsciiStringArray, AnyOrHttpMethodArray, AnyOrUrlArray, CorsConfig, HttpMethod};
+pub use authentication::AuthenticationConfig;
+pub use cors::CorsConfig;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -30,6 +29,8 @@ pub struct Config {
     /// Configuration for Trusted Documents.
     #[serde(default)]
     pub trusted_documents: TrustedDocumentsConfig,
+    /// Authentication configuration
+    pub authentication: Option<AuthenticationConfig>,
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
@@ -60,7 +61,21 @@ pub struct TlsConfig {
     pub key: PathBuf,
 }
 
-#[derive(Debug, PartialEq, serde::Deserialize)]
+#[derive(Debug, PartialEq, serde::Deserialize, Default)]
+#[serde(deny_unknown_fields)]
+pub struct TrustedDocumentsConfig {
+    /// If true, the engine will only accept trusted document queries. Default: false.
+    #[serde(default)]
+    pub enabled: bool,
+    /// Optional name of the header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_value`.
+    #[serde(default)]
+    pub bypass_header_name: Option<String>,
+    /// Optional value of the `bypass_header_name` header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_name`.
+    #[serde(default)]
+    pub bypass_header_value: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OperationLimitsConfig {
     /// Limits the deepest nesting of selection sets in an operation,
@@ -84,34 +99,32 @@ pub struct OperationLimitsConfig {
     pub complexity: Option<u16>,
 }
 
-#[derive(Debug, PartialEq, serde::Deserialize, Default)]
-#[serde(deny_unknown_fields)]
-pub struct TrustedDocumentsConfig {
-    /// If true, the engine will only accept trusted document queries. Default: false.
-    #[serde(default)]
-    pub enabled: bool,
-    /// Optional name of the header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_value`.
-    #[serde(default)]
-    pub bypass_header_name: Option<String>,
-    /// Optional value of the `bypass_header_name` header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_name`.
-    #[serde(default)]
-    pub bypass_header_value: Option<String>,
+impl From<OperationLimitsConfig> for engine::registry::OperationLimits {
+    fn from(value: OperationLimitsConfig) -> Self {
+        Self {
+            depth: value.depth,
+            height: value.height,
+            aliases: value.aliases,
+            root_fields: value.root_fields,
+            complexity: value.complexity,
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::start::configuration::AnyOrAsciiStringArray;
-    use crate::start::configuration::AnyOrHttpMethodArray;
-    use crate::start::configuration::HttpMethod;
+    use crate::config::cors::AnyOrAsciiStringArray;
+    use crate::config::cors::AnyOrHttpMethodArray;
+    use crate::config::cors::AnyOrUrlArray;
+    use crate::config::cors::HttpMethod;
 
-    use super::AnyOrUrlArray;
     use super::Config;
     use super::OperationLimitsConfig;
     use super::TrustedDocumentsConfig;
     use ascii::AsciiString;
     use indoc::indoc;
     use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
-    use url::Url;
+    use std::time::Duration;
 
     #[test]
     fn network_ipv4() {
@@ -207,6 +220,19 @@ mod tests {
         let cors = config.cors.unwrap();
 
         assert!(!cors.allow_credentials);
+    }
+
+    #[test]
+    fn cors_max_age() {
+        let input = indoc! {r#"
+           [cors]
+           max_age = "60s"
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+        let cors = config.cors.unwrap();
+
+        assert_eq!(Some(Duration::from_secs(60)), cors.max_age);
     }
 
     #[test]
@@ -571,6 +597,126 @@ mod tests {
         2 | copacetic = false
           | ^^^^^^^^^
         unknown field `copacetic`, expected one of `enabled`, `bypass_header_name`, `bypass_header_value`
+        "###);
+    }
+
+    #[test]
+    fn authentication_config() {
+        let input = indoc! {r#"
+            [[authentication.providers]]
+
+            [authentication.providers.jwt]
+            name = "foo"
+
+            [authentication.providers.jwt.jwks]
+            url = "https://example.com/.well-known/jwks.json"
+            issuer = "https://example.com/"
+            audience = "my-project"
+            poll_interval = "60s"
+        "#};
+
+        let result: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&result.authentication.unwrap(), @r###"
+        AuthenticationConfig {
+            providers: [
+                Jwt(
+                    JwtProvider {
+                        name: Some(
+                            "foo",
+                        ),
+                        jwks: JwksConfig {
+                            url: Url {
+                                scheme: "https",
+                                cannot_be_a_base: false,
+                                username: "",
+                                password: None,
+                                host: Some(
+                                    Domain(
+                                        "example.com",
+                                    ),
+                                ),
+                                port: None,
+                                path: "/.well-known/jwks.json",
+                                query: None,
+                                fragment: None,
+                            },
+                            issuer: Some(
+                                "https://example.com/",
+                            ),
+                            audience: Some(
+                                "my-project",
+                            ),
+                            poll_interval: 60s,
+                        },
+                        header: AuthenticationHeader {
+                            name: "Authorization",
+                            value_prefix: "Bearer ",
+                        },
+                    },
+                ),
+            ],
+        }
+        "###);
+    }
+
+    #[test]
+    fn authentication_invalid_header_name() {
+        let input = indoc! {r#"
+            [[authentication.providers]]
+
+            [authentication.providers.jwt]
+            name = "foo"
+
+            [authentication.providers.jwt.jwks]
+            url = "https://example.com/.well-known/jwks.json"
+            issuer = "https://example.com/"
+            audience = "my-project"
+            poll_interval = "60s"
+
+            [authentication.providers.jwt.header]
+            name = "Authoriz🎠"
+            value_prefix = "Bearer "
+        "#};
+
+        let error = toml::from_str::<Config>(input).unwrap_err();
+
+        insta::assert_snapshot!(&error.to_string(), @r###"
+        TOML parse error at line 13, column 8
+           |
+        13 | name = "Authoriz🎠"
+           |        ^^^^^^^^^^^^^^
+        invalid value: string "Authoriz🎠", expected an ascii string
+        "###);
+    }
+
+    #[test]
+    fn authentication_invalid_header_value() {
+        let input = indoc! {r#"
+            [[authentication.providers]]
+
+            [authentication.providers.jwt]
+            name = "foo"
+
+            [authentication.providers.jwt.jwks]
+            url = "https://example.com/.well-known/jwks.json"
+            issuer = "https://example.com/"
+            audience = "my-project"
+            poll_interval = "60s"
+
+            [authentication.providers.jwt.header]
+            name = "Authorization"
+            value_prefix = "Bearer🎠 "
+        "#};
+
+        let error = toml::from_str::<Config>(input).unwrap_err();
+
+        insta::assert_snapshot!(&error.to_string(), @r###"
+        TOML parse error at line 14, column 16
+           |
+        14 | value_prefix = "Bearer🎠 "
+           |                ^^^^^^^^^^^^^
+        invalid value: string "Bearer🎠 ", expected an ascii string
         "###);
     }
 }

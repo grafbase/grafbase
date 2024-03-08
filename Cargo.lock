@@ -180,6 +180,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arc-swap"
+version = "1.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bddcadddf5e9015d310179a59bb28c4d4b9920ad0f11e8e14dbadf654890c9a6"
+
+[[package]]
 name = "arrayvec"
 version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -478,6 +484,7 @@ checksum = "1236b4b292f6c4d6dc34604bb5120d85c3fe1d1aa596bd5cc52ca054d13e7b9e"
 dependencies = [
  "async-trait",
  "axum-core",
+ "axum-macros",
  "base64 0.21.7",
  "bytes",
  "futures-util",
@@ -526,6 +533,40 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "axum-macros"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00c055ee2d014ae5981ce1016374e8213682aa14d9bf40e48ab48b5f3ef20eaa"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.52",
+]
+
+[[package]]
+name = "axum-server"
+version = "0.6.0"
+source = "git+https://github.com/grafbase/axum-server?rev=d5d746bc6b31602140147c3b03fca6c7d24b728d#d5d746bc6b31602140147c3b03fca6c7d24b728d"
+dependencies = [
+ "arc-swap",
+ "bytes",
+ "futures-util",
+ "http",
+ "http-body",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "pin-project-lite",
+ "rustls",
+ "rustls-pemfile 2.1.1",
+ "tokio",
+ "tokio-rustls",
+ "tower",
+ "tower-service",
 ]
 
 [[package]]
@@ -2093,7 +2134,6 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tower-http",
- "tower-service",
  "ulid",
  "url",
 ]
@@ -2417,6 +2457,8 @@ dependencies = [
 name = "gateway-v2"
 version = "0.0.0"
 dependencies = [
+ "async-trait",
+ "axum",
  "engine",
  "engine-v2",
  "futures-util",
@@ -2428,6 +2470,9 @@ dependencies = [
  "runtime",
  "serde",
  "serde_json",
+ "tokio",
+ "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -2574,6 +2619,7 @@ dependencies = [
  "multipart-stream",
  "once_cell",
  "os_type",
+ "production-server",
  "rand 0.8.5",
  "regex",
  "reqwest",
@@ -2594,7 +2640,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "toml",
- "tower-http",
  "tracing-subscriber",
  "ulid",
  "url",
@@ -5064,6 +5109,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "production-server"
+version = "0.60.0"
+dependencies = [
+ "ascii 1.1.0",
+ "async-trait",
+ "axum",
+ "axum-server",
+ "duration-str",
+ "engine",
+ "engine-config-builder",
+ "engine-v2",
+ "futures-util",
+ "gateway-core",
+ "gateway-v2",
+ "graphql-composition",
+ "http",
+ "indoc",
+ "insta",
+ "parser-sdl",
+ "reqwest",
+ "runtime",
+ "runtime-local",
+ "runtime-noop",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "toml",
+ "tower-http",
+ "tracing",
+ "ulid",
+ "url",
+]
+
+[[package]]
 name = "psm"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5348,6 +5428,7 @@ name = "reqwest"
 version = "0.11.24"
 source = "git+https://github.com/grafbase/reqwest?rev=c0d2f8fc8aa40e8fe4f591cf30958a6e1c84c428#c0d2f8fc8aa40e8fe4f591cf30958a6e1c84c428"
 dependencies = [
+ "async-compression",
  "base64 0.21.7",
  "bytes",
  "encoding_rs",
@@ -6941,7 +7022,7 @@ dependencies = [
 [[package]]
 name = "tokio-rustls"
 version = "0.25.0"
-source = "git+https://github.com/rustls/tokio-rustls?rev=b3a2b143239d66253ba09f8ac4bfc4b7ab00cfac#b3a2b143239d66253ba09f8ac4bfc4b7ab00cfac"
+source = "git+https://github.com/rustls/tokio-rustls?rev=214a2b477e642c520c243717188cb683a9cad900#214a2b477e642c520c243717188cb683a9cad900"
 dependencies = [
  "rustls",
  "rustls-pki-types",

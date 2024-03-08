@@ -60,6 +60,10 @@ impl Client {
         }
     }
 
+    pub fn endpoint(&self) -> &str {
+        &self.endpoint
+    }
+
     pub fn with_api_key(self) -> Self {
         self.with_header("x-api-key", "any")
     }
@@ -185,6 +189,10 @@ impl Client {
             .await
             .unwrap()
     }
+
+    pub fn kill_handles(&self) {
+        self.commands.kill_all()
+    }
 }
 
 #[derive(serde::Serialize)]
@@ -251,5 +259,10 @@ impl<Response> GqlRequestBuilder<Response> {
         .json::<Response>()
         .await
         .unwrap()
+    }
+
+    pub async fn request(self) -> reqwest::Response {
+        let json = serde_json::to_value(&self).expect("to be able to serialize gql request");
+        self.reqwest_builder.json(&json).send().await.unwrap()
     }
 }

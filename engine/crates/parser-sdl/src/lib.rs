@@ -64,7 +64,7 @@ pub use connector_parsers::ConnectorParsers;
 pub use engine::registry::Registry;
 pub use registry::names::*;
 pub use rules::{
-    auth_directive::v2::{AuthV2Directive, AuthV2Provider},
+    auth_directive::v2::{AuthV2Directive, AuthV2Provider, Jwks, JwtTokenHeader},
     cache_directive::global::{GlobalCacheRules, GlobalCacheTarget},
     graph_directive::GraphDirective,
     graphql_directive::GraphqlDirective,

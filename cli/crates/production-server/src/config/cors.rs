@@ -1,11 +1,9 @@
-use std::time::Duration;
-
 use ascii::AsciiString;
+use duration_str::deserialize_option_duration;
 use http::{HeaderName, HeaderValue};
-use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, ExposeHeaders, MaxAge};
+use std::time::Duration;
+use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, ExposeHeaders};
 use url::Url;
-
-use crate::errors::CliError;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -16,7 +14,8 @@ pub struct CorsConfig {
     /// Origins from which we allow requests
     pub allow_origins: Option<AnyOrUrlArray>,
     /// Maximum time between OPTIONS and the next request
-    pub max_age: Option<u64>,
+    #[serde(default, deserialize_with = "deserialize_option_duration")]
+    pub max_age: Option<Duration>,
     /// HTTP methods allowed to the endpoint.
     pub allow_methods: Option<AnyOrHttpMethodArray>,
     /// Headers allowed in incoming requests
@@ -73,7 +72,9 @@ impl From<AnyOrUrlArray> for AllowOrigin {
             AnyOrUrlArray::Explicit(ref origins) => {
                 let origins = origins
                     .iter()
-                    .map(|origin| HeaderValue::from_str(origin.as_str()).expect("must be ascii"));
+                    .map(|url| url.as_str())
+                    .map(|url| url.strip_suffix('/').unwrap_or(url))
+                    .map(|url| HeaderValue::from_str(url).expect("must be ascii"));
 
                 AllowOrigin::list(origins)
             }

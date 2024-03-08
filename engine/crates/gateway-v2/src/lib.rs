@@ -12,6 +12,9 @@ use gateway_core::RequestContext;
 use headers::HeaderMapExt;
 use runtime::cache::{CacheReadStatus, CachedExecutionResponse};
 
+#[cfg(feature = "axum")]
+pub mod local_server;
+
 pub mod streaming;
 pub mod websockets;
 
@@ -162,6 +165,17 @@ impl Response {
         let response = engine_v2::Response::error("Unauthorized", []);
         Response {
             status: http::StatusCode::UNAUTHORIZED,
+            headers: Default::default(),
+            bytes: serde_json::to_vec(&response).expect("this serialization should be fine"),
+            metadata: response.take_metadata(),
+            has_errors: true,
+        }
+    }
+
+    pub fn forbidden() -> Self {
+        let response = engine_v2::Response::error("Forbidden", []);
+        Response {
+            status: http::StatusCode::FORBIDDEN,
             headers: Default::default(),
             bytes: serde_json::to_vec(&response).expect("this serialization should be fine"),
             metadata: response.take_metadata(),
