@@ -66,13 +66,11 @@ pub struct TlsConfig {
 pub struct TrustedDocumentsConfig {
     /// If true, the engine will only accept trusted document queries. Default: false.
     #[serde(default)]
-    pub enforce: bool,
-    /// Optional name of the header that can be set to bypass trusted documents enforcement,
-    /// when `enforce = true`. Only meaningful in combination with `bypass_header_value`.
+    pub enabled: bool,
+    /// Optional name of the header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_value`.
     #[serde(default)]
     pub bypass_header_name: Option<String>,
-    /// Optional value of the `bypass_header_name` header that can be set to bypass trusted documents
-    /// enforcement, when `enforce = true`. Only meaningful in combination with `bypass_header_name`.
+    /// Optional value of the `bypass_header_name` header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_name`.
     #[serde(default)]
     pub bypass_header_value: Option<String>,
 }
@@ -99,20 +97,6 @@ pub struct OperationLimitsConfig {
     /// every nested field adds 2 points, and every pagination argument multiplies
     /// the nested objects score by the number of records fetched.
     pub complexity: Option<u16>,
-}
-
-#[derive(Debug, PartialEq, serde::Deserialize, Default)]
-#[serde(deny_unknown_fields)]
-pub struct TrustedDocumentsConfig {
-    /// If true, the engine will only accept trusted document queries. Default: false.
-    #[serde(default)]
-    pub enabled: bool,
-    /// Optional name of the header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_value`.
-    #[serde(default)]
-    pub bypass_header_name: Option<String>,
-    /// Optional value of the `bypass_header_name` header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_name`.
-    #[serde(default)]
-    pub bypass_header_value: Option<String>,
 }
 
 impl From<OperationLimitsConfig> for engine::registry::OperationLimits {
