@@ -1,8 +1,8 @@
 use axum::{
     extract::{Query, State},
     response::IntoResponse,
-    Router,
     routing::post,
+    Router,
 };
 use bytes::Bytes;
 use futures_util::future::{join_all, BoxFuture};

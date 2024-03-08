@@ -10,13 +10,13 @@ use tokio::runtime::Handle;
 use tracing::log::{debug, error, warn};
 use tracing::Subscriber;
 
+use crate::config::Config;
 pub use error::Error;
 use grafbase_tracing::otel::layer::FilteredLayer;
 use grafbase_tracing::otel::opentelemetry_sdk::runtime::Tokio;
 pub use server::GraphFetchMethod;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{reload, EnvFilter};
-use crate::config::Config;
 
 mod config;
 mod error;
