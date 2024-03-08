@@ -30,7 +30,6 @@ tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = 
 tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rustls", rev = "ed33f65bdb9a6e6de4ad20962a49918e1a4d5d21" } # rustls-0.23
 # Drop when https://github.com/rustls/tokio-rustls/pull/44 is merged.
 tokio-rustls = { git = "https://github.com/rustls/tokio-rustls", rev = "b3a2b143239d66253ba09f8ac4bfc4b7ab00cfac" } # jbp-rustls-0.23
-worker = { git = "https://github.com/cloudflare/workers-rs", rev = "e06193a62157ec9ac4079132063a9716915f01cf" } # main
 tungstenite = { git = "https://github.com/grafbase/tungstenite-rs", rev = "783940b2e6cc02c7067efb07dc72ae49d75571b0" } # dependabot/cargo/rustls-0.23.1
 
 [workspace.package]
@@ -96,7 +95,7 @@ wasm-bindgen = "0.2"
 web-time = "1"
 which = "6"
 wiremock = "0.6.0"
-worker = "0.0.18"
+worker = "0.0.19"
 fnv = "1"
 sha2 = "0.10"
 
