@@ -1,6 +1,6 @@
 extend schema @auth(
     rules: [
-        { allow: public, operations: [introspection] }
+        { allow: public, operations: [get, list, introspection] }
     ]
 )
 

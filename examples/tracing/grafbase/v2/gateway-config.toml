@@ -1,5 +1,5 @@
 [telemetry]
-service_name = "v2"
+service_name = "federated"
 
 [telemetry.tracing]
 enabled = true

@@ -15,7 +15,6 @@ workspace = true
 chrono = "0.4"
 http.workspace = true
 http-body = "1.0"
-rand = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0"
 tonic = "0.11.0"

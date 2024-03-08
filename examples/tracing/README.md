@@ -1,6 +1,6 @@
 # Grafbase tracing example
 
-This example showcases how to configure tracing when running the CLI.
+This example showcases how to configure tracing when using `grafbase federated-dev`.
 
 ## Overview
 
@@ -22,5 +22,5 @@ The example is composed of the following:
     # Refer to the README's of each `grafbase/` projects to run them.
 
 - open up grafana at http://localhost:3000/
-- issue some requests to the Grafbase's server 
+- issue some requests to the federated server 
 

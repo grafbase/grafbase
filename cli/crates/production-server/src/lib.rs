@@ -11,7 +11,6 @@ use tracing::log::{debug, error, warn};
 use tracing::Subscriber;
 
 pub use error::Error;
-use grafbase_tracing::filter::ratio_sampling::RatioSamplingFilter;
 use grafbase_tracing::otel::layer::FilteredLayer;
 use grafbase_tracing::otel::opentelemetry_sdk::runtime::Tokio;
 pub use server::GraphFetchMethod;
@@ -84,7 +83,6 @@ fn otel_reload<S>(
             // new_batched will use the tokio runtime for its internals
             rt_handle.spawn(async move {
                 // unfortunately I have to set the filters here due to: https://github.com/tokio-rs/tracing/issues/1629
-                let sampling_filter = RatioSamplingFilter::new(tracing_config.sampling);
                 let env_filter = EnvFilter::new(&tracing_config.filter);
 
                 // create the batched layer
@@ -97,7 +95,8 @@ fn otel_reload<S>(
                 reload_handle
                     .modify(|layer| {
                         *layer.inner_mut() = otel_layer;
-                        *layer.filter_mut() = FilterExt::boxed(env_filter.and(sampling_filter));
+                        // order matters, sampling goes first
+                        *layer.filter_mut() = FilterExt::boxed(env_filter);
                     })
                     .expect("should successfully reload otel layer");
             });

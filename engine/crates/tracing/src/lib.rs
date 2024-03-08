@@ -6,8 +6,6 @@
 pub mod config;
 /// Potential errors from this crate
 pub mod error;
-/// [tracing_subscriber::layer::Filter]'s for tracing
-pub mod filter;
 /// Otel integration
 pub mod otel;
 /// Spans that are represented using types

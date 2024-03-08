@@ -60,9 +60,7 @@ where
 
     let builder = opentelemetry_sdk::trace::TracerProvider::builder().with_config(
         opentelemetry_sdk::trace::config()
-            // sampling is done through [`crate::filter::SamplingFilter`].
-            // the reasoning behind it is for sampling to be done as soon as possible during the tracing pipeline
-            .with_sampler(Sampler::AlwaysOn)
+            .with_sampler(Sampler::TraceIdRatioBased(config.sampling))
             .with_id_generator(RandomIdGenerator::default())
             .with_max_events_per_span(config.collect.max_events_per_span as u32)
             .with_max_attributes_per_span(config.collect.max_attributes_per_span as u32)

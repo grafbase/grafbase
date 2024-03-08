@@ -1,35 +1,6 @@
 #![cfg_attr(test, allow(unused_crate_dependencies))]
 #![forbid(unsafe_code)]
 
-#[macro_use]
-extern crate log;
-
-use std::process;
-
-use clap::Parser;
-use mimalloc::MiMalloc;
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
-
-use common::{analytics::Analytics, environment::Environment};
-use errors::CliError;
-use output::report;
-use watercolor::ShouldColorize;
-
-use crate::{
-    build::build,
-    cli_input::{Args, ArgumentNames, FederatedSubCommand, LogsCommand, SubCommand},
-    create::create,
-    deploy::deploy,
-    dev::dev,
-    init::init,
-    link::link,
-    login::login,
-    logout::logout,
-    logs::logs,
-    start::start,
-    unlink::unlink,
-};
-
 mod build;
 mod check;
 mod cli_input;
@@ -54,6 +25,33 @@ mod subgraphs;
 mod trust;
 mod unlink;
 mod watercolor;
+
+#[macro_use]
+extern crate log;
+
+use crate::{
+    build::build,
+    cli_input::{Args, ArgumentNames, FederatedSubCommand, LogsCommand, SubCommand},
+    create::create,
+    deploy::deploy,
+    dev::dev,
+    init::init,
+    link::link,
+    login::login,
+    logout::logout,
+    logs::logs,
+    start::start,
+    unlink::unlink,
+};
+use clap::Parser;
+use common::{analytics::Analytics, environment::Environment};
+use errors::CliError;
+use output::report;
+use std::process;
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use watercolor::ShouldColorize;
+
+use mimalloc::MiMalloc;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -82,7 +80,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
     let (otel_layer, reload_handle) = grafbase_tracing::otel::layer::new_noop();
 
     tracing_subscriber::registry()
-        .with(matches!(args.command, SubCommand::Dev(..) | SubCommand::Start(..)).then_some(otel_layer))
+        .with(matches!(args.command, SubCommand::Federated(..)).then_some(otel_layer))
         .with(fmt::layer())
         .with(filter)
         .init();
