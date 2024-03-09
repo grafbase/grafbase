@@ -141,19 +141,20 @@ impl GraphUpdater {
                 }
             };
 
+            if response.status() == StatusCode::NOT_MODIFIED {
+                tracing::debug!("no updates to the graph");
+                continue;
+            }
+
             if let Err(e) = response.error_for_status_ref() {
                 match e.status() {
                     Some(StatusCode::NOT_FOUND) => {
                         tracing::warn!("there are no subgraphs registered currently");
                     }
-                    Some(StatusCode::NOT_MODIFIED) => {
-                        tracing::debug!("no updates to the graph");
-                    }
                     _ => {
                         tracing::event!(Level::ERROR, message = "error updating graph", error = e.to_string());
                     }
                 }
-
                 continue;
             }
 
