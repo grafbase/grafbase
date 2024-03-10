@@ -27,10 +27,10 @@ async fn reserved_dates() {
     assert_eq!(dot_get!(user, "email", String), "john@example.org");
     assert!(!dot_get!(user, "id", String).is_empty());
     let created_at = dot_get!(user, "createdAt", String);
-    assert!(created_at
-        .parse::<DateTime<Utc>>()
-        .expect("Should have a valid datetime")
-        .gt(&Utc::now().checked_sub_signed(Duration::hours(1)).unwrap()));
+    more_asserts::assert_gt!(
+        created_at.parse::<DateTime<Utc>>().ok(),
+        Utc::now().checked_sub_signed(Duration::try_hours(1).expect("must be fine"))
+    );
     assert_eq!(dot_get!(user, "updatedAt", String), created_at);
 
     let post: Value = dot_get!(user, "posts.edges.0.node");
@@ -64,10 +64,10 @@ async fn reserved_dates() {
         .await;
     let todo: Value = dot_get!(response, "data.todoCreate.todo");
     let todo_created_at = dot_get!(todo, "createdAt", String);
-    assert!(todo_created_at
-        .parse::<DateTime<Utc>>()
-        .expect("Should have a valid datetime")
-        .gt(&Utc::now().checked_sub_signed(Duration::hours(1)).unwrap()));
+    more_asserts::assert_gt!(
+        todo_created_at.parse::<DateTime<Utc>>().ok(),
+        Utc::now().checked_sub_signed(Duration::try_hours(1).expect("must be fine"))
+    );
     assert_eq!(dot_get!(todo, "updatedAt", String), todo_created_at);
 
     let response = client
@@ -80,10 +80,10 @@ async fn reserved_dates() {
         .await;
     let todo_list: Value = dot_get!(response, "data.todoListCreate.todoList");
     let todo_list_created_at = dot_get!(todo_list, "createdAt", String);
-    assert!(todo_list_created_at
-        .parse::<DateTime<Utc>>()
-        .expect("Should have a valid datetime")
-        .gt(&Utc::now().checked_sub_signed(Duration::hours(1)).unwrap()));
+    more_asserts::assert_gt!(
+        todo_list_created_at.parse::<DateTime<Utc>>().ok(),
+        Utc::now().checked_sub_signed(Duration::try_hours(1).expect("must be fine"))
+    );
     assert_eq!(dot_get!(todo_list, "updatedAt", String), todo_list_created_at);
     assert_ne!(todo_created_at, todo_list_created_at);
 

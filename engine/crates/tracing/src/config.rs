@@ -15,7 +15,8 @@ use crate::error::TracingError;
 pub(crate) const DEFAULT_COLLECT_VALUE: usize = 128;
 pub(crate) const DEFAULT_FILTER: &str = "grafbase=info,off";
 pub(crate) const DEFAULT_SAMPLING: f64 = 0.15;
-const DEFAULT_EXPORT_TIMEOUT: chrono::Duration = chrono::Duration::seconds(60);
+// FIXME: Use this constant when `unwrap()` becomes const-stable.
+// const DEFAULT_EXPORT_TIMEOUT: chrono::Duration = chrono::Duration::try_seconds(60).unwrap();
 
 /// Tracing configuration
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
@@ -155,7 +156,7 @@ pub struct TracingBatchExportConfig {
 
 impl TracingBatchExportConfig {
     fn default_scheduled_delay() -> chrono::Duration {
-        chrono::Duration::seconds(5)
+        chrono::Duration::try_seconds(5).expect("must be fine")
     }
     fn default_max_queue_size() -> usize {
         2048
@@ -174,7 +175,7 @@ where
 {
     let input = i64::deserialize(deserializer)?;
 
-    Ok(chrono::Duration::seconds(input))
+    Ok(chrono::Duration::try_seconds(input).expect("must be fine"))
 }
 
 impl Default for TracingBatchExportConfig {
@@ -248,7 +249,7 @@ impl Default for TracingOtlpExporterConfig {
             protocol: Default::default(),
             grpc: None,
             http: None,
-            timeout: DEFAULT_EXPORT_TIMEOUT,
+            timeout: default_otlp_export_timeout(),
         }
     }
 }
@@ -325,7 +326,7 @@ impl TryFrom<TracingExporterTlsConfig> for ClientTlsConfig {
 }
 
 fn default_otlp_export_timeout() -> chrono::Duration {
-    DEFAULT_EXPORT_TIMEOUT
+    chrono::Duration::try_seconds(60).expect("must be fine")
 }
 
 /// OTLP HTTP exporting configuration
@@ -409,8 +410,7 @@ pub mod tests {
     use super::{
         Headers, TracingBatchExportConfig, TracingCollectConfig, TracingConfig, TracingExporterTlsConfig,
         TracingOtlpExporterConfig, TracingOtlpExporterGrpcConfig, TracingOtlpExporterHttpConfig,
-        TracingOtlpExporterProtocol, TracingStdoutExporterConfig, DEFAULT_EXPORT_TIMEOUT, DEFAULT_FILTER,
-        DEFAULT_SAMPLING,
+        TracingOtlpExporterProtocol, TracingStdoutExporterConfig, DEFAULT_FILTER, DEFAULT_SAMPLING,
     };
 
     #[test]
@@ -559,7 +559,7 @@ pub mod tests {
                 protocol: Default::default(),
                 grpc: None,
                 http: None,
-                timeout: DEFAULT_EXPORT_TIMEOUT,
+                timeout: crate::config::default_otlp_export_timeout(),
             }),
             config.exporters.otlp
         );
@@ -586,7 +586,7 @@ pub mod tests {
                 endpoint: Url::parse("http://localhost:1234").unwrap(),
                 enabled: true,
                 batch_export: TracingBatchExportConfig {
-                    scheduled_delay: chrono::Duration::seconds(10),
+                    scheduled_delay: chrono::Duration::try_seconds(10).expect("must be fine"),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -633,7 +633,7 @@ pub mod tests {
                 endpoint: Url::parse("http://localhost:1234").unwrap(),
                 enabled: true,
                 batch_export: TracingBatchExportConfig {
-                    scheduled_delay: chrono::Duration::seconds(10),
+                    scheduled_delay: chrono::Duration::try_seconds(10).expect("must be fine"),
                     max_queue_size: 10,
                     max_export_batch_size: 10,
                     max_concurrent_exports: 10,
@@ -657,7 +657,7 @@ pub mod tests {
                         HeaderValue::from_str("header1").unwrap()
                     )]),
                 }),
-                timeout: chrono::Duration::seconds(120),
+                timeout: chrono::Duration::try_seconds(120).expect("must be fine"),
             }),
             config.exporters.otlp
         );
@@ -686,12 +686,12 @@ pub mod tests {
             Some(TracingStdoutExporterConfig {
                 enabled: true,
                 batch_export: TracingBatchExportConfig {
-                    scheduled_delay: chrono::Duration::seconds(10),
+                    scheduled_delay: chrono::Duration::try_seconds(10).expect("must be fine"),
                     max_queue_size: 10,
                     max_export_batch_size: 10,
                     max_concurrent_exports: 10,
                 },
-                timeout: chrono::Duration::seconds(10),
+                timeout: chrono::Duration::try_seconds(10).expect("must be fine"),
             }),
             config.exporters.stdout
         );

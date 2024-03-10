@@ -549,7 +549,8 @@ fn make_jwt(claims: &serde_json::Value) -> String {
         AlgorithmExt, Claims, Header, TimeOptions,
     };
 
-    let claims = Claims::new(claims).set_duration_and_issuance(&TimeOptions::default(), Duration::days(7));
+    let claims = Claims::new(claims)
+        .set_duration_and_issuance(&TimeOptions::default(), Duration::try_days(7).expect("must be fine"));
 
     let key = Hs256Key::new(b"abc123");
     let header = Header::empty().with_key_id("my-key");

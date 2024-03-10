@@ -225,7 +225,7 @@ fn generate_hs512_token(sub: &str, groups: &[&str]) -> String {
         sub,
         groups,
     })
-    .set_duration_and_issuance(&time_opts, chrono::Duration::hours(1));
+    .set_duration_and_issuance(&time_opts, chrono::Duration::try_hours(1).expect("must be fine"));
 
     Hs512.token(&header, &claims, &key).unwrap()
 }
@@ -297,7 +297,7 @@ fn generate_rs256_token(
         sub,
         groups,
     })
-    .set_duration_and_issuance(&time_opts, chrono::Duration::hours(1));
+    .set_duration_and_issuance(&time_opts, chrono::Duration::try_hours(1).expect("must be fine"));
 
     RS_256.token(&header, &claims, key).unwrap()
 }
