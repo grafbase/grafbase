@@ -148,7 +148,7 @@ jobs:
 
       - name: Github Release
         id: gh-release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           body_path: cli/changelog/${{ env.VERSION_BUMP }}.md
           draft: ${{ inputs.draft }}
