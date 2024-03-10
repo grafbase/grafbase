@@ -20,7 +20,7 @@ multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork
 names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" } # main
 oauth2 = { git = "https://github.com/grafbase/oauth2-rs", rev = "18b1f9a8b2fae61b50c0c6f2d44672ec176f4612" } # http-v1
 openidconnect = { git = "https://github.com/grafbase/openidconnect-rs", rev = "dee2958a8769dab1d86ef0070e5a185df454f8c2" } # http-v1
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "c0d2f8fc8aa40e8fe4f591cf30958a6e1c84c428" } # hyper-1.0-rustls-0.23-with-patches
+reqwest = { git = "https://github.com/grafbase/reqwest", rev = "8a657aae2c3d32ccc6bcafa21b911fb9ecbb9986" } # hyper-1.0-rustls-0.23-with-patches
 reqwest-middleware = { git = "https://github.com/grafbase/reqwest-middleware", rev = "030e178305b7b4352b8dfd8bb04aba970843afc1" } # http-v1
 rudderanalytics =  { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "58bd3a439453a6668fbfb98874e08cabd8bd616b" } # async
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "31165b5a70f329b5e9c8a04284cccec6d76ea248" } # minify-field-names-strum-0.26
