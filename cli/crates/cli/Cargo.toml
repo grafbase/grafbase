@@ -82,6 +82,7 @@ jwt-compact = { version = "0.8.0", default-features = false, features = [
   "clock",
   "rsa",
 ] }
+more-asserts = "0.3"
 multipart-stream = "0.1"
 rand = "0.8"
 regex = "1"

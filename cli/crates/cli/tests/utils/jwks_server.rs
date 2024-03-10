@@ -72,8 +72,8 @@ impl IdentityServer {
 
         let header = Header::empty();
         let claims = Claims::new(claims)
-            .set_duration_and_issuance(&Default::default(), Duration::minutes(5))
-            .set_not_before(Utc::now() - Duration::hours(1));
+            .set_duration_and_issuance(&Default::default(), Duration::try_minutes(5).expect("should be fine"))
+            .set_not_before(Utc::now() - Duration::try_hours(1).expect("must be fine"));
 
         Hs256.token(&header, &claims, &(&self.jwk).try_into().unwrap()).unwrap()
     }

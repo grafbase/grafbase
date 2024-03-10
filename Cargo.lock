@@ -2694,6 +2694,7 @@ dependencies = [
  "log 0.4.21",
  "lru",
  "mimalloc",
+ "more-asserts",
  "multipart-stream",
  "once_cell",
  "os_type",

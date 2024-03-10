@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, NaiveDateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use serde_json::json;
 use wiremock::{
     matchers::{method, path},
@@ -111,10 +111,8 @@ macro_rules! verify_test {
         #[tokio::test]
         async fn $fn_name() {
             let client = {
-                let leeway = Duration::seconds(5);
-                let clock_fn = || {
-                    DateTime::<Utc>::from_naive_utc_and_offset(NaiveDateTime::from_timestamp_opt($iat, 0).unwrap(), Utc)
-                };
+                let leeway = Duration::try_seconds(5).expect("must be fine");
+                let clock_fn = || DateTime::<Utc>::from_timestamp($iat, 0).expect("must succeed");
                 Client {
                     time_opts: TimeOptions::new(leeway, clock_fn),
                     groups_claim: $groups_claim,
@@ -152,10 +150,8 @@ macro_rules! verify_fail {
         #[tokio::test]
         async fn $fn_name() {
             let client = {
-                let leeway = Duration::seconds(5);
-                let clock_fn = || {
-                    DateTime::<Utc>::from_naive_utc_and_offset(NaiveDateTime::from_timestamp_opt($iat, 0).unwrap(), Utc)
-                };
+                let leeway = Duration::try_seconds(5).expect("must be fine");
+                let clock_fn = || DateTime::<Utc>::from_timestamp($iat, 0).expect("must succeed");
                 Client {
                     time_opts: TimeOptions::new(leeway, clock_fn),
                     groups_claim: $groups_claim,
@@ -487,13 +483,8 @@ verify_test!(
 #[tokio::test]
 async fn token_signed_with_secret() {
     let client = {
-        let leeway = Duration::seconds(5);
-        let clock_fn = || {
-            DateTime::<Utc>::from_naive_utc_and_offset(
-                NaiveDateTime::from_timestamp_opt(1_673_368_763, 0).unwrap(),
-                Utc,
-            )
-        };
+        let leeway = Duration::try_seconds(5).expect("must be fine");
+        let clock_fn = || DateTime::<Utc>::from_timestamp(1_673_368_763, 0).expect("must succeed");
         Client {
             time_opts: TimeOptions::new(leeway, clock_fn),
             groups_claim: Some("groups"),
@@ -574,13 +565,8 @@ async fn token_signed_with_secret() {
 #[test]
 fn token_with_groups_containing_null_should_be_interpreted_as_empty_groups() {
     let client = {
-        let leeway = Duration::seconds(5);
-        let clock_fn = || {
-            DateTime::<Utc>::from_naive_utc_and_offset(
-                NaiveDateTime::from_timestamp_opt(1_673_368_763, 0).unwrap(),
-                Utc,
-            )
-        };
+        let leeway = Duration::try_seconds(5).expect("must be fine");
+        let clock_fn = || DateTime::<Utc>::from_timestamp(1_673_368_763, 0).expect("must succeed");
         Client {
             time_opts: TimeOptions::new(leeway, clock_fn),
             groups_claim: Some("groups"),
@@ -630,13 +616,8 @@ fn token_with_groups_containing_null_should_be_interpreted_as_empty_groups() {
 #[test]
 fn token_with_invalid_groups_set_to_string_should_fail() {
     let client = {
-        let leeway = Duration::seconds(5);
-        let clock_fn = || {
-            DateTime::<Utc>::from_naive_utc_and_offset(
-                NaiveDateTime::from_timestamp_opt(1_673_368_763, 0).unwrap(),
-                Utc,
-            )
-        };
+        let leeway = Duration::try_seconds(5).expect("must be fine");
+        let clock_fn = || DateTime::<Utc>::from_timestamp(1_673_368_763, 0).expect("must succeed");
         Client {
             time_opts: TimeOptions::new(leeway, clock_fn),
             groups_claim: Some("groups"),
@@ -673,13 +654,8 @@ fn token_with_invalid_groups_set_to_string_should_fail() {
 #[test]
 fn token_with_invalid_groups_set_to_array_of_wrong_type_should_fail() {
     let client = {
-        let leeway = Duration::seconds(5);
-        let clock_fn = || {
-            DateTime::<Utc>::from_naive_utc_and_offset(
-                NaiveDateTime::from_timestamp_opt(1_673_368_763, 0).unwrap(),
-                Utc,
-            )
-        };
+        let leeway = Duration::try_seconds(5).expect("must be fine");
+        let clock_fn = || DateTime::<Utc>::from_timestamp(1_673_368_763, 0).expect("must succeed");
         Client {
             time_opts: TimeOptions::new(leeway, clock_fn),
             groups_claim: Some("groups"),
@@ -716,13 +692,8 @@ fn token_with_invalid_groups_set_to_array_of_wrong_type_should_fail() {
 #[test]
 fn token_with_groups_set_to_null_should_be_interpreted_as_empty_groups() {
     let client = {
-        let leeway = Duration::seconds(5);
-        let clock_fn = || {
-            DateTime::<Utc>::from_naive_utc_and_offset(
-                NaiveDateTime::from_timestamp_opt(1_673_368_763, 0).unwrap(),
-                Utc,
-            )
-        };
+        let leeway = Duration::try_seconds(5).expect("must be fine");
+        let clock_fn = || DateTime::<Utc>::from_timestamp(1_673_368_763, 0).expect("must succeed");
         Client {
             time_opts: TimeOptions::new(leeway, clock_fn),
             groups_claim: Some("groups"),
@@ -771,13 +742,8 @@ const HANKO_JWT: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjcxZjE5MTcyLTIyOWMtNGRlNS0
 #[tokio::test]
 async fn jwks_from_hanko_should_verify() {
     let client = {
-        let leeway = Duration::seconds(5);
-        let clock_fn = || {
-            DateTime::<Utc>::from_naive_utc_and_offset(
-                NaiveDateTime::from_timestamp_opt(1_683_721_626, 0).unwrap(),
-                Utc,
-            )
-        };
+        let leeway = Duration::try_seconds(5).expect("must be fine");
+        let clock_fn = || DateTime::<Utc>::from_timestamp(1_683_721_626, 0).expect("must succeed");
         Client {
             time_opts: TimeOptions::new(leeway, clock_fn),
             ..Default::default()
@@ -840,13 +806,8 @@ const AZURE_JWT: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ii1LSTNROW5
 #[tokio::test]
 async fn jwt_from_azure_ad_should_verify() {
     let client = {
-        let leeway = Duration::seconds(5);
-        let clock_fn = || {
-            DateTime::<Utc>::from_naive_utc_and_offset(
-                NaiveDateTime::from_timestamp_opt(1_683_197_158, 0).unwrap(),
-                Utc,
-            )
-        };
+        let leeway = Duration::try_seconds(5).expect("must be fine");
+        let clock_fn = || DateTime::<Utc>::from_timestamp(1_683_197_158, 0).expect("must succeed");
         Client {
             time_opts: TimeOptions::new(leeway, clock_fn),
             ..Default::default()
