@@ -16,7 +16,7 @@ async-trait.workspace = true
 cynic.workspace = true
 cynic-introspection.workspace = true
 engine-parser.workspace = true
-engine-v2.workspace = true
+engine-v2 = { workspace = true, features = ["tracing"] }
 gateway-v2.workspace = true
 graphql-mocks.workspace = true
 engine-config-builder = { path = "../engine-config-builder" }
@@ -61,6 +61,7 @@ features = ["json"]
 [dependencies.engine]
 path = "../engine"
 default-features = false
+features = ["tracing"]
 
 [dependencies.parser-graphql]
 path = "../parser-graphql"

@@ -6,6 +6,7 @@ use crate::config::{AuthenticationConfig, OperationLimitsConfig};
 use ascii::AsciiString;
 use std::sync::Arc;
 use tokio::sync::watch;
+use tracing::Level;
 
 /// The method of running the gateway.
 pub enum GraphFetchMethod {
@@ -62,6 +63,14 @@ impl GraphFetchMethod {
                 });
             }
             GraphFetchMethod::FromLocal { federated_schema } => {
+                tracing::event!(
+                    Level::INFO,
+                    message = "creating a new gateway",
+                    operation_limits = operation_limits.is_some(),
+                    introspection_enabled = enable_introspection,
+                    authentication = authentication.is_some(),
+                );
+
                 let gateway = gateway::generate(
                     &federated_schema,
                     operation_limits,
