@@ -148,6 +148,18 @@ impl Environment {
     }
 
     #[cfg(not(target_os = "windows"))]
+    /// Exactly the same as prepare_ts_config_dependencies but it
+    /// creates a ESM package.json instead
+    pub fn prepare_ts_config_dependencies_module(&mut self) {
+        if self.ts_config_dependencies_prepared {
+            return;
+        }
+        fs::write("package.json", include_str!("../assets/sdk-package-module.json")).unwrap();
+        cmd!("npm", "install").run().unwrap();
+        self.ts_config_dependencies_prepared = true;
+    }
+
+    #[cfg(not(target_os = "windows"))]
     pub fn prepare_ts_config_dependencies(&mut self) {
         if self.ts_config_dependencies_prepared {
             return;

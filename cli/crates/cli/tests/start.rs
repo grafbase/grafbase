@@ -2,39 +2,55 @@
 mod utils;
 
 use utils::environment::Environment;
-#[ignore]
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+
 #[cfg(not(target_os = "windows"))]
-async fn start_with_ts_config() {
+#[rstest::rstest]
+#[case(true)]
+#[case(false)]
+#[tokio::test]
+async fn start_with_ts_config(#[case] module: bool) {
     let mut env = Environment::init();
-    env.set_typescript_config(include_str!("config/default.ts"));
+    if module {
+        env.prepare_ts_config_dependencies_module()
+    } else {
+        env.prepare_ts_config_dependencies()
+    }
+
+    env.set_typescript_config(indoc::indoc! { r#"
+        import { config, g } from '@grafbase/sdk'
+
+        g.query('hello', {
+            args: { name: g.string().optional() },
+            returns: g.string(),
+            resolver: 'hello',
+        })
+
+        export default config({ schema: g })
+    "#});
+    env.write_resolver(
+        "hello.js",
+        indoc::indoc! {
+            r#"
+            export default function Resolver(_, {name}) {
+                return `Hello ${name}`;
+            }
+            "#
+        },
+    );
+
     env.grafbase_start();
-    let client = env.create_client().with_api_key();
+    let client = env.create_async_client().with_api_key();
     client.poll_endpoint(30, 300).await;
 
     let response = client
-        .gql::<serde_json::Value>(
-            r"
-        query {
-            userCollection(first: 100) {
-                edges {
-                    node {
-                        id
-                    }
-                }
-            }
-        }
-    ",
-        )
-        .send()
+        .gql::<serde_json::Value>(r#"query { hello(name: "there") }"#)
         .await;
+
     assert_eq!(
         response,
         serde_json::json!({
             "data": {
-                "userCollection": {
-                    "edges": []
-                }
+                "hello": "Hello there"
             }
         })
     );
