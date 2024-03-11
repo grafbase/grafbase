@@ -20,8 +20,8 @@ mod subscription;
 mod variables;
 
 pub(crate) use federation::*;
-use grafbase_tracing::span::subgraph::SubgraphRequestSpan;
-use grafbase_tracing::span::{GqlRecorderSpanExt, GqlResponseAttributes};
+#[cfg(feature = "tracing")]
+use grafbase_tracing::span::{subgraph::SubgraphRequestSpan, GqlRecorderSpanExt, GqlResponseAttributes};
 pub(crate) use subscription::*;
 
 pub(crate) struct GraphqlExecutionPlan {
@@ -86,6 +86,7 @@ pub(crate) struct GraphqlExecutor<'ctx> {
 impl<'ctx> GraphqlExecutor<'ctx> {
     #[tracing::instrument(skip_all, fields(plan_id = %self.plan.id(), federated_subgraph = %self.subgraph.name()))]
     pub async fn execute(mut self) -> ExecutionResult<ResponsePart> {
+        #[cfg(feature = "tracing")]
         let subgraph_request_span = SubgraphRequestSpan::new(self.subgraph.name())
             // TODO: atm this contains variables and we shouldn't be considering those. A follow up effort will take of this
             // .with_document(self.json_body.as_str())
@@ -125,6 +126,7 @@ impl<'ctx> GraphqlExecutor<'ctx> {
             &mut serde_json::Deserializer::from_slice(&bytes),
         );
 
+        #[cfg(feature = "tracing")]
         subgraph_request_span.record_gql_response(GqlResponseAttributes {
             has_errors: self.response_part.has_errors(),
         });

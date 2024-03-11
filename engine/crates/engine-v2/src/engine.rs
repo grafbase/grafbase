@@ -2,13 +2,14 @@ use std::sync::Arc;
 
 use futures::channel::mpsc;
 use futures_util::{SinkExt, Stream};
+#[cfg(feature = "tracing")]
 use tracing::Instrument;
 
 use async_runtime::stream::StreamExt as _;
 use engine::RequestHeaders;
 use engine_parser::types::OperationType;
-use grafbase_tracing::span::gql::GqlRequestSpan;
-use grafbase_tracing::span::{GqlRecorderSpanExt, GqlResponseAttributes};
+#[cfg(feature = "tracing")]
+use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlResponseAttributes};
 use schema::Schema;
 
 use crate::{
@@ -52,12 +53,16 @@ impl Engine {
     }
 
     pub async fn execute(self: &Arc<Self>, request: engine::Request, headers: RequestHeaders) -> PreparedExecution {
+        #[cfg(feature = "tracing")]
         let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
+        #[cfg(not(feature = "tracing"))]
+        let gql_span = tracing::Span::none();
 
         let coordinator = match self.prepare_coordinator(request, headers).await {
             Ok(coordinator) => coordinator,
             Err(response) => {
                 return {
+                    #[cfg(feature = "tracing")]
                     gql_span.record_gql_response(GqlResponseAttributes { has_errors: true });
                     PreparedExecution::bad_request(response)
                 }
@@ -65,6 +70,7 @@ impl Engine {
         };
 
         if matches!(coordinator.operation().ty, OperationType::Subscription) {
+            #[cfg(feature = "tracing")]
             gql_span.record_gql_response(GqlResponseAttributes { has_errors: true });
 
             return PreparedExecution::bad_request(Response::from_error(
@@ -81,13 +87,14 @@ impl Engine {
         request: engine::Request,
         headers: RequestHeaders,
     ) -> impl Stream<Item = Response> {
+        #[cfg(feature = "tracing")]
         let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
 
         let (mut sender, receiver) = mpsc::channel(2);
         let engine = Arc::clone(self);
 
-        receiver.join(
-            async move {
+        receiver.join({
+            let future = async move {
                 let coordinator = match engine.prepare_coordinator(request, headers).await {
                     Ok(coordinator) => coordinator,
                     Err(response) => {
@@ -105,9 +112,11 @@ impl Engine {
                 }
 
                 coordinator.execute_subscription(sender).await
-            }
-            .instrument(gql_span),
-        )
+            };
+            #[cfg(feature = "tracing")]
+            let future = future.instrument(gql_span);
+            future
+        })
     }
 
     async fn prepare_coordinator(
