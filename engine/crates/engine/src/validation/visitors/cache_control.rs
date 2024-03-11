@@ -32,15 +32,16 @@ impl<'ctx, 'a> Visitor<'ctx> for CacheControlCalculate<'a> {
     }
 
     fn enter_field(&mut self, ctx: &mut VisitorContext<'_>, field: &Positioned<Field>) {
-        if let Some(registry_field) = ctx
-            .parent_type()
-            .and_then(|parent| parent.field_by_name(&field.node.name.node))
-        {
+        if let Some((registry_field, parent_type)) = ctx.parent_type().and_then(|parent| {
+            parent
+                .field_by_name(&field.node.name.node)
+                .map(|field| (field, parent.name()))
+        }) {
             self.cache_control.merge(registry_field.cache_control.clone());
 
             if let Some(policy) = &registry_field.cache_control.invalidation_policy {
                 self.invalidation_policies.insert(CacheInvalidation {
-                    ty: registry_field.ty.to_string(),
+                    ty: parent_type.to_string(),
                     policy: policy.clone(),
                 });
             }

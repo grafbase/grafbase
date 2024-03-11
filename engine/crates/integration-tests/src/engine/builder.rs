@@ -96,9 +96,15 @@ impl EngineBuilder {
     }
 
     pub async fn build(self) -> Engine {
-        let ParseResult { registry, .. } = parser_sdl::parse(&self.schema, &self.environment_variables, true, &self)
+        let ParseResult {
+            mut registry,
+            global_cache_rules,
+            ..
+        } = parser_sdl::parse(&self.schema, &self.environment_variables, true, &self)
             .await
             .unwrap();
+
+        global_cache_rules.apply(&mut registry).unwrap();
 
         let registry: Registry = serde_json::from_value(serde_json::to_value(registry).unwrap()).unwrap();
 

@@ -659,4 +659,48 @@ mod tests {
             ))
         );
     }
+
+    #[test]
+    #[allow(clippy::panic)]
+    fn should_apply_global_cache_rules_on_resolver_types() {
+        let variables = HashMap::new();
+        const SCHEMA: &str = r#"
+        type Query {
+            slow(seconds: String!): Post! @resolver(name: "slow")
+        }
+
+        extend schema @cache(rules: [{ maxAge: 60, staleWhileRevalidate: 10, types: "Post" }])
+
+        type Post {
+            seconds: String!
+            hello: String!
+        }
+    "#;
+
+        let mut result = to_parse_result_with_variables(SCHEMA, &variables).expect("must succeed");
+
+        // apply caching controls
+        if let Err(global_cache_rules_result) = result.global_cache_rules.apply(&mut result.registry) {
+            panic!("global cache rules apply must succeed - {global_cache_rules_result:?}");
+        };
+
+        let post_type = result
+            .registry
+            .types
+            .get("Post")
+            .unwrap()
+            .object()
+            .expect("should be an object");
+
+        assert_eq!(
+            post_type.cache_control,
+            CacheControl {
+                public: false,
+                max_age: 60,
+                stale_while_revalidate: 10,
+                invalidation_policy: None,
+                access_scopes: None,
+            }
+        );
+    }
 }
