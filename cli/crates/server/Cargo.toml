@@ -57,7 +57,7 @@ common = { package = "grafbase-local-common", path = "../common", version = "0.6
 gateway = { path = "../gateway" }
 typed-resolvers = { path = "../typed-resolvers" }
 federated-dev = { path = "../federated-dev" }
-engine = { path = "../../../engine/crates/engine" }
+engine = { path = "../../../engine/crates/engine", features = ["tracing"] }
 parser-sdl = { path = "../../../engine/crates/parser-sdl", features = [
   "local",
 ] }

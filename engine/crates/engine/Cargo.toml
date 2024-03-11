@@ -68,7 +68,7 @@ graph-entities.workspace = true
 graphql-cursor.workspace = true
 log = { path = "../log" }
 runtime.workspace = true
-grafbase-tracing.workspace = true
+grafbase-tracing = { workspace = true, optional = true }
 
 # Feature optional dependencies
 rust_decimal = { version = "1" }
@@ -80,6 +80,9 @@ base64.workspace = true
 time = { version = "0.3.34", features = ["parsing"] }
 uuid.workspace = true
 hex = "0.4.3"
+
+[features]
+tracing = ["dep:grafbase-tracing"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { workspace = true, features = ["json"] }

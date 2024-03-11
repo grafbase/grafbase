@@ -16,6 +16,7 @@ workspace = true
 [features]
 default = []
 plan_cache = ["dep:mini-moka"]
+tracing = ["dep:grafbase-tracing"]
 
 [dependencies]
 async-runtime.workspace = true
@@ -39,11 +40,10 @@ mini-moka = { version = "0.10", optional = true, features = ["sync"] }
 config = { package = "engine-v2-config", path = "./config" }
 engine-value = { path = "../engine/value" }
 engine-parser = { path = "../engine/parser" }
-grafbase-tracing.workspace = true
+grafbase-tracing = { workspace = true, optional = true }
 schema = { path = "./schema", package = "engine-v2-schema" }
 # needed for errors, not entirely sure if we should be separate or not right now.
 # might move it back to engine, the goal isn't to rewrite everything from engine per Se
 # but having more explicit dependencies for now.
 engine = { path = "../engine" }
 runtime.workspace = true
-

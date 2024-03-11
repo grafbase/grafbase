@@ -8,7 +8,9 @@ use futures_util::{
     stream::{BoxStream, FuturesUnordered},
     Future, SinkExt, StreamExt,
 };
+#[cfg(feature = "tracing")]
 use grafbase_tracing::span::{GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
+#[cfg(feature = "tracing")]
 use tracing::Span;
 
 use crate::{
@@ -51,7 +53,9 @@ impl ExecutionCoordinator {
     }
 
     pub async fn execute(self) -> Response {
+        #[cfg(feature = "tracing")]
         let gql_span = Span::current();
+        #[cfg(feature = "tracing")]
         gql_span.record_gql_request(GqlRequestAttributes {
             operation_type: self.operation().ty.as_ref(),
             operation_name: self.operation().name.as_deref(),
@@ -71,6 +75,7 @@ impl ExecutionCoordinator {
         .execute()
         .await;
 
+        #[cfg(feature = "tracing")]
         gql_span.record_gql_response(GqlResponseAttributes {
             has_errors: response.has_errors(),
         });
@@ -81,11 +86,14 @@ impl ExecutionCoordinator {
     pub async fn execute_subscription(self, mut responses: ResponseSender) {
         assert!(matches!(self.operation_plan.ty, OperationType::Subscription));
 
-        let current_span = Span::current();
-        current_span.record_gql_request(GqlRequestAttributes {
-            operation_type: self.operation().ty.as_ref(),
-            operation_name: self.operation().name.as_deref(),
-        });
+        #[cfg(feature = "tracing")]
+        {
+            let current_span = Span::current();
+            current_span.record_gql_request(GqlRequestAttributes {
+                operation_type: self.operation().ty.as_ref(),
+                operation_name: self.operation().name.as_deref(),
+            });
+        }
 
         let mut state = self.operation_plan.new_execution_state();
         let subscription_plan_id = state.pop_subscription_plan_id();
