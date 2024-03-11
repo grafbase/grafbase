@@ -57,14 +57,6 @@ fn main() {
               kind: ChangeKind::AddObjectType
           },
           Change {
-              path: String::from("PizzaName.english"),
-              kind: ChangeKind::AddField
-          },
-          Change {
-              path: String::from("PizzaName.italian"),
-              kind: ChangeKind::AddField
-          },
-          Change {
               path: String::from("Topping.PINEAPPLE"),
               kind: ChangeKind::RemoveEnumValue
           },
