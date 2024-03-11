@@ -17,14 +17,6 @@
     {
       "path": "People",
       "kind": "AddEnum"
-    },
-    {
-      "path": "People.CAT",
-      "kind": "AddEnumValue"
-    },
-    {
-      "path": "People.DOG",
-      "kind": "AddEnumValue"
     }
   ]
 }

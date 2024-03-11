@@ -9,18 +9,6 @@
     {
       "path": "Color",
       "kind": "AddUnion"
-    },
-    {
-      "path": "Color.Blue",
-      "kind": "AddUnionMember"
-    },
-    {
-      "path": "Color.Green",
-      "kind": "AddUnionMember"
-    },
-    {
-      "path": "Color.Red",
-      "kind": "AddUnionMember"
     }
   ]
 }

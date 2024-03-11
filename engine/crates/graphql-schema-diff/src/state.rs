@@ -126,13 +126,12 @@ fn push_field_changes(
         let parent = &types_map[type_name];
         let parent_is_gone = || matches!(parent, (Some(_), None));
 
-        if matches!(parent, (Some(a), Some(b)) if a != b) {
-            continue; // so we don't falsely interpret same name as field type change
-        }
-
         let definition = match parent {
             (None, None) => unreachable!(),
-            (Some(kind), None) | (None, Some(kind)) => *kind,
+            (Some(a), Some(b)) if a != b => {
+                continue; // so we don't falsely interpret same name as field type change
+            }
+            (Some(_), None) | (None, Some(_)) => continue,
             (Some(kind), Some(_)) => *kind,
         };
 

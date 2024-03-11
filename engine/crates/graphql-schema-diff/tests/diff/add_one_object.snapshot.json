@@ -3,10 +3,6 @@
     {
       "path": "Locust",
       "kind": "AddObjectType"
-    },
-    {
-      "path": "Locust.id",
-      "kind": "AddField"
     }
   ],
   "target → src": [
