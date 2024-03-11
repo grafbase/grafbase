@@ -1,5 +1,5 @@
 use crate::{federated_graph::*, FederatedGraph};
-use std::fmt::{self, Display, Write as _};
+use std::fmt::{self, Display, Write};
 
 const INDENT: &str = "    ";
 const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
@@ -328,7 +328,9 @@ fn write_composed_directives(directives: Directives, graph: &FederatedGraphV2, s
         match directive {
             Directive::Inaccessible => write!(sdl, " @inaccessible")?,
             Directive::Deprecated { reason: Some(reason) } => {
-                write!(sdl, r#" @deprecated(reason: "{reason}")"#, reason = graph[*reason])?
+                write!(sdl, " @deprecated(reason: ",)?;
+                write_quoted(sdl, &graph[*reason])?;
+                write!(sdl, ")")?;
             }
             Directive::Deprecated { reason: None } => write!(sdl, r#" @deprecated"#)?,
             Directive::Other { name, arguments } => {
@@ -553,11 +555,7 @@ impl Display for ValueDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let ValueDisplay(value, graph) = self;
         match value {
-            Value::String(s) => {
-                f.write_str("\"")?;
-                f.write_str(&graph[*s])?;
-                f.write_str("\"")
-            }
+            Value::String(s) => write_quoted(f, &graph[*s]),
             Value::Int(i) => Display::fmt(i, f),
             Value::Float(val) => Display::fmt(val, f),
             Value::EnumValue(val) => f.write_str(&graph[*val]),
@@ -585,36 +583,102 @@ impl Display for Description<'_> {
     }
 }
 
+// Copy-pasted from async-graphql-value
+fn write_quoted(sdl: &mut impl Write, s: &str) -> fmt::Result {
+    sdl.write_char('"')?;
+    for c in s.chars() {
+        match c {
+            c @ ('\r' | '\n' | '\t' | '"' | '\\') => {
+                sdl.write_char('\\')?;
+                sdl.write_char(c)
+            }
+            c if c.is_control() => write!(sdl, "\\u{:04}", c as u32),
+            c => sdl.write_char(c),
+        }?
+    }
+    sdl.write_char('"')
+}
+
 #[cfg(test)]
-#[test]
-fn test_render_empty() {
-    use expect_test::expect;
+mod tests {
+    use crate::from_sdl;
 
-    let empty = super::from_sdl("type Query").unwrap();
-    let actual = super::render_sdl(empty).expect("valid");
-    let expected = expect![[r#"
-        directive @core(feature: String!) repeatable on SCHEMA
+    use super::*;
 
-        directive @join__owner(graph: join__Graph!) on OBJECT
+    #[test]
+    fn test_render_empty() {
+        use expect_test::expect;
 
-        directive @join__type(
-            graph: join__Graph!
-            key: String!
-            resolvable: Boolean = true
-        ) repeatable on OBJECT | INTERFACE
+        let empty = from_sdl("type Query").unwrap();
+        let actual = render_sdl(empty).expect("valid");
+        let expected = expect![[r#"
+            directive @core(feature: String!) repeatable on SCHEMA
 
-        directive @join__field(
-            graph: join__Graph
-            requires: String
-            provides: String
-        ) on FIELD_DEFINITION
+            directive @join__owner(graph: join__Graph!) on OBJECT
 
-        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+            directive @join__type(
+                graph: join__Graph!
+                key: String!
+                resolvable: Boolean = true
+            ) repeatable on OBJECT | INTERFACE
 
-        enum join__Graph
+            directive @join__field(
+                graph: join__Graph
+                requires: String
+                provides: String
+            ) on FIELD_DEFINITION
 
-        type Query
-    "#]];
+            directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
-    expected.assert_eq(&actual);
+            enum join__Graph
+
+            type Query
+        "#]];
+
+        expected.assert_eq(&actual);
+    }
+
+    #[test]
+    fn escape_strings() {
+        use expect_test::expect;
+
+        let empty = from_sdl(
+            r###"
+            directive @dummy(test: String!) on FIELD
+
+            type Query {
+                field: String @deprecated(reason: "This is a \"deprecated\" reason") @dummy(test: "a \"test\"")
+            }
+            "###,
+        )
+        .unwrap();
+        let actual = render_sdl(empty).expect("valid");
+        let expected = expect![[r#"
+            directive @core(feature: String!) repeatable on SCHEMA
+
+            directive @join__owner(graph: join__Graph!) on OBJECT
+
+            directive @join__type(
+                graph: join__Graph!
+                key: String!
+                resolvable: Boolean = true
+            ) repeatable on OBJECT | INTERFACE
+
+            directive @join__field(
+                graph: join__Graph
+                requires: String
+                provides: String
+            ) on FIELD_DEFINITION
+
+            directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+            enum join__Graph
+
+            type Query {
+                field: String @deprecated(reason: "This is a \"deprecated\" reason") @dummy(test: "a \"test\"")
+            }
+        "#]];
+
+        expected.assert_eq(&actual);
+    }
 }
