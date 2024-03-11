@@ -59,6 +59,7 @@ impl From<HttpMethod> for http::Method {
 
 #[derive(Debug, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[serde(expecting = "expecting string \"any\", or an array of urls")]
 pub enum AnyOrUrlArray {
     Any,
     #[serde(untagged)]
@@ -84,6 +85,7 @@ impl From<AnyOrUrlArray> for AllowOrigin {
 
 #[derive(Debug, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[serde(expecting = "expecting string \"any\", or a capitalized HTTP method")]
 pub enum AnyOrHttpMethodArray {
     Any,
     #[serde(untagged)]
@@ -104,6 +106,7 @@ impl From<AnyOrHttpMethodArray> for AllowMethods {
 
 #[derive(Debug, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[serde(expecting = "expecting string \"any\", or an array of ASCII strings")]
 pub enum AnyOrAsciiStringArray {
     Any,
     #[serde(untagged)]

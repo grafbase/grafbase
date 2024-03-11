@@ -1,5 +1,6 @@
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 
+use ascii::AsciiString;
 use engine_v2::EngineEnv;
 use gateway_v2::{Gateway, GatewayEnv};
 use graphql_composition::FederatedGraph;
@@ -9,7 +10,7 @@ use runtime_local::{InMemoryCache, InMemoryKvStore};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;
 
-use crate::config::{AuthenticationConfig, OperationLimitsConfig};
+use crate::config::{AuthenticationConfig, HeaderValue, OperationLimitsConfig, SubgraphConfig};
 
 /// Send half of the gateway watch channel
 pub(crate) type GatewaySender = watch::Sender<Option<Arc<Gateway>>>;
@@ -19,13 +20,25 @@ pub(crate) type GatewaySender = watch::Sender<Option<Arc<Gateway>>>;
 /// Anything part of the system that needs access to the gateway can use this
 pub(crate) type GatewayWatcher = watch::Receiver<Option<Arc<Gateway>>>;
 
+#[derive(Debug, Clone)]
+pub(crate) struct GatewayConfig {
+    pub enable_introspection: bool,
+    pub operation_limits: Option<OperationLimitsConfig>,
+    pub authentication: Option<AuthenticationConfig>,
+    pub default_headers: BTreeMap<AsciiString, HeaderValue>,
+    pub subgraphs: BTreeMap<String, SubgraphConfig>,
+}
+
 /// Creates a new gateway from federated schema.
-pub(super) fn generate(
-    federated_schema: &str,
-    operation_limits: Option<OperationLimitsConfig>,
-    authentication: Option<AuthenticationConfig>,
-    enable_introspection: bool,
-) -> crate::Result<Gateway> {
+pub(super) fn generate(federated_schema: &str, config: GatewayConfig) -> crate::Result<Gateway> {
+    let GatewayConfig {
+        enable_introspection,
+        operation_limits,
+        authentication,
+        default_headers,
+        subgraphs,
+    } = config;
+
     let graph =
         FederatedGraph::from_sdl(federated_schema).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
 
@@ -40,6 +53,30 @@ pub(super) fn generate(
     }
 
     graph_config.disable_introspection = !enable_introspection;
+
+    graph_config.default_headers = default_headers
+        .into_iter()
+        .map(|(key, value)| (key.to_string(), value.into()))
+        .collect();
+
+    graph_config.subgraphs = subgraphs
+        .into_iter()
+        .map(|(name, value)| {
+            let headers = value
+                .headers
+                .into_iter()
+                .map(|(key, value)| (key.to_string(), value.into()))
+                .collect();
+
+            let config = parser_sdl::federation::SubgraphConfig {
+                name: name.clone(),
+                websocket_url: None,
+                headers,
+            };
+
+            (name, config)
+        })
+        .collect();
 
     let config = engine_config_builder::build_config(&graph_config, graph);
 

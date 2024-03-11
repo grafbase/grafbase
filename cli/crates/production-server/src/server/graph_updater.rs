@@ -1,7 +1,6 @@
 use std::{borrow::Cow, sync::Arc, time::Duration};
 
-use super::gateway::GatewaySender;
-use crate::config::{AuthenticationConfig, OperationLimitsConfig};
+use super::gateway::{GatewayConfig, GatewaySender};
 use ascii::AsciiString;
 use http::{HeaderValue, StatusCode};
 use tokio::time::MissedTickBehavior;
@@ -41,9 +40,7 @@ pub(super) struct GraphUpdater {
     access_token: AsciiString,
     sender: GatewaySender,
     current_id: Option<Ulid>,
-    operation_limits_config: Option<OperationLimitsConfig>,
-    authentication_config: Option<AuthenticationConfig>,
-    enable_introspection: bool,
+    gateway_config: GatewayConfig,
 }
 
 /// TODO: here you get the needed values for tracing Hugo!
@@ -63,6 +60,7 @@ impl GraphUpdater {
         branch: Option<&str>,
         access_token: AsciiString,
         sender: GatewaySender,
+        gateway_config: GatewayConfig,
     ) -> crate::Result<Self> {
         let uplink_client = reqwest::ClientBuilder::new()
             .gzip(true)
@@ -96,28 +94,8 @@ impl GraphUpdater {
             access_token,
             sender,
             current_id: None,
-            operation_limits_config: None,
-            authentication_config: None,
-            enable_introspection: false,
+            gateway_config,
         })
-    }
-
-    /// Adds operation limits to the updated graph from the configuration.
-    pub fn with_operation_limits(mut self, config: OperationLimitsConfig) -> Self {
-        self.operation_limits_config = Some(config);
-        self
-    }
-
-    /// Sets the JWT authentication for the server.
-    pub fn with_authentication(mut self, config: AuthenticationConfig) -> Self {
-        self.authentication_config = Some(config);
-        self
-    }
-
-    /// Enables introspection to the updated graphs.
-    pub fn enable_introspection(mut self, value: bool) -> Self {
-        self.enable_introspection = value;
-        self
     }
 
     /// A poll loop for fetching the latest graph from the API. When started,
@@ -184,28 +162,23 @@ impl GraphUpdater {
                 }
             };
 
-            let gateway = match super::gateway::generate(
-                &response.sdl,
-                self.operation_limits_config,
-                self.authentication_config.clone(),
-                self.enable_introspection,
-            ) {
+            tracing::event!(
+                Level::INFO,
+                message = "creating a new gateway",
+                graph_ref = self.graph_ref,
+                branch = response.branch,
+                operation_limits = self.gateway_config.operation_limits.is_some(),
+                introspection_enabled = self.gateway_config.enable_introspection,
+                authentication = self.gateway_config.authentication.is_some(),
+            );
+
+            let gateway = match super::gateway::generate(&response.sdl, self.gateway_config.clone()) {
                 Ok(gateway) => gateway,
                 Err(e) => {
                     tracing::event!(Level::ERROR, message = "error parsing graph", error = e.to_string());
                     continue;
                 }
             };
-
-            tracing::event!(
-                Level::INFO,
-                message = "creating a new gateway",
-                graph_ref = self.graph_ref,
-                branch = response.branch,
-                operation_limits = self.operation_limits_config.is_some(),
-                introspection_enabled = self.enable_introspection,
-                authentication = self.authentication_config.is_some(),
-            );
 
             self.current_id = Some(response.version_id);
 

@@ -2,7 +2,7 @@ use super::{
     gateway::{self, GatewayWatcher},
     graph_updater::GraphUpdater,
 };
-use crate::config::{AuthenticationConfig, OperationLimitsConfig};
+use crate::server::gateway::GatewayConfig;
 use ascii::AsciiString;
 use std::sync::Arc;
 use tokio::sync::watch;
@@ -31,12 +31,7 @@ impl GraphFetchMethod {
     /// in two ways: if providing a graph SDL, we a new gateway immediately. Alternatively,
     /// if a graph ref and access token is provided, the function returns immediately, and
     /// the gateway will be available eventually when the GDN responds with a working graph.
-    pub(crate) fn into_gateway(
-        self,
-        enable_introspection: bool,
-        operation_limits: Option<OperationLimitsConfig>,
-        authentication: Option<AuthenticationConfig>,
-    ) -> crate::Result<GatewayWatcher> {
+    pub(crate) fn into_gateway(self, config: GatewayConfig) -> crate::Result<GatewayWatcher> {
         let (sender, gateway) = watch::channel(None);
 
         match self {
@@ -46,18 +41,9 @@ impl GraphFetchMethod {
                 branch,
             } => {
                 tokio::spawn(async move {
-                    let mut updater = GraphUpdater::new(&graph_name, branch.as_deref(), access_token, sender)?
-                        .enable_introspection(enable_introspection);
-
-                    if let Some(operation_limits) = operation_limits {
-                        updater = updater.with_operation_limits(operation_limits);
-                    }
-
-                    if let Some(auth_config) = authentication {
-                        updater = updater.with_authentication(auth_config);
-                    }
-
-                    updater.poll().await;
+                    GraphUpdater::new(&graph_name, branch.as_deref(), access_token, sender, config)?
+                        .poll()
+                        .await;
 
                     Ok::<_, crate::Error>(())
                 });
@@ -66,17 +52,12 @@ impl GraphFetchMethod {
                 tracing::event!(
                     Level::INFO,
                     message = "creating a new gateway",
-                    operation_limits = operation_limits.is_some(),
-                    introspection_enabled = enable_introspection,
-                    authentication = authentication.is_some(),
+                    operation_limits = config.operation_limits.is_some(),
+                    introspection_enabled = config.enable_introspection,
+                    authentication = config.authentication.is_some(),
                 );
 
-                let gateway = gateway::generate(
-                    &federated_schema,
-                    operation_limits,
-                    authentication,
-                    enable_introspection,
-                )?;
+                let gateway = gateway::generate(&federated_schema, config)?;
 
                 sender.send(Some(Arc::new(gateway)))?;
             }
