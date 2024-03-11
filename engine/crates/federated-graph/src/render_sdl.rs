@@ -588,11 +588,10 @@ fn write_quoted(sdl: &mut impl Write, s: &str) -> fmt::Result {
     sdl.write_char('"')?;
     for c in s.chars() {
         match c {
-            '\r' => sdl.write_str("\\r"),
-            '\n' => sdl.write_str("\\n"),
-            '\t' => sdl.write_str("\\t"),
-            '"' => sdl.write_str("\\\""),
-            '\\' => sdl.write_str("\\\\"),
+            c @ ('\r' | '\n' | '\t' | '"' | '\\') => {
+                sdl.write_char('\\')?;
+                sdl.write_char(c)
+            }
             c if c.is_control() => write!(sdl, "\\u{:04}", c as u32),
             c => sdl.write_char(c),
         }?
