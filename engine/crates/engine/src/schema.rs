@@ -2,10 +2,11 @@ use std::{any::Any, ops::Deref, sync::Arc};
 
 use futures_util::stream::{self, Stream, StreamExt};
 use futures_util::FutureExt;
-use grafbase_tracing::span::gql::GqlRequestSpan;
-use grafbase_tracing::span::{GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
+#[cfg(feature = "tracing")]
+use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
 use graph_entities::CompactValue;
 use indexmap::map::IndexMap;
+#[cfg(feature = "tracing")]
 use tracing::{Instrument, Span};
 
 use crate::{
@@ -559,6 +560,7 @@ impl Schema {
     /// Execute a GraphQL query.
     pub async fn execute(&self, request: impl Into<Request>) -> Response {
         let request = request.into();
+        #[cfg(feature = "tracing")]
         let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
 
         let extensions = self.create_extensions(Default::default());
@@ -568,6 +570,7 @@ impl Schema {
                 match self.prepare_request(extensions, request, Default::default()).await {
                     Ok((env_builder, cache_control)) => {
                         let env = env_builder.build();
+                        #[cfg(feature = "tracing")]
                         Span::current().record_gql_request(GqlRequestAttributes {
                             operation_type: env.operation.ty.as_ref(),
                             operation_name: env.operation_name.as_deref(),
@@ -585,15 +588,15 @@ impl Schema {
         };
         futures_util::pin_mut!(request_fut);
 
-        extensions
-            .request(&mut request_fut)
-            .inspect(|response: &Response| {
-                Span::current().record_gql_response(GqlResponseAttributes {
-                    has_errors: response.is_err(),
-                });
-            })
-            .instrument(gql_span)
-            .await
+        let request = extensions.request(&mut request_fut).inspect(|_response: &Response| {
+            #[cfg(feature = "tracing")]
+            Span::current().record_gql_response(GqlResponseAttributes {
+                has_errors: _response.is_err(),
+            });
+        });
+        #[cfg(feature = "tracing")]
+        let request = request.instrument(gql_span);
+        request.await
     }
 
     /// Execute a GraphQL batch query.
@@ -623,14 +626,16 @@ impl Schema {
         let schema = self.clone();
         let request = request.into();
         let extensions = self.create_extensions(session_data.clone());
+        #[cfg(feature = "tracing")]
         let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
 
-        futures_util::stream::StreamExt::boxed({
+        let request = futures_util::stream::StreamExt::boxed({
             let extensions = extensions.clone();
             async_stream::stream! {
                 let (env_builder, cache_control) = match schema.prepare_request(extensions, request, session_data).await {
                     Ok(res) => res,
                     Err(errors) => {
+                        #[cfg(feature = "tracing")]
                         Span::current().record_gql_response(GqlResponseAttributes {
                             has_errors: true,
                         });
@@ -639,6 +644,7 @@ impl Schema {
                     }
                 };
 
+                #[cfg(feature = "tracing")]
                 Span::current().record_gql_request(GqlRequestAttributes {
                     operation_type: env_builder.operation_type().as_ref(),
                     operation_name: None,
@@ -672,6 +678,7 @@ impl Schema {
 
                 let env = env_builder.build();
 
+                #[cfg(feature = "tracing")]
                 Span::current().record_gql_request(GqlRequestAttributes {
                     operation_type: env.operation.ty.as_ref(),
                     operation_name: env.operation_name.as_deref(),
@@ -694,9 +701,10 @@ impl Schema {
                     yield resp.into_streaming_payload(false);
                 }
             }
-        })
-            .instrument(gql_span)
-            .into_inner()
+        });
+        #[cfg(feature = "tracing")]
+        let request = request.instrument(gql_span).into_inner();
+        request
     }
 
     /// Execute a GraphQL streaming request.
