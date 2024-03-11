@@ -35,7 +35,7 @@ tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 ulid.workspace = true
 url = "2.5.0"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.60.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.61.0" }
 engine = { path = "../../../engine/crates/engine", features = ["tracing"] }
 engine-config-builder = { path = "../../../engine/crates/engine-config-builder" }
 engine-v2 = { workspace = true, features = ["plan_cache", "tracing"] }
