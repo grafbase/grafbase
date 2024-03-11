@@ -70,7 +70,7 @@ pub(super) fn generate(federated_schema: &str, config: GatewayConfig) -> crate::
 
             let config = parser_sdl::federation::SubgraphConfig {
                 name: name.clone(),
-                websocket_url: None,
+                websocket_url: value.websocket_url.map(|url| url.to_string()),
                 headers,
             };
 

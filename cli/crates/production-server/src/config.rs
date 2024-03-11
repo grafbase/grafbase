@@ -10,6 +10,7 @@ pub use authentication::AuthenticationConfig;
 pub use cors::CorsConfig;
 use parser_sdl::federation::SubgraphHeaderValue;
 pub use telemetry::TelemetryConfig;
+use url::Url;
 
 use self::dynamic_string::DynamicString;
 
@@ -72,7 +73,10 @@ impl From<HeaderValue> for SubgraphHeaderValue {
 #[derive(Debug, serde::Deserialize, Clone)]
 pub struct SubgraphConfig {
     /// Header bypass configuration
+    #[serde(default)]
     pub headers: BTreeMap<AsciiString, HeaderValue>,
+    /// The URL to use for GraphQL websocket calls.
+    pub websocket_url: Option<Url>,
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
@@ -387,7 +391,7 @@ mod tests {
           |
         2 | allow_methods = ["MEOW"]
           |                 ^^^^^^^^
-        expecting string "any", or a capitalized HTTP method
+        expecting string "any", or an array of capitalized HTTP methods
         "###);
     }
 
@@ -834,19 +838,19 @@ mod tests {
     fn global_header_env_var_unset() {
         temp_env::with_var_unset("BEARER", || {
             let input = indoc! {r#"
-            [headers.Authentication]
-            value = "Bearer {{ env.BEARER }}"
-        "#};
+                [headers.Authentication]
+                value = "Bearer {{ env.BEARER }}"
+            "#};
 
             let error = toml::from_str::<Config>(input).unwrap_err();
 
             insta::assert_snapshot!(&error.to_string(), @r###"
-        TOML parse error at line 1, column 1
-          |
-        1 | [headers.Authentication]
-          | ^^^^^^^^^^^^^^^^^^^^^^^^
-        must contain either forward or value key, and the value must be an ASCII string with all environment variables set if used any
-        "###);
+            TOML parse error at line 1, column 1
+              |
+            1 | [headers.Authentication]
+              | ^^^^^^^^^^^^^^^^^^^^^^^^
+            must contain either forward or value key, and the value must be an ASCII string with all environment variables set if used any
+            "###);
         })
     }
 
@@ -878,6 +882,7 @@ mod tests {
                         forward: "Content-Type",
                     },
                 },
+                websocket_url: None,
             },
             "users": SubgraphConfig {
                 headers: {
@@ -887,8 +892,44 @@ mod tests {
                         ),
                     },
                 },
+                websocket_url: None,
             },
         }
+        "###);
+    }
+
+    #[test]
+    fn subgraph_ws_valid_url() {
+        let input = indoc! {r#"
+            [subgraphs.products]
+            websocket_url = "https://example.com"
+        "#};
+
+        let result: Config = toml::from_str(input).unwrap();
+        let subgraph = result.subgraphs.get("products").unwrap();
+
+        insta::assert_debug_snapshot!(&subgraph.websocket_url.as_ref().map(|u| u.to_string()), @r###"
+        Some(
+            "https://example.com/",
+        )
+        "###);
+    }
+
+    #[test]
+    fn subgraph_ws_invalid_url() {
+        let input = indoc! {r#"
+            [subgraphs.products]
+            websocket_url = "WRONG"
+        "#};
+
+        let error = toml::from_str::<Config>(input).unwrap_err();
+
+        insta::assert_snapshot!(&error.to_string(), @r###"
+        TOML parse error at line 2, column 17
+          |
+        2 | websocket_url = "WRONG"
+          |                 ^^^^^^^
+        invalid value: string "WRONG", expected relative URL without a base
         "###);
     }
 }
