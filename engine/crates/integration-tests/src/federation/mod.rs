@@ -70,7 +70,7 @@ impl IntoFuture for ExecutionRequest {
 
     fn into_future(self) -> Self::IntoFuture {
         let headers = self.http_headers();
-        let bytes = serde_json::to_vec(&self.graphql.into_engine_request()).unwrap();
+        let bytes = serde_json::to_vec(&self.graphql).unwrap();
         let ray_id = ulid::Ulid::new().to_string();
         Box::pin(async move {
             let response = self
@@ -101,7 +101,7 @@ impl IntoFuture for StreamRequest {
 
     fn into_future(self) -> Self::IntoFuture {
         let headers = self.0.http_headers();
-        let bytes = serde_json::to_vec(&self.0.graphql.into_engine_request()).unwrap();
+        let bytes = serde_json::to_vec(&self.0.graphql).unwrap();
         let ray_id = ulid::Ulid::new().to_string();
         Box::pin(async move {
             let response = self

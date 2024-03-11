@@ -54,11 +54,8 @@ fn relay_style_happy_path() {
         let send = || {
             engine
                 .execute(GraphQlRequest {
-                    query: String::new(),
-                    operation_name: None,
-                    variables: None,
-                    extensions: None,
                     doc_id: Some(TRUSTED_DOCUMENTS[1].document_id.to_owned()),
+                    ..Default::default()
                 })
                 .header("x-grafbase-client-name", "ios-app")
         };
@@ -170,11 +167,8 @@ fn wrong_branch() {
     test(|engine| async move {
         let response = engine
             .execute(GraphQlRequest {
-                query: String::new(),
-                operation_name: None,
-                variables: None,
-                extensions: None,
                 doc_id: Some(TRUSTED_DOCUMENTS.last().unwrap().document_id.to_owned()),
+                ..Default::default()
             })
             .header("x-grafbase-client-name", "ios-app")
             .await;

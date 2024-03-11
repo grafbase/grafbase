@@ -114,17 +114,23 @@ impl<'a> StreamExecutionRequest<'a> {
     }
 }
 
+#[derive(serde::Serialize, Default)]
 pub struct GraphQlRequest {
-    pub query: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub query: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub operation_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub variables: Option<Variables>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub extensions: Option<RequestExtensions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub doc_id: Option<String>,
 }
 
 impl GraphQlRequest {
     pub fn into_engine_request(self) -> engine::Request {
-        let mut request = Request::new(self.query);
+        let mut request = Request::new(self.query.unwrap_or_default());
         if let Some(name) = self.operation_name {
             request = request.with_operation_name(name);
         }
@@ -142,7 +148,7 @@ impl GraphQlRequest {
 impl From<&str> for GraphQlRequest {
     fn from(val: &str) -> Self {
         GraphQlRequest {
-            query: val.into(),
+            query: Some(val.into()),
             operation_name: None,
             variables: None,
             extensions: None,
@@ -154,7 +160,7 @@ impl From<&str> for GraphQlRequest {
 impl From<String> for GraphQlRequest {
     fn from(val: String) -> Self {
         GraphQlRequest {
-            query: val,
+            query: Some(val),
             operation_name: None,
             variables: None,
             extensions: None,
@@ -169,7 +175,7 @@ where
 {
     fn from(operation: cynic::Operation<T, V>) -> Self {
         GraphQlRequest {
-            query: operation.query,
+            query: Some(operation.query),
             variables: Some(serde_json::from_value(serde_json::to_value(operation.variables).unwrap()).unwrap()),
             operation_name: operation.operation_name.map(|name| name.to_string()),
             extensions: None,
@@ -186,7 +192,7 @@ impl graphql_mocks::Schema for Engine {
         request: async_graphql::Request,
     ) -> async_graphql::Response {
         let operation = GraphQlRequest {
-            query: request.query,
+            query: Some(request.query),
             operation_name: request.operation_name,
             variables: Some(engine::Variables::deserialize(serde_json::to_value(request.variables).unwrap()).unwrap()),
             extensions: None,

@@ -1,6 +1,6 @@
 use engine_v2::Engine;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{engine::GraphQlRequest, federation::EngineV2Ext, runtime};
 
 #[test]
 fn single_field_from_single_server() {
@@ -15,8 +15,11 @@ fn single_field_from_single_server() {
 
         let query = "query { serverVersion }";
 
-        let execute =
-            |query: &'static str, extensions: &serde_json::Value| engine.execute(query).extensions(extensions);
+        let execute = |query: Option<&'static str>, extensions: &serde_json::Value| {
+            engine
+                .execute(query.map(GraphQlRequest::from).unwrap_or_default())
+                .extensions(extensions)
+        };
 
         let apq_ext = serde_json::json!({
             "persistedQuery": {
@@ -26,7 +29,7 @@ fn single_field_from_single_server() {
         });
 
         // Missing query
-        insta::assert_json_snapshot!(execute("", &apq_ext).await, @r###"
+        insta::assert_json_snapshot!(execute(None, &apq_ext).await, @r###"
         {
           "errors": [
             {
@@ -40,7 +43,7 @@ fn single_field_from_single_server() {
         "###);
 
         // Providing the query
-        insta::assert_json_snapshot!(execute(query, &apq_ext).await, @r###"
+        insta::assert_json_snapshot!(execute(Some(query), &apq_ext).await, @r###"
         {
           "data": {
             "serverVersion": "1"
@@ -49,7 +52,7 @@ fn single_field_from_single_server() {
         "###);
 
         // Query isn't necessary anymore
-        insta::assert_json_snapshot!(execute("", &apq_ext).await, @r###"
+        insta::assert_json_snapshot!(execute(None, &apq_ext).await, @r###"
         {
           "data": {
             "serverVersion": "1"
@@ -64,7 +67,7 @@ fn single_field_from_single_server() {
                 "sha256Hash": sha256("query { todo { id title } }")
             }
         });
-        insta::assert_json_snapshot!(execute(query, &invalid_version).await, @r###"
+        insta::assert_json_snapshot!(execute(Some(query), &invalid_version).await, @r###"
         {
           "errors": [
             {
@@ -81,7 +84,7 @@ fn single_field_from_single_server() {
                 "sha256Hash": sha256(query)
             }
         });
-        insta::assert_json_snapshot!(execute(query, &invalid_version).await, @r###"
+        insta::assert_json_snapshot!(execute(Some(query), &invalid_version).await, @r###"
         {
           "errors": [
             {

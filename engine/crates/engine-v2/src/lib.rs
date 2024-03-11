@@ -4,6 +4,9 @@ mod plan;
 mod request;
 mod response;
 mod sources;
+
+// there is no other implementation besides axum as of today
+#[cfg(feature = "axum")]
 mod websocket;
 
 pub use engine::{Engine, EngineEnv};
