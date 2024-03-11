@@ -25,6 +25,7 @@ const UPLINK_HOST: &str = "https://gdn.grafbase.com";
 
 /// An updater thread for polling graph changes from the API.
 pub(super) struct GraphUpdater {
+    graph_ref: String,
     uplink_url: Url,
     uplink_client: reqwest::Client,
     access_token: AsciiString,
@@ -77,6 +78,7 @@ impl GraphUpdater {
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
         Ok(Self {
+            graph_ref: graph_ref.to_string(),
             uplink_url,
             uplink_client,
             access_token,
@@ -149,7 +151,7 @@ impl GraphUpdater {
             if let Err(e) = response.error_for_status_ref() {
                 match e.status() {
                     Some(StatusCode::NOT_FOUND) => {
-                        tracing::warn!("there are no subgraphs registered currently");
+                        tracing::warn!("no subgraphs registered, publish at least one subgraph");
                     }
                     _ => {
                         tracing::event!(Level::ERROR, message = "error updating graph", error = e.to_string());
@@ -178,6 +180,16 @@ impl GraphUpdater {
                     continue;
                 }
             };
+
+            tracing::event!(
+                Level::INFO,
+                message = "creating a new gateway",
+                graph_ref = self.graph_ref,
+                branch = response.branch,
+                operation_limits = self.operation_limits_config.is_some(),
+                introspection_enabled = self.enable_introspection,
+                authentication = self.authentication_config.is_some(),
+            );
 
             self.current_id = Some(response.version_id);
 
