@@ -1,0 +1,17 @@
+# Shareable was made repeatable in v2.2: https://www.apollographql.com/docs/federation/federation-versions/#v22
+
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3",
+        import: ["@shareable"])
+
+extend type Query {
+  doubleRainbowAllTheWay: [Color!]!
+  version: String @shareable @shareable
+}
+
+type Color @shareable @shareable {
+  name: String!
+  red: Int!
+  green: Int!
+  blue: Int!
+}

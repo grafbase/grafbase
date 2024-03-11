@@ -1,0 +1,33 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    THEOONE @join__graph(name: "theoone", url: "http://example.com/theoone")
+}
+
+type Color {
+    name: String!
+    red: Int!
+    green: Int!
+    blue: Int!
+}
+
+type Query {
+    doubleRainbowAllTheWay: [Color!]! @join__field(graph: THEOONE)
+    version: String @join__field(graph: THEOONE)
+}

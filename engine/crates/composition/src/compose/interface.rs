@@ -28,6 +28,14 @@ pub(super) fn merge_interface_definitions<'a>(
 
         let description = field.description().map(|description| ctx.insert_string(description.id));
 
+        if fields.iter().any(|field| field.1.directives().shareable()) {
+            ctx.diagnostics.push_fatal(format!(
+                "The field {}.{} is marked as shareable but this is not allowed on interfaces.",
+                first.name().as_str(),
+                field.name().as_str()
+            ));
+        }
+
         let directive_containers = fields.iter().map(|(_, field)| field.directives());
         let composed_directives = collect_composed_directives(directive_containers, ctx);
 
