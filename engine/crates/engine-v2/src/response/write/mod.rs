@@ -4,6 +4,7 @@ mod ids;
 use std::sync::Arc;
 
 pub(crate) use deserialize::SeedContext;
+use id_newtypes::IdRange;
 pub use ids::*;
 use itertools::Either;
 use schema::{ObjectId, Schema};
@@ -14,7 +15,6 @@ use super::{
 };
 use crate::{
     plan::{OperationPlan, PlanBoundaryId},
-    utils::IdRange,
     Response,
 };
 

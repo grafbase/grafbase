@@ -1,9 +1,9 @@
+use id_newtypes::IdRange;
 use schema::{FieldId, ObjectId, ScalarType, Wrapping};
 
 use crate::{
     request::{BoundFieldId, SelectionSetType},
     response::{ResponseEdge, SafeResponseKey},
-    utils::IdRange,
 };
 
 use super::{

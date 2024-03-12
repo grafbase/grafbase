@@ -1,7 +1,8 @@
 use engine_value::{Name, Value};
+use id_newtypes::IdRange;
 use schema::{
-    Definition, EnumWalker, IdRange, InputObjectWalker, InputValueDefinitionId, ListWrapping, ScalarType, ScalarWalker,
-    Type, Wrapping,
+    Definition, EnumWalker, InputObjectWalker, InputValueDefinitionId, ListWrapping, ScalarType, ScalarWalker, Type,
+    Wrapping,
 };
 
 use crate::request::{BoundFieldId, Location, OpInputValue, OpInputValueId};

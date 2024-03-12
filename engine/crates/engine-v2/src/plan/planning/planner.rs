@@ -1,4 +1,5 @@
 use engine_parser::types::OperationType;
+use id_newtypes::IdRange;
 use schema::{FieldId, FieldResolverWalker, ResolverId, Schema};
 use std::{
     borrow::Cow,
@@ -23,7 +24,6 @@ use crate::{
     },
     response::{ReadSelectionSet, ResponseKeys, SafeResponseKey},
     sources::Plan,
-    utils::IdRange,
 };
 
 /// The planner is responsible to attribute a plan id for every field & selection set in the

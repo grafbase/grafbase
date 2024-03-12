@@ -1950,6 +1950,7 @@ dependencies = [
  "engine",
  "engine-parser",
  "engine-v2-config",
+ "engine-v2-id-newtypes",
  "engine-v2-schema",
  "engine-value",
  "futures",
@@ -1989,10 +1990,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-v2-id-newtypes"
+version = "0.0.0"
+
+[[package]]
 name = "engine-v2-schema"
 version = "3.0.31"
 dependencies = [
  "engine-v2-config",
+ "engine-v2-id-newtypes",
  "fnv",
  "graphql-federated-graph",
  "indexmap 2.2.5",

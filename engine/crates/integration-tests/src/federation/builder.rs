@@ -97,7 +97,7 @@ impl FederationGatewayBuilder {
                     cache: cache.clone(),
                     trusted_documents: self
                         .trusted_documents
-                        .map(|docs| trusted_documents_client::Client::new(docs))
+                        .map(trusted_documents_client::Client::new)
                         .unwrap_or_else(|| {
                             trusted_documents_client::Client::new(runtime_noop::trusted_documents::NoopTrustedDocuments)
                         }),
