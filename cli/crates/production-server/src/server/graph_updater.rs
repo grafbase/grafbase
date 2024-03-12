@@ -4,6 +4,7 @@ use super::gateway::GatewaySender;
 use crate::config::{AuthenticationConfig, OperationLimitsConfig};
 use ascii::AsciiString;
 use http::{HeaderValue, StatusCode};
+use tokio::time::MissedTickBehavior;
 use tracing::Level;
 use ulid::Ulid;
 use url::Url;
@@ -116,6 +117,10 @@ impl GraphUpdater {
     /// are served before dropping.
     pub async fn poll(&mut self) {
         let mut interval = tokio::time::interval(TICK_INTERVAL);
+
+        // if we have a slow connection, this prevents bursts of connections to the GDN
+        // for all the missed ticks.
+        interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
 
         loop {
             interval.tick().await;
