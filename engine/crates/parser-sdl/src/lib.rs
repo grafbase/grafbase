@@ -80,6 +80,7 @@ use crate::rules::{
     mongodb_directive::MongoDBVisitor,
     scalar_hydratation::ScalarHydratation,
 };
+pub use dynamic_string::DynamicString;
 
 pub mod connector_parsers;
 pub mod usage;

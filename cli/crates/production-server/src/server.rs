@@ -17,6 +17,8 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use tokio::sync::mpsc;
 use tower_http::cors::CorsLayer;
 
+use self::gateway::GatewayConfig;
+
 pub(super) async fn serve(
     listen_addr: Option<SocketAddr>,
     config: Config,
@@ -28,11 +30,13 @@ pub(super) async fn serve(
         .or(config.network.listen_address)
         .unwrap_or(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 4000));
 
-    let gateway = fetch_method.into_gateway(
-        config.graph.introspection,
-        config.operation_limits,
-        config.authentication,
-    )?;
+    let gateway = fetch_method.into_gateway(GatewayConfig {
+        enable_introspection: config.graph.introspection,
+        operation_limits: config.operation_limits,
+        authentication: config.authentication,
+        subgraphs: config.subgraphs,
+        default_headers: config.headers,
+    })?;
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
     let websocket_accepter = WebsocketAccepter::new(websocket_receiver, gateway.clone());

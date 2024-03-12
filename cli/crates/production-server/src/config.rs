@@ -1,12 +1,18 @@
 mod authentication;
 mod cors;
+mod dynamic_string;
 mod telemetry;
 
-use std::{net::SocketAddr, path::PathBuf};
+use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf};
 
+use ascii::AsciiString;
 pub use authentication::AuthenticationConfig;
 pub use cors::CorsConfig;
+use parser_sdl::federation::SubgraphHeaderValue;
 pub use telemetry::TelemetryConfig;
+use url::Url;
+
+use self::dynamic_string::DynamicString;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -35,6 +41,42 @@ pub struct Config {
     pub trusted_documents: TrustedDocumentsConfig,
     /// Authentication configuration
     pub authentication: Option<AuthenticationConfig>,
+    /// Header bypass configuration
+    #[serde(default)]
+    pub headers: BTreeMap<AsciiString, HeaderValue>,
+    /// Subgraph configuration
+    #[serde(default)]
+    pub subgraphs: BTreeMap<String, SubgraphConfig>,
+}
+
+#[derive(Debug, serde::Deserialize, Clone)]
+#[serde(rename_all = "lowercase")]
+#[serde(
+    expecting = "must contain either forward or value key, and the value must be an ASCII string with all environment variables set if used any"
+)]
+pub enum HeaderValue {
+    #[serde(untagged)]
+    Forward { forward: AsciiString },
+    #[serde(untagged)]
+    Static { value: DynamicString<AsciiString> },
+}
+
+impl From<HeaderValue> for SubgraphHeaderValue {
+    fn from(value: HeaderValue) -> Self {
+        match value {
+            HeaderValue::Forward { forward } => SubgraphHeaderValue::Forward(forward.to_string()),
+            HeaderValue::Static { value } => SubgraphHeaderValue::Static(value.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, serde::Deserialize, Clone)]
+pub struct SubgraphConfig {
+    /// Header bypass configuration
+    #[serde(default)]
+    pub headers: BTreeMap<AsciiString, HeaderValue>,
+    /// The URL to use for GraphQL websocket calls.
+    pub websocket_url: Option<Url>,
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
@@ -292,7 +334,7 @@ mod tests {
           |
         2 | allow_origins = ["foo"]
           |                 ^^^^^^^
-        data did not match any variant of untagged enum AnyOrUrlArray
+        expecting string "any", or an array of urls
         "###);
     }
 
@@ -349,7 +391,7 @@ mod tests {
           |
         2 | allow_methods = ["MEOW"]
           |                 ^^^^^^^^
-        data did not match any variant of untagged enum AnyOrHttpMethodArray
+        expecting string "any", or an array of capitalized HTTP methods
         "###);
     }
 
@@ -407,7 +449,7 @@ mod tests {
           |
         2 | allow_headers = ["😂😂😂"]
           |                 ^^^^^^^^^^^^^^^^
-        data did not match any variant of untagged enum AnyOrAsciiStringArray
+        expecting string "any", or an array of ASCII strings
         "###);
     }
 
@@ -465,7 +507,7 @@ mod tests {
           |
         2 | expose_headers = ["😂😂😂"]
           |                  ^^^^^^^^^^^^^^^^
-        data did not match any variant of untagged enum AnyOrAsciiStringArray
+        expecting string "any", or an array of ASCII strings
         "###);
     }
 
@@ -742,5 +784,152 @@ mod tests {
 
         // assert
         assert_eq!(telemetry_config, config.telemetry.unwrap());
+    }
+
+    #[test]
+    fn global_headers() {
+        let input = indoc! {r#"
+            [headers.Authentication]
+            value = "Bearer asdf"
+
+            [headers.Content-Type]
+            forward = "content-type"
+        "#};
+
+        let result: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&result.headers, @r###"
+        {
+            "Authentication": Static {
+                value: DynamicString(
+                    "Bearer asdf",
+                ),
+            },
+            "Content-Type": Forward {
+                forward: "content-type",
+            },
+        }
+        "###);
+    }
+
+    #[test]
+    fn global_header_env_var() {
+        temp_env::with_var("BEARER", Some("asdf"), || {
+            let input = indoc! {r#"
+                [headers.Authentication]
+                value = "Bearer {{ env.BEARER }}"
+            "#};
+
+            let result: Config = toml::from_str(input).unwrap();
+
+            insta::assert_debug_snapshot!(&result.headers, @r###"
+            {
+                "Authentication": Static {
+                    value: DynamicString(
+                        "Bearer asdf",
+                    ),
+                },
+            }
+            "###);
+        })
+    }
+
+    #[test]
+    fn global_header_env_var_unset() {
+        temp_env::with_var_unset("BEARER", || {
+            let input = indoc! {r#"
+                [headers.Authentication]
+                value = "Bearer {{ env.BEARER }}"
+            "#};
+
+            let error = toml::from_str::<Config>(input).unwrap_err();
+
+            insta::assert_snapshot!(&error.to_string(), @r###"
+            TOML parse error at line 1, column 1
+              |
+            1 | [headers.Authentication]
+              | ^^^^^^^^^^^^^^^^^^^^^^^^
+            must contain either forward or value key, and the value must be an ASCII string with all environment variables set if used any
+            "###);
+        })
+    }
+
+    #[test]
+    fn subgraph_headers() {
+        let input = indoc! {r#"
+            [subgraphs.products.headers.Content-Type]
+            forward = "Content-Type"
+
+            [subgraphs.products.headers.Authentication]
+            value = "Bearer ufufuf"
+
+            [subgraphs.users.headers.Content-Type]
+            value = "application/json"
+        "#};
+
+        let result: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&result.subgraphs, @r###"
+        {
+            "products": SubgraphConfig {
+                headers: {
+                    "Authentication": Static {
+                        value: DynamicString(
+                            "Bearer ufufuf",
+                        ),
+                    },
+                    "Content-Type": Forward {
+                        forward: "Content-Type",
+                    },
+                },
+                websocket_url: None,
+            },
+            "users": SubgraphConfig {
+                headers: {
+                    "Content-Type": Static {
+                        value: DynamicString(
+                            "application/json",
+                        ),
+                    },
+                },
+                websocket_url: None,
+            },
+        }
+        "###);
+    }
+
+    #[test]
+    fn subgraph_ws_valid_url() {
+        let input = indoc! {r#"
+            [subgraphs.products]
+            websocket_url = "https://example.com"
+        "#};
+
+        let result: Config = toml::from_str(input).unwrap();
+        let subgraph = result.subgraphs.get("products").unwrap();
+
+        insta::assert_debug_snapshot!(&subgraph.websocket_url.as_ref().map(|u| u.to_string()), @r###"
+        Some(
+            "https://example.com/",
+        )
+        "###);
+    }
+
+    #[test]
+    fn subgraph_ws_invalid_url() {
+        let input = indoc! {r#"
+            [subgraphs.products]
+            websocket_url = "WRONG"
+        "#};
+
+        let error = toml::from_str::<Config>(input).unwrap_err();
+
+        insta::assert_snapshot!(&error.to_string(), @r###"
+        TOML parse error at line 2, column 17
+          |
+        2 | websocket_url = "WRONG"
+          |                 ^^^^^^^
+        invalid value: string "WRONG", expected relative URL without a base
+        "###);
     }
 }
