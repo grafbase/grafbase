@@ -18,6 +18,7 @@ fnv = "1"
 indexmap.workspace = true
 serde.workspace = true
 thiserror.workspace = true
+id-newtypes.workspace = true
 
 config = { package = "engine-v2-config", path = "../config" }
 federated-graph = { package = "graphql-federated-graph", path = "../../federated-graph" }

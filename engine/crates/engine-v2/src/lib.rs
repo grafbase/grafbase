@@ -4,7 +4,6 @@ mod plan;
 mod request;
 mod response;
 mod sources;
-mod utils;
 
 pub use ::engine::Request;
 pub use engine::{Engine, EngineEnv};

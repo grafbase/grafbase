@@ -1,7 +1,8 @@
 use engine_value::ConstValue;
+use id_newtypes::IdRange;
 use schema::{
-    Definition, EnumWalker, IdRange, InputObjectWalker, InputValueDefinitionId, ListWrapping, ScalarType, ScalarWalker,
-    Schema, Type,
+    Definition, EnumWalker, InputObjectWalker, InputValueDefinitionId, ListWrapping, ScalarType, ScalarWalker, Schema,
+    Type,
 };
 
 use crate::request::{Location, OpInputValue, OpInputValueId, OpInputValues};

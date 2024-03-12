@@ -1956,6 +1956,7 @@ dependencies = [
  "futures-util",
  "grafbase-tracing",
  "hex",
+ "id-newtypes",
  "im",
  "itertools 0.12.1",
  "lasso",
@@ -1995,6 +1996,7 @@ dependencies = [
  "engine-v2-config",
  "fnv",
  "graphql-federated-graph",
+ "id-newtypes",
  "indexmap 2.2.5",
  "insta",
  "serde",
@@ -3493,6 +3495,10 @@ checksum = "f31827a206f56af32e590ba56d5d2d085f558508192593743f16b2306495269f"
 dependencies = [
  "cc",
 ]
+
+[[package]]
+name = "id-newtypes"
+version = "0.0.0"
 
 [[package]]
 name = "ident_case"

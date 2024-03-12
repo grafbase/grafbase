@@ -1,0 +1,12 @@
+[package]
+name = "id-newtypes"
+authors = ["Grafbase"]
+description = "Gateway v2"
+edition = "2021"
+license = "MPL-2.0"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["graphql", "engine", "grafbase"]
+
+[lints]
+workspace = true

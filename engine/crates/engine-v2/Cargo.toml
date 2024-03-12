@@ -21,6 +21,7 @@ tracing = ["dep:grafbase-tracing"]
 [dependencies]
 async-runtime.workspace = true
 futures.workspace = true
+id-newtypes.workspace = true
 im = "15"
 itertools.workspace = true
 hex.workspace = true

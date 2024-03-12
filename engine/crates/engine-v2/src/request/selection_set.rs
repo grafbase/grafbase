@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
-use schema::{Definition, FieldId, IdRange, InputValueDefinitionId, InterfaceId, ObjectId, Schema, UnionId};
+use id_newtypes::IdRange;
+use schema::{Definition, FieldId, InputValueDefinitionId, InterfaceId, ObjectId, Schema, UnionId};
 
 use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
