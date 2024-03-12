@@ -18,6 +18,15 @@ const UPLINK_TIMEOUT: Duration = Duration::from_secs(10);
 /// How long we wait until a connection is successfully opened.
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 
+/// Sets an interval for HTTP2 Ping frames should be sent to keep a connection alive.
+const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(1);
+
+/// Sets a timeout for receiving an acknowledgement of the keep-alive ping.
+const KEEPALIVE_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Sets whether HTTP2 keep-alive should apply while the connection is idle.
+const KEEPALIVE_WHILE_IDLE: bool = true;
+
 /// The HTTP user-agent header we sent to the schema registry.
 const USER_AGENT: &str = "grafbase-cli";
 
@@ -59,6 +68,9 @@ impl GraphUpdater {
             .gzip(true)
             .timeout(UPLINK_TIMEOUT)
             .connect_timeout(CONNECT_TIMEOUT)
+            .http2_keep_alive_interval(Some(KEEPALIVE_INTERVAL))
+            .http2_keep_alive_timeout(KEEPALIVE_TIMEOUT)
+            .http2_keep_alive_while_idle(KEEPALIVE_WHILE_IDLE)
             .user_agent(USER_AGENT)
             .build()
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
