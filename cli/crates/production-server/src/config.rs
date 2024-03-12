@@ -107,7 +107,7 @@ pub struct TlsConfig {
     pub key: PathBuf,
 }
 
-#[derive(Debug, PartialEq, serde::Deserialize, Default)]
+#[derive(Debug, PartialEq, serde::Deserialize, Default, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct TrustedDocumentsConfig {
     /// If true, the engine will only accept trusted document queries. Default: false.

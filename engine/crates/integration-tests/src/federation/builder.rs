@@ -55,7 +55,10 @@ impl FederationGatewayBuilder {
     }
 
     pub fn with_trusted_documents(mut self, branch_id: String, documents: Vec<TestTrustedDocument>) -> Self {
-        self.trusted_documents = Some(MockTrustedDocumentsClient { branch_id, documents });
+        self.trusted_documents = Some(MockTrustedDocumentsClient {
+            _branch_id: branch_id,
+            documents,
+        });
         self
     }
 
@@ -93,8 +96,12 @@ impl FederationGatewayBuilder {
                     cache: cache.clone(),
                     trusted_documents: self
                         .trusted_documents
-                        .map(From::from)
-                        .unwrap_or_else(|| runtime_noop::trusted_documents::NoopTrustedDocuments.into()),
+                        .map(
+                            |docs| -> Box<dyn runtime::trusted_documents_client::TrustedDocumentsClient> {
+                                Box::new(docs)
+                            },
+                        )
+                        .unwrap_or_else(|| Box::new(runtime_noop::trusted_documents::NoopTrustedDocuments)),
                 },
                 gateway_v2::GatewayEnv {
                     kv: runtime_local::InMemoryKvStore::runtime(),

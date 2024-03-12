@@ -57,7 +57,7 @@ impl GraphFetchMethod {
                     authentication = config.authentication.is_some(),
                 );
 
-                let gateway = gateway::generate(&federated_schema, config)?;
+                let gateway = gateway::generate(&federated_schema, None, config)?;
 
                 sender.send(Some(Arc::new(gateway)))?;
             }

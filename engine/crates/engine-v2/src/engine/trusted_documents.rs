@@ -2,8 +2,8 @@
 
 use super::{Engine, CLIENT_NAME_HEADER_NAME};
 use crate::response::GraphqlError;
-use engine::{AutomaticPersistedQuery, ErrorCode, PersistedQueryRequestExtension};
-use runtime::trusted_documents_service::TrustedDocumentsError;
+use engine::{AutomaticPersistedQuery, ErrorCode, PersistedQueryRequestExtension, RequestHeaders};
+use runtime::trusted_documents_client::TrustedDocumentsError;
 use std::mem;
 
 const CACHE_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
@@ -14,15 +14,28 @@ impl Engine {
         &self,
         request: &mut engine::Request,
         client_name: Option<&str>,
+        headers: &RequestHeaders,
     ) -> Result<(), GraphqlError> {
         let trusted_documents_enabled = self.env.trusted_documents.is_enabled();
         let persisted_query_extension = mem::take(&mut request.extensions.persisted_query);
         let doc_id = mem::take(&mut request.operation_plan_cache_key.doc_id);
 
         match (trusted_documents_enabled, persisted_query_extension, doc_id) {
-            (true, None, None) => Err(GraphqlError::new(
-                "Cannot execute a trusted document query: missing doc_id or the persistedQuery extension.",
-            )),
+            (true, None, None) => {
+                if self
+                    .env
+                    .trusted_documents
+                    .bypass_header()
+                    .map(|(name, value)| headers.find(name) == Some(value))
+                    .unwrap_or_default()
+                {
+                    Ok(())
+                } else {
+                    Err(GraphqlError::new(
+                        "Cannot execute a trusted document query: missing doc_id or the persistedQuery extension.",
+                    ))
+                }
+            }
             (true, Some(ext), _) => {
                 self.handle_apollo_client_style_trusted_document_query(request, ext, client_name)
                     .await

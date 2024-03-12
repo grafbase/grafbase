@@ -35,7 +35,7 @@ pub struct Engine {
 pub struct EngineEnv {
     pub fetcher: runtime::fetch::Fetcher,
     pub cache: runtime::cache::Cache,
-    pub trusted_documents: runtime::trusted_documents_service::TrustedDocumentsClient,
+    pub trusted_documents: Box<dyn runtime::trusted_documents_client::TrustedDocumentsClient>,
 }
 
 impl Engine {
@@ -124,8 +124,7 @@ impl Engine {
         mut request: engine::Request,
         headers: RequestHeaders,
     ) -> Result<ExecutionCoordinator, Response> {
-        // Injecting the query string if necessary.
-        self.handle_persisted_query(&mut request, headers.find(CLIENT_NAME_HEADER_NAME))
+        self.handle_persisted_query(&mut request, headers.find(CLIENT_NAME_HEADER_NAME), &headers)
             .await
             .map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?;
 

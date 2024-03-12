@@ -5,6 +5,7 @@ mod gateway;
 mod graph_fetch_method;
 mod graph_updater;
 mod state;
+mod trusted_documents_client;
 
 pub use graph_fetch_method::GraphFetchMethod;
 
@@ -36,6 +37,7 @@ pub(super) async fn serve(
         authentication: config.authentication,
         subgraphs: config.subgraphs,
         default_headers: config.headers,
+        trusted_documents: config.trusted_documents,
     })?;
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);

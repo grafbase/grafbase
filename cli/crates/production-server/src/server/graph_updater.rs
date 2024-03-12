@@ -50,6 +50,7 @@ struct UplinkResponse {
     account_id: Ulid,
     graph_id: Ulid,
     branch: String,
+    branch_id: Ulid,
     sdl: String,
     version_id: Ulid,
 }
@@ -172,13 +173,14 @@ impl GraphUpdater {
                 authentication = self.gateway_config.authentication.is_some(),
             );
 
-            let gateway = match super::gateway::generate(&response.sdl, self.gateway_config.clone()) {
-                Ok(gateway) => gateway,
-                Err(e) => {
-                    tracing::event!(Level::ERROR, message = "error parsing graph", error = e.to_string());
-                    continue;
-                }
-            };
+            let gateway =
+                match super::gateway::generate(&response.sdl, Some(response.branch_id), self.gateway_config.clone()) {
+                    Ok(gateway) => gateway,
+                    Err(e) => {
+                        tracing::event!(Level::ERROR, message = "error parsing graph", error = e.to_string());
+                        continue;
+                    }
+                };
 
             self.current_id = Some(response.version_id);
 
