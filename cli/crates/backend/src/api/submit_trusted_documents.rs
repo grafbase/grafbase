@@ -3,7 +3,7 @@ pub use crate::api::graphql::mutations::submit_trusted_documents::{
 };
 
 use super::graphql::mutations::submit_trusted_documents::TrustedDocumentsSubmit;
-use crate::api::{client::create_client, consts::API_URL, errors::ApiError};
+use crate::api::{client::create_client, consts::api_url, errors::ApiError};
 use cynic::{http::ReqwestExt, MutationBuilder};
 
 #[tokio::main]
@@ -13,7 +13,7 @@ pub async fn submit_trusted_documents(
     let client = create_client().await?;
     let operation = TrustedDocumentsSubmit::build(variables);
 
-    let cynic::GraphQlResponse { data, errors } = client.post(API_URL).run_graphql(operation).await?;
+    let cynic::GraphQlResponse { data, errors } = client.post(api_url()).run_graphql(operation).await?;
 
     if let Some(data) = data {
         Ok(data.trusted_documents_submit)

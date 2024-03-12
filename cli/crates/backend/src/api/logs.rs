@@ -6,7 +6,7 @@ pub use super::graphql::queries::log_entries::{FunctionLogEvent, GatewayRequestL
 pub use super::utils::project_linked;
 use super::{
     client::create_client,
-    consts::API_URL,
+    consts::api_url,
     errors::ApiError,
     graphql::queries::{
         branch_by_domain::{Branch, BranchByDomain, BranchByDomainArguments, Project},
@@ -24,7 +24,7 @@ pub async fn personal_account_slug() -> Result<String, ApiError> {
 
     let query = Viewer::build(());
 
-    let response = client.post(API_URL).run_graphql(query).await?;
+    let response = client.post(api_url()).run_graphql(query).await?;
 
     let response = response.data.expect("must exist");
 
@@ -45,7 +45,7 @@ pub async fn branch_by_domain(domain: &str) -> Result<Option<(String, String, St
 
     let query = BranchByDomain::build(BranchByDomainArguments { domain });
 
-    let response = client.post(API_URL).run_graphql(query).await?;
+    let response = client.post(api_url()).run_graphql(query).await?;
 
     let response = response.data.expect("must exist");
 
@@ -111,7 +111,7 @@ pub async fn logs_events_by_time_range(
     let mut log_events = vec![];
     while has_more_pages {
         let query = LogEventsQuery::build(arguments.clone());
-        let response = client.post(API_URL).run_graphql(query).await?;
+        let response = client.post(api_url()).run_graphql(query).await?;
         let response = response.data.expect("must exist");
 
         let mut project = response.project_by_account_slug.ok_or(ApiError::ProjectDoesNotExist)?;
@@ -151,7 +151,7 @@ pub async fn project_slug_by_id(id: &str) -> Result<Option<(String, String)>, Ap
 
     let query = ProjectSlugById::build(ProjectSlugByIdArguments { id });
 
-    let response = client.post(API_URL).run_graphql(query).await?;
+    let response = client.post(api_url()).run_graphql(query).await?;
 
     let response = response.data.expect("must exist");
 

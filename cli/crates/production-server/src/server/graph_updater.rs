@@ -73,7 +73,7 @@ impl GraphUpdater {
             .build()
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
-        let uplink_host = match std::env::var("GRAFBASE_UPLINK_HOST") {
+        let uplink_host = match std::env::var("GRAFBASE_GDN_URL") {
             Ok(host) => Cow::Owned(host),
             Err(_) => Cow::Borrowed(UPLINK_HOST),
         };

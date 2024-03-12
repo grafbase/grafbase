@@ -2,7 +2,7 @@ pub use super::graphql::mutations::{SchemaCheck, SchemaCheckErrorSeverity, Schem
 
 use super::{
     client::create_client,
-    consts::API_URL,
+    consts::api_url,
     errors::ApiError,
     graphql::mutations::{SchemaCheckCreate, SchemaCheckCreateArguments, SchemaCheckCreateInput, SchemaCheckPayload},
 };
@@ -30,7 +30,7 @@ pub async fn check(
         },
     });
 
-    let result = client.post(API_URL).run_graphql(operation).await?;
+    let result = client.post(api_url()).run_graphql(operation).await?;
 
     match result {
         cynic::GraphQlResponse {

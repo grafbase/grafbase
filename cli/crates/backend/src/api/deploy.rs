@@ -1,5 +1,5 @@
 use super::client::create_client;
-use super::consts::{API_URL, PACKAGE_JSON, TAR_CONTENT_TYPE};
+use super::consts::{api_url, PACKAGE_JSON, TAR_CONTENT_TYPE};
 use super::errors::{ApiError, DeployError};
 use super::graphql::mutations::{
     ArchiveFileSizeLimitExceededError, DailyDeploymentCountLimitExceededError, DeploymentCreate,
@@ -103,7 +103,7 @@ pub async fn deploy() -> Result<(), ApiError> {
         },
     });
 
-    let response = client.post(API_URL).run_graphql(operation).await?;
+    let response = client.post(api_url()).run_graphql(operation).await?;
 
     let payload = response
         .data

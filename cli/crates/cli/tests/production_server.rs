@@ -148,7 +148,7 @@ where
             "--graph-ref",
             graph_ref,
         )
-        .env("GRAFBASE_UPLINK_HOST", format!("http://{}", server.address()))
+        .env("GRAFBASE_GDN_URL", format!("http://{}", server.address()))
         .env("GRAFBASE_ACCESS_TOKEN", ACCESS_TOKEN);
 
         let mut commands = CommandHandles::new();
