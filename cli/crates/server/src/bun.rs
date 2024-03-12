@@ -76,7 +76,7 @@ impl From<JoinError> for BunError {
 
 // TODO: add windows once supported in Bun
 
-const BUN_VERSION: &str = "1.0.29";
+const BUN_VERSION: &str = "1.0.30";
 
 #[cfg(target_arch = "aarch64")]
 const ARCH: &str = "aarch64";
