@@ -1,5 +1,5 @@
 use super::client::create_client;
-use super::consts::API_URL;
+use super::consts::api_url;
 use super::deploy;
 use super::errors::{ApiError, CreateError};
 use super::graphql::mutations::{
@@ -27,13 +27,9 @@ pub async fn get_viewer_data_for_creation() -> Result<Vec<Account>, ApiError> {
     }
 
     let client = create_client().await?;
-
     let query = Viewer::build(());
-
-    let response = client.post(API_URL).run_graphql(query).await?;
-
+    let response = client.post(api_url()).run_graphql(query).await?;
     let response = response.data.expect("must exist");
-
     let viewer_response = response.viewer.ok_or(ApiError::UnauthorizedOrDeletedUser)?;
 
     let PersonalAccount { id, name, slug } = viewer_response
@@ -93,7 +89,7 @@ pub async fn create(account_id: &str, project_slug: &str) -> Result<Vec<String>,
         },
     });
 
-    let response = client.post(API_URL).run_graphql(operation).await?;
+    let response = client.post(api_url()).run_graphql(operation).await?;
 
     let payload = response.data.ok_or(ApiError::UnauthorizedOrDeletedUser)?.project_create;
 

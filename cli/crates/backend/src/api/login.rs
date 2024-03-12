@@ -29,9 +29,7 @@ async fn token<'a>(
     query: Query<TokenQueryParams>,
 ) -> Result<Redirect, Redirect> {
     let access_token = &query.token;
-
     let credentials_path = user_dot_grafbase_path.join(CREDENTIALS_FILE);
-
     let write_result = tokio::fs::write(&credentials_path, Credentials { access_token }.to_string()).await;
 
     if write_result.is_ok() {

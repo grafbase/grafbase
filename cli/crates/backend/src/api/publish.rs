@@ -1,6 +1,6 @@
 use super::{
     client::create_client,
-    consts::API_URL,
+    consts::api_url,
     errors::{ApiError, PublishError},
     graphql::mutations::{
         FederatedGraphCompositionError, PublishPayload, SchemaRegistryBranchDoesNotExistError, SubgraphCreateArguments,
@@ -35,7 +35,7 @@ pub async fn publish(
         },
     });
 
-    let cynic::GraphQlResponse { data, errors } = client.post(API_URL).run_graphql(operation).await?;
+    let cynic::GraphQlResponse { data, errors } = client.post(api_url()).run_graphql(operation).await?;
 
     if let Some(data) = data {
         match data.publish {
