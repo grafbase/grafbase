@@ -21,20 +21,20 @@ use crate::{cli_input::GraphRef, errors::CliError};
 )]
 pub struct FederatedStartCommand {
     /// IP address on which the server will listen for incomming connections. Defaults to 127.0.0.1:4000.
-    #[arg(long)]
+    #[arg(short, long)]
     pub listen_address: Option<SocketAddr>,
-    #[arg(long, help = GraphRef::ARG_DESCRIPTION, env = "GRAFBASE_GRAPH_REF")]
+    #[arg(short, long, help = GraphRef::ARG_DESCRIPTION, env = "GRAFBASE_GRAPH_REF")]
     pub graph_ref: Option<GraphRef>,
     /// An access token to the Grafbase API. The scope must allow operations on the given account,
     /// and graph defined in the graph-ref argument.
-    #[arg(long, env = "GRAFBASE_ACCESS_TOKEN")]
+    #[arg(env = "GRAFBASE_ACCESS_TOKEN")]
     pub access_token: Option<AsciiString>,
     /// Path to the TOML configuration file
-    #[arg(long)]
+    #[arg(long, short)]
     pub config: PathBuf,
     /// Path to federated graph SDL. If provided, the graph will be static and no connection is made
     /// to the Grafbase API.
-    #[arg(long)]
+    #[arg(long, short)]
     pub federated_schema: Option<PathBuf>,
 }
 
