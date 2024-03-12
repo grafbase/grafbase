@@ -1,0 +1,67 @@
+# Build
+FROM rust:1.76-alpine3.18 AS build
+
+WORKDIR /grafbase
+
+RUN mkdir -p packages/grafbase-sdk
+
+COPY Cargo.lock Cargo.lock
+COPY Cargo.toml Cargo.toml
+COPY ./cli ./cli
+COPY ./engine ./engine
+COPY ./packages/grafbase-sdk/package.json ./packages/grafbase-sdk
+COPY ./packages/cli-app ./packages/cli-app
+
+RUN apk add --no-cache git musl-dev npm ca-certificates wget
+
+# Bun needs glibc to be installed
+RUN mkdir -p /etc/apk/keys/
+RUN wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub
+RUN wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.28-r0/glibc-2.28-r0.apk
+RUN apk add --no-cache --force-overwrite glibc-2.28-r0.apk
+
+WORKDIR /grafbase/packages/cli-app
+
+RUN npx --yes pnpm i
+RUN npx --yes pnpm run cli-app:build
+
+WORKDIR /grafbase/cli/udf-wrapper
+
+RUN npx --yes pnpm i
+RUN npx --yes pnpm run build
+
+WORKDIR /grafbase
+
+RUN cargo build -p grafbase --release
+
+# Remove bun dependencies
+RUN rm -rf /etc/apk/keys/sgerrand.rsa.pub
+RUN apk del glibc
+RUN rm -rf glibc-2.28-r0.apk
+
+# Run
+FROM alpine:3.19
+
+WORKDIR /grafbase
+
+# used curl to run a health check query against the server in a docker-compose file
+RUN apk add --no-cache curl
+
+RUN adduser -g wheel -D grafbase -h "/data" && mkdir -p /data && chown grafbase: /data
+USER grafbase
+
+COPY --from=build /grafbase/target/release/grafbase /bin/grafbase
+COPY --from=build /grafbase/cli/crates/production-server/config/grafbase.toml /etc/grafbase.toml
+
+ENTRYPOINT ["/bin/grafbase"]
+
+# these args should be set so the binary can start. they have to be changed for successfully running the gateway
+ARG GRAFBASE_GRAPH_REF=""
+ARG GRAFBASE_ACCESS_TOKEN=""
+
+CMD ["federated", "start", "--config", "/etc/grafbase.toml", "--listen-address", "0.0.0.0:4000"]
+
+EXPOSE 4000
+
+VOLUME ["/data"]
+WORKDIR "/data"

@@ -12,16 +12,32 @@ COPY ./engine ./engine
 COPY ./packages/grafbase-sdk/package.json ./packages/grafbase-sdk
 COPY ./packages/cli-app ./packages/cli-app
 
-RUN apk add --no-cache git musl-dev npm
+RUN apk add --no-cache git musl-dev npm ca-certificates wget
+
+# Bun needs glibc to be installed
+RUN mkdir -p /etc/apk/keys/
+RUN wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub
+RUN wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.28-r0/glibc-2.28-r0.apk
+RUN apk add --no-cache --force-overwrite glibc-2.28-r0.apk
 
 WORKDIR /grafbase/packages/cli-app
 
 RUN npx --yes pnpm i
 RUN npx --yes pnpm run cli-app:build
 
+WORKDIR /grafbase/cli/udf-wrapper
+
+RUN npx --yes pnpm i
+RUN npx --yes pnpm run build
+
 WORKDIR /grafbase
 
 RUN cargo build -p grafbase --release
+
+# Remove bun dependencies
+RUN rm -rf /etc/apk/keys/sgerrand.rsa.pub
+RUN apk del glibc
+RUN rm -rf glibc-2.28-r0.apk
 
 # Run
 FROM alpine:3.19
@@ -38,7 +54,7 @@ COPY --from=build /grafbase/target/release/grafbase /bin/grafbase
 
 ENTRYPOINT ["/bin/grafbase"]
 
-CMD ["start"]
+CMD ["start", "--listen-address", "0.0.0.0:4000"]
 
 EXPOSE 4000
 
