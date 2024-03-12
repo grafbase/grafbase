@@ -12,10 +12,10 @@ use url::Url;
 const TICK_INTERVAL: Duration = Duration::from_secs(10);
 
 /// How long we wait for a response from the schema registry.
-const UPLINK_TIMEOUT: Duration = Duration::from_secs(30);
+const UPLINK_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// How long we keep the HTTP connection alive in the pool.
-const KEEPALIVE_DURATION: Duration = Duration::from_secs(60);
+/// How long we wait until a connection is successfully opened.
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// The HTTP user-agent header we sent to the schema registry.
 const USER_AGENT: &str = "grafbase-cli";
@@ -57,8 +57,7 @@ impl GraphUpdater {
         let uplink_client = reqwest::ClientBuilder::new()
             .gzip(true)
             .timeout(UPLINK_TIMEOUT)
-            .connect_timeout(Duration::from_secs(5))
-            .tcp_keepalive(KEEPALIVE_DURATION)
+            .connect_timeout(CONNECT_TIMEOUT)
             .user_agent(USER_AGENT)
             .build()
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
