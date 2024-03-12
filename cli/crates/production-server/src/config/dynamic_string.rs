@@ -24,7 +24,7 @@ where
         /// Matches any "{{ something }}"
         fn re() -> &'static Regex {
             static RE: OnceLock<Regex> = OnceLock::new();
-            RE.get_or_init(|| Regex::new(r"\{\{\s*([[[:alnum:]]_.]+)\s*\}\}").unwrap())
+            RE.get_or_init(|| Regex::new(r"\{\{\s*([[[:alnum:]]_.]+)\s*\}\}").expect("must be valid"))
         }
 
         let mut errors = Vec::new();
