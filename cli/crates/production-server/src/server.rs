@@ -67,7 +67,7 @@ async fn bind(addr: SocketAddr, path: &str, router: Router, tls: Option<TlsConfi
 
     match tls {
         Some(ref tls) => {
-            tracing::info!("starting the Grafbase gateway in https://{addr}{path}");
+            tracing::info!("starting the Grafbase gateway at https://{addr}{path}");
 
             let rustls_config = RustlsConfig::from_pem_file(&tls.certificate, &tls.key)
                 .await

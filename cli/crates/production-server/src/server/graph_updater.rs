@@ -4,6 +4,7 @@ use super::gateway::GatewaySender;
 use crate::config::{AuthenticationConfig, OperationLimitsConfig};
 use ascii::AsciiString;
 use http::{HeaderValue, StatusCode};
+use tokio::time::MissedTickBehavior;
 use tracing::Level;
 use ulid::Ulid;
 use url::Url;
@@ -12,10 +13,19 @@ use url::Url;
 const TICK_INTERVAL: Duration = Duration::from_secs(10);
 
 /// How long we wait for a response from the schema registry.
-const UPLINK_TIMEOUT: Duration = Duration::from_secs(30);
+const UPLINK_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// How long we keep the HTTP connection alive in the pool.
-const KEEPALIVE_DURATION: Duration = Duration::from_secs(60);
+/// How long we wait until a connection is successfully opened.
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Sets an interval for HTTP2 Ping frames should be sent to keep a connection alive.
+const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(1);
+
+/// Sets a timeout for receiving an acknowledgement of the keep-alive ping.
+const KEEPALIVE_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Sets whether HTTP2 keep-alive should apply while the connection is idle.
+const KEEPALIVE_WHILE_IDLE: bool = true;
 
 /// The HTTP user-agent header we sent to the schema registry.
 const USER_AGENT: &str = "grafbase-cli";
@@ -57,8 +67,10 @@ impl GraphUpdater {
         let uplink_client = reqwest::ClientBuilder::new()
             .gzip(true)
             .timeout(UPLINK_TIMEOUT)
-            .connect_timeout(Duration::from_secs(5))
-            .tcp_keepalive(KEEPALIVE_DURATION)
+            .connect_timeout(CONNECT_TIMEOUT)
+            .http2_keep_alive_interval(Some(KEEPALIVE_INTERVAL))
+            .http2_keep_alive_timeout(KEEPALIVE_TIMEOUT)
+            .http2_keep_alive_while_idle(KEEPALIVE_WHILE_IDLE)
             .user_agent(USER_AGENT)
             .build()
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
@@ -117,6 +129,10 @@ impl GraphUpdater {
     /// are served before dropping.
     pub async fn poll(&mut self) {
         let mut interval = tokio::time::interval(TICK_INTERVAL);
+
+        // if we have a slow connection, this prevents bursts of connections to the GDN
+        // for all the missed ticks.
+        interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
 
         loop {
             interval.tick().await;
