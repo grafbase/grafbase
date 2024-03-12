@@ -137,8 +137,6 @@ where
             .mount(&server)
             .await;
 
-        std::env::set_var("GRAFBASE_UPLINK_HOST", format!("http://{}", server.address()));
-
         let command = cmd!(
             cargo_bin("grafbase"),
             "federated",
@@ -149,9 +147,9 @@ where
             &config_path.to_str().unwrap(),
             "--graph-ref",
             graph_ref,
-            "--access-token",
-            ACCESS_TOKEN,
-        );
+        )
+        .env("GRAFBASE_UPLINK_HOST", format!("http://{}", server.address()))
+        .env("GRAFBASE_ACCESS_TOKEN", ACCESS_TOKEN);
 
         let mut commands = CommandHandles::new();
         commands.push(command.start().unwrap());
