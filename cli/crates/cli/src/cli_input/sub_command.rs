@@ -1,11 +1,9 @@
 use clap::Parser;
 
-use crate::cli_input::FederatedSubCommand;
-
 use super::{
     trust::TrustCommand, ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand, CreateCommand, DevCommand,
-    FederatedCommand, InitCommand, IntrospectCommand, LinkCommand, LogsCommand, PublishCommand, SchemaCommand,
-    StartCommand, SubgraphsCommand,
+    InitCommand, IntrospectCommand, LinkCommand, LogsCommand, PublishCommand, SchemaCommand, StartCommand,
+    SubgraphsCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -53,8 +51,6 @@ pub enum SubCommand {
     /// Submit a trusted documents manifest
     #[clap(hide = true)]
     Trust(TrustCommand),
-    /// Federated project configuration and execution
-    Federated(FederatedCommand),
 }
 
 impl SubCommand {
@@ -80,16 +76,6 @@ impl SubCommand {
                 })
         )
     }
-
-    // TODO: only temporary
-    pub(crate) fn runs_production_server(&self) -> bool {
-        matches!(
-            self,
-            Self::Federated(FederatedCommand {
-                command: FederatedSubCommand::Start(_)
-            })
-        )
-    }
 }
 
 impl ArgumentNames for SubCommand {
@@ -100,7 +86,6 @@ impl ArgumentNames for SubCommand {
             SubCommand::Create(command) => command.argument_names(),
             SubCommand::Schema(_)
             | SubCommand::Publish(_)
-            | SubCommand::Federated(_)
             | SubCommand::Check(_)
             | SubCommand::Subgraphs(_)
             | SubCommand::Introspect(_)

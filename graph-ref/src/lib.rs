@@ -8,13 +8,13 @@ pub struct GraphRef {
 }
 
 impl GraphRef {
-    pub(crate) const ARG_DESCRIPTION: &'static str = r#"Graph reference following the format "graph@branch""#;
+    pub const ARG_DESCRIPTION: &'static str = r#"Graph reference following the format "graph@branch""#;
 
-    pub(crate) fn graph(&self) -> &str {
+    pub fn graph(&self) -> &str {
         self.graph.as_ref()
     }
 
-    pub(crate) fn branch(&self) -> Option<&str> {
+    pub fn branch(&self) -> Option<&str> {
         self.branch.as_deref()
     }
 }

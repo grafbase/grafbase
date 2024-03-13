@@ -1,0 +1,37 @@
+[package]
+name = "grafbase-gateway"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.81"
+ascii = "1.1.0"
+clap = { version = "4", features = ["cargo", "wrap_help", "derive", "env"] }
+federated-server.workspace = true
+grafbase-tracing = { workspace = true, features = ["otlp"] }
+graph-ref.workspace = true
+rustls = { workspace = true, features = ["ring"] }
+tracing-subscriber.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+duct = "0.13.7"
+futures-util.workspace = true
+indoc = "2.0.4"
+serde_json.workspace = true
+tempfile = "3.10.1"
+tokio.workspace = true
+wiremock.workspace = true
+insta = { workspace = true, features = ["json", "redactions", "yaml"] }
+fslock = "0.2.1"
+reqwest.workspace = true
+http.workspace = true
+serde.workspace = true

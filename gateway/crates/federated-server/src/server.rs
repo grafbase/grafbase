@@ -20,6 +20,8 @@ use tower_http::cors::CorsLayer;
 
 use self::gateway::GatewayConfig;
 
+const DEFAULT_LISTEN_ADDRESS: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
+
 pub(super) async fn serve(
     listen_addr: Option<SocketAddr>,
     config: Config,
@@ -29,7 +31,7 @@ pub(super) async fn serve(
 
     let addr = listen_addr
         .or(config.network.listen_address)
-        .unwrap_or(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 4000));
+        .unwrap_or(DEFAULT_LISTEN_ADDRESS);
 
     let gateway = fetch_method.into_gateway(GatewayConfig {
         enable_introspection: config.graph.introspection,
