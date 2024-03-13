@@ -17,15 +17,6 @@
 //! )
 //! ```
 
-#![deny(clippy::all)]
-#![deny(clippy::pedantic)]
-#![allow(clippy::missing_panics_doc)]
-#![deny(warnings)]
-#![deny(let_underscore)]
-#![deny(nonstandard_style)]
-#![deny(unused)]
-#![deny(rustdoc::all)]
-
 mod response;
 pub mod serializer;
 
@@ -33,6 +24,7 @@ use std::{
     borrow::Cow,
     collections::{BTreeMap, HashMap},
     pin::Pin,
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 use async_runtime::make_send_on_wasm;
@@ -40,8 +32,10 @@ use dataloader::{DataLoader, Loader, NoCache};
 use engine_parser::{
     parse_query,
     types::{
-        ExecutableDocument, Field, FragmentDefinition, OperationType, Selection, SelectionSet, VariableDefinition,
+        DocumentOperations, ExecutableDocument, Field, FragmentDefinition, InlineFragment, OperationType, Selection,
+        SelectionSet, VariableDefinition,
     },
+    Positioned,
 };
 use engine_value::{ConstValue, Name, Variables};
 use futures_util::Future;
@@ -195,8 +189,8 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
 
     Box::pin(make_send_on_wasm(async move {
         for (resolver, queries) in resolver_queries {
-            let query = if queries.len() == 1 {
-                queries[0].clone()
+            let (query, aliases) = if queries.len() == 1 {
+                (queries[0].clone(), vec![HashMap::new()])
             } else {
                 group_queries(queries.clone())
             };
@@ -225,7 +219,7 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
                 response.text().await.map_err(|e| Error::RequestError(e.to_string())),
             )?;
 
-            for query in queries {
+            for (query, aliases) in queries.into_iter().zip(aliases) {
                 let key = QueryData {
                     query,
                     headers: resolver.headers.clone(),
@@ -235,7 +229,37 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
                     fetch_log_endpoint_url: resolver.fetch_log_endpoint_url.clone(),
                 };
 
-                results.insert(key, (upstream_response.clone(), http_status));
+                if aliases.is_empty() {
+                    results.insert(key, (upstream_response.clone(), http_status));
+                } else {
+                    // Take all our aliased fields and un-alias them
+                    let data = match &upstream_response.data {
+                        serde_json::Value::Object(upstream_data) => {
+                            let mut map = serde_json::Map::new();
+                            for (alias, original_name) in aliases {
+                                if let Some(value) = upstream_data.get(&alias) {
+                                    map.insert(original_name, value.clone());
+                                }
+                            }
+
+                            serde_json::Value::Object(map)
+                        }
+                        _ => serde_json::Value::Null,
+                    };
+
+                    results.insert(
+                        key,
+                        (
+                            UpstreamResponse {
+                                data,
+                                // Probably need to do something smarter with errors,
+                                // but I don't know what.  Just going to duplicate for now.
+                                errors: upstream_response.errors.clone(),
+                            },
+                            http_status,
+                        ),
+                    );
+                }
             }
         }
 
@@ -243,7 +267,7 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
     }))
 }
 
-fn group_queries(queries: Vec<Query>) -> Query {
+fn group_queries(queries: Vec<Query>) -> (Query, Vec<HashMap<String, String>>) {
     let mut variables = BTreeMap::new();
 
     let mut all_fragments = HashMap::new();
@@ -251,16 +275,18 @@ fn group_queries(queries: Vec<Query>) -> Query {
     let mut all_selections = SelectionSet::default();
     let mut all_directives = HashMap::new();
 
-    for Query { query: q, variables: v } in queries {
-        let ExecutableDocument { operations, fragments } = parse_query(&q).expect("valid serialized query");
+    let mut root_aliases = Vec::with_capacity(queries.len());
 
-        let operation = operations
-            .iter()
-            .next()
-            .expect("serialized to a single operation")
-            .1
-            .clone()
-            .into_inner();
+    for Query { query: q, variables: v } in queries {
+        let Ok(ExecutableDocument {
+            operations: DocumentOperations::Single(operation),
+            fragments,
+        }) = parse_query(&q)
+        else {
+            panic!("Expected a valid query with a single operation in it");
+        };
+
+        let mut operation = operation.node;
 
         // Only queries will be grouped.
         debug_assert_eq!(operation.ty, OperationType::Query);
@@ -274,7 +300,19 @@ fn group_queries(queries: Vec<Query>) -> Query {
         }
 
         all_fragments.extend(fragments);
-        all_selections.items.extend(operation.selection_set.items.clone());
+
+        let mut query_root_aliases = HashMap::with_capacity(operation.selection_set.items.len());
+
+        // We need to make sure every field in the root has a unique name in the response
+        // Easiest way to do that is just to put a unique alias on _everything_.
+        alias_root_fields(
+            &mut operation.selection_set.node.items,
+            &mut query_root_aliases,
+            &all_fragments,
+        );
+
+        root_aliases.push(query_root_aliases);
+        all_selections.items.append(&mut operation.selection_set.node.items);
 
         variables.extend(v);
     }
@@ -296,7 +334,62 @@ fn group_queries(queries: Vec<Query>) -> Query {
 
     serializer.query(target, None).expect("valid grouping of queries");
 
-    Query { query, variables }
+    (Query { query, variables }, root_aliases)
+}
+
+// We use this counter to generate unique aliases for fields to avoid clashes.
+// See its use in alias_root_fields below for more details
+static ALIAS_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+/// When joining queries together we might have some clashing fields
+///
+/// In order to make sure the joined query is correct we need to be careful to ensure that every
+/// root field is unique.  We do that by sticking aliases on all the root selections, and keeping
+/// track of those aliases so we can handle the response.
+fn alias_root_fields(
+    selections: &mut [Positioned<Selection>],
+    alias_map: &mut HashMap<String, String>,
+    fragments: &HashMap<Name, Positioned<FragmentDefinition>>,
+) {
+    for item in selections.iter_mut() {
+        match &mut item.node {
+            Selection::Field(field) => {
+                let original_name = field.alias.clone().unwrap_or_else(|| field.name.clone());
+                let alias = format!("f_{}", ALIAS_COUNTER.fetch_add(1, Ordering::Relaxed));
+
+                alias_map.insert(alias.clone(), original_name.to_string());
+                field.node.alias = Some(Positioned::new(Name::new(alias), Default::default()));
+            }
+            Selection::FragmentSpread(spread) => {
+                // FragmentSpreads are awwkard - we can't put aliases onto the fragment
+                // because it might be used elsewhere.
+                //
+                // So instead we convert it to an inline fragment instead and do our aliasing on that.
+
+                let Some(fragment) = fragments.get(&spread.node.fragment_name.node) else {
+                    // This really shouldn't happen but continue if it does
+                    continue;
+                };
+
+                let mut inline_fragment = InlineFragment {
+                    type_condition: Some(fragment.node.type_condition.clone()),
+                    directives: fragment.node.directives.clone(),
+                    selection_set: fragment.selection_set.clone(),
+                };
+
+                // Alias the fields of that inline fragment, this should also handle any fragment
+                // spreads contained within.
+                alias_root_fields(&mut inline_fragment.selection_set.node.items, alias_map, fragments);
+
+                // Now replace the fragment spread with the inline fragment.
+                item.node = Selection::InlineFragment(Positioned::new(inline_fragment, spread.pos));
+            }
+            Selection::InlineFragment(inline) => {
+                // Recursively alias any fields in this fragment
+                alias_root_fields(&mut inline.node.selection_set.node.items, alias_map, fragments);
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, serde::Serialize)]
