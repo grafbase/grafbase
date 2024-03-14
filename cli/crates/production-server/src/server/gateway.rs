@@ -5,12 +5,12 @@ use engine_v2::EngineEnv;
 use gateway_v2::{Gateway, GatewayEnv};
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::FederatedGraphConfig;
-use runtime::{cache::GlobalCacheConfig, trusted_documents_service::TrustedDocumentsClient};
+use runtime::cache::GlobalCacheConfig;
 use runtime_local::{InMemoryCache, InMemoryKvStore};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;
 
-use crate::config::{AuthenticationConfig, HeaderValue, OperationLimitsConfig, SubgraphConfig};
+use crate::config::{AuthenticationConfig, HeaderValue, OperationLimitsConfig, SubgraphConfig, TrustedDocumentsConfig};
 
 /// Send half of the gateway watch channel
 pub(crate) type GatewaySender = watch::Sender<Option<Arc<Gateway>>>;
@@ -27,16 +27,22 @@ pub(crate) struct GatewayConfig {
     pub authentication: Option<AuthenticationConfig>,
     pub default_headers: BTreeMap<AsciiString, HeaderValue>,
     pub subgraphs: BTreeMap<String, SubgraphConfig>,
+    pub trusted_documents: TrustedDocumentsConfig,
 }
 
 /// Creates a new gateway from federated schema.
-pub(super) fn generate(federated_schema: &str, config: GatewayConfig) -> crate::Result<Gateway> {
+pub(super) fn generate(
+    federated_schema: &str,
+    branch_id: Option<ulid::Ulid>,
+    config: GatewayConfig,
+) -> crate::Result<Gateway> {
     let GatewayConfig {
         enable_introspection,
         operation_limits,
         authentication,
         default_headers,
         subgraphs,
+        trusted_documents,
     } = config;
 
     let graph =
@@ -86,12 +92,31 @@ pub(super) fn generate(federated_schema: &str, config: GatewayConfig) -> crate::
         subdomain: "localhost".to_string(),
     });
 
+    // TODO: https://linear.app/grafbase/issue/GB-6168/support-trusted-documents-in-air-gapped-mode
+    let trusted_documents = if trusted_documents.enabled {
+        let Some(branch_id) = branch_id else {
+            return Err(crate::Error::InternalError(
+                "Trusted documents are not implemented yet in airgapped mode".into(),
+            ));
+        };
+
+        runtime::trusted_documents_client::Client::new(super::trusted_documents_client::TrustedDocumentsClient {
+            http_client: Default::default(),
+            bypass_header: trusted_documents
+                .bypass_header
+                .bypass_header_name
+                .zip(trusted_documents.bypass_header.bypass_header_value)
+                .map(|(name, value)| (name.clone().into(), String::from(value.as_ref()))),
+            branch_id,
+        })
+    } else {
+        runtime::trusted_documents_client::Client::new(NoopTrustedDocuments)
+    };
+
     let engine_env = EngineEnv {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         cache: cache.clone(),
-        // TODO: https://linear.app/grafbase/issue/GB-6168/support-trusted-documents-in-air-gapped-mode
-        // TODO: https://linear.app/grafbase/issue/GB-6169/support-trusted-documents-in-hybrid-mode
-        trusted_documents: TrustedDocumentsClient::new(Box::new(NoopTrustedDocuments), String::new()),
+        trusted_documents,
     };
 
     let gateway_env = GatewayEnv {

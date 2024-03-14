@@ -9,6 +9,7 @@ pub use bench::*;
 use gateway_v2::Gateway;
 use graphql_mocks::MockGraphQlServer;
 use parser_sdl::connector_parsers::MockConnectorParsers;
+use runtime::trusted_documents_client;
 
 pub use self::mock_trusted_documents::TestTrustedDocument;
 
@@ -55,7 +56,10 @@ impl FederationGatewayBuilder {
     }
 
     pub fn with_trusted_documents(mut self, branch_id: String, documents: Vec<TestTrustedDocument>) -> Self {
-        self.trusted_documents = Some(MockTrustedDocumentsClient { branch_id, documents });
+        self.trusted_documents = Some(MockTrustedDocumentsClient {
+            _branch_id: branch_id,
+            documents,
+        });
         self
     }
 
@@ -93,8 +97,10 @@ impl FederationGatewayBuilder {
                     cache: cache.clone(),
                     trusted_documents: self
                         .trusted_documents
-                        .map(From::from)
-                        .unwrap_or_else(|| runtime_noop::trusted_documents::NoopTrustedDocuments.into()),
+                        .map(|docs| trusted_documents_client::Client::new(docs))
+                        .unwrap_or_else(|| {
+                            trusted_documents_client::Client::new(runtime_noop::trusted_documents::NoopTrustedDocuments)
+                        }),
                 },
                 gateway_v2::GatewayEnv {
                     kv: runtime_local::InMemoryKvStore::runtime(),

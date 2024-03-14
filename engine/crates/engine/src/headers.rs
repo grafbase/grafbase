@@ -24,7 +24,7 @@ impl RequestHeaders {
         )
     }
 
-    pub fn find(&self, expected_name: &str) -> Option<&str> {
+    pub fn find<'a>(&'a self, expected_name: &str) -> Option<&'a str> {
         let expected_name = expected_name.to_ascii_lowercase();
         self.0
             .iter()
