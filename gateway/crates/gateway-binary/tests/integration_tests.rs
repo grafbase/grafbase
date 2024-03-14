@@ -288,7 +288,7 @@ fn with_static_server<F, T>(
         &addr.to_string(),
         "--config",
         &config_path.to_str().unwrap(),
-        "--federated-schema",
+        "--schema",
         &schema_path.to_str().unwrap(),
     );
 

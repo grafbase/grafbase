@@ -42,7 +42,11 @@ jobs:
         uses: ./.github/actions/sanitize
         with:
           lint: true
-          test: true
+          test-engine: true
+          test-grafbase: true
+          test-grafbase-gateway: true
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Report Status
         if: always()

@@ -1,4 +1,4 @@
-name: Sanitize CLI
+name: Sanitize and test
 description: Run cargo fmt, clippy, test
 
 inputs:
@@ -18,6 +18,12 @@ inputs:
     required: false
     default: 'false'
     description: To run test or not to run
+  dockerhub-username:
+    required: true
+    description: Username to log into docker hub
+  dockerhub-token:
+    required: true
+    description: Token to log into docker hub
 
 runs:
   using: 'composite'
@@ -70,10 +76,11 @@ runs:
       if: ${{ inputs.test-engine == 'true' }}
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        username: ${{ inputs.dockerhub-username }}
+        password: ${{ inputs.dockerhub-token }}
 
     - name: Start local databases
+      shell: bash
       if: ${{ inputs.test-engine == 'true' }}
       run: |
         docker-compose -f engine/crates/integration-tests/docker-compose.yml up -d

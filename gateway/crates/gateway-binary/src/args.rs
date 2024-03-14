@@ -16,7 +16,7 @@ const DEFAULT_LOG_FILTER: &str = "info";
     group(
         ArgGroup::new("hybrid-or-airgapped")
             .required(true)
-            .args(["graph_ref", "federated_schema"])
+            .args(["graph_ref", "schema"])
     ),
     group(
         ArgGroup::new("graph-ref-with-access-token")
@@ -24,8 +24,8 @@ const DEFAULT_LOG_FILTER: &str = "info";
             .requires("access_token")
     )
 )]
-#[command(name = "Grafbase self-hosted gateway", version)]
-/// The Grafbase self-hosted gateway
+#[command(name = "The Grafbase gateway", version)]
+/// The Grafbase gateway
 pub struct Args {
     /// IP address on which the server will listen for incomming connections. Defaults to 127.0.0.1:5000.
     #[arg(short, long)]
@@ -39,10 +39,10 @@ pub struct Args {
     /// Path to the TOML configuration file
     #[arg(long, short)]
     pub config: PathBuf,
-    /// Path to federated graph SDL. If provided, the graph will be static and no connection is made
+    /// Path to graph SDL. If provided, the graph will be static and no connection is made
     /// to the Grafbase API.
     #[arg(long, short)]
-    pub federated_schema: Option<PathBuf>,
+    pub schema: Option<PathBuf>,
     /// Set the tracing level
     #[arg(short, long, default_value_t = 0)]
     pub trace: u16,
@@ -51,10 +51,9 @@ pub struct Args {
 impl Args {
     /// The method of fetching a graph
     pub fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod> {
-        match (self.graph_ref.as_ref(), self.federated_schema.as_ref()) {
+        match (self.graph_ref.as_ref(), self.schema.as_ref()) {
             (None, Some(path)) => {
-                let federated_graph =
-                    fs::read_to_string(path).map_err(|e| anyhow!("error loading federated schema:\n{e}"))?;
+                let federated_graph = fs::read_to_string(path).map_err(|e| anyhow!("error loading schema:\n{e}"))?;
 
                 Ok(GraphFetchMethod::FromLocal {
                     federated_schema: federated_graph,

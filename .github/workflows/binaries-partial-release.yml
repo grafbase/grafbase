@@ -17,7 +17,7 @@ on:
         required: false
         default: false
         description: Release grafbase
-      release-grafbase-gateway:
+      release-gateway:
         type: boolean
         required: false
         default: false
@@ -42,7 +42,7 @@ jobs:
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
       - name: Parse version tag for grafbase-gateway
-        if: ${{ inputs.release-grafbase-gateway == true }}
+        if: ${{ inputs.release-gateway == true }}
         run: |
           VERSION_BUMP="${{ inputs.tag }}"
           VERSION_BUMP=${VERSION_BUMP//gateway-} # remove the gateway prefix from the tag
@@ -58,7 +58,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Announce grafbase-gateway release attempt on slack
-        if: ${{ inputs.release-grafbase-gateway == true }}
+        if: ${{ inputs.release-gateway == true }}
         uses: ravsamhq/notify-slack-action@v2
         with:
           notification_title: '({workflow}) grafbase-gateway release for ${{ env.VERSION_BUMP }} started'
@@ -107,7 +107,7 @@ jobs:
           path: cli/npm/x86_64-apple-darwin
 
       - name: Download grafbase-gateway darwin-x86_64 artifact
-        if: ${{ inputs.release-grafbase-gateway == true }}
+        if: ${{ inputs.release-gateway == true }}
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-x86_64-apple-darwin
@@ -121,7 +121,7 @@ jobs:
           path: cli/npm/aarch64-apple-darwin
 
       - name: Download grafbase-gateway darwin-aarch64 artifact
-        if: ${{ inputs.release-grafbase-gateway == true }}
+        if: ${{ inputs.release-gateway == true }}
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-aarch64-apple-darwin
@@ -135,7 +135,7 @@ jobs:
           path: cli/npm/x86_64-unknown-linux-musl
 
       - name: Download grafbase-gateway linux amd artifact
-        if: ${{ inputs.release-grafbase-gateway == true }}
+        if: ${{ inputs.release-gateway == true }}
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-linux
@@ -149,7 +149,7 @@ jobs:
           path: cli/npm/aarch64-unknown-linux-musl
 
       - name: Download grafbase-gateway linux arm artifact
-        if: ${{ inputs.release-grafbase-gateway == true }}
+        if: ${{ inputs.release-gateway == true }}
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-linux-arm
@@ -179,7 +179,7 @@ jobs:
           chmod +x aarch64-unknown-linux-musl/grafbase
 
       - name: Process grafbase-gateway artifacts
-        if: ${{ inputs.release-grafbase-gateway == true }}
+        if: ${{ inputs.release-gateway == true }}
         shell: bash
         run: |
           cd cli/npm
@@ -245,8 +245,8 @@ jobs:
             cli/npm/github/grafbase-aarch64-unknown-linux-musl
 
       - name: Github grafbase-gateway Release
-        if: ${{ inputs.release-grafbase-gateway == true }}
-        id: gh-release-grafbase-gateway
+        if: ${{ inputs.release-gateway == true }}
+        id: gh-release-gateway
         uses: softprops/action-gh-release@v2
         with:
           body_path: cli/changelog/${{ env.VERSION_BUMP }}.md
