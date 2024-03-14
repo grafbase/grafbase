@@ -234,6 +234,18 @@ impl Environment {
             .unwrap()
     }
 
+    pub fn grafbase_introspect_dev(&self) -> Output {
+        let args = ["introspect", "--dev"];
+
+        duct::cmd(cargo_bin("grafbase"), args)
+            .dir(&self.directory_path)
+            .stdout_capture()
+            .stderr_capture()
+            .unchecked()
+            .run()
+            .unwrap()
+    }
+
     #[track_caller]
     pub fn grafbase_init(&self, graph_type: GraphType) {
         let current_directory_path = self.schema_path.parent().expect("must be defined");
