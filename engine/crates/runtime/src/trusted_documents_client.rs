@@ -11,6 +11,9 @@ pub type TrustedDocumentsResult<T> = Result<T, TrustedDocumentsError>;
 pub trait TrustedDocumentsClient: Send + Sync {
     fn is_enabled(&self) -> bool;
 
+    /// Users can optionally configure a header (name, value) which, when it is
+    /// sent with a request, will bypass the trusted documents checks and allow running
+    /// arbitrary queries.
     fn bypass_header(&self) -> Option<(&str, &str)> {
         None
     }
