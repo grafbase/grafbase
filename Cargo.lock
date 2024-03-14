@@ -2883,6 +2883,7 @@ dependencies = [
  "tracing-opentelemetry",
  "tracing-subscriber",
  "url",
+ "worker",
 ]
 
 [[package]]
