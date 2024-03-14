@@ -10,7 +10,9 @@ use runtime_local::{InMemoryCache, InMemoryKvStore};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;
 
-use crate::config::{AuthenticationConfig, HeaderValue, OperationLimitsConfig, SubgraphConfig, TrustedDocumentsConfig};
+use crate::config::{
+    AuthenticationConfig, BypassHeader, HeaderValue, OperationLimitsConfig, SubgraphConfig, TrustedDocumentsConfig,
+};
 
 /// Send half of the gateway watch channel
 pub(crate) type GatewaySender = watch::Sender<Option<Arc<Gateway>>>;
@@ -103,11 +105,12 @@ pub(super) fn generate(
 
             Box::new(super::trusted_documents_client::TrustedDocumentsClient {
                 http_client: Default::default(),
-                bypass_header: trusted_documents
-                    .bypass_header_name
-                    .as_ref()
-                    .zip(trusted_documents.bypass_header_value.as_ref())
-                    .map(|(name, value)| (name.clone(), String::from(value.as_ref()))),
+                bypass_header: trusted_documents.bypass_header.as_ref().map(
+                    |BypassHeader {
+                         bypass_header_name: name,
+                         bypass_header_value: value,
+                     }| (name.clone().into(), String::from(value.as_ref())),
+                ),
                 branch_id,
             })
         } else {

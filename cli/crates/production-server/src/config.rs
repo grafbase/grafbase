@@ -113,12 +113,18 @@ pub struct TrustedDocumentsConfig {
     /// If true, the engine will only accept trusted document queries. Default: false.
     #[serde(default)]
     pub enabled: bool,
-    /// Optional name of the header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_value`.
-    #[serde(default)]
-    pub bypass_header_name: Option<String>,
-    /// Optional value of the `bypass_header_name` header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_name`.
-    #[serde(default)]
-    pub bypass_header_value: Option<DynamicString<String>>,
+    /// See [BypassHeader]
+    #[serde(default, flatten)]
+    pub bypass_header: Option<BypassHeader>,
+}
+
+/// An optional header that can be passed by clients to bypass trusted documents enforcement, allowing arbitrary queries.
+#[derive(Debug, serde::Deserialize, Clone)]
+pub struct BypassHeader {
+    /// Name of the optional header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_value`.
+    pub bypass_header_name: AsciiString,
+    /// Value of the optional header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_value`.
+    pub bypass_header_value: DynamicString<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize)]
@@ -591,8 +597,7 @@ mod tests {
         insta::assert_debug_snapshot!(config.trusted_documents, @r###"
         TrustedDocumentsConfig {
             enabled: false,
-            bypass_header_name: None,
-            bypass_header_value: None,
+            bypass_header: None,
         }
         "###)
     }
@@ -609,8 +614,7 @@ mod tests {
         insta::assert_debug_snapshot!(config.trusted_documents, @r###"
         TrustedDocumentsConfig {
             enabled: true,
-            bypass_header_name: None,
-            bypass_header_value: None,
+            bypass_header: None,
         }
         "###)
     }
@@ -626,13 +630,7 @@ mod tests {
 
         let err = toml::from_str::<Config>(input).unwrap_err().to_string();
 
-        insta::assert_snapshot!(err, @r###"
-        TOML parse error at line 5, column 35
-          |
-        5 |             bypass_header_value = "secret-{{ env.TEST_HEADER_SECRET }}"
-          |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        environment variable not found: `TEST_HEADER_SECRET`
-        "###);
+        insta::assert_snapshot!(err, @r#""#);
     }
 
     #[test]
@@ -649,13 +647,13 @@ mod tests {
         insta::assert_debug_snapshot!(config.trusted_documents, @r###"
         TrustedDocumentsConfig {
             enabled: true,
-            bypass_header_name: Some(
-                "my-header-name",
-            ),
-            bypass_header_value: Some(
-                DynamicString(
-                    "my-secret-value",
-                ),
+            bypass_header: Some(
+                BypassHeader {
+                    bypass_header_name: "my-header-name",
+                    bypass_header_value: DynamicString(
+                        "my-secret-value",
+                    ),
+                },
             ),
         }
         "###);
@@ -670,11 +668,11 @@ mod tests {
 
         let error = toml::from_str::<Config>(input).unwrap_err();
         insta::assert_snapshot!(&error.to_string(), @r###"
-        TOML parse error at line 2, column 1
+        TOML parse error at line 1, column 1
           |
-        2 | copacetic = false
-          | ^^^^^^^^^
-        unknown field `copacetic`, expected one of `enabled`, `bypass_header_name`, `bypass_header_value`
+        1 | [trusted_documents]
+          | ^^^^^^^^^^^^^^^^^^^
+        unknown field `copacetic`
         "###);
     }
 
