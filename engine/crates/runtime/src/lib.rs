@@ -2,6 +2,7 @@ pub mod async_runtime;
 pub mod auth;
 pub mod bytes;
 pub mod cache;
+pub mod cache_v2;
 pub mod context;
 pub mod cursor;
 pub mod fetch;

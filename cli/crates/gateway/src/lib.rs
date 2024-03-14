@@ -1,7 +1,7 @@
 use auth::AnyApiKeyProvider;
 use engine::registry::CachePartialRegistry;
 use gateway_core::CacheConfig;
-use runtime_local::{InMemoryCache, InMemoryKvStore};
+use runtime_local::{InMemoryCacheV2, InMemoryKvStore};
 use std::{collections::HashMap, ops::Deref, sync::Arc};
 
 use self::executor::Executor;
@@ -52,7 +52,7 @@ impl Gateway {
         Ok(Gateway {
             inner: Arc::new(gateway_core::Gateway::new(
                 executor,
-                InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
+                InMemoryCacheV2::runtime(runtime::cache::GlobalCacheConfig {
                     common_cache_tags: vec![],
                     enabled: true,
                     subdomain: "localhost".to_string(),

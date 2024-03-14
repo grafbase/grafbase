@@ -37,7 +37,7 @@ impl FederationGatewayWithoutIO {
         let config =
             engine_v2::VersionedConfig::V3(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
         let async_runtime = runtime_local::TokioCurrentRuntime::runtime();
-        let cache = runtime_local::InMemoryCache::runtime(async_runtime.clone());
+        let cache = runtime_local::InMemoryCacheV2::runtime(async_runtime.clone());
 
         let engine = Engine::new(
             config.into(),

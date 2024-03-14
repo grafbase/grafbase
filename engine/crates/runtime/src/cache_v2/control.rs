@@ -1,16 +1,10 @@
 use std::time::Duration;
 
-use serde::Deserialize;
-use serde_with::DurationSeconds;
-
 /// Defines if and how some data should be cached
 /// Fields should match the ones in the Cache-Control HTTP header if their name are identical.
-#[serde_with::serde_as]
-#[derive(Default, Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct OperationCacheControl {
-    #[serde_as(as = "DurationSeconds<u64>")]
     pub max_age: Duration,
-    #[serde_as(as = "DurationSeconds<u64>")]
     pub max_stale: Duration,
     // sorted to ensure consistent cache key
     scopes: Vec<CacheScopeDefinition>,
@@ -61,35 +55,12 @@ impl OperationCacheControl {
 /// Cache scope define for who the cache should be accessible.
 /// If two request have identical scopes values (same JWT claim for example), their cached response
 /// are shared.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CacheScopeDefinition {
     Public,
     Authenticated,
-    JwtClaim {
-        path: Vec<String>,
-    },
-    HeaderValue {
-        #[serde(
-            serialize_with = "serialize_header_name",
-            deserialize_with = "deserialize_header_name"
-        )]
-        name: http::HeaderName,
-    },
-}
-
-fn serialize_header_name<S>(name: &http::HeaderName, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    serializer.serialize_str(name.as_str())
-}
-
-fn deserialize_header_name<'de, D>(deserializer: D) -> Result<http::HeaderName, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let name = String::deserialize(deserializer)?;
-    http::HeaderName::try_from(name).map_err(serde::de::Error::custom)
+    JwtClaim { path: Vec<String> },
+    HeaderValue { name: http::HeaderName },
 }
 
 impl CacheScopeDefinition {
@@ -165,33 +136,5 @@ mod tests {
                 },
             ]
         );
-    }
-
-    #[test]
-    fn test_cache_control_serde() {
-        let control = OperationCacheControl {
-            max_age: Duration::from_secs(17),
-            max_stale: Duration::from_secs(78),
-            scopes: vec![],
-        }
-        .with_scopes(vec![
-            CacheScopeDefinition::HeaderValue {
-                name: http::header::ACCEPT,
-            },
-            CacheScopeDefinition::Public,
-            CacheScopeDefinition::JwtClaim {
-                path: vec!["a".to_string(), "b".to_string()],
-            },
-            CacheScopeDefinition::HeaderValue {
-                name: http::header::AUTHORIZATION,
-            },
-            CacheScopeDefinition::JwtClaim {
-                path: vec!["c".to_string()],
-            },
-        ]);
-
-        let serialized = serde_json::to_string(&control).unwrap();
-        let deserialized: OperationCacheControl = serde_json::from_str(&serialized).unwrap();
-        assert_eq!(deserialized, control);
     }
 }

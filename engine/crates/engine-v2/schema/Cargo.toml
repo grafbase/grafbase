@@ -11,18 +11,16 @@ repository = "https://github.com/grafbase/grafbase"
 version = "3.0.31"
 
 [dependencies]
+config = { package = "engine-v2-config", path = "../config" }
+federated-graph = { package = "graphql-federated-graph", path = "../../federated-graph" }
 fnv = "1"
 id-newtypes = { path = "../id-newtypes", package = "engine-v2-id-newtypes" }
 indexmap.workspace = true
-id-newtypes.workspace = true
 serde.workspace = true
 strum = { workspace = true, features = ["derive"] }
 strum_macros.workspace = true
 thiserror.workspace = true
 url.workspace = true
-
-config = { package = "engine-v2-config", path = "../config" }
-federated-graph = { package = "graphql-federated-graph", path = "../../federated-graph" }
 
 [dev-dependencies]
 insta.workspace = true

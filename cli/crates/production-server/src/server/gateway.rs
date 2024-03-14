@@ -78,7 +78,7 @@ pub(super) fn generate(federated_schema: &str, config: GatewayConfig) -> crate::
 
     let config = engine_config_builder::build_config(&graph_config, graph);
     let async_runtime = runtime_local::TokioCurrentRuntime::runtime();
-    let cache = runtime_local::InMemoryCache::runtime(async_runtime.clone());
+    let cache = runtime_local::InMemoryCacheV2::runtime(async_runtime.clone());
     Ok(Engine::new(
         config.into_latest().into(),
         ulid::Ulid::new().to_string().into(),

@@ -1,6 +1,7 @@
 mod async_runtime;
 mod bridge;
 mod cache;
+mod cache_v2;
 mod fetch;
 mod kv;
 mod log;
@@ -10,6 +11,7 @@ mod ufd_invoker;
 pub use async_runtime::TokioCurrentRuntime;
 pub use bridge::Bridge;
 pub use cache::InMemoryCache;
+pub use cache_v2::InMemoryCacheV2;
 pub use fetch::NativeFetcher;
 pub use kv::*;
 pub use pg::LocalPgTransportFactory;

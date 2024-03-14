@@ -80,7 +80,7 @@ impl FederationGatewayBuilder {
 
         let config = engine_config_builder::build_config(&federated_graph_config, graph).into_latest();
         let async_runtime = runtime_local::TokioCurrentRuntime::runtime();
-        let cache = runtime_local::InMemoryCache::runtime(async_runtime.clone());
+        let cache = runtime_local::InMemoryCacheV2::runtime(async_runtime.clone());
         TestFederationGateway {
             gateway: Arc::new(Engine::new(
                 config.into(),
