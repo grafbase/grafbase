@@ -21,7 +21,7 @@ const DEFAULT_LOG_FILTER: &str = "info";
     group(
         ArgGroup::new("graph-ref-with-access-token")
             .args(["graph_ref"])
-            .requires("access_token")
+            .requires("grafbase_access_token")
     )
 )]
 #[command(name = "The Grafbase Gateway", version)]
@@ -35,7 +35,7 @@ pub struct Args {
     /// An access token to the Grafbase API. The scope must allow operations on the given account,
     /// and graph defined in the graph-ref argument.
     #[arg(env = "GRAFBASE_ACCESS_TOKEN")]
-    pub access_token: Option<AsciiString>,
+    pub grafbase_access_token: Option<AsciiString>,
     /// Path to the TOML configuration file
     #[arg(long, short)]
     pub config: PathBuf,
@@ -60,7 +60,10 @@ impl Args {
                 })
             }
             (Some(graph_ref), None) => Ok(GraphFetchMethod::FromApi {
-                access_token: self.access_token.clone().expect("present due to the arg group"),
+                access_token: self
+                    .grafbase_access_token
+                    .clone()
+                    .expect("present due to the arg group"),
                 graph_name: graph_ref.graph().to_string(),
                 branch: graph_ref.branch().map(ToString::to_string),
             }),
