@@ -2788,6 +2788,7 @@ dependencies = [
  "federated-server",
  "fslock",
  "futures-util",
+ "grafbase-graphql-introspection",
  "grafbase-tracing",
  "graph-ref",
  "http 1.1.0",

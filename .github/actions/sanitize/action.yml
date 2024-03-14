@@ -6,9 +6,17 @@ inputs:
     required: false
     default: 'true'
     description: To run fmt/clippy or not to run
-  test:
+  test-engine:
     required: false
-    default: 'true'
+    default: 'false'
+    description: To run test or not to run
+  test-grafbase:
+    required: false
+    default: 'false'
+    description: To run test or not to run
+  test-grafbase-gateway:
+    required: false
+    default: 'false'
     description: To run test or not to run
 
 runs:
@@ -40,23 +48,151 @@ runs:
 
     # https://github.com/actions/setup-node/issues/899
     - name: Enable Corepack before setting up Node
+      if: ${{ inputs.test-grafbase-gateway == 'false' }}
       shell: bash
       run: corepack enable
 
     - name: Setup Node.js
+      if: ${{ inputs.test-grafbase-gateway == 'false' }}
       uses: actions/setup-node@v4
       with:
         node-version: 18
 
     - name: Install pnpm
+      if: ${{ inputs.test-grafbase-gateway == 'false' }}
       uses: pnpm/action-setup@v2
       id: pnpm-install
       with:
         version: 8
         run_install: false
 
-    - if: ${{ inputs.test == 'true' }}
-      name: cargo nextest
+    - name: Login to Docker Hub
+      if: ${{ inputs.test-engine == 'true' }}
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Start local databases
+      if: ${{ inputs.test-engine == 'true' }}
+      run: |
+        docker-compose -f engine/crates/integration-tests/docker-compose.yml up -d
+
+    - if: ${{ inputs.test-engine == 'true' }}
+      name: test engine
       shell: bash
       run: |
-        RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --profile ci
+        RUST_BACKTRACE=1 cargo nextest run --workspace \
+          --exclude federated-server \
+          --exclude grafbase-gateway \
+          --exclude grafbase-local-backend \
+          --exclude grafbase \
+          --exclude grafbase-local-common \
+          --exclude federated-dev \
+          --exclude gateway \
+          --exclude grafbase-graphql-introspection \
+          --exclude grafbase-local-server \
+          --exclude typed-resolvers \
+          --profile ci
+
+    - if: ${{ inputs.test-grafbase == 'true' }}
+      name: test grafbase
+      shell: bash
+      run: |
+        RUST_BACKTRACE=1 cargo nextest run --workspace \
+          --exclude integration-tests \
+          --exclude graph-ref \
+          --exclude graphql-introspection \
+          --exclude federated-server \
+          --exclude grafbase-gateway \
+          --exclude async-runtime \
+          --exclude common-types \
+          --exclude graphql-composition \
+          --exclude dataloader \
+          --exclude engine-config-builder \
+          --exclude engine-v2 \
+          --exclude engine-v2-config \
+          --exclude engine-v2-schema \
+          --exclude engine \
+          --exclude engine-derive \
+          --exclude engine-parser \
+          --exclude engine-value \
+          --exclude graphql-federated-graph \
+          --exclude gateway-core \
+          --exclude gateway-v2-auth-config \
+          --exclude gateway-v2-auth \
+          --exclude gateway-v2 \
+          --exclude graph-entities \
+          --exclude graphql-extensions \
+          --exclude graphql-mocks \
+          --exclude graphql-schema-diff \
+          --exclude jwt-verifier \
+          --exclude log \
+          --exclude operation-checks \
+          --exclude operation-normalizer \
+          --exclude parser-graphql \
+          --exclude parser-openapi \
+          --exclude parser-postgres \
+          --exclude parser-sdl \
+          --exclude postgres-connector-types \
+          --exclude runtime-local \
+          --exclude runtime-noop \
+          --exclude runtime \
+          --exclude runtime \
+          --exclude grafbase-tracing \
+          --exclude graphql-schema-validation \
+          --profile ci
+
+    - if: ${{ inputs.test-grafbase-gateway == 'true' }}
+      name: test grafbase-gateway
+      shell: bash
+      run: |
+        RUST_BACKTRACE=1 cargo nextest run --workspace \
+          --exclude integration-tests \
+          --exclude graph-ref \
+          --exclude graphql-introspection \
+          --exclude grafbase-local-backend \
+          --exclude grafbase \
+          --exclude grafbase-local-common \
+          --exclude federated-dev \
+          --exclude gateway \
+          --exclude grafbase-graphql-introspection \
+          --exclude grafbase-local-server \
+          --exclude typed-resolvers \
+          --exclude async-runtime \
+          --exclude common-types \
+          --exclude graphql-composition \
+          --exclude dataloader \
+          --exclude engine-config-builder \
+          --exclude engine-v2 \
+          --exclude engine-v2-config \
+          --exclude engine-v2-schema \
+          --exclude engine \
+          --exclude engine-derive \
+          --exclude engine-parser \
+          --exclude engine-value \
+          --exclude graphql-federated-graph \
+          --exclude gateway-core \
+          --exclude gateway-v2-auth-config \
+          --exclude gateway-v2-auth \
+          --exclude gateway-v2 \
+          --exclude graph-entities \
+          --exclude graphql-extensions \
+          --exclude graphql-mocks \
+          --exclude graphql-schema-diff \
+          --exclude jwt-verifier \
+          --exclude log \
+          --exclude operation-checks \
+          --exclude operation-normalizer \
+          --exclude parser-graphql \
+          --exclude parser-openapi \
+          --exclude parser-postgres \
+          --exclude parser-sdl \
+          --exclude postgres-connector-types \
+          --exclude runtime-local \
+          --exclude runtime-noop \
+          --exclude runtime \
+          --exclude runtime \
+          --exclude grafbase-tracing \
+          --exclude graphql-schema-validation \
+          --profile ci

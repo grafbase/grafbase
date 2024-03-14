@@ -6,7 +6,6 @@ use std::{
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     panic::{catch_unwind, AssertUnwindSafe},
     path,
-    process::Output,
     sync::{Arc, Mutex, OnceLock},
     time::{Duration, SystemTime},
 };
@@ -389,15 +388,10 @@ fn load_schema(name: &str) -> String {
     fs::read_to_string(path).unwrap()
 }
 
-pub fn introspect(url: &str) -> Output {
-    let args = vec!["introspect", url];
-
-    duct::cmd(cargo_bin("grafbase"), args)
-        .stdout_capture()
-        .stderr_capture()
-        .unchecked()
-        .run()
-        .unwrap()
+async fn introspect(url: &str) -> String {
+    grafbase_graphql_introspection::introspect(url, &[("x-api-key", "")])
+        .await
+        .unwrap_or_default()
 }
 
 #[test]
@@ -439,8 +433,7 @@ fn introspect_enabled() {
     let schema = load_schema("big");
 
     with_static_server(config, &schema, None, None, |client| async move {
-        let output = introspect(client.endpoint());
-        let result = String::from_utf8_lossy(&output.stdout);
+        let result = introspect(client.endpoint()).await;
 
         insta::assert_snapshot!(&result, @r###"
         type Cart {
@@ -500,9 +493,7 @@ fn introspect_disabled() {
     let schema = load_schema("big");
 
     with_static_server(config, &schema, None, None, |client| async move {
-        let output = introspect(client.endpoint());
-        let result = String::from_utf8_lossy(&output.stdout);
-
+        let result = introspect(client.endpoint()).await;
         insta::assert_snapshot!(&result, @r###""###);
     })
 }

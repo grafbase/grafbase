@@ -23,7 +23,7 @@ engine-config-builder = { path = "../engine-config-builder" }
 expect-test = "1.4"
 futures = "0.3"
 gateway-core.workspace = true
-grafbase-graphql-introspection = { path = "../../../cli/crates/graphql-introspection" }
+grafbase-graphql-introspection.workspace = true
 graphql-composition.workspace = true
 graphql-parser = "0.4.0"
 http.workspace = true

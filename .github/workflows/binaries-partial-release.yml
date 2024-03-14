@@ -12,6 +12,17 @@ on:
       tag:
         type: string
         required: true
+      release-grafbase:
+        type: boolean
+        required: false
+        default: false
+        description: Release grafbase
+      release-grafbase-gateway:
+        type: boolean
+        required: false
+        default: false
+        description: Release grafbase-gateway
+
     secrets:
       CRATES_ACCESS_TOKEN:
         required: true
@@ -20,19 +31,37 @@ on:
 
 jobs:
   release:
-    name: Release CLI
+    name: Release binaries
     runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
-      - name: Parse version tag
+      - name: Parse version tag for grafbase
+        if: ${{ inputs.release-grafbase == true }}
         run: |
           VERSION_BUMP="${{ inputs.tag }}"
           VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
-      - name: Announce release attempt on slack
+      - name: Parse version tag for grafbase-gateway
+        if: ${{ inputs.release-grafbase-gateway == true }}
+        run: |
+          VERSION_BUMP="${{ inputs.tag }}"
+          VERSION_BUMP=${VERSION_BUMP//gateway-} # remove the gateway prefix from the tag
+          echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
+
+      - name: Announce grafbase release attempt on slack
+        if: ${{ inputs.release-grafbase == true }}
         uses: ravsamhq/notify-slack-action@v2
         with:
-          notification_title: '({workflow}) CLI release for ${{ env.VERSION_BUMP }} started'
+          notification_title: '({workflow}) grafbase release for ${{ env.VERSION_BUMP }} started'
+          footer: '<{run_url}|View Run>'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Announce grafbase-gateway release attempt on slack
+        if: ${{ inputs.release-grafbase-gateway == true }}
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          notification_title: '({workflow}) grafbase-gateway release for ${{ env.VERSION_BUMP }} started'
           footer: '<{run_url}|View Run>'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -44,53 +73,87 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       # This is annoying, but github doesn't pass env vars down to child workflows,
       # and you can't use them as input parameters either so lets read them out the
       # YAML
       - name: Get PROD_ASSETS from cli workflow
+        if: ${{ inputs.release-grafbase == true }}
         id: lookup-prod-assets
         uses: mikefarah/yq@master
         with:
-          cmd: yq '.env.PROD_ASSETS' './.github/workflows/cli.yml'
+          cmd: yq '.env.PROD_ASSETS' './.github/workflows/binaries.yml'
 
       - name: Get ASSETS_VERSION from cli workflow
         id: lookup-assets-version
         uses: mikefarah/yq@master
         with:
-          cmd: yq '.env.ASSETS_VERSION' './.github/workflows/cli.yml'
+          cmd: yq '.env.ASSETS_VERSION' './.github/workflows/binaries.yml'
 
       - name: Build CLI assets
+        if: ${{ inputs.release-grafbase == true }}
         uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ steps.lookup-prod-assets.outputs.result }}
           assets_version: ${{ steps.lookup-assets-version.outputs.result }}
 
-      - name: Download darwin-x86_64 artifact
+      - name: Download grafbase darwin-x86_64 artifact
+        if: ${{ inputs.release-grafbase == true }}
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-x86_64-apple-darwin
           path: cli/npm/x86_64-apple-darwin
 
-      - name: Download darwin-aarch64 artifact
+      - name: Download grafbase-gateway darwin-x86_64 artifact
+        if: ${{ inputs.release-grafbase-gateway == true }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.VERSION_BUMP }}-x86_64-apple-darwin
+          path: cli/npm/x86_64-gateway-apple-darwin
+
+      - name: Download grafbase darwin-aarch64 artifact
+        if: ${{ inputs.release-grafbase == true }}
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-aarch64-apple-darwin
           path: cli/npm/aarch64-apple-darwin
 
-      - name: Download linux amd artifact
+      - name: Download grafbase-gateway darwin-aarch64 artifact
+        if: ${{ inputs.release-grafbase-gateway == true }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.VERSION_BUMP }}-aarch64-apple-darwin
+          path: cli/npm/aarch64-gateway-apple-darwin
+
+      - name: Download grafbase linux amd artifact
+        if: ${{ inputs.release-grafbase == true }}
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-linux
           path: cli/npm/x86_64-unknown-linux-musl
 
-      - name: Download linux arm artifact
+      - name: Download grafbase-gateway linux amd artifact
+        if: ${{ inputs.release-grafbase-gateway == true }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.VERSION_BUMP }}-linux
+          path: cli/npm/x86_64-unknown-gateway-linux-musl
+
+      - name: Download grafbase linux arm artifact
+        if: ${{ inputs.release-grafbase == true }}
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-linux-arm
           path: cli/npm/aarch64-unknown-linux-musl
+
+      - name: Download grafbase-gateway linux arm artifact
+        if: ${{ inputs.release-grafbase-gateway == true }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.VERSION_BUMP }}-linux-arm
+          path: cli/npm/aarch64-unknown-gateway-linux-musl
 
       # - name: Download windows artifact
       #   uses: actions/download-artifact@v4
@@ -98,7 +161,8 @@ jobs:
       #     name: ${{ env.VERSION_BUMP }}-windows
       #     path: cli/npm/x86_64-pc-windows-msvc
 
-      - name: Process artifacts
+      - name: Process grafbase artifacts
+        if: ${{ inputs.release-grafbase == true }}
         shell: bash
         run: |
           cd cli/npm
@@ -114,6 +178,23 @@ jobs:
           chmod +x x86_64-unknown-linux-musl/grafbase
           chmod +x aarch64-unknown-linux-musl/grafbase
 
+      - name: Process grafbase-gateway artifacts
+        if: ${{ inputs.release-grafbase-gateway == true }}
+        shell: bash
+        run: |
+          cd cli/npm
+          mkdir github
+          cp aarch64-apple-darwin/grafbase-gateway github/grafbase-gateway-aarch64-apple-darwin
+          cp x86_64-apple-darwin/grafbase-gateway github/grafbase-gateway-x86_64-apple-darwin
+          # cp x86_64-pc-windows-msvc/grafbase.exe github/grafbase-x86_64-pc-windows-msvc.exe
+          cp x86_64-unknown-linux-musl/grafbase-gateway github/grafbase-gateway-x86_64-unknown-linux-musl
+          cp aarch64-unknown-linux-musl/grafbase-gateway github/grafbase-gateway-aarch64-unknown-linux-musl
+
+          chmod +x aarch64-apple-darwin/grafbase-gateway
+          chmod +x x86_64-apple-darwin/grafbase-gateway
+          chmod +x x86_64-unknown-linux-musl/grafbase-gateway
+          chmod +x aarch64-unknown-linux-musl/grafbase-gateway
+
       - name: Install cargo-binstall and cargo-about
         shell: bash
         run: |
@@ -128,6 +209,7 @@ jobs:
           find cli/npm -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
 
       - name: Publish npm
+        if: ${{ inputs.release-grafbase == true }}
         shell: bash
         env:
           INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
@@ -146,8 +228,9 @@ jobs:
           (cd aarch64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd cli && npm publish "${PUBLISH_ARGUMENTS[@]}")
 
-      - name: Github Release
-        id: gh-release
+      - name: Github grafbase Release
+        if: ${{ inputs.release-grafbase == true }}
+        id: gh-release-grafbase
         uses: softprops/action-gh-release@v2
         with:
           body_path: cli/changelog/${{ env.VERSION_BUMP }}.md
@@ -160,3 +243,19 @@ jobs:
             # cli/npm/github/grafbase-x86_64-pc-windows-msvc.exe
             cli/npm/github/grafbase-x86_64-unknown-linux-musl
             cli/npm/github/grafbase-aarch64-unknown-linux-musl
+
+      - name: Github grafbase-gateway Release
+        if: ${{ inputs.release-grafbase-gateway == true }}
+        id: gh-release-grafbase-gateway
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: cli/changelog/${{ env.VERSION_BUMP }}.md
+          draft: ${{ inputs.draft }}
+          prerelease: ${{ inputs.prerelease }}
+          files: |
+            licenses.html
+            cli/npm/github/grafbase-gateway-aarch64-apple-darwin
+            cli/npm/github/grafbase-gateway-x86_64-apple-darwin
+            # cli/npm/github/grafbase-gateway-x86_64-pc-windows-msvc.exe
+            cli/npm/github/grafbase-gateway-x86_64-unknown-linux-musl
+            cli/npm/github/grafbase-gateway-aarch64-unknown-linux-musl
