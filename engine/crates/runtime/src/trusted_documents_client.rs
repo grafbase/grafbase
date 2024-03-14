@@ -1,3 +1,22 @@
+pub struct Client(Box<dyn TrustedDocumentsClient>);
+
+impl Client {
+    pub fn new<T>(inner: T) -> Self
+    where
+        T: TrustedDocumentsClient + 'static,
+    {
+        Client(Box::new(inner))
+    }
+}
+
+impl std::ops::Deref for Client {
+    type Target = dyn TrustedDocumentsClient;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
+    }
+}
+
 #[derive(Debug)]
 pub enum TrustedDocumentsError {
     RetrievalError(Box<dyn std::error::Error + Send + Sync + 'static>),

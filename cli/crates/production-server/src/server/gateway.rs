@@ -10,9 +10,7 @@ use runtime_local::{InMemoryCache, InMemoryKvStore};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;
 
-use crate::config::{
-    AuthenticationConfig, BypassHeader, HeaderValue, OperationLimitsConfig, SubgraphConfig, TrustedDocumentsConfig,
-};
+use crate::config::{AuthenticationConfig, HeaderValue, OperationLimitsConfig, SubgraphConfig, TrustedDocumentsConfig};
 
 /// Send half of the gateway watch channel
 pub(crate) type GatewaySender = watch::Sender<Option<Arc<Gateway>>>;
@@ -95,27 +93,25 @@ pub(super) fn generate(
     });
 
     // TODO: https://linear.app/grafbase/issue/GB-6168/support-trusted-documents-in-air-gapped-mode
-    let trusted_documents: Box<dyn runtime::trusted_documents_client::TrustedDocumentsClient> =
-        if trusted_documents.enabled {
-            let Some(branch_id) = branch_id else {
-                return Err(crate::Error::InternalError(
-                    "Trusted documents are not implemented yet in airgapped mode".into(),
-                ));
-            };
-
-            Box::new(super::trusted_documents_client::TrustedDocumentsClient {
-                http_client: Default::default(),
-                bypass_header: trusted_documents.bypass_header.as_ref().map(
-                    |BypassHeader {
-                         bypass_header_name: name,
-                         bypass_header_value: value,
-                     }| (name.clone().into(), String::from(value.as_ref())),
-                ),
-                branch_id,
-            })
-        } else {
-            Box::new(NoopTrustedDocuments)
+    let trusted_documents = if trusted_documents.enabled {
+        let Some(branch_id) = branch_id else {
+            return Err(crate::Error::InternalError(
+                "Trusted documents are not implemented yet in airgapped mode".into(),
+            ));
         };
+
+        runtime::trusted_documents_client::Client::new(super::trusted_documents_client::TrustedDocumentsClient {
+            http_client: Default::default(),
+            bypass_header: trusted_documents
+                .bypass_header
+                .bypass_header_name
+                .zip(trusted_documents.bypass_header.bypass_header_value)
+                .map(|(name, value)| (name.clone().into(), String::from(value.as_ref()))),
+            branch_id,
+        })
+    } else {
+        runtime::trusted_documents_client::Client::new(NoopTrustedDocuments)
+    };
 
     let engine_env = EngineEnv {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),

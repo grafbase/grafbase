@@ -35,7 +35,7 @@ pub struct Engine {
 pub struct EngineEnv {
     pub fetcher: runtime::fetch::Fetcher,
     pub cache: runtime::cache::Cache,
-    pub trusted_documents: Box<dyn runtime::trusted_documents_client::TrustedDocumentsClient>,
+    pub trusted_documents: runtime::trusted_documents_client::Client,
 }
 
 impl Engine {
