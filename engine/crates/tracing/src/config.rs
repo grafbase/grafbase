@@ -2,11 +2,12 @@ use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::{fs, usize};
+use std::usize;
 
 use http::{HeaderName, HeaderValue};
 use serde::de::{Error as DeserializeError, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer};
+#[cfg(feature = "otlp")]
 use tonic::transport::{Certificate, ClientTlsConfig, Identity};
 use url::Url;
 
@@ -292,10 +293,13 @@ pub struct TracingExporterTlsConfig {
     pub ca: Option<PathBuf>,
 }
 
+#[cfg(feature = "otlp")]
 impl TryFrom<TracingExporterTlsConfig> for ClientTlsConfig {
     type Error = TracingError;
 
     fn try_from(value: TracingExporterTlsConfig) -> Result<ClientTlsConfig, Self::Error> {
+        use std::fs;
+
         let mut tls = ClientTlsConfig::new();
 
         if let Some(domain) = value.domain_name {
@@ -402,10 +406,9 @@ pub mod tests {
 
     use http::{HeaderName, HeaderValue};
     use indoc::indoc;
-    use tonic::transport::ClientTlsConfig;
     use url::Url;
 
-    use crate::error::TracingError;
+    use tempfile as _;
 
     use super::{
         Headers, TracingBatchExportConfig, TracingCollectConfig, TracingConfig, TracingExporterTlsConfig,
@@ -697,8 +700,12 @@ pub mod tests {
         );
     }
 
+    #[cfg(feature = "otlp")]
     #[test]
     fn tls_config() {
+        use crate::error::TracingError;
+        use tonic::transport::ClientTlsConfig;
+
         let tls_config = TracingExporterTlsConfig::default();
 
         // ok, no error reading file

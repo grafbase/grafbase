@@ -50,7 +50,7 @@ common = { package = "grafbase-local-common", path = "../common", version = "0.6
 federated-dev = { path = "../federated-dev" }
 graphql-introspection = { package = "grafbase-graphql-introspection", path = "../graphql-introspection" }
 server = { package = "grafbase-local-server", path = "../server", version = "0.61.0" }
-grafbase-tracing.workspace = true
+grafbase-tracing = { workspace = true, features = ["otlp"] }
 
 production-server = { path = "../production-server" }
 ascii = { version = "1.1.0", features = ["serde"] }
