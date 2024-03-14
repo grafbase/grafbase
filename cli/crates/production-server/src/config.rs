@@ -107,7 +107,7 @@ pub struct TlsConfig {
     pub key: PathBuf,
 }
 
-#[derive(Debug, PartialEq, serde::Deserialize, Default, Clone)]
+#[derive(Debug, serde::Deserialize, Default, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct TrustedDocumentsConfig {
     /// If true, the engine will only accept trusted document queries. Default: false.
@@ -118,7 +118,7 @@ pub struct TrustedDocumentsConfig {
     pub bypass_header_name: Option<String>,
     /// Optional value of the `bypass_header_name` header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_name`.
     #[serde(default)]
-    pub bypass_header_value: Option<String>,
+    pub bypass_header_value: Option<DynamicString<String>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize)]
@@ -165,7 +165,6 @@ mod tests {
     use crate::config::cors::HttpMethod;
 
     use super::OperationLimitsConfig;
-    use super::TrustedDocumentsConfig;
     use super::{Config, TelemetryConfig};
     use ascii::AsciiString;
     use indoc::indoc;
@@ -589,8 +588,13 @@ mod tests {
 
         let config = toml::from_str::<Config>(input).unwrap();
 
-        let expected = TrustedDocumentsConfig::default();
-        assert_eq!(config.trusted_documents, expected);
+        insta::assert_debug_snapshot!(config.trusted_documents, @r###"
+        TrustedDocumentsConfig {
+            enabled: false,
+            bypass_header_name: None,
+            bypass_header_value: None,
+        }
+        "###)
     }
 
     #[test]
@@ -602,31 +606,59 @@ mod tests {
 
         let config = toml::from_str::<Config>(input).unwrap();
 
-        let expected = TrustedDocumentsConfig {
+        insta::assert_debug_snapshot!(config.trusted_documents, @r###"
+        TrustedDocumentsConfig {
             enabled: true,
-            ..Default::default()
-        };
-        assert_eq!(config.trusted_documents, expected);
+            bypass_header_name: None,
+            bypass_header_value: None,
+        }
+        "###)
+    }
+
+    #[test]
+    fn trusted_documents_bypass_header_value_from_env_var() {
+        let input = r###"
+            [trusted_documents]
+            enabled = true
+            bypass_header_name = "my-header-name"
+            bypass_header_value = "secret-{{ env.TEST_HEADER_SECRET }}"
+        "###;
+
+        let err = toml::from_str::<Config>(input).unwrap_err().to_string();
+
+        insta::assert_snapshot!(err, @r###"
+        TOML parse error at line 5, column 35
+          |
+        5 |             bypass_header_value = "secret-{{ env.TEST_HEADER_SECRET }}"
+          |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        environment variable not found: `TEST_HEADER_SECRET`
+        "###);
     }
 
     #[test]
     fn trusted_documents_all_settings() {
-        let input = indoc! {r#"
+        let input = r###"
             [trusted_documents]
             enabled = true # default: false
             bypass_header_name = "my-header-name" # default null
             bypass_header_value = "my-secret-value" # default null
-        "#};
+        "###;
 
         let config = toml::from_str::<Config>(input).unwrap();
 
-        let expected = TrustedDocumentsConfig {
+        insta::assert_debug_snapshot!(config.trusted_documents, @r###"
+        TrustedDocumentsConfig {
             enabled: true,
-            bypass_header_name: Some("my-header-name".into()),
-            bypass_header_value: Some("my-secret-value".into()),
-        };
-
-        assert_eq!(config.trusted_documents, expected);
+            bypass_header_name: Some(
+                "my-header-name",
+            ),
+            bypass_header_value: Some(
+                DynamicString(
+                    "my-secret-value",
+                ),
+            ),
+        }
+        "###);
     }
 
     #[test]

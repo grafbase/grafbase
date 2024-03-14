@@ -107,7 +107,7 @@ pub(super) fn generate(
                     .bypass_header_name
                     .as_ref()
                     .zip(trusted_documents.bypass_header_value.as_ref())
-                    .map(|(name, value)| (name.clone(), value.clone())),
+                    .map(|(name, value)| (name.clone(), String::from(value.as_ref()))),
                 branch_id,
             })
         } else {
