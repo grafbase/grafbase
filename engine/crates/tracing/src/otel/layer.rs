@@ -1,23 +1,19 @@
-use std::str::FromStr;
 use std::time::Duration;
 
 use opentelemetry::trace::noop::NoopTracer;
 use opentelemetry::trace::TracerProvider;
 use opentelemetry::{global, KeyValue};
-use opentelemetry_otlp::{SpanExporterBuilder, WithExportConfig};
 use opentelemetry_sdk::export::trace::SpanExporter;
 use opentelemetry_sdk::runtime::RuntimeChannel;
 use opentelemetry_sdk::trace::{BatchConfigBuilder, BatchSpanProcessor, Builder, RandomIdGenerator, Sampler};
 use opentelemetry_sdk::Resource;
-use tonic::metadata::MetadataKey;
-use tonic::transport::ClientTlsConfig;
 use tracing::Subscriber;
 use tracing_subscriber::filter::{FilterExt, Filtered};
 use tracing_subscriber::layer::Filter;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{reload, EnvFilter, Layer};
 
-use crate::config::{TracingBatchExportConfig, TracingConfig, TracingOtlpExporterProtocol};
+use crate::config::{TracingBatchExportConfig, TracingConfig};
 use crate::error::TracingError;
 
 /// A type erased layer
@@ -97,7 +93,15 @@ where
     }
 
     // otlp
+    #[cfg(feature = "otlp")]
     if let Some(otlp_exporter_config) = config.exporters.otlp {
+        use opentelemetry_otlp::{SpanExporterBuilder, WithExportConfig};
+        use std::str::FromStr;
+        use tonic::metadata::MetadataKey;
+        use tonic::transport::ClientTlsConfig;
+
+        use crate::config::TracingOtlpExporterProtocol;
+
         let span_exporter = {
             let exporter_timeout = Duration::from_secs(otlp_exporter_config.timeout.num_seconds() as u64);
 

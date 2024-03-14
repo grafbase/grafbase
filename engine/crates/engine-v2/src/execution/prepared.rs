@@ -1,10 +1,8 @@
 use std::future::IntoFuture;
 
 use futures_util::future::BoxFuture;
-use tracing::{Instrument, Span};
-
-#[cfg(feature = "tracing")]
 use grafbase_tracing::span::{GqlRecorderSpanExt, GqlResponseAttributes};
+use tracing::{Instrument, Span};
 
 use crate::{request::OperationCacheControl, Response};
 
@@ -48,7 +46,6 @@ impl IntoFuture for PreparedExecution {
     fn into_future(self) -> Self::IntoFuture {
         match self {
             PreparedExecution::BadRequest(BadRequest { response }) => {
-                #[cfg(feature = "tracing")]
                 Span::current().record_gql_response(GqlResponseAttributes {
                     has_errors: response.has_errors(),
                 });
