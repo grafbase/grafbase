@@ -255,3 +255,75 @@ async fn standard() {
 
     "###);
 }
+
+#[test]
+fn introspect_dev_with_federation_directives() {
+    let env = Environment::init();
+
+    let config = r#"
+    extend schema
+      @experimental(codegen: true)
+
+    extend schema
+      @auth(
+        rules: [
+          { allow: public }
+        ]
+      )extend schema @federation(version: "2.3")
+
+    enum ProductType {
+      BACKPACK,
+      HAT,
+      T_SHIRT
+    }
+
+    type Product @key(fields: "id" resolvable: true) {
+      description: String!
+      name: String!
+      id: ID!
+      type: ProductType!
+    }
+
+    type Review @key(fields: "id") {
+      id: ID!
+      product: Product! @resolver(name: "product")
+    }
+
+    extend type Query {
+      product(productId: ID!): Product! @resolver(name: "product")
+      products: [Product!]! @resolver(name: "products")
+    }
+    extend schema @introspection(enable: true)
+    "#;
+
+    // env.grafbase_init(backend::project::GraphType::Single);
+    env.write_schema(config);
+
+    let output = env.grafbase_introspect_dev();
+
+    insta::assert_snapshot!(&String::from_utf8_lossy(&output.stdout), @r###"
+    extend schema @link(
+    	url: "https://specs.apollo.dev/federation/v2.3",
+    	import: ["@key", "@tag", "@shareable", "@inaccessible", "@override", "@external", "@provides", "@requires", "@composeDirective", "@interfaceObject"]
+    )
+    type Product @key(fields: "id") {
+    	description: String!
+    	name: String!
+    	id: ID!
+    	type: ProductType!
+    }
+    enum ProductType {
+    	BACKPACK
+    	HAT
+    	T_SHIRT
+    }
+    type Query {
+    	product(productId: ID!): Product!
+    	products: [Product!]!
+    }
+    type Review @key(fields: "id") {
+    	id: ID!
+    	product: Product!
+    }
+    "###);
+}
