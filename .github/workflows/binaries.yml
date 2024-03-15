@@ -288,10 +288,10 @@ jobs:
             target/${{ matrix.archs.target }}/release/grafbase
 
       - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
-        name: Upload grafbase-gateway binaries
+        name: Upload gateway binaries
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.VERSION_BUMP }}-gateway-${{ matrix.archs.platform }}
+          name: gateway-${{ env.VERSION_BUMP }}-${{ matrix.archs.platform }}
           path: |
             target/${{ matrix.archs.target }}/release/grafbase-gateway
 
@@ -382,10 +382,10 @@ jobs:
           path: target/${{ matrix.target }}/release/grafbase
 
       - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
-        name: Upload grafbase-gateway ${{ matrix.target }} binary
+        name: Upload gateway ${{ matrix.target }} binary
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.VERSION_BUMP }}-gateway-${{ matrix.archs.platform }}
+          name: gateway-${{ env.VERSION_BUMP }}-${{ matrix.archs.platform }}
           path: |
             target/${{ matrix.archs.target }}/release/grafbase-gateway
 

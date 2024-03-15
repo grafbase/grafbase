@@ -51,25 +51,25 @@ jobs:
       - name: Download darwin-x86_64 artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.VERSION_BUMP }}-gateway-x86_64-apple-darwin
+          name: gateway-${{ env.VERSION_BUMP }}-x86_64-apple-darwin
           path: cli/npm/x86_64-gateway-apple-darwin
 
       - name: Download darwin-aarch64 artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.VERSION_BUMP }}-gateway-aarch64-apple-darwin
+          name: gateway-${{ env.VERSION_BUMP }}-aarch64-apple-darwin
           path: cli/npm/aarch64-gateway-apple-darwin
 
       - name: Download Linux AMD artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.VERSION_BUMP }}-gateway-linux
+          name: gateway-${{ env.VERSION_BUMP }}-linux
           path: cli/npm/x86_64-unknown-gateway-linux-musl
 
       - name: Download Linux ARM artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.VERSION_BUMP }}-gateway-linux-arm
+          name: gateway-${{ env.VERSION_BUMP }}-linux-arm
           path: cli/npm/aarch64-unknown-gateway-linux-musl
 
       - name: Process artifacts
