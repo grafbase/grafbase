@@ -385,7 +385,7 @@ jobs:
         name: Upload gateway ${{ matrix.target }} binary
         uses: actions/upload-artifact@v4
         with:
-          name: gateway-${{ env.VERSION_BUMP }}-${{ matrix.archs.platform }}
+          name: gateway-${{ env.VERSION_BUMP }}-${{ matrix.target }}
           path: |
             target/${{ matrix.target }}/release/grafbase-gateway
 
