@@ -113,7 +113,7 @@ jobs:
         id: gh-release-gateway
         uses: softprops/action-gh-release@v2
         with:
-          body_path: cli/changelog/${{ env.VERSION_BUMP }}.md
+          body_path: gateway/changelog/${{ env.VERSION_BUMP }}.md
           draft: ${{ inputs.draft }}
           prerelease: ${{ inputs.prerelease }}
           files: |
