@@ -20,7 +20,6 @@ pub enum InputResolveMode {
 pub fn resolve_input(
     registry: &Registry,
     error_pos: Pos,
-    // ctx_field: &ContextField<'_>,
     arg_name: &str,
     meta_input_value: &MetaInputValue,
     value: Option<ConstValue>,
@@ -45,7 +44,6 @@ pub fn resolve_input(
 pub fn apply_input_transforms(
     registry: &Registry,
     error_pos: Pos,
-    // ctx_field: &ContextField<'_>,
     arg_name: &str,
     value: ConstValue,
     ty: &InputValueType,
@@ -89,7 +87,6 @@ impl<'a> PathNode<'a> {
 }
 
 struct ResolveContext<'a> {
-    // ctx: &'a ContextField<'a>,
     registry: &'a Registry,
     path: PathNode<'a>,
     /// Expected GraphQL type

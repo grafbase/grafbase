@@ -258,6 +258,9 @@ fn join_with_an_enum_argument() {
     // Tests the case where we're providing an enum argument to a joined field.
     // ResolveValues use JSON which represent enums as a String, but we need to render
     // those as enums in the query we build up.  This makes sure that works properly.
+    //
+    // Though it seems to be a terrible test because AsyncGraphql doesn't give a shit
+    // if you give it a string where it expects an enum :|
     runtime().block_on(async {
         let graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
         let port = graphql_mock.port();
@@ -296,25 +299,19 @@ fn join_with_an_enum_argument() {
                 .into_data::<Value>(),
                 @r###"
         {
-          "gothub": {
-            "pullRequestsAndIssues": [
-              {
-                "id": "1",
-                "oohRecursion": {
-                  "id": "1",
-                  "title": "Creating the thing"
-                }
-              },
-              {
-                "id": "2",
-                "oohRecursion": {
-                  "id": "2",
-                  "title": "Some bot PR"
-                }
-              },
-              {}
-            ]
-          }
+          "pullRequestsAndIssues": [
+            {
+              "id": "1",
+              "status": "OPEN",
+              "statusText": "boo its closed"
+            },
+            {
+              "id": "2",
+              "status": "CLOSED",
+              "statusText": "woo its open"
+            },
+            {}
+          ]
         }
         "###
         );

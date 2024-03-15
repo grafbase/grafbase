@@ -1,13 +1,10 @@
-use std::{
-    collections::BTreeMap,
-    sync::atomic::{AtomicU64, Ordering},
-};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use engine_parser::{
     types::{Field, Selection, SelectionSet},
     Positioned,
 };
-use engine_value::{argument_set::ArgumentSet, ConstValue, Name, Value};
+use engine_value::{ConstValue, Name, Value};
 
 use crate::{
     registry::{
@@ -26,7 +23,7 @@ pub async fn resolve_joined_field(
     join: &JoinResolver,
     parent_resolve_value_for_join: ResolvedValue,
 ) -> Result<ResolvedValue, Error> {
-    let mut query_field = fake_query_ast(ctx.item, join, parent_resolve_value_for_join, ctx.field, ctx.registry())?;
+    let mut query_field = fake_query_ast(ctx.item, join)?;
 
     let mut field_iter = join.fields.iter().peekable();
     let mut resolved_value = ResolvedValue::default();
@@ -43,6 +40,13 @@ pub async fn resolve_joined_field(
                 &name
             ))
         })?;
+
+        resolve_arguments(
+            &mut query_field.node.arguments,
+            &parent_resolve_value_for_join,
+            meta_field,
+            ctx.registry(),
+        );
 
         let join_context = ctx.to_join_context(&query_field, meta_field, current_type);
 
@@ -83,13 +87,7 @@ pub async fn resolve_joined_field(
 // See its use in fake_query_ast below for more details
 static FIELD_COUNTER: AtomicU64 = AtomicU64::new(0);
 
-fn fake_query_ast(
-    actual_field: &Positioned<Field>,
-    join: &JoinResolver,
-    parent_resolve_value_for_join: ResolvedValue,
-    meta_field: &MetaField,
-    registry: &Registry,
-) -> Result<Positioned<Field>, Error> {
+fn fake_query_ast(actual_field: &Positioned<Field>, join: &JoinResolver) -> Result<Positioned<Field>, Error> {
     let pos = actual_field.pos;
 
     let mut selection_set = actual_field.selection_set.clone();
@@ -99,12 +97,12 @@ fn fake_query_ast(
         let Some((name, arguments)) = iter.next() else {
             return Err(Error::new("internal error in join directive"));
         };
-        let arguments = resolve_arguments(arguments, &parent_resolve_value_for_join, meta_field, registry)?;
         let field = Positioned::new(
             Field {
                 name: Positioned::new(Name::new(name), pos),
                 alias: None,
                 arguments: arguments
+                    .clone()
                     .into_iter()
                     .map(|(name, value)| (Positioned::new(Name::new(name), pos), Positioned::new(value, pos)))
                     .collect(),
@@ -139,33 +137,35 @@ fn fake_query_ast(
 }
 
 fn resolve_arguments(
-    arguments: &ArgumentSet,
+    arguments: &mut Vec<(Positioned<Name>, Positioned<Value>)>,
     parent_resolve_value_for_join: &ResolvedValue,
     meta_field: &MetaField,
     registry: &Registry,
-) -> Result<Vec<(String, Value)>, Error> {
+) {
     let serde_json::Value::Object(parent_object) = parent_resolve_value_for_join.data_resolved() else {
         // This might be an error but I'm going to defer reporting to the child resolver for now.
         // Saves us some work here.  Can revisit if it doesn't work very well (which is very possible)
-        return Ok(vec![]);
+        return;
     };
 
-    let mut output = BTreeMap::new();
-
-    for (name, value) in arguments.clone() {
+    for (name, value) in arguments {
         // Any variables this value refers to are actually fields on the last_resolver_value
         // so we need to resolve with into_const_with then convert back to a value.
-        let const_value = value.into_const_with(|variable_name| {
-            let value = parent_object.get(variable_name.as_str()).cloned().ok_or_else(|| {
-                Error::new(format!(
-                    "Internal error: couldn't find {variable_name} in parent_resolver_value"
-                ))
-            })?;
+        let const_value = value
+            .node
+            .clone()
+            .into_const_with(|variable_name| {
+                let value = parent_object.get(variable_name.as_str()).cloned().ok_or_else(|| {
+                    Error::new(format!(
+                        "Internal error: couldn't find {variable_name} in parent_resolver_value"
+                    ))
+                })?;
 
-            ConstValue::from_json(value).map_err(|_| Error::new("Internal error converting intermediate values"))
-        })?;
+                ConstValue::from_json(value).map_err(|_| Error::new("Internal error converting intermediate values"))
+            })
+            .unwrap_or_default();
 
-        let value = meta_field
+        value.node = meta_field
             .args
             .get(name.as_str())
             .and_then(|meta_input_value| {
@@ -184,12 +184,8 @@ fn resolve_arguments(
             })
             .unwrap_or(const_value)
             .into_value();
-
-        output.insert(name.to_string(), value);
     }
 
     // At some point we'll probably want to think about forwarding arguments from the current field
     // to the joined field.  But we can handle that when the need comes up.
-
-    Ok(output.into_iter().collect())
 }
