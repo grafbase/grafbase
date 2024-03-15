@@ -45,11 +45,11 @@ uuid = { version = "1", features = ["v4"] }
 webbrowser = "0.8"
 
 atty = "0.2"
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.62.0" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.62.0" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.62.1" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.62.1" }
 federated-dev = { path = "../federated-dev" }
 graphql-introspection = { package = "grafbase-graphql-introspection", path = "../graphql-introspection" }
-server = { package = "grafbase-local-server", path = "../server", version = "0.62.0" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.62.1" }
 grafbase-tracing = { workspace = true, features = ["otlp"] }
 
 production-server = { path = "../production-server" }
