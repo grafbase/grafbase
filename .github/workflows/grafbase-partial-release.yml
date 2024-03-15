@@ -118,9 +118,9 @@ jobs:
       - name: Generate licenses
         shell: bash
         run: |
-          cd gateway/crates/gateway-binary
-          cargo about generate -c ../../about.toml -o "../../licenses.html" ../../about.hbs
-          find ../../ -maxdepth 1 -type d -exec cp ../../licenses.html {} \;
+          cargo about generate -c cli/about.toml -o "licenses.html" cli/about.hbs
+          find cli/crates -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
+          find cli/npm -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
 
       - name: Publish npm
         shell: bash
