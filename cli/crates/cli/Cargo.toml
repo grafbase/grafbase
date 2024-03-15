@@ -11,7 +11,6 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-ascii = { version = "1", features = ["serde"] }
 assert_matches = "1"
 atty = "0.2"
 backtrace = "0.3"
