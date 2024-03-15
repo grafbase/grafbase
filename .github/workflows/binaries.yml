@@ -431,15 +431,17 @@ jobs:
           message: |
             ### Built binaries for Grafbase CLI:
 
-            * [grafbase Linux (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-unknown-linux-musl/grafbase)
-            * [grafbase Mac (ARM)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-apple-darwin/grafbase)
-            * [grafbase Mac (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-apple-darwin/grafbase)
+            * [Linux (x86_64)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-unknown-linux-musl/grafbase)
+            * [Linux (ARM)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-unknown-linux-musl/grafbase)
+            * [Mac (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-apple-darwin/grafbase)
+            * [Mac (ARM)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-apple-darwin/grafbase)
 
             ### Built binaries for Grafbase Gateway:
 
-            * [gateway Linux (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-unknown-linux-musl/grafbase-gateway)
-            * [gateway Mac (M1)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-apple-darwin/grafbase-gateway)
-            * [gateway Mac (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-apple-darwin/grafbase-gateway)
+            * [Linux (x86_64)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-unknown-linux-musl/grafbase-gateway)
+            * [Linux (ARM)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-unknown-linux-musl/grafbase-gateway)
+            * [Mac (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-apple-darwin/grafbase-gateway)
+            * [Mac (ARM)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-apple-darwin/grafbase-gateway)
 
       - name: Report release failures
         if: ${{ failure() && startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-') }}
