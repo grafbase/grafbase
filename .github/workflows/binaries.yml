@@ -6,7 +6,7 @@ on:
   push:
     tags:
       - 'gateway-*'
-      - 'cli-*'
+      - 'grafbase-*'
 
 permissions:
   # Allow checks read
@@ -75,7 +75,7 @@ jobs:
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
 
-      - name: Prepare CLI assets
+      - name: Prepare Grafbase assets
         uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}
@@ -100,7 +100,7 @@ jobs:
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
 
-      - name: Prepare CLI assets
+      - name: Prepare Grafbase assets
         uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}
@@ -186,10 +186,10 @@ jobs:
           SHA_TAG: ${{ github.sha }}
 
       - name: Tag released version
-        if: ${{ startsWith(github.ref, 'refs/tags') }}
+        if: ${{ startsWith(github.ref, 'refs/tags') && startsWith(github.ref_name, 'gateway-') }}
         run: |
           docker tag ghcr.io/grafbase/gateway:$SHA_TAG ghcr.io/grafbase/gateway:latest
-          docker tag ghcr.io/grafbase/gateway:$SHA_TAG ghcr.io/grafbase/gateway:$(echo "$REF" | sed -e "s/^refs\/tags\/cli-//")
+          docker tag ghcr.io/grafbase/gateway:$SHA_TAG ghcr.io/grafbase/gateway:$(echo "$REF" | sed -e "s/^refs\/tags\/gateway-//")
         env:
           SHA_TAG: ${{ github.sha }}
           REF: ${{ github.ref }}
@@ -227,7 +227,7 @@ jobs:
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
-      - name: Prepare CLI assets
+      - name: Prepare Grafbase assets
         uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}
@@ -238,7 +238,7 @@ jobs:
           cd cli
           cargo build --release -p grafbase --target ${{ matrix.archs.target }} --timings
 
-      - name: Build grafbase-gateway release
+      - name: Build gateway release
         run: |
           cargo build --release -p grafbase-gateway --target ${{ matrix.archs.target }}
 
@@ -266,20 +266,20 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
 
       - name: Parse version tag for grafbase
-        if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'cli-')
+        if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
         run: |
           VERSION_BUMP="${{ github.ref_name }}"
-          VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
+          VERSION_BUMP=${VERSION_BUMP//grafbase-} # remove the grafbase prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
-      - name: Parse version tag for grafbase-gateway
+      - name: Parse version tag for gateway
         if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
         run: |
           VERSION_BUMP="${{ github.ref_name }}"
           VERSION_BUMP=${VERSION_BUMP//gateway-} # remove the gateway prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
-      - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'cli-')
+      - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
         name: Upload grafbase binaries
         uses: actions/upload-artifact@v4
         with:
@@ -288,10 +288,10 @@ jobs:
             target/${{ matrix.archs.target }}/release/grafbase
 
       - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
-        name: Upload grafbase-gateway binaries
+        name: Upload gateway binaries
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.VERSION_BUMP }}-gateway-${{ matrix.archs.platform }}
+          name: gateway-${{ env.VERSION_BUMP }}-${{ matrix.archs.platform }}
           path: |
             target/${{ matrix.archs.target }}/release/grafbase-gateway
 
@@ -313,7 +313,7 @@ jobs:
           cache-key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-cargo-release-${{ hashFiles('Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
-      - name: Prepare CLI assets
+      - name: Prepare Grafbase assets
         uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}
@@ -331,7 +331,7 @@ jobs:
         run: |
           cargo build --release -p grafbase --target ${{ matrix.target }} --timings
 
-      - name: Build grafbase-gateway ${{ matrix.target }} release
+      - name: Build gateway ${{ matrix.target }} release
         run: |
           cargo build --release -p grafbase-gateway --target ${{ matrix.target }}
 
@@ -341,13 +341,13 @@ jobs:
           path: target/cargo-timings/cargo-timing.html
 
       - name: Parse version tag for grafbase
-        if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'cli-')
+        if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
         run: |
           VERSION_BUMP="${{ github.ref_name }}"
-          VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
+          VERSION_BUMP=${VERSION_BUMP//grafbase-} # remove the grafbase prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
-      - name: Parse version tag for grafbase-gateway
+      - name: Parse version tag for gateway
         if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
         run: |
           VERSION_BUMP="${{ github.ref_name }}"
@@ -374,7 +374,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
 
-      - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'cli-')
+      - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
         name: Upload grafbase ${{ matrix.target }} binary
         uses: actions/upload-artifact@v4
         with:
@@ -382,16 +382,16 @@ jobs:
           path: target/${{ matrix.target }}/release/grafbase
 
       - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
-        name: Upload grafbase-gateway ${{ matrix.target }} binary
+        name: Upload gateway ${{ matrix.target }} binary
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.VERSION_BUMP }}-gateway-${{ matrix.archs.platform }}
+          name: gateway-${{ env.VERSION_BUMP }}-${{ matrix.target }}
           path: |
-            target/${{ matrix.archs.target }}/release/grafbase-gateway
+            target/${{ matrix.target }}/release/grafbase-gateway
 
   release-grafbase:
     needs: [linux, darwin]
-    if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'cli-')
+    if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
     uses: ./.github/workflows/grafbase-partial-release.yml
     with:
       draft: false
@@ -429,22 +429,26 @@ jobs:
         if: ${{ github.event_name == 'pull_request' && contains(needs.*.result, 'success') }}
         with:
           message: |
-            ### Built binaries:
+            ### Built binaries for Grafbase CLI:
 
-            * [grafbase Linux (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-unknown-linux-musl/grafbase)
-            * [grafbase Mac (ARM)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-apple-darwin/grafbase)
-            * [grafbase Mac (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-apple-darwin/grafbase)
+            * [Linux (x86_64)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-unknown-linux-musl/grafbase)
+            * [Linux (ARM)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-unknown-linux-musl/grafbase)
+            * [Mac (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-apple-darwin/grafbase)
+            * [Mac (ARM)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-apple-darwin/grafbase)
 
-            * [grafbase-gateway Linux (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-unknown-linux-musl/grafbase-gateway)
-            * [grafbase-gateway Mac (M1)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-apple-darwin/grafbase-gateway)
-            * [grafbase-gateway Mac (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-apple-darwin/grafbase-gateway)
+            ### Built binaries for Grafbase Gateway:
+
+            * [Linux (x86_64)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-unknown-linux-musl/grafbase-gateway)
+            * [Linux (ARM)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-unknown-linux-musl/grafbase-gateway)
+            * [Mac (x86)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/x86_64-apple-darwin/grafbase-gateway)
+            * [Mac (ARM)](${{ env.CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL }}/${{ github.sha }}/aarch64-apple-darwin/grafbase-gateway)
 
       - name: Report release failures
-        if: ${{ failure() &&  startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'cli-') }}
+        if: ${{ failure() && startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-') }}
         uses: ravsamhq/notify-slack-action@v2
         with:
           status: ${{ job.status }}
-          notification_title: '({workflow}) CLI release failed'
+          notification_title: '({workflow}) grafbase release failed'
           message_format: 'Check the link below to see what failed.'
           footer: '<{run_url}|View Run>'
         env:

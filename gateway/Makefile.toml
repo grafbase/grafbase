@@ -1,0 +1,40 @@
+[config]
+default_to_workspace = false
+skip_core_tasks = true
+skip_git_env_info = true
+skip_rust_env_info = true
+skip_crate_env_info = true
+
+[tasks.install-cargo-release]
+private = true
+install_crate = { crate_name = "cargo-release", binary = "cargo", test_arg = [
+    "release",
+    "--version",
+], version = "0.24.10" }
+
+[tasks.install-sd]
+private = true
+install_crate = { crate_name = "sd", binary = "sd", test_arg = [
+    "--version",
+], version = "0.7.6" }
+
+[tasks.bump]
+description = "Bumps all packages to the specified version"
+dependencies = ["install-cargo-release", "install-sd"]
+script = '''
+VERSION=${@}
+cargo release version $VERSION --execute --no-confirm -p grafbase-gateway -p federated-server
+touch "changelog/$VERSION.md"
+'''
+
+[tasks.release]
+description = "Pushes a tag with the current version"
+script = '''
+git switch main
+git pull
+cd crates/gateway-binary
+VERSION=$(cargo pkgid | rev | cut -d '@' -f 1 | rev)
+cd ../..
+git tag gateway-$VERSION
+git push --tags
+'''
