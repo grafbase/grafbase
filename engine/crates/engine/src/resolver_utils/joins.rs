@@ -10,10 +10,15 @@ use engine_parser::{
 use engine_value::{argument_set::ArgumentSet, ConstValue, Name, Value};
 
 use crate::{
-    registry::resolvers::{join::JoinResolver, ResolvedValue},
+    registry::{
+        resolvers::{join::JoinResolver, ResolvedValue},
+        MetaField,
+    },
     resolver_utils::field::run_field_resolver,
-    Context, ContextField, Error,
+    Context, ContextField, Error, Registry,
 };
+
+use super::{resolve_input, InputResolveMode};
 
 #[async_recursion::async_recursion]
 pub async fn resolve_joined_field(
@@ -21,7 +26,8 @@ pub async fn resolve_joined_field(
     join: &JoinResolver,
     parent_resolve_value_for_join: ResolvedValue,
 ) -> Result<ResolvedValue, Error> {
-    let mut query_field = fake_query_ast(ctx.item, join, parent_resolve_value_for_join)?;
+    let mut query_field = fake_query_ast(ctx.item, join, parent_resolve_value_for_join, ctx.field, ctx.registry())?;
+
     let mut field_iter = join.fields.iter().peekable();
     let mut resolved_value = ResolvedValue::default();
     let mut current_type = ctx
@@ -81,6 +87,8 @@ fn fake_query_ast(
     actual_field: &Positioned<Field>,
     join: &JoinResolver,
     parent_resolve_value_for_join: ResolvedValue,
+    meta_field: &MetaField,
+    registry: &Registry,
 ) -> Result<Positioned<Field>, Error> {
     let pos = actual_field.pos;
 
@@ -91,7 +99,7 @@ fn fake_query_ast(
         let Some((name, arguments)) = iter.next() else {
             return Err(Error::new("internal error in join directive"));
         };
-        let arguments = resolve_arguments(arguments, &parent_resolve_value_for_join)?;
+        let arguments = resolve_arguments(arguments, &parent_resolve_value_for_join, meta_field, registry)?;
         let field = Positioned::new(
             Field {
                 name: Positioned::new(Name::new(name), pos),
@@ -133,6 +141,8 @@ fn fake_query_ast(
 fn resolve_arguments(
     arguments: &ArgumentSet,
     parent_resolve_value_for_join: &ResolvedValue,
+    meta_field: &MetaField,
+    registry: &Registry,
 ) -> Result<Vec<(String, Value)>, Error> {
     let serde_json::Value::Object(parent_object) = parent_resolve_value_for_join.data_resolved() else {
         // This might be an error but I'm going to defer reporting to the child resolver for now.
@@ -145,21 +155,37 @@ fn resolve_arguments(
     for (name, value) in arguments.clone() {
         // Any variables this value refers to are actually fields on the last_resolver_value
         // so we need to resolve with into_const_with then convert back to a value.
-        output.insert(
-            name.to_string(),
-            value
-                .into_const_with(|variable_name| {
-                    let value = parent_object.get(variable_name.as_str()).cloned().ok_or_else(|| {
-                        Error::new(format!(
-                            "Internal error: couldn't find {variable_name} in parent_resolver_value"
-                        ))
-                    })?;
+        let const_value = value.into_const_with(|variable_name| {
+            let value = parent_object.get(variable_name.as_str()).cloned().ok_or_else(|| {
+                Error::new(format!(
+                    "Internal error: couldn't find {variable_name} in parent_resolver_value"
+                ))
+            })?;
 
-                    ConstValue::from_json(value)
-                        .map_err(|_| Error::new("Internal error converting intermediate values"))
-                })?
-                .into_value(),
-        );
+            ConstValue::from_json(value).map_err(|_| Error::new("Internal error converting intermediate values"))
+        })?;
+
+        let value = meta_field
+            .args
+            .get(name.as_str())
+            .and_then(|meta_input_value| {
+                // Run things through resolve_input, which will make sure any
+                // enum arguments are actually enums rather than strings
+                resolve_input(
+                    registry,
+                    Default::default(),
+                    name.as_str(),
+                    meta_input_value,
+                    Some(const_value.clone()),
+                    InputResolveMode::Default,
+                )
+                .ok()
+                .flatten()
+            })
+            .unwrap_or(const_value)
+            .into_value();
+
+        output.insert(name.to_string(), value);
     }
 
     // At some point we'll probably want to think about forwarding arguments from the current field
