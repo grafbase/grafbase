@@ -11,7 +11,7 @@ introspection = false
 
 [csrf]
 # Enable if the gateway is accessed from a browser. If enabled,
-# every request must hage the header x-grafbase-csrf-protection set
+# every request must have the header x-grafbase-csrf-protection set
 enabled = false
 
 # Cross-origin resource sharing settings are for installations that are accessed directly
