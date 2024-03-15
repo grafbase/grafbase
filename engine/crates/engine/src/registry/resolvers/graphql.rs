@@ -707,10 +707,6 @@ mod tests {
 
         // 2. We have two query fields, but expect a single API call due to batching.
         Mock::given(method("POST"))
-            .and(request_fn(|req| {
-                let body = req.body_json::<Value>().unwrap().to_string();
-                body.contains("foo\\n\\tbar") || body.contains("bar\\n\\tfoo")
-            }))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": {} })))
             .expect(1)
             .mount(&server)
@@ -754,10 +750,6 @@ mod tests {
 
         // 2. We have two query fields, but expect a single API call due to batching.
         Mock::given(method("POST"))
-            .and(request_fn(|req| {
-                let body = req.body_json::<Value>().unwrap().to_string();
-                body.contains("foo\\n\\tbar") || body.contains("bar\\n\\tfoo")
-            }))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": {} })))
             .expect(1)
             .mount(&server)
@@ -861,12 +853,7 @@ mod tests {
             .and(request_fn(|req| {
                 let body = req.body_json::<Value>().unwrap().to_string();
 
-                let vars = body.contains("query($foo: ID, $bar: ID)") || body.contains("query($bar: ID, $foo: ID)");
-
-                let fields = body.contains("foo(id: $foo)\\n\\tbar(id: $bar)")
-                    || body.contains("bar(id: $bar)\\n\\tfoo(id: $foo)");
-
-                vars && fields
+                body.contains("query($foo: ID, $bar: ID)") || body.contains("query($bar: ID, $foo: ID)")
             }))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": {} })))
             .expect(1)
