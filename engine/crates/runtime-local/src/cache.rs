@@ -1,3 +1,7 @@
+mod common;
+mod v1;
+mod v2;
+
 use std::{
     collections::{BinaryHeap, HashMap, HashSet},
     time::Instant,
@@ -41,12 +45,12 @@ impl Default for InMemoryCache {
     }
 }
 
-struct CacheInner {
+struct CacheInner<K, V> {
     // for testing
     now: Box<dyn Fn() -> Instant + Sync + Send>,
-    key_to_entry: HashMap<Key, CacheEntry>,
-    deletion_tasks: BinaryHeap<DeletionTask>,
-    tag_to_keys: HashMap<String, HashSet<Key>>,
+    key_to_entry: HashMap<K, V>,
+    deletion_tasks: BinaryHeap<DeletionTask<K>>,
+    tag_to_keys: HashMap<String, HashSet<K>>,
 }
 
 #[derive(Debug)]
@@ -58,12 +62,12 @@ struct CacheEntry {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct DeletionTask {
-    key: Key,
+struct DeletionTask<K> {
+    key: K,
     to_delete_at: Instant,
 }
 
-impl PartialOrd for DeletionTask {
+impl<K> PartialOrd for DeletionTask<K> {
     #[allow(clippy::non_canonical_partial_ord_impl)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.to_delete_at
@@ -72,13 +76,13 @@ impl PartialOrd for DeletionTask {
     }
 }
 
-impl Ord for DeletionTask {
+impl<K> Ord for DeletionTask<K> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.to_delete_at.cmp(&other.to_delete_at).reverse()
     }
 }
 
-impl CacheInner {
+impl<K, V> CacheInner<K, V> {
     fn purge(&mut self, now: Instant) {
         let mut deleted = vec![];
         while let Some(DeletionTask { key, to_delete_at }) = self.deletion_tasks.peek() {
