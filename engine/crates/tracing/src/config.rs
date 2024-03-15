@@ -14,7 +14,8 @@ use url::Url;
 use crate::error::TracingError;
 
 pub(crate) const DEFAULT_COLLECT_VALUE: usize = 128;
-pub(crate) const DEFAULT_FILTER: &str = "grafbase=info,off";
+/// Default tracing filter to be applied on spans that are client facing
+pub const DEFAULT_FILTER: &str = "grafbase=info,off";
 pub(crate) const DEFAULT_SAMPLING: f64 = 0.15;
 // FIXME: Use this constant when `unwrap()` becomes const-stable.
 // const DEFAULT_EXPORT_TIMEOUT: chrono::Duration = chrono::Duration::try_seconds(60).unwrap();
