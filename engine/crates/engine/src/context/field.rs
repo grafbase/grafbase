@@ -155,14 +155,7 @@ impl<'a> ContextField<'a> {
                 .map(|value| self.resolve_input_value(value))
                 .transpose()?;
 
-            resolve_input(
-                self.registry(),
-                self.item.pos,
-                name,
-                meta_input_value,
-                maybe_value,
-                mode,
-            )
+            resolve_input(self, name, meta_input_value, maybe_value, mode)
         } else {
             Err(ServerError::new(
                 format!("Internal Error: Unknown argument '{name}'"),

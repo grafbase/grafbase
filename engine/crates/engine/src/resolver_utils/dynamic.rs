@@ -1,4 +1,3 @@
-use engine_parser::Pos;
 use engine_value::{ConstValue, Name};
 use indexmap::IndexMap;
 
@@ -7,7 +6,7 @@ use crate::{
         scalars::{DynamicScalar, PossibleScalar},
         InputValueType, MetaEnumValue, MetaInputValue, MetaType, MetaTypeName,
     },
-    Error, Registry, ServerResult,
+    ContextField, Error, ServerResult,
 };
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
@@ -18,8 +17,7 @@ pub enum InputResolveMode {
 }
 
 pub fn resolve_input(
-    registry: &Registry,
-    error_pos: Pos,
+    ctx_field: &ContextField<'_>,
     arg_name: &str,
     meta_input_value: &MetaInputValue,
     value: Option<ConstValue>,
@@ -29,7 +27,7 @@ pub fn resolve_input(
     // as it allows casting to either T or Option<T> later.
     resolve_maybe_absent_input(
         ResolveContext {
-            registry,
+            ctx: ctx_field,
             path: PathNode::new(arg_name),
             ty: meta_input_value.ty.as_str(),
             allow_list_coercion: true,
@@ -38,19 +36,18 @@ pub fn resolve_input(
         value,
         mode,
     )
-    .map_err(|err| err.into_server_error(error_pos))
+    .map_err(|err| err.into_server_error(ctx_field.item.pos))
 }
 
 pub fn apply_input_transforms(
-    registry: &Registry,
-    error_pos: Pos,
+    ctx_field: &ContextField<'_>,
     arg_name: &str,
     value: ConstValue,
     ty: &InputValueType,
 ) -> ServerResult<ConstValue> {
     resolve_present_input(
         ResolveContext {
-            registry,
+            ctx: ctx_field,
             path: PathNode::new(arg_name),
             ty: ty.to_string().as_str(),
             allow_list_coercion: true,
@@ -59,7 +56,7 @@ pub fn apply_input_transforms(
         value,
         InputResolveMode::ApplyConnectorTransforms,
     )
-    .map_err(|err| err.into_server_error(error_pos))
+    .map_err(|err| err.into_server_error(ctx_field.item.pos))
 }
 
 struct PathNode<'a> {
@@ -87,7 +84,7 @@ impl<'a> PathNode<'a> {
 }
 
 struct ResolveContext<'a> {
-    registry: &'a Registry,
+    ctx: &'a ContextField<'a>,
     path: PathNode<'a>,
     /// Expected GraphQL type
     ty: &'a str,
@@ -102,7 +99,7 @@ struct ResolveContext<'a> {
 impl<'a> ResolveContext<'a> {
     fn with_input(&'a self, path: &'a str, input: &'a MetaInputValue) -> ResolveContext<'a> {
         ResolveContext {
-            registry: self.registry,
+            ctx: self.ctx,
             path: self.path.with(path),
             ty: input.ty.as_str(),
             allow_list_coercion: true,
@@ -183,6 +180,8 @@ fn resolve_present_input(
                 return Ok(value);
             }
             match rctx
+                .ctx
+                .schema_env
                 .registry
                 .types
                 .get(type_name)
@@ -246,5 +245,5 @@ fn resolve_input_enum(
         return Ok(ConstValue::String(value.clone()));
     }
 
-    Ok(ConstValue::Enum(Name::new(str_value)))
+    Ok(value)
 }
