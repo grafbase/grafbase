@@ -1,0 +1,12 @@
+[package]
+authors = ["Grafbase"]
+description = "macros to generate ID newtypes used in engine-v2"
+edition = "2021"
+homepage = "https://grafbase.com"
+keywords = ["graphql", "engine", "grafbase"]
+license = "MPL-2.0"
+name = "engine-v2-id-newtypes"
+repository = "https://github.com/grafbase/grafbase"
+
+[lints]
+workspace = true

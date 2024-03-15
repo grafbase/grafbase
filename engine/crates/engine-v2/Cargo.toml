@@ -1,14 +1,14 @@
 [package]
-name = "engine-v2"
-version = "3.0.31"
 authors = ["Grafbase"]
 description = "A dynamic GraphQL engine written in Rust"
 edition = "2021"
-readme = "README.md"
-license = "MPL-2.0"
 homepage = "https://grafbase.com"
-repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "engine", "grafbase"]
+license = "MPL-2.0"
+name = "engine-v2"
+readme = "README.md"
+repository = "https://github.com/grafbase/grafbase"
+version = "3.0.31"
 
 [lints]
 workspace = true
@@ -19,26 +19,27 @@ plan_cache = ["dep:mini-moka"]
 
 [dependencies]
 async-runtime.workspace = true
+futures-util.workspace = true
 futures.workspace = true
+hex.workspace = true
+id-newtypes = { path = "./id-newtypes", package = "engine-v2-id-newtypes" }
 im = "15"
 itertools.workspace = true
-hex.workspace = true
 lasso = "0.7"
 log.workspace = true
+mini-moka = { version = "0.10", optional = true, features = ["sync"] }
 serde = { workspace = true, features = ["rc"] }
-serde_with.workspace = true
-serde_json.workspace = true
 serde-value = "0.7"
+serde_json.workspace = true
+serde_with.workspace = true
 sha2.workspace = true
 strum.workspace = true
 thiserror.workspace = true
-futures-util.workspace = true
 tracing.workspace = true
-mini-moka = { version = "0.10", optional = true, features = ["sync"] }
 
 config = { package = "engine-v2-config", path = "./config" }
-engine-value = { path = "../engine/value" }
 engine-parser = { path = "../engine/parser" }
+engine-value = { path = "../engine/value" }
 grafbase-tracing.workspace = true
 schema = { path = "./schema", package = "engine-v2-schema" }
 # needed for errors, not entirely sure if we should be separate or not right now.

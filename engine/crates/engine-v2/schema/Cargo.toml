@@ -1,27 +1,28 @@
 [package]
-name = "engine-v2-schema"
-version = "3.0.31"
 authors = ["Grafbase"]
 description = "The engine schema graph"
 edition = "2021"
-readme = "README.md"
-license = "MPL-2.0"
 homepage = "https://grafbase.com"
-repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "engine", "grafbase"]
+license = "MPL-2.0"
+name = "engine-v2-schema"
+readme = "README.md"
+repository = "https://github.com/grafbase/grafbase"
+version = "3.0.31"
 
 [dependencies]
-strum = { workspace = true, features = ["derive"] }
-strum_macros.workspace = true
-url.workspace = true
 fnv = "1"
+id-newtypes = { path = "../id-newtypes", package = "engine-v2-id-newtypes" }
 indexmap.workspace = true
 serde.workspace = true
+strum = { workspace = true, features = ["derive"] }
+strum_macros.workspace = true
 thiserror.workspace = true
+url.workspace = true
 
 config = { package = "engine-v2-config", path = "../config" }
 federated-graph = { package = "graphql-federated-graph", path = "../../federated-graph" }
 
 [dev-dependencies]
-serde_json.workspace = true
 insta.workspace = true
+serde_json.workspace = true

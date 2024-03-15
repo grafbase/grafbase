@@ -330,19 +330,13 @@ mod tests {
                     InputObject(
                         [
                             (
-                                InputValueDefinitionId(
-                                    1,
-                                ),
+                                0,
                                 EnumValue(
-                                    EnumValueId(
-                                        2,
-                                    ),
+                                    1,
                                 ),
                             ),
                             (
-                                InputValueDefinitionId(
-                                    2,
-                                ),
+                                1,
                                 String(
                                     "some string value",
                                 ),
@@ -356,9 +350,7 @@ mod tests {
                         [
                             Null,
                             EnumValue(
-                                EnumValueId(
-                                    1,
-                                ),
+                                0,
                             ),
                             Int(
                                 73,
@@ -383,9 +375,7 @@ mod tests {
                             (
                                 "enumValue",
                                 EnumValue(
-                                    EnumValueId(
-                                        1,
-                                    ),
+                                    0,
                                 ),
                             ),
                             (
