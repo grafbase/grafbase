@@ -64,7 +64,6 @@ impl GraphUpdater {
         gateway_config: GatewayConfig,
     ) -> crate::Result<Self> {
         let uplink_client = reqwest::ClientBuilder::new()
-            .gzip(true)
             .timeout(UPLINK_TIMEOUT)
             .connect_timeout(CONNECT_TIMEOUT)
             .http2_keep_alive_interval(Some(KEEPALIVE_INTERVAL))

@@ -24,8 +24,8 @@ const DEFAULT_LOG_FILTER: &str = "info";
             .requires("access_token")
     )
 )]
-#[command(name = "The Grafbase gateway", version)]
-/// The Grafbase gateway
+#[command(name = "The Grafbase Gateway", version)]
+/// The Grafbase Gateway
 pub struct Args {
     /// IP address on which the server will listen for incomming connections. Defaults to 127.0.0.1:5000.
     #[arg(short, long)]

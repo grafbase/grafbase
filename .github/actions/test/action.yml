@@ -1,0 +1,66 @@
+name: Sanitize and test
+description: Run cargo fmt, clippy, test
+
+inputs:
+  dockerhub-username:
+    required: true
+    description: Username to log into docker hub
+  dockerhub-token:
+    required: true
+    description: Token to log into docker hub
+  with-integration-tests:
+    required: false
+    default: true
+    description: If enabled, runs integration tests and needs docker
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build udf-wrapper
+      shell: bash
+      working-directory: './cli/udf-wrapper'
+      run: |
+        npm i
+        npm run build
+
+    # https://github.com/actions/setup-node/issues/899
+    - name: Enable Corepack before setting up Node
+      shell: bash
+      run: corepack enable
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      id: pnpm-install
+      with:
+        version: 8
+        run_install: false
+
+    - name: Login to Docker Hub
+      if: ${{ inputs.with-integration-tests == true }}
+      uses: docker/login-action@v3
+      with:
+        username: ${{ inputs.dockerhub-username }}
+        password: ${{ inputs.dockerhub-token }}
+
+    - name: Start local databases
+      if: ${{ inputs.with-integration-tests == true }}
+      shell: bash
+      run: |
+        docker-compose -f engine/crates/integration-tests/docker-compose.yml up -d
+
+    - name: Run all tests
+      if: ${{ inputs.with-integration-tests == true }}
+      shell: bash
+      run: |
+        RUST_BACKTRACE=1 cargo nextest run --workspace --profile ci
+
+    - name: Run tests without integration
+      if: ${{ inputs.with-integration-tests == false }}
+      shell: bash
+      run: |
+        RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --profile ci
