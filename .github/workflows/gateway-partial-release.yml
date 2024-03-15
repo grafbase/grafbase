@@ -117,7 +117,7 @@ jobs:
           draft: ${{ inputs.draft }}
           prerelease: ${{ inputs.prerelease }}
           files: |
-            licenses.html
+            gateway/licenses.html
             gateway/release/github/grafbase-gateway-aarch64-apple-darwin
             gateway/release/github/grafbase-gateway-x86_64-apple-darwin
             gateway/release/github/grafbase-gateway-aarch64-unknown-linux-musl
