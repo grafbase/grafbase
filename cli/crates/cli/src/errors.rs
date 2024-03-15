@@ -4,6 +4,8 @@ use common::errors::CommonError;
 use std::io::{self, ErrorKind};
 use thiserror::Error;
 
+use crate::upgrade::UpgradeError;
+
 #[derive(Error, Debug)]
 pub enum CliError {
     // TODO: this might be better as `expect`
@@ -64,6 +66,8 @@ pub enum CliError {
     /// returned if .grafbase/project.json could not be read
     #[error("could not read '.grafbase/project.json'\nCaused by: {0}")]
     ReadProjectMetadataFile(#[source] io::Error),
+    #[error(transparent)]
+    UpgradeError(#[from] UpgradeError),
 }
 
 #[cfg(target_family = "windows")]

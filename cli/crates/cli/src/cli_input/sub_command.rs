@@ -51,6 +51,8 @@ pub enum SubCommand {
     /// Submit a trusted documents manifest
     #[clap(hide = true)]
     Trust(TrustCommand),
+    /// Upgrade the installed version of the grafbase CLI
+    Upgrade,
 }
 
 impl SubCommand {
@@ -99,6 +101,7 @@ impl ArgumentNames for SubCommand {
             | SubCommand::Completions(_)
             | SubCommand::DumpConfig
             | SubCommand::Trust(_)
+            | SubCommand::Upgrade
             | SubCommand::Logs(_) => None,
         }
     }

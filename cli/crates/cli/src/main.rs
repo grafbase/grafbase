@@ -24,6 +24,7 @@ mod start;
 mod subgraphs;
 mod trust;
 mod unlink;
+mod upgrade;
 mod watercolor;
 
 #[macro_use]
@@ -185,5 +186,6 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::DumpConfig => dump_config::dump_config(),
         SubCommand::Check(cmd) => check::check(cmd),
         SubCommand::Trust(cmd) => trust::trust(cmd),
+        SubCommand::Upgrade => upgrade::install_grafbase().map_err(Into::into),
     }
 }
