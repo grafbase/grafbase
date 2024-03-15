@@ -16,7 +16,7 @@ use self::oneof::OneOf;
 use super::InputValueType;
 use crate::{
     resolver_utils::{apply_input_transforms, InputResolveMode},
-    Context, ContextField, Error, ServerError, ServerResult, Value,
+    ContextField, Error, ServerError, ServerResult, Value,
 };
 
 pub mod id;
@@ -102,7 +102,7 @@ impl VariableResolveDefinition {
                 let result = Value::from_json(result)
                     .map_err(|error| ServerError::new(error.to_string(), Some(ctx.item.pos)))?;
 
-                apply_input_transforms(ctx.registry(), ctx.item.pos, field.as_ref(), result, ty).map(Some)
+                apply_input_transforms(ctx, field.as_ref(), result, ty).map(Some)
             }
         }
     }
