@@ -3,7 +3,7 @@ use std::net::IpAddr;
 
 use crate::span::HttpRecorderSpanExt;
 use http::header::USER_AGENT;
-use http::Response;
+use http::{Response, StatusCode};
 use http_body::Body;
 use tracing::{info_span, Span};
 
@@ -186,5 +186,9 @@ impl HttpRecorderSpanExt for Span {
 
     fn record_failure(&self, error: &str) {
         self.record("http.response.error", error);
+    }
+
+    fn record_status_code(&self, status_code: StatusCode) {
+        self.record("http.response.status_code", status_code.as_str());
     }
 }

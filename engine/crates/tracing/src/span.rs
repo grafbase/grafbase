@@ -16,6 +16,8 @@ pub trait HttpRecorderSpanExt {
     fn record_response<B: Body>(&self, response: &Response<B>);
     /// Record response failure in the span
     fn record_failure(&self, error: &str);
+    /// Record response failure in the span
+    fn record_status_code(&self, status_code: http::StatusCode);
 }
 
 /// Extension trait to record gql request attributes
