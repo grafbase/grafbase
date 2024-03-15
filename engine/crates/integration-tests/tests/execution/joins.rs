@@ -261,8 +261,10 @@ fn join_with_an_enum_argument() {
     //
     // Though it seems to be a terrible test because AsyncGraphql doesn't give a shit
     // if you give it a string where it expects an enum :|
+    //
+    // TODO: Inspect the mock call
     runtime().block_on(async {
-        let graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let mut graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
         let port = graphql_mock.port();
 
         let schema = format!(
@@ -315,6 +317,19 @@ fn join_with_an_enum_argument() {
         }
         "###
         );
+
+        // AsyncGraphQL doesn't seem to care if you give it a String in Enum position.
+        // So lets snapshot the request just to be sure this doesn't regress.
+        let requests = graphql_mock.drain_requests().await.collect::<Vec<_>>();
+        assert_eq!(requests.len(), 3, "Unexpected requests: {requests:?}");
+        let request = requests.last().unwrap();
+
+        insta::assert_snapshot!(request.query, @r###"
+        query {
+        	f_0: statusString(status: OPEN)
+        	f_1: statusString(status: CLOSED)
+        }
+        "###);
     });
 }
 
