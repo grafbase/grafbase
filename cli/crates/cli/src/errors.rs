@@ -64,12 +64,6 @@ pub enum CliError {
     /// returned if .grafbase/project.json could not be read
     #[error("could not read '.grafbase/project.json'\nCaused by: {0}")]
     ReadProjectMetadataFile(#[source] io::Error),
-    /// temporary error type for the production server until we figure things out more
-    #[error("{0}")]
-    ProductionServerError(#[source] production_server::Error),
-    /// invalid arguments
-    #[error("{0}")]
-    InvalidArgumentsError(String),
 }
 
 #[cfg(target_family = "windows")]

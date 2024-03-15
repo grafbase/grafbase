@@ -40,7 +40,7 @@ engine = { path = "../../../engine/crates/engine" }
 engine-config-builder = { path = "../../../engine/crates/engine-config-builder" }
 engine-v2 = { workspace = true, features = ["plan_cache"] }
 gateway-v2 = { workspace = true, features = ["axum"] }
-grafbase-graphql-introspection = { path = "../graphql-introspection" }
+grafbase-graphql-introspection.workspace = true
 grafbase-tracing = { workspace = true , features = ["tower"] }
 parser-sdl = { path = "../../../engine/crates/parser-sdl" }
 

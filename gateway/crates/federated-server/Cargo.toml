@@ -1,5 +1,5 @@
 [package]
-name = "production-server"
+name = "federated-server"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -27,7 +27,7 @@ graphql-composition.workspace = true
 http.workspace = true
 oneshot = "0.1"
 parser-sdl = { version = "0.1.0", path = "../../../engine/crates/parser-sdl" }
-reqwest = { workspace = true, features = ["rustls", "gzip", "json"] }
+reqwest = { workspace = true, features = ["rustls", "json"] }
 runtime.workspace = true
 runtime-local.workspace = true
 runtime-noop.workspace = true

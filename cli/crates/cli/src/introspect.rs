@@ -31,7 +31,7 @@ fn introspect_local(no_color: bool) -> Result<(), CliError> {
 }
 
 fn introspect_remote(url: &str, headers: &[(&str, &str)], no_color: bool) -> Result<(), CliError> {
-    let operation = graphql_introspection::introspect(url, headers);
+    let operation = grafbase_graphql_introspection::introspect(url, headers);
 
     match Runtime::new().unwrap().block_on(operation) {
         Ok(result) => {

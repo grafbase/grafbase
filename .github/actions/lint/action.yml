@@ -1,0 +1,27 @@
+name: Lint
+description: Run cargo fmt, clippy, test
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build udf-wrapper
+      shell: bash
+      working-directory: './cli/udf-wrapper'
+      run: |
+        npm i
+        npm run build
+
+    - name: cargo fmt
+      shell: bash
+      run: |
+        cargo fmt --check
+
+    - name: cargo clippy
+      shell: bash
+      run: |
+        cargo clippy \
+          --workspace \
+          --exclude integration-tests \
+          --locked \
+          --all-targets \
+          --tests -- -D warnings

@@ -38,11 +38,14 @@ jobs:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
 
-      - name: Sanitize
-        uses: ./.github/actions/sanitize
+      - name: Lint
+        uses: ./.github/actions/lint
+
+      - name: Test
+        uses: ./.github/actions/test
         with:
-          lint: true
-          test: true
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Report Status
         if: always()

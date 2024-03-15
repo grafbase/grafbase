@@ -12,6 +12,7 @@ on:
       tag:
         type: string
         required: true
+
     secrets:
       CRATES_ACCESS_TOKEN:
         required: true
@@ -20,7 +21,7 @@ on:
 
 jobs:
   release:
-    name: Release CLI
+    name: Release grafbase
     runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - name: Parse version tag
@@ -29,10 +30,10 @@ jobs:
           VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
-      - name: Announce release attempt on slack
+      - name: Announce release attempt on Slack
         uses: ravsamhq/notify-slack-action@v2
         with:
-          notification_title: '({workflow}) CLI release for ${{ env.VERSION_BUMP }} started'
+          notification_title: '({workflow}) grafbase release for ${{ env.VERSION_BUMP }} started'
           footer: '<{run_url}|View Run>'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -44,7 +45,7 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       # This is annoying, but github doesn't pass env vars down to child workflows,
@@ -54,15 +55,15 @@ jobs:
         id: lookup-prod-assets
         uses: mikefarah/yq@master
         with:
-          cmd: yq '.env.PROD_ASSETS' './.github/workflows/cli.yml'
+          cmd: yq '.env.PROD_ASSETS' './.github/workflows/binaries.yml'
 
       - name: Get ASSETS_VERSION from cli workflow
         id: lookup-assets-version
         uses: mikefarah/yq@master
         with:
-          cmd: yq '.env.ASSETS_VERSION' './.github/workflows/cli.yml'
+          cmd: yq '.env.ASSETS_VERSION' './.github/workflows/binaries.yml'
 
-      - name: Build CLI assets
+      - name: Build assets
         uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ steps.lookup-prod-assets.outputs.result }}
@@ -80,23 +81,17 @@ jobs:
           name: ${{ env.VERSION_BUMP }}-aarch64-apple-darwin
           path: cli/npm/aarch64-apple-darwin
 
-      - name: Download linux amd artifact
+      - name: Download Linux AMD artifact
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-linux
           path: cli/npm/x86_64-unknown-linux-musl
 
-      - name: Download linux arm artifact
+      - name: Download Linux ARM artifact
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.VERSION_BUMP }}-linux-arm
           path: cli/npm/aarch64-unknown-linux-musl
-
-      # - name: Download windows artifact
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     name: ${{ env.VERSION_BUMP }}-windows
-      #     path: cli/npm/x86_64-pc-windows-msvc
 
       - name: Process artifacts
         shell: bash
@@ -123,9 +118,9 @@ jobs:
       - name: Generate licenses
         shell: bash
         run: |
-          cargo about generate -c cli/about.toml -o "licenses.html" cli/about.hbs
-          find cli/crates -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
-          find cli/npm -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
+          cd gateway/crates/gateway-binary
+          cargo about generate -c ../../about.toml -o "../../licenses.html" ../../about.hbs
+          find ../../ -maxdepth 1 -type d -exec cp ../../licenses.html {} \;
 
       - name: Publish npm
         shell: bash
@@ -141,13 +136,12 @@ jobs:
           fi
           (cd aarch64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd x86_64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          # (cd x86_64-pc-windows-msvc && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd x86_64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd aarch64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd cli && npm publish "${PUBLISH_ARGUMENTS[@]}")
 
-      - name: Github Release
-        id: gh-release
+      - name: Github release
+        id: gh-release-grafbase
         uses: softprops/action-gh-release@v2
         with:
           body_path: cli/changelog/${{ env.VERSION_BUMP }}.md

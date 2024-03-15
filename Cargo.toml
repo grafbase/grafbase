@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+  "gateway/crates/*",
   "cli/crates/*",
   "engine/crates/*",
   "engine/crates/gateway-v2/auth",
@@ -10,6 +11,7 @@ members = [
   "engine/crates/engine/derive",
   "engine/crates/engine/parser",
   "engine/crates/engine/value",
+  "graph-ref",
 ]
 
 [patch.crates-io]
@@ -125,6 +127,14 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 tracing-futures = "0.2"
 
+# Common
+graph-ref = { path = "graph-ref" }
+grafbase-graphql-introspection = { path = "graphql-introspection" }
+
+# Gateway
+federated-server = { path = "gateway/crates/federated-server" }
+
+# Engine
 async-runtime = { path = "engine/crates/async-runtime" }
 common-types = { path = "engine/crates/common-types" }
 dataloader = { path = "engine/crates/dataloader", features = ["tracing"] }

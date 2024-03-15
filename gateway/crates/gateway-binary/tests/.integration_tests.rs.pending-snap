@@ -1,0 +1,28 @@
+{"run_id":"1710355112-752140537","line":622,"new":{"module_name":"integration_tests","snapshot_name":"hybrid_graph","metadata":{"source":"gateway/crates/gateway-binary/tests/integration_tests.rs","assertion_line":622,"expression":"&result"},"snapshot":"{\n  \"errors\": [\n    {\n      \"message\": \"there are no subgraphs registered currently\"\n    }\n  ]\n}"},"old":{"module_name":"integration_tests","metadata":{},"snapshot":"{\n  \"data\": {},\n  \"errors\": [\n    {\n      \"message\": \"error sending request for url (http://127.0.0.1:46697/): client error (Connect)\"\n    }\n  ]\n}"}}
+{"run_id":"1710355112-752140537","line":422,"new":null,"old":null}
+{"run_id":"1710355112-752140537","line":534,"new":null,"old":null}
+{"run_id":"1710355112-752140537","line":593,"new":null,"old":null}
+{"run_id":"1710355144-57921955","line":620,"new":{"module_name":"integration_tests","snapshot_name":"hybrid_graph","metadata":{"source":"gateway/crates/gateway-binary/tests/integration_tests.rs","assertion_line":620,"expression":"&result"},"snapshot":"{\n  \"errors\": [\n    {\n      \"message\": \"there are no subgraphs registered currently\"\n    }\n  ]\n}"},"old":{"module_name":"integration_tests","metadata":{},"snapshot":"{\n  \"data\": {},\n  \"errors\": [\n    {\n      \"message\": \"error sending request for url (http://127.0.0.1:46697/): client error (Connect)\"\n    }\n  ]\n}"}}
+{"run_id":"1710355182-205083458","line":618,"new":null,"old":null}
+{"run_id":"1710355182-205083458","line":505,"new":null,"old":null}
+{"run_id":"1710355182-205083458","line":444,"new":null,"old":null}
+{"run_id":"1710355182-205083458","line":589,"new":null,"old":null}
+{"run_id":"1710355182-205083458","line":530,"new":null,"old":null}
+{"run_id":"1710355182-205083458","line":418,"new":null,"old":null}
+{"run_id":"df2c796f-4f27-4b1c-a11a-16f792d51387","line":530,"new":null,"old":null}
+{"run_id":"df2c796f-4f27-4b1c-a11a-16f792d51387","line":589,"new":null,"old":null}
+{"run_id":"df2c796f-4f27-4b1c-a11a-16f792d51387","line":418,"new":null,"old":null}
+{"run_id":"df2c796f-4f27-4b1c-a11a-16f792d51387","line":618,"new":null,"old":null}
+{"run_id":"df2c796f-4f27-4b1c-a11a-16f792d51387","line":444,"new":null,"old":null}
+{"run_id":"df2c796f-4f27-4b1c-a11a-16f792d51387","line":505,"new":null,"old":null}
+{"run_id":"2bbc9074-2fa7-40db-b4d9-48f62869a290","line":413,"new":null,"old":null}
+{"run_id":"2bbc9074-2fa7-40db-b4d9-48f62869a290","line":522,"new":null,"old":null}
+{"run_id":"2bbc9074-2fa7-40db-b4d9-48f62869a290","line":581,"new":null,"old":null}
+{"run_id":"2bbc9074-2fa7-40db-b4d9-48f62869a290","line":610,"new":null,"old":null}
+{"run_id":"2bbc9074-2fa7-40db-b4d9-48f62869a290","line":438,"new":null,"old":null}
+{"run_id":"f0972441-5acb-48c4-8236-e0c155811e64","line":610,"new":null,"old":null}
+{"run_id":"f0972441-5acb-48c4-8236-e0c155811e64","line":438,"new":null,"old":null}
+{"run_id":"f0972441-5acb-48c4-8236-e0c155811e64","line":497,"new":null,"old":null}
+{"run_id":"f0972441-5acb-48c4-8236-e0c155811e64","line":522,"new":null,"old":null}
+{"run_id":"f0972441-5acb-48c4-8236-e0c155811e64","line":581,"new":null,"old":null}
+{"run_id":"f0972441-5acb-48c4-8236-e0c155811e64","line":413,"new":null,"old":null}

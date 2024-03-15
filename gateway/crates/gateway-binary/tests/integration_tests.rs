@@ -2,33 +2,228 @@
 
 use std::{
     env, fs,
+    marker::PhantomData,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     panic::{catch_unwind, AssertUnwindSafe},
-    process::Output,
-    sync::{Arc, OnceLock},
+    path,
+    sync::{Arc, Mutex, OnceLock},
+    time::{Duration, SystemTime},
 };
 
-use duct::cmd;
+use duct::{cmd, Handle};
 use futures_util::{Future, FutureExt};
+use http::{HeaderMap, StatusCode};
 use indoc::indoc;
 use tempfile::tempdir;
 use tokio::runtime::Runtime;
-use utils::{
-    client::ClientOptions,
-    environment::{get_free_port, CommandHandles},
-};
 use wiremock::{
     matchers::{header, method, path},
     Mock, ResponseTemplate,
 };
 
-use crate::utils::{cargo_bin::cargo_bin, client::Client};
-
-mod utils;
-
 const ACCESS_TOKEN: &str = "test";
 
-pub fn runtime() -> &'static Runtime {
+#[derive(serde::Serialize)]
+#[must_use]
+pub struct GqlRequestBuilder<Response> {
+    // These two will be serialized into the request
+    query: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    variables: Option<serde_json::Value>,
+
+    // These won't
+    #[serde(skip)]
+    phantom: PhantomData<fn() -> Response>,
+    #[serde(skip)]
+    reqwest_builder: reqwest::RequestBuilder,
+    #[serde(skip)]
+    bearer: Option<String>,
+}
+
+impl<Response> GqlRequestBuilder<Response> {
+    pub fn variables(mut self, variables: impl serde::Serialize) -> Self {
+        self.variables = Some(serde_json::to_value(variables).expect("to be able to serialize variables"));
+        self
+    }
+
+    pub fn bearer(mut self, token: &str) -> Self {
+        self.bearer = Some(format!("Bearer {token}"));
+        self
+    }
+
+    pub fn header(self, name: &str, value: &str) -> Self {
+        let Self {
+            bearer,
+            phantom,
+            query,
+            mut reqwest_builder,
+            variables,
+        } = self;
+        reqwest_builder = reqwest_builder.header(name, value);
+        Self {
+            query,
+            variables,
+            phantom,
+            reqwest_builder,
+            bearer,
+        }
+    }
+
+    pub async fn send(self) -> Response
+    where
+        Response: for<'de> serde::de::Deserialize<'de>,
+    {
+        let json = serde_json::to_value(&self).expect("to be able to serialize gql request");
+
+        if let Some(bearer) = self.bearer {
+            self.reqwest_builder.header("authorization", bearer)
+        } else {
+            self.reqwest_builder
+        }
+        .json(&json)
+        .send()
+        .await
+        .unwrap()
+        .json::<Response>()
+        .await
+        .unwrap()
+    }
+
+    pub async fn request(self) -> reqwest::Response {
+        let json = serde_json::to_value(&self).expect("to be able to serialize gql request");
+        self.reqwest_builder.json(&json).send().await.unwrap()
+    }
+}
+
+pub struct Client {
+    endpoint: String,
+    client: reqwest::Client,
+    headers: HeaderMap,
+    commands: CommandHandles,
+}
+
+impl Client {
+    pub fn new(endpoint: String, commands: CommandHandles) -> Self {
+        Self {
+            endpoint,
+            headers: HeaderMap::new(),
+            client: reqwest::Client::builder()
+                .connect_timeout(Duration::from_secs(1))
+                .build()
+                .unwrap(),
+            commands,
+        }
+    }
+
+    pub fn with_header(mut self, key: &'static str, value: impl AsRef<str>) -> Self {
+        self.headers.insert(key, value.as_ref().parse().unwrap());
+        self
+    }
+
+    pub async fn poll_endpoint(&self, timeout_secs: u64, interval_millis: u64) {
+        let start = SystemTime::now();
+
+        loop {
+            let valid_response = self
+                .client
+                .head(&self.endpoint)
+                .send()
+                .await
+                .is_ok_and(|response| response.status() != StatusCode::SERVICE_UNAVAILABLE);
+
+            if valid_response {
+                break;
+            }
+
+            assert!(start.elapsed().unwrap().as_secs() < timeout_secs, "timeout");
+
+            tokio::time::sleep(Duration::from_millis(interval_millis)).await;
+        }
+    }
+
+    pub fn kill_handles(&self) {
+        self.commands.kill_all()
+    }
+
+    pub fn endpoint(&self) -> &str {
+        &self.endpoint
+    }
+
+    pub fn gql<Response>(&self, query: impl Into<String>) -> GqlRequestBuilder<Response>
+    where
+        Response: for<'de> serde::de::Deserialize<'de>,
+    {
+        let reqwest_builder = self.client.post(&self.endpoint).headers(self.headers.clone());
+
+        GqlRequestBuilder {
+            query: query.into(),
+            variables: None,
+            phantom: PhantomData,
+            reqwest_builder,
+            bearer: None,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct CommandHandles(Arc<Mutex<Vec<Handle>>>);
+
+impl CommandHandles {
+    pub fn new() -> Self {
+        CommandHandles(Arc::new(Mutex::new(vec![])))
+    }
+
+    pub fn push(&mut self, handle: Handle) {
+        self.0.lock().unwrap().push(handle);
+    }
+
+    pub fn still_running(&self) -> bool {
+        self.0
+            .lock()
+            .unwrap()
+            .iter()
+            .all(|handle| handle.try_wait().unwrap().is_none())
+    }
+
+    pub fn kill_all(&self) {
+        for command in self.0.lock().unwrap().iter() {
+            command.kill().unwrap();
+        }
+    }
+}
+
+impl Default for CommandHandles {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub fn cargo_bin<S: AsRef<str>>(name: S) -> path::PathBuf {
+    cargo_bin_str(name.as_ref())
+}
+
+fn target_dir() -> path::PathBuf {
+    env::current_exe()
+        .ok()
+        .map(|mut path| {
+            path.pop();
+            if path.ends_with("deps") {
+                path.pop();
+            }
+            path
+        })
+        .unwrap()
+}
+
+fn cargo_bin_str(name: &str) -> path::PathBuf {
+    let env_var = format!("CARGO_BIN_EXE_{name}");
+    std::env::var_os(env_var).map_or_else(
+        || target_dir().join(format!("{name}{}", env::consts::EXE_SUFFIX)),
+        std::convert::Into::into,
+    )
+}
+
+fn runtime() -> &'static Runtime {
     static RUNTIME: OnceLock<Runtime> = OnceLock::new();
     RUNTIME.get_or_init(|| {
         tokio::runtime::Builder::new_current_thread()
@@ -38,9 +233,32 @@ pub fn runtime() -> &'static Runtime {
     })
 }
 
+fn get_free_port() -> u16 {
+    const INITIAL_PORT: u16 = 4000;
+
+    let test_state_directory_path = std::env::temp_dir().join("grafbase/cli-tests");
+    std::fs::create_dir_all(&test_state_directory_path).unwrap();
+    let lock_file_path = test_state_directory_path.join("port-number.lock");
+    let port_number_file_path = test_state_directory_path.join("port-number.txt");
+    let mut lock_file = fslock::LockFile::open(&lock_file_path).unwrap();
+    lock_file.lock().unwrap();
+    let port_number = if port_number_file_path.exists() {
+        std::fs::read_to_string(&port_number_file_path)
+            .unwrap()
+            .trim()
+            .parse::<u16>()
+            .unwrap()
+            + 1
+    } else {
+        INITIAL_PORT
+    };
+    std::fs::write(&port_number_file_path, port_number.to_string()).unwrap();
+    lock_file.unlock().unwrap();
+    port_number
+}
+
 fn listen_address() -> SocketAddr {
     let port = get_free_port();
-
     SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), port))
 }
 
@@ -65,26 +283,24 @@ fn with_static_server<F, T>(
     let addr = listen_address();
 
     let command = cmd!(
-        cargo_bin("grafbase"),
-        "federated",
-        "start",
+        cargo_bin("grafbase-gateway"),
         "--listen-address",
         &addr.to_string(),
         "--config",
         &config_path.to_str().unwrap(),
-        "--federated-schema",
+        "--schema",
         &schema_path.to_str().unwrap(),
     );
-
-    let mut commands = CommandHandles::new();
-    commands.push(command.start().unwrap());
 
     let endpoint = match path {
         Some(path) => format!("http://{addr}/{path}"),
         None => format!("http://{addr}/graphql"),
     };
 
-    let mut client = Client::new(endpoint, format!("http://{addr}"), ClientOptions::default(), commands);
+    let mut commands = CommandHandles::new();
+    commands.push(command.start().unwrap());
+
+    let mut client = Client::new(endpoint, commands);
 
     if let Some(headers) = headers {
         for header in headers {
@@ -139,9 +355,7 @@ where
             .await;
 
         let command = cmd!(
-            cargo_bin("grafbase"),
-            "federated",
-            "start",
+            cargo_bin("grafbase-gateway"),
             "--listen-address",
             &addr.to_string(),
             "--config",
@@ -155,12 +369,7 @@ where
         let mut commands = CommandHandles::new();
         commands.push(command.start().unwrap());
 
-        let client = Arc::new(Client::new(
-            format!("http://{addr}/graphql"),
-            format!("http://{addr}"),
-            ClientOptions::default(),
-            commands,
-        ));
+        let client = Arc::new(Client::new(format!("http://{addr}/graphql"), commands));
 
         client.poll_endpoint(30, 300).await;
 
@@ -175,19 +384,14 @@ where
 }
 
 fn load_schema(name: &str) -> String {
-    let path = format!("./tests/production_server/schemas/{name}.graphql");
+    let path = format!("./tests/schemas/{name}.graphql");
     fs::read_to_string(path).unwrap()
 }
 
-pub fn introspect(url: &str) -> Output {
-    let args = vec!["introspect", url];
-
-    duct::cmd(cargo_bin("grafbase"), args)
-        .stdout_capture()
-        .stderr_capture()
-        .unchecked()
-        .run()
-        .unwrap()
+async fn introspect(url: &str) -> String {
+    grafbase_graphql_introspection::introspect(url, &[("x-api-key", "")])
+        .await
+        .unwrap_or_default()
 }
 
 #[test]
@@ -229,8 +433,7 @@ fn introspect_enabled() {
     let schema = load_schema("big");
 
     with_static_server(config, &schema, None, None, |client| async move {
-        let output = introspect(client.endpoint());
-        let result = String::from_utf8_lossy(&output.stdout);
+        let result = introspect(client.endpoint()).await;
 
         insta::assert_snapshot!(&result, @r###"
         type Cart {
@@ -290,9 +493,7 @@ fn introspect_disabled() {
     let schema = load_schema("big");
 
     with_static_server(config, &schema, None, None, |client| async move {
-        let output = introspect(client.endpoint());
-        let result = String::from_utf8_lossy(&output.stdout);
-
+        let result = introspect(client.endpoint()).await;
         insta::assert_snapshot!(&result, @r###""###);
     })
 }

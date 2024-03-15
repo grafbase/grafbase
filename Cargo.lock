@@ -154,9 +154,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ad32ce52e4161730f7098c077cd2ed6229b5804ccf99e5366be1ab72a98b4e1"
+checksum = "0952808a6c2afd1aa8947271f3a60f1a6763c7b912d210184c5149b5cf147247"
 
 [[package]]
 name = "apollo-encoder"
@@ -2198,6 +2198,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "federated-server"
+version = "0.62.0"
+dependencies = [
+ "ascii 1.1.0",
+ "async-trait",
+ "axum 0.7.4",
+ "axum-server",
+ "duration-str",
+ "engine",
+ "engine-config-builder",
+ "engine-v2",
+ "futures-util",
+ "gateway-core",
+ "gateway-v2",
+ "grafbase-tracing",
+ "graphql-composition",
+ "http 1.1.0",
+ "indoc",
+ "insta",
+ "itertools 0.12.1",
+ "oneshot",
+ "parser-sdl",
+ "regex",
+ "reqwest",
+ "runtime",
+ "runtime-local",
+ "runtime-noop",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "temp-env",
+ "thiserror",
+ "tokio",
+ "toml",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "ulid",
+ "url",
+]
+
+[[package]]
 name = "ff"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2659,7 +2701,6 @@ dependencies = [
 name = "grafbase"
 version = "0.62.0"
 dependencies = [
- "ascii 1.1.0",
  "assert_matches",
  "async-graphql",
  "async-graphql-axum",
@@ -2688,7 +2729,6 @@ dependencies = [
  "grafbase-local-backend",
  "grafbase-local-common",
  "grafbase-local-server",
- "grafbase-tracing",
  "graphql-mocks",
  "graphql-ws-client",
  "headers",
@@ -2708,7 +2748,6 @@ dependencies = [
  "multipart-stream",
  "once_cell",
  "os_type",
- "production-server",
  "rand 0.8.5",
  "regex",
  "reqwest",
@@ -2735,6 +2774,33 @@ dependencies = [
  "uuid",
  "webbrowser",
  "which",
+ "wiremock",
+]
+
+[[package]]
+name = "grafbase-gateway"
+version = "0.62.0"
+dependencies = [
+ "anyhow",
+ "ascii 1.1.0",
+ "clap",
+ "duct",
+ "federated-server",
+ "fslock",
+ "futures-util",
+ "grafbase-graphql-introspection",
+ "grafbase-tracing",
+ "graph-ref",
+ "http 1.1.0",
+ "indoc",
+ "insta",
+ "reqwest",
+ "rustls",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing-subscriber",
  "wiremock",
 ]
 
@@ -2895,6 +2961,10 @@ dependencies = [
  "serde_json",
  "thiserror",
 ]
+
+[[package]]
+name = "graph-ref"
+version = "0.62.0"
 
 [[package]]
 name = "graphql-composition"
@@ -5433,48 +5503,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "production-server"
-version = "0.62.0"
-dependencies = [
- "ascii 1.1.0",
- "async-trait",
- "axum 0.7.4",
- "axum-server",
- "duration-str",
- "engine",
- "engine-config-builder",
- "engine-v2",
- "futures-util",
- "gateway-core",
- "gateway-v2",
- "grafbase-tracing",
- "graphql-composition",
- "http 1.1.0",
- "indoc",
- "insta",
- "itertools 0.12.1",
- "oneshot",
- "parser-sdl",
- "regex",
- "reqwest",
- "runtime",
- "runtime-local",
- "runtime-noop",
- "serde",
- "serde_json",
- "serde_with",
- "temp-env",
- "thiserror",
- "tokio",
- "toml",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "ulid",
- "url",
-]
-
-[[package]]
 name = "prost"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5782,7 +5810,6 @@ name = "reqwest"
 version = "0.11.25"
 source = "git+https://github.com/grafbase/reqwest?rev=8a657aae2c3d32ccc6bcafa21b911fb9ecbb9986#8a657aae2c3d32ccc6bcafa21b911fb9ecbb9986"
 dependencies = [
- "async-compression",
  "base64 0.21.7",
  "bytes",
  "encoding_rs",
