@@ -10,7 +10,7 @@ inputs:
     description: Token to log into docker hub
   with-integration-tests:
     required: false
-    default: true
+    default: 'true'
     description: If enabled, runs integration tests and needs docker
 
 runs:
@@ -41,26 +41,26 @@ runs:
         run_install: false
 
     - name: Login to Docker Hub
-      if: ${{ inputs.with-integration-tests == true }}
+      if: ${{ inputs.with-integration-tests == 'true' }}
       uses: docker/login-action@v3
       with:
         username: ${{ inputs.dockerhub-username }}
         password: ${{ inputs.dockerhub-token }}
 
     - name: Start local databases
-      if: ${{ inputs.with-integration-tests == true }}
+      if: ${{ inputs.with-integration-tests == 'true' }}
       shell: bash
       run: |
         docker-compose -f engine/crates/integration-tests/docker-compose.yml up -d
 
     - name: Run all tests
-      if: ${{ inputs.with-integration-tests == true }}
+      if: ${{ inputs.with-integration-tests == 'true' }}
       shell: bash
       run: |
         RUST_BACKTRACE=1 cargo nextest run --workspace --profile ci
 
     - name: Run tests without integration
-      if: ${{ inputs.with-integration-tests == false }}
+      if: ${{ inputs.with-integration-tests == 'false' }}
       shell: bash
       run: |
         RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --profile ci

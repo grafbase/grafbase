@@ -6,6 +6,7 @@ on:
   push:
     tags:
       - 'gateway-*'
+      - 'cli-*'
 
 permissions:
   # Allow checks read
@@ -281,7 +282,7 @@ jobs:
         name: Test
         uses: ./.github/actions/test
         with:
-          with-integration-tests: false
+          with-integration-tests: 'false'
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
