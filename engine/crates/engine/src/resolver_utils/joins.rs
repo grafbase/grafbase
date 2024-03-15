@@ -9,6 +9,7 @@ use engine_value::{ConstValue, Name, Value};
 use crate::{
     registry::{
         resolvers::{join::JoinResolver, ResolvedValue},
+        type_kinds::SelectionSetTarget,
         MetaField,
     },
     resolver_utils::field::run_field_resolver,
@@ -25,12 +26,22 @@ pub async fn resolve_joined_field(
 ) -> Result<ResolvedValue, Error> {
     let mut query_field = fake_query_ast(ctx.item, join)?;
 
-    let mut field_iter = join.fields.iter().peekable();
-    let mut resolved_value = ResolvedValue::default();
-    let mut current_type = ctx
+    let current_type = ctx
         .schema_env()
         .registry
         .root_type(engine_parser::types::OperationType::Query);
+
+    resolve_arguments_recursively(
+        &mut query_field.node,
+        &parent_resolve_value_for_join,
+        current_type,
+        join,
+        ctx.registry(),
+    )?;
+
+    let mut current_type = current_type;
+    let mut field_iter = join.fields.iter().peekable();
+    let mut resolved_value = ResolvedValue::default();
 
     while let Some((name, _)) = field_iter.next() {
         let meta_field = current_type.field(name).ok_or_else(|| {
@@ -40,13 +51,6 @@ pub async fn resolve_joined_field(
                 &name
             ))
         })?;
-
-        resolve_arguments(
-            &mut query_field.node.arguments,
-            &parent_resolve_value_for_join,
-            meta_field,
-            ctx.registry(),
-        );
 
         let join_context = ctx.to_join_context(&query_field, meta_field, current_type);
 
@@ -80,6 +84,53 @@ pub async fn resolve_joined_field(
     }
 
     Ok(resolved_value)
+}
+
+fn resolve_arguments_recursively<'a>(
+    mut query_field: &mut Field,
+    parent_resolve_value_for_join: &ResolvedValue,
+    mut current_type: SelectionSetTarget<'a>,
+    join: &JoinResolver,
+    registry: &'a Registry,
+) -> Result<(), Error> {
+    let mut field_iter = join.fields.iter().peekable();
+
+    while let Some((name, _)) = field_iter.next() {
+        let meta_field = current_type.field(name).ok_or_else(|| {
+            Error::new(format!(
+                "Internal error: could not find joined field {}.{}",
+                current_type.name(),
+                &name
+            ))
+        })?;
+
+        resolve_arguments(
+            &mut query_field.arguments,
+            parent_resolve_value_for_join,
+            meta_field,
+            registry,
+        );
+
+        if field_iter.peek().is_some() {
+            current_type = registry.lookup_expecting(&meta_field.ty)?;
+
+            let Selection::Field(new_field) = &mut query_field
+                .selection_set
+                .node
+                .items
+                .iter_mut()
+                .next()
+                .expect("joined selection sets always have one field")
+                .node
+            else {
+                unreachable!("join selection sets only have fields");
+            };
+
+            query_field = &mut new_field.node;
+        }
+    }
+
+    Ok(())
 }
 
 // The GraphQL connector might end up batching multiple joined fields into a single operation.
