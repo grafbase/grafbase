@@ -1,4 +1,4 @@
-name: CLI Release
+name: Gateway Release
 
 on:
   workflow_call:

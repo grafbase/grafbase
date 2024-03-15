@@ -1,4 +1,4 @@
-name: CLI Release
+name: Grafbase Release
 
 on:
   workflow_call:
@@ -27,7 +27,7 @@ jobs:
       - name: Parse version tag
         run: |
           VERSION_BUMP="${{ inputs.tag }}"
-          VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
+          VERSION_BUMP=${VERSION_BUMP//grafbase-} # remove the grafbase prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
       - name: Announce release attempt on Slack
@@ -51,13 +51,13 @@ jobs:
       # This is annoying, but github doesn't pass env vars down to child workflows,
       # and you can't use them as input parameters either so lets read them out the
       # YAML
-      - name: Get PROD_ASSETS from cli workflow
+      - name: Get PROD_ASSETS from binaries workflow
         id: lookup-prod-assets
         uses: mikefarah/yq@master
         with:
           cmd: yq '.env.PROD_ASSETS' './.github/workflows/binaries.yml'
 
-      - name: Get ASSETS_VERSION from cli workflow
+      - name: Get ASSETS_VERSION from binaries workflow
         id: lookup-assets-version
         uses: mikefarah/yq@master
         with:
