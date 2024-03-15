@@ -254,6 +254,74 @@ fn multiple_joins_on_namespaced_graphql_connector() {
 }
 
 #[test]
+fn join_with_an_enum_argument() {
+    // Tests the case where we're providing an enum argument to a joined field.
+    // ResolveValues use JSON which represent enums as a String, but we need to render
+    // those as enums in the query we build up.  This makes sure that works properly.
+    runtime().block_on(async {
+        let graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let port = graphql_mock.port();
+
+        let schema = format!(
+            r#"
+            extend schema
+                @graphql(
+                    name: "gothub",
+                    namespace: false,
+                    url: "http://127.0.0.1:{port}",
+                )
+
+            extend type PullRequest {{
+                statusText: String! @join(select: "statusString(status: $status)")
+            }}
+            "#
+        );
+
+        let engine = EngineBuilder::new(schema).build().await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute(r#"
+                query {
+                    pullRequestsAndIssues(filter: {search: ""}) {
+                        ... on PullRequest {
+                            id
+                            status
+                            statusText
+                        }
+                    }
+                }
+                "#)
+                .await
+                .into_data::<Value>(),
+                @r###"
+        {
+          "gothub": {
+            "pullRequestsAndIssues": [
+              {
+                "id": "1",
+                "oohRecursion": {
+                  "id": "1",
+                  "title": "Creating the thing"
+                }
+              },
+              {
+                "id": "2",
+                "oohRecursion": {
+                  "id": "2",
+                  "title": "Some bot PR"
+                }
+              },
+              {}
+            ]
+          }
+        }
+        "###
+        );
+    });
+}
+
+#[test]
 fn nested_joins() {
     runtime().block_on(async {
         let schema = r#"
