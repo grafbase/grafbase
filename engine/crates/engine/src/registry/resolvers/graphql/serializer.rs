@@ -389,7 +389,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a> Serializer<'a, 'b> {
             let mut iter = self.variable_references().peekable();
 
             while let Some(variable_name) = iter.next() {
-                let Some(variable_definition) = self.variable_definitions.get(variable_name) else {
+                let Some(variable_definition) = &self.variable_definitions.get(variable_name) else {
                     return Err(Error::UndeclaredVariable(variable_name.to_string()));
                 };
 
