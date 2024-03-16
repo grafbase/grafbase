@@ -49,7 +49,6 @@ pub enum SubCommand {
     /// Check a graph for validation, composition and breaking change errors
     Check(CheckCommand),
     /// Submit a trusted documents manifest
-    #[clap(hide = true)]
     Trust(TrustCommand),
 }
 

@@ -12,6 +12,7 @@ repository.workspace = true
 
 [dependencies]
 assert_matches = "1"
+atty = "0.2"
 backtrace = "0.3"
 chrono = "0.4"
 clap = { version = "4", features = ["cargo", "wrap_help", "derive", "env"] }
@@ -44,11 +45,11 @@ url = "2"
 uuid = { version = "1", features = ["v4"] }
 webbrowser = "0.8"
 
-atty = "0.2"
 backend = { package = "grafbase-local-backend", path = "../backend", version = "0.63.0-rc.1" }
 common = { package = "grafbase-local-common", path = "../common", version = "0.63.0-rc.1" }
 federated-dev = { path = "../federated-dev" }
 grafbase-graphql-introspection.workspace = true
+graph-ref = { path = "../../../graph-ref" }
 server = { package = "grafbase-local-server", path = "../server", version = "0.63.0-rc.1" }
 
 [dev-dependencies]
