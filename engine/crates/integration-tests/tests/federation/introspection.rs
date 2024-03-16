@@ -49,6 +49,7 @@ fn can_run_pathfinder_introspection_query() {
       author: UserOrBot!
       checks: [String!]!
       id: ID!
+      status: Status!
       title: String!
     }
 
@@ -70,6 +71,12 @@ fn can_run_pathfinder_introspection_query() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
+      statusString(status: Status!): String!
+    }
+
+    enum Status {
+      CLOSED
+      OPEN
     }
 
     type User {
@@ -127,6 +134,7 @@ fn can_run_2018_introspection_query() {
       author: UserOrBot!
       checks: [String!]!
       id: ID!
+      status: Status!
       title: String!
     }
 
@@ -148,6 +156,12 @@ fn can_run_2018_introspection_query() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
+      statusString(status: Status!): String!
+    }
+
+    enum Status {
+      CLOSED
+      OPEN
     }
 
     type User {
@@ -205,6 +219,7 @@ fn can_run_2021_introspection_query() {
       author: UserOrBot!
       checks: [String!]!
       id: ID!
+      status: Status!
       title: String!
     }
 
@@ -226,6 +241,12 @@ fn can_run_2021_introspection_query() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
+      statusString(status: Status!): String!
+    }
+
+    enum Status {
+      CLOSED
+      OPEN
     }
 
     type User {
@@ -434,6 +455,7 @@ fn can_introsect_when_multiple_subgraphs() {
       author: UserOrBot!
       checks: [String!]!
       id: ID!
+      status: Status!
       title: String!
     }
 
@@ -464,7 +486,13 @@ fn can_introsect_when_multiple_subgraphs() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
+      statusString(status: Status!): String!
       string(input: String!): String!
+    }
+
+    enum Status {
+      CLOSED
+      OPEN
     }
 
     type User {
@@ -539,6 +567,9 @@ fn supports_the_type_field() {
             },
             {
               "name": "id"
+            },
+            {
+              "name": "status"
             },
             {
               "name": "title"

@@ -36,6 +36,7 @@ fn graphql_test_with_transforms() {
           id: ID!
           title: String!
           checks: [String!]!
+          status: Status!
         }
 
         interface PullRequestOrIssue {
@@ -55,6 +56,12 @@ fn graphql_test_with_transforms() {
           pullRequest(id: ID!): PullRequest
           pullRequestOrIssue(id: ID!): PullRequestOrIssue
           headers: [Header!]!
+          statusString(status: Status!): String!
+        }
+
+        enum Status {
+          OPEN
+          CLOSED
         }
 
         "###);
