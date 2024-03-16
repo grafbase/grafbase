@@ -4,8 +4,8 @@ use schema::ObjectId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::{
+    operation::SelectionSetType,
     plan::ConditionalSelectionSetId,
-    request::SelectionSetType,
     response::{
         write::deserialize::{key::Key, SeedContextInner},
         ResponseValue,

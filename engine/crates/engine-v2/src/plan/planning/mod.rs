@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use schema::Schema;
 
-use crate::{request::Operation, response::GraphqlError};
+use crate::{operation::Operation, response::GraphqlError};
 
 mod boundary;
 mod collect;

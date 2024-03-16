@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use schema::{FieldId, ObjectId, Schema, SchemaWalker};
 
 use crate::{
+    operation::{BoundFieldId, OpInputValues, Operation, OperationWalker, SelectionSetType},
     plan::{CollectedField, FieldType, RuntimeMergedConditionals},
-    request::{BoundFieldId, OpInputValues, Operation, OperationWalker, SelectionSetType},
     response::{ResponseEdge, ResponseKey, ResponseKeys, ResponsePart, ResponsePath, SafeResponseKey, SeedContext},
 };
 

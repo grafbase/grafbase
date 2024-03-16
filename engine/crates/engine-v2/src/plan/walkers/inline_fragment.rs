@@ -1,6 +1,5 @@
-use crate::request::BoundInlineFragmentId;
-
 use super::{PlanSelectionSet, PlanWalker};
+use crate::operation::BoundInlineFragmentId;
 
 pub type PlanInlineFragment<'a> = PlanWalker<'a, BoundInlineFragmentId, ()>;
 

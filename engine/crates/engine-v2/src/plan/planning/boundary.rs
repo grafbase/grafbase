@@ -7,10 +7,10 @@ use schema::{FieldId, FieldResolverWalker, FieldSet, FieldSetItem, ResolverId, R
 
 use super::{logic::PlanningLogic, planner::Planner, PlanningError, PlanningResult};
 use crate::{
-    plan::{flatten_selection_sets, EntityType, FlatField, FlatSelectionSet, ParentToChildEdge, PlanId},
-    request::{
+    operation::{
         BoundField, BoundFieldId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, QueryPath, SelectionSetType,
     },
+    plan::{flatten_selection_sets, EntityType, FlatField, FlatSelectionSet, ParentToChildEdge, PlanId},
     response::{ReadField, ReadSelectionSet, UnpackedResponseEdge},
 };
 

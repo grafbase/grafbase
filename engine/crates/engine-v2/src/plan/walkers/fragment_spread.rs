@@ -1,4 +1,4 @@
-use crate::request::{BoundFragmentDefinitionWalker, BoundFragmentSpreadId};
+use crate::operation::{BoundFragmentDefinitionWalker, BoundFragmentSpreadId};
 
 use super::{PlanSelectionSet, PlanWalker};
 

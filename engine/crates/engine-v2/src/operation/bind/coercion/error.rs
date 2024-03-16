@@ -1,6 +1,6 @@
 use engine_value::{ConstValue, Value};
 
-use crate::request::Location;
+use crate::operation::Location;
 
 #[derive(Debug, thiserror::Error)]
 pub enum InputValueError {

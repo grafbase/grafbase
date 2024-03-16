@@ -2,7 +2,7 @@ use schema::FieldWalker;
 
 use super::{BoundSelectionSetWalker, OperationWalker};
 use crate::{
-    request::{BoundField, BoundFieldId, Location},
+    operation::{BoundField, BoundFieldId, Location},
     response::ResponseKey,
 };
 

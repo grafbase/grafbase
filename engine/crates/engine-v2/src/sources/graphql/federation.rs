@@ -10,8 +10,8 @@ use tracing::Instrument;
 
 use crate::{
     execution::ExecutionContext,
+    operation::OperationType,
     plan::{PlanWalker, PlanningResult},
-    request::OperationType,
     response::{ResponseBoundaryItem, ResponsePart},
     sources::{ExecutionResult, Executor, ExecutorInput, Plan},
 };

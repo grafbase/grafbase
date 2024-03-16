@@ -1,11 +1,11 @@
 use schema::Definition;
 
 use crate::{
+    operation::SelectionSetTypeWalker,
     plan::{
         AnyCollectedSelectionSet, CollectedField, CollectedFieldId, CollectedSelectionSet, CollectedSelectionSetId,
         ConditionalField, ConditionalFieldId, ConditionalSelectionSet, ConditionalSelectionSetId, FieldType,
     },
-    request::SelectionSetTypeWalker,
     response::UnpackedResponseEdge,
 };
 

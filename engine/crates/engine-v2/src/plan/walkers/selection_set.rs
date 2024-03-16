@@ -1,8 +1,8 @@
 use schema::Definition;
 
 use crate::{
+    operation::{BoundSelection, BoundSelectionSetId, SelectionSetTypeWalker},
     plan::AnyCollectedSelectionSetId,
-    request::{BoundSelection, BoundSelectionSetId, SelectionSetTypeWalker},
 };
 
 use super::{PlanField, PlanFragmentSpread, PlanInlineFragment, PlanWalker};

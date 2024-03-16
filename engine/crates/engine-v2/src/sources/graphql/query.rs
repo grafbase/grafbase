@@ -7,11 +7,11 @@ use engine_parser::types::OperationType;
 use itertools::Itertools;
 
 use crate::{
+    operation::{OpInputValueId, SelectionSetTypeWalker},
     plan::{
         PlanField, PlanFieldArgument, PlanFragmentSpread, PlanInlineFragment, PlanSelection, PlanSelectionSet,
         PlanWalker,
     },
-    request::{OpInputValueId, SelectionSetTypeWalker},
 };
 
 const VARIABLE_PREFIX: &str = "var";
