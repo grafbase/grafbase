@@ -4,7 +4,7 @@
   "devDependencies": {
     "@types/bun": "^1.0.2",
     "@types/node": "^20.10.5",
-    "bun": "1.0.30",
+    "bun": "1.0.31",
     "typescript": "^5.3.3"
   },
   "dependencies": {

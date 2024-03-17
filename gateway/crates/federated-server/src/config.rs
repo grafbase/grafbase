@@ -642,7 +642,7 @@ mod tests {
         TOML parse error at line 2, column 13
           |
         2 |             [trusted_documents]
-          |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+          |             ^^^^^^^^^^^^^^^^^^^
         environment variable not found: `TEST_HEADER_SECRET`
         "###);
     }

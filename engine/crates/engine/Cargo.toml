@@ -92,7 +92,7 @@ reqwest = { workspace = true, features = [
 ] }
 
 [dev-dependencies]
-ctor = "0.2"
+ctor.workspace = true
 indoc = "2"
 insta.workspace = true
 rstest.workspace = true
