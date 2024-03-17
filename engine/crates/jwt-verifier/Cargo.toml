@@ -34,5 +34,5 @@ chrono = "0.4"
 serde_json.workspace = true
 tokio = { version = "1", features = ["macros"] }
 wiremock.workspace = true
-ctor = "0.2"
+ctor.workspace = true
 rustls = { workspace = true, features = ["ring"] }

@@ -394,6 +394,11 @@ async fn introspect(url: &str) -> String {
         .unwrap_or_default()
 }
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 #[test]
 fn static_schema() {
     let schema = load_schema("big");

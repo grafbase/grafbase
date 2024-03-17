@@ -23,6 +23,7 @@ tracing-subscriber.workspace = true
 workspace = true
 
 [dev-dependencies]
+ctor.workspace = true
 duct = "0.13.7"
 futures-util.workspace = true
 indoc = "2.0.4"

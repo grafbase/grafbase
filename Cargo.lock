@@ -2880,6 +2880,7 @@ dependencies = [
  "anyhow",
  "ascii 1.1.0",
  "clap",
+ "ctor",
  "duct",
  "federated-server",
  "fslock",
