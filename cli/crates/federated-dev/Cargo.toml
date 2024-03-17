@@ -28,7 +28,7 @@ runtime-local.workspace = true
 runtime-noop.workspace = true
 serde = "1.0.197"
 serde_json.workspace = true
-thiserror = "1.0.57"
+thiserror = "1.0.58"
 tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }

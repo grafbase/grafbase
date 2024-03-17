@@ -38,5 +38,5 @@ axum = { workspace = true, optional = true, features = ["ws"] }
 tokio = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
 tower-service = { workspace = true, optional = true }
-async-trait = { version = "0.1.77", optional = true }
+async-trait = { version = "0.1.78", optional = true }
 
