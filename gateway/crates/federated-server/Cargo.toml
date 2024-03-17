@@ -27,7 +27,7 @@ graphql-composition.workspace = true
 http.workspace = true
 oneshot = "0.1"
 parser-sdl = { version = "0.1.0", path = "../../../engine/crates/parser-sdl" }
-reqwest = { workspace = true, features = ["rustls", "json"] }
+reqwest = { workspace = true, features = ["http2", "json", "rustls-tls"] }
 runtime.workspace = true
 runtime-local.workspace = true
 runtime-noop.workspace = true

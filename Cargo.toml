@@ -23,7 +23,7 @@ multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork
 names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" } # main
 oauth2 = { git = "https://github.com/grafbase/oauth2-rs", rev = "18b1f9a8b2fae61b50c0c6f2d44672ec176f4612" } # http-v1
 openidconnect = { git = "https://github.com/grafbase/openidconnect-rs", rev = "dee2958a8769dab1d86ef0070e5a185df454f8c2" } # http-v1
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "8a657aae2c3d32ccc6bcafa21b911fb9ecbb9986" } # hyper-1.0-rustls-0.23-with-patches
+reqwest = { git = "https://github.com/grafbase/reqwest", rev = "0149064888f5ccbd0043929cd7e77b4054f455d6" } # 0.12-dev-with-patches
 reqwest-middleware = { git = "https://github.com/grafbase/reqwest-middleware", rev = "030e178305b7b4352b8dfd8bb04aba970843afc1" } # http-v1
 rudderanalytics =  { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "58bd3a439453a6668fbfb98874e08cabd8bd616b" } # async
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "31165b5a70f329b5e9c8a04284cccec6d76ea248" } # minify-field-names-strum-0.26
@@ -32,8 +32,8 @@ tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44fa
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 # Drop when https://github.com/jbg/tokio-postgres-rustls/pull/22 is merged and our fork is rebased.
 tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rustls", rev = "ed33f65bdb9a6e6de4ad20962a49918e1a4d5d21" } # rustls-0.23
-# Drop when https://github.com/rustls/tokio-rustls/pull/44 is merged.
-tokio-rustls = { git = "https://github.com/rustls/tokio-rustls", rev = "214a2b477e642c520c243717188cb683a9cad900" } # jbp-rustls-0.23
+# Drop when a new version of tokio-rustls is released.
+tokio-rustls = { git = "https://github.com/rustls/tokio-rustls", rev = "3a153acec6c4d189eb5de501b2155b4484b8651b" } # main
 tungstenite = { git = "https://github.com/grafbase/tungstenite-rs", rev = "783940b2e6cc02c7067efb07dc72ae49d75571b0" } # dependabot/cargo/rustls-0.23.1
 # Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
 axum-server = { git = "https://github.com/grafbase/axum-server", rev = "d5d746bc6b31602140147c3b03fca6c7d24b728d" }
