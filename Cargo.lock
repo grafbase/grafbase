@@ -454,7 +454,7 @@ dependencies = [
  "pin-project-lite",
  "rustls-pki-types",
  "tokio",
- "tokio-rustls 0.25.0 (git+https://github.com/rustls/tokio-rustls?rev=3a153acec6c4d189eb5de501b2155b4484b8651b)",
+ "tokio-rustls",
  "tungstenite",
  "webpki-roots",
 ]
@@ -621,7 +621,7 @@ dependencies = [
 [[package]]
 name = "axum-server"
 version = "0.6.0"
-source = "git+https://github.com/grafbase/axum-server?rev=d5d746bc6b31602140147c3b03fca6c7d24b728d#d5d746bc6b31602140147c3b03fca6c7d24b728d"
+source = "git+https://github.com/jakubadamw/axum-server?rev=fdce3d3dc71dc69597689cc28003cc0533b47dba#fdce3d3dc71dc69597689cc28003cc0533b47dba"
 dependencies = [
  "arc-swap",
  "bytes",
@@ -635,7 +635,7 @@ dependencies = [
  "rustls",
  "rustls-pemfile 2.1.1",
  "tokio",
- "tokio-rustls 0.25.0 (git+https://github.com/rustls/tokio-rustls?rev=214a2b477e642c520c243717188cb683a9cad900)",
+ "tokio-rustls",
  "tower",
  "tower-service",
 ]
@@ -3609,7 +3609,7 @@ dependencies = [
  "rustls",
  "rustls-pki-types",
  "tokio",
- "tokio-rustls 0.25.0 (git+https://github.com/rustls/tokio-rustls?rev=3a153acec6c4d189eb5de501b2155b4484b8651b)",
+ "tokio-rustls",
  "tower-service",
 ]
 
@@ -5981,7 +5981,7 @@ dependencies = [
  "sync_wrapper",
  "system-configuration",
  "tokio",
- "tokio-rustls 0.25.0 (git+https://github.com/rustls/tokio-rustls?rev=3a153acec6c4d189eb5de501b2155b4484b8651b)",
+ "tokio-rustls",
  "tokio-util",
  "tower-service",
  "url",
@@ -7530,18 +7530,8 @@ dependencies = [
  "rustls",
  "tokio",
  "tokio-postgres",
- "tokio-rustls 0.25.0 (git+https://github.com/rustls/tokio-rustls?rev=3a153acec6c4d189eb5de501b2155b4484b8651b)",
+ "tokio-rustls",
  "x509-certificate",
-]
-
-[[package]]
-name = "tokio-rustls"
-version = "0.25.0"
-source = "git+https://github.com/rustls/tokio-rustls?rev=214a2b477e642c520c243717188cb683a9cad900#214a2b477e642c520c243717188cb683a9cad900"
-dependencies = [
- "rustls",
- "rustls-pki-types",
- "tokio",
 ]
 
 [[package]]
@@ -7671,7 +7661,7 @@ dependencies = [
  "rustls-pemfile 2.1.1",
  "rustls-pki-types",
  "tokio",
- "tokio-rustls 0.25.0 (git+https://github.com/rustls/tokio-rustls?rev=3a153acec6c4d189eb5de501b2155b4484b8651b)",
+ "tokio-rustls",
  "tokio-stream",
  "tower",
  "tower-layer",

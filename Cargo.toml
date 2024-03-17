@@ -36,7 +36,7 @@ tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rust
 tokio-rustls = { git = "https://github.com/rustls/tokio-rustls", rev = "3a153acec6c4d189eb5de501b2155b4484b8651b" } # main
 tungstenite = { git = "https://github.com/grafbase/tungstenite-rs", rev = "783940b2e6cc02c7067efb07dc72ae49d75571b0" } # dependabot/cargo/rustls-0.23.1
 # Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
-axum-server = { git = "https://github.com/grafbase/axum-server", rev = "d5d746bc6b31602140147c3b03fca6c7d24b728d" }
+axum-server = { git = "https://github.com/jakubadamw/axum-server", rev = "fdce3d3dc71dc69597689cc28003cc0533b47dba" } # rustls-0.23
 # https://github.com/tokio-rs/tracing/tree/v0.1.x/tracing-mock
 tracing = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" }
 tracing-core = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" }
