@@ -22,6 +22,10 @@ impl<'a> PlanInputValue<'a> {
     pub fn is_undefined(&self) -> bool {
         self.as_ctx().walk(self.item).is_undefined()
     }
+
+    pub fn id(&self) -> OpInputValueId {
+        self.item
+    }
 }
 
 impl<'a> From<PlanInputValue<'a>> for InputValue<'a> {

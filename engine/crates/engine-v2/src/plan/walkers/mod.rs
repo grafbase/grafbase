@@ -4,7 +4,7 @@ use schema::{FieldId, ObjectId, Schema, SchemaWalker};
 
 use crate::{
     plan::{CollectedField, FieldType, RuntimeMergedConditionals},
-    request::{BoundFieldId, OpInputValues, Operation, OperationWalker, SelectionSetType, VariableDefinitionId},
+    request::{BoundFieldId, OpInputValues, Operation, OperationWalker, SelectionSetType},
     response::{ResponseEdge, ResponseKey, ResponseKeys, ResponsePart, ResponsePath, SafeResponseKey, SeedContext},
 };
 
@@ -20,7 +20,6 @@ mod fragment_spread;
 mod inline_fragment;
 mod input_value;
 mod selection_set;
-mod variable;
 
 pub use argument::*;
 pub use collected::*;
@@ -29,7 +28,6 @@ pub use fragment_spread::*;
 pub use inline_fragment::*;
 pub use input_value::*;
 pub use selection_set::*;
-pub use variable::*;
 
 #[derive(Clone, Copy)]
 pub(crate) struct PlanWalker<'a, Item = (), SchemaItem = ()> {
@@ -69,10 +67,6 @@ impl<'a> PlanWalker<'a> {
         &self.operation_plan.response_keys
     }
 
-    pub fn operation(&self) -> OperationWalker<'a> {
-        self.operation_plan.operation.walker_with(self.schema_walker.walk(()))
-    }
-
     pub fn selection_set(self) -> PlanSelectionSet<'a> {
         PlanSelectionSet::RootFields(self)
     }
@@ -91,24 +85,6 @@ impl<'a> PlanWalker<'a> {
 
     pub fn collected_selection_set(&self) -> PlanWalker<'a, CollectedSelectionSetId, ()> {
         self.walk(self.output().collected_selection_set_id)
-    }
-
-    pub fn variables(self) -> impl Iterator<Item = PlanVariable<'a>> + 'a {
-        self.operation_plan
-            .variable_definitions
-            .iter()
-            .enumerate()
-            .filter_map(move |(id, variable)| {
-                if variable
-                    .used_by
-                    .iter()
-                    .any(|id| self.operation_plan.bound_field_to_plan_id[usize::from(*id)] == self.plan_id)
-                {
-                    Some(self.walk(VariableDefinitionId::from(id)))
-                } else {
-                    None
-                }
-            })
     }
 
     pub fn new_seed<'out>(self, output: &'out mut ResponsePart) -> SeedContext<'out>

@@ -3,7 +3,7 @@ use tracing::{info_span, Span};
 use crate::span::{GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
 
 /// The name of the GraphQL span
-pub const SPAN_NAME: &str = "graphql";
+pub const GRAPHQL_SPAN_NAME: &str = "graphql";
 
 /// A span for a graphql request
 #[derive(Default)]
@@ -51,7 +51,7 @@ impl<'a> GqlRequestSpan<'a> {
     pub fn into_span(self) -> Span {
         info_span!(
             target: crate::span::GRAFBASE_TARGET,
-            SPAN_NAME,
+            GRAPHQL_SPAN_NAME,
             "gql.request.operation.name" = self.operation_name,
             "gql.request.operation.type" = self.operation_type,
             "gql.response.has_errors" = self.has_errors,

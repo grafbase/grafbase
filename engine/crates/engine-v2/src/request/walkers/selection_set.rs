@@ -19,6 +19,13 @@ impl<'a> BoundSelectionSetWalker<'a> {
     }
 }
 
+impl PartialEq for SelectionSetTypeWalker<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.item == other.item
+    }
+}
+impl Eq for SelectionSetTypeWalker<'_> {}
+
 impl<'a> std::ops::Deref for SelectionSetTypeWalker<'a> {
     type Target = DefinitionWalker<'a>;
 
