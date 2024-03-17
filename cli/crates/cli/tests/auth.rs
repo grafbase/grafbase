@@ -31,6 +31,11 @@ use crate::utils::consts::{
 const JWT_ISSUER_URL: &str = "https://some.issuer.test";
 const JWT_SECRET: &str = "topsecret";
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn simple_authorizer() {
     let mut env = Environment::init_async().await;

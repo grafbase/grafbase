@@ -3,6 +3,11 @@ mod utils;
 
 use utils::environment::Environment;
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 #[cfg(not(target_os = "windows"))]
 #[rstest::rstest]
 #[case(true)]
