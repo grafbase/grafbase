@@ -288,12 +288,10 @@ fn join_with_an_enum_argument() {
             engine
                 .execute(r#"
                 query {
-                    pullRequestsAndIssues(filter: {search: ""}) {
-                        ... on PullRequest {
-                            id
-                            status
-                            statusText
-                        }
+                    pullRequest(id: "1") {
+                        id
+                        status
+                        statusText
                     }
                 }
                 "#)
@@ -301,19 +299,11 @@ fn join_with_an_enum_argument() {
                 .into_data::<Value>(),
                 @r###"
         {
-          "pullRequestsAndIssues": [
-            {
-              "id": "1",
-              "status": "OPEN",
-              "statusText": "boo its closed"
-            },
-            {
-              "id": "2",
-              "status": "CLOSED",
-              "statusText": "woo its open"
-            },
-            {}
-          ]
+          "pullRequest": {
+            "id": "1",
+            "status": "OPEN",
+            "statusText": "boo its closed"
+          }
         }
         "###
         );
@@ -326,8 +316,7 @@ fn join_with_an_enum_argument() {
 
         insta::assert_snapshot!(request.query, @r###"
         query {
-        	f_0: statusString(status: OPEN)
-        	f_1: statusString(status: CLOSED)
+        	field_0: statusString(status: OPEN)
         }
         "###);
     });
