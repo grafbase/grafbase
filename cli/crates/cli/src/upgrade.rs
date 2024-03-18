@@ -174,6 +174,7 @@ async fn download_grafbase(
         .map_err(|_| UpgradeError::SetExecutablePermissions)?;
     }
 
+    // this is done last to prevent leaving the user without a working binary if something errors
     fs::rename(&grafbase_temp_binary_path, &grafbase_binary_path)
         .await
         .map_err(UpgradeError::RenameTemporaryFile)?;
