@@ -296,9 +296,9 @@ jobs:
             target/${{ matrix.archs.target }}/release/grafbase-gateway
 
       - name: Build gateway lambda release
+        shell: bash
         run: |
-          cargo build --release -p grafbase-gateway --target ${{ matrix.archs.target }} --features lambda
-        env: RUSTFLAGS="-C opt-level=s"
+          RUSTFLAGS="-C opt-level=s" cargo build --release -p grafbase-gateway --target ${{ matrix.archs.target }} --features lambda
 
       - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' }}
         name: Upload lambda gateway binary to R2
