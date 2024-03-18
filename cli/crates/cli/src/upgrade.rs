@@ -13,6 +13,8 @@ use tokio::io::{self, BufWriter};
 use tokio::task::{self, JoinError};
 use tokio_util::io::StreamReader;
 
+use crate::output::report;
+
 #[derive(Error, Debug)]
 pub enum UpgradeError {
     #[error("Could not create a lock for the CLI installation.\nCaused by: {0}")]
@@ -92,11 +94,15 @@ pub(crate) async fn install_grafbase() -> Result<(), UpgradeError> {
         return Err(UpgradeError::UpToDate);
     }
 
+    report::download_grafbase();
+
     download_grafbase(environment, client).await?;
 
     task::spawn_blocking(move || lock_file.unlock())
         .await?
         .map_err(UpgradeError::Unlock)?;
+
+    report::upgrade_success(latest_version);
 
     Ok(())
 }
