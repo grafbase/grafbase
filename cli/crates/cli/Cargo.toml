@@ -58,6 +58,7 @@ common = { package = "grafbase-local-common", path = "../common", version = "0.6
 federated-dev = { path = "../federated-dev" }
 grafbase-graphql-introspection.workspace = true
 server = { package = "grafbase-local-server", path = "../server", version = "0.63.0-rc.1" }
+dirs = "5"
 
 [dev-dependencies]
 async-graphql-axum.workspace = true

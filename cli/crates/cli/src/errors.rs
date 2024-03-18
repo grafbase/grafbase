@@ -68,6 +68,9 @@ pub enum CliError {
     ReadProjectMetadataFile(#[source] io::Error),
     #[error(transparent)]
     UpgradeError(#[from] UpgradeError),
+    /// returned if the CLI was installed via a package manager and not directly (when trying to upgrade)
+    #[error("could not upgrade grafbase as it was installed using a package manager")]
+    NotDirectInstall,
 }
 
 #[cfg(target_family = "windows")]
@@ -110,6 +113,7 @@ impl CliError {
             Self::BackendApiError(ApiError::NotLoggedIn | ApiError::CorruptCredentialsFile) => Some("try running 'grafbase login'".to_owned()),
             Self::BackendApiError(ApiError::ProjectAlreadyLinked) => Some("try running 'grafbase deploy'".to_owned()),
             Self::BackendApiError(ApiError::CorruptProjectMetadataFile | ApiError::UnlinkedProject) => Some("try running 'grafbase link'".to_owned()),
+            Self::NotDirectInstall => Some("try upgrading via your original install method or installing grafbase directly".to_owned()),
             _ => None,
         }
     }

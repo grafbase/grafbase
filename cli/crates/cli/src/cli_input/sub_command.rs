@@ -1,5 +1,7 @@
 use clap::Parser;
 
+use crate::is_direct_install_cli;
+
 use super::{
     trust::TrustCommand, ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand, CreateCommand, DevCommand,
     InitCommand, IntrospectCommand, LinkCommand, LogsCommand, PublishCommand, SchemaCommand, StartCommand,
@@ -52,6 +54,7 @@ pub enum SubCommand {
     #[clap(hide = true)]
     Trust(TrustCommand),
     /// Upgrade the installed version of the grafbase CLI
+    #[clap(hide=is_direct_install_cli())]
     Upgrade,
 }
 
