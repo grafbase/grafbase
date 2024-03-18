@@ -15,6 +15,8 @@ use tokio::io::{self, BufWriter};
 use tokio::task::{self, JoinError};
 use tokio_util::io::StreamReader;
 
+use crate::output::report;
+
 #[derive(Error, Debug)]
 pub enum UpgradeError {
     #[error("Could not create a lock for the CLI installation.\nCaused by: {0}")]
@@ -54,9 +56,6 @@ pub enum UpgradeError {
 
     #[error("Encountered an error while determining the latest release version")]
     StartGetLatestReleaseVersion,
-
-    #[error("The locally installed version of grafbase is already up to date")]
-    UpToDate,
 }
 
 #[derive(Deserialize)]
@@ -94,7 +93,8 @@ pub(crate) async fn install_grafbase() -> Result<(), UpgradeError> {
     // from downloading the same binary after the lock is released
 
     if latest_version == CARGO_PKG_VERSION {
-        return Err(UpgradeError::UpToDate);
+        report::upgrade_up_to_date(CARGO_PKG_VERSION);
+        return Ok(());
     }
 
     // TODO: use a real progress bar here
