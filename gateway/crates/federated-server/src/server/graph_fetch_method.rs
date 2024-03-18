@@ -1,9 +1,5 @@
-use super::{
-    gateway::{self, GatewayWatcher},
-    graph_updater::GraphUpdater,
-};
+use super::gateway::{self, GatewayWatcher};
 use crate::server::gateway::GatewayConfig;
-use ascii::AsciiString;
 use std::sync::Arc;
 use tokio::sync::watch;
 use tracing::Level;
@@ -11,9 +7,10 @@ use tracing::Level;
 /// The method of running the gateway.
 pub enum GraphFetchMethod {
     /// The schema is fetched in regular intervals from the Grafbase API.
+    #[cfg(not(feature = "lambda"))]
     FromApi {
         /// The access token for accessing the the API.
-        access_token: AsciiString,
+        access_token: ascii::AsciiString,
         /// The name of the graph
         graph_name: String,
         /// The graph branch
@@ -35,12 +32,15 @@ impl GraphFetchMethod {
         let (sender, gateway) = watch::channel(None);
 
         match self {
+            #[cfg(not(feature = "lambda"))]
             GraphFetchMethod::FromApi {
                 access_token,
                 graph_name,
                 branch,
             } => {
                 tokio::spawn(async move {
+                    use super::graph_updater::GraphUpdater;
+
                     GraphUpdater::new(&graph_name, branch.as_deref(), access_token, sender, config)?
                         .poll()
                         .await;

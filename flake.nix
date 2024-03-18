@@ -60,6 +60,9 @@
             # Benchmark tool to send multiple requests
             hey
 
+            # binary bloat inspector
+            cargo-bloat
+
             # Versioning, automation and releasing
             cargo-make
             cargo-release
