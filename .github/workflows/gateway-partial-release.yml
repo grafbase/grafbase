@@ -55,6 +55,8 @@ jobs:
           mkdir -p gateway/release/x86_64-apple-darwin
           mkdir -p gateway/release/aarch64-unknown-linux-musl
           mkdir -p gateway/release/x86_64-unknown-linux-musl
+          mkdir -p gateway/release/aarch64-unknown-linux-musl-lambda
+          mkdir -p gateway/release/x86_64-unknown-linux-musl-lambda
 
       - name: Download darwin-x86_64 artifact
         uses: actions/download-artifact@v4
@@ -80,6 +82,18 @@ jobs:
           name: gateway-${{ env.VERSION_BUMP }}-linux-arm
           path: gateway/release/aarch64-unknown-linux-musl
 
+      - name: Download Lambda AMD artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gateway-lambda-${{ env.VERSION_BUMP }}-linux
+          path: gateway/release/x86_64-unknown-linux-musl-lambda
+
+      - name: Download Lambda ARM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gateway-lambda-${{ env.VERSION_BUMP }}-linux-arm
+          path: gateway/release/aarch64-unknown-linux-musl-lambda
+
       - name: Process artifacts
         shell: bash
         run: |
@@ -90,11 +104,15 @@ jobs:
           mv x86_64-apple-darwin/grafbase-gateway github/grafbase-gateway-x86_64-apple-darwin
           mv aarch64-unknown-linux-musl/grafbase-gateway github/grafbase-gateway-aarch64-unknown-linux-musl
           mv x86_64-unknown-linux-musl/grafbase-gateway github/grafbase-gateway-x86_64-unknown-linux-musl
+          mv aarch64-unknown-linux-musl-lambda/grafbase-gateway github/grafbase-gateway-lambda-aarch64-unknown-linux-musl
+          mv x86_64-unknown-linux-musl-lambda/grafbase-gateway github/grafbase-gateway-lambda-x86_64-unknown-linux-musl
 
           chmod +x github/grafbase-gateway-aarch64-apple-darwin
           chmod +x github/grafbase-gateway-x86_64-apple-darwin
           chmod +x github/grafbase-gateway-aarch64-unknown-linux-musl
           chmod +x github/grafbase-gateway-x86_64-unknown-linux-musl
+          chmod +x github/grafbase-gateway-lambda-aarch64-unknown-linux-musl
+          chmod +x github/grafbase-gateway-lambda-x86_64-unknown-linux-musl
 
       - name: Install cargo-binstall and cargo-about
         shell: bash
@@ -122,3 +140,5 @@ jobs:
             gateway/release/github/grafbase-gateway-x86_64-apple-darwin
             gateway/release/github/grafbase-gateway-aarch64-unknown-linux-musl
             gateway/release/github/grafbase-gateway-x86_64-unknown-linux-musl
+            gateway/release/github/grafbase-gateway-lambda-aarch64-unknown-linux-musl
+            gateway/release/github/grafbase-gateway-lambda-x86_64-unknown-linux-musl
