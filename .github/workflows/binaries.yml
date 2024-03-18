@@ -145,6 +145,13 @@ jobs:
           # See: https://github.com/rust-lang/cargo/issues/4463
           cargo check --all-features --package ${{ matrix.package }}
 
+      - name: Individual package without lambda
+        if: ${{ matrix.package == 'grafbase-gateway' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --package ${{ matrix.package }}
+
   docker:
     needs: [test]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
