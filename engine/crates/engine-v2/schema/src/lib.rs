@@ -9,7 +9,6 @@ mod names;
 mod resolver;
 pub mod sources;
 mod walkers;
-mod wrapping;
 
 pub use cache::*;
 pub use field_set::*;

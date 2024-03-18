@@ -6,6 +6,7 @@ pub(super) fn collect_composed_directives<'a>(
 ) -> federated::Directives {
     let mut tags: BTreeSet<StringId> = BTreeSet::new();
     let mut is_inaccessible = false;
+    let mut authenticated = false;
     let mut extra_directives = Vec::new();
     let mut ids: Option<federated::Directives> = None;
     let mut push_directive = |ctx: &mut ComposeContext<'_>, directive| {
@@ -30,6 +31,9 @@ pub(super) fn collect_composed_directives<'a>(
         // The inaccessible directive is added whenever the item is inaccessible in any subgraph.
         is_inaccessible = is_inaccessible || site.inaccessible();
 
+        // @authenticated behaves like @inaccessible
+        authenticated = authenticated || site.authenticated();
+
         for (name, arguments) in site.iter_composed_directives() {
             let name = ctx.insert_string(name);
             let arguments = arguments
@@ -43,6 +47,10 @@ pub(super) fn collect_composed_directives<'a>(
 
     if is_inaccessible {
         push_directive(ctx, federated::Directive::Inaccessible);
+    }
+
+    if authenticated {
+        push_directives(ctx, federated::Directive::Authenticated)
     }
 
     for tag in tags {

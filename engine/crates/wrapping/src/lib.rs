@@ -203,18 +203,18 @@ impl Wrapping {
     }
 }
 
-impl From<federated_graph::FieldType> for Wrapping {
-    fn from(field_type: federated_graph::FieldType) -> Self {
-        let mut wrapping = Wrapping::new(field_type.inner_is_required);
-        for list_wrapping in field_type.list_wrappers {
-            wrapping = match list_wrapping {
-                federated_graph::ListWrapper::RequiredList => wrapping.wrapped_by_required_list(),
-                federated_graph::ListWrapper::NullableList => wrapping.wrapped_by_nullable_list(),
-            }
-        }
-        wrapping
-    }
-}
+// impl From<federated_graph::FieldType> for Wrapping {
+//     fn from(field_type: federated_graph::FieldType) -> Self {
+//         let mut wrapping = Wrapping::new(field_type.inner_is_required);
+//         for list_wrapping in field_type.list_wrappers {
+//             wrapping = match list_wrapping {
+//                 federated_graph::ListWrapper::RequiredList => wrapping.wrapped_by_required_list(),
+//                 federated_graph::ListWrapper::NullableList => wrapping.wrapped_by_nullable_list(),
+//             }
+//         }
+//         wrapping
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

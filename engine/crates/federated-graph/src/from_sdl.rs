@@ -27,11 +27,7 @@ struct State<'a> {
     subgraphs: Vec<Subgraph>,
 
     objects: Vec<Object>,
-    object_fields: Vec<ObjectField>,
-
     interfaces: Vec<Interface>,
-    interface_fields: Vec<InterfaceField>,
-
     fields: Vec<Field>,
 
     directives: Vec<Directive>,
@@ -44,8 +40,6 @@ struct State<'a> {
     input_objects: Vec<InputObject>,
 
     strings: IndexSet<String>,
-    field_types: indexmap::IndexSet<FieldType>,
-
     query_type_name: Option<String>,
     mutation_type_name: Option<String>,
     subscription_type_name: Option<String>,
@@ -58,7 +52,7 @@ struct State<'a> {
 }
 
 impl<'a> State<'a> {
-    fn insert_field_type(&mut self, field_type: &'a ast::Type) -> TypeId {
+    fn field_type(&mut self, field_type: &'a ast::Type) -> Type {
         let mut list_wrappers = Vec::new();
         let mut ty = field_type;
 
@@ -554,7 +548,7 @@ fn ingest_interface<'a>(interface_id: InterfaceId, iface: &'a ast::InterfaceType
 
 fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, state: &mut State<'a>) -> FieldId {
     let field_name = ast_field.name.node.as_str();
-    let field_type_id = state.insert_field_type(&ast_field.ty.node);
+    let field_type_id = state.field_type(&ast_field.ty.node);
     let name = state.insert_string(field_name);
     let args_start = state.input_value_definitions.len();
 
@@ -566,11 +560,11 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
             .map(|description| state.insert_string(description.node.as_str()));
         let composed_directives = collect_composed_directives(&arg.node.directives, state);
         let name = state.insert_string(arg.node.name.node.as_str());
-        let type_id = state.insert_field_type(&arg.node.ty.node);
+        let type_id = state.field_type(&arg.node.ty.node);
 
         state.input_value_definitions.push(InputValueDefinition {
             name,
-            type_id,
+            type,
             directives: composed_directives,
             description,
         });
@@ -673,7 +667,7 @@ fn ingest_input_object<'a>(
     let start = state.input_value_definitions.len();
     for field in &input_object.fields {
         let name = state.insert_string(field.node.name.node.as_str());
-        let type_id = state.insert_field_type(&field.node.ty.node);
+        let type_id = state.field_type(&field.node.ty.node);
         let composed_directives = collect_composed_directives(&field.node.directives, state);
         let description = field
             .node

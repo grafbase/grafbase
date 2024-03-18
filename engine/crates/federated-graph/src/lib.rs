@@ -18,6 +18,7 @@ pub use from_sdl::{from_sdl, DomainError};
 pub enum FederatedGraph {
     V1(v1::FederatedGraphV1),
     V2(v2::FederatedGraphV2),
+    V3(v3::FederatedGraphV3),
 }
 
 impl std::fmt::Debug for FederatedGraph {
@@ -42,8 +43,9 @@ impl FederatedGraph {
 
     pub fn into_latest(self) -> FederatedGraphV2 {
         match self {
-            FederatedGraph::V1(v1) => v1.into(),
-            FederatedGraph::V2(v2) => v2,
+            FederatedGraph::V1(v1) => v2::FederatedGraphV2::from(v1).into_latest(),
+            FederatedGraph::V2(v2) => v2.into(),
+            FederatedGraph::V3(v3) => v3,
         }
     }
 }

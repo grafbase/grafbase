@@ -81,7 +81,7 @@ pub(super) fn ingest_directives(
             subgraphs.insert_composed_directive_instance(directives, directive_name.as_str(), arguments);
         }
 
-        if directive_name == "tag" {
+        if directive_matcher.is_tag(directive_name) {
             let Some(value) = directive.node.get_argument("name") else {
                 continue;
             };
@@ -89,6 +89,10 @@ pub(super) fn ingest_directives(
             if let async_graphql_value::ConstValue::String(s) = &value.node {
                 subgraphs.insert_tag(directives, s.as_str());
             }
+        }
+
+        if directive_matcher.is_authenticated(directive_name) {
+            subgraphs.insert_authenticated(directives);
         }
 
         if directive_name == "deprecated" {
@@ -207,6 +211,7 @@ pub(crate) struct DirectiveMatcher<'a> {
     requires_scopes: Cow<'a, str>,
     authenticated: Cow<'a, str>,
     policy: Cow<'a, str>,
+    tag: Cow<'a, str>,
 
     /// directive name -> is repeatable
     ///
@@ -232,6 +237,7 @@ impl Default for DirectiveMatcher<'_> {
             requires: Cow::Borrowed(REQUIRES),
             requires_scopes: Cow::Borrowed(REQUIRES_SCOPES),
             shareable: Cow::Borrowed(SHAREABLE),
+            tag: Cow::Borrowed(TAG),
         }
     }
 }
@@ -276,19 +282,20 @@ impl<'a> DirectiveMatcher<'a> {
         };
 
         DirectiveMatcher {
-            shareable: final_name(SHAREABLE),
-            key: final_name(KEY),
+            authenticated: final_name(AUTHENTICATED),
+            compose_directive: final_name(COMPOSE_DIRECTIVE),
+            composed_directives: BTreeSet::new(),
             external: final_name(EXTERNAL),
-            provides: final_name(PROVIDES),
-            requires: final_name(REQUIRES),
             inaccessible: final_name(INACCESSIBLE),
             interface_object: final_name(INTERFACE_OBJECT),
-            r#override: final_name(OVERRIDE),
-            compose_directive: final_name(COMPOSE_DIRECTIVE),
-            requires_scopes: final_name(REQUIRES_SCOPES),
-            authenticated: final_name(AUTHENTICATED),
+            key: final_name(KEY),
             policy: final_name(POLICY),
-            composed_directives: BTreeSet::new(),
+            provides: final_name(PROVIDES),
+            r#override: final_name(OVERRIDE),
+            requires: final_name(REQUIRES),
+            requires_scopes: final_name(REQUIRES_SCOPES),
+            shareable: final_name(SHAREABLE),
+            tag: final_name(TAG),
         }
     }
 
@@ -335,6 +342,22 @@ impl<'a> DirectiveMatcher<'a> {
 
     pub(crate) fn is_inaccessible(&self, directive_name: &str) -> bool {
         self.inaccessible == directive_name
+    }
+
+    pub(crate) fn is_authenticated(&self, directive_name: &str) -> bool {
+        self.authenticated == directive_name
+    }
+
+    pub(crate) fn is_policy(&self, directive_name: &str) -> bool {
+        self.policy == directive_name
+    }
+
+    pub(crate) fn is_requires_scope(&self, directive_name: &str) -> bool {
+        self.requires_scopes == directive_name
+    }
+
+    pub(crate) fn is_tag(&self, directive_name: &str) -> bool {
+        self.tag == directive_name
     }
 }
 

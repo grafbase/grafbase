@@ -25,6 +25,7 @@ pub(super) struct Directives {
     provides: BTreeMap<DirectiveSiteId, Vec<Selection>>,
     requires: BTreeMap<DirectiveSiteId, Vec<Selection>>,
 
+    authenticated: HashSet<DirectiveSiteId>,
     inaccessible: HashSet<DirectiveSiteId>,
     shareable: HashSet<DirectiveSiteId>,
     external: HashSet<DirectiveSiteId>,
@@ -41,6 +42,10 @@ pub(super) struct Directives {
 }
 
 impl Subgraphs {
+    pub(crate) fn insert_authenticated(&mut self, id: DirectiveSiteId) {
+        self.directives.authenticated.insert(id);
+    }
+
     pub(crate) fn insert_composed_directive(&mut self, subgraph_id: SubgraphId, directive_name: &str) {
         let directive_name = self.strings.intern(directive_name);
         self.directives
@@ -112,6 +117,10 @@ impl Subgraphs {
 pub(crate) type DirectiveSiteWalker<'a> = Walker<'a, DirectiveSiteId>;
 
 impl<'a> DirectiveSiteWalker<'a> {
+    pub(crate) fn authenticated(self) -> bool {
+        self.subgraphs.directives.authenticated.contains(&self.id)
+    }
+
     pub(crate) fn deprecated(self) -> Option<DeprecatedWalker<'a>> {
         self.subgraphs
             .directives
