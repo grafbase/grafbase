@@ -90,9 +90,10 @@ pub(crate) async fn install_grafbase() -> Result<(), UpgradeError> {
 
     let client = Client::builder().user_agent(USER_AGENT).build().expect("must be valid");
 
-    let latest_version = get_latest_release_version(&client).await?;
-
-    let current_version = get_currently_installed_version(&direct_install_executable_path).await?;
+    let (latest_version, current_version) = tokio::try_join!(
+        get_latest_release_version(&client),
+        get_currently_installed_version(&direct_install_executable_path)
+    )?;
 
     if latest_version == current_version {
         report::upgrade_up_to_date(&current_version);
