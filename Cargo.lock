@@ -2734,6 +2734,7 @@ dependencies = [
  "grafbase-local-backend",
  "grafbase-local-common",
  "grafbase-local-server",
+ "graph-ref",
  "graphql-mocks",
  "graphql-ws-client",
  "headers",

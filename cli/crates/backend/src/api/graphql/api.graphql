@@ -23,6 +23,7 @@ type AccessTokenConnection {
 input AccessTokenCreateInput {
   name: String!
   accountId: ID
+  kind: AccessTokenKind! = USER
 }
 
 union AccessTokenCreatePayload = AccessTokenCreateSuccess | InvalidAccountError | TokenLimitExceededError
@@ -58,6 +59,11 @@ type AccessTokenEdge {
   cursor: String!
 }
 
+enum AccessTokenKind {
+  USER
+  ACCOUNT
+}
+
 interface Account implements Node {
   id: ID!
   slug: String!
@@ -70,6 +76,7 @@ interface Account implements Node {
   resources: AccountResources!
   usage(filter: AccountResourcesUsageDashboardFilter): DatabaseUsage!
   resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
+  accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
 }
 
 input AccountCreationValidateInput {
@@ -184,6 +191,12 @@ type BranchConnection {
   nodes: [Branch!]!
 }
 
+union BranchDeletePayload = Query | BranchDoesNotExistError
+
+type BranchDoesNotExistError {
+  query: Query!
+}
+
 """
 An edge in a connection.
 """
@@ -281,6 +294,21 @@ input BranchOperationCheckConfigurationInput {
 }
 
 union BranchOperationCheckConfigurationUpdatePayload = ProjectDoesNotExistError | BranchOperationCheckConfiguration
+
+input BranchUpdateInput {
+  accountSlug: String!
+  projectSlug: String!
+  branchSlug: String!
+  trustedDocumentsEnforce: Boolean
+  trustedDocumentsBypassHeaderName: String
+  trustedDocumentsBypassHeaderValue: String
+}
+
+union BranchUpdatePayload = Query | ProjectDoesNotExistError
+
+type CannotBeRenamedError {
+  query: Query!
+}
 
 type CannotUseInvitationsWithSSO {
   query: Query!
@@ -445,6 +473,7 @@ union DeploymentCreatePayload =
   | ProjectDoesNotExistError
   | ArchiveFileSizeLimitExceededError
   | DailyDeploymentCountLimitExceededError
+  | ProjectNotManagedError
 
 type DeploymentCreateSuccess {
   deployment: Deployment!
@@ -754,6 +783,11 @@ enum GrafbasePlan {
   HOBBY
   PRO
   ENTERPRISE
+}
+
+enum GraphMode {
+  MANAGED
+  SELF_HOSTED
 }
 
 type HasAlreadyPaymentMethodError {
@@ -1156,13 +1190,28 @@ type Mutation {
   """
   deleteSubgraph(input: DeleteSubgraphInput!): DeleteSubgraphPayload!
   stripeSetupIntentCreate: StripeSetupIntentCreatePayload!
+  branchUpdate(input: BranchUpdateInput!): BranchUpdatePayload!
+  branchDelete(
+    """
+    slug of the account
+    """
+    accountSlug: String!
+    """
+    slug of the project
+    """
+    projectSlug: String!
+    """
+    name of the branch
+    """
+    branchName: String!
+  ): BranchDeletePayload!
   branchOperationCheckConfigurationUpdate(
     input: BranchOperationCheckConfigurationInput!
   ): BranchOperationCheckConfigurationUpdatePayload!
   slackIntegrationCreate(input: SlackIntegrationCreateInput!): SlackNotificationCreatePayload!
   slackNotificationDelete(id: String!): SlackNotificationDeletePayload!
   trustedDocumentsSubmit(
-    accountSlug: String!
+    accountSlug: String
     projectSlug: String!
     branchSlug: String!
     clientName: String!
@@ -1213,6 +1262,10 @@ type NotAllowedToSlugUpdateError {
 }
 
 type NotAllowedToUpdateOrganizationError {
+  query: Query!
+}
+
+type OldAccessTokenError {
   query: Query!
 }
 
@@ -1511,6 +1564,7 @@ type Organization implements Account {
   usage(filter: AccountResourcesUsageDashboardFilter): DatabaseUsage!
     @deprecated(reason: "Use resources_usage_dashboard")
   resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
+  accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
   resources: AccountResources! @deprecated(reason: "Not relevant for organizations")
 }
 
@@ -1680,6 +1734,7 @@ type PersonalAccount implements Account {
     @deprecated(reason: "Use resources_usage_dashboard")
   resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
   resources: AccountResources! @deprecated(reason: "use projects_count_status")
+  accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
 }
 
 union PersonalAccountDeletePayload = PersonalAccountDeleteSuccess | OrganizationOwnershipNotTransferredError
@@ -1720,7 +1775,9 @@ type Project implements Node {
   slug: String!
   projectRootPath: String!
   projectType: ProjectType
+  graphMode: GraphMode!
   createdAt: DateTime!
+  canBeRenamed: Boolean!
   repository: GitRepository
   branches(after: String, before: String, first: Int, last: Int): BranchConnection!
   apiKeys(after: String, before: String, first: Int, last: Int): ProjectApiKeyConnection!
@@ -1930,6 +1987,8 @@ input ProjectCreateInput {
   projectSlug: String!
   environmentVariables: [EnvironmentVariableSpecification!]! = []
   projectRootPath: String! = "grafbase"
+  graphMode: GraphMode! = MANAGED
+  projectType: ProjectType
 }
 
 union ProjectCreatePayload =
@@ -1985,6 +2044,10 @@ type ProjectNotDeployed {
 }
 
 type ProjectNotFederatedError {
+  query: Query!
+}
+
+type ProjectNotManagedError {
   query: Query!
 }
 
@@ -2065,7 +2128,6 @@ enum ProjectStatus {
 
 enum ProjectType {
   STANDALONE
-  SINGLE @deprecated(reason: "Renamed to STANDALONE")
   FEDERATED
 }
 
@@ -2082,6 +2144,7 @@ union ProjectUpdatePayload =
   | SlugAlreadyExistsError
   | SlugInvalidError
   | SlugTooLongError
+  | CannotBeRenamedError
 
 type ProjectUpdateSuccess {
   project: Project!
@@ -2812,7 +2875,11 @@ input TrustedDocumentInput {
   documentText: String!
 }
 
-union TrustedDocumentsSubmitPayload = TrustedDocumentsSubmitSuccess | ReusedIds | ProjectDoesNotExistError
+union TrustedDocumentsSubmitPayload =
+  | TrustedDocumentsSubmitSuccess
+  | ReusedIds
+  | ProjectDoesNotExistError
+  | OldAccessTokenError
 
 type TrustedDocumentsSubmitSuccess {
   count: Int!

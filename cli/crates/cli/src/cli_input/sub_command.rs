@@ -51,7 +51,6 @@ pub enum SubCommand {
     /// Check a graph for validation, composition and breaking change errors
     Check(CheckCommand),
     /// Submit a trusted documents manifest
-    #[clap(hide = true)]
     Trust(TrustCommand),
     /// Upgrade the installed version of the grafbase CLI
     #[clap(hide=is_direct_install())]

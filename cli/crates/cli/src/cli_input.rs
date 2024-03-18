@@ -29,7 +29,7 @@ pub(crate) use introspect::IntrospectCommand;
 pub(crate) use link::LinkCommand;
 pub(crate) use log_level_filter::{LogLevelFilter, LogLevelFilters};
 pub(crate) use logs::LogsCommand;
-pub(crate) use project_ref::ProjectRef;
+pub(crate) use project_ref::{ProjectRef, ProjectRefOrGraphRef};
 pub(crate) use publish::PublishCommand;
 pub(crate) use schema::SchemaCommand;
 pub(crate) use start::StartCommand;
