@@ -92,7 +92,7 @@ pub(crate) async fn install_grafbase() -> Result<(), UpgradeError> {
 
     let latest_version = get_latest_release_version(&client).await?;
 
-    let current_version = get_currently_installed_version().await?;
+    let current_version = get_currently_installed_version(&direct_install_executable_path).await?;
 
     if latest_version == current_version {
         report::upgrade_up_to_date(&current_version);
@@ -205,9 +205,9 @@ async fn get_latest_release_version(client: &Client) -> Result<String, UpgradeEr
     Ok(package_info.version.to_owned())
 }
 
-async fn get_currently_installed_version() -> Result<String, UpgradeError> {
+async fn get_currently_installed_version(path: &PathBuf) -> Result<String, UpgradeError> {
     Ok(String::from_utf8(
-        Command::new(direct_install_executable_path().expect("must exist at this point"))
+        Command::new(path)
             .arg("--version")
             .output()
             .await
