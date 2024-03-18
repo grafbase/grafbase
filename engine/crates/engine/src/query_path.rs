@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 /// At one point this was just a reverse linked-list of references, but that was a
 /// real pain to integrate with defer & stream as the lifetimes wouldn't last long
 /// enough.
-#[derive(Default, Clone)]
+#[derive(Default, Clone, PartialEq, Eq, Hash)]
 pub struct QueryPath(im::Vector<QueryPathSegment>);
 
 impl QueryPath {

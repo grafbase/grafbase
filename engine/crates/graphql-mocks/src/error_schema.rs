@@ -8,11 +8,11 @@ pub struct Query;
 
 #[Object]
 impl Query {
-    async fn broken_field(&self, error: String) -> FieldResult<String> {
+    async fn broken_field(&self, error: String) -> FieldResult<Option<String>> {
         Err(error.into())
     }
 
-    async fn broken_list(&self, error: String) -> FieldResult<Vec<String>> {
+    async fn broken_list(&self, error: String) -> FieldResult<Option<Vec<String>>> {
         Err(error.into())
     }
 
