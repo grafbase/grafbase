@@ -27,7 +27,9 @@ pub enum UpgradeError {
     #[error("Could not create path '{0}' for the CLI installation")]
     CreateDir(&'static PathBuf),
 
-    // TODO: add specific connection error
+    #[error("Encountered an error while downloading grafbase")]
+    StartDownload,
+
     #[error("Encountered an error while downloading grafbase")]
     Download,
 
@@ -37,6 +39,9 @@ pub enum UpgradeError {
     #[error("Could not create a temporary download file.\nCaused by: {0}")]
     CreateTemporaryFile(io::Error),
 
+    #[error("Could not write to a temporary download file.\nCaused by: {0}")]
+    WriteTemporaryFile(io::Error),
+
     #[error("Could not set permissions for the cli executable")]
     SetExecutablePermissions,
 
@@ -44,9 +49,11 @@ pub enum UpgradeError {
     #[error(transparent)]
     SpawnedTaskPanic(#[from] JoinError),
 
-    // TODO: add specfic connection error
     #[error("Encountered an error while determining the latest release version")]
     GetLatestReleaseVersion,
+
+    #[error("Encountered an error while determining the latest release version")]
+    StartGetLatestReleaseVersion,
 
     #[error("The locally installed version of grafbase is already up to date")]
     UpToDate,
@@ -135,7 +142,7 @@ async fn download_grafbase(
         .get(download_url)
         .send()
         .await
-        .map_err(|_| UpgradeError::Download)?;
+        .map_err(|_| UpgradeError::StartDownload)?;
 
     if !binary_response.status().is_success() {
         return Err(UpgradeError::Download);
@@ -155,7 +162,7 @@ async fn download_grafbase(
 
     io::copy(&mut reader, &mut temp_binary_file)
         .await
-        .map_err(|_| UpgradeError::Download)?;
+        .map_err(UpgradeError::WriteTemporaryFile)?;
 
     fs::rename(&grafbase_temp_binary_path, &grafbase_binary_path)
         .await
@@ -177,13 +184,20 @@ async fn download_grafbase(
 }
 
 async fn get_latest_release_version(client: &Client) -> Result<String, UpgradeError> {
-    let package_info: NpmPackageInfo = client
+    let package_response = client
         .get(LATEST_RELEASE_API_URL)
         .send()
         .await
-        .map_err(|_| UpgradeError::GetLatestReleaseVersion)?
+        .map_err(|_| UpgradeError::StartGetLatestReleaseVersion)?;
+
+    if !package_response.status().is_success() {
+        return Err(UpgradeError::GetLatestReleaseVersion);
+    }
+
+    let package_info: NpmPackageInfo = package_response
         .json()
         .await
         .map_err(|_| UpgradeError::GetLatestReleaseVersion)?;
+
     Ok(package_info.version.to_owned())
 }
