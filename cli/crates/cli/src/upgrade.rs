@@ -78,6 +78,7 @@ pub(crate) async fn install_grafbase() -> Result<(), UpgradeError> {
     let direct_install_executable_path = direct_install_executable_path().expect("must exist at this point");
     let lock_file_path = direct_install_executable_path
         .ancestors()
+        // ~/.grafbase
         .nth(2)
         .expect("must exist")
         .join(GRAFBASE_INSTALL_LOCK_FILE);
