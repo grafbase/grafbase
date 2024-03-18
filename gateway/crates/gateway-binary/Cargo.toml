@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-gateway"
-version.workspace = true
+version = "0.1.0-rc.8"
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
@@ -23,16 +23,17 @@ tracing-subscriber.workspace = true
 workspace = true
 
 [dev-dependencies]
+ctor.workspace = true
 duct = "0.13.7"
+fslock = "0.2.1"
 futures-util.workspace = true
+grafbase-graphql-introspection.workspace = true
+http.workspace = true
 indoc = "2.0.4"
+insta = { workspace = true, features = ["json", "redactions", "yaml"] }
+reqwest.workspace = true
 serde_json.workspace = true
+serde.workspace = true
 tempfile = "3.10.1"
 tokio.workspace = true
 wiremock.workspace = true
-insta = { workspace = true, features = ["json", "redactions", "yaml"] }
-fslock = "0.2.1"
-reqwest.workspace = true
-http.workspace = true
-serde.workspace = true
-grafbase-graphql-introspection.workspace = true

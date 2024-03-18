@@ -9,16 +9,16 @@
     "types": "tsc --noEmit"
   },
   "dependencies": {
-    "@pathfinder-ide/react": "0.7.2",
+    "@pathfinder-ide/react": "0.7.4",
     "graphql": "^16.8.1",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
   "devDependencies": {
-    "@types/react": "18.2.64",
-    "@types/react-dom": "18.2.21",
+    "@types/react": "18.2.66",
+    "@types/react-dom": "18.2.22",
     "@vitejs/plugin-react": "^4.0.0",
     "typescript": "5.4.2",
-    "vite": "5.1.5"
+    "vite": "5.1.6"
   }
 }

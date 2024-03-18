@@ -181,6 +181,148 @@ fn multiple_joins_on_graphql_connector() {
 }
 
 #[test]
+fn multiple_joins_on_namespaced_graphql_connector() {
+    // Tests the case where a GraphQL connector join appears twice in a response, which leads to a
+    // single additional GraphQL request.  The naive approach to serializing this would build an
+    // invalid GraphQL query - this test makes sure that it works when the graphql connector
+    // is namespaced.
+    runtime().block_on(async {
+        let graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let port = graphql_mock.port();
+
+        let schema = format!(
+            r#"
+            extend schema
+                @graphql(
+                    name: "gothub",
+                    namespace: true
+                    url: "http://127.0.0.1:{port}",
+                )
+
+            extend type GothubPullRequest {{
+                oohRecursion: GothubPullRequest @join(select: "gothub {{ pullRequest(id: $id) }}")
+            }}
+            "#
+        );
+
+        let engine = EngineBuilder::new(schema).build().await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute(r#"
+                query {
+                    gothub {
+                        pullRequestsAndIssues(filter: {search: ""}) {
+                            ... on GothubPullRequest {
+                                id
+                                oohRecursion {
+                                    id
+                                    title
+                                }
+                            }
+                        }
+                    }
+                }
+                "#)
+                .await
+                .into_data::<Value>(),
+                @r###"
+        {
+          "gothub": {
+            "pullRequestsAndIssues": [
+              {
+                "id": "1",
+                "oohRecursion": {
+                  "id": "1",
+                  "title": "Creating the thing"
+                }
+              },
+              {
+                "id": "2",
+                "oohRecursion": {
+                  "id": "2",
+                  "title": "Some bot PR"
+                }
+              },
+              {}
+            ]
+          }
+        }
+        "###
+        );
+    });
+}
+
+#[test]
+fn join_with_an_enum_argument() {
+    // Tests the case where we're providing an enum argument to a joined field.
+    // ResolveValues use JSON which represent enums as a String, but we need to render
+    // those as enums in the query we build up.  This makes sure that works properly.
+    //
+    // Though it seems to be a terrible test because AsyncGraphql doesn't give a shit
+    // if you give it a string where it expects an enum :|
+    //
+    // TODO: Inspect the mock call
+    runtime().block_on(async {
+        let mut graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let port = graphql_mock.port();
+
+        let schema = format!(
+            r#"
+            extend schema
+                @graphql(
+                    name: "gothub",
+                    namespace: false,
+                    url: "http://127.0.0.1:{port}",
+                )
+
+            extend type PullRequest {{
+                statusText: String! @join(select: "statusString(status: $status)")
+            }}
+            "#
+        );
+
+        let engine = EngineBuilder::new(schema).build().await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute(r#"
+                query {
+                    pullRequest(id: "1") {
+                        id
+                        status
+                        statusText
+                    }
+                }
+                "#)
+                .await
+                .into_data::<Value>(),
+                @r###"
+        {
+          "pullRequest": {
+            "id": "1",
+            "status": "OPEN",
+            "statusText": "boo its closed"
+          }
+        }
+        "###
+        );
+
+        // AsyncGraphQL doesn't seem to care if you give it a String in Enum position.
+        // So lets snapshot the request just to be sure this doesn't regress.
+        let requests = graphql_mock.drain_requests().await.collect::<Vec<_>>();
+        assert_eq!(requests.len(), 3, "Unexpected requests: {requests:?}");
+        let request = requests.last().unwrap();
+
+        insta::assert_snapshot!(request.query, @r###"
+        query {
+        	field_0: statusString(status: OPEN)
+        }
+        "###);
+    });
+}
+
+#[test]
 fn nested_joins() {
     runtime().block_on(async {
         let schema = r#"

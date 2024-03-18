@@ -32,7 +32,7 @@ jobs:
           platform: linux
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('cli/Cargo.lock') }}
 
-      - name: Build CLI assets
+      - name: Build grafbase assets
         uses: ./.github/actions/cli_assets
         with:
           cdn: ${{ env.PROD_ASSETS }}

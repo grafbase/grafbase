@@ -1,4 +1,4 @@
-name: CLI Release
+name: Gateway Release
 
 on:
   workflow_call:
@@ -48,45 +48,53 @@ jobs:
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
+      - name: Create release directories
+        shell: bash
+        run: |
+          mkdir -p gateway/release/aarch64-apple-darwin
+          mkdir -p gateway/release/x86_64-apple-darwin
+          mkdir -p gateway/release/aarch64-unknown-linux-musl
+          mkdir -p gateway/release/x86_64-unknown-linux-musl
+
       - name: Download darwin-x86_64 artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.VERSION_BUMP }}-x86_64-apple-darwin
-          path: cli/npm/x86_64-gateway-apple-darwin
+          name: gateway-${{ env.VERSION_BUMP }}-x86_64-apple-darwin
+          path: gateway/release/x86_64-apple-darwin
 
       - name: Download darwin-aarch64 artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.VERSION_BUMP }}-aarch64-apple-darwin
-          path: cli/npm/aarch64-gateway-apple-darwin
+          name: gateway-${{ env.VERSION_BUMP }}-aarch64-apple-darwin
+          path: gateway/release/aarch64-apple-darwin
 
       - name: Download Linux AMD artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.VERSION_BUMP }}-linux
-          path: cli/npm/x86_64-unknown-gateway-linux-musl
+          name: gateway-${{ env.VERSION_BUMP }}-linux
+          path: gateway/release/x86_64-unknown-linux-musl
 
       - name: Download Linux ARM artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.VERSION_BUMP }}-linux-arm
-          path: cli/npm/aarch64-unknown-gateway-linux-musl
+          name: gateway-${{ env.VERSION_BUMP }}-linux-arm
+          path: gateway/release/aarch64-unknown-linux-musl
 
       - name: Process artifacts
         shell: bash
         run: |
-          cd cli/npm
+          cd gateway/release/
           mkdir github
-          cp aarch64-apple-darwin/grafbase-gateway github/grafbase-gateway-aarch64-apple-darwin
-          cp x86_64-apple-darwin/grafbase-gateway github/grafbase-gateway-x86_64-apple-darwin
-          # cp x86_64-pc-windows-msvc/grafbase.exe github/grafbase-x86_64-pc-windows-msvc.exe
-          cp x86_64-unknown-linux-musl/grafbase-gateway github/grafbase-gateway-x86_64-unknown-linux-musl
-          cp aarch64-unknown-linux-musl/grafbase-gateway github/grafbase-gateway-aarch64-unknown-linux-musl
 
-          chmod +x aarch64-apple-darwin/grafbase-gateway
-          chmod +x x86_64-apple-darwin/grafbase-gateway
-          chmod +x x86_64-unknown-linux-musl/grafbase-gateway
-          chmod +x aarch64-unknown-linux-musl/grafbase-gateway
+          mv aarch64-apple-darwin/grafbase-gateway github/grafbase-gateway-aarch64-apple-darwin
+          mv x86_64-apple-darwin/grafbase-gateway github/grafbase-gateway-x86_64-apple-darwin
+          mv aarch64-unknown-linux-musl/grafbase-gateway github/grafbase-gateway-aarch64-unknown-linux-musl
+          mv x86_64-unknown-linux-musl/grafbase-gateway github/grafbase-gateway-x86_64-unknown-linux-musl
+
+          chmod +x github/grafbase-gateway-aarch64-apple-darwin
+          chmod +x github/grafbase-gateway-x86_64-apple-darwin
+          chmod +x github/grafbase-gateway-aarch64-unknown-linux-musl
+          chmod +x github/grafbase-gateway-x86_64-unknown-linux-musl
 
       - name: Install cargo-binstall and cargo-about
         shell: bash
@@ -97,21 +105,20 @@ jobs:
       - name: Generate licenses
         shell: bash
         run: |
-          cargo about generate -c cli/about.toml -o "licenses.html" cli/about.hbs
-          find cli/crates -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
-          find cli/npm -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
+          cd gateway/crates/gateway-binary
+          cargo about generate -c ../../about.toml -o "../../licenses.html" ../../about.hbs
+          find ../../ -maxdepth 1 -type d -exec cp ../../licenses.html {} \;
 
-      - name: Github grafbase-gateway Release
+      - name: Github gateway Release
         id: gh-release-gateway
         uses: softprops/action-gh-release@v2
         with:
-          body_path: cli/changelog/${{ env.VERSION_BUMP }}.md
+          body_path: gateway/changelog/${{ env.VERSION_BUMP }}.md
           draft: ${{ inputs.draft }}
           prerelease: ${{ inputs.prerelease }}
           files: |
-            licenses.html
-            cli/npm/github/grafbase-gateway-aarch64-apple-darwin
-            cli/npm/github/grafbase-gateway-x86_64-apple-darwin
-            # cli/npm/github/grafbase-gateway-x86_64-pc-windows-msvc.exe
-            cli/npm/github/grafbase-gateway-x86_64-unknown-linux-musl
-            cli/npm/github/grafbase-gateway-aarch64-unknown-linux-musl
+            gateway/licenses.html
+            gateway/release/github/grafbase-gateway-aarch64-apple-darwin
+            gateway/release/github/grafbase-gateway-x86_64-apple-darwin
+            gateway/release/github/grafbase-gateway-aarch64-unknown-linux-musl
+            gateway/release/github/grafbase-gateway-x86_64-unknown-linux-musl

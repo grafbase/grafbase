@@ -53,11 +53,11 @@ url = "2"
 uuid = { version = "1", features = ["v4"] }
 webbrowser = "0.8"
 
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.62.0" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.62.0" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.63.0-rc.1" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.63.0-rc.1" }
 federated-dev = { path = "../federated-dev" }
 grafbase-graphql-introspection.workspace = true
-server = { package = "grafbase-local-server", path = "../server", version = "0.62.0" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.63.0-rc.1" }
 
 [dev-dependencies]
 async-graphql-axum.workspace = true
@@ -67,7 +67,7 @@ async-tungstenite = "0.25"
 axum.workspace = true
 cfg-if = "1"
 chrono = "0.4"
-ctor = "0.2"
+ctor.workspace = true
 cynic-introspection.workspace = true
 cynic.workspace = true
 derive_builder = "0.20"
@@ -76,7 +76,7 @@ duct = "0.13"
 fslock = "0.2"
 futures-util = "0.3"
 graphql-mocks.workspace = true
-graphql-ws-client = { version = "0.8.0-rc.2", features = ["async-tungstenite"] }
+graphql-ws-client = { version = "0.8.0", features = ["async-tungstenite"] }
 headers.workspace = true
 hex.workspace = true
 http.workspace = true
