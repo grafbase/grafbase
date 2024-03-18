@@ -43,8 +43,8 @@ pub enum UpgradeError {
     #[error("Could not write to a temporary download file.\nCaused by: {0}")]
     WriteTemporaryFile(io::Error),
 
-    #[error("Could not set permissions for the cli executable")]
-    SetExecutablePermissions,
+    #[error("Could not set permissions for the cli executable\nCaused by: {0}")]
+    SetExecutablePermissions(io::Error),
 
     /// returned if a spawned task panics
     #[error(transparent)]
@@ -175,7 +175,7 @@ async fn download_grafbase(
             Permissions::from_mode(GRAFBASE_EXECUTABLE_PERMISSIONS),
         )
         .await
-        .map_err(|_| UpgradeError::SetExecutablePermissions)?;
+        .map_err(UpgradeError::SetExecutablePermissions)?;
     }
 
     // this is done last to prevent leaving the user without a working binary if something errors
