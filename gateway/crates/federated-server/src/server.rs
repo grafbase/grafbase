@@ -3,6 +3,7 @@ mod csrf;
 mod engine;
 mod gateway;
 mod graph_fetch_method;
+#[cfg(not(feature = "lambda"))]
 mod graph_updater;
 mod state;
 mod trusted_documents_client;
