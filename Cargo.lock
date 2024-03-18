@@ -2719,7 +2719,6 @@ dependencies = [
  "clap",
  "clap_complete",
  "colored",
- "const_format",
  "ctor",
  "ctrlc",
  "cynic",

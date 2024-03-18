@@ -1,6 +1,6 @@
+use crate::direct_install_executable_path;
+use crate::output::report;
 use common::consts::USER_AGENT;
-use common::environment::Environment;
-use const_format::concatcp;
 use fslock::LockFile;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -12,10 +12,9 @@ use std::time::Duration;
 use thiserror::Error;
 use tokio::fs::{self, File};
 use tokio::io::{self, BufWriter};
+use tokio::process::Command;
 use tokio::task::{self, JoinError};
 use tokio_util::io::StreamReader;
-
-use crate::output::report;
 
 #[derive(Error, Debug)]
 pub enum UpgradeError {
@@ -27,7 +26,7 @@ pub enum UpgradeError {
 
     /// returned if the directory cannot be read
     #[error("Could not create path '{0}' for the CLI installation")]
-    CreateDir(&'static PathBuf),
+    CreateDir(PathBuf),
 
     #[error("Encountered an error while downloading grafbase")]
     StartDownload,
@@ -51,8 +50,11 @@ pub enum UpgradeError {
     #[error(transparent)]
     SpawnedTaskPanic(#[from] JoinError),
 
-    #[error("Encountered an error while determining the latest release version")]
+    #[error("Encountered an error while determining the latest release version of grafbase")]
     GetLatestReleaseVersion,
+
+    #[error("Encountered an error while determining the installed version of grafbase")]
+    GetInstalledVersion,
 
     #[error("Encountered an error while determining the latest release version")]
     StartGetLatestReleaseVersion,
@@ -65,18 +67,19 @@ struct NpmPackageInfo {
 
 const BINARY_SUFFIX: &str = if cfg!(windows) { ".exe" } else { "" };
 const TARGET: &str = env!("TARGET");
-const CARGO_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 const DOWNLOAD_URL_PREFIX: &str = "https://github.com/grafbase/grafbase/releases/download/cli-";
 const LATEST_RELEASE_API_URL: &str = "https://registry.npmjs.org/grafbase/latest";
 const GRAFBASE_EXECUTABLE_PERMISSIONS: u32 = 0o755;
 const GRAFBASE_INSTALL_LOCK_FILE: &str = ".grafbase.install.lock";
 const PARTIAL_DOWNLOAD_FILE: &str = ".grafbase.partial";
-const EXECUTABLE_NAME: &str = concatcp!("grafbase", BINARY_SUFFIX);
 
 #[tokio::main]
 pub(crate) async fn install_grafbase() -> Result<(), UpgradeError> {
-    let environment = Environment::get();
-    let lock_file_path = environment.user_dot_grafbase_path.join(GRAFBASE_INSTALL_LOCK_FILE);
+    let direct_install_executable_path = direct_install_executable_path().expect("must exist at this point");
+    let lock_file_path = direct_install_executable_path
+        .parent()
+        .expect("must exist")
+        .join(GRAFBASE_INSTALL_LOCK_FILE);
     let mut lock_file = task::spawn_blocking(move || {
         let mut file = LockFile::open(&lock_file_path)?;
         file.lock()?;
@@ -89,11 +92,10 @@ pub(crate) async fn install_grafbase() -> Result<(), UpgradeError> {
 
     let latest_version = get_latest_release_version(&client).await?;
 
-    // TODO: consider getting this from the binary to prevent multiple simultainious runs of uppgrade
-    // from downloading the same binary after the lock is released
+    let current_version = get_currently_installed_version().await?;
 
-    if latest_version == CARGO_PKG_VERSION {
-        report::upgrade_up_to_date(CARGO_PKG_VERSION);
+    if latest_version == current_version {
+        report::upgrade_up_to_date(&current_version);
         return Ok(());
     }
 
@@ -110,7 +112,7 @@ pub(crate) async fn install_grafbase() -> Result<(), UpgradeError> {
 
     spinner.enable_steady_tick(Duration::from_millis(100));
 
-    download_grafbase(environment, client, &latest_version).await?;
+    download_grafbase(direct_install_executable_path, client, &latest_version).await?;
 
     task::spawn_blocking(move || lock_file.unlock())
         .await?
@@ -122,17 +124,19 @@ pub(crate) async fn install_grafbase() -> Result<(), UpgradeError> {
 }
 
 async fn download_grafbase(
-    environment: &'static Environment,
+    direct_install_executable_path: PathBuf,
     client: Client,
     latest_version: &str,
 ) -> Result<(), UpgradeError> {
     trace!("Installing grafbase…");
-    fs::create_dir_all(&environment.grafbase_installation_path)
-        .await
-        .map_err(|_| UpgradeError::CreateDir(&environment.grafbase_installation_path))?;
 
-    let grafbase_binary_path = environment.grafbase_installation_path.join(EXECUTABLE_NAME);
-    let grafbase_temp_binary_path = environment.grafbase_installation_path.join(PARTIAL_DOWNLOAD_FILE);
+    let direct_install_path = direct_install_executable_path.parent().expect("must exist");
+
+    fs::create_dir_all(&direct_install_path)
+        .await
+        .map_err(|_| UpgradeError::CreateDir(direct_install_path.to_owned()))?;
+
+    let grafbase_temp_binary_path = direct_install_path.join(PARTIAL_DOWNLOAD_FILE);
 
     let download_url = format!("{DOWNLOAD_URL_PREFIX}{latest_version}/grafbase-{TARGET}{BINARY_SUFFIX}");
 
@@ -175,7 +179,7 @@ async fn download_grafbase(
     }
 
     // this is done last to prevent leaving the user without a working binary if something errors
-    fs::rename(&grafbase_temp_binary_path, &grafbase_binary_path)
+    fs::rename(&grafbase_temp_binary_path, &direct_install_executable_path)
         .await
         .map_err(UpgradeError::RenameTemporaryFile)?;
 
@@ -199,4 +203,19 @@ async fn get_latest_release_version(client: &Client) -> Result<String, UpgradeEr
         .map_err(|_| UpgradeError::GetLatestReleaseVersion)?;
 
     Ok(package_info.version.to_owned())
+}
+
+async fn get_currently_installed_version() -> Result<String, UpgradeError> {
+    Ok(String::from_utf8(
+        Command::new(direct_install_executable_path().expect("must exist at this point"))
+            .arg("--version")
+            .output()
+            .await
+            .map_err(|_| UpgradeError::GetInstalledVersion)?
+            .stdout,
+    )
+    .map_err(|_| UpgradeError::GetInstalledVersion)?
+    .trim_start_matches("Grafbase CLI")
+    .trim()
+    .to_owned())
 }
