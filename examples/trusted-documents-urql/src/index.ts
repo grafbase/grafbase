@@ -1,6 +1,13 @@
-import { createClient, fetchExchange, cacheExchange } from 'urql';
+import { Client, fetchExchange, cacheExchange } from 'urql';
 import { persistedExchange } from '@urql/exchange-persisted';
 import gql from 'graphql-tag'
+import manifest from '../persisted-query-manifest.json'
+
+const queryMap = manifest.operations.reduce((acc, item) => {
+  acc[item.body] = item.id;
+  return acc
+}, {} as { [key: string]: string })
+
 
 const planetsQuery = gql`
   query Planets {
@@ -33,23 +40,27 @@ const peopleQuery = gql`
 `;
 
 
-const client = createClient({
-  url: 'http://localhost:1234/graphql',
+const client = new Client({
+  url: 'http://127.0.0.1:5000/graphql',
+  fetchOptions: {
+    headers: {
+      'x-grafbase-client-name': 'democlient'
+    }
+  },
   exchanges: [
     cacheExchange,
     persistedExchange({
       enableForMutation: true,
       enforcePersistedQueries: true,
-      generateHash: (query) => {
-        throw new Error("got into generateHash")
-      }
+      generateHash: (query) => Promise.resolve(queryMap[query]),
     }),
     fetchExchange,
   ],
 });
 
 async function main() {
-  client.call(planetsQuery)
+  const response = await client.query(planetsQuery)
+  console.log(response)
 }
 
 main().catch(console.error).then(() => process.exit(1))

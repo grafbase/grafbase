@@ -1,4 +1,0 @@
-{
-  "505bc63d2eb0dfa0ecdc17d9b9a76a61cb4364c8": "query Planets { allPlanets { edges { node { climates name population } } totalCount } }",
-  "e552d5152039db49a6c918dad9ac156f86860f5c": "query People($count: Int!) { allPeople(first: $count) { edges { node { name } } } }"
-}
