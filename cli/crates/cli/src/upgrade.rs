@@ -77,7 +77,8 @@ const PARTIAL_DOWNLOAD_FILE: &str = ".grafbase.partial";
 pub(crate) async fn install_grafbase() -> Result<(), UpgradeError> {
     let direct_install_executable_path = direct_install_executable_path().expect("must exist at this point");
     let lock_file_path = direct_install_executable_path
-        .parent()
+        .ancestors()
+        .nth(2)
         .expect("must exist")
         .join(GRAFBASE_INSTALL_LOCK_FILE);
     let mut lock_file = task::spawn_blocking(move || {
