@@ -1,0 +1,6 @@
+extend schema
+  @graphql(
+    name: "weathermachine"
+    url: "https://weathermachine.io/graphql"
+    namespace: false
+  )
