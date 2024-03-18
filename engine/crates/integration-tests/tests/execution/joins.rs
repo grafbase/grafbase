@@ -383,7 +383,7 @@ fn joins_with_downstream_errors() {
     // Tests the case where we're joining onto a GraphQL connector, but that GraphQL connector
     // returns errors
     runtime().block_on(async {
-        let mut graphql_mock = MockGraphQlServer::new(ErrorSchema::default()).await;
+        let graphql_mock = MockGraphQlServer::new(ErrorSchema::default()).await;
         let port = graphql_mock.port();
 
         let schema = format!(
@@ -417,8 +417,6 @@ fn joins_with_downstream_errors() {
                 .execute(r#"
                 query {
                     joins {
-                        # brokenField
-                        # brokenList
                         brokenObjectList {
                             brokenField
                         }
