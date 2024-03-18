@@ -181,15 +181,9 @@ async fn get_latest_release_version(client: &Client) -> Result<String, UpgradeEr
         .get(LATEST_RELEASE_API_URL)
         .send()
         .await
-        .inspect_err(|error| {
-            dbg!(error);
-        })
         .map_err(|_| UpgradeError::GetLatestReleaseVersion)?
         .json()
         .await
-        .inspect_err(|error| {
-            dbg!(error);
-        })
         .map_err(|_| UpgradeError::GetLatestReleaseVersion)?;
     Ok(package_info.version.to_owned())
 }
