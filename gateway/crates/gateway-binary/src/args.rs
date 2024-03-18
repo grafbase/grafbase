@@ -37,11 +37,11 @@ pub struct Args {
     #[arg(env = "GRAFBASE_ACCESS_TOKEN")]
     pub grafbase_access_token: Option<AsciiString>,
     /// Path to the TOML configuration file
-    #[arg(long, short)]
+    #[arg(long, short, env = "GRAFBASE_CONFIG_PATH")]
     pub config: PathBuf,
     /// Path to graph SDL. If provided, the graph will be static and no connection is made
     /// to the Grafbase API.
-    #[arg(long, short)]
+    #[arg(long, short, env = "GRAFBASE_SCHEMA_PATH")]
     pub schema: Option<PathBuf>,
     /// Set the tracing level
     #[arg(short, long, default_value_t = 0)]
