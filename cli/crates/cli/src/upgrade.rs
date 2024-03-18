@@ -25,8 +25,8 @@ pub enum UpgradeError {
     Unlock(fslock::Error),
 
     /// returned if the directory cannot be read
-    #[error("Could not create path '{0}' for the CLI installation")]
-    CreateDir(PathBuf),
+    #[error("Could not create path '{0}' for the CLI installation\nCaused by:{0}")]
+    CreateDir(PathBuf, io::Error),
 
     #[error("Encountered an error while downloading grafbase")]
     StartDownload,
@@ -134,7 +134,7 @@ async fn download_grafbase(
 
     fs::create_dir_all(&direct_install_path)
         .await
-        .map_err(|_| UpgradeError::CreateDir(direct_install_path.to_owned()))?;
+        .map_err(|error| UpgradeError::CreateDir(direct_install_path.to_owned(), error))?;
 
     let grafbase_temp_binary_path = direct_install_path.join(PARTIAL_DOWNLOAD_FILE);
 
