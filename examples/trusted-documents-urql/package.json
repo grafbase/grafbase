@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@apollo/generate-persisted-query-manifest": "^1.2.0",
-    "@graphql-codegen/cli": "^5.0.2",
     "@urql/exchange-persisted": "^4.1.1",
     "graphql-tag": "^2.12.6",
     "urql": "^4.0.6"
