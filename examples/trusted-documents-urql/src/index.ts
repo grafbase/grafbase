@@ -1,6 +1,5 @@
-import { Client, fetchExchange, cacheExchange } from 'urql';
+import { Client, fetchExchange, cacheExchange, gql } from 'urql';
 import { persistedExchange } from '@urql/exchange-persisted';
-import gql from 'graphql-tag'
 import manifest from '../persisted-query-manifest.json'
 
 const queryMap = manifest.operations.reduce((acc, item) => {
