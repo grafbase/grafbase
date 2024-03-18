@@ -11,6 +11,7 @@ keywords = ["graphql", "federation"]
 workspace = true
 
 [dependencies]
+wrapping = { path = "../wrapping" }
 serde = { version = "1", features = ["derive"] }
 indoc = "2"
 

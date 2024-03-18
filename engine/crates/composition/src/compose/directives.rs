@@ -50,7 +50,7 @@ pub(super) fn collect_composed_directives<'a>(
     }
 
     if authenticated {
-        push_directives(ctx, federated::Directive::Authenticated)
+        push_directive(ctx, federated::Directive::Authenticated)
     }
 
     for tag in tags {

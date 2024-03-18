@@ -13,7 +13,7 @@ use std::{collections::BTreeSet, mem};
 
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
 pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::FederatedGraph {
-    let mut out = federated::FederatedGraphV2 {
+    let mut out = federated::FederatedGraphV3 {
         enums: mem::take(&mut ir.enums),
         enum_values: mem::take(&mut ir.enum_values),
         objects: mem::take(&mut ir.objects),
@@ -30,10 +30,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
             mutation: ir.mutation_type,
             subscription: ir.subscription_type,
         },
-        object_fields: vec![],
-        interface_fields: vec![],
         fields: vec![],
-        field_types: vec![],
     };
 
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
@@ -48,7 +45,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
 
     drop(ctx);
 
-    federated::FederatedGraph::V2(out)
+    federated::FederatedGraph::V3(out)
 }
 
 fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionIr], ctx: &mut Context<'_>) {
@@ -62,7 +59,7 @@ fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionI
                  description,
              }| federated::InputValueDefinition {
                 name: *name,
-                type_id: ctx.insert_field_type(ctx.subgraphs.walk(*r#type)),
+                r#type: ctx.insert_field_type(ctx.subgraphs.walk(*r#type)),
                 directives: *directives,
                 description: *description,
             },
@@ -141,7 +138,7 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
             |ctx: &mut Context<'a>, parent: federated::Definition, composed_directives: federated::Directives| {
                 let field = federated::Field {
                     name: field_name,
-                    field_type_id: r#type,
+                    r#type,
                     arguments,
                     overrides,
 
@@ -268,7 +265,7 @@ fn attach_selection(
         .map(|selection| {
             let selection_field = ctx.insert_string(ctx.subgraphs.walk(selection.field));
             let field = ctx.selection_map[&(parent_id, selection_field)];
-            let field_ty = ctx.out[ctx.out[field].field_type_id].kind;
+            let field_ty = ctx.out[field].r#type.definition;
             federated::FieldSetItem {
                 field,
                 subselection: attach_selection(&selection.subselection, field_ty, ctx),

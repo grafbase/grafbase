@@ -4,7 +4,7 @@ use graphql_federated_graph as federated;
 use std::collections::HashMap;
 
 pub(super) struct Context<'a> {
-    pub(super) out: &'a mut federated::FederatedGraphV2,
+    pub(super) out: &'a mut federated::FederatedGraphV3,
     pub(super) subgraphs: &'a subgraphs::Subgraphs,
     pub(super) field_types_map: FieldTypesMap,
     pub(super) selection_map: HashMap<(federated::Definition, federated::StringId), federated::FieldId>,
@@ -17,7 +17,7 @@ impl<'a> Context<'a> {
     pub(crate) fn new(
         ir: &mut ir::CompositionIr,
         subgraphs: &'a subgraphs::Subgraphs,
-        out: &'a mut federated::FederatedGraphV2,
+        out: &'a mut federated::FederatedGraphV3,
     ) -> Self {
         Context {
             out,
@@ -37,6 +37,8 @@ impl<'a> Context<'a> {
     pub(crate) fn push_object_field(&mut self, object_id: federated::ObjectId, field_id: federated::FieldId) {
         let key = (federated::Definition::Object(object_id), self.out[field_id].name);
         self.selection_map.insert(key, field_id);
+        let mut object = &mut self.out.objects[object_id.0];
+        assert!(object.fields.start == object.fields.end || object.fields.end == field_id.0 - 1);
         self.out
             .object_fields
             .push(federated::ObjectField { object_id, field_id });

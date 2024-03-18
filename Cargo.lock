@@ -2008,6 +2008,7 @@ dependencies = [
  "strum_macros",
  "thiserror",
  "url",
+ "wrapping",
 ]
 
 [[package]]
@@ -3021,6 +3022,7 @@ dependencies = [
  "indoc",
  "serde",
  "serde_json",
+ "wrapping",
 ]
 
 [[package]]
@@ -8527,6 +8529,10 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
 ]
+
+[[package]]
+name = "wrapping"
+version = "0.63.0-rc.1"
 
 [[package]]
 name = "wyz"

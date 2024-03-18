@@ -36,8 +36,20 @@ const LIST_WRAPPINGS_MASK: u32 = 0b0000_0000_0001_1111_1111_1111_1111_1111;
 const MAX_LIST_WRAPINGS: u32 = LIST_WRAPPINGS_MASK.trailing_ones();
 const INNER_IS_REQUIRED_FLAG: u32 = 0b1000_0000_0000_0000_0000_0000_0000_0000;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Wrapping(u32);
+
+impl From<Wrapping> for u32 {
+    fn from(value: Wrapping) -> Self {
+        value.0
+    }
+}
+
+impl From<u32> for Wrapping {
+    fn from(value: u32) -> Self {
+        Wrapping(value)
+    }
+}
 
 impl std::fmt::Debug for Wrapping {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
