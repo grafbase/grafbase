@@ -178,6 +178,7 @@ strip = "symbols"
 # by telling cargo to optimize at the link stage (in addition to the
 # normal optimizations during the compilation stage)
 lto = "thin"
+codegen-units = 1
 
 [workspace.lints.rust]
 nonstandard-style = "deny"
