@@ -570,11 +570,3 @@ pub(crate) fn trust_reused_ids(reused: &backend::api::submit_trusted_documents::
         watercolor::output!("- {id}", @BrightRed);
     }
 }
-
-pub(crate) fn download_grafbase() {
-    watercolor::output!("🕒 Downloading the latest version of grafbase...", @BrightBlue);
-}
-
-pub(crate) fn upgrade_success(version: String) {
-    watercolor::output!("✨ Successfully upgraded grafbase to version {version}!", @BrightBlue);
-}

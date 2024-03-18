@@ -3,17 +3,17 @@ use common::environment::Environment;
 use const_format::concatcp;
 use fslock::LockFile;
 use futures_util::StreamExt;
+use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 use serde::Deserialize;
 use std::fs::Permissions;
 use std::path::PathBuf;
+use std::time::Duration;
 use thiserror::Error;
 use tokio::fs::{self, File};
 use tokio::io::{self, BufWriter};
 use tokio::task::{self, JoinError};
 use tokio_util::io::StreamReader;
-
-use crate::output::report;
 
 #[derive(Error, Debug)]
 pub enum UpgradeError {
@@ -94,7 +94,18 @@ pub(crate) async fn install_grafbase() -> Result<(), UpgradeError> {
         return Err(UpgradeError::UpToDate);
     }
 
-    report::download_grafbase();
+    // TODO: use a real progress bar here
+    let spinner = ProgressBar::new_spinner()
+        .with_message(format!(
+            "Downloading grafbase-{TARGET}{BINARY_SUFFIX} {latest_version}..."
+        ))
+        .with_style(
+            ProgressStyle::with_template("{spinner} {wide_msg}")
+                .expect("must parse")
+                .tick_chars("🕛🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚✨"),
+        );
+
+    spinner.enable_steady_tick(Duration::from_millis(100));
 
     download_grafbase(environment, client).await?;
 
@@ -102,7 +113,7 @@ pub(crate) async fn install_grafbase() -> Result<(), UpgradeError> {
         .await?
         .map_err(UpgradeError::Unlock)?;
 
-    report::upgrade_success(latest_version);
+    spinner.finish_with_message(format!("Successfully installed grafbase {latest_version}!"));
 
     Ok(())
 }
