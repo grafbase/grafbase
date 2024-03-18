@@ -23,17 +23,23 @@ pub struct ReusedIds {
     pub reused: Vec<ReusedId>,
 }
 
+#[derive(Debug, cynic::QueryFragment)]
+pub struct OldAccessTokenError {
+    __typename: String,
+}
+
 #[derive(Debug, cynic::InlineFragments)]
 pub enum TrustedDocumentsSubmitPayload {
     TrustedDocumentsSubmitSuccess(TrustedDocumentsSubmitSuccess),
     ReusedIds(ReusedIds),
+    OldToken(OldAccessTokenError),
     #[cynic(fallback)]
     Unknown,
 }
 
 #[derive(Debug, cynic::QueryVariables)]
 pub struct TrustedDocumentsSubmitVariables<'a> {
-    pub account: &'a str,
+    pub account: Option<&'a str>,
     pub project: &'a str,
     pub branch: &'a str,
     pub client_name: &'a str,
