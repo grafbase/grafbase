@@ -52,7 +52,7 @@ pub enum SubCommand {
     Check(CheckCommand),
     /// Submit a trusted documents manifest
     Trust(TrustCommand),
-    /// Upgrade the installed version of the grafbase CLI
+    /// Upgrade the installed version of the Grafbase CLI
     #[clap(hide=is_direct_install())]
     Upgrade,
 }
