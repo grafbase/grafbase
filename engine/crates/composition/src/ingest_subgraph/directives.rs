@@ -1,3 +1,6 @@
+mod consts;
+
+use self::consts::*;
 use super::*;
 use std::{borrow::Cow, collections::BTreeSet};
 
@@ -201,6 +204,9 @@ pub(crate) struct DirectiveMatcher<'a> {
     interface_object: Cow<'a, str>,
     r#override: Cow<'a, str>,
     compose_directive: Cow<'a, str>,
+    requires_scopes: Cow<'a, str>,
+    authenticated: Cow<'a, str>,
+    policy: Cow<'a, str>,
 
     /// directive name -> is repeatable
     ///
@@ -213,16 +219,19 @@ const DEFAULT_FEDERATION_PREFIX: &str = "federation__";
 impl Default for DirectiveMatcher<'_> {
     fn default() -> Self {
         DirectiveMatcher {
-            shareable: Cow::Borrowed("shareable"),
-            key: Cow::Borrowed("key"),
-            external: Cow::Borrowed("external"),
-            provides: Cow::Borrowed("provides"),
-            requires: Cow::Borrowed("requires"),
-            inaccessible: Cow::Borrowed("inaccessible"),
-            interface_object: Cow::Borrowed("interfaceObject"),
-            r#override: Cow::Borrowed("override"),
-            compose_directive: Cow::Borrowed("composeDirective"),
+            authenticated: Cow::Borrowed(AUTHENTICATED),
+            compose_directive: Cow::Borrowed(COMPOSE_DIRECTIVE),
             composed_directives: BTreeSet::new(),
+            external: Cow::Borrowed(EXTERNAL),
+            inaccessible: Cow::Borrowed(INACCESSIBLE),
+            interface_object: Cow::Borrowed(INTERFACE_OBJECT),
+            key: Cow::Borrowed(KEY),
+            policy: Cow::Borrowed(POLICY),
+            provides: Cow::Borrowed(PROVIDES),
+            r#override: Cow::Borrowed(OVERRIDE),
+            requires: Cow::Borrowed(REQUIRES),
+            requires_scopes: Cow::Borrowed(REQUIRES_SCOPES),
+            shareable: Cow::Borrowed(SHAREABLE),
         }
     }
 }
@@ -267,15 +276,18 @@ impl<'a> DirectiveMatcher<'a> {
         };
 
         DirectiveMatcher {
-            shareable: final_name("shareable"),
-            key: final_name("key"),
-            external: final_name("external"),
-            provides: final_name("provides"),
-            requires: final_name("requires"),
-            inaccessible: final_name("inaccessible"),
-            interface_object: final_name("interfaceObject"),
-            r#override: final_name("override"),
-            compose_directive: final_name("composeDirective"),
+            shareable: final_name(SHAREABLE),
+            key: final_name(KEY),
+            external: final_name(EXTERNAL),
+            provides: final_name(PROVIDES),
+            requires: final_name(REQUIRES),
+            inaccessible: final_name(INACCESSIBLE),
+            interface_object: final_name(INTERFACE_OBJECT),
+            r#override: final_name(OVERRIDE),
+            compose_directive: final_name(COMPOSE_DIRECTIVE),
+            requires_scopes: final_name(REQUIRES_SCOPES),
+            authenticated: final_name(AUTHENTICATED),
+            policy: final_name(POLICY),
             composed_directives: BTreeSet::new(),
         }
     }
