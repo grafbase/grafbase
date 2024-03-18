@@ -295,6 +295,30 @@ jobs:
           path: |
             target/${{ matrix.archs.target }}/release/grafbase-gateway
 
+      - name: Build gateway lambda release
+        run: |
+          cargo build --release -p grafbase-gateway --target ${{ matrix.archs.target }} --features lambda
+
+      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' }}
+        name: Upload lambda gateway binary to R2
+        run: |
+          aws s3api put-object \
+            --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
+            --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
+            --key ${GITHUB_SHA}/${{ matrix.archs.target }}/grafbase-gateway-lambda \
+            --body target/${{ matrix.archs.target }}/release/grafbase-gateway
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
+
+      - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
+        name: Upload gateway lambda binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-lambda-${{ env.VERSION_BUMP }}-${{ matrix.archs.platform }}
+          path: |
+            target/${{ matrix.archs.target }}/release/grafbase-gateway
+
   darwin:
     needs: [test]
     runs-on: macos-latest-xlarge

@@ -11,7 +11,7 @@ pub use graph_fetch_method::GraphFetchMethod;
 
 use crate::config::{Config, TlsConfig};
 use axum::{routing::get, Router};
-use axum_server::tls_rustls::RustlsConfig;
+use axum_server as _;
 use gateway_v2::local_server::{WebsocketAccepter, WebsocketService};
 use state::ServerState;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -70,6 +70,7 @@ pub(super) async fn serve(
     Ok(())
 }
 
+#[cfg(not(feature = "lambda"))]
 async fn bind(addr: SocketAddr, path: &str, router: Router, tls: Option<TlsConfig>) -> Result<(), crate::Error> {
     let app = router.into_make_service();
 
@@ -77,7 +78,7 @@ async fn bind(addr: SocketAddr, path: &str, router: Router, tls: Option<TlsConfi
         Some(ref tls) => {
             tracing::info!("starting the Grafbase gateway at https://{addr}{path}");
 
-            let rustls_config = RustlsConfig::from_pem_file(&tls.certificate, &tls.key)
+            let rustls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(&tls.certificate, &tls.key)
                 .await
                 .map_err(crate::Error::CertificateError)?;
 
@@ -91,6 +92,19 @@ async fn bind(addr: SocketAddr, path: &str, router: Router, tls: Option<TlsConfi
             axum_server::bind(addr).serve(app).await.map_err(crate::Error::Server)?
         }
     }
+
+    Ok(())
+}
+
+#[cfg(feature = "lambda")]
+async fn bind(_: SocketAddr, path: &str, router: Router, _: Option<TlsConfig>) -> Result<(), crate::Error> {
+    let app = tower::ServiceBuilder::new()
+        .layer(axum_aws_lambda::LambdaLayer::default())
+        .service(router);
+
+    tracing::info!("starting the Grafbase Lambda gateway in {path}");
+
+    lambda_http::run(app).await.expect("unable to start lambda http server");
 
     Ok(())
 }
