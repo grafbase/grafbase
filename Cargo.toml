@@ -17,6 +17,8 @@ members = [
 
 [patch.crates-io]
 async-tungstenite = { git = "https://github.com/grafbase/async-tungstenite", rev = "431cc5963ecb9b13684b1b4e5daeb46971f851e4" } # ring
+# Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
+axum-server = { git = "https://github.com/grafbase/axum-server", rev = "fdce3d3dc71dc69597689cc28003cc0533b47dba" } # rustls-0.23
 http-cache = { git = "https://github.com/grafbase/http-cache", rev = "a7812cc7ebea07ba21ed6fb5fdd74792f2438a73" } # http-v1
 http-cache-reqwest = { git = "https://github.com/grafbase/http-cache", rev = "a7812cc7ebea07ba21ed6fb5fdd74792f2438a73" } # http-v1
 hyper-rustls = { git = "https://github.com/grafbase/hyper-rustls", rev = "e8e14ba34c081702297c74e544109be6c8ea5232" } # rustls-0.23
@@ -36,8 +38,7 @@ tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rust
 # Drop when a new version of tokio-rustls is released.
 tokio-rustls = { git = "https://github.com/rustls/tokio-rustls", rev = "3a153acec6c4d189eb5de501b2155b4484b8651b" } # main
 tungstenite = { git = "https://github.com/grafbase/tungstenite-rs", rev = "783940b2e6cc02c7067efb07dc72ae49d75571b0" } # dependabot/cargo/rustls-0.23.1
-# Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
-axum-server = { git = "https://github.com/grafbase/axum-server", rev = "fdce3d3dc71dc69597689cc28003cc0533b47dba" } # rustls-0.23
+
 # https://github.com/tokio-rs/tracing/tree/v0.1.x/tracing-mock
 tracing = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" }
 tracing-core = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" }
