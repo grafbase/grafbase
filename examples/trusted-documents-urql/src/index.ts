@@ -58,8 +58,8 @@ const client = new Client({
 });
 
 async function main() {
-  const response = await client.query(planetsQuery)
-  console.log(response)
+  const response = await client.query(peopleQuery, { count: 4 })
+  console.log(JSON.stringify(response, null, 2))
 }
 
 main().catch(console.error).then(() => process.exit(1))
