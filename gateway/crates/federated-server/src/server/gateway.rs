@@ -13,6 +13,7 @@ use tokio::sync::watch;
 use crate::config::{AuthenticationConfig, HeaderValue, OperationLimitsConfig, SubgraphConfig, TrustedDocumentsConfig};
 
 /// Send half of the gateway watch channel
+#[cfg(not(feature = "lambda"))]
 pub(crate) type GatewaySender = watch::Sender<Option<Arc<Gateway>>>;
 
 /// Receive half of the gateway watch channel.
