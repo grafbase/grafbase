@@ -19,6 +19,7 @@ clap = { version = "4", features = ["cargo", "wrap_help", "derive", "env"] }
 clap_complete = "4"
 colored = "2"
 ctrlc = "3"
+dirs = "5"
 exitcode = "1"
 futures-util = "0.3"
 fslock = "0.2"
@@ -58,7 +59,6 @@ federated-dev = { path = "../federated-dev" }
 grafbase-graphql-introspection.workspace = true
 graph-ref = { path = "../../../graph-ref" }
 server = { package = "grafbase-local-server", path = "../server", version = "0.63.0-rc.1" }
-dirs = "5"
 
 [dev-dependencies]
 async-graphql-axum.workspace = true
