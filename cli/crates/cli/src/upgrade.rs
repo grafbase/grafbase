@@ -60,11 +60,6 @@ struct NpmPackageInfo {
 const BINARY_SUFFIX: &str = if cfg!(windows) { ".exe" } else { "" };
 const TARGET: &str = env!("TARGET");
 const CARGO_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
-const GRAFBASE_DOWNLOAD_URL: &str = concatcp!(
-    "https://github.com/grafbase/grafbase/releases/latest/download/grafbase-",
-    TARGET,
-    BINARY_SUFFIX
-);
 const LATEST_RELEASE_API_URL: &str = "https://registry.npmjs.org/grafbase/latest";
 const GRAFBASE_EXECUTABLE_PERMISSIONS: u32 = 0o755;
 const GRAFBASE_INSTALL_LOCK_FILE: &str = ".grafbase.install.lock";
@@ -107,7 +102,7 @@ pub(crate) async fn install_grafbase() -> Result<(), UpgradeError> {
 
     spinner.enable_steady_tick(Duration::from_millis(100));
 
-    download_grafbase(environment, client).await?;
+    download_grafbase(environment, client, &latest_version).await?;
 
     task::spawn_blocking(move || lock_file.unlock())
         .await?
@@ -118,7 +113,11 @@ pub(crate) async fn install_grafbase() -> Result<(), UpgradeError> {
     Ok(())
 }
 
-async fn download_grafbase(environment: &'static Environment, client: Client) -> Result<(), UpgradeError> {
+async fn download_grafbase(
+    environment: &'static Environment,
+    client: Client,
+    latest_version: &str,
+) -> Result<(), UpgradeError> {
     trace!("Installing grafbase…");
     fs::create_dir_all(&environment.grafbase_installation_path)
         .await
@@ -127,8 +126,13 @@ async fn download_grafbase(environment: &'static Environment, client: Client) ->
     let grafbase_binary_path = environment.grafbase_installation_path.join(EXECUTABLE_NAME);
     let grafbase_temp_binary_path = environment.grafbase_installation_path.join(PARTIAL_DOWNLOAD_FILE);
 
+    let download_url = format!(
+        "https://github.com/grafbase/grafbase/releases/download/cli-{}/grafbase-{}{}",
+        latest_version, TARGET, BINARY_SUFFIX
+    );
+
     let binary_response = client
-        .get(GRAFBASE_DOWNLOAD_URL)
+        .get(download_url)
         .send()
         .await
         .map_err(|_| UpgradeError::Download)?;
@@ -177,9 +181,15 @@ async fn get_latest_release_version(client: &Client) -> Result<String, UpgradeEr
         .get(LATEST_RELEASE_API_URL)
         .send()
         .await
+        .inspect_err(|error| {
+            dbg!(error);
+        })
         .map_err(|_| UpgradeError::GetLatestReleaseVersion)?
         .json()
         .await
+        .inspect_err(|error| {
+            dbg!(error);
+        })
         .map_err(|_| UpgradeError::GetLatestReleaseVersion)?;
     Ok(package_info.version.to_owned())
 }
