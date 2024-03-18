@@ -37,7 +37,7 @@ reqwest = { workspace = true, features = [
   "stream",
   "json",
 ], default-features = false }
-rustls = { workspace = true, features = ["ring"] }
+rustls = { workspace = true, features = ["ring", "tls12"] }
 serde = "1"
 serde_derive = "1"
 serde_json.workspace = true
@@ -95,7 +95,6 @@ reqwest = { workspace = true, features = [
   "json",
 ] }
 reqwest-eventsource = "0.5"
-rustls = { workspace = true, features = ["tls12"] }
 rsa = "0.9"
 rstest = "0.18"
 rstest_reuse = "0.6"

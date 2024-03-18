@@ -54,9 +54,6 @@ use watercolor::ShouldColorize;
 
 use mimalloc::MiMalloc;
 
-// `rustls` is only enumerated as a dependency to extend the feature set to include suppot for TLS 1.2.
-use rustls as _;
-
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
