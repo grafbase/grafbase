@@ -396,19 +396,17 @@ fn joins_with_downstream_errors() {
                 )
 
             type JoinContainer {{
-                brokenField: String! @join(select: "errors {{ brokenField(error: \"fieldError\") }}")
-                brokenList: [String!]! @join(select: "errors {{ brokenList(error: \"listError\") }}")
                 brokenObjectList: [ErrorsBrokenObject] @join(select: "errors {{ brokenObjectList(error: \"objectError\") }}")
             }}
 
             extend type Query {{
-                joins: JoinContainer! @resolver(name: "joinContainer")
+                joins: [JoinContainer]! @resolver(name: "joinContainer")
             }}
             "#
         );
 
         let engine = EngineBuilder::new(schema)
-            .with_custom_resolvers(RustUdfs::new().resolver("joinContainer", UdfResponse::Success(json!({}))))
+            .with_custom_resolvers(RustUdfs::new().resolver("joinContainer", UdfResponse::Success(json!([{}, {}]))))
             .build()
             .await;
 
@@ -428,18 +426,28 @@ fn joins_with_downstream_errors() {
                 @r###"
         {
           "data": {
-            "joins": {
-              "brokenObjectList": [
-                null,
-                null
-              ]
-            }
+            "joins": [
+              {
+                "brokenObjectList": [
+                  null,
+                  null
+                ]
+              },
+              {
+                "brokenObjectList": [
+                  null,
+                  null
+                ]
+              }
+            ]
           },
           "errors": [
             {
               "message": "objectError",
               "path": [
                 "joins",
+                0,
+                "brokenObjectList",
                 "brokenObjectList",
                 0,
                 "brokenField"
@@ -449,6 +457,30 @@ fn joins_with_downstream_errors() {
               "message": "objectError",
               "path": [
                 "joins",
+                0,
+                "brokenObjectList",
+                "brokenObjectList",
+                1,
+                "brokenField"
+              ]
+            },
+            {
+              "message": "objectError",
+              "path": [
+                "joins",
+                1,
+                "brokenObjectList",
+                "brokenObjectList",
+                0,
+                "brokenField"
+              ]
+            },
+            {
+              "message": "objectError",
+              "path": [
+                "joins",
+                1,
+                "brokenObjectList",
                 "brokenObjectList",
                 1,
                 "brokenField"

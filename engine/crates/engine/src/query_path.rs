@@ -97,3 +97,12 @@ impl From<&str> for QueryPathSegment {
         QueryPathSegment::Field(ArcIntern::from_ref(value))
     }
 }
+
+impl PartialEq<str> for QueryPathSegment {
+    fn eq(&self, other: &str) -> bool {
+        match self {
+            Self::Field(value) => value.as_str() == other,
+            _ => false,
+        }
+    }
+}

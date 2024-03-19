@@ -225,12 +225,17 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
                     let UpstreamResponse { data, errors } = upstream_response.clone();
                     let errors = errors
                         .into_iter()
-                        .map(|error| translate_error_path(error, &query.local_path, None))
+                        .map(|error| translate_error_path(error, &query.local_path, None, query.namespaced))
                         .collect();
 
                     results.insert(query.clone(), (UpstreamResponse { data, errors }, http_status));
                 } else {
-                    let errors = translate_error_paths_for_group(&aliases, &upstream_response, &query.local_path);
+                    let errors = translate_error_paths_for_group(
+                        &aliases,
+                        &upstream_response,
+                        &query.local_path,
+                        query.namespaced,
+                    );
 
                     let data = match &upstream_response.data {
                         serde_json::Value::Object(upstream_data) => {
@@ -255,10 +260,11 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
     }))
 }
 
-fn translate_error_paths_for_group(
+fn filter_and_translate_error_paths_for_group(
     aliases: &HashMap<String, String>,
     upstream_response: &UpstreamResponse,
     local_path: &QueryPath,
+    namespaced: bool,
 ) -> Vec<ServerError> {
     let path_prefixes = aliases
         .iter()
@@ -279,22 +285,35 @@ fn translate_error_paths_for_group(
                 .find_map(|(prefix, original_name)| error.path.starts_with(prefix).then_some(original_name))
                 .zip(Some(error))
         })
-        .map(|(field_name, error)| translate_error_path(error.clone(), local_path, Some(field_name)))
+        .map(|(field_name, error)| translate_error_path(error.clone(), local_path, Some(field_name), namespaced))
         .collect();
+
     errors
 }
 
-fn translate_error_path(mut error: ServerError, local_path: &QueryPath, field_name: Option<&str>) -> ServerError {
-    error.path = local_path
-        .iter()
-        .cloned()
-        .chain(
-            field_name
-                .into_iter()
-                .map(|field_name| QueryPathSegment::Field(ArcIntern::new(field_name.to_string()))),
-        )
-        .chain(error.path.into_iter().skip(1))
-        .collect();
+fn translate_error_path(
+    mut error: ServerError,
+    local_path: &QueryPath,
+    field_name: Option<&str>,
+    namespaced: bool,
+) -> ServerError {
+    if let Some((field_name, first_segment)) = field_name.zip(error.path.first()) {
+        if first_segment != field_name {
+            // An alias was probably used, so we need to translate the first key in the remote path
+            *error.path.first_mut().unwrap() = QueryPathSegment::Field(ArcIntern::new(field_name.to_string()))
+        }
+    }
+
+    if namespaced {
+        error.path = local_path.iter().cloned().chain(error.path).collect();
+    } else {
+        // Namespaced connectors are resolved at the field level so we need to drop one more path segment
+        error.path = local_path
+            .iter()
+            .cloned()
+            .chain(error.path.into_iter().skip(1))
+            .collect();
+    }
 
     // Its more bother than its worth to translate locations imo, so
     // just going to get rid of those
@@ -455,6 +474,8 @@ struct QueryData {
     /// The path prefix that should be used in errors in place of the path we get from remote
     /// servers
     local_path: QueryPath,
+
+    namespaced: bool,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, serde::Serialize)]
@@ -516,6 +537,8 @@ impl Resolver {
                 registry,
             );
 
+            let namespaced = matches!(target, Target::SelectionSet { .. });
+
             match operation {
                 OperationType::Query => serializer.query(target, current_type)?,
                 OperationType::Mutation => serializer.mutation(target, current_type)?,
@@ -539,6 +562,7 @@ impl Resolver {
                 ray_id: ray_id.to_owned(),
                 fetch_log_endpoint_url: fetch_log_endpoint_url.map(str::to_owned),
                 local_path: path,
+                namespaced,
             };
 
             let value = match (batcher, operation) {
@@ -561,7 +585,7 @@ impl Resolver {
                 ));
             }
 
-            dbg!(errors).into_iter().for_each(error_handler);
+            errors.into_iter().for_each(error_handler);
 
             if let Some(prefix) = prefix {
                 prefix_result_typename(&mut data, &prefix);
