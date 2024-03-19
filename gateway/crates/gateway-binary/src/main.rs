@@ -2,8 +2,13 @@
 
 use args::Args;
 use clap::Parser;
+use grafbase_tracing::otel::layer::BoxedLayer;
 use mimalloc::MiMalloc;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use tracing_core::Subscriber;
+use tracing_subscriber::registry::LookupSpan;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::Layer;
+use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -22,11 +27,27 @@ fn main() -> anyhow::Result<()> {
 
     tracing_subscriber::registry()
         .with(Some(otel_layer))
-        .with(tracing_subscriber::fmt::layer())
+        .with(log_format_layer())
         .with(filter)
         .init();
 
     federated_server::start(args.listen_address, &args.config, args.fetch_method()?, reload_handle)?;
 
     Ok(())
+}
+
+#[cfg(not(feature = "lambda"))]
+fn log_format_layer<S>() -> BoxedLayer<S>
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+{
+    tracing_subscriber::fmt::layer().boxed()
+}
+
+#[cfg(feature = "lambda")]
+fn log_format_layer<S>() -> BoxedLayer<S>
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+{
+    tracing_subscriber::fmt::layer().json().boxed()
 }
