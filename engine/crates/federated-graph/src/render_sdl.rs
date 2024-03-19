@@ -36,7 +36,7 @@ pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
         writeln!(sdl, "type Query\n")?;
     }
 
-    for (idx, object) in graph.objects.iter().enumerate() {
+    for object in &graph.objects {
         let object_name = &graph[object.name];
 
         if let Some(description) = object.description {
@@ -96,7 +96,7 @@ pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
         }
     }
 
-    for (idx, interface) in graph.interfaces.iter().enumerate() {
+    for interface in &graph.interfaces {
         let interface_name = &graph[interface.name];
 
         if let Some(description) = interface.description {

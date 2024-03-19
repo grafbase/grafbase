@@ -157,6 +157,7 @@ pub enum Value {
     Int(i64),
     Float(StringId),
     Boolean(bool),
+    #[allow(clippy::enum_variant_names)]
     EnumValue(StringId),
     Object(Vec<(StringId, Value)>),
     List(Vec<Value>),

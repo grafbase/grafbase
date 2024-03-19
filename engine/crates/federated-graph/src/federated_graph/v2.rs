@@ -70,7 +70,7 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn as_list(&self) -> Option<&Box<[Value]>> {
+    pub fn as_list(&self) -> Option<&[Value]> {
         if let Self::List(v) = self {
             Some(v)
         } else {

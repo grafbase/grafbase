@@ -348,10 +348,12 @@ impl<'a> DirectiveMatcher<'a> {
         self.authenticated == directive_name
     }
 
+    #[allow(unused)]
     pub(crate) fn is_policy(&self, directive_name: &str) -> bool {
         self.policy == directive_name
     }
 
+    #[allow(unused)]
     pub(crate) fn is_requires_scope(&self, directive_name: &str) -> bool {
         self.requires_scopes == directive_name
     }
