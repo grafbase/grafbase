@@ -34,7 +34,7 @@ pub fn start<S>(
     listen_addr: Option<SocketAddr>,
     config_path: &Path,
     graph: GraphFetchMethod,
-    reload_handle: reload::Handle<FilteredLayer<S>, S>,
+    reload_handle: Option<reload::Handle<FilteredLayer<S>, S>>,
 ) -> Result<()>
 where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
@@ -44,7 +44,7 @@ where
 
     let (otel_reload_tx, otel_reload_rx) = oneshot::channel::<Handle>();
 
-    if let Some(telemetry_config) = config.telemetry.as_ref() {
+    if let Some((telemetry_config, reload_handle)) = config.telemetry.as_ref().zip(reload_handle) {
         otel_reload(reload_handle, otel_reload_rx, telemetry_config);
     }
 
