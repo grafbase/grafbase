@@ -1,0 +1,14 @@
+extend schema
+  @link(
+  url: "https://specs.apollo.dev/federation/v2.6",
+  import: ["@key", "@shareable", "@requiresScopes"])
+
+type B @key(fields: "id") {
+  id: ID!
+  foo: String @shareable @requiresScopes(scopes: [["scope:1", "scope:2"], ["yolo"]])
+}
+
+type A @key(fields: "id") {
+  id: ID!
+  names: String! @shareable @requiresScopes(scopes: [["read:profiles", "read:profiles2", "read:others"]])
+}
