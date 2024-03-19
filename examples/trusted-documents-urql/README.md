@@ -4,7 +4,7 @@ This example demonstrates a basic setup with Trusted Documents using [urql](http
 
 Below is a list of steps you can follow to see a successful trusted documents query. We'll use [Bun](https://bun.sh/) in this walkthrough, but node + (p)npm should work as well.
 
-1. Install the node dependencies:
+1. Install Node.js dependencies:
 
 ```sh
 $ bun install
