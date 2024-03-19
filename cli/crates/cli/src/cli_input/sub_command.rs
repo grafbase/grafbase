@@ -1,5 +1,7 @@
 use clap::Parser;
 
+use crate::is_not_direct_install;
+
 use super::{
     trust::TrustCommand, ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand, CreateCommand, DevCommand,
     InitCommand, IntrospectCommand, LinkCommand, LogsCommand, PublishCommand, SchemaCommand, StartCommand,
@@ -50,6 +52,9 @@ pub enum SubCommand {
     Check(CheckCommand),
     /// Submit a trusted documents manifest
     Trust(TrustCommand),
+    /// Upgrade the installed version of the Grafbase CLI
+    #[clap(hide=is_not_direct_install())]
+    Upgrade,
 }
 
 impl SubCommand {
@@ -98,6 +103,7 @@ impl ArgumentNames for SubCommand {
             | SubCommand::Completions(_)
             | SubCommand::DumpConfig
             | SubCommand::Trust(_)
+            | SubCommand::Upgrade
             | SubCommand::Logs(_) => None,
         }
     }

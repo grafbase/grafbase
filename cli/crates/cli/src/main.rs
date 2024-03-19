@@ -24,6 +24,7 @@ mod start;
 mod subgraphs;
 mod trust;
 mod unlink;
+mod upgrade;
 mod watercolor;
 
 #[macro_use]
@@ -47,7 +48,7 @@ use clap::Parser;
 use common::{analytics::Analytics, environment::Environment};
 use errors::CliError;
 use output::report;
-use std::process;
+use std::{path::PathBuf, process};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use watercolor::ShouldColorize;
 
@@ -185,5 +186,21 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::DumpConfig => dump_config::dump_config(),
         SubCommand::Check(cmd) => check::check(cmd),
         SubCommand::Trust(cmd) => trust::trust(cmd),
+        SubCommand::Upgrade => {
+            // this command is also hidden in this case
+            // (clippy doesn't have a mechanism to completely disable a command conditionally when using derive, see https://github.com/clap-rs/clap/issues/5251)
+            if is_not_direct_install() {
+                return Err(CliError::NotDirectInstall);
+            }
+            upgrade::install_grafbase().map_err(Into::into)
+        }
     }
+}
+
+pub(crate) fn is_not_direct_install() -> bool {
+    std::env::current_exe().is_ok_and(|path| Some(path) != direct_install_executable_path())
+}
+
+pub(crate) fn direct_install_executable_path() -> Option<PathBuf> {
+    dirs::home_dir().map(|home| home.join(".grafbase").join("bin").join("grafbase"))
 }

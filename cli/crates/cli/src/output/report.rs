@@ -574,3 +574,7 @@ pub(crate) fn trust_reused_ids(reused: &backend::api::submit_trusted_documents::
         watercolor::output!("- {id}", @BrightRed);
     }
 }
+
+pub(crate) fn upgrade_up_to_date(version: &str) {
+    watercolor::output!("✅ The locally installed version ({version}) is already up to date", @BrightGreen)
+}
