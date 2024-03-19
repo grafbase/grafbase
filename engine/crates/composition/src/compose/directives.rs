@@ -25,7 +25,7 @@ pub(super) fn collect_composed_directives<'a>(
         push_directive(ctx, directive);
     }
 
-    for site in sites {
+    for site in sites.clone() {
         tags.extend(site.tags().map(|t| t.id));
 
         // The inaccessible directive is added whenever the item is inaccessible in any subgraph.
@@ -51,6 +51,48 @@ pub(super) fn collect_composed_directives<'a>(
 
     if authenticated {
         push_directive(ctx, federated::Directive::Authenticated)
+    }
+
+    // @requiresScopes
+    {
+        let mut scopes: Vec<Vec<federated::StringId>> = Vec::new();
+
+        for scopes_arg in sites.clone().flat_map(|directives| directives.requires_scopes()) {
+            scopes.push(
+                scopes_arg
+                    .iter()
+                    .map(|scope| ctx.insert_string(*scope))
+                    .collect::<Vec<_>>(),
+            );
+        }
+
+        scopes.sort();
+        scopes.dedup();
+
+        if !scopes.is_empty() {
+            push_directive(ctx, federated::Directive::RequiresScopes(scopes));
+        }
+    }
+
+    // @policy
+    {
+        let mut policies: Vec<Vec<federated::StringId>> = Vec::new();
+
+        for policies_arg in sites.clone().flat_map(|directives| directives.policies()) {
+            policies.push(
+                policies_arg
+                    .iter()
+                    .map(|scope| ctx.insert_string(*scope))
+                    .collect::<Vec<_>>(),
+            );
+        }
+
+        policies.sort();
+        policies.dedup();
+
+        if !policies.is_empty() {
+            push_directive(ctx, federated::Directive::Policy(policies));
+        }
     }
 
     for tag in tags {

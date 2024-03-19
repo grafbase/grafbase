@@ -95,6 +95,56 @@ pub(super) fn ingest_directives(
             subgraphs.insert_authenticated(directives);
         }
 
+        if directive_matcher.is_requires_scope(directive_name) {
+            let scopes = directive
+                .node
+                .get_argument("scopes")
+                .into_iter()
+                .flat_map(|scopes| match &scopes.node {
+                    ConstValue::List(list) => Some(list),
+                    _ => None,
+                })
+                .flatten();
+            for scope in scopes {
+                let inner_scopes: Vec<subgraphs::StringId> = match scope {
+                    ConstValue::List(scopes) => scopes
+                        .iter()
+                        .filter_map(|scope| match scope {
+                            ConstValue::String(string) => Some(subgraphs.strings.intern(string.as_str())),
+                            _ => None,
+                        })
+                        .collect(),
+                    _ => vec![],
+                };
+                subgraphs.insert_requires_scopes(directives, inner_scopes);
+            }
+        }
+
+        if directive_matcher.is_policy(directive_name) {
+            let policies = directive
+                .node
+                .get_argument("policies")
+                .into_iter()
+                .flat_map(|scopes| match &scopes.node {
+                    ConstValue::List(list) => Some(list),
+                    _ => None,
+                })
+                .flatten();
+            for policy in policies {
+                let inner_policies: Vec<subgraphs::StringId> = match policy {
+                    ConstValue::List(policies) => policies
+                        .iter()
+                        .filter_map(|policy| match policy {
+                            ConstValue::String(string) => Some(subgraphs.strings.intern(string.as_str())),
+                            _ => None,
+                        })
+                        .collect(),
+                    _ => vec![],
+                };
+                subgraphs.insert_policy(directives, inner_policies);
+            }
+        }
+
         if directive_name == "deprecated" {
             let reason = directive.node.get_argument("reason").and_then(|v| match &v.node {
                 async_graphql_value::ConstValue::String(s) => Some(s.as_str()),
@@ -348,12 +398,10 @@ impl<'a> DirectiveMatcher<'a> {
         self.authenticated == directive_name
     }
 
-    #[allow(unused)]
     pub(crate) fn is_policy(&self, directive_name: &str) -> bool {
         self.policy == directive_name
     }
 
-    #[allow(unused)]
     pub(crate) fn is_requires_scope(&self, directive_name: &str) -> bool {
         self.requires_scopes == directive_name
     }

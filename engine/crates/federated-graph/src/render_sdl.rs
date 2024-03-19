@@ -324,24 +324,26 @@ fn write_composed_directives(directives: Directives, graph: &FederatedGraphV3, s
                 write!(sdl, ")")?;
             }
             Directive::RequiresScopes(scopes) => {
-                write!(sdl, " @requiresScopes([")?;
+                write!(sdl, " @requiresScopes(scopes: [")?;
                 for scope in scopes {
                     write!(sdl, "[")?;
                     for scope in scope {
                         write_quoted(sdl, &graph[*scope])?;
+                        write!(sdl, ", ")?;
                     }
-                    write!(sdl, "]")?;
+                    write!(sdl, "], ")?;
                 }
                 write!(sdl, "])")?;
             }
             Directive::Policy(policies) => {
-                write!(sdl, " @policy([")?;
+                write!(sdl, " @policy(policies: [")?;
                 for policy in policies {
                     write!(sdl, "[")?;
                     for policy in policy {
                         write_quoted(sdl, &graph[*policy])?;
+                        write!(sdl, ", ")?;
                     }
-                    write!(sdl, "]")?;
+                    write!(sdl, "], ")?;
                 }
                 write!(sdl, "])")?;
             }

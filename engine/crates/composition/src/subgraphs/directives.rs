@@ -25,6 +25,9 @@ pub(super) struct Directives {
     provides: BTreeMap<DirectiveSiteId, Vec<Selection>>,
     requires: BTreeMap<DirectiveSiteId, Vec<Selection>>,
 
+    requires_scopes: BTreeSet<(DirectiveSiteId, Vec<StringId>)>,
+    policies: BTreeSet<(DirectiveSiteId, Vec<StringId>)>,
+
     authenticated: HashSet<DirectiveSiteId>,
     inaccessible: HashSet<DirectiveSiteId>,
     shareable: HashSet<DirectiveSiteId>,
@@ -80,6 +83,14 @@ impl Subgraphs {
         let fields = self.selection_set_from_str(fields)?;
         self.directives.requires.insert(id, fields);
         Ok(())
+    }
+
+    pub(crate) fn insert_policy(&mut self, id: DirectiveSiteId, policies: Vec<StringId>) {
+        self.directives.policies.insert((id, policies));
+    }
+
+    pub(crate) fn insert_requires_scopes(&mut self, id: DirectiveSiteId, scope: Vec<StringId>) {
+        self.directives.requires_scopes.insert((id, scope));
     }
 
     pub(crate) fn insert_tag(&mut self, id: DirectiveSiteId, tag: &str) {
@@ -161,6 +172,15 @@ impl<'a> DirectiveSiteWalker<'a> {
         string_id.map(|override_| self.walk(*override_))
     }
 
+    pub(crate) fn policies(self) -> impl Iterator<Item = &'a [StringId]> {
+        self.subgraphs
+            .directives
+            .policies
+            .range((self.id, vec![])..)
+            .take_while(move |(site, _)| *site == self.id)
+            .map(|(_, policies)| policies.as_slice())
+    }
+
     /// ```ignore,graphql
     /// type MyObject {
     ///   id: ID!
@@ -190,6 +210,15 @@ impl<'a> DirectiveSiteWalker<'a> {
             .requires
             .get(&self.id)
             .map(|requires| &**requires)
+    }
+
+    pub(crate) fn requires_scopes(self) -> impl Iterator<Item = &'a [StringId]> {
+        self.subgraphs
+            .directives
+            .requires_scopes
+            .range((self.id, vec![])..)
+            .take_while(move |(site, _)| *site == self.id)
+            .map(|(_, scopes)| scopes.as_slice())
     }
 
     pub(crate) fn shareable(self) -> bool {

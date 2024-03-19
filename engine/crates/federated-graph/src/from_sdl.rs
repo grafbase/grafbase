@@ -833,6 +833,41 @@ fn collect_composed_directives(directives: &[Positioned<ast::ConstDirective>], s
 
                 state.directives.push(directive)
             }
+            "requiresScopes" => {
+                let scopes: Option<Vec<Vec<String>>> = directive
+                    .node
+                    .get_argument("scopes")
+                    .and_then(|scopes| scopes.node.clone().into_json().ok())
+                    .and_then(|scopes| serde_json::from_value(scopes).ok());
+
+                if let Some(scopes) = scopes {
+                    let transformed = scopes
+                        .into_iter()
+                        .map(|scopes| scopes.into_iter().map(|scope| state.insert_string(&scope)).collect())
+                        .collect();
+                    state.directives.push(Directive::RequiresScopes(transformed));
+                }
+            }
+            "policy" => {
+                let policies: Option<Vec<Vec<String>>> = directive
+                    .node
+                    .get_argument("policies")
+                    .and_then(|policies| policies.node.clone().into_json().ok())
+                    .and_then(|policies| serde_json::from_value(policies).ok());
+
+                if let Some(policies) = policies {
+                    let transformed = policies
+                        .into_iter()
+                        .map(|policies| {
+                            policies
+                                .into_iter()
+                                .map(|policy| state.insert_string(&policy))
+                                .collect()
+                        })
+                        .collect();
+                    state.directives.push(Directive::Policy(transformed));
+                }
+            }
             other => {
                 let name = state.insert_string(other);
                 let arguments = directive
