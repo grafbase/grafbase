@@ -51,7 +51,7 @@ fn start_server(filter: EnvFilter, args: Args) -> Result<(), anyhow::Error> {
 
     tracing_subscriber::registry()
         .with(Some(otel_layer))
-        .with(tracing_subscriber::fmt::layer().json())
+        .with(tracing_subscriber::fmt::layer().with_ansi(false))
         .with(filter)
         .init();
 
