@@ -2839,6 +2839,7 @@ dependencies = [
  "http 1.1.0",
  "indoc",
  "insta",
+ "mimalloc",
  "reqwest",
  "rustls",
  "serde",
