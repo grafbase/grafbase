@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-gateway"
-version = "0.1.0-rc.13"
+version = "0.1.0-rc.14"
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
@@ -8,7 +8,7 @@ keywords.workspace = true
 repository.workspace = true
 
 [features]
-lambda = ["federated-server/lambda", "tracing-subscriber/json", "opentelemetry-aws"]
+lambda = ["federated-server/lambda", "tracing-subscriber/json", "opentelemetry-aws", "opentelemetry-stdout"]
 
 [dependencies]
 anyhow = { version = "1.0.81", default-features = false }
@@ -19,6 +19,7 @@ grafbase-tracing = { workspace = true, features = ["otlp"] }
 graph-ref.workspace = true
 mimalloc = "0.1.39"
 opentelemetry-aws = { version = "0.10.0", optional = true }
+opentelemetry-stdout = { version = "0.3.0", features = ["trace"], optional = true }
 rustls = { workspace = true, features = ["ring"] }
 tracing-subscriber.workspace = true
 
