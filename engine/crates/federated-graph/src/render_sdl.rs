@@ -36,8 +36,9 @@ pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
         writeln!(sdl, "type Query\n")?;
     }
 
-    for object in &graph.objects {
+    for (idx, object) in graph.objects.iter().enumerate() {
         let object_name = &graph[object.name];
+        let is_query_root = graph.root_operation_types.query == ObjectId(idx);
 
         if let Some(description) = object.description {
             write!(sdl, "{}", Description(&graph[description], ""))?;
@@ -80,7 +81,10 @@ pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
             }
         }
 
-        let mut fields = graph[object.fields.clone()].iter().peekable();
+        let mut fields = graph[object.fields.clone()]
+            .iter()
+            .filter(|field| !(is_query_root && ["__type", "__schema"].contains(&graph[field.name].as_str())))
+            .peekable();
 
         if fields.peek().is_some() {
             if object.keys.is_empty() {

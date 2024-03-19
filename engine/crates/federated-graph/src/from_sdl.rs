@@ -124,6 +124,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     let parsed = async_graphql_parser::parse_schema(sdl).map_err(|err| DomainError(err.to_string()))?;
 
     ingest_definitions(&parsed, &mut state)?;
+    ingest_schema_definitions(&parsed, &mut state)?;
     ingest_fields(&parsed, &mut state)?;
     // This needs to happen after all fields have been ingested, in order to attach selection sets.
     ingest_selection_sets(&parsed, &mut state)?;
@@ -145,13 +146,20 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     }))
 }
 
+fn ingest_schema_definitions<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> Result<(), DomainError> {
+    for definition in &parsed.definitions {
+        if let ast::TypeSystemDefinition::Schema(Positioned { node: schema, .. }) = definition {
+            ingest_schema_definition(schema, state)?;
+        }
+    }
+
+    Ok(())
+}
+
 fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> Result<(), DomainError> {
     for definition in &parsed.definitions {
         match definition {
-            ast::TypeSystemDefinition::Schema(Positioned { node: schema, .. }) => {
-                ingest_schema_definition(schema, state)?;
-            }
-            ast::TypeSystemDefinition::Directive(_) => (),
+            ast::TypeSystemDefinition::Schema(_) | ast::TypeSystemDefinition::Directive(_) => (),
             ast::TypeSystemDefinition::Type(typedef) => match &typedef.node.kind {
                 ast::TypeKind::Scalar => (),
                 ast::TypeKind::Object(object) => {
@@ -698,7 +706,31 @@ fn ingest_object_fields<'a>(object_id: ObjectId, object: &'a ast::ObjectType, st
         end = Some(field_id);
     }
 
-    let [Some(start), Some(end)] = [start, end] else { return };
+    let [Some(start), Some(mut end)] = [start, end] else {
+        return;
+    };
+
+    if Some(object_id) == state.root_operation_types().map(|op| op.query).ok() {
+        for name in ["__schema", "__type"].map(|name| state.insert_string(name)) {
+            state.fields.push(Field {
+                name,
+                r#type: Type {
+                    wrapping: Wrapping::new(false),
+                    definition: Definition::Object(object_id),
+                },
+                arguments: NO_INPUT_VALUE_DEFINITION,
+                resolvable_in: Vec::new(),
+                provides: Vec::new(),
+                requires: Vec::new(),
+                overrides: Vec::new(),
+                composed_directives: NO_DIRECTIVES,
+                description: None,
+            });
+        }
+
+        end = FieldId(end.0 + 2);
+    }
+
     state.objects[object_id.0].fields = Range {
         start,
         end: FieldId(end.0 + 1),

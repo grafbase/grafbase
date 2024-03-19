@@ -258,5 +258,3 @@ impl<'a> Context<'a> {
             .insert((object_name, field_id));
     }
 }
-
-impl Context<'_> {}

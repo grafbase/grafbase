@@ -312,7 +312,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         */
         let __enum_value = self.insert_object("__EnumValue");
 
-        self.insert_object_fields(
+        let __enum_value = self.insert_object_fields(
             __enum_value,
             vec![
                 ("name", required_string, __EnumValue::Name),
@@ -364,7 +364,8 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             inner: __directive_location.into(),
             wrapping: Wrapping::required().wrapped_by_required_list(),
         };
-        self.insert_object_fields(
+
+        let __directive = self.insert_object_fields(
             __directive,
             vec![
                 ("name", required_string, __Directive::Name),
@@ -404,7 +405,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             wrapping: Wrapping::required().wrapped_by_nullable_list(),
         };
         let nullable__enum_value_list = Type {
-            inner: __enum_value.into(),
+            inner: __enum_value.id.into(),
             wrapping: Wrapping::required().wrapped_by_nullable_list(),
         };
 
@@ -490,12 +491,12 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         }
         */
         let required__directive_list = Type {
-            inner: __directive.into(),
+            inner: __directive.id.into(),
             wrapping: Wrapping::required().wrapped_by_required_list(),
         };
         let __schema = self.insert_object("__Schema");
 
-        self.insert_object_fields(
+        let __schema = self.insert_object_fields(
             __schema,
             vec![
                 ("description", nullable_string, __Schema::Description),
@@ -514,10 +515,17 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         __schema: __Schema!
         */
         let field_type_id = Type {
-            inner: __schema.into(),
+            inner: __schema.id.into(),
             wrapping: Wrapping::required(),
         };
-        let __schema_field_id = self.insert_object_field(self.root_operation_types.query, "__schema", field_type_id);
+        let [Some(__schema_field_id), Some(__type_field_id)] = ["__schema", "__type"].map(|name| {
+            let fields = self[self.root_operation_types.query].fields;
+            let idx = usize::from(fields.start) + self[fields].iter().position(|field| self[field.name] == name)?;
+            Some(FieldId::from(idx))
+        }) else {
+            panic!("Invariant broken: missing Query.__type or Query.__schema");
+        };
+        self[__schema_field_id].r#type = field_type_id;
         self[__schema_field_id].resolvers.push(FieldResolver {
             resolver_id,
             field_requires: Default::default(),
@@ -530,12 +538,17 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             inner: __type.id.into(),
             wrapping: Wrapping::nullable(),
         };
-        let __type_field_id = self.insert_object_field(self.root_operation_types.query, "__type", field_type_id);
         self[__type_field_id].resolvers.push(FieldResolver {
             resolver_id,
             field_requires: Default::default(),
         });
-        self.set_field_arguments(__type_field_id, std::iter::once(("name", required_string, None)));
+        self[__type_field_id].r#type = field_type_id;
+
+        self.set_field_arguments(
+            self.root_operation_types.query,
+            "__type",
+            std::iter::once(("name", required_string, None)),
+        );
 
         // DataSource
         self.data_sources.introspection.metadata = Some(Metadata {
@@ -603,13 +616,12 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         object_id: ObjectId,
         fields: Vec<(&str, Type, E)>,
     ) -> IncompleteIntrospectionObject<E> {
-        let name = self.get_or_intern(name);
-        let mut fields = Vec::<FieldId, E>::new();
-
         let start = self.fields.len().into();
+        let mut out_fields = Vec::new();
 
         for (name, r#type, tag) in fields {
             let id = self.fields.len().into();
+            let name = self.builder.strings.get_or_insert(name);
 
             self.fields.push(Field {
                 name,
@@ -622,12 +634,17 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 cache_config: None,
             });
 
-            fields.push((id, tag));
+            out_fields.push((id, tag));
         }
 
         let end = self.fields.len().into();
 
-        IncompleteIntrospectionObject { id: object_id, fields }
+        self[object_id].fields = IdRange { start, end };
+
+        IncompleteIntrospectionObject {
+            id: object_id,
+            fields: out_fields,
+        }
     }
 
     fn insert_object(&mut self, name: &str) -> ObjectId {
