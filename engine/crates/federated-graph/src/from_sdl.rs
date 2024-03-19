@@ -543,7 +543,10 @@ fn ingest_interface<'a>(interface_id: InterfaceId, iface: &'a ast::InterfaceType
     }
 
     let [Some(start), Some(end)] = [start, end] else { return };
-    state.interfaces[interface_id.0].fields = Range { start, end };
+    state.interfaces[interface_id.0].fields = Range {
+        start,
+        end: FieldId(end.0 + 1),
+    };
 }
 
 fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, state: &mut State<'a>) -> FieldId {
@@ -696,7 +699,10 @@ fn ingest_object_fields<'a>(object_id: ObjectId, object: &'a ast::ObjectType, st
     }
 
     let [Some(start), Some(end)] = [start, end] else { return };
-    state.objects[object_id.0].fields = Range { start, end };
+    state.objects[object_id.0].fields = Range {
+        start,
+        end: FieldId(end.0 + 1),
+    };
 }
 
 fn parse_selection_set(fields: &str) -> Result<Vec<Positioned<ast::Selection>>, DomainError> {

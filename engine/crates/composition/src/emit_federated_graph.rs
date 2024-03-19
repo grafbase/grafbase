@@ -193,7 +193,10 @@ fn emit_fields<'a>(
 
         let fields = start_field_id
             .zip(end_field_id)
-            .map(|(start, end)| federated::Fields { start, end })
+            .map(|(start, end)| federated::Fields {
+                start,
+                end: federated::FieldId(end.0 + 1),
+            })
             .unwrap_or(federated::NO_FIELDS);
 
         match definition {
