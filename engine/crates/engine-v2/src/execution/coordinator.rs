@@ -13,9 +13,9 @@ use tracing::Span;
 
 use crate::{
     execution::ExecutionContext,
+    operation::{OpInputValues, Operation},
     plan::{OperationExecutionState, OperationPlan, PlanId},
-    request::{OpInputValues, Operation},
-    response::{ExecutionMetadata, GraphqlError, Response, ResponseBuilder, ResponsePart},
+    response::{ExecutionMetadata, GraphqlError, Response, ResponseBoundaryItem, ResponseBuilder, ResponsePart},
     sources::{Executor, ExecutorInput, SubscriptionExecutor, SubscriptionInput},
     Engine,
 };
@@ -86,11 +86,33 @@ impl ExecutionCoordinator {
             operation_type: self.operation().ty.as_ref(),
             operation_name: self.operation().name.as_deref(),
         });
+        let (state, subscription_plan_id) = {
+            let mut state = self.operation_plan.new_execution_state();
+            let id = state.pop_subscription_plan_id();
+            (state, id)
+        };
+        let root_plan_boundary_ids = self
+            .operation_plan
+            .plan_walker(&self.engine.schema, subscription_plan_id, None)
+            .output()
+            .boundary_ids;
+        let new_execution = || {
+            let mut response = ResponseBuilder::new(self.operation_plan.root_object_id);
+            OperationRootPlanExecution {
+                root_response_part: response.new_part(root_plan_boundary_ids),
+                operation_execution: OperationExecution {
+                    coordinator: &self,
+                    futures: ExecutorFutureSet::new(),
+                    state: state.clone(),
+                    response,
+                },
+            }
+        };
 
-        let mut state = self.operation_plan.new_execution_state();
-        let subscription_plan_id = state.pop_subscription_plan_id();
-
-        let mut stream = match self.build_subscription_stream(subscription_plan_id).await {
+        let mut stream = match self
+            .build_subscription_stream(subscription_plan_id, new_execution)
+            .await
+        {
             Ok(stream) => stream,
             Err(error) => {
                 responses
@@ -109,35 +131,34 @@ impl ExecutionCoordinator {
             }
         };
 
-        while let Some((response, output)) = stream.next().await {
-            let mut futures = ExecutorFutureSet::new();
-            futures.push(async move {
+        while let Some(OperationRootPlanExecution {
+            mut operation_execution,
+            root_response_part,
+        }) = stream.next().await
+        {
+            operation_execution.futures.push(async move {
                 ExecutorFutureResult {
-                    result: Ok(output),
+                    result: Ok(root_response_part),
                     plan_id: subscription_plan_id,
                 }
             });
-            let response = OperationExecution {
-                coordinator: &self,
-                futures,
-                state: state.clone(),
-                response,
-            }
-            .execute()
-            .await;
-
+            let response = operation_execution.execute().await;
             if responses.send(response).await.is_err() {
                 return;
             }
         }
     }
 
-    async fn build_subscription_stream(
-        &self,
+    async fn build_subscription_stream<'s, 'ctx>(
+        &'s self,
         plan_id: PlanId,
-    ) -> Result<BoxStream<'_, (ResponseBuilder, ResponsePart)>, GraphqlError> {
+        new_execution: impl Fn() -> OperationRootPlanExecution<'ctx> + Send + 'ctx,
+    ) -> Result<BoxStream<'ctx, OperationRootPlanExecution<'ctx>>, GraphqlError>
+    where
+        's: 'ctx,
+    {
         let executor = self.build_subscription_executor(plan_id)?;
-        Ok(executor.execute().await?)
+        Ok(executor.execute(new_execution).await?)
     }
 
     fn build_subscription_executor(&self, plan_id: PlanId) -> ExecutionResult<SubscriptionExecutor<'_>> {
@@ -153,6 +174,24 @@ impl ExecutionCoordinator {
             plan,
         };
         execution_plan.new_subscription_executor(input)
+    }
+}
+
+pub struct OperationRootPlanExecution<'ctx> {
+    operation_execution: OperationExecution<'ctx>,
+    root_response_part: ResponsePart,
+}
+
+impl OperationRootPlanExecution<'_> {
+    pub fn root_response_part(&mut self) -> &mut ResponsePart {
+        &mut self.root_response_part
+    }
+
+    pub fn root_response_boundary_item(&self) -> ResponseBoundaryItem {
+        self.operation_execution
+            .response
+            .root_response_boundary_item()
+            .expect("a fresh response should always have a root")
     }
 }
 

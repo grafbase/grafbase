@@ -4,13 +4,13 @@ use schema::Schema;
 use std::collections::HashSet;
 
 use crate::{
+    operation::{BoundFieldId, BoundSelectionSetId, OperationWalker, SelectionSetType},
     plan::{
         flatten_selection_sets, AnyCollectedSelectionSet, AnyCollectedSelectionSetId, CollectedField, CollectedFieldId,
         CollectedSelectionSet, CollectedSelectionSetId, ConditionalField, ConditionalFieldId, ConditionalSelectionSet,
         ConditionalSelectionSetId, EntityType, FieldType, FlatField, FlatTypeCondition, OperationPlan, PlanBoundaryId,
         PlanId,
     },
-    request::{BoundFieldId, BoundSelectionSetId, OperationWalker, SelectionSetType},
 };
 
 use super::PlanningResult;

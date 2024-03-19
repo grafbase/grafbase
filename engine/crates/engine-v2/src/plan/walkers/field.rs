@@ -1,7 +1,7 @@
 use schema::{FieldId, FieldWalker};
 
 use crate::{
-    request::BoundFieldId,
+    operation::BoundFieldId,
     response::{ResponseEdge, ResponseKey},
 };
 

@@ -3,7 +3,7 @@ use std::collections::btree_map::Entry;
 use schema::{RawInputValue, Schema};
 
 use crate::{
-    request::{Location, OpInputValues, Operation},
+    operation::{Location, OpInputValues, Operation},
     response::GraphqlError,
 };
 

@@ -5,7 +5,7 @@ use schema::{
     Type,
 };
 
-use crate::request::{Location, OpInputValue, OpInputValueId, OpInputValues};
+use crate::operation::{Location, OpInputValue, OpInputValueId, OpInputValues};
 
 use super::{
     error::InputValueError,

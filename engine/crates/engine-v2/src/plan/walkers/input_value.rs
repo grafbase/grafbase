@@ -2,8 +2,8 @@ use schema::{InputValue, InputValueSerdeError, RawInputValuesContext, SchemaWalk
 use serde::{de::Visitor, forward_to_deserialize_any};
 
 use crate::{
+    operation::{OpInputValueId, OpInputValues},
     plan::OperationPlan,
-    request::{OpInputValueId, OpInputValues},
 };
 
 use super::PlanWalker;
@@ -21,6 +21,10 @@ impl<'a> PlanInputValue<'a> {
 
     pub fn is_undefined(&self) -> bool {
         self.as_ctx().walk(self.item).is_undefined()
+    }
+
+    pub fn id(&self) -> OpInputValueId {
+        self.item
     }
 }
 

@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use crate::request::QueryPath;
+use crate::operation::QueryPath;
 
 use super::OperationWalker;
 

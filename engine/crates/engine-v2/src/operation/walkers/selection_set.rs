@@ -1,7 +1,7 @@
 use schema::{Definition, DefinitionWalker};
 
 use super::{BoundFieldWalker, BoundFragmentSpreadWalker, BoundInlineFragmentWalker, OperationWalker};
-use crate::request::{BoundSelection, BoundSelectionSetId, SelectionSetType};
+use crate::operation::{BoundSelection, BoundSelectionSetId, SelectionSetType};
 
 pub type BoundSelectionSetWalker<'a> = OperationWalker<'a, BoundSelectionSetId>;
 pub type SelectionSetTypeWalker<'a> = OperationWalker<'a, SelectionSetType, Definition>;
@@ -18,6 +18,13 @@ impl<'a> BoundSelectionSetWalker<'a> {
         }
     }
 }
+
+impl PartialEq for SelectionSetTypeWalker<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.item == other.item
+    }
+}
+impl Eq for SelectionSetTypeWalker<'_> {}
 
 impl<'a> std::ops::Deref for SelectionSetTypeWalker<'a> {
     type Target = DefinitionWalker<'a>;

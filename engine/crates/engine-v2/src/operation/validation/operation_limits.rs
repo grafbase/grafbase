@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use schema::Schema;
 
-use crate::request::{BoundSelectionSetWalker, Operation};
+use crate::operation::{BoundSelectionSetWalker, Operation};
 
 #[allow(clippy::enum_variant_names)]
 #[derive(thiserror::Error, Debug)]

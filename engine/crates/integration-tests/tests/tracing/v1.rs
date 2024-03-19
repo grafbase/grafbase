@@ -3,7 +3,7 @@ use tracing::Level;
 use tracing_mock::{expect, subscriber};
 
 use engine::{BatchRequest, Registry, Request, StreamingPayload};
-use grafbase_tracing::span::gql::SPAN_NAME;
+use grafbase_tracing::span::gql::GRAPHQL_SPAN_NAME;
 use integration_tests::udfs::RustUdfs;
 use integration_tests::EngineBuilder;
 use runtime::udf::UdfResponse;
@@ -11,7 +11,7 @@ use runtime::udf::UdfResponse;
 #[tokio::test(flavor = "current_thread")]
 async fn query_bad_request() {
     // prepare
-    let span = expect::span().at_level(Level::INFO).named(SPAN_NAME);
+    let span = expect::span().at_level(Level::INFO).named(GRAPHQL_SPAN_NAME);
 
     let (subscriber, handle) = subscriber::mock()
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
@@ -40,7 +40,7 @@ async fn query_bad_request() {
 async fn query() {
     // prepare
     let query = "query { test }";
-    let span = expect::span().at_level(Level::INFO).named(SPAN_NAME);
+    let span = expect::span().at_level(Level::INFO).named(GRAPHQL_SPAN_NAME);
 
     let (subscriber, handle) = subscriber::mock()
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
@@ -84,7 +84,7 @@ async fn query() {
 async fn query_named() {
     // prepare
     let query = "query Named { test }";
-    let span = expect::span().at_level(Level::INFO).named(SPAN_NAME);
+    let span = expect::span().at_level(Level::INFO).named(GRAPHQL_SPAN_NAME);
 
     let (subscriber, handle) = subscriber::mock()
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
@@ -131,7 +131,7 @@ async fn query_named() {
 #[tokio::test(flavor = "current_thread")]
 async fn batch() {
     // prepare
-    let span = expect::span().at_level(Level::INFO).named(SPAN_NAME);
+    let span = expect::span().at_level(Level::INFO).named(GRAPHQL_SPAN_NAME);
 
     let (subscriber, handle) = subscriber::mock()
         .with_filter(move |meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
@@ -182,7 +182,7 @@ async fn subscription() {
     use engine::futures_util::StreamExt;
 
     // prepare
-    let span = expect::span().at_level(Level::INFO).named(SPAN_NAME);
+    let span = expect::span().at_level(Level::INFO).named(GRAPHQL_SPAN_NAME);
 
     let (subscriber, handle) = subscriber::mock()
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)

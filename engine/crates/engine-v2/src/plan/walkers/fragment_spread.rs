@@ -1,4 +1,4 @@
-use crate::request::{BoundFragmentDefinitionWalker, BoundFragmentSpreadId};
+use crate::operation::{BoundFragmentDefinitionWalker, BoundFragmentSpreadId};
 
 use super::{PlanSelectionSet, PlanWalker};
 
@@ -9,6 +9,7 @@ impl<'a> PlanFragmentSpread<'a> {
         PlanSelectionSet::SelectionSet(self.walk(self.as_ref().selection_set_id))
     }
 
+    #[allow(dead_code)]
     pub fn fragment(&self) -> BoundFragmentDefinitionWalker<'a> {
         self.bound_walk_with(self.as_ref().fragment_id, ())
     }

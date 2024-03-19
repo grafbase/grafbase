@@ -1,5 +1,5 @@
-use super::{type_condition_name, BoundSelectionSetWalker, OperationWalker};
-use crate::request::{BoundFragmentId, BoundFragmentSpreadId};
+use super::{BoundSelectionSetWalker, OperationWalker};
+use crate::operation::{BoundFragmentId, BoundFragmentSpreadId};
 
 pub type BoundFragmentSpreadWalker<'a> = OperationWalker<'a, BoundFragmentSpreadId>;
 
@@ -20,13 +20,3 @@ impl<'a> std::fmt::Debug for BoundFragmentSpreadWalker<'a> {
 }
 
 pub type BoundFragmentDefinitionWalker<'a> = OperationWalker<'a, BoundFragmentId>;
-
-impl<'a> BoundFragmentDefinitionWalker<'a> {
-    pub fn name(&self) -> &'a str {
-        &self.as_ref().name
-    }
-
-    pub fn type_condition_name(&self) -> &str {
-        type_condition_name(self.schema_walker, self.as_ref().type_condition)
-    }
-}

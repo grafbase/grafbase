@@ -8,7 +8,7 @@ use http_body::Body;
 use tracing::{info_span, Span};
 
 /// The name of the span that represents the root of an incoming request
-pub const SPAN_NAME: &str = "gateway";
+pub const GATEWAY_SPAN_NAME: &str = "gateway";
 pub(crate) const X_FORWARDED_FOR_HEADER: &str = "X-Forwarded-For";
 
 /// A span for a http request
@@ -142,7 +142,7 @@ impl<'a> HttpRequestSpan<'a> {
     pub fn into_span(self) -> Span {
         info_span!(
             target: crate::span::GRAFBASE_TARGET,
-            SPAN_NAME,
+            GATEWAY_SPAN_NAME,
             "http.request.body.size" = self.request_body_size,
             "http.request.method" = self.request_method.as_str(),
             "http.response.body.size" = self.response_body_size,

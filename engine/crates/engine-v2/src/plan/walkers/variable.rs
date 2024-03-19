@@ -1,6 +1,6 @@
 use schema::InputTypeWalker;
 
-use crate::request::VariableDefinitionId;
+use crate::operation::VariableDefinitionId;
 
 use super::{PlanInputValue, PlanWalker};
 

@@ -2,7 +2,7 @@ use id_newtypes::IdRange;
 use schema::{ResolverId, Schema};
 
 use crate::{
-    request::{OpInputValues, Operation, QueryPath},
+    operation::{OpInputValues, Operation, QueryPath},
     response::ReadSelectionSet,
     sources::Plan,
 };

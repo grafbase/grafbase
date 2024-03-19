@@ -2,7 +2,7 @@ mod introspection;
 mod operation_limits;
 
 use crate::{
-    request::{Location, Operation},
+    operation::{Location, Operation},
     response::GraphqlError,
 };
 use introspection::*;
