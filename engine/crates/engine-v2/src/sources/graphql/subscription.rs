@@ -3,12 +3,12 @@ use runtime::fetch::GraphqlRequest;
 use schema::sources::federation::{SubgraphHeaderValueRef, SubgraphWalker};
 
 use super::{
-    deserialize::ingest_deserializer_into_response, query::PreparedGraphqlOperation, variables::OutboundVariables,
+    deserialize::ingest_deserializer_into_response, query::PreparedGraphqlOperation, variables::SubgraphVariables,
     ExecutionContext, GraphqlExecutionPlan,
 };
 use crate::{
+    execution::OperationRootPlanExecution,
     plan::PlanWalker,
-    response::{ResponseBuilder, ResponsePart},
     sources::{ExecutionError, ExecutionResult, SubscriptionExecutor, SubscriptionInput},
 };
 
@@ -36,7 +36,10 @@ impl GraphqlExecutionPlan {
 }
 
 impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
-    pub async fn execute(self) -> ExecutionResult<BoxStream<'ctx, (ResponseBuilder, ResponsePart)>> {
+    pub async fn execute(
+        self,
+        new_execution: impl Fn() -> OperationRootPlanExecution<'ctx> + Send + 'ctx,
+    ) -> ExecutionResult<BoxStream<'ctx, OperationRootPlanExecution<'ctx>>> {
         let Self {
             ctx,
             subgraph,
@@ -63,8 +66,12 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
             .stream(GraphqlRequest {
                 url: &url,
                 query: &operation.query,
-                variables: serde_json::to_value(&OutboundVariables::new(plan.variables().collect()))
-                    .map_err(|error| ExecutionError::Internal(error.to_string()))?,
+                variables: serde_json::to_value(&SubgraphVariables {
+                    plan,
+                    variables: &operation.variables,
+                    inputs: Vec::new(),
+                })
+                .map_err(|error| ExecutionError::Internal(error.to_string()))?,
                 headers: subgraph
                     .headers()
                     .filter_map(|header| {
@@ -84,36 +91,32 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
             stream
                 .take_while(|result| std::future::ready(result.is_ok()))
                 .map(move |response| {
-                    handle_response(
-                        ctx,
+                    let mut execution = new_execution();
+                    ingest_response(
+                        &mut execution,
                         plan,
                         response.expect("errors to be filtered out by the above take_while"),
-                    )
+                    );
+                    execution
                 }),
         ))
     }
 }
 
-fn handle_response(
-    _ctx: ExecutionContext<'_>,
+fn ingest_response(
+    execution: &mut OperationRootPlanExecution<'_>,
     plan: PlanWalker<'_>,
     subgraph_response: serde_json::Value,
-) -> (ResponseBuilder, ResponsePart) {
-    let mut response = ResponseBuilder::new(plan.operation().as_ref().root_object_id);
-    let mut response_part = response.new_part(plan.output().boundary_ids);
-
-    let boundary_item = response
-        .root_response_boundary_item()
-        .expect("a fresh response should always have a root");
+) {
+    let boundary_item = execution.root_response_boundary_item();
+    let response_part = execution.root_response_part();
 
     let err_path = plan.root_error_path(&boundary_item.response_path);
-    let seed_ctx = plan.new_seed(&mut response_part);
+    let seed_ctx = plan.new_seed(response_part);
     ingest_deserializer_into_response(
         &seed_ctx,
         &err_path,
         seed_ctx.create_root_seed(&boundary_item),
         subgraph_response,
     );
-
-    (response, response_part)
 }

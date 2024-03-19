@@ -459,6 +459,7 @@ impl<'schema> Planner<'schema> {
             let plan_id = PlanId::from(i);
             execution_plans.push(Plan::build(
                 resolver,
+                operation_plan.operation.ty,
                 operation_plan.plan_walker(self.schema, plan_id, None),
             )?);
         }

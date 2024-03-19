@@ -10,7 +10,7 @@ pub use inline_fragment::*;
 use schema::SchemaWalker;
 pub use selection_set::*;
 
-use super::{Operation, TypeCondition};
+use super::Operation;
 
 #[derive(Clone, Copy)]
 pub(crate) struct OperationWalker<'a, Item = (), SchemaItem = ()> {
@@ -62,13 +62,5 @@ impl<'a, I, SI> OperationWalker<'a, I, SI> {
             schema_walker: self.schema_walker.walk(schema_item),
             item,
         }
-    }
-}
-
-pub(crate) fn type_condition_name<I>(schema: SchemaWalker<'_, I>, type_condition: TypeCondition) -> &str {
-    match type_condition {
-        TypeCondition::Interface(interface_id) => schema.walk(interface_id).name(),
-        TypeCondition::Object(object_id) => schema.walk(object_id).name(),
-        TypeCondition::Union(union_id) => schema.walk(union_id).name(),
     }
 }

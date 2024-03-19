@@ -5,13 +5,13 @@ use axum::Router;
 use tracing::Level;
 use tracing_mock::{expect, subscriber};
 
-use grafbase_tracing::span::request::SPAN_NAME;
+use grafbase_tracing::span::request::GATEWAY_SPAN_NAME;
 
 // when using the tower layer there should be a span named gateway
 #[tokio::test(flavor = "current_thread")]
 async fn expect_gateway_span() {
     // the span we're expecting
-    let span = expect::span().at_level(Level::INFO).named(SPAN_NAME);
+    let span = expect::span().at_level(Level::INFO).named(GATEWAY_SPAN_NAME);
 
     // subscriber expectations
     let (subscriber, handle) = subscriber::mock()
