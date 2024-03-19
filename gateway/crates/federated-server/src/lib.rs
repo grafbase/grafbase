@@ -4,19 +4,19 @@
 
 #![deny(missing_docs)]
 
-use std::{fs, net::SocketAddr, path::Path, thread};
+use grafbase_tracing::otel::layer::FilteredLayer;
+use grafbase_tracing::otel::opentelemetry_sdk::runtime::Tokio;
+use std::{net::SocketAddr, thread};
 use tokio::runtime;
 use tokio::runtime::Handle;
 use tracing::log::{debug, error, warn};
 use tracing::Subscriber;
-
-use crate::config::Config;
-pub use error::Error;
-use grafbase_tracing::otel::layer::FilteredLayer;
-use grafbase_tracing::otel::opentelemetry_sdk::runtime::Tokio;
-pub use server::GraphFetchMethod;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{reload, EnvFilter};
+
+pub use crate::config::Config;
+pub use error::Error;
+pub use server::GraphFetchMethod;
 
 mod config;
 mod error;
@@ -32,16 +32,13 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// the schema registry every ten second for changes.
 pub fn start<S>(
     listen_addr: Option<SocketAddr>,
-    config_path: &Path,
+    config: Config,
     graph: GraphFetchMethod,
     reload_handle: Option<reload::Handle<FilteredLayer<S>, S>>,
 ) -> Result<()>
 where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
 {
-    let config = fs::read_to_string(config_path).map_err(Error::ConfigNotFound)?;
-    let config: Config = toml::from_str(&config).map_err(Error::TomlValidation)?;
-
     let (otel_reload_tx, otel_reload_rx) = oneshot::channel::<Handle>();
 
     if let Some((telemetry_config, reload_handle)) = config.telemetry.as_ref().zip(reload_handle) {
