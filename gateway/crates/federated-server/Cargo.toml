@@ -16,7 +16,7 @@ lambda = ["dep:axum-aws-lambda", "dep:tower", "dep:lambda_http"]
 
 [dependencies]
 ascii = { version = "1.1.0", features = ["serde"] }
-async-trait = "0.1.78"
+async-trait = "0.1.77"
 axum = { workspace = true, features = ["macros", "ws", "query", "json"] }
 duration-str = "0.7.1"
 engine.workspace = true
@@ -38,7 +38,6 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "signal", "time", "net"] }
-toml = "0.8.11"
 tower-http = { version = "0.5.2", features = ["cors"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
@@ -60,3 +59,4 @@ axum-server = { version = "0.6.0", features = ["tls-rustls"] }
 indoc = "2.0.4"
 insta.workspace = true
 temp-env = "0.3.6"
+toml = "0.8.10"

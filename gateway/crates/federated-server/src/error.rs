@@ -3,12 +3,6 @@ use tokio::sync::watch::error::SendError;
 /// The Grafbase gateway error type
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// Cannot find the toml config file
-    #[error("cannot load configuration: {0}")]
-    ConfigNotFound(#[source] std::io::Error),
-    #[error("{0}")]
-    /// Toml config validation
-    TomlValidation(#[source] toml::de::Error),
     #[error("{0}")]
     /// The GraphQL schema validation
     SchemaValidationError(String),
