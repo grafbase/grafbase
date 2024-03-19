@@ -8532,7 +8532,7 @@ dependencies = [
 
 [[package]]
 name = "wrapping"
-version = "0.63.0-rc.1"
+version = "0.63.0"
 
 [[package]]
 name = "wyz"

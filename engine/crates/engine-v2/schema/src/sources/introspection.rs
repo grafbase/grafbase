@@ -520,7 +520,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         };
         let [Some(__schema_field_id), Some(__type_field_id)] = ["__schema", "__type"].map(|name| {
             let fields = self[self.root_operation_types.query].fields;
-            let idx = usize::from(fields.start) + self[fields].iter().position(|field| self[field.name] == name)?;
+            let idx = usize::from(fields.start)
+                + self[fields]
+                    .iter()
+                    .position(|field| self.builder.strings[field.name] == name)?;
             Some(FieldId::from(idx))
         }) else {
             panic!("Invariant broken: missing Query.__type or Query.__schema");
@@ -665,7 +668,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             usize::from(fields.start)
                 + self[fields]
                     .iter()
-                    .position(|field| self[field.name] == field_name)
+                    .position(|field| self.builder.strings[field.name] == field_name)
                     .expect("field to exist"),
         );
         let start = self.input_value_definitions.len();
