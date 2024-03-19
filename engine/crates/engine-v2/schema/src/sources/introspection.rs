@@ -591,10 +591,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         if object_fields.is_empty() {
             self[object_id].fields = IdRange::from_single(field_id);
         } else {
-            assert_eq!(usize::from(object_fields.end), usize::from(field_id) - 1);
+            assert_eq!(object_fields.end, field_id);
             self[object_id].fields = IdRange {
                 start: object_fields.start,
-                end: field_id,
+                end: FieldId::from(usize::from(field_id) + 1),
             };
         }
 
