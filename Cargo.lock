@@ -2825,7 +2825,6 @@ dependencies = [
  "insta",
  "mimalloc",
  "opentelemetry-aws",
- "opentelemetry-stdout",
  "reqwest",
  "rustls",
  "serde",
