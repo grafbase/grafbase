@@ -1,6 +1,6 @@
 use schema::{InputValueDefinitionId, InputValueDefinitionWalker};
 
-use crate::request::BoundFieldArgumentId;
+use crate::operation::BoundFieldArgumentId;
 
 use super::{PlanInputValue, PlanWalker};
 

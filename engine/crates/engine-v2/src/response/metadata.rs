@@ -1,7 +1,7 @@
 pub use engine_parser::types::OperationType;
 use schema::CacheConfig;
 
-use crate::request::{Operation, OperationCacheControl};
+use crate::operation::{Operation, OperationCacheControl};
 
 /// Metadata we provide to the caller on the operation and its execution.
 /// It's serialized when cached. Ignore anything that isn't relevant for a cached response.

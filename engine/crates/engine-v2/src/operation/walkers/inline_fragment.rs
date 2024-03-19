@@ -1,5 +1,5 @@
 use super::{BoundSelectionSetWalker, OperationWalker};
-use crate::request::BoundInlineFragmentId;
+use crate::operation::BoundInlineFragmentId;
 
 pub type BoundInlineFragmentWalker<'a> = OperationWalker<'a, BoundInlineFragmentId>;
 

@@ -1,6 +1,6 @@
 use schema::Schema;
 
-use crate::request::{BoundSelectionSetWalker, Location, Operation};
+use crate::operation::{BoundSelectionSetWalker, Location, Operation};
 
 use super::ValidationError;
 

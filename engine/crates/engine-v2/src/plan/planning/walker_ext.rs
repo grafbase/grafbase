@@ -3,7 +3,7 @@ use schema::FieldId;
 use std::collections::HashMap;
 
 use crate::{
-    request::{BoundFieldId, OperationWalker},
+    operation::{BoundFieldId, OperationWalker},
     response::ResponseKey,
 };
 

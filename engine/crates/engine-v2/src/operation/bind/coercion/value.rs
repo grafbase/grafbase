@@ -5,7 +5,7 @@ use schema::{
     Wrapping,
 };
 
-use crate::request::{BoundFieldId, Location, OpInputValue, OpInputValueId};
+use crate::operation::{BoundFieldId, Location, OpInputValue, OpInputValueId};
 
 use super::super::Binder;
 use super::{

@@ -10,8 +10,8 @@ use self::variables::SubgraphVariables;
 
 use super::{ExecutionContext, ExecutionResult, Executor, ExecutorInput, Plan};
 use crate::{
+    operation::OperationType,
     plan::{PlanWalker, PlanningResult},
-    request::OperationType,
     response::{ResponseBoundaryItem, ResponsePart},
 };
 

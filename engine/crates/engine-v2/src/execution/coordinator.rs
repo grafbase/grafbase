@@ -13,8 +13,8 @@ use tracing::Span;
 
 use crate::{
     execution::ExecutionContext,
+    operation::{OpInputValues, Operation},
     plan::{OperationExecutionState, OperationPlan, PlanId},
-    request::{OpInputValues, Operation},
     response::{ExecutionMetadata, GraphqlError, Response, ResponseBoundaryItem, ResponseBuilder, ResponsePart},
     sources::{Executor, ExecutorInput, SubscriptionExecutor, SubscriptionInput},
     Engine,

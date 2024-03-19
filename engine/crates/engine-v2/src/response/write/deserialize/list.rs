@@ -7,7 +7,7 @@ use serde::{
 
 use super::SeedContextInner;
 use crate::{
-    request::BoundFieldId,
+    operation::BoundFieldId,
     response::{GraphqlError, ResponseValue},
 };
 

@@ -12,8 +12,8 @@ use schema::Schema;
 
 use crate::{
     execution::{ExecutionCoordinator, PreparedExecution},
+    operation::{bind_variables, Operation},
     plan::OperationPlan,
-    request::{bind_variables, Operation},
     response::{ExecutionMetadata, GraphqlError, Response},
 };
 

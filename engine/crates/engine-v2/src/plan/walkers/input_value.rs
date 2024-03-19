@@ -2,8 +2,8 @@ use schema::{InputValue, InputValueSerdeError, RawInputValuesContext, SchemaWalk
 use serde::{de::Visitor, forward_to_deserialize_any};
 
 use crate::{
+    operation::{OpInputValueId, OpInputValues},
     plan::OperationPlan,
-    request::{OpInputValueId, OpInputValues},
 };
 
 use super::PlanWalker;

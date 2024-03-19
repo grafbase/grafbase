@@ -7,7 +7,7 @@ use std::{
 use itertools::Itertools;
 use schema::{Definition, InterfaceId, ObjectId, Schema};
 
-use crate::request::{BoundFieldId, BoundSelection, BoundSelectionSetId, Operation, SelectionSetType, TypeCondition};
+use crate::operation::{BoundFieldId, BoundSelection, BoundSelectionSetId, Operation, SelectionSetType, TypeCondition};
 
 pub fn flatten_selection_sets(
     schema: &Schema,

@@ -4,7 +4,7 @@ use futures_util::future::BoxFuture;
 use grafbase_tracing::span::{GqlRecorderSpanExt, GqlResponseAttributes};
 use tracing::{Instrument, Span};
 
-use crate::{request::OperationCacheControl, Response};
+use crate::{operation::OperationCacheControl, Response};
 
 use super::ExecutionCoordinator;
 

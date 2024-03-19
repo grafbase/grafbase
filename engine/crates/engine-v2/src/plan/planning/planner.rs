@@ -14,13 +14,13 @@ use super::{
     PlanningError, PlanningResult,
 };
 use crate::{
+    operation::{
+        BoundField, BoundFieldId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, Operation, OperationWalker,
+        QueryPath,
+    },
     plan::{
         flatten_selection_sets, EntityType, FlatField, FlatSelectionSet, FlatTypeCondition, OperationPlan,
         ParentToChildEdge, PlanBoundaryId, PlanId, PlanInput, PlanOutput, PlannedResolver,
-    },
-    request::{
-        BoundField, BoundFieldId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, Operation, OperationWalker,
-        QueryPath,
     },
     response::{ReadSelectionSet, ResponseKeys, SafeResponseKey},
     sources::Plan,

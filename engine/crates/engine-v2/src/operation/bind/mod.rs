@@ -11,7 +11,7 @@ use itertools::Itertools;
 use schema::{Definition, FieldWalker, Schema};
 
 use crate::{
-    request::{
+    operation::{
         BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundFragment, BoundFragmentId,
         BoundFragmentSpread, BoundFragmentSpreadId, BoundInlineFragment, BoundInlineFragmentId, BoundSelection,
         BoundSelectionSet, BoundSelectionSetId, Location, OpInputValue, OpInputValues, Operation, SelectionSetType,

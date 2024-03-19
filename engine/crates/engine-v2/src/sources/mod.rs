@@ -47,8 +47,8 @@ use schema::{Resolver, ResolverWalker};
 
 use crate::{
     execution::{ExecutionContext, ExecutionError, ExecutionResult, OperationRootPlanExecution},
+    operation::OperationType,
     plan::{PlanWalker, PlanningResult},
-    request::OperationType,
     response::{ResponseBoundaryObjectsView, ResponsePart},
 };
 
