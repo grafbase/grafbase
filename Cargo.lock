@@ -2840,13 +2840,13 @@ dependencies = [
  "indoc",
  "insta",
  "mimalloc",
+ "opentelemetry-aws",
  "reqwest",
  "rustls",
  "serde",
  "serde_json",
  "tempfile",
  "tokio",
- "tracing-core",
  "tracing-subscriber",
  "wiremock",
 ]
@@ -4840,6 +4840,17 @@ dependencies = [
  "pin-project-lite",
  "thiserror",
  "urlencoding",
+]
+
+[[package]]
+name = "opentelemetry-aws"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42c915961c059be65af3be9aeaedb3f8930e1e9590e26e5f23b1919e90d1ed7d"
+dependencies = [
+ "once_cell",
+ "opentelemetry",
+ "opentelemetry_sdk",
 ]
 
 [[package]]
