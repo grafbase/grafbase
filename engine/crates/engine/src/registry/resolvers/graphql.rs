@@ -230,7 +230,7 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
 
                     results.insert(query.clone(), (UpstreamResponse { data, errors }, http_status));
                 } else {
-                    let errors = translate_error_paths_for_group(
+                    let errors = filter_and_translate_error_paths_for_group(
                         &aliases,
                         &upstream_response,
                         &query.local_path,
