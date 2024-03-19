@@ -519,7 +519,7 @@ impl Resolver {
                 ));
             }
 
-            errors.into_iter().for_each(error_handler);
+            dbg!(errors).into_iter().for_each(error_handler);
 
             if let Some(prefix) = prefix {
                 prefix_result_typename(&mut data, &prefix);
