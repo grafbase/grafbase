@@ -64,29 +64,6 @@ where
     }
 }
 
-pub struct RangeWalker<'a, T, Key> {
-    schema: &'a Schema,
-    names: &'a dyn Names,
-    range: &'a [T],
-    index: usize,
-    key: Key,
-}
-
-impl<'a, T, Key, Id> Iterator for RangeWalker<'a, T, Key>
-where
-    Id: Copy,
-    Key: Fn(&T) -> Option<Id>,
-{
-    type Item = SchemaWalker<'a, Id>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let item = self.range.get(self.index)?;
-        let id = (self.key)(item)?;
-        self.index += 1;
-        Some(SchemaWalker::new(id, self.schema, self.names))
-    }
-}
-
 impl<'a> SchemaWalker<'a, ()> {
     pub fn definitions(&self) -> impl ExactSizeIterator<Item = DefinitionWalker<'a>> + 'a {
         let walker = *self;

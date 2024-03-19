@@ -2,8 +2,8 @@ use std::ops::{Deref, DerefMut};
 
 use crate::{
     builder::SchemaBuilder, Definition, EnumId, EnumValue, EnumValueId, Field, FieldId, FieldResolver, IdRange,
-    InputValueDefinition, InputValueDefinitionId, ObjectField, ObjectId, ResolverId, ScalarId, ScalarType, Schema,
-    SchemaInputValue, SchemaInputValueId, SchemaWalker, StringId, Type, TypeId, Wrapping,
+    InputValueDefinition, InputValueDefinitionId, ObjectId, ResolverId, ScalarId, ScalarType, Schema, SchemaInputValue,
+    SchemaInputValueId, SchemaWalker, StringId, Type, Wrapping,
 };
 use strum::EnumCount;
 
@@ -192,10 +192,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
     #[allow(non_snake_case)]
     fn create_fields_and_insert_them(&mut self) {
-        let nullable_string = self.find_or_create_field_type("String", ScalarType::String, Wrapping::nullable());
-        let required_string = self.find_or_create_field_type("String", ScalarType::String, Wrapping::required());
-        let required_boolean = self.find_or_create_field_type("Boolean", ScalarType::Boolean, Wrapping::required());
-        let nullable_boolean = self.find_or_create_field_type("Boolean", ScalarType::Boolean, Wrapping::nullable());
+        let nullable_string = self.field_type("String", ScalarType::String, Wrapping::nullable());
+        let required_string = self.field_type("String", ScalarType::String, Wrapping::required());
+        let required_boolean = self.field_type("Boolean", ScalarType::Boolean, Wrapping::required());
+        let nullable_boolean = self.field_type("Boolean", ScalarType::Boolean, Wrapping::nullable());
 
         /*
         enum __TypeKind {
@@ -568,15 +568,16 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             interfaces: vec![],
             composed_directives: IdRange::empty(),
             cache_config: None,
+            fields: IdRange::empty(),
         });
         ObjectId::from(self.objects.len() - 1)
     }
 
-    fn insert_object_field(&mut self, object_id: ObjectId, name: &str, field_type_id: TypeId) -> FieldId {
+    fn insert_object_field(&mut self, object_id: ObjectId, name: &str, r#type: Type) -> FieldId {
         let name = self.get_or_intern(name);
         self.fields.push(Field {
             name,
-            type_id: field_type_id,
+            r#type,
             composed_directives: IdRange::empty(),
             resolvers: vec![],
             provides: vec![],
@@ -585,20 +586,29 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             cache_config: None,
         });
         let field_id = FieldId::from(self.fields.len() - 1);
-        self.object_fields.push(ObjectField { object_id, field_id });
+        let object_fields = self[object_id].fields;
+
+        if object_fields.is_empty() {
+            self[object_id].fields = IdRange::from_single(field_id);
+        } else {
+            assert_eq!(usize::from(object_fields.end), usize::from(field_id) - 1);
+            self[object_id].fields = IdRange {
+                start: object_fields.start,
+                end: field_id,
+            };
+        }
+
         field_id
     }
 
-    fn insert_object<E>(&mut self, name: &str, fields: Vec<(&str, TypeId, E)>) -> IncompleteIntrospectionObject<E> {
+    fn insert_object<E>(&mut self, name: &str, fields: Vec<(&str, Type, E)>) -> IncompleteIntrospectionObject<E> {
         let id = self.new_object(name);
         self.definitions.push(Definition::from(id));
         IncompleteIntrospectionObject {
             id,
             fields: fields
                 .into_iter()
-                .map(|(name, field_type_id, field_enum)| {
-                    (self.insert_object_field(id, name, field_type_id), field_enum)
-                })
+                .map(|(name, r#type, field_enum)| (self.insert_object_field(id, name, r#type), field_enum))
                 .collect(),
         }
     }
@@ -607,7 +617,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
     fn set_field_arguments<'b>(
         &mut self,
         field_id: FieldId,
-        arguments: impl Iterator<Item = (&'b str, TypeId, Option<SchemaInputValueId>)>,
+        arguments: impl Iterator<Item = (&'b str, Type, Option<SchemaInputValueId>)>,
     ) {
         let start = self.input_value_definitions.len();
 
@@ -623,18 +633,17 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         };
     }
 
-    fn insert_field_type(&mut self, kind: impl Into<Definition>, wrapping: Wrapping) -> TypeId {
-        self.types.push(Type {
+    fn insert_field_type(&mut self, kind: impl Into<Definition>, wrapping: Wrapping) -> Type {
+        Type {
             inner: kind.into(),
             wrapping,
-        });
-        TypeId::from(self.types.len() - 1)
+        }
     }
 
     fn insert_input_value(
         &mut self,
         name: &str,
-        type_id: TypeId,
+        r#type: Type,
         default_value: Option<SchemaInputValueId>,
     ) -> InputValueDefinitionId {
         let name = self.get_or_intern(name);
@@ -642,17 +651,12 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             name,
             description: None,
             default_value,
-            type_id,
+            r#type,
         });
         InputValueDefinitionId::from(self.input_value_definitions.len() - 1)
     }
 
-    fn find_or_create_field_type(
-        &mut self,
-        scalar_name: &str,
-        scalar_type: ScalarType,
-        expected_wrapping: Wrapping,
-    ) -> TypeId {
+    fn field_type(&mut self, scalar_name: &str, scalar_type: ScalarType, wrapping: Wrapping) -> Type {
         let scalar_id = match self
             .scalars
             .iter()
@@ -674,14 +678,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             }
         };
         let expected_kind = Definition::from(scalar_id);
-        match self
-            .types
-            .iter()
-            .enumerate()
-            .find(|(_, Type { inner: kind, wrapping })| kind == &expected_kind && wrapping == &expected_wrapping)
-        {
-            Some((id, _)) => TypeId::from(id),
-            None => self.insert_field_type(expected_kind, expected_wrapping),
+
+        Type {
+            inner: expected_kind,
+            wrapping,
         }
     }
 

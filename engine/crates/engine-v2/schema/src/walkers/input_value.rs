@@ -9,7 +9,7 @@ impl<'a> InputValueDefinitionWalker<'a> {
     }
 
     pub fn ty(&self) -> TypeWalker<'a> {
-        self.walk(self.as_ref().type_id)
+        self.walk(self.as_ref().r#type)
     }
 }
 

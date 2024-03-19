@@ -73,21 +73,19 @@ impl Schema {
     }
 
     pub fn object_field_by_name(&self, object_id: ObjectId, name: &str) -> Option<FieldId> {
-        self.object_fields
-            .binary_search_by_key(&(object_id, name), |ObjectField { object_id, field_id }| {
-                (*object_id, &self[self[*field_id].name])
-            })
-            .map(|index| self.object_fields[index].field_id)
-            .ok()
+        let fields = self[object_id].fields;
+        self[fields]
+            .iter()
+            .position(|field| self[field.name] == name)
+            .map(|pos| FieldId::from(usize::from(fields.start) + pos))
     }
 
     pub fn interface_field_by_name(&self, interface_id: InterfaceId, name: &str) -> Option<FieldId> {
-        self.interface_fields
-            .binary_search_by_key(&(interface_id, name), |InterfaceField { interface_id, field_id }| {
-                (*interface_id, &self[self[*field_id].name])
-            })
-            .map(|index| self.interface_fields[index].field_id)
-            .ok()
+        let fields = self[interface_id].fields;
+        self[fields]
+            .iter()
+            .position(|field| self[field.name] == name)
+            .map(|pos| FieldId::from(usize::from(fields.start) + pos))
     }
 
     // Used as the default resolver
@@ -123,6 +121,7 @@ impl Schema {
                 interfaces: Vec::new(),
                 composed_directives: Directives::empty(),
                 cache_config: None,
+                fields: IdRange::empty(),
             }],
             interfaces: Vec::new(),
             fields: Vec::new(),
@@ -174,12 +173,6 @@ pub struct Object {
 
 pub type Directives = IdRange<DirectiveId>;
 pub type Fields = IdRange<FieldId>;
-
-#[derive(PartialOrd, Ord, PartialEq, Eq)]
-pub struct ObjectField {
-    pub object_id: ObjectId,
-    pub field_id: FieldId,
-}
 
 #[derive(Debug)]
 pub struct Field {
@@ -300,12 +293,8 @@ pub struct Interface {
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
-}
 
-#[derive(Debug)]
-pub struct InterfaceField {
-    pub interface_id: InterfaceId,
-    pub field_id: FieldId,
+    pub fields: Fields,
 }
 
 #[derive(Debug)]
@@ -386,7 +375,7 @@ pub struct InputObject {
 pub struct InputValueDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub type_id: TypeId,
+    pub r#type: Type,
     pub default_value: Option<SchemaInputValueId>,
 }
 

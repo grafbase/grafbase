@@ -1,7 +1,7 @@
 #![allow(clippy::panic)]
 
 use super::Context;
-use crate::{subgraphs, VecExt};
+use crate::subgraphs;
 use graphql_federated_graph as federated;
 use std::collections::HashMap;
 

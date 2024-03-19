@@ -58,7 +58,7 @@ impl SchemaBuilder {
                 },
                 objects: Vec::with_capacity(config.graph.objects.len()),
                 fields: Vec::with_capacity(config.graph.fields.len()),
-                interfaces: take(&mut config.graph.interfaces).into_iter().map(Into::into).collect(),
+                interfaces: Vec::with_capacity(config.graph.objects.len()),
                 enums: Vec::new(),
                 unions: Vec::with_capacity(0),
                 scalars: Vec::with_capacity(config.graph.scalars.len()),
@@ -466,7 +466,7 @@ impl SchemaBuilder {
             let field = Field {
                 name: field.name.into(),
                 description: None,
-                type_id,
+                r#type: field.r#type.into(),
                 resolvers,
                 provides: provides
                     .into_iter()
@@ -498,6 +498,20 @@ impl SchemaBuilder {
         }
 
         // -- INTERFACES --
+        for interface in take(&mut graph.interfaces) {
+            schema.interfaces.push(Interface {
+                name: interface.name.into(),
+                description: None,
+                interfaces: Vec::new(),
+                possible_types: Vec::new(),
+                composed_directives: IdRange::from_start_and_length(interface.composed_directives),
+                fields: field_id_mapper.map_range((
+                    interface.fields.start,
+                    interface.fields.end.0 - interface.fields.start.0,
+                )),
+            })
+        }
+
         // Adding all implementations of an interface, used during introspection.
         for object_id in (0..schema.objects.len()).map(ObjectId::from) {
             for interface_id in schema[object_id].interfaces.clone() {
@@ -602,18 +616,6 @@ fn is_inaccessible(graph: &federated_graph::FederatedGraphV3, directives: federa
         .any(|directive| matches!(directive, federated_graph::Directive::Inaccessible))
 }
 
-impl From<federated_graph::Object> for Object {
-    fn from(object: federated_graph::Object) -> Self {
-        Object {
-            name: object.name.into(),
-            description: None,
-            interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
-            composed_directives: IdRange::from_start_and_length(object.composed_directives),
-            cache_config: Default::default(),
-        }
-    }
-}
-
 impl From<federated_graph::Definition> for Definition {
     fn from(definition: federated_graph::Definition) -> Self {
         match definition {
@@ -636,24 +638,12 @@ impl From<federated_graph::Type> for Type {
     }
 }
 
-impl From<federated_graph::Interface> for Interface {
-    fn from(interface: federated_graph::Interface) -> Self {
-        Interface {
-            name: interface.name.into(),
-            description: None,
-            interfaces: vec![],
-            possible_types: vec![],
-            composed_directives: IdRange::from_start_and_length(interface.composed_directives),
-        }
-    }
-}
-
 impl From<federated_graph::InputValueDefinition> for InputValueDefinition {
     fn from(value: federated_graph::InputValueDefinition) -> Self {
         InputValueDefinition {
             name: value.name.into(),
             description: value.description.map(Into::into),
-            type_id: value.type_id.into(),
+            r#type: value.r#type.into(),
             default_value: None,
         }
     }
