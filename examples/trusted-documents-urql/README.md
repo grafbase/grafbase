@@ -1,6 +1,6 @@
 # trusted-documents-urql
 
-This example demonstrates a basic setup with trusted documents / persisted queries using [URQL](https://commerce.nearform.com/open-source/urql/) as a client.
+This example demonstrates a basic setup with Trusted Documents using [urql](https://commerce.nearform.com/open-source/urql/) as a client.
 
 Below is a list of steps you can follow to see a successful trusted documents query. We'll use [Bun](https://bun.sh/) in this walkthrough, but node + (p)npm should work as well.
 
