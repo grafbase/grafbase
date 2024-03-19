@@ -64,6 +64,8 @@ fn start_server(filter: EnvFilter, args: Args, config: Config) -> Result<(), any
     use grafbase_tracing::otel::opentelemetry_sdk::trace::TracerProvider;
     use opentelemetry_aws::trace::XrayPropagator;
 
+    global::set_text_map_propagator(XrayPropagator::default());
+
     let filter = config
         .telemetry
         .as_ref()
@@ -76,8 +78,6 @@ fn start_server(filter: EnvFilter, args: Args, config: Config) -> Result<(), any
         .and_then(|config| config.tracing.exporters.stdout.as_ref())
     {
         Some(stdout_config) if stdout_config.enabled => {
-            global::set_text_map_propagator(XrayPropagator::default());
-
             let otel_service_name = config
                 .telemetry
                 .as_ref()
@@ -96,7 +96,11 @@ fn start_server(filter: EnvFilter, args: Args, config: Config) -> Result<(), any
         _ => None,
     };
 
-    tracing_subscriber::registry().with(otel_layer).with(filter).init();
+    tracing_subscriber::registry()
+        .with(otel_layer)
+        .with(filter)
+        .with(tracing_subscriber::fmt::layer().json())
+        .init();
 
     federated_server::start(args.listen_address, config, args.fetch_method()?)?;
 
