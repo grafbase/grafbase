@@ -2,7 +2,11 @@
 
 use args::Args;
 use clap::Parser;
+use mimalloc::MiMalloc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 mod args;
 
