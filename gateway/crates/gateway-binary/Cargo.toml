@@ -17,6 +17,7 @@ clap = { version = "4", default-features = false, features = ["std", "cargo", "w
 federated-server.workspace = true
 grafbase-tracing = { workspace = true, features = ["otlp"] }
 graph-ref.workspace = true
+mimalloc = "0.1.39"
 rustls = { workspace = true, features = ["ring"] }
 tracing-subscriber.workspace = true
 
