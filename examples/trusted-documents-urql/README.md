@@ -1,4 +1,4 @@
-# trusted-documents-urql
+# Trusted Documents + urql example
 
 This example demonstrates a basic setup with Trusted Documents using [urql](https://commerce.nearform.com/open-source/urql/) as a client.
 
