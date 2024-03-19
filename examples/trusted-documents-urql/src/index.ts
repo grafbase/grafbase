@@ -49,6 +49,7 @@ const client = new Client({
     persistedExchange({
       enableForMutation: true,
       enforcePersistedQueries: true,
+      // Note: since we know that the document id in the query map is a sha256 hash of the query, in this example, we wouldn't even need the query map. It is still included to show that this can work with arbitrary ids. If you delete the line below, the example should still work and the queryMap is unnecessary.
       generateHash: (query) => Promise.resolve(queryMap[query])
     }),
     fetchExchange
