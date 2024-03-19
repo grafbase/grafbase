@@ -1,1 +1,36 @@
+directive @core(feature: String!) repeatable on SCHEMA
 
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    CARS @join__graph(name: "cars", url: "http://example.com/cars")
+    INVENTORY @join__graph(name: "inventory", url: "http://example.com/inventory")
+}
+
+type Car
+    @join__type(graph: CARS, key: "id")
+    @join__type(graph: INVENTORY, key: "id")
+{
+    id: String! @authenticated
+    year: Int! @join__field(graph: CARS)
+    km: Int! @join__field(graph: CARS)
+    spareParts: [String!] @join__field(graph: INVENTORY) @authenticated
+}
+
+type Query {
+    cars: [Car!]! @join__field(graph: CARS) @authenticated
+}
