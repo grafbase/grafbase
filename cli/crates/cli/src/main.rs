@@ -189,7 +189,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Upgrade => {
             // this command is also hidden in this case
             // (clippy doesn't have a mechanism to completely disable a command conditionally when using derive, see https://github.com/clap-rs/clap/issues/5251)
-            if is_direct_install() {
+            if is_not_direct_install() {
                 return Err(CliError::NotDirectInstall);
             }
             upgrade::install_grafbase().map_err(Into::into)
@@ -197,7 +197,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
     }
 }
 
-pub(crate) fn is_direct_install() -> bool {
+pub(crate) fn is_not_direct_install() -> bool {
     std::env::current_exe().is_ok_and(|path| Some(path) != direct_install_executable_path())
 }
 
