@@ -310,8 +310,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
           deprecationReason: String
         }
         */
-        let __enum_value = self.insert_object(
-            "__EnumValue",
+        let __enum_value = self.insert_object("__EnumValue");
+
+        self.insert_object_fields(
+            __enum_value,
             vec![
                 ("name", required_string, __EnumValue::Name),
                 ("description", nullable_string, __EnumValue::Description),
@@ -328,17 +330,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
           defaultValue: String
         }
         */
-        let mut __input_value = self.insert_object(
-            "__InputValue",
-            vec![
-                ("name", required_string, __InputValue::Name),
-                ("description", nullable_string, __InputValue::Description),
-                // type added later
-                ("defaultValue", nullable_string, __InputValue::DefaultValue),
-            ],
-        );
+        let mut __input_value = self.insert_object("__InputValue");
+
         let args = Type {
-            inner: __input_value.id.into(),
+            inner: __input_value.into(),
             wrapping: Wrapping::required().wrapped_by_required_list(),
         };
 
@@ -352,17 +347,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
           deprecationReason: String
         }
         */
-        let mut __field = self.insert_object(
-            "__Field",
-            vec![
-                ("name", required_string, __Field::Name),
-                ("description", nullable_string, __Field::Description),
-                ("args", args, __Field::Args),
-                // type added later
-                ("isDeprecated", required_boolean, __Field::IsDeprecated),
-                ("deprecationReason", nullable_string, __Field::DeprecationReason),
-            ],
-        );
+        let mut __field = self.insert_object("__Field");
 
         /*
         type __Directive {
@@ -373,22 +358,22 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
           isRepeatable: Boolean!
         }
         */
-        let __directive = {
-            let locations = Type {
-                inner: __directive_location.into(),
-                wrapping: Wrapping::required().wrapped_by_required_list(),
-            };
-            self.insert_object(
-                "__Directive",
-                vec![
-                    ("name", required_string, __Directive::Name),
-                    ("description", nullable_string, __Directive::Description),
-                    ("locations", locations, __Directive::Locations),
-                    ("args", args, __Directive::Args),
-                    ("isRepeatable", required_boolean, __Directive::IsRepeatable),
-                ],
-            )
+        let __directive = self.insert_object("__Directive");
+
+        let locations = Type {
+            inner: __directive_location.into(),
+            wrapping: Wrapping::required().wrapped_by_required_list(),
         };
+        self.insert_object_fields(
+            __directive,
+            vec![
+                ("name", required_string, __Directive::Name),
+                ("description", nullable_string, __Directive::Description),
+                ("locations", locations, __Directive::Locations),
+                ("args", args, __Directive::Args),
+                ("isRepeatable", required_boolean, __Directive::IsRepeatable),
+            ],
+        );
 
         /*
         type __Type {
@@ -404,91 +389,95 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
           specifiedByURL: String
         }
         */
-        let mut __type = {
-            let kind = Type {
-                inner: __type_kind.into(),
-                wrapping: Wrapping::required(),
-            };
-            let input_fields = Type {
-                inner: __input_value.id.into(),
-                wrapping: Wrapping::required().wrapped_by_nullable_list(),
-            };
-            let mut __type = self.insert_object(
-                "__Type",
-                vec![
-                    ("kind", kind, __Type::Kind),
-                    ("name", nullable_string, __Type::Name),
-                    ("description", nullable_string, __Type::Description),
-                    ("inputFields", input_fields, __Type::InputFields),
-                    ("specifiedByURL", nullable_string, __Type::SpecifiedByURL),
-                    // other fields added later
-                ],
-            );
-            let default_value = Some(self.input_values.push_value(SchemaInputValue::Boolean(false)));
-            {
-                let nullable__field_list = Type {
-                    inner: __field.id.into(),
-                    wrapping: Wrapping::required().wrapped_by_nullable_list(),
-                };
-                let field_id = self.insert_object_field(__type.id, "fields", nullable__field_list);
-                __type.fields.push((field_id, __Type::Fields));
-                self.set_field_arguments(
-                    field_id,
-                    std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
-                )
-            }
-            {
-                let nullable__enum_value_list = Type {
-                    inner: __enum_value.id.into(),
-                    wrapping: Wrapping::required().wrapped_by_nullable_list(),
-                };
-                let field_id = self.insert_object_field(__type.id, "enumValues", nullable__enum_value_list);
-                __type.fields.push((field_id, __Type::EnumValues));
-                self.set_field_arguments(
-                    field_id,
-                    std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
-                );
-            }
-            __type
-        };
+        let __type = self.insert_object("__Type");
 
-        let required__type = Type {
-            inner: __type.id.into(),
+        let kind = Type {
+            inner: __type_kind.into(),
             wrapping: Wrapping::required(),
         };
-        let nullable__type = Type {
-            inner: __type.id.into(),
-            wrapping: Wrapping::nullable(),
+        let input_fields = Type {
+            inner: __input_value.into(),
+            wrapping: Wrapping::required().wrapped_by_nullable_list(),
         };
-        let required__type_list = Type {
-            inner: __type.id.into(),
-            wrapping: Wrapping::required().wrapped_by_required_list(),
+        let nullable__field_list = Type {
+            inner: __field.into(),
+            wrapping: Wrapping::required().wrapped_by_nullable_list(),
         };
-        let nullable__type_list = Type {
-            inner: __type.id.into(),
+        let nullable__enum_value_list = Type {
+            inner: __enum_value.into(),
             wrapping: Wrapping::required().wrapped_by_nullable_list(),
         };
 
-        __input_value.fields.push((
-            self.insert_object_field(__input_value.id, "type", required__type),
-            __InputValue::Type,
-        ));
-        __field.fields.push((
-            self.insert_object_field(__field.id, "type", required__type),
-            __Field::Type,
-        ));
-        __type.fields.push((
-            self.insert_object_field(__type.id, "ofType", nullable__type),
-            __Type::OfType,
-        ));
-        __type.fields.push((
-            self.insert_object_field(__type.id, "possibleTypes", nullable__type_list),
-            __Type::PossibleTypes,
-        ));
-        __type.fields.push((
-            self.insert_object_field(__type.id, "interfaces", nullable__type_list),
-            __Type::Interfaces,
-        ));
+        let required__type = Type {
+            inner: __type.into(),
+            wrapping: Wrapping::required(),
+        };
+        let nullable__type = Type {
+            inner: __type.into(),
+            wrapping: Wrapping::nullable(),
+        };
+        let required__type_list = Type {
+            inner: __type.into(),
+            wrapping: Wrapping::required().wrapped_by_required_list(),
+        };
+        let nullable__type_list = Type {
+            inner: __type.into(),
+            wrapping: Wrapping::required().wrapped_by_nullable_list(),
+        };
+
+        let __type = self.insert_object_fields(
+            __type,
+            vec![
+                ("kind", kind, __Type::Kind),
+                ("name", nullable_string, __Type::Name),
+                ("description", nullable_string, __Type::Description),
+                ("inputFields", input_fields, __Type::InputFields),
+                ("specifiedByURL", nullable_string, __Type::SpecifiedByURL),
+                ("fields", nullable__field_list, __Type::Fields),
+                ("enumValues", nullable__enum_value_list, __Type::EnumValues),
+                ("ofType", nullable__type, __Type::OfType),
+                ("sibleTypes", nullable__type_list, __Type::PossibleTypes),
+                ("interfaces", nullable__type_list, __Type::Interfaces),
+            ],
+        );
+
+        {
+            let default_value = Some(self.input_values.push_value(SchemaInputValue::Boolean(false)));
+            self.set_field_arguments(
+                __type.id,
+                "fields",
+                std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
+            );
+            self.set_field_arguments(
+                __type.id,
+                "enumValues",
+                std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
+            );
+        }
+
+        let __input_value = self.insert_object_fields(
+            __input_value,
+            vec![
+                ("name", required_string, __InputValue::Name),
+                ("description", nullable_string, __InputValue::Description),
+                // type added later
+                ("defaultValue", nullable_string, __InputValue::DefaultValue),
+                ("type", required__type, __InputValue::Type),
+            ],
+        );
+
+        let __field = self.insert_object_fields(
+            __field,
+            vec![
+                ("name", required_string, __Field::Name),
+                ("description", nullable_string, __Field::Description),
+                ("args", args, __Field::Args),
+                // type added later
+                ("isDeprecated", required_boolean, __Field::IsDeprecated),
+                ("deprecationReason", nullable_string, __Field::DeprecationReason),
+                ("type", required__type, __Field::Type),
+            ],
+        );
 
         /*
         type __Schema {
@@ -501,11 +490,13 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         }
         */
         let required__directive_list = Type {
-            inner: __directive.id.into(),
+            inner: __directive.into(),
             wrapping: Wrapping::required().wrapped_by_required_list(),
         };
-        let __schema = self.insert_object(
-            "__Schema",
+        let __schema = self.insert_object("__Schema");
+
+        self.insert_object_fields(
+            __schema,
             vec![
                 ("description", nullable_string, __Schema::Description),
                 ("types", required__type_list, __Schema::Types),
@@ -523,7 +514,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         __schema: __Schema!
         */
         let field_type_id = Type {
-            inner: __schema.id.into(),
+            inner: __schema.into(),
             wrapping: Wrapping::required(),
         };
         let __schema_field_id = self.insert_object_field(self.root_operation_types.query, "__schema", field_type_id);
@@ -607,52 +598,59 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         ObjectId::from(self.objects.len() - 1)
     }
 
-    fn insert_object_field(&mut self, object_id: ObjectId, name: &str, r#type: Type) -> FieldId {
+    fn insert_object_fields<E>(
+        &mut self,
+        object_id: ObjectId,
+        fields: Vec<(&str, Type, E)>,
+    ) -> IncompleteIntrospectionObject<E> {
         let name = self.get_or_intern(name);
-        self.fields.push(Field {
-            name,
-            r#type,
-            composed_directives: IdRange::empty(),
-            resolvers: vec![],
-            provides: vec![],
-            argument_ids: IdRange::empty(),
-            description: None,
-            cache_config: None,
-        });
-        let field_id = FieldId::from(self.fields.len() - 1);
-        let object_fields = self[object_id].fields;
+        let mut fields = Vec::<FieldId, E>::new();
 
-        if object_fields.is_empty() {
-            self[object_id].fields = IdRange::from_single(field_id);
-        } else {
-            assert_eq!(object_fields.end, field_id);
-            self[object_id].fields = IdRange {
-                start: object_fields.start,
-                end: FieldId::from(usize::from(field_id) + 1),
-            };
+        let start = self.fields.len().into();
+
+        for (name, r#type, tag) in fields {
+            let id = self.fields.len().into();
+
+            self.fields.push(Field {
+                name,
+                r#type,
+                composed_directives: IdRange::empty(),
+                resolvers: vec![],
+                provides: vec![],
+                argument_ids: IdRange::empty(),
+                description: None,
+                cache_config: None,
+            });
+
+            fields.push((id, tag));
         }
 
-        field_id
+        let end = self.fields.len().into();
+
+        IncompleteIntrospectionObject { id: object_id, fields }
     }
 
-    fn insert_object<E>(&mut self, name: &str, fields: Vec<(&str, Type, E)>) -> IncompleteIntrospectionObject<E> {
+    fn insert_object(&mut self, name: &str) -> ObjectId {
         let id = self.new_object(name);
         self.definitions.push(Definition::from(id));
-        IncompleteIntrospectionObject {
-            id,
-            fields: fields
-                .into_iter()
-                .map(|(name, r#type, field_enum)| (self.insert_object_field(id, name, r#type), field_enum))
-                .collect(),
-        }
+        id
     }
 
     /// Warning: if you call this twice, the second call will overwrite the first.
     fn set_field_arguments<'b>(
         &mut self,
-        field_id: FieldId,
+        object_id: ObjectId,
+        field_name: &str,
         arguments: impl Iterator<Item = (&'b str, Type, Option<SchemaInputValueId>)>,
     ) {
+        let fields = self[object_id].fields;
+        let field_id = FieldId::from(
+            usize::from(fields.start)
+                + self[fields]
+                    .iter()
+                    .position(|field| self[field.name] == field_name)
+                    .expect("field to exist"),
+        );
         let start = self.input_value_definitions.len();
 
         for (name, type_id, default_value) in arguments {
