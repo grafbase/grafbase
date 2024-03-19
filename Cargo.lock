@@ -2238,7 +2238,7 @@ dependencies = [
 
 [[package]]
 name = "federated-server"
-version = "0.1.0-rc.13"
+version = "0.1.0-rc.14"
 dependencies = [
  "ascii 1.1.0",
  "async-trait",
@@ -2823,7 +2823,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-gateway"
-version = "0.1.0-rc.13"
+version = "0.1.0-rc.14"
 dependencies = [
  "anyhow",
  "ascii 1.1.0",
@@ -2841,6 +2841,7 @@ dependencies = [
  "insta",
  "mimalloc",
  "opentelemetry-aws",
+ "opentelemetry-stdout",
  "reqwest",
  "rustls",
  "serde",
