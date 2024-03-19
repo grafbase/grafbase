@@ -3,7 +3,7 @@
 use crate::{
     sources::federation::{DataSource as FederationDataSource, Subgraph},
     CacheConfig, Definition, Directive, Enum, EnumValue, Field, Header, InputObject, InputValueDefinition, Interface,
-    Object, Resolver, Scalar, Schema, Type, Union,
+    Object, Resolver, Scalar, Schema, Union,
 };
 use url::Url;
 
