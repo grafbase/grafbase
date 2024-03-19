@@ -8,7 +8,7 @@ keywords.workspace = true
 repository.workspace = true
 
 [features]
-lambda = ["federated-server/lambda", "tracing-subscriber/json", "opentelemetry-aws", "opentelemetry-stdout"]
+lambda = ["federated-server/lambda", "tracing-subscriber/json", "opentelemetry-aws"]
 
 [dependencies]
 anyhow = { version = "1.0.81", default-features = false }
@@ -19,7 +19,6 @@ grafbase-tracing = { workspace = true, features = ["otlp"] }
 graph-ref.workspace = true
 mimalloc = "0.1.39"
 opentelemetry-aws = { version = "0.10.0", optional = true }
-opentelemetry-stdout = { version = "0.3.0", features = ["trace"], optional = true }
 rustls = { workspace = true, features = ["ring"] }
 toml = "0.8.12"
 tracing-subscriber.workspace = true
