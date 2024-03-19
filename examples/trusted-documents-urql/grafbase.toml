@@ -1,0 +1,5 @@
+[graph]
+introspection = true
+
+[trusted_documents]
+enabled = true

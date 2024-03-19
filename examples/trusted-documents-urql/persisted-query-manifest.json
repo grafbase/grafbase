@@ -1,0 +1,18 @@
+{
+  "format": "apollo-persisted-query-manifest",
+  "version": 1,
+  "operations": [
+    {
+      "id": "b547309ad1d2775cc3a6013b744a343baf7d3360cacf0ee01185209ea922ec57",
+      "name": "People",
+      "type": "query",
+      "body": "query People($count: Int!) {\n  allPeople(first: $count) {\n    edges {\n      node {\n        name\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}"
+    },
+    {
+      "id": "469abbc8c09415a925f3c3d0cf575846f12df47bee5f9eb63d8a65e21803b18c",
+      "name": "Planets",
+      "type": "query",
+      "body": "query Planets {\n  allPlanets {\n    totalCount\n    edges {\n      node {\n        name\n        climates\n        population\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}"
+    }
+  ]
+}
