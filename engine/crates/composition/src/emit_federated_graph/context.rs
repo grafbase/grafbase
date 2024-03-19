@@ -33,24 +33,6 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_string(&mut self, string: subgraphs::StringWalker<'_>) -> federated::StringId {
         self.strings_ir.insert(string.as_str())
     }
-
-    pub(crate) fn push_object_field(&mut self, object_id: federated::ObjectId, field_id: federated::FieldId) {
-        let key = (federated::Definition::Object(object_id), self.out[field_id].name);
-        self.selection_map.insert(key, field_id);
-        let mut object = &mut self.out.objects[object_id.0];
-        assert!(object.fields.start == object.fields.end || object.fields.end == field_id.0 - 1);
-        self.out
-            .object_fields
-            .push(federated::ObjectField { object_id, field_id });
-    }
-
-    pub(crate) fn push_interface_field(&mut self, interface_id: federated::InterfaceId, field_id: federated::FieldId) {
-        let key = (federated::Definition::Interface(interface_id), self.out[field_id].name);
-        self.selection_map.insert(key, field_id);
-        self.out
-            .interface_fields
-            .push(federated::InterfaceField { interface_id, field_id });
-    }
 }
 
 impl Drop for Context<'_> {

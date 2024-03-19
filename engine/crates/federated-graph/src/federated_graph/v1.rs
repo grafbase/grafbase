@@ -172,6 +172,16 @@ pub enum Definition {
     InputObject(InputObjectId),
 }
 
+impl Definition {
+    pub fn as_object(&self) -> Option<&ObjectId> {
+        if let Self::Object(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Hash, PartialEq, Eq, Clone)]
 pub struct FieldType {
     pub kind: Definition,

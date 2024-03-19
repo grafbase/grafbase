@@ -29,11 +29,7 @@ pub struct Schema {
     pub description: Option<StringId>,
     pub root_operation_types: RootOperationTypes,
     objects: Vec<Object>,
-    // Sorted by object_id, field name (actual string)
-    object_fields: Vec<ObjectField>,
     interfaces: Vec<Interface>,
-    // Sorted by interface_id, field name (actual string)
-    interface_fields: Vec<InterfaceField>,
     fields: Vec<Field>,
     enums: Vec<Enum>,
     unions: Vec<Union>,
@@ -41,8 +37,6 @@ pub struct Schema {
     input_objects: Vec<InputObject>,
     input_value_definitions: Vec<InputValueDefinition>,
     resolvers: Vec<Resolver>,
-    /// All the field types in the supergraph, deduplicated.
-    types: Vec<Type>,
     // All definitions sorted by their name (actual string)
     definitions: Vec<Definition>,
     directives: Vec<Directive>,
@@ -130,9 +124,7 @@ impl Schema {
                 composed_directives: Directives::empty(),
                 cache_config: None,
             }],
-            object_fields: Vec::new(),
             interfaces: Vec::new(),
-            interface_fields: Vec::new(),
             fields: Vec::new(),
             enums: Vec::new(),
             unions: Vec::new(),
@@ -140,7 +132,6 @@ impl Schema {
             input_objects: Vec::new(),
             input_value_definitions: Vec::new(),
             resolvers: Vec::new(),
-            types: Vec::new(),
             definitions: Vec::new(),
             directives: Vec::new(),
             enum_values: Vec::new(),
@@ -178,9 +169,11 @@ pub struct Object {
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
     pub cache_config: Option<CacheConfigId>,
+    pub fields: Fields,
 }
 
 pub type Directives = IdRange<DirectiveId>;
+pub type Fields = IdRange<FieldId>;
 
 #[derive(PartialOrd, Ord, PartialEq, Eq)]
 pub struct ObjectField {
@@ -192,7 +185,7 @@ pub struct ObjectField {
 pub struct Field {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub type_id: TypeId,
+    pub r#type: Type,
     pub resolvers: Vec<FieldResolver>,
     provides: Vec<FieldProvides>,
     /// The arguments referenced by this range are sorted by their name (string)
@@ -219,6 +212,9 @@ pub struct FieldResolver {
 #[derive(Debug)]
 pub enum Directive {
     Inaccessible,
+    Authenticated,
+    Policy(Vec<Vec<StringId>>),
+    RequiresScopes(Vec<Vec<StringId>>),
     Deprecated { reason: Option<StringId> },
     Other { name: StringId, arguments: SchemaInputMap },
 }

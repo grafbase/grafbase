@@ -43,6 +43,7 @@ pub(crate) struct CompositionIr {
     pub(crate) object_fields_from_entity_interfaces: BTreeSet<(federated::StringId, federated::FieldId)>,
 }
 
+#[derive(Clone)]
 pub(crate) struct FieldIr {
     pub(crate) parent_definition: federated::Definition,
     pub(crate) field_name: subgraphs::StringId,
