@@ -1,11 +1,14 @@
+use std::borrow::Cow;
 use std::time::Duration;
 
 use opentelemetry::trace::noop::NoopTracer;
-use opentelemetry::trace::TracerProvider;
+use opentelemetry::trace::TracerProvider as _;
 use opentelemetry::{global, KeyValue};
 use opentelemetry_sdk::export::trace::SpanExporter;
 use opentelemetry_sdk::runtime::RuntimeChannel;
-use opentelemetry_sdk::trace::{BatchConfigBuilder, BatchSpanProcessor, Builder, RandomIdGenerator, Sampler};
+use opentelemetry_sdk::trace::{
+    BatchConfigBuilder, BatchSpanProcessor, Builder, RandomIdGenerator, Sampler, TracerProvider,
+};
 use opentelemetry_sdk::Resource;
 use tracing::Subscriber;
 use tracing_subscriber::filter::{FilterExt, Filtered};
@@ -52,6 +55,23 @@ where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
     R: RuntimeChannel,
 {
+    let provider = new_provider(service_name, &config, runtime)?;
+    let tracer = provider.tracer("batched-otel");
+
+    let _ = global::set_tracer_provider(provider);
+
+    Ok(tracing_opentelemetry::layer().with_tracer(tracer).boxed())
+}
+
+/// Creates a new OTEL tracing provider.
+pub fn new_provider<R>(
+    service_name: impl Into<String>,
+    config: &TracingConfig,
+    runtime: R,
+) -> Result<TracerProvider, TracingError>
+where
+    R: RuntimeChannel,
+{
     let service_name = service_name.into();
 
     let builder = opentelemetry_sdk::trace::TracerProvider::builder().with_config(
@@ -64,18 +84,12 @@ where
             .with_resource(Resource::new(vec![KeyValue::new("service.name", service_name)])),
     );
 
-    let provider = setup_exporters(builder, config, runtime)?.build();
-
-    let tracer = provider.tracer("batched-otel");
-
-    let _ = global::set_tracer_provider(provider);
-
-    Ok(tracing_opentelemetry::layer().with_tracer(tracer).boxed())
+    Ok(setup_exporters(builder, config, runtime)?.build())
 }
 
 fn setup_exporters<R>(
     mut tracer_provider_builder: Builder,
-    config: TracingConfig,
+    config: &TracingConfig,
     runtime: R,
 ) -> Result<Builder, TracingError>
 where
@@ -94,7 +108,7 @@ where
 
     // otlp
     #[cfg(feature = "otlp")]
-    if let Some(otlp_exporter_config) = config.exporters.otlp {
+    if let Some(ref otlp_exporter_config) = config.exporters.otlp {
         use opentelemetry_otlp::{SpanExporterBuilder, WithExportConfig};
         use std::str::FromStr;
         use tonic::metadata::MetadataKey;
@@ -107,21 +121,35 @@ where
 
             match otlp_exporter_config.protocol {
                 TracingOtlpExporterProtocol::Grpc => {
-                    let grpc_config = otlp_exporter_config.grpc.unwrap_or_default();
+                    let grpc_config = otlp_exporter_config
+                        .grpc
+                        .as_ref()
+                        .map(Cow::Borrowed)
+                        .unwrap_or_default();
+
                     let metadata = {
                         // note: I'm not using MetadataMap::from_headers due to `http` crate version issues.
                         // we're using 1 but otel currently pins tonic to an older version that requires 0.2.
                         // once versions get aligned we can replace the following
-                        let headers = grpc_config.headers.try_into_map()?;
+                        // let headers = grpc_config.headers.try_into_map()?;
 
-                        let metadata = tonic::metadata::MetadataMap::with_capacity(headers.len());
-                        headers
-                            .into_iter()
-                            .fold(metadata, |mut acc, (header_name, header_value)| {
-                                let key = MetadataKey::from_str(&header_name).unwrap();
-                                acc.insert(key, header_value.parse().unwrap());
-                                acc
-                            })
+                        let mut metadata =
+                            tonic::metadata::MetadataMap::with_capacity(grpc_config.headers.inner().len());
+
+                        for (header_key, header_value) in grpc_config.headers.inner() {
+                            let key = MetadataKey::from_str(header_key.as_str())
+                                .map_err(|e| TracingError::SpanExporterSetup(e.to_string()))?;
+
+                            let value = header_value
+                                .to_str()
+                                .map_err(|e| TracingError::SpanExporterSetup(e.to_string()))?
+                                .parse()
+                                .unwrap();
+
+                            metadata.insert(key, value);
+                        }
+
+                        metadata
                     };
 
                     let mut grpc_exporter = opentelemetry_otlp::new_exporter()
@@ -130,8 +158,8 @@ where
                         .with_timeout(exporter_timeout)
                         .with_metadata(metadata);
 
-                    if let Some(tls_config) = grpc_config.tls {
-                        grpc_exporter = grpc_exporter.with_tls_config(ClientTlsConfig::try_from(tls_config)?);
+                    if let Some(ref tls_config) = grpc_config.tls {
+                        grpc_exporter = grpc_exporter.with_tls_config(ClientTlsConfig::try_from(tls_config.clone())?);
                     }
 
                     SpanExporterBuilder::from(grpc_exporter)
@@ -139,12 +167,17 @@ where
                         .map_err(|err| TracingError::SpanExporterSetup(err.to_string()))?
                 }
                 TracingOtlpExporterProtocol::Http => {
-                    let http_config = otlp_exporter_config.http.unwrap_or_default();
+                    let http_config = otlp_exporter_config
+                        .http
+                        .as_ref()
+                        .map(Cow::Borrowed)
+                        .unwrap_or_default();
+
                     let http_exporter = opentelemetry_otlp::new_exporter()
                         .http()
                         .with_endpoint(otlp_exporter_config.endpoint.to_string())
                         .with_timeout(exporter_timeout)
-                        .with_headers(http_config.headers.try_into_map()?);
+                        .with_headers(http_config.headers.clone().try_into_map()?);
 
                     SpanExporterBuilder::from(http_exporter)
                         .build_span_exporter()
