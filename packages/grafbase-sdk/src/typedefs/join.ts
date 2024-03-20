@@ -11,6 +11,7 @@ import { ShareableDefinition } from './shareable'
 import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
 import { DeprecatedDefinition } from './deprecated'
+import { InputType } from '../query'
 
 /**
  * A list of field types that can hold a `@join` attribute.
@@ -31,10 +32,12 @@ export type Joinable =
 export class JoinDefinition {
   private field: Joinable
   private select: string
+  private _arguments: Record<string, InputType>
 
   constructor(field: Joinable, select: string) {
     this.field = field
     this.select = select
+    this._arguments = {}
   }
 
   /**
@@ -53,6 +56,20 @@ export class JoinDefinition {
    */
   public cache(params: FieldCacheParams): CacheDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
+  }
+
+  /**
+   * Add arguments to this field that will be available in the join string
+   *
+   * @param args - The arguments for this field
+   */
+  public arguments(args: Record<string, InputType>): JoinDefinition {
+    this._arguments = args
+    return this
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return { ...this._arguments, ...this.field.allArguments }
   }
 
   public toString(): string {

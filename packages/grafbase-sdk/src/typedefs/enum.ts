@@ -1,5 +1,6 @@
 import { AuthRuleF } from '../auth'
 import { Enum, EnumShape } from '../enum'
+import { InputType } from '../query'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { DefaultDefinition } from './default'
@@ -139,6 +140,10 @@ export class EnumDefinition<T extends string, U extends EnumShape<T>> {
    */
   public provides(fields: string): ProvidesDefinition {
     return new ProvidesDefinition(this, fields)
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return {}
   }
 
   public toString(): string {

@@ -5,6 +5,7 @@ import {
   renderMutationInvalidation,
   renderAccessScope
 } from '../cache'
+import { InputType } from '../query'
 import { AuthDefinition } from './auth'
 import { DefaultDefinition } from './default'
 import { DeprecatedDefinition } from './deprecated'
@@ -129,6 +130,10 @@ export class CacheDefinition {
    */
   public mapped(name: string): MapDefinition {
     return new MapDefinition(this, name)
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return this.field.allArguments
   }
 
   public toString(): string {
