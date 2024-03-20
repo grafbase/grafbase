@@ -2,7 +2,7 @@ use schema::{CacheConfig, Merge, Schema};
 
 use crate::response::GraphqlError;
 
-use super::{BoundSelectionSetWalker, Operation, OperationCacheControl, OperationWalker, Variables};
+use super::{Operation, OperationCacheControl, OperationWalker, SelectionSetWalker, Variables};
 
 #[derive(Debug, thiserror::Error)]
 pub enum OperationError {
@@ -64,13 +64,13 @@ fn compute_cache_control(operation: OperationWalker<'_>, request: &engine::Reque
     }
 }
 
-impl BoundSelectionSetWalker<'_> {
+impl SelectionSetWalker<'_> {
     // this merely traverses the selection set recursively and merge all cache_config present in the
     // selected fields
     fn cache_config(&self) -> Option<CacheConfig> {
         self.fields()
             .filter_map(|field| {
-                let cache_config = field.schema_field().and_then(|definition| {
+                let cache_config = field.definition().and_then(|definition| {
                     definition
                         .cache_config()
                         .merge(definition.ty().inner().as_object().and_then(|obj| obj.cache_config()))

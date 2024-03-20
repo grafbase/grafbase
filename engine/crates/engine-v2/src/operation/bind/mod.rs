@@ -8,15 +8,14 @@ use engine_parser::Positioned;
 use engine_value::Name;
 use id_newtypes::IdRange;
 use itertools::Itertools;
-use schema::{Definition, FieldWalker, Schema};
+use schema::{Definition, FieldDefinitionWalker, Schema};
 
 use super::{parse::ParsedOperation, QueryInputValue, QueryInputValues};
 use crate::{
     operation::{
-        BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundFragment, BoundFragmentId,
-        BoundFragmentSpread, BoundFragmentSpreadId, BoundInlineFragment, BoundInlineFragmentId, BoundSelection,
-        BoundSelectionSet, BoundSelectionSetId, Location, Operation, SelectionSetType, TypeCondition,
-        VariableDefinition,
+        Field, FieldArgument, FieldArgumentId, FieldId, Fragment, FragmentId, FragmentSpread, FragmentSpreadId,
+        InlineFragment, InlineFragmentId, Location, Operation, Selection, SelectionSet, SelectionSetId,
+        SelectionSetType, TypeCondition, VariableDefinition,
     },
     response::{GraphqlError, ResponseKeys},
 };
@@ -198,14 +197,14 @@ pub struct Binder<'a> {
     operation_name: ErrorOperationName,
     response_keys: ResponseKeys,
     unbound_fragments: HashMap<String, Positioned<engine_parser::types::FragmentDefinition>>,
-    fragments: HashMap<String, (BoundFragmentId, BoundFragment)>,
-    field_arguments: Vec<BoundFieldArgument>,
-    location_to_field_arguments: HashMap<Location, IdRange<BoundFieldArgumentId>>,
-    fields: Vec<BoundField>,
-    field_to_parent: Vec<BoundSelectionSetId>,
-    fragment_spreads: Vec<BoundFragmentSpread>,
-    inline_fragments: Vec<BoundInlineFragment>,
-    selection_sets: Vec<BoundSelectionSet>,
+    fragments: HashMap<String, (FragmentId, Fragment)>,
+    field_arguments: Vec<FieldArgument>,
+    location_to_field_arguments: HashMap<Location, IdRange<FieldArgumentId>>,
+    fields: Vec<Field>,
+    field_to_parent: Vec<SelectionSetId>,
+    fragment_spreads: Vec<FragmentSpread>,
+    inline_fragments: Vec<InlineFragment>,
+    selection_sets: Vec<SelectionSet>,
     variable_definitions: Vec<VariableDefinition>,
     input_values: QueryInputValues,
     // We keep track of the position of fields within the response object that will be
@@ -306,13 +305,13 @@ impl<'a> Binder<'a> {
         &mut self,
         root: SelectionSetType,
         selection_set: &mut Positioned<engine_parser::types::SelectionSet>,
-    ) -> BindResult<BoundSelectionSetId> {
+    ) -> BindResult<SelectionSetId> {
         let Positioned {
             node: selection_set, ..
         } = selection_set;
 
-        let id = BoundSelectionSetId::from(self.selection_sets.len());
-        self.selection_sets.push(BoundSelectionSet {
+        let id = SelectionSetId::from(self.selection_sets.len());
+        self.selection_sets.push(SelectionSet {
             ty: root,
             items: Vec::new(),
         });
@@ -338,10 +337,10 @@ impl<'a> Binder<'a> {
 
     fn bind_field(
         &mut self,
-        parent: BoundSelectionSetId,
+        parent: SelectionSetId,
         root: SelectionSetType,
         Positioned { pos, node: field }: &mut Positioned<engine_parser::types::Field>,
-    ) -> BindResult<BoundSelection> {
+    ) -> BindResult<Selection> {
         let name_location: Location = (*pos).try_into()?;
         let walker = self.schema.walker();
         let name = field.name.node.as_str();
@@ -360,16 +359,16 @@ impl<'a> Binder<'a> {
                 })?;
         self.next_response_position += 1;
 
-        let bound_field_id = match name {
+        let field_id = match name {
             "__typename" => self.push_field(
                 parent,
-                BoundField::TypeName {
+                Field::TypeName {
                     bound_response_key,
                     location: name_location,
                 },
             ),
             name => {
-                let schema_field: FieldWalker<'_> = match root {
+                let definition: FieldDefinitionWalker<'_> = match root {
                     SelectionSetType::Object(object_id) => self.schema.object_field_by_name(object_id, name),
                     SelectionSetType::Interface(interface_id) => {
                         self.schema.interface_field_by_name(interface_id, name)
@@ -382,45 +381,45 @@ impl<'a> Binder<'a> {
                         });
                     }
                 }
-                .map(|field_id| walker.walk(field_id))
+                .map(|definition_id| walker.walk(definition_id))
                 .ok_or_else(|| BindError::UnknownField {
                     container: walker.walk(Definition::from(root)).name().to_string(),
                     name: name.to_string(),
                     location: name_location,
                 })?;
 
-                let bound_field_id = self.push_field(
+                let field_id = self.push_field(
                     parent,
-                    BoundField::Field {
+                    Field::SchemaField {
                         bound_response_key,
                         location: name_location,
-                        field_id: schema_field.id(),
+                        field_definition_id: definition.id(),
                         argument_ids: Default::default(),
                         selection_set_id: Default::default(),
                     },
                 );
 
                 let argument_ids =
-                    self.bind_field_arguments(schema_field, bound_field_id, name_location, &mut field.arguments)?;
+                    self.bind_field_arguments(definition, field_id, name_location, &mut field.arguments)?;
 
                 let selection_set_id = if field.selection_set.node.items.is_empty() {
                     if !matches!(
-                        schema_field.ty().inner().id(),
+                        definition.ty().inner().id(),
                         Definition::Scalar(_) | Definition::Enum(_)
                     ) {
                         return Err(BindError::LeafMustBeAScalarOrEnum {
                             name: name.to_string(),
-                            ty: schema_field.ty().inner().name().to_string(),
+                            ty: definition.ty().inner().name().to_string(),
                             location: name_location,
                         });
                     }
                     None
                 } else {
                     Some(
-                        SelectionSetType::maybe_from(schema_field.ty().inner().id())
+                        SelectionSetType::maybe_from(definition.ty().inner().id())
                             .ok_or_else(|| BindError::CannotHaveSelectionSet {
                                 name: name.to_string(),
-                                ty: schema_field.ty().to_string(),
+                                ty: definition.ty().to_string(),
                                 location: name_location,
                             })
                             .and_then(|ty| self.bind_selection_set(ty, &mut field.selection_set))?,
@@ -428,24 +427,24 @@ impl<'a> Binder<'a> {
                 };
 
                 // Ugly, yes.
-                let BoundField::Field {
+                let Field::SchemaField {
                     argument_ids: ref mut field_argument_ids,
                     selection_set_id: ref mut field_selection_set_id,
                     ..
-                } = &mut self.fields[usize::from(bound_field_id)]
+                } = &mut self.fields[usize::from(field_id)]
                 else {
                     unreachable!()
                 };
                 *field_argument_ids = argument_ids;
                 *field_selection_set_id = selection_set_id;
-                bound_field_id
+                field_id
             }
         };
-        Ok(BoundSelection::Field(bound_field_id))
+        Ok(Selection::Field(field_id))
     }
 
-    fn push_field(&mut self, parent: BoundSelectionSetId, field: BoundField) -> BoundFieldId {
-        let id = BoundFieldId::from(self.fields.len());
+    fn push_field(&mut self, parent: SelectionSetId, field: Field) -> FieldId {
+        let id = FieldId::from(self.fields.len());
         self.fields.push(field);
         self.field_to_parent.push(parent);
         id
@@ -453,18 +452,18 @@ impl<'a> Binder<'a> {
 
     fn bind_field_arguments(
         &mut self,
-        schema_field: FieldWalker<'_>,
-        bound_field_id: BoundFieldId,
+        definition: FieldDefinitionWalker<'_>,
+        field_id: FieldId,
         field_location: Location,
         arguments: &mut Vec<(Positioned<Name>, Positioned<engine_value::Value>)>,
-    ) -> BindResult<IdRange<BoundFieldArgumentId>> {
+    ) -> BindResult<IdRange<FieldArgumentId>> {
         // Avoid binding multiple times the same arguments (same fragments used at different places)
         if let Some(ids) = self.location_to_field_arguments.get(&field_location) {
             return Ok(*ids);
         }
 
-        let start = BoundFieldArgumentId::from(self.field_arguments.len());
-        for argument_def in schema_field.arguments() {
+        let start = FieldArgumentId::from(self.field_arguments.len());
+        for argument_def in definition.arguments() {
             if let Some(index) = arguments
                 .iter()
                 .position(|(Positioned { node: name, .. }, _)| name.as_str() == argument_def.name())
@@ -473,21 +472,16 @@ impl<'a> Binder<'a> {
                 let name_location = Some(name.pos.try_into()?);
                 let value_location = value.pos.try_into()?;
                 let value = value.node;
-                let input_value_id = coercion::coerce_query_value(
-                    self,
-                    bound_field_id,
-                    value_location,
-                    argument_def.ty().into(),
-                    value,
-                )?;
-                self.field_arguments.push(BoundFieldArgument {
+                let input_value_id =
+                    coercion::coerce_query_value(self, field_id, value_location, argument_def.ty().into(), value)?;
+                self.field_arguments.push(FieldArgument {
                     name_location,
                     value_location: Some(value_location),
                     input_value_definition_id: argument_def.id(),
                     input_value_id,
                 });
             } else if let Some(id) = argument_def.as_ref().default_value {
-                self.field_arguments.push(BoundFieldArgument {
+                self.field_arguments.push(FieldArgument {
                     name_location: None,
                     value_location: None,
                     input_value_definition_id: argument_def.id(),
@@ -495,13 +489,13 @@ impl<'a> Binder<'a> {
                 });
             } else if argument_def.ty().wrapping().is_required() {
                 return Err(BindError::MissingArgument {
-                    field: schema_field.name().to_string(),
+                    field: definition.name().to_string(),
                     name: argument_def.name().to_string(),
                     location: field_location,
                 });
             }
         }
-        let end = BoundFieldArgumentId::from(self.field_arguments.len());
+        let end = FieldArgumentId::from(self.field_arguments.len());
         Ok((start..end).into())
     }
 
@@ -509,7 +503,7 @@ impl<'a> Binder<'a> {
         &mut self,
         root: SelectionSetType,
         Positioned { pos, node: spread }: &mut Positioned<engine_parser::types::FragmentSpread>,
-    ) -> BindResult<BoundSelection> {
+    ) -> BindResult<Selection> {
         let location = (*pos).try_into()?;
         // We always create a new selection set from a named fragment. It may not be split in the
         // same way and we need to validate the type condition each time.
@@ -537,13 +531,13 @@ impl<'a> Binder<'a> {
         let selection_set_id = self.bind_selection_set(type_condition.into(), &mut fragment.node.selection_set)?;
         let fragment_id = {
             let fragment_definition_location = fragment.pos.try_into()?;
-            let next_id = BoundFragmentId::from(self.fragments.len());
+            let next_id = FragmentId::from(self.fragments.len());
             self.fragments
                 .entry(name)
                 .or_insert_with(|| {
                     // A bound fragment definition has no selection set, it was already bound. We
                     // only keep it for errors (name/name_pos) and directives.
-                    let fragment_definition = BoundFragment {
+                    let fragment_definition = Fragment {
                         name: fragment_name.clone(),
                         name_location: fragment_definition_location,
                         type_condition,
@@ -556,20 +550,20 @@ impl<'a> Binder<'a> {
         self.current_fragments_stack.pop();
         self.unbound_fragments.insert(fragment_name, fragment);
 
-        let fragment_spread_id = BoundFragmentSpreadId::from(self.fragment_spreads.len());
-        self.fragment_spreads.push(BoundFragmentSpread {
+        let fragment_spread_id = FragmentSpreadId::from(self.fragment_spreads.len());
+        self.fragment_spreads.push(FragmentSpread {
             location,
             selection_set_id,
             fragment_id,
         });
-        Ok(BoundSelection::FragmentSpread(fragment_spread_id))
+        Ok(Selection::FragmentSpread(fragment_spread_id))
     }
 
     fn bind_inline_fragment(
         &mut self,
         root: SelectionSetType,
         Positioned { pos, node: fragment }: &mut Positioned<engine_parser::types::InlineFragment>,
-    ) -> BindResult<BoundSelection> {
+    ) -> BindResult<Selection> {
         let type_condition = fragment
             .type_condition
             .as_ref()
@@ -578,13 +572,13 @@ impl<'a> Binder<'a> {
         let fragment_root = type_condition.map(Into::into).unwrap_or(root);
         let selection_set_id = self.bind_selection_set(fragment_root, &mut fragment.selection_set)?;
 
-        let inline_fragment_id = BoundInlineFragmentId::from(self.inline_fragments.len());
-        self.inline_fragments.push(BoundInlineFragment {
+        let inline_fragment_id = InlineFragmentId::from(self.inline_fragments.len());
+        self.inline_fragments.push(InlineFragment {
             location: (*pos).try_into()?,
             type_condition,
             selection_set_id,
         });
-        Ok(BoundSelection::InlineFragment(inline_fragment_id))
+        Ok(Selection::InlineFragment(inline_fragment_id))
     }
 
     fn bind_type_condition(

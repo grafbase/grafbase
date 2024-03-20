@@ -1,4 +1,4 @@
-use super::{field::FieldWalker, SchemaWalker};
+use super::{field::FieldDefinitionWalker, SchemaWalker};
 use crate::{
     Definition, EnumWalker, InputObjectWalker, InterfaceWalker, ObjectWalker, ScalarType, ScalarWalker, StringId,
 };
@@ -43,7 +43,7 @@ impl<'a> DefinitionWalker<'a> {
         }
     }
 
-    pub fn fields(&self) -> Option<Box<dyn Iterator<Item = FieldWalker<'a>> + 'a>> {
+    pub fn fields(&self) -> Option<Box<dyn Iterator<Item = FieldDefinitionWalker<'a>> + 'a>> {
         match self.item {
             Definition::Object(o) => Some(Box::new(self.walk(o).fields())),
             Definition::Interface(i) => Some(Box::new(self.walk(i).fields())),

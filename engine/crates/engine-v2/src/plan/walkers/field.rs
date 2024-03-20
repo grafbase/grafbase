@@ -1,13 +1,13 @@
-use schema::{FieldId, FieldWalker};
+use schema::{FieldDefinitionId, FieldDefinitionWalker};
 
 use crate::{
-    operation::{BoundFieldId, FieldArgumentWalker, QueryInputValueWalker},
+    operation::{FieldArgumentWalker, FieldId, QueryInputValueWalker},
     response::{ResponseEdge, ResponseKey},
 };
 
 use super::{PlanSelectionSet, PlanWalker};
 
-pub type PlanField<'a> = PlanWalker<'a, BoundFieldId, FieldId>;
+pub type PlanField<'a> = PlanWalker<'a, FieldId, FieldDefinitionId>;
 
 impl<'a> PlanField<'a> {
     pub fn selection_set(&self) -> Option<PlanSelectionSet<'a>> {
@@ -58,7 +58,7 @@ impl<'a> PlanField<'a> {
 }
 
 impl<'a> std::ops::Deref for PlanField<'a> {
-    type Target = FieldWalker<'a>;
+    type Target = FieldDefinitionWalker<'a>;
 
     fn deref(&self) -> &Self::Target {
         &self.schema_walker

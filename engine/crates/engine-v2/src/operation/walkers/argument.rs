@@ -1,10 +1,10 @@
 use schema::{InputValueDefinitionId, InputValueDefinitionWalker};
 
-use crate::operation::{BoundFieldArgumentId, QueryInputValueWalker};
+use crate::operation::{FieldArgumentId, QueryInputValueWalker};
 
 use super::OperationWalker;
 
-pub type FieldArgumentWalker<'a> = OperationWalker<'a, BoundFieldArgumentId, InputValueDefinitionId>;
+pub type FieldArgumentWalker<'a> = OperationWalker<'a, FieldArgumentId, InputValueDefinitionId>;
 
 impl<'a> FieldArgumentWalker<'a> {
     pub fn value(&self) -> Option<QueryInputValueWalker<'a>> {

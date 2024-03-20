@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::{FieldId, FieldSet, Names, Resolver, ResolverGroup, ResolverId, SchemaWalker};
+use crate::{FieldDefinitionId, FieldSet, Names, Resolver, ResolverGroup, ResolverId, SchemaWalker};
 
 pub type ResolverWalker<'a> = SchemaWalker<'a, ResolverId>;
 
@@ -42,7 +42,7 @@ impl<'a> ResolverWalker<'a> {
         }
     }
 
-    pub fn can_provide(&self, nested_field_id: FieldId) -> bool {
+    pub fn can_provide(&self, nested_field_id: FieldDefinitionId) -> bool {
         let nested_field = self.walk(nested_field_id);
         if nested_field.as_ref().resolvers.is_empty() {
             return true;

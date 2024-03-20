@@ -10,7 +10,7 @@ use super::{
     error::InputValueError,
     path::{value_path_to_string, ValuePathSegment},
 };
-use crate::operation::{BoundFieldId, Location, QueryInputValue, QueryInputValueId};
+use crate::operation::{FieldId, Location, QueryInputValue, QueryInputValueId};
 
 pub fn coerce_variable_default_value(
     binder: &mut Binder<'_>,
@@ -20,7 +20,7 @@ pub fn coerce_variable_default_value(
 ) -> Result<QueryInputValueId, InputValueError> {
     let mut ctx = QueryValueCoercionContext {
         binder,
-        bound_field_id: None,
+        field_id: None,
         location,
         value_path: Vec::new(),
         input_fields_buffer_pool: Vec::new(),
@@ -31,14 +31,14 @@ pub fn coerce_variable_default_value(
 
 pub fn coerce_query_value(
     binder: &mut Binder<'_>,
-    bound_field_id: BoundFieldId,
+    field_id: FieldId,
     location: Location,
     ty: Type,
     value: Value,
 ) -> Result<QueryInputValueId, InputValueError> {
     let mut ctx = QueryValueCoercionContext {
         binder,
-        bound_field_id: Some(bound_field_id),
+        field_id: Some(field_id),
         location,
         value_path: Vec::new(),
         input_fields_buffer_pool: Vec::new(),
@@ -49,7 +49,7 @@ pub fn coerce_query_value(
 
 struct QueryValueCoercionContext<'a, 'b> {
     binder: &'a mut Binder<'b>,
-    bound_field_id: Option<BoundFieldId>,
+    field_id: Option<FieldId>,
     location: Location,
     value_path: Vec<ValuePathSegment>,
     input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, QueryInputValue)>>,
@@ -71,8 +71,8 @@ impl<'a, 'b> std::ops::DerefMut for QueryValueCoercionContext<'a, 'b> {
 
 impl<'a, 'b> QueryValueCoercionContext<'a, 'b> {
     fn variable_ref(&mut self, name: Name, ty: Type) -> Result<QueryInputValue, InputValueError> {
-        // bound_field_id is not provided for variable default values.
-        let Some(bound_field_id) = self.bound_field_id else {
+        // field_id is not provided for variable default values.
+        let Some(field_id) = self.field_id else {
             return Err(InputValueError::VariableDefaultValueReliesOnAnotherVariable {
                 name: name.to_string(),
                 location: self.location,
@@ -106,8 +106,8 @@ impl<'a, 'b> QueryValueCoercionContext<'a, 'b> {
         // This function is called during the binding where we create the BoundFieldIds
         // sequentially. So we're always processing the last BoundFieldId and this array is always
         // sorted.
-        if self.variable_definitions[id].used_by.last() != self.bound_field_id.as_ref() {
-            self.binder.variable_definitions[id].used_by.push(bound_field_id);
+        if self.variable_definitions[id].used_by.last() != self.field_id.as_ref() {
+            self.binder.variable_definitions[id].used_by.push(field_id);
         }
 
         Ok(QueryInputValue::Variable(id.into()))

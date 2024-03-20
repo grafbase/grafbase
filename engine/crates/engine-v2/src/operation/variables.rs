@@ -2,8 +2,7 @@ use schema::Schema;
 
 use super::{
     bind::{bind_variables, VariableError},
-    BoundFieldId, Location, Operation, QueryInputValueId, VariableDefinitionId, VariableInputValueId,
-    VariableInputValues,
+    FieldId, Location, Operation, QueryInputValueId, VariableDefinitionId, VariableInputValueId, VariableInputValues,
 };
 
 pub struct VariableDefinition {
@@ -13,7 +12,7 @@ pub struct VariableDefinition {
     /// Keeping track of every field that used this variable.
     /// Used to know whether the variable is used, not much more as of today.
     /// Sorted.
-    pub used_by: Vec<BoundFieldId>,
+    pub used_by: Vec<FieldId>,
     pub ty: schema::Type,
 }
 

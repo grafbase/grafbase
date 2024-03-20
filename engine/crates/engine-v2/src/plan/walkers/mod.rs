@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use schema::{FieldId, ObjectId, Schema, SchemaWalker};
+use schema::{FieldDefinitionId, ObjectId, Schema, SchemaWalker};
 
 use crate::{
     operation::{
-        BoundFieldId, Operation, OperationWalker, QueryInputValueId, QueryInputValueWalker, SelectionSetType, Variables,
+        FieldId, Operation, OperationWalker, QueryInputValueId, QueryInputValueWalker, SelectionSetType, Variables,
     },
     plan::{CollectedField, FieldType, RuntimeMergedConditionals},
     response::{ResponseEdge, ResponseKey, ResponseKeys, ResponsePart, ResponsePath, SafeResponseKey, SeedContext},
@@ -95,7 +95,7 @@ impl<'a> PlanWalker<'a> {
     pub fn root_error_path(&self, parent: &ResponsePath) -> ResponsePath {
         let mut fields = self.collected_selection_set().fields();
         if fields.len() == 1 {
-            parent.child(fields.next().unwrap().as_bound_field().response_edge())
+            parent.child(fields.next().unwrap().as_operation_field().response_edge())
         } else {
             parent.clone()
         }
@@ -158,9 +158,9 @@ impl<'a> PlanWalker<'a> {
 
         struct GroupForResponseKey {
             edge: ResponseEdge,
-            bound_field_id: BoundFieldId,
+            field_id: FieldId,
             expected_key: SafeResponseKey,
-            schema_field_id: FieldId,
+            definition_id: FieldDefinitionId,
             ty: FieldType<RuntimeMergedConditionals>,
         }
 
@@ -191,18 +191,18 @@ impl<'a> PlanWalker<'a> {
                         // with the lowest query position.
                         if field.edge < group.edge {
                             group.edge = field.edge;
-                            group.bound_field_id = field.bound_field_id;
+                            group.field_id = field.id;
                         }
                     })
                     .or_insert_with(|| GroupForResponseKey {
                         edge: field.edge,
-                        bound_field_id: field.bound_field_id,
+                        field_id: field.id,
                         expected_key: field.expected_key,
-                        schema_field_id: field.schema_field_id,
+                        definition_id: field.definition_id,
                         ty: match field.ty {
                             FieldType::Scalar(scalar_type) => FieldType::Scalar(scalar_type),
                             FieldType::SelectionSet(id) => FieldType::SelectionSet(RuntimeMergedConditionals {
-                                ty: SelectionSetType::maybe_from(schema.walk(field.schema_field_id).ty().inner().id())
+                                ty: SelectionSetType::maybe_from(schema.walk(field.definition_id).ty().inner().id())
                                     .unwrap(),
                                 selection_set_ids: vec![id],
                             }),
@@ -215,22 +215,22 @@ impl<'a> PlanWalker<'a> {
             .map(
                 |GroupForResponseKey {
                      edge,
-                     bound_field_id,
+                     field_id,
                      expected_key,
-                     schema_field_id,
+                     definition_id,
                      ty,
                  }| {
                     let ty = match ty {
                         FieldType::Scalar(scalar_type) => FieldType::Scalar(scalar_type),
                         FieldType::SelectionSet(selection_set) => self.try_collect_merged_selection_sets(selection_set),
                     };
-                    let wrapping = schema.walk(schema_field_id).ty().wrapping();
+                    let wrapping = schema.walk(definition_id).ty().wrapping();
                     CollectedField {
                         edge,
                         expected_key,
                         ty,
-                        bound_field_id,
-                        schema_field_id,
+                        id: field_id,
+                        definition_id,
                         wrapping,
                     }
                 },

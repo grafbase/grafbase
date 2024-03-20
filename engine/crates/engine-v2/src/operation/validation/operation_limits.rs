@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use schema::Schema;
 
-use crate::operation::{BoundSelectionSetWalker, OperationWalker};
+use crate::operation::{OperationWalker, SelectionSetWalker};
 
 #[allow(clippy::enum_variant_names)]
 #[derive(thiserror::Error, Debug)]
@@ -68,7 +68,7 @@ pub(super) fn enforce_operation_limits(
     Ok(())
 }
 
-impl BoundSelectionSetWalker<'_> {
+impl SelectionSetWalker<'_> {
     fn max_depth(&self) -> u16 {
         self.fields()
             .map(|field| {
@@ -111,10 +111,10 @@ impl BoundSelectionSetWalker<'_> {
     }
 
     // `None` stored in the set means `__typename`.
-    fn height(&self, fields_seen: &mut HashSet<Option<schema::FieldId>>) -> u16 {
+    fn height(&self, fields_seen: &mut HashSet<Option<schema::FieldDefinitionId>>) -> u16 {
         self.fields()
             .map(|field| {
-                (if fields_seen.insert(field.as_ref().schema_field_id()) {
+                (if fields_seen.insert(field.as_ref().definition_id()) {
                     1
                 } else {
                     0

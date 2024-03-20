@@ -7,12 +7,12 @@ use serde::{
 
 use super::SeedContextInner;
 use crate::{
-    operation::BoundFieldId,
+    operation::FieldId,
     response::{GraphqlError, ResponseValue},
 };
 
 pub(super) struct NullableSeed<'ctx, 'parent, Seed> {
-    pub bound_field_id: BoundFieldId,
+    pub field_id: FieldId,
     pub ctx: &'parent SeedContextInner<'ctx>,
     pub seed: Seed,
 }
@@ -65,7 +65,7 @@ where
                 if !self.ctx.propagating_error.fetch_and(false, Ordering::Relaxed) {
                     self.ctx.response_part.borrow_mut().push_error(GraphqlError {
                         message: err.to_string(),
-                        locations: self.ctx.plan[self.bound_field_id].name_location().into_iter().collect(),
+                        locations: self.ctx.plan[self.field_id].name_location().into_iter().collect(),
                         path: Some(self.ctx.response_path()),
                         ..Default::default()
                     });

@@ -1,12 +1,12 @@
 use schema::{Definition, DefinitionWalker};
 
-use super::{BoundFieldWalker, BoundFragmentSpreadWalker, BoundInlineFragmentWalker, OperationWalker};
-use crate::operation::{BoundSelection, BoundSelectionSetId, SelectionSetType};
+use super::{FieldWalker, FragmentSpreadWalker, InlineFragmentWalker, OperationWalker};
+use crate::operation::{Selection, SelectionSetId, SelectionSetType};
 
-pub type BoundSelectionSetWalker<'a> = OperationWalker<'a, BoundSelectionSetId>;
+pub type SelectionSetWalker<'a> = OperationWalker<'a, SelectionSetId>;
 pub type SelectionSetTypeWalker<'a> = OperationWalker<'a, SelectionSetType, Definition>;
 
-impl<'a> BoundSelectionSetWalker<'a> {
+impl<'a> SelectionSetWalker<'a> {
     pub fn ty(&self) -> SelectionSetTypeWalker<'a> {
         let ty = self.as_ref().ty;
         self.walk_with(ty, Definition::from(ty))
@@ -34,14 +34,14 @@ impl<'a> std::ops::Deref for SelectionSetTypeWalker<'a> {
     }
 }
 
-pub(crate) enum BoundSelectionWalker<'a> {
-    Field(BoundFieldWalker<'a>),
-    FragmentSpread(BoundFragmentSpreadWalker<'a>),
-    InlineFragment(BoundInlineFragmentWalker<'a>),
+pub(crate) enum SelectionWalker<'a> {
+    Field(FieldWalker<'a>),
+    FragmentSpread(FragmentSpreadWalker<'a>),
+    InlineFragment(InlineFragmentWalker<'a>),
 }
 
-impl<'a> IntoIterator for BoundSelectionSetWalker<'a> {
-    type Item = BoundSelectionWalker<'a>;
+impl<'a> IntoIterator for SelectionSetWalker<'a> {
+    type Item = SelectionWalker<'a>;
 
     type IntoIter = SelectionSetIterator<'a>;
 
@@ -54,20 +54,20 @@ impl<'a> IntoIterator for BoundSelectionSetWalker<'a> {
 }
 
 pub(crate) struct SelectionSetIterator<'a> {
-    selection_set: BoundSelectionSetWalker<'a>,
+    selection_set: SelectionSetWalker<'a>,
     next_index: usize,
 }
 
 impl<'a> Iterator for SelectionSetIterator<'a> {
-    type Item = BoundSelectionWalker<'a>;
+    type Item = SelectionWalker<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let selection = self.selection_set.as_ref().items.get(self.next_index)?;
         self.next_index += 1;
         Some(match selection {
-            BoundSelection::Field(id) => BoundSelectionWalker::Field(self.selection_set.walk(*id)),
-            BoundSelection::FragmentSpread(id) => BoundSelectionWalker::FragmentSpread(self.selection_set.walk(*id)),
-            BoundSelection::InlineFragment(id) => BoundSelectionWalker::InlineFragment(self.selection_set.walk(*id)),
+            Selection::Field(id) => SelectionWalker::Field(self.selection_set.walk(*id)),
+            Selection::FragmentSpread(id) => SelectionWalker::FragmentSpread(self.selection_set.walk(*id)),
+            Selection::InlineFragment(id) => SelectionWalker::InlineFragment(self.selection_set.walk(*id)),
         })
     }
 }
@@ -77,18 +77,18 @@ pub(crate) struct SelectionSetFieldsIterator<'a> {
 }
 
 impl<'a> Iterator for SelectionSetFieldsIterator<'a> {
-    type Item = BoundFieldWalker<'a>;
+    type Item = FieldWalker<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let selections = self.selections.last_mut()?;
             if let Some(selection) = selections.next() {
                 match selection {
-                    BoundSelectionWalker::Field(field) => return Some(field),
-                    BoundSelectionWalker::InlineFragment(inline) => {
+                    SelectionWalker::Field(field) => return Some(field),
+                    SelectionWalker::InlineFragment(inline) => {
                         self.selections.push(inline.selection_set().into_iter());
                     }
-                    BoundSelectionWalker::FragmentSpread(spread) => {
+                    SelectionWalker::FragmentSpread(spread) => {
                         self.selections.push(spread.selection_set().into_iter());
                     }
                 };
@@ -99,9 +99,9 @@ impl<'a> Iterator for SelectionSetFieldsIterator<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for BoundSelectionSetWalker<'a> {
+impl<'a> std::fmt::Debug for SelectionSetWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("BoundSelectionSet")
+        f.debug_struct("SelectionSet")
             .field("id", &self.id())
             .field("ty", &self.ty().name())
             .field("items", &self.into_iter().collect::<Vec<_>>())
@@ -109,7 +109,7 @@ impl<'a> std::fmt::Debug for BoundSelectionSetWalker<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for BoundSelectionWalker<'a> {
+impl<'a> std::fmt::Debug for SelectionWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Field(field) => field.fmt(f),

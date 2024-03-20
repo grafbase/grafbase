@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::FieldId;
+use crate::FieldDefinitionId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldSet {
@@ -55,7 +55,7 @@ impl FieldSet {
         self.items.iter()
     }
 
-    pub fn get(&self, field: FieldId) -> Option<&FieldSetItem> {
+    pub fn get(&self, field: FieldDefinitionId) -> Option<&FieldSetItem> {
         let index = self
             .items
             .binary_search_by_key(&field, |selection| selection.field_id)
@@ -63,7 +63,7 @@ impl FieldSet {
         Some(&self.items[index])
     }
 
-    pub fn contains(&self, field: FieldId) -> bool {
+    pub fn contains(&self, field: FieldDefinitionId) -> bool {
         self.items
             .binary_search_by_key(&field, |selection| selection.field_id)
             .is_ok()
@@ -120,6 +120,6 @@ impl FieldSet {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldSetItem {
-    pub field_id: FieldId,
+    pub field_id: FieldDefinitionId,
     pub subselection: FieldSet,
 }
