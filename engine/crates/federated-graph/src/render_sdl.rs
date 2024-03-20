@@ -432,11 +432,6 @@ fn write_requires(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> 
 }
 
 fn render_field_type(field_type: &Type, graph: &FederatedGraphV3) -> String {
-    let maybe_bang = if field_type.wrapping.inner_is_required() {
-        "!"
-    } else {
-        ""
-    };
     let name_id = match field_type.definition {
         Definition::Scalar(scalar_id) => graph[scalar_id].name,
         Definition::Object(object_id) => graph[object_id].name,
@@ -446,12 +441,21 @@ fn render_field_type(field_type: &Type, graph: &FederatedGraphV3) -> String {
         Definition::InputObject(input_object_id) => graph[input_object_id].name,
     };
     let name = &graph[name_id];
-    let mut out = format!("{name}{maybe_bang}");
+    let mut out = String::with_capacity(name.len());
 
-    for wrapper in field_type.wrapping.into_iter() {
-        match wrapper {
-            wrapping::ListWrapping::RequiredList => out = format!("[{out}]!"),
-            wrapping::ListWrapping::NullableList => out = format!("[{out}]"),
+    for _ in field_type.wrapping.list_wrappings().rev() {
+        write!(out, "[").unwrap();
+    }
+
+    write!(out, "{name}").unwrap();
+    if field_type.wrapping.inner_is_required() {
+        write!(out, "!").unwrap();
+    }
+
+    for wrapping in field_type.wrapping.list_wrappings() {
+        write!(out, "]").unwrap();
+        if wrapping == wrapping::ListWrapping::RequiredList {
+            write!(out, "!").unwrap();
         }
     }
 
