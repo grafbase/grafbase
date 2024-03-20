@@ -352,6 +352,11 @@ impl Headers {
         self.0
     }
 
+    /// Gets the headers as a referenced slice
+    pub fn inner(&self) -> &[(HeaderName, HeaderValue)] {
+        &self.0
+    }
+
     /// Consume self and return a map of header/header_value as ascii strings
     pub fn try_into_map(self) -> Result<HashMap<String, String>, TracingError> {
         self.into_inner()
