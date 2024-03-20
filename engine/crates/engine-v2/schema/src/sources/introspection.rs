@@ -437,7 +437,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 ("fields", nullable__field_list, __Type::Fields),
                 ("enumValues", nullable__enum_value_list, __Type::EnumValues),
                 ("ofType", nullable__type, __Type::OfType),
-                ("sibleTypes", nullable__type_list, __Type::PossibleTypes),
+                ("possibleTypes", nullable__type_list, __Type::PossibleTypes),
                 ("interfaces", nullable__type_list, __Type::Interfaces),
             ],
         );
