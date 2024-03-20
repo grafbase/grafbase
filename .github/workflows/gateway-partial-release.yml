@@ -36,7 +36,7 @@ jobs:
           notification_title: '({workflow}) grafbase-gateway release for ${{ env.VERSION_BUMP }} started'
           footer: '<{run_url}|View Run>'
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_GATEWAY_WEBHOOK_URL }}
 
       - name: Get sources
         uses: actions/checkout@v4
