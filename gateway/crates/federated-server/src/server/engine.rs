@@ -1,3 +1,5 @@
+use crate::config::TelemetryConfig;
+
 use super::{gateway::GatewayWatcher, ServerState};
 use axum::{
     body::Body,
@@ -24,17 +26,64 @@ mod response;
 pub(super) async fn get(
     Query(request): Query<engine::QueryParamRequest>,
     headers: HeaderMap,
-    State(ServerState { gateway, .. }): State<ServerState>,
+    State(state): State<ServerState>,
 ) -> impl IntoResponse {
     let request = engine::BatchRequest::Single(request.into());
-    handle(headers, request, gateway).await
+    traced(headers, request, state.gateway().clone(), state.telemetry_config()).await
 }
 
 pub(super) async fn post(
-    State(ServerState { gateway, .. }): State<ServerState>,
+    State(state): State<ServerState>,
     headers: HeaderMap,
     Json(request): Json<engine::BatchRequest>,
 ) -> impl IntoResponse {
+    traced(headers, request, state.gateway().clone(), state.telemetry_config()).await
+}
+
+#[cfg(feature = "lambda")]
+async fn traced(
+    headers: HeaderMap,
+    request: BatchRequest,
+    gateway: GatewayWatcher,
+    telemetry_config: Option<&TelemetryConfig>,
+) -> http::Response<Body> {
+    // lambda has no global tracing, so we initialize it here and force flush before responding
+
+    use grafbase_tracing::otel::opentelemetry::trace::TracerProvider;
+    use grafbase_tracing::otel::tracing_subscriber::layer::SubscriberExt;
+    use grafbase_tracing::otel::{self, opentelemetry_sdk::runtime::Tokio};
+    use grafbase_tracing::otel::{tracing_opentelemetry, tracing_subscriber};
+    use tracing_futures::WithSubscriber;
+
+    let config = telemetry_config.unwrap();
+    let provider = otel::layer::new_provider(&config.service_name, &config.tracing, Tokio).unwrap();
+
+    let tracer = provider.tracer("lambda-otel");
+
+    let subscriber = tracing_subscriber::registry()
+        .with(tracing_opentelemetry::layer().with_tracer(tracer))
+        .with(tracing_subscriber::fmt::layer().json());
+
+    let response = handle(headers, request, gateway).with_subscriber(subscriber).await;
+
+    for result in provider.force_flush() {
+        if let Err(e) = result {
+            println!("failed to flush traces: {e}");
+        }
+    }
+
+    response
+}
+
+#[cfg(not(feature = "lambda"))]
+async fn traced(
+    headers: HeaderMap,
+    request: BatchRequest,
+    gateway: GatewayWatcher,
+    _: Option<&TelemetryConfig>,
+) -> http::Response<Body> {
+    // we do global tracing on non-lambda context.
+
     handle(headers, request, gateway).await
 }
 

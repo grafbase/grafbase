@@ -5,10 +5,10 @@ use std::fs;
 use args::Args;
 use clap::Parser;
 use federated_server::Config;
+use grafbase_tracing as _;
 use mimalloc::MiMalloc;
 use tokio::runtime;
-use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
+use tracing_subscriber::EnvFilter;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -24,7 +24,7 @@ fn main() -> anyhow::Result<()> {
 
     let args = Args::parse();
     let config = fs::read_to_string(&args.config)?;
-    let config: Config = toml::from_str(&config)?;
+    let mut config: Config = toml::from_str(&config)?;
 
     let filter = EnvFilter::builder().parse_lossy(args.log_filter());
 
@@ -33,14 +33,22 @@ fn main() -> anyhow::Result<()> {
         .thread_name(THREAD_NAME)
         .build()?;
 
-    runtime.block_on(start_server(filter, args, config))?;
+    init_global_tracing(filter, &mut config)?;
+
+    runtime.block_on(federated_server::start(
+        args.listen_address,
+        config,
+        args.fetch_method()?,
+    ))?;
 
     Ok(())
 }
 
 #[cfg(not(feature = "lambda"))]
-async fn start_server(filter: EnvFilter, args: Args, mut config: Config) -> Result<(), anyhow::Error> {
+fn init_global_tracing(filter: EnvFilter, config: &mut Config) -> anyhow::Result<()> {
     use grafbase_tracing::otel::{layer, opentelemetry_sdk::runtime::Tokio};
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::util::SubscriberInitExt;
 
     let (otel_layer, filter) = match config.telemetry.take() {
         Some(config) => {
@@ -58,37 +66,10 @@ async fn start_server(filter: EnvFilter, args: Args, mut config: Config) -> Resu
         .with(filter)
         .init();
 
-    federated_server::start(args.listen_address, config, args.fetch_method()?).await?;
-
     Ok(())
 }
 
 #[cfg(feature = "lambda")]
-async fn start_server(filter: EnvFilter, args: Args, mut config: Config) -> Result<(), anyhow::Error> {
-    use grafbase_tracing::otel::layer;
-    use grafbase_tracing::otel::opentelemetry::global;
-    use grafbase_tracing::otel::opentelemetry_sdk::runtime::Tokio;
-    use opentelemetry_aws::trace::XrayPropagator;
-
-    global::set_text_map_propagator(XrayPropagator::default());
-
-    let (otel_layer, filter) = match config.telemetry.take() {
-        Some(config) => {
-            let env_filter = EnvFilter::new(&config.tracing.filter);
-            let otel_layer = layer::new_batched(&config.service_name, config.tracing, Tokio)?;
-
-            (Some(otel_layer), env_filter)
-        }
-        None => (None, filter),
-    };
-
-    tracing_subscriber::registry()
-        .with(otel_layer)
-        .with(filter)
-        .with(tracing_subscriber::fmt::layer().json())
-        .init();
-
-    federated_server::start(args.listen_address, config, args.fetch_method()?).await?;
-
+fn init_global_tracing(_: EnvFilter, _: &mut Config) -> anyhow::Result<()> {
     Ok(())
 }
