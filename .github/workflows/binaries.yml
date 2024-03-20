@@ -38,7 +38,7 @@ concurrency:
 
 jobs:
   detect-change-type:
-    runs-on: buildjet-8vcpu-ubuntu-2204
+    runs-on: ubicloud-standard-8
     outputs:
       build: ${{ steps.filter.outputs.build }}
     steps:
@@ -63,7 +63,7 @@ jobs:
     name: 'Lint'
     needs: [detect-change-type]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    runs-on: buildjet-8vcpu-ubuntu-2204
+    runs-on: ubicloud-standard-8
     steps:
       - name: Get sources
         uses: actions/checkout@v4
@@ -88,7 +88,7 @@ jobs:
     name: 'Test'
     needs: [lint]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    runs-on: buildjet-8vcpu-ubuntu-2204
+    runs-on: ubicloud-standard-8
     steps:
       - name: Get sources
         uses: actions/checkout@v4
@@ -127,7 +127,7 @@ jobs:
             grafbase-gateway,
             federated-server
           ]
-    runs-on: buildjet-8vcpu-ubuntu-2204
+    runs-on: ubicloud-standard-8
     steps:
       - name: Get sources
         uses: actions/checkout@v4
@@ -159,7 +159,7 @@ jobs:
   docker:
     needs: [test]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    runs-on: buildjet-8vcpu-ubuntu-2204
+    runs-on: ubicloud-standard-8
     permissions:
       packages: write
     steps:
@@ -205,12 +205,12 @@ jobs:
         archs:
           [
             {
-              runner: buildjet-8vcpu-ubuntu-2204,
+              runner: ubicloud-standard-8,
               target: x86_64-unknown-linux-musl,
               platform: linux
             },
             {
-              runner: buildjet-8vcpu-ubuntu-2204-arm,
+              runner: ubicloud-standard-8-arm,
               target: aarch64-unknown-linux-musl,
               platform: linux-arm
             }
@@ -247,7 +247,7 @@ jobs:
           name: ${{ matrix.archs.platform }}-release-timings.html
           path: target/cargo-timings/cargo-timing.html
 
-      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' }}
+      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'ubicloud-standard-8-arm' }}
         name: Upload the binaries of the change to R2
         run: |
           aws s3api put-object \
@@ -354,7 +354,7 @@ jobs:
           VERSION_BUMP=${VERSION_BUMP//gateway-} # remove the gateway prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
-      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' }}
+      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'ubicloud-standard-8-arm' }}
         name: Upload the binaries of the change to R2
         run: |
           curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
@@ -418,7 +418,7 @@ jobs:
     # happen after the builds, hence the `needs`. But it must not be skipped
     # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
     needs: [linux, darwin]
-    runs-on: buildjet-2vcpu-ubuntu-2204
+    runs-on: ubicloud-standard-2
     if: ${{ always() }}
     steps:
       - name: Check that the builds succeeded

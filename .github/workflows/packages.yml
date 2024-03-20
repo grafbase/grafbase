@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   detect-change-type:
-    runs-on: buildjet-8vcpu-ubuntu-2204
+    runs-on: ubicloud-standard-8
     outputs:
       packages: ${{ steps.filter.outputs.packages }}
     steps:
@@ -42,7 +42,7 @@ jobs:
     name: Lint
     needs: [detect-change-type]
     if: ${{ needs.detect-change-type.outputs.packages == 'true' }}
-    runs-on: buildjet-8vcpu-ubuntu-2204
+    runs-on: ubicloud-standard-8
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -82,7 +82,7 @@ jobs:
   build-and-test:
     name: Build and test
     needs: [lint]
-    runs-on: buildjet-8vcpu-ubuntu-2204
+    runs-on: ubicloud-standard-8
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
