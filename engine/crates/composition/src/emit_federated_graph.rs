@@ -134,6 +134,14 @@ fn emit_fields<'a>(
             fields.extend(fields_from_entity_interfaces);
         }
 
+        // Sort the fields by name.
+        fields.sort_by(|a, b| {
+            ctx.subgraphs
+                .walk(a.field_name)
+                .as_str()
+                .cmp(ctx.subgraphs.walk(b.field_name).as_str())
+        });
+
         for FieldIr {
             parent_definition: _,
             field_name,

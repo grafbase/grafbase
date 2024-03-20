@@ -28,10 +28,8 @@ pub(super) fn collect_composed_directives<'a>(
     for site in sites.clone() {
         tags.extend(site.tags().map(|t| t.id));
 
-        // The inaccessible directive is added whenever the item is inaccessible in any subgraph.
+        // The directive is added whenever it's applied in any subgraph.
         is_inaccessible = is_inaccessible || site.inaccessible();
-
-        // @authenticated behaves like @inaccessible
         authenticated = authenticated || site.authenticated();
 
         for (name, arguments) in site.iter_composed_directives() {

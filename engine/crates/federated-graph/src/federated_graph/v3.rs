@@ -134,7 +134,6 @@ pub struct Object {
 
     pub implements_interfaces: Vec<InterfaceId>,
 
-    #[serde(rename = "resolvable_keys")]
     pub keys: Vec<Key>,
 
     /// All directives that made it through composition.

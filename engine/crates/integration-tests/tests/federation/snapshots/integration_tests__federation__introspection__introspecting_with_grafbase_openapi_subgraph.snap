@@ -3,14 +3,14 @@ source: engine/crates/integration-tests/tests/federation/introspection.rs
 expression: introspection_to_sdl(response.into_data())
 ---
 type ApiResponse {
+  code: Int
   message: String
   type: String
-  code: Int
 }
 
 type Category {
-  name: String
   id: Int
+  name: String
 }
 
 input CategoryInput {
@@ -27,20 +27,20 @@ enum FindPetsByStatusStatus {
 scalar JSON
 
 type Mutation {
-  updatePet(input: PetInput!): Pet
   addPet(input: PetInput!): Pet
-  uploadFile(petId: Int!, additionalMetadata: String): ApiResponse
-  placeOrder(input: OrderInput!): Order
   createUsersWithListInput(input: [UserInput!]!): User
+  placeOrder(input: OrderInput!): Order
+  updatePet(input: PetInput!): Pet
+  uploadFile(petId: Int!, additionalMetadata: String): ApiResponse
 }
 
 type Order {
+  complete: Boolean
   id: Int
   petId: Int
-  complete: Boolean
-  status: OrderStatus
-  shipDate: String
   quantity: Int
+  shipDate: String
+  status: OrderStatus
 }
 
 input OrderInput {
@@ -59,12 +59,12 @@ enum OrderStatus {
 }
 
 type Pet {
-  name: String!
+  category: Category
   id: Int
+  name: String!
+  photoUrls: [String!]!
   status: PetStatus
   tags: [Tag!]
-  photoUrls: [String!]!
-  category: Category
 }
 
 input PetInput {
@@ -85,16 +85,16 @@ enum PetStatus {
 type Query {
   findPetsByStatus(status: FindPetsByStatusStatus): [Pet!]
   findPetsByTags(tags: [String!]): [Pet!]
-  pet(petId: Int!): Pet
   inventory: JSON
-  order(orderId: Int!): Order
   loginUser(password: String, username: String): String
+  order(orderId: Int!): Order
+  pet(petId: Int!): Pet
   user(username: String!): User
 }
 
 type Tag {
-  name: String
   id: Int
+  name: String
 }
 
 input TagInput {
@@ -103,14 +103,14 @@ input TagInput {
 }
 
 type User {
-  id: Int
-  password: String
-  username: String
-  userStatus: Int
-  phone: String
   email: String
-  lastName: String
   firstName: String
+  id: Int
+  lastName: String
+  password: String
+  phone: String
+  userStatus: Int
+  username: String
 }
 
 input UserInput {
