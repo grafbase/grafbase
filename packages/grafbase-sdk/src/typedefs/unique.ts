@@ -1,4 +1,5 @@
 import { AuthRuleF } from '../auth'
+import { InputType } from '../query'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { DefaultDefinition } from './default'
@@ -49,6 +50,10 @@ export class UniqueDefinition {
    */
   public mapped(name: string): MapDefinition {
     return new MapDefinition(this, name)
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return this.scalar.allArguments
   }
 
   public toString(): string {

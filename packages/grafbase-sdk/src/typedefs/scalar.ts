@@ -29,6 +29,7 @@ import { ShareableDefinition } from './shareable'
 import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
 import { TagDefinition } from './tag'
+import { InputType } from '../query'
 
 export class ScalarDefinition {
   private _fieldType: FieldType | Enum<any, any>
@@ -38,6 +39,11 @@ export class ScalarDefinition {
   constructor(fieldType: FieldType | Enum<any, any>) {
     this._fieldType = fieldType
     this.isOptional = false
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    // This is one of the base cases so just return null for now.
+    return {}
   }
 
   /**

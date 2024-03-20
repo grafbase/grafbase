@@ -9,6 +9,7 @@ import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { StringListDefinition } from './list'
 import { MapDefinition } from './map'
+import { InputType } from '../query'
 
 export interface FieldLength {
   min?: number
@@ -95,5 +96,9 @@ export class LengthLimitedStringDefinition {
 
   fieldTypeVal(): FieldType | Enum<any, any> {
     return this.scalar.fieldType
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return this.scalar.allArguments
   }
 }

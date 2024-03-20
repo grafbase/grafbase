@@ -11,6 +11,7 @@ import { ShareableDefinition } from './shareable'
 import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
 import { DeprecatedDefinition } from './deprecated'
+import { InputType } from '../query'
 
 /**
  * A list of field types that can hold a `@resolver` attribute.
@@ -32,11 +33,13 @@ export class ResolverDefinition {
   private field: Resolvable
   private resolver: string
   private requiresFields: string | null
+  private _arguments: Record<string, InputType>
 
   constructor(field: Resolvable, resolver: string) {
     this.field = field
     this.resolver = resolver
     this.requiresFields = null
+    this._arguments = {}
   }
 
   /**
@@ -65,6 +68,20 @@ export class ResolverDefinition {
   public requires(fields: string): ResolverDefinition {
     this.requiresFields = fields
     return this
+  }
+
+  /**
+   * Adds arguments to this field that will be available in the resolver
+   *
+   * @param args - The arguments for this field
+   */
+  public arguments(args: Record<string, InputType>): ResolverDefinition {
+    this._arguments = args
+    return this
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return { ...this._arguments, ...this.field.allArguments }
   }
 
   public toString(): string {

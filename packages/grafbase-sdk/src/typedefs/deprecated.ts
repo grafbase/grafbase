@@ -8,6 +8,7 @@ import { EnumDefinition } from './enum'
 import { escapeString } from '../utils'
 import { ResolverDefinition } from './resolver'
 import { JoinDefinition } from './join'
+import { InputType } from '../query'
 
 /**
  * A list of field types that can hold a `@deprecated` attribute.
@@ -61,6 +62,10 @@ export class DeprecatedDefinition {
    */
   public cache(params: FieldCacheParams): CacheDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return { ...this.field.allArguments }
   }
 
   public toString(): string {

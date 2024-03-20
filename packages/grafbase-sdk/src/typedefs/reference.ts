@@ -10,6 +10,7 @@ import { InaccessibleDefinition } from './inaccessible'
 import { ShareableDefinition } from './shareable'
 import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
+import { InputType } from '../query'
 
 export class ReferenceDefinition {
   private referencedType: string
@@ -106,6 +107,10 @@ export class ReferenceDefinition {
    */
   public provides(fields: string): ProvidesDefinition {
     return new ProvidesDefinition(this, fields)
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return {}
   }
 
   public toString(): string {

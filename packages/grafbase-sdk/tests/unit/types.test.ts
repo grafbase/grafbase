@@ -345,6 +345,18 @@ describe('Type generator', () => {
     `)
   })
 
+  it('supports field resolvers with arguments', () => {
+    g.type('User', {
+      name: g.string().resolver('a-field').arguments({ foo: g.string() })
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type User {
+        name(foo: String!): String! @resolver(name: "a-field")
+      }"
+    `)
+  })
+
   it('supports federation keys', () => {
     g.type('User', {
       id: g.id()
@@ -397,6 +409,54 @@ describe('Type generator', () => {
         num: Boolean! @join(select: "baz(id: $id)")
         list: [Boolean!]! @join(select: "bing(id: $id)")
         generatedType: Whatever! @join(select: "bazinga(id: $id)")
+      }"
+    `)
+  })
+
+  it(`supports arguments on join fields`, () => {
+    const enm = g.enum('Color', ['Red', 'Green'])
+    g.type('User', {
+      id: g
+        .id()
+        .join('foo(id: $id)')
+        .arguments({ foo: g.string(), bar: g.int() }),
+      str: g
+        .string()
+        .join('bar(id: $id)')
+        .arguments({ foo: g.boolean() })
+        .cache({ maxAge: 1 }),
+      num: g
+        .boolean()
+        .join('baz(id: $id)')
+        .arguments({ foo: g.ref('Foo').optional() })
+        .auth((rules) => {
+          rules.groups(['admins'])
+        }),
+      list: g
+        .boolean()
+        .list()
+        .join('bing(id: $id)')
+        .arguments({ foo: g.ref('Color').list().optional() }),
+      generatedType: g
+        .ref('Whatever')
+        .join('bazinga(id: $id)')
+        .arguments({
+          foo: g.enumRef(enm)
+        })
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "enum Color {
+        Red,
+        Green
+      }
+
+      type User {
+        id(foo: String!, bar: Int!): ID! @join(select: "foo(id: $id)")
+        str(foo: Boolean!): String! @join(select: "bar(id: $id)") @cache(maxAge: 1)
+        num(foo: Foo): Boolean! @join(select: "baz(id: $id)") @auth(rules: [ { allow: groups, groups: ["admins"] } ])
+        list(foo: [Color!]): [Boolean!]! @join(select: "bing(id: $id)")
+        generatedType(foo: Color!): Whatever! @join(select: "bazinga(id: $id)")
       }"
     `)
   })

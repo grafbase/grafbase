@@ -18,6 +18,7 @@ export type InputType =
   | InputDefinition
   | InputDefaultDefinition
   | EnumDefinition<any, any>
+  | ReferenceDefinition
 
 /** The possible types of an output parameters of a query. */
 export type OutputType = ScalarDefinition | ListDefinition | ReferenceDefinition

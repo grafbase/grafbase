@@ -15,6 +15,7 @@ import { ShareableDefinition } from './shareable'
 import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
 import { DeprecatedDefinition } from './deprecated'
+import { InputType } from '../query'
 
 export type Authenticable =
   | ScalarDefinition
@@ -68,6 +69,10 @@ export class AuthDefinition {
    */
   public mapped(name: string): MapDefinition {
     return new MapDefinition(this, name)
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return this.field.allArguments
   }
 
   public toString(): string {
