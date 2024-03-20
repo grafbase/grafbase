@@ -3,7 +3,7 @@
 use crate::{
     sources::federation::{DataSource as FederationDataSource, Subgraph},
     CacheConfig, Definition, Directive, Enum, EnumValue, Field, Header, InputObject, InputValueDefinition, Interface,
-    Object, Resolver, Scalar, Schema, Type, Union,
+    Object, Resolver, Scalar, Schema, Union,
 };
 use url::Url;
 
@@ -25,7 +25,6 @@ id_newtypes::U32! {
     Schema.objects[ObjectId] => Object | unless "Too many objects" max MAX_ID,
     Schema.resolvers[ResolverId] => Resolver | unless "Too many resolvers" max MAX_ID,
     Schema.scalars[ScalarId] => Scalar | unless "Too many scalars" max MAX_ID,
-    Schema.types[TypeId] => Type | unless "Too many types" max MAX_ID,
     Schema.unions[UnionId] => Union | unless "Too many unions" max MAX_ID,
     Schema.urls[UrlId] => Url | unless "Too many urls" max MAX_ID,
     Schema.strings[StringId] => String | unless "Too many strings" max MAX_ID,

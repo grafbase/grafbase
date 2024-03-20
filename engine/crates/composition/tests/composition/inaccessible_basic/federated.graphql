@@ -34,23 +34,23 @@ type Ungulate {
 }
 
 type Movie {
-    id: ID! @join__field(graph: FOUR_WITH_UNION)
-    title: String! @join__field(graph: FOUR_WITH_UNION)
     director: String! @join__field(graph: FOUR_WITH_UNION)
+    id: ID! @join__field(graph: FOUR_WITH_UNION)
     releaseYear: Int @join__field(graph: FOUR_WITH_UNION)
+    title: String! @join__field(graph: FOUR_WITH_UNION)
 }
 
 type Series {
     id: ID! @join__field(graph: FOUR_WITH_UNION)
-    title: String! @join__field(graph: FOUR_WITH_UNION)
     seasons: Int @join__field(graph: FOUR_WITH_UNION)
+    title: String! @join__field(graph: FOUR_WITH_UNION)
 }
 
 type New {
-    name: String! @inaccessible
-    other: String!
     message: String! @inaccessible
+    name: String! @inaccessible
     old: Old! @inaccessible
+    other: String!
 }
 
 type Old @inaccessible {
@@ -58,32 +58,32 @@ type Old @inaccessible {
 }
 
 type Book {
-    id: ID! @join__field(graph: SIX_WITH_INPUT_OBJECT)
-    title: String! @join__field(graph: SIX_WITH_INPUT_OBJECT)
     author: String! @join__field(graph: SIX_WITH_INPUT_OBJECT)
-    publishedYear: Int @join__field(graph: SIX_WITH_INPUT_OBJECT)
     genre: String @join__field(graph: SIX_WITH_INPUT_OBJECT)
+    id: ID! @join__field(graph: SIX_WITH_INPUT_OBJECT)
+    publishedYear: Int @join__field(graph: SIX_WITH_INPUT_OBJECT)
+    title: String! @join__field(graph: SIX_WITH_INPUT_OBJECT)
 }
 
 type Quadratic implements Polynomial {
-    degree: Int @join__field(graph: THREE_WITH_INTERFACE)
     coefficients: [Float] @join__field(graph: THREE_WITH_INTERFACE)
+    degree: Int @join__field(graph: THREE_WITH_INTERFACE)
     discriminant: Float @join__field(graph: THREE_WITH_INTERFACE)
 }
 
 type Cubic implements Polynomial {
-    degree: Int @join__field(graph: THREE_WITH_INTERFACE)
     coefficients: [Float] @join__field(graph: THREE_WITH_INTERFACE)
+    degree: Int @join__field(graph: THREE_WITH_INTERFACE)
     inflectionPoint: Float @join__field(graph: THREE_WITH_INTERFACE)
 }
 
 type Query {
-    getUngulate(id: ID!): Ungulate @join__field(graph: FIVE_WITH_ENUM)
-    getTVContent(id: ID!): TVContent @join__field(graph: FOUR_WITH_UNION) @inaccessible
-    getNew(name: String!): New @join__field(graph: ONE)
-    getBook(id: ID!): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
-    getPolynomial(id: ID!): Polynomial @join__field(graph: THREE_WITH_INTERFACE) @inaccessible
     currentTime: Time! @join__field(graph: TWO) @inaccessible
+    getBook(id: ID!): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
+    getNew(name: String!): New @join__field(graph: ONE)
+    getPolynomial(id: ID!): Polynomial @join__field(graph: THREE_WITH_INTERFACE) @inaccessible
+    getTVContent(id: ID!): TVContent @join__field(graph: FOUR_WITH_UNION) @inaccessible
+    getUngulate(id: ID!): Ungulate @join__field(graph: FIVE_WITH_ENUM)
 }
 
 type Mutation {
@@ -92,8 +92,8 @@ type Mutation {
 }
 
 interface Polynomial @inaccessible {
-    degree: Int
     coefficients: [Float]
+    degree: Int
 }
 
 enum UngulateType @inaccessible {

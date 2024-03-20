@@ -43,7 +43,7 @@ impl<'a> FieldWalker<'a> {
     }
 
     pub fn ty(self) -> TypeWalker<'a> {
-        self.walk(self.as_ref().type_id)
+        self.walk(self.as_ref().r#type)
     }
 
     pub fn cache_config(&self) -> Option<CacheConfig> {

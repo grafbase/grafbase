@@ -1,0 +1,30 @@
+extend schema
+  @link(
+  url: "https://specs.apollo.dev/federation/v2.6",
+  import: ["@key", "@shareable", "@policy"]
+)
+
+schema {
+  query: Query
+}
+
+type Query {
+  oneA: A
+  oneB: B
+}
+
+type B @key(fields: "id") {
+  id: ID!
+  foo: String @shareable @policy(policies: [["yolo"], ["wolo"]])
+}
+
+type A @key(fields: "id") {
+  id: ID!
+  names: String! @shareable @policy(policies: [["read:others", "and:yetanother"]])
+}
+
+type User @key(fields: "id") {
+  id: ID!
+  name: String @deprecated(reason: "we have no name")
+}
+

@@ -31,8 +31,8 @@ scalar Texture
 scalar Tethera
 
 type Sheep {
-    texture: Texture! @join__field(graph: BAZ)
     sheepIdx: Tethera @join__field(graph: FOO)
+    texture: Texture! @join__field(graph: BAZ)
 }
 
 type Query {

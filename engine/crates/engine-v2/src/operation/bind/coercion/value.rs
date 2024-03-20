@@ -191,7 +191,7 @@ impl<'a, 'b> ValueCoercionContext<'a, 'b> {
                     self.value_path.push(input_field.as_ref().name.into());
                     buffer.push((
                         input_field.id(),
-                        self.coerce_input_value(*input_field.ty().as_ref(), value)?,
+                        self.coerce_input_value(input_field.ty().into(), value)?,
                     ));
                     self.value_path.pop();
                 }

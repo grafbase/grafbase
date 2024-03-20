@@ -23,19 +23,19 @@ enum join__Graph {
 }
 
 type RollerCoaster {
-    id: ID!
-    name: String!
     height: Float!
-    speed: Float!
-    manufacturer: String!
     historicalData: [HistoricalData] @inaccessible
+    id: ID!
+    manufacturer: String!
+    name: String!
     numberOfInversions: Int! @inaccessible
+    speed: Float!
 }
 
 type HistoricalData {
-    year: Int!
-    visitors: Int!
     incidents: Int!
+    visitors: Int!
+    year: Int!
 }
 
 type Query {

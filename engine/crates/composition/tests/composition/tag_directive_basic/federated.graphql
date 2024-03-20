@@ -25,14 +25,14 @@ scalar Texture @tag(name: "appleTexture") @tag(name: "orangeTexture")
 
 type Apple implements HasId @tag(name: "appleType") {
     id: ID!
-    variety: AppleVariety
     texture: Texture
+    variety: AppleVariety
 }
 
 type Orange implements HasId @tag(name: "orangeType") {
     id: ID! @join__field(graph: ORANGE)
-    variety: String @join__field(graph: ORANGE)
     texture: Texture @join__field(graph: ORANGE)
+    variety: String @join__field(graph: ORANGE)
 }
 
 type Query @tag(name: "appleQuery") @tag(name: "orangeQuery") {

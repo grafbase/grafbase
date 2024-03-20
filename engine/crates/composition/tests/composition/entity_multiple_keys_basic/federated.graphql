@@ -26,10 +26,10 @@ type User
     @join__type(graph: MULTI_KEY, key: "name email")
     @join__type(graph: SINGLE_KEY, key: "id")
 {
+    comments: [Comment!]! @join__field(graph: MULTI_KEY)
+    email: String!
     id: ID!
     name: String!
-    email: String!
-    comments: [Comment!]! @join__field(graph: MULTI_KEY)
     posts: [Post!]! @join__field(graph: SINGLE_KEY)
 }
 
@@ -39,13 +39,13 @@ type Comment {
 }
 
 type Post {
-    id: ID! @join__field(graph: SINGLE_KEY)
-    title: String! @join__field(graph: SINGLE_KEY)
     body: String! @join__field(graph: SINGLE_KEY)
+    id: ID! @join__field(graph: SINGLE_KEY)
     published: Boolean! @join__field(graph: SINGLE_KEY)
+    title: String! @join__field(graph: SINGLE_KEY)
 }
 
 type Query {
-    getUserComments(name: String!, email: String!): User @join__field(graph: MULTI_KEY)
     getUser(id: ID!): User @join__field(graph: SINGLE_KEY)
+    getUserComments(name: String!, email: String!): User @join__field(graph: MULTI_KEY)
 }

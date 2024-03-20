@@ -25,18 +25,18 @@ enum join__Graph {
 type Kebab
     @join__type(graph: BROCHETTE_REPOSITORY, key: "id")
 {
+    breadType: String @join__field(graph: BROCHETTE_REPOSITORY)
     id: ID!
     meatType: String @join__field(graph: BROCHETTE_REPOSITORY)
     vegetables: [String] @join__field(graph: BROCHETTE_REPOSITORY)
-    breadType: String @join__field(graph: BROCHETTE_REPOSITORY)
 }
 
 type Brochette
     @join__type(graph: BROCHETTE_REPOSITORY, key: "id")
 {
     id: ID!
-    meatType: String @join__field(graph: BROCHETTE_REPOSITORY)
     marinade: String @join__field(graph: BROCHETTE_REPOSITORY)
+    meatType: String @join__field(graph: BROCHETTE_REPOSITORY)
     servedWith: String @join__field(graph: BROCHETTE_REPOSITORY)
 }
 
@@ -54,17 +54,17 @@ type Schaschlik
 {
     id: ID!
     meatType: String @join__field(graph: SCHASCHLIK_SERVICE)
-    spices: [String] @join__field(graph: SCHASCHLIK_SERVICE)
     originCountry: String @join__field(graph: SCHASCHLIK_SERVICE)
+    spices: [String] @join__field(graph: SCHASCHLIK_SERVICE)
 }
 
 type Query {
-    kebabs: [Kebab] @join__field(graph: BROCHETTE_REPOSITORY)
-    kebab(id: ID!): Kebab @join__field(graph: BROCHETTE_REPOSITORY)
-    brochettes: [Brochette] @join__field(graph: BROCHETTE_REPOSITORY)
     brochette(id: ID!): Brochette @join__field(graph: BROCHETTE_REPOSITORY)
-    kushis: [Kushi] @join__field(graph: KUSHI_STORE)
+    brochettes: [Brochette] @join__field(graph: BROCHETTE_REPOSITORY)
+    kebab(id: ID!): Kebab @join__field(graph: BROCHETTE_REPOSITORY)
+    kebabs: [Kebab] @join__field(graph: BROCHETTE_REPOSITORY)
     kushi(id: ID!): Kushi @join__field(graph: KUSHI_STORE)
-    schaschliks: [Schaschlik] @join__field(graph: SCHASCHLIK_SERVICE)
+    kushis: [Kushi] @join__field(graph: KUSHI_STORE)
     schaschlik(id: ID!): Schaschlik @join__field(graph: SCHASCHLIK_SERVICE)
+    schaschliks: [Schaschlik] @join__field(graph: SCHASCHLIK_SERVICE)
 }

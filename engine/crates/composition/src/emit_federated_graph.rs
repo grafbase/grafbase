@@ -1,4 +1,5 @@
 mod context;
+mod emit_fields;
 mod field_types_map;
 
 use self::context::Context;
@@ -13,7 +14,10 @@ use std::{collections::BTreeSet, mem};
 
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
 pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::FederatedGraph {
-    let mut out = federated::FederatedGraphV2 {
+    let __schema = ir.strings.insert("__schema");
+    let __type = ir.strings.insert("__type");
+
+    let mut out = federated::FederatedGraphV3 {
         enums: mem::take(&mut ir.enums),
         enum_values: mem::take(&mut ir.enum_values),
         objects: mem::take(&mut ir.objects),
@@ -30,25 +34,27 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
             mutation: ir.mutation_type,
             subscription: ir.subscription_type,
         },
-        object_fields: vec![],
-        interface_fields: vec![],
         fields: vec![],
-        field_types: vec![],
     };
 
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
 
     emit_subgraphs(&mut ctx);
     emit_interface_impls(&mut ctx);
-    emit_fields(mem::take(&mut ir.fields), &mut ctx);
+    emit_fields(
+        mem::take(&mut ir.fields),
+        &ir.object_fields_from_entity_interfaces,
+        __schema,
+        __type,
+        &mut ctx,
+    );
     emit_union_members(&ir.union_members, &mut ctx);
     emit_keys(&ir.keys, &mut ctx);
     emit_input_value_definitions(&ir.input_value_definitions, &mut ctx);
-    push_object_fields_from_interface_entities(&ir.object_fields_from_entity_interfaces, &mut ctx);
 
     drop(ctx);
 
-    federated::FederatedGraph::V2(out)
+    federated::FederatedGraph::V3(out)
 }
 
 fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionIr], ctx: &mut Context<'_>) {
@@ -62,24 +68,12 @@ fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionI
                  description,
              }| federated::InputValueDefinition {
                 name: *name,
-                type_id: ctx.insert_field_type(ctx.subgraphs.walk(*r#type)),
+                r#type: ctx.insert_field_type(ctx.subgraphs.walk(*r#type)),
                 directives: *directives,
                 description: *description,
             },
         )
         .collect()
-}
-
-fn push_object_fields_from_interface_entities(
-    object_fields_from_entity_interfaces: &BTreeSet<(federated::StringId, federated::FieldId)>,
-    ctx: &mut Context<'_>,
-) {
-    for (object_name, field_id) in object_fields_from_entity_interfaces {
-        let federated::Definition::Object(object_id) = ctx.definitions[object_name] else {
-            continue;
-        };
-        ctx.push_object_field(object_id, *field_id);
-    }
 }
 
 fn emit_interface_impls(ctx: &mut Context<'_>) {
@@ -105,7 +99,13 @@ fn emit_interface_impls(ctx: &mut Context<'_>) {
     }
 }
 
-fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
+fn emit_fields<'a>(
+    ir_fields: Vec<FieldIr>,
+    object_fields_from_entity_interfaces: &BTreeSet<(federated::StringId, federated::FieldId)>,
+    __schema: federated::StringId,
+    __type: federated::StringId,
+    ctx: &mut Context<'a>,
+) {
     // We have to accumulate the `@provides` and `@requires` and delay emitting them because
     // attach_selection() depends on all fields having been populated first.
     let mut field_provides: Vec<(
@@ -121,80 +121,134 @@ fn emit_fields<'a>(ir_fields: Vec<FieldIr>, ctx: &mut Context<'a>) {
         &'a [subgraphs::Selection],
     )> = Vec::new();
 
-    for FieldIr {
-        parent_definition,
-        field_name,
-        field_type,
-        arguments,
-        resolvable_in,
-        provides,
-        requires,
-        composed_directives,
-        overrides,
-        description,
-    } in ir_fields
-    {
-        let r#type = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
-        let field_name = ctx.insert_string(ctx.subgraphs.walk(field_name));
+    emit_fields::for_each_field_group(&ir_fields, |definition, fields| {
+        let mut start_field_id = None;
+        let mut end_field_id = None;
 
-        let push_field =
-            |ctx: &mut Context<'a>, parent: federated::Definition, composed_directives: federated::Directives| {
-                let field = federated::Field {
-                    name: field_name,
-                    field_type_id: r#type,
-                    arguments,
-                    overrides,
+        if let federated::Definition::Object(id) = definition {
+            let object_name = ctx.out.objects[id.0].name;
+            let fields_from_entity_interfaces = object_fields_from_entity_interfaces
+                .range((object_name, federated::FieldId(0))..(object_name, federated::FieldId(usize::MAX)))
+                .map(|(_, field_id)| ir_fields[field_id.0].clone());
 
-                    provides: Vec::new(),
-                    requires: Vec::new(),
-                    resolvable_in,
-                    composed_directives,
-                    description,
-                };
+            fields.extend(fields_from_entity_interfaces);
+        }
 
-                let id = federated::FieldId(ctx.out.fields.push_return_idx(field));
+        // Sort the fields by name.
+        fields.sort_by(|a, b| {
+            ctx.subgraphs
+                .walk(a.field_name)
+                .as_str()
+                .cmp(ctx.subgraphs.walk(b.field_name).as_str())
+        });
 
-                for (subgraph_id, definition, provides) in provides.iter().filter_map(|field_id| {
-                    let field = ctx.subgraphs.walk_field(*field_id);
-                    field.directives().provides().map(|provides| {
-                        let field_type_name = ctx.insert_string(field.r#type().type_name());
-                        (
-                            federated::SubgraphId(field.parent_definition().subgraph_id().idx()),
-                            ctx.definitions[&field_type_name],
-                            provides,
-                        )
-                    })
-                }) {
-                    field_provides.push((id, subgraph_id, definition, provides));
-                }
+        for FieldIr {
+            parent_definition: _,
+            field_name,
+            field_type,
+            arguments,
+            resolvable_in,
+            provides,
+            requires,
+            composed_directives,
+            overrides,
+            description,
+        } in fields.drain(..)
+        {
+            let r#type = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
+            let field_name = ctx.insert_string(ctx.subgraphs.walk(field_name));
 
-                for (subgraph_id, provides) in requires.iter().filter_map(|field_id| {
-                    let field = ctx.subgraphs.walk_field(*field_id);
-                    field.directives().requires().map(|provides| {
-                        (
-                            federated::SubgraphId(field.parent_definition().subgraph_id().idx()),
-                            provides,
-                        )
-                    })
-                }) {
-                    field_requires.push((id, subgraph_id, parent, provides));
-                }
+            let field = federated::Field {
+                name: field_name,
+                r#type,
+                arguments,
+                overrides,
 
-                id
+                provides: Vec::new(),
+                requires: Vec::new(),
+                resolvable_in,
+                composed_directives,
+                description,
             };
 
-        match parent_definition {
-            parent @ federated::Definition::Object(object_id) => {
-                let field_id = push_field(ctx, parent, composed_directives);
-                ctx.push_object_field(object_id, field_id);
+            let field_id = federated::FieldId(ctx.out.fields.push_return_idx(field));
+
+            start_field_id = start_field_id.or(Some(field_id));
+            end_field_id = Some(field_id);
+
+            for (subgraph_id, definition, provides) in provides.iter().filter_map(|field_id| {
+                let field = ctx.subgraphs.walk_field(*field_id);
+                field.directives().provides().map(|provides| {
+                    let field_type_name = ctx.insert_string(field.r#type().type_name());
+                    (
+                        federated::SubgraphId(field.parent_definition().subgraph_id().idx()),
+                        ctx.definitions[&field_type_name],
+                        provides,
+                    )
+                })
+            }) {
+                field_provides.push((field_id, subgraph_id, definition, provides));
             }
-            parent @ federated::Definition::Interface(interface_id) => {
-                let field_id = push_field(ctx, parent, composed_directives);
-                ctx.push_interface_field(interface_id, field_id);
+
+            for (subgraph_id, provides) in requires.iter().filter_map(|field_id| {
+                let field = ctx.subgraphs.walk_field(*field_id);
+                field.directives().requires().map(|provides| {
+                    (
+                        federated::SubgraphId(field.parent_definition().subgraph_id().idx()),
+                        provides,
+                    )
+                })
+            }) {
+                field_requires.push((field_id, subgraph_id, definition, provides));
+            }
+
+            let selection_map_key = (definition, field_name);
+            ctx.selection_map.insert(selection_map_key, field_id);
+        }
+
+        let fields = start_field_id
+            .zip(end_field_id)
+            .map(|(start, end)| federated::Fields {
+                start,
+                end: federated::FieldId(end.0 + 1),
+            })
+            .unwrap_or(federated::NO_FIELDS);
+
+        match definition {
+            federated::Definition::Object(id) if id == ctx.out.root_operation_types.query => {
+                // Here we want to reserve two spots for the __schema and __type fields used for introspection.
+
+                let extra_fields = [__schema, __type].map(|name| federated::Field {
+                    name,
+                    // Dummy type
+                    r#type: federated::Type {
+                        wrapping: federated::Wrapping::new(false),
+                        definition,
+                    },
+                    arguments: federated::NO_INPUT_VALUE_DEFINITION,
+                    resolvable_in: Vec::new(),
+                    provides: Vec::new(),
+                    requires: Vec::new(),
+                    overrides: Vec::new(),
+                    composed_directives: federated::NO_DIRECTIVES,
+                    description: None,
+                });
+
+                ctx.out.fields.extend_from_slice(&extra_fields);
+                ctx.out.objects[id.0].fields = federated::Fields {
+                    start: fields.start,
+                    end: federated::FieldId(fields.end.0 + 2),
+                };
+            }
+            federated::Definition::Object(id) => {
+                ctx.out.objects[id.0].fields = fields;
+            }
+            federated::Definition::Interface(id) => {
+                ctx.out.interfaces[id.0].fields = fields;
             }
             _ => unreachable!(),
         }
-    }
+    });
 
     for (field_id, subgraph_id, definition, provides) in field_provides {
         let fields = attach_selection(provides, definition, ctx);
@@ -268,7 +322,7 @@ fn attach_selection(
         .map(|selection| {
             let selection_field = ctx.insert_string(ctx.subgraphs.walk(selection.field));
             let field = ctx.selection_map[&(parent_id, selection_field)];
-            let field_ty = ctx.out[ctx.out[field].field_type_id].kind;
+            let field_ty = ctx.out[field].r#type.definition;
             federated::FieldSetItem {
                 field,
                 subselection: attach_selection(&selection.subselection, field_ty, ctx),

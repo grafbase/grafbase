@@ -21,10 +21,10 @@ enum join__Graph {
 }
 
 type Color {
+    blue: Int!
+    green: Int!
     name: String!
     red: Int!
-    green: Int!
-    blue: Int!
 }
 
 type Query {

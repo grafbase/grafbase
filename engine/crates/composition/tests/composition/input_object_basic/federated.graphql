@@ -25,11 +25,11 @@ type Person
     @join__type(graph: EMAILBOOK, key: "id")
     @join__type(graph: PHONEBOOK, key: "id")
 {
-    id: ID!
-    firstName: String! @join__field(graph: EMAILBOOK) @join__field(graph: PHONEBOOK)
-    lastName: String! @join__field(graph: EMAILBOOK) @join__field(graph: PHONEBOOK)
     age: Int! @join__field(graph: EMAILBOOK) @join__field(graph: PHONEBOOK)
     email: String! @join__field(graph: EMAILBOOK)
+    firstName: String! @join__field(graph: EMAILBOOK) @join__field(graph: PHONEBOOK)
+    id: ID!
+    lastName: String! @join__field(graph: EMAILBOOK) @join__field(graph: PHONEBOOK)
     phoneNumber: String @join__field(graph: PHONEBOOK)
 }
 

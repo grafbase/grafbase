@@ -157,12 +157,13 @@ pub enum Value {
     Int(i64),
     Float(StringId),
     Boolean(bool),
+    #[allow(clippy::enum_variant_names)]
     EnumValue(StringId),
     Object(Vec<(StringId, Value)>),
     List(Vec<Value>),
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Definition {
     Scalar(ScalarId),
     Object(ObjectId),
@@ -170,6 +171,16 @@ pub enum Definition {
     Union(UnionId),
     Enum(EnumId),
     InputObject(InputObjectId),
+}
+
+impl Definition {
+    pub fn as_object(&self) -> Option<&ObjectId> {
+        if let Self::Object(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Hash, PartialEq, Eq, Clone)]

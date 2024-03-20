@@ -32,18 +32,18 @@ type Product
 type Review
     @join__type(graph: PRODUCTS, key: "id")
 {
-    id: ID!
-    content: String @join__field(graph: PRODUCTS)
     author: User @join__field(graph: PRODUCTS, provides: "name")
+    content: String @join__field(graph: PRODUCTS)
+    id: ID!
 }
 
 type User
     @join__type(graph: PRODUCTS, key: "id")
     @join__type(graph: USERS, key: "id")
 {
+    email: String @join__field(graph: USERS)
     id: ID!
     name: String @join__field(graph: USERS)
-    email: String @join__field(graph: USERS)
 }
 
 type Query {

@@ -2008,6 +2008,7 @@ dependencies = [
  "strum_macros",
  "thiserror",
  "url",
+ "wrapping",
 ]
 
 [[package]]
@@ -3021,6 +3022,7 @@ dependencies = [
  "indoc",
  "serde",
  "serde_json",
+ "wrapping",
 ]
 
 [[package]]
@@ -8526,6 +8528,13 @@ dependencies = [
  "js-sys",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "wrapping"
+version = "0.63.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

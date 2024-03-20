@@ -22,18 +22,18 @@ enum join__Graph {
 }
 
 type Product implements Node {
+    description: String @join__field(graph: PRODUCT)
     id: ID! @join__field(graph: PRODUCT)
     name: String! @join__field(graph: PRODUCT)
     price: Float! @join__field(graph: PRODUCT)
-    description: String @join__field(graph: PRODUCT)
 }
 
 type User implements Timestamped {
-    id: ID! @join__field(graph: USER)
     createdAt: String! @join__field(graph: USER)
+    email: String! @join__field(graph: USER)
+    id: ID! @join__field(graph: USER)
     updatedAt: String! @join__field(graph: USER)
     username: String! @join__field(graph: USER)
-    email: String! @join__field(graph: USER)
 }
 
 type Query {
@@ -45,7 +45,7 @@ interface Node {
 }
 
 interface Timestamped implements Node {
-    id: ID!
     createdAt: String!
+    id: ID!
     updatedAt: String!
 }

@@ -156,8 +156,9 @@ mod tests {
     use std::borrow::Cow;
 
     use serde::Deserialize;
+    use wrapping::Wrapping;
 
-    use crate::{EnumValue, InputValue, InputValueDefinition, RawInputValuesContext, Schema, StringId, TypeId};
+    use crate::{EnumValue, InputValue, InputValueDefinition, RawInputValuesContext, Schema, StringId, Type};
 
     use super::*;
 
@@ -167,13 +168,19 @@ mod tests {
             InputValueDefinition {
                 name: StringId::from(4),
                 description: None,
-                type_id: TypeId::from(0), // not used
+                r#type: Type {
+                    inner: crate::Definition::Object(0.into()),
+                    wrapping: Wrapping::new(false),
+                }, // not used
                 default_value: None,
             },
             InputValueDefinition {
                 name: StringId::from(5),
                 description: None,
-                type_id: TypeId::from(0), // not used
+                r#type: Type {
+                    inner: crate::Definition::Object(0.into()),
+                    wrapping: Wrapping::new(false),
+                }, // not used
                 default_value: None,
             },
         ]);
