@@ -62,7 +62,7 @@ async fn traced(
 
     let subscriber = tracing_subscriber::registry()
         .with(tracing_opentelemetry::layer().with_tracer(tracer))
-        .with(tracing_subscriber::fmt::layer().json());
+        .with(tracing_subscriber::fmt::layer().with_ansi(false));
 
     let response = handle(headers, request, gateway).with_subscriber(subscriber).await;
 
