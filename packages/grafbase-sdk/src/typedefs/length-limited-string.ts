@@ -4,7 +4,6 @@ import { UniqueDefinition } from './unique'
 import { DefaultDefinition } from './default'
 import { Enum } from '../enum'
 import { StringDefinition } from './scalar'
-import { SearchDefinition } from './search'
 import { AuthRuleF } from '../auth'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
@@ -37,13 +36,6 @@ export class LengthLimitedStringDefinition {
    */
   public unique(scope?: string[]): UniqueDefinition {
     return new UniqueDefinition(this, scope)
-  }
-
-  /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
   }
 
   /**

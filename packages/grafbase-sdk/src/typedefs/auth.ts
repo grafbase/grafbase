@@ -5,7 +5,6 @@ import { DefaultDefinition } from './default'
 import { LengthLimitedStringDefinition } from './length-limited-string'
 import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
-import { SearchDefinition } from './search'
 import { UniqueDefinition } from './unique'
 import { EnumDefinition } from './enum'
 import { MapDefinition } from './map'
@@ -21,7 +20,6 @@ export type Authenticable =
   | ScalarDefinition
   | UniqueDefinition
   | DefaultDefinition
-  | SearchDefinition
   | ReferenceDefinition
   | LengthLimitedStringDefinition
   | CacheDefinition
@@ -45,13 +43,6 @@ export class AuthDefinition {
 
     this.authRules = authRules
     this.field = field
-  }
-
-  /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
   }
 
   /**

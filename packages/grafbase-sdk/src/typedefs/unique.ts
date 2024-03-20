@@ -7,12 +7,10 @@ import { LengthLimitedStringDefinition } from './length-limited-string'
 import { MapDefinition } from './map'
 import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
-import { SearchDefinition } from './search'
 
 type UniqueScalarType =
   | ScalarDefinition
   | DefaultDefinition
-  | SearchDefinition
   | LengthLimitedStringDefinition
   | AuthDefinition
   | ResolverDefinition
@@ -26,13 +24,6 @@ export class UniqueDefinition {
   constructor(scalar: UniqueScalarType, scope?: string[]) {
     this.scalar = scalar
     this.compoundScope = scope
-  }
-
-  /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
   }
 
   /**

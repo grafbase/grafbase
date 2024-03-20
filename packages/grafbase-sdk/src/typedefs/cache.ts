@@ -17,7 +17,6 @@ import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
 import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
-import { SearchDefinition } from './search'
 import { ShareableDefinition } from './shareable'
 import { TagDefinition } from './tag'
 import { UniqueDefinition } from './unique'
@@ -28,7 +27,6 @@ export type Cacheable =
   | DefaultDefinition
   | ResolverDefinition
   | LengthLimitedStringDefinition
-  | SearchDefinition
   | UniqueDefinition
   | EnumDefinition<any, any>
   | JoinDefinition
@@ -122,13 +120,6 @@ export class CacheDefinition {
    */
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
-  }
-
-  /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
   }
 
   /**

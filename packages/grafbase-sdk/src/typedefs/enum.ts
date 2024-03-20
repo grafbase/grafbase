@@ -11,7 +11,6 @@ import { MapDefinition } from './map'
 import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
 import { ResolverDefinition } from './resolver'
-import { SearchDefinition } from './search'
 import { ShareableDefinition } from './shareable'
 import { UniqueDefinition } from './unique'
 
@@ -49,13 +48,6 @@ export class EnumDefinition<T extends string, U extends EnumShape<T>> {
    */
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
-  }
-
-  /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
   }
 
   /**
