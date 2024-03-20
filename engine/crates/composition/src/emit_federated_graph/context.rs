@@ -33,6 +33,29 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_string(&mut self, string: subgraphs::StringWalker<'_>) -> federated::StringId {
         self.strings_ir.insert(string.as_str())
     }
+
+    pub(crate) fn insert_value(&mut self, value: &subgraphs::Value) -> federated::Value {
+        match value {
+            subgraphs::Value::String(value) => {
+                federated::Value::String(self.insert_string(self.subgraphs.walk(*value)))
+            }
+            subgraphs::Value::Int(value) => federated::Value::Int(*value),
+            subgraphs::Value::Float(value) => federated::Value::Float(*value),
+            subgraphs::Value::Boolean(value) => federated::Value::Boolean(*value),
+            subgraphs::Value::Enum(value) => {
+                federated::Value::EnumValue(self.insert_string(self.subgraphs.walk(*value)))
+            }
+            subgraphs::Value::Object(value) => federated::Value::Object(
+                value
+                    .iter()
+                    .map(|(k, v)| (self.insert_string(self.subgraphs.walk(*k)), self.insert_value(v)))
+                    .collect(),
+            ),
+            subgraphs::Value::List(value) => {
+                federated::Value::List(value.iter().map(|v| self.insert_value(v)).collect())
+            }
+        }
+    }
 }
 
 impl Drop for Context<'_> {

@@ -190,7 +190,7 @@ fn emit_fields<'a>(
                 field_provides.push((field_id, subgraph_id, definition, provides));
             }
 
-            for (subgraph_id, provides) in requires.iter().filter_map(|field_id| {
+            for (subgraph_id, requires) in requires.iter().filter_map(|field_id| {
                 let field = ctx.subgraphs.walk_field(*field_id);
                 field.directives().requires().map(|provides| {
                     (
@@ -199,7 +199,7 @@ fn emit_fields<'a>(
                     )
                 })
             }) {
-                field_requires.push((field_id, subgraph_id, definition, provides));
+                field_requires.push((field_id, subgraph_id, definition, requires));
             }
 
             let selection_map_key = (definition, field_name);
@@ -323,8 +323,19 @@ fn attach_selection(
             let selection_field = ctx.insert_string(ctx.subgraphs.walk(selection.field));
             let field = ctx.selection_map[&(parent_id, selection_field)];
             let field_ty = ctx.out[field].r#type.definition;
+            let arguments = selection
+                .arguments
+                .iter()
+                .map(|(name, value)| {
+                    let name = ctx.insert_string(ctx.subgraphs.walk(*name));
+                    let value = ctx.insert_value(value);
+                    (name, value)
+                })
+                .collect();
+
             federated::FieldSetItem {
                 field,
+                arguments,
                 subselection: attach_selection(&selection.subselection, field_ty, ctx),
             }
         })

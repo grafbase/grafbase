@@ -16,6 +16,7 @@ pub use graphql_federated_graph::{render_sdl, FederatedGraph};
 use self::{
     compose::{compose_subgraphs, ComposeContext},
     emit_federated_graph::emit_federated_graph,
+    ingest_subgraph::ast_value_to_subgraph_value,
 };
 
 /// Compose subgraphs into a federated graph.

@@ -772,9 +772,20 @@ fn attach_selection(
             };
             let field = state.selection_map[&(parent_id, ast_field.node.name.node.as_str())];
             let field_ty = state.fields[field.0].r#type.definition;
+            let arguments = ast_field
+                .node
+                .arguments
+                .iter()
+                .map(|(name, value)| {
+                    let name = state.insert_string(name.node.as_str());
+                    let value = state.insert_value(&value.node.clone().into_const().unwrap());
+                    (name, value)
+                })
+                .collect();
             let subselection = &ast_field.node.selection_set.node.items;
             Ok(FieldSetItem {
                 field,
+                arguments,
                 subselection: attach_selection(subselection, field_ty, state)?,
             })
         })
