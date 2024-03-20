@@ -629,4 +629,240 @@ mod tests {
         )
         "###);
     }
+
+    #[test]
+    fn join_with_argument_type_nullability_mismatch() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!, name: String): String @resolver(name: "blah")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                id: ID
+                nickname: String @join(select: "blah(id: $id)")
+            }
+            "#,
+            "The join on User.nickname has an invalid value for argument id. $id is of type ID but is being used in a position expecting String!"
+        );
+    }
+
+    #[test]
+    fn join_with_argument_type_arity_mismatch() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!, name: String): String @resolver(name: "blah")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                id: [ID]!
+                nickname: ID @join(select: "blah(id: $id)")
+            }
+            "#,
+            "The join on User.nickname has an invalid value for argument id. $id is of type [ID]! but is being used in a position expecting String!"
+        );
+    }
+
+    #[test]
+    fn join_with_argument_type_kind_mismatch() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!, name: String): String @resolver(name: "blah")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                nickname(alignment: Alignment!): ID @join(select: "blah(id: $alignment)")
+            }
+
+            enum Alignment {
+                GOOD, EVIL
+            }
+            "#,
+            "The join on User.nickname has an invalid value for argument id. $alignment is of type Alignment! but is being used in a position expecting String!"
+        );
+    }
+
+    #[test]
+    fn join_with_argument_type_mismatch_but_same_kind() {
+        // An argument that's of a different but compatible scalar kind.
+        // This should work.
+        let schema = r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(id: String!): String @resolver(name: "blah")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                name: String!
+                nickname(id: String!): ID @join(select: "blah(id: $id)")
+            }
+        "#;
+
+        crate::to_parse_result_with_variables(schema, &HashMap::new()).unwrap();
+    }
+
+    #[test]
+    fn join_with_input_object_argument() {
+        let schema = r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(foo: Foo!): ID @resolver(name: "blah")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                joined(foo: Foo!): ID @join(select: "blah(foo: $foo)")
+            }
+
+            input Foo {
+                bar: String!
+            }
+        "#;
+
+        crate::to_parse_result_with_variables(schema, &HashMap::new()).unwrap();
+    }
+
+    #[test]
+    fn join_with_input_object_argument_mismatch() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(foo: Foo!): ID @resolver(name: "blah")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                joined(foo: Foo!): ID @join(select: "blah(foo: {bar: $foo})")
+            }
+
+            input Foo {
+                bar: Bar
+            }
+
+            input Bar {
+                str: String!
+            }
+            "#,
+            "The join on User.joined has an invalid value for argument foo (at position bar). $foo is of type Foo! but is being used in a position expecting Bar"
+        );
+    }
+
+    #[test]
+    fn join_with_literal_object_mismatch() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(foo: Foo!): ID @resolver(name: "blah")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                joined(foo: Foo!): ID @join(select: "blah(foo: \"hello\")")
+            }
+
+            input Foo {
+                bar: Bar
+            }
+
+            input Bar {
+                str: String!
+            }
+            "#,
+            "The join on User.joined has an invalid value for argument foo. Found a scalar where we expected Foo!"
+        );
+    }
+
+    #[test]
+    fn join_with_literal_list_mismatch() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(foo: [String]!): ID @resolver(name: "blah")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                joined(foo: Foo!): ID @join(select: "blah(foo: \"hello\")")
+            }
+            "#,
+            "The join on User.joined has an invalid value for argument foo. Found a scalar where we expected [String]!"
+        );
+    }
+
+    #[test]
+    fn join_with_nested_literal_list_mismatch() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(nestedStringList: [[String]]!): ID @resolver(name: "blah")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                listOfStrings: [String!]!
+                joined(listOfStrings: [String!]!): ID @join(select: "blah(nestedStringList: $listOfStrings)")
+            }
+            "#,
+            "The join on User.joined has an invalid value for argument nestedStringList. $listOfStrings is of type [String!]! but is being used in a position expecting [[String]]!"
+        );
+    }
+
+    #[test]
+    fn join_with_list_argument_passed_to_non_null() {
+        let schema = r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(ids: [String]): String @resolver(name: "blah")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                nickname(ids: [String!]!): ID @join(select: "blah(ids: $ids)")
+            }
+        "#;
+
+        crate::to_parse_result_with_variables(schema, &HashMap::new()).unwrap();
+    }
+
+    #[test]
+    fn join_with_literal_null() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(ids: [String]!): String @resolver(name: "blah")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                nickname: ID @join(select: "blah(ids: null)")
+            }
+            "#,
+            "The join on User.nickname has an invalid value for argument ids. Found null where we expected [String]!"
+        );
+    }
 }

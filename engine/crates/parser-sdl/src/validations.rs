@@ -1,4 +1,4 @@
-use std::sync::OnceLock;
+use std::{collections::HashMap, sync::OnceLock};
 
 use engine::{
     registry::{
@@ -6,15 +6,19 @@ use engine::{
         field_set::Selection,
         resolvers::{join::JoinResolver, Resolver},
         type_kinds::SelectionSetTarget,
-        MetaField, MetaFieldType,
+        MetaField, MetaFieldType, MetaInputValue, MetaType,
     },
-    Registry,
+    QueryPath, Registry, Schema,
 };
 use engine_parser::types::{BaseType, Type};
+use engine_value::argument_set::SerializableArgument;
 use indexmap::IndexMap;
 use regex::Regex;
 
-use crate::{rules::visitor::RuleError, schema_coord::SchemaCoord};
+use crate::{
+    rules::visitor::RuleError,
+    schema_coord::{self, SchemaCoord},
+};
 
 static NAME_REGEX: OnceLock<Regex> = OnceLock::new();
 
@@ -126,6 +130,8 @@ fn validate_joins(registry: &Registry) -> Vec<RuleError> {
             if let Resolver::Join(join) = &field.resolver {
                 errors.extend(validate_join(
                     join,
+                    &fields.values().collect::<Vec<_>>(),
+                    &field.args.values().collect::<Vec<_>>(),
                     registry,
                     SchemaCoord::Field(ty.name(), &field.name),
                     &field.ty,
@@ -139,19 +145,22 @@ fn validate_joins(registry: &Registry) -> Vec<RuleError> {
 
 fn validate_join(
     join: &JoinResolver,
+    container_fields: &[&MetaField],
+    available_arguments: &[&MetaInputValue],
     registry: &Registry,
     coord: SchemaCoord<'_>,
     expected_return_type: &MetaFieldType,
 ) -> Vec<RuleError> {
     let mut errors = vec![];
 
-    let (destination_field, containing_type) = match traverse_join_fields(join, registry, coord) {
-        Ok(field) => field,
-        Err(errors) => return errors,
-    };
+    let (destination_field, containing_type) =
+        match traverse_join_fields(join, container_fields, available_arguments, registry, coord) {
+            Ok(field) => field,
+            Err(errors) => return errors,
+        };
 
     // If destination_field is non-null but expected_return is null that's fine...
-    if !types_are_compatible(&destination_field.ty, expected_return_type) {
+    if !output_types_are_compatible(&destination_field.ty, expected_return_type, registry) {
         errors.push(RuleError::new(
             vec![],
             format!(
@@ -173,12 +182,27 @@ fn validate_join(
 /// Will return the target MetaField if succesful, errors if not
 fn traverse_join_fields<'a>(
     join: &JoinResolver,
+    container_fields: &[&MetaField],
+    available_arguments: &[&MetaInputValue],
     registry: &'a Registry,
     coord: SchemaCoord<'_>,
 ) -> Result<(&'a MetaField, SelectionSetTarget<'a>), Vec<RuleError>> {
     let mut current_type = registry.root_type(engine_parser::types::OperationType::Query);
 
     let mut errors = vec![];
+
+    let available_variables = {
+        let mut variable_types = HashMap::new();
+
+        // Arguments always shadow container fields so the order of these loops matters
+        for field in container_fields {
+            variable_types.insert(field.name.as_str(), field.ty.as_str());
+        }
+        for argument in available_arguments {
+            variable_types.insert(argument.name.as_str(), argument.ty.as_str());
+        }
+        variable_types
+    };
 
     let mut field_iter = join.fields.iter().peekable();
     while let Some((name, join_arguments)) = field_iter.next() {
@@ -207,8 +231,8 @@ fn traverse_join_fields<'a>(
             }
         }
 
-        for name in join_arguments.iter_names() {
-            if !field.args.contains_key(name) {
+        for (name, argument) in join_arguments.iter() {
+            let Some(arg) = field.args.get(name) else {
                 errors.push(RuleError::new(
                     vec![],
                     format!(
@@ -218,7 +242,10 @@ fn traverse_join_fields<'a>(
                         &field.name,
                     ),
                 ));
-            }
+                continue;
+            };
+
+            validate_join_argument(arg, argument, coord, &available_variables, &mut errors, registry);
         }
 
         if field_iter.peek().is_none() {
@@ -264,22 +291,167 @@ fn traverse_join_fields<'a>(
         }
     }
 
-    assert!(!errors.is_empty(), "we shouldnt ger here if errors is empty");
+    assert!(!errors.is_empty(), "we shouldnt get here if errors is empty");
 
     Err(errors)
 }
 
-fn types_are_compatible(actual_type: &MetaFieldType, expected_type: &MetaFieldType) -> bool {
+fn validate_join_argument(
+    argument_definition: &MetaInputValue,
+    argument_value: &SerializableArgument,
+    join_coord: SchemaCoord<'_>,
+    available_variables: &HashMap<&str, &str>,
+    errors: &mut Vec<RuleError>,
+    registry: &Registry,
+) {
+    let argument_type = Type::new(argument_definition.ty.as_str()).expect("valid type strings");
+
+    let mut stack = vec![(argument_type, argument_value, QueryPath::empty())];
+
+    while let Some((current_type, value, path)) = stack.pop() {
+        let error_prefix = JoinArgumentErrorPrefix(join_coord, argument_definition.name.as_str(), &path);
+        match value {
+            SerializableArgument::Variable(variable) => {
+                let Some(expected_type) = available_variables.get(variable.as_str()) else {
+                    errors.push(RuleError::new(
+                        vec![],
+                        format!(
+                            "{error_prefix} Found the variable {variable} which is not present as a field of the container or an argument of the joined field",
+                        ),
+                    ));
+                    continue;
+                };
+
+                if !types_are_compatible(&Type::new(expected_type).expect("valid types"), &current_type, registry) {
+                    errors.push(RuleError::new(
+                        vec![],
+                        format!(
+                            "{error_prefix} ${variable} is of type {} but is being used in a position expecting {}",
+                            expected_type, current_type
+                        ),
+                    ));
+                    continue;
+                }
+            }
+            SerializableArgument::Null if current_type.nullable => {}
+            SerializableArgument::Null => {
+                errors.push(RuleError::new(
+                    vec![],
+                    format!("{error_prefix} Found null where we expected {}", current_type),
+                ));
+                break;
+            }
+            SerializableArgument::List(values) if current_type.base.is_list() => {
+                let BaseType::List(inner_type) = current_type.base else {
+                    unreachable!()
+                };
+
+                stack.extend(values.iter().enumerate().map(|(index, value)| {
+                    let mut inner_path = path.clone();
+                    inner_path.push(index);
+                    (*inner_type.clone(), value, inner_path)
+                }))
+            }
+            SerializableArgument::List(_) => {
+                errors.push(RuleError::new(
+                    vec![],
+                    format!("{error_prefix} Found a list where we expected {}", current_type),
+                ));
+                break;
+            }
+            SerializableArgument::Object(object) => {
+                let BaseType::Named(type_name) = current_type.base else {
+                    errors.push(RuleError::new(
+                        vec![],
+                        format!("{error_prefix}. Found an object where we expected {}", current_type),
+                    ));
+                    break;
+                };
+
+                let Ok(MetaType::InputObject(input_object)) = registry.lookup(&type_name) else {
+                    errors.push(RuleError::new(
+                        vec![],
+                        format!("{error_prefix}.  Found an object where we expected a {}", type_name,),
+                    ));
+                    break;
+                };
+
+                for (field_name, value) in object {
+                    let field_name = field_name.as_str();
+
+                    let mut inner_path = path.clone();
+                    inner_path.push(field_name);
+
+                    let field_type = match input_object.input_fields.get(field_name) {
+                        Some(field) => Type::new(field.ty.as_str()).expect("valid type strings"),
+                        None => {
+                            errors.push(RuleError::new(
+                                vec![],
+                                format!("{error_prefix} Could not find a field named {}", field_name),
+                            ));
+                            continue;
+                        }
+                    };
+
+                    stack.push((field_type, value, inner_path));
+                }
+            }
+            SerializableArgument::Enum(_) => {
+                let BaseType::Named(type_name) = current_type.base else {
+                    errors.push(RuleError::new(
+                        vec![],
+                        format!("{error_prefix} Found an enum where we expected {}", current_type),
+                    ));
+                    break;
+                };
+
+                let Ok(MetaType::Enum(_)) = registry.lookup(&type_name) else {
+                    errors.push(RuleError::new(
+                        vec![],
+                        format!("{error_prefix} Found an enum where we expected a {}", type_name),
+                    ));
+                    break;
+                };
+            }
+            SerializableArgument::Number(_)
+            | SerializableArgument::String(_)
+            | SerializableArgument::Boolean(_)
+            | SerializableArgument::Binary(_) => {
+                let BaseType::Named(type_name) = &current_type.base else {
+                    errors.push(RuleError::new(
+                        vec![],
+                        format!("{error_prefix} Found a scalar where we expected {}", current_type),
+                    ));
+                    break;
+                };
+
+                let Ok(MetaType::Scalar(_)) = registry.lookup(type_name) else {
+                    errors.push(RuleError::new(
+                        vec![],
+                        format!("{error_prefix} Found a scalar where we expected {}", current_type),
+                    ));
+                    break;
+                };
+            }
+        }
+    }
+}
+
+fn output_types_are_compatible(
+    actual_type: &MetaFieldType,
+    expected_type: &MetaFieldType,
+    registry: &Registry,
+) -> bool {
     let Some(actual) = Type::new(actual_type.as_str()) else {
         return false;
     };
     let Some(expected) = Type::new(expected_type.as_str()) else {
         return false;
     };
+    types_are_compatible(&actual, &expected, registry)
+}
 
-    let mut actual = &actual;
-    let mut expected = &expected;
-
+fn types_are_compatible(mut actual: &Type, mut expected: &Type, registry: &Registry) -> bool {
     loop {
         if actual.nullable && !expected.nullable {
             return false;
@@ -289,7 +461,21 @@ fn types_are_compatible(actual_type: &MetaFieldType, expected_type: &MetaFieldTy
                 actual = actual_inner.as_ref();
                 expected = expected_inner.as_ref();
             }
-            (BaseType::Named(actual_name), BaseType::Named(expected_name)) => return actual_name == expected_name,
+            (BaseType::Named(actual_name), BaseType::Named(expected_name)) => {
+                if actual_name == expected_name {
+                    return true;
+                }
+                match (registry.lookup(actual_name), registry.lookup(expected_name)) {
+                    (Ok(MetaType::Scalar(_)), Ok(MetaType::Scalar(_))) => {
+                        // If the names don't match but both sides are scalars we'll say they're compatible.
+                        // This maybe isn't strictly correct but a bit of flexibility around
+                        // passsing strings to ID fields and handling mismatched custom scalars
+                        // seems sensible.
+                        return true;
+                    }
+                    _ => return false,
+                }
+            }
             _ => {
                 // I've not implemented the list coercion rules here but since
                 // this is just used for joins I think we're fine without them for now.
@@ -306,11 +492,17 @@ fn validate_federation_joins(registry: &Registry) -> Vec<RuleError> {
 
     for (name, entity) in &registry.federation_entities {
         let Some(ty) = registry.types.get(name) else { continue };
+        let Some(fields) = ty.fields() else { continue };
 
         for key in entity.keys() {
             if let Some(FederationResolver::Join(join)) = key.resolver() {
                 errors.extend(validate_join(
                     join,
+                    &fields
+                        .values()
+                        .filter(|field| key.includes_field(&field.name))
+                        .collect::<Vec<_>>(),
+                    &[],
                     registry,
                     SchemaCoord::Entity(ty.name(), &key.to_string()),
                     &ty.name().into(),
@@ -320,4 +512,18 @@ fn validate_federation_joins(registry: &Registry) -> Vec<RuleError> {
     }
 
     errors
+}
+
+pub struct JoinArgumentErrorPrefix<'a>(SchemaCoord<'a>, &'a str, &'a QueryPath);
+
+impl std::fmt::Display for JoinArgumentErrorPrefix<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "The join on {} has an invalid value for argument {}", self.0, self.1)?;
+
+        if !self.2.is_empty() {
+            write!(f, " (at position {})", self.2)?;
+        }
+
+        write!(f, ".")
+    }
 }

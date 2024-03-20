@@ -46,6 +46,11 @@ impl ArgumentSet {
     pub fn iter_names(&self) -> impl Iterator<Item = &str> {
         self.0.iter().map(|(name, _)| name.as_str())
     }
+
+    /// Borrowing iterator
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &SerializableArgument)> {
+        self.0.iter().map(|(name, arg)| (name.as_str(), arg))
+    }
 }
 
 impl IntoIterator for ArgumentSet {
@@ -84,7 +89,7 @@ impl Iterator for ArgumentSetIter {
 /// Note that this is private intentionally - this should only really be used for serialization via
 /// ArgumentSet above.  Convert it to Value if you want to work with it.
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum SerializableArgument {
+pub enum SerializableArgument {
     /// A variable, without the `$`.
     Variable(Name),
     /// `null`.
