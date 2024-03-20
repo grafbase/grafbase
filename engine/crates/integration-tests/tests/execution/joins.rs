@@ -492,3 +492,53 @@ fn joins_with_downstream_errors() {
         );
     });
 }
+
+#[test]
+fn argument_forwarding_for_joins() {
+    runtime().block_on(async {
+        let schema = r#"
+            extend type Query {
+                greetPerson(name: String!, salutation: String!): String! @resolver(name: "greetPerson")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                id: ID!
+                name: String!
+                greeting(salutation: String!): String! @join(select: "greetPerson(name: $name, salutation: $salutation)")
+            }
+        "#;
+
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(
+                RustUdfs::new()
+                    .resolver("user", UdfResponse::Success(json!({"id": "123", "name": "Bob"})))
+                    .resolver("greetPerson", |input: CustomResolverRequestPayload| {
+                        Ok(UdfResponse::Success(
+                            format!(
+                                "{} {}",
+                                input.arguments["salutation"].as_str().unwrap(),
+                                input.arguments["name"].as_str().unwrap(),
+                            )
+                            .into(),
+                        ))
+                    }),
+            )
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute("{ user { greeting(salutation: \"Hail\") } }")
+                .await
+                .into_data::<Value>(),
+                @r###"
+        {
+          "user": {
+            "greeting": "Hail Bob"
+          }
+        }
+        "###
+        );
+    });
+}

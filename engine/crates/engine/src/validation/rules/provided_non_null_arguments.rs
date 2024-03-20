@@ -38,10 +38,10 @@ impl<'a> Visitor<'a> for ProvidedNonNullArguments {
                         ctx.report_error(
                             vec![field.pos],
                             format!(
-                                r#"Field "{}" argument "{}" of type "{}" is required but not provided"#,
-                                field.node.name,
+                                r#"The "{}" argument of "{}.{}" is required but not provided"#,
                                 arg.name,
-                                parent_type.name()
+                                parent_type.name(),
+                                field.node.name,
                             ),
                         );
                     }

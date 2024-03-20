@@ -94,6 +94,10 @@ impl FederationKey {
     pub fn is_resolvable(&self) -> bool {
         self.resolver.is_some()
     }
+
+    pub fn includes_field(&self, field: &str) -> bool {
+        self.selections.0.iter().any(|selection| selection.field == field)
+    }
 }
 
 impl FederationEntity {

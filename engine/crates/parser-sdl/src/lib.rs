@@ -57,6 +57,7 @@ use rules::{
 };
 
 pub mod federation;
+mod schema_coord;
 mod type_names;
 mod validations;
 

@@ -13,7 +13,7 @@ use crate::{
         MetaField,
     },
     resolver_utils::field::run_field_resolver,
-    Context, ContextField, Error, Registry,
+    Context, ContextExt, ContextField, Error, Registry,
 };
 
 use super::{resolve_input, InputResolveMode};
@@ -32,6 +32,7 @@ pub async fn resolve_joined_field(
         .root_type(engine_parser::types::OperationType::Query);
 
     resolve_arguments_recursively(
+        ctx,
         &mut query_field.node,
         &parent_resolve_value_for_join,
         current_type,
@@ -87,6 +88,7 @@ pub async fn resolve_joined_field(
 }
 
 fn resolve_arguments_recursively<'a>(
+    join_field_context: &ContextField<'a>,
     mut query_field: &mut Field,
     parent_resolve_value_for_join: &ResolvedValue,
     mut current_type: SelectionSetTarget<'a>,
@@ -105,6 +107,7 @@ fn resolve_arguments_recursively<'a>(
         })?;
 
         resolve_arguments(
+            join_field_context,
             &mut query_field.arguments,
             parent_resolve_value_for_join,
             meta_field,
@@ -188,6 +191,7 @@ fn fake_query_ast(actual_field: &Positioned<Field>, join: &JoinResolver) -> Resu
 }
 
 fn resolve_arguments(
+    join_field_context: &ContextField<'_>,
     arguments: &mut Vec<(Positioned<Name>, Positioned<Value>)>,
     parent_resolve_value_for_join: &ResolvedValue,
     meta_field: &MetaField,
@@ -200,19 +204,35 @@ fn resolve_arguments(
     };
 
     for (name, value) in arguments {
-        // Any variables this value refers to are actually fields on the last_resolver_value
-        // so we need to resolve with into_const_with then convert back to a value.
+        // Any variables this value refers to are either:
+        // 1. Arguments on the join field
+        // 2. Fields from the last_resolver_value
+        //
+        // We need to resolve these using into_const_with then convert back to a value.
         let const_value = value
             .node
             .clone()
             .into_const_with(|variable_name| {
-                let value = parent_object.get(variable_name.as_str()).cloned().ok_or_else(|| {
-                    Error::new(format!(
-                        "Internal error: couldn't find {variable_name} in parent_resolver_value"
-                    ))
-                })?;
+                if join_field_context.field.args.contains_key(variable_name.as_str()) {
+                    Ok(join_field_context
+                        .input_by_name(variable_name.to_string())
+                        .inspect_err(|error| {
+                            log::warn!(
+                                join_field_context.trace_id(),
+                                "Error resolving argument on joined field: {error}"
+                            )
+                        })
+                        .unwrap_or_default())
+                } else {
+                    let value = parent_object.get(variable_name.as_str()).cloned().ok_or_else(|| {
+                        Error::new(format!(
+                            "Internal error: couldn't find {variable_name} in parent_resolver_value"
+                        ))
+                    })?;
 
-                ConstValue::from_json(value).map_err(|_| Error::new("Internal error converting intermediate values"))
+                    ConstValue::from_json(value)
+                        .map_err(|_| Error::new("Internal error converting intermediate values"))
+                }
             })
             .unwrap_or_default();
 
