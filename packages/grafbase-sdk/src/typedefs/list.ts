@@ -11,7 +11,6 @@ import {
   ScalarDefinition,
   StringDefinition
 } from './scalar'
-import { SearchDefinition } from './search'
 import { FieldType } from '../typedefs'
 import { EnumDefinition } from './enum'
 import { InputDefinition } from './input'
@@ -49,13 +48,6 @@ export class ListDefinition {
     this.isOptional = true
 
     return this
-  }
-
-  /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
   }
 
   /**

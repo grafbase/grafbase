@@ -16,7 +16,6 @@ import {
   FieldLength,
   LengthLimitedStringDefinition
 } from './length-limited-string'
-import { SearchDefinition } from './search'
 import { UniqueDefinition } from './unique'
 import { AuthDefinition } from './auth'
 import { AuthRuleF } from '../auth'
@@ -64,13 +63,6 @@ export class ScalarDefinition {
    */
   public unique(scope?: string[]): UniqueDefinition {
     return new UniqueDefinition(this, scope)
-  }
-
-  /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
   }
 
   /**
