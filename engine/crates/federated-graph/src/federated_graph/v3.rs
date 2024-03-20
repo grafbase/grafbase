@@ -59,7 +59,7 @@ pub enum Directive {
     },
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct Type {
     #[serde(serialize_with = "serialize_wrapping", deserialize_with = "deserialize_wrapping")]
     pub wrapping: Wrapping,
@@ -163,7 +163,7 @@ pub struct Interface {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct InputValueDefinition {
     pub name: StringId,
     pub r#type: Type,
@@ -208,30 +208,63 @@ impl From<super::v2::FederatedGraphV2> for FederatedGraphV3 {
             })
             .collect();
 
+        let mut object_fields: Vec<Option<Fields>> = vec![None; value.objects.len()];
+        let mut interface_fields: Vec<Option<Fields>> = vec![None; value.interfaces.len()];
+
+        for object_field in value.object_fields {
+            match &mut object_fields[object_field.object_id.0] {
+                entry @ None => {
+                    *entry = Some(Range {
+                        start: object_field.field_id,
+                        end: FieldId(object_field.field_id.0 + 1),
+                    });
+                }
+                Some(fields) => {
+                    fields.end = FieldId(object_field.field_id.0 + 1);
+                }
+            }
+        }
+
+        for interface_field in value.interface_fields {
+            match &mut interface_fields[interface_field.interface_id.0] {
+                entry @ None => {
+                    *entry = Some(Range {
+                        start: interface_field.field_id,
+                        end: FieldId(interface_field.field_id.0 + 1),
+                    });
+                }
+                Some(fields) => {
+                    fields.end = FieldId(interface_field.field_id.0 + 1);
+                }
+            }
+        }
+
         FederatedGraphV3 {
             subgraphs: value.subgraphs,
             root_operation_types: value.root_operation_types,
             objects: value
                 .objects
                 .into_iter()
-                .map(|object| Object {
+                .enumerate()
+                .map(|(idx, object)| Object {
                     name: object.name,
                     implements_interfaces: object.implements_interfaces,
                     keys: object.keys,
                     composed_directives: object.composed_directives,
-                    fields: NO_FIELDS,
+                    fields: object_fields[idx].as_ref().cloned().unwrap_or(NO_FIELDS),
                     description: object.description,
                 })
                 .collect(),
             interfaces: value
                 .interfaces
                 .into_iter()
-                .map(|iface| Interface {
+                .enumerate()
+                .map(|(idx, iface)| Interface {
                     name: iface.name,
                     implements_interfaces: iface.implements_interfaces,
                     keys: iface.keys,
                     composed_directives: iface.composed_directives,
-                    fields: NO_FIELDS,
+                    fields: interface_fields[idx].as_ref().cloned().unwrap_or(NO_FIELDS),
                     description: iface.description,
                 })
                 .collect(),
