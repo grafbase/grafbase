@@ -445,39 +445,39 @@ fn introspect_enabled() {
           products: [Product!]!
         }
         type Picture {
-          height: Int!
           url: String!
           width: Int!
+          height: Int!
         }
         type Product {
           name: String!
+          upc: String!
           price: Int!
           reviews: [Review!]!
-          upc: String!
         }
         type Query {
           me: User!
           topProducts: [Product!]!
         }
         type Review {
-          author: User
-          body: String!
           id: ID!
+          body: String!
           pictures: [Picture!]!
           product: Product!
+          author: User
         }
         type Subscription {
           newProducts: Product!
         }
         type User {
-          cart: Cart!
           id: ID!
-          joinedTimestamp: Int!
+          username: String!
           profilePicture: Picture
           reviewCount: Int!
+          joinedTimestamp: Int!
+          cart: Cart!
           reviews: [Review!]!
           trustworthiness: Trustworthiness!
-          username: String!
         }
         enum Trustworthiness {
           KINDA_TRUSTED
