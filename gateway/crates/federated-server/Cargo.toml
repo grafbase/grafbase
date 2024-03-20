@@ -22,7 +22,7 @@ axum-server = { version = "0.6.0", features = ["tls-rustls"] }
 duration-str = "0.7.1"
 engine.workspace = true
 engine-config-builder.workspace = true
-engine-v2.workspace = true
+engine-v2 = { workspace = true, features = ["plan_cache"] }
 futures-util.workspace = true
 grafbase-tracing = { workspace = true, features = ["tower"] }
 gateway-core.workspace = true
