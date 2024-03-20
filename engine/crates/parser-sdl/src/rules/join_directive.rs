@@ -84,7 +84,6 @@ impl JoinDirective {
 
 impl FieldSelection {
     pub fn required_fieldset(&self, arguments: &[Positioned<InputValueDefinition>]) -> Option<FieldSet> {
-        // TODO: Ok, so this needs to _not_ any variables that are actually arguments.
         if self.variables_used.is_empty() {
             return None;
         }
