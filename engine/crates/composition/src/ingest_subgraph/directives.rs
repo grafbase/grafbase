@@ -5,7 +5,7 @@ use super::*;
 use std::{borrow::Cow, collections::BTreeSet};
 
 pub(super) fn ingest_directives(
-    directives: DirectiveSiteId,
+    directive_site_id: DirectiveSiteId,
     directives_node: &[Positioned<ast::ConstDirective>],
     subgraphs: &mut Subgraphs,
     directive_matcher: &DirectiveMatcher<'_>,
@@ -13,22 +13,22 @@ pub(super) fn ingest_directives(
     for directive in directives_node {
         let directive_name = &directive.node.name.node;
         if directive_matcher.is_shareable(directive_name) {
-            subgraphs.set_shareable(directives);
+            subgraphs.set_shareable(directive_site_id);
             continue;
         }
 
         if directive_matcher.is_external(directive_name) {
-            subgraphs.set_external(directives);
+            subgraphs.set_external(directive_site_id);
             continue;
         }
 
         if directive_matcher.is_interface_object(directive_name) {
-            subgraphs.set_interface_object(directives);
+            subgraphs.set_interface_object(directive_site_id);
             continue;
         }
 
         if directive_matcher.is_inaccessible(directive_name) {
-            subgraphs.set_inaccessible(directives);
+            subgraphs.set_inaccessible(directive_site_id);
             continue;
         }
 
@@ -44,7 +44,7 @@ pub(super) fn ingest_directives(
 
             let Some(from) = from else { continue };
 
-            subgraphs.set_override(directives, from);
+            subgraphs.set_override(directive_site_id, from);
             continue;
         }
 
@@ -53,7 +53,7 @@ pub(super) fn ingest_directives(
             let Some(ConstValue::String(fields_arg)) = fields_arg else {
                 continue;
             };
-            subgraphs.insert_requires(directives, fields_arg).ok();
+            subgraphs.insert_requires(directive_site_id, fields_arg).ok();
             continue;
         }
 
@@ -62,7 +62,7 @@ pub(super) fn ingest_directives(
             let Some(ConstValue::String(fields_arg)) = fields_arg else {
                 continue;
             };
-            subgraphs.insert_provides(directives, fields_arg).ok();
+            subgraphs.insert_provides(directive_site_id, fields_arg).ok();
             continue;
         }
 
@@ -78,7 +78,7 @@ pub(super) fn ingest_directives(
                     )
                 })
                 .collect();
-            subgraphs.insert_composed_directive_instance(directives, directive_name.as_str(), arguments);
+            subgraphs.insert_composed_directive_instance(directive_site_id, directive_name.as_str(), arguments);
         }
 
         if directive_matcher.is_tag(directive_name) {
@@ -87,12 +87,12 @@ pub(super) fn ingest_directives(
             };
 
             if let async_graphql_value::ConstValue::String(s) = &value.node {
-                subgraphs.insert_tag(directives, s.as_str());
+                subgraphs.insert_tag(directive_site_id, s.as_str());
             }
         }
 
         if directive_matcher.is_authenticated(directive_name) {
-            subgraphs.insert_authenticated(directives);
+            subgraphs.insert_authenticated(directive_site_id);
         }
 
         if directive_matcher.is_requires_scope(directive_name) {
@@ -116,7 +116,7 @@ pub(super) fn ingest_directives(
                         .collect(),
                     _ => vec![],
                 };
-                subgraphs.insert_requires_scopes(directives, inner_scopes);
+                subgraphs.append_required_scopes(directive_site_id, inner_scopes);
             }
         }
 
@@ -141,7 +141,7 @@ pub(super) fn ingest_directives(
                         .collect(),
                     _ => vec![],
                 };
-                subgraphs.insert_policy(directives, inner_policies);
+                subgraphs.insert_policy(directive_site_id, inner_policies);
             }
         }
 
@@ -151,7 +151,7 @@ pub(super) fn ingest_directives(
                 _ => None,
             });
 
-            subgraphs.insert_deprecated(directives, reason);
+            subgraphs.insert_deprecated(directive_site_id, reason);
         }
     }
 }

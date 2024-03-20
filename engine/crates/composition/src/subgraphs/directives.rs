@@ -89,8 +89,8 @@ impl Subgraphs {
         self.directives.policies.insert((id, policies));
     }
 
-    pub(crate) fn insert_requires_scopes(&mut self, id: DirectiveSiteId, scope: Vec<StringId>) {
-        self.directives.requires_scopes.insert((id, scope));
+    pub(crate) fn append_required_scopes(&mut self, id: DirectiveSiteId, scopes: Vec<StringId>) {
+        self.directives.requires_scopes.insert((id, scopes));
     }
 
     pub(crate) fn insert_tag(&mut self, id: DirectiveSiteId, tag: &str) {
