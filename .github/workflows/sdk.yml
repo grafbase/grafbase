@@ -25,7 +25,7 @@ jobs:
   release-sdk:
     name: Release @grafbase/sdk
     needs: []
-    runs-on: ubicloud-standard-8
+    runs-on: ubicloud-standard-2
     steps:
       - name: Get sources
         uses: actions/checkout@v4

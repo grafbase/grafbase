@@ -38,7 +38,7 @@ concurrency:
 
 jobs:
   detect-change-type:
-    runs-on: ubicloud-standard-8
+    runs-on: ubicloud-standard-2
     outputs:
       build: ${{ steps.filter.outputs.build }}
     steps:

@@ -22,7 +22,7 @@ on:
 jobs:
   release:
     name: Release grafbase
-    runs-on: ubicloud-standard-8
+    runs-on: ubicloud-standard-2
     steps:
       - name: Parse version tag
         run: |
