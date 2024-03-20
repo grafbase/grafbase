@@ -11,7 +11,7 @@ use engine_parser::types::{
 };
 
 pub(crate) use self::{
-    cons::VisitorCons, context::VisitorContext, error::RuleError, nil::VisitorNil, r#trait::Visitor,
+    cons::VisitorCons, context::VisitorContext, error::RuleError, nil::VisitorNil, r#trait::Visitor, warnings::Warning,
 };
 
 type TypeStackType<'a> = Vec<(Option<&'a Positioned<Type>>, Option<&'a Positioned<TypeDefinition>>)>;
