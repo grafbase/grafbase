@@ -65,8 +65,9 @@ impl<'ctx> SeedContext<'ctx> {
 
 impl<'ctx> SeedContextInner<'ctx> {
     fn missing_field_error_message(&self, collected_field: &CollectedField) -> String {
-        let field = &self.plan[collected_field.id];
-        let response_keys = self.plan.response_keys();
+        let operation = self.plan._operation();
+        let field = &operation[collected_field.id];
+        let response_keys = &operation.response_keys;
         if field.response_key() == collected_field.expected_key.into() {
             format!(
                 "Error decoding response from upstream: Missing required field named '{}'",

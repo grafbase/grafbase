@@ -61,7 +61,7 @@ struct ObjectIdentifier<'ctx> {
 
 impl<'ctx> ObjectIdentifier<'ctx> {
     fn new(ctx: &SeedContextInner<'ctx>, root: SelectionSetType) -> Self {
-        let schema = ctx.plan.schema();
+        let schema = ctx.plan._schema_walker();
         match root {
             SelectionSetType::Interface(interface_id) => Self {
                 discriminant_key: schema.names().interface_discriminant_key(schema.as_ref(), interface_id),

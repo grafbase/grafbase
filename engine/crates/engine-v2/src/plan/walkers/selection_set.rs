@@ -1,7 +1,7 @@
 use schema::Definition;
 
 use crate::{
-    operation::{Selection, SelectionSetId, SelectionSetTypeWalker},
+    operation::{Operation, Selection, SelectionSetId, SelectionSetTypeWalker},
     plan::AnyCollectedSelectionSetId,
 };
 
@@ -33,7 +33,7 @@ impl<'a> PlanSelectionSet<'a> {
         match self {
             PlanSelectionSet::RootFields(_) => false,
             PlanSelectionSet::SelectionSet(walker) => {
-                let selection_set_id = walker.item;
+                let selection_set_id = walker.id();
                 let n = usize::from(selection_set_id);
                 let Some(id) = walker.operation_plan.selection_set_to_collected[n] else {
                     // Means we're not a root selection set, meaning we're flattened inside another
@@ -60,6 +60,10 @@ impl<'a> IntoIterator for PlanSelectionSet<'a> {
     type IntoIter = PlanSelectionSetIterator<'a>;
     fn into_iter(self) -> Self::IntoIter {
         PlanSelectionSetIterator {
+            operation: match &self {
+                PlanSelectionSet::RootFields(walker) => walker._operation(),
+                PlanSelectionSet::SelectionSet(walker) => walker.walk(())._operation(),
+            },
             selection_set: self,
             next_index: 0,
         }
@@ -73,6 +77,7 @@ pub enum PlanSelection<'a> {
 }
 
 pub struct PlanSelectionSetIterator<'a> {
+    operation: &'a Operation,
     selection_set: PlanSelectionSet<'a>,
     next_index: usize,
 }
@@ -87,34 +92,34 @@ impl<'a> Iterator for PlanSelectionSetIterator<'a> {
                 let field = &plan.operation_plan[id];
                 return Some(PlanSelection::Field(plan.walk_with(field.id, field.definition_id)));
             }
-            PlanSelectionSet::SelectionSet(selection_set) => loop {
-                let selection = selection_set.as_ref().items.get(self.next_index)?;
+            PlanSelectionSet::SelectionSet(walker) => loop {
+                let selection = walker.as_ref().items.get(self.next_index)?;
                 self.next_index += 1;
-                let plan_id = selection_set.plan_id;
-                let operation = selection_set.operation_plan;
+                let plan_id = walker.plan_id;
+                let operation_plan = walker.operation_plan;
                 return Some(match selection {
                     Selection::Field(id) => {
-                        let Some(field_id) = operation[*id].definition_id() else {
+                        let Some(field_id) = self.operation[*id].definition_id() else {
                             continue;
                         };
-                        if operation.field_to_plan_id[usize::from(*id)] != plan_id {
+                        if operation_plan.field_to_plan_id[usize::from(*id)] != plan_id {
                             continue;
                         }
-                        PlanSelection::Field(selection_set.walk_with(*id, field_id))
+                        PlanSelection::Field(walker.walk_with(*id, field_id))
                     }
                     Selection::FragmentSpread(id) => {
-                        let spread = &operation[*id];
-                        if operation.selection_to_plan_id[usize::from(spread.selection_set_id)] != plan_id {
+                        let spread = &self.operation[*id];
+                        if operation_plan.selection_to_plan_id[usize::from(spread.selection_set_id)] != plan_id {
                             continue;
                         }
-                        PlanSelection::FragmentSpread(selection_set.walk(*id))
+                        PlanSelection::FragmentSpread(walker.walk(*id))
                     }
                     Selection::InlineFragment(id) => {
-                        let fragment = &operation[*id];
-                        if operation.selection_to_plan_id[usize::from(fragment.selection_set_id)] != plan_id {
+                        let fragment = &self.operation[*id];
+                        if operation_plan.selection_to_plan_id[usize::from(fragment.selection_set_id)] != plan_id {
                             continue;
                         }
-                        PlanSelection::InlineFragment(selection_set.walk(*id))
+                        PlanSelection::InlineFragment(walker.walk(*id))
                     }
                 });
             },

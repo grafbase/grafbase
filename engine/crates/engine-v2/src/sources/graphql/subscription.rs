@@ -25,7 +25,7 @@ impl GraphqlExecutionPlan {
         input: SubscriptionInput<'ctx>,
     ) -> ExecutionResult<SubscriptionExecutor<'ctx>> {
         let SubscriptionInput { ctx, plan } = input;
-        let subgraph = plan.schema().walk(self.subgraph_id);
+        let subgraph = plan._schema_walker().walk(self.subgraph_id);
         Ok(SubscriptionExecutor::Graphql(GraphqlSubscriptionExecutor {
             ctx,
             subgraph,

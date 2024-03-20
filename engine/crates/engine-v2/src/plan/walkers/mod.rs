@@ -1,13 +1,11 @@
 use std::collections::HashMap;
 
-use schema::{FieldDefinitionId, ObjectId, Schema, SchemaWalker};
+use schema::{FieldDefinitionId, ObjectId, Schema};
 
 use crate::{
-    operation::{
-        FieldId, Operation, OperationWalker, QueryInputValueId, QueryInputValueWalker, SelectionSetType, Variables,
-    },
+    operation::{FieldId, OperationWalker, QueryInputValueId, QueryInputValueWalker, SelectionSetType},
     plan::{CollectedField, FieldType, RuntimeMergedConditionals},
-    response::{ResponseEdge, ResponseKey, ResponseKeys, ResponsePart, ResponsePath, SafeResponseKey, SeedContext},
+    response::{ResponseEdge, ResponseKey, ResponsePart, ResponsePath, SafeResponseKey, SeedContext},
 };
 
 use super::{
@@ -29,11 +27,16 @@ pub use selection_set::*;
 
 #[derive(Clone, Copy)]
 pub(crate) struct PlanWalker<'a, Item = (), SchemaItem = ()> {
-    pub(super) schema_walker: SchemaWalker<'a, SchemaItem>,
+    pub(super) operation_walker: OperationWalker<'a, Item, SchemaItem>,
     pub(super) operation_plan: &'a OperationPlan,
-    pub(super) variables: &'a Variables,
     pub(super) plan_id: PlanId,
-    pub(super) item: Item,
+}
+
+impl<'a, I, SI> std::ops::Deref for PlanWalker<'a, I, SI> {
+    type Target = OperationWalker<'a, I, SI>;
+    fn deref(&self) -> &Self::Target {
+        &self.operation_walker
+    }
 }
 
 impl<'a> std::fmt::Debug for PlanWalker<'a> {
@@ -42,29 +45,7 @@ impl<'a> std::fmt::Debug for PlanWalker<'a> {
     }
 }
 
-impl<'a, I: Copy, SI> PlanWalker<'a, I, SI>
-where
-    Operation: std::ops::Index<I>,
-{
-    pub fn as_ref(&self) -> &'a <Operation as std::ops::Index<I>>::Output {
-        &self.operation_plan[self.item]
-    }
-
-    #[allow(dead_code)]
-    pub fn id(&self) -> I {
-        self.item
-    }
-}
-
 impl<'a> PlanWalker<'a> {
-    pub fn schema(&self) -> SchemaWalker<'a> {
-        self.schema_walker
-    }
-
-    pub fn response_keys(&self) -> &'a ResponseKeys {
-        &self.operation_plan.response_keys
-    }
-
     pub fn selection_set(self) -> PlanSelectionSet<'a> {
         PlanSelectionSet::RootFields(self)
     }
@@ -118,35 +99,28 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
         SI: Copy,
     {
         PlanWalker {
+            operation_walker: self.operation_walker.walk(item),
             operation_plan: self.operation_plan,
-            variables: self.variables,
             plan_id: self.plan_id,
-            schema_walker: self.schema_walker,
-            item,
         }
     }
 
     fn walk_with<I2, SI2>(&self, item: I2, schema_item: SI2) -> PlanWalker<'a, I2, SI2> {
         PlanWalker {
+            operation_walker: self.operation_walker.walk_with(item, schema_item),
             operation_plan: self.operation_plan,
-            variables: self.variables,
             plan_id: self.plan_id,
-            schema_walker: self.schema_walker.walk(schema_item),
-            item,
         }
     }
 
     fn bound_walk_with<I2, SI2: Copy>(&self, item: I2, schema_item: SI2) -> OperationWalker<'a, I2, SI2> {
-        self.operation_plan
-            .operation
-            .walker_with(self.schema_walker.walk(schema_item), self.variables)
-            .walk(item)
+        self.operation_walker.walk_with(item, schema_item)
     }
 }
 
 impl<'a> PlanWalker<'a> {
     pub fn walk_input_value(&self, input_value_id: QueryInputValueId) -> QueryInputValueWalker<'a> {
-        self.bound_walk_with(&self.operation_plan[input_value_id], ())
+        self.bound_walk_with(&self._operation()[input_value_id], ())
     }
 
     pub fn collect_fields(
@@ -154,7 +128,7 @@ impl<'a> PlanWalker<'a> {
         object_id: ObjectId,
         selection_sets: &[ConditionalSelectionSetId],
     ) -> RuntimeCollectedSelectionSet {
-        let schema = self.schema();
+        let schema = self.operation_walker._schema_walker();
 
         struct GroupForResponseKey {
             edge: ResponseEdge,
@@ -236,7 +210,7 @@ impl<'a> PlanWalker<'a> {
                 },
             )
             .collect::<Vec<_>>();
-        let keys = self.response_keys();
+        let keys = &self._operation().response_keys;
         fields.sort_unstable_by(|a, b| keys[a.expected_key].cmp(&keys[b.expected_key]));
         RuntimeCollectedSelectionSet {
             object_id,

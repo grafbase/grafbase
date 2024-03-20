@@ -54,7 +54,7 @@ impl GraphqlExecutionPlan {
             response_part,
         } = input;
 
-        let subgraph = plan.schema().walk(self.subgraph_id);
+        let subgraph = plan._schema_walker().walk(self.subgraph_id);
         let variables = SubgraphVariables {
             plan,
             variables: &self.operation.variables,

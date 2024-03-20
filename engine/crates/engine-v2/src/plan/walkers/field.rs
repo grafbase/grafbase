@@ -1,9 +1,6 @@
-use schema::{FieldDefinitionId, FieldDefinitionWalker};
+use schema::FieldDefinitionId;
 
-use crate::{
-    operation::{FieldArgumentWalker, FieldId, QueryInputValueWalker},
-    response::{ResponseEdge, ResponseKey},
-};
+use crate::operation::FieldId;
 
 use super::{PlanSelectionSet, PlanWalker};
 
@@ -14,46 +11,6 @@ impl<'a> PlanField<'a> {
         self.as_ref()
             .selection_set_id()
             .map(|id| PlanSelectionSet::SelectionSet(self.walk_with(id, ())))
-    }
-
-    pub fn response_edge(&self) -> ResponseEdge {
-        self.as_ref().response_edge()
-    }
-
-    pub fn response_key(&self) -> ResponseKey {
-        self.as_ref().response_key()
-    }
-
-    pub fn response_key_str(&self) -> &'a str {
-        self.operation_plan
-            .response_keys
-            .try_resolve(self.response_key())
-            .unwrap()
-    }
-
-    pub fn arguments(self) -> impl ExactSizeIterator<Item = FieldArgumentWalker<'a>> + 'a {
-        self.as_ref()
-            .argument_ids()
-            .map(move |id| self.bound_walk_with(id, self.operation_plan[id].input_value_definition_id))
-    }
-
-    pub fn get_arg_value(&self, name: &str) -> QueryInputValueWalker<'a> {
-        self.arguments()
-            .find_map(|arg| if arg.name() == name { Some(arg.value()) } else { None })
-            .expect("Provided argument must exist in the schema.")
-    }
-
-    #[track_caller]
-    pub fn get_arg_value_as<T: serde::Deserialize<'a>>(&self, name: &str) -> T {
-        T::deserialize(self.get_arg_value(name)).expect("Invalid argument type.")
-    }
-}
-
-impl<'a> std::ops::Deref for PlanField<'a> {
-    type Target = FieldDefinitionWalker<'a>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.schema_walker
     }
 }
 

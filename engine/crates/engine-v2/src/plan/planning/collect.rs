@@ -4,7 +4,7 @@ use schema::Schema;
 use std::collections::HashSet;
 
 use crate::{
-    operation::{FieldId, OperationWalker, SelectionSetId, SelectionSetType, Variables},
+    operation::{FieldId, Operation, OperationWalker, SelectionSetId, SelectionSetType, Variables},
     plan::{
         flatten_selection_sets, AnyCollectedSelectionSet, AnyCollectedSelectionSetId, CollectedField, CollectedFieldId,
         CollectedSelectionSet, CollectedSelectionSetId, ConditionalField, ConditionalFieldId, ConditionalSelectionSet,

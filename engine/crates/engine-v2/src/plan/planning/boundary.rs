@@ -366,7 +366,7 @@ impl<'schema, 'a> BoundaryPlanner<'schema, 'a> {
                         .iter()
                         .filter_map(|id| self.operation[*id].selection_set_id())
                         .collect();
-                    let flat_selection_set = flatten_selection_sets(self.schema, &self.operation, subselection_set_ids);
+                    let flat_selection_set = flatten_selection_sets(self.schema, self.operation, subselection_set_ids);
                     let fields = self.create_boundary_fields(flat_selection_set)?;
                     boundary_field.lazy_subselection = Some(fields)
                 }

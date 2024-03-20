@@ -26,7 +26,7 @@ pub(crate) struct OperationWalker<'a, Item = (), SchemaItem = ()> {
     pub(super) item: Item,
 }
 
-impl<'a> std::fmt::Debug for OperationWalker<'a, (), ()> {
+impl<'a> std::fmt::Debug for OperationWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("OperationWalker").finish_non_exhaustive()
     }
@@ -45,7 +45,7 @@ where
     }
 }
 
-impl<'a> OperationWalker<'a, (), ()> {
+impl<'a> OperationWalker<'a> {
     pub(crate) fn as_ref(&self) -> &'a Operation {
         self.operation
     }
@@ -61,9 +61,24 @@ impl<'a> OperationWalker<'a, (), ()> {
     pub(crate) fn root_object(&self) -> ObjectWalker<'a> {
         self.schema_walker.walk(self.as_ref().root_object_id)
     }
+
+    /// The primary consummer of this API are plan walker who re-use the OperationWalker.
+    pub(crate) fn _operation(&self) -> &'a Operation {
+        self.operation
+    }
+
+    /// The primary consummer of this API are plan walker who re-use the OperationWalker.
+    pub(crate) fn _schema_walker(&self) -> SchemaWalker<'a, ()> {
+        self.schema_walker
+    }
 }
 
 impl<'a, I, SI> OperationWalker<'a, I, SI> {
+    /// The primary consummer of this API are plan walker who re-use the OperationWalker.
+    pub(crate) fn _item(&self) -> &I {
+        &self.item
+    }
+
     pub(crate) fn walk<I2>(&self, item: I2) -> OperationWalker<'a, I2, SI>
     where
         SI: Copy,

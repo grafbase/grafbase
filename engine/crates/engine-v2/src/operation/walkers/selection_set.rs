@@ -1,6 +1,6 @@
 use schema::{Definition, DefinitionWalker};
 
-use super::{FieldWalker, FragmentSpreadWalker, InlineFragmentWalker, OperationWalker};
+use super::{AnyFieldWalker, FragmentSpreadWalker, InlineFragmentWalker, OperationWalker};
 use crate::operation::{Selection, SelectionSetId, SelectionSetType};
 
 pub type SelectionSetWalker<'a> = OperationWalker<'a, SelectionSetId>;
@@ -35,7 +35,7 @@ impl<'a> std::ops::Deref for SelectionSetTypeWalker<'a> {
 }
 
 pub(crate) enum SelectionWalker<'a> {
-    Field(FieldWalker<'a>),
+    Field(AnyFieldWalker<'a>),
     FragmentSpread(FragmentSpreadWalker<'a>),
     InlineFragment(InlineFragmentWalker<'a>),
 }
@@ -77,7 +77,7 @@ pub(crate) struct SelectionSetFieldsIterator<'a> {
 }
 
 impl<'a> Iterator for SelectionSetFieldsIterator<'a> {
-    type Item = FieldWalker<'a>;
+    type Item = AnyFieldWalker<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {

@@ -130,7 +130,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedFieldsSeed<'ctx, 'parent> {
         A: MapAccess<'de>,
     {
         let plan = self.ctx.plan;
-        let keys = plan.response_keys();
+        let keys = &plan._operation().response_keys;
         let mut response_fields = ResponseObjectFields::with_capacity(self.fields.len() + self.typename_fields.len());
         let mut maybe_object_id = None;
         if let SelectionSetType::Object(object_id) = self.selection_set_ty {
@@ -195,7 +195,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedFieldsSeed<'ctx, 'parent> {
             let Some(object_id) = maybe_object_id else {
                 return Err(serde::de::Error::custom("Could not determine the "));
             };
-            let name_id = plan.schema()[object_id].name;
+            let name_id = plan._schema_walker()[object_id].name;
             for edge in self.typename_fields {
                 response_fields.push((
                     *edge,

@@ -65,7 +65,10 @@ where
                 if !self.ctx.propagating_error.fetch_and(false, Ordering::Relaxed) {
                     self.ctx.response_part.borrow_mut().push_error(GraphqlError {
                         message: err.to_string(),
-                        locations: self.ctx.plan[self.field_id].name_location().into_iter().collect(),
+                        locations: self.ctx.plan._operation()[self.field_id]
+                            .name_location()
+                            .into_iter()
+                            .collect(),
                         path: Some(self.ctx.response_path()),
                         ..Default::default()
                     });

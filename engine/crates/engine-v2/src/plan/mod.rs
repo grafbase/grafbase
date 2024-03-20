@@ -105,18 +105,21 @@ impl OperationPlan {
         OperationExecutionState::new(self)
     }
 
-    pub fn walker_with<'s>(&'s self, schema: &'s Schema, variables: &'s Variables, plan_id: PlanId) -> PlanWalker<'s> {
+    pub fn walker_with<'s>(
+        &'s self,
+        schema: &'s Schema,
+        variables: &'s Variables,
+        plan_id: PlanId,
+    ) -> PlanWalker<'s> {
         let plan_id = PlanId::from(usize::from(plan_id));
         let schema_walker = schema
             .walk(self.planned_resolvers[usize::from(plan_id)].resolver_id)
             .with_own_names()
             .walk(());
         PlanWalker {
-            schema_walker,
+            operation_walker: operation.walker_with(schema_walker, variables),
             operation_plan: self,
-            variables,
             plan_id,
-            item: (),
         }
     }
 }
