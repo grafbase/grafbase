@@ -48,7 +48,7 @@ pub(super) async fn serve(
 
     tokio::spawn(websocket_accepter.handler());
 
-    let state = ServerState { gateway };
+    let state = ServerState::new(gateway, config.telemetry);
 
     let cors = match config.cors {
         Some(cors_config) => cors::generate(cors_config),
