@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use schema::Schema;
 
-use crate::operation::{BoundSelectionSetWalker, Operation};
+use crate::operation::{BoundSelectionSetWalker, OperationWalker};
 
 #[allow(clippy::enum_variant_names)]
 #[derive(thiserror::Error, Debug)]
@@ -21,14 +21,14 @@ pub(crate) enum OperationLimitExceededError {
 
 pub(super) fn enforce_operation_limits(
     schema: &Schema,
-    operation: &Operation,
+    operation: OperationWalker<'_>,
     request: &engine::Request,
 ) -> Result<(), OperationLimitExceededError> {
     if request.operation_limits_disabled() {
         return Ok(());
     }
 
-    let selection_set = operation.walk_selection_set(schema.walker());
+    let selection_set = operation.selection_set();
 
     if let Some(depth_limit) = schema.operation_limits.depth {
         let max_depth = selection_set.max_depth();

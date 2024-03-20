@@ -57,6 +57,11 @@ impl Name {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    /// Get the name as a string.
+    pub fn into_string(self) -> String {
+        Arc::unwrap_or_clone(self.0).into_string()
+    }
 }
 
 impl From<Name> for Box<str> {

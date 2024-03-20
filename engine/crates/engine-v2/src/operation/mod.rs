@@ -1,17 +1,3 @@
-pub(crate) use bind::bind_variables;
-pub use cache_control::OperationCacheControl;
-pub(crate) use engine_parser::types::OperationType;
-pub(crate) use ids::*;
-pub(crate) use input_value::*;
-pub(crate) use location::Location;
-pub(crate) use path::QueryPath;
-use schema::{ObjectId, SchemaWalker};
-pub(crate) use selection_set::*;
-pub(crate) use variable::VariableDefinition;
-pub(crate) use walkers::*;
-
-use crate::response::ResponseKeys;
-
 mod bind;
 mod build;
 mod cache_control;
@@ -22,8 +8,20 @@ mod parse;
 mod path;
 mod selection_set;
 mod validation;
-mod variable;
+mod variables;
 mod walkers;
+
+use crate::response::ResponseKeys;
+pub use cache_control::OperationCacheControl;
+pub(crate) use engine_parser::types::OperationType;
+pub(crate) use ids::*;
+pub(crate) use input_value::*;
+pub(crate) use location::Location;
+pub(crate) use path::QueryPath;
+use schema::{ObjectId, SchemaWalker};
+pub(crate) use selection_set::*;
+pub(crate) use variables::*;
+pub(crate) use walkers::*;
 
 pub(crate) struct Operation {
     pub ty: OperationType,
@@ -40,37 +38,25 @@ pub(crate) struct Operation {
     pub variable_definitions: Vec<VariableDefinition>,
     pub cache_control: Option<OperationCacheControl>,
     pub field_arguments: Vec<BoundFieldArgument>,
-    pub input_values: OpInputValues,
+    pub query_input_values: QueryInputValues,
 }
 
 impl Operation {
-    pub fn is_query(&self) -> bool {
-        matches!(self.ty, OperationType::Query)
-    }
-
     pub fn parent_selection_set_id(&self, id: BoundFieldId) -> BoundSelectionSetId {
         self.field_to_parent[usize::from(id)]
-    }
-
-    pub fn walk_selection_set<'op, 'schema>(
-        &'op self,
-        schema_walker: SchemaWalker<'schema, ()>,
-    ) -> BoundSelectionSetWalker<'op>
-    where
-        'schema: 'op,
-    {
-        self.walker_with(schema_walker).walk(self.root_selection_set_id)
     }
 
     pub fn walker_with<'op, 'schema, SI>(
         &'op self,
         schema_walker: SchemaWalker<'schema, SI>,
+        variables: &'op Variables,
     ) -> OperationWalker<'op, (), SI>
     where
         'schema: 'op,
     {
         OperationWalker {
             operation: self,
+            variables,
             schema_walker,
             item: (),
         }
