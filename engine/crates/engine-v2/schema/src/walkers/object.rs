@@ -1,4 +1,4 @@
-use super::{FieldWalker, SchemaWalker};
+use super::{FieldDefinitionWalker, SchemaWalker};
 use crate::{CacheConfig, InterfaceWalker, ObjectId};
 
 pub type ObjectWalker<'a> = SchemaWalker<'a, ObjectId>;
@@ -8,7 +8,7 @@ impl<'a> ObjectWalker<'a> {
         self.names.object(self.schema, self.item)
     }
 
-    pub fn fields(self) -> impl Iterator<Item = FieldWalker<'a>> + 'a {
+    pub fn fields(self) -> impl Iterator<Item = FieldDefinitionWalker<'a>> + 'a {
         let fields = self.schema[self.item].fields;
         fields.map(move |field_id| self.walk(field_id))
     }

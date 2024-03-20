@@ -24,7 +24,7 @@ pub(crate) struct SchemaBuilder {
     pub schema: Schema,
     pub strings: Interner<String, StringId>,
     pub urls: Interner<Url, UrlId>,
-    field_id_mapper: ids::IdMapper<federated_graph::FieldId, FieldId>,
+    field_id_mapper: ids::IdMapper<federated_graph::FieldId, FieldDefinitionId>,
     input_value_id_mapper: ids::IdMapper<federated_graph::InputValueDefinitionId, InputValueDefinitionId>,
     enum_value_id_mapper: ids::IdMapper<federated_graph::EnumValueId, EnumValueId>,
 }
@@ -57,8 +57,8 @@ impl SchemaBuilder {
                     subscription: config.graph.root_operation_types.subscription.map(Into::into),
                 },
                 objects: Vec::with_capacity(config.graph.objects.len()),
-                fields: Vec::with_capacity(config.graph.fields.len()),
-                interfaces: Vec::with_capacity(config.graph.objects.len()),
+                field_definitions: Vec::with_capacity(config.graph.fields.len()),
+                interfaces: Vec::with_capacity(config.graph.interfaces.len()),
                 enums: Vec::new(),
                 unions: Vec::with_capacity(0),
                 scalars: Vec::with_capacity(config.graph.scalars.len()),
@@ -463,7 +463,7 @@ impl SchemaBuilder {
                 }
             }
 
-            let field = Field {
+            let field = FieldDefinition {
                 name: field.name.into(),
                 description: None,
                 r#type: field.r#type.into(),
@@ -481,7 +481,7 @@ impl SchemaBuilder {
                     .rule(CacheConfigTarget::Field(federated_graph::FieldId(field_id.into())))
                     .map(|config| cache_configs.get_or_insert(config)),
             };
-            schema.fields.push(field);
+            schema.field_definitions.push(field);
         }
 
         // -- INPUT OBJECTS --
@@ -597,7 +597,7 @@ impl SchemaBuilder {
     }
 }
 
-impl ids::IdMapper<federated_graph::FieldId, FieldId> {
+impl ids::IdMapper<federated_graph::FieldId, FieldDefinitionId> {
     fn convert_field_set_item(&self, selection: federated_graph::FieldSetItem) -> Option<FieldSetItem> {
         Some(FieldSetItem {
             field_id: self.map(selection.field)?,

@@ -1,7 +1,7 @@
 use super::{PlanSelectionSet, PlanWalker};
-use crate::operation::BoundInlineFragmentId;
+use crate::operation::InlineFragmentId;
 
-pub type PlanInlineFragment<'a> = PlanWalker<'a, BoundInlineFragmentId, ()>;
+pub type PlanInlineFragment<'a> = PlanWalker<'a, InlineFragmentId, ()>;
 
 impl<'a> PlanInlineFragment<'a> {
     pub fn selection_set(&self) -> PlanSelectionSet<'a> {

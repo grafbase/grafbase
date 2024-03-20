@@ -30,7 +30,7 @@ pub struct Schema {
     pub root_operation_types: RootOperationTypes,
     objects: Vec<Object>,
     interfaces: Vec<Interface>,
-    fields: Vec<Field>,
+    field_definitions: Vec<FieldDefinition>,
     enums: Vec<Enum>,
     unions: Vec<Union>,
     scalars: Vec<Scalar>,
@@ -72,20 +72,20 @@ impl Schema {
             .ok()
     }
 
-    pub fn object_field_by_name(&self, object_id: ObjectId, name: &str) -> Option<FieldId> {
+    pub fn object_field_by_name(&self, object_id: ObjectId, name: &str) -> Option<FieldDefinitionId> {
         let fields = self[object_id].fields;
         self[fields]
             .iter()
             .position(|field| self[field.name] == name)
-            .map(|pos| FieldId::from(usize::from(fields.start) + pos))
+            .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
     }
 
-    pub fn interface_field_by_name(&self, interface_id: InterfaceId, name: &str) -> Option<FieldId> {
+    pub fn interface_field_by_name(&self, interface_id: InterfaceId, name: &str) -> Option<FieldDefinitionId> {
         let fields = self[interface_id].fields;
         self[fields]
             .iter()
             .position(|field| self[field.name] == name)
-            .map(|pos| FieldId::from(usize::from(fields.start) + pos))
+            .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
     }
 
     // Used as the default resolver
@@ -124,7 +124,7 @@ impl Schema {
                 fields: IdRange::empty(),
             }],
             interfaces: Vec::new(),
-            fields: Vec::new(),
+            field_definitions: Vec::new(),
             enums: Vec::new(),
             unions: Vec::new(),
             scalars: Vec::new(),
@@ -172,10 +172,10 @@ pub struct Object {
 }
 
 pub type Directives = IdRange<DirectiveId>;
-pub type Fields = IdRange<FieldId>;
+pub type Fields = IdRange<FieldDefinitionId>;
 
 #[derive(Debug)]
-pub struct Field {
+pub struct FieldDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
     pub r#type: Type,

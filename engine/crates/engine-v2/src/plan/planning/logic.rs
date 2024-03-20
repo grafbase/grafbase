@@ -1,4 +1,4 @@
-use schema::{FieldId, FieldSet, ResolverWalker};
+use schema::{FieldDefinitionId, FieldSet, ResolverWalker};
 
 use crate::plan::PlanId;
 
@@ -23,7 +23,7 @@ pub(super) enum PlanningLogic<'schema> {
 }
 
 impl<'schema> PlanningLogic<'schema> {
-    pub(super) fn is_providable(&self, field_id: FieldId) -> bool {
+    pub(super) fn is_providable(&self, field_id: FieldDefinitionId) -> bool {
         match self {
             PlanningLogic::CompatibleResolver {
                 resolver, providable, ..
@@ -34,7 +34,7 @@ impl<'schema> PlanningLogic<'schema> {
 
     // extra fields don't have a key, I'm not entirely whether that makes sense, maybe we should
     // just use ResponsePath. Not sure.
-    pub(super) fn child(&self, field_id: FieldId) -> Self {
+    pub(super) fn child(&self, field_id: FieldDefinitionId) -> Self {
         match self {
             PlanningLogic::CompatibleResolver {
                 resolver,

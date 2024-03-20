@@ -1,13 +1,13 @@
 use crate::{
-    Definition, EnumId, EnumValueId, FieldId, InputObjectId, InputValueDefinitionId, InterfaceId, ObjectId, ScalarId,
-    Schema, UnionId,
+    Definition, EnumId, EnumValueId, FieldDefinitionId, InputObjectId, InputValueDefinitionId, InterfaceId, ObjectId,
+    ScalarId, Schema, UnionId,
 };
 
 /// Small abstraction over the actual names to make easier to deal with
 /// renames later.
 /// It's only missing enum value names.
 pub trait Names: Send + Sync {
-    fn field<'s>(&self, schema: &'s Schema, field_id: FieldId) -> &'s str {
+    fn field<'s>(&self, schema: &'s Schema, field_id: FieldDefinitionId) -> &'s str {
         &schema[schema[field_id].name]
     }
 

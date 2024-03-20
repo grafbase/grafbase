@@ -1,6 +1,6 @@
 use schema::Schema;
 
-use crate::operation::{BoundSelectionSetWalker, Location, OperationWalker};
+use crate::operation::{OperationWalker, SelectionSetWalker};
 
 use super::ValidationError;
 
@@ -25,22 +25,13 @@ pub(super) fn ensure_introspection_is_accepted(
     Ok(())
 }
 
-fn detect_introspection(selection_set: BoundSelectionSetWalker<'_>) -> Result<(), ValidationError> {
-    if let Some(location) = selection_set.find_introspection_field_location() {
-        return Err(ValidationError::IntrospectionWhenDisabled { location });
+fn detect_introspection(selection_set: SelectionSetWalker<'_>) -> Result<(), ValidationError> {
+    for field in selection_set.fields() {
+        if matches!(field.name(), "__schema" | "__type") {
+            return Err(ValidationError::IntrospectionWhenDisabled {
+                location: field.name_location().expect("No extra field added yet"),
+            });
+        }
     }
     Ok(())
-}
-
-impl BoundSelectionSetWalker<'_> {
-    fn find_introspection_field_location(self) -> Option<Location> {
-        self.fields().find_map(|field| {
-            let schema_field = field.schema_field();
-            if schema_field.is_some_and(|field| field.name() == "__type" || field.name() == "__schema") {
-                field.name_location()
-            } else {
-                None
-            }
-        })
-    }
 }

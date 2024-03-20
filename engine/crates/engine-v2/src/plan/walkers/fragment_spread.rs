@@ -1,8 +1,8 @@
-use crate::operation::{BoundFragmentDefinitionWalker, BoundFragmentSpreadId};
+use crate::operation::{FragmentDefinitionWalker, FragmentSpreadId};
 
 use super::{PlanSelectionSet, PlanWalker};
 
-pub type PlanFragmentSpread<'a> = PlanWalker<'a, BoundFragmentSpreadId, ()>;
+pub type PlanFragmentSpread<'a> = PlanWalker<'a, FragmentSpreadId, ()>;
 
 impl<'a> PlanFragmentSpread<'a> {
     pub fn selection_set(&self) -> PlanSelectionSet<'a> {
@@ -10,7 +10,7 @@ impl<'a> PlanFragmentSpread<'a> {
     }
 
     #[allow(dead_code)]
-    pub fn fragment(&self) -> BoundFragmentDefinitionWalker<'a> {
+    pub fn fragment(&self) -> FragmentDefinitionWalker<'a> {
         self.bound_walk_with(self.as_ref().fragment_id, ())
     }
 }

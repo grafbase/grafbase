@@ -1,21 +1,23 @@
-use schema::FieldWalker;
+use schema::FieldDefinitionWalker;
 
-use super::{BoundSelectionSetWalker, OperationWalker};
+use super::{OperationWalker, SelectionSetWalker};
 use crate::{
-    operation::{BoundField, BoundFieldId, Location},
+    operation::{Field, FieldId, Location},
     response::ResponseKey,
 };
 
-pub type BoundFieldWalker<'a> = OperationWalker<'a, BoundFieldId>;
+pub type FieldWalker<'a> = OperationWalker<'a, FieldId>;
 
-impl<'a> OperationWalker<'a, BoundFieldId> {
-    pub fn schema_field(&self) -> Option<FieldWalker<'a>> {
-        match self.as_ref() {
-            BoundField::Field { field_id, .. } | BoundField::Extra { field_id, .. } => {
-                Some(self.schema_walker.walk(*field_id))
-            }
-            BoundField::TypeName { .. } => None,
-        }
+impl<'a> OperationWalker<'a, FieldId> {
+    pub fn name(&self) -> &'a str {
+        self.as_ref()
+            .definition_id()
+            .map(|id| self.schema_walker.walk(id).name())
+            .unwrap_or("__typename")
+    }
+
+    pub fn definition(&self) -> Option<FieldDefinitionWalker<'a>> {
+        self.as_ref().definition_id().map(|id| self.schema_walker.walk(id))
     }
 
     pub fn response_key(&self) -> ResponseKey {
@@ -31,24 +33,23 @@ impl<'a> OperationWalker<'a, BoundFieldId> {
     }
 
     pub fn alias(&self) -> Option<&'a str> {
-        Some(self.response_key_str()).filter(|&key| match self.as_ref() {
-            BoundField::TypeName { .. } => key != "__typename",
-            BoundField::Field { field_id, .. } => key != self.schema_walker.walk(*field_id).name(),
-            _ => unreachable!(),
-        })
+        Some(self.response_key_str()).filter(|key| key != &self.name())
     }
 
-    pub fn selection_set(&self) -> Option<BoundSelectionSetWalker<'a>> {
+    pub fn selection_set(&self) -> Option<SelectionSetWalker<'a>> {
         self.as_ref().selection_set_id().map(|id| self.walk_with(id, ()))
     }
 }
 
-impl<'a> std::fmt::Debug for BoundFieldWalker<'a> {
+impl<'a> std::fmt::Debug for FieldWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.as_ref() {
-            BoundField::TypeName { .. } => "__typename".fmt(f),
-            BoundField::Field { field_id, .. } => {
-                let mut fmt = f.debug_struct("BoundField");
+            Field::TypeName { .. } => "__typename".fmt(f),
+            Field::SchemaField {
+                field_definition_id: field_id,
+                ..
+            } => {
+                let mut fmt = f.debug_struct("Field");
                 fmt.field("id", &self.item);
                 let name = self.schema_walker.walk(*field_id).name();
                 if self.response_key_str() != name {
@@ -58,8 +59,11 @@ impl<'a> std::fmt::Debug for BoundFieldWalker<'a> {
                     .field("selection_set", &self.selection_set())
                     .finish()
             }
-            BoundField::Extra { field_id, .. } => {
-                let mut fmt = f.debug_struct("ExtraBoundField");
+            Field::Extra {
+                field_definition_id: field_id,
+                ..
+            } => {
+                let mut fmt = f.debug_struct("ExtraField");
                 fmt.field("id", &self.item);
                 let name = self.schema_walker.walk(*field_id).name();
                 if self.response_key_str() != name {

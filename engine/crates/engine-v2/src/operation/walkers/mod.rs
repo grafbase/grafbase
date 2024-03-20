@@ -54,7 +54,7 @@ impl<'a> OperationWalker<'a, (), ()> {
         matches!(self.as_ref().ty, OperationType::Query)
     }
 
-    pub(crate) fn selection_set(&self) -> BoundSelectionSetWalker<'a> {
+    pub(crate) fn selection_set(&self) -> SelectionSetWalker<'a> {
         self.walk(self.operation.root_selection_set_id)
     }
 

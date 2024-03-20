@@ -1,9 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
-    builder::SchemaBuilder, Definition, EnumId, EnumValue, EnumValueId, Field, FieldId, FieldResolver, IdRange,
-    InputValueDefinition, InputValueDefinitionId, ObjectId, ResolverId, ScalarId, ScalarType, Schema, SchemaInputValue,
-    SchemaInputValueId, SchemaWalker, StringId, Type, Wrapping,
+    builder::SchemaBuilder, Definition, EnumId, EnumValue, EnumValueId, FieldDefinition, FieldDefinitionId,
+    FieldResolver, IdRange, InputValueDefinition, InputValueDefinitionId, ObjectId, ResolverId, ScalarId, ScalarType,
+    Schema, SchemaInputValue, SchemaInputValueId, SchemaWalker, StringId, Type, Wrapping,
 };
 use strum::EnumCount;
 
@@ -95,7 +95,7 @@ pub enum __Directive {
 }
 
 pub struct Metadata {
-    pub meta_fields: [FieldId; 2],
+    pub meta_fields: [FieldDefinitionId; 2],
     pub type_kind: TypeKind,
     pub directive_location: DirectiveLocation,
     pub __schema: IntrospectionObject<__Schema, { __Schema::COUNT }>,
@@ -108,14 +108,14 @@ pub struct Metadata {
 
 pub struct IntrospectionObject<E, const N: usize> {
     pub id: ObjectId,
-    pub fields: [(FieldId, E); N],
+    pub fields: [(FieldDefinitionId, E); N],
 }
 
 // Used post query validation.
-impl<E: Copy, const N: usize> std::ops::Index<FieldId> for IntrospectionObject<E, N> {
+impl<E: Copy, const N: usize> std::ops::Index<FieldDefinitionId> for IntrospectionObject<E, N> {
     type Output = E;
 
-    fn index(&self, index: FieldId) -> &Self::Output {
+    fn index(&self, index: FieldDefinitionId) -> &Self::Output {
         self.fields
             .iter()
             .find_map(|(id, value)| if *id == index { Some(value) } else { None })
@@ -124,7 +124,7 @@ impl<E: Copy, const N: usize> std::ops::Index<FieldId> for IntrospectionObject<E
 }
 
 impl Metadata {
-    pub fn root_field(&self, id: FieldId) -> IntrospectionField {
+    pub fn root_field(&self, id: FieldDefinitionId) -> IntrospectionField {
         if id == self.meta_fields[0] {
             IntrospectionField::Type
         } else if id == self.meta_fields[1] {
@@ -524,7 +524,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
                 + self[fields]
                     .iter()
                     .position(|field| self.builder.strings[field.name] == name)?;
-            Some(FieldId::from(idx))
+            Some(FieldDefinitionId::from(idx))
         }) else {
             panic!("Invariant broken: missing Query.__type or Query.__schema");
         };
@@ -619,14 +619,14 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         object_id: ObjectId,
         fields: Vec<(&str, Type, E)>,
     ) -> IncompleteIntrospectionObject<E> {
-        let start = self.fields.len().into();
+        let start = self.field_definitions.len().into();
         let mut out_fields = Vec::new();
 
         for (name, r#type, tag) in fields {
-            let id = self.fields.len().into();
+            let id = self.field_definitions.len().into();
             let name = self.builder.strings.get_or_insert(name);
 
-            self.fields.push(Field {
+            self.field_definitions.push(FieldDefinition {
                 name,
                 r#type,
                 composed_directives: IdRange::empty(),
@@ -640,7 +640,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             out_fields.push((id, tag));
         }
 
-        let end = self.fields.len().into();
+        let end = self.field_definitions.len().into();
 
         self[object_id].fields = IdRange { start, end };
 
@@ -664,7 +664,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         arguments: impl Iterator<Item = (&'b str, Type, Option<SchemaInputValueId>)>,
     ) {
         let fields = self[object_id].fields;
-        let field_id = FieldId::from(
+        let field_id = FieldDefinitionId::from(
             usize::from(fields.start)
                 + self[fields]
                     .iter()
@@ -737,7 +737,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
 struct IncompleteIntrospectionObject<E> {
     id: ObjectId,
-    fields: Vec<(FieldId, E)>,
+    fields: Vec<(FieldDefinitionId, E)>,
 }
 
 impl<E: std::fmt::Debug, const N: usize> From<IncompleteIntrospectionObject<E>> for IntrospectionObject<E, N> {

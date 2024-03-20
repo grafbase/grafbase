@@ -28,21 +28,21 @@ pub(crate) struct Operation {
     pub root_object_id: ObjectId,
     pub name: Option<String>,
     pub response_keys: ResponseKeys,
-    pub root_selection_set_id: BoundSelectionSetId,
-    pub selection_sets: Vec<BoundSelectionSet>,
-    pub fields: Vec<BoundField>,
-    pub field_to_parent: Vec<BoundSelectionSetId>,
-    pub fragments: Vec<BoundFragment>,
-    pub fragment_spreads: Vec<BoundFragmentSpread>,
-    pub inline_fragments: Vec<BoundInlineFragment>,
+    pub root_selection_set_id: SelectionSetId,
+    pub selection_sets: Vec<SelectionSet>,
+    pub fields: Vec<Field>,
+    pub field_to_parent: Vec<SelectionSetId>,
+    pub fragments: Vec<Fragment>,
+    pub fragment_spreads: Vec<FragmentSpread>,
+    pub inline_fragments: Vec<InlineFragment>,
     pub variable_definitions: Vec<VariableDefinition>,
     pub cache_control: Option<OperationCacheControl>,
-    pub field_arguments: Vec<BoundFieldArgument>,
+    pub field_arguments: Vec<FieldArgument>,
     pub query_input_values: QueryInputValues,
 }
 
 impl Operation {
-    pub fn parent_selection_set_id(&self, id: BoundFieldId) -> BoundSelectionSetId {
+    pub fn parent_selection_set_id(&self, id: FieldId) -> SelectionSetId {
         self.field_to_parent[usize::from(id)]
     }
 
