@@ -51,28 +51,34 @@ async fn traced(
 
     use grafbase_tracing::otel::opentelemetry::trace::TracerProvider;
     use grafbase_tracing::otel::tracing_subscriber::layer::SubscriberExt;
+    use grafbase_tracing::otel::tracing_subscriber::EnvFilter;
     use grafbase_tracing::otel::{self, opentelemetry_sdk::runtime::Tokio};
     use grafbase_tracing::otel::{tracing_opentelemetry, tracing_subscriber};
     use tracing_futures::WithSubscriber;
 
-    let config = telemetry_config.unwrap();
-    let provider = otel::layer::new_provider(&config.service_name, &config.tracing, Tokio).unwrap();
+    match telemetry_config {
+        Some(config) => {
+            let provider = otel::layer::new_provider(&config.service_name, &config.tracing, Tokio).unwrap();
 
-    let tracer = provider.tracer("lambda-otel");
+            let tracer = provider.tracer("lambda-otel");
 
-    let subscriber = tracing_subscriber::registry()
-        .with(tracing_opentelemetry::layer().with_tracer(tracer))
-        .with(tracing_subscriber::fmt::layer().with_ansi(false));
+            let subscriber = tracing_subscriber::registry()
+                .with(tracing_opentelemetry::layer().with_tracer(tracer))
+                .with(tracing_subscriber::fmt::layer().with_ansi(false))
+                .with(EnvFilter::new(&config.tracing.filter));
 
-    let response = handle(headers, request, gateway).with_subscriber(subscriber).await;
+            let response = handle(headers, request, gateway).with_subscriber(subscriber).await;
 
-    for result in provider.force_flush() {
-        if let Err(e) = result {
-            println!("failed to flush traces: {e}");
+            for result in provider.force_flush() {
+                if let Err(e) = result {
+                    println!("failed to flush traces: {e}");
+                }
+            }
+
+            response
         }
+        None => handle(headers, request, gateway).await,
     }
-
-    response
 }
 
 #[cfg(not(feature = "lambda"))]
