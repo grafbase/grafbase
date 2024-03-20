@@ -1,5 +1,5 @@
 import { FieldShape as MongoFieldShape } from './connector/mongodb/model'
-import { QueryArgument } from './query'
+import { FieldArgument } from './query'
 import { AuthDefinition } from './typedefs/auth'
 import { DeprecatedDefinition } from './typedefs/deprecated'
 import { InaccessibleDefinition } from './typedefs/inaccessible'
@@ -38,7 +38,7 @@ export class Field {
 
   public toString(): string {
     const args = Object.entries(this.shape.allArguments)
-      .map(([name, ty]) => new QueryArgument(name, ty).toString())
+      .map(([name, ty]) => new FieldArgument(name, ty).toString())
       .join(', ')
 
     const argsStr = args ? `(${args})` : ''
