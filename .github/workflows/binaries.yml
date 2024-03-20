@@ -290,7 +290,7 @@ jobs:
         run: |
           RUSTFLAGS="-C opt-level=s" cargo build --release -p grafbase-gateway --target ${{ matrix.archs.target }} --features lambda
 
-      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'buildjet-8vcpu-ubuntu-2204-arm' }}
+      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'ubicloud-standard-8-arm' }}
         name: Upload lambda gateway binary to R2
         run: |
           aws s3api put-object \
