@@ -39,10 +39,6 @@ type Tofu {
     """
     name: String!
     """
-    The type of tofu (e.g., silken, firm).
-    """
-    type: TofuType
-    """
     Nutritional information about the tofu.
     """
     nutrition: Nutrition
@@ -54,6 +50,10 @@ type Tofu {
     The texture profile of the tofu, expressed through a custom scalar.
     """
     texture: TextureProfile
+    """
+    The type of tofu (e.g., silken, firm).
+    """
+    type: TofuType
 }
 
 """
@@ -65,13 +65,13 @@ type Nutrition {
     """
     calories: Int
     """
-    The amount of protein per serving.
-    """
-    protein: Float
-    """
     Total fat content per serving.
     """
     fat: Float
+    """
+    The amount of protein per serving.
+    """
+    protein: Float
 }
 
 """
@@ -79,25 +79,25 @@ A recipe that includes tofu as an ingredient.
 """
 type Recipe {
     """
+    Description of the recipe.
+    """
+    description: String
+    """
     The unique ID of the recipe.
     """
     id: ID!
+    """
+    The ingredients used in the recipe, including tofu.
+    """
+    ingredients: [FoodItem]
     """
     The name of the recipe.
     """
     name: String!
     """
-    Description of the recipe.
-    """
-    description: String
-    """
     The main type of tofu used in this recipe.
     """
     tofuType: TofuType
-    """
-    The ingredients used in the recipe, including tofu.
-    """
-    ingredients: [FoodItem]
 }
 
 """
@@ -119,13 +119,13 @@ Spice type used in tofu recipes.
 """
 type Spice {
     """
-    Name of the spice.
-    """
-    name: String
-    """
     Description of the spice's flavor.
     """
     flavorDescription: String
+    """
+    Name of the spice.
+    """
+    name: String
 }
 
 type Query {

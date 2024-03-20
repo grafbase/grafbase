@@ -26,9 +26,9 @@ type Car
     @join__type(graph: INVENTORY, key: "id")
 {
     id: String! @authenticated
-    year: Int! @join__field(graph: CARS)
     km: Int! @join__field(graph: CARS)
     spareParts: [String!] @join__field(graph: INVENTORY) @authenticated
+    year: Int! @join__field(graph: CARS)
 }
 
 type Query {

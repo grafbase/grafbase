@@ -22,15 +22,15 @@ enum join__Graph {
 }
 
 type FidgetSpinner implements Spinner {
-    id: ID!
-    model: String
-    manufacturer: Manufacturer
     buttonDescriptions: [String!]
+    id: ID!
+    manufacturer: Manufacturer
+    model: String
 }
 
 type Manufacturer {
-    name: String!
     location: String
+    name: String!
 }
 
 type Query {
