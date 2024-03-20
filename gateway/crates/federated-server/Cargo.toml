@@ -36,7 +36,7 @@ runtime-noop.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "signal", "time", "net"] }
+tokio = { workspace = true, features = ["signal", "time", "net"] }
 tower-http = { version = "0.5.2", features = ["cors"] }
 tracing.workspace = true
 ulid = { workspace = true, features = ["serde"] }
