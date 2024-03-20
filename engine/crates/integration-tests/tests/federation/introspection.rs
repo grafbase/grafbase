@@ -41,21 +41,21 @@ fn can_run_pathfinder_introspection_query() {
     }
 
     type Issue implements PullRequestOrIssue {
-      author: UserOrBot!
       title: String!
+      author: UserOrBot!
     }
 
     type PullRequest implements PullRequestOrIssue {
+      id: ID!
+      title: String!
       author: UserOrBot!
       checks: [String!]!
-      id: ID!
       status: Status!
-      title: String!
     }
 
     interface PullRequestOrIssue {
-      author: UserOrBot!
       title: String!
+      author: UserOrBot!
     }
 
     input PullRequestsAndIssuesFilters {
@@ -63,14 +63,14 @@ fn can_run_pathfinder_introspection_query() {
     }
 
     type Query {
-      allBotPullRequests: [PullRequest!]!
-      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
       favoriteRepository: CustomRepoId!
-      headers: [Header!]!
+      serverVersion: String!
+      pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
+      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      allBotPullRequests: [PullRequest!]!
       pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
-      pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
-      serverVersion: String!
+      headers: [Header!]!
       statusString(status: Status!): String!
     }
 
@@ -80,8 +80,8 @@ fn can_run_pathfinder_introspection_query() {
     }
 
     type User {
-      email: String!
       name: String!
+      email: String!
       pullRequests: [PullRequest!]!
     }
 
@@ -126,21 +126,21 @@ fn can_run_2018_introspection_query() {
     }
 
     type Issue implements PullRequestOrIssue {
-      author: UserOrBot!
       title: String!
+      author: UserOrBot!
     }
 
     type PullRequest implements PullRequestOrIssue {
+      id: ID!
+      title: String!
       author: UserOrBot!
       checks: [String!]!
-      id: ID!
       status: Status!
-      title: String!
     }
 
     interface PullRequestOrIssue {
-      author: UserOrBot!
       title: String!
+      author: UserOrBot!
     }
 
     input PullRequestsAndIssuesFilters {
@@ -148,14 +148,14 @@ fn can_run_2018_introspection_query() {
     }
 
     type Query {
-      allBotPullRequests: [PullRequest!]!
-      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
       favoriteRepository: CustomRepoId!
-      headers: [Header!]!
+      serverVersion: String!
+      pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
+      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      allBotPullRequests: [PullRequest!]!
       pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
-      pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
-      serverVersion: String!
+      headers: [Header!]!
       statusString(status: Status!): String!
     }
 
@@ -165,8 +165,8 @@ fn can_run_2018_introspection_query() {
     }
 
     type User {
-      email: String!
       name: String!
+      email: String!
       pullRequests: [PullRequest!]!
     }
 
@@ -211,21 +211,21 @@ fn can_run_2021_introspection_query() {
     }
 
     type Issue implements PullRequestOrIssue {
-      author: UserOrBot!
       title: String!
+      author: UserOrBot!
     }
 
     type PullRequest implements PullRequestOrIssue {
+      id: ID!
+      title: String!
       author: UserOrBot!
       checks: [String!]!
-      id: ID!
       status: Status!
-      title: String!
     }
 
     interface PullRequestOrIssue {
-      author: UserOrBot!
       title: String!
+      author: UserOrBot!
     }
 
     input PullRequestsAndIssuesFilters {
@@ -233,14 +233,14 @@ fn can_run_2021_introspection_query() {
     }
 
     type Query {
-      allBotPullRequests: [PullRequest!]!
-      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
       favoriteRepository: CustomRepoId!
-      headers: [Header!]!
+      serverVersion: String!
+      pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
+      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      allBotPullRequests: [PullRequest!]!
       pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
-      pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
-      serverVersion: String!
+      headers: [Header!]!
       statusString(status: Status!): String!
     }
 
@@ -250,8 +250,8 @@ fn can_run_2021_introspection_query() {
     }
 
     type User {
-      email: String!
       name: String!
+      email: String!
       pullRequests: [PullRequest!]!
     }
 
@@ -299,16 +299,16 @@ fn echo_subgraph_introspection() {
     scalar JSON
 
     type Query {
-      fancyBool(input: FancyBool!): FancyBool!
+      string(input: String!): String!
+      int(input: Int!): Int!
       float(input: Float!): Float!
       id(input: ID!): ID!
-      inputObject(input: InputObj!): JSON!
-      int(input: Int!): Int!
-      listOfInputObject(input: InputObj!): JSON!
-      listOfListOfStrings(input: [[String!]!]!): [[String!]!]!
+      fancyBool(input: FancyBool!): FancyBool!
       listOfStrings(input: [String!]!): [String!]!
+      listOfListOfStrings(input: [[String!]!]!): [[String!]!]!
       optionalListOfOptionalStrings(input: [String]): [String]
-      string(input: String!): String!
+      inputObject(input: InputObj!): JSON!
+      listOfInputObject(input: InputObj!): JSON!
     }
 
     "###);
@@ -445,23 +445,23 @@ fn can_introsect_when_multiple_subgraphs() {
     }
 
     type Issue implements PullRequestOrIssue {
-      author: UserOrBot!
       title: String!
+      author: UserOrBot!
     }
 
     scalar JSON
 
     type PullRequest implements PullRequestOrIssue {
+      id: ID!
+      title: String!
       author: UserOrBot!
       checks: [String!]!
-      id: ID!
       status: Status!
-      title: String!
     }
 
     interface PullRequestOrIssue {
-      author: UserOrBot!
       title: String!
+      author: UserOrBot!
     }
 
     input PullRequestsAndIssuesFilters {
@@ -469,25 +469,25 @@ fn can_introsect_when_multiple_subgraphs() {
     }
 
     type Query {
-      allBotPullRequests: [PullRequest!]!
-      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
-      fancyBool(input: FancyBool!): FancyBool!
-      favoriteRepository: CustomRepoId!
-      float(input: Float!): Float!
-      headers: [Header!]!
       id(input: ID!): ID!
-      inputObject(input: InputObj!): JSON!
-      int(input: Int!): Int!
-      listOfInputObject(input: InputObj!): JSON!
-      listOfListOfStrings(input: [[String!]!]!): [[String!]!]!
-      listOfStrings(input: [String!]!): [String!]!
-      optionalListOfOptionalStrings(input: [String]): [String]
+      favoriteRepository: CustomRepoId!
+      serverVersion: String!
+      pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
+      botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      allBotPullRequests: [PullRequest!]!
       pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
-      pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
-      serverVersion: String!
+      headers: [Header!]!
       statusString(status: Status!): String!
       string(input: String!): String!
+      int(input: Int!): Int!
+      float(input: Float!): Float!
+      fancyBool(input: FancyBool!): FancyBool!
+      listOfStrings(input: [String!]!): [String!]!
+      listOfListOfStrings(input: [[String!]!]!): [[String!]!]!
+      optionalListOfOptionalStrings(input: [String]): [String]
+      inputObject(input: InputObj!): JSON!
+      listOfInputObject(input: InputObj!): JSON!
     }
 
     enum Status {
@@ -496,8 +496,8 @@ fn can_introsect_when_multiple_subgraphs() {
     }
 
     type User {
-      email: String!
       name: String!
+      email: String!
       pullRequests: [PullRequest!]!
     }
 
@@ -560,19 +560,19 @@ fn supports_the_type_field() {
           "description": null,
           "fields": [
             {
+              "name": "id"
+            },
+            {
+              "name": "title"
+            },
+            {
               "name": "author"
             },
             {
               "name": "checks"
             },
             {
-              "name": "id"
-            },
-            {
               "name": "status"
-            },
-            {
-              "name": "title"
             }
           ],
           "interfaces": [
@@ -871,16 +871,16 @@ fn introspection_on_multiple_federation_subgraphs() {
     }
 
     type Picture {
-      height: Int!
       url: String!
       width: Int!
+      height: Int!
     }
 
     type Product {
       name: String!
+      upc: String!
       price: Int!
       reviews: [Review!]!
-      upc: String!
     }
 
     type Query {
@@ -889,11 +889,11 @@ fn introspection_on_multiple_federation_subgraphs() {
     }
 
     type Review {
-      author: User
-      body: String!
       id: ID!
+      body: String!
       pictures: [Picture!]!
       product: Product!
+      author: User
     }
 
     type Subscription {
@@ -907,14 +907,14 @@ fn introspection_on_multiple_federation_subgraphs() {
     }
 
     type User {
-      cart: Cart!
       id: ID!
-      joinedTimestamp: Int!
+      username: String!
       profilePicture: Picture
       reviewCount: Int!
+      joinedTimestamp: Int!
+      cart: Cart!
       reviews: [Review!]!
       trustworthiness: Trustworthiness!
-      username: String!
     }
 
     "###)
@@ -995,17 +995,24 @@ fn default_values() {
           "name": "__Type",
           "fields": [
             {
+              "name": "kind",
+              "args": []
+            },
+            {
+              "name": "name",
+              "args": []
+            },
+            {
               "name": "description",
               "args": []
             },
             {
-              "name": "enumValues",
-              "args": [
-                {
-                  "name": "includeDeprecated",
-                  "defaultValue": "false"
-                }
-              ]
+              "name": "inputFields",
+              "args": []
+            },
+            {
+              "name": "specifiedByURL",
+              "args": []
             },
             {
               "name": "fields",
@@ -1017,20 +1024,13 @@ fn default_values() {
               ]
             },
             {
-              "name": "inputFields",
-              "args": []
-            },
-            {
-              "name": "interfaces",
-              "args": []
-            },
-            {
-              "name": "kind",
-              "args": []
-            },
-            {
-              "name": "name",
-              "args": []
+              "name": "enumValues",
+              "args": [
+                {
+                  "name": "includeDeprecated",
+                  "defaultValue": "false"
+                }
+              ]
             },
             {
               "name": "ofType",
@@ -1041,7 +1041,7 @@ fn default_values() {
               "args": []
             },
             {
-              "name": "specifiedByURL",
+              "name": "interfaces",
               "args": []
             }
           ]
