@@ -1,11 +1,11 @@
 use schema::{FieldId, FieldWalker};
 
 use crate::{
-    operation::BoundFieldId,
+    operation::{BoundFieldId, FieldArgumentWalker, QueryInputValueWalker},
     response::{ResponseEdge, ResponseKey},
 };
 
-use super::{PlanFieldArgument, PlanInputValue, PlanSelectionSet, PlanWalker};
+use super::{PlanSelectionSet, PlanWalker};
 
 pub type PlanField<'a> = PlanWalker<'a, BoundFieldId, FieldId>;
 
@@ -31,21 +31,21 @@ impl<'a> PlanField<'a> {
             .unwrap()
     }
 
-    pub fn arguments(self) -> impl ExactSizeIterator<Item = PlanFieldArgument<'a>> + 'a {
+    pub fn arguments(self) -> impl ExactSizeIterator<Item = FieldArgumentWalker<'a>> + 'a {
         self.as_ref()
             .argument_ids()
-            .map(move |id| self.walk_with(id, self.operation_plan[id].input_value_definition_id))
+            .map(move |id| self.bound_walk_with(id, self.operation_plan[id].input_value_definition_id))
     }
 
-    pub fn get_arg(&self, name: &str) -> PlanInputValue<'a> {
+    pub fn get_arg_value(&self, name: &str) -> QueryInputValueWalker<'a> {
         self.arguments()
             .find_map(|arg| if arg.name() == name { Some(arg.value()) } else { None })
-            .unwrap_or_else(|| self.walk_with(self.operation_plan.input_values.undefined_value_id(), ()))
+            .expect("Provided argument must exist in the schema.")
     }
 
     #[track_caller]
-    pub fn get_arg_as<T: serde::Deserialize<'a>>(&self, name: &str) -> T {
-        T::deserialize(self.get_arg(name)).expect("Invalid argument type.")
+    pub fn get_arg_value_as<T: serde::Deserialize<'a>>(&self, name: &str) -> T {
+        T::deserialize(self.get_arg_value(name)).expect("Invalid argument type.")
     }
 }
 

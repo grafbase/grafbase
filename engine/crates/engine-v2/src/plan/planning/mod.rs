@@ -2,7 +2,10 @@ use std::collections::BTreeMap;
 
 use schema::Schema;
 
-use crate::{operation::Operation, response::GraphqlError};
+use crate::{
+    operation::{Operation, Variables},
+    response::GraphqlError,
+};
 
 mod boundary;
 mod collect;
@@ -59,8 +62,12 @@ impl From<&str> for PlanningError {
     }
 }
 
-pub(super) fn plan_operation(schema: &Schema, operation: Operation) -> PlanningResult<OperationPlan> {
-    let mut planner = planner::Planner::new(schema, operation);
+pub(super) fn plan_operation(
+    schema: &Schema,
+    variables: &Variables,
+    operation: Operation,
+) -> PlanningResult<OperationPlan> {
+    let mut planner = planner::Planner::new(schema, variables, operation);
     planner.plan_all_fields()?;
     planner.finalize_operation()
 }

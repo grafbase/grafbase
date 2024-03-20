@@ -1,17 +1,16 @@
 use schema::Schema;
 
-use crate::operation::{BoundSelectionSetWalker, Location, Operation};
+use crate::operation::{BoundSelectionSetWalker, Location, OperationWalker};
 
 use super::ValidationError;
 
 pub(super) fn ensure_introspection_is_accepted(
     schema: &Schema,
-    operation: &Operation,
+    operation: OperationWalker<'_>,
     request: &engine::Request,
 ) -> Result<(), ValidationError> {
     if operation.is_query() {
-        let selection_set = operation.walk_selection_set(schema.walker());
-
+        let selection_set = operation.selection_set();
         match request.introspection_state() {
             engine::IntrospectionState::ForceEnabled => {}
             engine::IntrospectionState::ForceDisabled => detect_introspection(selection_set)?,

@@ -121,3 +121,13 @@ where
         }
     }
 }
+
+impl<'ctx, Ctx> std::fmt::Debug for RawInputValueWalker<'ctx, Ctx>
+where
+    Ctx: RawInputValuesContext<'ctx> + Copy,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // TODO: improve me
+        f.debug_struct("DefaultInputValue").finish_non_exhaustive()
+    }
+}

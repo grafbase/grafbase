@@ -4,7 +4,7 @@ use schema::Schema;
 use std::collections::HashSet;
 
 use crate::{
-    operation::{BoundFieldId, BoundSelectionSetId, OperationWalker, SelectionSetType},
+    operation::{BoundFieldId, BoundSelectionSetId, OperationWalker, SelectionSetType, Variables},
     plan::{
         flatten_selection_sets, AnyCollectedSelectionSet, AnyCollectedSelectionSetId, CollectedField, CollectedFieldId,
         CollectedSelectionSet, CollectedSelectionSetId, ConditionalField, ConditionalFieldId, ConditionalSelectionSet,
@@ -15,28 +15,38 @@ use crate::{
 
 use super::PlanningResult;
 
-pub(super) struct Collector<'schema, 'op> {
-    schema: &'schema Schema,
-    operation: &'op mut OperationPlan,
+pub(super) struct Collector<'a> {
+    schema: &'a Schema,
+    operation: &'a mut OperationPlan,
+    variables: &'a Variables,
     plan_id: PlanId,
     support_aliases: bool,
 }
 
-impl<'schema, 'a> Collector<'schema, 'a> {
-    pub(super) fn new(schema: &'schema Schema, operation: &'a mut OperationPlan, plan_id: PlanId) -> Self {
+impl<'a> Collector<'a> {
+    pub(super) fn new(
+        schema: &'a Schema,
+        variables: &'a Variables,
+        operation: &'a mut OperationPlan,
+        plan_id: PlanId,
+    ) -> Self {
         let support_aliases = schema
             .walk(operation.planned_resolvers[usize::from(plan_id)].resolver_id)
             .supports_aliases();
         Collector {
             schema,
             operation,
+            variables,
             plan_id,
             support_aliases,
         }
     }
 
     pub fn walker(&self) -> OperationWalker<'_> {
-        self.operation.walker_with(self.schema.walker())
+        // yes looks weird, will be improved
+        self.operation
+            .operation
+            .walker_with(self.schema.walker(), self.variables)
     }
 
     pub(super) fn collect(

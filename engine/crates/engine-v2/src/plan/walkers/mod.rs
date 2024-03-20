@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use schema::{FieldId, ObjectId, Schema, SchemaWalker};
 
 use crate::{
-    operation::{BoundFieldId, OpInputValues, Operation, OperationWalker, SelectionSetType},
+    operation::{
+        BoundFieldId, Operation, OperationWalker, QueryInputValueId, QueryInputValueWalker, SelectionSetType, Variables,
+    },
     plan::{CollectedField, FieldType, RuntimeMergedConditionals},
     response::{ResponseEdge, ResponseKey, ResponseKeys, ResponsePart, ResponsePath, SafeResponseKey, SeedContext},
 };
@@ -13,27 +15,23 @@ use super::{
     PlanId, PlanInput, PlanOutput, RuntimeCollectedSelectionSet,
 };
 
-mod argument;
 mod collected;
 mod field;
 mod fragment_spread;
 mod inline_fragment;
-mod input_value;
 mod selection_set;
 
-pub use argument::*;
 pub use collected::*;
 pub use field::*;
 pub use fragment_spread::*;
 pub use inline_fragment::*;
-pub use input_value::*;
 pub use selection_set::*;
 
 #[derive(Clone, Copy)]
 pub(crate) struct PlanWalker<'a, Item = (), SchemaItem = ()> {
     pub(super) schema_walker: SchemaWalker<'a, SchemaItem>,
     pub(super) operation_plan: &'a OperationPlan,
-    pub(super) input_values: Option<&'a OpInputValues>,
+    pub(super) variables: &'a Variables,
     pub(super) plan_id: PlanId,
     pub(super) item: Item,
 }
@@ -115,38 +113,42 @@ where
 }
 
 impl<'a, I, SI> PlanWalker<'a, I, SI> {
-    pub fn walk<I2>(&self, item: I2) -> PlanWalker<'a, I2, SI>
+    fn walk<I2>(&self, item: I2) -> PlanWalker<'a, I2, SI>
     where
         SI: Copy,
     {
         PlanWalker {
             operation_plan: self.operation_plan,
-            input_values: self.input_values,
+            variables: self.variables,
             plan_id: self.plan_id,
             schema_walker: self.schema_walker,
             item,
         }
     }
 
-    pub fn walk_with<I2, SI2>(&self, item: I2, schema_item: SI2) -> PlanWalker<'a, I2, SI2> {
+    fn walk_with<I2, SI2>(&self, item: I2, schema_item: SI2) -> PlanWalker<'a, I2, SI2> {
         PlanWalker {
             operation_plan: self.operation_plan,
-            input_values: self.input_values,
+            variables: self.variables,
             plan_id: self.plan_id,
             schema_walker: self.schema_walker.walk(schema_item),
             item,
         }
     }
 
-    pub fn bound_walk_with<I2, SI2: Copy>(&self, item: I2, schema_item: SI2) -> OperationWalker<'a, I2, SI2> {
+    fn bound_walk_with<I2, SI2: Copy>(&self, item: I2, schema_item: SI2) -> OperationWalker<'a, I2, SI2> {
         self.operation_plan
             .operation
-            .walker_with(self.schema_walker.walk(schema_item))
+            .walker_with(self.schema_walker.walk(schema_item), self.variables)
             .walk(item)
     }
 }
 
 impl<'a> PlanWalker<'a> {
+    pub fn walk_input_value(&self, input_value_id: QueryInputValueId) -> QueryInputValueWalker<'a> {
+        self.bound_walk_with(&self.operation_plan[input_value_id], ())
+    }
+
     pub fn collect_fields(
         &self,
         object_id: ObjectId,

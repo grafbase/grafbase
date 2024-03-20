@@ -12,7 +12,7 @@ use schema::Schema;
 
 use crate::{
     execution::{ExecutionCoordinator, PreparedExecution},
-    operation::{bind_variables, Operation},
+    operation::{Operation, Variables},
     plan::OperationPlan,
     response::{ExecutionMetadata, GraphqlError, Response},
 };
@@ -119,36 +119,40 @@ impl Engine {
             .await
             .map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?;
 
-        let operation_plan = match self.prepare_operation(&request).await {
-            Ok(operation) => operation,
-            Err(error) => return Err(Response::from_error(error, ExecutionMetadata::default())),
-        };
-
-        let input_values = bind_variables(self.schema.as_ref(), &operation_plan, &mut request.variables)
-            .map_err(|errors| Response::from_errors(errors, ExecutionMetadata::build(&operation_plan)))?;
+        let (operation_plan, variables) = self.prepare_operation(request).await?;
 
         Ok(ExecutionCoordinator::new(
             Arc::clone(self),
             operation_plan,
-            input_values,
+            variables,
             headers,
         ))
     }
 
-    async fn prepare_operation(&self, request: &engine::Request) -> Result<Arc<OperationPlan>, GraphqlError> {
+    async fn prepare_operation(&self, request: engine::Request) -> Result<(Arc<OperationPlan>, Variables), Response> {
         #[cfg(feature = "plan_cache")]
         {
-            if let Some(cached) = self.plan_cache.get(&request.operation_plan_cache_key) {
-                return Ok(cached);
+            if let Some(operation_plan) = self.plan_cache.get(&request.operation_plan_cache_key) {
+                let variables = Variables::build(self.schema.as_ref(), &operation_plan, request.variables)
+                    .map_err(|errors| Response::from_errors(errors, ExecutionMetadata::build(&operation_plan)))?;
+                return Ok((operation_plan, variables));
             }
         }
-        let operation = Operation::build(&self.schema, request)?;
-        let prepared = Arc::new(OperationPlan::prepare(&self.schema, operation)?);
+        let operation = Operation::build(&self.schema, &request)
+            .map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?;
+
+        let variables = Variables::build(self.schema.as_ref(), &operation, request.variables)
+            .map_err(|errors| Response::from_errors(errors, ExecutionMetadata::build(&operation)))?;
+
+        let operation_plan = Arc::new(
+            OperationPlan::prepare(&self.schema, &variables, operation)
+                .map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?,
+        );
         #[cfg(feature = "plan_cache")]
         {
             self.plan_cache
-                .insert(request.operation_plan_cache_key.clone(), prepared.clone())
+                .insert(request.operation_plan_cache_key.clone(), operation_plan.clone())
         }
-        Ok(prepared)
+        Ok((operation_plan, variables))
     }
 }

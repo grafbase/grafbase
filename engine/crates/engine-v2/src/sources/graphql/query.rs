@@ -7,11 +7,8 @@ use engine_parser::types::OperationType;
 use itertools::Itertools;
 
 use crate::{
-    operation::{OpInputValueId, SelectionSetTypeWalker},
-    plan::{
-        PlanField, PlanFieldArgument, PlanFragmentSpread, PlanInlineFragment, PlanSelection, PlanSelectionSet,
-        PlanWalker,
-    },
+    operation::{FieldArgumentWalker, QueryInputValueId, SelectionSetTypeWalker},
+    plan::{PlanField, PlanFragmentSpread, PlanInlineFragment, PlanSelection, PlanSelectionSet, PlanWalker},
 };
 
 const VARIABLE_PREFIX: &str = "var";
@@ -110,14 +107,14 @@ impl PreparedFederationEntityOperation {
 
 /// All variables associated with a subgraph query. Each one is associated with the variable name
 /// "{$VARIABLE_PREFIX}{idx}" with `idx` being the position of the input value in the inner vec.
-pub struct QueryVariables(Vec<OpInputValueId>);
+pub struct QueryVariables(Vec<QueryInputValueId>);
 
 impl QueryVariables {
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (String, OpInputValueId)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = (String, QueryInputValueId)> + '_ {
         self.0
             .iter()
             .enumerate()
@@ -132,16 +129,17 @@ pub struct QueryVariable {
 
 #[derive(Default)]
 pub struct QueryBuilderContext {
-    variables: HashMap<OpInputValueId, QueryVariable>,
+    variables: HashMap<QueryInputValueId, QueryVariable>,
 }
 
 impl QueryBuilderContext {
     pub fn into_query_variables(self) -> QueryVariables {
-        let mut vars = vec![0.into(); self.variables.len()];
+        let mut vars = vec![None; self.variables.len()];
         for (input_value_id, var) in self.variables {
-            vars[var.idx] = input_value_id;
+            vars[var.idx] = Some(input_value_id);
         }
-        QueryVariables(vars)
+
+        QueryVariables(vars.into_iter().map(Option::unwrap).collect())
     }
 }
 
@@ -254,7 +252,7 @@ impl QueryBuilderContext {
     fn write_arguments<'a>(
         &mut self,
         buffer: &mut Buffer,
-        arguments: impl ExactSizeIterator<Item = PlanFieldArgument<'a>>,
+        arguments: impl ExactSizeIterator<Item = FieldArgumentWalker<'a>>,
     ) -> Result<(), Error> {
         if arguments.len() != 0 {
             write!(
@@ -262,10 +260,13 @@ impl QueryBuilderContext {
                 "({})",
                 arguments.format_with(", ", |arg, f| {
                     let idx = self.variables.len();
-                    let var = self.variables.entry(arg.value().id()).or_insert_with(|| QueryVariable {
-                        idx,
-                        ty: arg.ty().to_string(),
-                    });
+                    let var = self
+                        .variables
+                        .entry(arg.as_ref().input_value_id)
+                        .or_insert_with(|| QueryVariable {
+                            idx,
+                            ty: arg.ty().to_string(),
+                        });
                     f(&format_args!("{}: ${VARIABLE_PREFIX}{}", arg.name(), var.idx))
                 })
             )?;

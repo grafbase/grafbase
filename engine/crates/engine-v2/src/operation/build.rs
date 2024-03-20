@@ -2,7 +2,7 @@ use schema::{CacheConfig, Merge, Schema};
 
 use crate::response::GraphqlError;
 
-use super::{BoundSelectionSetWalker, Operation, OperationCacheControl};
+use super::{BoundSelectionSetWalker, Operation, OperationCacheControl, OperationWalker, Variables};
 
 #[derive(Debug, thiserror::Error)]
 pub enum OperationError {
@@ -34,30 +34,33 @@ impl Operation {
         let parsed_operation = super::parse::parse_operation(request)?;
         let mut operation = super::bind::bind(schema, parsed_operation)?;
 
-        if operation.is_query() {
-            let root_cache_config = schema[operation.root_object_id]
-                .cache_config
-                .map(|cache_config_id| schema[cache_config_id]);
-            let selection_set = operation
-                .walker_with(schema.walker())
-                .walk(operation.root_selection_set_id);
-
-            let selection_set_cache_config = selection_set.cache_config();
-            operation.cache_control = root_cache_config.merge(selection_set_cache_config).map(
-                |CacheConfig {
-                     max_age,
-                     stale_while_revalidate,
-                 }| OperationCacheControl {
-                    max_age,
-                    key: request.cache_key(),
-                    stale_while_revalidate,
-                },
-            );
-        }
-
-        super::validation::validate_operation(schema, &operation, request)?;
+        // Creating a walker with no variables enabling validation to use them
+        let variables = Variables::empty_for(&operation);
+        operation.cache_control = compute_cache_control(operation.walker_with(schema.walker(), &variables), request);
+        super::validation::validate_operation(schema, operation.walker_with(schema.walker(), &variables), request)?;
 
         Ok(operation)
+    }
+}
+
+fn compute_cache_control(operation: OperationWalker<'_>, request: &engine::Request) -> Option<OperationCacheControl> {
+    if operation.is_query() {
+        let root_cache_config = operation.root_object().cache_config();
+        let selection_set = operation.selection_set();
+
+        let selection_set_cache_config = selection_set.cache_config();
+        root_cache_config.merge(selection_set_cache_config).map(
+            |CacheConfig {
+                 max_age,
+                 stale_while_revalidate,
+             }| OperationCacheControl {
+                max_age,
+                key: request.cache_key(),
+                stale_while_revalidate,
+            },
+        )
+    } else {
+        None
     }
 }
 

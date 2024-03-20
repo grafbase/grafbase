@@ -2,7 +2,7 @@ mod introspection;
 mod operation_limits;
 
 use crate::{
-    operation::{Location, Operation},
+    operation::{Location, OperationWalker},
     response::GraphqlError,
 };
 use introspection::*;
@@ -33,7 +33,7 @@ impl From<ValidationError> for GraphqlError {
 
 pub(crate) fn validate_operation(
     schema: &Schema,
-    operation: &Operation,
+    operation: OperationWalker<'_>,
     request: &engine::Request,
 ) -> Result<(), ValidationError> {
     enforce_operation_limits(schema, operation, request)?;

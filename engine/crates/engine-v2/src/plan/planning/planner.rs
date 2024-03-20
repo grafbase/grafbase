@@ -16,7 +16,7 @@ use super::{
 use crate::{
     operation::{
         BoundField, BoundFieldId, BoundSelection, BoundSelectionSet, BoundSelectionSetId, Operation, OperationWalker,
-        QueryPath,
+        QueryPath, Variables,
     },
     plan::{
         flatten_selection_sets, EntityType, FlatField, FlatSelectionSet, FlatTypeCondition, OperationPlan,
@@ -48,9 +48,11 @@ use crate::{
 ///    During execution, those Plans create Executors with the actual response objects that do the
 ///    real work.
 ///
-pub(super) struct Planner<'schema> {
-    pub(super) schema: &'schema Schema,
+pub(super) struct Planner<'ctx> {
+    pub(super) schema: &'ctx Schema,
+    pub(super) variables: &'ctx Variables,
     pub(super) operation: Operation,
+
     // for extra field we need need to generate a response key that doesn't collide with anything
     // else. As only extra field for a given FieldId can be present in selection set we re-use the
     // same ResponseKey between extra fields of the same type. Otherwise we would generate new ones
@@ -100,10 +102,11 @@ impl From<TemporaryPlanBoundaryId> for usize {
     }
 }
 
-impl<'schema> Planner<'schema> {
-    pub(super) fn new(schema: &'schema Schema, operation: Operation) -> Self {
+impl<'ctx> Planner<'ctx> {
+    pub(super) fn new(schema: &'ctx Schema, variables: &'ctx Variables, operation: Operation) -> Self {
         Self {
             schema,
+            variables,
             extra_field_response_keys: HashMap::default(),
             bound_field_to_plan_id: vec![None; operation.fields.len()],
             bound_selection_set_to_plan_id: vec![None; operation.selection_sets.len()],
@@ -354,6 +357,7 @@ impl<'schema> Planner<'schema> {
         let Self {
             schema,
             operation,
+            variables,
             planned_resolvers,
             plan_input_selection_sets,
             plan_root_selection_sets,
@@ -441,9 +445,10 @@ impl<'schema> Planner<'schema> {
         for (i, PlanRootSelectionSet { ids, entity_type }) in plan_root_selection_sets.into_iter().enumerate() {
             let plan_id = PlanId::from(i);
             let ty = operation_plan[ids[0]].ty;
-            let collected_selection_set_id = Collector::new(schema, &mut operation_plan, plan_id).collect(ids)?;
+            let collected_selection_set_id =
+                Collector::new(schema, variables, &mut operation_plan, plan_id).collect(ids)?;
             operation_plan.plan_outputs.push(PlanOutput {
-                type_condition: FlatTypeCondition::flatten(self.schema, ty, vec![entity_type.into()]),
+                type_condition: FlatTypeCondition::flatten(schema, ty, vec![entity_type.into()]),
                 entity_type,
                 collected_selection_set_id,
                 boundary_ids: plan_to_output_boundary_ids[i],
@@ -455,12 +460,12 @@ impl<'schema> Planner<'schema> {
         //
         let mut execution_plans = Vec::with_capacity(operation_plan.plans.len());
         for (i, PlannedResolver { resolver_id, .. }) in operation_plan.planned_resolvers.iter().enumerate() {
-            let resolver = self.schema.walker().walk(*resolver_id).with_own_names();
+            let resolver = schema.walker().walk(*resolver_id).with_own_names();
             let plan_id = PlanId::from(i);
             execution_plans.push(Plan::build(
                 resolver,
-                operation_plan.operation.ty,
-                operation_plan.plan_walker(self.schema, plan_id, None),
+                operation_plan.ty,
+                operation_plan.walker_with(schema, variables, plan_id),
             )?);
         }
         operation_plan.plans = execution_plans;
@@ -472,7 +477,7 @@ impl<'schema> Planner<'schema> {
 // Utilities
 impl<'schema> Planner<'schema> {
     pub fn walker(&self) -> OperationWalker<'_> {
-        self.operation.walker_with(self.schema.walker())
+        self.operation.walker_with(self.schema.walker(), self.variables)
     }
 
     pub fn generate_unique_response_key_for(&mut self, field_id: FieldId) -> SafeResponseKey {

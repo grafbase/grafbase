@@ -25,7 +25,10 @@ pub type SchemaInputMap = IdRange<RawInputKeyValueId<StringId>>;
 /// `InputValue::from(value)`.
 #[derive(Default, Debug, Clone)]
 pub enum InputValue<'a> {
+    /// https://spec.graphql.org/October2021/#sec-Input-Objects.Input-Coercion
+    /// GraphQL distinguishes a null value from one that wasn't provided.
     #[default]
+    Undefined,
     Null,
     String(&'a str),
     EnumValue(EnumValueId),
@@ -50,7 +53,7 @@ impl serde::Serialize for SchemaWalker<'_, &InputValue<'_>> {
         S: serde::Serializer,
     {
         match &self.item {
-            InputValue::Null => serializer.serialize_none(),
+            InputValue::Null | InputValue::Undefined => serializer.serialize_none(),
             InputValue::String(s) => s.serialize(serializer),
             InputValue::EnumValue(id) => self.walk(*id).name().serialize(serializer),
             InputValue::Int(n) => n.serialize(serializer),

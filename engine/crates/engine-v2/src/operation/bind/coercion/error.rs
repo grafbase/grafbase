@@ -75,6 +75,12 @@ pub enum InputValueError {
         location: Location,
         path: String,
     },
+    #[error("Variable ${name} default value relies on another variable{path}")]
+    VariableDefaultValueReliesOnAnotherVariable {
+        name: String,
+        location: Location,
+        path: String,
+    },
 }
 
 impl InputValueError {
@@ -89,6 +95,7 @@ impl InputValueError {
             | InputValueError::UnknownVariable { location, .. }
             | InputValueError::IncorrectVariableType { location, .. }
             | InputValueError::UnknownInputField { location, .. }
+            | InputValueError::VariableDefaultValueReliesOnAnotherVariable { location, .. }
             | InputValueError::UnknownEnumValue { location, .. } => *location,
         }
     }
