@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::time::Duration;
 
 use opentelemetry::trace::noop::NoopTracer;
@@ -110,6 +109,7 @@ where
     #[cfg(feature = "otlp")]
     if let Some(ref otlp_exporter_config) = config.exporters.otlp {
         use opentelemetry_otlp::{SpanExporterBuilder, WithExportConfig};
+        use std::borrow::Cow;
         use std::str::FromStr;
         use tonic::metadata::MetadataKey;
         use tonic::transport::ClientTlsConfig;
