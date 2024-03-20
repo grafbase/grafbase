@@ -36,7 +36,7 @@ const LIST_WRAPPINGS_MASK: u32 = 0b0000_0000_0001_1111_1111_1111_1111_1111;
 const MAX_LIST_WRAPINGS: u32 = LIST_WRAPPINGS_MASK.trailing_ones();
 const INNER_IS_REQUIRED_FLAG: u32 = 0b1000_0000_0000_0000_0000_0000_0000_0000;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Wrapping(u32);
 
 impl From<Wrapping> for u32 {

@@ -8533,6 +8533,9 @@ dependencies = [
 [[package]]
 name = "wrapping"
 version = "0.63.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "wyz"

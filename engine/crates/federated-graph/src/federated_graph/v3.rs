@@ -61,39 +61,8 @@ pub enum Directive {
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct Type {
-    #[serde(serialize_with = "serialize_wrapping", deserialize_with = "deserialize_wrapping")]
     pub wrapping: Wrapping,
     pub definition: Definition,
-}
-
-fn serialize_wrapping<S>(wrapping: &Wrapping, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    serializer.serialize_u32((*wrapping).into())
-}
-
-fn deserialize_wrapping<'de, D>(deserializer: D) -> Result<Wrapping, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    struct V;
-    impl serde::de::Visitor<'_> for V {
-        type Value = Wrapping;
-
-        fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            formatter.write_str("u32")
-        }
-
-        fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
-        {
-            Ok(Wrapping::from(v))
-        }
-    }
-
-    deserializer.deserialize_u32(V)
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
