@@ -2,7 +2,7 @@ mod de;
 mod ser;
 
 use id_newtypes::IdRange;
-use schema::{EnumValueId, InputValue, InputValueDefinitionId, RawInputValuesContext, SchemaInputValueId};
+use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValueId};
 
 use crate::operation::{OperationWalker, VariableDefinitionId};
 
@@ -81,7 +81,7 @@ impl QueryInputValues {
     }
 }
 
-pub type QueryInputValueWalker<'a> = OperationWalker<'a, &'a QueryInputValue>;
+pub type QueryInputValueWalker<'a> = OperationWalker<'a, &'a QueryInputValue, ()>;
 
 impl<'a> QueryInputValueWalker<'a> {
     pub fn is_undefined(&self) -> bool {
@@ -129,7 +129,7 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
                 InputValue::Map(key_values.into_boxed_slice())
             }
             QueryInputValue::U64(n) => InputValue::U64(*n),
-            QueryInputValue::DefaultValue(id) => RawInputValuesContext::walk(&walker.schema_walker, *id).into(),
+            QueryInputValue::DefaultValue(id) => walker.schema_walker.walk(&walker.schema_walker.as_ref()[*id]).into(),
             QueryInputValue::Variable(id) => walker.walk(*id).to_input_value().unwrap_or_default(),
         }
     }
@@ -175,7 +175,7 @@ impl std::fmt::Debug for QueryInputValueWalker<'_> {
             }
             QueryInputValue::DefaultValue(id) => f
                 .debug_tuple("DefaultValue")
-                .field(&RawInputValuesContext::walk(&self.schema_walker, *id))
+                .field(&self.schema_walker.walk(&self.schema_walker.as_ref()[*id]))
                 .finish(),
             QueryInputValue::Variable(id) => f.debug_tuple("Variable").field(&self.walk(*id)).finish(),
         }

@@ -5,7 +5,7 @@ use schema::{
         IntrospectionField, IntrospectionObject, Metadata, __EnumValue, __Field, __InputValue, __Schema, __Type,
     },
     Definition, DefinitionWalker, Directive, EnumValueWalker, FieldDefinitionWalker, InputValueDefinitionWalker,
-    ListWrapping, RawInputValuesContext, SchemaWalker, TypeWalker, Wrapping,
+    ListWrapping, SchemaWalker, TypeWalker, Wrapping,
 };
 
 use crate::{
@@ -295,7 +295,7 @@ impl<'a> IntrospectionWriter<'a> {
                 __InputValue::DefaultValue => target
                     .as_ref()
                     .default_value
-                    .map(|id| RawInputValuesContext::walk(&self.schema, id).to_string())
+                    .map(|id| self.schema.walk(&self.schema[id]).to_string())
                     .into(),
             },
         )

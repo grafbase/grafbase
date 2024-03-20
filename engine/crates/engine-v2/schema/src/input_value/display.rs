@@ -1,56 +1,40 @@
 use std::fmt::{Display, Formatter, Result, Write};
 
-use crate::{RawInputValue, RawInputValueWalker, RawInputValuesContext};
+use crate::{SchemaInputValue, SchemaInputValueWalker};
 
 /// Displays the input value with GraphQL syntax.
-impl<'ctx, Ctx> Display for RawInputValueWalker<'ctx, Ctx>
-where
-    Ctx: RawInputValuesContext<'ctx>,
-{
+impl<'a> Display for SchemaInputValueWalker<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self.value {
-            RawInputValue::Null | RawInputValue::Undefined => f.write_str("null"),
-            RawInputValue::String(s) => write_quoted(self.ctx.get_str(s), f),
-            RawInputValue::Int(n) => write!(f, "{}", n),
-            RawInputValue::BigInt(n) => write!(f, "{}", n),
-            RawInputValue::Float(n) => write!(f, "{}", n),
-            RawInputValue::U64(n) => write!(f, "{}", n),
-            RawInputValue::Boolean(b) => {
+        match self.item {
+            SchemaInputValue::Null => f.write_str("null"),
+            SchemaInputValue::String(id) => write_quoted(&self.schema[*id], f),
+            SchemaInputValue::Int(n) => write!(f, "{}", n),
+            SchemaInputValue::BigInt(n) => write!(f, "{}", n),
+            SchemaInputValue::Float(n) => write!(f, "{}", n),
+            SchemaInputValue::U64(n) => write!(f, "{}", n),
+            SchemaInputValue::Boolean(b) => {
                 if *b {
                     f.write_str("true")
                 } else {
                     f.write_str("false")
                 }
             }
-            RawInputValue::InputObject(ids) => write_object(
-                self.ctx.input_values()[*ids]
-                    .iter()
-                    .filter_map(|(input_value_definition_id, value)| {
-                        let value = self.walk(value);
-                        if value.is_undefined() {
-                            None
-                        } else {
-                            Some((self.ctx.schema_walker().walk(*input_value_definition_id).name(), value))
-                        }
-                    }),
-                f,
-            ),
-            RawInputValue::Map(ids) => write_object(
-                self.ctx.input_values()[*ids].iter().filter_map(|(key, value)| {
+            SchemaInputValue::InputObject(ids) => write_object(
+                self.schema[*ids].iter().map(|(input_value_definition_id, value)| {
                     let value = self.walk(value);
-                    if value.is_undefined() {
-                        None
-                    } else {
-                        Some((self.ctx.get_str(key), value))
-                    }
+                    (self.walk(*input_value_definition_id).name(), value)
                 }),
                 f,
             ),
-            RawInputValue::List(ids) => write_list(ids.map(|id| self.ctx.walk(id)), f),
-            RawInputValue::EnumValue(id) => write!(f, "{}", self.ctx.schema_walker().walk(*id).name()),
-            RawInputValue::UnknownEnumValue(s) => write!(f, "{}", self.ctx.get_str(s)),
-            RawInputValue::Ref(id) => self.ctx.input_value_ref_display(*id).fmt(f),
-            RawInputValue::SchemaRef(id) => self.ctx.schema_walk(*id).fmt(f),
+            SchemaInputValue::Map(ids) => write_object(
+                self.schema[*ids].iter().map(|(key, value)| {
+                    let value = self.walk(value);
+                    (&self.schema[*key], value)
+                }),
+                f,
+            ),
+            SchemaInputValue::List(ids) => write_list(self.schema[*ids].iter().map(|value| self.walk(value)), f),
+            SchemaInputValue::EnumValue(id) => write!(f, "{}", self.walk(*id).name()),
         }
     }
 }

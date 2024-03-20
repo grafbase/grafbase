@@ -3,32 +3,19 @@ use crate::{EnumValueId, IdRange, InputValueDefinitionId, SchemaWalker, StringId
 mod de;
 mod display;
 mod error;
-mod ids;
-mod raw;
 mod ser;
+#[cfg(test)]
+mod tests;
 mod walker;
 
 pub use error::*;
-pub use ids::*;
-pub use raw::*;
 pub use walker::*;
 
-pub type SchemaInputValues = RawInputValues<StringId>;
-pub type SchemaInputValue = RawInputValue<StringId>;
-pub type SchemaInputValueId = RawInputValueId<StringId>;
-pub type SchemaInputObjectFieldValueId = RawInputObjectFieldValueId<StringId>;
-pub type SchemaInputKeyValueId = RawInputKeyValueId<StringId>;
-pub type SchemaInputMap = IdRange<RawInputKeyValueId<StringId>>;
-
-/// InputValue to be used during execution if more control is needed that what serde/display can
-/// provide for a RawInputValue. With a PlanInputValue `value`, you just need to use
-/// `InputValue::from(value)`.
+/// implement a Deserializer & Serialize trait, but if you need to traverse a dynamic type,
+/// this will be the one to use. All input values can be converted to it.
 #[derive(Default, Debug, Clone)]
 pub enum InputValue<'a> {
-    /// https://spec.graphql.org/October2021/#sec-Input-Objects.Input-Coercion
-    /// GraphQL distinguishes a null value from one that wasn't provided.
     #[default]
-    Undefined,
     Null,
     String(&'a str),
     EnumValue(EnumValueId),
@@ -45,15 +32,14 @@ pub enum InputValue<'a> {
     U64(u64),
 }
 
-/// If you need to serialize a whole argument, just serialize the PlanInputValue directly without
-/// passing through InputValue. This is only useful if you want to partially serialize an argument.
+/// Provided if you need to serialize only a part of an input value.
 impl serde::Serialize for SchemaWalker<'_, &InputValue<'_>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         match &self.item {
-            InputValue::Null | InputValue::Undefined => serializer.serialize_none(),
+            InputValue::Null => serializer.serialize_none(),
             InputValue::String(s) => s.serialize(serializer),
             InputValue::EnumValue(id) => self.walk(*id).name().serialize(serializer),
             InputValue::Int(n) => n.serialize(serializer),
@@ -86,5 +72,104 @@ impl serde::Serialize for SchemaWalker<'_, &InputValue<'_>> {
                 map.end()
             }
         }
+    }
+}
+
+#[derive(Default)]
+pub struct SchemaInputValues {
+    /// Inidividual input values and list values
+    values: Vec<SchemaInputValue>,
+    /// InputObject's fields
+    input_fields: Vec<(InputValueDefinitionId, SchemaInputValue)>,
+    /// Object's fields (for JSON)
+    key_values: Vec<(StringId, SchemaInputValue)>,
+}
+
+id_newtypes::U32! {
+    SchemaInputValues.values[SchemaInputValueId] => SchemaInputValue | unless "Too many input values",
+    SchemaInputValues.input_fields[SchemaInputObjectFieldValueId] => (InputValueDefinitionId, SchemaInputValue) | unless "Too many input object fields",
+    SchemaInputValues.key_values[SchemaInputKeyValueId] => (StringId, SchemaInputValue) | unless "Too many input fields",
+}
+
+/// Represents a default input value and @requires arguments.
+#[derive(Debug, Copy, Clone)]
+pub enum SchemaInputValue {
+    Null,
+    String(StringId),
+    EnumValue(EnumValueId),
+    Int(i32),
+    BigInt(i64),
+    Float(f64),
+    Boolean(bool),
+    InputObject(IdRange<SchemaInputObjectFieldValueId>),
+    List(IdRange<SchemaInputValueId>),
+
+    /// for JSON
+    Map(IdRange<SchemaInputKeyValueId>),
+    U64(u64),
+}
+
+impl SchemaInputValues {
+    pub fn push_value(&mut self, value: SchemaInputValue) -> SchemaInputValueId {
+        let id = SchemaInputValueId::from(self.values.len());
+        self.values.push(value);
+        id
+    }
+
+    #[cfg(test)]
+    pub fn push_list(&mut self, values: Vec<SchemaInputValue>) -> IdRange<SchemaInputValueId> {
+        let start = self.values.len();
+        self.values.extend(values);
+        (start..self.values.len()).into()
+    }
+
+    /// Reserve InputValue slots for a list, avoiding the need for an intermediate
+    /// Vec to hold values as we need them to be contiguous.
+    pub fn reserve_list(&mut self, n: usize) -> IdRange<SchemaInputValueId> {
+        let start = self.values.len();
+        self.values.reserve(n);
+        for _ in 0..n {
+            self.values.push(SchemaInputValue::Null);
+        }
+        (start..self.values.len()).into()
+    }
+
+    #[cfg(test)]
+    pub fn push_map(&mut self, fields: Vec<(StringId, SchemaInputValue)>) -> IdRange<SchemaInputKeyValueId> {
+        let start = self.key_values.len();
+        self.key_values.extend(fields);
+        (start..self.key_values.len()).into()
+    }
+
+    /// Reserve InputKeyValue slots for a map, avoiding the need for an intermediate
+    /// Vec to hold values as we need them to be contiguous.
+    pub fn reserve_map(&mut self, n: usize) -> IdRange<SchemaInputKeyValueId> {
+        let start = self.key_values.len();
+        self.key_values.reserve(n);
+        for _ in 0..n {
+            self.key_values.push((StringId::from(0), SchemaInputValue::Null));
+        }
+        (start..self.key_values.len()).into()
+    }
+
+    pub fn push_input_object(
+        &mut self,
+        fields: impl IntoIterator<Item = (InputValueDefinitionId, SchemaInputValue)>,
+    ) -> IdRange<SchemaInputObjectFieldValueId> {
+        let start = self.input_fields.len();
+        self.input_fields.extend(fields);
+        (start..self.input_fields.len()).into()
+    }
+
+    /// Reserve InputObjectFieldValue slots for an InputObject, avoiding the need for an intermediate
+    /// Vec to hold values as we need them to be contiguous.
+    pub fn reserve_input_object(&mut self, n: usize) -> IdRange<SchemaInputObjectFieldValueId> {
+        let start = self.input_fields.len();
+        self.input_fields.reserve(n);
+        for _ in 0..n {
+            self.input_fields
+                .push((InputValueDefinitionId::from(0), SchemaInputValue::Null));
+        }
+        (start..self.input_fields.len()).into()
     }
 }

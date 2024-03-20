@@ -1,4 +1,4 @@
-use schema::{InputValueSerdeError, RawInputValuesContext};
+use schema::InputValueSerdeError;
 use serde::{
     de::{
         value::{MapDeserializer, SeqDeserializer},
@@ -53,9 +53,10 @@ impl<'de> serde::Deserializer<'de> for VariableInputValueWalker<'de> {
                 deserializer.end()?;
                 Ok(map)
             }
-            VariableInputValue::DefaultValue(id) => {
-                RawInputValuesContext::walk(&self.schema_walker, *id).deserialize_any(visitor)
-            }
+            VariableInputValue::DefaultValue(id) => self
+                .schema_walker
+                .walk(&self.schema_walker.as_ref()[*id])
+                .deserialize_any(visitor),
         }
     }
 
