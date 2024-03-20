@@ -6,6 +6,7 @@ use args::Args;
 use clap::Parser;
 use federated_server::Config;
 use mimalloc::MiMalloc;
+use tokio::runtime;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
 
@@ -13,6 +14,8 @@ use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
 static GLOBAL: MiMalloc = MiMalloc;
 
 mod args;
+
+const THREAD_NAME: &str = "grafbase-gateway";
 
 fn main() -> anyhow::Result<()> {
     rustls::crypto::ring::default_provider()
@@ -25,13 +28,18 @@ fn main() -> anyhow::Result<()> {
 
     let filter = EnvFilter::builder().parse_lossy(args.log_filter());
 
-    start_server(filter, args, config)?;
+    let runtime = runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_name(THREAD_NAME)
+        .build()?;
+
+    runtime.block_on(start_server(filter, args, config))?;
 
     Ok(())
 }
 
 #[cfg(not(feature = "lambda"))]
-fn start_server(filter: EnvFilter, args: Args, mut config: Config) -> Result<(), anyhow::Error> {
+async fn start_server(filter: EnvFilter, args: Args, mut config: Config) -> Result<(), anyhow::Error> {
     use grafbase_tracing::otel::{layer, opentelemetry_sdk::runtime::Tokio};
 
     let (otel_layer, filter) = match config.telemetry.take() {
@@ -50,13 +58,13 @@ fn start_server(filter: EnvFilter, args: Args, mut config: Config) -> Result<(),
         .with(filter)
         .init();
 
-    federated_server::start(args.listen_address, config, args.fetch_method()?)?;
+    federated_server::start(args.listen_address, config, args.fetch_method()?).await?;
 
     Ok(())
 }
 
 #[cfg(feature = "lambda")]
-fn start_server(filter: EnvFilter, args: Args, mut config: Config) -> Result<(), anyhow::Error> {
+async fn start_server(filter: EnvFilter, args: Args, mut config: Config) -> Result<(), anyhow::Error> {
     use grafbase_tracing::otel::layer;
     use grafbase_tracing::otel::opentelemetry::global;
     use grafbase_tracing::otel::opentelemetry_sdk::runtime::Tokio;
@@ -80,7 +88,7 @@ fn start_server(filter: EnvFilter, args: Args, mut config: Config) -> Result<(),
         .with(tracing_subscriber::fmt::layer().json())
         .init();
 
-    federated_server::start(args.listen_address, config, args.fetch_method()?)?;
+    federated_server::start(args.listen_address, config, args.fetch_method()?).await?;
 
     Ok(())
 }
