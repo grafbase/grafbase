@@ -70,7 +70,7 @@
             # Node.js
             nodejs
             nodePackages.prettier
-            bun # for udf-wrapper
+            bun # for wrappers
 
             # Native SSL
             openssl

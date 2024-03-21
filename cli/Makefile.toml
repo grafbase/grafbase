@@ -168,10 +168,10 @@ npx --yes pnpm run cli-app:build
 popd
 '''
 
-[tasks.build-udf-wrapper]
-description = "Build cli/udf-wrapper"
+[tasks.build-wrappers]
+description = "Build cli/wrappers"
 script = '''
-pushd udf-wrapper
+pushd wrappers
 npx i
 npm run build
 popd

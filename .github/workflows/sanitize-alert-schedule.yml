@@ -15,8 +15,6 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: 'release/latest'
-  PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'
 
 jobs:
@@ -34,9 +32,6 @@ jobs:
 
       - name: Build grafbase assets
         uses: ./.github/actions/cli_assets
-        with:
-          cdn: ${{ env.PROD_ASSETS }}
-          assets_version: ${{ env.ASSETS_VERSION }}
 
       - name: Lint
         uses: ./.github/actions/lint
