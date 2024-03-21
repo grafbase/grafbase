@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use crate::config::TelemetryConfig;
+use grafbase_tracing::otel::opentelemetry_sdk::trace::TracerProvider;
 
 use super::gateway::GatewayWatcher;
 
 struct ServerStateInner {
     gateway: GatewayWatcher,
-    telemetry_config: Option<TelemetryConfig>,
+    tracer_provider: Option<TracerProvider>,
 }
 
 #[derive(Clone)]
@@ -15,11 +15,11 @@ pub(super) struct ServerState {
 }
 
 impl ServerState {
-    pub(super) fn new(gateway: GatewayWatcher, telemetry_config: Option<TelemetryConfig>) -> Self {
+    pub(super) fn new(gateway: GatewayWatcher, tracer_provider: Option<TracerProvider>) -> Self {
         Self {
             inner: Arc::new(ServerStateInner {
                 gateway,
-                telemetry_config,
+                tracer_provider,
             }),
         }
     }
@@ -28,7 +28,7 @@ impl ServerState {
         &self.inner.gateway
     }
 
-    pub(crate) fn telemetry_config(&self) -> Option<&TelemetryConfig> {
-        self.inner.telemetry_config.as_ref()
+    pub(crate) fn tracer_provider(&self) -> Option<&TracerProvider> {
+        self.inner.tracer_provider.as_ref()
     }
 }
