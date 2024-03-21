@@ -736,9 +736,10 @@ fn ingest_object_fields<'a>(
     for field in fields {
         let field_id = ingest_field(Definition::Object(object_id), &field.node, state);
         start = Some(start.unwrap_or(field_id));
-        end = Some(field_id);
+        end = Some(FieldId(field_id.0 + 1));
     }
 
+    // When we encounter the root query type, we need to make space at the end of the fields for __type and __schema.
     if object_id
         == state
             .root_operation_types()
@@ -765,17 +766,14 @@ fn ingest_object_fields<'a>(
         }
 
         start = start.or(Some(FieldId(new_start)));
-        end = end.map(|end| FieldId(end.0 + 2)).or(Some(FieldId(new_start + 1)));
+        end = end.map(|end| FieldId(end.0 + 2)).or(Some(FieldId(new_start + 2)));
     }
 
     let [Some(start), Some(end)] = [start, end] else {
         return;
     };
 
-    state.objects[object_id.0].fields = Range {
-        start,
-        end: FieldId(end.0 + 1),
-    };
+    state.objects[object_id.0].fields = Range { start, end };
 }
 
 fn parse_selection_set(fields: &str) -> Result<Vec<Positioned<ast::Selection>>, DomainError> {
