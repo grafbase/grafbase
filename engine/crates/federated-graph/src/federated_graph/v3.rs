@@ -149,8 +149,8 @@ pub const NO_FIELDS: Fields = Range {
 };
 
 impl From<super::v2::FederatedGraphV2> for FederatedGraphV3 {
-    fn from(value: super::v2::FederatedGraphV2) -> Self {
-        let fields = value
+    fn from(mut value: super::v2::FederatedGraphV2) -> Self {
+        let mut fields: Vec<Field> = value
             .fields
             .iter()
             .map(|field| Field {
@@ -207,6 +207,78 @@ impl From<super::v2::FederatedGraphV2> for FederatedGraphV3 {
                 }
             }
         }
+
+        {
+            let new_fields = ["__schema", "__type"].map(|needle| {
+                value
+                    .strings
+                    .iter()
+                    .position(|string| string == needle)
+                    .map(StringId)
+                    .unwrap_or_else(|| {
+                        let idx = value.strings.len();
+                        value.strings.push((*needle).to_owned());
+                        StringId(idx)
+                    })
+            });
+
+            let query_object_id = value.root_operation_types.query;
+            let original_start = {
+                let query_object_fields = object_fields[query_object_id.0].as_mut().expect("Query to have fields");
+                let original_start = query_object_fields.start.0;
+                query_object_fields.end.0 += 2;
+
+                original_start
+            };
+
+            fields.splice(
+                original_start..original_start,
+                new_fields.into_iter().map(|name| Field {
+                    name,
+                    r#type: Type {
+                        wrapping: Wrapping::new(false),
+                        definition: Definition::Object(query_object_id),
+                    },
+                    arguments: NO_INPUT_VALUE_DEFINITION,
+                    resolvable_in: Vec::new(),
+                    provides: Vec::new(),
+                    requires: Vec::new(),
+                    overrides: Vec::new(),
+                    composed_directives: NO_DIRECTIVES,
+                    description: None,
+                }),
+            );
+
+            fn correct_fieldset(original_start: usize, fieldset: &mut FieldSet) {
+                for item in fieldset {
+                    if item.field.0 >= original_start {
+                        item.field.0 += 2;
+                    }
+                    correct_fieldset(original_start, &mut item.subselection);
+                }
+            }
+
+            for object in &mut value.objects {
+                for key in &mut object.keys {
+                    correct_fieldset(original_start, &mut key.fields);
+                }
+            }
+
+            for interface in &mut value.interfaces {
+                for key in &mut interface.keys {
+                    correct_fieldset(original_start, &mut key.fields);
+                }
+            }
+
+            for field in &mut fields {
+                for provides in &mut field.provides {
+                    correct_fieldset(original_start, &mut provides.fields);
+                }
+                for requires in &mut field.requires {
+                    correct_fieldset(original_start, &mut requires.fields);
+                }
+            }
+        };
 
         FederatedGraphV3 {
             subgraphs: value.subgraphs,

@@ -413,7 +413,7 @@ mod tests {
 
     #[test]
     fn serde_json_backwards_compatibility() {
-        serde_json::from_str::<FederatedGraph>(
+        let schema = serde_json::from_str::<FederatedGraph>(
             r#"
             {
               "V1": {
@@ -1164,5 +1164,17 @@ mod tests {
             }"#,
         )
         .unwrap();
+
+        let schema = schema.into_latest();
+        let query_object = &schema[schema.root_operation_types.query];
+
+        for field_name in ["__type", "__schema"] {
+            let name_id = schema.strings.iter().position(|s| s == field_name).unwrap();
+            assert!(
+                schema[query_object.fields.clone()].iter().any(|f| f.name.0 == name_id),
+                "Failed assertion: Query.{} must exists",
+                field_name
+            );
+        }
     }
 }
