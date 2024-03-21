@@ -131,7 +131,7 @@ jobs:
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-build-${{ matrix.package }}-${{ hashFiles('Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-build
 
-      - name: Fetch CDN assets
+      - name: Build assets
         if: ${{ matrix.package != 'grafbase-gateway' }}
         uses: ./.github/actions/cli_assets
 
@@ -155,7 +155,7 @@ jobs:
       - name: Get sources
         uses: actions/checkout@v4
 
-      - name: Fetch CDN assets
+      - name: Build assets
         uses: ./.github/actions/cli_assets
 
       - name: Login to GitHub Container Registry

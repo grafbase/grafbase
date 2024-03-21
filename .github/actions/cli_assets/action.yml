@@ -31,7 +31,7 @@ runs:
         mkdir ~/.grafbase
         touch ~/.grafbase/version.txt
         mkdir custom-resolvers
-        cat "{ \"name\": \"assets\" }" >> package.json
+        echo "{ \"name\": \"assets\" }" >> package.json
         cp ./wrappers/dist.js ~/.grafbase/custom-resolvers/wrapper.js
         cp ./wrappers/bun-multi-wrapper.ts ~/.grafbase/custom-resolvers/bun-multi-wrapper.ts
         mkdir parser
