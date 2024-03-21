@@ -39,6 +39,7 @@ pub(super) async fn post(
     traced(headers, request, state.gateway().clone(), state.tracer_provider()).await
 }
 
+#[cfg(feature = "lambda")]
 async fn traced(
     headers: HeaderMap,
     request: BatchRequest,
@@ -47,6 +48,11 @@ async fn traced(
 ) -> http::Response<Body> {
     let response = handle(headers, request, gateway).await;
 
+    // lambda must flush the trace events here, otherwise the
+    // function might fall asleep and the events are pending until
+    // the next wake-up.
+    //
+    // read more: https://github.com/open-telemetry/opentelemetry-lambda/blob/main/docs/design_proposal.md
     if let Some(provider) = provider {
         for result in provider.force_flush() {
             if let Err(e) = result {
@@ -56,6 +62,16 @@ async fn traced(
     }
 
     response
+}
+
+#[cfg(not(feature = "lambda"))]
+async fn traced(
+    headers: HeaderMap,
+    request: BatchRequest,
+    gateway: GatewayWatcher,
+    _: Option<&TracerProvider>,
+) -> http::Response<Body> {
+    handle(headers, request, gateway).await
 }
 
 async fn handle(headers: HeaderMap, request: BatchRequest, gateway: GatewayWatcher) -> http::Response<Body> {

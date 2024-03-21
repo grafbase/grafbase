@@ -87,16 +87,18 @@ pub(super) async fn bind(
 
     let (provider, subscriber) = match telemetry {
         Some(config) => {
+            let filter = EnvFilter::new(&config.tracing.filter);
+
             let provider =
-                otel::layer::new_provider(&config.service_name, &config.tracing, XrayIdGenerator::default(), Tokio)
-                    .unwrap();
+                otel::layer::new_provider(&config.service_name, config.tracing, XrayIdGenerator::default(), Tokio)
+                    .expect("error creating otel provider");
 
             let tracer = provider.tracer("lambda-otel");
 
             let subscriber = tracing_subscriber::registry()
                 .with(tracing_opentelemetry::layer().with_tracer(tracer))
                 .with(tracing_subscriber::fmt::layer().with_ansi(false))
-                .with(EnvFilter::new(&config.tracing.filter));
+                .with(filter);
 
             (Some(provider), Some(subscriber))
         }
