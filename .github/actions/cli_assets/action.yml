@@ -1,5 +1,5 @@
-name: Download and build CLI assets
-description: Download and build CLI assets from Grafbase CDN and from source
+name: Build CLI assets
+description: Build CLI assets from source
 
 inputs:
   working-directory:
