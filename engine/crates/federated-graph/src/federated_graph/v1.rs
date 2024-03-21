@@ -1172,7 +1172,7 @@ mod tests {
             let name_id = schema.strings.iter().position(|s| s == field_name).unwrap();
             assert!(
                 schema[query_object.fields.clone()].iter().any(|f| f.name.0 == name_id),
-                "Failed assertion: Query.{} must exists",
+                "Failed assertion: Query.{} must exist",
                 field_name
             );
         }
