@@ -30,10 +30,10 @@ runs:
       run: |
         mkdir ~/.grafbase
         touch ~/.grafbase/version.txt
-        mkdir custom-resolvers
+        mkdir ~/.grafbase/custom-resolvers
         echo "{ \"name\": \"assets\" }" >> package.json
         cp ./wrappers/dist.js ~/.grafbase/custom-resolvers/wrapper.js
         cp ./wrappers/bun-multi-wrapper.ts ~/.grafbase/custom-resolvers/bun-multi-wrapper.ts
-        mkdir parser
+        mkdir ~/.grafbase/parser
         cp ./wrappers/parse-config.mts ~/.grafbase/parser/parse-config.mts
         cp ./wrappers/parse-config.ts ~/.grafbase/parser/parse-config.ts
