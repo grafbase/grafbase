@@ -515,7 +515,13 @@ impl Display for BareFieldSetDisplay<'_> {
 
             f.write_str(name)?;
 
-            DirectiveArguments(&field.arguments, graph).fmt(f)?;
+            let arguments = field
+                .arguments
+                .iter()
+                .map(|(arg, value)| (graph[*arg].name, value.clone()))
+                .collect::<Vec<_>>();
+
+            DirectiveArguments(&arguments, graph).fmt(f)?;
 
             if !field.subselection.is_empty() {
                 f.write_str(" { ")?;

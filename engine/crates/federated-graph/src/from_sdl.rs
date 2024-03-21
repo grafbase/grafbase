@@ -770,19 +770,26 @@ fn attach_selection(
             let ast::Selection::Field(ast_field) = &selection.node else {
                 return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
             };
-            let field = state.selection_map[&(parent_id, ast_field.node.name.node.as_str())];
+            let field: FieldId = state.selection_map[&(parent_id, ast_field.node.name.node.as_str())];
             let field_ty = state.fields[field.0].r#type.definition;
+            let subselection = &ast_field.node.selection_set.node.items;
             let arguments = ast_field
                 .node
                 .arguments
                 .iter()
                 .map(|(name, value)| {
-                    let name = state.insert_string(name.node.as_str());
-                    let value = state.insert_value(&value.node.clone().into_const().unwrap());
-                    (name, value)
+                    let name = state.insert_string(&name.node);
+                    let (start, len) = state.fields[field.0].arguments;
+                    let arguments = &state.input_value_definitions[start.0..start.0 + len];
+                    let argument = arguments
+                        .iter()
+                        .position(|arg| arg.name == name)
+                        .map(|idx| InputValueDefinitionId(start.0 + idx))
+                        .expect("unknown argument");
+                    let value = state.insert_value(&value.node.clone().into_const().expect("Value -> ConstValue"));
+                    (argument, value)
                 })
                 .collect();
-            let subselection = &ast_field.node.selection_set.node.items;
             Ok(FieldSetItem {
                 field,
                 arguments,
@@ -934,7 +941,7 @@ fn collect_composed_directives(directives: &[Positioned<ast::ConstDirective>], s
 #[test]
 fn test_from_sdl() {
     // https://github.com/the-guild-org/gateways-benchmark/blob/main/federation-v1/gateways/apollo-router/supergraph.graphql
-    super::from_sdl(r#"
+    let schema = super::from_sdl(r#"
         schema
           @link(url: "https://specs.apollo.dev/link/v1.0")
           @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
@@ -1025,4 +1032,11 @@ fn test_from_sdl() {
           reviews: [Review] @join__field(graph: REVIEWS)
         }
     "#).unwrap();
+
+    let schema = schema.into_latest();
+    let query_object = &schema[schema.root_operation_types.query];
+    let __type = schema.strings.iter().position(|s| s == "__type").unwrap();
+    assert!(schema[query_object.fields.clone()].iter().any(|f| f.name.0 == __type));
+    let __schema = schema.strings.iter().position(|s| s == "__schema").unwrap();
+    assert!(schema[query_object.fields.clone()].iter().any(|f| f.name.0 == __schema));
 }

@@ -41,6 +41,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
 
     emit_subgraphs(&mut ctx);
     emit_interface_impls(&mut ctx);
+    emit_input_value_definitions(&ir.input_value_definitions, &mut ctx);
     emit_fields(
         mem::take(&mut ir.fields),
         &ir.object_fields_from_entity_interfaces,
@@ -50,7 +51,6 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     );
     emit_union_members(&ir.union_members, &mut ctx);
     emit_keys(&ir.keys, &mut ctx);
-    emit_input_value_definitions(&ir.input_value_definitions, &mut ctx);
 
     drop(ctx);
 
@@ -323,13 +323,21 @@ fn attach_selection(
             let selection_field = ctx.insert_string(ctx.subgraphs.walk(selection.field));
             let field = ctx.selection_map[&(parent_id, selection_field)];
             let field_ty = ctx.out[field].r#type.definition;
+            let field_arguments = ctx.out[field].arguments;
+            let (federated::InputValueDefinitionId(field_arguments_start), _) = field_arguments;
             let arguments = selection
                 .arguments
                 .iter()
                 .map(|(name, value)| {
-                    let name = ctx.insert_string(ctx.subgraphs.walk(*name));
+                    // Here we assume the arguments are validated previously.
+                    let arg_name = ctx.insert_string(ctx.subgraphs.walk(*name));
+                    let argument = ctx.out[field_arguments]
+                        .iter()
+                        .position(|arg| arg.name == arg_name)
+                        .map(|idx| federated::InputValueDefinitionId(field_arguments_start + idx))
+                        .unwrap();
                     let value = ctx.insert_value(value);
-                    (name, value)
+                    (argument, value)
                 })
                 .collect();
 
