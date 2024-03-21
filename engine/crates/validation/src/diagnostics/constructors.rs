@@ -32,3 +32,15 @@ pub(crate) fn empty_object(bad_object: &str, ctx: &mut Context<'_>) {
         "The object type {bad_object} has no fields. An object type must define one or more fields."
     ))
 }
+
+pub(crate) fn empty_interface(bad_interface: &str, ctx: &mut Context<'_>) {
+    ctx.push_error(miette::miette!(
+        "The interface {bad_interface} has no fields. An interface must define one or more fields."
+    ))
+}
+
+pub(crate) fn empty_input_object(bad_input_object: &str, ctx: &mut Context<'_>) {
+    ctx.push_error(miette::miette!(
+        "The input object type {bad_input_object} has no fields. An input object type must define one or more fields."
+    ))
+}

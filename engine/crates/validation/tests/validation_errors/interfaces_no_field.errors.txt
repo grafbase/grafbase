@@ -1,0 +1,1 @@
+  × The interface InterfaceOff has no fields. An interface must define one or more fields.

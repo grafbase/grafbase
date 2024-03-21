@@ -11,6 +11,10 @@ pub(crate) fn validate_interface<'a>(
         interface_implementers::validate_implements_list(parent_type_name, implements, &iface.fields, ctx);
     });
 
+    if iface.fields.is_empty() {
+        diagnostics::empty_interface(parent_type_name, ctx)
+    }
+
     for field in &iface.fields {
         object_field::validate_object_field(parent_type_name, field, ctx);
         let field_name = &field.node.name.node;
