@@ -3,23 +3,23 @@ directive @core(feature: String!) repeatable on SCHEMA
 directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
-    graph: join__Graph!
-    key: String!
-    resolvable: Boolean = true
+  graph: join__Graph!
+  key: String!
+  resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
-    graph: join__Graph
-    requires: String
-    provides: String
+  graph: join__Graph
+  requires: String
+  provides: String
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
 enum join__Graph {
-    TRACING @join__graph(name: "tracing", url: "http://0.0.0.0:4000/graphql")
+  TRACING @join__graph(name: "weather", url: "http://0.0.0.0:4000/graphql")
 }
 
 type Query {
-    instruct(prompt: String!): String! @join__field(graph: TRACING)
+  instruct(prompt: String!): String! @join__field(graph: TRACING)
 }

@@ -1,5 +1,8 @@
+[graph]
+introspection = true
+
 [telemetry]
-service_name = "federated"
+service_name = "grafbase-gateway"
 
 [telemetry.tracing]
 enabled = true
