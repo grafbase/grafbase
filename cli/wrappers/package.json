@@ -1,6 +1,6 @@
 {
   "name": "wrappers",
-  "module": "index.ts",
+  "module": "udf.ts",
   "devDependencies": {
     "@types/bun": "^1.0.2",
     "@types/node": "^20.10.5",
@@ -12,6 +12,6 @@
     "@miniflare/storage-file": "^2.14.2"
   },
   "scripts": {
-    "build": "bun build index.ts --external=\"\\${UDF_MAIN_FILE_PATH}\" --minify --target=bun > dist.js"
+    "build": "bun build udf.ts --external=\"\\${UDF_MAIN_FILE_PATH}\" --minify --target=bun > dist.js"
   }
 }
