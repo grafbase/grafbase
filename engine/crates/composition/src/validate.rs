@@ -5,7 +5,7 @@ type ValidateContext<'a> = crate::ComposeContext<'a>;
 /// Pre-composition validations happen here.
 pub(crate) fn validate(ctx: &mut ValidateContext<'_>) {
     validate_query_nonempty(ctx);
-    validate_selections(ctx);
+    validate_fields(ctx);
 }
 
 fn validate_query_nonempty(ctx: &mut ValidateContext<'_>) {
@@ -20,11 +20,37 @@ fn validate_query_nonempty(ctx: &mut ValidateContext<'_>) {
     }
 }
 
-fn validate_selections(ctx: &mut ValidateContext<'_>) {
+fn validate_fields(ctx: &mut ValidateContext<'_>) {
     for field in ctx.subgraphs.iter_all_fields() {
-        for selection in field.directives().requires().into_iter().flatten() {
-            validate_selection(ctx, selection, field.parent_definition())
-        }
+        validate_selections(ctx, field);
+        validate_override_labels(ctx, field);
+    }
+}
+
+fn validate_override_labels(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldWalker<'_>) {
+    let Some(label) = field.directives().r#override().and_then(|directive| directive.label) else {
+        return;
+    };
+
+    let Err(err) = ctx
+        .subgraphs
+        .walk(label)
+        .as_str()
+        .parse::<graphql_federated_graph::OverrideLabel>()
+    else {
+        return;
+    };
+
+    ctx.diagnostics.push_fatal(format!(
+        "Invalid @override label argument on {ty}.{field}: {err}",
+        ty = field.parent_definition().name().as_str(),
+        field = field.name().as_str(),
+    ));
+}
+
+fn validate_selections(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldWalker<'_>) {
+    for selection in field.directives().requires().into_iter().flatten() {
+        validate_selection(ctx, selection, field.parent_definition())
     }
 }
 

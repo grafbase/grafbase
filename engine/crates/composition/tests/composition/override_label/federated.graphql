@@ -17,15 +17,16 @@ directive @join__field(
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
 enum join__Graph {
-    MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
-    STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
+    FST @join__graph(name: "fst", url: "http://example.com/fst")
 }
 
-type Mammoth {
-    tuskLength: Int
-    weightGrams: Int @join__field(graph: mangrove, override: "steppe")
+type User
+    @join__type(graph: FST, key: "id")
+{
+    id: ID!
+    name: String @join__field(graph: fst, override: "somewhereElse", overrideLabel: "percent(10)")
 }
 
 type Query {
-    getMammoth: Mammoth @join__field(graph: mangrove, override: "steppe")
+    me: User @join__field(graph: FST)
 }

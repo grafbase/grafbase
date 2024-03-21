@@ -21,7 +21,7 @@ pub(super) struct Directives {
     site_id_counter: usize,
 
     deprecated: BTreeMap<DirectiveSiteId, Deprecated>,
-    r#override: BTreeMap<DirectiveSiteId, StringId>,
+    r#override: BTreeMap<DirectiveSiteId, OverrideDirective>,
     provides: BTreeMap<DirectiveSiteId, Vec<Selection>>,
     requires: BTreeMap<DirectiveSiteId, Vec<Selection>>,
 
@@ -116,8 +116,8 @@ impl Subgraphs {
         self.directives.interface_object.insert(id);
     }
 
-    pub(crate) fn set_override(&mut self, id: DirectiveSiteId, from: StringId) {
-        self.directives.r#override.insert(id, from);
+    pub(crate) fn set_override(&mut self, id: DirectiveSiteId, directive: OverrideDirective) {
+        self.directives.r#override.insert(id, directive);
     }
 
     pub(crate) fn set_shareable(&mut self, id: DirectiveSiteId) {
@@ -167,9 +167,8 @@ impl<'a> DirectiveSiteWalker<'a> {
     ///                             ^^^^^^^^^^^^^^^^^^^^^^^^^
     /// }
     /// ```
-    pub fn r#override(self) -> Option<StringWalker<'a>> {
-        let string_id = self.subgraphs.directives.r#override.get(&self.id);
-        string_id.map(|override_| self.walk(*override_))
+    pub fn r#override(self) -> Option<&'a OverrideDirective> {
+        self.subgraphs.directives.r#override.get(&self.id)
     }
 
     pub(crate) fn policies(self) -> impl Iterator<Item = &'a [StringId]> {
@@ -241,6 +240,12 @@ impl<'a> DirectiveSiteWalker<'a> {
             .range((self.id, StringId::MIN)..(self.id, StringId::MAX))
             .map(move |(_, id)| self.walk(*id))
     }
+}
+
+#[derive(Debug)]
+pub(crate) struct OverrideDirective {
+    pub(crate) from: StringId,
+    pub(crate) label: Option<StringId>,
 }
 
 /// Corresponds to an `@deprecated` directive.

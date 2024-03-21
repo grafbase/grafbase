@@ -1,0 +1,19 @@
+extend schema
+  @link(
+  url: "https://specs.apollo.dev/federation/v2.7",
+  import: ["@key", "@shareable", "@override"]
+)
+
+schema {
+  query: Query
+}
+
+type Query {
+  me: User
+}
+
+type User @key(fields: "id") {
+  id: ID!
+  name: String @override(from: "somewhereElse", label: "percents(10)")
+  email: String @override(from: "somewhereElse", label: "")
+}

@@ -258,13 +258,13 @@ fn resolvable_in(fields: &[FieldWalker<'_>], object_is_shareable: bool) -> Vec<f
 fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<federated::Override> {
     let mut overrides = Vec::new();
 
-    for (field, from) in fields.iter().filter_map(|f| Some(f).zip(f.directives().r#override())) {
+    for (field, override_directive) in fields.iter().filter_map(|f| Some(f).zip(f.directives().r#override())) {
         let field_subgraph = field.parent_definition().subgraph();
 
-        if from.id == field_subgraph.name().id {
+        if override_directive.from == field_subgraph.name().id {
             ctx.diagnostics.push_fatal(format!(
                 r#"Source and destination subgraphs "{}" are the same for overridden field "{}.{}""#,
-                from.as_str(),
+                ctx.subgraphs.walk(override_directive.from).as_str(),
                 field.parent_definition().name().as_str(),
                 field.name().as_str()
             ));
@@ -273,7 +273,7 @@ fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<f
 
         if let Some(override_source) = fields
             .iter()
-            .find(|f| f.parent_definition().subgraph().name().id == from.id)
+            .find(|f| f.parent_definition().subgraph().name().id == override_directive.from)
         {
             if override_source.directives().r#override().is_some() {
                 ctx.diagnostics
@@ -287,13 +287,17 @@ fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<f
 
         overrides.push(federated::Override {
             graph: federated::SubgraphId(field_subgraph.subgraph_id().idx()),
+            label: override_directive
+                .label
+                .and_then(|label| ctx.subgraphs.walk(label).as_str().parse().ok())
+                .unwrap_or_default(),
             from: ctx
                 .subgraphs
                 .iter_subgraphs()
-                .position(|subgraph| subgraph.name().id == from.id)
+                .position(|subgraph| subgraph.name().id == override_directive.from)
                 .map(federated::SubgraphId)
                 .map(federated::OverrideSource::Subgraph)
-                .unwrap_or_else(|| federated::OverrideSource::Missing(ctx.insert_string(from.id))),
+                .unwrap_or_else(|| federated::OverrideSource::Missing(ctx.insert_string(override_directive.from))),
         });
     }
 

@@ -230,6 +230,41 @@ pub struct Override {
     /// Points to a subgraph referenced by name, but this is _not_ validated to allow easier field
     /// migrations between subgraphs.
     pub from: OverrideSource,
+    #[serde(default)]
+    pub label: OverrideLabel,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Default, Debug)]
+pub struct OverrideLabel {
+    pub percent: Option<u8>,
+}
+
+impl std::fmt::Display for OverrideLabel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(percent) = self.percent {
+            f.write_str("percent(")?;
+            percent.fmt(f)?;
+            f.write_str(")")?;
+        }
+
+        Ok(())
+    }
+}
+
+impl std::str::FromStr for OverrideLabel {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some(percent) = s
+            .strip_prefix("percent(")
+            .and_then(|suffix| suffix.strip_suffix(')'))
+            .and_then(|percent| u8::from_str(percent).ok())
+        {
+            Ok(OverrideLabel { percent: Some(percent) })
+        } else {
+            Err(r#"Expected a field of the format "percent(<number>)" "#)
+        }
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -409,6 +444,7 @@ id_newtypes! {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::FederatedGraph;
 
     #[test]
@@ -1176,5 +1212,14 @@ mod tests {
                 field_name
             );
         }
+    }
+
+    #[test]
+    fn override_label() {
+        assert!("".parse::<OverrideLabel>().is_err());
+        assert!("percent(heh)".parse::<OverrideLabel>().is_err());
+        assert!("percent(30".parse::<OverrideLabel>().is_err());
+
+        assert_eq!("percent(30)".parse::<OverrideLabel>().unwrap().percent.unwrap(), 30);
     }
 }

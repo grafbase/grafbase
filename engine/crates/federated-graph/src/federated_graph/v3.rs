@@ -3,8 +3,8 @@ use std::ops::Range;
 pub use super::v2::{
     Definition, DirectiveId, Directives, Enum, EnumId, EnumValue, EnumValueId, EnumValues, FieldId, FieldProvides,
     FieldRequires, FieldSet, FieldSetItem, InputObject, InputObjectId, InputValueDefinitionId, InputValueDefinitions,
-    InterfaceId, Key, ObjectId, Override, OverrideSource, RootOperationTypes, Scalar, ScalarId, StringId, Subgraph,
-    SubgraphId, Union, UnionId, Value, NO_DIRECTIVES, NO_ENUM_VALUE, NO_INPUT_VALUE_DEFINITION,
+    InterfaceId, Key, ObjectId, Override, OverrideLabel, OverrideSource, RootOperationTypes, Scalar, ScalarId,
+    StringId, Subgraph, SubgraphId, Union, UnionId, Value, NO_DIRECTIVES, NO_ENUM_VALUE, NO_INPUT_VALUE_DEFINITION,
 };
 pub use wrapping::Wrapping;
 
