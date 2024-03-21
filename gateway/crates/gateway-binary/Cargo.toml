@@ -1,14 +1,11 @@
 [package]
 name = "grafbase-gateway"
-version = "0.1.0-rc.24"
+version = "0.1.0-rc.23"
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
 keywords.workspace = true
 repository.workspace = true
-
-[features]
-lambda = ["federated-server/lambda", "tracing-subscriber/json"]
 
 [dependencies]
 anyhow = { version = "1.0.81", default-features = false }
@@ -16,12 +13,11 @@ ascii = { version = "1.1.0", default-features = false }
 clap = { version = "4", default-features = false, features = ["std", "cargo", "wrap_help", "derive", "env"] }
 federated-server.workspace = true
 grafbase-tracing = { workspace = true, features = ["otlp", "lambda"] }
-graph-ref.workspace = true
+graph-ref = { workspace = true }
 mimalloc = "0.1.39"
 rustls = { workspace = true, features = ["ring"] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 toml = "0.8.12"
-tracing-subscriber.workspace = true
 
 [lints]
 workspace = true

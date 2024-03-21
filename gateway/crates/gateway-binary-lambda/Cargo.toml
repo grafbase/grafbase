@@ -1,0 +1,19 @@
+[package]
+name = "grafbase-gateway-lambda"
+version = "0.1.0-rc.23"
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow = { version = "1.0.81", default-features = false }
+federated-server = { workspace = true, features = ["lambda"] }
+mimalloc = "0.1.39"
+rustls = { workspace = true, default-features = false, features = ["ring"] }
+tokio = { workspace = true, features = ["rt", "net", "time"] }
+toml = { version = "0.8.12", default-features = false, features = ["parse"] }
+
+[lints]
+workspace = true

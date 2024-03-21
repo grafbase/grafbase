@@ -23,7 +23,7 @@ description = "Bumps all packages to the specified version"
 dependencies = ["install-cargo-release", "install-sd"]
 script = '''
 VERSION=${@}
-cargo release version $VERSION --execute --no-confirm -p grafbase-gateway -p federated-server
+cargo release version $VERSION --execute --no-confirm -p grafbase-gateway -p grafbase-gateway-lambda -p federated-server
 touch "changelog/$VERSION.md"
 '''
 

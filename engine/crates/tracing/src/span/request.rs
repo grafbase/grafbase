@@ -6,7 +6,6 @@ use http::header::USER_AGENT;
 use http::{Response, StatusCode};
 use http_body::Body;
 use tracing::{info_span, Span};
-use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 /// The name of the span that represents the root of an incoming request
 pub const GATEWAY_SPAN_NAME: &str = "gateway";
@@ -180,6 +179,7 @@ impl<B: Body> tower_http::trace::MakeSpan<B> for MakeHttpRequestSpan {
     fn make_span(&mut self, request: &http::Request<B>) -> Span {
         use opentelemetry::Context;
         use std::collections::HashMap;
+        use tracing_opentelemetry::OpenTelemetrySpanExt;
 
         let parent_ctx = opentelemetry::global::get_text_map_propagator(|propagator| {
             let headers = request

@@ -59,7 +59,6 @@ impl Args {
                     federated_schema: federated_graph,
                 })
             }
-            #[cfg(not(feature = "lambda"))]
             (Some(graph_ref), None) => Ok(GraphFetchMethod::FromApi {
                 access_token: self
                     .grafbase_access_token
@@ -68,12 +67,6 @@ impl Args {
                 graph_name: graph_ref.graph().to_string(),
                 branch: graph_ref.branch().map(ToString::to_string),
             }),
-            #[cfg(feature = "lambda")]
-            (Some(_), None) => {
-                let error = anyhow!("Hybrid mode is not available for lambda deployments, please provide the full GraphQL schema as a file.");
-
-                Err(error)
-            }
             _ => unreachable!(),
         }
     }
