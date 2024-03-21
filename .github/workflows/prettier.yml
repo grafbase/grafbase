@@ -36,4 +36,3 @@ jobs:
         run: |
           cd cli
           npx prettier --check .
-
