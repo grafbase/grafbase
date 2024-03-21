@@ -9,6 +9,7 @@ mod emit_federated_graph;
 mod ingest_subgraph;
 mod result;
 mod subgraphs;
+mod validate;
 
 pub use self::{diagnostics::Diagnostics, result::CompositionResult, subgraphs::Subgraphs};
 pub use graphql_federated_graph::{render_sdl, FederatedGraph};
@@ -16,6 +17,7 @@ pub use graphql_federated_graph::{render_sdl, FederatedGraph};
 use self::{
     compose::{compose_subgraphs, ComposeContext},
     emit_federated_graph::emit_federated_graph,
+    ingest_subgraph::ast_value_to_subgraph_value,
 };
 
 /// Compose subgraphs into a federated graph.
@@ -33,6 +35,15 @@ pub fn compose(subgraphs: &Subgraphs) -> CompositionResult {
     }
 
     let mut context = ComposeContext::new(subgraphs, &mut diagnostics);
+
+    validate::validate(&mut context);
+
+    if context.diagnostics.any_fatal() {
+        return CompositionResult {
+            federated_graph: None,
+            diagnostics,
+        };
+    }
 
     compose_subgraphs(&mut context);
 

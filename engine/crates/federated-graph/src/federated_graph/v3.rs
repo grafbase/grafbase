@@ -338,6 +338,7 @@ macro_rules! id_newtypes {
 id_newtypes! {
     EnumId + enums + Enum,
     FieldId + fields + Field,
+    InputValueDefinitionId + input_value_definitions + InputValueDefinition,
     InputObjectId + input_objects + InputObject,
     InterfaceId + interfaces + Interface,
     ObjectId + objects + Object,

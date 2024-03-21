@@ -70,12 +70,12 @@ pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
                 if key.resolvable {
                     writeln!(
                         sdl,
-                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}")"#
+                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set})"#
                     )?;
                 } else {
                     writeln!(
                         sdl,
-                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}", resolvable: false)"#
+                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set}, resolvable: false)"#
                     )?;
                 }
             }
@@ -138,7 +138,7 @@ pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
                 };
                 writeln!(
                     sdl,
-                    r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}"{is_interface_object})"#
+                    r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set}{is_interface_object})"#
                 )?;
             }
 
@@ -373,14 +373,14 @@ fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGra
             .provides
             .iter()
             .find(|provides| provides.subgraph_id == subgraph)
-            .map(|fieldset| format!(", provides: \"{}\"", FieldSetDisplay(&fieldset.fields, graph))),
+            .map(|fieldset| format!(", provides: {}", FieldSetDisplay(&fieldset.fields, graph))),
     );
     let requires = MaybeDisplay(
         field
             .requires
             .iter()
             .find(|requires| requires.subgraph_id == subgraph)
-            .map(|fieldset| format!(", requires: \"{}\"", FieldSetDisplay(&fieldset.fields, graph))),
+            .map(|fieldset| format!(", requires: {}", FieldSetDisplay(&fieldset.fields, graph))),
     );
     write!(sdl, " @join__field(graph: {subgraph_name}{provides}{requires})")?;
 
@@ -411,7 +411,7 @@ fn write_provides(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> 
     {
         let subgraph_name = GraphEnumVariantName(&graph[graph[provides.subgraph_id].name]);
         let fields = FieldSetDisplay(&provides.fields, graph);
-        write!(sdl, " @join__field(graph: {subgraph_name}, provides: \"{fields}\"")?;
+        write!(sdl, " @join__field(graph: {subgraph_name}, provides: {fields}")?;
     }
 
     Ok(())
@@ -425,7 +425,7 @@ fn write_requires(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> 
     {
         let subgraph_name = GraphEnumVariantName(&graph[graph[requires.subgraph_id].name]);
         let fields = FieldSetDisplay(&requires.fields, graph);
-        write!(sdl, " @join__field(graph: {subgraph_name}, requires: \"{fields}\"")?;
+        write!(sdl, " @join__field(graph: {subgraph_name}, requires: {fields}")?;
     }
 
     Ok(())
@@ -493,11 +493,21 @@ fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraphV
     }
 }
 
+/// Displays a field set inside quotes
 struct FieldSetDisplay<'a>(&'a FieldSet, &'a FederatedGraphV3);
 
 impl Display for FieldSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let FieldSetDisplay(selection_set, graph) = self;
+        let out = format!("{}", BareFieldSetDisplay(self.0, self.1));
+        write_quoted(f, &out)
+    }
+}
+
+struct BareFieldSetDisplay<'a>(&'a FieldSet, &'a FederatedGraphV3);
+
+impl Display for BareFieldSetDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let BareFieldSetDisplay(selection_set, graph) = self;
         let mut selection = selection_set.iter().peekable();
 
         while let Some(field) = selection.next() {
@@ -505,9 +515,17 @@ impl Display for FieldSetDisplay<'_> {
 
             f.write_str(name)?;
 
+            let arguments = field
+                .arguments
+                .iter()
+                .map(|(arg, value)| (graph[*arg].name, value.clone()))
+                .collect::<Vec<_>>();
+
+            DirectiveArguments(&arguments, graph).fmt(f)?;
+
             if !field.subselection.is_empty() {
                 f.write_str(" { ")?;
-                FieldSetDisplay::fmt(&FieldSetDisplay(&field.subselection, graph), f)?;
+                BareFieldSetDisplay(&field.subselection, graph).fmt(f)?;
                 f.write_str(" }")?;
             }
 

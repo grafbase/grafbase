@@ -55,7 +55,7 @@ pub struct InputValueDefinition {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd, Debug)]
 pub enum Value {
     String(StringId),
     Int(i64),

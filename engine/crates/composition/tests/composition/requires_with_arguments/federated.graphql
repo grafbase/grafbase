@@ -1,0 +1,49 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    WASABI @join__graph(name: "wasabi", url: "http://example.com/wasabi")
+}
+
+type WasabiPlant {
+    cultivationArea: String @join__field(graph: WASABI)
+    harvestTime: String @join__field(graph: WASABI, requires: "variety name(language: \"latin\")")
+    id: ID! @join__field(graph: WASABI)
+    name(language: String!): String!
+    variety: String!
+}
+
+type WasabiProduct {
+    description: String @join__field(graph: WASABI)
+    id: ID! @join__field(graph: WASABI)
+    name: String! @join__field(graph: WASABI)
+    price: Float @join__field(graph: WASABI)
+    type: ProductType! @join__field(graph: WASABI)
+}
+
+type Query {
+    wasabiPlants: [WasabiPlant] @join__field(graph: WASABI)
+    wasabiProduct(id: ID!): WasabiProduct @join__field(graph: WASABI)
+}
+
+enum ProductType {
+    FRESH
+    PASTE
+    POWDER
+    DRIED
+}

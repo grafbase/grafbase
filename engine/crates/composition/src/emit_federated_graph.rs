@@ -41,6 +41,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
 
     emit_subgraphs(&mut ctx);
     emit_interface_impls(&mut ctx);
+    emit_input_value_definitions(&ir.input_value_definitions, &mut ctx);
     emit_fields(
         mem::take(&mut ir.fields),
         &ir.object_fields_from_entity_interfaces,
@@ -50,7 +51,6 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     );
     emit_union_members(&ir.union_members, &mut ctx);
     emit_keys(&ir.keys, &mut ctx);
-    emit_input_value_definitions(&ir.input_value_definitions, &mut ctx);
 
     drop(ctx);
 
@@ -190,7 +190,7 @@ fn emit_fields<'a>(
                 field_provides.push((field_id, subgraph_id, definition, provides));
             }
 
-            for (subgraph_id, provides) in requires.iter().filter_map(|field_id| {
+            for (subgraph_id, requires) in requires.iter().filter_map(|field_id| {
                 let field = ctx.subgraphs.walk_field(*field_id);
                 field.directives().requires().map(|provides| {
                     (
@@ -199,7 +199,7 @@ fn emit_fields<'a>(
                     )
                 })
             }) {
-                field_requires.push((field_id, subgraph_id, definition, provides));
+                field_requires.push((field_id, subgraph_id, definition, requires));
             }
 
             let selection_map_key = (definition, field_name);
@@ -323,8 +323,27 @@ fn attach_selection(
             let selection_field = ctx.insert_string(ctx.subgraphs.walk(selection.field));
             let field = ctx.selection_map[&(parent_id, selection_field)];
             let field_ty = ctx.out[field].r#type.definition;
+            let field_arguments = ctx.out[field].arguments;
+            let (federated::InputValueDefinitionId(field_arguments_start), _) = field_arguments;
+            let arguments = selection
+                .arguments
+                .iter()
+                .map(|(name, value)| {
+                    // Here we assume the arguments are validated previously.
+                    let arg_name = ctx.insert_string(ctx.subgraphs.walk(*name));
+                    let argument = ctx.out[field_arguments]
+                        .iter()
+                        .position(|arg| arg.name == arg_name)
+                        .map(|idx| federated::InputValueDefinitionId(field_arguments_start + idx))
+                        .unwrap();
+                    let value = ctx.insert_value(value);
+                    (argument, value)
+                })
+                .collect();
+
             federated::FieldSetItem {
                 field,
+                arguments,
                 subselection: attach_selection(&selection.subselection, field_ty, ctx),
             }
         })
