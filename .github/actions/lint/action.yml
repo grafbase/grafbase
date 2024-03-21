@@ -4,9 +4,9 @@ description: Run cargo fmt, clippy, test
 runs:
   using: 'composite'
   steps:
-    - name: Build udf-wrapper
+    - name: Build wrappers
       shell: bash
-      working-directory: './cli/udf-wrapper'
+      working-directory: './cli/wrappers'
       run: |
         npm i
         npm run build

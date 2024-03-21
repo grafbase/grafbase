@@ -23,9 +23,9 @@ runs:
         npx pnpm i
         npx pnpm run cli-app:build
 
-    - name: Build udf-wrapper
+    - name: Build wrappers
       shell: bash
-      working-directory: './cli/udf-wrapper'
+      working-directory: './cli/wrappers'
       run: |
         npm i
         npm run build
