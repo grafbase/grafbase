@@ -12,7 +12,14 @@ workspace = true
 
 [features]
 default = []
-lambda = ["dep:axum-aws-lambda", "dep:tower", "dep:lambda_http", "dep:tracing-futures", "dep:opentelemetry-aws"]
+lambda = [
+  "dep:axum-aws-lambda",
+  "dep:tower",
+  "dep:lambda_http",
+  "dep:tracing-futures",
+  "dep:opentelemetry-aws",
+  "grafbase-tracing/lambda"
+]
 
 [dependencies]
 ascii = { version = "1.1.0", features = ["serde"] }
@@ -24,7 +31,7 @@ engine.workspace = true
 engine-config-builder.workspace = true
 engine-v2 = { workspace = true, features = ["plan_cache"] }
 futures-util.workspace = true
-grafbase-tracing = { workspace = true, features = ["tower", "lambda"] }
+grafbase-tracing = { workspace = true, features = ["tower"] }
 gateway-core.workspace = true
 gateway-v2 = { workspace = true, features = ["axum"] }
 graphql-composition.workspace = true
