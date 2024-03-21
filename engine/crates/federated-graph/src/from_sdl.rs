@@ -125,6 +125,35 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
 
     ingest_definitions(&parsed, &mut state)?;
     ingest_schema_definitions(&parsed, &mut state)?;
+
+    // Ensure that the root query type is defined
+    let query_type = state
+        .definition_names
+        .get(state.query_type_name.as_deref().unwrap_or("Query"));
+
+    if query_type.is_none() {
+        let query_type_name = "Query";
+        state.query_type_name = Some(String::from(query_type_name));
+
+        let object_id = ObjectId(state.objects.len());
+        let query_string_id = state.insert_string(query_type_name);
+
+        state
+            .definition_names
+            .insert(query_type_name, Definition::Object(object_id));
+
+        state.objects.push(Object {
+            name: query_string_id,
+            implements_interfaces: vec![],
+            keys: vec![],
+            composed_directives: NO_DIRECTIVES,
+            fields: NO_FIELDS,
+            description: None,
+        });
+
+        ingest_object_fields(object_id, &[], &mut state);
+    }
+
     ingest_fields(&parsed, &mut state)?;
     // This needs to happen after all fields have been ingested, in order to attach selection sets.
     ingest_selection_sets(&parsed, &mut state)?;
@@ -169,7 +198,7 @@ fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) ->
                         ));
                     };
                     ingest_object_interfaces(object_id, object, state)?;
-                    ingest_object_fields(object_id, object, state);
+                    ingest_object_fields(object_id, &object.fields, state);
                 }
                 ast::TypeKind::Interface(iface) => {
                     let Definition::Interface(interface_id) = state.definition_names[typedef.node.name.node.as_str()]
@@ -697,20 +726,27 @@ fn ingest_input_object<'a>(
     state.input_objects[input_object_id.0].fields = (InputValueDefinitionId(start), end - start);
 }
 
-fn ingest_object_fields<'a>(object_id: ObjectId, object: &'a ast::ObjectType, state: &mut State<'a>) {
+fn ingest_object_fields<'a>(
+    object_id: ObjectId,
+    fields: &'a [Positioned<ast::FieldDefinition>],
+    state: &mut State<'a>,
+) {
     let [mut start, mut end] = [None; 2];
 
-    for field in &object.fields {
+    for field in fields {
         let field_id = ingest_field(Definition::Object(object_id), &field.node, state);
         start = Some(start.unwrap_or(field_id));
         end = Some(field_id);
     }
 
-    let [Some(start), Some(mut end)] = [start, end] else {
-        return;
-    };
+    if object_id
+        == state
+            .root_operation_types()
+            .expect("root operation types to be defined at this point")
+            .query
+    {
+        let new_start = state.fields.len();
 
-    if Some(object_id) == state.root_operation_types().map(|op| op.query).ok() {
         for name in ["__schema", "__type"].map(|name| state.insert_string(name)) {
             state.fields.push(Field {
                 name,
@@ -728,8 +764,13 @@ fn ingest_object_fields<'a>(object_id: ObjectId, object: &'a ast::ObjectType, st
             });
         }
 
-        end = FieldId(end.0 + 2);
+        start = start.or(Some(FieldId(new_start)));
+        end = end.map(|end| FieldId(end.0 + 2)).or(Some(FieldId(new_start + 1)));
     }
+
+    let [Some(start), Some(end)] = [start, end] else {
+        return;
+    };
 
     state.objects[object_id.0].fields = Range {
         start,
@@ -1035,8 +1076,177 @@ fn test_from_sdl() {
 
     let schema = schema.into_latest();
     let query_object = &schema[schema.root_operation_types.query];
-    let __type = schema.strings.iter().position(|s| s == "__type").unwrap();
-    assert!(schema[query_object.fields.clone()].iter().any(|f| f.name.0 == __type));
-    let __schema = schema.strings.iter().position(|s| s == "__schema").unwrap();
-    assert!(schema[query_object.fields.clone()].iter().any(|f| f.name.0 == __schema));
+
+    for field_name in ["__type", "__schema"] {
+        let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
+        assert!(schema[query_object.fields.clone()]
+            .iter()
+            .any(|f| f.name.0 == field_name));
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_from_sdl_with_empty_query_root() {
+    // https://github.com/the-guild-org/gateways-benchmark/blob/main/federation-v1/gateways/apollo-router/supergraph.graphql
+    let schema = super::from_sdl(
+        r#"
+        schema
+          @link(url: "https://specs.apollo.dev/link/v1.0")
+          @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+        {
+          query: Query
+        }
+
+        directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+        directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+        directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+        directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+        directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+        directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+        scalar join__FieldSet
+
+        enum join__Graph {
+          ACCOUNTS @join__graph(name: "accounts", url: "http://accounts:4001/graphql")
+          INVENTORY @join__graph(name: "inventory", url: "http://inventory:4002/graphql")
+          PRODUCTS @join__graph(name: "products", url: "http://products:4003/graphql")
+          REVIEWS @join__graph(name: "reviews", url: "http://reviews:4004/graphql")
+        }
+
+        scalar link__Import
+
+        enum link__Purpose {
+          """
+          `SECURITY` features provide metadata necessary to securely resolve fields.
+          """
+          SECURITY
+
+          """
+          `EXECUTION` features provide metadata necessary for operation execution.
+          """
+          EXECUTION
+        }
+
+        type Query
+
+        type User
+          @join__type(graph: ACCOUNTS, key: "id")
+          @join__type(graph: REVIEWS, key: "id")
+        {
+          id: ID!
+          name: String @join__field(graph: ACCOUNTS)
+          username: String @join__field(graph: ACCOUNTS) @join__field(graph: REVIEWS, external: true)
+          birthday: Int @join__field(graph: ACCOUNTS)
+          reviews: [Review] @join__field(graph: REVIEWS)
+        }
+
+        type Review
+          @join__type(graph: REVIEWS, key: "id")
+        {
+          id: ID!
+          body: String
+          author: User @join__field(graph: REVIEWS, provides: "username")
+        }
+    "#,
+    ).unwrap();
+
+    let schema = schema.into_latest();
+    let query_object = &schema[schema.root_operation_types.query];
+
+    for field_name in ["__type", "__schema"] {
+        let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
+        assert!(schema[query_object.fields.clone()]
+            .iter()
+            .any(|f| f.name.0 == field_name));
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_from_sdl_with_missing_query_root() {
+    // https://github.com/the-guild-org/gateways-benchmark/blob/main/federation-v1/gateways/apollo-router/supergraph.graphql
+    let schema = super::from_sdl(
+        r#"
+        schema
+          @link(url: "https://specs.apollo.dev/link/v1.0")
+          @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+        {
+          query: Query
+        }
+
+        directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+        directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+        directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+        directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+        directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+        directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+        scalar join__FieldSet
+
+        enum join__Graph {
+          ACCOUNTS @join__graph(name: "accounts", url: "http://accounts:4001/graphql")
+          INVENTORY @join__graph(name: "inventory", url: "http://inventory:4002/graphql")
+          PRODUCTS @join__graph(name: "products", url: "http://products:4003/graphql")
+          REVIEWS @join__graph(name: "reviews", url: "http://reviews:4004/graphql")
+        }
+
+        scalar link__Import
+
+        enum link__Purpose {
+          """
+          `SECURITY` features provide metadata necessary to securely resolve fields.
+          """
+          SECURITY
+
+          """
+          `EXECUTION` features provide metadata necessary for operation execution.
+          """
+          EXECUTION
+        }
+
+        type Review
+          @join__type(graph: REVIEWS, key: "id")
+        {
+          id: ID!
+          body: String
+          author: User @join__field(graph: REVIEWS, provides: "username")
+        }
+
+        type User
+          @join__type(graph: ACCOUNTS, key: "id")
+          @join__type(graph: REVIEWS, key: "id")
+        {
+          id: ID!
+          name: String @join__field(graph: ACCOUNTS)
+          username: String @join__field(graph: ACCOUNTS) @join__field(graph: REVIEWS, external: true)
+          birthday: Int @join__field(graph: ACCOUNTS)
+          reviews: [Review] @join__field(graph: REVIEWS)
+        }
+    "#,
+    ).unwrap();
+
+    let schema = schema.into_latest();
+    let query_object = &schema[schema.root_operation_types.query];
+
+    for field_name in ["__type", "__schema"] {
+        let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
+        assert!(schema[query_object.fields.clone()]
+            .iter()
+            .any(|f| f.name.0 == field_name));
+    }
 }
