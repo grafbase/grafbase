@@ -68,18 +68,18 @@ fn recompress_assets(assets_path: &Path) -> io::Result<()> {
     Ok(())
 }
 
-fn copy_udf_wrapper(dest_path: &Path, target_path: &Path) -> io::Result<()> {
-    let origin_path = if let Ok(path) = env::var("GRAFBASE_CLI_UDF_WRAPPER_PATH") {
+fn copy_wrappers(dest_path: &Path, target_path: &Path) -> io::Result<()> {
+    let origin_path = if let Ok(path) = env::var("GRAFBASE_CLI_WRAPPERS_PATH") {
         PathBuf::from(path)
     } else {
-        Path::new("../../udf-wrapper").to_owned()
+        Path::new("../../wrappers").to_owned()
     };
     fs::create_dir_all(target_path)?;
     fs::copy(
         origin_path.join("bun-multi-wrapper.ts"),
         dest_path.join("custom-resolvers/bun-multi-wrapper.ts"),
     )?;
-    fs::metadata(origin_path.join("dist.js")).expect("Building the worker wrapper is required to continue. Please run `npm install && npm run build` in 'cli/udf-wrapper'");
+    fs::metadata(origin_path.join("dist.js")).expect("Building the worker wrapper is required to continue. Please run `npm install && npm run build` in 'cli/wrappers'");
     fs::copy(
         origin_path.join("dist.js"),
         dest_path.join("custom-resolvers/wrapper.js"),
@@ -113,8 +113,8 @@ fn main() -> io::Result<()> {
     }
     eprintln!("⏱️ Timing after copy: {:?}", time::Instant::now().duration_since(start));
 
-    eprintln!("Copying udf wrapper to the assets dir...");
-    copy_udf_wrapper(tmp_assets.path(), &target_path)?;
+    eprintln!("Copying wrappers to the assets dir...");
+    copy_wrappers(tmp_assets.path(), &target_path)?;
 
     recompress_assets(tmp_assets.path())?;
     eprintln!(
@@ -126,7 +126,7 @@ fn main() -> io::Result<()> {
     println!("cargo:rerun-if-changed={bundle_location}");
     println!("cargo:rerun-if-env-changed={GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH}");
     println!("cargo:rerun-if-changed={ASSETS_GZIP_PATH}");
-    println!("cargo:rerun-if-changed=../../udf-wrapper");
+    println!("cargo:rerun-if-changed=../../wrappers");
 
     Ok(())
 }
