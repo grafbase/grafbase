@@ -4,7 +4,20 @@ type ValidateContext<'a> = crate::ComposeContext<'a>;
 
 /// Pre-composition validations happen here.
 pub(crate) fn validate(ctx: &mut ValidateContext<'_>) {
+    validate_query_nonempty(ctx);
     validate_selections(ctx);
+}
+
+fn validate_query_nonempty(ctx: &mut ValidateContext<'_>) {
+    if ctx
+        .subgraphs
+        .iter_subgraphs()
+        .filter_map(|subgraph| subgraph.query_type())
+        .all(|query_type| query_type.fields().next().is_none())
+    {
+        ctx.diagnostics
+            .push_fatal(String::from("None of the subgraphs defines root query fields."));
+    }
 }
 
 fn validate_selections(ctx: &mut ValidateContext<'_>) {

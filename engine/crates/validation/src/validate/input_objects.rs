@@ -12,6 +12,10 @@ pub(crate) fn validate_input_object<'a>(
         ctx,
     );
 
+    if input_object.fields.is_empty() {
+        diagnostics::empty_input_object(parent_type_name, ctx);
+    }
+
     for field in &input_object.fields {
         validate_directives(
             &field.node.directives,
