@@ -79,9 +79,9 @@ type User
     @join__type(graph: USERS_SERVICE, key: "id")
     @join__type(graph: CARTS_SERVICE, key: "id")
 {
+    cart: Cart @join__field(graph: CARTS_SERVICE)
     id: ID!
     name: String! @join__field(graph: USERS_SERVICE)
-    cart: Cart @join__field(graph: CARTS_SERVICE)
 }
 
 type Cart {

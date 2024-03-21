@@ -136,6 +136,10 @@ impl<'a> FieldTypeWalker<'a> {
         Some(other.is_required())
     }
 
+    pub(crate) fn is_list(self) -> bool {
+        self.iter_wrappers().next().is_some()
+    }
+
     /// ```ignore,graphql
     /// type MyObject {
     ///   id: ID!

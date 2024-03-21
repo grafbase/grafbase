@@ -1,4 +1,5 @@
 import { Input } from '../input_type'
+import { InputType } from '../query'
 import { ListDefinition } from './list'
 
 /**
@@ -27,6 +28,12 @@ export class InputDefinition {
    */
   public list(): ListDefinition {
     return new ListDefinition(this)
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    // Inputs never have arguments, but this type is valid inside ListScalarType
+    // which needs to participate in the allArguments chain
+    return {}
   }
 
   public toString(): string {

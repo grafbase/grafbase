@@ -3,7 +3,7 @@ mod cache_config;
 use std::collections::BTreeMap;
 
 pub use cache_config::{CacheConfig, CacheConfigTarget, CacheConfigs};
-use federated_graph::{v1::FederatedGraphV1, SubgraphId};
+use federated_graph::{FederatedGraphV1, SubgraphId};
 pub use gateway_auth_config::v2::*;
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
@@ -88,7 +88,7 @@ impl std::ops::Index<HeaderId> for Config {
 #[cfg(test)]
 mod tests {
     use crate::v2::{CacheConfig, CacheConfigTarget, CacheConfigs, Config};
-    use federated_graph::v1::{FederatedGraphV1, FieldId, ObjectId, RootOperationTypes};
+    use federated_graph::{FederatedGraphV1, FieldId, ObjectId, RootOperationTypes};
     use std::collections::BTreeMap;
     use std::time::Duration;
 

@@ -1,8 +1,11 @@
+mod consts;
+
+use self::consts::*;
 use super::*;
 use std::{borrow::Cow, collections::BTreeSet};
 
 pub(super) fn ingest_directives(
-    directives: DirectiveSiteId,
+    directive_site_id: DirectiveSiteId,
     directives_node: &[Positioned<ast::ConstDirective>],
     subgraphs: &mut Subgraphs,
     directive_matcher: &DirectiveMatcher<'_>,
@@ -10,22 +13,22 @@ pub(super) fn ingest_directives(
     for directive in directives_node {
         let directive_name = &directive.node.name.node;
         if directive_matcher.is_shareable(directive_name) {
-            subgraphs.set_shareable(directives);
+            subgraphs.set_shareable(directive_site_id);
             continue;
         }
 
         if directive_matcher.is_external(directive_name) {
-            subgraphs.set_external(directives);
+            subgraphs.set_external(directive_site_id);
             continue;
         }
 
         if directive_matcher.is_interface_object(directive_name) {
-            subgraphs.set_interface_object(directives);
+            subgraphs.set_interface_object(directive_site_id);
             continue;
         }
 
         if directive_matcher.is_inaccessible(directive_name) {
-            subgraphs.set_inaccessible(directives);
+            subgraphs.set_inaccessible(directive_site_id);
             continue;
         }
 
@@ -41,7 +44,7 @@ pub(super) fn ingest_directives(
 
             let Some(from) = from else { continue };
 
-            subgraphs.set_override(directives, from);
+            subgraphs.set_override(directive_site_id, from);
             continue;
         }
 
@@ -50,7 +53,7 @@ pub(super) fn ingest_directives(
             let Some(ConstValue::String(fields_arg)) = fields_arg else {
                 continue;
             };
-            subgraphs.insert_requires(directives, fields_arg).ok();
+            subgraphs.insert_requires(directive_site_id, fields_arg).ok();
             continue;
         }
 
@@ -59,7 +62,7 @@ pub(super) fn ingest_directives(
             let Some(ConstValue::String(fields_arg)) = fields_arg else {
                 continue;
             };
-            subgraphs.insert_provides(directives, fields_arg).ok();
+            subgraphs.insert_provides(directive_site_id, fields_arg).ok();
             continue;
         }
 
@@ -75,16 +78,70 @@ pub(super) fn ingest_directives(
                     )
                 })
                 .collect();
-            subgraphs.insert_composed_directive_instance(directives, directive_name.as_str(), arguments);
+            subgraphs.insert_composed_directive_instance(directive_site_id, directive_name.as_str(), arguments);
         }
 
-        if directive_name == "tag" {
+        if directive_matcher.is_tag(directive_name) {
             let Some(value) = directive.node.get_argument("name") else {
                 continue;
             };
 
             if let async_graphql_value::ConstValue::String(s) = &value.node {
-                subgraphs.insert_tag(directives, s.as_str());
+                subgraphs.insert_tag(directive_site_id, s.as_str());
+            }
+        }
+
+        if directive_matcher.is_authenticated(directive_name) {
+            subgraphs.insert_authenticated(directive_site_id);
+        }
+
+        if directive_matcher.is_requires_scope(directive_name) {
+            let scopes = directive
+                .node
+                .get_argument("scopes")
+                .into_iter()
+                .flat_map(|scopes| match &scopes.node {
+                    ConstValue::List(list) => Some(list),
+                    _ => None,
+                })
+                .flatten();
+            for scope in scopes {
+                let inner_scopes: Vec<subgraphs::StringId> = match scope {
+                    ConstValue::List(scopes) => scopes
+                        .iter()
+                        .filter_map(|scope| match scope {
+                            ConstValue::String(string) => Some(subgraphs.strings.intern(string.as_str())),
+                            _ => None,
+                        })
+                        .collect(),
+                    _ => vec![],
+                };
+                subgraphs.append_required_scopes(directive_site_id, inner_scopes);
+            }
+        }
+
+        if directive_matcher.is_policy(directive_name) {
+            let policies = directive
+                .node
+                .get_argument("policies")
+                .into_iter()
+                .flat_map(|scopes| match &scopes.node {
+                    ConstValue::List(list) => Some(list),
+                    _ => None,
+                })
+                .flatten();
+            for policy in policies {
+                let inner_policies: Vec<subgraphs::StringId> = match policy {
+                    ConstValue::List(policies) => policies
+                        .iter()
+                        .filter_map(|policy| match policy {
+                            ConstValue::String(string) => Some(subgraphs.strings.intern(string.as_str())),
+                            _ => None,
+                        })
+                        .collect(),
+                    _ => vec![],
+                };
+                subgraphs.insert_policy(directive_site_id, inner_policies);
             }
         }
 
@@ -94,7 +151,7 @@ pub(super) fn ingest_directives(
                 _ => None,
             });
 
-            subgraphs.insert_deprecated(directives, reason);
+            subgraphs.insert_deprecated(directive_site_id, reason);
         }
     }
 }
@@ -201,6 +258,10 @@ pub(crate) struct DirectiveMatcher<'a> {
     interface_object: Cow<'a, str>,
     r#override: Cow<'a, str>,
     compose_directive: Cow<'a, str>,
+    requires_scopes: Cow<'a, str>,
+    authenticated: Cow<'a, str>,
+    policy: Cow<'a, str>,
+    tag: Cow<'a, str>,
 
     /// directive name -> is repeatable
     ///
@@ -213,16 +274,20 @@ const DEFAULT_FEDERATION_PREFIX: &str = "federation__";
 impl Default for DirectiveMatcher<'_> {
     fn default() -> Self {
         DirectiveMatcher {
-            shareable: Cow::Borrowed("shareable"),
-            key: Cow::Borrowed("key"),
-            external: Cow::Borrowed("external"),
-            provides: Cow::Borrowed("provides"),
-            requires: Cow::Borrowed("requires"),
-            inaccessible: Cow::Borrowed("inaccessible"),
-            interface_object: Cow::Borrowed("interfaceObject"),
-            r#override: Cow::Borrowed("override"),
-            compose_directive: Cow::Borrowed("composeDirective"),
+            authenticated: Cow::Borrowed(AUTHENTICATED),
+            compose_directive: Cow::Borrowed(COMPOSE_DIRECTIVE),
             composed_directives: BTreeSet::new(),
+            external: Cow::Borrowed(EXTERNAL),
+            inaccessible: Cow::Borrowed(INACCESSIBLE),
+            interface_object: Cow::Borrowed(INTERFACE_OBJECT),
+            key: Cow::Borrowed(KEY),
+            policy: Cow::Borrowed(POLICY),
+            provides: Cow::Borrowed(PROVIDES),
+            r#override: Cow::Borrowed(OVERRIDE),
+            requires: Cow::Borrowed(REQUIRES),
+            requires_scopes: Cow::Borrowed(REQUIRES_SCOPES),
+            shareable: Cow::Borrowed(SHAREABLE),
+            tag: Cow::Borrowed(TAG),
         }
     }
 }
@@ -267,16 +332,20 @@ impl<'a> DirectiveMatcher<'a> {
         };
 
         DirectiveMatcher {
-            shareable: final_name("shareable"),
-            key: final_name("key"),
-            external: final_name("external"),
-            provides: final_name("provides"),
-            requires: final_name("requires"),
-            inaccessible: final_name("inaccessible"),
-            interface_object: final_name("interfaceObject"),
-            r#override: final_name("override"),
-            compose_directive: final_name("composeDirective"),
+            authenticated: final_name(AUTHENTICATED),
+            compose_directive: final_name(COMPOSE_DIRECTIVE),
             composed_directives: BTreeSet::new(),
+            external: final_name(EXTERNAL),
+            inaccessible: final_name(INACCESSIBLE),
+            interface_object: final_name(INTERFACE_OBJECT),
+            key: final_name(KEY),
+            policy: final_name(POLICY),
+            provides: final_name(PROVIDES),
+            r#override: final_name(OVERRIDE),
+            requires: final_name(REQUIRES),
+            requires_scopes: final_name(REQUIRES_SCOPES),
+            shareable: final_name(SHAREABLE),
+            tag: final_name(TAG),
         }
     }
 
@@ -324,6 +393,22 @@ impl<'a> DirectiveMatcher<'a> {
     pub(crate) fn is_inaccessible(&self, directive_name: &str) -> bool {
         self.inaccessible == directive_name
     }
+
+    pub(crate) fn is_authenticated(&self, directive_name: &str) -> bool {
+        self.authenticated == directive_name
+    }
+
+    pub(crate) fn is_policy(&self, directive_name: &str) -> bool {
+        self.policy == directive_name
+    }
+
+    pub(crate) fn is_requires_scope(&self, directive_name: &str) -> bool {
+        self.requires_scopes == directive_name
+    }
+
+    pub(crate) fn is_tag(&self, directive_name: &str) -> bool {
+        self.tag == directive_name
+    }
 }
 
 fn read_imports<'a>(ast_imports: &'a [ConstValue], out: &mut Vec<(&'a str, &'a str)>) {
@@ -347,30 +432,6 @@ fn read_imports<'a>(ast_imports: &'a [ConstValue], out: &mut Vec<(&'a str, &'a s
             }
             _ => (),
         }
-    }
-}
-
-fn ast_value_to_subgraph_value(value: &ConstValue, subgraphs: &mut Subgraphs) -> subgraphs::Value {
-    match &value {
-        ConstValue::Null | ConstValue::Binary(_) => unreachable!("null or bytes value in argument"),
-        ConstValue::Number(n) if n.is_u64() || n.is_i64() => subgraphs::Value::Int(n.as_i64().unwrap()),
-        ConstValue::Number(n) => subgraphs::Value::Float(n.as_f64().unwrap()),
-        ConstValue::String(s) => subgraphs::Value::String(subgraphs.strings.intern(s.as_str())),
-        ConstValue::Boolean(b) => subgraphs::Value::Boolean(*b),
-        ConstValue::Enum(e) => subgraphs::Value::Enum(subgraphs.strings.intern(e.as_str())),
-        ConstValue::List(l) => {
-            subgraphs::Value::List(l.iter().map(|v| ast_value_to_subgraph_value(v, subgraphs)).collect())
-        }
-        ConstValue::Object(o) => subgraphs::Value::Object(
-            o.iter()
-                .map(|(k, v)| {
-                    (
-                        subgraphs.strings.intern(k.as_str()),
-                        ast_value_to_subgraph_value(v, subgraphs),
-                    )
-                })
-                .collect(),
-        ),
     }
 }
 

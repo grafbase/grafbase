@@ -18,6 +18,7 @@ export type InputType =
   | InputDefinition
   | InputDefaultDefinition
   | EnumDefinition<any, any>
+  | ReferenceDefinition
 
 /** The possible types of an output parameters of a query. */
 export type OutputType = ScalarDefinition | ListDefinition | ReferenceDefinition
@@ -51,7 +52,7 @@ export interface QueryInput {
 /**
  * An input argument shape of a query.
  */
-export class QueryArgument {
+export class FieldArgument {
   private name: string
   private type: InputType
 
@@ -78,7 +79,7 @@ export class QueryArgument {
 export class Query {
   private name: string
   private _kind: 'mutation' | 'query'
-  private arguments: QueryArgument[]
+  private arguments: FieldArgument[]
   private returns: OutputType
   private resolver: string
 
@@ -108,7 +109,7 @@ export class Query {
    * @param type - The type of the input parameter.
    */
   public argument(name: string, type: InputType): Query {
-    this.arguments.push(new QueryArgument(name, type))
+    this.arguments.push(new FieldArgument(name, type))
 
     return this
   }

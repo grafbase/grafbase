@@ -11,7 +11,9 @@ keywords = ["graphql", "federation"]
 workspace = true
 
 [dependencies]
+wrapping = { path = "../wrapping" }
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 indoc = "2"
 
 async-graphql-parser = { workspace = true, optional = true }

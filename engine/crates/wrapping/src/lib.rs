@@ -36,8 +36,20 @@ const LIST_WRAPPINGS_MASK: u32 = 0b0000_0000_0001_1111_1111_1111_1111_1111;
 const MAX_LIST_WRAPINGS: u32 = LIST_WRAPPINGS_MASK.trailing_ones();
 const INNER_IS_REQUIRED_FLAG: u32 = 0b1000_0000_0000_0000_0000_0000_0000_0000;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Wrapping(u32);
+
+impl From<Wrapping> for u32 {
+    fn from(value: Wrapping) -> Self {
+        value.0
+    }
+}
+
+impl From<u32> for Wrapping {
+    fn from(value: u32) -> Self {
+        Wrapping(value)
+    }
+}
 
 impl std::fmt::Debug for Wrapping {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -200,19 +212,6 @@ impl Wrapping {
     /// Outermost wrapping
     pub fn pop_list_wrapping(&mut self) -> Option<ListWrapping> {
         self.next_back()
-    }
-}
-
-impl From<federated_graph::FieldType> for Wrapping {
-    fn from(field_type: federated_graph::FieldType) -> Self {
-        let mut wrapping = Wrapping::new(field_type.inner_is_required);
-        for list_wrapping in field_type.list_wrappers {
-            wrapping = match list_wrapping {
-                federated_graph::ListWrapper::RequiredList => wrapping.wrapped_by_required_list(),
-                federated_graph::ListWrapper::NullableList => wrapping.wrapped_by_nullable_list(),
-            }
-        }
-        wrapping
     }
 }
 

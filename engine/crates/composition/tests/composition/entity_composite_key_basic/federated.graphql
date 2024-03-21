@@ -26,10 +26,10 @@ type Course
     @join__type(graph: COURSES, key: "id")
     @join__type(graph: STUDENTS, key: "id")
 {
-    id: ID!
-    name: String @join__field(graph: COURSES)
     description: String @join__field(graph: COURSES)
     enrolledStudents: [Student] @join__field(graph: STUDENTS, requires: "id")
+    id: ID!
+    name: String @join__field(graph: COURSES)
 }
 
 type Enrollment
@@ -37,34 +37,34 @@ type Enrollment
     @join__type(graph: RATINGS, key: "studentId courseId")
     @join__type(graph: STUDENTS, key: "studentId courseId")
 {
-    studentId: ID!
-    courseId: ID!
     course: Course @join__field(graph: STUDENTS)
+    courseId: ID!
+    enrollmentDate: String @join__field(graph: STUDENTS)
     enrollmentDetails: Enrollment @join__field(graph: COURSES, requires: "studentId courseId")
     rating: CourseRating @join__field(graph: RATINGS)
-    enrollmentDate: String @join__field(graph: STUDENTS)
+    studentId: ID!
 }
 
 type CourseRating
     @join__type(graph: RATINGS, key: "courseId")
 {
+    comments: String @join__field(graph: RATINGS)
     courseId: ID!
     rating: Float @join__field(graph: RATINGS)
-    comments: String @join__field(graph: RATINGS)
 }
 
 type Student
     @join__type(graph: STUDENTS, key: "id")
 {
+    enrollments: [Enrollment] @join__field(graph: STUDENTS)
     id: ID!
     name: String @join__field(graph: STUDENTS)
-    enrollments: [Enrollment] @join__field(graph: STUDENTS)
 }
 
 type Query {
-    courses: [Course] @join__field(graph: COURSES)
     course(id: ID!): Course @join__field(graph: COURSES)
     courseRating(courseId: ID!): [CourseRating] @join__field(graph: RATINGS)
-    students: [Student] @join__field(graph: STUDENTS)
+    courses: [Course] @join__field(graph: COURSES)
     student(id: ID!): Student @join__field(graph: STUDENTS)
+    students: [Student] @join__field(graph: STUDENTS)
 }

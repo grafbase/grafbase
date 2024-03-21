@@ -218,6 +218,7 @@ impl Resolver {
                     .resolve(
                         // Be a lot easier to just pass the context in here...
                         operation,
+                        ctx.path.clone(),
                         ray_id,
                         fetch_log_endpoint_url,
                         &headers,

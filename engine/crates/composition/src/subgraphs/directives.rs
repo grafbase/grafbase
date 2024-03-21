@@ -5,7 +5,7 @@ pub(crate) struct DirectiveSiteId(usize);
 
 type Arguments = Vec<(StringId, Value)>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub(crate) enum Value {
     String(StringId),
     Int(i64),
@@ -25,6 +25,10 @@ pub(super) struct Directives {
     provides: BTreeMap<DirectiveSiteId, Vec<Selection>>,
     requires: BTreeMap<DirectiveSiteId, Vec<Selection>>,
 
+    requires_scopes: BTreeSet<(DirectiveSiteId, Vec<StringId>)>,
+    policies: BTreeSet<(DirectiveSiteId, Vec<StringId>)>,
+
+    authenticated: HashSet<DirectiveSiteId>,
     inaccessible: HashSet<DirectiveSiteId>,
     shareable: HashSet<DirectiveSiteId>,
     external: HashSet<DirectiveSiteId>,
@@ -41,6 +45,10 @@ pub(super) struct Directives {
 }
 
 impl Subgraphs {
+    pub(crate) fn insert_authenticated(&mut self, id: DirectiveSiteId) {
+        self.directives.authenticated.insert(id);
+    }
+
     pub(crate) fn insert_composed_directive(&mut self, subgraph_id: SubgraphId, directive_name: &str) {
         let directive_name = self.strings.intern(directive_name);
         self.directives
@@ -75,6 +83,14 @@ impl Subgraphs {
         let fields = self.selection_set_from_str(fields)?;
         self.directives.requires.insert(id, fields);
         Ok(())
+    }
+
+    pub(crate) fn insert_policy(&mut self, id: DirectiveSiteId, policies: Vec<StringId>) {
+        self.directives.policies.insert((id, policies));
+    }
+
+    pub(crate) fn append_required_scopes(&mut self, id: DirectiveSiteId, scopes: Vec<StringId>) {
+        self.directives.requires_scopes.insert((id, scopes));
     }
 
     pub(crate) fn insert_tag(&mut self, id: DirectiveSiteId, tag: &str) {
@@ -112,6 +128,10 @@ impl Subgraphs {
 pub(crate) type DirectiveSiteWalker<'a> = Walker<'a, DirectiveSiteId>;
 
 impl<'a> DirectiveSiteWalker<'a> {
+    pub(crate) fn authenticated(self) -> bool {
+        self.subgraphs.directives.authenticated.contains(&self.id)
+    }
+
     pub(crate) fn deprecated(self) -> Option<DeprecatedWalker<'a>> {
         self.subgraphs
             .directives
@@ -152,6 +172,15 @@ impl<'a> DirectiveSiteWalker<'a> {
         string_id.map(|override_| self.walk(*override_))
     }
 
+    pub(crate) fn policies(self) -> impl Iterator<Item = &'a [StringId]> {
+        self.subgraphs
+            .directives
+            .policies
+            .range((self.id, vec![])..)
+            .take_while(move |(site, _)| *site == self.id)
+            .map(|(_, policies)| policies.as_slice())
+    }
+
     /// ```ignore,graphql
     /// type MyObject {
     ///   id: ID!
@@ -181,6 +210,15 @@ impl<'a> DirectiveSiteWalker<'a> {
             .requires
             .get(&self.id)
             .map(|requires| &**requires)
+    }
+
+    pub(crate) fn requires_scopes(self) -> impl Iterator<Item = &'a [StringId]> {
+        self.subgraphs
+            .directives
+            .requires_scopes
+            .range((self.id, vec![])..)
+            .take_while(move |(site, _)| *site == self.id)
+            .map(|(_, scopes)| scopes.as_slice())
     }
 
     pub(crate) fn shareable(self) -> bool {

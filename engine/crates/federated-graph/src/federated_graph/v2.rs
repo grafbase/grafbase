@@ -55,7 +55,7 @@ pub struct InputValueDefinition {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd, Debug)]
 pub enum Value {
     String(StringId),
     Int(i64),
@@ -67,6 +67,24 @@ pub enum Value {
     EnumValue(StringId),
     Object(Box<[(StringId, Value)]>),
     List(Box<[Value]>),
+}
+
+impl Value {
+    pub fn as_list(&self) -> Option<&[Value]> {
+        if let Self::List(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_string(&self) -> Option<&StringId> {
+        if let Self::String(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
@@ -563,15 +581,15 @@ impl From<super::v1::FederatedGraphV1> for FederatedGraphV2 {
 impl From<(super::v1::Value, &[String])> for Value {
     fn from((value, strings): (super::v1::Value, &[String])) -> Self {
         match value {
-            crate::v1::Value::String(v) => Value::String(v),
-            crate::v1::Value::Int(v) => Value::Int(v),
-            crate::v1::Value::Float(v) => Value::Float(strings[v.0].parse().unwrap()),
-            crate::v1::Value::Boolean(v) => Value::Boolean(v),
-            crate::v1::Value::EnumValue(v) => Value::EnumValue(v),
-            crate::v1::Value::Object(v) => {
+            super::v1::Value::String(v) => Value::String(v),
+            super::v1::Value::Int(v) => Value::Int(v),
+            super::v1::Value::Float(v) => Value::Float(strings[v.0].parse().unwrap()),
+            super::v1::Value::Boolean(v) => Value::Boolean(v),
+            super::v1::Value::EnumValue(v) => Value::EnumValue(v),
+            super::v1::Value::Object(v) => {
                 Value::Object(v.into_iter().map(|(k, v)| (k, (v, strings).into())).collect())
             }
-            crate::v1::Value::List(v) => Value::List(v.into_iter().map(|v| (v, strings).into()).collect()),
+            super::v1::Value::List(v) => Value::List(v.into_iter().map(|v| (v, strings).into()).collect()),
         }
     }
 }

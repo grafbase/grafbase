@@ -22,7 +22,7 @@ on:
 jobs:
   release:
     name: Release gateway
-    runs-on: buildjet-8vcpu-ubuntu-2204
+    runs-on: ubicloud-standard-2
     steps:
       - name: Parse version tag
         run: |

@@ -4,12 +4,12 @@ import { UniqueDefinition } from './unique'
 import { DefaultDefinition } from './default'
 import { Enum } from '../enum'
 import { StringDefinition } from './scalar'
-import { SearchDefinition } from './search'
 import { AuthRuleF } from '../auth'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { StringListDefinition } from './list'
 import { MapDefinition } from './map'
+import { InputType } from '../query'
 
 export interface FieldLength {
   min?: number
@@ -37,13 +37,6 @@ export class LengthLimitedStringDefinition {
    */
   public unique(scope?: string[]): UniqueDefinition {
     return new UniqueDefinition(this, scope)
-  }
-
-  /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
   }
 
   /**
@@ -103,5 +96,9 @@ export class LengthLimitedStringDefinition {
 
   fieldTypeVal(): FieldType | Enum<any, any> {
     return this.scalar.fieldType
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return this.scalar.allArguments
   }
 }

@@ -1,5 +1,6 @@
 import { AuthRuleF } from '../auth'
 import { Enum, EnumShape } from '../enum'
+import { InputType } from '../query'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { DefaultDefinition } from './default'
@@ -11,7 +12,6 @@ import { MapDefinition } from './map'
 import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
 import { ResolverDefinition } from './resolver'
-import { SearchDefinition } from './search'
 import { ShareableDefinition } from './shareable'
 import { UniqueDefinition } from './unique'
 
@@ -49,13 +49,6 @@ export class EnumDefinition<T extends string, U extends EnumShape<T>> {
    */
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
-  }
-
-  /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
   }
 
   /**
@@ -147,6 +140,10 @@ export class EnumDefinition<T extends string, U extends EnumShape<T>> {
    */
   public provides(fields: string): ProvidesDefinition {
     return new ProvidesDefinition(this, fields)
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return {}
   }
 
   public toString(): string {

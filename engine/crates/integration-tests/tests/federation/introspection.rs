@@ -995,17 +995,24 @@ fn default_values() {
           "name": "__Type",
           "fields": [
             {
+              "name": "kind",
+              "args": []
+            },
+            {
+              "name": "name",
+              "args": []
+            },
+            {
               "name": "description",
               "args": []
             },
             {
-              "name": "enumValues",
-              "args": [
-                {
-                  "name": "includeDeprecated",
-                  "defaultValue": "false"
-                }
-              ]
+              "name": "inputFields",
+              "args": []
+            },
+            {
+              "name": "specifiedByURL",
+              "args": []
             },
             {
               "name": "fields",
@@ -1017,20 +1024,13 @@ fn default_values() {
               ]
             },
             {
-              "name": "inputFields",
-              "args": []
-            },
-            {
-              "name": "interfaces",
-              "args": []
-            },
-            {
-              "name": "kind",
-              "args": []
-            },
-            {
-              "name": "name",
-              "args": []
+              "name": "enumValues",
+              "args": [
+                {
+                  "name": "includeDeprecated",
+                  "defaultValue": "false"
+                }
+              ]
             },
             {
               "name": "ofType",
@@ -1041,7 +1041,7 @@ fn default_values() {
               "args": []
             },
             {
-              "name": "specifiedByURL",
+              "name": "interfaces",
               "args": []
             }
           ]

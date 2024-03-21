@@ -5,7 +5,6 @@ import { DefaultDefinition } from './default'
 import { LengthLimitedStringDefinition } from './length-limited-string'
 import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
-import { SearchDefinition } from './search'
 import { UniqueDefinition } from './unique'
 import { EnumDefinition } from './enum'
 import { MapDefinition } from './map'
@@ -16,12 +15,12 @@ import { ShareableDefinition } from './shareable'
 import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
 import { DeprecatedDefinition } from './deprecated'
+import { InputType } from '../query'
 
 export type Authenticable =
   | ScalarDefinition
   | UniqueDefinition
   | DefaultDefinition
-  | SearchDefinition
   | ReferenceDefinition
   | LengthLimitedStringDefinition
   | CacheDefinition
@@ -48,13 +47,6 @@ export class AuthDefinition {
   }
 
   /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
-  }
-
-  /**
    * Make the field unique.
    *
    * @param scope - Additional fields to be added to the constraint.
@@ -77,6 +69,10 @@ export class AuthDefinition {
    */
   public mapped(name: string): MapDefinition {
     return new MapDefinition(this, name)
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return this.field.allArguments
   }
 
   public toString(): string {

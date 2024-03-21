@@ -6,6 +6,7 @@ pub(super) fn collect_composed_directives<'a>(
 ) -> federated::Directives {
     let mut tags: BTreeSet<StringId> = BTreeSet::new();
     let mut is_inaccessible = false;
+    let mut authenticated = false;
     let mut extra_directives = Vec::new();
     let mut ids: Option<federated::Directives> = None;
     let mut push_directive = |ctx: &mut ComposeContext<'_>, directive| {
@@ -24,11 +25,12 @@ pub(super) fn collect_composed_directives<'a>(
         push_directive(ctx, directive);
     }
 
-    for site in sites {
+    for site in sites.clone() {
         tags.extend(site.tags().map(|t| t.id));
 
-        // The inaccessible directive is added whenever the item is inaccessible in any subgraph.
+        // The directive is added whenever it's applied in any subgraph.
         is_inaccessible = is_inaccessible || site.inaccessible();
+        authenticated = authenticated || site.authenticated();
 
         for (name, arguments) in site.iter_composed_directives() {
             let name = ctx.insert_string(name);
@@ -43,6 +45,52 @@ pub(super) fn collect_composed_directives<'a>(
 
     if is_inaccessible {
         push_directive(ctx, federated::Directive::Inaccessible);
+    }
+
+    if authenticated {
+        push_directive(ctx, federated::Directive::Authenticated)
+    }
+
+    // @requiresScopes
+    {
+        let mut scopes: Vec<Vec<federated::StringId>> = Vec::new();
+
+        for scopes_arg in sites.clone().flat_map(|directives| directives.requires_scopes()) {
+            scopes.push(
+                scopes_arg
+                    .iter()
+                    .map(|scope| ctx.insert_string(*scope))
+                    .collect::<Vec<_>>(),
+            );
+        }
+
+        scopes.sort();
+        scopes.dedup();
+
+        if !scopes.is_empty() {
+            push_directive(ctx, federated::Directive::RequiresScopes(scopes));
+        }
+    }
+
+    // @policy
+    {
+        let mut policies: Vec<Vec<federated::StringId>> = Vec::new();
+
+        for policies_arg in sites.clone().flat_map(|directives| directives.policies()) {
+            policies.push(
+                policies_arg
+                    .iter()
+                    .map(|scope| ctx.insert_string(*scope))
+                    .collect::<Vec<_>>(),
+            );
+        }
+
+        policies.sort();
+        policies.dedup();
+
+        if !policies.is_empty() {
+            push_directive(ctx, federated::Directive::Policy(policies));
+        }
     }
 
     for tag in tags {

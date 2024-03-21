@@ -13,6 +13,7 @@ import { ShareableDefinition } from './shareable'
 import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
 import { DeprecatedDefinition } from './deprecated'
+import { InputType } from '../query'
 
 /**
  * A list of field types that can hold a `@tag` attribute.
@@ -109,6 +110,10 @@ export class TagDefinition {
    */
   public provides(fields: string): ProvidesDefinition {
     return new ProvidesDefinition(this, fields)
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return { ...this.field.allArguments }
   }
 
   public toString(): string {

@@ -53,8 +53,26 @@ impl Subgraphs {
                 .map(|item| match &item.node {
                     ast::Selection::Field(item) => {
                         let field = subgraphs.strings.intern(item.node.name.node.as_str());
+                        let arguments = item
+                            .node
+                            .arguments
+                            .iter()
+                            .map(|(name, value)| {
+                                let name = subgraphs.strings.intern(name.node.as_str());
+                                let value = crate::ast_value_to_subgraph_value(
+                                    &value.node.clone().into_const().unwrap(),
+                                    subgraphs,
+                                );
+
+                                (name, value)
+                            })
+                            .collect();
                         let subselection = build_selection_set(&item.node.selection_set.node.items, subgraphs)?;
-                        Ok(Selection { field, subselection })
+                        Ok(Selection {
+                            field,
+                            arguments,
+                            subselection,
+                        })
                     }
                     ast::Selection::FragmentSpread(_) | ast::Selection::InlineFragment(_) => {
                         Err("Fragments not allowed in key definitions.".to_owned())
@@ -121,15 +139,16 @@ impl NestedKeyFields {
 }
 
 /// Corresponds to an `@key` annotation.
-#[derive(Debug, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Debug, PartialOrd, PartialEq)]
 pub(crate) struct Key {
     selection_set: Vec<Selection>,
     resolvable: bool,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(PartialEq, PartialOrd, Debug)]
 pub(crate) struct Selection {
     pub(crate) field: StringId,
+    pub(crate) arguments: Vec<(StringId, Value)>,
     pub(crate) subselection: Vec<Selection>,
 }
 

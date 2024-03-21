@@ -1,6 +1,6 @@
 //! Tests of the join directive
 
-use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
+use graphql_mocks::{ErrorSchema, FakeGithubSchema, MockGraphQlServer};
 use integration_tests::{runtime, udfs::RustUdfs, EngineBuilder, ResponseExt};
 use runtime::udf::{CustomResolverRequestPayload, UdfResponse};
 use serde_json::{json, Value};
@@ -261,8 +261,6 @@ fn join_with_an_enum_argument() {
     //
     // Though it seems to be a terrible test because AsyncGraphql doesn't give a shit
     // if you give it a string where it expects an enum :|
-    //
-    // TODO: Inspect the mock call
     runtime().block_on(async {
         let mut graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
         let port = graphql_mock.port();
@@ -373,6 +371,171 @@ fn nested_joins() {
         {
           "user": {
             "greeting": "Good morning Bob your ID is 123"
+          }
+        }
+        "###
+        );
+    });
+}
+
+#[test]
+fn joins_with_downstream_errors() {
+    // Tests the case where we're joining onto a GraphQL connector, but that GraphQL connector
+    // returns errors
+    runtime().block_on(async {
+        let graphql_mock = MockGraphQlServer::new(ErrorSchema::default()).await;
+        let port = graphql_mock.port();
+
+        let schema = format!(
+            r#"
+            extend schema
+                @graphql(
+                    name: "errors",
+                    namespace: true,
+                    url: "http://127.0.0.1:{port}",
+                )
+
+            type JoinContainer {{
+                brokenObjectList: [ErrorsBrokenObject] @join(select: "errors {{ brokenObjectList(error: \"objectError\") }}")
+            }}
+
+            extend type Query {{
+                joins: [JoinContainer]! @resolver(name: "joinContainer")
+            }}
+            "#
+        );
+
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(RustUdfs::new().resolver("joinContainer", UdfResponse::Success(json!([{}, {}]))))
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute(r#"
+                query {
+                    joins {
+                        brokenObjectList {
+                            brokenField
+                        }
+                    }
+                }
+                "#)
+                .await
+                .into_value(),
+                @r###"
+        {
+          "data": {
+            "joins": [
+              {
+                "brokenObjectList": [
+                  null,
+                  null
+                ]
+              },
+              {
+                "brokenObjectList": [
+                  null,
+                  null
+                ]
+              }
+            ]
+          },
+          "errors": [
+            {
+              "message": "objectError",
+              "path": [
+                "joins",
+                0,
+                "brokenObjectList",
+                "brokenObjectList",
+                0,
+                "brokenField"
+              ]
+            },
+            {
+              "message": "objectError",
+              "path": [
+                "joins",
+                0,
+                "brokenObjectList",
+                "brokenObjectList",
+                1,
+                "brokenField"
+              ]
+            },
+            {
+              "message": "objectError",
+              "path": [
+                "joins",
+                1,
+                "brokenObjectList",
+                "brokenObjectList",
+                0,
+                "brokenField"
+              ]
+            },
+            {
+              "message": "objectError",
+              "path": [
+                "joins",
+                1,
+                "brokenObjectList",
+                "brokenObjectList",
+                1,
+                "brokenField"
+              ]
+            }
+          ]
+        }
+        "###
+        );
+    });
+}
+
+#[test]
+fn argument_forwarding_for_joins() {
+    runtime().block_on(async {
+        let schema = r#"
+            extend type Query {
+                greetPerson(name: String!, salutation: String!): String! @resolver(name: "greetPerson")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                id: ID!
+                name: String!
+                greeting(salutation: String!): String! @join(select: "greetPerson(name: $name, salutation: $salutation)")
+            }
+        "#;
+
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(
+                RustUdfs::new()
+                    .resolver("user", UdfResponse::Success(json!({"id": "123", "name": "Bob"})))
+                    .resolver("greetPerson", |input: CustomResolverRequestPayload| {
+                        Ok(UdfResponse::Success(
+                            format!(
+                                "{} {}",
+                                input.arguments["salutation"].as_str().unwrap(),
+                                input.arguments["name"].as_str().unwrap(),
+                            )
+                            .into(),
+                        ))
+                    }),
+            )
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute("{ user { greeting(salutation: \"Hail\") } }")
+                .await
+                .into_data::<Value>(),
+                @r###"
+        {
+          "user": {
+            "greeting": "Hail Bob"
           }
         }
         "###

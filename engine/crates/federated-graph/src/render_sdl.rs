@@ -38,6 +38,7 @@ pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
 
     for (idx, object) in graph.objects.iter().enumerate() {
         let object_name = &graph[object.name];
+        let is_query_root = graph.root_operation_types.query == ObjectId(idx);
 
         if let Some(description) = object.description {
             write!(sdl, "{}", Description(&graph[description], ""))?;
@@ -69,21 +70,20 @@ pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
                 if key.resolvable {
                     writeln!(
                         sdl,
-                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}")"#
+                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set})"#
                     )?;
                 } else {
                     writeln!(
                         sdl,
-                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}", resolvable: false)"#
+                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set}, resolvable: false)"#
                     )?;
                 }
             }
         }
 
-        let mut fields = graph
-            .object_fields
+        let mut fields = graph[object.fields.clone()]
             .iter()
-            .filter(|field| field.object_id.0 == idx)
+            .filter(|field| !(is_query_root && ["__type", "__schema"].contains(&graph[field.name].as_str())))
             .peekable();
 
         if fields.peek().is_some() {
@@ -92,7 +92,7 @@ pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
             }
             sdl.push_str("{\n");
             for field in fields {
-                write_field(field.field_id, &graph, &mut sdl)?;
+                write_field(field, &graph, &mut sdl)?;
             }
             writeln!(sdl, "}}\n")?;
         } else {
@@ -100,7 +100,7 @@ pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
         }
     }
 
-    for (idx, interface) in graph.interfaces.iter().enumerate() {
+    for interface in &graph.interfaces {
         let interface_name = &graph[interface.name];
 
         if let Some(description) = interface.description {
@@ -138,19 +138,15 @@ pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
                 };
                 writeln!(
                     sdl,
-                    r#"{INDENT}@join__type(graph: {subgraph_name}, key: "{selection_set}"{is_interface_object})"#
+                    r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set}{is_interface_object})"#
                 )?;
             }
 
             sdl.push_str("{\n");
         }
 
-        for field in graph
-            .interface_fields
-            .iter()
-            .filter(|field| field.interface_id.0 == idx)
-        {
-            write_field(field.field_id, &graph, &mut sdl)?;
+        for field in &graph[interface.fields.clone()] {
+            write_field(field, &graph, &mut sdl)?;
         }
 
         writeln!(sdl, "}}\n")?;
@@ -261,7 +257,7 @@ fn write_prelude(sdl: &mut String) -> fmt::Result {
     Ok(())
 }
 
-fn write_subgraphs_enum(graph: &FederatedGraphV2, sdl: &mut String) -> fmt::Result {
+fn write_subgraphs_enum(graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
     sdl.push_str("enum join__Graph");
 
     if !graph.subgraphs.is_empty() {
@@ -282,9 +278,9 @@ fn write_subgraphs_enum(graph: &FederatedGraphV2, sdl: &mut String) -> fmt::Resu
     Ok(())
 }
 
-fn write_input_field(field: &InputValueDefinition, graph: &FederatedGraphV2, sdl: &mut String) -> fmt::Result {
+fn write_input_field(field: &InputValueDefinition, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
     let field_name = &graph[field.name];
-    let field_type = render_field_type(&graph[field.type_id], graph);
+    let field_type = render_field_type(&field.r#type, graph);
 
     if let Some(description) = field.description {
         write!(sdl, "{}", Description(&graph[description], INDENT))?;
@@ -298,10 +294,9 @@ fn write_input_field(field: &InputValueDefinition, graph: &FederatedGraphV2, sdl
     Ok(())
 }
 
-fn write_field(field_id: FieldId, graph: &FederatedGraphV2, sdl: &mut String) -> fmt::Result {
-    let field = &graph[field_id];
+fn write_field(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
     let field_name = &graph[field.name];
-    let field_type = render_field_type(&graph[field.field_type_id], graph);
+    let field_type = render_field_type(&field.r#type, graph);
     let args = render_field_arguments(&graph[field.arguments], graph);
 
     if let Some(description) = field.description {
@@ -323,7 +318,7 @@ fn write_field(field_id: FieldId, graph: &FederatedGraphV2, sdl: &mut String) ->
     Ok(())
 }
 
-fn write_composed_directives(directives: Directives, graph: &FederatedGraphV2, sdl: &mut String) -> fmt::Result {
+fn write_composed_directives(directives: Directives, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
     for directive in &graph[directives] {
         match directive {
             Directive::Inaccessible => write!(sdl, " @inaccessible")?,
@@ -331,6 +326,33 @@ fn write_composed_directives(directives: Directives, graph: &FederatedGraphV2, s
                 write!(sdl, " @deprecated(reason: ",)?;
                 write_quoted(sdl, &graph[*reason])?;
                 write!(sdl, ")")?;
+            }
+            Directive::RequiresScopes(scopes) => {
+                write!(sdl, " @requiresScopes(scopes: [")?;
+                for scope in scopes {
+                    write!(sdl, "[")?;
+                    for scope in scope {
+                        write_quoted(sdl, &graph[*scope])?;
+                        write!(sdl, ", ")?;
+                    }
+                    write!(sdl, "], ")?;
+                }
+                write!(sdl, "])")?;
+            }
+            Directive::Policy(policies) => {
+                write!(sdl, " @policy(policies: [")?;
+                for policy in policies {
+                    write!(sdl, "[")?;
+                    for policy in policy {
+                        write_quoted(sdl, &graph[*policy])?;
+                        write!(sdl, ", ")?;
+                    }
+                    write!(sdl, "], ")?;
+                }
+                write!(sdl, "])")?;
+            }
+            Directive::Authenticated => {
+                write!(sdl, " @authenticated")?;
             }
             Directive::Deprecated { reason: None } => write!(sdl, r#" @deprecated"#)?,
             Directive::Other { name, arguments } => {
@@ -344,28 +366,28 @@ fn write_composed_directives(directives: Directives, graph: &FederatedGraphV2, s
     Ok(())
 }
 
-fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGraphV2, sdl: &mut String) -> fmt::Result {
+fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
     let subgraph_name = GraphEnumVariantName(&graph[graph[subgraph].name]);
     let provides = MaybeDisplay(
         field
             .provides
             .iter()
             .find(|provides| provides.subgraph_id == subgraph)
-            .map(|fieldset| format!(", provides: \"{}\"", FieldSetDisplay(&fieldset.fields, graph))),
+            .map(|fieldset| format!(", provides: {}", FieldSetDisplay(&fieldset.fields, graph))),
     );
     let requires = MaybeDisplay(
         field
             .requires
             .iter()
             .find(|requires| requires.subgraph_id == subgraph)
-            .map(|fieldset| format!(", requires: \"{}\"", FieldSetDisplay(&fieldset.fields, graph))),
+            .map(|fieldset| format!(", requires: {}", FieldSetDisplay(&fieldset.fields, graph))),
     );
     write!(sdl, " @join__field(graph: {subgraph_name}{provides}{requires})")?;
 
     Ok(())
 }
 
-fn write_overrides(field: &Field, graph: &FederatedGraphV2, sdl: &mut String) -> fmt::Result {
+fn write_overrides(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
     for Override {
         graph: overriding_graph,
         from,
@@ -381,7 +403,7 @@ fn write_overrides(field: &Field, graph: &FederatedGraphV2, sdl: &mut String) ->
     Ok(())
 }
 
-fn write_provides(field: &Field, graph: &FederatedGraphV2, sdl: &mut String) -> fmt::Result {
+fn write_provides(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
     for provides in field
         .provides
         .iter()
@@ -389,13 +411,13 @@ fn write_provides(field: &Field, graph: &FederatedGraphV2, sdl: &mut String) -> 
     {
         let subgraph_name = GraphEnumVariantName(&graph[graph[provides.subgraph_id].name]);
         let fields = FieldSetDisplay(&provides.fields, graph);
-        write!(sdl, " @join__field(graph: {subgraph_name}, provides: \"{fields}\"")?;
+        write!(sdl, " @join__field(graph: {subgraph_name}, provides: {fields}")?;
     }
 
     Ok(())
 }
 
-fn write_requires(field: &Field, graph: &FederatedGraphV2, sdl: &mut String) -> fmt::Result {
+fn write_requires(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
     for requires in field
         .requires
         .iter()
@@ -403,15 +425,14 @@ fn write_requires(field: &Field, graph: &FederatedGraphV2, sdl: &mut String) -> 
     {
         let subgraph_name = GraphEnumVariantName(&graph[graph[requires.subgraph_id].name]);
         let fields = FieldSetDisplay(&requires.fields, graph);
-        write!(sdl, " @join__field(graph: {subgraph_name}, requires: \"{fields}\"")?;
+        write!(sdl, " @join__field(graph: {subgraph_name}, requires: {fields}")?;
     }
 
     Ok(())
 }
 
-fn render_field_type(field_type: &FieldType, graph: &FederatedGraphV2) -> String {
-    let maybe_bang = if field_type.inner_is_required { "!" } else { "" };
-    let name_id = match field_type.kind {
+fn render_field_type(field_type: &Type, graph: &FederatedGraphV3) -> String {
+    let name_id = match field_type.definition {
         Definition::Scalar(scalar_id) => graph[scalar_id].name,
         Definition::Object(object_id) => graph[object_id].name,
         Definition::Interface(interface_id) => graph[interface_id].name,
@@ -420,19 +441,28 @@ fn render_field_type(field_type: &FieldType, graph: &FederatedGraphV2) -> String
         Definition::InputObject(input_object_id) => graph[input_object_id].name,
     };
     let name = &graph[name_id];
-    let mut out = format!("{name}{maybe_bang}");
+    let mut out = String::with_capacity(name.len());
 
-    for wrapper in &field_type.list_wrappers {
-        match wrapper {
-            ListWrapper::RequiredList => out = format!("[{out}]!"),
-            ListWrapper::NullableList => out = format!("[{out}]"),
+    for _ in field_type.wrapping.list_wrappings().rev() {
+        write!(out, "[").unwrap();
+    }
+
+    write!(out, "{name}").unwrap();
+    if field_type.wrapping.inner_is_required() {
+        write!(out, "!").unwrap();
+    }
+
+    for wrapping in field_type.wrapping.list_wrappings() {
+        write!(out, "]").unwrap();
+        if wrapping == wrapping::ListWrapping::RequiredList {
+            write!(out, "!").unwrap();
         }
     }
 
     out
 }
 
-fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraphV2) -> String {
+fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraphV3) -> String {
     if args.is_empty() {
         String::new()
     } else {
@@ -440,7 +470,7 @@ fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraphV
             .iter()
             .map(|arg| {
                 let name = &graph[arg.name];
-                let r#type = render_field_type(&graph[arg.type_id], graph);
+                let r#type = render_field_type(&arg.r#type, graph);
                 let directives = arg.directives;
                 (name, r#type, directives)
             })
@@ -463,11 +493,21 @@ fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraphV
     }
 }
 
-struct FieldSetDisplay<'a>(&'a FieldSet, &'a FederatedGraphV2);
+/// Displays a field set inside quotes
+struct FieldSetDisplay<'a>(&'a FieldSet, &'a FederatedGraphV3);
 
 impl Display for FieldSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let FieldSetDisplay(selection_set, graph) = self;
+        let out = format!("{}", BareFieldSetDisplay(self.0, self.1));
+        write_quoted(f, &out)
+    }
+}
+
+struct BareFieldSetDisplay<'a>(&'a FieldSet, &'a FederatedGraphV3);
+
+impl Display for BareFieldSetDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let BareFieldSetDisplay(selection_set, graph) = self;
         let mut selection = selection_set.iter().peekable();
 
         while let Some(field) = selection.next() {
@@ -475,9 +515,17 @@ impl Display for FieldSetDisplay<'_> {
 
             f.write_str(name)?;
 
+            let arguments = field
+                .arguments
+                .iter()
+                .map(|(arg, value)| (graph[*arg].name, value.clone()))
+                .collect::<Vec<_>>();
+
+            DirectiveArguments(&arguments, graph).fmt(f)?;
+
             if !field.subselection.is_empty() {
                 f.write_str(" { ")?;
-                FieldSetDisplay::fmt(&FieldSetDisplay(&field.subselection, graph), f)?;
+                BareFieldSetDisplay(&field.subselection, graph).fmt(f)?;
                 f.write_str(" }")?;
             }
 
@@ -521,7 +569,7 @@ impl<T: Display> Display for MaybeDisplay<T> {
     }
 }
 
-struct DirectiveArguments<'a>(&'a [(StringId, Value)], &'a FederatedGraphV2);
+struct DirectiveArguments<'a>(&'a [(StringId, Value)], &'a FederatedGraphV3);
 
 impl Display for DirectiveArguments<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -549,7 +597,7 @@ impl Display for DirectiveArguments<'_> {
     }
 }
 
-struct ValueDisplay<'a>(&'a Value, &'a FederatedGraphV2);
+struct ValueDisplay<'a>(&'a Value, &'a FederatedGraphV3);
 
 impl Display for ValueDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -208,3 +208,27 @@ fn ingest_definition_bodies(
         }
     }
 }
+
+pub(super) fn ast_value_to_subgraph_value(value: &ConstValue, subgraphs: &mut Subgraphs) -> subgraphs::Value {
+    match &value {
+        ConstValue::Null | ConstValue::Binary(_) => unreachable!("null or bytes value in argument"),
+        ConstValue::Number(n) if n.is_u64() || n.is_i64() => subgraphs::Value::Int(n.as_i64().unwrap()),
+        ConstValue::Number(n) => subgraphs::Value::Float(n.as_f64().unwrap()),
+        ConstValue::String(s) => subgraphs::Value::String(subgraphs.strings.intern(s.as_str())),
+        ConstValue::Boolean(b) => subgraphs::Value::Boolean(*b),
+        ConstValue::Enum(e) => subgraphs::Value::Enum(subgraphs.strings.intern(e.as_str())),
+        ConstValue::List(l) => {
+            subgraphs::Value::List(l.iter().map(|v| ast_value_to_subgraph_value(v, subgraphs)).collect())
+        }
+        ConstValue::Object(o) => subgraphs::Value::Object(
+            o.iter()
+                .map(|(k, v)| {
+                    (
+                        subgraphs.strings.intern(k.as_str()),
+                        ast_value_to_subgraph_value(v, subgraphs),
+                    )
+                })
+                .collect(),
+        ),
+    }
+}

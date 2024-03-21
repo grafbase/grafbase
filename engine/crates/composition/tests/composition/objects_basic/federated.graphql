@@ -22,10 +22,10 @@ enum join__Graph {
 }
 
 type User {
-    id: ID! @join__field(graph: A)
-    score: Float @join__field(graph: A)
-    name: String! @join__field(graph: B)
     age: Int @join__field(graph: B)
+    id: ID! @join__field(graph: A)
+    name: String! @join__field(graph: B)
+    score: Float @join__field(graph: A)
 }
 
 type Query {

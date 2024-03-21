@@ -25,23 +25,23 @@ type Farm
     @join__type(graph: CHILIES, key: "id")
     @join__type(graph: FARMS, key: "id")
 {
-    id: ID!
-    chiliId: ID! @join__field(graph: FARMS)
     chiliDetails: ChiliVariety @join__field(graph: CHILIES, requires: "chiliId")
-    name: String! @join__field(graph: FARMS)
+    chiliId: ID! @join__field(graph: FARMS)
+    id: ID!
     location: String! @join__field(graph: FARMS)
+    name: String! @join__field(graph: FARMS)
 }
 
 type ChiliVariety {
+    description: String @join__field(graph: CHILIES)
     id: ID! @join__field(graph: CHILIES)
     name: String! @join__field(graph: CHILIES)
     spicinessScale: Int! @join__field(graph: CHILIES)
-    description: String @join__field(graph: CHILIES)
 }
 
 type Query {
-    chiliVariety(id: ID!): ChiliVariety @join__field(graph: CHILIES)
     chiliVarieties: [ChiliVariety] @join__field(graph: CHILIES)
-    farms: [Farm] @join__field(graph: FARMS)
+    chiliVariety(id: ID!): ChiliVariety @join__field(graph: CHILIES)
     farm(id: ID!): Farm @join__field(graph: FARMS)
+    farms: [Farm] @join__field(graph: FARMS)
 }

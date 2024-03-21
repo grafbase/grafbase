@@ -1,0 +1,50 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    FST @join__graph(name: "fst", url: "http://example.com/fst")
+    SND @join__graph(name: "snd", url: "http://example.com/snd")
+}
+
+type B
+    @join__type(graph: FST, key: "id")
+    @join__type(graph: SND, key: "id")
+{
+    foo: String @join__field(graph: FST) @join__field(graph: SND) @policy(policies: [["yolo", ], ["wolo", ], ["scope:1", "scope:2", ], ])
+    id: ID!
+}
+
+type A
+    @join__type(graph: FST, key: "id")
+    @join__type(graph: SND, key: "id")
+{
+    id: ID!
+    names: String! @join__field(graph: FST) @join__field(graph: SND) @policy(policies: [["read:others", "and:yetanother", ], ["read:profiles", "read:profiles2", "read:others", ], ])
+}
+
+type User
+    @join__type(graph: FST, key: "id")
+{
+    id: ID!
+    name: String @join__field(graph: FST) @deprecated(reason: "we have no name")
+}
+
+type Query {
+    oneA: A @join__field(graph: FST)
+    oneB: B @join__field(graph: FST)
+}

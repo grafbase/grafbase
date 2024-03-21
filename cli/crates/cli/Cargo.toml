@@ -53,12 +53,12 @@ url = "2"
 uuid = { version = "1", features = ["v4"] }
 webbrowser = "0.8"
 
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.63.0-rc.1" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.63.0-rc.1" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.64.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.64.0" }
 federated-dev = { path = "../federated-dev" }
 grafbase-graphql-introspection.workspace = true
 graph-ref = { path = "../../../graph-ref" }
-server = { package = "grafbase-local-server", path = "../server", version = "0.63.0-rc.1" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.64.0" }
 
 [dev-dependencies]
 async-graphql-axum.workspace = true

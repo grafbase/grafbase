@@ -1,16 +1,19 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use engine::registry::{field_set, resolvers::join::JoinResolver, FieldSet};
 use engine_parser::{
     parse_field,
-    types::{ConstDirective, Field},
+    types::{ConstDirective, Field, InputValueDefinition},
     Positioned,
 };
 use engine_value::{Name, Value};
 use serde::de::Error;
 
-use super::{directive::Directive, visitor::VisitorContext};
-use crate::directive_de::parse_directive;
+use super::{
+    directive::Directive,
+    visitor::{VisitorContext, Warning},
+};
+use crate::{directive_de::parse_directive, schema_coord::SchemaCoord};
 
 #[derive(serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -21,7 +24,7 @@ pub struct JoinDirective {
 #[derive(Debug)]
 pub struct FieldSelection {
     selections: Vec<Selection>,
-    required_fields: Vec<String>,
+    variables_used: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -54,20 +57,51 @@ impl JoinDirective {
             }
         }
     }
+
+    pub fn validate_arguments(
+        &self,
+        arguments: &[Positioned<InputValueDefinition>],
+        coord: SchemaCoord<'_>,
+    ) -> Vec<Warning> {
+        let argument_names = arguments
+            .iter()
+            .map(|argument| argument.node.name.node.as_str())
+            .collect::<BTreeSet<_>>();
+
+        let variable_names = self
+            .select
+            .variables_used
+            .iter()
+            .map(|name| name.as_str())
+            .collect::<BTreeSet<_>>();
+
+        argument_names
+            .difference(&variable_names)
+            .map(|unused_argument| Warning::ArgumentNotUsedByJoin(unused_argument.to_string(), coord.into_owned()))
+            .collect()
+    }
 }
 
 impl FieldSelection {
-    pub fn required_fieldset(&self) -> Option<FieldSet> {
-        if self.required_fields.is_empty() {
+    pub fn required_fieldset(&self, arguments: &[Positioned<InputValueDefinition>]) -> Option<FieldSet> {
+        if self.variables_used.is_empty() {
             return None;
         }
 
-        Some(FieldSet::new(self.required_fields.iter().map(|field| {
-            field_set::Selection {
-                field: field.clone(),
-                selections: vec![],
-            }
-        })))
+        let arguments = arguments
+            .iter()
+            .map(|argument| argument.node.name.node.as_str())
+            .collect::<HashSet<_>>();
+
+        Some(FieldSet::new(
+            self.variables_used
+                .iter()
+                .filter(|field| !arguments.contains(field.as_str()))
+                .map(|field| field_set::Selection {
+                    field: field.clone(),
+                    selections: vec![],
+                }),
+        ))
     }
 
     pub fn to_join_resolver(&self) -> JoinResolver {
@@ -105,7 +139,7 @@ impl<'de> serde::Deserialize<'de> for FieldSelection {
                 field: Some(field.node),
             }
             .collect(),
-            required_fields,
+            variables_used: required_fields,
         })
     }
 }
@@ -586,7 +620,7 @@ mod tests {
                             ],
                         },
                     ],
-                    required_fields: [
+                    variables_used: [
                         "filters",
                         "name",
                     ],

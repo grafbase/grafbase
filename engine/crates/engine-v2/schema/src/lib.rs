@@ -9,7 +9,6 @@ mod names;
 mod resolver;
 pub mod sources;
 mod walkers;
-mod wrapping;
 
 pub use cache::*;
 pub use field_set::*;
@@ -30,11 +29,7 @@ pub struct Schema {
     pub description: Option<StringId>,
     pub root_operation_types: RootOperationTypes,
     objects: Vec<Object>,
-    // Sorted by object_id, field name (actual string)
-    object_fields: Vec<ObjectField>,
     interfaces: Vec<Interface>,
-    // Sorted by interface_id, field name (actual string)
-    interface_fields: Vec<InterfaceField>,
     fields: Vec<Field>,
     enums: Vec<Enum>,
     unions: Vec<Union>,
@@ -42,8 +37,6 @@ pub struct Schema {
     input_objects: Vec<InputObject>,
     input_value_definitions: Vec<InputValueDefinition>,
     resolvers: Vec<Resolver>,
-    /// All the field types in the supergraph, deduplicated.
-    types: Vec<Type>,
     // All definitions sorted by their name (actual string)
     definitions: Vec<Definition>,
     directives: Vec<Directive>,
@@ -80,21 +73,19 @@ impl Schema {
     }
 
     pub fn object_field_by_name(&self, object_id: ObjectId, name: &str) -> Option<FieldId> {
-        self.object_fields
-            .binary_search_by_key(&(object_id, name), |ObjectField { object_id, field_id }| {
-                (*object_id, &self[self[*field_id].name])
-            })
-            .map(|index| self.object_fields[index].field_id)
-            .ok()
+        let fields = self[object_id].fields;
+        self[fields]
+            .iter()
+            .position(|field| self[field.name] == name)
+            .map(|pos| FieldId::from(usize::from(fields.start) + pos))
     }
 
     pub fn interface_field_by_name(&self, interface_id: InterfaceId, name: &str) -> Option<FieldId> {
-        self.interface_fields
-            .binary_search_by_key(&(interface_id, name), |InterfaceField { interface_id, field_id }| {
-                (*interface_id, &self[self[*field_id].name])
-            })
-            .map(|index| self.interface_fields[index].field_id)
-            .ok()
+        let fields = self[interface_id].fields;
+        self[fields]
+            .iter()
+            .position(|field| self[field.name] == name)
+            .map(|pos| FieldId::from(usize::from(fields.start) + pos))
     }
 
     // Used as the default resolver
@@ -130,10 +121,9 @@ impl Schema {
                 interfaces: Vec::new(),
                 composed_directives: Directives::empty(),
                 cache_config: None,
+                fields: IdRange::empty(),
             }],
-            object_fields: Vec::new(),
             interfaces: Vec::new(),
-            interface_fields: Vec::new(),
             fields: Vec::new(),
             enums: Vec::new(),
             unions: Vec::new(),
@@ -141,7 +131,6 @@ impl Schema {
             input_objects: Vec::new(),
             input_value_definitions: Vec::new(),
             resolvers: Vec::new(),
-            types: Vec::new(),
             definitions: Vec::new(),
             directives: Vec::new(),
             enum_values: Vec::new(),
@@ -179,21 +168,17 @@ pub struct Object {
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
     pub cache_config: Option<CacheConfigId>,
+    pub fields: Fields,
 }
 
 pub type Directives = IdRange<DirectiveId>;
-
-#[derive(PartialOrd, Ord, PartialEq, Eq)]
-pub struct ObjectField {
-    pub object_id: ObjectId,
-    pub field_id: FieldId,
-}
+pub type Fields = IdRange<FieldId>;
 
 #[derive(Debug)]
 pub struct Field {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub type_id: TypeId,
+    pub r#type: Type,
     pub resolvers: Vec<FieldResolver>,
     provides: Vec<FieldProvides>,
     /// The arguments referenced by this range are sorted by their name (string)
@@ -220,6 +205,9 @@ pub struct FieldResolver {
 #[derive(Debug)]
 pub enum Directive {
     Inaccessible,
+    Authenticated,
+    Policy(Vec<Vec<StringId>>),
+    RequiresScopes(Vec<Vec<StringId>>),
     Deprecated { reason: Option<StringId> },
     Other { name: StringId, arguments: SchemaInputMap },
 }
@@ -305,12 +293,8 @@ pub struct Interface {
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
-}
 
-#[derive(Debug)]
-pub struct InterfaceField {
-    pub interface_id: InterfaceId,
-    pub field_id: FieldId,
+    pub fields: Fields,
 }
 
 #[derive(Debug)]
@@ -391,7 +375,7 @@ pub struct InputObject {
 pub struct InputValueDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub type_id: TypeId,
+    pub r#type: Type,
     pub default_value: Option<SchemaInputValueId>,
 }
 

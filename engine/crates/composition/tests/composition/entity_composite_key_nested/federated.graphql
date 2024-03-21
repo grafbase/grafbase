@@ -25,27 +25,27 @@ type Patient
     @join__type(graph: PATIENT_INFO, key: "id")
     @join__type(graph: PATIENT_RECORD, key: "id")
 {
-    id: ID!
-    name: String @join__field(graph: PATIENT_INFO)
     dateOfBirth: String @join__field(graph: PATIENT_INFO)
+    id: ID!
     medicalRecords: [PatientRecord] @join__field(graph: PATIENT_RECORD, requires: "id")
+    name: String @join__field(graph: PATIENT_INFO)
 }
 
 type PatientRecord
     @join__type(graph: PATIENT_INFO, key: "patient { id } recordId")
     @join__type(graph: PATIENT_RECORD, key: "patient { id } recordId")
 {
+    admissionDate: String @join__field(graph: PATIENT_INFO)
+    diagnosis: String @join__field(graph: PATIENT_RECORD)
+    extendPatientRecord: PatientRecord @join__field(graph: PATIENT_INFO, requires: "patient { id } recordId")
     patient: Patient
     recordId: ID!
-    admissionDate: String @join__field(graph: PATIENT_INFO)
-    extendPatientRecord: PatientRecord @join__field(graph: PATIENT_INFO, requires: "patient { id } recordId")
-    diagnosis: String @join__field(graph: PATIENT_RECORD)
     treatmentPlan: String @join__field(graph: PATIENT_RECORD)
 }
 
 type Query {
     patient(id: ID!): Patient @join__field(graph: PATIENT_INFO)
-    patients: [Patient] @join__field(graph: PATIENT_INFO)
     patientRecord(recordId: ID!, patientId: ID!): PatientRecord @join__field(graph: PATIENT_RECORD)
     patientRecords: [PatientRecord] @join__field(graph: PATIENT_RECORD)
+    patients: [Patient] @join__field(graph: PATIENT_INFO)
 }

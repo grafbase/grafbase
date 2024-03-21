@@ -41,6 +41,7 @@ use engine_value::{ConstValue, Name, Variables};
 use futures_util::Future;
 use http::{header::USER_AGENT, StatusCode};
 use inflector::Inflector;
+use internment::ArcIntern;
 use url::Url;
 
 use self::serializer::Serializer;
@@ -51,7 +52,7 @@ use crate::{
         type_kinds::SelectionSetTarget,
         MetaField, Registry,
     },
-    ServerError,
+    QueryPath, QueryPathSegment, ServerError,
 };
 
 pub struct QueryBatcher {
@@ -171,18 +172,18 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
         fetch_log_endpoint_url: Option<String>,
     }
 
-    let mut resolver_queries: BTreeMap<_, Vec<Query>> = BTreeMap::default();
+    let mut resolver_queries: BTreeMap<_, Vec<QueryData>> = BTreeMap::default();
 
     for data in queries.iter().cloned() {
         let id = ResolverDetails {
-            name: data.resolver_name,
-            url: data.url,
-            headers: data.headers,
-            ray_id: data.ray_id,
-            fetch_log_endpoint_url: data.fetch_log_endpoint_url,
+            name: data.resolver_name.clone(),
+            url: data.url.clone(),
+            headers: data.headers.clone(),
+            ray_id: data.ray_id.clone(),
+            fetch_log_endpoint_url: data.fetch_log_endpoint_url.clone(),
         };
 
-        resolver_queries.entry(id).or_default().push(data.query.clone());
+        resolver_queries.entry(id).or_default().push(data);
     }
 
     let mut results: HashMap<QueryData, (UpstreamResponse, StatusCode)> = HashMap::default();
@@ -190,9 +191,9 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
     Box::pin(make_send_on_wasm(async move {
         for (resolver, queries) in resolver_queries {
             let (query, aliases) = if queries.len() == 1 {
-                (queries[0].clone(), vec![HashMap::new()])
+                (queries[0].query.clone(), vec![HashMap::new()])
             } else {
-                group_queries(queries.clone())
+                group_queries(queries.iter().map(|query| query.query.clone()))
             };
 
             let mut request_builder = reqwest::Client::new()
@@ -220,45 +221,37 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
             )?;
 
             for (query, aliases) in queries.into_iter().zip(aliases) {
-                let key = QueryData {
-                    query,
-                    headers: resolver.headers.clone(),
-                    url: resolver.url.clone(),
-                    resolver_name: resolver.name.clone(),
-                    ray_id: resolver.ray_id.clone(),
-                    fetch_log_endpoint_url: resolver.fetch_log_endpoint_url.clone(),
-                };
-
                 if aliases.is_empty() {
-                    results.insert(key, (upstream_response.clone(), http_status));
+                    let UpstreamResponse { data, errors } = upstream_response.clone();
+                    let errors = errors
+                        .into_iter()
+                        .map(|error| translate_error_path(error, &query.local_path, None, query.namespaced))
+                        .collect();
+
+                    results.insert(query.clone(), (UpstreamResponse { data, errors }, http_status));
                 } else {
-                    // Take all our aliased fields and un-alias them
+                    let errors = filter_and_translate_error_paths_for_group(
+                        &aliases,
+                        &upstream_response,
+                        &query.local_path,
+                        query.namespaced,
+                    );
+
                     let data = match &upstream_response.data {
                         serde_json::Value::Object(upstream_data) => {
+                            // Take all our aliased fields and un-alias them
                             let mut map = serde_json::Map::new();
-                            for (alias, original_name) in aliases {
-                                if let Some(value) = upstream_data.get(&alias) {
-                                    map.insert(original_name, value.clone());
+                            for (alias, original_name) in &aliases {
+                                if let Some(value) = upstream_data.get(alias) {
+                                    map.insert(original_name.clone(), value.clone());
                                 }
                             }
-
                             serde_json::Value::Object(map)
                         }
                         _ => serde_json::Value::Null,
                     };
 
-                    results.insert(
-                        key,
-                        (
-                            UpstreamResponse {
-                                data,
-                                // Probably need to do something smarter with errors,
-                                // but I don't know what.  Just going to duplicate for now.
-                                errors: upstream_response.errors.clone(),
-                            },
-                            http_status,
-                        ),
-                    );
+                    results.insert(query.clone(), (UpstreamResponse { data, errors }, http_status));
                 }
             }
         }
@@ -267,7 +260,69 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
     }))
 }
 
-fn group_queries(queries: Vec<Query>) -> (Query, Vec<HashMap<String, String>>) {
+fn filter_and_translate_error_paths_for_group(
+    aliases: &HashMap<String, String>,
+    upstream_response: &UpstreamResponse,
+    local_path: &QueryPath,
+    namespaced: bool,
+) -> Vec<ServerError> {
+    let path_prefixes = aliases
+        .iter()
+        .map(|(alias, original_name)| {
+            (
+                vec![QueryPathSegment::Field(ArcIntern::new(alias.clone()))],
+                original_name,
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let errors = upstream_response
+        .errors
+        .iter()
+        .filter_map(|error| {
+            path_prefixes
+                .iter()
+                .find_map(|(prefix, original_name)| error.path.starts_with(prefix).then_some(original_name))
+                .zip(Some(error))
+        })
+        .map(|(field_name, error)| translate_error_path(error.clone(), local_path, Some(field_name), namespaced))
+        .collect();
+
+    errors
+}
+
+fn translate_error_path(
+    mut error: ServerError,
+    local_path: &QueryPath,
+    field_name: Option<&str>,
+    namespaced: bool,
+) -> ServerError {
+    if let Some((field_name, first_segment)) = field_name.zip(error.path.first()) {
+        if first_segment != field_name {
+            // An alias was probably used, so we need to translate the first key in the remote path
+            *error.path.first_mut().unwrap() = QueryPathSegment::Field(ArcIntern::new(field_name.to_string()))
+        }
+    }
+
+    if namespaced {
+        error.path = local_path.iter().cloned().chain(error.path).collect();
+    } else {
+        // Namespaced connectors are resolved at the field level so we need to drop one more path segment
+        error.path = local_path
+            .iter()
+            .cloned()
+            .chain(error.path.into_iter().skip(1))
+            .collect();
+    }
+
+    // Its more bother than its worth to translate locations imo, so
+    // just going to get rid of those
+    error.locations = vec![];
+
+    error
+}
+
+fn group_queries(queries: impl ExactSizeIterator<Item = Query>) -> (Query, Vec<HashMap<String, String>>) {
     let mut variables = BTreeMap::new();
 
     let mut all_fragments = HashMap::new();
@@ -392,7 +447,7 @@ fn alias_root_fields(
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, serde::Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 struct QueryData {
     /// The actual query to be joined with other queries and sent to the remote endpoint.
     query: Query,
@@ -415,6 +470,12 @@ struct QueryData {
 
     /// Used internally in dev mode.
     fetch_log_endpoint_url: Option<String>,
+
+    /// The path prefix that should be used in errors in place of the path we get from remote
+    /// servers
+    local_path: QueryPath,
+
+    namespaced: bool,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, serde::Serialize)]
@@ -439,6 +500,7 @@ impl Resolver {
     pub(super) fn resolve<'a>(
         &'a self,
         operation: OperationType,
+        path: QueryPath,
         ray_id: &'a str,
         fetch_log_endpoint_url: Option<&'a str>,
         headers: &'a [(&'a str, &'a str)],
@@ -475,6 +537,8 @@ impl Resolver {
                 registry,
             );
 
+            let namespaced = matches!(target, Target::SelectionSet { .. });
+
             match operation {
                 OperationType::Query => serializer.query(target, current_type)?,
                 OperationType::Mutation => serializer.mutation(target, current_type)?,
@@ -497,6 +561,8 @@ impl Resolver {
                 url: self.url.to_string(),
                 ray_id: ray_id.to_owned(),
                 fetch_log_endpoint_url: fetch_log_endpoint_url.map(str::to_owned),
+                local_path: path,
+                namespaced,
             };
 
             let value = match (batcher, operation) {
@@ -922,11 +988,14 @@ mod tests {
             operation.selection_set.node.items.clone().into_iter().map(|v| v.node),
         ));
 
+        let path = QueryPath::default();
+
         let error_handler = |error| errors.push(error);
 
         let data = resolver
             .resolve(
                 operation_type,
+                path,
                 "",
                 None,
                 &headers,

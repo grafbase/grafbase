@@ -23,17 +23,17 @@ enum join__Graph {
 }
 
 type Furby implements FurbyType & SocialFurby {
-    id: ID! @join__field(graph: SOCIAL)
     batteryType: String! @join__field(graph: SOCIAL)
-    connectivity: String @join__field(graph: SOCIAL)
-    sensorTypes: [String!] @join__field(graph: SOCIAL)
-    color: String! @join__field(graph: SOCIAL)
-    height: Float! @join__field(graph: SOCIAL)
-    weight: Float! @join__field(graph: SOCIAL)
-    languages: [String!] @join__field(graph: SOCIAL)
-    canSing: Boolean! @join__field(graph: SOCIAL)
     canDance: Boolean! @join__field(graph: SOCIAL)
+    canSing: Boolean! @join__field(graph: SOCIAL)
+    color: String! @join__field(graph: SOCIAL)
+    connectivity: String @join__field(graph: SOCIAL)
     friends: [Furby!] @join__field(graph: SOCIAL)
+    height: Float! @join__field(graph: SOCIAL)
+    id: ID! @join__field(graph: SOCIAL)
+    languages: [String!] @join__field(graph: SOCIAL)
+    sensorTypes: [String!] @join__field(graph: SOCIAL)
+    weight: Float! @join__field(graph: SOCIAL)
 }
 
 type Query {
@@ -41,16 +41,16 @@ type Query {
 }
 
 interface FurbyType {
-    id: ID!
     batteryType: String!
-    connectivity: String
-    sensorTypes: [String!]
-    color: String!
-    height: Float!
-    weight: Float!
-    languages: [String!]
-    canSing: Boolean!
     canDance: Boolean!
+    canSing: Boolean!
+    color: String!
+    connectivity: String
+    height: Float!
+    id: ID!
+    languages: [String!]
+    sensorTypes: [String!]
+    weight: Float!
 }
 
 interface SocialFurby {

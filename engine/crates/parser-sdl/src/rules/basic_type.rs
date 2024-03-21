@@ -29,6 +29,7 @@ use super::{
 };
 use crate::{
     directive_de::parse_directive, registry::add_input_type_non_primitive, rules::cache_directive::CacheDirective,
+    schema_coord::SchemaCoord,
 };
 
 pub struct BasicType;
@@ -85,7 +86,13 @@ impl<'a> Visitor<'a> for BasicType {
                         // If someone asks we could do it
                         ctx.report_error(vec![field.pos], "A field can't have a join and a requires on it");
                     }
-                    requires = join_directive.select.required_fieldset();
+                    requires = join_directive.select.required_fieldset(&field.arguments);
+
+                    ctx.warnings.extend(
+                        join_directive
+                            .validate_arguments(&field.arguments, SchemaCoord::Field(type_name.as_str(), field.name())),
+                    );
+
                     resolver = Resolver::Join(join_directive.select.to_join_resolver());
                 }
 

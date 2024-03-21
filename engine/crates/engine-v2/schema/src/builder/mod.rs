@@ -57,14 +57,8 @@ impl SchemaBuilder {
                     subscription: config.graph.root_operation_types.subscription.map(Into::into),
                 },
                 objects: Vec::with_capacity(config.graph.objects.len()),
-                object_fields: Vec::with_capacity(config.graph.object_fields.len()),
                 fields: Vec::with_capacity(config.graph.fields.len()),
-                types: take(&mut config.graph.field_types)
-                    .into_iter()
-                    .map(Into::into)
-                    .collect(),
-                interfaces: take(&mut config.graph.interfaces).into_iter().map(Into::into).collect(),
-                interface_fields: Vec::new(),
+                interfaces: Vec::with_capacity(config.graph.objects.len()),
                 enums: Vec::new(),
                 unions: Vec::with_capacity(0),
                 scalars: Vec::with_capacity(config.graph.scalars.len()),
@@ -133,6 +127,17 @@ impl SchemaBuilder {
         let mut directives = Vec::with_capacity(config.graph.directives.len());
         for directive in take(&mut config.graph.directives) {
             let directive = match directive {
+                federated_graph::Directive::Authenticated => Directive::Authenticated,
+                federated_graph::Directive::Policy(args) => Directive::Policy(
+                    args.into_iter()
+                        .map(|inner| inner.into_iter().map(|string| string.into()).collect())
+                        .collect(),
+                ),
+                federated_graph::Directive::RequiresScopes(args) => Directive::RequiresScopes(
+                    args.into_iter()
+                        .map(|inner| inner.into_iter().map(|string| string.into()).collect())
+                        .collect(),
+                ),
                 federated_graph::Directive::Inaccessible => Directive::Inaccessible,
                 federated_graph::Directive::Deprecated { reason } => Directive::Deprecated {
                     reason: reason.map(Into::into),
@@ -261,11 +266,19 @@ impl SchemaBuilder {
         // -- OBJECTS --
         let mut entity_resolvers = HashMap::<ObjectId, Vec<(ResolverId, SubgraphId)>>::new();
         let mut unresolvable_keys = HashMap::<ObjectId, HashMap<SubgraphId, FieldSet>>::new();
+        let mut field_id_to_maybe_object_id: Vec<Option<ObjectId>> = vec![None; graph.fields.len()];
+
         for object in take(&mut graph.objects) {
             let object_id = ObjectId::from(schema.objects.len());
             let cache_config = cache
                 .rule(CacheConfigTarget::Object(federated_graph::ObjectId(object_id.into())))
                 .map(|config| cache_configs.get_or_insert(config));
+
+            let fields = field_id_mapper.map_range((object.fields.start, object.fields.end.0 - object.fields.start.0));
+
+            for field_id in fields {
+                field_id_to_maybe_object_id[usize::from(field_id)] = Some(object_id);
+            }
 
             schema.objects.push(Object {
                 name: object.name.into(),
@@ -273,6 +286,7 @@ impl SchemaBuilder {
                 interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
                 composed_directives: IdRange::from_start_and_length(object.composed_directives),
                 cache_config,
+                fields,
             });
 
             for key in object.keys {
@@ -324,19 +338,6 @@ impl SchemaBuilder {
         }
 
         // -- OBJECT FIELDS --
-        let mut field_id_to_maybe_object_id: Vec<Option<ObjectId>> = vec![None; graph.fields.len()];
-        for object_field in take(&mut graph.object_fields) {
-            let Some(field_id) = field_id_mapper.map(object_field.field_id) else {
-                continue;
-            };
-            let object_field = ObjectField {
-                object_id: object_field.object_id.into(),
-                field_id,
-            };
-            field_id_to_maybe_object_id[usize::from(object_field.field_id)] = Some(object_field.object_id);
-            schema.object_fields.push(object_field);
-        }
-
         let root_fields = {
             let mut root_fields = vec![];
             let walker = schema.walker();
@@ -422,7 +423,7 @@ impl SchemaBuilder {
                 },
             );
             // Whether the field returns an object
-            if let Definition::Object(object_id) = &schema[TypeId::from(field.field_type_id)].inner {
+            if let Definition::Object(object_id) = &field.r#type.definition.into() {
                 if let Some(keys) = unresolvable_keys.get(object_id) {
                     for (subgraph_id, field_set) in keys {
                         provides
@@ -465,7 +466,7 @@ impl SchemaBuilder {
             let field = Field {
                 name: field.name.into(),
                 description: None,
-                type_id: field.field_type_id.into(),
+                r#type: field.r#type.into(),
                 resolvers,
                 provides: provides
                     .into_iter()
@@ -497,22 +498,26 @@ impl SchemaBuilder {
         }
 
         // -- INTERFACES --
+        for interface in take(&mut graph.interfaces) {
+            schema.interfaces.push(Interface {
+                name: interface.name.into(),
+                description: None,
+                interfaces: Vec::new(),
+                possible_types: Vec::new(),
+                composed_directives: IdRange::from_start_and_length(interface.composed_directives),
+                fields: field_id_mapper.map_range((
+                    interface.fields.start,
+                    interface.fields.end.0 - interface.fields.start.0,
+                )),
+            })
+        }
+
         // Adding all implementations of an interface, used during introspection.
         for object_id in (0..schema.objects.len()).map(ObjectId::from) {
             for interface_id in schema[object_id].interfaces.clone() {
                 schema[interface_id].possible_types.push(object_id);
             }
         }
-
-        schema.interface_fields = take(&mut graph.interface_fields)
-            .into_iter()
-            .filter_map(|federated_graph::InterfaceField { interface_id, field_id }| {
-                Some(InterfaceField {
-                    interface_id: interface_id.into(),
-                    field_id: field_id_mapper.map(field_id)?,
-                })
-            })
-            .collect();
 
         // -- SCALARS --
         schema.scalars = take(&mut graph.scalars)
@@ -567,19 +572,6 @@ impl SchemaBuilder {
             .definitions
             .extend((0..schema.input_objects.len()).map(|id| Definition::InputObject(InputObjectId::from(id))));
 
-        let mut object_fields = take(&mut schema.object_fields);
-        object_fields
-            .sort_unstable_by_key(|ObjectField { object_id, field_id }| (*object_id, &schema[schema[*field_id].name]));
-        schema.object_fields = object_fields;
-
-        {
-            let mut interface_fields = take(&mut schema.interface_fields);
-            interface_fields.sort_unstable_by_key(|InterfaceField { interface_id, field_id }| {
-                (*interface_id, &schema[schema[*field_id].name])
-            });
-            schema.interface_fields = interface_fields;
-        }
-
         let mut definitions = take(&mut schema.definitions);
         definitions.sort_unstable_by_key(|definition| schema.definition_name(*definition));
         schema.definitions = definitions;
@@ -618,22 +610,10 @@ impl ids::IdMapper<federated_graph::FieldId, FieldId> {
     }
 }
 
-fn is_inaccessible(graph: &federated_graph::FederatedGraphV2, directives: federated_graph::Directives) -> bool {
+fn is_inaccessible(graph: &federated_graph::FederatedGraphV3, directives: federated_graph::Directives) -> bool {
     graph[directives]
         .iter()
         .any(|directive| matches!(directive, federated_graph::Directive::Inaccessible))
-}
-
-impl From<federated_graph::Object> for Object {
-    fn from(object: federated_graph::Object) -> Self {
-        Object {
-            name: object.name.into(),
-            description: None,
-            interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
-            composed_directives: IdRange::from_start_and_length(object.composed_directives),
-            cache_config: Default::default(),
-        }
-    }
 }
 
 impl From<federated_graph::Definition> for Definition {
@@ -649,32 +629,11 @@ impl From<federated_graph::Definition> for Definition {
     }
 }
 
-impl From<federated_graph::FieldType> for Type {
-    fn from(field_type: federated_graph::FieldType) -> Self {
+impl From<federated_graph::Type> for Type {
+    fn from(field_type: federated_graph::Type) -> Self {
         Type {
-            inner: field_type.kind.into(),
-            wrapping: Wrapping::from(field_type),
-        }
-    }
-}
-
-impl From<federated_graph::ListWrapper> for ListWrapping {
-    fn from(wrapper: federated_graph::ListWrapper) -> Self {
-        match wrapper {
-            federated_graph::ListWrapper::RequiredList => ListWrapping::RequiredList,
-            federated_graph::ListWrapper::NullableList => ListWrapping::NullableList,
-        }
-    }
-}
-
-impl From<federated_graph::Interface> for Interface {
-    fn from(interface: federated_graph::Interface) -> Self {
-        Interface {
-            name: interface.name.into(),
-            description: None,
-            interfaces: vec![],
-            possible_types: vec![],
-            composed_directives: IdRange::from_start_and_length(interface.composed_directives),
+            inner: field_type.definition.into(),
+            wrapping: field_type.wrapping,
         }
     }
 }
@@ -684,7 +643,7 @@ impl From<federated_graph::InputValueDefinition> for InputValueDefinition {
         InputValueDefinition {
             name: value.name.into(),
             description: value.description.map(Into::into),
-            type_id: value.type_id.into(),
+            r#type: value.r#type.into(),
             default_value: None,
         }
     }
@@ -723,7 +682,6 @@ from_id_newtypes! {
     federated_graph::ScalarId => ScalarId,
     federated_graph::StringId => StringId,
     federated_graph::SubgraphId => SubgraphId,
-    federated_graph::TypeId => TypeId,
     federated_graph::UnionId => UnionId,
     config::latest::HeaderId => HeaderId,
 }

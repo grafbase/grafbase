@@ -9,6 +9,7 @@ import { escapeString } from '../utils'
 import { ResolverDefinition } from './resolver'
 import { JoinDefinition } from './join'
 import { TagDefinition } from './tag'
+import { InputType } from '../query'
 
 /**
  * A list of field types that can hold an `@override` attribute.
@@ -72,6 +73,10 @@ export class OverrideDefinition {
    */
   public cache(params: FieldCacheParams): CacheDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return { ...this.field.allArguments }
   }
 
   public toString(): string {

@@ -5,6 +5,7 @@ import {
   renderMutationInvalidation,
   renderAccessScope
 } from '../cache'
+import { InputType } from '../query'
 import { AuthDefinition } from './auth'
 import { DefaultDefinition } from './default'
 import { DeprecatedDefinition } from './deprecated'
@@ -17,7 +18,6 @@ import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
 import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
-import { SearchDefinition } from './search'
 import { ShareableDefinition } from './shareable'
 import { TagDefinition } from './tag'
 import { UniqueDefinition } from './unique'
@@ -28,7 +28,6 @@ export type Cacheable =
   | DefaultDefinition
   | ResolverDefinition
   | LengthLimitedStringDefinition
-  | SearchDefinition
   | UniqueDefinition
   | EnumDefinition<any, any>
   | JoinDefinition
@@ -125,19 +124,16 @@ export class CacheDefinition {
   }
 
   /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
-  }
-
-  /**
    * Sets the name of the field in the database, if different than the name of the field.
    *
    * @param name - The mapped name
    */
   public mapped(name: string): MapDefinition {
     return new MapDefinition(this, name)
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return this.field.allArguments
   }
 
   public toString(): string {

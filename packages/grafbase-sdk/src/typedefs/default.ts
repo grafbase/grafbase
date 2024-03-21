@@ -12,6 +12,7 @@ import { InaccessibleDefinition } from './inaccessible'
 import { ShareableDefinition } from './shareable'
 import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
+import { InputType } from '../query'
 
 export type DefaultValueType = string | number | Date | object | boolean
 
@@ -101,6 +102,10 @@ export class DefaultDefinition {
    */
   public provides(fields: string): ProvidesDefinition {
     return new ProvidesDefinition(this, fields)
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return this._scalar.allArguments
   }
 
   public toString(): string {

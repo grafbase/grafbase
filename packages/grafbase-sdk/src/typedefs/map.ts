@@ -1,3 +1,4 @@
+import { InputType } from '../query'
 import { AuthDefinition } from './auth'
 import { CacheDefinition } from './cache'
 import { DefaultDefinition } from './default'
@@ -26,6 +27,10 @@ export class MapDefinition {
   constructor(field: Mappable, mappedName: string) {
     this.field = field
     this.mappedName = mappedName
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return { ...this.field.allArguments }
   }
 
   public toString(): string {

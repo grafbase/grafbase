@@ -26,29 +26,29 @@ type WasteManagementQuery {
 }
 
 type RecyclingCenter {
-    id: ID! @join__field(graph: HAZARDOUS_WASTE)
     address: String @join__field(graph: HAZARDOUS_WASTE)
+    id: ID! @join__field(graph: HAZARDOUS_WASTE)
     materialsAccepted: [String] @join__field(graph: HAZARDOUS_WASTE)
     operatingHours: String @join__field(graph: HAZARDOUS_WASTE)
 }
 
 type HazardousWasteStats {
+    categoryBreakdown: [HazardousCategoryBreakdown] @join__field(graph: HAZARDOUS_WASTE)
     city: String @join__field(graph: HAZARDOUS_WASTE)
     totalHazardousWaste: Float @join__field(graph: HAZARDOUS_WASTE)
-    categoryBreakdown: [HazardousCategoryBreakdown] @join__field(graph: HAZARDOUS_WASTE)
 }
 
 type HazardousCategoryBreakdown {
-    category: String @join__field(graph: HAZARDOUS_WASTE)
     amount: Float @join__field(graph: HAZARDOUS_WASTE)
+    category: String @join__field(graph: HAZARDOUS_WASTE)
 }
 
 type CollectionPoint {
-    id: ID! @join__field(graph: WASTE_COLLECTION)
     address: String @join__field(graph: WASTE_COLLECTION)
-    type: String @join__field(graph: WASTE_COLLECTION)
-    openingHours: String @join__field(graph: WASTE_COLLECTION)
     enquiries: [WasteManagementQuery!] @join__field(graph: WASTE_COLLECTION)
+    id: ID! @join__field(graph: WASTE_COLLECTION)
+    openingHours: String @join__field(graph: WASTE_COLLECTION)
+    type: String @join__field(graph: WASTE_COLLECTION)
 }
 
 type WasteStats {
@@ -63,8 +63,8 @@ type WasteTypeBreakdown {
 }
 
 type Query {
-    recyclingCenters(city: String!): [RecyclingCenter] @join__field(graph: HAZARDOUS_WASTE)
     hazardousWasteData(city: String!): HazardousWasteStats @join__field(graph: HAZARDOUS_WASTE)
+    recyclingCenters(city: String!): [RecyclingCenter] @join__field(graph: HAZARDOUS_WASTE)
     wasteCollectionPoints(city: String!): [CollectionPoint] @join__field(graph: WASTE_COLLECTION)
     wasteStatistics(city: String!): WasteStats @join__field(graph: WASTE_COLLECTION)
 }

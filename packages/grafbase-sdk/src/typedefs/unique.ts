@@ -1,4 +1,5 @@
 import { AuthRuleF } from '../auth'
+import { InputType } from '../query'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { DefaultDefinition } from './default'
@@ -7,12 +8,10 @@ import { LengthLimitedStringDefinition } from './length-limited-string'
 import { MapDefinition } from './map'
 import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
-import { SearchDefinition } from './search'
 
 type UniqueScalarType =
   | ScalarDefinition
   | DefaultDefinition
-  | SearchDefinition
   | LengthLimitedStringDefinition
   | AuthDefinition
   | ResolverDefinition
@@ -26,13 +25,6 @@ export class UniqueDefinition {
   constructor(scalar: UniqueScalarType, scope?: string[]) {
     this.scalar = scalar
     this.compoundScope = scope
-  }
-
-  /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
   }
 
   /**
@@ -58,6 +50,10 @@ export class UniqueDefinition {
    */
   public mapped(name: string): MapDefinition {
     return new MapDefinition(this, name)
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return this.scalar.allArguments
   }
 
   public toString(): string {
