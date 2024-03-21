@@ -33,13 +33,16 @@ fn main() -> anyhow::Result<()> {
         .thread_name(THREAD_NAME)
         .build()?;
 
-    init_global_tracing(filter, &mut config)?;
+    runtime.block_on(async move {
+        // if this is not called from tokio context, you'll get:
+        // there is no reactor running, must be called from the context of a Tokio 1.x runtime
+        // but... only if telemetry is enabled, so be aware and read this when you have a failing test!
+        init_global_tracing(filter, &mut config)?;
 
-    runtime.block_on(federated_server::start(
-        args.listen_address,
-        config,
-        args.fetch_method()?,
-    ))?;
+        federated_server::start(args.listen_address, config, args.fetch_method()?).await?;
+
+        Ok::<(), anyhow::Error>(())
+    })?;
 
     Ok(())
 }
