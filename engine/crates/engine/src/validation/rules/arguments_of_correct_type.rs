@@ -41,8 +41,7 @@ impl<'a> Visitor<'a> for ArgumentsOfCorrectType<'a> {
                 .clone()
                 .into_const_with(|var_name| {
                     ctx.variables
-                        .and_then(|variables| variables.get(&var_name))
-                        .map(Clone::clone)
+                        .and_then(|variables| variables.get(&var_name)).cloned()
                         .ok_or(())
                 })
                 .ok();

@@ -108,9 +108,7 @@ pub(super) fn add_field(
 ) -> Option<CheckDiagnostic> {
     let (type_name, field_name) = change.path.split_once('.').unwrap();
 
-    let Some(field_id) = check_params.target.find_field(type_name, field_name) else {
-        return None;
-    };
+    let field_id = check_params.target.find_field(type_name, field_name)?;
 
     if !check_params.target[field_id].is_required() {
         return None;
