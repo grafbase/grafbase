@@ -45,7 +45,7 @@ fn validate_selection(
                 "Error in @requires: the {field_in_selection}.{argument_name} argument does not not match the expected type ({expected_type})",
                 argument_name = ctx.subgraphs.walk(*argument_name).as_str(),
                 field_in_selection = field.name().as_str(),
-                expected_type = argument.r#type().to_string(),
+                expected_type = argument.r#type(),
             ));
         }
     }
