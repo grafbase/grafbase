@@ -6,7 +6,7 @@ use opentelemetry::{global, KeyValue};
 use opentelemetry_sdk::export::trace::SpanExporter;
 use opentelemetry_sdk::runtime::RuntimeChannel;
 use opentelemetry_sdk::trace::{
-    BatchConfigBuilder, BatchSpanProcessor, Builder, RandomIdGenerator, Sampler, TracerProvider,
+    BatchConfigBuilder, BatchSpanProcessor, Builder, IdGenerator, RandomIdGenerator, Sampler, TracerProvider,
 };
 use opentelemetry_sdk::Resource;
 use tracing::Subscriber;
@@ -54,7 +54,7 @@ where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
     R: RuntimeChannel,
 {
-    let provider = new_provider(service_name, &config, runtime)?;
+    let provider = new_provider(service_name, &config, RandomIdGenerator::default(), runtime)?;
     let tracer = provider.tracer("batched-otel");
 
     let _ = global::set_tracer_provider(provider);
@@ -63,18 +63,21 @@ where
 }
 
 /// Creates a new OTEL tracing provider.
-pub fn new_provider<R>(
+pub fn new_provider<R, I>(
     service_name: impl Into<String>,
     config: &TracingConfig,
+    id_generator: I,
     runtime: R,
 ) -> Result<TracerProvider, TracingError>
 where
     R: RuntimeChannel,
+    I: IdGenerator + 'static,
 {
     let service_name = service_name.into();
 
     let builder = opentelemetry_sdk::trace::TracerProvider::builder().with_config(
         opentelemetry_sdk::trace::config()
+            .with_id_generator(id_generator)
             .with_sampler(Sampler::TraceIdRatioBased(config.sampling))
             .with_id_generator(RandomIdGenerator::default())
             .with_max_events_per_span(config.collect.max_events_per_span as u32)
