@@ -16,7 +16,7 @@ fn validate_query_nonempty(ctx: &mut ValidateContext<'_>) {
         .all(|query_type| query_type.fields().next().is_none())
     {
         ctx.diagnostics
-            .push_fatal(format!("None of the subgraphs defines root query fields."));
+            .push_fatal(String::from("None of the subgraphs defines root query fields."));
     }
 }
 
