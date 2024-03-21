@@ -208,6 +208,9 @@ impl From<super::v2::FederatedGraphV2> for FederatedGraphV3 {
             }
         }
 
+        // In FederatedGraphV3, we reserve two fields for __schema and __type
+        // on the root Query type. The space for them needs to be created. This
+        // block is responsible for it.
         {
             let new_fields = ["__schema", "__type"].map(|needle| {
                 value
