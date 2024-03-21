@@ -74,16 +74,22 @@ pub(super) async fn bind(
         csrf,
     }: BindConfig<'_>,
 ) -> Result<(), crate::Error> {
+    use grafbase_tracing::otel::opentelemetry::global;
     use grafbase_tracing::otel::opentelemetry::trace::TracerProvider;
     use grafbase_tracing::otel::tracing_subscriber::layer::SubscriberExt;
     use grafbase_tracing::otel::tracing_subscriber::EnvFilter;
     use grafbase_tracing::otel::{self, opentelemetry_sdk::runtime::Tokio};
     use grafbase_tracing::otel::{tracing_opentelemetry, tracing_subscriber};
+    use opentelemetry_aws::trace::{XrayIdGenerator, XrayPropagator};
     use tracing_futures::WithSubscriber;
+
+    global::set_text_map_propagator(XrayPropagator::default());
 
     let (provider, subscriber) = match telemetry {
         Some(config) => {
-            let provider = otel::layer::new_provider(&config.service_name, &config.tracing, Tokio).unwrap();
+            let provider =
+                otel::layer::new_provider(&config.service_name, &config.tracing, XrayIdGenerator::default(), Tokio)
+                    .unwrap();
 
             let tracer = provider.tracer("lambda-otel");
 

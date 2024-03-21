@@ -36,6 +36,7 @@ default = []
 tower = ["tower-http"]
 otlp = ["dep:opentelemetry-otlp", "dep:tonic"]
 worker = ["dep:worker"]
+lambda = []
 
 [dev-dependencies]
 indoc = "2.0.4"
