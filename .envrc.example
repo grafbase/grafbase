@@ -1,7 +1,2 @@
 use flake
 
-# Only needed the first time. Re-use that script to update your assets when necessary (ex: tests failing)
-if [[ ! -f ./cli/crates/server/assets/assets.tar.gz ]]; then
-    ./cli/scripts/load-assets.sh
-fi
-
