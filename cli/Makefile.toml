@@ -147,12 +147,6 @@ git pull
 ../../scripts/dev/build-cli-assets.sh
 '''
 
-[tasks.update-assets-remote]
-description = "Updates the CLI assets from the latest assets produced by the CI"
-script = '''
-./scripts/load-assets.sh
-'''
-
 [tasks.delete-assets]
 description = "Deletes the exported CLI assets"
 script = '''
