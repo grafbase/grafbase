@@ -3,7 +3,7 @@
 use crate::{
     sources::federation::{DataSource as FederationDataSource, Subgraph},
     CacheConfig, Definition, Directive, Enum, EnumValue, FieldDefinition, Header, InputObject, InputValueDefinition,
-    Interface, Object, Resolver, Scalar, Schema, Union,
+    Interface, Object, Resolver, Scalar, Schema, SchemaInputValues, Union,
 };
 use url::Url;
 
@@ -30,4 +30,15 @@ id_newtypes::U32! {
     Schema.strings[StringId] => String | unless "Too many strings" max MAX_ID,
     FederationDataSource.subgraphs[SubgraphId] => Subgraph | unless "Too many subgraphs" max MAX_ID,
     Schema.cache_configs[CacheConfigId] => CacheConfig | unless "Too many cache configs" max MAX_ID,
+}
+
+impl<T> std::ops::Index<T> for Schema
+where
+    SchemaInputValues: std::ops::Index<T>,
+{
+    type Output = <SchemaInputValues as std::ops::Index<T>>::Output;
+
+    fn index(&self, index: T) -> &Self::Output {
+        &self.default_input_values[index]
+    }
 }

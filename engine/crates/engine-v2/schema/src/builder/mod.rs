@@ -77,7 +77,7 @@ impl SchemaBuilder {
                 operation_limits: take(&mut config.operation_limits),
                 disable_introspection: config.disable_introspection,
                 urls: Vec::new(),
-                input_values: SchemaInputValues::default(),
+                default_input_values: SchemaInputValues::default(),
             },
         };
 
@@ -142,40 +142,33 @@ impl SchemaBuilder {
                 federated_graph::Directive::Deprecated { reason } => Directive::Deprecated {
                     reason: reason.map(Into::into),
                 },
-                federated_graph::Directive::Other { name, arguments } => Directive::Other {
-                    name: name.into(),
-                    arguments: {
-                        let ids = self.schema.input_values.reserve_map(StringId::from(0), arguments.len());
-                        for ((key, value), id) in arguments.into_iter().zip(ids) {
-                            self.schema.input_values[id] = (key.into(), self.insert_value(value));
-                        }
-                        ids
-                    },
-                },
+                federated_graph::Directive::Other { .. } => continue,
             };
             directives.push(directive);
         }
         self.schema.directives = directives;
     }
 
+    // keeping it for now, will use it as a base for requires arguments
+    #[allow(dead_code)]
     fn insert_value(&mut self, value: federated_graph::Value) -> SchemaInputValue {
         match value {
             federated_graph::Value::String(s) => SchemaInputValue::String(s.into()),
             federated_graph::Value::Int(i) => SchemaInputValue::BigInt(i),
             federated_graph::Value::Float(f) => SchemaInputValue::Float(f),
             federated_graph::Value::Boolean(b) => SchemaInputValue::Boolean(b),
-            federated_graph::Value::EnumValue(id) => SchemaInputValue::UnknownEnumValue(id.into()),
+            federated_graph::Value::EnumValue(_) => todo!("should be validated."),
             federated_graph::Value::Object(fields) => {
-                let ids = self.schema.input_values.reserve_map(StringId::from(0), fields.len());
+                let ids = self.schema.default_input_values.reserve_map(fields.len());
                 for ((key, value), id) in fields.into_vec().into_iter().zip(ids) {
-                    self.schema.input_values[id] = (key.into(), self.insert_value(value));
+                    self.schema.default_input_values[id] = (key.into(), self.insert_value(value));
                 }
                 SchemaInputValue::Map(ids)
             }
             federated_graph::Value::List(l) => {
-                let ids = self.schema.input_values.reserve_list(l.len());
+                let ids = self.schema.default_input_values.reserve_list(l.len());
                 for (value, id) in l.into_vec().into_iter().zip(ids) {
-                    self.schema.input_values[id] = self.insert_value(value);
+                    self.schema.default_input_values[id] = self.insert_value(value);
                 }
                 SchemaInputValue::List(ids)
             }

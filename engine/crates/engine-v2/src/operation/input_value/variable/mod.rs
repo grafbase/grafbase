@@ -2,7 +2,7 @@ mod de;
 mod ser;
 
 use id_newtypes::IdRange;
-use schema::{EnumValueId, InputValue, InputValueDefinitionId, RawInputValuesContext, SchemaInputValueId};
+use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValue, SchemaInputValueId};
 
 use crate::operation::OperationWalker;
 
@@ -116,7 +116,10 @@ impl<'a> From<VariableInputValueWalker<'a>> for InputValue<'a> {
                 InputValue::Map(key_values.into_boxed_slice())
             }
             VariableInputValue::U64(n) => InputValue::U64(*n),
-            VariableInputValue::DefaultValue(id) => RawInputValuesContext::walk(&walker.schema_walker, *id).into(),
+            VariableInputValue::DefaultValue(id) => {
+                let value: &'a SchemaInputValue = &walker.schema_walker.as_ref()[*id];
+                walker.schema_walker.walk(value).into()
+            }
         }
     }
 }
@@ -161,7 +164,7 @@ impl std::fmt::Debug for VariableInputValueWalker<'_> {
             }
             VariableInputValue::DefaultValue(id) => f
                 .debug_tuple("DefaultValue")
-                .field(&RawInputValuesContext::walk(&self.schema_walker, *id))
+                .field(&self.schema_walker.walk(&self.schema_walker.as_ref()[*id]))
                 .finish(),
         }
     }

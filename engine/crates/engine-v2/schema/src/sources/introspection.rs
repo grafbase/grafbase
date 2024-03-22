@@ -443,7 +443,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         );
 
         {
-            let default_value = Some(self.input_values.push_value(SchemaInputValue::Boolean(false)));
+            let default_value = Some(self.default_input_values.push_value(SchemaInputValue::Boolean(false)));
             self.set_field_arguments(
                 __type.id,
                 "fields",

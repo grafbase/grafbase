@@ -1,4 +1,3 @@
-use schema::RawInputValuesContext;
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use super::{VariableInputValue, VariableInputValueWalker};
@@ -41,9 +40,10 @@ impl<'ctx> serde::Serialize for VariableInputValueWalker<'ctx> {
                 }
                 map.end()
             }
-            VariableInputValue::DefaultValue(id) => {
-                RawInputValuesContext::walk(&self.schema_walker, *id).serialize(serializer)
-            }
+            VariableInputValue::DefaultValue(id) => self
+                .schema_walker
+                .walk(&self.schema_walker.as_ref()[*id])
+                .serialize(serializer),
         }
     }
 }

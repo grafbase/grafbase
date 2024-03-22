@@ -1,4 +1,3 @@
-use schema::RawInputValuesContext;
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use super::{QueryInputValue, QueryInputValueWalker};
@@ -37,16 +36,17 @@ impl<'ctx> serde::Serialize for QueryInputValueWalker<'ctx> {
                 seq.end()
             }
             QueryInputValue::Map(ids) => {
-                let mut map = serializer.serialize_map(None)?;
+                let mut map = serializer.serialize_map(Some(ids.len()))?;
                 for (key, value) in &self.operation[*ids] {
                     map.serialize_key(key)?;
                     map.serialize_value(&self.walk(value))?;
                 }
                 map.end()
             }
-            QueryInputValue::DefaultValue(id) => {
-                RawInputValuesContext::walk(&self.schema_walker, *id).serialize(serializer)
-            }
+            QueryInputValue::DefaultValue(id) => self
+                .schema_walker
+                .walk(&self.schema_walker.as_ref()[*id])
+                .serialize(serializer),
             QueryInputValue::Variable(id) => self.walk(*id).serialize(serializer),
         }
     }

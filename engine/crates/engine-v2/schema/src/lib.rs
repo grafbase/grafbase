@@ -46,7 +46,7 @@ pub struct Schema {
     strings: Vec<String>,
     urls: Vec<url::Url>,
     /// Default input values & directive arguments
-    input_values: SchemaInputValues,
+    default_input_values: SchemaInputValues,
 
     /// Headers we might want to send to a subgraph
     headers: Vec<Header>,
@@ -136,7 +136,7 @@ impl Schema {
             enum_values: Vec::new(),
             strings: vec![String::from("Query")],
             urls: Vec::new(),
-            input_values: Default::default(),
+            default_input_values: Default::default(),
             headers: Vec::new(),
             default_headers: Vec::new(),
             cache_configs: Vec::new(),
@@ -209,7 +209,6 @@ pub enum Directive {
     Policy(Vec<Vec<StringId>>),
     RequiresScopes(Vec<Vec<StringId>>),
     Deprecated { reason: Option<StringId> },
-    Other { name: StringId, arguments: SchemaInputMap },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
