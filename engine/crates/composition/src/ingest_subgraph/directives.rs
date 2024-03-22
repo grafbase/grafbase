@@ -42,9 +42,18 @@ pub(super) fn ingest_directives(
                 })
                 .map(|s| subgraphs.strings.intern(s));
 
+            let label = directive
+                .node
+                .get_argument("label")
+                .and_then(|v| match &v.node {
+                    ConstValue::String(s) => Some(s.as_str()),
+                    _ => None,
+                })
+                .map(|s| subgraphs.strings.intern(s));
+
             let Some(from) = from else { continue };
 
-            subgraphs.set_override(directive_site_id, from);
+            subgraphs.set_override(directive_site_id, subgraphs::OverrideDirective { from, label });
             continue;
         }
 

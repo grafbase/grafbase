@@ -390,6 +390,7 @@ fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGra
 fn write_overrides(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
     for Override {
         graph: overriding_graph,
+        label,
         from,
     } in &field.overrides
     {
@@ -397,8 +398,18 @@ fn write_overrides(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) ->
             OverrideSource::Subgraph(subgraph_id) => &graph[graph.subgraphs[subgraph_id.0].name],
             OverrideSource::Missing(string) => &graph[*string],
         };
+
+        let optional_label = if let OverrideLabel::Percent(_) = label {
+            format!(", overrideLabel: \"{}\"", label)
+        } else {
+            String::new()
+        };
+
         let graph = &graph[graph[*overriding_graph].name];
-        write!(sdl, " @join__field(graph: {graph}, overrides: \"{overrides}\")")?;
+        write!(
+            sdl,
+            " @join__field(graph: {graph}, override: \"{overrides}\"{optional_label})"
+        )?;
     }
     Ok(())
 }
