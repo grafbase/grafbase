@@ -17,9 +17,9 @@ pub struct QueryInputValues {
 }
 
 id_newtypes::U32! {
-    QueryInputValues.values[QueryInputValueId] => QueryInputValue | unless "Too many input values",
-    QueryInputValues.input_fields[QueryInputObjectFieldValueId] => (InputValueDefinitionId, QueryInputValue) | unless "Too many input object fields",
-    QueryInputValues.key_values[QueryInputKeyValueId] => (String, QueryInputValue) | unless "Too many input fields",
+    QueryInputValues.values[QueryInputValueId] => QueryInputValue,
+    QueryInputValues.input_fields[QueryInputObjectFieldValueId] => (InputValueDefinitionId, QueryInputValue),
+    QueryInputValues.key_values[QueryInputKeyValueId] => (String, QueryInputValue),
 }
 
 #[derive(Default)]

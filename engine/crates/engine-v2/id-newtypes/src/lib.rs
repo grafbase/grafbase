@@ -60,19 +60,19 @@ macro_rules! id_newtype {
 
 #[macro_export]
 macro_rules! U32 {
-    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty | unless $msg:literal $(max $max:expr)?,)*) => {
+    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty$(| $(max $max:expr)?)?,)*) => {
         $(
             #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
             pub struct $name(std::num::NonZeroU32);
 
             impl From<usize> for $name {
                 fn from(value: usize) -> Self {
-                    $(assert!(value <= $max, "{}", $msg);)?
+                    $($(assert!(value <= $max, "{} id {} exceeds maximum {}", stringify!($name), value, stringify!($max));)?)?
                     Self(
                         u32::try_from(value)
                             .ok()
                             .and_then(|value| std::num::NonZeroU32::new(value + 1))
-                            .expect($msg)
+                            .expect(concat!("Too many ", stringify!($name)))
                     )
                 }
             }
@@ -90,19 +90,19 @@ macro_rules! U32 {
 
 #[macro_export]
 macro_rules! U16 {
-    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty | unless $msg:literal $(max $max:expr)?,)*) => {
+    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max $max:expr)?)?,)*) => {
         $(
             #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
             pub struct $name(std::num::NonZeroU16);
 
             impl From<usize> for $name {
                 fn from(value: usize) -> Self {
-                    $(assert!(value <= $max, "{}", $msg);)?
+                    $(assert!(value <= $max, "{} id {} exceeds maximum {}", stringify!($name), value, stringify($ty));)?
                     Self(
                         u16::try_from(value)
                             .ok()
                             .and_then(|value| std::num::NonZeroU16::new(value + 1))
-                            .expect($msg)
+                            .expect(concat!("Too many ", stringify!($name)))
                     )
                 }
             }

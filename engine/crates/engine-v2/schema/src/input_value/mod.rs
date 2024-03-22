@@ -86,9 +86,9 @@ pub struct SchemaInputValues {
 }
 
 id_newtypes::U32! {
-    SchemaInputValues.values[SchemaInputValueId] => SchemaInputValue | unless "Too many input values",
-    SchemaInputValues.input_fields[SchemaInputObjectFieldValueId] => (InputValueDefinitionId, SchemaInputValue) | unless "Too many input object fields",
-    SchemaInputValues.key_values[SchemaInputKeyValueId] => (StringId, SchemaInputValue) | unless "Too many input fields",
+    SchemaInputValues.values[SchemaInputValueId] => SchemaInputValue,
+    SchemaInputValues.input_fields[SchemaInputObjectFieldValueId] => (InputValueDefinitionId, SchemaInputValue),
+    SchemaInputValues.key_values[SchemaInputKeyValueId] => (StringId, SchemaInputValue),
 }
 
 /// Represents a default input value and @requires arguments.

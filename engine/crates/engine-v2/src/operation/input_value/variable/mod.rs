@@ -17,9 +17,9 @@ pub struct VariableInputValues {
 }
 
 id_newtypes::U32! {
-    VariableInputValues.values[VariableInputValueId] => VariableInputValue | unless "Too many input values",
-    VariableInputValues.input_fields[VariableInputObjectFieldValueId] => (InputValueDefinitionId, VariableInputValue) | unless "Too many input object fields",
-    VariableInputValues.key_values[VariableInputKeyValueId] => (String, VariableInputValue) | unless "Too many input fields",
+    VariableInputValues.values[VariableInputValueId] => VariableInputValue,
+    VariableInputValues.input_fields[VariableInputObjectFieldValueId] => (InputValueDefinitionId, VariableInputValue),
+    VariableInputValues.key_values[VariableInputKeyValueId] => (String, VariableInputValue),
 }
 
 #[derive(Default)]
