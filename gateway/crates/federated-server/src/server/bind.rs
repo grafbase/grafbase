@@ -90,7 +90,7 @@ pub(super) async fn bind(
             let filter = EnvFilter::new(&config.tracing.filter);
 
             let provider =
-                otel::layer::new_provider(&config.service_name, config.tracing, XrayIdGenerator::default(), Tokio)
+                otel::provider::create(&config.service_name, config.tracing, XrayIdGenerator::default(), Tokio)
                     .expect("error creating otel provider");
 
             let tracer = provider.tracer("lambda-otel");
