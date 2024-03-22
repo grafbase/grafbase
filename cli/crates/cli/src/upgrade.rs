@@ -67,7 +67,7 @@ struct NpmPackageInfo {
 
 const BINARY_SUFFIX: &str = if cfg!(windows) { ".exe" } else { "" };
 const TARGET: &str = env!("TARGET");
-const DOWNLOAD_URL_PREFIX: &str = "https://github.com/grafbase/grafbase/releases/download/cli-";
+const DOWNLOAD_URL_PREFIX: &str = "https://github.com/grafbase/grafbase/releases/download/grafbase-";
 const LATEST_RELEASE_API_URL: &str = "https://registry.npmjs.org/grafbase/latest";
 const GRAFBASE_EXECUTABLE_PERMISSIONS: u32 = 0o755;
 const GRAFBASE_INSTALL_LOCK_FILE: &str = ".grafbase.install.lock";
