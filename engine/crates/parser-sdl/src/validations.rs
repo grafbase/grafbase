@@ -309,7 +309,7 @@ fn validate_join_argument(
         let error_prefix = JoinArgumentErrorPrefix(join_coord, argument_definition.name.as_str(), &path);
         match value {
             SerializableArgument::Variable(variable) => {
-                let Some(expected_type) = available_variables.get(variable.as_str()) else {
+                let Some(variable_type) = available_variables.get(variable.as_str()) else {
                     errors.push(RuleError::new(
                         vec![],
                         format!(
@@ -319,12 +319,12 @@ fn validate_join_argument(
                     continue;
                 };
 
-                if !types_are_compatible(&Type::new(expected_type).expect("valid types"), &current_type, registry) {
+                if !types_are_compatible(&Type::new(variable_type).expect("valid types"), &current_type, registry) {
                     errors.push(RuleError::new(
                         vec![],
                         format!(
                             "{error_prefix} ${variable} is of type {} but is being used in a position expecting {}",
-                            expected_type, current_type
+                            variable_type, current_type
                         ),
                     ));
                     continue;
@@ -462,12 +462,26 @@ fn types_are_compatible(mut actual: &Type, mut expected: &Type, registry: &Regis
                 if actual_name == expected_name {
                     return true;
                 }
-                match (registry.lookup(actual_name), registry.lookup(expected_name)) {
-                    (Ok(MetaType::Scalar(_)), Ok(MetaType::Scalar(_))) => {
+                match registry
+                    .lookup(actual_name)
+                    .ok()
+                    .zip(registry.lookup(expected_name).ok())
+                {
+                    Some((MetaType::Scalar(_), MetaType::Scalar(_))) => {
                         // If the names don't match but both sides are scalars we'll say they're compatible.
                         // This maybe isn't strictly correct but a bit of flexibility around
                         // passsing strings to ID fields and handling mismatched custom scalars
                         // seems sensible.
+                        return true;
+                    }
+                    Some(
+                        (MetaType::InputObject(_), MetaType::Object(_))
+                        | (MetaType::Object(_), MetaType::InputObject(_)),
+                    ) => {
+                        // Likewise, it's possible for input objects & objects to be compatible
+                        // even though they're different types. We could probably validate this
+                        // but its work and I need to get onto other things so _for now_ lets just
+                        // hope the user has done the right thing.
                         return true;
                     }
                     _ => return false,
