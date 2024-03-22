@@ -96,10 +96,7 @@ impl FederationKey {
     }
 
     pub fn includes_field(&self, field: &str) -> bool {
-        self.selections
-            .0
-            .iter()
-            .any(|selection| selection.field == field)
+        self.selections.0.iter().any(|selection| selection.field == field)
     }
 }
 

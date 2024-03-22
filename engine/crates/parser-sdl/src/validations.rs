@@ -8,17 +8,14 @@ use engine::{
         type_kinds::SelectionSetTarget,
         MetaField, MetaFieldType, MetaInputValue, MetaType,
     },
-    QueryPath, Registry, Schema,
+    QueryPath, Registry,
 };
 use engine_parser::types::{BaseType, Type};
 use engine_value::argument_set::SerializableArgument;
 use indexmap::IndexMap;
 use regex::Regex;
 
-use crate::{
-    rules::visitor::RuleError,
-    schema_coord::{self, SchemaCoord},
-};
+use crate::{rules::visitor::RuleError, schema_coord::SchemaCoord};
 
 static NAME_REGEX: OnceLock<Regex> = OnceLock::new();
 

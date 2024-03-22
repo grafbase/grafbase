@@ -865,4 +865,27 @@ mod tests {
             "The join on User.nickname has an invalid value for argument ids. Found null where we expected [String]!"
         );
     }
+
+    #[test]
+    fn join_with_unknown_field_inside_object_literal() {
+        assert_validation_error!(
+            r#"
+            extend schema @federation(version: "2.3")
+
+            extend type Query {
+                blah(foo: Foo): String @resolver(name: "blah")
+                user: User! @resolver(name: "user")
+            }
+
+            type User {
+                nickname: ID @join(select: "blah(foo: {foo: null})")
+            }
+
+            input Foo {
+                bar: String!
+            }
+            "#,
+            "The join on User.nickname has an invalid value for argument foo. Could not find a field named foo"
+        );
+    }
 }
