@@ -235,19 +235,33 @@ pub struct Override {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Default, Debug)]
-pub struct OverrideLabel {
-    pub percent: Option<u8>,
+pub enum OverrideLabel {
+    Percent(u8),
+    #[serde(other)]
+    #[default]
+    Unknown,
+}
+
+impl OverrideLabel {
+    pub fn as_percent(&self) -> Option<u8> {
+        if let Self::Percent(v) = self {
+            Some(*v)
+        } else {
+            None
+        }
+    }
 }
 
 impl std::fmt::Display for OverrideLabel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(percent) = self.percent {
-            f.write_str("percent(")?;
-            percent.fmt(f)?;
-            f.write_str(")")?;
+        match self {
+            OverrideLabel::Percent(percent) => {
+                f.write_str("percent(")?;
+                percent.fmt(f)?;
+                f.write_str(")")
+            }
+            OverrideLabel::Unknown => Ok(()),
         }
-
-        Ok(())
     }
 }
 
@@ -260,7 +274,7 @@ impl std::str::FromStr for OverrideLabel {
             .and_then(|suffix| suffix.strip_suffix(')'))
             .and_then(|percent| u8::from_str(percent).ok())
         {
-            Ok(OverrideLabel { percent: Some(percent) })
+            Ok(OverrideLabel::Percent(percent))
         } else {
             Err(r#"Expected a field of the format "percent(<number>)" "#)
         }
@@ -1220,6 +1234,9 @@ mod tests {
         assert!("percent(heh)".parse::<OverrideLabel>().is_err());
         assert!("percent(30".parse::<OverrideLabel>().is_err());
 
-        assert_eq!("percent(30)".parse::<OverrideLabel>().unwrap().percent.unwrap(), 30);
+        assert_eq!(
+            "percent(30)".parse::<OverrideLabel>().unwrap().as_percent().unwrap(),
+            30
+        );
     }
 }

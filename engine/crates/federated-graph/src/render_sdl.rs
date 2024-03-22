@@ -399,7 +399,7 @@ fn write_overrides(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) ->
             OverrideSource::Missing(string) => &graph[*string],
         };
 
-        let optional_label = if label.percent.is_some() {
+        let optional_label = if let OverrideLabel::Percent(_) = label {
             format!(", overrideLabel: \"{}\"", label)
         } else {
             String::new()
