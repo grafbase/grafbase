@@ -12,6 +12,7 @@ use futures_util::{
 };
 use gateway_core::{encode_stream_response, RequestContext};
 use gateway_v2::streaming::StreamingFormat;
+use grafbase_tracing::otel::opentelemetry_sdk::trace::TracerProvider;
 use http::{header, HeaderMap};
 use response::BatchResponse;
 use serde_json::json;
@@ -24,17 +25,52 @@ mod response;
 pub(super) async fn get(
     Query(request): Query<engine::QueryParamRequest>,
     headers: HeaderMap,
-    State(ServerState { gateway, .. }): State<ServerState>,
+    State(state): State<ServerState>,
 ) -> impl IntoResponse {
     let request = engine::BatchRequest::Single(request.into());
-    handle(headers, request, gateway).await
+    traced(headers, request, state.gateway().clone(), state.tracer_provider()).await
 }
 
 pub(super) async fn post(
-    State(ServerState { gateway, .. }): State<ServerState>,
+    State(state): State<ServerState>,
     headers: HeaderMap,
     Json(request): Json<engine::BatchRequest>,
 ) -> impl IntoResponse {
+    traced(headers, request, state.gateway().clone(), state.tracer_provider()).await
+}
+
+#[cfg(feature = "lambda")]
+async fn traced(
+    headers: HeaderMap,
+    request: BatchRequest,
+    gateway: GatewayWatcher,
+    provider: Option<&TracerProvider>,
+) -> http::Response<Body> {
+    let response = handle(headers, request, gateway).await;
+
+    // lambda must flush the trace events here, otherwise the
+    // function might fall asleep and the events are pending until
+    // the next wake-up.
+    //
+    // read more: https://github.com/open-telemetry/opentelemetry-lambda/blob/main/docs/design_proposal.md
+    if let Some(provider) = provider {
+        for result in provider.force_flush() {
+            if let Err(e) = result {
+                println!("error flushing events: {e}");
+            }
+        }
+    }
+
+    response
+}
+
+#[cfg(not(feature = "lambda"))]
+async fn traced(
+    headers: HeaderMap,
+    request: BatchRequest,
+    gateway: GatewayWatcher,
+    _: Option<&TracerProvider>,
+) -> http::Response<Body> {
     handle(headers, request, gateway).await
 }
 
