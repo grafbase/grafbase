@@ -77,7 +77,7 @@ impl serde::Serialize for SchemaWalker<'_, &InputValue<'_>> {
 
 #[derive(Default)]
 pub struct SchemaInputValues {
-    /// Inidividual input values and list values
+    /// Individual input values and list values
     values: Vec<SchemaInputValue>,
     /// InputObject's fields
     input_fields: Vec<(InputValueDefinitionId, SchemaInputValue)>,
@@ -85,7 +85,7 @@ pub struct SchemaInputValues {
     key_values: Vec<(StringId, SchemaInputValue)>,
 }
 
-id_newtypes::U32! {
+id_newtypes::NonZeroU32! {
     SchemaInputValues.values[SchemaInputValueId] => SchemaInputValue,
     SchemaInputValues.input_fields[SchemaInputObjectFieldValueId] => (InputValueDefinitionId, SchemaInputValue),
     SchemaInputValues.key_values[SchemaInputKeyValueId] => (StringId, SchemaInputValue),
@@ -136,16 +136,9 @@ impl SchemaInputValues {
         id
     }
 
-    #[cfg(test)]
-    pub fn push_list(&mut self, values: Vec<SchemaInputValue>) -> IdRange<SchemaInputValueId> {
-        let start = self.values.len();
-        self.values.extend(values);
-        (start..self.values.len()).into()
-    }
-
     /// Reserve InputValue slots for a list, avoiding the need for an intermediate
     /// Vec to hold values as we need them to be contiguous.
-    pub fn reserve_list(&mut self, n: usize) -> IdRange<SchemaInputValueId> {
+    pub(crate) fn reserve_list(&mut self, n: usize) -> IdRange<SchemaInputValueId> {
         let start = self.values.len();
         self.values.reserve(n);
         for _ in 0..n {
@@ -154,16 +147,9 @@ impl SchemaInputValues {
         (start..self.values.len()).into()
     }
 
-    #[cfg(test)]
-    pub fn push_map(&mut self, fields: Vec<(StringId, SchemaInputValue)>) -> IdRange<SchemaInputKeyValueId> {
-        let start = self.key_values.len();
-        self.key_values.extend(fields);
-        (start..self.key_values.len()).into()
-    }
-
     /// Reserve InputKeyValue slots for a map, avoiding the need for an intermediate
     /// Vec to hold values as we need them to be contiguous.
-    pub fn reserve_map(&mut self, n: usize) -> IdRange<SchemaInputKeyValueId> {
+    pub(crate) fn reserve_map(&mut self, n: usize) -> IdRange<SchemaInputKeyValueId> {
         let start = self.key_values.len();
         self.key_values.reserve(n);
         for _ in 0..n {
@@ -172,22 +158,36 @@ impl SchemaInputValues {
         (start..self.key_values.len()).into()
     }
 
-    #[cfg(test)]
-    pub fn push_input_object(
-        &mut self,
-        fields: impl IntoIterator<Item = (InputValueDefinitionId, SchemaInputValue)>,
-    ) -> IdRange<SchemaInputObjectFieldValueId> {
-        let start = self.input_fields.len();
-        self.input_fields.extend(fields);
-        (start..self.input_fields.len()).into()
-    }
-
     pub fn append_input_object(
         &mut self,
         fields: &mut Vec<(InputValueDefinitionId, SchemaInputValue)>,
     ) -> IdRange<SchemaInputObjectFieldValueId> {
         let start = self.input_fields.len();
         self.input_fields.append(fields);
+        (start..self.input_fields.len()).into()
+    }
+}
+
+#[cfg(test)]
+impl SchemaInputValues {
+    pub fn push_list(&mut self, values: Vec<SchemaInputValue>) -> IdRange<SchemaInputValueId> {
+        let start = self.values.len();
+        self.values.extend(values);
+        (start..self.values.len()).into()
+    }
+
+    pub fn push_map(&mut self, fields: Vec<(StringId, SchemaInputValue)>) -> IdRange<SchemaInputKeyValueId> {
+        let start = self.key_values.len();
+        self.key_values.extend(fields);
+        (start..self.key_values.len()).into()
+    }
+
+    pub fn push_input_object(
+        &mut self,
+        fields: impl IntoIterator<Item = (InputValueDefinitionId, SchemaInputValue)>,
+    ) -> IdRange<SchemaInputObjectFieldValueId> {
+        let start = self.input_fields.len();
+        self.input_fields.extend(fields);
         (start..self.input_fields.len()).into()
     }
 }

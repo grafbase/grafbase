@@ -6,7 +6,7 @@ use super::{
     QueryInputObjectFieldValueId, QueryInputValue, QueryInputValueId, SelectionSet, VariableDefinition,
 };
 
-id_newtypes::U16! {
+id_newtypes::NonZeroU16! {
     Operation.fields[FieldId] => Field,
     Operation.selection_sets[SelectionSetId] => SelectionSet,
     Operation.fragments[FragmentId] => Fragment,

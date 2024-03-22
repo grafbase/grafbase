@@ -15,13 +15,8 @@ mod federation;
 mod state_mutation;
 
 pub use {
-    almost_empty::AlmostEmptySchema,
-    disingenuous::DisingenuousSchema,
-    echo::EchoSchema,
-    error_schema::ErrorSchema,
-    fake_github::FakeGithubSchema,
-    federation::{FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema},
-    state_mutation::StateMutationSchema,
+    almost_empty::AlmostEmptySchema, disingenuous::DisingenuousSchema, echo::EchoSchema, error_schema::ErrorSchema,
+    fake_github::FakeGithubSchema, federation::*, state_mutation::StateMutationSchema,
 };
 
 pub struct MockGraphQlServer {

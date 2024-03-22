@@ -881,6 +881,7 @@ fn introspection_on_multiple_federation_subgraphs() {
       price: Int!
       reviews: [Review!]!
       upc: String!
+      weight(unit: WeightUnit!): Float!
     }
 
     type Query {
@@ -915,6 +916,11 @@ fn introspection_on_multiple_federation_subgraphs() {
       reviews: [Review!]!
       trustworthiness: Trustworthiness!
       username: String!
+    }
+
+    enum WeightUnit {
+      GRAM
+      KILOGRAM
     }
 
     "###)

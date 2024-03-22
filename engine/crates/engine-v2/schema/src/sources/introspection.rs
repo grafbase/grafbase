@@ -1,9 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
-    builder::SchemaBuilder, Definition, EnumId, EnumValue, EnumValueId, FieldDefinition, FieldDefinitionId,
-    FieldResolver, IdRange, InputValueDefinition, InputValueDefinitionId, ObjectId, RequiredFieldSetId, ResolverId,
-    ScalarId, ScalarType, Schema, SchemaInputValue, SchemaInputValueId, SchemaWalker, StringId, Type, Wrapping,
+    builder::SchemaBuilder, Definition, EnumId, EnumValue, EnumValueId, FieldDefinition, FieldDefinitionId, IdRange,
+    InputValueDefinition, InputValueDefinitionId, ObjectId, ResolverId, ScalarId, ScalarType, Schema, SchemaInputValue,
+    SchemaInputValueId, SchemaWalker, StringId, SubgraphId, Type, Wrapping,
 };
 use strum::EnumCount;
 
@@ -13,6 +13,10 @@ pub struct Resolver;
 pub type ResolverWalker<'a> = SchemaWalker<'a, &'a Resolver>;
 
 impl<'a> ResolverWalker<'a> {
+    pub fn subgraph_id(&self) -> SubgraphId {
+        self.metadata().subgraph_id
+    }
+
     pub fn metadata(&self) -> &'a Metadata {
         self.schema
             .data_sources
@@ -24,7 +28,7 @@ impl<'a> ResolverWalker<'a> {
 }
 
 #[derive(Default)]
-pub struct DataSource {
+pub struct Introspection {
     // Ugly until we have some from of SchemaBuilder
     pub metadata: Option<Metadata>,
 }
@@ -95,6 +99,8 @@ pub enum __Directive {
 }
 
 pub struct Metadata {
+    pub subgraph_id: SubgraphId,
+    pub resolver_id: ResolverId,
     pub meta_fields: [FieldDefinitionId; 2],
     pub type_kind: TypeKind,
     pub directive_location: DirectiveLocation,
@@ -170,7 +176,7 @@ pub struct DirectiveLocation {
 
 pub(crate) struct IntrospectionSchemaBuilder<'a> {
     builder: &'a mut SchemaBuilder,
-    empty_requires_id: RequiredFieldSetId,
+    subgraph_id: SubgraphId,
 }
 
 impl<'a> Deref for IntrospectionSchemaBuilder<'a> {
@@ -187,12 +193,8 @@ impl<'a> DerefMut for IntrospectionSchemaBuilder<'a> {
 }
 
 impl<'a> IntrospectionSchemaBuilder<'a> {
-    pub fn insert_introspection_fields(builder: &'a mut SchemaBuilder, empty_requires_id: RequiredFieldSetId) {
-        Self {
-            builder,
-            empty_requires_id,
-        }
-        .create_fields_and_insert_them()
+    pub fn insert_introspection_fields(builder: &'a mut SchemaBuilder, subgraph_id: SubgraphId) {
+        Self { builder, subgraph_id }.create_fields_and_insert_them()
     }
 
     #[allow(non_snake_case)]
@@ -319,7 +321,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
         let __enum_value = self.insert_object_fields(
             __enum_value,
-            vec![
+            [
                 ("name", required_string, __EnumValue::Name),
                 ("description", nullable_string, __EnumValue::Description),
                 ("isDeprecated", required_boolean, __EnumValue::IsDeprecated),
@@ -372,7 +374,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
         let __directive = self.insert_object_fields(
             __directive,
-            vec![
+            [
                 ("name", required_string, __Directive::Name),
                 ("description", nullable_string, __Directive::Description),
                 ("locations", locations, __Directive::Locations),
@@ -433,7 +435,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
         let __type = self.insert_object_fields(
             __type,
-            vec![
+            [
                 ("kind", kind, __Type::Kind),
                 ("name", nullable_string, __Type::Name),
                 ("description", nullable_string, __Type::Description),
@@ -463,10 +465,9 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
         let __input_value = self.insert_object_fields(
             __input_value,
-            vec![
+            [
                 ("name", required_string, __InputValue::Name),
                 ("description", nullable_string, __InputValue::Description),
-                // type added later
                 ("defaultValue", nullable_string, __InputValue::DefaultValue),
                 ("type", required__type, __InputValue::Type),
             ],
@@ -474,11 +475,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
         let __field = self.insert_object_fields(
             __field,
-            vec![
+            [
                 ("name", required_string, __Field::Name),
                 ("description", nullable_string, __Field::Description),
                 ("args", args, __Field::Args),
-                // type added later
                 ("isDeprecated", required_boolean, __Field::IsDeprecated),
                 ("deprecationReason", nullable_string, __Field::DeprecationReason),
                 ("type", required__type, __Field::Type),
@@ -503,7 +503,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
         let __schema = self.insert_object_fields(
             __schema,
-            vec![
+            [
                 ("description", nullable_string, __Schema::Description),
                 ("types", required__type_list, __Schema::Types),
                 ("queryType", required__type, __Schema::QueryType),
@@ -516,10 +516,6 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         let resolver_id = ResolverId::from(self.resolvers.len());
         self.resolvers.push(crate::Resolver::Introspection(Resolver));
 
-        let field_resolver = FieldResolver {
-            resolver_id,
-            field_requires: self.empty_requires_id,
-        };
         /*
         __schema: __Schema!
         */
@@ -538,7 +534,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             panic!("Invariant broken: missing Query.__type or Query.__schema");
         };
         self[__schema_field_id].ty = field_type_id;
-        self[__schema_field_id].resolvers.push(field_resolver.clone());
+        self[__schema_field_id].resolvers.push(resolver_id);
 
         /*
         __type(name: String!): __Type
@@ -547,8 +543,8 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             inner: __type.id.into(),
             wrapping: Wrapping::nullable(),
         };
-        self[__type_field_id].resolvers.push(field_resolver);
         self[__type_field_id].ty = field_type_id;
+        self[__type_field_id].resolvers.push(resolver_id);
 
         self.set_field_arguments(
             self.root_operation_types.query,
@@ -558,15 +554,17 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
         // DataSource
         self.data_sources.introspection.metadata = Some(Metadata {
+            subgraph_id: self.subgraph_id,
+            resolver_id,
             meta_fields: [__type_field_id, __schema_field_id],
             type_kind,
             directive_location,
-            __schema: __schema.into(),
-            __type: __type.into(),
-            __enum_value: __enum_value.into(),
-            __input_value: __input_value.into(),
-            __field: __field.into(),
-            __directive: __directive.into(),
+            __schema,
+            __type,
+            __enum_value,
+            __input_value,
+            __field,
+            __directive,
         });
     }
 
@@ -617,14 +615,15 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         ObjectId::from(self.objects.len() - 1)
     }
 
-    fn insert_object_fields<E>(
+    fn insert_object_fields<E: std::fmt::Debug, const N: usize>(
         &mut self,
         object_id: ObjectId,
-        fields: Vec<(&str, Type, E)>,
-    ) -> IncompleteIntrospectionObject<E> {
+        fields: [(&str, Type, E); N],
+    ) -> IntrospectionObject<E, N> {
         let start = self.field_definitions.len().into();
         let mut out_fields = Vec::new();
 
+        let subgraph_id = self.subgraph_id;
         for (name, r#type, tag) in fields {
             let id = self.field_definitions.len().into();
             let name = self.builder.strings.get_or_insert(name);
@@ -632,9 +631,11 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             self.field_definitions.push(FieldDefinition {
                 name,
                 ty: r#type,
+                only_resolvable_in: vec![subgraph_id],
+                requires: Vec::new(),
+                provides: Vec::new(),
                 composed_directives: IdRange::empty(),
-                resolvers: vec![],
-                provides: vec![],
+                resolvers: Vec::new(),
                 argument_ids: IdRange::empty(),
                 description: None,
                 cache_config: None,
@@ -647,9 +648,9 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
         self[object_id].fields = IdRange { start, end };
 
-        IncompleteIntrospectionObject {
+        IntrospectionObject {
             id: object_id,
-            fields: out_fields,
+            fields: out_fields.try_into().unwrap(),
         }
     }
 
@@ -735,19 +736,5 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
     fn get_or_intern(&mut self, value: &str) -> StringId {
         self.builder.strings.get_or_insert(value)
-    }
-}
-
-struct IncompleteIntrospectionObject<E> {
-    id: ObjectId,
-    fields: Vec<(FieldDefinitionId, E)>,
-}
-
-impl<E: std::fmt::Debug, const N: usize> From<IncompleteIntrospectionObject<E>> for IntrospectionObject<E, N> {
-    fn from(value: IncompleteIntrospectionObject<E>) -> Self {
-        IntrospectionObject {
-            id: value.id,
-            fields: value.fields.try_into().unwrap(),
-        }
     }
 }

@@ -16,7 +16,7 @@ impl std::fmt::Debug for RequiredFieldsWalker<'_> {
 impl std::fmt::Debug for RequiredFieldWalker<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut f = f.debug_struct("RequiredField");
-        f.field("name", &self.walk(self.item.id).name());
+        f.field("name", &self.walk(self.item.definition_id).name());
         if let Some(arguments_id) = self.item.arguments_id {
             f.field("arguments", &self.walk(arguments_id));
         }

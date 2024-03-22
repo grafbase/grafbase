@@ -390,7 +390,7 @@ impl<'a> Binder<'a> {
 
                 let field_id = self.push_field(
                     parent,
-                    Field::SchemaField {
+                    Field::Query {
                         bound_response_key,
                         location: name_location,
                         field_definition_id: definition.id(),
@@ -427,7 +427,7 @@ impl<'a> Binder<'a> {
                 };
 
                 // Ugly, yes.
-                let Field::SchemaField {
+                let Field::Query {
                     argument_ids: ref mut field_argument_ids,
                     selection_set_id: ref mut field_selection_set_id,
                     ..
@@ -462,7 +462,7 @@ impl<'a> Binder<'a> {
             return Ok(*ids);
         }
 
-        let start = FieldArgumentId::from(self.field_arguments.len());
+        let start = self.field_arguments.len();
         for argument_def in definition.arguments() {
             if let Some(index) = arguments
                 .iter()
@@ -495,7 +495,8 @@ impl<'a> Binder<'a> {
                 });
             }
         }
-        let end = FieldArgumentId::from(self.field_arguments.len());
+        let end = self.field_arguments.len();
+        self.field_arguments[start..end].sort_unstable_by_key(|arg| arg.input_value_definition_id);
         Ok((start..end).into())
     }
 

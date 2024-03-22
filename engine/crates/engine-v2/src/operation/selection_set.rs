@@ -91,11 +91,11 @@ pub enum Field {
         location: Location,
     },
     /// Corresponds to an actual field within the operation that has a field definition
-    #[allow(clippy::enum_variant_names)]
-    SchemaField {
+    Query {
         bound_response_key: BoundResponseKey,
         location: Location,
         field_definition_id: FieldDefinitionId,
+        // sorted by InputValueDefinitionId
         argument_ids: IdRange<FieldArgumentId>,
         selection_set_id: Option<SelectionSetId>,
     },
@@ -104,8 +104,11 @@ pub enum Field {
         edge: ResponseEdge,
         field_definition_id: FieldDefinitionId,
         selection_set_id: Option<SelectionSetId>,
+        // sorted by InputValueDefinitionId
+        argument_ids: IdRange<FieldArgumentId>,
+        petitioner_location: Location,
         /// During the planning we may add more extra fields than necessary. To prevent retrieving
-        /// unecessary data, only those marked as read are part of the opeartion.
+        /// unnecessary data, only those marked as read are part of the operation.
         is_read: bool,
     },
 }
@@ -114,7 +117,7 @@ impl Field {
     pub fn query_position(&self) -> usize {
         match self {
             Field::TypeName { bound_response_key, .. } => bound_response_key.position(),
-            Field::SchemaField { bound_response_key, .. } => bound_response_key.position(),
+            Field::Query { bound_response_key, .. } => bound_response_key.position(),
             Field::Extra { .. } => usize::MAX,
         }
     }
@@ -128,23 +131,25 @@ impl Field {
     pub fn response_edge(&self) -> ResponseEdge {
         match self {
             Field::TypeName { bound_response_key, .. } => (*bound_response_key).into(),
-            Field::SchemaField { bound_response_key, .. } => (*bound_response_key).into(),
+            Field::Query { bound_response_key, .. } => (*bound_response_key).into(),
             Field::Extra { edge, .. } => *edge,
         }
     }
 
-    pub fn name_location(&self) -> Option<Location> {
+    pub fn location(&self) -> Location {
         match self {
-            Field::TypeName { location, .. } => Some(*location),
-            Field::SchemaField { location, .. } => Some(*location),
-            Field::Extra { .. } => None,
+            Field::TypeName { location, .. } => *location,
+            Field::Query { location, .. } => *location,
+            Field::Extra {
+                petitioner_location, ..
+            } => *petitioner_location,
         }
     }
 
     pub fn selection_set_id(&self) -> Option<SelectionSetId> {
         match self {
             Field::TypeName { .. } => None,
-            Field::SchemaField { selection_set_id, .. } => *selection_set_id,
+            Field::Query { selection_set_id, .. } => *selection_set_id,
             Field::Extra { selection_set_id, .. } => *selection_set_id,
         }
     }
@@ -152,7 +157,7 @@ impl Field {
     pub fn definition_id(&self) -> Option<FieldDefinitionId> {
         match self {
             Field::TypeName { .. } => None,
-            Field::SchemaField {
+            Field::Query {
                 field_definition_id, ..
             } => Some(*field_definition_id),
             Field::Extra {
@@ -164,7 +169,7 @@ impl Field {
     pub fn mark_as_read(&mut self) {
         match self {
             Field::TypeName { .. } => {}
-            Field::SchemaField { .. } => {}
+            Field::Query { .. } => {}
             Field::Extra { is_read, .. } => *is_read = true,
         }
     }
@@ -172,7 +177,7 @@ impl Field {
     pub fn is_read(&self) -> bool {
         match self {
             Field::TypeName { .. } => true,
-            Field::SchemaField { .. } => true,
+            Field::Query { .. } => true,
             Field::Extra { is_read, .. } => *is_read,
         }
     }
@@ -180,8 +185,8 @@ impl Field {
     pub fn argument_ids(&self) -> IdRange<FieldArgumentId> {
         match self {
             Field::TypeName { .. } => IdRange::empty(),
-            Field::SchemaField { argument_ids, .. } => *argument_ids,
-            Field::Extra { .. } => IdRange::empty(),
+            Field::Query { argument_ids, .. } => *argument_ids,
+            Field::Extra { argument_ids, .. } => *argument_ids,
         }
     }
 }
@@ -235,7 +240,8 @@ impl From<TypeCondition> for Definition {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Represents arguments that were specified in the query with a value
+#[derive(Debug)]
 pub struct FieldArgument {
     pub name_location: Option<Location>,
     pub value_location: Option<Location>,

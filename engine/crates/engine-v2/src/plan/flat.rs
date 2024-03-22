@@ -51,7 +51,7 @@ pub fn flatten_selection_sets(
                     flat_selection_set.fields.push(FlatField {
                         type_condition,
                         selection_set_path,
-                        field_id,
+                        id: field_id,
                     });
                 }
             }
@@ -94,6 +94,14 @@ pub(crate) struct FlatSelectionSet {
 }
 
 impl FlatSelectionSet {
+    pub fn empty(ty: SelectionSetType) -> Self {
+        Self {
+            ty,
+            root_selection_set_ids: Vec::new(),
+            fields: Vec::new(),
+        }
+    }
+
     pub fn partition_fields(self, predicate: impl Fn(&FlatField) -> bool) -> (Self, Self) {
         let (left, right) = self.fields.into_iter().partition(predicate);
         (
@@ -144,17 +152,17 @@ pub(crate) struct FlatField {
     pub type_condition: Option<FlatTypeCondition>,
     // There is always at least one element.
     pub selection_set_path: Vec<SelectionSetId>,
-    pub field_id: FieldId,
+    pub id: FieldId,
 }
 
 impl Borrow<FieldId> for FlatField {
     fn borrow(&self) -> &FieldId {
-        &self.field_id
+        &self.id
     }
 }
 impl Borrow<FieldId> for &FlatField {
     fn borrow(&self) -> &FieldId {
-        &self.field_id
+        &self.id
     }
 }
 

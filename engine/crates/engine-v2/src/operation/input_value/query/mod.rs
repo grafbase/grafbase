@@ -2,7 +2,7 @@ mod de;
 mod ser;
 
 use id_newtypes::IdRange;
-use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValueId};
+use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValue, SchemaInputValueId};
 
 use crate::operation::{OperationWalker, VariableDefinitionId};
 
@@ -16,13 +16,13 @@ pub struct QueryInputValues {
     key_values: Vec<(String, QueryInputValue)>,
 }
 
-id_newtypes::U32! {
+id_newtypes::NonZeroU32! {
     QueryInputValues.values[QueryInputValueId] => QueryInputValue,
     QueryInputValues.input_fields[QueryInputObjectFieldValueId] => (InputValueDefinitionId, QueryInputValue),
     QueryInputValues.key_values[QueryInputKeyValueId] => (String, QueryInputValue),
 }
 
-#[derive(Default)]
+#[derive(Debug, Default, PartialEq)]
 pub enum QueryInputValue {
     #[default]
     Null,
@@ -41,6 +41,28 @@ pub enum QueryInputValue {
 
     DefaultValue(SchemaInputValueId),
     Variable(VariableDefinitionId),
+}
+
+impl Eq for QueryInputValue {}
+
+impl std::hash::Hash for QueryInputValue {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            QueryInputValue::Null => 0.hash(state),
+            QueryInputValue::String(s) => s.hash(state),
+            QueryInputValue::EnumValue(id) => id.hash(state),
+            QueryInputValue::Int(n) => n.hash(state),
+            QueryInputValue::BigInt(n) => n.hash(state),
+            QueryInputValue::Float(n) => n.to_bits().hash(state),
+            QueryInputValue::Boolean(b) => b.hash(state),
+            QueryInputValue::InputObject(ids) => ids.hash(state),
+            QueryInputValue::List(ids) => ids.hash(state),
+            QueryInputValue::Map(ids) => ids.hash(state),
+            QueryInputValue::U64(n) => n.hash(state),
+            QueryInputValue::DefaultValue(id) => id.hash(state),
+            QueryInputValue::Variable(id) => id.hash(state),
+        }
+    }
 }
 
 impl QueryInputValues {
@@ -90,6 +112,33 @@ impl<'a> QueryInputValueWalker<'a> {
             _ => false,
         }
     }
+
+    /// Used for GraphQL query generation to only include values in the query string that would be
+    /// present after query normalization.
+    pub fn to_normalized_query_const_value_str(self) -> Option<&'a str> {
+        Some(match self.item {
+            QueryInputValue::EnumValue(id) => self.schema_walker.walk(*id).name(),
+            QueryInputValue::Boolean(b) => {
+                if *b {
+                    "true"
+                } else {
+                    "false"
+                }
+            }
+            QueryInputValue::DefaultValue(id) => match &self.schema_walker.as_ref()[*id] {
+                SchemaInputValue::EnumValue(id) => self.schema_walker.walk(*id).name(),
+                SchemaInputValue::Boolean(b) => {
+                    if *b {
+                        "true"
+                    } else {
+                        "false"
+                    }
+                }
+                _ => return None,
+            },
+            _ => return None,
+        })
+    }
 }
 
 impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
@@ -131,6 +180,62 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
             QueryInputValue::U64(n) => InputValue::U64(*n),
             QueryInputValue::DefaultValue(id) => walker.schema_walker.walk(&walker.schema_walker.as_ref()[*id]).into(),
             QueryInputValue::Variable(id) => walker.walk(*id).to_input_value().unwrap_or_default(),
+        }
+    }
+}
+
+impl PartialEq<SchemaInputValue> for QueryInputValueWalker<'_> {
+    fn eq(&self, other: &SchemaInputValue) -> bool {
+        match (self.item, other) {
+            (QueryInputValue::Null, SchemaInputValue::Null) => true,
+            (QueryInputValue::String(l), SchemaInputValue::String(r)) => l == &self.schema_walker[*r],
+            (QueryInputValue::EnumValue(l), SchemaInputValue::EnumValue(r)) => l == r,
+            (QueryInputValue::Int(l), SchemaInputValue::Int(r)) => l == r,
+            (QueryInputValue::BigInt(l), SchemaInputValue::BigInt(r)) => l == r,
+            (QueryInputValue::U64(l), SchemaInputValue::U64(r)) => l == r,
+            (QueryInputValue::Float(l), SchemaInputValue::Float(r)) => l == r,
+            (QueryInputValue::Boolean(l), SchemaInputValue::Boolean(r)) => l == r,
+            (QueryInputValue::InputObject(lids), SchemaInputValue::InputObject(rids)) => {
+                let left = &self.operation[*lids];
+                let right = &self.schema_walker.as_ref()[*rids];
+                if left.len() != right.len() {
+                    return false;
+                }
+                for ((lid, left_value), (rid, right_value)) in left.iter().zip(right) {
+                    if lid != rid || !self.walk(left_value).eq(right_value) {
+                        return false;
+                    }
+                }
+                true
+            }
+            (QueryInputValue::List(lids), SchemaInputValue::List(rids)) => {
+                let left = &self.operation[*lids];
+                let right = &self.schema_walker.as_ref()[*rids];
+                if left.len() != right.len() {
+                    return false;
+                }
+                for (left_value, right_value) in left.iter().zip(right) {
+                    if !self.walk(left_value).eq(right_value) {
+                        return false;
+                    }
+                }
+                true
+            }
+            (QueryInputValue::Map(ids), SchemaInputValue::Map(other_ids)) => {
+                let left = &self.operation[*ids];
+                let right = &self.schema_walker[*other_ids];
+                if left.len() != right.len() {
+                    return false;
+                }
+                for ((lkey, lvalue), (rkey, rvalue)) in left.iter().zip(right) {
+                    let rkey = &self.schema_walker[*rkey];
+                    if lkey != rkey || !self.walk(lvalue).eq(rvalue) {
+                        return false;
+                    }
+                }
+                true
+            }
+            _ => false,
         }
     }
 }
