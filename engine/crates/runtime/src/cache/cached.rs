@@ -76,12 +76,12 @@ where
                 update_stale(cache, ctx, key.clone(), Arc::clone(&value), entry.metadata, value_fut).await;
             }
 
-            tracing::info!(ray_id = ctx.ray_id(), "Cache STALE - {} - {}", revalidated, key);
+            tracing::debug!(ray_id = ctx.ray_id(), "Cache STALE - {} - {}", revalidated, key);
 
             // early stales mean early refreshes on our part
             // they shouldn't be considered as stale from a client perspective
             if entry.is_early_stale {
-                tracing::info!(ray_id = ctx.ray_id(), "Cache HIT - {}", key);
+                tracing::debug!(ray_id = ctx.ray_id(), "Cache HIT - {}", key);
                 return Ok(CachedExecutionResponse::Cached(value));
             }
 
@@ -91,12 +91,12 @@ where
             })
         }
         Entry::Hit(value) => {
-            tracing::info!(ray_id = ctx.ray_id(), "Cache HIT - {}", key);
+            tracing::debug!(ray_id = ctx.ray_id(), "Cache HIT - {}", key);
 
             Ok(CachedExecutionResponse::Cached(Arc::new(value)))
         }
         Entry::Miss => {
-            tracing::info!(ray_id = ctx.ray_id(), "Cache MISS - {}", key);
+            tracing::debug!(ray_id = ctx.ray_id(), "Cache MISS - {}", key);
 
             let origin_result = value_fut.await?;
             let metadata = origin_result
@@ -108,7 +108,7 @@ where
                 let cache = cache.clone();
                 let purge_tags = metadata.tags.clone();
 
-                tracing::info!(ray_id, "Purging global cache by tags: {:?}", purge_tags);
+                tracing::debug!(ray_id, "Purging global cache by tags: {:?}", purge_tags);
 
                 ctx.wait_until(
                     async_runtime::make_send_on_wasm(async move {
