@@ -28,11 +28,11 @@ pub(crate) struct OperationPlan {
     // for a plan filtering out other plans fields and to build the collected selection set.
     //
     // BoundFieldId -> PlanId
-    bound_field_to_plan_id: Vec<PlanId>,
+    field_to_plan_id: Vec<PlanId>,
     // BoundSelectionSetId -> PlanId
-    bound_selection_to_plan_id: Vec<PlanId>,
+    selection_to_plan_id: Vec<PlanId>,
     /// BoundSelectionSetId -> Option<CollectedSelectionSetId>
-    bound_to_collected_selection_set: Vec<Option<AnyCollectedSelectionSetId>>,
+    selection_set_to_collected: Vec<Option<AnyCollectedSelectionSetId>>,
 
     // -- Plans --
     // Actual plans for the operation. A plan defines what do for a given selection set at a

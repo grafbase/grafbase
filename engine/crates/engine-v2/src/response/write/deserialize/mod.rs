@@ -64,19 +64,19 @@ impl<'ctx> SeedContext<'ctx> {
 }
 
 impl<'ctx> SeedContextInner<'ctx> {
-    fn missing_field_error_message(&self, field: &CollectedField) -> String {
-        let bound_field = &self.plan[field.bound_field_id];
+    fn missing_field_error_message(&self, collected_field: &CollectedField) -> String {
+        let field = &self.plan[collected_field.id];
         let response_keys = self.plan.response_keys();
-        if bound_field.response_key() == field.expected_key.into() {
+        if field.response_key() == collected_field.expected_key.into() {
             format!(
                 "Error decoding response from upstream: Missing required field named '{}'",
-                &response_keys[field.expected_key]
+                &response_keys[collected_field.expected_key]
             )
         } else {
             format!(
                 "Error decoding response from upstream: Missing required field named '{}' (expected: '{}')",
-                &response_keys[bound_field.response_key()],
-                &response_keys[field.expected_key]
+                &response_keys[field.response_key()],
+                &response_keys[collected_field.expected_key]
             )
         }
     }

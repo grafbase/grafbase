@@ -2,8 +2,8 @@
 /// They can only be created by From<usize>
 use crate::{
     sources::federation::{DataSource as FederationDataSource, Subgraph},
-    CacheConfig, Definition, Directive, Enum, EnumValue, Field, Header, InputObject, InputValueDefinition, Interface,
-    Object, Resolver, Scalar, Schema, Union,
+    CacheConfig, Definition, Directive, Enum, EnumValue, FieldDefinition, Header, InputObject, InputValueDefinition,
+    Interface, Object, Resolver, Scalar, Schema, Union,
 };
 use url::Url;
 
@@ -17,7 +17,7 @@ id_newtypes::U32! {
     Schema.directives[DirectiveId] => Directive | unless "Too many directives" max MAX_ID,
     Schema.enum_values[EnumValueId] => EnumValue | unless "Too many enum values" max MAX_ID,
     Schema.enums[EnumId] => Enum | unless "Too many enums" max MAX_ID,
-    Schema.fields[FieldId] => Field | unless "Too many fields" max MAX_ID,
+    Schema.field_definitions[FieldDefinitionId] => FieldDefinition | unless "Too many fields" max MAX_ID,
     Schema.headers[HeaderId] => Header | unless "Too many headers" max MAX_ID,
     Schema.input_objects[InputObjectId] => InputObject | unless "Too many input objects" max MAX_ID,
     Schema.input_value_definitions[InputValueDefinitionId] => InputValueDefinition | unless "Too many input value definitions" max MAX_ID,

@@ -2,12 +2,13 @@ use std::borrow::Cow;
 
 use super::{resolver::ResolverWalker, SchemaWalker};
 use crate::{
-    CacheConfig, Directive, FieldId, FieldProvides, FieldResolver, FieldSet, InputValueDefinitionWalker, TypeWalker,
+    CacheConfig, Directive, FieldDefinitionId, FieldProvides, FieldResolver, FieldSet, InputValueDefinitionWalker,
+    TypeWalker,
 };
 
-pub type FieldWalker<'a> = SchemaWalker<'a, FieldId>;
+pub type FieldDefinitionWalker<'a> = SchemaWalker<'a, FieldDefinitionId>;
 
-impl<'a> FieldWalker<'a> {
+impl<'a> FieldDefinitionWalker<'a> {
     pub fn name(&self) -> &'a str {
         self.names.field(self.schema, self.item)
     }
@@ -71,7 +72,7 @@ pub struct FieldResolverWalker<'a> {
     pub field_requires: &'a FieldSet,
 }
 
-impl<'a> std::fmt::Debug for FieldWalker<'a> {
+impl<'a> std::fmt::Debug for FieldDefinitionWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Field")
             .field("id", &usize::from(self.item))
