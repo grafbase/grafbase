@@ -1,18 +1,14 @@
 use engine_parser::types::OperationType;
 use id_newtypes::IdRange;
 use itertools::Itertools;
-use schema::{FieldDefinitionId, ResolverId, Schema};
+use schema::{ResolverId, Schema};
 use std::{
-    borrow::Cow,
-    collections::{hash_map::Entry, HashMap, HashSet},
+    collections::{HashMap, HashSet},
     num::NonZeroU16,
 };
 
 use super::{
-    boundary::{BoundaryParent, BoundaryPlanner},
-    collect::Collector,
-    logic::PlanningLogic,
-    PlanningError, PlanningResult,
+    boundary::BoundarySelectionSetPlanner, collect::Collector, logic::PlanningLogic, PlanningError, PlanningResult,
 };
 use crate::{
     operation::{
@@ -22,7 +18,7 @@ use crate::{
         flatten_selection_sets, EntityType, FlatField, FlatSelectionSet, FlatTypeCondition, OperationPlan,
         ParentToChildEdge, PlanBoundaryId, PlanId, PlanInput, PlanOutput, PlannedResolver,
     },
-    response::{ReadSelectionSet, ResponseKeys, SafeResponseKey},
+    response::ReadSelectionSet,
     sources::Plan,
 };
 
@@ -52,12 +48,6 @@ pub(super) struct Planner<'ctx> {
     pub(super) schema: &'ctx Schema,
     pub(super) variables: &'ctx Variables,
     pub(super) operation: Operation,
-
-    // for extra field we need need to generate a response key that doesn't collide with anything
-    // else. As only extra field for a given FieldId can be present in selection set we re-use the
-    // same ResponseKey between extra fields of the same type. Otherwise we would generate new ones
-    // each time as we check for collisions within *all* response keys.
-    extra_field_response_keys: HashMap<FieldDefinitionId, SafeResponseKey>,
 
     // -- Operation --
     // Associates for each field/selection a plan. Attributions is added incrementally
@@ -107,7 +97,6 @@ impl<'ctx> Planner<'ctx> {
         Self {
             schema,
             variables,
-            extra_field_response_keys: HashMap::default(),
             field_to_plan_id: vec![None; operation.fields.len()],
             selection_set_to_plan_id: vec![None; operation.selection_sets.len()],
             operation,
@@ -171,7 +160,13 @@ impl<'schema> Planner<'schema> {
 
     /// A query is simply treated as a plan boundary with no parent.
     fn plan_query(&mut self, selection_set: FlatSelectionSet) -> PlanningResult<()> {
-        BoundaryPlanner::plan(self, &QueryPath::default(), None, selection_set)?;
+        BoundarySelectionSetPlanner::plan(
+            self,
+            &QueryPath::default(),
+            None,
+            FlatSelectionSet::empty(selection_set.ty),
+            selection_set,
+        )?;
         Ok(())
     }
 
@@ -304,8 +299,7 @@ impl<'schema> Planner<'schema> {
         providable: FlatSelectionSet,
         missing: FlatSelectionSet,
     ) -> PlanningResult<()> {
-        let parent = BoundaryParent { logic, providable };
-        let children = BoundaryPlanner::plan(self, query_path, Some(parent), missing)?;
+        let children = BoundarySelectionSetPlanner::plan(self, query_path, Some(logic), providable, missing)?;
 
         let parent = logic.plan_id();
         let plan_boundary_id = self.new_boundary(parent)?;
@@ -479,50 +473,6 @@ impl<'schema> Planner<'schema> {
         self.operation.walker_with(self.schema.walker(), self.variables)
     }
 
-    pub fn generate_unique_response_key_for(&mut self, field_id: FieldDefinitionId) -> SafeResponseKey {
-        // When the resolver supports aliases, we must ensure that extra fields
-        // don't collide with existing response keys. And to avoid duplicates
-        // during field collection, we have a single unique name per field id.
-        match self.extra_field_response_keys.entry(field_id) {
-            Entry::Occupied(entry) => *entry.get(),
-            Entry::Vacant(entry) => {
-                let name = Self::find_available_response_key(self.schema, &self.operation.response_keys, field_id);
-                let key = self.operation.response_keys.get_or_intern(name.as_ref());
-                entry.insert(key);
-                key
-            }
-        }
-    }
-
-    fn find_available_response_key<'b>(
-        schema: &'b Schema,
-        response_keys: &ResponseKeys,
-        field_id: FieldDefinitionId,
-    ) -> Cow<'b, str> {
-        let schema_name = schema.walker().walk(field_id).name();
-        if !response_keys.contains(schema_name) {
-            return Cow::Borrowed(schema_name);
-        }
-        let short_id = hex::encode(u32::from(field_id).to_be_bytes())
-            .trim_start_matches('0')
-            .to_uppercase();
-        let name = format!("_{}{}", schema_name, short_id);
-        // name is unique, but may collide with existing keys so
-        // iterating over candidates until we find a valid one.
-        // This is only a safeguard, it most likely won't ever run.
-        if !response_keys.contains(&name) {
-            return Cow::Owned(name);
-        }
-        let mut index = 0;
-        loop {
-            let candidate = format!("{name}{index}");
-            if !response_keys.contains(&candidate) {
-                return Cow::Owned(candidate);
-            }
-            index += 1;
-        }
-    }
-
     pub fn push_extra_field(
         &mut self,
         plan_id: PlanId,
@@ -594,10 +544,6 @@ impl<'schema> Planner<'schema> {
 
     pub fn insert_plan_input_selection_set(&mut self, plan_id: PlanId, selection_set: ReadSelectionSet) {
         self.plan_input_selection_sets[usize::from(plan_id)] = Some(selection_set);
-    }
-
-    pub fn get_planned_resolver(&self, plan_id: PlanId) -> &PlannedResolver {
-        &self.planned_resolvers[usize::from(plan_id)]
     }
 
     pub fn insert_plan_dependency(&mut self, edge: ParentToChildEdge) {

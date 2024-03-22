@@ -1,5 +1,5 @@
 use id_newtypes::IdRange;
-use schema::{InputValueDefinitionId, InputValueDefinitionWalker, InputValueSerdeError};
+use schema::{InputValueDefinitionId, InputValueDefinitionWalker, InputValueSerdeError, RequiredFieldSetArgumentsId};
 use serde::{de::value::MapDeserializer, forward_to_deserialize_any};
 
 use crate::operation::{FieldArgumentId, QueryInputValueWalker};
@@ -91,5 +91,26 @@ impl<'de> serde::Deserializer<'de> for FieldArgumentsWalker<'de> {
         bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
         bytes byte_buf unit unit_struct newtype_struct seq tuple
         tuple_struct map struct enum identifier option ignored_any
+    }
+}
+
+impl PartialEq<Option<RequiredFieldSetArgumentsId>> for FieldArgumentsWalker<'_> {
+    fn eq(&self, required_arguments_id: &Option<RequiredFieldSetArgumentsId>) -> bool {
+        let Some(required_args) = required_arguments_id.map(|id| &self.schema_walker.as_ref()[id]) else {
+            return self.is_empty();
+        };
+        let input_values = self
+            .into_iter()
+            .filter_map(|arg| Some((arg.as_ref().input_value_definition_id, arg.value()?)))
+            .collect::<Vec<_>>();
+        if input_values.len() != required_args.len() {
+            return false;
+        }
+        for ((lid, lvalue), (rid, rvalue_id)) in input_values.into_iter().zip(required_args.iter()) {
+            if lid != *rid || !lvalue.eq(&self.schema_walker[*rvalue_id]) {
+                return false;
+            }
+        }
+        true
     }
 }

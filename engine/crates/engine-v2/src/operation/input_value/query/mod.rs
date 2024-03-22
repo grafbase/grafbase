@@ -162,6 +162,62 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
     }
 }
 
+impl PartialEq<SchemaInputValue> for QueryInputValueWalker<'_> {
+    fn eq(&self, other: &SchemaInputValue) -> bool {
+        match (self.item, other) {
+            (QueryInputValue::Null, SchemaInputValue::Null) => true,
+            (QueryInputValue::String(l), SchemaInputValue::String(r)) => l == &self.schema_walker[*r],
+            (QueryInputValue::EnumValue(l), SchemaInputValue::EnumValue(r)) => l == r,
+            (QueryInputValue::Int(l), SchemaInputValue::Int(r)) => l == r,
+            (QueryInputValue::BigInt(l), SchemaInputValue::BigInt(r)) => l == r,
+            (QueryInputValue::U64(l), SchemaInputValue::U64(r)) => l == r,
+            (QueryInputValue::Float(l), SchemaInputValue::Float(r)) => l == r,
+            (QueryInputValue::Boolean(l), SchemaInputValue::Boolean(r)) => l == r,
+            (QueryInputValue::InputObject(lids), SchemaInputValue::InputObject(rids)) => {
+                let left = &self.operation[*lids];
+                let right = &self.schema_walker.as_ref()[*rids];
+                if left.len() != right.len() {
+                    return false;
+                }
+                for ((lid, left_value), (rid, right_value)) in left.iter().zip(right) {
+                    if lid != rid || !self.walk(left_value).eq(right_value) {
+                        return false;
+                    }
+                }
+                true
+            }
+            (QueryInputValue::List(lids), SchemaInputValue::List(rids)) => {
+                let left = &self.operation[*lids];
+                let right = &self.schema_walker.as_ref()[*rids];
+                if left.len() != right.len() {
+                    return false;
+                }
+                for (left_value, right_value) in left.iter().zip(right) {
+                    if !self.walk(left_value).eq(right_value) {
+                        return false;
+                    }
+                }
+                true
+            }
+            (QueryInputValue::Map(ids), SchemaInputValue::Map(other_ids)) => {
+                let left = &self.operation[*ids];
+                let right = &self.schema_walker[*other_ids];
+                if left.len() != right.len() {
+                    return false;
+                }
+                for ((lkey, lvalue), (rkey, rvalue)) in left.iter().zip(right) {
+                    let rkey = &self.schema_walker[*rkey];
+                    if lkey != rkey || !self.walk(lvalue).eq(rvalue) {
+                        return false;
+                    }
+                }
+                true
+            }
+            _ => false,
+        }
+    }
+}
+
 impl std::fmt::Debug for QueryInputValueWalker<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.item {

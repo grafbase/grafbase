@@ -1,19 +1,22 @@
+mod requires;
+mod sibling_dependencies;
+mod simple_key;
+
 use gateway_v2::Gateway;
 use graphql_mocks::{
-    FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema, MockGraphQlServer,
+    FakeFederationAccountsSchema, FakeFederationInventorySchema, FakeFederationProductsSchema,
+    FakeFederationReviewsSchema, MockGraphQlServer,
 };
 use integration_tests::{
     federation::{GatewayV2Ext, GraphqlResponse},
     runtime,
 };
 
-mod sibling_dependencies;
-mod simple_key;
-
 async fn execute(request: &str) -> GraphqlResponse {
     let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
     let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
     let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
+    let inventory = MockGraphQlServer::new(FakeFederationInventorySchema).await;
 
     let engine = Gateway::builder()
         .with_schema("accounts", &accounts)
@@ -21,6 +24,8 @@ async fn execute(request: &str) -> GraphqlResponse {
         .with_schema("products", &products)
         .await
         .with_schema("reviews", &reviews)
+        .await
+        .with_schema("inventory", &inventory)
         .await
         .finish()
         .await;

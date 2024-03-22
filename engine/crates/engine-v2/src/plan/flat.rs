@@ -94,6 +94,14 @@ pub(crate) struct FlatSelectionSet {
 }
 
 impl FlatSelectionSet {
+    pub fn empty(ty: SelectionSetType) -> Self {
+        Self {
+            ty,
+            root_selection_set_ids: Vec::new(),
+            fields: Vec::new(),
+        }
+    }
+
     pub fn partition_fields(self, predicate: impl Fn(&FlatField) -> bool) -> (Self, Self) {
         let (left, right) = self.fields.into_iter().partition(predicate);
         (

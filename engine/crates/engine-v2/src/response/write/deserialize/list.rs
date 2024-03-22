@@ -70,7 +70,7 @@ where
                         path.push(index.into());
                         self.ctx.response_part.borrow_mut().push_error(GraphqlError {
                             message: err.to_string(),
-                            locations: self.ctx.plan[self.field_id].name_location().into_iter().collect(),
+                            locations: vec![self.ctx.plan[self.field_id].location()],
                             path: Some(path),
                             ..Default::default()
                         });
