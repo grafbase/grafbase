@@ -199,7 +199,7 @@ async fn update_stale<Value, Error, ValueFut>(
 
             match source_result {
                 Ok(fresh_value) => {
-                    tracing::info!(ray_id, "Successfully fetched new value for cache from origin");
+                    tracing::debug!(ray_id, "Successfully fetched new value for cache from origin");
                     let fresh_metadata = fresh_value
                         .metadata()
                         .with_priority_tags(&cache.config.common_cache_tags);
