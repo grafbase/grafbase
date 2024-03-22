@@ -6,9 +6,11 @@ use async_graphql_parser::{
 use indexmap::IndexSet;
 use std::{collections::HashMap, error::Error as StdError, fmt, ops::Range};
 
-const JOIN_GRAPH_ENUM_NAME: &str = "join__Graph";
-const JOIN_GRAPH_DIRECTIVE_NAME: &str = "join__graph";
 const JOIN_FIELD_DIRECTIVE_NAME: &str = "join__field";
+const JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT: &str = "override";
+const JOIN_FIELD_DIRECTIVE_OVERRIDE_LABEL_ARGUMENT: &str = "overrideLabel";
+const JOIN_GRAPH_DIRECTIVE_NAME: &str = "join__graph";
+const JOIN_GRAPH_ENUM_NAME: &str = "join__Graph";
 const JOIN_TYPE_DIRECTIVE_NAME: &str = "join__type";
 
 #[derive(Debug)]
@@ -616,7 +618,11 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
         .directives
         .iter()
         .filter(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
-        .filter(|dir| dir.node.get_argument("overrides").is_none())
+        // We implemented "overrides" by mistake, so we allow it for backwards compatibility..
+        .filter(|dir| {
+            dir.node.get_argument("overrides").is_none()
+                && dir.node.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT).is_none()
+        })
         .filter(|dir| {
             !dir.node
                 .get_argument("external")
@@ -637,28 +643,52 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
         .directives
         .iter()
         .filter(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
-        .filter_map(|dir| dir.node.get_argument("graph").zip(dir.node.get_argument("overrides")))
-        .filter_map(|(graph, overrides)| match (&graph.node, &overrides.node) {
-            (async_graphql_value::ConstValue::Enum(graph), async_graphql_value::ConstValue::String(overrides)) => {
-                let subgraph_name = state.insert_string(graph.as_str());
-                Some(Override {
-                    graph: SubgraphId(
-                        state
+        .filter_map(|dir| {
+            dir.node
+                .get_argument("graph")
+                // We implemented "overrides" by mistake, so we allow it for backwards compatibility..
+                .zip(
+                    dir.node
+                        .get_argument("overrides")
+                        .or(dir.node.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT)),
+                )
+                .map(|(graph, overrides)| {
+                    (
+                        graph,
+                        overrides,
+                        dir.node.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_LABEL_ARGUMENT),
+                    )
+                })
+        })
+        .filter_map(
+            |(graph, overrides, override_label)| match (&graph.node, &overrides.node) {
+                (async_graphql_value::ConstValue::Enum(graph), async_graphql_value::ConstValue::String(overrides)) => {
+                    let subgraph_name = state.insert_string(graph.as_str());
+                    Some(Override {
+                        graph: SubgraphId(
+                            state
+                                .subgraphs
+                                .iter()
+                                .position(|subgraph| subgraph.name == subgraph_name)?,
+                        ),
+                        label: override_label
+                            .and_then(|value| match &value.node {
+                                async_graphql_value::ConstValue::String(s) => s.parse().ok(),
+                                _ => None,
+                            })
+                            .unwrap_or_default(),
+                        from: state
                             .subgraphs
                             .iter()
-                            .position(|subgraph| subgraph.name == subgraph_name)?,
-                    ),
-                    from: state
-                        .subgraphs
-                        .iter()
-                        .position(|subgraph| &state.strings[subgraph.name.0] == overrides)
-                        .map(SubgraphId)
-                        .map(OverrideSource::Subgraph)
-                        .unwrap_or_else(|| OverrideSource::Missing(state.insert_string(overrides))),
-                })
-            }
-            _ => None, // unreachable in valid schemas
-        })
+                            .position(|subgraph| &state.strings[subgraph.name.0] == overrides)
+                            .map(SubgraphId)
+                            .map(OverrideSource::Subgraph)
+                            .unwrap_or_else(|| OverrideSource::Missing(state.insert_string(overrides))),
+                    })
+                }
+                _ => None, // unreachable in valid schemas
+            },
+        )
         .collect();
 
     let composed_directives = collect_composed_directives(&ast_field.directives, state);

@@ -1,6 +1,6 @@
 [package]
 name = "federated-server"
-version = "0.1.0-rc.8"
+version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
@@ -10,22 +10,32 @@ repository.workspace = true
 [lints]
 workspace = true
 
+[features]
+default = []
+lambda = [
+  "dep:axum-aws-lambda",
+  "dep:tower",
+  "dep:lambda_http",
+  "dep:tracing-futures",
+  "dep:opentelemetry-aws",
+  "grafbase-tracing/lambda"
+]
+
 [dependencies]
 ascii = { version = "1.1.0", features = ["serde"] }
-async-trait = "0.1.78"
+async-trait = "0.1.77"
 axum = { workspace = true, features = ["macros", "ws", "query", "json"] }
 axum-server = { version = "0.6.0", features = ["tls-rustls"] }
 duration-str = "0.7.1"
 engine.workspace = true
 engine-config-builder.workspace = true
-engine-v2.workspace = true
+engine-v2 = { workspace = true, features = ["plan_cache"] }
 futures-util.workspace = true
 grafbase-tracing = { workspace = true, features = ["tower"] }
 gateway-core.workspace = true
 gateway-v2 = { workspace = true, features = ["axum"] }
 graphql-composition.workspace = true
 http.workspace = true
-oneshot = "0.1"
 parser-sdl = { version = "0.1.0", path = "../../../engine/crates/parser-sdl" }
 reqwest = { workspace = true, features = ["http2", "json", "rustls-tls"] }
 runtime.workspace = true
@@ -34,18 +44,24 @@ runtime-noop.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "signal", "time", "net"] }
-toml = "0.8.11"
+tokio = { workspace = true, features = ["signal", "time", "net"] }
 tower-http = { version = "0.5.2", features = ["cors"] }
 tracing.workspace = true
-tracing-subscriber.workspace = true
 ulid = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }
 serde_with.workspace = true
 regex.workspace = true
 itertools.workspace = true
 
+# Lambda dependencies
+axum-aws-lambda = { version = "0.6.0", optional = true }
+tower = { version = "0.4.13", optional = true }
+lambda_http = { version = "0.9.0", optional = true }
+tracing-futures = { workspace = true, optional = true }
+opentelemetry-aws = { version = "0.10.0", optional = true }
+
 [dev-dependencies]
 indoc = "2.0.4"
 insta.workspace = true
 temp-env = "0.3.6"
+toml = "0.8.10"

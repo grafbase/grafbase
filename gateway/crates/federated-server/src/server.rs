@@ -1,17 +1,19 @@
+mod bind;
 mod cors;
 mod csrf;
 mod engine;
 mod gateway;
 mod graph_fetch_method;
+#[cfg(not(feature = "lambda"))]
 mod graph_updater;
 mod state;
 mod trusted_documents_client;
 
 pub use graph_fetch_method::GraphFetchMethod;
 
-use crate::config::{Config, TlsConfig};
+use crate::config::Config;
 use axum::{routing::get, Router};
-use axum_server::tls_rustls::RustlsConfig;
+use axum_server as _;
 use gateway_v2::local_server::{WebsocketAccepter, WebsocketService};
 use state::ServerState;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -47,50 +49,27 @@ pub(super) async fn serve(
 
     tokio::spawn(websocket_accepter.handler());
 
-    let state = ServerState { gateway };
-
     let cors = match config.cors {
         Some(cors_config) => cors::generate(cors_config),
         None => CorsLayer::permissive(),
     };
 
-    let mut router = Router::new()
+    let router = Router::new()
         .route(path, get(engine::get).post(engine::post))
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .layer(cors)
-        .layer(grafbase_tracing::tower::layer())
-        .with_state(state);
+        .layer(grafbase_tracing::tower::layer());
 
-    if config.csrf.enabled {
-        router = csrf::inject_layer(router);
-    }
-
-    bind(addr, path, router, config.tls).await?;
-
-    Ok(())
-}
-
-async fn bind(addr: SocketAddr, path: &str, router: Router, tls: Option<TlsConfig>) -> Result<(), crate::Error> {
-    let app = router.into_make_service();
-
-    match tls {
-        Some(ref tls) => {
-            tracing::info!("starting the Grafbase gateway at https://{addr}{path}");
-
-            let rustls_config = RustlsConfig::from_pem_file(&tls.certificate, &tls.key)
-                .await
-                .map_err(crate::Error::CertificateError)?;
-
-            axum_server::bind_rustls(addr, rustls_config)
-                .serve(app)
-                .await
-                .map_err(crate::Error::Server)?
-        }
-        None => {
-            tracing::info!("starting the Grafbase gateway in http://{addr}{path}");
-            axum_server::bind(addr).serve(app).await.map_err(crate::Error::Server)?
-        }
-    }
+    bind::bind(bind::BindConfig {
+        addr,
+        path,
+        router,
+        gateway,
+        tls: config.tls,
+        telemetry: config.telemetry,
+        csrf: config.csrf.enabled,
+    })
+    .await?;
 
     Ok(())
 }

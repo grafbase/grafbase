@@ -429,6 +429,32 @@ fn static_schema() {
 }
 
 #[test]
+fn with_otel() {
+    let config = indoc! {r#"
+        [telemetry]
+        service_name = "meow"
+
+        [telemetry.tracing.exporters.stdout]
+        enabled = true
+    "#};
+
+    let schema = load_schema("big");
+
+    let query = indoc! {r#"
+        query Me {
+          me {
+            id
+          }
+        }
+    "#};
+
+    with_static_server(config, &schema, None, None, |client| async move {
+        let result: serde_json::Value = client.gql(query).send().await;
+        serde_json::to_string_pretty(&result).unwrap();
+    })
+}
+
+#[test]
 fn introspect_enabled() {
     let config = indoc! {r#"
         [graph]

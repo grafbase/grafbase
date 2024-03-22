@@ -31,12 +31,12 @@ opentelemetry_sdk = { version = "0.22", features = ["rt-tokio"] }
 opentelemetry-stdout = { version = "0.3", features = ["trace"] }
 opentelemetry-otlp = { version = "0.15" , features = ["grpc-tonic", "tls", "tonic", "http-proto"], optional = true }
 
-
 [features]
 default = []
 tower = ["tower-http"]
 otlp = ["dep:opentelemetry-otlp", "dep:tonic"]
 worker = ["dep:worker"]
+lambda = []
 
 [dev-dependencies]
 indoc = "2.0.4"

@@ -170,8 +170,31 @@ impl<'a> HttpRequestSpan<'a> {
 pub struct MakeHttpRequestSpan;
 #[cfg(feature = "tower")]
 impl<B: Body> tower_http::trace::MakeSpan<B> for MakeHttpRequestSpan {
+    #[cfg(not(feature = "lambda"))]
     fn make_span(&mut self, request: &http::Request<B>) -> Span {
         HttpRequestSpan::from_http(request).into_span()
+    }
+
+    #[cfg(feature = "lambda")]
+    fn make_span(&mut self, request: &http::Request<B>) -> Span {
+        use opentelemetry::Context;
+        use std::collections::HashMap;
+        use tracing_opentelemetry::OpenTelemetrySpanExt;
+
+        let parent_ctx = opentelemetry::global::get_text_map_propagator(|propagator| {
+            let headers = request
+                .headers()
+                .iter()
+                .map(|(key, value)| (key.to_string(), value.to_str().unwrap_or_default().to_string()))
+                .collect::<HashMap<_, _>>();
+
+            propagator.extract_with_context(&Context::current(), &headers)
+        });
+
+        let span = HttpRequestSpan::from_http(request).into_span();
+        span.set_parent(parent_ctx);
+
+        span
     }
 }
 
