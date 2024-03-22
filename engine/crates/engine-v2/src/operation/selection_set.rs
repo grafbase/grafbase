@@ -7,7 +7,7 @@ use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
 use super::{
     BoundFieldArgumentId, BoundFieldId, BoundFragmentId, BoundFragmentSpreadId, BoundInlineFragmentId,
-    BoundSelectionSetId, Location, OpInputValueId,
+    BoundSelectionSetId, Location, QueryInputValueId,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -235,7 +235,7 @@ pub struct BoundFieldArgument {
     pub name_location: Option<Location>,
     pub value_location: Option<Location>,
     pub input_value_definition_id: InputValueDefinitionId,
-    pub input_value_id: OpInputValueId,
+    pub input_value_id: QueryInputValueId,
 }
 
 impl IntoIterator for BoundSelectionSet {

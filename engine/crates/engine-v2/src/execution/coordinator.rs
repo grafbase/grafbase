@@ -13,8 +13,8 @@ use tracing::Span;
 
 use crate::{
     execution::ExecutionContext,
-    operation::{OpInputValues, Operation},
-    plan::{OperationExecutionState, OperationPlan, PlanId},
+    operation::{Operation, Variables},
+    plan::{OperationExecutionState, OperationPlan, PlanId, PlanWalker},
     response::{ExecutionMetadata, GraphqlError, Response, ResponseBoundaryItem, ResponseBuilder, ResponsePart},
     sources::{Executor, ExecutorInput, SubscriptionExecutor, SubscriptionInput},
     Engine,
@@ -27,7 +27,7 @@ pub type ResponseSender = futures::channel::mpsc::Sender<Response>;
 pub(crate) struct ExecutionCoordinator {
     engine: Arc<Engine>,
     operation_plan: Arc<OperationPlan>,
-    input_values: OpInputValues,
+    variables: Variables,
     request_headers: RequestHeaders,
 }
 
@@ -35,19 +35,24 @@ impl ExecutionCoordinator {
     pub fn new(
         engine: Arc<Engine>,
         operation_plan: Arc<OperationPlan>,
-        input_values: OpInputValues,
+        variables: Variables,
         request_headers: RequestHeaders,
     ) -> Self {
         Self {
             engine,
             operation_plan,
-            input_values,
+            variables,
             request_headers,
         }
     }
 
     pub fn operation(&self) -> &Operation {
         &self.operation_plan
+    }
+
+    pub fn plan_walker(&self, plan_id: PlanId) -> PlanWalker<'_> {
+        self.operation_plan
+            .walker_with(&self.engine.schema, &self.variables, plan_id)
     }
 
     pub async fn execute(self) -> Response {
@@ -91,11 +96,7 @@ impl ExecutionCoordinator {
             let id = state.pop_subscription_plan_id();
             (state, id)
         };
-        let root_plan_boundary_ids = self
-            .operation_plan
-            .plan_walker(&self.engine.schema, subscription_plan_id, None)
-            .output()
-            .boundary_ids;
+        let root_plan_boundary_ids = self.plan_walker(subscription_plan_id).output().boundary_ids;
         let new_execution = || {
             let mut response = ResponseBuilder::new(self.operation_plan.root_object_id);
             OperationRootPlanExecution {
@@ -163,9 +164,7 @@ impl ExecutionCoordinator {
 
     fn build_subscription_executor(&self, plan_id: PlanId) -> ExecutionResult<SubscriptionExecutor<'_>> {
         let execution_plan = &self.operation_plan[plan_id];
-        let plan = self
-            .operation_plan
-            .plan_walker(&self.engine.schema, plan_id, Some(&self.input_values));
+        let plan = self.plan_walker(plan_id);
         let input = SubscriptionInput {
             ctx: ExecutionContext {
                 engine: self.engine.as_ref(),
@@ -262,10 +261,7 @@ impl<'ctx> OperationExecution<'ctx> {
         }
 
         let execution_plan = &operation[plan_id];
-        let plan =
-            self.coordinator
-                .operation_plan
-                .plan_walker(&engine.schema, plan_id, Some(&self.coordinator.input_values));
+        let plan = self.coordinator.plan_walker(plan_id);
         let response_part = self.response.new_part(plan.output().boundary_ids);
         let input = ExecutorInput {
             ctx: ExecutionContext {

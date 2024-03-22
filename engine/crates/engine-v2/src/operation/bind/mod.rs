@@ -1,5 +1,5 @@
 mod coercion;
-mod variable;
+mod variables;
 
 use std::collections::{HashMap, HashSet};
 
@@ -10,20 +10,17 @@ use id_newtypes::IdRange;
 use itertools::Itertools;
 use schema::{Definition, FieldWalker, Schema};
 
+use super::{parse::ParsedOperation, QueryInputValue, QueryInputValues};
 use crate::{
     operation::{
         BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundFragment, BoundFragmentId,
         BoundFragmentSpread, BoundFragmentSpreadId, BoundInlineFragment, BoundInlineFragmentId, BoundSelection,
-        BoundSelectionSet, BoundSelectionSetId, Location, OpInputValue, OpInputValues, Operation, SelectionSetType,
-        TypeCondition, VariableDefinition,
+        BoundSelectionSet, BoundSelectionSetId, Location, Operation, SelectionSetType, TypeCondition,
+        VariableDefinition,
     },
     response::{GraphqlError, ResponseKeys},
 };
-
-use self::coercion::{const_value::coerce_graphql_const_value, value::coerce_value};
-pub use variable::bind_variables;
-
-use super::parse::ParsedOperation;
+pub use variables::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum BindError {
@@ -160,7 +157,7 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
         fragment_spreads: Vec::new(),
         inline_fragments: Vec::new(),
         field_to_parent: Vec::new(),
-        input_values: OpInputValues::default(),
+        input_values: QueryInputValues::default(),
     };
 
     // Must be executed before binding selection sets
@@ -192,7 +189,7 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
         fragment_spreads: binder.fragment_spreads,
         inline_fragments: binder.inline_fragments,
         field_to_parent: binder.field_to_parent,
-        input_values: binder.input_values,
+        query_input_values: binder.input_values,
     })
 }
 
@@ -210,7 +207,7 @@ pub struct Binder<'a> {
     inline_fragments: Vec<BoundInlineFragment>,
     selection_sets: Vec<BoundSelectionSet>,
     variable_definitions: Vec<VariableDefinition>,
-    input_values: OpInputValues,
+    input_values: QueryInputValues,
     // We keep track of the position of fields within the response object that will be
     // returned. With type conditions it's not obvious to know which field will be present or
     // not, but we can order all bound fields. This needs to be done at the request binding
@@ -242,28 +239,19 @@ impl<'a> Binder<'a> {
             }
             seen_names.insert(name.clone());
 
-            let r#type = self.convert_type(&name, node.var_type.pos.try_into()?, node.var_type.node)?;
+            let ty = self.convert_type(&name, node.var_type.pos.try_into()?, node.var_type.node)?;
             let default_value = node
                 .default_value
                 .map(|Positioned { pos: _, node: value }| {
-                    coerce_graphql_const_value(self.schema, &mut self.input_values, name_location, r#type, value)
+                    coercion::coerce_variable_default_value(self, name_location, ty, value)
                 })
                 .transpose()?;
-
-            // Using Null instead of Undefined is actually important here. With Undefined the
-            // variable would be ignored immediately if used for any input field. However, that's
-            // not what we want initially. This prevents us from generating proper GraphQL queries
-            // to subgraphs in advance. Undefined should only be after variables have been bound.
-            let future_input_value_id = self
-                .input_values
-                .push_value(default_value.map(OpInputValue::Ref).unwrap_or(OpInputValue::Null));
 
             bound_variables.push(VariableDefinition {
                 name,
                 name_location,
                 default_value,
-                r#type,
-                future_input_value_id,
+                ty,
                 used_by: Vec::new(),
             });
         }
@@ -485,8 +473,13 @@ impl<'a> Binder<'a> {
                 let name_location = Some(name.pos.try_into()?);
                 let value_location = value.pos.try_into()?;
                 let value = value.node;
-                let input_value_id =
-                    coerce_value(self, bound_field_id, value_location, argument_def.ty().into(), value)?;
+                let input_value_id = coercion::coerce_query_value(
+                    self,
+                    bound_field_id,
+                    value_location,
+                    argument_def.ty().into(),
+                    value,
+                )?;
                 self.field_arguments.push(BoundFieldArgument {
                     name_location,
                     value_location: Some(value_location),
@@ -498,7 +491,7 @@ impl<'a> Binder<'a> {
                     name_location: None,
                     value_location: None,
                     input_value_definition_id: argument_def.id(),
-                    input_value_id: self.input_values.push_value(OpInputValue::SchemaRef(id)),
+                    input_value_id: self.input_values.push_value(QueryInputValue::DefaultValue(id)),
                 });
             } else if argument_def.ty().wrapping().is_required() {
                 return Err(BindError::MissingArgument {

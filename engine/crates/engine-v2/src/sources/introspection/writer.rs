@@ -31,7 +31,7 @@ impl<'a> IntrospectionWriter<'a> {
             } = field.as_ref();
             match self.metadata.root_field(schema_field_id) {
                 IntrospectionField::Type => {
-                    let name = field.as_bound_field().get_arg_as::<&str>("name");
+                    let name = field.as_bound_field().get_arg_value_as::<&str>("name");
                     fields.push((
                         edge,
                         self.schema
@@ -188,7 +188,7 @@ impl<'a> IntrospectionWriter<'a> {
                 .fields()
                 .map(|fields| {
                     let selection_set = field.concrete_selection_set().unwrap();
-                    let include_deprecated = field.as_bound_field().get_arg_as::<bool>("includeDeprecated");
+                    let include_deprecated = field.as_bound_field().get_arg_value_as::<bool>("includeDeprecated");
                     let values = fields
                         .filter(|field| {
                             (!field.is_deprecated() || include_deprecated)
@@ -223,7 +223,7 @@ impl<'a> IntrospectionWriter<'a> {
                 .as_enum()
                 .map(|r#enum| {
                     let selection_set = field.concrete_selection_set().unwrap();
-                    let include_deprecated = field.as_bound_field().get_arg_as::<bool>("includeDeprecated");
+                    let include_deprecated = field.as_bound_field().get_arg_value_as::<bool>("includeDeprecated");
                     let values = r#enum
                         .values()
                         .filter(|value| (!value.is_deprecated() || include_deprecated))

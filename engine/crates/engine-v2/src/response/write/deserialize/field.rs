@@ -70,10 +70,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
             if !self.ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
                 self.ctx.response_part.borrow_mut().push_error(GraphqlError {
                     message: err.to_string(),
-                    locations: self
-                        .ctx
-                        .plan
-                        .bound_walk_with(self.field.bound_field_id, ())
+                    locations: self.ctx.plan[self.field.bound_field_id]
                         .name_location()
                         .into_iter()
                         .collect(),

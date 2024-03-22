@@ -17,7 +17,7 @@ impl<'a> serde::Serialize for SubgraphVariables<'a> {
     {
         let mut map = serializer.serialize_map(Some(self.variables.len() + self.inputs.len()))?;
         for (name, input_value_id) in self.variables.iter() {
-            let value = self.plan.walk(input_value_id);
+            let value = self.plan.walk_input_value(input_value_id);
             if !value.is_undefined() {
                 map.serialize_entry(&name, &value)?;
             }

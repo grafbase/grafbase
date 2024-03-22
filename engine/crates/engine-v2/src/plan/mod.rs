@@ -2,7 +2,7 @@ use id_newtypes::IdRange;
 use schema::{ResolverId, Schema};
 
 use crate::{
-    operation::{OpInputValues, Operation, QueryPath},
+    operation::{Operation, QueryPath, Variables},
     response::ReadSelectionSet,
     sources::Plan,
 };
@@ -97,20 +97,15 @@ where
 }
 
 impl OperationPlan {
-    pub fn prepare(schema: &Schema, operation: Operation) -> PlanningResult<Self> {
-        planning::plan_operation(schema, operation)
+    pub fn prepare(schema: &Schema, variables: &Variables, operation: Operation) -> PlanningResult<Self> {
+        planning::plan_operation(schema, variables, operation)
     }
 
     pub fn new_execution_state(&self) -> OperationExecutionState {
         OperationExecutionState::new(self)
     }
 
-    pub fn plan_walker<'s>(
-        &'s self,
-        schema: &'s Schema,
-        plan_id: PlanId,
-        input_values: Option<&'s OpInputValues>,
-    ) -> PlanWalker<'s> {
+    pub fn walker_with<'s>(&'s self, schema: &'s Schema, variables: &'s Variables, plan_id: PlanId) -> PlanWalker<'s> {
         let plan_id = PlanId::from(usize::from(plan_id));
         let schema_walker = schema
             .walk(self.planned_resolvers[usize::from(plan_id)].resolver_id)
@@ -119,7 +114,7 @@ impl OperationPlan {
         PlanWalker {
             schema_walker,
             operation_plan: self,
-            input_values,
+            variables,
             plan_id,
             item: (),
         }
