@@ -46,7 +46,7 @@ impl<'a> FederationGatewayWithoutIO<'a> {
         });
 
         let gateway = gateway_v2::Gateway::new(
-            config.into(),
+            config.try_into().unwrap(),
             engine_v2::EngineEnv {
                 fetcher,
                 cache: cache.clone(),

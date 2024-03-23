@@ -2,20 +2,22 @@ use std::str::FromStr;
 
 mod builder;
 mod cache;
-mod field_set;
 mod ids;
 mod input_value;
 mod names;
+mod provides;
+mod requires;
 mod resolver;
 pub mod sources;
 mod walkers;
 
 pub use cache::*;
-pub use field_set::*;
 use id_newtypes::IdRange;
 pub use ids::*;
 pub use input_value::*;
 pub use names::Names;
+pub use provides::*;
+pub use requires::*;
 pub use resolver::*;
 pub use walkers::*;
 pub use wrapping::*;
@@ -42,11 +44,15 @@ pub struct Schema {
     directives: Vec<Directive>,
     enum_values: Vec<EnumValue>,
 
+    required_field_sets: Vec<RequiredFieldSet>,
+    // deduplicated
+    required_fields_arguments: Vec<RequiredFieldArguments>,
+
     /// All strings deduplicated.
     strings: Vec<String>,
     urls: Vec<url::Url>,
     /// Default input values & directive arguments
-    default_input_values: SchemaInputValues,
+    input_values: SchemaInputValues,
 
     /// Headers we might want to send to a subgraph
     headers: Vec<Header>,
@@ -123,6 +129,8 @@ impl Schema {
                 cache_config: None,
                 fields: IdRange::empty(),
             }],
+            required_field_sets: Vec::new(),
+            required_fields_arguments: Vec::new(),
             interfaces: Vec::new(),
             field_definitions: Vec::new(),
             enums: Vec::new(),
@@ -136,7 +144,7 @@ impl Schema {
             enum_values: Vec::new(),
             strings: vec![String::from("Query")],
             urls: Vec::new(),
-            default_input_values: Default::default(),
+            input_values: Default::default(),
             headers: Vec::new(),
             default_headers: Vec::new(),
             cache_configs: Vec::new(),
@@ -178,7 +186,7 @@ pub type Fields = IdRange<FieldDefinitionId>;
 pub struct FieldDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub r#type: Type,
+    pub ty: Type,
     pub resolvers: Vec<FieldResolver>,
     provides: Vec<FieldProvides>,
     /// The arguments referenced by this range are sorted by their name (string)
@@ -193,13 +201,16 @@ pub struct FieldDefinition {
 #[derive(Debug)]
 pub enum FieldProvides {
     // provided only if the current resolver is part of the group.
-    IfResolverGroup { group: ResolverGroup, field_set: FieldSet },
+    IfResolverGroup {
+        group: ResolverGroup,
+        field_set: ProvidableFieldSet,
+    },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FieldResolver {
     resolver_id: ResolverId,
-    field_requires: FieldSet,
+    field_requires: RequiredFieldSetId,
 }
 
 #[derive(Debug)]
@@ -209,6 +220,7 @@ pub enum Directive {
     Policy(Vec<Vec<StringId>>),
     RequiresScopes(Vec<Vec<StringId>>),
     Deprecated { reason: Option<StringId> },
+    Other,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -374,7 +386,7 @@ pub struct InputObject {
 pub struct InputValueDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub r#type: Type,
+    pub ty: Type,
     pub default_value: Option<SchemaInputValueId>,
 }
 

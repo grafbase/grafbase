@@ -8,19 +8,21 @@ use std::marker::PhantomData;
 
 use id_newtypes::IdRange;
 
-pub(super) struct IdMapper<FgId: Into<usize>, Id: From<usize> + Copy> {
+use crate::{EnumValueId, FieldDefinitionId, InputValueDefinitionId};
+
+pub(super) struct IdMap<FgId: Into<usize>, Id: From<usize> + Copy> {
     skipped_ids: Vec<usize>,
     _fgid: PhantomData<FgId>,
     _id: PhantomData<Id>,
 }
 
-impl<FgId, Id> Default for IdMapper<FgId, Id>
+impl<FgId, Id> Default for IdMap<FgId, Id>
 where
     FgId: Into<usize>,
     Id: From<usize> + Copy,
 {
     fn default() -> Self {
-        IdMapper {
+        IdMap {
             skipped_ids: Vec::new(),
             _fgid: PhantomData,
             _id: PhantomData,
@@ -28,7 +30,14 @@ where
     }
 }
 
-impl<FgId, Id> IdMapper<FgId, Id>
+#[derive(Default)]
+pub struct IdMaps {
+    pub field: IdMap<federated_graph::FieldId, FieldDefinitionId>,
+    pub input_value: IdMap<federated_graph::InputValueDefinitionId, InputValueDefinitionId>,
+    pub enum_value: IdMap<federated_graph::EnumValueId, EnumValueId>,
+}
+
+impl<FgId, Id> IdMap<FgId, Id>
 where
     FgId: Into<usize>,
     Id: From<usize> + Copy,
@@ -44,7 +53,7 @@ where
     }
 
     /// Map a federated_graph id to an engine_schema id taking the skipped IDs into account.
-    pub(super) fn map(&self, id: FgId) -> Option<Id> {
+    pub(super) fn get(&self, id: FgId) -> Option<Id> {
         let idx = id.into();
         let skipped = self.skipped_ids.partition_point(|skipped| *skipped <= idx);
 
@@ -57,7 +66,7 @@ where
         Some(Id::from(idx - skipped))
     }
 
-    pub(super) fn map_range(&self, (start_id, len): (FgId, usize)) -> crate::IdRange<Id> {
+    pub(super) fn get_range(&self, (start_id, len): (FgId, usize)) -> crate::IdRange<Id> {
         let start_idx = start_id.into();
         // How many ids were skipped before the range.
         let skipped_ids_count_before_start = self.skipped_ids.partition_point(|skipped| *skipped < start_idx);
@@ -83,15 +92,15 @@ mod tests {
 
     use super::*;
 
-    type IdMapper = super::IdMapper<federated_graph::InputValueDefinitionId, InputValueDefinitionId>;
+    type IdMapper = super::IdMap<federated_graph::InputValueDefinitionId, InputValueDefinitionId>;
 
     #[test]
     fn skip_basic() {
         let id = federated_graph::InputValueDefinitionId(2);
         let mut mapper = IdMapper::default();
-        assert_eq!(InputValueDefinitionId::from(2), mapper.map(id).unwrap());
+        assert_eq!(InputValueDefinitionId::from(2), mapper.get(id).unwrap());
         mapper.skip(federated_graph::InputValueDefinitionId(1));
-        assert_eq!(InputValueDefinitionId::from(1), mapper.map(id).unwrap());
+        assert_eq!(InputValueDefinitionId::from(1), mapper.get(id).unwrap());
     }
 
     #[test]
@@ -99,7 +108,7 @@ mod tests {
         let id = federated_graph::InputValueDefinitionId(5);
         let mut mapper = IdMapper::default();
         mapper.skip(id);
-        assert!(mapper.map(id).is_none());
+        assert!(mapper.get(id).is_none());
     }
 
     #[test]
@@ -111,7 +120,7 @@ mod tests {
                 start: InputValueDefinitionId::from(6),
                 end: InputValueDefinitionId::from(16)
             },
-            mapper.map_range(range)
+            mapper.get_range(range)
         );
 
         mapper.skip(federated_graph::InputValueDefinitionId(2));
@@ -121,7 +130,7 @@ mod tests {
                 start: InputValueDefinitionId::from(5),
                 end: InputValueDefinitionId::from(15)
             },
-            mapper.map_range(range)
+            mapper.get_range(range)
         );
 
         mapper.skip(federated_graph::InputValueDefinitionId(6));
@@ -131,7 +140,7 @@ mod tests {
                 start: InputValueDefinitionId::from(5),
                 end: InputValueDefinitionId::from(14)
             },
-            mapper.map_range(range)
+            mapper.get_range(range)
         );
 
         mapper.skip(federated_graph::InputValueDefinitionId(9));
@@ -141,7 +150,7 @@ mod tests {
                 start: InputValueDefinitionId::from(5),
                 end: InputValueDefinitionId::from(13)
             },
-            mapper.map_range(range)
+            mapper.get_range(range)
         );
 
         mapper.skip(federated_graph::InputValueDefinitionId(20));
@@ -151,7 +160,7 @@ mod tests {
                 start: InputValueDefinitionId::from(5),
                 end: InputValueDefinitionId::from(13)
             },
-            mapper.map_range(range)
+            mapper.get_range(range)
         );
     }
 

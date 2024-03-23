@@ -55,8 +55,10 @@ pub struct InputValueDefinition {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd, Debug)]
+#[derive(Default, serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd, Debug)]
 pub enum Value {
+    #[default]
+    Null,
     String(StringId),
     Int(i64),
     Float(f64),
@@ -84,6 +86,14 @@ impl Value {
         } else {
             None
         }
+    }
+
+    pub fn is_list(&self) -> bool {
+        matches!(self, Self::List(_))
+    }
+
+    pub fn is_null(&self) -> bool {
+        matches!(self, Self::Null)
     }
 }
 

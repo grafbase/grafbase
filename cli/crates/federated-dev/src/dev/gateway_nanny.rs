@@ -53,7 +53,7 @@ pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraph
         subdomain: "localhost".to_string(),
     });
     Some(Arc::new(Gateway::new(
-        config.into_latest().into(),
+        config.into_latest().try_into().ok()?,
         EngineEnv {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
             cache: cache.clone(),
