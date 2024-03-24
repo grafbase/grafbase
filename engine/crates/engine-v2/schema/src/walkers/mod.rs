@@ -1,4 +1,4 @@
-use crate::{Names, Schema};
+use crate::{sources::IntrospectionMetadata, Names, Schema, StringId};
 
 mod definition;
 mod r#enum;
@@ -72,21 +72,34 @@ impl<'a> SchemaWalker<'a, ()> {
     pub fn definitions(&self) -> impl ExactSizeIterator<Item = DefinitionWalker<'a>> + 'a {
         let walker = *self;
         self.schema
+            .graph
             .definitions
             .iter()
             .map(move |definition| walker.walk(*definition))
     }
 
+    pub fn description_id(&self) -> Option<StringId> {
+        self.schema.graph.description
+    }
+
+    pub fn introspection_metadata(&self) -> &'a IntrospectionMetadata {
+        &self.schema.data_sources.introspection
+    }
+
     pub fn query(&self) -> ObjectWalker<'a> {
-        self.walk(self.schema.root_operation_types.query)
+        self.walk(self.schema.graph.root_operation_types.query)
     }
 
     pub fn mutation(&self) -> Option<ObjectWalker<'a>> {
-        self.schema.root_operation_types.mutation.map(|id| self.walk(id))
+        self.schema.graph.root_operation_types.mutation.map(|id| self.walk(id))
     }
 
     pub fn subscription(&self) -> Option<ObjectWalker<'a>> {
-        self.schema.root_operation_types.subscription.map(|id| self.walk(id))
+        self.schema
+            .graph
+            .root_operation_types
+            .subscription
+            .map(|id| self.walk(id))
     }
 
     pub fn names(&self) -> &'a dyn Names {

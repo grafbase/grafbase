@@ -1,9 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
-    builder::SchemaBuilder, Definition, EnumId, EnumValue, EnumValueId, FieldDefinition, FieldDefinitionId, IdRange,
-    InputValueDefinition, InputValueDefinitionId, ObjectId, ResolverId, ScalarId, ScalarType, Schema, SchemaInputValue,
-    SchemaInputValueId, SchemaWalker, StringId, SubgraphId, Type, Wrapping,
+    builder::BuildContext, Definition, EnumId, EnumValue, EnumValueId, FieldDefinition, FieldDefinitionId, Graph,
+    IdRange, InputValueDefinition, InputValueDefinitionId, ObjectId, ResolverId, ScalarId, ScalarType,
+    SchemaInputValue, SchemaInputValueId, SchemaWalker, StringId, SubgraphId, Type, Wrapping,
 };
 use strum::EnumCount;
 
@@ -14,23 +14,8 @@ pub type ResolverWalker<'a> = SchemaWalker<'a, &'a Resolver>;
 
 impl<'a> ResolverWalker<'a> {
     pub fn subgraph_id(&self) -> SubgraphId {
-        self.metadata().subgraph_id
+        self.schema.data_sources.introspection.subgraph_id
     }
-
-    pub fn metadata(&self) -> &'a Metadata {
-        self.schema
-            .data_sources
-            .introspection
-            .metadata
-            .as_ref()
-            .expect("Schema wasn't properly finalized with Introspection.")
-    }
-}
-
-#[derive(Default)]
-pub struct Introspection {
-    // Ugly until we have some from of SchemaBuilder
-    pub metadata: Option<Metadata>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -98,7 +83,7 @@ pub enum __Directive {
     IsRepeatable,
 }
 
-pub struct Metadata {
+pub struct IntrospectionMetadata {
     pub subgraph_id: SubgraphId,
     pub resolver_id: ResolverId,
     pub meta_fields: [FieldDefinitionId; 2],
@@ -129,7 +114,7 @@ impl<E: Copy, const N: usize> std::ops::Index<FieldDefinitionId> for Introspecti
     }
 }
 
-impl Metadata {
+impl IntrospectionMetadata {
     pub fn root_field(&self, id: FieldDefinitionId) -> IntrospectionField {
         if id == self.meta_fields[0] {
             IntrospectionField::Type
@@ -174,31 +159,41 @@ pub struct DirectiveLocation {
     pub input_field_definition: StringId,
 }
 
-pub(crate) struct IntrospectionSchemaBuilder<'a> {
-    builder: &'a mut SchemaBuilder,
+pub(crate) struct IntrospectionBuilder<'a> {
+    ctx: &'a mut BuildContext,
+    graph: &'a mut Graph,
     subgraph_id: SubgraphId,
 }
 
-impl<'a> Deref for IntrospectionSchemaBuilder<'a> {
-    type Target = Schema;
+impl<'a> Deref for IntrospectionBuilder<'a> {
+    type Target = Graph;
     fn deref(&self) -> &Self::Target {
-        &self.builder.schema
+        self.graph
     }
 }
 
-impl<'a> DerefMut for IntrospectionSchemaBuilder<'a> {
+impl<'a> DerefMut for IntrospectionBuilder<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.builder.schema
+        self.graph
     }
 }
 
-impl<'a> IntrospectionSchemaBuilder<'a> {
-    pub fn insert_introspection_fields(builder: &'a mut SchemaBuilder, subgraph_id: SubgraphId) {
-        Self { builder, subgraph_id }.create_fields_and_insert_them()
+impl<'a> IntrospectionBuilder<'a> {
+    pub fn create_data_source_and_insert_fields(
+        ctx: &'a mut BuildContext,
+        graph: &'a mut Graph,
+    ) -> IntrospectionMetadata {
+        let subgraph_id = ctx.next_subgraph_id();
+        Self {
+            ctx,
+            graph,
+            subgraph_id,
+        }
+        .create_fields_and_insert_them()
     }
 
     #[allow(non_snake_case)]
-    fn create_fields_and_insert_them(&mut self) {
+    fn create_fields_and_insert_them(&mut self) -> IntrospectionMetadata {
         let nullable_string = self.field_type("String", ScalarType::String, Wrapping::nullable());
         let required_string = self.field_type("String", ScalarType::String, Wrapping::required());
         let required_boolean = self.field_type("Boolean", ScalarType::Boolean, Wrapping::required());
@@ -450,7 +445,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         );
 
         {
-            let default_value = Some(self.input_values.push_value(SchemaInputValue::Boolean(false)));
+            let default_value = Some(self.graph.input_values.push_value(SchemaInputValue::Boolean(false)));
             self.set_field_arguments(
                 __type.id,
                 "fields",
@@ -528,7 +523,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             let idx = usize::from(fields.start)
                 + self[fields]
                     .iter()
-                    .position(|field| self.builder.strings[field.name] == name)?;
+                    .position(|field| self.ctx.strings[field.name] == name)?;
             Some(FieldDefinitionId::from(idx))
         }) else {
             panic!("Invariant broken: missing Query.__type or Query.__schema");
@@ -553,7 +548,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         );
 
         // DataSource
-        self.data_sources.introspection.metadata = Some(Metadata {
+        IntrospectionMetadata {
             subgraph_id: self.subgraph_id,
             resolver_id,
             meta_fields: [__type_field_id, __schema_field_id],
@@ -565,7 +560,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             __input_value,
             __field,
             __directive,
-        });
+        }
     }
 
     fn insert_enum(&mut self, name: &str, values: &[&str]) -> EnumId {
@@ -574,11 +569,11 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         let values = if values.is_empty() {
             IdRange::empty()
         } else {
-            let start_idx = self.enum_values.len();
+            let start_idx = self.enum_value_definitions.len();
 
             for value in values {
                 let value = self.get_or_intern(value);
-                self.enum_values.push(EnumValue {
+                self.enum_value_definitions.push(EnumValue {
                     name: value,
                     composed_directives: IdRange::empty(),
                     description: None,
@@ -587,24 +582,24 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
             IdRange {
                 start: EnumValueId::from(start_idx),
-                end: EnumValueId::from(self.enum_values.len()),
+                end: EnumValueId::from(self.enum_value_definitions.len()),
             }
         };
 
-        self.enums.push(crate::Enum {
+        self.enum_definitions.push(crate::Enum {
             name,
             description: None,
             value_ids: values,
             composed_directives: IdRange::empty(),
         });
-        let enum_id = EnumId::from(self.enums.len() - 1);
+        let enum_id = EnumId::from(self.enum_definitions.len() - 1);
         self.definitions.push(Definition::Enum(enum_id));
         enum_id
     }
 
     fn new_object(&mut self, name: &str) -> ObjectId {
         let name = self.get_or_intern(name);
-        self.objects.push(crate::Object {
+        self.object_definitions.push(crate::Object {
             name,
             description: None,
             interfaces: vec![],
@@ -612,7 +607,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             cache_config: None,
             fields: IdRange::empty(),
         });
-        ObjectId::from(self.objects.len() - 1)
+        ObjectId::from(self.object_definitions.len() - 1)
     }
 
     fn insert_object_fields<E: std::fmt::Debug, const N: usize>(
@@ -626,7 +621,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         let subgraph_id = self.subgraph_id;
         for (name, r#type, tag) in fields {
             let id = self.field_definitions.len().into();
-            let name = self.builder.strings.get_or_insert(name);
+            let name = self.ctx.strings.get_or_insert(name);
 
             self.field_definitions.push(FieldDefinition {
                 name,
@@ -672,7 +667,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             usize::from(fields.start)
                 + self[fields]
                     .iter()
-                    .position(|field| self.builder.strings[field.name] == field_name)
+                    .position(|field| self.ctx.strings[field.name] == field_name)
                     .expect("field to exist"),
         );
         let start = self.input_value_definitions.len();
@@ -707,23 +702,23 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
     fn field_type(&mut self, scalar_name: &str, scalar_type: ScalarType, wrapping: Wrapping) -> Type {
         let scalar_id = match self
-            .scalars
+            .scalar_definitions
             .iter()
             .enumerate()
-            .find(|(_, scalar)| self.builder.strings[scalar.name] == scalar_name)
+            .find(|(_, scalar)| self.ctx.strings[scalar.name] == scalar_name)
             .map(|(id, _)| ScalarId::from(id))
         {
             Some(id) => id,
             None => {
-                let name = self.builder.strings.get_or_insert(scalar_name);
-                self.scalars.push(crate::Scalar {
+                let name = self.ctx.strings.get_or_insert(scalar_name);
+                self.scalar_definitions.push(crate::Scalar {
                     name,
                     ty: scalar_type,
                     description: None,
                     specified_by_url: None,
                     composed_directives: IdRange::empty(),
                 });
-                ScalarId::from(self.scalars.len() - 1)
+                ScalarId::from(self.scalar_definitions.len() - 1)
             }
         };
         let expected_kind = Definition::from(scalar_id);
@@ -735,6 +730,6 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
     }
 
     fn get_or_intern(&mut self, value: &str) -> StringId {
-        self.builder.strings.get_or_insert(value)
+        self.ctx.strings.get_or_insert(value)
     }
 }

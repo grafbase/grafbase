@@ -139,6 +139,7 @@ impl<'a> GraphqlEndpointWalker<'a> {
 
     pub fn headers(self) -> impl Iterator<Item = HeaderWalker<'a>> {
         self.schema
+            .settings
             .default_headers
             .iter()
             .chain(self.as_ref().headers.iter())

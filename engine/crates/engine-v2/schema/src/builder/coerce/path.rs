@@ -1,4 +1,4 @@
-use crate::{Schema, StringId};
+use crate::{builder::BuildContext, StringId};
 use std::fmt::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -19,7 +19,7 @@ impl From<StringId> for ValuePathSegment {
     }
 }
 
-pub(super) fn value_path_to_string(schema: &Schema, values: &[ValuePathSegment]) -> String {
+pub(super) fn value_path_to_string(ctx: &BuildContext, values: &[ValuePathSegment]) -> String {
     let mut output = String::new();
     if values.is_empty() {
         return output;
@@ -28,7 +28,7 @@ pub(super) fn value_path_to_string(schema: &Schema, values: &[ValuePathSegment])
     for segment in values {
         match segment {
             ValuePathSegment::Field(id) => {
-                write!(&mut output, ".{}", schema[*id]).unwrap();
+                write!(&mut output, ".{}", ctx.strings[*id]).unwrap();
             }
             ValuePathSegment::Index(idx) => {
                 write!(&mut output, ".{idx}").unwrap();
