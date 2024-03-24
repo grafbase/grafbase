@@ -1,7 +1,10 @@
 use std::borrow::Cow;
 
 use id_newtypes::IdRange;
-use schema::{Definition, FieldDefinitionId, InputValueDefinitionId, InterfaceId, ObjectId, Schema, UnionId};
+use schema::{
+    Definition, FieldDefinitionId, InputValueDefinitionId, InterfaceDefinitionId, ObjectDefinitionId, Schema,
+    UnionDefinitionId,
+};
 
 use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
@@ -19,9 +22,9 @@ pub(crate) struct SelectionSet {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SelectionSetType {
-    Object(ObjectId),
-    Interface(InterfaceId),
-    Union(UnionId),
+    Object(ObjectDefinitionId),
+    Interface(InterfaceDefinitionId),
+    Union(UnionDefinitionId),
 }
 
 impl From<SelectionSetType> for TypeCondition {
@@ -64,7 +67,7 @@ impl SelectionSetType {
         }
     }
 
-    pub fn as_object_id(&self) -> Option<ObjectId> {
+    pub fn as_object_id(&self) -> Option<ObjectDefinitionId> {
         match self {
             SelectionSetType::Object(id) => Some(*id),
             _ => None,
@@ -215,13 +218,13 @@ pub struct Fragment {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TypeCondition {
-    Interface(InterfaceId),
-    Object(ObjectId),
-    Union(UnionId),
+    Interface(InterfaceDefinitionId),
+    Object(ObjectDefinitionId),
+    Union(UnionDefinitionId),
 }
 
 impl TypeCondition {
-    pub fn resolve(self, schema: &Schema) -> Cow<'_, Vec<ObjectId>> {
+    pub fn resolve(self, schema: &Schema) -> Cow<'_, Vec<ObjectDefinitionId>> {
         match self {
             TypeCondition::Interface(interface_id) => Cow::Borrowed(&schema[interface_id].possible_types),
             TypeCondition::Object(object_id) => Cow::Owned(vec![object_id]),

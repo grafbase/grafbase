@@ -1,8 +1,9 @@
 /// Isolating ids from the rest to prevent misuse of the NonZeroU32.
 /// They can only be created by From<usize>
 use crate::{
-    CacheConfig, Definition, Directive, Enum, EnumValue, FieldDefinition, Header, InputObject, InputValueDefinition,
-    Interface, Object, RequiredFieldArguments, RequiredFieldSet, Resolver, Scalar, Schema, SchemaInputValues, Union,
+    CacheConfig, Definition, Directive, EnumDefinition, EnumValueDefinition, FieldDefinition, Graph, Header,
+    InputObjectDefinition, InputValueDefinition, InterfaceDefinition, ObjectDefinition, RequiredFieldArguments,
+    RequiredFieldSet, Resolver, ScalarDefinition, Schema, UnionDefinition,
 };
 use url::Url;
 
@@ -12,35 +13,24 @@ use url::Url;
 pub(crate) const MAX_ID: usize = (1 << 29) - 1;
 
 id_newtypes::NonZeroU32! {
-    Schema.definitions[DefinitionId] => Definition | max MAX_ID,
-    Schema.directives[DirectiveId] => Directive | max MAX_ID,
-    Schema.enum_values[EnumValueId] => EnumValue | max MAX_ID,
-    Schema.enums[EnumId] => Enum | max MAX_ID,
-    Schema.field_definitions[FieldDefinitionId] => FieldDefinition | max MAX_ID,
-    Schema.headers[HeaderId] => Header | max MAX_ID,
-    Schema.input_objects[InputObjectId] => InputObject | max MAX_ID,
-    Schema.input_value_definitions[InputValueDefinitionId] => InputValueDefinition | max MAX_ID,
-    Schema.interfaces[InterfaceId] => Interface | max MAX_ID,
-    Schema.objects[ObjectId] => Object | max MAX_ID,
-    Schema.resolvers[ResolverId] => Resolver | max MAX_ID,
-    Schema.scalars[ScalarId] => Scalar | max MAX_ID,
-    Schema.unions[UnionId] => Union | max MAX_ID,
-    Schema.urls[UrlId] => Url | max MAX_ID,
-    Schema.strings[StringId] => String | max MAX_ID,
-    Schema.cache_configs[CacheConfigId] => CacheConfig | max MAX_ID,
-    Schema.required_field_sets[RequiredFieldSetId] => RequiredFieldSet | max MAX_ID,
-    Schema.required_fields_arguments[RequiredFieldSetArgumentsId] => RequiredFieldArguments | max MAX_ID,
-}
-
-impl<T> std::ops::Index<T> for Schema
-where
-    SchemaInputValues: std::ops::Index<T>,
-{
-    type Output = <SchemaInputValues as std::ops::Index<T>>::Output;
-
-    fn index(&self, index: T) -> &Self::Output {
-        &self.input_values[index]
-    }
+    Graph.definitions[DefinitionId] => Definition | max(MAX_ID) | index(Schema.graph),
+    Graph.directive_definitions[DirectiveId] => Directive | max(MAX_ID) | index(Schema.graph),
+    Graph.enum_value_definitions[EnumValueDefinitionId] => EnumValueDefinition | max(MAX_ID) | index(Schema.graph),
+    Graph.enum_definitions[EnumDefinitionId] => EnumDefinition | max(MAX_ID) | index(Schema.graph),
+    Graph.field_definitions[FieldDefinitionId] => FieldDefinition | max(MAX_ID) | index(Schema.graph),
+    Graph.input_object_definitions[InputObjectDefinitionId] => InputObjectDefinition | max(MAX_ID) | index(Schema.graph),
+    Graph.input_value_definitions[InputValueDefinitionId] => InputValueDefinition | max(MAX_ID) | index(Schema.graph),
+    Graph.interface_definitions[InterfaceDefinitionId] => InterfaceDefinition | max(MAX_ID) | index(Schema.graph),
+    Graph.object_definitions[ObjectDefinitionId] => ObjectDefinition | max(MAX_ID) | index(Schema.graph),
+    Graph.scalar_definitions[ScalarDefinitionId] => ScalarDefinition | max(MAX_ID) | index(Schema.graph),
+    Graph.union_definitions[UnionDefinitionId] => UnionDefinition | max(MAX_ID) | index(Schema.graph),
+    Graph.resolvers[ResolverId] => Resolver | max(MAX_ID) | index(Schema.graph),
+    Graph.cache_configs[CacheConfigId] => CacheConfig | max(MAX_ID) | index(Schema.graph),
+    Graph.required_field_sets[RequiredFieldSetId] => RequiredFieldSet | max(MAX_ID) | index(Schema.graph),
+    Graph.required_fields_arguments[RequiredFieldSetArgumentsId] => RequiredFieldArguments | max(MAX_ID) | index(Schema.graph),
+    Schema.headers[HeaderId] => Header | max(MAX_ID),
+    Schema.urls[UrlId] => Url | max(MAX_ID),
+    Schema.strings[StringId] => String | max(MAX_ID),
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

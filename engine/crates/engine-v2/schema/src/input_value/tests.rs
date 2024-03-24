@@ -3,101 +3,93 @@ use std::borrow::Cow;
 use serde::Deserialize;
 use wrapping::Wrapping;
 
-use crate::{EnumValue, InputValue, InputValueDefinition, Schema, StringId, Type};
+use crate::{builder::BuildContext, EnumValueDefinition, InputValue, InputValueDefinition, Schema, Type};
 
 use super::*;
 
-fn create_schema() -> Schema {
-    let mut schema = Schema::empty();
-    schema.input_value_definitions.extend([
-        InputValueDefinition {
-            name: StringId::from(4),
-            description: None,
-            ty: Type {
-                inner: crate::Definition::Object(0.into()),
-                wrapping: Wrapping::new(false),
-            }, // not used
-            default_value: None,
-        },
-        InputValueDefinition {
-            name: StringId::from(5),
-            description: None,
-            ty: Type {
-                inner: crate::Definition::Object(0.into()),
-                wrapping: Wrapping::new(false),
-            }, // not used
-            default_value: None,
-        },
-    ]);
-    schema.enum_values.extend([
-        EnumValue {
-            name: StringId::from(2),
-            description: None,
-            composed_directives: Default::default(),
-        },
-        EnumValue {
-            name: StringId::from(3),
-            description: None,
-            composed_directives: Default::default(),
-        },
-    ]);
-    schema.strings.extend([
-        "some string value".to_string(), // 1
-        "ACTIVE".to_string(),            // 2
-        "INACTIVE".to_string(),          // 3
-        "fieldA".to_string(),            // 4
-        "fieldB".to_string(),            // 5
-        // ---
-        "null".to_string(),        // 6
-        "string".to_string(),      // 7
-        "enumValue".to_string(),   // 8
-        "int".to_string(),         // 9
-        "bigInt".to_string(),      // 10
-        "u64".to_string(),         // 11
-        "float".to_string(),       // 12
-        "boolean".to_string(),     // 13
-        "inputObject".to_string(), // 14
-        "list".to_string(),        // 15
-        "object".to_string(),      // 16
-    ]);
-    let list = schema.input_values.push_list(vec![
-        SchemaInputValue::Null,
-        SchemaInputValue::EnumValue(EnumValueId::from(0)),
-        SchemaInputValue::Int(73),
-    ]);
-    let input_fields = schema.input_values.push_input_object(vec![
-        (
-            InputValueDefinitionId::from(0),
-            SchemaInputValue::EnumValue(EnumValueId::from(1)),
-        ),
-        (
-            InputValueDefinitionId::from(1),
-            SchemaInputValue::String(StringId::from(1)),
-        ),
-    ]);
-    let nested_fields = schema.input_values.push_map(vec![
-        (StringId::from(6), SchemaInputValue::Null),
-        (StringId::from(7), SchemaInputValue::String(StringId::from(1))),
-        (StringId::from(8), SchemaInputValue::EnumValue(EnumValueId::from(0))),
-        (StringId::from(9), SchemaInputValue::Int(7)),
-        (StringId::from(10), SchemaInputValue::BigInt(8)),
-        (StringId::from(11), SchemaInputValue::U64(9)),
-        (StringId::from(12), SchemaInputValue::Float(10.0)),
-        (StringId::from(13), SchemaInputValue::Boolean(true)),
-    ]);
-    let fields = schema.input_values.push_map(vec![
-        (StringId::from(14), SchemaInputValue::InputObject(input_fields)),
-        (StringId::from(15), SchemaInputValue::List(list)),
-        (StringId::from(16), SchemaInputValue::Map(nested_fields)),
-    ]);
-    schema.input_values.push_value(SchemaInputValue::Map(fields));
-    schema
+fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
+    BuildContext::build_with(|ctx, graph| {
+        graph.input_value_definitions.extend([
+            InputValueDefinition {
+                name: ctx.strings.get_or_insert("fieldA"),
+                description: None,
+                ty: Type {
+                    inner: crate::Definition::Object(0.into()),
+                    wrapping: Wrapping::new(false),
+                }, // not used
+                default_value: None,
+            },
+            InputValueDefinition {
+                name: ctx.strings.get_or_insert("fieldB"),
+                description: None,
+                ty: Type {
+                    inner: crate::Definition::Object(0.into()),
+                    wrapping: Wrapping::new(false),
+                }, // not used
+                default_value: None,
+            },
+        ]);
+        graph.enum_value_definitions.extend([
+            EnumValueDefinition {
+                name: ctx.strings.get_or_insert("ACTIVE"),
+                description: None,
+                composed_directives: Default::default(),
+            },
+            EnumValueDefinition {
+                name: ctx.strings.get_or_insert("INACTIVE"),
+                description: None,
+                composed_directives: Default::default(),
+            },
+        ]);
+        let list = graph.input_values.push_list(vec![
+            SchemaInputValue::Null,
+            SchemaInputValue::EnumValue(EnumValueDefinitionId::from(0)),
+            SchemaInputValue::Int(73),
+        ]);
+        let input_fields = graph.input_values.push_input_object(vec![
+            (
+                InputValueDefinitionId::from(0),
+                SchemaInputValue::EnumValue(EnumValueDefinitionId::from(1)),
+            ),
+            (
+                InputValueDefinitionId::from(1),
+                SchemaInputValue::String(ctx.strings.get_or_insert("some string value")),
+            ),
+        ]);
+        let nested_fields = graph.input_values.push_map(vec![
+            (ctx.strings.get_or_insert("null"), SchemaInputValue::Null),
+            (
+                ctx.strings.get_or_insert("string"),
+                SchemaInputValue::String(ctx.strings.get_or_insert("some string value")),
+            ),
+            (
+                ctx.strings.get_or_insert("enumValue"),
+                SchemaInputValue::EnumValue(EnumValueDefinitionId::from(0)),
+            ),
+            (ctx.strings.get_or_insert("int"), SchemaInputValue::Int(7)),
+            (ctx.strings.get_or_insert("bigInt"), SchemaInputValue::BigInt(8)),
+            (ctx.strings.get_or_insert("u64"), SchemaInputValue::U64(9)),
+            (ctx.strings.get_or_insert("float"), SchemaInputValue::Float(10.0)),
+            (ctx.strings.get_or_insert("boolean"), SchemaInputValue::Boolean(true)),
+        ]);
+        let fields = graph.input_values.push_map(vec![
+            (
+                ctx.strings.get_or_insert("inputObject"),
+                SchemaInputValue::InputObject(input_fields),
+            ),
+            (ctx.strings.get_or_insert("list"), SchemaInputValue::List(list)),
+            (
+                ctx.strings.get_or_insert("object"),
+                SchemaInputValue::Map(nested_fields),
+            ),
+        ]);
+        graph.input_values.push_value(SchemaInputValue::Map(fields))
+    })
 }
 
 #[test]
 fn test_display() {
-    let schema = create_schema();
-    let id = SchemaInputValueId::from(schema.input_values.values.len() - 1);
+    let (schema, id) = create_schema_and_input_value();
     let walker = schema.walk(&schema[id]);
 
     insta::assert_snapshot!(walker, @r###"{inputObject:{fieldA:INACTIVE,fieldB:"some string value"},list:[null,ACTIVE,73],object:{null:null,string:"some string value",enumValue:ACTIVE,int:7,bigInt:8,u64:9,float:10,boolean:true}}"###);
@@ -105,8 +97,7 @@ fn test_display() {
 
 #[test]
 fn test_serialize() {
-    let schema = create_schema();
-    let id = SchemaInputValueId::from(schema.input_values.values.len() - 1);
+    let (schema, id) = create_schema_and_input_value();
     let walker = schema.walk(&schema[id]);
 
     insta::assert_json_snapshot!(walker, @r###"
@@ -136,8 +127,7 @@ fn test_serialize() {
 
 #[test]
 fn test_deserializer() {
-    let schema = create_schema();
-    let id = SchemaInputValueId::from(schema.input_values.values.len() - 1);
+    let (schema, id) = create_schema_and_input_value();
     let walker = schema.walk(&schema[id]);
 
     let value = serde_json::Value::deserialize(walker).unwrap();
@@ -169,8 +159,7 @@ fn test_deserializer() {
 
 #[test]
 fn test_input_value() {
-    let schema = create_schema();
-    let id = SchemaInputValueId::from(schema.input_values.values.len() - 1);
+    let (schema, id) = create_schema_and_input_value();
     let walker = schema.walk(&schema[id]);
     let input_value = InputValue::from(walker);
 
@@ -294,8 +283,7 @@ fn test_input_value() {
 
 #[test]
 fn test_struct_deserializer() {
-    let schema = create_schema();
-    let id = SchemaInputValueId::from(schema.input_values.values.len() - 1);
+    let (schema, id) = create_schema_and_input_value();
     let walker = schema.walk(&schema[id]);
 
     #[allow(unused)]

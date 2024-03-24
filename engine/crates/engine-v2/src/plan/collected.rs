@@ -1,5 +1,5 @@
 use id_newtypes::IdRange;
-use schema::{FieldDefinitionId, ObjectId, ScalarType, Wrapping};
+use schema::{FieldDefinitionId, ObjectDefinitionId, ScalarType, Wrapping};
 
 use crate::{
     operation::{FieldId, SelectionSetType},
@@ -102,7 +102,7 @@ pub struct CollectedField {
 
 #[derive(Debug)]
 pub struct RuntimeCollectedSelectionSet {
-    pub object_id: ObjectId,
+    pub object_id: ObjectDefinitionId,
     pub boundary_ids: Vec<PlanBoundaryId>,
     // sorted by expected key
     pub fields: Vec<CollectedField>,

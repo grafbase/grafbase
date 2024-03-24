@@ -2,7 +2,7 @@ mod de;
 mod ser;
 
 use id_newtypes::IdRange;
-use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValue, SchemaInputValueId};
+use schema::{EnumValueDefinitionId, InputValue, InputValueDefinitionId, SchemaInputValue, SchemaInputValueId};
 
 use crate::operation::{OperationWalker, VariableDefinitionId};
 
@@ -27,7 +27,7 @@ pub enum QueryInputValue {
     #[default]
     Null,
     String(String),
-    EnumValue(EnumValueId),
+    EnumValue(EnumValueDefinitionId),
     Int(i32),
     BigInt(i64),
     Float(f64),

@@ -18,14 +18,14 @@ pub(crate) use ids::*;
 pub(crate) use input_value::*;
 pub(crate) use location::Location;
 pub(crate) use path::QueryPath;
-use schema::{ObjectId, SchemaWalker};
+use schema::{ObjectDefinitionId, SchemaWalker};
 pub(crate) use selection_set::*;
 pub(crate) use variables::*;
 pub(crate) use walkers::*;
 
 pub(crate) struct Operation {
     pub ty: OperationType,
-    pub root_object_id: ObjectId,
+    pub root_object_id: ObjectDefinitionId,
     pub name: Option<String>,
     pub response_keys: ResponseKeys,
     pub root_selection_set_id: SelectionSetId,

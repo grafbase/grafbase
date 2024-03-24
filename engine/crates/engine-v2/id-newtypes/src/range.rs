@@ -16,6 +16,15 @@ impl<Id: Copy + From<usize>> Default for IdRange<Id> {
     }
 }
 
+impl<Id: Copy + Into<usize>> From<IdRange<Id>> for Range<usize> {
+    fn from(value: IdRange<Id>) -> Self {
+        Range {
+            start: value.start.into(),
+            end: value.end.into(),
+        }
+    }
+}
+
 impl<Id> IdRange<Id>
 where
     Id: From<usize> + Copy,

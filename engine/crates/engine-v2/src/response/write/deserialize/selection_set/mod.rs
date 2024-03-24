@@ -5,7 +5,7 @@ use std::borrow::Cow;
 
 pub(crate) use collected::*;
 use conditional::*;
-use schema::{ObjectId, SchemaWalker};
+use schema::{ObjectDefinitionId, SchemaWalker};
 use serde::de::DeserializeSeed;
 
 use super::SeedContextInner;
@@ -81,7 +81,7 @@ impl<'ctx> ObjectIdentifier<'ctx> {
         key == self.discriminant_key
     }
 
-    fn determine_object_id_from_discriminant(&mut self, discriminant: &str) -> Option<ObjectId> {
+    fn determine_object_id_from_discriminant(&mut self, discriminant: &str) -> Option<ObjectDefinitionId> {
         match self.root {
             SelectionSetType::Interface(interface_id) => self
                 .schema

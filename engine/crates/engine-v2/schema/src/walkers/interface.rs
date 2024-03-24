@@ -1,7 +1,7 @@
 use super::{FieldDefinitionWalker, SchemaWalker};
-use crate::{InterfaceId, ObjectWalker};
+use crate::{InterfaceDefinitionId, ObjectWalker};
 
-pub type InterfaceWalker<'a> = SchemaWalker<'a, InterfaceId>;
+pub type InterfaceWalker<'a> = SchemaWalker<'a, InterfaceDefinitionId>;
 
 impl<'a> InterfaceWalker<'a> {
     pub fn name(&self) -> &'a str {

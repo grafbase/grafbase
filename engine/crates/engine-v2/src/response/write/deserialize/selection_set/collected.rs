@@ -1,6 +1,6 @@
 use std::fmt;
 
-use schema::ObjectId;
+use schema::ObjectDefinitionId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::{
@@ -107,7 +107,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedSelectionSetSeed<'ctx, 'paren
 }
 
 impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for CollectedFieldsSeed<'ctx, 'parent> {
-    type Value = (Option<ObjectId>, ResponseObjectFields);
+    type Value = (Option<ObjectDefinitionId>, ResponseObjectFields);
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
@@ -118,7 +118,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for CollectedFieldsSeed<'ctx, 'par
 }
 
 impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedFieldsSeed<'ctx, 'parent> {
-    type Value = (Option<ObjectId>, ResponseObjectFields);
+    type Value = (Option<ObjectDefinitionId>, ResponseObjectFields);
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("an object")

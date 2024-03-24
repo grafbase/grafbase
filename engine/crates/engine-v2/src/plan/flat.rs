@@ -5,7 +5,7 @@ use std::{
 };
 
 use itertools::Itertools;
-use schema::{Definition, InterfaceId, ObjectId, Schema};
+use schema::{Definition, InterfaceDefinitionId, ObjectDefinitionId, Schema};
 
 use crate::operation::{FieldId, Operation, Selection, SelectionSetId, SelectionSetType, TypeCondition};
 
@@ -174,8 +174,8 @@ impl FlatField {
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EntityType {
-    Interface(InterfaceId),
-    Object(ObjectId),
+    Interface(InterfaceDefinitionId),
+    Object(ObjectDefinitionId),
 }
 
 impl From<EntityType> for Definition {
@@ -217,9 +217,9 @@ impl EntityType {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FlatTypeCondition {
-    Interface(InterfaceId),
+    Interface(InterfaceDefinitionId),
     // sorted by ObjectId
-    Objects(Box<[ObjectId]>),
+    Objects(Box<[ObjectDefinitionId]>),
 }
 
 impl FlatTypeCondition {
@@ -234,7 +234,7 @@ impl FlatTypeCondition {
         }
     }
 
-    pub fn matches(&self, schema: &Schema, object_id: ObjectId) -> bool {
+    pub fn matches(&self, schema: &Schema, object_id: ObjectDefinitionId) -> bool {
         match self {
             FlatTypeCondition::Interface(id) => schema[object_id].interfaces.contains(id),
             FlatTypeCondition::Objects(ids) => ids.binary_search(&object_id).is_ok(),
@@ -355,7 +355,7 @@ impl FlatTypeCondition {
     }
 }
 
-fn sorted_intersection(left: &[ObjectId], right: &[ObjectId]) -> Box<[ObjectId]> {
+fn sorted_intersection(left: &[ObjectDefinitionId], right: &[ObjectDefinitionId]) -> Box<[ObjectDefinitionId]> {
     let mut l = 0;
     let mut r = 0;
     let mut result = vec![];

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
-use schema::{ObjectId, SchemaWalker};
+use schema::{ObjectDefinitionId, SchemaWalker};
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use super::ReadSelectionSet;
@@ -18,7 +18,7 @@ pub struct ResponseBoundaryObjectsView<'a> {
 pub struct ResponseBoundaryItem {
     pub response_object_id: ResponseObjectId,
     pub response_path: ResponsePath,
-    pub object_id: ObjectId,
+    pub object_id: ObjectDefinitionId,
 }
 
 impl<'a> ResponseBoundaryObjectsView<'a> {

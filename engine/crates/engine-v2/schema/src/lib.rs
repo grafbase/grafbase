@@ -26,59 +26,70 @@ pub use wrapping::*;
 /// the source of truth. If the cache is stale we would just re-create this Graph from its source:
 /// federated_graph::FederatedGraph.
 pub struct Schema {
-    pub data_sources: DataSources,
-
-    pub description: Option<StringId>,
-    pub root_operation_types: RootOperationTypes,
-    objects: Vec<Object>,
-    interfaces: Vec<Interface>,
-    field_definitions: Vec<FieldDefinition>,
-    enums: Vec<Enum>,
-    unions: Vec<Union>,
-    scalars: Vec<Scalar>,
-    input_objects: Vec<InputObject>,
-    input_value_definitions: Vec<InputValueDefinition>,
-    resolvers: Vec<Resolver>,
-    // All definitions sorted by their name (actual string)
-    definitions: Vec<Definition>,
-    directives: Vec<Directive>,
-    enum_values: Vec<EnumValue>,
-
-    required_field_sets: Vec<RequiredFieldSet>,
-    // deduplicated
-    required_fields_arguments: Vec<RequiredFieldArguments>,
+    data_sources: DataSources,
+    graph: Graph,
 
     /// All strings deduplicated.
     strings: Vec<String>,
     urls: Vec<url::Url>,
-    /// Default input values & directive arguments
-    input_values: SchemaInputValues,
-
     /// Headers we might want to send to a subgraph
     headers: Vec<Header>,
+
+    pub settings: Settings,
+}
+
+#[derive(Default)]
+pub struct Settings {
     default_headers: Vec<HeaderId>,
-    cache_configs: Vec<CacheConfig>,
 
     pub auth_config: Option<config::latest::AuthConfig>,
     pub operation_limits: config::latest::OperationLimits,
     pub disable_introspection: bool,
 }
 
-#[derive(Default)]
+pub struct Graph {
+    pub description: Option<StringId>,
+    pub root_operation_types: RootOperationTypes,
+
+    // All definitions sorted by their name (actual string)
+    definitions: Vec<Definition>,
+
+    object_definitions: Vec<ObjectDefinition>,
+    interface_definitions: Vec<InterfaceDefinition>,
+    field_definitions: Vec<FieldDefinition>,
+    enum_definitions: Vec<EnumDefinition>,
+    union_definitions: Vec<UnionDefinition>,
+    scalar_definitions: Vec<ScalarDefinition>,
+    input_object_definitions: Vec<InputObjectDefinition>,
+    input_value_definitions: Vec<InputValueDefinition>,
+    directive_definitions: Vec<Directive>,
+    enum_value_definitions: Vec<EnumValueDefinition>,
+
+    cache_configs: Vec<CacheConfig>,
+    resolvers: Vec<Resolver>,
+    required_field_sets: Vec<RequiredFieldSet>,
+    // deduplicated
+    required_fields_arguments: Vec<RequiredFieldArguments>,
+
+    /// Default input values & directive arguments
+    input_values: SchemaInputValues,
+}
+
 pub struct DataSources {
     graphql: sources::GraphqlEndpoints,
-    pub introspection: sources::Introspection,
+    pub introspection: sources::IntrospectionMetadata,
 }
 
 impl Schema {
     pub fn definition_by_name(&self, name: &str) -> Option<Definition> {
-        self.definitions
+        self.graph
+            .definitions
             .binary_search_by_key(&name, |definition| self.definition_name(*definition))
-            .map(|index| self.definitions[index])
+            .map(|index| self.graph.definitions[index])
             .ok()
     }
 
-    pub fn object_field_by_name(&self, object_id: ObjectId, name: &str) -> Option<FieldDefinitionId> {
+    pub fn object_field_by_name(&self, object_id: ObjectDefinitionId, name: &str) -> Option<FieldDefinitionId> {
         let fields = self[object_id].fields;
         self[fields]
             .iter()
@@ -86,7 +97,11 @@ impl Schema {
             .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
     }
 
-    pub fn interface_field_by_name(&self, interface_id: InterfaceId, name: &str) -> Option<FieldDefinitionId> {
+    pub fn interface_field_by_name(
+        &self,
+        interface_id: InterfaceDefinitionId,
+        name: &str,
+    ) -> Option<FieldDefinitionId> {
         let fields = self[interface_id].fields;
         self[fields]
             .iter()
@@ -105,56 +120,13 @@ impl Schema {
         };
         &self[name]
     }
-
-    #[cfg(test)]
-    pub(crate) fn empty() -> Self {
-        Self {
-            data_sources: Default::default(),
-            description: None,
-            root_operation_types: crate::RootOperationTypes {
-                query: ObjectId::from(0),
-                mutation: None,
-                subscription: None,
-            },
-            objects: vec![Object {
-                name: StringId::from(0),
-                description: None,
-                interfaces: Vec::new(),
-                composed_directives: IdRange::empty(),
-                cache_config: None,
-                fields: IdRange::empty(),
-            }],
-            required_field_sets: Vec::new(),
-            required_fields_arguments: Vec::new(),
-            interfaces: Vec::new(),
-            field_definitions: Vec::new(),
-            enums: Vec::new(),
-            unions: Vec::new(),
-            scalars: Vec::new(),
-            input_objects: Vec::new(),
-            input_value_definitions: Vec::new(),
-            resolvers: Vec::new(),
-            definitions: Vec::new(),
-            directives: Vec::new(),
-            enum_values: Vec::new(),
-            strings: vec![String::from("Query")],
-            urls: Vec::new(),
-            input_values: Default::default(),
-            headers: Vec::new(),
-            default_headers: Vec::new(),
-            cache_configs: Vec::new(),
-            auth_config: Default::default(),
-            operation_limits: Default::default(),
-            disable_introspection: false,
-        }
-    }
 }
 
 #[derive(Debug)]
 pub struct RootOperationTypes {
-    pub query: ObjectId,
-    pub mutation: Option<ObjectId>,
-    pub subscription: Option<ObjectId>,
+    pub query: ObjectDefinitionId,
+    pub mutation: Option<ObjectDefinitionId>,
+    pub subscription: Option<ObjectDefinitionId>,
 }
 
 impl std::fmt::Debug for Schema {
@@ -164,10 +136,10 @@ impl std::fmt::Debug for Schema {
 }
 
 #[derive(Debug)]
-pub struct Object {
+pub struct ObjectDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub interfaces: Vec<InterfaceId>,
+    pub interfaces: Vec<InterfaceDefinitionId>,
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: IdRange<DirectiveId>,
     pub cache_config: Option<CacheConfigId>,
@@ -219,46 +191,46 @@ pub enum Directive {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Definition {
-    Scalar(ScalarId),
-    Object(ObjectId),
-    Interface(InterfaceId),
-    Union(UnionId),
-    Enum(EnumId),
-    InputObject(InputObjectId),
+    Scalar(ScalarDefinitionId),
+    Object(ObjectDefinitionId),
+    Interface(InterfaceDefinitionId),
+    Union(UnionDefinitionId),
+    Enum(EnumDefinitionId),
+    InputObject(InputObjectDefinitionId),
 }
 
-impl From<ScalarId> for Definition {
-    fn from(id: ScalarId) -> Self {
+impl From<ScalarDefinitionId> for Definition {
+    fn from(id: ScalarDefinitionId) -> Self {
         Self::Scalar(id)
     }
 }
 
-impl From<ObjectId> for Definition {
-    fn from(id: ObjectId) -> Self {
+impl From<ObjectDefinitionId> for Definition {
+    fn from(id: ObjectDefinitionId) -> Self {
         Self::Object(id)
     }
 }
 
-impl From<InterfaceId> for Definition {
-    fn from(id: InterfaceId) -> Self {
+impl From<InterfaceDefinitionId> for Definition {
+    fn from(id: InterfaceDefinitionId) -> Self {
         Self::Interface(id)
     }
 }
 
-impl From<UnionId> for Definition {
-    fn from(id: UnionId) -> Self {
+impl From<UnionDefinitionId> for Definition {
+    fn from(id: UnionDefinitionId) -> Self {
         Self::Union(id)
     }
 }
 
-impl From<EnumId> for Definition {
-    fn from(id: EnumId) -> Self {
+impl From<EnumDefinitionId> for Definition {
+    fn from(id: EnumDefinitionId) -> Self {
         Self::Enum(id)
     }
 }
 
-impl From<InputObjectId> for Definition {
-    fn from(id: InputObjectId) -> Self {
+impl From<InputObjectDefinitionId> for Definition {
+    fn from(id: InputObjectDefinitionId) -> Self {
         Self::InputObject(id)
     }
 }
@@ -288,13 +260,13 @@ impl Type {
 }
 
 #[derive(Debug)]
-pub struct Interface {
+pub struct InterfaceDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub interfaces: Vec<InterfaceId>,
+    pub interfaces: Vec<InterfaceDefinitionId>,
 
     /// sorted by ObjectId
-    pub possible_types: Vec<ObjectId>,
+    pub possible_types: Vec<ObjectDefinitionId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: IdRange<DirectiveId>,
@@ -303,18 +275,18 @@ pub struct Interface {
 }
 
 #[derive(Debug)]
-pub struct Enum {
+pub struct EnumDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
     /// The enum values referenced by this range are sorted by their name (string)
-    pub value_ids: IdRange<EnumValueId>,
+    pub value_ids: IdRange<EnumValueDefinitionId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: IdRange<DirectiveId>,
 }
 
 #[derive(Debug)]
-pub struct EnumValue {
+pub struct EnumValueDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
 
@@ -323,18 +295,18 @@ pub struct EnumValue {
 }
 
 #[derive(Debug)]
-pub struct Union {
+pub struct UnionDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
     /// sorted by ObjectId
-    pub possible_types: Vec<ObjectId>,
+    pub possible_types: Vec<ObjectDefinitionId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: IdRange<DirectiveId>,
 }
 
 #[derive(Debug)]
-pub struct Scalar {
+pub struct ScalarDefinition {
     pub name: StringId,
     pub ty: ScalarType,
     pub description: Option<StringId>,
@@ -366,7 +338,7 @@ impl ScalarType {
 }
 
 #[derive(Debug)]
-pub struct InputObject {
+pub struct InputObjectDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
     /// The input fields referenced by this range are sorted by their name (string)

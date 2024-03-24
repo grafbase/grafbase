@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use schema::{FieldDefinitionId, ObjectId, Schema, SchemaWalker};
+use schema::{FieldDefinitionId, ObjectDefinitionId, Schema, SchemaWalker};
 
 use crate::{
     operation::{
@@ -151,7 +151,7 @@ impl<'a> PlanWalker<'a> {
 
     pub fn collect_fields(
         &self,
-        object_id: ObjectId,
+        object_id: ObjectDefinitionId,
         selection_sets: &[ConditionalSelectionSetId],
     ) -> RuntimeCollectedSelectionSet {
         let schema = self.schema();
@@ -260,7 +260,11 @@ impl<'a> PlanWalker<'a> {
     }
 }
 
-fn does_type_condition_apply(schema: &Schema, type_condition: &Option<FlatTypeCondition>, object_id: ObjectId) -> bool {
+fn does_type_condition_apply(
+    schema: &Schema,
+    type_condition: &Option<FlatTypeCondition>,
+    object_id: ObjectDefinitionId,
+) -> bool {
     type_condition
         .as_ref()
         .map(|cond| cond.matches(schema, object_id))

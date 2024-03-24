@@ -1,7 +1,7 @@
 use super::SchemaWalker;
-use crate::{ObjectWalker, UnionId};
+use crate::{ObjectWalker, UnionDefinitionId};
 
-pub type UnionWalker<'a> = SchemaWalker<'a, UnionId>;
+pub type UnionWalker<'a> = SchemaWalker<'a, UnionDefinitionId>;
 
 impl<'a> UnionWalker<'a> {
     pub fn name(&self) -> &'a str {

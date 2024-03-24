@@ -1,6 +1,6 @@
 use std::{borrow::Cow, collections::VecDeque, fmt};
 
-use schema::ObjectId;
+use schema::ObjectDefinitionId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::{
@@ -77,7 +77,11 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for ConditionalSelectionSetSeed<'ctx, 'par
 }
 
 impl<'ctx, 'parent> ConditionalSelectionSetSeed<'ctx, 'parent> {
-    fn deserialize_concrete_object<'de, A>(self, object_id: ObjectId, map: A) -> Result<ResponseValue, A::Error>
+    fn deserialize_concrete_object<'de, A>(
+        self,
+        object_id: ObjectDefinitionId,
+        map: A,
+    ) -> Result<ResponseValue, A::Error>
     where
         A: MapAccess<'de>,
     {

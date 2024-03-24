@@ -1,4 +1,4 @@
-use crate::{EnumValueId, IdRange, InputValueDefinitionId, SchemaWalker, StringId};
+use crate::{EnumValueDefinitionId, IdRange, InputValueDefinitionId, Schema, SchemaWalker, StringId};
 
 mod de;
 mod display;
@@ -18,7 +18,7 @@ pub enum InputValue<'a> {
     #[default]
     Null,
     String(&'a str),
-    EnumValue(EnumValueId),
+    EnumValue(EnumValueDefinitionId),
     Int(i32),
     BigInt(i64),
     Float(f64),
@@ -86,9 +86,9 @@ pub struct SchemaInputValues {
 }
 
 id_newtypes::NonZeroU32! {
-    SchemaInputValues.values[SchemaInputValueId] => SchemaInputValue,
-    SchemaInputValues.input_fields[SchemaInputObjectFieldValueId] => (InputValueDefinitionId, SchemaInputValue),
-    SchemaInputValues.key_values[SchemaInputKeyValueId] => (StringId, SchemaInputValue),
+    SchemaInputValues.values[SchemaInputValueId] => SchemaInputValue | index(Schema.graph.input_values),
+    SchemaInputValues.input_fields[SchemaInputObjectFieldValueId] => (InputValueDefinitionId, SchemaInputValue) | index(Schema.graph.input_values),
+    SchemaInputValues.key_values[SchemaInputKeyValueId] => (StringId, SchemaInputValue) | index(Schema.graph.input_values),
 }
 
 /// Represents a default input value and @requires arguments.
@@ -96,7 +96,7 @@ id_newtypes::NonZeroU32! {
 pub enum SchemaInputValue {
     Null,
     String(StringId),
-    EnumValue(EnumValueId),
+    EnumValue(EnumValueDefinitionId),
     Int(i32),
     BigInt(i64),
     Float(f64),

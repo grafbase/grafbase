@@ -1,8 +1,8 @@
 use super::SchemaWalker;
-use crate::{Directive, EnumId, EnumValueId};
+use crate::{Directive, EnumDefinitionId, EnumValueDefinitionId};
 
-pub type EnumWalker<'a> = SchemaWalker<'a, EnumId>;
-pub type EnumValueWalker<'a> = SchemaWalker<'a, EnumValueId>;
+pub type EnumWalker<'a> = SchemaWalker<'a, EnumDefinitionId>;
+pub type EnumValueWalker<'a> = SchemaWalker<'a, EnumValueDefinitionId>;
 
 impl<'a> EnumWalker<'a> {
     pub fn name(&self) -> &'a str {
@@ -13,12 +13,12 @@ impl<'a> EnumWalker<'a> {
         self.as_ref().value_ids.map(move |id| self.walk(id))
     }
 
-    pub fn find_value_by_name(&self, name: &str) -> Option<EnumValueId> {
+    pub fn find_value_by_name(&self, name: &str) -> Option<EnumValueDefinitionId> {
         let ids = self.as_ref().value_ids;
         self.schema[ids]
             .binary_search_by(|enum_value| self.schema[enum_value.name].as_str().cmp(name))
             .ok()
-            .map(EnumValueId::from)
+            .map(EnumValueDefinitionId::from)
     }
 }
 

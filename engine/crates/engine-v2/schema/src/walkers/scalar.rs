@@ -1,7 +1,7 @@
 use super::SchemaWalker;
-use crate::ScalarId;
+use crate::ScalarDefinitionId;
 
-pub type ScalarWalker<'a> = SchemaWalker<'a, ScalarId>;
+pub type ScalarWalker<'a> = SchemaWalker<'a, ScalarDefinitionId>;
 
 impl<'a> ScalarWalker<'a> {
     pub fn name(&self) -> &'a str {

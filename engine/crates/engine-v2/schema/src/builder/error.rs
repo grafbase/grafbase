@@ -1,6 +1,6 @@
-use crate::{SchemaWalker, StringId};
+use crate::StringId;
 
-use super::coerce::InputValueError;
+use super::{coerce::InputValueError, BuildContext};
 
 #[derive(Debug, Copy, Clone)]
 pub enum SchemaLocation {
@@ -8,11 +8,11 @@ pub enum SchemaLocation {
     Field { ty: StringId, name: StringId },
 }
 
-impl std::fmt::Display for SchemaWalker<'_, SchemaLocation> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.item {
-            SchemaLocation::Type { name } => f.write_str(&self.schema[name]),
-            SchemaLocation::Field { ty, name } => write!(f, "{}.{}", &self.schema[ty], &self.schema[name]),
+impl SchemaLocation {
+    pub fn to_string(self, ctx: &BuildContext) -> String {
+        match self {
+            SchemaLocation::Type { name } => ctx.strings[name].to_string(),
+            SchemaLocation::Field { ty, name } => format!("{}.{}", &ctx.strings[ty], &ctx.strings[name]),
         }
     }
 }

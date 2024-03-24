@@ -1,7 +1,7 @@
 use super::{FieldDefinitionWalker, SchemaWalker};
-use crate::{CacheConfig, InterfaceWalker, ObjectId};
+use crate::{CacheConfig, InterfaceWalker, ObjectDefinitionId};
 
-pub type ObjectWalker<'a> = SchemaWalker<'a, ObjectId>;
+pub type ObjectWalker<'a> = SchemaWalker<'a, ObjectDefinitionId>;
 
 impl<'a> ObjectWalker<'a> {
     pub fn name(&self) -> &'a str {

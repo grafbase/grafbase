@@ -15,7 +15,7 @@ pub(super) fn ensure_introspection_is_accepted(
             engine::IntrospectionState::ForceEnabled => {}
             engine::IntrospectionState::ForceDisabled => detect_introspection(selection_set)?,
             engine::IntrospectionState::UserPreference => {
-                if schema.disable_introspection {
+                if schema.settings.disable_introspection {
                     detect_introspection(selection_set)?;
                 }
             }

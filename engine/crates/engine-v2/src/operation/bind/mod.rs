@@ -129,15 +129,13 @@ pub type BindResult<T> = Result<T, BindError>;
 
 pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operation> {
     let root_object_id = match unbound.definition.ty {
-        OperationType::Query => schema.root_operation_types.query,
-        OperationType::Mutation => schema
-            .root_operation_types
-            .mutation
-            .ok_or(BindError::NoMutationDefined)?,
+        OperationType::Query => schema.walker().query().id(),
+        OperationType::Mutation => schema.walker().mutation().ok_or(BindError::NoMutationDefined)?.id(),
         OperationType::Subscription => schema
-            .root_operation_types
-            .subscription
-            .ok_or(BindError::NoSubscriptionDefined)?,
+            .walker()
+            .subscription()
+            .ok_or(BindError::NoSubscriptionDefined)?
+            .id(),
     };
 
     let mut binder = Binder {
