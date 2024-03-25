@@ -21,6 +21,14 @@ pub trait TypeReference {
     fn named_type(&self) -> NamedType<'_>;
 }
 
+impl TypeReference for Name {
+    type ExpectedType<'a> = &'a MetaType;
+
+    fn named_type(&self) -> NamedType<'_> {
+        NamedType(Cow::Borrowed(self.as_str()))
+    }
+}
+
 /// Defines basic string conversion functionality for a string wrapper.
 ///
 /// We've a lot of them in this file, so this is handy.
