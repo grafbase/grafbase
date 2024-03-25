@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use engine::{parser::types::OperationType, ServerError};
+use engine::parser::types::OperationType;
 use futures_util::FutureExt;
 use gateway_v2_auth::AuthService;
 pub use runtime::context::RequestContext;
