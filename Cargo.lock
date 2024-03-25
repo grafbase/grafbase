@@ -2918,6 +2918,7 @@ dependencies = [
  "gateway",
  "grafbase-local-common",
  "graphql-federated-graph",
+ "graphql-schema-validation 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "handlebars 5.1.2",
  "hyper 1.2.0",
  "hyper-util",
@@ -3106,6 +3107,18 @@ dependencies = [
  "datatest-stable",
  "miette",
  "similar",
+]
+
+[[package]]
+name = "graphql-schema-validation"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b706701692e77c342cc7919c3b9c2236e0331e2c802936cf8ee68ed12abe5e7b"
+dependencies = [
+ "async-graphql-parser",
+ "async-graphql-value",
+ "bitflags 2.5.0",
+ "miette",
 ]
 
 [[package]]
