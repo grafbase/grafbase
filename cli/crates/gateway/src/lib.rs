@@ -48,6 +48,7 @@ impl Gateway {
         .with_first_authorizer(AnyApiKeyProvider);
 
         let executor = Arc::new(Executor::new(env_vars, bridge, registry).await?);
+        let trusted_documents = runtime_noop::trusted_documents::TrustedDocuments::new();
 
         Ok(Gateway {
             inner: Arc::new(gateway_core::Gateway::new(
@@ -60,6 +61,7 @@ impl Gateway {
                 cache_config,
                 auth,
                 authorizer,
+                trusted_documents,
             )),
         })
     }

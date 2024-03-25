@@ -2557,6 +2557,7 @@ dependencies = [
  "postgres-connector-types",
  "runtime",
  "runtime-local",
+ "runtime-noop",
  "serde_json",
  "thiserror",
  "tokio",

@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use engine::{
-    parser::types::OperationType, AutomaticPersistedQuery, ErrorCode, ErrorExtensionValues,
-    PersistedQueryRequestExtension, ServerError,
-};
+use engine::{parser::types::OperationType, ServerError};
 use futures_util::FutureExt;
 use gateway_v2_auth::AuthService;
 pub use runtime::context::RequestContext;
@@ -20,6 +17,7 @@ mod executor;
 mod response;
 pub mod serving;
 mod streaming;
+mod trusted_documents;
 
 pub use crate::cache::build_cache_key;
 
@@ -28,6 +26,8 @@ pub use cache::CacheConfig;
 pub use executor::Executor;
 pub use response::ConstructableResponse;
 pub use streaming::{encode_stream_response, format::StreamingFormat};
+
+const CLIENT_NAME_HEADER_NAME: &str = "x-grafbase-client-name";
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -46,6 +46,7 @@ pub struct Gateway<Executor: self::Executor> {
     cache: Cache,
     cache_config: CacheConfig,
     auth: AuthService,
+    trusted_documents: runtime::trusted_documents_client::Client,
     authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
 }
 
@@ -62,6 +63,7 @@ where
         cache_config: CacheConfig,
         auth: AuthService,
         authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
+        trusted_documents: runtime::trusted_documents_client::Client,
     ) -> Self {
         Self {
             executor,
@@ -69,6 +71,7 @@ where
             cache_config,
             auth,
             authorizer,
+            trusted_documents,
         }
     }
 
@@ -102,7 +105,17 @@ where
         ctx: &Arc<Executor::Context>,
         mut request: engine::Request,
     ) -> Result<(Arc<engine::Response>, http::HeaderMap), Executor::Error> {
-        if let Err(err) = self.handle_persisted_query(ctx, &mut request).await {
+        let headers = ctx.headers();
+        if let Err(err) = self
+            .handle_persisted_query(
+                &mut request,
+                headers
+                    .get(CLIENT_NAME_HEADER_NAME)
+                    .and_then(|value| value.to_str().ok()),
+                headers,
+            )
+            .await
+        {
             return Ok((
                 Arc::new(engine::Response {
                     errors: vec![err.into()],
@@ -171,7 +184,17 @@ where
         mut request: engine::Request,
         streaming_format: StreamingFormat,
     ) -> Result<Executor::StreamingResponse, Executor::Error> {
-        if let Err(err) = self.handle_persisted_query(ctx, &mut request).await {
+        let headers = ctx.headers();
+        if let Err(err) = self
+            .handle_persisted_query(
+                &mut request,
+                headers
+                    .get(CLIENT_NAME_HEADER_NAME)
+                    .and_then(|value| value.to_str().ok()),
+                headers,
+            )
+            .await
+        {
             return Executor::StreamingResponse::engine(
                 Arc::new(engine::Response {
                     errors: vec![err.into()],
@@ -201,100 +224,5 @@ where
             .execute_stream(Arc::clone(ctx), auth, request, streaming_format)
             .instrument(info_span!("execute_stream"))
             .await
-    }
-
-    async fn handle_persisted_query(
-        &self,
-        ctx: &Arc<Executor::Context>,
-        request: &mut engine::Request,
-    ) -> Result<(), PersistedQueryError> {
-        let Some(PersistedQueryRequestExtension { version, sha256_hash }) = &request.extensions.persisted_query else {
-            return Ok(());
-        };
-
-        if *version != 1 {
-            return Err(PersistedQueryError::UnsupportedVersion);
-        }
-
-        let key = self
-            .cache
-            .build_key(&format!("apq/sha256_{}", hex::encode(sha256_hash)));
-        if !request.query().is_empty() {
-            use sha2::{Digest, Sha256};
-            let digest = <Sha256 as Digest>::digest(request.query().as_bytes()).to_vec();
-            if &digest != sha256_hash {
-                return Err(PersistedQueryError::InvalidSha256Hash);
-            }
-            self.cache
-                .put_json(
-                    &key,
-                    runtime::cache::EntryState::Fresh,
-                    &AutomaticPersistedQuery::V1 {
-                        query: request.query().to_string(),
-                    },
-                    runtime::cache::CacheMetadata {
-                        max_age: std::time::Duration::from_secs(24 * 60 * 60),
-                        stale_while_revalidate: std::time::Duration::ZERO,
-                        tags: Vec::new(),
-                        should_purge_related: false,
-                        should_cache: true,
-                    },
-                )
-                .await
-                .map_err(|err| {
-                    log::error!(ctx.ray_id(), "Cache error: {}", err);
-                    PersistedQueryError::InternalServerError
-                })?;
-            return Ok(());
-        }
-
-        match self.cache.get_json::<AutomaticPersistedQuery>(&key).await {
-            Ok(entry) => {
-                if let Some(AutomaticPersistedQuery::V1 { query }) = entry.into_value() {
-                    request.operation_plan_cache_key.query = query;
-                    Ok(())
-                } else {
-                    Err(PersistedQueryError::NotFound)
-                }
-            }
-            Err(err) => {
-                log::error!(ctx.ray_id(), "Cache error: {}", err);
-                Err(PersistedQueryError::InternalServerError)
-            }
-        }
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-enum PersistedQueryError {
-    #[error("Persisted query not found")]
-    NotFound,
-    #[error("Persisted query version not supported")]
-    UnsupportedVersion,
-    #[error("Invalid persisted query sha256Hash")]
-    InvalidSha256Hash,
-    #[error("Internal server error")]
-    InternalServerError,
-}
-
-impl From<PersistedQueryError> for ServerError {
-    fn from(err: PersistedQueryError) -> Self {
-        let message = err.to_string();
-        let error = ServerError::new(message, None);
-        if matches!(err, PersistedQueryError::NotFound) {
-            ServerError {
-                extensions: Some(ErrorExtensionValues(
-                    [(
-                        "code".to_string(),
-                        engine::Value::String(ErrorCode::PersistedQueryNotFound.to_string()),
-                    )]
-                    .into_iter()
-                    .collect(),
-                )),
-                ..error
-            }
-        } else {
-            error
-        }
     }
 }
