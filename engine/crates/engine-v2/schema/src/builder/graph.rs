@@ -9,16 +9,13 @@ use id_newtypes::IdRange;
 
 use crate::{
     sources::{self, graphql::GraphqlEndpointId, introspection::IntrospectionBuilder, IntrospectionMetadata},
-    CacheConfigId, Definition, Directive, Enum, EnumId, EnumValue, EnumValueId, FieldDefinition, FieldDefinitionId,
-    FieldProvides, FieldRequires, Graph, InputObject, InputObjectId, InputValueDefinition, Interface, InterfaceId,
-    Object, ObjectId, ProvidableField, ProvidableFieldSet, Resolver, ResolverId, RootOperationTypes, Scalar, ScalarId,
-    ScalarType, StringId, Type, Union, UnionId,
+    Definition, Directive, Enum, EnumId, EnumValue, EnumValueId, FieldDefinition, FieldDefinitionId, FieldProvides,
+    FieldRequires, Graph, InputObject, InputObjectId, InputValueDefinition, Interface, InterfaceId, Object, ObjectId,
+    ProvidableField, ProvidableFieldSet, Resolver, ResolverId, RootOperationTypes, Scalar, ScalarId, ScalarType,
+    StringId, Type, Union, UnionId,
 };
 
-use super::{
-    ids::IdMap, interner::Interner, BuildContext, BuildError, ExternalDataSources, RequiredFieldSetBuffer,
-    SchemaLocation,
-};
+use super::{ids::IdMap, BuildContext, BuildError, ExternalDataSources, RequiredFieldSetBuffer, SchemaLocation};
 
 pub(crate) struct GraphBuilder<'a> {
     ctx: &'a mut BuildContext,
@@ -56,7 +53,6 @@ impl<'a> GraphBuilder<'a> {
                 resolvers: Vec::new(),
                 definitions: Vec::new(),
                 directive_definitions: Vec::new(),
-                cache_configs: Vec::new(),
                 required_field_sets: Vec::new(),
                 required_fields_arguments: Vec::new(),
                 input_values: Default::default(),
@@ -72,8 +68,9 @@ impl<'a> GraphBuilder<'a> {
         self.ingest_unions(config);
         self.ingest_enums(config);
         self.ingest_scalars(config);
-        self.ingest_object_and_fields(config);
-        self.ingest_interfaces_after_objects(config);
+        let object_metadata = self.ingest_objects(config);
+        let interface_metadata = self.ingest_interfaces_after_objects(config);
+        self.ingest_fields(config, object_metadata, interface_metadata);
         self.ingest_directives_after_all(config);
     }
 
@@ -179,22 +176,20 @@ impl<'a> GraphBuilder<'a> {
             .collect();
     }
 
-    fn ingest_object_and_fields(&mut self, config: &mut Config) {
-        let schema = &mut self.graph;
-        let cache = take(&mut config.cache);
-        let graph = &mut config.graph;
-        let mut cache_configs = Interner::<config::latest::CacheConfig, CacheConfigId>::default();
+    fn ingest_objects(&mut self, config: &mut Config) -> ObjectMetadata {
+        let mut entities_metadata = ObjectMetadata {
+            entities: Default::default(),
+            // At most we have as many field as the FederatedGraph
+            field_id_to_maybe_object_id: vec![None; config.graph.fields.len()],
+        };
 
-        // -- OBJECTS --
-        let mut entity_resolvers = HashMap::<ObjectId, Vec<(ResolverId, GraphqlEndpointId, ProvidableFieldSet)>>::new();
-        let mut unresolvable_keys = HashMap::<ObjectId, HashMap<GraphqlEndpointId, ProvidableFieldSet>>::new();
-        let mut field_id_to_maybe_object_id: Vec<Option<ObjectId>> = vec![None; graph.fields.len()];
-
-        for object in take(&mut graph.objects) {
-            let object_id = ObjectId::from(schema.object_definitions.len());
-            let cache_config = cache
+        self.graph.object_definitions = Vec::with_capacity(config.graph.objects.len());
+        for object in take(&mut config.graph.objects) {
+            let object_id = ObjectId::from(self.graph.object_definitions.len());
+            let cache_config = config
+                .cache
                 .rule(CacheConfigTarget::Object(federated_graph::ObjectId(object_id.into())))
-                .map(|config| cache_configs.get_or_insert(config));
+                .map(|config| self.ctx.cache_configs.get_or_insert(config));
 
             let fields = self
                 .ctx
@@ -203,10 +198,10 @@ impl<'a> GraphBuilder<'a> {
                 .get_range((object.fields.start, object.fields.end.0 - object.fields.start.0));
 
             for field_id in fields {
-                field_id_to_maybe_object_id[usize::from(field_id)] = Some(object_id);
+                entities_metadata.field_id_to_maybe_object_id[usize::from(field_id)] = Some(object_id);
             }
 
-            schema.object_definitions.push(Object {
+            self.graph.object_definitions.push(Object {
                 name: object.name.into(),
                 description: None,
                 interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
@@ -215,71 +210,87 @@ impl<'a> GraphBuilder<'a> {
                 fields,
             });
 
-            for key in object.keys {
-                let endpoint_id = key.subgraph_id.into();
-                // Some SDL are generated with empty keys, they're useless to us.
-                if key.fields.is_empty() {
-                    continue;
-                }
-                if key.resolvable {
-                    let providable = self.ctx.idmaps.field.convert_providable_field_set(&key.fields);
-                    let key = sources::graphql::FederationKey {
-                        fields: self.required_field_sets_buffer.push(
-                            SchemaLocation::Type {
-                                name: object.name.into(),
-                            },
-                            key.fields,
-                        ),
-                    };
-
-                    let resolver_id = ResolverId::from(schema.resolvers.len());
-                    schema.resolvers.push(Resolver::GraphqlFederationEntity(
-                        sources::graphql::FederationEntityResolver { endpoint_id, key },
-                    ));
-                    entity_resolvers
-                        .entry(object_id)
-                        .or_default()
-                        .push((resolver_id, endpoint_id, providable));
-                } else {
-                    // We don't need to differentiate between keys here. We'll be using this to add
-                    // those fields to `provides` in the relevant fields. It's the resolvable keys
-                    // that will determine which fields to retrieve during planning. And composition
-                    // ensures that keys between subgraphs are coherent.
-                    let field_set: ProvidableFieldSet = self.ctx.idmaps.field.convert_providable_field_set(&key.fields);
-                    unresolvable_keys
-                        .entry(object_id)
-                        .or_default()
-                        .entry(endpoint_id)
-                        .and_modify(|current| current.update(&field_set))
-                        .or_insert(field_set);
-                }
+            if let Some(entity) = self.generate_federation_entity_from_keys(
+                SchemaLocation::Type {
+                    name: object.name.into(),
+                },
+                object.keys,
+            ) {
+                entities_metadata.entities.insert(object_id, entity);
             }
         }
 
-        // -- ROOT FIELDS --
+        entities_metadata
+    }
+
+    fn ingest_interfaces_after_objects(&mut self, config: &mut Config) -> InterfaceMetadata {
+        let mut entities_metadata = InterfaceMetadata {
+            entities: Default::default(),
+            // At most we have as many field as the FederatedGraph
+            field_id_to_maybe_interface_id: vec![None; config.graph.fields.len()],
+        };
+
+        self.graph.interface_definitions = Vec::with_capacity(config.graph.interfaces.len());
+        for interface in take(&mut config.graph.interfaces) {
+            let interface_id = InterfaceId::from(self.graph.interface_definitions.len());
+            let fields = self.ctx.idmaps.field.get_range((
+                interface.fields.start,
+                interface.fields.end.0 - interface.fields.start.0,
+            ));
+            for field_id in fields {
+                entities_metadata.field_id_to_maybe_interface_id[usize::from(field_id)] = Some(interface_id);
+            }
+            self.graph.interface_definitions.push(Interface {
+                name: interface.name.into(),
+                description: None,
+                interfaces: interface.implements_interfaces.into_iter().map(Into::into).collect(),
+                possible_types: Vec::new(),
+                composed_directives: IdRange::from_start_and_length(interface.composed_directives),
+                fields,
+            });
+
+            if let Some(entity) = self.generate_federation_entity_from_keys(
+                SchemaLocation::Type {
+                    name: interface.name.into(),
+                },
+                interface.keys,
+            ) {
+                entities_metadata.entities.insert(interface_id, entity);
+            }
+        }
+
+        // Adding all implementations of an interface, used during introspection.
+        for object_id in (0..self.graph.object_definitions.len()).map(ObjectId::from) {
+            for interface_id in self.graph[object_id].interfaces.clone() {
+                self.graph[interface_id].possible_types.push(object_id);
+            }
+        }
+
+        entities_metadata
+    }
+
+    fn ingest_fields(
+        &mut self,
+        config: &mut Config,
+        object_metadata: ObjectMetadata,
+        interface_metadata: InterfaceMetadata,
+    ) {
         let root_fields = {
             let mut root_fields = vec![];
-            root_fields.extend(schema[schema.root_operation_types.query].fields);
+            root_fields.extend(self.graph[self.graph.root_operation_types.query].fields);
 
-            if let Some(mutation) = schema.root_operation_types.mutation {
-                root_fields.extend(schema[mutation].fields);
+            if let Some(mutation) = self.graph.root_operation_types.mutation {
+                root_fields.extend(self.graph[mutation].fields);
             }
-            if let Some(subscription) = schema.root_operation_types.subscription {
-                root_fields.extend(schema[subscription].fields);
+            if let Some(subscription) = self.graph.root_operation_types.subscription {
+                root_fields.extend(self.graph[subscription].fields);
             }
             root_fields.sort_unstable();
             root_fields
         };
 
-        // Yeah it's ugly, conversion should be cleaned up once we got it working I guess.
-        // -- FIELDS & RESOLVERS --
-        // 1. The federated graph uses "resolvable_in" whenever a field is present in a subgraph.
-        //    But for resolvers we only want the "entrypoints", so root fields and later the `@key`
-        //    for federation entities.
-        // 2. Field arguments are converted to input values. That's how the GraphQL spec defines
-        //    them and having an id allows data sources to rename those more easily.
         let mut root_field_resolvers = HashMap::<GraphqlEndpointId, ResolverId>::new();
-        for (i, field) in take(&mut graph.fields).into_iter().enumerate() {
+        for (i, field) in take(&mut config.graph.fields).into_iter().enumerate() {
             let Some(field_id) = self.ctx.idmaps.field.get(federated_graph::FieldId(i)) else {
                 continue;
             };
@@ -306,45 +317,43 @@ impl<'a> GraphBuilder<'a> {
             if root_fields.binary_search(&field_id).is_ok() {
                 for &endpoint_id in &only_resolvable_in {
                     let resolver_id = *root_field_resolvers.entry(endpoint_id).or_insert_with(|| {
-                        let resolver_id = ResolverId::from(schema.resolvers.len());
-                        schema
-                            .resolvers
-                            .push(Resolver::GraphqlRootField(sources::graphql::RootFieldResolver {
-                                endpoint_id,
-                            }));
-                        resolver_id
+                        self.push_resolver(Resolver::GraphqlRootField(sources::graphql::RootFieldResolver {
+                            endpoint_id,
+                        }))
                     });
                     resolvers.push(resolver_id);
                 }
-            } else if let Some(parent_object_id) = field_id_to_maybe_object_id[usize::from(field_id)] {
-                if let Some(entity_resolvers) = entity_resolvers.get(&parent_object_id) {
-                    // FederatedGraph does not include key fields in resolvable_in.
-                    for (_, endpoint_id, key_field_set) in entity_resolvers {
-                        if key_field_set.contains(field_id) {
-                            only_resolvable_in.insert(*endpoint_id);
-                        }
+            } else if let Some(FederationEntity {
+                keys,
+                unresolvable_keys,
+            }) = object_metadata
+                .get_parent_entity(field_id)
+                .or_else(|| interface_metadata.get_parent_entity(field_id))
+            {
+                // FederatedGraph does not include key fields in resolvable_in.
+                for (endpoint_id, _, key_field_set) in keys {
+                    if key_field_set.contains(field_id) {
+                        only_resolvable_in.insert(*endpoint_id);
                     }
-                    // if resolvable within a federation subgraph and not part of the keys
-                    // (requirements), we can use the resolver to retrieve this field.
-                    for (resolver_id, endpoint_id, key_field_set) in entity_resolvers {
-                        if !key_field_set.contains(field_id) && only_resolvable_in.contains(endpoint_id) {
-                            resolvers.push(*resolver_id);
-                        }
+                }
+                // if resolvable within a federation subgraph and not part of the keys
+                // (requirements), we can use the resolver to retrieve this field.
+                for (endpoint_id, resolver_id, key_field_set) in keys {
+                    if !key_field_set.contains(field_id) && only_resolvable_in.contains(endpoint_id) {
+                        resolvers.push(*resolver_id);
                     }
                 }
 
                 // if unresolvable within this subgraph, it means we can't provide the entity
                 // directly but are able to provide the necessary key fields.
-                if let Some(keys) = unresolvable_keys.get(&parent_object_id) {
-                    for (endpoint_id, field_set) in keys {
-                        if field_set.contains(field_id) {
-                            only_resolvable_in.insert(*endpoint_id);
-                        }
+                for (endpoint_id, field_set) in unresolvable_keys {
+                    if field_set.contains(field_id) {
+                        only_resolvable_in.insert(*endpoint_id);
                     }
                 }
             }
 
-            let field = FieldDefinition {
+            self.graph.field_definitions.push(FieldDefinition {
                 name: field.name.into(),
                 description: None,
                 ty: field.r#type.into(),
@@ -367,10 +376,12 @@ impl<'a> GraphBuilder<'a> {
                     .into_iter()
                     .filter(|requires| !requires.fields.is_empty())
                     .map(|federated_graph::FieldRequires { subgraph_id, fields }| {
-                        let parent_object_id = field_id_to_maybe_object_id[usize::from(field_id)];
+                        let parent_object_id = object_metadata.field_id_to_maybe_object_id[usize::from(field_id)];
                         let field_set_id = self.required_field_sets_buffer.push(
                             SchemaLocation::Field {
-                                ty: parent_object_id.map(|id| schema[id].name).unwrap_or(field.name.into()),
+                                ty: parent_object_id
+                                    .map(|id| self.graph[id].name)
+                                    .unwrap_or(field.name.into()),
                                 name: field.name.into(),
                             },
                             fields,
@@ -383,38 +394,11 @@ impl<'a> GraphBuilder<'a> {
                     .collect(),
                 argument_ids: self.ctx.idmaps.input_value.get_range(field.arguments),
                 composed_directives: IdRange::from_start_and_length(field.composed_directives),
-                cache_config: cache
+                cache_config: config
+                    .cache
                     .rule(CacheConfigTarget::Field(federated_graph::FieldId(field_id.into())))
-                    .map(|config| cache_configs.get_or_insert(config)),
-            };
-            schema.field_definitions.push(field);
-        }
-
-        // -- CACHE CONFIG --
-        schema.cache_configs = cache_configs.into_iter().map(Into::into).collect();
-    }
-
-    fn ingest_interfaces_after_objects(&mut self, config: &mut Config) {
-        self.graph.interface_definitions = take(&mut config.graph.interfaces)
-            .into_iter()
-            .map(|interface| Interface {
-                name: interface.name.into(),
-                description: None,
-                interfaces: Vec::new(),
-                possible_types: Vec::new(),
-                composed_directives: IdRange::from_start_and_length(interface.composed_directives),
-                fields: self.ctx.idmaps.field.get_range((
-                    interface.fields.start,
-                    interface.fields.end.0 - interface.fields.start.0,
-                )),
+                    .map(|config| self.ctx.cache_configs.get_or_insert(config)),
             })
-            .collect();
-
-        // Adding all implementations of an interface, used during introspection.
-        for object_id in (0..self.graph.object_definitions.len()).map(ObjectId::from) {
-            for interface_id in self.graph[object_id].interfaces.clone() {
-                self.graph[interface_id].possible_types.push(object_id);
-            }
         }
     }
 
@@ -495,6 +479,89 @@ impl<'a> GraphBuilder<'a> {
 
         Ok((graph, introspection))
     }
+
+    fn generate_federation_entity_from_keys(
+        &mut self,
+        location: SchemaLocation,
+        keys: Vec<federated_graph::Key>,
+    ) -> Option<FederationEntity> {
+        if keys.is_empty() {
+            return None;
+        }
+
+        let mut entity = FederationEntity::default();
+
+        for key in keys {
+            // Some SDL are generated with empty keys, they're useless to us.
+            if key.fields.is_empty() {
+                continue;
+            }
+
+            let endpoint_id = key.subgraph_id.into();
+            if key.resolvable {
+                let providable = self.ctx.idmaps.field.convert_providable_field_set(&key.fields);
+                let key = sources::graphql::FederationKey {
+                    fields: self.required_field_sets_buffer.push(location, key.fields),
+                };
+
+                let resolver_id = self.push_resolver(Resolver::GraphqlFederationEntity(
+                    sources::graphql::FederationEntityResolver { endpoint_id, key },
+                ));
+                entity.keys.push((endpoint_id, resolver_id, providable));
+            } else {
+                // We don't need to differentiate between keys here. We'll be using this to add
+                // those fields to `provides` in the relevant fields. It's the resolvable keys
+                // that will determine which fields to retrieve during planning. And composition
+                // ensures that keys between subgraphs are coherent.
+                let field_set: ProvidableFieldSet = self.ctx.idmaps.field.convert_providable_field_set(&key.fields);
+                entity
+                    .unresolvable_keys
+                    .entry(endpoint_id)
+                    .and_modify(|current| current.update(&field_set))
+                    .or_insert(field_set);
+            }
+        }
+
+        if entity.keys.is_empty() && entity.unresolvable_keys.is_empty() {
+            None
+        } else {
+            Some(entity)
+        }
+    }
+
+    fn push_resolver(&mut self, resolver: Resolver) -> ResolverId {
+        let resolver_id = ResolverId::from(self.graph.resolvers.len());
+        self.graph.resolvers.push(resolver);
+        resolver_id
+    }
+}
+
+pub struct ObjectMetadata {
+    entities: HashMap<ObjectId, FederationEntity>,
+    field_id_to_maybe_object_id: Vec<Option<ObjectId>>,
+}
+
+impl ObjectMetadata {
+    pub fn get_parent_entity(&self, id: FieldDefinitionId) -> Option<&FederationEntity> {
+        self.field_id_to_maybe_object_id[usize::from(id)].and_then(|id| self.entities.get(&id))
+    }
+}
+
+pub struct InterfaceMetadata {
+    entities: HashMap<InterfaceId, FederationEntity>,
+    field_id_to_maybe_interface_id: Vec<Option<InterfaceId>>,
+}
+
+impl InterfaceMetadata {
+    pub fn get_parent_entity(&self, id: FieldDefinitionId) -> Option<&FederationEntity> {
+        self.field_id_to_maybe_interface_id[usize::from(id)].and_then(|id| self.entities.get(&id))
+    }
+}
+
+#[derive(Default)]
+pub struct FederationEntity {
+    keys: Vec<(GraphqlEndpointId, ResolverId, ProvidableFieldSet)>,
+    unresolvable_keys: HashMap<GraphqlEndpointId, ProvidableFieldSet>,
 }
 
 fn is_inaccessible(graph: &federated_graph::FederatedGraphV3, directives: federated_graph::Directives) -> bool {

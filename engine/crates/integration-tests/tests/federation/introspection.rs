@@ -2,8 +2,8 @@ use cynic::{http::ReqwestExt, QueryBuilder};
 use cynic_introspection::{CapabilitiesQuery, IntrospectionQuery, SpecificationVersion};
 use gateway_v2::Gateway;
 use graphql_mocks::{
-    EchoSchema, FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema,
-    FakeGithubSchema, MockGraphQlServer,
+    EchoSchema, FakeFederationAccountsSchema, FakeFederationInventorySchema, FakeFederationProductsSchema,
+    FakeFederationReviewsSchema, FakeGithubSchema, MockGraphQlServer,
 };
 use integration_tests::{federation::GatewayV2Ext, runtime};
 
@@ -850,6 +850,7 @@ fn introspection_on_multiple_federation_subgraphs() {
         let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
         let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
         let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
+        let inventory = MockGraphQlServer::new(FakeFederationInventorySchema).await;
 
         let engine = Gateway::builder()
             .with_schema("accounts", &accounts)
@@ -857,6 +858,8 @@ fn introspection_on_multiple_federation_subgraphs() {
             .with_schema("products", &products)
             .await
             .with_schema("reviews", &reviews)
+            .await
+            .with_schema("inventory", &inventory)
             .await
             .finish()
             .await;
@@ -870,6 +873,18 @@ fn introspection_on_multiple_federation_subgraphs() {
       products: [Product!]!
     }
 
+    type DeliveryCompany implements ShippingService {
+      id: String!
+      name: String!
+      reviews: [ShippingServiceReview!]!
+    }
+
+    type HomingPigeon implements ShippingService {
+      id: String!
+      name: String!
+      reviews: [ShippingServiceReview!]!
+    }
+
     type Picture {
       height: Int!
       url: String!
@@ -877,9 +892,11 @@ fn introspection_on_multiple_federation_subgraphs() {
     }
 
     type Product {
+      availableShippingService: [ShippingService!]!
       name: String!
       price: Int!
       reviews: [Review!]!
+      shippingEstimate: Int!
       upc: String!
       weight(unit: WeightUnit!): Float!
     }
@@ -895,6 +912,16 @@ fn introspection_on_multiple_federation_subgraphs() {
       id: ID!
       pictures: [Picture!]!
       product: Product!
+    }
+
+    interface ShippingService {
+      id: String!
+      name: String!
+      reviews: [ShippingServiceReview!]!
+    }
+
+    type ShippingServiceReview {
+      body: String!
     }
 
     type Subscription {

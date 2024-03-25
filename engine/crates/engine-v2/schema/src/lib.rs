@@ -34,6 +34,7 @@ pub struct Schema {
     urls: Vec<url::Url>,
     /// Headers we might want to send to a subgraph
     headers: Vec<Header>,
+    cache_configs: Vec<CacheConfig>,
 
     pub settings: Settings,
 }
@@ -65,7 +66,6 @@ pub struct Graph {
     directive_definitions: Vec<Directive>,
     enum_value_definitions: Vec<EnumValue>,
 
-    cache_configs: Vec<CacheConfig>,
     resolvers: Vec<Resolver>,
     required_field_sets: Vec<RequiredFieldSet>,
     // deduplicated
