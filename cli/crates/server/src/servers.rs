@@ -255,16 +255,16 @@ async fn federated_dev(
     let worker_port = get_random_port_unchecked().await?;
     WORKER_PORT.store(worker_port, Ordering::Relaxed);
 
-    let listen_address = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), worker_port);
+    let worker_listen_address = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), worker_port);
 
     message_sender
         .send(ServerMessage::Ready {
-            listen_address,
+            listen_address: proxy.address,
             is_federated: true,
         })
         .ok();
 
-    let server = federated_dev::run(listen_address, config.into_federated_config_receiver(), None);
+    let server = federated_dev::run(worker_listen_address, config.into_federated_config_receiver(), None);
 
     tokio::select! {
         result = proxy.join() => {
@@ -317,7 +317,7 @@ async fn standalone_dev(
 ) -> Result<(), ServerError> {
     loop {
         let mut join_set = match config.current_result() {
-            Ok(config) => spawn_servers(proxy.port, message_sender.clone(), config, tracing).await?,
+            Ok(config) => spawn_servers(proxy.port(), message_sender.clone(), config, tracing).await?,
             Err(error) => {
                 let mut set = JoinSet::new();
                 set.spawn(handle_config_error(error.to_string(), message_sender.clone()));
