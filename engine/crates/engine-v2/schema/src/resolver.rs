@@ -1,4 +1,4 @@
-use crate::{sources::*, SubgraphId};
+use crate::sources::*;
 
 /// A resolver is assumed to be specific to an object or an interface.
 /// So multiple fields within an interface/object can share a resolver (like federation `@key`)
@@ -10,26 +10,6 @@ use crate::{sources::*, SubgraphId};
 #[derive(Debug, PartialEq, Eq)]
 pub enum Resolver {
     Introspection(introspection::Resolver),
-    FederationRootField(federation::RootFieldResolver),
-    FederationEntity(federation::EntityResolver),
-}
-
-/// Resolvers within the same group are considered to be compatible. During planning, when
-/// determining whether a resolver can provide nested fields we do not cross resolver boundaries.
-/// So for example with:
-/// ```graphql
-/// query {
-///   product {
-///     name
-///   }
-/// }
-/// ```
-/// If `name` has resolver it will not be provided by the `product` resolver, except when both are
-/// in the same group. In that case we consider that the `product` resolver can provide `name`.
-///
-/// A resolver does not need to have a group. If it doesn't than no nested fields with a resolvers
-/// will be providable (unless overridden by `@provides`).
-#[derive(Debug, PartialEq, Eq)]
-pub enum ResolverGroup {
-    FederationSubgraph(SubgraphId),
+    GraphqlRootField(graphql::RootFieldResolver),
+    GraphqlFederationEntity(graphql::FederationEntityResolver),
 }

@@ -2,6 +2,8 @@ use std::cmp::Ordering;
 
 use crate::{FieldDefinitionId, InputValueDefinitionId, RequiredFieldSetArgumentsId, SchemaInputValueId};
 
+pub(crate) static EMPTY: RequiredFieldSet = RequiredFieldSet(Vec::new());
+
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct RequiredFieldSet(Vec<RequiredField>);
 
@@ -61,6 +63,7 @@ impl RequiredFieldSet {
                 Ordering::Equal => {
                     fields.push(RequiredField {
                         id: left.id,
+                        definition_id: left.definition_id,
                         arguments_id: left.arguments_id,
                         subselection: left.subselection.union(&right.subselection),
                     });
@@ -78,17 +81,28 @@ impl RequiredFieldSet {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RequiredFieldId(u32);
+
+impl From<u32> for RequiredFieldId {
+    fn from(id: u32) -> Self {
+        Self(id)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct RequiredField {
-    pub id: FieldDefinitionId,
+    /// Unique id used during planning to associate a FieldId to a required field.
+    pub id: RequiredFieldId,
+    pub definition_id: FieldDefinitionId,
     pub arguments_id: Option<RequiredFieldSetArgumentsId>,
     pub subselection: RequiredFieldSet,
 }
 
 impl Ord for RequiredField {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.id
-            .cmp(&other.id)
+        self.definition_id
+            .cmp(&other.definition_id)
             // Arguments are deduplicated
             .then_with(|| self.arguments_id.cmp(&other.arguments_id))
     }
@@ -113,7 +127,7 @@ impl PartialOrd for RequiredField {
 pub struct RequiredFieldArguments(pub(crate) Vec<(InputValueDefinitionId, SchemaInputValueId)>);
 
 impl std::ops::Deref for RequiredFieldArguments {
-    type Target = Vec<(InputValueDefinitionId, SchemaInputValueId)>;
+    type Target = [(InputValueDefinitionId, SchemaInputValueId)];
     fn deref(&self) -> &Self::Target {
         &self.0
     }

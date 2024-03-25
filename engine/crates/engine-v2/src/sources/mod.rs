@@ -77,10 +77,12 @@ impl Plan {
     ) -> PlanningResult<Self> {
         match walker.as_ref() {
             Resolver::Introspection(_) => Ok(Plan::Introspection(IntrospectionExecutionPlan)),
-            Resolver::FederationRootField(resolver) => {
+            Resolver::GraphqlRootField(resolver) => {
                 GraphqlExecutionPlan::build(walker.walk(resolver), operation_type, plan)
             }
-            Resolver::FederationEntity(resolver) => FederationEntityExecutionPlan::build(walker.walk(resolver), plan),
+            Resolver::GraphqlFederationEntity(resolver) => {
+                FederationEntityExecutionPlan::build(walker.walk(resolver), plan)
+            }
         }
     }
 }

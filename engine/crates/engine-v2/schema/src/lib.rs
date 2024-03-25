@@ -66,8 +66,8 @@ pub struct Schema {
 
 #[derive(Default)]
 pub struct DataSources {
-    federation: sources::federation::DataSource,
-    pub introspection: sources::introspection::DataSource,
+    graphql: sources::GraphqlEndpoints,
+    pub introspection: sources::Introspection,
 }
 
 impl Schema {
@@ -92,11 +92,6 @@ impl Schema {
             .iter()
             .position(|field| self[field.name] == name)
             .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
-    }
-
-    // Used as the default resolver
-    pub fn introspection_resolver_id(&self) -> ResolverId {
-        (self.resolvers.len() - 1).into()
     }
 
     fn definition_name(&self, definition: Definition) -> &str {
@@ -125,7 +120,7 @@ impl Schema {
                 name: StringId::from(0),
                 description: None,
                 interfaces: Vec::new(),
-                composed_directives: Directives::empty(),
+                composed_directives: IdRange::empty(),
                 cache_config: None,
                 fields: IdRange::empty(),
             }],
@@ -174,43 +169,42 @@ pub struct Object {
     pub description: Option<StringId>,
     pub interfaces: Vec<InterfaceId>,
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
+    pub composed_directives: IdRange<DirectiveId>,
     pub cache_config: Option<CacheConfigId>,
-    pub fields: Fields,
+    pub fields: IdRange<FieldDefinitionId>,
 }
-
-pub type Directives = IdRange<DirectiveId>;
-pub type Fields = IdRange<FieldDefinitionId>;
 
 #[derive(Debug)]
 pub struct FieldDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
     pub ty: Type,
-    pub resolvers: Vec<FieldResolver>,
-    provides: Vec<FieldProvides>,
+    pub resolvers: Vec<ResolverId>,
+    /// By default a field is considered shared and providable by *any* subgraph that exposes it.
+    /// It's up to the composition to ensure it. If this field is specific to some subgraphs, they
+    /// will be specified in this Vec.
+    pub only_resolvable_in: Vec<SubgraphId>,
+    pub requires: Vec<FieldRequires>,
+    pub provides: Vec<FieldProvides>,
     /// The arguments referenced by this range are sorted by their name (string)
     pub argument_ids: IdRange<InputValueDefinitionId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
+    pub composed_directives: IdRange<DirectiveId>,
 
     pub cache_config: Option<CacheConfigId>,
 }
 
 #[derive(Debug)]
-pub enum FieldProvides {
-    // provided only if the current resolver is part of the group.
-    IfResolverGroup {
-        group: ResolverGroup,
-        field_set: ProvidableFieldSet,
-    },
+pub struct FieldProvides {
+    subgraph_id: SubgraphId,
+    field_set: ProvidableFieldSet,
 }
 
-#[derive(Debug, Clone)]
-pub struct FieldResolver {
-    resolver_id: ResolverId,
-    field_requires: RequiredFieldSetId,
+#[derive(Debug)]
+pub struct FieldRequires {
+    subgraph_id: SubgraphId,
+    field_set_id: RequiredFieldSetId,
 }
 
 #[derive(Debug)]
@@ -303,9 +297,9 @@ pub struct Interface {
     pub possible_types: Vec<ObjectId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
+    pub composed_directives: IdRange<DirectiveId>,
 
-    pub fields: Fields,
+    pub fields: IdRange<FieldDefinitionId>,
 }
 
 #[derive(Debug)]
@@ -316,7 +310,7 @@ pub struct Enum {
     pub value_ids: IdRange<EnumValueId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
+    pub composed_directives: IdRange<DirectiveId>,
 }
 
 #[derive(Debug)]
@@ -325,7 +319,7 @@ pub struct EnumValue {
     pub description: Option<StringId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
+    pub composed_directives: IdRange<DirectiveId>,
 }
 
 #[derive(Debug)]
@@ -336,7 +330,7 @@ pub struct Union {
     pub possible_types: Vec<ObjectId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
+    pub composed_directives: IdRange<DirectiveId>,
 }
 
 #[derive(Debug)]
@@ -346,7 +340,7 @@ pub struct Scalar {
     pub description: Option<StringId>,
     pub specified_by_url: Option<StringId>,
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
+    pub composed_directives: IdRange<DirectiveId>,
 }
 
 /// Defines how a scalar should be represented and validated by the engine. They're almost the same
@@ -379,7 +373,7 @@ pub struct InputObject {
     pub input_field_ids: IdRange<InputValueDefinitionId>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
+    pub composed_directives: IdRange<DirectiveId>,
 }
 
 #[derive(Debug, Clone)]

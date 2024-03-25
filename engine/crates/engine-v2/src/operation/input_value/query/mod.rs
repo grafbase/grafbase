@@ -16,7 +16,7 @@ pub struct QueryInputValues {
     key_values: Vec<(String, QueryInputValue)>,
 }
 
-id_newtypes::U32! {
+id_newtypes::NonZeroU32! {
     QueryInputValues.values[QueryInputValueId] => QueryInputValue,
     QueryInputValues.input_fields[QueryInputObjectFieldValueId] => (InputValueDefinitionId, QueryInputValue),
     QueryInputValues.key_values[QueryInputKeyValueId] => (String, QueryInputValue),

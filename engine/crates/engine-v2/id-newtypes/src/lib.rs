@@ -18,12 +18,6 @@ macro_rules! id_newtype {
             }
         }
 
-        impl From<$name> for usize {
-            fn from(id: $name) -> Self {
-                (id.0.get() - 1) as usize
-            }
-        }
-
         impl$(<$($lt),+>)? std::ops::Index<$name> for $ty$(<$($lt),+>)? {
             type Output = $($output)*;
 
@@ -61,7 +55,7 @@ macro_rules! id_newtype {
 }
 
 #[macro_export]
-macro_rules! U32 {
+macro_rules! NonZeroU32 {
     ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty$(| $(max $max:expr)?)?,)*) => {
         $(
             #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
@@ -85,13 +79,19 @@ macro_rules! U32 {
                 }
             }
 
+            impl From<$name> for usize {
+                fn from(id: $name) -> Self {
+                    (id.0.get() - 1) as usize
+                }
+            }
+
             $crate::id_newtype!{ $ty$(<$($lt),+>)?.$field[$name] => $output }
         )*
     }
 }
 
 #[macro_export]
-macro_rules! U16 {
+macro_rules! NonZeroU16 {
     ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max $max:expr)?)?,)*) => {
         $(
             #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
@@ -112,6 +112,47 @@ macro_rules! U16 {
             impl From<$name> for u16 {
                 fn from(id: $name) -> Self {
                     (id.0.get() - 1) as u16
+                }
+            }
+
+            impl From<$name> for usize {
+                fn from(id: $name) -> Self {
+                    (id.0.get() - 1) as usize
+                }
+            }
+
+            $crate::id_newtype!{ $ty$(<$($lt),+>)?.$field[$name] => $output }
+        )*
+    }
+}
+
+#[macro_export]
+macro_rules! U8 {
+    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max $max:expr)?)?,)*) => {
+        $(
+            #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
+            pub struct $name(u8);
+
+            impl From<usize> for $name {
+                fn from(value: usize) -> Self {
+                    $(assert!(value <= $max, "{} id {} exceeds maximum {}", stringify!($name), value, stringify($ty));)?
+                    Self(
+                        u8::try_from(value)
+                            .ok()
+                            .expect(concat!("Too many ", stringify!($name)))
+                    )
+                }
+            }
+
+            impl From<$name> for u8 {
+                fn from(id: $name) -> Self {
+                    id.0
+                }
+            }
+
+            impl From<$name> for usize {
+                fn from(id: $name) -> Self {
+                    id.0 as usize
                 }
             }
 

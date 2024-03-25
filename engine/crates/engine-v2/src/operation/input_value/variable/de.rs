@@ -26,33 +26,23 @@ impl<'de> serde::Deserializer<'de> for VariableInputValueWalker<'de> {
             VariableInputValue::Float(n) => visitor.visit_f64(*n),
             VariableInputValue::Boolean(b) => visitor.visit_bool(*b),
             VariableInputValue::List(ids) => {
-                let mut deserializer = SeqDeserializer::new(self.variables[*ids].iter().map(|value| self.walk(value)));
-                let seq = visitor.visit_seq(&mut deserializer)?;
-                deserializer.end()?;
-                Ok(seq)
+                SeqDeserializer::new(self.variables[*ids].iter().map(|value| self.walk(value))).deserialize_any(visitor)
             }
             VariableInputValue::InputObject(ids) => {
-                let mut deserializer =
-                    MapDeserializer::new(self.variables[*ids].iter().map(|(input_value_definition_id, value)| {
-                        (
-                            self.schema_walker.walk(*input_value_definition_id).name(),
-                            self.walk(value),
-                        )
-                    }));
-                let map = visitor.visit_map(&mut deserializer)?;
-                deserializer.end()?;
-                Ok(map)
+                MapDeserializer::new(self.variables[*ids].iter().map(|(input_value_definition_id, value)| {
+                    (
+                        self.schema_walker.walk(*input_value_definition_id).name(),
+                        self.walk(value),
+                    )
+                }))
+                .deserialize_any(visitor)
             }
-            VariableInputValue::Map(ids) => {
-                let mut deserializer = MapDeserializer::new(
-                    self.variables[*ids]
-                        .iter()
-                        .map(|(key, value)| (key.as_str(), self.walk(value))),
-                );
-                let map = visitor.visit_map(&mut deserializer)?;
-                deserializer.end()?;
-                Ok(map)
-            }
+            VariableInputValue::Map(ids) => MapDeserializer::new(
+                self.variables[*ids]
+                    .iter()
+                    .map(|(key, value)| (key.as_str(), self.walk(value))),
+            )
+            .deserialize_any(visitor),
             VariableInputValue::DefaultValue(id) => self
                 .schema_walker
                 .walk(&self.schema_walker.as_ref()[*id])

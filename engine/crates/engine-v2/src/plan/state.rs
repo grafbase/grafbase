@@ -130,7 +130,7 @@ impl OperationExecutionState {
             let child = edges[i].child;
             let j = usize::from(child);
             self.plan_dependencies_count[j] -= 1;
-            tracing::debug!(
+            tracing::trace!(
                 "Child plan {child} has {} dependencies left",
                 self.plan_dependencies_count[j],
             );

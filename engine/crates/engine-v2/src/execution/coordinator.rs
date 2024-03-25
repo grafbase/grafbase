@@ -205,7 +205,7 @@ impl<'ctx> OperationExecution<'ctx> {
     /// Runs a single execution to completion, returning its response
     async fn execute(mut self) -> Response {
         for plan_id in self.state.get_executable_plans() {
-            tracing::debug!(%plan_id, "Starting plan");
+            tracing::trace!(%plan_id, "Starting plan");
             match self.build_executor(plan_id) {
                 Ok(Some(executor)) => self.futures.execute(plan_id, executor),
                 Ok(None) => (),
@@ -217,12 +217,12 @@ impl<'ctx> OperationExecution<'ctx> {
             let output = match result {
                 Ok(output) => output,
                 Err(err) => {
-                    tracing::debug!(%plan_id, "Failed");
+                    tracing::trace!(%plan_id, "Failed");
                     self.response.push_error(err);
                     continue;
                 }
             };
-            tracing::debug!(%plan_id, "Succeeded");
+            tracing::trace!(%plan_id, "Succeeded");
 
             // Ingesting data first to propagate errors and next plans likely rely on it
             for (plan_bounday_id, boundary) in self.response.ingest(output) {
@@ -255,7 +255,7 @@ impl<'ctx> OperationExecution<'ctx> {
             self.state
                 .retrieve_boundary_items(&engine.schema, operation, &self.response, plan_id);
 
-        tracing::debug!(%plan_id, "Found {} response boundary items", response_boundary_items.len());
+        tracing::trace!(%plan_id, "Found {} response boundary items", response_boundary_items.len());
         if response_boundary_items.is_empty() {
             return Ok(None);
         }
@@ -279,7 +279,6 @@ impl<'ctx> OperationExecution<'ctx> {
             response_part,
         };
 
-        tracing::debug!("{:#?}", input.plan.collected_selection_set());
         execution_plan.new_executor(input).map(Some)
     }
 }

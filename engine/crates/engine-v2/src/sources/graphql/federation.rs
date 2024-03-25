@@ -3,8 +3,8 @@ use std::sync::Arc;
 use grafbase_tracing::span::{subgraph::SubgraphRequestSpan, GqlRecorderSpanExt, GqlResponseAttributes};
 use runtime::fetch::FetchRequest;
 use schema::{
-    sources::federation::{EntityResolverWalker, SubgraphHeaderValueRef, SubgraphWalker},
-    SubgraphId,
+    sources::graphql::{FederationEntityResolverWalker, GraphqlEndpointId, GraphqlEndpointWalker},
+    HeaderValueRef,
 };
 use tracing::Instrument;
 
@@ -23,13 +23,13 @@ use super::{
 };
 
 pub(crate) struct FederationEntityExecutionPlan {
-    subgraph_id: SubgraphId,
+    subgraph_id: GraphqlEndpointId,
     operation: PreparedFederationEntityOperation,
 }
 
 impl FederationEntityExecutionPlan {
-    pub fn build(resolver: EntityResolverWalker<'_>, plan: PlanWalker<'_>) -> PlanningResult<Plan> {
-        let subgraph = resolver.subgraph();
+    pub fn build(resolver: FederationEntityResolverWalker<'_>, plan: PlanWalker<'_>) -> PlanningResult<Plan> {
+        let subgraph = resolver.endpoint();
         let operation =
             PreparedFederationEntityOperation::build(plan).map_err(|err| format!("Failed to build query: {err}"))?;
         Ok(Plan::FederationEntity(Self {
@@ -91,7 +91,7 @@ impl FederationEntityExecutionPlan {
 
 pub(crate) struct FederationEntityExecutor<'ctx> {
     ctx: ExecutionContext<'ctx>,
-    subgraph: SubgraphWalker<'ctx>,
+    subgraph: GraphqlEndpointWalker<'ctx>,
     operation: &'ctx PreparedFederationEntityOperation,
     json_body: String,
     response_boundary_items: Arc<Vec<ResponseBoundaryItem>>,
@@ -124,8 +124,8 @@ impl<'ctx> FederationEntityExecutor<'ctx> {
                             Some((
                                 header.name(),
                                 match header.value() {
-                                    SubgraphHeaderValueRef::Forward(name) => self.ctx.header(name)?,
-                                    SubgraphHeaderValueRef::Static(value) => value,
+                                    HeaderValueRef::Forward(name) => self.ctx.header(name)?,
+                                    HeaderValueRef::Static(value) => value,
                                 },
                             ))
                         })

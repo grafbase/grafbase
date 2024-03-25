@@ -55,7 +55,7 @@ impl<'a> Collector<'a> {
     ) -> PlanningResult<CollectedSelectionSetId> {
         let ty = self.operation[root_selection_set_ids[0]].ty;
         let fields = self.find_root_fields(root_selection_set_ids);
-        tracing::debug!(
+        tracing::trace!(
             "Collecting output for plan {} from root fields: {}",
             self.plan_id,
             fields
@@ -92,11 +92,11 @@ impl<'a> Collector<'a> {
         let mut maybe_boundary_id = None;
         let mut plan_fields = Vec::new();
         for field in selection_set.fields {
-            if !self.operation[field.field_id].is_read() {
+            if !self.operation[field.id].is_read() {
                 continue;
             }
 
-            let field_plan_id = self.operation.field_to_plan_id[usize::from(field.field_id)];
+            let field_plan_id = self.operation.field_to_plan_id[usize::from(field.id)];
             if field_plan_id == self.plan_id {
                 plan_fields.push(field);
             } else if maybe_boundary_id.is_none() {
@@ -141,7 +141,7 @@ impl<'a> Collector<'a> {
         let id = if concrete_parent && !too_complex && conditions.len() == 1 && conditions.contains(&None) {
             self.collect_fields(
                 selection_set.ty,
-                plan_fields.into_iter().map(|field| field.field_id).collect(),
+                plan_fields.into_iter().map(|field| field.id).collect(),
                 maybe_boundary_id,
             )
             .map(AnyCollectedSelectionSetId::Collected)?
@@ -228,7 +228,7 @@ impl<'a> Collector<'a> {
         let mut typename_fields = Vec::new();
         let mut conditional_fields = Vec::new();
         for flat_field in flat_fields {
-            let field = self.operation[flat_field.field_id].clone();
+            let field = self.operation[flat_field.id].clone();
             if let Some(definition_id) = field.definition_id() {
                 let definition = self.schema.walker().walk(definition_id);
                 let expected_key = if self.support_aliases {
@@ -252,7 +252,7 @@ impl<'a> Collector<'a> {
                     edge: field.response_edge(),
                     expected_key,
                     definition_id,
-                    id: flat_field.field_id,
+                    id: flat_field.id,
                     ty,
                 });
             } else {
