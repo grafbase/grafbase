@@ -77,7 +77,10 @@ pub(crate) async fn build_config(
         federated_graph_config,
     } = parser::parse_sdl(&schema, environment_variables).await?;
 
-    validate_registry(&registry.export_sdl(false))?;
+    // Federated graphs have empty SDL schemas, from the config's perspective.
+    if federated_graph_config.is_none() {
+        validate_registry_sdl(&registry.export_sdl(false))?;
+    }
 
     let offset = REGISTRY_PARSED_EPOCH_OFFSET_MILLIS.load(Ordering::Acquire);
     let registry_mtime = SystemTime::UNIX_EPOCH.checked_add(Duration::from_millis(offset));
@@ -129,7 +132,7 @@ pub(crate) async fn build_config(
     })
 }
 
-fn validate_registry(schema: &str) -> Result<(), ConfigError> {
+fn validate_registry_sdl(schema: &str) -> Result<(), ConfigError> {
     let diagnostics = graphql_schema_validation::validate(schema);
 
     if diagnostics.has_errors() {
