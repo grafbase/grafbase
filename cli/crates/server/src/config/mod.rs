@@ -14,6 +14,7 @@ use common::{
 use common_types::UdfKind;
 use engine::Registry;
 use futures_util::stream::BoxStream;
+use itertools::Itertools as _;
 use tokio::process::Command;
 
 use crate::{
@@ -76,6 +77,8 @@ pub(crate) async fn build_config(
         federated_graph_config,
     } = parser::parse_sdl(&schema, environment_variables).await?;
 
+    validate_registry(&registry.export_sdl(false))?;
+
     let offset = REGISTRY_PARSED_EPOCH_OFFSET_MILLIS.load(Ordering::Acquire);
     let registry_mtime = SystemTime::UNIX_EPOCH.checked_add(Duration::from_millis(offset));
     let detected_resolvers = futures_util::future::join_all(required_udfs.into_iter().map(|(udf_kind, udf_name)| {
@@ -124,6 +127,18 @@ pub(crate) async fn build_config(
         federated_graph_config,
         triggering_file,
     })
+}
+
+fn validate_registry(schema: &str) -> Result<(), ConfigError> {
+    let diagnostics = graphql_schema_validation::validate(schema);
+
+    if diagnostics.has_errors() {
+        Err(ConfigError::ParseSchema(
+            diagnostics.iter().map(ToString::to_string).join("\n"),
+        ))
+    } else {
+        Ok(())
+    }
 }
 
 /// Parses a TypeScript Grafbase configuration and generates a GraphQL schema
