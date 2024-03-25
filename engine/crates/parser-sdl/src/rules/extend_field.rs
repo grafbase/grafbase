@@ -180,8 +180,7 @@ mod tests {
               @federation(version: "2.3")
         "#;
 
-        let output =
-            futures::executor::block_on(crate::parse(schema, &HashMap::new(), false, &FakeConnectorParser)).unwrap();
+        let output = futures::executor::block_on(crate::parse(schema, &HashMap::new(), &FakeConnectorParser)).unwrap();
 
         insta::assert_snapshot!(output.registry.export_sdl(true), @r###"
         extend schema @link(
@@ -231,8 +230,8 @@ mod tests {
               @federation(version: "2.3")
         "#;
 
-        let error = futures::executor::block_on(crate::parse(schema, &HashMap::new(), false, &FakeConnectorParser))
-            .unwrap_err();
+        let error =
+            futures::executor::block_on(crate::parse(schema, &HashMap::new(), &FakeConnectorParser)).unwrap_err();
 
         insta::assert_snapshot!(error, @r###"[RuleError { locations: [Pos(3:15)], message: "You tried to extend the field nope which does not exist on Blah" }]"###)
     }

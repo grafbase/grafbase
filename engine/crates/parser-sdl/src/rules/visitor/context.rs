@@ -61,7 +61,6 @@ pub struct VisitorContext<'a> {
     pub(crate) global_cache_rules: GlobalCacheRules<'static>,
     pub(crate) operation_limits_directive: Option<OperationLimitsDirective>,
 
-    pub database_models_enabled: bool,
     pub federation: Option<FederationVersion>,
 
     pub federated_graph_config: FederatedGraphConfig,
@@ -72,14 +71,10 @@ impl<'a> VisitorContext<'a> {
     pub(crate) fn new_for_tests(document: &'a ServiceDocument) -> Self {
         use std::sync::OnceLock;
         static MAP: OnceLock<HashMap<String, String>> = OnceLock::new();
-        Self::new(document, false, MAP.get_or_init(HashMap::new))
+        Self::new(document, MAP.get_or_init(HashMap::new))
     }
 
-    pub(crate) fn new(
-        document: &'a ServiceDocument,
-        database_models_enabled: bool,
-        variables: &'a HashMap<String, String>,
-    ) -> Self {
+    pub(crate) fn new(document: &'a ServiceDocument, variables: &'a HashMap<String, String>) -> Self {
         let mut schema = Vec::new();
         let mut types = HashMap::new();
         let mut directives = HashMap::new();
@@ -125,7 +120,6 @@ impl<'a> VisitorContext<'a> {
             mongodb_directives: Vec::new(),
             postgres_directives: Vec::new(),
             global_cache_rules: Default::default(),
-            database_models_enabled,
             federation: None,
             federated_graph_config: Default::default(),
             operation_limits_directive: None,

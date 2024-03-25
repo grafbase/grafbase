@@ -137,13 +137,7 @@ mod tests {
               )
             "#;
 
-        let result = block_on(crate::parse(
-            schema,
-            &HashMap::new(),
-            false,
-            &MockConnectorParsers::default(),
-        ))
-        .unwrap();
+        let result = block_on(crate::parse(schema, &HashMap::new(), &MockConnectorParsers::default())).unwrap();
 
         insta::assert_debug_snapshot!(result.registry.operation_limits, @r###"
         OperationLimits {
