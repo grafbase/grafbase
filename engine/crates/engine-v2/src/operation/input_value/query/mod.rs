@@ -2,7 +2,7 @@ mod de;
 mod ser;
 
 use id_newtypes::IdRange;
-use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValueId};
+use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValue, SchemaInputValueId};
 
 use crate::operation::{OperationWalker, VariableDefinitionId};
 
@@ -89,6 +89,33 @@ impl<'a> QueryInputValueWalker<'a> {
             QueryInputValue::Variable(id) => self.walk(*id).is_undefined(),
             _ => false,
         }
+    }
+
+    /// Used for GraphQL query generation to only include values in the query string that would be
+    /// present after query normalization.
+    pub fn to_normalized_query_const_value_str(self) -> Option<&'a str> {
+        Some(match self.item {
+            QueryInputValue::EnumValue(id) => self.schema_walker.walk(*id).name(),
+            QueryInputValue::Boolean(b) => {
+                if *b {
+                    "true"
+                } else {
+                    "false"
+                }
+            }
+            QueryInputValue::DefaultValue(id) => match &self.schema_walker.as_ref()[*id] {
+                SchemaInputValue::EnumValue(id) => self.schema_walker.walk(*id).name(),
+                SchemaInputValue::Boolean(b) => {
+                    if *b {
+                        "true"
+                    } else {
+                        "false"
+                    }
+                }
+                _ => return None,
+            },
+            _ => return None,
+        })
     }
 }
 
