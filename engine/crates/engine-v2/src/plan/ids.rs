@@ -5,11 +5,11 @@ use crate::sources::Plan;
 use super::{CollectedField, CollectedSelectionSet, ConditionalField, ConditionalSelectionSet, OperationPlan};
 
 id_newtypes::U16! {
-    OperationPlan.plans[PlanId] => Plan | unless "Too many execution plans",
-    OperationPlan.conditional_fields[ConditionalFieldId] => ConditionalField | unless "Too many expected fields",
-    OperationPlan.conditional_selection_sets[ConditionalSelectionSetId] => ConditionalSelectionSet | unless "Too many ungrouped selection sets",
-    OperationPlan.collected_selection_sets[CollectedSelectionSetId] => CollectedSelectionSet | unless "Too many grouped selection sets",
-    OperationPlan.collected_fields[CollectedFieldId] => CollectedField | unless "Too many concrete fields",
+    OperationPlan.plans[PlanId] => Plan,
+    OperationPlan.conditional_fields[ConditionalFieldId] => ConditionalField,
+    OperationPlan.conditional_selection_sets[ConditionalSelectionSetId] => ConditionalSelectionSet,
+    OperationPlan.collected_selection_sets[CollectedSelectionSetId] => CollectedSelectionSet,
+    OperationPlan.collected_fields[CollectedFieldId] => CollectedField,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
