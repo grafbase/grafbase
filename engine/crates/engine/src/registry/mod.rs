@@ -1917,7 +1917,7 @@ impl Registry {
     pub fn remove_empty_types(&mut self) {
         let mut to_be_removed = Vec::new();
 
-        for r#type in self.types.values() {
+        for r#type in self.types.values().filter(|ty| ty.is_object()) {
             match r#type.fields() {
                 None => to_be_removed.push(r#type.name().to_owned()),
                 Some(fields) if fields.is_empty() => to_be_removed.push(r#type.name().to_owned()),
