@@ -22,6 +22,11 @@ const DEFAULT_LOG_FILTER: &str = "info";
         ArgGroup::new("graph-ref-with-access-token")
             .args(["graph_ref"])
             .requires("grafbase_access_token")
+    ),
+    group(
+        ArgGroup::new("schema-with-license")
+            .args(["schema"])
+            .requires("license")
     )
 )]
 #[command(name = "The Grafbase Gateway", version)]
@@ -40,9 +45,12 @@ pub struct Args {
     #[arg(long, short, env = "GRAFBASE_CONFIG_PATH")]
     pub config: PathBuf,
     /// Path to graph SDL. If provided, the graph will be static and no connection is made
-    /// to the Grafbase API.
+    /// to the Grafbase API. A license must be present if defined.
     #[arg(long, short, env = "GRAFBASE_SCHEMA_PATH")]
     pub schema: Option<PathBuf>,
+    /// Path to a Grafbase license file. Must be provided if defining a schema path.
+    #[arg(long, env = "GRAFBASE_LICENSE_PATH")]
+    pub license: Option<PathBuf>,
     /// Set the tracing level
     #[arg(short, long, default_value_t = 0)]
     pub trace: u16,
