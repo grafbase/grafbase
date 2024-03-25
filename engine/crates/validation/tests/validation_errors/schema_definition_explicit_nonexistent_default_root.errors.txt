@@ -1,0 +1,14 @@
+  × Cannot set schema query root to unknown type `Query`
+   ╭─[1:1]
+ 1 │ schema {
+   · ──────
+ 2 │     query: Query
+   ╰────
+
+
+  × Cannot set schema mutation root to unknown type `Mutation`
+   ╭─[1:1]
+ 1 │ schema {
+   · ──────
+ 2 │     query: Query
+   ╰────

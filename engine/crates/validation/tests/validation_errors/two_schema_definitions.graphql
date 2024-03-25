@@ -8,3 +8,15 @@ schema {
     mutation: Mutation
     subscription: Subscription
 }
+
+type Query {
+    hi: String
+}
+
+type Mutation {
+    ahoy: String
+}
+
+type Subscription {
+    aloha: String
+}
