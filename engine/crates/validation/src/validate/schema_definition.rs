@@ -60,10 +60,6 @@ pub(crate) fn validate_schema_definition_references(ctx: &mut Context<'_>) {
     for (actual, default) in &names {
         let Some(actual) = actual else { continue };
 
-        if actual == default {
-            continue;
-        }
-
         match ctx.definition_names.get(actual) {
             None => {
                 let labels = vec![miette::LabeledSpan::new_with_span(
