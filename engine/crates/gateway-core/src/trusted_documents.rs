@@ -190,13 +190,11 @@ where
 }
 
 #[derive(Debug, thiserror::Error)]
-enum PersistedQueryError {
+pub(super) enum PersistedQueryError {
     #[error("Persisted query not found")]
     NotFound,
     #[error("Persisted query version not supported")]
     UnsupportedVersion,
-    #[error("Invalid persisted query sha256Hash")]
-    InvalidSha256Hash,
     #[error("Internal server error")]
     InternalServerError,
     #[error("Cannot execute a trusted document query: missing doc_id or the persistedQuery extension.")]
