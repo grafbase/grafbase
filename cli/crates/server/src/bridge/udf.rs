@@ -225,10 +225,13 @@ impl UdfRuntime {
         trace!("Bound to port: {bound_port}");
         let join_handle = tokio::spawn(async move {
             let outcome = bun.wait_with_output().await.unwrap();
-            return Err(UdfBuildError::BunSpawnFailedWithOutput {
-                output: String::from_utf8_lossy(&outcome.stdout).into_owned(),
-                stderr: String::from_utf8_lossy(&outcome.stderr).into_owned(),
-            });
+            if !outcome.status.success() {
+                return Err(UdfBuildError::BunSpawnFailedWithOutput {
+                    output: String::from_utf8_lossy(&outcome.stdout).into_owned(),
+                    stderr: String::from_utf8_lossy(&outcome.stderr).into_owned(),
+                });
+            }
+            Ok(())
         });
 
         Ok((join_handle, bound_port))
