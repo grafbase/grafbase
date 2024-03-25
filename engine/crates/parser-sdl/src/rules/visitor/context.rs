@@ -129,6 +129,7 @@ impl<'a> VisitorContext<'a> {
     /// Finish the Registry
     pub(crate) fn finish(mut self) -> ParseResult<'static> {
         let mut registry = self.registry.take();
+
         if self.federation.is_some() {
             registry.enable_federation = true;
         } else {
@@ -184,6 +185,7 @@ impl<'a> VisitorContext<'a> {
         }
 
         registry.remove_unused_types();
+        registry.remove_empty_types();
 
         registry.operation_limits = self
             .operation_limits_directive
