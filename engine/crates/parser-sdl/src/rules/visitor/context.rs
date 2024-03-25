@@ -185,7 +185,6 @@ impl<'a> VisitorContext<'a> {
         }
 
         registry.remove_unused_types();
-        registry.remove_empty_types();
 
         registry.operation_limits = self
             .operation_limits_directive

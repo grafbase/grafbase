@@ -61,6 +61,8 @@ impl ConnectorParsers for MockConnectorParsers {
 /// avoiding problems with multiple concurrent &mut Registry, or having to deal with
 /// mutexes etc.
 pub(crate) fn merge_registry(ctx: &mut VisitorContext<'_>, mut src_registry: Registry, position: Pos) {
+    src_registry.remove_empty_types();
+
     ctx.queries.extend(type_fields(
         src_registry.types.remove(&src_registry.query_type).unwrap(),
     ));
