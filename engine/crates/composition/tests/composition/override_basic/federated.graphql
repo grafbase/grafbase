@@ -23,9 +23,9 @@ enum join__Graph {
 
 type Mammoth {
     tuskLength: Int
-    weightGrams: Int @join__field(graph: mangrove, override: "steppe")
+    weightGrams: Int @join__field(graph: MANGROVE, override: "steppe")
 }
 
 type Query {
-    getMammoth: Mammoth @join__field(graph: mangrove, override: "steppe")
+    getMammoth: Mammoth @join__field(graph: MANGROVE, override: "steppe")
 }

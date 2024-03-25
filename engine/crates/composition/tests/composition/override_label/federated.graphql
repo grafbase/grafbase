@@ -24,7 +24,7 @@ type User
     @join__type(graph: FST, key: "id")
 {
     id: ID!
-    name: String @join__field(graph: fst, override: "somewhereElse", overrideLabel: "percent(10)")
+    name: String @join__field(graph: FST, override: "somewhereElse", overrideLabel: "percent(10)")
 }
 
 type Query {

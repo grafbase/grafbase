@@ -284,7 +284,24 @@ impl<'a> GraphBuilder<'a> {
                 continue;
             };
             let mut resolvers = vec![];
-            let mut only_resolvable_in = field.resolvable_in.into_iter().map(Into::into).collect::<HashSet<_>>();
+            let mut only_resolvable_in = field
+                .resolvable_in
+                .into_iter()
+                .map(Into::into)
+                .collect::<HashSet<GraphqlEndpointId>>();
+
+            // two loops as we can't rely on the ordering of the overrides.
+            for r#override in &field.overrides {
+                only_resolvable_in.insert(r#override.graph.into());
+            }
+            for r#override in field.overrides {
+                match r#override.from {
+                    federated_graph::OverrideSource::Subgraph(id) => {
+                        only_resolvable_in.remove(&id.into());
+                    }
+                    federated_graph::OverrideSource::Missing(_) => (),
+                };
+            }
 
             if root_fields.binary_search(&field_id).is_ok() {
                 for &endpoint_id in &only_resolvable_in {
