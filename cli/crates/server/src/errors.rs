@@ -187,6 +187,10 @@ pub enum UdfBuildError {
     #[error("unknown spawn error")]
     BunSpawnFailed,
 
+    // returned if the bun process for a given UDF reaches a timeout
+    #[error("the spawned bun process was unresponsive and reached a timeout")]
+    BunSpawnTimeout,
+
     // returned if the bun process for a given UDF fails to spawn, with more details
     #[error("\n{output}\n{stderr}")]
     BunSpawnFailedWithOutput { output: String, stderr: String },

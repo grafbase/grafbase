@@ -60,7 +60,7 @@ enum UdfWorkerStatus {
     },
     Available {
         #[allow(dead_code)]
-        bun_handle: Arc<tokio::task::JoinHandle<()>>,
+        bun_handle: Arc<tokio::task::JoinHandle<Result<(), UdfBuildError>>>,
         worker_port: u16,
     },
     BuildFailed,
@@ -155,7 +155,7 @@ impl UdfRuntime {
     async fn spawn_multi_worker_bun(
         &self,
         udf_workers: Vec<UdfWorker>,
-    ) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildError> {
+    ) -> Result<(tokio::task::JoinHandle<Result<(), UdfBuildError>>, u16), UdfBuildError> {
         let environment = Environment::get();
         let mut bun_arguments = vec![
             "run".to_owned(),
@@ -225,11 +225,10 @@ impl UdfRuntime {
         trace!("Bound to port: {bound_port}");
         let join_handle = tokio::spawn(async move {
             let outcome = bun.wait_with_output().await.unwrap();
-            assert!(
-                outcome.status.success(),
-                "Bun failed: '{}'",
-                String::from_utf8_lossy(&outcome.stderr).into_owned()
-            );
+            return Err(UdfBuildError::BunSpawnFailedWithOutput {
+                output: String::from_utf8_lossy(&outcome.stdout).into_owned(),
+                stderr: String::from_utf8_lossy(&outcome.stderr).into_owned(),
+            });
         });
 
         Ok((join_handle, bound_port))
@@ -410,7 +409,7 @@ async fn spawn_bun(
     udf_name: &str,
     package_json_path: std::path::PathBuf,
     _tracing: bool,
-) -> Result<(tokio::task::JoinHandle<()>, u16), UdfBuildError> {
+) -> Result<(tokio::task::JoinHandle<Result<(), UdfBuildError>>, u16), UdfBuildError> {
     use tokio::io::AsyncBufReadExt;
     use tokio_stream::wrappers::LinesStream;
 
@@ -467,26 +466,27 @@ async fn spawn_bun(
 
         trace!("Bound to port: {bound_port}");
 
-        let udf_name = udf_name.to_owned();
         let join_handle = tokio::spawn(async move {
             let outcome = bun.wait_with_output().await.unwrap();
-            assert!(
-                outcome.status.success(),
-                "udf worker {udf_kind} '{udf_name}' failed: '{}'",
-                String::from_utf8_lossy(&outcome.stderr).into_owned()
-            );
+            if !outcome.status.success() {
+                return Err(UdfBuildError::BunSpawnFailedWithOutput {
+                    output: String::from_utf8_lossy(&outcome.stdout).into_owned(),
+                    stderr: String::from_utf8_lossy(&outcome.stderr).into_owned(),
+                });
+            }
+            Ok(())
         });
 
         (join_handle, bound_port)
     };
 
-    if wait_until_udf_ready(resolver_worker_port, udf_kind, udf_name)
-        .await
-        .map_err(|_| UdfBuildError::BunSpawnFailed)?
-    {
-        Ok((join_handle, resolver_worker_port))
-    } else {
-        Err(UdfBuildError::BunSpawnFailed)
+    match wait_until_udf_ready(resolver_worker_port, udf_kind, udf_name).await {
+        Ok(true) => Ok((join_handle, resolver_worker_port)),
+        Ok(false) => Err(UdfBuildError::BunSpawnTimeout),
+        Err(_) => {
+            join_handle.await??;
+            Err(UdfBuildError::BunSpawnFailed)
+        }
     }
 }
 
