@@ -77,7 +77,7 @@ duct = "0.13"
 fslock = "0.2"
 futures-util = "0.3"
 graphql-mocks.workspace = true
-graphql-ws-client = { version = "0.8.0", features = ["async-tungstenite"] }
+graphql-ws-client = { version = "0.8.1", features = ["async-tungstenite"] }
 headers.workspace = true
 hex.workspace = true
 http.workspace = true

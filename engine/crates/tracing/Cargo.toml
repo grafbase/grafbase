@@ -39,7 +39,7 @@ worker = ["dep:worker"]
 lambda = []
 
 [dev-dependencies]
-indoc = "2.0.4"
+indoc = "2.0.5"
 insta = "1.36.1"
 tempfile = "3.10"
-toml = "0.8.11"
+toml = "0.8.12"

@@ -33,7 +33,7 @@ fslock = "0.2.1"
 futures-util.workspace = true
 grafbase-graphql-introspection.workspace = true
 http.workspace = true
-indoc = "2.0.4"
+indoc = "2.0.5"
 insta = { workspace = true, features = ["json", "redactions", "yaml"] }
 reqwest.workspace = true
 serde.workspace = true
