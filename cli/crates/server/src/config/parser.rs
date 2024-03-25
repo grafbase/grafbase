@@ -27,8 +27,7 @@ pub async fn parse_sdl(schema: &str, environment: &HashMap<String, String>) -> R
         required_udfs,
         global_cache_rules,
         federated_graph_config,
-        // FIXME: Revisit the `true` once we have settled on how to handle the migration story in the CLI.
-    } = parser_sdl::parse(schema, environment, true, &connector_parsers)
+    } = parser_sdl::parse(schema, environment, &connector_parsers)
         .await
         .map_err(|e| ConfigError::ParseSchema(e.to_string()))?;
 

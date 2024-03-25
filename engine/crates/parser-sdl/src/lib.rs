@@ -184,11 +184,10 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
 pub async fn parse<'a>(
     schema: &'a str,
     environment_variables: &HashMap<String, String>,
-    database_models_enabled: bool,
     connector_parsers: &dyn ConnectorParsers,
 ) -> Result<ParseResult<'a>, Error> {
     let schema = parse_schema(schema)?;
-    let mut ctx = VisitorContext::new(&schema, database_models_enabled, environment_variables);
+    let mut ctx = VisitorContext::new(&schema, environment_variables);
 
     // We parse out the basic things like `extend schema @graph`.
     parse_basic(&schema, &mut ctx).await?;
@@ -379,7 +378,7 @@ pub fn parse_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
     Ok(futures::executor::block_on(async move {
         let variables = HashMap::new();
         let connector_parsers = connector_parsers::MockConnectorParsers::default();
-        parse(input, &variables, true, &connector_parsers).await
+        parse(input, &variables, &connector_parsers).await
     })?
     .registry)
 }
@@ -391,6 +390,6 @@ fn to_parse_result_with_variables<'a>(
 ) -> Result<ParseResult<'a>, Error> {
     futures::executor::block_on(async move {
         let connector_parsers = connector_parsers::MockConnectorParsers::default();
-        parse(input, variables, true, &connector_parsers).await
+        parse(input, variables, &connector_parsers).await
     })
 }

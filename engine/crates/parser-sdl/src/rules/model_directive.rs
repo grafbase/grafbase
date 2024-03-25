@@ -111,7 +111,7 @@ mod tests {
         let schema = parse_schema(schema).expect("");
 
         let variables = Default::default();
-        let mut ctx = VisitorContext::new(&schema, false, &variables);
+        let mut ctx = VisitorContext::new(&schema, &variables);
         visit(&mut ModelDirective, &mut ctx, &schema);
 
         insta::assert_debug_snapshot!(ctx.errors, @r###"

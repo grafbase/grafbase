@@ -164,7 +164,6 @@ mod tests {
         }
         "#,
             &HashMap::new(),
-            false,
             &FakeConnectorParser,
         ));
 
@@ -203,7 +202,6 @@ mod tests {
         }
         "#,
             &HashMap::new(),
-            false,
             &FakeConnectorParser,
         ));
 
@@ -248,7 +246,6 @@ mod tests {
         }
         "#,
             &HashMap::new(),
-            false,
             &FakeConnectorParser,
         ));
 
@@ -295,7 +292,7 @@ mod tests {
         }
     "#, &["Field 'foo' of extended 'StripeCustomer' must have a custom resolver or a join"])]
     fn test_parse_result(#[case] schema: &str, #[case] expected_messages: &[&str]) {
-        let output = futures::executor::block_on(crate::parse(schema, &HashMap::new(), false, &FakeConnectorParser));
+        let output = futures::executor::block_on(crate::parse(schema, &HashMap::new(), &FakeConnectorParser));
 
         let validation_errors = output.unwrap_err().validation_errors().unwrap_or_default();
 

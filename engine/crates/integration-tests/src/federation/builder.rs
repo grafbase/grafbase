@@ -73,7 +73,7 @@ impl FederationGatewayBuilder {
             .expect("schemas to compose succesfully");
         let federated_graph_config = match self.config_sdl {
             Some(sdl) => {
-                parser_sdl::parse(&sdl, &HashMap::new(), false, &MockConnectorParsers::default())
+                parser_sdl::parse(&sdl, &HashMap::new(), &MockConnectorParsers::default())
                     .await
                     .expect("supergraph config SDL to be valid")
                     .federated_graph_config

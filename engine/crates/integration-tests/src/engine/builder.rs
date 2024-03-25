@@ -100,7 +100,7 @@ impl EngineBuilder {
             mut registry,
             global_cache_rules,
             ..
-        } = parser_sdl::parse(&self.schema, &self.environment_variables, true, &self)
+        } = parser_sdl::parse(&self.schema, &self.environment_variables, &self)
             .await
             .unwrap();
 
