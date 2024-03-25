@@ -12,7 +12,7 @@
     path = ../../.;
   };
 
-  # Agressively prune the source tree for better caching.
+  # Aggressively prune the source tree for better caching.
   extraIgnores = ''
     *.nix
     *.md

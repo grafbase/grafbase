@@ -252,7 +252,7 @@ async fn test_auth_with_sse() {
     assert_eq!(response.len(), 2);
 
     let reqwest_eventsource::Event::Message(event) = &response[1] else {
-        panic!("resposne wasn't a message");
+        panic!("response wasn't a message");
     };
 
     let json_data = serde_json::from_str::<Value>(&event.data).unwrap();

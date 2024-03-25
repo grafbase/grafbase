@@ -108,7 +108,7 @@ fn git_sha() -> Option<String> {
 }
 
 fn git_branch() -> Option<String> {
-    let output = Command::new("git").arg("branch").arg("--show-curent").output().ok()?;
+    let output = Command::new("git").arg("branch").arg("--show-current").output().ok()?;
 
     String::from_utf8(output.stdout).ok()
 }

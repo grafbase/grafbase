@@ -113,7 +113,7 @@ mod global {
                     .send()
                     .await
             );
-            // an attemt by user2 to delete the todo should fail.
+            // an attempt by user2 to delete the todo should fail.
             client
                 .gql::<Value>(OWNER_TODO_DELETE)
                 .bearer(&user_two_jwt())
@@ -249,7 +249,7 @@ mod global {
 
         #[ignore]
         #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-        async fn group_should_supercede_owner_when_listing_entities() {
+        async fn group_should_supersede_owner_when_listing_entities() {
             let mut env = Environment::init();
             env.grafbase_init(GraphType::Single);
             env.write_schema(OWNER_TODO_MIXED_SCHEMA);

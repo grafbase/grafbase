@@ -123,7 +123,7 @@ Arguments:
   [PROJECT_BRANCH]  The reference to a project: either `{account_slug}/{project_slug}`, `{project_slug}` for the personal account, or a URL to a deployed gateway. Defaults to the linked project if there's one
 
 Options:
-  -l, --limit <LIMIT>  How many last entries to retrive [default: 100]
+  -l, --limit <LIMIT>  How many last entries to retrieve [default: 100]
       --no-follow      Whether to disable polling for new log entries
 ```
 
@@ -140,7 +140,7 @@ Options:
       --log-level-graphql-operations <GRAPHQL_OPERATION_LOG_LEVEL>  Log level to print for GraphQL operations, defaults to 'log-level' [possible values: none, error, warn, info, debug]
       --log-level-fetch-requests <FETCH_REQUEST_LOG_LEVEL>          Log level to print for fetch requests, defaults to 'log-level' [possible values: none, error, warn, info, debug]
       --log-level <LOG_LEVEL>                                       Default log level to print [possible values: none, error, warn, info, debug]
-      --listen-address <LISTEN_ADDRESS>                             IP address on which the server will listen for incomming connections. Defaults to 127.0.0.1
+      --listen-address <LISTEN_ADDRESS>                             IP address on which the server will listen for incoming connections. Defaults to 127.0.0.1
 ```
 
 ### `build`

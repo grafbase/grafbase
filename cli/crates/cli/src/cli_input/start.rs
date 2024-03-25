@@ -10,7 +10,7 @@ pub struct StartCommand {
     /// Default log level to print
     #[arg(long)]
     pub log_level: Option<LogLevelFilter>,
-    /// IP address on which the server will listen for incomming connections. Defaults to 127.0.0.1:4000.
+    /// IP address on which the server will listen for incoming connections. Defaults to 127.0.0.1:4000.
     #[arg(long)]
     pub listen_address: Option<SocketAddr>,
     /// Path to federated graph SDL. If provided, the graph will be static and cannot be updated.

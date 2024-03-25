@@ -194,7 +194,7 @@ pub enum CreateError {
     #[error("could not create a new project as the amount of environment variables exceeded the allowed limit")]
     EnvironmentVariableCountLimitExceeded,
 
-    /// returned if the account selected for project creation is disaled
+    /// returned if the account selected for project creation is disabled
     #[error("could not create a new project as the selected account is disabled")]
     DisabledAccount,
 
