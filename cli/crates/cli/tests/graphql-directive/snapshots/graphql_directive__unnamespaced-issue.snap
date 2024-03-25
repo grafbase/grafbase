@@ -8,6 +8,6 @@ data:
     author:
       __typename: User
       email: pessimist@example.com
-    title: Everything's fine
+    title: "Everything's fine"
   serverVersion: "1"
 
