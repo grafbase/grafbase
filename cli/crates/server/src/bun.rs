@@ -49,7 +49,7 @@ pub enum BunError {
     #[error("{0}")]
     SpawnedTaskPanic(Arc<JoinError>),
 
-    #[error("could not remove a stale verison of bun.\nCaused by: {0}")]
+    #[error("could not remove a stale version of bun.\nCaused by: {0}")]
     RemoveStaleBunVersion(Arc<io::Error>),
 
     #[error("could not hard-link the system bun version.\nCaused by: {0}")]

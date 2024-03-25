@@ -229,7 +229,7 @@ type BranchOperationCheckConfiguration {
   """
   enabled: Boolean!
   """
-  The time range in days to consider for operation checks. Operations older than the specificied
+  The time range in days to consider for operation checks. Operations older than the specified
   number of days are ignored. Overrides project configuration if defined.
   """
   timeRangeDaysOverride: Int
@@ -265,7 +265,7 @@ input BranchOperationCheckConfigurationInput {
   """
   enabled: Boolean!
   """
-  The time range in days to consider for operation checks. Operations older than the specificied
+  The time range in days to consider for operation checks. Operations older than the specified
   number of days are ignored. Overrides project configuration if defined.
   """
   timeRangeDaysOverride: Int
@@ -2057,7 +2057,7 @@ type ProjectOperationCheckConfiguration {
   """
   enabled: Boolean!
   """
-  The time range in days to consider for operation checks. Operations older than the specificied
+  The time range in days to consider for operation checks. Operations older than the specified
   number of days are ignored.
   """
   timeRangeDays: Int!
@@ -2086,7 +2086,7 @@ input ProjectOperationCheckConfigurationInput {
   """
   enabled: Boolean!
   """
-  The time range in days to consider for operation checks. Operations older than the specificied
+  The time range in days to consider for operation checks. Operations older than the specified
   number of days are ignored.
   """
   timeRangeDays: Int!

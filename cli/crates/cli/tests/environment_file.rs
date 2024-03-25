@@ -32,4 +32,4 @@ async fn environment_file() {
 }
 
 // TODO: add a test for precedence once we have a way to print variables
-// (the .env variables are higher priority than process enviroment variables)
+// (the .env variables are higher priority than process environment variables)

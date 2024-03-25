@@ -64,7 +64,7 @@ impl Query {
             }));
         } else if id == "3" {
             return Some(PullRequestOrIssue::Issue(Issue {
-                title: "Everythings fine".into(),
+                title: "Everything fine".into(),
                 author: UserOrBot::User(User {
                     name: "The Pessimist".into(),
                     email: "pessimist@example.com".into(),

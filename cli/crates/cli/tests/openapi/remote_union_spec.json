@@ -72,7 +72,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "succesfull operation",
+            "description": "successful operation",
             "content": {
               "application/json": {
                 "schema": {

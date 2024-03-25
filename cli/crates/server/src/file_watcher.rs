@@ -103,7 +103,7 @@ where
                         let relative_path = event
                             .path
                             .strip_prefix(root_path)
-                            .expect("must suceed by definition")
+                            .expect("must succeed by definition")
                             .to_owned();
 
                         if change_sender.send(relative_path).is_err() {
