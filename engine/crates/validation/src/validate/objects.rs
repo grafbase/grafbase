@@ -13,10 +13,6 @@ pub(crate) fn validate_object<'a>(
     });
 
     ctx.with_fields(parent_type_name, &obj.fields, |ctx, fields| {
-        if fields.is_empty() {
-            diagnostics::empty_object(parent_type_name, ctx)
-        }
-
         for field in fields {
             object_field::validate_object_field(parent_type_name, field, ctx);
             let type_name = extract_type_name(&field.node.ty.node.base);

@@ -1,1 +1,0 @@
-  × The input object type Output has no fields. An input object type must define one or more fields.
