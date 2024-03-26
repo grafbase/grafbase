@@ -151,7 +151,6 @@ jobs:
         env:
           INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
         run: |
-          cd cli/npm
           if [[ $INPUT_PRERELEASE == "false" ]]; then
             cd cli/install
             sed -i 's/{{LATEST_VERSION}}/${{ env.VERSION_BUMP }}/g' cli
