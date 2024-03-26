@@ -31,7 +31,6 @@ type Cheetah implements Animal
 {
     favouriteFood: String @join__field(graph: FOREST)
     species: String!
-    species: String!
     topSpeed: Int! @join__field(graph: SAVANNA)
     weightGrams: Int @join__field(graph: STEPPE)
 }

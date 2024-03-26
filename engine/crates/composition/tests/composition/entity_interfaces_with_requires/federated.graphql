@@ -1,0 +1,47 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    A @join__graph(name: "a", url: "http://example.com/a")
+    B @join__graph(name: "b", url: "http://example.com/b")
+}
+
+type Book implements Media
+    @join__type(graph: A, key: "id")
+{
+    id: ID!
+    reviews: [Review!]! @join__field(graph: B, requires: "title")
+    title: String! @join__field(graph: A)
+}
+
+type Review {
+    score: Int! @join__field(graph: B)
+}
+
+type Query {
+    topRatedMedia: [Media!]! @join__field(graph: B)
+}
+
+interface Media
+    @join__type(graph: A, key: "id")
+    @join__type(graph: B, key: "id", isInterfaceObject: true)
+{
+    id: ID!
+    reviews: [Review!]! @join__field(graph: B, requires: "title")
+    title: String! @join__field(graph: A)
+}

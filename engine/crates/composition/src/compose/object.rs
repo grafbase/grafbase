@@ -255,7 +255,7 @@ fn resolvable_in(fields: &[FieldWalker<'_>], object_is_shareable: bool) -> Vec<f
         .collect()
 }
 
-fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<federated::Override> {
+pub(super) fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<federated::Override> {
     let mut overrides = Vec::new();
 
     for (field, override_directive) in fields.iter().filter_map(|f| Some(f).zip(f.directives().r#override())) {
