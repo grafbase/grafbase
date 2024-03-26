@@ -63,9 +63,9 @@ impl ConnectorParsers for MockConnectorParsers {
 pub(crate) fn merge_registry(ctx: &mut VisitorContext<'_>, mut src_registry: Registry, position: Pos) {
     src_registry.remove_empty_types();
 
-    ctx.queries.extend(type_fields(
-        src_registry.types.remove(&src_registry.query_type).unwrap(),
-    ));
+    if let Some(query_type) = src_registry.types.remove(&src_registry.query_type) {
+        ctx.queries.extend(type_fields(query_type));
+    }
 
     if let Some(mutation_type) = &src_registry.mutation_type {
         ctx.mutations
