@@ -2,7 +2,7 @@ mod error;
 mod path;
 
 use crate::{
-    Definition, EnumWalker, InputObjectWalker, InputValueDefinitionId, ScalarType, ScalarWalker, Schema,
+    Definition, EnumId, EnumValueId, Graph, InputObjectId, InputValueDefinitionId, ScalarId, ScalarType,
     SchemaInputValue, SchemaInputValueId, SchemaInputValues, StringId, Type,
 };
 pub use error::*;
@@ -11,17 +11,21 @@ use id_newtypes::IdRange;
 use path::*;
 use wrapping::ListWrapping;
 
+use super::BuildContext;
+
 pub(super) struct InputValueCoercer<'a> {
-    schema: &'a Schema,
+    ctx: &'a BuildContext,
+    graph: &'a Graph,
     input_values: &'a mut SchemaInputValues,
     value_path: Vec<ValuePathSegment>,
     input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, SchemaInputValue)>>,
 }
 
 impl<'a> InputValueCoercer<'a> {
-    pub fn new(schema: &'a Schema, input_values: &'a mut SchemaInputValues) -> Self {
+    pub fn new(ctx: &'a BuildContext, graph: &'a Graph, input_values: &'a mut SchemaInputValues) -> Self {
         Self {
-            schema,
+            ctx,
+            graph,
             input_values,
             value_path: Vec::new(),
             input_fields_buffer_pool: Vec::new(),
@@ -52,7 +56,7 @@ impl<'a> InputValueCoercer<'a> {
 
         match (value, list_wrapping) {
             (Value::Null, ListWrapping::RequiredList) => Err(InputValueError::UnexpectedNull {
-                expected: self.schema.walk(ty.wrapped_by(list_wrapping)).to_string(),
+                expected: self.type_name(ty.wrapped_by(list_wrapping)),
                 path: self.path(),
             }),
             (Value::Null, ListWrapping::NullableList) => Ok(SchemaInputValue::Null),
@@ -67,7 +71,7 @@ impl<'a> InputValueCoercer<'a> {
             }
             (value, _) => Err(InputValueError::MissingList {
                 actual: value.into(),
-                expected: self.schema.walk(ty.wrapped_by(list_wrapping)).to_string(),
+                expected: self.type_name(ty.wrapped_by(list_wrapping)),
                 path: self.path(),
             }),
         }
@@ -77,7 +81,7 @@ impl<'a> InputValueCoercer<'a> {
         if value.is_null() {
             if ty.wrapping.is_required() {
                 return Err(InputValueError::UnexpectedNull {
-                    expected: self.schema.walk(ty).to_string(),
+                    expected: self.type_name(ty),
                     path: self.path(),
                 });
             }
@@ -85,21 +89,22 @@ impl<'a> InputValueCoercer<'a> {
         }
 
         match ty.inner {
-            Definition::Scalar(scalar) => self.coerce_scalar(self.schema.walk(scalar), value),
-            Definition::Enum(r#enum) => self.coerce_enum(self.schema.walk(r#enum), value),
-            Definition::InputObject(input_object) => self.coerce_input_objet(self.schema.walk(input_object), value),
+            Definition::Scalar(id) => self.coerce_scalar(id, value),
+            Definition::Enum(id) => self.coerce_enum(id, value),
+            Definition::InputObject(id) => self.coerce_input_objet(id, value),
             _ => unreachable!("Cannot be an output type."),
         }
     }
 
     fn coerce_input_objet(
         &mut self,
-        input_object: InputObjectWalker<'_>,
+        input_object_id: InputObjectId,
         value: Value,
     ) -> Result<SchemaInputValue, InputValueError> {
+        let input_object = &self.graph[input_object_id];
         let Value::Object(fields) = value else {
             return Err(InputValueError::MissingObject {
-                name: input_object.name().to_string(),
+                name: self.ctx.strings[input_object.name].to_string(),
                 actual: value.into(),
                 path: self.path(),
             });
@@ -112,21 +117,24 @@ impl<'a> InputValueCoercer<'a> {
             .collect::<Vec<_>>();
         fields.sort_unstable_by_key(|(id, _)| *id);
         let mut fields_buffer = self.input_fields_buffer_pool.pop().unwrap_or_default();
-        for input_field in input_object.input_fields() {
-            match fields.binary_search_by_key(&input_field.as_ref().name, |(id, _)| StringId::from(*id)) {
+        for (input_field, input_field_id) in self.graph[input_object.input_field_ids]
+            .iter()
+            .zip(input_object.input_field_ids)
+        {
+            match fields.binary_search_by_key(&input_field.name, |(id, _)| StringId::from(*id)) {
                 Ok(i) => {
                     let value = std::mem::take(&mut fields[i].1).unwrap();
-                    self.value_path.push(input_field.as_ref().name.into());
-                    let value = self.coerce_input_value(input_field.ty().into(), value)?;
-                    fields_buffer.push((input_field.id(), value));
+                    self.value_path.push(input_field.name.into());
+                    let value = self.coerce_input_value(input_field.ty, value)?;
+                    fields_buffer.push((input_field_id, value));
                     self.value_path.pop();
                 }
                 Err(_) => {
-                    if let Some(default_value_id) = input_field.as_ref().default_value {
-                        fields_buffer.push((input_field.id(), self.schema[default_value_id]));
-                    } else if input_field.ty().wrapping().is_required() {
+                    if let Some(default_value_id) = input_field.default_value {
+                        fields_buffer.push((input_field_id, self.graph.input_values[default_value_id]));
+                    } else if input_field.ty.wrapping.is_required() {
                         return Err(InputValueError::UnexpectedNull {
-                            expected: input_field.ty().to_string(),
+                            expected: self.type_name(input_field.ty),
                             path: self.path(),
                         });
                     }
@@ -139,8 +147,8 @@ impl<'a> InputValueCoercer<'a> {
             .next()
         {
             return Err(InputValueError::UnknownInputField {
-                input_object: input_object.name().to_string(),
-                name: self.schema[StringId::from(id)].to_string(),
+                input_object: self.ctx.strings[input_object.name].to_string(),
+                name: self.ctx.strings[StringId::from(id)].to_string(),
                 path: self.path(),
             });
         }
@@ -149,31 +157,33 @@ impl<'a> InputValueCoercer<'a> {
         Ok(SchemaInputValue::InputObject(ids))
     }
 
-    fn coerce_enum(&mut self, r#enum: EnumWalker<'_>, value: Value) -> Result<SchemaInputValue, InputValueError> {
+    fn coerce_enum(&mut self, enum_id: EnumId, value: Value) -> Result<SchemaInputValue, InputValueError> {
+        let r#enum = &self.graph[enum_id];
         let name = match &value {
-            Value::EnumValue(id) => &self.schema[StringId::from(*id)],
+            Value::EnumValue(id) => &self.ctx.strings[StringId::from(*id)],
             value => {
                 return Err(InputValueError::IncorrectEnumValueType {
-                    r#enum: r#enum.name().to_owned(),
+                    r#enum: self.ctx.strings[r#enum.name].to_string(),
                     actual: value.into(),
                     path: self.path(),
                 })
             }
         };
 
-        let Some(id) = r#enum.find_value_by_name(name) else {
-            return Err(InputValueError::UnknownEnumValue {
-                r#enum: r#enum.name().to_string(),
+        let value_ids = r#enum.value_ids;
+        match self.graph[value_ids].binary_search_by(|enum_value| self.ctx.strings[enum_value.name].as_str().cmp(name))
+        {
+            Ok(id) => Ok(SchemaInputValue::EnumValue(EnumValueId::from(id))),
+            Err(_) => Err(InputValueError::UnknownEnumValue {
+                r#enum: self.ctx.strings[r#enum.name].to_string(),
                 value: name.to_string(),
                 path: self.path(),
-            });
-        };
-
-        Ok(SchemaInputValue::EnumValue(id))
+            }),
+        }
     }
 
-    fn coerce_scalar(&mut self, scalar: ScalarWalker<'_>, value: Value) -> Result<SchemaInputValue, InputValueError> {
-        match scalar.as_ref().ty {
+    fn coerce_scalar(&mut self, scalar_id: ScalarId, value: Value) -> Result<SchemaInputValue, InputValueError> {
+        match self.graph[scalar_id].ty {
             ScalarType::String => match value {
                 Value::String(id) => Some(id.into()),
                 _ => None,
@@ -189,7 +199,7 @@ impl<'a> InputValueCoercer<'a> {
                 Value::Int(n) => {
                     let n = i32::try_from(n).map_err(|_| InputValueError::IncorrectScalarValue {
                         actual: n.to_string(),
-                        expected: scalar.name().to_string(),
+                        expected: self.ctx.strings[self.graph[scalar_id].name].to_string(),
                         path: self.path(),
                     })?;
                     Some(n)
@@ -218,14 +228,14 @@ impl<'a> InputValueCoercer<'a> {
                     Value::Object(fields) => {
                         let ids = self.input_values.reserve_map(fields.len());
                         for ((name, value), id) in fields.into_vec().into_iter().zip(ids) {
-                            self.input_values[id] = (name.into(), self.coerce_scalar(scalar, value)?);
+                            self.input_values[id] = (name.into(), self.coerce_scalar(scalar_id, value)?);
                         }
                         SchemaInputValue::Map(ids)
                     }
                     Value::List(list) => {
                         let ids = self.input_values.reserve_list(list.len());
                         for (value, id) in list.into_vec().into_iter().zip(ids) {
-                            let value = self.coerce_scalar(scalar, value)?;
+                            let value = self.coerce_scalar(scalar_id, value)?;
                             self.input_values[id] = value;
                         }
                         SchemaInputValue::List(ids)
@@ -235,12 +245,37 @@ impl<'a> InputValueCoercer<'a> {
         }
         .ok_or_else(|| InputValueError::IncorrectScalarType {
             actual: value.into(),
-            expected: scalar.name().to_string(),
+            expected: self.ctx.strings[self.graph[scalar_id].name].to_string(),
             path: self.path(),
         })
     }
 
+    fn type_name(&self, ty: Type) -> String {
+        let mut s = String::new();
+        for _ in 0..ty.wrapping.list_wrappings().len() {
+            s.push('[');
+        }
+        s.push_str(match ty.inner {
+            Definition::Scalar(id) => &self.ctx.strings[self.graph[id].name],
+            Definition::Object(id) => &self.ctx.strings[self.graph[id].name],
+            Definition::Interface(id) => &self.ctx.strings[self.graph[id].name],
+            Definition::Union(id) => &self.ctx.strings[self.graph[id].name],
+            Definition::Enum(id) => &self.ctx.strings[self.graph[id].name],
+            Definition::InputObject(id) => &self.ctx.strings[self.graph[id].name],
+        });
+        if ty.wrapping.inner_is_required() {
+            s.push('!');
+        }
+        for wrapping in ty.wrapping.list_wrappings() {
+            s.push(']');
+            if wrapping == ListWrapping::RequiredList {
+                s.push('!');
+            }
+        }
+        s
+    }
+
     fn path(&self) -> String {
-        value_path_to_string(self.schema, &self.value_path)
+        value_path_to_string(self.ctx, &self.value_path)
     }
 }

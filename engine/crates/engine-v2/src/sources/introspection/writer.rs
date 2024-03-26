@@ -1,8 +1,11 @@
 use std::cell::RefCell;
 
 use schema::{
-    sources::introspection::{
-        IntrospectionField, IntrospectionObject, Metadata, __EnumValue, __Field, __InputValue, __Schema, __Type,
+    sources::{
+        introspection::{
+            IntrospectionField, IntrospectionObject, __EnumValue, __Field, __InputValue, __Schema, __Type,
+        },
+        IntrospectionMetadata,
     },
     Definition, DefinitionWalker, Directive, EnumValueWalker, FieldDefinitionWalker, InputValueDefinitionWalker,
     ListWrapping, SchemaWalker, TypeWalker, Wrapping,
@@ -15,7 +18,7 @@ use crate::{
 
 pub(super) struct IntrospectionWriter<'a> {
     pub schema: SchemaWalker<'a, ()>,
-    pub metadata: &'a Metadata,
+    pub metadata: &'a IntrospectionMetadata,
     pub plan: PlanWalker<'a>,
     pub output: RefCell<&'a mut ResponsePart>,
 }
@@ -86,7 +89,7 @@ impl<'a> IntrospectionWriter<'a> {
     fn __schema(&self, selection_set: PlanCollectedSelectionSet<'_>) -> ResponseValue {
         self.object(&self.metadata.__schema, selection_set, |field, __schema| {
             match __schema {
-                __Schema::Description => self.schema.description.into(),
+                __Schema::Description => self.schema.description_id().into(),
                 __Schema::Types => {
                     let selection_set = field.concrete_selection_set().unwrap();
                     let values = self

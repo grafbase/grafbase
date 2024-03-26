@@ -39,6 +39,12 @@ const INNER_IS_REQUIRED_FLAG: u32 = 0b1000_0000_0000_0000_0000_0000_0000_0000;
 #[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Wrapping(u32);
 
+impl Default for Wrapping {
+    fn default() -> Self {
+        Self::nullable()
+    }
+}
+
 impl From<Wrapping> for u32 {
     fn from(value: Wrapping) -> Self {
         value.0

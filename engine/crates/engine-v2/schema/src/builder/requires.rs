@@ -1,13 +1,12 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    RequiredField, RequiredFieldArguments, RequiredFieldSet, RequiredFieldSetArgumentsId, RequiredFieldSetId, Schema,
+    Graph, RequiredField, RequiredFieldArguments, RequiredFieldSet, RequiredFieldSetArgumentsId, RequiredFieldSetId,
 };
 
 use super::{
     coerce::{InputValueCoercer, InputValueError},
-    ids::IdMaps,
-    BuildError, SchemaLocation,
+    BuildContext, BuildError, SchemaLocation,
 };
 
 #[derive(Default)]
@@ -24,12 +23,12 @@ impl RequiredFieldSetBuffer {
         id
     }
 
-    pub(super) fn try_insert_into(self, schema: &mut Schema, idmaps: &IdMaps) -> Result<(), BuildError> {
-        let mut input_values = std::mem::take(&mut schema.input_values);
+    pub(super) fn try_insert_into(self, ctx: &BuildContext, graph: &mut Graph) -> Result<(), BuildError> {
+        let mut input_values = std::mem::take(&mut graph.input_values);
         let mut converter = Converter {
-            schema,
-            idmaps,
-            coercer: InputValueCoercer::new(schema, &mut input_values),
+            ctx,
+            graph,
+            coercer: InputValueCoercer::new(ctx, graph, &mut input_values),
             arguments: BTreeMap::new(),
             next_id: 0,
         };
@@ -40,7 +39,7 @@ impl RequiredFieldSetBuffer {
                 converter
                     .convert_set(field_set)
                     .map_err(|err| BuildError::RequiredFieldArgumentCoercionError {
-                        location: schema.walk(location).to_string(),
+                        location: location.to_string(ctx),
                         err,
                     })?;
             required_field_sets.push(set);
@@ -48,16 +47,16 @@ impl RequiredFieldSetBuffer {
 
         let mut arguments = converter.arguments.into_iter().collect::<Vec<_>>();
         arguments.sort_unstable_by_key(|(_, id)| *id);
-        schema.required_fields_arguments = arguments.into_iter().map(|(args, _)| args).collect();
-        schema.required_field_sets = required_field_sets;
-        schema.input_values = input_values;
+        graph.required_fields_arguments = arguments.into_iter().map(|(args, _)| args).collect();
+        graph.required_field_sets = required_field_sets;
+        graph.input_values = input_values;
         Ok(())
     }
 }
 
 struct Converter<'a> {
-    schema: &'a Schema,
-    idmaps: &'a IdMaps,
+    ctx: &'a BuildContext,
+    graph: &'a Graph,
     coercer: InputValueCoercer<'a>,
     arguments: BTreeMap<RequiredFieldArguments, RequiredFieldSetArgumentsId>,
     next_id: u32,
@@ -72,7 +71,7 @@ impl<'a> Converter<'a> {
     }
 
     fn convert_item(&mut self, item: federated_graph::FieldSetItem) -> Result<Option<RequiredField>, InputValueError> {
-        let Some(field_id) = self.idmaps.field.get(item.field) else {
+        let Some(field_id) = self.ctx.idmaps.field.get(item.field) else {
             return Ok(None);
         };
 
@@ -81,10 +80,10 @@ impl<'a> Converter<'a> {
         } else {
             let mut arguments = Vec::with_capacity(item.arguments.len());
             for (id, value) in item.arguments {
-                let Some(input_value_definition_id) = self.idmaps.input_value.get(id) else {
+                let Some(input_value_definition_id) = self.ctx.idmaps.input_value.get(id) else {
                     continue;
                 };
-                let ty = self.schema[input_value_definition_id].ty;
+                let ty = self.graph[input_value_definition_id].ty;
                 let input_value_id = self.coercer.coerce(ty, value)?;
                 arguments.push((input_value_definition_id, input_value_id));
             }

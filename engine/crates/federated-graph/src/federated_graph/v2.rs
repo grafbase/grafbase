@@ -258,6 +258,12 @@ impl From<InputValueDefinitionId> for usize {
     }
 }
 
+impl From<usize> for InputValueDefinitionId {
+    fn from(index: usize) -> Self {
+        InputValueDefinitionId(index)
+    }
+}
+
 pub const NO_INPUT_VALUE_DEFINITION: InputValueDefinitions = (InputValueDefinitionId(0), 0);
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -266,6 +272,12 @@ pub struct EnumValueId(pub usize);
 impl From<EnumValueId> for usize {
     fn from(EnumValueId(index): EnumValueId) -> Self {
         index
+    }
+}
+
+impl From<usize> for EnumValueId {
+    fn from(index: usize) -> Self {
+        EnumValueId(index)
     }
 }
 

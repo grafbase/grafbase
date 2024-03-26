@@ -26,55 +26,66 @@ pub use wrapping::*;
 /// the source of truth. If the cache is stale we would just re-create this Graph from its source:
 /// federated_graph::FederatedGraph.
 pub struct Schema {
-    pub data_sources: DataSources,
-
-    pub description: Option<StringId>,
-    pub root_operation_types: RootOperationTypes,
-    objects: Vec<Object>,
-    interfaces: Vec<Interface>,
-    field_definitions: Vec<FieldDefinition>,
-    enums: Vec<Enum>,
-    unions: Vec<Union>,
-    scalars: Vec<Scalar>,
-    input_objects: Vec<InputObject>,
-    input_value_definitions: Vec<InputValueDefinition>,
-    resolvers: Vec<Resolver>,
-    // All definitions sorted by their name (actual string)
-    definitions: Vec<Definition>,
-    directives: Vec<Directive>,
-    enum_values: Vec<EnumValue>,
-
-    required_field_sets: Vec<RequiredFieldSet>,
-    // deduplicated
-    required_fields_arguments: Vec<RequiredFieldArguments>,
+    data_sources: DataSources,
+    graph: Graph,
 
     /// All strings deduplicated.
     strings: Vec<String>,
     urls: Vec<url::Url>,
-    /// Default input values & directive arguments
-    input_values: SchemaInputValues,
-
     /// Headers we might want to send to a subgraph
     headers: Vec<Header>,
+
+    pub settings: Settings,
+}
+
+#[derive(Default)]
+pub struct Settings {
     default_headers: Vec<HeaderId>,
-    cache_configs: Vec<CacheConfig>,
 
     pub auth_config: Option<config::latest::AuthConfig>,
     pub operation_limits: config::latest::OperationLimits,
     pub disable_introspection: bool,
 }
 
-#[derive(Default)]
+pub struct Graph {
+    pub description: Option<StringId>,
+    pub root_operation_types: RootOperationTypes,
+
+    // All definitions sorted by their name (actual string)
+    definitions: Vec<Definition>,
+
+    object_definitions: Vec<Object>,
+    interface_definitions: Vec<Interface>,
+    field_definitions: Vec<FieldDefinition>,
+    enum_definitions: Vec<Enum>,
+    union_definitions: Vec<Union>,
+    scalar_definitions: Vec<Scalar>,
+    input_object_definitions: Vec<InputObject>,
+    input_value_definitions: Vec<InputValueDefinition>,
+    directive_definitions: Vec<Directive>,
+    enum_value_definitions: Vec<EnumValue>,
+
+    cache_configs: Vec<CacheConfig>,
+    resolvers: Vec<Resolver>,
+    required_field_sets: Vec<RequiredFieldSet>,
+    // deduplicated
+    required_fields_arguments: Vec<RequiredFieldArguments>,
+
+    /// Default input values & directive arguments
+    input_values: SchemaInputValues,
+}
+
 pub struct DataSources {
     graphql: sources::GraphqlEndpoints,
-    pub introspection: sources::Introspection,
+    pub introspection: sources::IntrospectionMetadata,
 }
 
 impl Schema {
     pub fn definition_by_name(&self, name: &str) -> Option<Definition> {
-        self.definitions
+        self.graph
+            .definitions
             .binary_search_by_key(&name, |definition| self.definition_name(*definition))
-            .map(|index| self.definitions[index])
+            .map(|index| self.graph.definitions[index])
             .ok()
     }
 
@@ -104,49 +115,6 @@ impl Schema {
             Definition::InputObject(io) => self[io].name,
         };
         &self[name]
-    }
-
-    #[cfg(test)]
-    pub(crate) fn empty() -> Self {
-        Self {
-            data_sources: Default::default(),
-            description: None,
-            root_operation_types: crate::RootOperationTypes {
-                query: ObjectId::from(0),
-                mutation: None,
-                subscription: None,
-            },
-            objects: vec![Object {
-                name: StringId::from(0),
-                description: None,
-                interfaces: Vec::new(),
-                composed_directives: IdRange::empty(),
-                cache_config: None,
-                fields: IdRange::empty(),
-            }],
-            required_field_sets: Vec::new(),
-            required_fields_arguments: Vec::new(),
-            interfaces: Vec::new(),
-            field_definitions: Vec::new(),
-            enums: Vec::new(),
-            unions: Vec::new(),
-            scalars: Vec::new(),
-            input_objects: Vec::new(),
-            input_value_definitions: Vec::new(),
-            resolvers: Vec::new(),
-            definitions: Vec::new(),
-            directives: Vec::new(),
-            enum_values: Vec::new(),
-            strings: vec![String::from("Query")],
-            urls: Vec::new(),
-            input_values: Default::default(),
-            headers: Vec::new(),
-            default_headers: Vec::new(),
-            cache_configs: Vec::new(),
-            auth_config: Default::default(),
-            operation_limits: Default::default(),
-            disable_introspection: false,
-        }
     }
 }
 

@@ -42,7 +42,7 @@ impl std::fmt::Display for TypeWalker<'_> {
 
 impl std::fmt::Display for Ty<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for _ in self.wrapping.list_wrappings().rev() {
+        for _ in 0..self.wrapping.list_wrappings().len() {
             write!(f, "[")?;
         }
         write!(f, "{}", self.inner.name())?;

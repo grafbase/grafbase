@@ -3,7 +3,7 @@ pub use range::IdRange;
 
 #[macro_export]
 macro_rules! id_newtype {
-    ($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $($output:tt)*) => {
+    ($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(|index($ty2:ident$(.$field2:ident)+))?) => {
         impl std::fmt::Display for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 let name = stringify!($name);
@@ -19,7 +19,7 @@ macro_rules! id_newtype {
         }
 
         impl$(<$($lt),+>)? std::ops::Index<$name> for $ty$(<$($lt),+>)? {
-            type Output = $($output)*;
+            type Output = $output;
 
             fn index(&self, index: $name) -> &Self::Output {
                 &self.$field[usize::from(index)]
@@ -33,7 +33,7 @@ macro_rules! id_newtype {
         }
 
         impl$(<$($lt),+>)? std::ops::Index<$crate::IdRange<$name>> for $ty$(<$($lt),+>)? {
-            type Output = [$($output)*];
+            type Output = [$output];
 
             fn index(&self, range: $crate::IdRange<$name>) -> &Self::Output {
                 let $crate::IdRange { start, end } = range;
@@ -51,19 +51,37 @@ macro_rules! id_newtype {
                 &mut self.$field[start..end]
             }
         }
+
+        $(
+            impl std::ops::Index<$name> for $ty2 {
+                type Output = $output;
+
+                fn index(&self, index: $name) -> &Self::Output {
+                    &self$(.$field2)+[index]
+                }
+            }
+            impl std::ops::Index<$crate::IdRange<$name>> for $ty2 {
+                type Output = [$output];
+
+                fn index(&self, range: $crate::IdRange<$name>) -> &Self::Output {
+                    &self$(.$field2)+[range]
+                }
+            }
+
+        )?
     };
 }
 
 #[macro_export]
 macro_rules! NonZeroU32 {
-    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty$(| $(max $max:expr)?)?,)*) => {
+    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(|max($max:expr))? $(|index($ty2:ident$(.$field2:ident)+))? ,)*) => {
         $(
             #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
             pub struct $name(std::num::NonZeroU32);
 
             impl From<usize> for $name {
                 fn from(value: usize) -> Self {
-                    $($(assert!(value <= $max, "{} id {} exceeds maximum {}", stringify!($name), value, stringify!($max));)?)?
+                    $(assert!(value <= $max, "{} id {} exceeds maximum {}", stringify!($name), value, stringify!($max));)?
                     Self(
                         u32::try_from(value)
                             .ok()
@@ -85,14 +103,14 @@ macro_rules! NonZeroU32 {
                 }
             }
 
-            $crate::id_newtype!{ $ty$(<$($lt),+>)?.$field[$name] => $output }
+            $crate::id_newtype!{ $ty$(<$($lt),+>)?.$field[$name] => $output $(|index($ty2$(.$field2)+))? }
         )*
     }
 }
 
 #[macro_export]
 macro_rules! NonZeroU16 {
-    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max $max:expr)?)?,)*) => {
+    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max($max:expr))?)?,)*) => {
         $(
             #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
             pub struct $name(std::num::NonZeroU16);
@@ -128,7 +146,7 @@ macro_rules! NonZeroU16 {
 
 #[macro_export]
 macro_rules! U8 {
-    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max $max:expr)?)?,)*) => {
+    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max($max:expr))?)?,)*) => {
         $(
             #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
             pub struct $name(u8);

@@ -6,9 +6,10 @@
 
 use std::marker::PhantomData;
 
+use config::latest::Config;
 use id_newtypes::IdRange;
 
-use crate::{EnumValueId, FieldDefinitionId, InputValueDefinitionId};
+use crate::{FieldDefinitionId, InputValueDefinitionId};
 
 pub(super) struct IdMap<FgId: Into<usize>, Id: From<usize> + Copy> {
     skipped_ids: Vec<usize>,
@@ -30,11 +31,45 @@ where
     }
 }
 
-#[derive(Default)]
-pub struct IdMaps {
+pub(super) struct IdMaps {
     pub field: IdMap<federated_graph::FieldId, FieldDefinitionId>,
     pub input_value: IdMap<federated_graph::InputValueDefinitionId, InputValueDefinitionId>,
-    pub enum_value: IdMap<federated_graph::EnumValueId, EnumValueId>,
+}
+
+impl IdMaps {
+    #[cfg(test)]
+    pub fn empty() -> Self {
+        IdMaps {
+            field: IdMap::default(),
+            input_value: IdMap::default(),
+        }
+    }
+
+    pub fn new(config: &Config) -> Self {
+        let mut idmaps = IdMaps {
+            field: Default::default(),
+            input_value: Default::default(),
+        };
+
+        for (i, field) in config.graph.fields.iter().enumerate() {
+            if is_inaccessible(&config.graph, field.composed_directives) {
+                idmaps.field.skip(federated_graph::FieldId(i))
+            }
+        }
+        for (i, input_value) in config.graph.input_value_definitions.iter().enumerate() {
+            if is_inaccessible(&config.graph, input_value.directives) {
+                idmaps.input_value.skip(federated_graph::InputValueDefinitionId(i))
+            }
+        }
+
+        idmaps
+    }
+}
+
+fn is_inaccessible(graph: &federated_graph::FederatedGraphV3, directives: federated_graph::Directives) -> bool {
+    graph[directives]
+        .iter()
+        .any(|directive| matches!(directive, federated_graph::Directive::Inaccessible))
 }
 
 impl<FgId, Id> IdMap<FgId, Id>
@@ -52,9 +87,13 @@ where
         self.skipped_ids.push(idx);
     }
 
+    pub(super) fn contains(&self, id: impl Into<FgId>) -> bool {
+        self.get(id).is_some()
+    }
+
     /// Map a federated_graph id to an engine_schema id taking the skipped IDs into account.
-    pub(super) fn get(&self, id: FgId) -> Option<Id> {
-        let idx = id.into();
+    pub(super) fn get(&self, id: impl Into<FgId>) -> Option<Id> {
+        let idx: usize = id.into().into();
         let skipped = self.skipped_ids.partition_point(|skipped| *skipped <= idx);
 
         if let Some(last) = self.skipped_ids[..skipped].last().copied() {

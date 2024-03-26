@@ -48,7 +48,7 @@ pub struct Response {
 
 impl Gateway {
     pub fn new(schema: Schema, engine_env: EngineEnv, env: GatewayEnv) -> Self {
-        let auth = AuthService::new_v2(schema.auth_config.clone().unwrap_or_default(), env.kv.clone());
+        let auth = AuthService::new_v2(schema.settings.auth_config.clone().unwrap_or_default(), env.kv.clone());
         let engine = Arc::new(Engine::new(schema, engine_env));
         Self { engine, env, auth }
     }

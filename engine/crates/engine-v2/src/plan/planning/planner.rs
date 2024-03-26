@@ -116,14 +116,7 @@ impl<'schema> Planner<'schema> {
     pub(super) fn plan_all_fields(&mut self) -> PlanningResult<()> {
         // The root plan is always introspection which also lets us handle operations like:
         // query { __typename }
-        let (introspection_subgraph_id, introspection_resolver_id) = self
-            .schema
-            .data_sources
-            .introspection
-            .metadata
-            .as_ref()
-            .map(|m| (m.subgraph_id, m.resolver_id))
-            .unwrap();
+        let introspection = self.schema.walker().introspection_metadata();
         let (introspection_selection_set, selection_set) =
             flatten_selection_sets(self.schema, &self.operation, vec![self.operation.root_selection_set_id])
                 .partition_fields(|flat_field| {
@@ -132,7 +125,7 @@ impl<'schema> Planner<'schema> {
                         self.schema
                             .walker()
                             .walk(definition_id)
-                            .is_resolvable_in(introspection_subgraph_id)
+                            .is_resolvable_in(introspection.subgraph_id)
                     } else {
                         true
                     }
@@ -141,7 +134,7 @@ impl<'schema> Planner<'schema> {
         if !introspection_selection_set.is_empty() {
             self.push_plan(
                 QueryPath::default(),
-                introspection_resolver_id,
+                introspection.resolver_id,
                 EntityType::Object(self.operation.root_object_id),
                 &introspection_selection_set,
             )?;
