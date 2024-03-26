@@ -1368,6 +1368,13 @@ impl OperationLimits {
     }
 }
 
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TrustedDocuments {
+    pub bypass_header_name: Option<String>,
+    pub bypass_header_value: Option<String>,
+}
+
 // TODO(@miaxos): Remove this to a separate create as we'll need to use it outside engine
 // for a LogicalQuery
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -1402,6 +1409,8 @@ pub struct Registry {
     pub is_federated: bool,
     #[serde(default)]
     pub operation_limits: OperationLimits,
+    #[serde(default)]
+    pub trusted_documents: Option<TrustedDocuments>,
 }
 
 impl Default for Registry {
@@ -1427,6 +1436,7 @@ impl Default for Registry {
             enable_codegen: false,
             is_federated: false,
             operation_limits: Default::default(),
+            trusted_documents: Default::default(),
         }
     }
 }
