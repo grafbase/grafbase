@@ -34,9 +34,7 @@ type Cheetah implements Animal
     favouriteFood: String @join__field(graph: FOREST)
     runSpeedKmh: Float @join__field(graph: MANGROVE)
     species: String!
-    species: String!
     swimSpeedKmh: Float @join__field(graph: MANGROVE)
-    swimSpeedKmh: Float
     topSpeed: Int! @join__field(graph: SAVANA)
     weightGrams: Int @join__field(graph: STEPPE)
 }
