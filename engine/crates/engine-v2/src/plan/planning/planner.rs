@@ -210,7 +210,7 @@ impl<'schema> Planner<'schema> {
                     resolver: resolver.name().to_string(),
                     field: field_requires
                         .into_iter()
-                        .map(|item| self.schema.walker().walk(item.field_id).name())
+                        .map(|item| self.schema.walker().walk(item.id).name())
                         .collect(),
                 });
             }

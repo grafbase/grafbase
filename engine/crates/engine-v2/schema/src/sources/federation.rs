@@ -1,6 +1,6 @@
 use url::Url;
 
-use crate::{FieldSet, Header, HeaderId, HeaderValue, SchemaWalker, StringId, SubgraphId, UrlId};
+use crate::{Header, HeaderId, HeaderValue, RequiredFieldSetId, SchemaWalker, StringId, SubgraphId, UrlId};
 
 #[derive(Default)]
 pub struct DataSource {
@@ -63,7 +63,7 @@ pub struct EntityResolver {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Key {
-    pub fields: FieldSet,
+    pub fields: RequiredFieldSetId,
 }
 
 pub type EntityResolverWalker<'a> = SchemaWalker<'a, &'a EntityResolver>;
@@ -97,7 +97,7 @@ impl<'a> std::fmt::Debug for EntityResolverWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FederationEntityResolver")
             .field("subgraph", &self.subgraph().name())
-            .field("key", &self.walk(&self.key.fields))
+            .field("key", &self.walk(&self.schema[self.key.fields]))
             .finish()
     }
 }

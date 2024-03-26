@@ -101,12 +101,32 @@ pub enum SchemaInputValue {
     BigInt(i64),
     Float(f64),
     Boolean(bool),
+    // sorted by input_value_definition_id
     InputObject(IdRange<SchemaInputObjectFieldValueId>),
     List(IdRange<SchemaInputValueId>),
 
     /// for JSON
+    // sorted by StringId
     Map(IdRange<SchemaInputKeyValueId>),
     U64(u64),
+}
+
+impl SchemaInputValue {
+    fn discriminant(&self) -> u8 {
+        match self {
+            SchemaInputValue::Null => 0,
+            SchemaInputValue::String(_) => 1,
+            SchemaInputValue::EnumValue(_) => 2,
+            SchemaInputValue::Int(_) => 3,
+            SchemaInputValue::BigInt(_) => 4,
+            SchemaInputValue::Float(_) => 5,
+            SchemaInputValue::Boolean(_) => 6,
+            SchemaInputValue::InputObject(_) => 7,
+            SchemaInputValue::List(_) => 8,
+            SchemaInputValue::Map(_) => 9,
+            SchemaInputValue::U64(_) => 10,
+        }
+    }
 }
 
 impl SchemaInputValues {
@@ -152,6 +172,7 @@ impl SchemaInputValues {
         (start..self.key_values.len()).into()
     }
 
+    #[cfg(test)]
     pub fn push_input_object(
         &mut self,
         fields: impl IntoIterator<Item = (InputValueDefinitionId, SchemaInputValue)>,
@@ -161,15 +182,12 @@ impl SchemaInputValues {
         (start..self.input_fields.len()).into()
     }
 
-    /// Reserve InputObjectFieldValue slots for an InputObject, avoiding the need for an intermediate
-    /// Vec to hold values as we need them to be contiguous.
-    pub fn reserve_input_object(&mut self, n: usize) -> IdRange<SchemaInputObjectFieldValueId> {
+    pub fn append_input_object(
+        &mut self,
+        fields: &mut Vec<(InputValueDefinitionId, SchemaInputValue)>,
+    ) -> IdRange<SchemaInputObjectFieldValueId> {
         let start = self.input_fields.len();
-        self.input_fields.reserve(n);
-        for _ in 0..n {
-            self.input_fields
-                .push((InputValueDefinitionId::from(0), SchemaInputValue::Null));
-        }
+        self.input_fields.append(fields);
         (start..self.input_fields.len()).into()
     }
 }

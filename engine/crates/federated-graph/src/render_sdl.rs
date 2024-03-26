@@ -614,6 +614,7 @@ impl Display for ValueDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let ValueDisplay(value, graph) = self;
         match value {
+            Value::Null => f.write_str("null"),
             Value::String(s) => write_quoted(f, &graph[*s]),
             Value::Int(i) => Display::fmt(i, f),
             Value::Float(val) => Display::fmt(val, f),

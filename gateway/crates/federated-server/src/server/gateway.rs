@@ -125,5 +125,12 @@ pub(super) fn generate(
         cache,
     };
 
-    Ok(Gateway::new(config.into_latest().into(), engine_env, gateway_env))
+    Ok(Gateway::new(
+        config
+            .into_latest()
+            .try_into()
+            .map_err(|err| crate::Error::InternalError(format!("Failed to generate engine Schema: {err}")))?,
+        engine_env,
+        gateway_env,
+    ))
 }

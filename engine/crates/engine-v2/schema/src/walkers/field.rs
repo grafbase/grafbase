@@ -2,8 +2,8 @@ use std::borrow::Cow;
 
 use super::{resolver::ResolverWalker, SchemaWalker};
 use crate::{
-    CacheConfig, Directive, FieldDefinitionId, FieldProvides, FieldResolver, FieldSet, InputValueDefinitionWalker,
-    TypeWalker,
+    CacheConfig, Directive, FieldDefinitionId, FieldProvides, FieldResolver, InputValueDefinitionWalker,
+    ProvidableFieldSet, RequiredFieldSet, TypeWalker,
 };
 
 pub type FieldDefinitionWalker<'a> = SchemaWalker<'a, FieldDefinitionId>;
@@ -20,12 +20,12 @@ impl<'a> FieldDefinitionWalker<'a> {
                       field_requires,
                   }| FieldResolverWalker {
                 resolver: self.walk(*resolver_id),
-                field_requires,
+                field_requires: &self.schema[*field_requires],
             },
         )
     }
 
-    pub fn provides_for(&self, resolver: &ResolverWalker<'_>) -> Option<Cow<'a, FieldSet>> {
+    pub fn provides_for(&self, resolver: &ResolverWalker<'_>) -> Option<Cow<'a, ProvidableFieldSet>> {
         let resolver_group = resolver.group();
         self.as_ref()
             .provides
@@ -36,7 +36,7 @@ impl<'a> FieldDefinitionWalker<'a> {
                 }
                 _ => None,
             })
-            .reduce(|a, b| Cow::Owned(FieldSet::merge(&a, &b)))
+            .reduce(|a, b| Cow::Owned(a.union(&b)))
     }
 
     pub fn arguments(self) -> impl ExactSizeIterator<Item = InputValueDefinitionWalker<'a>> + 'a {
@@ -44,7 +44,7 @@ impl<'a> FieldDefinitionWalker<'a> {
     }
 
     pub fn ty(self) -> TypeWalker<'a> {
-        self.walk(self.as_ref().r#type)
+        self.walk(self.as_ref().ty)
     }
 
     pub fn cache_config(&self) -> Option<CacheConfig> {
@@ -69,7 +69,7 @@ impl<'a> FieldDefinitionWalker<'a> {
 
 pub struct FieldResolverWalker<'a> {
     pub resolver: ResolverWalker<'a>,
-    pub field_requires: &'a FieldSet,
+    pub field_requires: &'a RequiredFieldSet,
 }
 
 impl<'a> std::fmt::Debug for FieldDefinitionWalker<'a> {

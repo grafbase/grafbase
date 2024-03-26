@@ -91,7 +91,7 @@ impl FederationGatewayBuilder {
 
         TestFederationGateway {
             gateway: Arc::new(Gateway::new(
-                config.into(),
+                config.try_into().unwrap(),
                 engine_v2::EngineEnv {
                     fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
                     cache: cache.clone(),

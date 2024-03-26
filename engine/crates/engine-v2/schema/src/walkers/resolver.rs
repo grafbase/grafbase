@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::{FieldDefinitionId, FieldSet, Names, Resolver, ResolverGroup, ResolverId, SchemaWalker};
+use crate::{FieldDefinitionId, Names, RequiredFieldSet, Resolver, ResolverGroup, ResolverId, SchemaWalker};
 
 pub type ResolverWalker<'a> = SchemaWalker<'a, ResolverId>;
 
@@ -27,10 +27,10 @@ impl<'a> ResolverWalker<'a> {
         &()
     }
 
-    pub fn requires(&self) -> Cow<'a, FieldSet> {
+    pub fn requires(&self) -> Cow<'a, RequiredFieldSet> {
         match self.as_ref() {
-            Resolver::FederationEntity(resolver) => Cow::Borrowed(&resolver.key.fields),
-            _ => Cow::Owned(FieldSet::default()),
+            Resolver::FederationEntity(resolver) => Cow::Borrowed(&self.schema[resolver.key.fields]),
+            _ => Cow::Owned(RequiredFieldSet::default()),
         }
     }
 

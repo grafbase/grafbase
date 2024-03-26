@@ -1,4 +1,4 @@
-use schema::{FieldDefinitionId, FieldSet, ResolverWalker};
+use schema::{FieldDefinitionId, ProvidableFieldSet, ResolverWalker};
 
 use crate::plan::PlanId;
 
@@ -11,14 +11,14 @@ pub(super) enum PlanningLogic<'schema> {
     CompatibleResolver {
         plan_id: PlanId,
         resolver: ResolverWalker<'schema>,
-        providable: FieldSet,
+        providable: ProvidableFieldSet,
     },
     /// Only an explicitly providable (@provide) field can be attributed. This is an optimization
     /// overriding the CompatibleResolver logic
     OnlyProvidable {
         plan_id: PlanId,
         resolver: ResolverWalker<'schema>,
-        providable: FieldSet,
+        providable: ProvidableFieldSet,
     },
 }
 
@@ -41,7 +41,7 @@ impl<'schema> PlanningLogic<'schema> {
                 providable,
                 plan_id,
             } => {
-                let providable = FieldSet::merge_opt(
+                let providable = ProvidableFieldSet::union_opt(
                     providable.get(field_id).map(|s| &s.subselection),
                     resolver.walk(field_id).provides_for(resolver).as_deref(),
                 );

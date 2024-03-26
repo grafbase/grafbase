@@ -2,8 +2,8 @@ use std::ops::{Deref, DerefMut};
 
 use crate::{
     builder::SchemaBuilder, Definition, EnumId, EnumValue, EnumValueId, FieldDefinition, FieldDefinitionId,
-    FieldResolver, IdRange, InputValueDefinition, InputValueDefinitionId, ObjectId, ResolverId, ScalarId, ScalarType,
-    Schema, SchemaInputValue, SchemaInputValueId, SchemaWalker, StringId, Type, Wrapping,
+    FieldResolver, IdRange, InputValueDefinition, InputValueDefinitionId, ObjectId, RequiredFieldSetId, ResolverId,
+    ScalarId, ScalarType, Schema, SchemaInputValue, SchemaInputValueId, SchemaWalker, StringId, Type, Wrapping,
 };
 use strum::EnumCount;
 
@@ -170,6 +170,7 @@ pub struct DirectiveLocation {
 
 pub(crate) struct IntrospectionSchemaBuilder<'a> {
     builder: &'a mut SchemaBuilder,
+    empty_requires_id: RequiredFieldSetId,
 }
 
 impl<'a> Deref for IntrospectionSchemaBuilder<'a> {
@@ -186,8 +187,12 @@ impl<'a> DerefMut for IntrospectionSchemaBuilder<'a> {
 }
 
 impl<'a> IntrospectionSchemaBuilder<'a> {
-    pub fn insert_introspection_fields(builder: &'a mut SchemaBuilder) {
-        Self { builder }.create_fields_and_insert_them()
+    pub fn insert_introspection_fields(builder: &'a mut SchemaBuilder, empty_requires_id: RequiredFieldSetId) {
+        Self {
+            builder,
+            empty_requires_id,
+        }
+        .create_fields_and_insert_them()
     }
 
     #[allow(non_snake_case)]
@@ -443,7 +448,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         );
 
         {
-            let default_value = Some(self.default_input_values.push_value(SchemaInputValue::Boolean(false)));
+            let default_value = Some(self.input_values.push_value(SchemaInputValue::Boolean(false)));
             self.set_field_arguments(
                 __type.id,
                 "fields",
@@ -511,6 +516,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         let resolver_id = ResolverId::from(self.resolvers.len());
         self.resolvers.push(crate::Resolver::Introspection(Resolver));
 
+        let field_resolver = FieldResolver {
+            resolver_id,
+            field_requires: self.empty_requires_id,
+        };
         /*
         __schema: __Schema!
         */
@@ -528,11 +537,8 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         }) else {
             panic!("Invariant broken: missing Query.__type or Query.__schema");
         };
-        self[__schema_field_id].r#type = field_type_id;
-        self[__schema_field_id].resolvers.push(FieldResolver {
-            resolver_id,
-            field_requires: Default::default(),
-        });
+        self[__schema_field_id].ty = field_type_id;
+        self[__schema_field_id].resolvers.push(field_resolver.clone());
 
         /*
         __type(name: String!): __Type
@@ -541,11 +547,8 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             inner: __type.id.into(),
             wrapping: Wrapping::nullable(),
         };
-        self[__type_field_id].resolvers.push(FieldResolver {
-            resolver_id,
-            field_requires: Default::default(),
-        });
-        self[__type_field_id].r#type = field_type_id;
+        self[__type_field_id].resolvers.push(field_resolver);
+        self[__type_field_id].ty = field_type_id;
 
         self.set_field_arguments(
             self.root_operation_types.query,
@@ -628,7 +631,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
 
             self.field_definitions.push(FieldDefinition {
                 name,
-                r#type,
+                ty: r#type,
                 composed_directives: IdRange::empty(),
                 resolvers: vec![],
                 provides: vec![],
@@ -696,7 +699,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             name,
             description: None,
             default_value,
-            r#type,
+            ty: r#type,
         });
         InputValueDefinitionId::from(self.input_value_definitions.len() - 1)
     }

@@ -6,13 +6,15 @@ macro_rules! id_newtype {
     ($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $($output:tt)*) => {
         impl std::fmt::Display for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                usize::from(*self).fmt(f)
+                let name = stringify!($name);
+                write!(f, "{}#{}", name.strip_suffix("Id").unwrap_or(name), usize::from(*self))
             }
         }
 
         impl std::fmt::Debug for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                usize::from(*self).fmt(f)
+                let name = stringify!($name);
+                write!(f, "{}#{}", name.strip_suffix("Id").unwrap_or(name), usize::from(*self))
             }
         }
 

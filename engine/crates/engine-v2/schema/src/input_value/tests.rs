@@ -13,7 +13,7 @@ fn create_schema() -> Schema {
         InputValueDefinition {
             name: StringId::from(4),
             description: None,
-            r#type: Type {
+            ty: Type {
                 inner: crate::Definition::Object(0.into()),
                 wrapping: Wrapping::new(false),
             }, // not used
@@ -22,7 +22,7 @@ fn create_schema() -> Schema {
         InputValueDefinition {
             name: StringId::from(5),
             description: None,
-            r#type: Type {
+            ty: Type {
                 inner: crate::Definition::Object(0.into()),
                 wrapping: Wrapping::new(false),
             }, // not used
@@ -60,12 +60,12 @@ fn create_schema() -> Schema {
         "list".to_string(),        // 15
         "object".to_string(),      // 16
     ]);
-    let list = schema.default_input_values.push_list(vec![
+    let list = schema.input_values.push_list(vec![
         SchemaInputValue::Null,
         SchemaInputValue::EnumValue(EnumValueId::from(0)),
         SchemaInputValue::Int(73),
     ]);
-    let input_fields = schema.default_input_values.push_input_object(vec![
+    let input_fields = schema.input_values.push_input_object(vec![
         (
             InputValueDefinitionId::from(0),
             SchemaInputValue::EnumValue(EnumValueId::from(1)),
@@ -75,7 +75,7 @@ fn create_schema() -> Schema {
             SchemaInputValue::String(StringId::from(1)),
         ),
     ]);
-    let nested_fields = schema.default_input_values.push_map(vec![
+    let nested_fields = schema.input_values.push_map(vec![
         (StringId::from(6), SchemaInputValue::Null),
         (StringId::from(7), SchemaInputValue::String(StringId::from(1))),
         (StringId::from(8), SchemaInputValue::EnumValue(EnumValueId::from(0))),
@@ -85,19 +85,19 @@ fn create_schema() -> Schema {
         (StringId::from(12), SchemaInputValue::Float(10.0)),
         (StringId::from(13), SchemaInputValue::Boolean(true)),
     ]);
-    let fields = schema.default_input_values.push_map(vec![
+    let fields = schema.input_values.push_map(vec![
         (StringId::from(14), SchemaInputValue::InputObject(input_fields)),
         (StringId::from(15), SchemaInputValue::List(list)),
         (StringId::from(16), SchemaInputValue::Map(nested_fields)),
     ]);
-    schema.default_input_values.push_value(SchemaInputValue::Map(fields));
+    schema.input_values.push_value(SchemaInputValue::Map(fields));
     schema
 }
 
 #[test]
 fn test_display() {
     let schema = create_schema();
-    let id = SchemaInputValueId::from(schema.default_input_values.values.len() - 1);
+    let id = SchemaInputValueId::from(schema.input_values.values.len() - 1);
     let walker = schema.walk(&schema[id]);
 
     insta::assert_snapshot!(walker, @r###"{inputObject:{fieldA:INACTIVE,fieldB:"some string value"},list:[null,ACTIVE,73],object:{null:null,string:"some string value",enumValue:ACTIVE,int:7,bigInt:8,u64:9,float:10,boolean:true}}"###);
@@ -106,7 +106,7 @@ fn test_display() {
 #[test]
 fn test_serialize() {
     let schema = create_schema();
-    let id = SchemaInputValueId::from(schema.default_input_values.values.len() - 1);
+    let id = SchemaInputValueId::from(schema.input_values.values.len() - 1);
     let walker = schema.walk(&schema[id]);
 
     insta::assert_json_snapshot!(walker, @r###"
@@ -137,7 +137,7 @@ fn test_serialize() {
 #[test]
 fn test_deserializer() {
     let schema = create_schema();
-    let id = SchemaInputValueId::from(schema.default_input_values.values.len() - 1);
+    let id = SchemaInputValueId::from(schema.input_values.values.len() - 1);
     let walker = schema.walk(&schema[id]);
 
     let value = serde_json::Value::deserialize(walker).unwrap();
@@ -170,102 +170,102 @@ fn test_deserializer() {
 #[test]
 fn test_input_value() {
     let schema = create_schema();
-    let id = SchemaInputValueId::from(schema.default_input_values.values.len() - 1);
+    let id = SchemaInputValueId::from(schema.input_values.values.len() - 1);
     let walker = schema.walk(&schema[id]);
     let input_value = InputValue::from(walker);
 
     insta::assert_debug_snapshot!(input_value, @r###"
-        Map(
-            [
-                (
-                    "inputObject",
-                    InputObject(
-                        [
-                            (
-                                0,
-                                EnumValue(
-                                    1,
-                                ),
-                            ),
-                            (
-                                1,
-                                String(
-                                    "some string value",
-                                ),
-                            ),
-                        ],
-                    ),
-                ),
-                (
-                    "list",
-                    List(
-                        [
-                            Null,
+    Map(
+        [
+            (
+                "inputObject",
+                InputObject(
+                    [
+                        (
+                            InputValueDefinition#0,
                             EnumValue(
-                                0,
+                                EnumValue#1,
                             ),
+                        ),
+                        (
+                            InputValueDefinition#1,
+                            String(
+                                "some string value",
+                            ),
+                        ),
+                    ],
+                ),
+            ),
+            (
+                "list",
+                List(
+                    [
+                        Null,
+                        EnumValue(
+                            EnumValue#0,
+                        ),
+                        Int(
+                            73,
+                        ),
+                    ],
+                ),
+            ),
+            (
+                "object",
+                Map(
+                    [
+                        (
+                            "null",
+                            Null,
+                        ),
+                        (
+                            "string",
+                            String(
+                                "some string value",
+                            ),
+                        ),
+                        (
+                            "enumValue",
+                            EnumValue(
+                                EnumValue#0,
+                            ),
+                        ),
+                        (
+                            "int",
                             Int(
-                                73,
+                                7,
                             ),
-                        ],
-                    ),
+                        ),
+                        (
+                            "bigInt",
+                            BigInt(
+                                8,
+                            ),
+                        ),
+                        (
+                            "u64",
+                            U64(
+                                9,
+                            ),
+                        ),
+                        (
+                            "float",
+                            Float(
+                                10.0,
+                            ),
+                        ),
+                        (
+                            "boolean",
+                            Boolean(
+                                true,
+                            ),
+                        ),
+                    ],
                 ),
-                (
-                    "object",
-                    Map(
-                        [
-                            (
-                                "null",
-                                Null,
-                            ),
-                            (
-                                "string",
-                                String(
-                                    "some string value",
-                                ),
-                            ),
-                            (
-                                "enumValue",
-                                EnumValue(
-                                    0,
-                                ),
-                            ),
-                            (
-                                "int",
-                                Int(
-                                    7,
-                                ),
-                            ),
-                            (
-                                "bigInt",
-                                BigInt(
-                                    8,
-                                ),
-                            ),
-                            (
-                                "u64",
-                                U64(
-                                    9,
-                                ),
-                            ),
-                            (
-                                "float",
-                                Float(
-                                    10.0,
-                                ),
-                            ),
-                            (
-                                "boolean",
-                                Boolean(
-                                    true,
-                                ),
-                            ),
-                        ],
-                    ),
-                ),
-            ],
-        )
-        "###);
+            ),
+        ],
+    )
+    "###);
 
     insta::assert_json_snapshot!(schema.walk(&input_value), @r###"
         {
@@ -295,7 +295,7 @@ fn test_input_value() {
 #[test]
 fn test_struct_deserializer() {
     let schema = create_schema();
-    let id = SchemaInputValueId::from(schema.default_input_values.values.len() - 1);
+    let id = SchemaInputValueId::from(schema.input_values.values.len() - 1);
     let walker = schema.walk(&schema[id]);
 
     #[allow(unused)]

@@ -1,7 +1,7 @@
-use crate::{FieldDefinitionId, FieldDefinitionWalker, FieldSet, FieldSetItem, SchemaWalker};
+use crate::{FieldDefinitionId, FieldDefinitionWalker, ProvidableField, ProvidableFieldSet, SchemaWalker};
 
-pub type FieldSetWalker<'a> = SchemaWalker<'a, &'a FieldSet>;
-pub type FieldSetItemWalker<'a> = SchemaWalker<'a, &'a FieldSetItem>;
+pub type FieldSetWalker<'a> = SchemaWalker<'a, &'a ProvidableFieldSet>;
+pub type FieldSetItemWalker<'a> = SchemaWalker<'a, &'a ProvidableField>;
 
 impl<'a> FieldSetWalker<'a> {
     pub fn is_emtpy(&self) -> bool {
@@ -9,17 +9,17 @@ impl<'a> FieldSetWalker<'a> {
     }
 
     pub fn items(self) -> impl Iterator<Item = FieldSetItemWalker<'a>> + 'a {
-        self.item.iter().map(move |item| self.walk(item))
+        self.item.into_iter().map(move |item| self.walk(item))
     }
 }
 
 impl<'a> FieldSetItemWalker<'a> {
     pub fn field_id(&self) -> FieldDefinitionId {
-        self.item.field_id
+        self.item.id
     }
 
     pub fn field(&self) -> FieldDefinitionWalker<'a> {
-        self.walk(self.item.field_id)
+        self.walk(self.item.id)
     }
 
     pub fn subselection(&self) -> FieldSetWalker<'a> {
@@ -27,7 +27,7 @@ impl<'a> FieldSetItemWalker<'a> {
     }
 }
 
-impl<'a> From<FieldSetItemWalker<'a>> for FieldSetItem {
+impl<'a> From<FieldSetItemWalker<'a>> for ProvidableField {
     fn from(walker: FieldSetItemWalker<'a>) -> Self {
         walker.item.clone()
     }
