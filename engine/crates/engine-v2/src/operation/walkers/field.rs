@@ -1,6 +1,6 @@
 use schema::FieldDefinitionWalker;
 
-use super::{OperationWalker, SelectionSetWalker};
+use super::{FieldArgumentsWalker, OperationWalker, SelectionSetWalker};
 use crate::{
     operation::{Field, FieldId, Location},
     response::ResponseKey,
@@ -28,8 +28,12 @@ impl<'a> FieldWalker<'a> {
         self.operation.response_keys.try_resolve(self.response_key()).unwrap()
     }
 
-    pub fn name_location(&self) -> Option<Location> {
-        self.as_ref().name_location()
+    pub fn arguments(self) -> FieldArgumentsWalker<'a> {
+        self.walk_with(self.as_ref().argument_ids(), ())
+    }
+
+    pub fn location(&self) -> Location {
+        self.as_ref().location()
     }
 
     pub fn alias(&self) -> Option<&'a str> {

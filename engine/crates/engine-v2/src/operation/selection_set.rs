@@ -95,6 +95,7 @@ pub enum Field {
         bound_response_key: BoundResponseKey,
         location: Location,
         field_definition_id: FieldDefinitionId,
+        // sorted by InputValueDefinitionId
         argument_ids: IdRange<FieldArgumentId>,
         selection_set_id: Option<SelectionSetId>,
     },
@@ -103,6 +104,9 @@ pub enum Field {
         edge: ResponseEdge,
         field_definition_id: FieldDefinitionId,
         selection_set_id: Option<SelectionSetId>,
+        // sorted by InputValueDefinitionId
+        argument_ids: IdRange<FieldArgumentId>,
+        petitioner_location: Location,
         /// During the planning we may add more extra fields than necessary. To prevent retrieving
         /// unnecessary data, only those marked as read are part of the operation.
         is_read: bool,
@@ -132,11 +136,13 @@ impl Field {
         }
     }
 
-    pub fn name_location(&self) -> Option<Location> {
+    pub fn location(&self) -> Location {
         match self {
-            Field::TypeName { location, .. } => Some(*location),
-            Field::Query { location, .. } => Some(*location),
-            Field::Extra { .. } => None,
+            Field::TypeName { location, .. } => *location,
+            Field::Query { location, .. } => *location,
+            Field::Extra {
+                petitioner_location, ..
+            } => *petitioner_location,
         }
     }
 
@@ -180,7 +186,7 @@ impl Field {
         match self {
             Field::TypeName { .. } => IdRange::empty(),
             Field::Query { argument_ids, .. } => *argument_ids,
-            Field::Extra { .. } => IdRange::empty(),
+            Field::Extra { argument_ids, .. } => *argument_ids,
         }
     }
 }

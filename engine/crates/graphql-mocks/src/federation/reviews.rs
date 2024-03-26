@@ -133,7 +133,7 @@ impl User {
 struct Product {
     upc: String,
     #[graphql(external)]
-    price: u32,
+    price: i32,
 }
 
 #[ComplexObject]
