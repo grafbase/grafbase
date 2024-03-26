@@ -1,6 +1,6 @@
 use futures_util::{stream::BoxStream, StreamExt};
 use runtime::fetch::GraphqlRequest;
-use schema::sources::federation::{SubgraphHeaderValueRef, SubgraphWalker};
+use schema::{sources::graphql::GraphqlEndpointWalker, HeaderValueRef};
 
 use super::{
     deserialize::ingest_deserializer_into_response, query::PreparedGraphqlOperation, variables::SubgraphVariables,
@@ -14,7 +14,7 @@ use crate::{
 
 pub(crate) struct GraphqlSubscriptionExecutor<'ctx> {
     ctx: ExecutionContext<'ctx>,
-    subgraph: SubgraphWalker<'ctx>,
+    subgraph: GraphqlEndpointWalker<'ctx>,
     operation: &'ctx PreparedGraphqlOperation,
     plan: PlanWalker<'ctx>,
 }
@@ -78,8 +78,8 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
                         Some((
                             header.name(),
                             match header.value() {
-                                SubgraphHeaderValueRef::Forward(name) => self.ctx.header(name)?,
-                                SubgraphHeaderValueRef::Static(value) => value,
+                                HeaderValueRef::Forward(name) => self.ctx.header(name)?,
+                                HeaderValueRef::Static(value) => value,
                             },
                         ))
                     })

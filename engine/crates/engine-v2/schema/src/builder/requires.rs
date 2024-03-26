@@ -14,20 +14,12 @@ use super::{
 pub(super) struct RequiredFieldSetBuffer(Vec<(SchemaLocation, federated_graph::FieldSet)>);
 
 impl RequiredFieldSetBuffer {
-    pub(super) fn empty_id(&self) -> RequiredFieldSetId {
-        RequiredFieldSetId::from(0)
-    }
-
     pub(super) fn push(
         &mut self,
         location: SchemaLocation,
         field_set: federated_graph::FieldSet,
     ) -> RequiredFieldSetId {
-        if field_set.is_empty() {
-            return self.empty_id();
-        }
-        // Reserving first required_field_sets to be empty.
-        let id = RequiredFieldSetId::from(1 + self.0.len());
+        let id = RequiredFieldSetId::from(self.0.len());
         self.0.push((location, field_set));
         id
     }
@@ -39,10 +31,10 @@ impl RequiredFieldSetBuffer {
             idmaps,
             coercer: InputValueCoercer::new(schema, &mut input_values),
             arguments: BTreeMap::new(),
+            next_id: 0,
         };
 
-        let mut required_field_sets = Vec::with_capacity(self.0.len() + 1);
-        required_field_sets.push(RequiredFieldSet::default());
+        let mut required_field_sets = Vec::with_capacity(self.0.len());
         for (location, field_set) in self.0 {
             let set =
                 converter
@@ -68,6 +60,7 @@ struct Converter<'a> {
     idmaps: &'a IdMaps,
     coercer: InputValueCoercer<'a>,
     arguments: BTreeMap<RequiredFieldArguments, RequiredFieldSetArgumentsId>,
+    next_id: u32,
 }
 
 impl<'a> Converter<'a> {
@@ -79,7 +72,7 @@ impl<'a> Converter<'a> {
     }
 
     fn convert_item(&mut self, item: federated_graph::FieldSetItem) -> Result<Option<RequiredField>, InputValueError> {
-        let Some(id) = self.idmaps.field.get(item.field) else {
+        let Some(field_id) = self.idmaps.field.get(item.field) else {
             return Ok(None);
         };
 
@@ -108,7 +101,12 @@ impl<'a> Converter<'a> {
         };
 
         Ok(Some(RequiredField {
-            id,
+            id: {
+                let id = self.next_id;
+                self.next_id += 1;
+                id.into()
+            },
+            definition_id: field_id,
             arguments_id,
             subselection: self.convert_set(item.subselection)?,
         }))

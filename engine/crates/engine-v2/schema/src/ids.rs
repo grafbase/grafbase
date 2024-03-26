@@ -1,7 +1,6 @@
 /// Isolating ids from the rest to prevent misuse of the NonZeroU32.
 /// They can only be created by From<usize>
 use crate::{
-    sources::federation::{DataSource as FederationDataSource, Subgraph},
     CacheConfig, Definition, Directive, Enum, EnumValue, FieldDefinition, Header, InputObject, InputValueDefinition,
     Interface, Object, RequiredFieldArguments, RequiredFieldSet, Resolver, Scalar, Schema, SchemaInputValues, Union,
 };
@@ -12,7 +11,7 @@ use url::Url;
 /// Currently, we use the two upper bits of the FieldId for the ResponseEdge in the engine.
 pub(crate) const MAX_ID: usize = (1 << 29) - 1;
 
-id_newtypes::U32! {
+id_newtypes::NonZeroU32! {
     Schema.definitions[DefinitionId] => Definition | max MAX_ID,
     Schema.directives[DirectiveId] => Directive | max MAX_ID,
     Schema.enum_values[EnumValueId] => EnumValue | max MAX_ID,
@@ -28,7 +27,6 @@ id_newtypes::U32! {
     Schema.unions[UnionId] => Union | max MAX_ID,
     Schema.urls[UrlId] => Url | max MAX_ID,
     Schema.strings[StringId] => String | max MAX_ID,
-    FederationDataSource.subgraphs[SubgraphId] => Subgraph | max MAX_ID,
     Schema.cache_configs[CacheConfigId] => CacheConfig | max MAX_ID,
     Schema.required_field_sets[RequiredFieldSetId] => RequiredFieldSet | max MAX_ID,
     Schema.required_fields_arguments[RequiredFieldSetArgumentsId] => RequiredFieldArguments | max MAX_ID,
@@ -42,5 +40,20 @@ where
 
     fn index(&self, index: T) -> &Self::Output {
         &self.input_values[index]
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SubgraphId(u8);
+
+impl std::fmt::Debug for SubgraphId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Subgraph#{}", self.0)
+    }
+}
+
+impl From<usize> for SubgraphId {
+    fn from(id: usize) -> Self {
+        Self(u8::try_from(id).expect("Too many subgraphs"))
     }
 }

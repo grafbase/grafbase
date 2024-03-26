@@ -16,7 +16,7 @@ pub struct VariableInputValues {
     key_values: Vec<(String, VariableInputValue)>,
 }
 
-id_newtypes::U32! {
+id_newtypes::NonZeroU32! {
     VariableInputValues.values[VariableInputValueId] => VariableInputValue,
     VariableInputValues.input_fields[VariableInputObjectFieldValueId] => (InputValueDefinitionId, VariableInputValue),
     VariableInputValues.key_values[VariableInputKeyValueId] => (String, VariableInputValue),

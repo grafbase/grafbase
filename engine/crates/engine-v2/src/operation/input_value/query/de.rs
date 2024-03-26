@@ -26,37 +26,30 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueWalker<'de> {
             QueryInputValue::Float(n) => visitor.visit_f64(*n),
             QueryInputValue::Boolean(b) => visitor.visit_bool(*b),
             QueryInputValue::List(ids) => {
-                let mut deserializer = SeqDeserializer::new(self.operation[*ids].iter().map(|value| self.walk(value)));
-                let seq = visitor.visit_seq(&mut deserializer)?;
-                deserializer.end()?;
-                Ok(seq)
+                SeqDeserializer::new(self.operation[*ids].iter().map(|value| self.walk(value))).deserialize_any(visitor)
             }
             QueryInputValue::InputObject(ids) => {
-                let mut deserializer = MapDeserializer::new(self.operation[*ids].iter().filter_map(
-                    |(input_value_definition_id, value)| {
-                        let value = self.walk(value);
-                        // https://spec.graphql.org/October2021/#sec-Input-Objects.Input-Coercion
-                        if value.is_undefined() {
-                            None
-                        } else {
-                            Some((self.schema_walker.walk(*input_value_definition_id).name(), value))
-                        }
-                    },
-                ));
-                let map = visitor.visit_map(&mut deserializer)?;
-                deserializer.end()?;
-                Ok(map)
-            }
-            QueryInputValue::Map(ids) => {
-                let mut deserializer = MapDeserializer::new(
+                MapDeserializer::new(
                     self.operation[*ids]
                         .iter()
-                        .map(|(key, value)| (key.as_str(), self.walk(value))),
-                );
-                let map = visitor.visit_map(&mut deserializer)?;
-                deserializer.end()?;
-                Ok(map)
+                        .filter_map(|(input_value_definition_id, value)| {
+                            let value = self.walk(value);
+                            // https://spec.graphql.org/October2021/#sec-Input-Objects.Input-Coercion
+                            if value.is_undefined() {
+                                None
+                            } else {
+                                Some((self.schema_walker.walk(*input_value_definition_id).name(), value))
+                            }
+                        }),
+                )
+                .deserialize_any(visitor)
             }
+            QueryInputValue::Map(ids) => MapDeserializer::new(
+                self.operation[*ids]
+                    .iter()
+                    .map(|(key, value)| (key.as_str(), self.walk(value))),
+            )
+            .deserialize_any(visitor),
             QueryInputValue::DefaultValue(id) => self
                 .schema_walker
                 .walk(&self.schema_walker.as_ref()[*id])

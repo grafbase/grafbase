@@ -4,7 +4,7 @@ use crate::sources::Plan;
 
 use super::{CollectedField, CollectedSelectionSet, ConditionalField, ConditionalSelectionSet, OperationPlan};
 
-id_newtypes::U16! {
+id_newtypes::NonZeroU16! {
     OperationPlan.plans[PlanId] => Plan,
     OperationPlan.conditional_fields[ConditionalFieldId] => ConditionalField,
     OperationPlan.conditional_selection_sets[ConditionalSelectionSetId] => ConditionalSelectionSet,

@@ -51,7 +51,7 @@ pub fn flatten_selection_sets(
                     flat_selection_set.fields.push(FlatField {
                         type_condition,
                         selection_set_path,
-                        field_id,
+                        id: field_id,
                     });
                 }
             }
@@ -144,17 +144,17 @@ pub(crate) struct FlatField {
     pub type_condition: Option<FlatTypeCondition>,
     // There is always at least one element.
     pub selection_set_path: Vec<SelectionSetId>,
-    pub field_id: FieldId,
+    pub id: FieldId,
 }
 
 impl Borrow<FieldId> for FlatField {
     fn borrow(&self) -> &FieldId {
-        &self.field_id
+        &self.id
     }
 }
 impl Borrow<FieldId> for &FlatField {
     fn borrow(&self) -> &FieldId {
-        &self.field_id
+        &self.id
     }
 }
 

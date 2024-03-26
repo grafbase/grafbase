@@ -25,30 +25,20 @@ impl<'de> serde::Deserializer<'de> for SchemaInputValueWalker<'de> {
             SchemaInputValue::Float(n) => visitor.visit_f64(*n),
             SchemaInputValue::Boolean(b) => visitor.visit_bool(*b),
             SchemaInputValue::List(ids) => {
-                let mut deserializer = SeqDeserializer::new(self.schema[*ids].iter().map(|value| self.walk(value)));
-                let seq = visitor.visit_seq(&mut deserializer)?;
-                deserializer.end()?;
-                Ok(seq)
+                SeqDeserializer::new(self.schema[*ids].iter().map(|value| self.walk(value))).deserialize_any(visitor)
             }
             SchemaInputValue::InputObject(ids) => {
-                let mut deserializer =
-                    MapDeserializer::new(self.schema[*ids].iter().map(|(input_value_definition_id, value)| {
-                        (self.walk(*input_value_definition_id).name(), self.walk(value))
-                    }));
-                let map = visitor.visit_map(&mut deserializer)?;
-                deserializer.end()?;
-                Ok(map)
+                MapDeserializer::new(self.schema[*ids].iter().map(|(input_value_definition_id, value)| {
+                    (self.walk(*input_value_definition_id).name(), self.walk(value))
+                }))
+                .deserialize_any(visitor)
             }
-            SchemaInputValue::Map(ids) => {
-                let mut deserializer = MapDeserializer::new(
-                    self.schema[*ids]
-                        .iter()
-                        .map(|(key, value)| (self.schema[*key].as_str(), self.walk(value))),
-                );
-                let map = visitor.visit_map(&mut deserializer)?;
-                deserializer.end()?;
-                Ok(map)
-            }
+            SchemaInputValue::Map(ids) => MapDeserializer::new(
+                self.schema[*ids]
+                    .iter()
+                    .map(|(key, value)| (self.schema[*key].as_str(), self.walk(value))),
+            )
+            .deserialize_any(visitor),
         }
     }
 

@@ -1,7 +1,7 @@
 use runtime::fetch::FetchRequest;
 use schema::{
-    sources::federation::{RootFieldResolverWalker, SubgraphHeaderValueRef, SubgraphWalker},
-    SubgraphId,
+    sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker, RootFieldResolverWalker},
+    HeaderValueRef,
 };
 use tracing::Instrument;
 
@@ -26,7 +26,7 @@ use grafbase_tracing::span::{subgraph::SubgraphRequestSpan, GqlRecorderSpanExt, 
 pub(crate) use subscription::*;
 
 pub(crate) struct GraphqlExecutionPlan {
-    subgraph_id: SubgraphId,
+    subgraph_id: GraphqlEndpointId,
     operation: PreparedGraphqlOperation,
 }
 
@@ -36,7 +36,7 @@ impl GraphqlExecutionPlan {
         operation_type: OperationType,
         plan: PlanWalker<'_>,
     ) -> PlanningResult<Plan> {
-        let subgraph = resolver.subgraph();
+        let subgraph = resolver.endpoint();
         let operation = query::PreparedGraphqlOperation::build(operation_type, plan)
             .map_err(|err| format!("Failed to build query: {err}"))?;
         Ok(Plan::GraphQL(Self {
@@ -86,7 +86,7 @@ impl GraphqlExecutionPlan {
 
 pub(crate) struct GraphqlExecutor<'ctx> {
     ctx: ExecutionContext<'ctx>,
-    subgraph: SubgraphWalker<'ctx>,
+    subgraph: GraphqlEndpointWalker<'ctx>,
     operation: &'ctx PreparedGraphqlOperation,
     json_body: String,
     response_boundary_item: ResponseBoundaryItem,
@@ -119,8 +119,8 @@ impl<'ctx> GraphqlExecutor<'ctx> {
                             Some((
                                 header.name(),
                                 match header.value() {
-                                    SubgraphHeaderValueRef::Forward(name) => self.ctx.header(name)?,
-                                    SubgraphHeaderValueRef::Static(value) => value,
+                                    HeaderValueRef::Forward(name) => self.ctx.header(name)?,
+                                    HeaderValueRef::Static(value) => value,
                                 },
                             ))
                         })

@@ -29,7 +29,7 @@ fn detect_introspection(selection_set: SelectionSetWalker<'_>) -> Result<(), Val
     for field in selection_set.fields() {
         if matches!(field.name(), "__schema" | "__type") {
             return Err(ValidationError::IntrospectionWhenDisabled {
-                location: field.name_location().expect("No extra field added yet"),
+                location: field.name_location().unwrap(),
             });
         }
     }

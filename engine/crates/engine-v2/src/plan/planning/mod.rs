@@ -24,8 +24,6 @@ pub enum PlanningError {
         missing: Vec<String>,
         query_path: Vec<String>,
     },
-    #[error("Could not satisfy required field named '{field}' for resolver named '{resolver}'")]
-    CouldNotSatisfyRequires { resolver: String, field: String },
     #[error("Internal error: {0}")]
     InternalError(String),
 }
@@ -38,7 +36,7 @@ impl From<PlanningError> for GraphqlError {
                 .into_iter()
                 .map(serde_json::Value::String)
                 .collect::<Vec<_>>(),
-            PlanningError::CouldNotSatisfyRequires { .. } | PlanningError::InternalError { .. } => vec![],
+            PlanningError::InternalError { .. } => vec![],
         };
 
         GraphqlError {

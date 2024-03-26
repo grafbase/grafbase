@@ -1,6 +1,7 @@
 use engine_parser::types::OperationType;
 use id_newtypes::IdRange;
-use schema::{FieldDefinitionId, FieldResolverWalker, ResolverId, Schema};
+use itertools::Itertools;
+use schema::{FieldDefinitionId, ResolverId, Schema};
 use std::{
     borrow::Cow,
     collections::{hash_map::Entry, HashMap, HashSet},
@@ -126,17 +127,23 @@ impl<'schema> Planner<'schema> {
     pub(super) fn plan_all_fields(&mut self) -> PlanningResult<()> {
         // The root plan is always introspection which also lets us handle operations like:
         // query { __typename }
-        let introspection_resolver_id = self.schema.introspection_resolver_id();
+        let (introspection_subgraph_id, introspection_resolver_id) = self
+            .schema
+            .data_sources
+            .introspection
+            .metadata
+            .as_ref()
+            .map(|m| (m.subgraph_id, m.resolver_id))
+            .unwrap();
         let (introspection_selection_set, selection_set) =
             flatten_selection_sets(self.schema, &self.operation, vec![self.operation.root_selection_set_id])
                 .partition_fields(|flat_field| {
-                    let field = &self.operation[flat_field.field_id];
+                    let field = &self.operation[flat_field.id];
                     if let Some(definition_id) = field.definition_id() {
                         self.schema
                             .walker()
                             .walk(definition_id)
-                            .resolvers()
-                            .any(|FieldResolverWalker { resolver, .. }| resolver.id() == introspection_resolver_id)
+                            .is_resolvable_in(introspection_subgraph_id)
                     } else {
                         true
                     }
@@ -177,7 +184,7 @@ impl<'schema> Planner<'schema> {
         let fields = std::mem::take(&mut selection_set.fields);
         let mut groups = self
             .walker()
-            .group_by_response_key_sorted_by_query_position(fields.into_iter().map(|field| field.field_id))
+            .group_by_response_key_sorted_by_query_position(fields.into_iter().map(|field| field.id))
             .into_values()
             .collect::<Vec<_>>();
         // Ordering groups by their position in the query, ensuring proper ordering of plans.
@@ -191,10 +198,7 @@ impl<'schema> Planner<'schema> {
                 .definition_id()
                 .expect("Introspection resolver should have taken metadata fields");
 
-            let FieldResolverWalker {
-                resolver,
-                field_requires,
-            } = self
+            let resolver = self
                 .schema
                 .walker()
                 .walk(definition_id)
@@ -205,16 +209,6 @@ impl<'schema> Planner<'schema> {
                     query_path: vec![],
                 })?;
 
-            if !field_requires.is_empty() {
-                return Err(PlanningError::CouldNotSatisfyRequires {
-                    resolver: resolver.name().to_string(),
-                    field: field_requires
-                        .into_iter()
-                        .map(|item| self.schema.walker().walk(item.id).name())
-                        .collect(),
-                });
-            }
-
             let plan_id = self.push_plan(
                 QueryPath::default(),
                 resolver.id(),
@@ -223,7 +217,7 @@ impl<'schema> Planner<'schema> {
                     field_ids
                         .into_iter()
                         .map(|id| FlatField {
-                            field_id: id,
+                            id,
                             type_condition: None,
                             selection_set_path: vec![selection_set.root_selection_set_ids[0]],
                         })
@@ -239,7 +233,7 @@ impl<'schema> Planner<'schema> {
         Ok(())
     }
 
-    /// After planning the indivial fields, we plan their selection sets if any.
+    /// After planning the individual fields, we plan their selection sets if any.
     fn plan_providable_subselections(
         &mut self,
         path: &QueryPath,
@@ -250,7 +244,7 @@ impl<'schema> Planner<'schema> {
         self.attribute_selection_set(providable, plan_id);
         let grouped = self
             .walker()
-            .group_by_response_key_sorted_by_query_position(providable.fields.iter().map(|field| field.field_id));
+            .group_by_response_key_sorted_by_query_position(providable.fields.iter().map(|field| field.id));
         for (key, field_ids) in grouped {
             let subselection_set_ids = field_ids
                 .iter()
@@ -262,7 +256,7 @@ impl<'schema> Planner<'schema> {
                     .expect("wouldn't have a subselection");
                 let flat_selection_set = flatten_selection_sets(self.schema, &self.operation, subselection_set_ids);
                 self.attribute_selection_sets(&flat_selection_set.root_selection_set_ids, plan_id);
-                self.recursive_plan_subselections(&path.child(key), &logic.child(definition_id), flat_selection_set)?;
+                self.plan_selection_set(&path.child(key), &logic.child(definition_id), flat_selection_set)?;
             }
         }
 
@@ -274,33 +268,36 @@ impl<'schema> Planner<'schema> {
     ///
     /// The traversal order is important. We want the deepest selection sets to be planned first
     /// ensuring that when we plan a boundary (~selection set with missing fields) we have a
-    /// complete picture of the providable fields. All of their fields and nested subselections
+    /// complete picture of the providable fields. All of their fields and nested sub-selections
     /// will be already attributed to plan.
-    fn recursive_plan_subselections(
+    fn plan_selection_set(
         &mut self,
         path: &QueryPath,
         logic: &PlanningLogic<'schema>,
         selection_set: FlatSelectionSet,
     ) -> PlanningResult<()> {
-        let (providable, missing) = {
+        let walker = self.walker();
+        let (obviously_providable, missing) = {
             selection_set.partition_fields(|field| {
-                self.operation[field.field_id]
-                    .definition_id()
-                    .map(|id| logic.is_providable(id))
+                if let Some(definition) = walker.walk(field.id).definition() {
+                    logic.is_providable(definition.id())
+                        && definition.requires(logic.resolver().subgraph_id()).is_empty()
+                } else {
                     // __typename is always providable if the selection_set could be
-                    .unwrap_or(true)
+                    true
+                }
             })
         };
 
-        self.plan_providable_subselections(path, logic, &providable)?;
+        self.plan_providable_subselections(path, logic, &obviously_providable)?;
 
         if !missing.is_empty() {
-            self.plan_boundary(path, logic, providable, missing)?;
+            self.plan_boundary_selection_set(path, logic, obviously_providable, missing)?;
         }
         Ok(())
     }
 
-    fn plan_boundary(
+    fn plan_boundary_selection_set(
         &mut self,
         query_path: &QueryPath,
         logic: &PlanningLogic<'schema>,
@@ -562,17 +559,15 @@ impl<'schema> Planner<'schema> {
         entity_type: EntityType,
         providable: &FlatSelectionSet,
     ) -> PlanningResult<PlanId> {
-        let id = PlanId::from(self.planned_resolvers.len());
-        tracing::debug!(
-            "Creating new plan {id} at '{}' for entity '{}': {}",
-            self.walker().walk(&path),
+        let plan_id = PlanId::from(self.planned_resolvers.len());
+        tracing::trace!(
+            "Creating {plan_id} ({}) for entity '{}': {}",
+            self.schema.walk(resolver_id).name(),
             self.schema.walk(schema::Definition::from(entity_type)).name(),
-            providable
-                .fields
-                .iter()
-                .map(|field| self.walker().walk(field.field_id).response_key_str())
-                .collect::<Vec<_>>()
-                .join(", ")
+            providable.fields.iter().format_with(", ", |field, f| f(&format_args!(
+                "{}",
+                self.walker().walk(field.id).response_key_str()
+            )))
         );
         self.planned_resolvers.push(PlannedResolver {
             resolver_id,
@@ -585,13 +580,9 @@ impl<'schema> Planner<'schema> {
             ids: providable.root_selection_set_ids.clone(),
             entity_type,
         });
-        let logic = PlanningLogic::CompatibleResolver {
-            plan_id: id,
-            resolver: self.schema.walk(resolver_id),
-            providable: Default::default(),
-        };
+        let logic = PlanningLogic::new(plan_id, self.schema.walk(resolver_id));
         self.plan_providable_subselections(&path, &logic, providable)?;
-        Ok(id)
+        Ok(plan_id)
     }
 
     pub fn new_boundary(&mut self, plan_id: PlanId) -> PlanningResult<TemporaryPlanBoundaryId> {
@@ -627,7 +618,7 @@ impl<'schema> Planner<'schema> {
 
     pub fn attribute_selection_set(&mut self, selection_set: &FlatSelectionSet, plan_id: PlanId) {
         for field in selection_set {
-            self.field_to_plan_id[usize::from(field.field_id)] = Some(plan_id);
+            self.field_to_plan_id[usize::from(field.id)] = Some(plan_id);
             // Ignoring the first selection_set which comes from the parent plan.
             for id in &field.selection_set_path {
                 self.selection_set_to_plan_id[usize::from(*id)].get_or_insert(plan_id);

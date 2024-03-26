@@ -2,6 +2,8 @@ use std::cmp::Ordering;
 
 use crate::FieldDefinitionId;
 
+pub(crate) static EMPTY: ProvidableFieldSet = ProvidableFieldSet(Vec::new());
+
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct ProvidableFieldSet(Vec<ProvidableField>);
 

@@ -1,9 +1,7 @@
-use std::borrow::Cow;
-
 use super::{resolver::ResolverWalker, SchemaWalker};
 use crate::{
-    CacheConfig, Directive, FieldDefinitionId, FieldProvides, FieldResolver, InputValueDefinitionWalker,
-    ProvidableFieldSet, RequiredFieldSet, TypeWalker,
+    CacheConfig, Directive, FieldDefinitionId, InputValueDefinitionWalker, ProvidableFieldSet, RequiredFieldSet,
+    SubgraphId, TypeWalker,
 };
 
 pub type FieldDefinitionWalker<'a> = SchemaWalker<'a, FieldDefinitionId>;
@@ -13,30 +11,41 @@ impl<'a> FieldDefinitionWalker<'a> {
         self.names.field(self.schema, self.item)
     }
 
-    pub fn resolvers(self) -> impl ExactSizeIterator<Item = FieldResolverWalker<'a>> + 'a {
-        self.schema[self.item].resolvers.iter().map(
-            move |FieldResolver {
-                      resolver_id,
-                      field_requires,
-                  }| FieldResolverWalker {
-                resolver: self.walk(*resolver_id),
-                field_requires: &self.schema[*field_requires],
-            },
-        )
+    pub fn resolvers(self) -> impl ExactSizeIterator<Item = ResolverWalker<'a>> {
+        self.schema[self.item].resolvers.iter().map(move |id| self.walk(*id))
     }
 
-    pub fn provides_for(&self, resolver: &ResolverWalker<'_>) -> Option<Cow<'a, ProvidableFieldSet>> {
-        let resolver_group = resolver.group();
+    pub fn is_resolvable_in(&self, subgraph_id: SubgraphId) -> bool {
+        let r = &self.as_ref().only_resolvable_in;
+        r.is_empty() || r.contains(&subgraph_id)
+    }
+
+    pub fn provides(&self, subgraph_id: SubgraphId) -> &'a ProvidableFieldSet {
         self.as_ref()
             .provides
             .iter()
-            .filter_map(|provide| match provide {
-                FieldProvides::IfResolverGroup { group, field_set } if Some(group) == resolver_group.as_ref() => {
-                    Some(Cow::Borrowed(field_set))
+            .find_map(|provide| {
+                if provide.subgraph_id == subgraph_id {
+                    Some(&provide.field_set)
+                } else {
+                    None
                 }
-                _ => None,
             })
-            .reduce(|a, b| Cow::Owned(a.union(&b)))
+            .unwrap_or(&crate::provides::EMPTY)
+    }
+
+    pub fn requires(&self, subgraph_id: SubgraphId) -> &'a RequiredFieldSet {
+        self.as_ref()
+            .requires
+            .iter()
+            .find_map(|requires| {
+                if requires.subgraph_id == subgraph_id {
+                    Some(&self.schema[requires.field_set_id])
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(&crate::requires::EMPTY)
     }
 
     pub fn arguments(self) -> impl ExactSizeIterator<Item = InputValueDefinitionWalker<'a>> + 'a {
@@ -78,6 +87,7 @@ impl<'a> std::fmt::Debug for FieldDefinitionWalker<'a> {
             .field("id", &usize::from(self.item))
             .field("name", &self.name())
             .field("type", &self.ty().to_string())
+            .field("resolvable_in", &self.as_ref().only_resolvable_in)
             .field("resolvers", &self.resolvers().collect::<Vec<_>>())
             .field(
                 "arguments",
