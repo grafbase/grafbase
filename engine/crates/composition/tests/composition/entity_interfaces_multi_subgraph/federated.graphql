@@ -55,6 +55,6 @@ interface Animal
 {
     favouriteFood: String @join__field(graph: FOREST)
     species: String!
-    swimSpeedKmh: Float
+    swimSpeedKmh: Float @join__field(graph: MANGROVE)
     weightGrams: Int @join__field(graph: STEPPE)
 }

@@ -70,13 +70,18 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
     for field in interface_def.fields() {
         fields.entry(field.name().id).or_insert_with(|| {
             let arguments = translate_arguments(field, ctx);
+            let resolvable_in = if field.is_part_of_key() {
+                Vec::new()
+            } else {
+                vec![federated::SubgraphId(interface_def.subgraph_id().idx())]
+            };
 
             ir::FieldIr {
                 parent_definition: federated::Definition::Interface(interface_id),
                 field_name: field.name().id,
                 field_type: field.r#type().id,
                 arguments,
-                resolvable_in: Vec::new(),
+                resolvable_in,
                 provides: Vec::new(),
                 requires: Vec::new(),
                 composed_directives: federated::NO_DIRECTIVES,

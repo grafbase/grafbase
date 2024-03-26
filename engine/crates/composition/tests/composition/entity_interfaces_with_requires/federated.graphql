@@ -43,5 +43,5 @@ interface Media
 {
     id: ID!
     reviews: [Review!]! @join__field(graph: B, requires: "title")
-    title: String!
+    title: String! @join__field(graph: A)
 }
