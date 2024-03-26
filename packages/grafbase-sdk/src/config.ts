@@ -9,6 +9,7 @@ import { FederatedGraph, Graph } from './grafbase-schema'
 import { OperationLimits, OperationLimitsParams } from './operation-limits'
 import { Experimental, ExperimentalParams } from './experimental'
 import { Introspection } from './introspection'
+import { TrustedDocuments, TrustedDocumentsParams } from './trusted-documents'
 
 /**
  * An interface to create the complete config definition.
@@ -18,6 +19,7 @@ export interface GraphConfigInput {
   auth?: AuthParams
   cache?: CacheParams
   operationLimits?: OperationLimitsParams
+  trustedDocuments?: TrustedDocumentsParams
   experimental?: ExperimentalParams
   introspection?: boolean
 }
@@ -34,6 +36,7 @@ export interface DeprecatedGraphConfigInput {
   cache?: CacheParams
   experimental?: ExperimentalParams
   introspection?: boolean
+  trustedDocuments?: TrustedDocumentsParams
 }
 
 /**
@@ -56,6 +59,7 @@ export class GraphConfig {
   private readonly operationLimits?: OperationLimits
   private readonly experimental?: Experimental
   private readonly introspection?: Introspection
+  private readonly trustedDocuments?: TrustedDocuments
 
   /** @deprecated use `graph` instead of `schema` */
   constructor(input: GraphConfigInput | DeprecatedGraphConfigInput) {
@@ -73,6 +77,10 @@ export class GraphConfig {
       this.cache = new GlobalCache(input.cache)
     }
 
+    if (input.trustedDocuments) {
+      this.trustedDocuments = new TrustedDocuments(input.trustedDocuments)
+    }
+
     if (input.experimental) {
       this.experimental = new Experimental(input.experimental)
     }
@@ -87,6 +95,9 @@ export class GraphConfig {
     const operationLimits = this.operationLimits
       ? this.operationLimits.toString()
       : ''
+    const trustedDocuments = this.trustedDocuments
+      ? this.trustedDocuments.toString()
+      : ''
     const cache = this.cache ? this.cache.toString() : ''
     const experimental = this.experimental ? this.experimental.toString() : ''
     const introspection = this.introspection
@@ -95,7 +106,7 @@ export class GraphConfig {
         ? new Introspection({ enabled: true })
         : ''
 
-    return `${experimental}${auth}${operationLimits}${cache}${introspection}${graph}`
+    return `${experimental}${auth}${operationLimits}${trustedDocuments}${cache}${introspection}${graph}`
   }
 }
 

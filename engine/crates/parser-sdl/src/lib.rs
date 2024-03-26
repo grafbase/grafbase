@@ -51,6 +51,7 @@ use rules::{
     resolver_directive::ResolverDirective,
     search_directive::SearchDirective,
     subgraph_directive::{SubgraphDirective, SubgraphDirectiveVisitor},
+    trusted_documents_directive::{TrustedDocumentsDirective, TrustedDocumentsVisitor},
     unique_directive::UniqueDirective,
     unique_fields::UniqueObjectFields,
     visitor::{visit, RuleError, Visitor, VisitorContext},
@@ -157,6 +158,7 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<OneOfDirective>()
         .with::<OpenApiDirective>()
         .with::<OperationLimitsDirective>()
+        .with::<TrustedDocumentsDirective>()
         .with::<OverrideDirective>()
         .with::<PostgresDirective>()
         .with::<ProvidesDirective>()
@@ -223,7 +225,8 @@ pub async fn parse<'a>(
 async fn parse_basic<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) -> Result<(), Error> {
     let mut connector_rules = rules::visitor::VisitorNil
         .with(GraphVisitor)
-        .with(OperationLimitsVisitor);
+        .with(OperationLimitsVisitor)
+        .with(TrustedDocumentsVisitor);
 
     visit(&mut connector_rules, ctx, schema);
 
