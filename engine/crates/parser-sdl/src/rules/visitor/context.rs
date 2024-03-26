@@ -129,6 +129,7 @@ impl<'a> VisitorContext<'a> {
     /// Finish the Registry
     pub(crate) fn finish(mut self) -> ParseResult<'static> {
         let mut registry = self.registry.take();
+
         if self.federation.is_some() {
             registry.enable_federation = true;
         } else {

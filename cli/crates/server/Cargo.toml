@@ -62,6 +62,7 @@ parser-sdl = { path = "../../../engine/crates/parser-sdl", features = [
   "local",
 ] }
 graphql-federated-graph = { path = "../../../engine/crates/federated-graph", features = ["from_sdl"] }
+graphql-schema-validation.workspace = { path = "../../../engine/crates/validation" }
 parser-openapi = { path = "../../../engine/crates/parser-openapi" }
 parser-graphql = { path = "../../../engine/crates/parser-graphql" }
 parser-postgres = { path = "../../../engine/crates/parser-postgres" }
