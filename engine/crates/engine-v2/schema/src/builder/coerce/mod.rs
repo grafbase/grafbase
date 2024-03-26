@@ -252,7 +252,7 @@ impl<'a> InputValueCoercer<'a> {
 
     fn type_name(&self, ty: Type) -> String {
         let mut s = String::new();
-        for _ in ty.wrapping.list_wrappings().rev() {
+        for _ in 0..ty.wrapping.list_wrappings().len() {
             s.push('[');
         }
         s.push_str(match ty.inner {

@@ -454,19 +454,19 @@ fn render_field_type(field_type: &Type, graph: &FederatedGraphV3) -> String {
     let name = &graph[name_id];
     let mut out = String::with_capacity(name.len());
 
-    for _ in field_type.wrapping.list_wrappings().rev() {
-        write!(out, "[").unwrap();
+    for _ in 0..field_type.wrapping.list_wrappings().len() {
+        out.push('[');
     }
 
     write!(out, "{name}").unwrap();
     if field_type.wrapping.inner_is_required() {
-        write!(out, "!").unwrap();
+        out.push('!');
     }
 
     for wrapping in field_type.wrapping.list_wrappings() {
-        write!(out, "]").unwrap();
+        out.push(']');
         if wrapping == wrapping::ListWrapping::RequiredList {
-            write!(out, "!").unwrap();
+            out.push('!');
         }
     }
 
