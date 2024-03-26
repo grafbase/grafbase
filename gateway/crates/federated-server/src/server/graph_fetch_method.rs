@@ -1,5 +1,6 @@
 use super::gateway::{self, GatewayWatcher};
 use crate::server::gateway::GatewayConfig;
+use licensing::{JWTClaims, License};
 use std::sync::Arc;
 use tokio::sync::watch;
 use tracing::Level;
@@ -20,6 +21,8 @@ pub enum GraphFetchMethod {
     FromLocal {
         /// Static federated graph from a file
         federated_schema: String,
+        /// A valid license for the gateway
+        license: Option<JWTClaims<License>>,
     },
 }
 
@@ -48,7 +51,22 @@ impl GraphFetchMethod {
                     Ok::<_, crate::Error>(())
                 });
             }
-            GraphFetchMethod::FromLocal { federated_schema } => {
+            GraphFetchMethod::FromLocal {
+                federated_schema,
+                license,
+            } => {
+                if let Some(license) = license.as_ref() {
+                    if licensing::in_grace_period(license) {
+                        let days_left = license.expires_at.expect("must be some").as_days();
+
+                        tracing::event!(
+                            Level::WARN,
+                            message = "the provided license is expiring soon, please acquire a new license to continue using the Grafbase Gateway",
+                            days_left = days_left,
+                        );
+                    }
+                }
+
                 tracing::event!(
                     Level::INFO,
                     message = "creating a new gateway",

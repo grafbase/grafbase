@@ -3,11 +3,14 @@
 #![deny(missing_docs)]
 
 mod error;
-pub mod keys;
 mod license;
 
 pub use error::Error;
-pub use license::{License, SignedLicense, SIGNING_ALGORITHM, VERIFICATION_ALGORITHM};
+pub use jwt_simple::{
+    algorithms::{ECDSAP256KeyPairLike, ECDSAP256PublicKeyLike, ES256KeyPair, ES256PublicKey},
+    claims::JWTClaims,
+};
+pub use license::{in_grace_period, License};
 
 /// The crate result type
 pub type Result<T> = std::result::Result<T, Error>;

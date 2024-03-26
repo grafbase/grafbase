@@ -6,6 +6,7 @@
 
 pub use crate::config::Config;
 pub use error::Error;
+use grafbase_tracing::otel::opentelemetry_sdk::trace::TracerProvider;
 pub use server::GraphFetchMethod;
 
 use std::net::SocketAddr;
@@ -20,8 +21,13 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// Starts the self-hosted Grafbase gateway. If started with a schema path, will
 /// not connect our API for changes in the schema and if started without, we poll
 /// the schema registry every ten second for changes.
-pub async fn start(listen_addr: Option<SocketAddr>, config: Config, graph: GraphFetchMethod) -> Result<()> {
-    server::serve(listen_addr, config, graph).await?;
+pub async fn start(
+    listen_addr: Option<SocketAddr>,
+    config: Config,
+    graph: GraphFetchMethod,
+    provider: Option<TracerProvider>,
+) -> Result<()> {
+    server::serve(listen_addr, config, graph, provider).await?;
 
     Ok(())
 }

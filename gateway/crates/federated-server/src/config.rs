@@ -37,16 +37,23 @@ pub struct Config {
     /// Telemetry settings
     pub telemetry: Option<TelemetryConfig>,
     /// Configuration for Trusted Documents.
-    #[serde(default)]
-    pub trusted_documents: TrustedDocumentsConfig,
+    pub trusted_documents: Option<TrustedDocumentsConfig>,
     /// Authentication configuration
     pub authentication: Option<AuthenticationConfig>,
+    /// Subscription configuration
+    pub subscriptions: Option<SubscriptionConfig>,
     /// Header bypass configuration
     #[serde(default)]
     pub headers: BTreeMap<AsciiString, HeaderValue>,
     /// Subgraph configuration
     #[serde(default)]
     pub subgraphs: BTreeMap<String, SubgraphConfig>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SubscriptionConfig {
+    pub enabled: bool,
 }
 
 #[derive(Debug, serde::Deserialize, Clone)]
@@ -596,15 +603,7 @@ mod tests {
 
         let config = toml::from_str::<Config>(input).unwrap();
 
-        insta::assert_debug_snapshot!(config.trusted_documents, @r###"
-        TrustedDocumentsConfig {
-            enabled: false,
-            bypass_header: BypassHeader {
-                bypass_header_name: None,
-                bypass_header_value: None,
-            },
-        }
-        "###)
+        insta::assert_debug_snapshot!(config.trusted_documents, @"None")
     }
 
     #[test]
@@ -617,13 +616,15 @@ mod tests {
         let config = toml::from_str::<Config>(input).unwrap();
 
         insta::assert_debug_snapshot!(config.trusted_documents, @r###"
-        TrustedDocumentsConfig {
-            enabled: true,
-            bypass_header: BypassHeader {
-                bypass_header_name: None,
-                bypass_header_value: None,
+        Some(
+            TrustedDocumentsConfig {
+                enabled: true,
+                bypass_header: BypassHeader {
+                    bypass_header_name: None,
+                    bypass_header_value: None,
+                },
             },
-        }
+        )
         "###)
     }
 
@@ -659,19 +660,21 @@ mod tests {
         let config = toml::from_str::<Config>(input).unwrap();
 
         insta::assert_debug_snapshot!(config.trusted_documents, @r###"
-        TrustedDocumentsConfig {
-            enabled: true,
-            bypass_header: BypassHeader {
-                bypass_header_name: Some(
-                    "my-header-name",
-                ),
-                bypass_header_value: Some(
-                    DynamicString(
-                        "my-secret-value",
+        Some(
+            TrustedDocumentsConfig {
+                enabled: true,
+                bypass_header: BypassHeader {
+                    bypass_header_name: Some(
+                        "my-header-name",
                     ),
-                ),
+                    bypass_header_value: Some(
+                        DynamicString(
+                            "my-secret-value",
+                        ),
+                    ),
+                },
             },
-        }
+        )
         "###);
     }
 
@@ -977,5 +980,17 @@ mod tests {
           |                 ^^^^^^^
         invalid value: string "WRONG", expected relative URL without a base
         "###);
+    }
+
+    #[test]
+    fn subscriptions() {
+        let input = indoc! {r#"
+            [subscriptions]    
+            enabled = true
+        "#};
+
+        let result: Config = toml::from_str(input).unwrap();
+
+        assert_eq!(Some(true), result.subscriptions.map(|s| s.enabled));
     }
 }

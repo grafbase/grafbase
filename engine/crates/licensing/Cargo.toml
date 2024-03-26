@@ -10,12 +10,11 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-base64.workspace = true
 chrono = { workspace = true, features = ["serde", "std", "clock"] }
-ring = "0.17.8"
+jwt-simple = { version = "0.12.9", default-features = false, features = ["pure-rust"] }
 serde.workspace = true
-serde_json.workspace = true
 thiserror.workspace = true
+ulid = { workspace = true, features = ["serde"] }
 
 [lints]
 workspace = true

@@ -160,6 +160,7 @@ graphql-cursor = { path = "engine/crates/graphql-cursor" }
 graphql-extensions = { path = "engine/crates/graphql-extensions" }
 graphql-mocks = { path = "engine/crates/graphql-mocks" }
 jwt-verifier = { path = "engine/crates/jwt-verifier" }
+licensing = { path = "engine/crates/licensing" }
 log = { path = "engine/crates/log" }
 parser-graphql = { path = "engine/crates/parser-graphql" }
 parser-openapi = { path = "engine/crates/parser-openapi" }

@@ -1,4 +1,3 @@
-mod bind;
 mod cors;
 mod csrf;
 mod engine;
@@ -9,9 +8,10 @@ mod graph_updater;
 mod state;
 mod trusted_documents_client;
 
+use grafbase_tracing::otel::opentelemetry_sdk::trace::TracerProvider;
 pub use graph_fetch_method::GraphFetchMethod;
 
-use crate::config::Config;
+use crate::config::{Config, TlsConfig};
 use axum::{routing::get, Router};
 use axum_server as _;
 use gateway_v2::local_server::{WebsocketAccepter, WebsocketService};
@@ -28,6 +28,7 @@ pub(super) async fn serve(
     listen_addr: Option<SocketAddr>,
     config: Config,
     fetch_method: GraphFetchMethod,
+    provider: Option<TracerProvider>,
 ) -> crate::Result<()> {
     let path = config.graph.path.as_deref().unwrap_or("/graphql");
 
@@ -41,7 +42,7 @@ pub(super) async fn serve(
         authentication: config.authentication,
         subgraphs: config.subgraphs,
         default_headers: config.headers,
-        trusted_documents: config.trusted_documents,
+        trusted_documents: config.trusted_documents.unwrap_or_default(),
     })?;
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
@@ -54,22 +55,58 @@ pub(super) async fn serve(
         None => CorsLayer::permissive(),
     };
 
-    let router = Router::new()
+    let state = ServerState::new(gateway, provider);
+
+    let mut router = Router::new()
         .route(path, get(engine::get).post(engine::post))
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .layer(cors)
-        .layer(grafbase_tracing::tower::layer());
+        .layer(grafbase_tracing::tower::layer())
+        .with_state(state);
 
-    bind::bind(bind::BindConfig {
-        addr,
-        path,
-        router,
-        gateway,
-        tls: config.tls,
-        telemetry: config.telemetry,
-        csrf: config.csrf.enabled,
-    })
-    .await?;
+    if config.csrf.enabled {
+        router = csrf::inject_layer(router);
+    }
+
+    bind(addr, path, router, config.tls).await?;
+
+    Ok(())
+}
+
+#[cfg(not(feature = "lambda"))]
+async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<TlsConfig>) -> crate::Result<()> {
+    let app = router.into_make_service();
+
+    match tls {
+        Some(ref tls) => {
+            tracing::info!("starting the Grafbase gateway at https://{addr}{path}");
+
+            let rustls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(&tls.certificate, &tls.key)
+                .await
+                .map_err(crate::Error::CertificateError)?;
+
+            axum_server::bind_rustls(addr, rustls_config)
+                .serve(app)
+                .await
+                .map_err(crate::Error::Server)?
+        }
+        None => {
+            tracing::info!("starting the Grafbase gateway in http://{addr}{path}");
+            axum_server::bind(addr).serve(app).await.map_err(crate::Error::Server)?
+        }
+    }
+
+    Ok(())
+}
+
+#[cfg(feature = "lambda")]
+async fn bind(_: SocketAddr, path: &str, router: Router<()>, _: Option<TlsConfig>) -> crate::Result<()> {
+    let app = tower::ServiceBuilder::new()
+        .layer(axum_aws_lambda::LambdaLayer::default())
+        .service(router);
+
+    tracing::info!("starting the Grafbase Lambda gateway in {path}");
+    lambda_http::run(app).await.expect("cannot start lambda http server");
 
     Ok(())
 }

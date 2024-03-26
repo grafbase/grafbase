@@ -1,128 +1,99 @@
-use base64::{engine::general_purpose, Engine};
-use chrono::{DateTime, Duration, Utc};
-use ring::{
-    rand::SecureRandom,
-    signature::{
-        EcdsaKeyPair, EcdsaSigningAlgorithm, EcdsaVerificationAlgorithm, UnparsedPublicKey, ECDSA_P256_SHA256_ASN1,
-        ECDSA_P256_SHA256_ASN1_SIGNING,
-    },
+use chrono::{DateTime, Utc};
+use jwt_simple::{
+    algorithms::{ECDSAP256KeyPairLike, ECDSAP256PublicKeyLike, ES256KeyPair, ES256PublicKey},
+    claims::{Claims, JWTClaims},
+    common::VerificationOptions,
 };
+use ulid::Ulid;
 
-/// The signing algorithm
-pub static SIGNING_ALGORITHM: &EcdsaSigningAlgorithm = &ECDSA_P256_SHA256_ASN1_SIGNING;
+static ISSUER: &str = "Grafbase";
 
-/// The verification algorithm
-pub static VERIFICATION_ALGORITHM: &EcdsaVerificationAlgorithm = &ECDSA_P256_SHA256_ASN1;
-
-const GRACE_PERIOD_DAYS: i64 = 30;
-const LICENSE_VALID_WEEKS: i64 = 52;
+const GRACE_PERIOD_DAYS: u64 = 30;
+const LICENSE_VALID_DAYS: i64 = 365;
 
 /// A Grafbase license for self-hosted gateway
-#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct License {
-    account_slug: String,
-    graph_slug: String,
-    expire_timestamp: DateTime<Utc>,
+    /// The ID of the graph this license is generated for
+    pub graph_id: Ulid,
+    /// The ID of the account this license is generated for
+    pub account_id: Ulid,
 }
 
 impl License {
-    /// Creates a new license
-    pub fn new(account_slug: String, graph_slug: String, contract_start: DateTime<Utc>) -> Self {
-        let expire_timestamp = contract_start + Duration::try_weeks(LICENSE_VALID_WEEKS).expect("must work");
-
-        Self {
-            account_slug,
-            graph_slug,
-            expire_timestamp,
-        }
-    }
-
-    /// The account of the license
-    pub fn account_slug(&self) -> &str {
-        &self.account_slug
-    }
-
-    /// The graph of the license
-    pub fn graph_slug(&self) -> &str {
-        &self.graph_slug
-    }
-
-    /// True, if the license is in a 30-day grace period.
-    pub fn in_grace_period(&self) -> bool {
-        (self.expire_timestamp - Utc::now()).num_days() < GRACE_PERIOD_DAYS
-    }
-
-    /// True, if the license is expired.
-    pub fn expired(&self) -> bool {
-        (self.expire_timestamp - Utc::now()).num_minutes() < 0
-    }
-
     /// Creates a signed license, which should be sent as a response for a license query.
-    pub fn sign(&self, private_key: &[u8], rng: &dyn SecureRandom) -> crate::Result<SignedLicense> {
-        let key_pair = EcdsaKeyPair::from_pkcs8(SIGNING_ALGORITHM, private_key, rng)
-            .map_err(|_| crate::Error::InvalidSigningKey)?;
+    pub fn sign(self, key_pair: &ES256KeyPair, contract_signing_date: DateTime<Utc>) -> crate::Result<String> {
+        let issued_at = Utc::now();
 
-        let license = serde_json::to_string(&self).expect("must be a valid license");
-        let license = general_purpose::STANDARD.encode(license.into_bytes());
+        let valid_for =
+            contract_signing_date - issued_at + chrono::Duration::try_days(LICENSE_VALID_DAYS).expect("must work");
 
-        let signature = key_pair
-            .sign(rng, license.as_bytes())
-            .map_err(|_| crate::Error::SigningFailed)?;
+        if valid_for.num_milliseconds().is_negative() {
+            return Err(crate::Error::SigningFailed);
+        }
 
-        let signature = general_purpose::STANDARD.encode(signature.as_ref());
+        let valid_for = u64::try_from(valid_for.num_milliseconds()).expect("has to be positive");
+        let valid_for = jwt_simple::prelude::Duration::from_millis(valid_for);
+        let claims = Claims::with_custom_claims(self, valid_for).with_issuer(ISSUER);
 
-        Ok(SignedLicense { license, signature })
+        key_pair.sign(claims).map_err(|_| crate::Error::SigningFailed)
+    }
+
+    /// Verify a licens with the public key
+    pub fn verify(token: &str, public_key: &ES256PublicKey) -> crate::Result<JWTClaims<License>> {
+        let options = VerificationOptions {
+            time_tolerance: Some(jwt_simple::prelude::Duration::from_days(GRACE_PERIOD_DAYS)),
+            ..Default::default()
+        };
+
+        public_key
+            .verify_token(token, Some(options))
+            .map_err(|_| crate::Error::InvalidLicense)
     }
 }
 
-/// A signed license. This should be stored in the license file.
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct SignedLicense {
-    license: String,
-    signature: String,
-}
-
-impl SignedLicense {
-    /// Verifies the license with a public key. If the signature validates, returns a license structure.
-    pub fn verify(&self, public_key: &[u8]) -> crate::Result<License> {
-        let signature = general_purpose::STANDARD
-            .decode(&self.signature)
-            .map_err(|_| crate::Error::InvalidLicense)?;
-
-        UnparsedPublicKey::new(VERIFICATION_ALGORITHM, public_key)
-            .verify(self.license.as_bytes(), &signature)
-            .map_err(|_| crate::Error::InvalidLicense)?;
-
-        let license = general_purpose::STANDARD
-            .decode(&self.license)
-            .map_err(|_| crate::Error::InvalidLicense)?;
-
-        let license: License = serde_json::from_slice(&license).map_err(|_| crate::Error::InvalidLicense)?;
-
-        if license.expired() {
-            return Err(crate::Error::InvalidLicense);
+/// True, if the given claim has an expiry date and it's in the grace period.
+pub fn in_grace_period(claims: &JWTClaims<License>) -> bool {
+    match claims.expires_at {
+        Some(expiry) => {
+            let days_left = expiry.as_secs() - u64::try_from(Utc::now().timestamp()).expect("must work");
+            days_left < (GRACE_PERIOD_DAYS * 24 * 60 * 60)
         }
-
-        Ok(license)
+        None => false,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use base64::{engine::general_purpose, Engine};
-    use chrono::{Duration, Utc};
-    use ring::rand::SystemRandom;
+    use std::{fs, path::Path, process::Command};
 
-    use crate::{keys, License};
+    use chrono::{Duration, Utc};
+    use jwt_simple::algorithms::{ES256KeyPair, ES256PublicKey};
+    use ulid::Ulid;
+
+    use crate::{license::in_grace_period, License};
 
     struct TestKey {
-        private_key: &'static [u8],
-        public_key: &'static [u8],
+        private_key: ES256KeyPair,
+        public_key: ES256PublicKey,
     }
 
     fn load_test_key() -> TestKey {
-        let private_key = keys::private_key();
-        let public_key = keys::public_key();
+        let output = Command::new(env!("CARGO"))
+            .arg("locate-project")
+            .arg("--workspace")
+            .arg("--message-format=plain")
+            .output()
+            .unwrap()
+            .stdout;
+
+        let cargo_path = Path::new(std::str::from_utf8(&output).unwrap().trim());
+        let workspace_dir = cargo_path.parent().unwrap().to_path_buf();
+        let private_key_path = workspace_dir.join("engine/crates/licensing/test/private-test-key.pem");
+
+        let private_key = fs::read_to_string(private_key_path).unwrap();
+        let private_key = ES256KeyPair::from_pem(&private_key).unwrap();
+        let public_key = private_key.public_key();
 
         TestKey {
             private_key,
@@ -135,62 +106,41 @@ mod tests {
         let key = load_test_key();
         let contract_start = Utc::now();
 
-        let rng = SystemRandom::new();
-        let license = License::new(String::from("account"), String::from("graph"), contract_start);
-        let signed = license.sign(key.private_key, &rng).unwrap();
-        let verified = signed.verify(key.public_key).unwrap();
+        let license = License {
+            graph_id: Ulid::new(),
+            account_id: Ulid::new(),
+        };
 
-        assert!(!verified.expired());
-        assert!(!verified.in_grace_period());
+        let token = license.clone().sign(&key.private_key, contract_start).unwrap();
+        let verified = License::verify(&token, &key.public_key).unwrap();
 
-        assert_eq!(license, verified);
+        assert!(!in_grace_period(&verified));
+
+        assert_eq!(license, verified.custom);
     }
 
     #[test]
     fn grace_period() {
         let key = load_test_key();
-        let contract_start = Utc::now() - Duration::try_weeks(51).unwrap();
+        let contract_start = Utc::now() - Duration::try_days(365).unwrap();
 
-        let rng = SystemRandom::new();
-        let license = License::new(String::from("account"), String::from("graph"), contract_start);
-        let signed = license.sign(key.private_key, &rng).unwrap();
-        let verified = signed.verify(key.public_key).unwrap();
+        let license = License {
+            graph_id: Ulid::new(),
+            account_id: Ulid::new(),
+        };
 
-        assert!(!verified.expired());
-        assert!(verified.in_grace_period());
+        let token = license.clone().sign(&key.private_key, contract_start).unwrap();
+        let verified = License::verify(&token, &key.public_key).unwrap();
 
-        assert_eq!(license, verified);
-    }
+        assert!(in_grace_period(&verified));
 
-    #[test]
-    fn expired() {
-        let key = load_test_key();
-        let contract_start = Utc::now() - Duration::try_weeks(53).unwrap();
-
-        let rng = SystemRandom::new();
-        let license = License::new(String::from("account"), String::from("graph"), contract_start);
-        let signed = license.sign(key.private_key, &rng).unwrap();
-        let error = signed.verify(key.public_key).unwrap_err();
-
-        assert_eq!(crate::Error::InvalidLicense, error);
+        assert_eq!(license, verified.custom);
     }
 
     #[test]
     fn tampered() {
         let key = load_test_key();
-        let contract_start = Utc::now();
-
-        let tampered = License::new(String::from("meow"), String::from("purr"), contract_start);
-        let tampered = serde_json::to_string(&tampered).expect("must be a valid license");
-        let tampered = general_purpose::STANDARD.encode(tampered.into_bytes());
-
-        let license = License::new(String::from("account"), String::from("graph"), contract_start);
-
-        let rng = SystemRandom::new();
-        let mut signed = license.sign(key.private_key, &rng).unwrap();
-        signed.license = tampered;
-
-        let error = signed.verify(key.public_key).unwrap_err();
+        let error = License::verify("false", &key.public_key).unwrap_err();
 
         assert_eq!(crate::Error::InvalidLicense, error);
     }
