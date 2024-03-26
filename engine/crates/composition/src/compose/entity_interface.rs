@@ -75,6 +75,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
             } else {
                 vec![federated::SubgraphId(interface_def.subgraph_id().idx())]
             };
+            let composed_directives = collect_composed_directives(std::iter::once(field.directives()), ctx);
 
             ir::FieldIr {
                 parent_definition: federated::Definition::Interface(interface_id),
@@ -84,7 +85,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                 resolvable_in,
                 provides: Vec::new(),
                 requires: Vec::new(),
-                composed_directives: federated::NO_DIRECTIVES,
+                composed_directives,
                 overrides: Vec::new(),
                 description: field.description().map(|description| ctx.insert_string(description.id)),
             }
@@ -143,6 +144,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                     .unwrap_or_default();
 
                 let overrides = super::object::collect_overrides(&[field], ctx);
+                let composed_directives = collect_composed_directives(std::iter::once(field.directives()), ctx);
 
                 let description = field.description().map(|description| ctx.insert_string(description.id));
 
@@ -154,7 +156,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                     resolvable_in: vec![graphql_federated_graph::SubgraphId(definition.subgraph_id().idx())],
                     provides,
                     requires,
-                    composed_directives: federated::NO_DIRECTIVES,
+                    composed_directives,
                     overrides,
                     description,
                 }
