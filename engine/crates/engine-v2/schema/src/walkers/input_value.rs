@@ -1,5 +1,5 @@
 use super::SchemaWalker;
-use crate::{InputValueDefinitionId, TypeWalker};
+use crate::{InputValueDefinitionId, TypeSystemDirectivesWalker, TypeWalker};
 
 pub type InputValueDefinitionWalker<'a> = SchemaWalker<'a, InputValueDefinitionId>;
 
@@ -10,6 +10,10 @@ impl<'a> InputValueDefinitionWalker<'a> {
 
     pub fn ty(&self) -> TypeWalker<'a> {
         self.walk(self.as_ref().ty)
+    }
+
+    pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
+        self.walk(self.as_ref().directives)
     }
 }
 

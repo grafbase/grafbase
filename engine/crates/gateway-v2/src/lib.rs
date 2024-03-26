@@ -56,7 +56,11 @@ impl Gateway {
     // The Engine is directly accessible
     pub async fn unchecked_engine_execute(&self, ctx: &impl RequestContext, request: Request) -> Response {
         let headers = build_request_headers(ctx.headers());
-        let response = self.engine.execute(request, headers).await.await;
+        let response = self
+            .engine
+            .execute(request, AccessToken::Anonymous, headers)
+            .await
+            .await;
         let has_errors = response.has_errors();
         match serde_json::to_vec(&response) {
             Ok(bytes) => Response {
@@ -71,7 +75,7 @@ impl Gateway {
     }
 
     pub async fn authorize(self: &Arc<Self>, headers: &http::HeaderMap) -> Option<Session> {
-        let token = Arc::new(self.auth.get_access_token(headers).await?);
+        let token = self.auth.get_access_token(headers).await?;
 
         Some(Session {
             gateway: Arc::clone(self),
@@ -102,13 +106,17 @@ impl Gateway {
 #[derive(Clone)]
 pub struct Session {
     gateway: Arc<Gateway>,
-    token: Arc<AccessToken>,
+    token: AccessToken,
     headers: RequestHeaders,
 }
 
 impl Session {
     pub async fn execute(self, ctx: &impl RequestContext, request: Request) -> Response {
-        let prepared_execution = self.gateway.engine.execute(request, self.headers).await;
+        let prepared_execution = self
+            .gateway
+            .engine
+            .execute(request, self.token.clone(), self.headers)
+            .await;
         let cached_response = match self.gateway.build_cache_key(&prepared_execution, &self.token) {
             Some(key) => {
                 self.gateway
@@ -155,7 +163,7 @@ impl Session {
     }
 
     pub fn execute_stream(self, request: engine::Request) -> impl Stream<Item = engine_v2::Response> {
-        self.gateway.engine.execute_stream(request, self.headers)
+        self.gateway.engine.execute_stream(request, self.token, self.headers)
     }
 }
 

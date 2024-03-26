@@ -18,6 +18,7 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
                     wrapping: Wrapping::new(false),
                 }, // not used
                 default_value: None,
+                directives: IdRange::empty(),
             },
             InputValueDefinition {
                 name: ctx.strings.get_or_insert("fieldB"),
@@ -27,18 +28,19 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
                     wrapping: Wrapping::new(false),
                 }, // not used
                 default_value: None,
+                directives: IdRange::empty(),
             },
         ]);
         graph.enum_value_definitions.extend([
             EnumValue {
                 name: ctx.strings.get_or_insert("ACTIVE"),
                 description: None,
-                composed_directives: Default::default(),
+                directives: Default::default(),
             },
             EnumValue {
                 name: ctx.strings.get_or_insert("INACTIVE"),
                 description: None,
-                composed_directives: Default::default(),
+                directives: Default::default(),
             },
         ]);
         let list = graph.input_values.push_list(vec![

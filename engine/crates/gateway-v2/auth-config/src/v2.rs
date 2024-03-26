@@ -9,6 +9,7 @@ pub struct AuthConfig {
 #[derive(Clone, Serialize, Deserialize)]
 pub enum AuthProviderConfig {
     Jwt(JwtConfig),
+    Anonymous,
 }
 
 /// Basically whatever Apollo 'JWT Authentication' is doing.

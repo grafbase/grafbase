@@ -1,8 +1,9 @@
 /// Isolating ids from the rest to prevent misuse of the NonZeroU32.
 /// They can only be created by From<usize>
 use crate::{
-    CacheConfig, Definition, Directive, Enum, EnumValue, FieldDefinition, Graph, Header, InputObject,
-    InputValueDefinition, Interface, Object, RequiredFieldArguments, RequiredFieldSet, Resolver, Scalar, Schema, Union,
+    CacheControl, Definition, Enum, EnumValue, FieldDefinition, Graph, Header, InputObject, InputValueDefinition,
+    Interface, Object, RequiredFieldArguments, RequiredFieldSet, RequiredScopes, Resolver, Scalar, Schema,
+    TypeSystemDirective, Union,
 };
 use url::Url;
 
@@ -12,8 +13,8 @@ use url::Url;
 pub(crate) const MAX_ID: usize = (1 << 29) - 1;
 
 id_newtypes::NonZeroU32! {
-    Graph.definitions[DefinitionId] => Definition | max(MAX_ID) | index(Schema.graph),
-    Graph.directive_definitions[DirectiveId] => Directive | max(MAX_ID) | index(Schema.graph),
+    Graph.type_definitions[DefinitionId] => Definition | max(MAX_ID) | index(Schema.graph),
+    Graph.type_system_directives[TypeSystemDirectiveId] => TypeSystemDirective | max(MAX_ID) | index(Schema.graph),
     Graph.enum_value_definitions[EnumValueId] => EnumValue | max(MAX_ID) | index(Schema.graph),
     Graph.enum_definitions[EnumId] => Enum | max(MAX_ID) | index(Schema.graph),
     Graph.field_definitions[FieldDefinitionId] => FieldDefinition | max(MAX_ID) | index(Schema.graph),
@@ -26,7 +27,8 @@ id_newtypes::NonZeroU32! {
     Graph.resolvers[ResolverId] => Resolver | max(MAX_ID) | index(Schema.graph),
     Graph.required_field_sets[RequiredFieldSetId] => RequiredFieldSet | max(MAX_ID) | index(Schema.graph),
     Graph.required_fields_arguments[RequiredFieldSetArgumentsId] => RequiredFieldArguments | max(MAX_ID) | index(Schema.graph),
-    Schema.cache_configs[CacheConfigId] => CacheConfig | max(MAX_ID),
+    Graph.cache_control[CacheControlId] => CacheControl | max(MAX_ID) | index(Schema.graph),
+    Graph.required_scopes[RequiredScopesId] => RequiredScopes | max(MAX_ID) | index(Schema.graph),
     Schema.headers[HeaderId] => Header | max(MAX_ID),
     Schema.urls[UrlId] => Url | max(MAX_ID),
     Schema.strings[StringId] => String | max(MAX_ID),

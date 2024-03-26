@@ -43,6 +43,10 @@ impl<'a> FieldWalker<'a> {
     pub fn selection_set(&self) -> Option<SelectionSetWalker<'a>> {
         self.as_ref().selection_set_id().map(|id| self.walk_with(id, ()))
     }
+
+    pub fn is_extra(&self) -> bool {
+        matches!(self.as_ref(), Field::Extra { .. })
+    }
 }
 
 impl<'a> std::fmt::Debug for FieldWalker<'a> {

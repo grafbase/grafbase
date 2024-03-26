@@ -1,5 +1,5 @@
 use super::{FieldDefinitionWalker, SchemaWalker};
-use crate::{CacheConfig, InterfaceWalker, ObjectId};
+use crate::{InterfaceWalker, ObjectId, TypeSystemDirectivesWalker};
 
 pub type ObjectWalker<'a> = SchemaWalker<'a, ObjectId>;
 
@@ -21,10 +21,8 @@ impl<'a> ObjectWalker<'a> {
             .map(move |id| self.walk(id))
     }
 
-    pub fn cache_config(&self) -> Option<CacheConfig> {
-        self.as_ref()
-            .cache_config
-            .map(|cache_config_id| self.schema[cache_config_id])
+    pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
+        self.walk(self.as_ref().directives)
     }
 }
 

@@ -14,6 +14,8 @@ const HYDRA_ADMIN_URL: &str = "http://127.0.0.1:4445";
 // Second provider
 pub const ISSUER_2: &str = "http://127.0.0.1:4454";
 const HYDRA_2_ADMIN_URL: &str = "http://127.0.0.1:4455";
+pub const READ_SCOPE: &str = "read";
+pub const WRITE_SCOPE: &str = "write";
 
 pub struct OryHydraOpenIDProvider {
     issuer: IssuerUrl,
@@ -51,8 +53,10 @@ impl OryHydraOpenIDProvider {
             &ory_client::models::OAuth2Client {
                 access_token_strategy: Some("jwt".into()),
                 grant_types: Some(vec!["client_credentials".into()]),
-                // whitelisted audiences
+                // Allowed audiences
                 audience: Some(vec![AUDIENCE.into(), OTHER_AUDIENCE.into()]),
+                // Allowed scopes
+                scope: Some(format!("{READ_SCOPE} {WRITE_SCOPE}")),
                 ..ory_client::models::OAuth2Client::new()
             },
         )

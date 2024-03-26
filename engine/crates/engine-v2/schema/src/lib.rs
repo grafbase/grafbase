@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 mod builder;
-mod cache;
+mod directives;
 mod ids;
 mod input_value;
 mod names;
@@ -11,7 +11,7 @@ mod resolver;
 pub mod sources;
 mod walkers;
 
-pub use cache::*;
+pub use directives::*;
 use id_newtypes::IdRange;
 pub use ids::*;
 pub use input_value::*;
@@ -34,7 +34,6 @@ pub struct Schema {
     urls: Vec<url::Url>,
     /// Headers we might want to send to a subgraph
     headers: Vec<Header>,
-    cache_configs: Vec<CacheConfig>,
 
     pub settings: Settings,
 }
@@ -52,9 +51,8 @@ pub struct Graph {
     pub description: Option<StringId>,
     pub root_operation_types: RootOperationTypes,
 
-    // All definitions sorted by their name (actual string)
-    definitions: Vec<Definition>,
-
+    // All type definitions sorted by their name (actual string)
+    type_definitions: Vec<Definition>,
     object_definitions: Vec<Object>,
     interface_definitions: Vec<Interface>,
     field_definitions: Vec<FieldDefinition>,
@@ -63,16 +61,17 @@ pub struct Graph {
     scalar_definitions: Vec<Scalar>,
     input_object_definitions: Vec<InputObject>,
     input_value_definitions: Vec<InputValueDefinition>,
-    directive_definitions: Vec<Directive>,
     enum_value_definitions: Vec<EnumValue>,
 
+    type_system_directives: Vec<TypeSystemDirective>,
     resolvers: Vec<Resolver>,
     required_field_sets: Vec<RequiredFieldSet>,
     // deduplicated
     required_fields_arguments: Vec<RequiredFieldArguments>,
-
     /// Default input values & directive arguments
     input_values: SchemaInputValues,
+    cache_control: Vec<CacheControl>,
+    required_scopes: Vec<RequiredScopes>,
 }
 
 pub struct DataSources {
@@ -83,9 +82,9 @@ pub struct DataSources {
 impl Schema {
     pub fn definition_by_name(&self, name: &str) -> Option<Definition> {
         self.graph
-            .definitions
+            .type_definitions
             .binary_search_by_key(&name, |definition| self.definition_name(*definition))
-            .map(|index| self.graph.definitions[index])
+            .map(|index| self.graph.type_definitions[index])
             .ok()
     }
 
@@ -136,9 +135,7 @@ pub struct Object {
     pub name: StringId,
     pub description: Option<StringId>,
     pub interfaces: Vec<InterfaceId>,
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: IdRange<DirectiveId>,
-    pub cache_config: Option<CacheConfigId>,
+    pub directives: IdRange<TypeSystemDirectiveId>,
     pub fields: IdRange<FieldDefinitionId>,
 }
 
@@ -156,11 +153,7 @@ pub struct FieldDefinition {
     pub provides: Vec<FieldProvides>,
     /// The arguments referenced by this range are sorted by their name (string)
     pub argument_ids: IdRange<InputValueDefinitionId>,
-
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: IdRange<DirectiveId>,
-
-    pub cache_config: Option<CacheConfigId>,
+    pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug)]
@@ -173,16 +166,6 @@ pub struct FieldProvides {
 pub struct FieldRequires {
     subgraph_id: SubgraphId,
     field_set_id: RequiredFieldSetId,
-}
-
-#[derive(Debug)]
-pub enum Directive {
-    Inaccessible,
-    Authenticated,
-    Policy(Vec<Vec<StringId>>),
-    RequiresScopes(Vec<Vec<StringId>>),
-    Deprecated { reason: Option<StringId> },
-    Other,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -263,10 +246,7 @@ pub struct Interface {
 
     /// sorted by ObjectId
     pub possible_types: Vec<ObjectId>,
-
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: IdRange<DirectiveId>,
-
+    pub directives: IdRange<TypeSystemDirectiveId>,
     pub fields: IdRange<FieldDefinitionId>,
 }
 
@@ -276,18 +256,14 @@ pub struct Enum {
     pub description: Option<StringId>,
     /// The enum values referenced by this range are sorted by their name (string)
     pub value_ids: IdRange<EnumValueId>,
-
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: IdRange<DirectiveId>,
+    pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug)]
 pub struct EnumValue {
     pub name: StringId,
     pub description: Option<StringId>,
-
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: IdRange<DirectiveId>,
+    pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug)]
@@ -296,9 +272,7 @@ pub struct Union {
     pub description: Option<StringId>,
     /// sorted by ObjectId
     pub possible_types: Vec<ObjectId>,
-
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: IdRange<DirectiveId>,
+    pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug)]
@@ -307,8 +281,7 @@ pub struct Scalar {
     pub ty: ScalarType,
     pub description: Option<StringId>,
     pub specified_by_url: Option<StringId>,
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: IdRange<DirectiveId>,
+    pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 /// Defines how a scalar should be represented and validated by the engine. They're almost the same
@@ -339,9 +312,7 @@ pub struct InputObject {
     pub description: Option<StringId>,
     /// The input fields referenced by this range are sorted by their name (string)
     pub input_field_ids: IdRange<InputValueDefinitionId>,
-
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: IdRange<DirectiveId>,
+    pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug, Clone)]
@@ -350,6 +321,7 @@ pub struct InputValueDefinition {
     pub description: Option<StringId>,
     pub ty: Type,
     pub default_value: Option<SchemaInputValueId>,
+    pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 impl Schema {
