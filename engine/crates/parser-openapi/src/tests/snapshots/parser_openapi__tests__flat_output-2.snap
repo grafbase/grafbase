@@ -2255,4 +2255,5 @@ Registry {
         root_fields: None,
         complexity: None,
     },
+    trusted_documents: None,
 }
