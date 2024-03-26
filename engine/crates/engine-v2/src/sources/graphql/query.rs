@@ -7,7 +7,7 @@ use engine_parser::types::OperationType;
 use itertools::Itertools;
 
 use crate::{
-    operation::{FieldArgumentWalker, QueryInputValueId, SelectionSetTypeWalker},
+    operation::{FieldArgumentsWalker, QueryInputValueId, SelectionSetTypeWalker},
     plan::{PlanField, PlanFragmentSpread, PlanInlineFragment, PlanSelection, PlanSelectionSet, PlanWalker},
 };
 
@@ -249,25 +249,30 @@ impl QueryBuilderContext {
         Ok(())
     }
 
-    fn write_arguments<'a>(
-        &mut self,
-        buffer: &mut Buffer,
-        arguments: impl ExactSizeIterator<Item = FieldArgumentWalker<'a>>,
-    ) -> Result<(), Error> {
-        if arguments.len() != 0 {
+    fn write_arguments(&mut self, buffer: &mut Buffer, arguments: FieldArgumentsWalker<'_>) -> Result<(), Error> {
+        if !arguments.is_empty() {
             write!(
                 buffer,
                 "({})",
-                arguments.format_with(", ", |arg, f| {
-                    let idx = self.variables.len();
-                    let var = self
-                        .variables
-                        .entry(arg.as_ref().input_value_id)
-                        .or_insert_with(|| QueryVariable {
-                            idx,
-                            ty: arg.ty().to_string(),
-                        });
-                    f(&format_args!("{}: ${VARIABLE_PREFIX}{}", arg.name(), var.idx))
+                arguments.into_iter().format_with(", ", |arg, f| {
+                    // If the argument is a constant value that would still be present after query
+                    // normalization we keep it to avoid adding unnecessary variables.
+                    if let Some(value) = arg
+                        .value()
+                        .and_then(|value| value.to_normalized_query_const_value_str())
+                    {
+                        f(&format_args!("{}: {}", arg.name(), value))
+                    } else {
+                        let idx = self.variables.len();
+                        let var = self
+                            .variables
+                            .entry(arg.as_ref().input_value_id)
+                            .or_insert_with(|| QueryVariable {
+                                idx,
+                                ty: arg.ty().to_string(),
+                            });
+                        f(&format_args!("{}: ${VARIABLE_PREFIX}{}", arg.name(), var.idx))
+                    }
                 })
             )?;
         }

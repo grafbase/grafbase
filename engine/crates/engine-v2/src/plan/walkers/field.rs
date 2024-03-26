@@ -1,7 +1,7 @@
 use schema::{FieldDefinitionId, FieldDefinitionWalker};
 
 use crate::{
-    operation::{FieldArgumentWalker, FieldId, QueryInputValueWalker},
+    operation::{FieldArgumentsWalker, FieldId, QueryInputValueWalker},
     response::{ResponseEdge, ResponseKey},
 };
 
@@ -31,15 +31,20 @@ impl<'a> PlanField<'a> {
             .unwrap()
     }
 
-    pub fn arguments(self) -> impl ExactSizeIterator<Item = FieldArgumentWalker<'a>> + 'a {
-        self.as_ref()
-            .argument_ids()
-            .map(move |id| self.bound_walk_with(id, self.operation_plan[id].input_value_definition_id))
+    pub fn arguments(self) -> FieldArgumentsWalker<'a> {
+        self.bound_walk_with(self.as_ref().argument_ids(), ())
     }
 
     pub fn get_arg_value_opt(&self, name: &str) -> Option<QueryInputValueWalker<'a>> {
         self.arguments()
+            .into_iter()
             .find_map(|arg| if arg.name() == name { arg.value() } else { None })
+    }
+
+    #[allow(unused)]
+    #[track_caller]
+    pub fn arguments_as<T: serde::Deserialize<'a>>(&self) -> T {
+        T::deserialize(self.arguments()).expect("Invalid argument type.")
     }
 
     #[track_caller]
@@ -73,7 +78,7 @@ impl<'a> std::fmt::Debug for PlanField<'a> {
         if response_key != name {
             fmt.field("key", &response_key);
         }
-        let arguments = self.arguments().collect::<Vec<_>>();
+        let arguments = self.arguments().into_iter().collect::<Vec<_>>();
         if !arguments.is_empty() {
             fmt.field("arguments", &arguments);
         }
