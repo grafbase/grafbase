@@ -51,7 +51,7 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
             let federated_graph = federated_graph.into_latest();
             (
                 graphql_federated_graph::render_federated_sdl(&federated_graph).unwrap(),
-                Some(graphql_federated_graph::render_api_sdl(&federated_graph).unwrap()),
+                Some(graphql_federated_graph::render_api_sdl(&federated_graph)),
             )
         }
         Err(diagnostics) => (
