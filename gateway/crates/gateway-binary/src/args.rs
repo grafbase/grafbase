@@ -1,15 +1,93 @@
-use std::{fs, net::SocketAddr, path::PathBuf};
+use std::{fmt, fs, net::SocketAddr, path::PathBuf};
 
 use anyhow::anyhow;
 use ascii::AsciiString;
-use clap::{ArgGroup, Parser};
+use clap::{ArgGroup, Parser, ValueEnum};
 use federated_server::GraphFetchMethod;
+use grafbase_tracing::otel::layer::BoxedLayer;
 use graph_ref::GraphRef;
+use tracing::Subscriber;
+use tracing_subscriber::{registry::LookupSpan, Layer};
 
-/// the tracing filter to be used when tracing is on
-const TRACE_LOG_FILTER: &str = "tower_http=debug,federated_dev=trace,engine_v2=debug,federated_server=trace";
-/// the tracing filter to be used when tracing is off
-const DEFAULT_LOG_FILTER: &str = "info";
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub(crate) enum LogLevel {
+    /// Completely disables logging
+    Off,
+    /// Only errors from Grafbase libraries
+    Error,
+    /// Warnings and errors from Grafbase libraries
+    Warn,
+    /// Info, warning and error messages from Grafbase libraries
+    Info,
+    /// Debug, info, warning and error messages from all dependencies
+    Debug,
+    /// Trace, debug, info, warning and error messages from all dependencies
+    Trace,
+}
+
+impl Default for LogLevel {
+    fn default() -> Self {
+        Self::Info
+    }
+}
+
+impl LogLevel {
+    pub(crate) fn as_filter_str(&self) -> &'static str {
+        match self {
+            LogLevel::Off => "off",
+            LogLevel::Error => "grafbase=error,off",
+            LogLevel::Warn => "grafbase=warn,off",
+            LogLevel::Info => "grafbase=info,off",
+            LogLevel::Debug => "debug",
+            LogLevel::Trace => "trace",
+        }
+    }
+}
+
+impl AsRef<str> for LogLevel {
+    fn as_ref(&self) -> &str {
+        match self {
+            LogLevel::Off => "off",
+            LogLevel::Error => "error",
+            LogLevel::Warn => "warn",
+            LogLevel::Info => "info",
+            LogLevel::Debug => "debug",
+            LogLevel::Trace => "trace",
+        }
+    }
+}
+
+impl fmt::Display for LogLevel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_ref())
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum LogStyle {
+    /// Standard text
+    Ascii,
+    /// Standard text with ANSI coloring
+    Ansi,
+    /// JSON objects
+    Json,
+}
+
+impl AsRef<str> for LogStyle {
+    fn as_ref(&self) -> &str {
+        match self {
+            LogStyle::Ascii => "ascii",
+            LogStyle::Ansi => "ansi",
+            LogStyle::Json => "json",
+        }
+    }
+}
+
+impl fmt::Display for LogStyle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_ref())
+    }
+}
 
 #[derive(Debug, Parser)]
 #[clap(
@@ -43,9 +121,12 @@ pub struct Args {
     /// to the Grafbase API.
     #[arg(long, short, env = "GRAFBASE_SCHEMA_PATH")]
     pub schema: Option<PathBuf>,
-    /// Set the tracing level
-    #[arg(short, long, default_value_t = 0)]
-    pub trace: u16,
+    /// Set the tracing and logging level
+    #[arg(long = "log", env = "GRAFBASE_LOG")]
+    pub log_level: Option<LogLevel>,
+    /// Set the style of log output
+    #[arg(long, env = "GRAFBASE_LOG_STYLE", default_value_t = LogStyle::Ascii)]
+    log_style: LogStyle,
 }
 
 impl Args {
@@ -78,12 +159,14 @@ impl Args {
         }
     }
 
-    /// Defines the log level for associated crates
-    pub fn log_filter(&self) -> &str {
-        if self.trace >= 1 {
-            TRACE_LOG_FILTER
-        } else {
-            DEFAULT_LOG_FILTER
+    pub fn log_format<S>(&self) -> BoxedLayer<S>
+    where
+        S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
+    {
+        match self.log_style {
+            LogStyle::Ascii => tracing_subscriber::fmt::layer().with_ansi(false).boxed(),
+            LogStyle::Ansi => tracing_subscriber::fmt::layer().with_ansi(true).boxed(),
+            LogStyle::Json => tracing_subscriber::fmt::layer().json().boxed(),
         }
     }
 }
