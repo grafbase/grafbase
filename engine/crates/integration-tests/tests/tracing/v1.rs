@@ -56,7 +56,8 @@ async fn query() {
             expect::field("gql.request.operation.type").with_value(&"query"),
         )
         .new_span(
-            resolver_span.clone()
+            resolver_span
+                .clone()
                 .with_field(expect::field("resolver.name").with_value(&"test")),
         )
         .enter(resolver_span.clone())
@@ -91,7 +92,8 @@ async fn query_named() {
     let (subscriber, handle) = subscriber::mock()
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
         .new_span(
-            graphql_span.clone()
+            graphql_span
+                .clone()
                 .with_field(expect::field("gql.document").with_value(&query)),
         )
         .enter(graphql_span.clone())
@@ -104,7 +106,8 @@ async fn query_named() {
             expect::field("gql.request.operation.type").with_value(&"query"),
         )
         .new_span(
-            resolver_span.clone()
+            resolver_span
+                .clone()
                 .with_field(expect::field("resolver.name").with_value(&"test")),
         )
         .enter(resolver_span.clone())
@@ -223,7 +226,8 @@ async fn resolvers_with_error() {
             expect::field("gql.request.operation.type").with_value(&"query"),
         )
         .new_span(
-            resolver_span_error.clone()
+            resolver_span_error
+                .clone()
                 .with_field(expect::field("resolver.name").with_value(&"error")),
         )
         .enter(resolver_span_error.clone())
