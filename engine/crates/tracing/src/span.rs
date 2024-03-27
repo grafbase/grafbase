@@ -7,6 +7,8 @@ pub(crate) const GRAFBASE_TARGET: &str = "grafbase";
 pub mod gql;
 /// Request span
 pub mod request;
+/// Resolver span
+pub mod resolver;
 /// Subgraph span
 pub mod subgraph;
 
@@ -40,4 +42,10 @@ pub struct GqlRequestAttributes<'a> {
 pub struct GqlResponseAttributes {
     /// If the GraphQL response contains errors, record it in the span
     pub has_errors: bool,
+}
+
+/// Extension trait to record resolver invocation attributes
+pub trait ResolverInvocationRecorderSpanExt {
+    /// Recording error details in the span
+    fn record_failure(&self, error: &str);
 }
