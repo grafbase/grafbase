@@ -1,11 +1,11 @@
 type B {
-    foo: String @requiresScopes(scopes: [["yolo",],["wolo",],["scope:1","scope:2",],])
+    foo: String
     id: ID!
 }
 
 type A {
     id: ID!
-    names: String! @requiresScopes(scopes: [["read:others","and:yetanother",],["read:profiles","read:profiles2","read:others",],])
+    names: String!
 }
 
 type User {

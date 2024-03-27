@@ -9,7 +9,7 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
 
     write_prelude(&mut sdl)?;
 
-    write_subgraphs_enum(&graph, &mut sdl)?;
+    write_subgraphs_enum(graph, &mut sdl)?;
 
     for scalar in &graph.scalars {
         let name = &graph[scalar.name];
@@ -23,7 +23,7 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
         }
 
         write!(sdl, "scalar {name}")?;
-        write_composed_directives(scalar.composed_directives, &graph, &mut sdl)?;
+        write_composed_directives(scalar.composed_directives, graph, &mut sdl)?;
         sdl.push('\n');
         sdl.push('\n');
     }
@@ -57,12 +57,12 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
             }
         }
 
-        write_composed_directives(object.composed_directives, &graph, &mut sdl)?;
+        write_composed_directives(object.composed_directives, graph, &mut sdl)?;
 
         if !object.keys.is_empty() {
             sdl.push('\n');
             for key in &object.keys {
-                let selection_set = FieldSetDisplay(&key.fields, &graph);
+                let selection_set = FieldSetDisplay(&key.fields, graph);
                 let subgraph_name = GraphEnumVariantName(&graph[graph[key.subgraph_id].name]);
                 if key.resolvable {
                     writeln!(
@@ -89,7 +89,7 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
             }
             sdl.push_str("{\n");
             for field in fields {
-                write_field(field, &graph, &mut sdl)?;
+                write_field(field, graph, &mut sdl)?;
             }
             writeln!(sdl, "}}\n")?;
         } else {
@@ -119,14 +119,14 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
             }
         }
 
-        write_composed_directives(interface.composed_directives, &graph, &mut sdl)?;
+        write_composed_directives(interface.composed_directives, graph, &mut sdl)?;
 
         if interface.keys.is_empty() {
             sdl.push_str(" {\n");
         } else {
             sdl.push('\n');
             for resolvable_key in &interface.keys {
-                let selection_set = FieldSetDisplay(&resolvable_key.fields, &graph);
+                let selection_set = FieldSetDisplay(&resolvable_key.fields, graph);
                 let subgraph_name = GraphEnumVariantName(&graph[graph[resolvable_key.subgraph_id].name]);
                 let is_interface_object = if resolvable_key.is_interface_object {
                     ", isInterfaceObject: true"
@@ -143,7 +143,7 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
         }
 
         for field in &graph[interface.fields.clone()] {
-            write_field(field, &graph, &mut sdl)?;
+            write_field(field, graph, &mut sdl)?;
         }
 
         writeln!(sdl, "}}\n")?;
@@ -157,7 +157,7 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
         }
 
         write!(sdl, "enum {enum_name}")?;
-        write_composed_directives(r#enum.composed_directives, &graph, &mut sdl)?;
+        write_composed_directives(r#enum.composed_directives, graph, &mut sdl)?;
         sdl.push_str(" {\n");
 
         for value in &graph[r#enum.values] {
@@ -168,7 +168,7 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
             }
 
             write!(sdl, "{INDENT}{value_name}")?;
-            write_composed_directives(value.composed_directives, &graph, &mut sdl)?;
+            write_composed_directives(value.composed_directives, graph, &mut sdl)?;
 
             sdl.push('\n');
         }
@@ -184,7 +184,7 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
         }
 
         write!(sdl, "union {union_name}")?;
-        write_composed_directives(union.composed_directives, &graph, &mut sdl)?;
+        write_composed_directives(union.composed_directives, graph, &mut sdl)?;
         sdl.push_str(" = ");
 
         let mut members = union.members.iter().peekable();
@@ -209,12 +209,12 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
 
         write!(sdl, "input {name}")?;
 
-        write_composed_directives(input_object.composed_directives, &graph, &mut sdl)?;
+        write_composed_directives(input_object.composed_directives, graph, &mut sdl)?;
 
         sdl.push_str(" {\n");
 
         for field in &graph[input_object.fields] {
-            write_input_field(field, &graph, &mut sdl)?;
+            write_input_field(field, graph, &mut sdl)?;
         }
 
         writeln!(sdl, "}}\n")?;

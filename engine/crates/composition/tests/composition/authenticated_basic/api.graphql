@@ -1,10 +1,10 @@
 type Car {
-    id: String! @authenticated
+    id: String!
     km: Int!
-    spareParts: [String!] @authenticated
+    spareParts: [String!]
     year: Int!
 }
 
 type Query {
-    cars: [Car!]! @authenticated
+    cars: [Car!]!
 }

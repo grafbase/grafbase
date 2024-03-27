@@ -171,19 +171,7 @@ impl Display for BareFieldSetDisplay<'_> {
     }
 }
 
-pub(super) fn write_enum_variant(
-    f: &mut fmt::Formatter<'_>,
-    enum_variant: &EnumValue,
-    graph: &FederatedGraphV3,
-) -> fmt::Result {
-    f.write_str(INDENT)?;
-    write_description(f, enum_variant.description, INDENT, graph)?;
-    f.write_str(&graph[enum_variant.value])?;
-    write_directives(f, enum_variant.composed_directives, graph)?;
-    f.write_char('\n')
-}
-
-fn write_description(
+pub(super) fn write_description(
     f: &mut fmt::Formatter<'_>,
     description: Option<StringId>,
     indent: &str,
@@ -193,65 +181,57 @@ fn write_description(
     Display::fmt(&Description(&graph[description], indent), f)
 }
 
-pub(crate) fn write_directives(
+pub(crate) fn write_composed_directive(
     f: &mut fmt::Formatter<'_>,
-    directives: Directives,
+    directive: &Directive,
     graph: &FederatedGraphV3,
 ) -> fmt::Result {
-    let directives = &graph[directives];
-
-    for directive in directives {
-        match directive {
-            Directive::Authenticated => write_directive(f, "authenticated", iter::empty(), graph)?,
-            Directive::Inaccessible => write_directive(f, "inaccessible", iter::empty(), graph)?,
-            Directive::Deprecated { reason } => write_directive(
-                f,
-                "deprecated",
-                reason.into_iter().map(|reason| ("reason", Value::String(*reason))),
-                graph,
-            )?,
-            Directive::Policy(policies) => write_directive(
-                f,
+    match directive {
+        Directive::Authenticated => write_directive(f, "authenticated", iter::empty(), graph),
+        Directive::Inaccessible => write_directive(f, "inaccessible", iter::empty(), graph),
+        Directive::Deprecated { reason } => write_directive(
+            f,
+            "deprecated",
+            reason.iter().map(|reason| ("reason", Value::String(*reason))),
+            graph,
+        ),
+        Directive::Policy(policies) => write_directive(
+            f,
+            "policies",
+            std::iter::once((
                 "policies",
-                std::iter::once((
-                    "policies",
-                    Value::List(
-                        policies
-                            .iter()
-                            .map(|p| Value::List(p.iter().map(|p| Value::String(*p)).collect()))
-                            .collect(),
-                    ),
-                )),
-                graph,
-            )?,
-            Directive::RequiresScopes(scopes) => write_directive(
-                f,
-                "requiresScopes",
-                std::iter::once((
-                    "scopes",
-                    Value::List(
-                        scopes
-                            .iter()
-                            .map(|p| Value::List(p.iter().map(|p| Value::String(*p)).collect()))
-                            .collect(),
-                    ),
-                )),
-                graph,
-            )?,
-            Directive::Other { name, arguments } => {
-                write_directive(
-                    f,
-                    &graph[*name],
-                    arguments
+                Value::List(
+                    policies
                         .iter()
-                        .map(|(name, value)| (graph[*name].as_str(), value.clone())),
-                    graph,
-                )?;
-            }
-        }
+                        .map(|p| Value::List(p.iter().map(|p| Value::String(*p)).collect()))
+                        .collect(),
+                ),
+            )),
+            graph,
+        ),
+        Directive::RequiresScopes(scopes) => write_directive(
+            f,
+            "requiresScopes",
+            std::iter::once((
+                "scopes",
+                Value::List(
+                    scopes
+                        .iter()
+                        .map(|p| Value::List(p.iter().map(|p| Value::String(*p)).collect()))
+                        .collect(),
+                ),
+            )),
+            graph,
+        ),
+        Directive::Other { name, arguments } => write_directive(
+            f,
+            &graph[*name],
+            arguments
+                .iter()
+                .map(|(name, value)| (graph[*name].as_str(), value.clone())),
+            graph,
+        ),
     }
-
-    Ok(())
 }
 
 fn write_directive<'a>(
