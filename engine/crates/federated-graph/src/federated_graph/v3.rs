@@ -43,6 +43,19 @@ pub struct FederatedGraphV3 {
     pub directives: Vec<Directive>,
 }
 
+impl FederatedGraphV3 {
+    pub(crate) fn directive_name(&self, directive: &Directive) -> &str {
+        match directive {
+            Directive::Authenticated => "authenticated",
+            Directive::Deprecated { .. } => "deprecated",
+            Directive::Inaccessible => "inaccessible",
+            Directive::Policy(_) => "policy",
+            Directive::RequiresScopes(_) => "requiresScopes",
+            Directive::Other { name, arguments: _ } => &self[*name],
+        }
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
 pub enum Directive {
     Authenticated,

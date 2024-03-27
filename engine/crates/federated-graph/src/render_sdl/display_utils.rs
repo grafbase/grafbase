@@ -1,5 +1,5 @@
 use crate::*;
-use std::fmt::{self, Display, Write};
+use std::{fmt::{self, Display, Write}, iter};
 
 pub(super) const INDENT: &str = "    ";
 
@@ -163,6 +163,74 @@ pub(super) fn write_enum_variant(
     graph: &FederatedGraphV3,
 ) -> fmt::Result {
     f.write_str(INDENT)?;
+    write_description(f, enum_variant.description, INDENT, graph)?;
     f.write_str(&graph[enum_variant.value])?;
+    write_directives(f, enum_variant.composed_directives, graph)?;
     f.write_char('\n')
+}
+
+fn write_description(
+    f: &mut fmt::Formatter<'_>,
+    description: Option<StringId>,
+    indent: &str,
+    graph: &FederatedGraphV3,
+) -> fmt::Result {
+    let Some(description) = description else { return Ok(()) };
+    Display::fmt(&Description(&graph[description], indent), f)
+}
+
+fn write_directives(f: &mut fmt::Formatter<'_>, directives: Directives, graph: &FederatedGraphV3) -> fmt::Result {
+    let directives = &graph[directives];
+
+    for directive in directives {
+        f.write_char(' ')?;
+
+        match directive {
+            Directive::Authenticated => write_directive(f, "authenticated", iter::empty(), graph),
+            Directive::Inaccessible => f.write_str("@inaccessible"),
+            Directive::Deprecated { reason } => write_directive_arguments(, , ),
+            Directive::Policy(_) => todo!(),
+            Directive::RequiresScopes(_) => todo!(),
+            Directive::Other { name, arguments } => {
+                f.write_str(name)?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn write_directive(
+    f: &mut fmt::Formatter<'_>,
+    arguments: impl Iterator<Item = (&str, &Value)>,
+    graph: &FederatedGraphV3,
+) -> fmt::Result {
+    
+}
+
+fn write_directive_arguments(
+    f: &mut fmt::Formatter<'_>,
+    arguments: impl Iterator<Item = (&str, &Value)>,
+    graph: &FederatedGraphV3,
+) -> fmt::Result {
+    let mut arguments = arguments.peekable();
+    if arguments.is_empty() {
+        return Ok(());
+    }
+
+    f.write_str("(")?;
+
+    let mut arguments = arguments.iter().peekable();
+
+    while let Some((name, value)) = arguments.next() {
+        let name = &graph[*name];
+        let value = ValueDisplay(value, graph);
+        write!(f, "{name}: {value}")?;
+
+        if arguments.peek().is_some() {
+            f.write_str(", ")?;
+        }
+    }
+
+    f.write_str(")")
 }
