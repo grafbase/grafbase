@@ -1,7 +1,6 @@
 use openidconnect::{
     core::{CoreClient, CoreProviderMetadata},
-    reqwest::async_http_client,
-    ClientId, ClientSecret, IssuerUrl,
+    ClientId, ClientSecret, EndpointMaybeSet, EndpointNotSet, EndpointSet, IssuerUrl,
 };
 use ory_client::apis::configuration::Configuration;
 
@@ -44,7 +43,9 @@ impl OryHydraOpenIDProvider {
         }
     }
 
-    pub async fn create_client(&self) -> CoreClient {
+    pub async fn create_client(
+        &self,
+    ) -> CoreClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet, EndpointMaybeSet> {
         let resp = ory_client::apis::o_auth2_api::create_o_auth2_client(
             &self.ory_config,
             &ory_client::models::OAuth2Client {
@@ -58,7 +59,8 @@ impl OryHydraOpenIDProvider {
         .await
         .unwrap();
 
-        let provider_metadata = CoreProviderMetadata::discover_async(self.issuer.clone(), async_http_client)
+        let reqwest_client = reqwest::Client::new();
+        let provider_metadata = CoreProviderMetadata::discover_async(self.issuer.clone(), &reqwest_client)
             .await
             .unwrap();
 
@@ -67,31 +69,95 @@ impl OryHydraOpenIDProvider {
             ClientId::new(resp.client_id.unwrap()),
             Some(ClientSecret::new(resp.client_secret.unwrap())),
         )
+        .set_token_uri(openidconnect::TokenUrl::from_url(self.issuer.url().clone()))
     }
 }
 
-#[async_trait::async_trait]
+#[allow(async_fn_in_trait)]
 pub trait CoreClientExt {
-    fn client(&self) -> &CoreClient;
-    async fn get_access_token_with_client_credentials(&self, extra_params: &[(&str, &str)]) -> String {
-        use openidconnect::OAuth2TokenResponse;
+    async fn get_access_token_with_client_credentials(&self, extra_params: &[(&str, &str)]) -> String;
+}
 
-        let mut request = self.client().exchange_client_credentials();
+/// Methods requiring a token endpoint.
+impl<
+        AC,
+        AD,
+        GC,
+        JE,
+        JS,
+        JT,
+        JU,
+        K,
+        P,
+        TE,
+        TR,
+        TT,
+        TIR,
+        RT,
+        TRE,
+        HasAuthUrl,
+        HasDeviceAuthUrl,
+        HasIntrospectionUrl,
+        HasRevocationUrl,
+        HasUserInfoUrl,
+    > CoreClientExt
+    for openidconnect::Client<
+        AC,
+        AD,
+        GC,
+        JE,
+        JS,
+        JT,
+        JU,
+        K,
+        P,
+        TE,
+        TR,
+        TT,
+        TIR,
+        RT,
+        TRE,
+        HasAuthUrl,
+        HasDeviceAuthUrl,
+        HasIntrospectionUrl,
+        HasRevocationUrl,
+        EndpointSet,
+        HasUserInfoUrl,
+    >
+where
+    AC: openidconnect::AdditionalClaims,
+    AD: openidconnect::AuthDisplay,
+    GC: openidconnect::GenderClaim,
+    JE: openidconnect::JweContentEncryptionAlgorithm<JT>,
+    JS: openidconnect::JwsSigningAlgorithm<JT>,
+    JT: openidconnect::JsonWebKeyType,
+    JU: openidconnect::JsonWebKeyUse,
+    K: openidconnect::JsonWebKey<JS, JT, JU>,
+    P: openidconnect::AuthPrompt,
+    TE: openidconnect::ErrorResponse + 'static,
+    TR: openidconnect::TokenResponse<AC, GC, JE, JS, JT, TT>,
+    TT: openidconnect::TokenType + 'static,
+    TIR: openidconnect::TokenIntrospectionResponse<TT>,
+    RT: openidconnect::RevocableToken,
+    TRE: openidconnect::ErrorResponse + 'static,
+    HasAuthUrl: openidconnect::EndpointState,
+    HasDeviceAuthUrl: openidconnect::EndpointState,
+    HasIntrospectionUrl: openidconnect::EndpointState,
+    HasRevocationUrl: openidconnect::EndpointState,
+    HasUserInfoUrl: openidconnect::EndpointState,
+{
+    async fn get_access_token_with_client_credentials(&self, extra_params: &[(&str, &str)]) -> String {
+        let reqwest_client = reqwest::Client::new();
+        let mut request = self.exchange_client_credentials();
         for (key, value) in extra_params {
             request = request.add_extra_param(*key, *value);
         }
         request
-            .request_async(openidconnect::reqwest::async_http_client)
+            .request_async(&reqwest_client)
             .await
             .unwrap()
             .access_token()
             .secret()
             .clone()
-    }
-}
-
-impl CoreClientExt for CoreClient {
-    fn client(&self) -> &CoreClient {
-        self
     }
 }
