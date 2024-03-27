@@ -1,0 +1,29 @@
+
+type Product {
+    description: String
+    id: ID!
+    name: String!
+    price: Float!
+}
+
+type User {
+    createdAt: String!
+    email: String!
+    id: ID!
+    updatedAt: String!
+    username: String!
+}
+
+type Query {
+    user: User
+}
+
+interface Node {
+    id: ID!
+}
+
+interface Timestamped {
+    createdAt: String!
+    id: ID!
+    updatedAt: String!
+}

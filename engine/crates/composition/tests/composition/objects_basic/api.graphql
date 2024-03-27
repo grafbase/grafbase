@@ -1,0 +1,11 @@
+
+type User {
+    age: Int
+    id: ID!
+    name: String!
+    score: Float
+}
+
+type Query {
+    user: User
+}

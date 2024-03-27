@@ -1,6 +1,10 @@
 use crate::*;
-use std::{fmt::{self, Display, Write}, iter};
+use std::{
+    fmt::{self, Display, Write},
+    iter,
+};
 
+pub(super) const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
 pub(super) const INDENT: &str = "    ";
 
 // Copy-pasted from async-graphql-value
@@ -58,6 +62,7 @@ pub(super) struct ValueDisplay<'a>(pub &'a crate::Value, pub &'a FederatedGraphV
 impl fmt::Display for ValueDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let ValueDisplay(value, graph) = self;
+
         match value {
             crate::Value::Null => f.write_str("null"),
             crate::Value::String(s) => write_quoted(f, &graph[*s]),
@@ -67,7 +72,16 @@ impl fmt::Display for ValueDisplay<'_> {
             crate::Value::Boolean(true) => f.write_str("true"),
             crate::Value::Boolean(false) => f.write_str("false"),
             crate::Value::Object(_) => todo!(),
-            crate::Value::List(_) => todo!(),
+            crate::Value::List(values) => {
+                f.write_char('[')?;
+
+                for value in values.as_ref() {
+                    ValueDisplay(value, graph).fmt(f)?;
+                    f.write_char(',')?;
+                }
+
+                f.write_char(']')
+            }
         }
     }
 }
@@ -179,20 +193,60 @@ fn write_description(
     Display::fmt(&Description(&graph[description], indent), f)
 }
 
-fn write_directives(f: &mut fmt::Formatter<'_>, directives: Directives, graph: &FederatedGraphV3) -> fmt::Result {
+pub(crate) fn write_directives(
+    f: &mut fmt::Formatter<'_>,
+    directives: Directives,
+    graph: &FederatedGraphV3,
+) -> fmt::Result {
     let directives = &graph[directives];
 
     for directive in directives {
-        f.write_char(' ')?;
-
         match directive {
-            Directive::Authenticated => write_directive(f, "authenticated", iter::empty(), graph),
-            Directive::Inaccessible => f.write_str("@inaccessible"),
-            Directive::Deprecated { reason } => write_directive_arguments(, , ),
-            Directive::Policy(_) => todo!(),
-            Directive::RequiresScopes(_) => todo!(),
+            Directive::Authenticated => write_directive(f, "authenticated", iter::empty(), graph)?,
+            Directive::Inaccessible => write_directive(f, "inaccessible", iter::empty(), graph)?,
+            Directive::Deprecated { reason } => write_directive(
+                f,
+                "deprecated",
+                reason.into_iter().map(|reason| ("reason", Value::String(*reason))),
+                graph,
+            )?,
+            Directive::Policy(policies) => write_directive(
+                f,
+                "policies",
+                std::iter::once((
+                    "policies",
+                    Value::List(
+                        policies
+                            .iter()
+                            .map(|p| Value::List(p.iter().map(|p| Value::String(*p)).collect()))
+                            .collect(),
+                    ),
+                )),
+                graph,
+            )?,
+            Directive::RequiresScopes(scopes) => write_directive(
+                f,
+                "requiresScopes",
+                std::iter::once((
+                    "scopes",
+                    Value::List(
+                        scopes
+                            .iter()
+                            .map(|p| Value::List(p.iter().map(|p| Value::String(*p)).collect()))
+                            .collect(),
+                    ),
+                )),
+                graph,
+            )?,
             Directive::Other { name, arguments } => {
-                f.write_str(name)?;
+                write_directive(
+                    f,
+                    &graph[*name],
+                    arguments
+                        .iter()
+                        .map(|(name, value)| (graph[*name].as_str(), value.clone())),
+                    graph,
+                )?;
             }
         }
     }
@@ -200,31 +254,32 @@ fn write_directives(f: &mut fmt::Formatter<'_>, directives: Directives, graph: &
     Ok(())
 }
 
-fn write_directive(
+fn write_directive<'a>(
     f: &mut fmt::Formatter<'_>,
-    arguments: impl Iterator<Item = (&str, &Value)>,
+    directive_name: &str,
+    arguments: impl Iterator<Item = (&'a str, Value)>,
     graph: &FederatedGraphV3,
 ) -> fmt::Result {
-    
+    f.write_str(" @")?;
+    f.write_str(directive_name)?;
+    write_directive_arguments(f, arguments, graph)
 }
 
-fn write_directive_arguments(
+fn write_directive_arguments<'a>(
     f: &mut fmt::Formatter<'_>,
-    arguments: impl Iterator<Item = (&str, &Value)>,
+    arguments: impl Iterator<Item = (&'a str, Value)>,
     graph: &FederatedGraphV3,
 ) -> fmt::Result {
     let mut arguments = arguments.peekable();
-    if arguments.is_empty() {
+
+    if arguments.peek().is_none() {
         return Ok(());
     }
 
     f.write_str("(")?;
 
-    let mut arguments = arguments.iter().peekable();
-
     while let Some((name, value)) = arguments.next() {
-        let name = &graph[*name];
-        let value = ValueDisplay(value, graph);
+        let value = ValueDisplay(&value, graph);
         write!(f, "{name}: {value}")?;
 
         if arguments.peek().is_some() {
@@ -233,4 +288,35 @@ fn write_directive_arguments(
     }
 
     f.write_str(")")
+}
+
+pub(super) fn render_field_type(field_type: &Type, graph: &FederatedGraphV3) -> String {
+    let name_id = match field_type.definition {
+        Definition::Scalar(scalar_id) => graph[scalar_id].name,
+        Definition::Object(object_id) => graph[object_id].name,
+        Definition::Interface(interface_id) => graph[interface_id].name,
+        Definition::Union(union_id) => graph[union_id].name,
+        Definition::Enum(enum_id) => graph[enum_id].name,
+        Definition::InputObject(input_object_id) => graph[input_object_id].name,
+    };
+    let name = &graph[name_id];
+    let mut out = String::with_capacity(name.len());
+
+    for _ in 0..field_type.wrapping.list_wrappings().len() {
+        out.push('[');
+    }
+
+    write!(out, "{name}").unwrap();
+    if field_type.wrapping.inner_is_required() {
+        out.push('!');
+    }
+
+    for wrapping in field_type.wrapping.list_wrappings() {
+        out.push(']');
+        if wrapping == wrapping::ListWrapping::RequiredList {
+            out.push('!');
+        }
+    }
+
+    out
 }

@@ -1,0 +1,18 @@
+
+type RollerCoaster {
+    height: Float!
+    id: ID!
+    manufacturer: String!
+    name: String!
+    speed: Float!
+}
+
+type HistoricalData {
+    incidents: Int!
+    visitors: Int!
+    year: Int!
+}
+
+type Query {
+    getRollerCoaster: RollerCoaster
+}

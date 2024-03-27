@@ -1,5 +1,53 @@
+
 enum ObserverType {
     AMATEUR
-    SEMIPROFESSIONAL
+    SEMIPROFESSIONAL @deprecated(reason: "No such thing as semiprofessionals")
     PROFESSIONAL
 }
+
+type Bird @fieldMarks(plumage: "juvenile") @fieldMarks(plumage: "adult") {
+    id: ID!
+    location: String! @tag(name: "locationService") @tag(name: "b") @tag(name: "a")
+    name: String!
+    notes: String @deprecated(reason: "Field is obsolete due to new data model.")
+    observedAt: DateTime! @deprecated(reason: "Use UNIX timestamps instead as customary in bird watching")
+    species: String!
+}
+
+type BirdObservation {
+    bird: Bird!
+    observationID: ID!
+    observerDetails: ObserverDetails!
+    timeOfObservation: DateTime!
+}
+
+type ObserverDetails {
+    membershipNumber: String
+    name: String!
+    observerType: ObserverType!
+}
+
+type BirdSighting @deprecated(reason: "we haven't seen any birds in a while :(") {
+    bird: Bird! @pelagic
+    observer: String!
+    sightingID: ID!
+    weatherConditions: String
+}
+
+type Query {
+    bird: Bird
+    birdObservation: BirdObservation
+    birdObservations: [BirdObservation]
+    birdSighting: BirdSighting
+    birdSightings: [BirdSighting]
+    birds: [Bird]
+}
+
+input BirdObservationFilters {
+    observedAt: DateTime @deprecated(reason: "UNIX timestamps instead, as usual in bird watching")
+    observerType: ObserverType
+    observerName: String
+    first: Int
+}
+
+scalar DateTime

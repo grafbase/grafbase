@@ -1,0 +1,25 @@
+
+type Squirrel {
+    favouriteFood: String
+}
+
+type Cheetah {
+    favouriteFood: String
+    species: String!
+    topSpeed: Int!
+    weightGrams: Int
+}
+
+type Mammoth {
+    tuskLength: Int
+}
+
+type Query {
+    getMammoth: Mammoth
+}
+
+interface Animal {
+    favouriteFood: String
+    species: String!
+    weightGrams: Int
+}

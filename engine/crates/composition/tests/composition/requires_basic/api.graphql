@@ -1,0 +1,22 @@
+
+type Farm {
+    chiliDetails: ChiliVariety
+    chiliId: ID!
+    id: ID!
+    location: String!
+    name: String!
+}
+
+type ChiliVariety {
+    description: String
+    id: ID!
+    name: String!
+    spicinessScale: Int!
+}
+
+type Query {
+    chiliVarieties: [ChiliVariety]
+    chiliVariety: ChiliVariety
+    farm: Farm
+    farms: [Farm]
+}

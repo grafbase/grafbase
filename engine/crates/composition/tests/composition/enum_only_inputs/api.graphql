@@ -1,4 +1,11 @@
+
 enum FilterName {
     NAME
     CREATED_AT
+}
+
+type Query {
+    searchFood: [String!]
+    searchProduct: [String!]
+    searchUser: [String!]
 }

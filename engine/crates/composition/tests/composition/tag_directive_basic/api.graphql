@@ -1,5 +1,32 @@
-enum AppleVariety {
+
+enum AppleVariety @tag(name: "appleEnum") {
     FUJI
     GRANNY_SMITH
-    HONEYCRISP
+    HONEYCRISP @tag(name: "appleEnumValue")
 }
+
+type Apple @tag(name: "appleType") {
+    id: ID!
+    texture: Texture
+    variety: AppleVariety
+}
+
+type Orange @tag(name: "orangeType") {
+    id: ID!
+    texture: Texture
+    variety: String
+}
+
+type Query @tag(name: "appleQuery") @tag(name: "orangeQuery") {
+    tags: [String] @tag(name: "appleField") @tag(name: "orangeField")
+}
+
+interface HasId @tag(name: "appleInterface") @tag(name: "orangeInterface") {
+    id: ID! @tag(name: "appleField") @tag(name: "orangeField")
+}
+
+input Filter @tag(name: "appleInput") @tag(name: "orangeInput") {
+    value: String @tag(name: "appleInputField") @tag(name: "orangeInputField")
+}
+
+scalar Texture @tag(name: "appleTexture") @tag(name: "orangeTexture")

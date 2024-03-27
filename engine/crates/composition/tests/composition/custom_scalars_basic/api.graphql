@@ -1,0 +1,17 @@
+
+type Sheep {
+    sheepIdx: Tethera
+    texture: Texture!
+}
+
+type Query {
+    sheep: Sheep
+}
+
+scalar Yan
+
+scalar Tan
+
+scalar Texture
+
+scalar Tethera

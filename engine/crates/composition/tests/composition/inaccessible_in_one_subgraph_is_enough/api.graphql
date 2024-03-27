@@ -1,0 +1,10 @@
+
+type Color {
+    blue: Int
+    green: Int
+    red: Int
+}
+
+type Query {
+    colors: [Color]
+}

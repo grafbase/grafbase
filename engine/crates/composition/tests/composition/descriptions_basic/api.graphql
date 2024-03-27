@@ -1,5 +1,52 @@
+
 enum TofuType {
     SILKEN
     FIRM
     EXTRA_FIRM
 }
+
+type Tofu {
+    id: ID!
+    name: String!
+    nutrition: Nutrition
+    recipes: [Recipe]
+    texture: TextureProfile
+    type: TofuType
+}
+
+type Nutrition {
+    calories: Int
+    fat: Float
+    protein: Float
+}
+
+type Recipe {
+    description: String
+    id: ID!
+    ingredients: [FoodItem]
+    name: String!
+    tofuType: TofuType
+}
+
+type Vegetable {
+    name: String
+    nutrition: Nutrition
+}
+
+type Spice {
+    flavorDescription: String
+    name: String
+}
+
+type Query {
+    allTheTofus: [Tofu]
+}
+
+input RecipeFilter {
+    minProtein: Float
+    maxCalories: Int
+}
+
+union FoodItem = Tofu | Vegetable | Spice
+
+scalar TextureProfile

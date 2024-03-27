@@ -1,6 +1,28 @@
+
 enum ProductType {
     FRESH
     PASTE
     POWDER
     DRIED
+}
+
+type WasabiPlant {
+    cultivationArea: String
+    harvestTime: String
+    id: ID!
+    name: String!
+    variety: String!
+}
+
+type WasabiProduct {
+    description: String
+    id: ID!
+    name: String!
+    price: Float
+    type: ProductType!
+}
+
+type Query {
+    wasabiPlants: [WasabiPlant]
+    wasabiProduct: WasabiProduct
 }

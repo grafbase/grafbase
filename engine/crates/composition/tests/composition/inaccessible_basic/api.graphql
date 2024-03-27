@@ -1,7 +1,53 @@
-enum UngulateType {
-    DEER
-    HORSE
-    CAMEL
-    RHINOCEROS
-    GIRAFFE
+
+type Ungulate {
+    id: ID!
+    name: String!
+}
+
+type Movie {
+    director: String!
+    id: ID!
+    releaseYear: Int
+    title: String!
+}
+
+type Series {
+    id: ID!
+    seasons: Int
+    title: String!
+}
+
+type New {
+    other: String!
+}
+
+type Book {
+    author: String!
+    genre: String
+    id: ID!
+    publishedYear: Int
+    title: String!
+}
+
+type Quadratic {
+    coefficients: [Float]
+    degree: Int
+    discriminant: Float
+}
+
+type Cubic {
+    coefficients: [Float]
+    degree: Int
+    inflectionPoint: Float
+}
+
+type Query {
+    getBook: Book
+    getNew: New
+    getUngulate: Ungulate
+}
+
+type Mutation {
+    addBook: Book
+    updateBook: Book
 }

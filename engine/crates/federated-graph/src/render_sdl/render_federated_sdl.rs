@@ -2,8 +2,6 @@ use super::display_utils::*;
 use crate::{federated_graph::*, FederatedGraphV3};
 use std::fmt::{self, Display, Write};
 
-const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
-
 /// Render a GraphQL SDL string for a federated graph. It includes [join spec
 /// directives](https://specs.apollo.dev/join/v0.3/) about subgraphs and entities.
 pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Error> {
@@ -439,37 +437,6 @@ fn write_requires(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> 
     }
 
     Ok(())
-}
-
-fn render_field_type(field_type: &Type, graph: &FederatedGraphV3) -> String {
-    let name_id = match field_type.definition {
-        Definition::Scalar(scalar_id) => graph[scalar_id].name,
-        Definition::Object(object_id) => graph[object_id].name,
-        Definition::Interface(interface_id) => graph[interface_id].name,
-        Definition::Union(union_id) => graph[union_id].name,
-        Definition::Enum(enum_id) => graph[enum_id].name,
-        Definition::InputObject(input_object_id) => graph[input_object_id].name,
-    };
-    let name = &graph[name_id];
-    let mut out = String::with_capacity(name.len());
-
-    for _ in 0..field_type.wrapping.list_wrappings().len() {
-        out.push('[');
-    }
-
-    write!(out, "{name}").unwrap();
-    if field_type.wrapping.inner_is_required() {
-        out.push('!');
-    }
-
-    for wrapping in field_type.wrapping.list_wrappings() {
-        out.push(']');
-        if wrapping == wrapping::ListWrapping::RequiredList {
-            out.push('!');
-        }
-    }
-
-    out
 }
 
 fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraphV3) -> String {

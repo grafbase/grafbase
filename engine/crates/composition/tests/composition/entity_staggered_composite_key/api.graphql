@@ -1,0 +1,16 @@
+
+type A {
+    b: B!
+    c: String!
+}
+
+type B {
+    bar: String
+    foo: String
+    id: ID!
+}
+
+type Query {
+    as: [A]
+    bs: [B]
+}

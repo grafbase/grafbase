@@ -1,0 +1,20 @@
+
+type Book {
+    id: ID!
+    reviews: [Review!]!
+    title: String!
+}
+
+type Review {
+    score: Int!
+}
+
+type Query {
+    topRatedMedia: [Media!]!
+}
+
+interface Media {
+    id: ID!
+    reviews: [Review!]!
+    title: String!
+}

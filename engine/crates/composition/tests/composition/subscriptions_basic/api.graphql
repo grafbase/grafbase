@@ -1,0 +1,19 @@
+
+type Product {
+    id: ID!
+    name: String
+    reviews: [Review]
+}
+
+type Review {
+    id: ID!
+    text: String!
+}
+
+type Query {
+    foo: String!
+}
+
+type Subscription {
+    topProducts: Product
+}
