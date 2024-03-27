@@ -1,1 +1,11 @@
-hullo
+enum FavoriteToy {
+    PLUSHTOY
+    TOBOGGAN
+    SCOOTER
+    BAG
+    HAT
+    BALL
+}enum Mood {
+    HAPPY
+    SAD
+}

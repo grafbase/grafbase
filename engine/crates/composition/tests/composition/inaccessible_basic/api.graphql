@@ -1,1 +1,7 @@
-hullo
+enum UngulateType {
+    DEER
+    HORSE
+    CAMEL
+    RHINOCEROS
+    GIRAFFE
+}

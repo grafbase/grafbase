@@ -1,8 +1,7 @@
-use super::*;
+use super::display_utils::*;
 use crate::{federated_graph::*, FederatedGraphV3};
 use std::fmt::{self, Display, Write};
 
-const INDENT: &str = "    ";
 const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
 
 /// Render a GraphQL SDL string for a federated graph. It includes [join spec
@@ -504,51 +503,6 @@ fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraphV
     }
 }
 
-/// Displays a field set inside quotes
-struct FieldSetDisplay<'a>(&'a FieldSet, &'a FederatedGraphV3);
-
-impl Display for FieldSetDisplay<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let out = format!("{}", BareFieldSetDisplay(self.0, self.1));
-        write_quoted(f, &out)
-    }
-}
-
-struct BareFieldSetDisplay<'a>(&'a FieldSet, &'a FederatedGraphV3);
-
-impl Display for BareFieldSetDisplay<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let BareFieldSetDisplay(selection_set, graph) = self;
-        let mut selection = selection_set.iter().peekable();
-
-        while let Some(field) = selection.next() {
-            let name = &graph[graph[field.field].name];
-
-            f.write_str(name)?;
-
-            let arguments = field
-                .arguments
-                .iter()
-                .map(|(arg, value)| (graph[*arg].name, value.clone()))
-                .collect::<Vec<_>>();
-
-            DirectiveArguments(&arguments, graph).fmt(f)?;
-
-            if !field.subselection.is_empty() {
-                f.write_str(" { ")?;
-                BareFieldSetDisplay(&field.subselection, graph).fmt(f)?;
-                f.write_str(" }")?;
-            }
-
-            if selection.peek().is_some() {
-                f.write_char(' ')?;
-            }
-        }
-
-        Ok(())
-    }
-}
-
 struct GraphEnumVariantName<'a>(&'a str);
 
 impl Display for GraphEnumVariantName<'_> {
@@ -568,97 +522,6 @@ impl Display for GraphEnumVariantName<'_> {
     }
 }
 
-struct MaybeDisplay<T>(Option<T>);
-
-impl<T: Display> Display for MaybeDisplay<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(inner) = &self.0 {
-            Display::fmt(inner, f)?;
-        }
-
-        Ok(())
-    }
-}
-
-struct DirectiveArguments<'a>(&'a [(StringId, Value)], &'a FederatedGraphV3);
-
-impl Display for DirectiveArguments<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let DirectiveArguments(arguments, graph) = self;
-
-        if arguments.is_empty() {
-            return Ok(());
-        }
-
-        f.write_str("(")?;
-
-        let mut arguments = arguments.iter().peekable();
-
-        while let Some((name, value)) = arguments.next() {
-            let name = &graph[*name];
-            let value = ValueDisplay(value, graph);
-            write!(f, "{name}: {value}")?;
-
-            if arguments.peek().is_some() {
-                f.write_str(", ")?;
-            }
-        }
-
-        f.write_str(")")
-    }
-}
-
-struct ValueDisplay<'a>(&'a Value, &'a FederatedGraphV3);
-
-impl Display for ValueDisplay<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let ValueDisplay(value, graph) = self;
-        match value {
-            Value::Null => f.write_str("null"),
-            Value::String(s) => write_quoted(f, &graph[*s]),
-            Value::Int(i) => Display::fmt(i, f),
-            Value::Float(val) => Display::fmt(val, f),
-            Value::EnumValue(val) => f.write_str(&graph[*val]),
-            Value::Boolean(true) => f.write_str("true"),
-            Value::Boolean(false) => f.write_str("false"),
-            Value::Object(_) => todo!(),
-            Value::List(_) => todo!(),
-        }
-    }
-}
-
-struct Description<'a>(&'a str, &'a str);
-
-impl Display for Description<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Description(description, indentation) = self;
-
-        writeln!(f, r#"{indentation}""""#)?;
-
-        for line in description.lines() {
-            writeln!(f, r#"{indentation}{line}"#)?;
-        }
-
-        writeln!(f, r#"{indentation}""""#)
-    }
-}
-
-// Copy-pasted from async-graphql-value
-fn write_quoted(sdl: &mut impl Write, s: &str) -> fmt::Result {
-    sdl.write_char('"')?;
-    for c in s.chars() {
-        match c {
-            c @ ('\r' | '\n' | '\t' | '"' | '\\') => {
-                sdl.write_char('\\')?;
-                sdl.write_char(c)
-            }
-            c if c.is_control() => write!(sdl, "\\u{:04}", c as u32),
-            c => sdl.write_char(c),
-        }?
-    }
-    sdl.write_char('"')
-}
-
 #[cfg(test)]
 mod tests {
     use crate::from_sdl;
@@ -670,7 +533,7 @@ mod tests {
         use expect_test::expect;
 
         let empty = from_sdl("type Query").unwrap();
-        let actual = render_sdl(empty).expect("valid");
+        let actual = render_federated_sdl(&empty.into_latest()).expect("valid");
         let expected = expect![[r#"
             directive @core(feature: String!) repeatable on SCHEMA
 
@@ -712,7 +575,7 @@ mod tests {
             "###,
         )
         .unwrap();
-        let actual = render_sdl(empty).expect("valid");
+        let actual = render_federated_sdl(&empty.into_latest()).expect("valid");
         let expected = expect![[r#"
             directive @core(feature: String!) repeatable on SCHEMA
 

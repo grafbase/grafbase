@@ -1,1 +1,5 @@
-hullo
+enum TofuType {
+    SILKEN
+    FIRM
+    EXTRA_FIRM
+}

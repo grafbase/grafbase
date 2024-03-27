@@ -96,7 +96,7 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
         (Some(a), Some(b)) if a == b => Ok(()),
         (Some(a), Some(b)) => Err(miette::miette!(
             "{}\n\n\n=== Hint: run the tests again with UPDATE_EXPECT=1 to update the snapshot. ===",
-            similar::udiff::unified_diff(similar::Algorithm::default(), &b, &a, 5, Some(("Expected", "Actual")))
+            similar::udiff::unified_diff(similar::Algorithm::default(), &a, &b, 5, Some(("Expected", "Actual")))
         )
         .into()),
     }

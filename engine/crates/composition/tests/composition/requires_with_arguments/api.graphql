@@ -1,1 +1,6 @@
-hullo
+enum ProductType {
+    FRESH
+    PASTE
+    POWDER
+    DRIED
+}

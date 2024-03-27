@@ -21,7 +21,13 @@ impl fmt::Display for Renderer<'_> {
             f.write_str("enum ")?;
             f.write_str(&graph[r#enum.name])?;
             f.write_char(' ')?;
-            write_block(f, |f| f.write_str("# heh"))?;
+            write_block(f, |f| {
+                for variant in &graph[r#enum.values] {
+                    write_enum_variant(f, variant, graph)?;
+                }
+
+                Ok(())
+            })?;
         }
 
         Ok(())

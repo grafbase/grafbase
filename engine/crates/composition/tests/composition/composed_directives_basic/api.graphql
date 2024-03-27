@@ -1,1 +1,5 @@
-hullo
+enum ObserverType {
+    AMATEUR
+    SEMIPROFESSIONAL
+    PROFESSIONAL
+}

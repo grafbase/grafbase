@@ -1,1 +1,4 @@
-hullo
+enum Plan {
+    Hobby
+    Pro
+}

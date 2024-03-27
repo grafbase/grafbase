@@ -1,1 +1,5 @@
-hullo
+enum AppleVariety {
+    FUJI
+    GRANNY_SMITH
+    HONEYCRISP
+}
