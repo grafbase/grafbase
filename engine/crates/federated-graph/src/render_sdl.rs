@@ -405,10 +405,10 @@ fn write_overrides(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) ->
             String::new()
         };
 
-        let graph = &graph[graph[*overriding_graph].name];
+        let subgraph_name = GraphEnumVariantName(&graph[graph[*overriding_graph].name]);
         write!(
             sdl,
-            " @join__field(graph: {graph}, override: \"{overrides}\"{optional_label})"
+            " @join__field(graph: {subgraph_name}, override: \"{overrides}\"{optional_label})"
         )?;
     }
     Ok(())

@@ -386,6 +386,8 @@ impl<'a> Binder<'a> {
                     location: name_location,
                 })?;
 
+                println!("{:#?}", definition);
+
                 let field_id = self.push_field(
                     parent,
                     Field::Query {

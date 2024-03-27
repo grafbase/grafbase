@@ -663,14 +663,18 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
         .filter_map(
             |(graph, overrides, override_label)| match (&graph.node, &overrides.node) {
                 (async_graphql_value::ConstValue::Enum(graph), async_graphql_value::ConstValue::String(overrides)) => {
-                    let subgraph_name = state.insert_string(graph.as_str());
                     Some(Override {
-                        graph: SubgraphId(
-                            state
-                                .subgraphs
-                                .iter()
-                                .position(|subgraph| subgraph.name == subgraph_name)?,
-                        ),
+                        graph: state.graph_sdl_names.get(graph.as_str()).copied().or_else(|| {
+                            // Previously we used the subgraph name rather than the enum we overrides
+                            // was specified.
+                            let subgraph_name = state.insert_string(graph.as_str());
+                            Some(SubgraphId(
+                                state
+                                    .subgraphs
+                                    .iter()
+                                    .position(|subgraph| subgraph.name == subgraph_name)?,
+                            ))
+                        })?,
                         label: override_label
                             .and_then(|value| match &value.node {
                                 async_graphql_value::ConstValue::String(s) => s.parse().ok(),
@@ -1277,4 +1281,81 @@ fn test_from_sdl_with_missing_query_root() {
             .iter()
             .any(|f| f.name.0 == field_name));
     }
+}
+
+#[cfg(test)]
+#[test]
+fn backwards_compatibility() {
+    use expect_test::expect;
+
+    let sdl = r###"
+    directive @core(feature: String!) repeatable on SCHEMA
+
+    directive @join__owner(graph: join__Graph!) on OBJECT
+
+    directive @join__type(
+        graph: join__Graph!
+        key: String!
+        resolvable: Boolean = true
+    ) repeatable on OBJECT | INTERFACE
+
+    directive @join__field(
+        graph: join__Graph
+        requires: String
+        provides: String
+    ) on FIELD_DEFINITION
+
+    directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+    enum join__Graph {
+        MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
+        STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
+    }
+
+    type Mammoth {
+        tuskLength: Int
+        weightGrams: Int @join__field(graph: mangrove, overrides: "steppe")
+    }
+
+    type Query {
+        getMammoth: Mammoth @join__field(graph: mangrove, overrides: "steppe")
+    }
+    "###;
+
+    let expected = expect![[r#"
+    directive @core(feature: String!) repeatable on SCHEMA
+
+    directive @join__owner(graph: join__Graph!) on OBJECT
+
+    directive @join__type(
+        graph: join__Graph!
+        key: String!
+        resolvable: Boolean = true
+    ) repeatable on OBJECT | INTERFACE
+
+    directive @join__field(
+        graph: join__Graph
+        requires: String
+        provides: String
+    ) on FIELD_DEFINITION
+
+    directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+    enum join__Graph {
+        MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
+        STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
+    }
+
+    type Mammoth {
+        tuskLength: Int
+        weightGrams: Int @join__field(graph: MANGROVE, override: "steppe")
+    }
+
+    type Query {
+        getMammoth: Mammoth @join__field(graph: MANGROVE, override: "steppe")
+    }
+    "#]];
+    let actual = super::from_sdl(sdl).unwrap().into_sdl().unwrap();
+
+    expected.assert_eq(&actual);
 }
