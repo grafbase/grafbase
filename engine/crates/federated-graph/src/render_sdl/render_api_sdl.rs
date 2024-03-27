@@ -16,13 +16,24 @@ struct Renderer<'a> {
 impl fmt::Display for Renderer<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Renderer { graph } = self;
+        let mut write_leading_whitespace = {
+            let mut first_block = true;
+            move |f: &mut fmt::Formatter<'_>| {
+                if first_block {
+                    first_block = false;
+                    Ok(())
+                } else {
+                    f.write_char('\n')
+                }
+            }
+        };
 
         for r#enum in &graph.enums {
             if has_inaccessible(&r#enum.composed_directives, graph) {
                 continue;
             }
 
-            f.write_char('\n')?;
+            write_leading_whitespace(f)?;
 
             f.write_str("enum ")?;
             f.write_str(&graph[r#enum.name])?;
@@ -49,7 +60,7 @@ impl fmt::Display for Renderer<'_> {
                 continue;
             }
 
-            f.write_char('\n')?;
+            write_leading_whitespace(f)?;
 
             f.write_str("type ")?;
             f.write_str(&graph[object.name])?;
@@ -83,7 +94,7 @@ impl fmt::Display for Renderer<'_> {
                 continue;
             }
 
-            f.write_char('\n')?;
+            write_leading_whitespace(f)?;
 
             f.write_str("interface ")?;
             f.write_str(&graph[interface.name])?;
@@ -116,7 +127,7 @@ impl fmt::Display for Renderer<'_> {
                 continue;
             }
 
-            f.write_char('\n')?;
+            write_leading_whitespace(f)?;
 
             f.write_str("input ")?;
             f.write_str(&graph[input_object.name])?;
@@ -150,7 +161,7 @@ impl fmt::Display for Renderer<'_> {
                 continue;
             }
 
-            f.write_char('\n')?;
+            write_leading_whitespace(f)?;
 
             f.write_str("union ")?;
             f.write_str(&graph[union.name])?;
@@ -178,7 +189,7 @@ impl fmt::Display for Renderer<'_> {
                 continue;
             }
 
-            f.write_char('\n')?;
+            write_leading_whitespace(f)?;
 
             f.write_str("scalar ")?;
             f.write_str(scalar_name)?;

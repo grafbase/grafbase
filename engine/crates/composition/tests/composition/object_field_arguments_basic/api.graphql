@@ -1,4 +1,3 @@
-
 type RollerCoaster {
     height: Float!
     id: ID!

@@ -1,4 +1,3 @@
-
 type Furby {
     batteryType: String!
     canDance: Boolean!

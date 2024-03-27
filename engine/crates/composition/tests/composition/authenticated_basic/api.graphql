@@ -1,4 +1,3 @@
-
 type Car {
     id: String! @authenticated
     km: Int!

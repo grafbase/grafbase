@@ -1,4 +1,3 @@
-
 type User {
     age: Int
     id: ID!

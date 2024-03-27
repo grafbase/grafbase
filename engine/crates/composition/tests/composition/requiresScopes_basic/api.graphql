@@ -1,4 +1,3 @@
-
 type B {
     foo: String @requiresScopes(scopes: [["yolo",],["wolo",],["scope:1","scope:2",],])
     id: ID!

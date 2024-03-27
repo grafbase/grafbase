@@ -1,4 +1,3 @@
-
 enum ObserverType {
     AMATEUR
     SEMIPROFESSIONAL @deprecated(reason: "No such thing as semiprofessionals")

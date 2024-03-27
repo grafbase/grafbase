@@ -1,4 +1,3 @@
-
 enum AppleVariety @tag(name: "appleEnum") {
     FUJI
     GRANNY_SMITH

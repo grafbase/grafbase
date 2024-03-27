@@ -1,4 +1,3 @@
-
 type Kebab {
     breadType: String
     id: ID!
