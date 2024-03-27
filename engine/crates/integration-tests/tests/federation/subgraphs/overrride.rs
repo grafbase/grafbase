@@ -1,5 +1,5 @@
 use gateway_v2::Gateway;
-use graphql_mocks::{FakeFederationAccountsSchema, FakeFederationReviewsSchema, MockGraphQlServer};
+use graphql_mocks::{FakeFederationAccountsSchema, MockGraphQlServer};
 use integration_tests::{federation::GatewayV2Ext, runtime};
 
 #[test]
@@ -36,29 +36,16 @@ fn simple_override() {
     }
     "###);
 
-    let response = runtime().block_on(async {
-        let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
-        let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
-        let engine = Gateway::builder()
-            .with_schema("accounts", &accounts)
-            .await
-            .with_schema("reviews", &reviews)
-            .await
-            .finish()
-            .await;
-        engine
-            .execute(
-                r"
-                query ExampleQuery {
-                    me {
-                        username
-                        reviewCount
-                    }
-                }
-                ",
-            )
-            .await
-    });
+    let response = runtime().block_on(super::execute(
+        r"
+        query ExampleQuery {
+            me {
+                username
+                reviewCount
+            }
+        }
+        ",
+    ));
 
     insta::assert_json_snapshot!(response, @r###"
     {

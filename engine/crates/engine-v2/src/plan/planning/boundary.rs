@@ -195,7 +195,7 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
 
             let Some(candidate) = select_best_child_plan(&mut candidates) else {
                 let walker = self.walker();
-                tracing::trace!(
+                tracing::debug!(
                     "Could not plan fields:\n=== PARENT ===\n{:#?}\n=== CURRENT ===\n{}\n=== MISSING ===\n{}",
                     self.maybe_parent.map(|parent| parent.resolver()),
                     grouped_fields

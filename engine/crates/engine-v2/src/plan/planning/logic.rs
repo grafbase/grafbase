@@ -21,7 +21,7 @@ pub(super) enum PlanningLogic<'schema> {
 
 impl std::fmt::Display for PlanningLogic<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "PlanningLogic{}", usize::from(self.plan_id()))
+        write!(f, "PlanningLogic#{}", usize::from(self.plan_id()))
     }
 }
 

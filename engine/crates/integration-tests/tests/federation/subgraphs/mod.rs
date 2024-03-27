@@ -1,3 +1,4 @@
+mod interface_object;
 mod overrride;
 mod requires;
 mod sibling_dependencies;

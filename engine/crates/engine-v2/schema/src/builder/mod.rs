@@ -39,6 +39,7 @@ impl TryFrom<Config> for Schema {
 pub(crate) struct BuildContext {
     pub strings: Interner<String, StringId>,
     urls: Interner<Url, UrlId>,
+    cache_configs: Interner<config::latest::CacheConfig, CacheConfigId>,
     idmaps: IdMaps,
     next_subraph_id: usize,
 }
@@ -49,6 +50,7 @@ impl BuildContext {
         let mut ctx = Self {
             strings: Interner::from_vec(Vec::new()),
             urls: Interner::default(),
+            cache_configs: Interner::default(),
             idmaps: IdMaps::empty(),
             next_subraph_id: 0,
         };
@@ -110,7 +112,6 @@ impl BuildContext {
             input_value_definitions: Vec::new(),
             directive_definitions: Vec::new(),
             enum_value_definitions: Vec::new(),
-            cache_configs: Vec::new(),
             resolvers: Vec::new(),
             required_field_sets: Vec::new(),
             required_fields_arguments: Vec::new(),
@@ -126,6 +127,7 @@ impl BuildContext {
             },
             graph,
             strings: ctx.strings.into(),
+            cache_configs: Default::default(),
             urls: Default::default(),
             headers: Default::default(),
             settings: Default::default(),
@@ -137,6 +139,7 @@ impl BuildContext {
         Self {
             strings: Interner::from_vec(take(&mut config.graph.strings)),
             urls: Interner::default(),
+            cache_configs: Interner::default(),
             idmaps: IdMaps::new(config),
             next_subraph_id: 0,
         }
@@ -169,6 +172,7 @@ impl BuildContext {
             graph,
             strings: self.strings.into(),
             urls: self.urls.into(),
+            cache_configs: self.cache_configs.into_iter().map(Into::into).collect(),
             headers,
             settings: Settings {
                 default_headers: take(&mut config.default_headers).into_iter().map(Into::into).collect(),
