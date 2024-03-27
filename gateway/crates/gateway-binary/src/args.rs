@@ -121,7 +121,7 @@ pub struct Args {
     /// to the Grafbase API.
     #[arg(long, short, env = "GRAFBASE_SCHEMA_PATH")]
     pub schema: Option<PathBuf>,
-    /// Set the tracing and logging level
+    /// Set the logging level
     #[arg(long = "log", env = "GRAFBASE_LOG")]
     pub log_level: Option<LogLevel>,
     /// Set the style of log output
