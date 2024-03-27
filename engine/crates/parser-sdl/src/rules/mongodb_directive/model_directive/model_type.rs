@@ -8,10 +8,7 @@ use engine::{
 use resolver_data::ResolverData;
 
 use super::CreateTypeContext;
-use crate::rules::{
-    auth_directive::AuthDirective, requires_directive::RequiresDirective, resolver_directive::ResolverDirective,
-    visitor::VisitorContext,
-};
+use crate::rules::{auth_directive::AuthDirective, visitor::VisitorContext};
 
 pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTypeContext<'_>) {
     let type_name = create_ctx.model_name().to_string();
@@ -44,13 +41,7 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
         }
         .or_else(|| create_ctx.model_auth().clone());
 
-        let resolver_data = match ResolverDirective::resolver_name(field) {
-            Some(resolver_name) => ResolverData::resolver(resolver_name, field),
-            None => ResolverData::projection(field),
-        };
-
-        let requires =
-            RequiresDirective::from_directives(&field.directives, visitor_ctx).map(RequiresDirective::into_fields);
+        let resolver_data = ResolverData::from_field(&field.node, visitor_ctx, field.pos);
 
         let description = field.description.as_ref().map(|description| description.node.clone());
 
@@ -62,7 +53,7 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
             ty: resolver_data.field_type.into(),
             cache_control: resolver_data.cache_control,
             resolver: resolver_data.resolver,
-            requires,
+            requires: resolver_data.requires,
             auth,
             ..Default::default()
         };

@@ -8,7 +8,7 @@ use engine::registry::{
     self,
     federation::FederationKey,
     resolvers::{custom::CustomResolver, transformer::Transformer, Resolver},
-    MetaField, MetaInputValue, MetaType, ObjectType,
+    MetaField, MetaType, ObjectType,
 };
 use engine_parser::{
     types::{FieldDefinition, TypeKind},
@@ -28,8 +28,8 @@ use super::{
     visitor::{RuleError, Visitor, VisitorContext},
 };
 use crate::{
-    directive_de::parse_directive, registry::add_input_type_non_primitive, rules::cache_directive::CacheDirective,
-    schema_coord::SchemaCoord,
+    directive_de::parse_directive, parser_extensions::FieldExtension, registry::add_input_type_non_primitive,
+    rules::cache_directive::CacheDirective, schema_coord::SchemaCoord,
 };
 
 pub struct BasicType;
@@ -102,14 +102,7 @@ impl<'a> Visitor<'a> for BasicType {
                     description: field.node.description.clone().map(|x| x.node),
                     ty: field.node.ty.clone().node.to_string().into(),
                     cache_control: CacheDirective::parse(&field.node.directives),
-                    args: field
-                        .arguments
-                        .iter()
-                        .map(|argument| {
-                            MetaInputValue::new(argument.node.name.to_string(), argument.node.ty.to_string())
-                        })
-                        .map(|arg| (arg.name.clone(), arg))
-                        .collect(),
+                    args: field.converted_arguments(),
                     resolver,
                     requires,
                     external,

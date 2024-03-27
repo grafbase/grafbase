@@ -6,6 +6,7 @@ use engine_parser::types::{BaseType, ObjectType, Type};
 
 use super::generic;
 use crate::{
+    parser_extensions::FieldExtension,
     registry::names::MetaNames,
     rules::{mongodb_directive::CreateTypeContext, visitor::VisitorContext},
 };
@@ -52,7 +53,11 @@ pub(crate) fn register_type_input<'a>(
     input_type_name: &str,
     extra_fields: impl Iterator<Item = MetaInputValue> + 'a,
 ) {
-    let explicit_fields = object.fields.iter().map(|field| {
+    let explicit_fields = object.fields.iter().filter_map(|field| {
+        if field.is_synthetic_field() {
+            return None;
+        }
+
         let r#type = if field.r#type().base.is_list() {
             let base = field.r#type().base.to_base_type_str();
             generic::filter_type_name(&format!("{base}Array"))
@@ -66,7 +71,7 @@ pub(crate) fn register_type_input<'a>(
         input.description = field.description().map(ToString::to_string);
         input.rename = field.mapped_name().map(ToString::to_string);
 
-        input
+        Some(input)
     });
 
     let input_fields = extra_fields.chain(explicit_fields);
@@ -93,7 +98,10 @@ pub(crate) fn register_orderby_input<'a>(
         input
     });
 
-    let input_fields = object.fields.iter().map(|field| {
+    let input_fields = object.fields.iter().filter_map(|field| {
+        if field.is_synthetic_field() {
+            return None;
+        }
         let registry = visitor_ctx.registry.borrow();
         let composite = registry.types.get(field.ty.base.to_base_type_str());
 
@@ -106,7 +114,7 @@ pub(crate) fn register_orderby_input<'a>(
 
         let mut input = MetaInputValue::new(field.node.name.node.to_string(), type_name);
         input.rename = field.mapped_name().map(ToString::to_string);
-        input
+        Some(input)
     });
 
     let fields = extra_fields.chain(input_fields);

@@ -4,6 +4,7 @@ use engine_parser::types::{BaseType, ObjectType, Type, TypeDefinition};
 
 use super::generic::{self, filter_type_name, MONGO_POP_POSITION};
 use crate::{
+    parser_extensions::FieldExtension,
     registry::names::MetaNames,
     rules::{mongodb_directive::CreateTypeContext, visitor::VisitorContext},
 };
@@ -19,7 +20,11 @@ pub(crate) fn register_type_input(
 ) -> String {
     let input_type_name = MetaNames::update_input(r#type);
 
-    let input_fields = object.fields.iter().map(|field| {
+    let input_fields = object.fields.iter().filter_map(|field| {
+        if field.is_synthetic_field() {
+            return None;
+        }
+
         let base = field.r#type().base.to_base_type_str();
         let is_list = field.r#type().base.is_list();
         let is_optional = field.r#type().nullable;
@@ -40,7 +45,7 @@ pub(crate) fn register_type_input(
         input.description = field.description().map(ToString::to_string);
         input.rename = field.mapped_name().map(ToString::to_string);
 
-        input
+        Some(input)
     });
 
     let input_type = InputObjectType::new(input_type_name.to_string(), input_fields);

@@ -23,18 +23,15 @@ impl<'a> Visitor<'a> for CheckTypeValidity {
             return;
         }
 
-        match ctx.types.get(&base_type) {
-            Some(_ty) => {}
-            None => {
-                ctx.report_error(
-                    vec![field.pos],
-                    format!(
-                        "Field `{name}` got an undefined type: `{ty}`.",
-                        name = field.node.name.node,
-                        ty = base_type
-                    ),
-                );
-            }
+        if !ctx.types.contains_key(&base_type) && !ctx.registry.borrow().types.contains_key(&base_type) {
+            ctx.report_error(
+                vec![field.pos],
+                format!(
+                    "Field `{name}` got an undefined type: `{ty}`.",
+                    name = field.node.name.node,
+                    ty = base_type
+                ),
+            );
         }
     }
 }

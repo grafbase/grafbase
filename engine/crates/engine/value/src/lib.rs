@@ -349,11 +349,7 @@ impl ConstValue {
     pub fn into_value(self) -> Value {
         match self {
             Self::Null => Value::Null,
-            Self::Number(num) => {
-                // We force it to be a f64 in the internal representation to generate the
-                // appropriate ArrowSchema
-                Value::Number(Number::from_f64(num.as_f64().expect("can't fail")).expect("can't fail"))
-            }
+            Self::Number(num) => Value::Number(num),
             Self::String(s) => Value::String(s),
             Self::Boolean(b) => Value::Boolean(b),
             Self::Binary(bytes) => Value::Binary(bytes),

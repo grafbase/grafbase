@@ -82,8 +82,8 @@ impl<'a> CreateTypeContext<'a> {
         &self.model_auth
     }
 
-    pub(super) fn fields(&self) -> impl ExactSizeIterator<Item = &FieldDefinition> + '_ {
-        self.object.fields.iter().map(|field| &field.node)
+    pub(super) fn fields(&self) -> impl ExactSizeIterator<Item = &Positioned<FieldDefinition>> + '_ {
+        self.object.fields.iter()
     }
 
     pub(super) fn unique_directives(&self) -> impl ExactSizeIterator<Item = &UniqueDirective> + '_ {

@@ -8,6 +8,7 @@ use engine::{registry::MongoDBConfiguration, Positioned};
 use engine_parser::types::{ObjectType, TypeDefinition, TypeKind};
 
 use crate::{
+    parser_extensions::FieldExtension,
     registry::names::MetaNames,
     rules::{
         auth_directive::AuthDirective,
@@ -60,6 +61,11 @@ fn validate_fields(ctx: &mut VisitorContext<'_>, object: &ObjectType) {
                 vec![field.pos],
                 format!("Field name '{name}' is reserved and cannot be used."),
             );
+        }
+
+        if field.is_synthetic_field() {
+            // We shouldn't validate synthetic fields
+            continue;
         }
 
         let ty = field.ty.base.to_base_type_str();
