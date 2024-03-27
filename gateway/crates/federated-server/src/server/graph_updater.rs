@@ -2,6 +2,7 @@ use std::{borrow::Cow, sync::Arc, time::Duration};
 
 use super::gateway::{GatewayConfig, GatewaySender};
 use ascii::AsciiString;
+use grafbase_tracing::span::GRAFBASE_TARGET;
 use http::{HeaderValue, StatusCode};
 use tokio::time::MissedTickBehavior;
 use tracing::Level;
@@ -132,23 +133,23 @@ impl GraphUpdater {
             let response = match response {
                 Ok(response) => response,
                 Err(e) => {
-                    tracing::event!(Level::ERROR, message = "error updating graph", error = e.to_string());
+                    tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
                     continue;
                 }
             };
 
             if response.status() == StatusCode::NOT_MODIFIED {
-                tracing::debug!("no updates to the graph");
+                tracing::debug!(target: GRAFBASE_TARGET, "no updates to the graph");
                 continue;
             }
 
             if let Err(e) = response.error_for_status_ref() {
                 match e.status() {
                     Some(StatusCode::NOT_FOUND) => {
-                        tracing::warn!("no subgraphs registered, publish at least one subgraph");
+                        tracing::warn!(target: GRAFBASE_TARGET, "no subgraphs registered, publish at least one subgraph");
                     }
                     _ => {
-                        tracing::event!(Level::ERROR, message = "error updating graph", error = e.to_string());
+                        tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
                     }
                 }
                 continue;
@@ -157,12 +158,13 @@ impl GraphUpdater {
             let response: UplinkResponse = match response.json().await {
                 Ok(response) => response,
                 Err(e) => {
-                    tracing::event!(Level::ERROR, message = "error updating graph", error = e.to_string());
+                    tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
                     continue;
                 }
             };
 
             tracing::event!(
+                target: GRAFBASE_TARGET,
                 Level::INFO,
                 message = "creating a new gateway",
                 graph_ref = self.graph_ref,
@@ -172,14 +174,18 @@ impl GraphUpdater {
                 authentication = self.gateway_config.authentication.is_some(),
             );
 
-            let gateway =
-                match super::gateway::generate(&response.sdl, Some(response.branch_id), self.gateway_config.clone()) {
-                    Ok(gateway) => gateway,
-                    Err(e) => {
-                        tracing::event!(Level::ERROR, message = "error parsing graph", error = e.to_string());
-                        continue;
-                    }
-                };
+            let gateway = match super::gateway::generate(
+                &response.sdl,
+                Some(response.branch_id),
+                self.gateway_config.clone(),
+            ) {
+                Ok(gateway) => gateway,
+                Err(e) => {
+                    tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error parsing graph", error = e.to_string());
+
+                    continue;
+                }
+            };
 
             self.current_id = Some(response.version_id);
 

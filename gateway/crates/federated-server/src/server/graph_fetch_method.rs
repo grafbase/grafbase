@@ -1,5 +1,6 @@
 use super::gateway::{self, GatewayWatcher};
 use crate::server::gateway::GatewayConfig;
+use grafbase_tracing::span::GRAFBASE_TARGET;
 use std::sync::Arc;
 use tokio::sync::watch;
 use tracing::Level;
@@ -50,6 +51,7 @@ impl GraphFetchMethod {
             }
             GraphFetchMethod::FromLocal { federated_schema } => {
                 tracing::event!(
+                    target: GRAFBASE_TARGET,
                     Level::INFO,
                     message = "creating a new gateway",
                     operation_limits = config.operation_limits.is_some(),

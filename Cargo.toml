@@ -78,7 +78,7 @@ handlebars = "5"
 headers = "0.4"
 hex = "0.4"
 http = "1"
-hyper = "1"
+hyper = { version = "1", features = ["http2"] }
 hyper-util = "0.1"
 indexmap = "2"
 insta = { version = "1", features = ["json"] }
