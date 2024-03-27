@@ -8,7 +8,7 @@ use engine::registry::{
     self,
     federation::FederationKey,
     resolvers::{custom::CustomResolver, transformer::Transformer, Resolver},
-    MetaField, MetaInputValue, MetaType, ObjectType,
+    MetaField, MetaType, ObjectType,
 };
 use engine_parser::{
     types::{FieldDefinition, TypeKind},

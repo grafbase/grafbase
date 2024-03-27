@@ -1,7 +1,7 @@
 use engine::registry::{
     self,
     resolvers::{custom::CustomResolver, Resolver},
-    MetaField, MetaInputValue, MetaType,
+    MetaField, MetaType,
 };
 use engine_parser::types::TypeKind;
 

@@ -11,11 +11,8 @@ use engine_parser::types::FieldDefinition;
 use crate::{
     parser_extensions::FieldExtension,
     rules::{
-        cache_directive::CacheDirective,
-        join_directive::{self, JoinDirective},
-        requires_directive::RequiresDirective,
-        resolver_directive::ResolverDirective,
-        visitor::VisitorContext,
+        cache_directive::CacheDirective, join_directive::JoinDirective, requires_directive::RequiresDirective,
+        resolver_directive::ResolverDirective, visitor::VisitorContext,
     },
 };
 

@@ -8,13 +8,7 @@ use engine::{
 use resolver_data::ResolverData;
 
 use super::CreateTypeContext;
-use crate::{
-    parser_extensions::FieldExtension,
-    rules::{
-        auth_directive::AuthDirective, join_directive::JoinDirective, requires_directive::RequiresDirective,
-        resolver_directive::ResolverDirective, visitor::VisitorContext,
-    },
-};
+use crate::rules::{auth_directive::AuthDirective, visitor::VisitorContext};
 
 pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTypeContext<'_>) {
     let type_name = create_ctx.model_name().to_string();

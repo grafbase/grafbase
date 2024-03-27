@@ -4,8 +4,7 @@ use cynic::QueryBuilder;
 use cynic_introspection::IntrospectionQuery;
 use expect_test::expect;
 use indoc::indoc;
-use integration_tests::{federation::GraphqlResponse, with_mongodb, with_namespaced_mongodb, ResponseExt};
-use serde_json::json;
+use integration_tests::with_mongodb;
 
 #[test]
 fn nested_sort_schema() {

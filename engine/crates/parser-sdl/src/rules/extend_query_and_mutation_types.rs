@@ -1,7 +1,7 @@
 use common_types::auth::Operations;
 use engine::registry::{
     resolvers::{custom::CustomResolver, Resolver},
-    MetaField, MetaInputValue,
+    MetaField,
 };
 use engine_parser::types::{ObjectType, TypeKind};
 
