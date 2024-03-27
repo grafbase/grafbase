@@ -8,13 +8,14 @@ use engine::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodi
 use inflector::Inflector;
 use once_cell::sync::Lazy;
 use openapi::v2::{Operation, PathItem};
+use petgraph::{graph::NodeIndex, visit::EdgeRef};
 use regex::Regex;
 use url::Url;
 
 use self::components::Components;
 use super::grouping;
 use crate::{
-    graph::{construction::ParentNode, FieldName, HttpMethod, Node, ScalarKind},
+    graph::{construction::ParentNode, Edge, FieldName, HttpMethod, Node, ScalarKind, SchemaDetails},
     parsing::{Context, Ref},
     Error,
 };
@@ -28,11 +29,40 @@ pub fn parse(spec: openapi::v2::Spec) -> Context {
     let mut components = Components::default();
     components.extend(&spec);
 
+    if let Some(definitions) = &spec.definitions {
+        extract_definitions(&mut ctx, definitions)
+    }
+
     extract_operations(&mut ctx, &components, &spec.paths);
 
     grouping::determine_resource_relationships(&mut ctx);
 
     ctx
+}
+
+fn extract_definitions(ctx: &mut Context, definitions: &BTreeMap<String, openapi::v2::Schema>) {
+    for (name, schema) in definitions {
+        // There's a title property on schemas that we _could_ use for a name,
+        // but the spec doesn't enforce that it's unique and (certainly in stripes case) it is not.
+        // Might do some stuff to work around htat, but for now it's either "x-resourceId"
+        // which stripe use or the name of the schema in components.
+        let resource_id = schema.other.get("x-resourceId").map(|value| value.to_string());
+
+        let index = ctx
+            .graph
+            .add_node(Node::Schema(Box::new(SchemaDetails::new(name.clone(), resource_id))));
+
+        ctx.schema_index.insert(Ref::v2_definition(name), index);
+    }
+
+    // Now we want to extract the schema for each of these into our graph
+    for (name, schema) in definitions {
+        extract_types(
+            ctx,
+            schema,
+            ParentNode::Schema(ctx.schema_index[&Ref::v2_definition(name)]),
+        );
+    }
 }
 
 fn extract_operations(ctx: &mut Context, components: &Components, paths: &BTreeMap<String, PathItem>) {
@@ -141,6 +171,25 @@ fn extract_operations(ctx: &mut Context, components: &Components, paths: &BTreeM
 
 fn extract_types(ctx: &mut Context, schema: &openapi::v2::Schema, parent: ParentNode) {
     if let Some(reference) = &schema.ref_path {
+        // Ideally these are just references to a top level definition
+        // like `#/definitions/blah` - but they might also have nested paths
+        // on the end we need to handle like `#/definitions/blah/properties/data`
+        let segments = reference.split('/').collect::<Vec<_>>();
+        if segments.len() > 3 {
+            let schema_reference = Ref::absolute(&segments[0..3].join("/"));
+            let Some(schema) = ctx.schema_index.get(&schema_reference) else {
+                ctx.errors.push(schema_reference.to_unresolved_error());
+                return;
+            };
+
+            let Some(destination_index) = resolve_nested_ref(*schema, &segments[3..], ctx) else {
+                ctx.errors.push(Ref::absolute(reference).to_unresolved_error());
+                return;
+            };
+
+            ctx.add_type_edge(parent, destination_index, false);
+            return;
+        }
         let reference = Ref::absolute(reference);
         let Some(schema) = ctx.schema_index.get(&reference) else {
             ctx.errors.push(reference.to_unresolved_error());
@@ -205,6 +254,36 @@ fn extract_types(ctx: &mut Context, schema: &openapi::v2::Schema, parent: Parent
             // Going to skip them for now and we can look into it if anyone complains
         }
     }
+}
+
+fn resolve_nested_ref(mut current_node: NodeIndex, path_segments: &[&str], ctx: &Context) -> Option<NodeIndex> {
+    for pair in path_segments.chunks_exact(2) {
+        let [kind_selector, index] = pair else { unreachable!() };
+        loop {
+            match (*kind_selector, &ctx.graph[current_node]) {
+                ("properties", Node::Schema(_)) => {
+                    current_node = ctx.graph.edges(current_node).find_map(|edge| match edge.weight() {
+                        Edge::HasType { .. } => Some(edge.target()),
+                        _ => None,
+                    })?;
+                }
+                ("properties", Node::Object) => {
+                    current_node = ctx.graph.edges(current_node).find_map(|edge| match edge.weight() {
+                        Edge::HasField { name, .. } if name == index => Some(edge.target()),
+                        _ => None,
+                    })?;
+                    break;
+                }
+                _ => {
+                    // The above deal with objects, we could maybe need to deal with array types
+                    // or similar.  But for now I don't need to so nope.
+                    return None;
+                }
+            }
+        }
+    }
+
+    Some(current_node)
 }
 
 fn extract_object(
@@ -301,5 +380,9 @@ impl Ref {
 
     fn v2_parameter(name: &str) -> Ref {
         Ref(format!("#/parameters/{name}"))
+    }
+
+    fn v2_definition(name: &str) -> Ref {
+        Ref(format!("#/definitions/{name}"))
     }
 }
