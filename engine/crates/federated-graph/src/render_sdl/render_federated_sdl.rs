@@ -1,4 +1,5 @@
-use crate::{federated_graph::*, FederatedGraph};
+use super::*;
+use crate::{federated_graph::*, FederatedGraphV3};
 use std::fmt::{self, Display, Write};
 
 const INDENT: &str = "    ";
@@ -6,9 +7,8 @@ const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
 
 /// Render a GraphQL SDL string for a federated graph. It includes [join spec
 /// directives](https://specs.apollo.dev/join/v0.3/) about subgraphs and entities.
-pub fn render_sdl(graph: FederatedGraph) -> Result<String, fmt::Error> {
+pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Error> {
     let mut sdl = String::new();
-    let graph = graph.into_latest();
 
     write_prelude(&mut sdl)?;
 
