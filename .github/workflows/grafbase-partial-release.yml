@@ -152,8 +152,6 @@ jobs:
           INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
         run: |
           if [[ $INPUT_PRERELEASE == "false" ]]; then
-            curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
-            sudo installer -pkg AWSCLIV2.pkg -target /
             cd cli/install
             sed -i 's/{{LATEST_VERSION}}/${{ env.VERSION_BUMP }}/g' cli
             ./upload.sh cli
