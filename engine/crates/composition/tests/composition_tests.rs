@@ -67,29 +67,39 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
         ),
     };
 
-    if expected_federated_sdl == actual_federated_sdl && expected_api_sdl == actual_api_sdl {
-        return Ok(());
-    }
-
     if update_expect() {
-        if let Some(sdl) = expected_api_sdl {
+        if let Some(sdl) = actual_api_sdl {
             fs::write(api_sdl_path, sdl)?;
         }
 
         return fs::write(federated_graph_path, actual_federated_sdl).map_err(From::from);
     }
 
-    Err(miette::miette!(
-        "{}\n\n\n=== Hint: run the tests again with UPDATE_EXPECT=1 to update the snapshot. ===",
-        similar::udiff::unified_diff(
-            similar::Algorithm::default(),
-            &expected_federated_sdl,
-            &actual_federated_sdl,
-            5,
-            Some(("Expected", "Actual"))
+    if expected_federated_sdl != actual_federated_sdl {
+        return Err(miette::miette!(
+            "{}\n\n\n=== Hint: run the tests again with UPDATE_EXPECT=1 to update the snapshot. ===",
+            similar::udiff::unified_diff(
+                similar::Algorithm::default(),
+                &expected_federated_sdl,
+                &actual_federated_sdl,
+                5,
+                Some(("Expected", "Actual"))
+            )
         )
-    )
-    .into())
+        .into());
+    }
+
+    match (expected_api_sdl, actual_api_sdl) {
+        (None, None) => Ok(()),
+        (Some(_), None) => Err(miette::miette!("Expected no API SDL, but there is an api.graphql expectation.").into()),
+        (None, Some(_)) => Err(miette::miette!("Expected an api.graphql, but found none.").into()),
+        (Some(a), Some(b)) if a == b => Ok(()),
+        (Some(a), Some(b)) => Err(miette::miette!(
+            "{}\n\n\n=== Hint: run the tests again with UPDATE_EXPECT=1 to update the snapshot. ===",
+            similar::udiff::unified_diff(similar::Algorithm::default(), &b, &a, 5, Some(("Expected", "Actual")))
+        )
+        .into()),
+    }
 }
 
 fn test_sdl_roundtrip(federated_graph_path: &Path) -> datatest_stable::Result<()> {

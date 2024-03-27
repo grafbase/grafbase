@@ -7,6 +7,6 @@ use std::fmt;
 /// for consumers.
 pub fn render_api_sdl(_graph: &FederatedGraphV3) -> Result<String, fmt::Error> {
     let mut sdl = String::new();
-    sdl.push('.');
+    sdl.push_str("hullo");
     Ok(sdl)
 }
