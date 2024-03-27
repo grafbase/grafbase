@@ -1,90 +1,19 @@
-use std::{fmt, fs, net::SocketAddr, path::PathBuf};
+use std::{fs, net::SocketAddr, path::PathBuf};
 
 use anyhow::anyhow;
 use ascii::AsciiString;
-use clap::{ArgGroup, Parser, ValueEnum};
+use clap::{ArgGroup, Parser};
 use federated_server::GraphFetchMethod;
 use grafbase_tracing::otel::layer::BoxedLayer;
 use graph_ref::GraphRef;
 use tracing::Subscriber;
 use tracing_subscriber::{registry::LookupSpan, Layer};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-pub(crate) enum LogLevel {
-    /// Completely disables logging
-    Off,
-    /// Only errors from Grafbase libraries
-    Error,
-    /// Warnings and errors from Grafbase libraries
-    Warn,
-    /// Info, warning and error messages from Grafbase libraries
-    Info,
-    /// Debug, info, warning and error messages from all dependencies
-    Debug,
-    /// Trace, debug, info, warning and error messages from all dependencies
-    Trace,
-}
+mod log;
 
-impl Default for LogLevel {
-    fn default() -> Self {
-        Self::Info
-    }
-}
+pub(crate) use log::LogLevel;
 
-impl LogLevel {
-    pub(crate) fn as_filter_str(&self) -> &'static str {
-        match self {
-            LogLevel::Off => "off",
-            LogLevel::Error => "grafbase=error,off",
-            LogLevel::Warn => "grafbase=warn,off",
-            LogLevel::Info => "grafbase=info,off",
-            LogLevel::Debug => "debug",
-            LogLevel::Trace => "trace",
-        }
-    }
-}
-
-impl AsRef<str> for LogLevel {
-    fn as_ref(&self) -> &str {
-        match self {
-            LogLevel::Off => "off",
-            LogLevel::Error => "error",
-            LogLevel::Warn => "warn",
-            LogLevel::Info => "info",
-            LogLevel::Debug => "debug",
-            LogLevel::Trace => "trace",
-        }
-    }
-}
-
-impl fmt::Display for LogLevel {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_ref())
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-enum LogStyle {
-    /// Standard text
-    Text,
-    /// JSON objects
-    Json,
-}
-
-impl AsRef<str> for LogStyle {
-    fn as_ref(&self) -> &str {
-        match self {
-            LogStyle::Text => "text",
-            LogStyle::Json => "json",
-        }
-    }
-}
-
-impl fmt::Display for LogStyle {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_ref())
-    }
-}
+use self::log::LogStyle;
 
 #[derive(Debug, Parser)]
 #[clap(
@@ -100,6 +29,7 @@ impl fmt::Display for LogStyle {
     )
 )]
 #[command(name = "The Grafbase Gateway", version)]
+#[command(arg_required_else_help = true)]
 /// The Grafbase Gateway
 pub struct Args {
     /// IP address on which the server will listen for incomming connections. Defaults to 127.0.0.1:5000.
@@ -112,7 +42,7 @@ pub struct Args {
     #[arg(env = "GRAFBASE_ACCESS_TOKEN")]
     pub grafbase_access_token: Option<AsciiString>,
     /// Path to the TOML configuration file
-    #[arg(long, short, env = "GRAFBASE_CONFIG_PATH")]
+    #[arg(long, short, env = "GRAFBASE_CONFIG_PATH", default_value = "./grafbase.toml")]
     pub config: PathBuf,
     /// Path to graph SDL. If provided, the graph will be static and no connection is made
     /// to the Grafbase API.

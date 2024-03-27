@@ -2,6 +2,7 @@
 
 use std::fs;
 
+use anyhow::Context;
 use args::Args;
 use clap::Parser;
 use federated_server::Config;
@@ -23,7 +24,7 @@ fn main() -> anyhow::Result<()> {
         .expect("installing default crypto provider");
 
     let args = Args::parse();
-    let config = fs::read_to_string(&args.config)?;
+    let config = fs::read_to_string(&args.config).context("could not read config file")?;
     let mut config: Config = toml::from_str(&config)?;
 
     let runtime = runtime::Builder::new_multi_thread()

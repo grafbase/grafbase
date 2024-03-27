@@ -19,7 +19,7 @@ lambda = [
 anyhow = { version = "1.0.81", default-features = false }
 ascii = { version = "1.1.0", default-features = false }
 atty = "0.2.14"
-clap = { version = "4", default-features = false, features = ["std", "cargo", "wrap_help", "derive", "env"] }
+clap = { version = "4", features = ["cargo", "wrap_help", "derive", "env"] }
 federated-server.workspace = true
 grafbase-tracing = { workspace = true, features = ["otlp"] }
 graph-ref.workspace = true
