@@ -4,14 +4,14 @@
 set -e
 set -o pipefail
 
-CLOUDFLARE_R2_CACHE_ARTIFACT_BUCKET_NAME=assets
+CLOUDFLARE_R2_ASSETS_BUCKET_NAME=assets
 
 : "${1:?"missing first argument [artifact name]"}"
 : "${CLOUDFLARE_ASSETS_ACCOUNT_ID:?"missing environment variable"}"
 : "${CLOUDFLARE_ASSETS_R2_ACCESS_KEY_ID:?"missing environment variable"}"
 : "${CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY:?"missing environment variable"}"
 
-bucket_name=$CLOUDFLARE_R2_CACHE_ARTIFACT_BUCKET_NAME
+bucket_name=$CLOUDFLARE_R2_ASSETS_BUCKET_NAME
 endpoint_url="https://${CLOUDFLARE_ASSETS_ACCOUNT_ID}.r2.cloudflarestorage.com"
 
 key="install/$1"
