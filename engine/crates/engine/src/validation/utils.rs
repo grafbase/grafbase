@@ -43,7 +43,10 @@ pub fn is_valid_input_value(
 ) -> Option<String> {
     match registry::MetaTypeName::create(type_name) {
         registry::MetaTypeName::NonNull(type_name) => match value {
-            ConstValue::Null => Some(valid_error(&path, format!("expected type \"{type_name}\""))),
+            ConstValue::Null => Some(valid_error(
+                &path,
+                format!("expected type \"{type_name}\" but found null"),
+            )),
             _ => is_valid_input_value(registry, type_name, value, path),
         },
         registry::MetaTypeName::List(type_name) => match value {
@@ -99,7 +102,10 @@ pub fn is_valid_input_value(
                             None
                         }
                     }
-                    _ => Some(valid_error(&path, format!("expected type \"{type_name}\""))),
+                    _ => Some(valid_error(
+                        &path,
+                        format!("expected type \"{type_name}\" but got {value}"),
+                    )),
                 },
                 registry::MetaType::InputObject(registry::InputObjectType {
                     input_fields,

@@ -15,7 +15,9 @@ use super::{
     requires_directive::RequiresDirective,
     visitor::{Visitor, VisitorContext},
 };
-use crate::{rules::resolver_directive::ResolverDirective, schema_coord::SchemaCoord};
+use crate::{
+    parser_extensions::FieldExtension, rules::resolver_directive::ResolverDirective, schema_coord::SchemaCoord,
+};
 
 pub struct ExtendConnectorTypes;
 
@@ -94,14 +96,7 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                 Some(MetaField {
                     name,
                     description: field.description.clone().map(|x| x.node),
-                    args: field
-                        .arguments
-                        .iter()
-                        .map(|argument| {
-                            MetaInputValue::new(argument.node.name.to_string(), argument.node.ty.to_string())
-                        })
-                        .map(|arg| (arg.name.clone(), arg))
-                        .collect(),
+                    args: field.converted_arguments(),
                     ty: field.ty.clone().node.to_string().into(),
                     requires,
                     resolver,

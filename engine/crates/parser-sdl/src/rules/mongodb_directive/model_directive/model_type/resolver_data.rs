@@ -2,13 +2,22 @@ use engine::{
     indexmap::IndexMap,
     registry::{
         resolvers::{custom::CustomResolver, transformer::Transformer, Resolver},
-        MetaInputValue,
+        FieldSet, MetaInputValue,
     },
-    CacheControl,
+    CacheControl, Pos,
 };
 use engine_parser::types::FieldDefinition;
 
-use crate::rules::cache_directive::CacheDirective;
+use crate::{
+    parser_extensions::FieldExtension,
+    rules::{
+        cache_directive::CacheDirective,
+        join_directive::{self, JoinDirective},
+        requires_directive::RequiresDirective,
+        resolver_directive::ResolverDirective,
+        visitor::VisitorContext,
+    },
+};
 
 #[derive(Debug)]
 pub(super) struct ResolverData {
@@ -16,10 +25,27 @@ pub(super) struct ResolverData {
     pub(super) args: IndexMap<String, MetaInputValue>,
     pub(super) field_type: String,
     pub(super) cache_control: CacheControl,
+    pub(super) requires: Option<FieldSet>,
 }
 
 impl ResolverData {
-    pub(super) fn resolver(resolver_name: &str, field: &FieldDefinition) -> Self {
+    pub(super) fn from_field(field: &FieldDefinition, visitor_ctx: &mut VisitorContext<'_>, position: Pos) -> Self {
+        let resolver_name = ResolverDirective::resolver_name(field);
+        let join_directive = JoinDirective::from_directives(&field.directives, visitor_ctx);
+
+        match (resolver_name, join_directive) {
+            (Some(resolver_name), None) => Self::resolver(resolver_name, field, visitor_ctx),
+            (None, Some(join_directive)) => Self::join(field, join_directive),
+            (Some(_), Some(_)) => {
+                visitor_ctx.report_error(vec![position], "A field can't have a join and a custom resolver on it");
+
+                Self::projection(field)
+            }
+            (None, None) => Self::projection(field),
+        }
+    }
+
+    fn resolver(resolver_name: &str, field: &FieldDefinition, visitor_ctx: &mut VisitorContext<'_>) -> Self {
         let resolver = Resolver::CustomResolver(CustomResolver {
             resolver_name: resolver_name.to_owned(),
         });
@@ -27,26 +53,31 @@ impl ResolverData {
         let field_type = field.ty.node.to_string();
         let cache_control = CacheDirective::parse(&field.directives);
 
-        let args = field
-            .arguments
-            .iter()
-            .map(|argument| {
-                let name = argument.node.name.to_string();
-                let input = MetaInputValue::new(argument.node.name.to_string(), argument.node.ty.to_string());
+        let args = field.converted_arguments();
 
-                (name, input)
-            })
-            .collect();
+        let requires =
+            RequiresDirective::from_directives(&field.directives, visitor_ctx).map(RequiresDirective::into_fields);
 
         Self {
             resolver,
             args,
             field_type,
             cache_control,
+            requires,
         }
     }
 
-    pub(super) fn projection(field: &FieldDefinition) -> Self {
+    fn join(field: &FieldDefinition, directive: JoinDirective) -> Self {
+        ResolverData {
+            resolver: Resolver::Join(directive.select.to_join_resolver()),
+            args: field.converted_arguments(),
+            cache_control: CacheDirective::parse(&field.directives),
+            field_type: field.ty.node.to_string(),
+            requires: directive.select.required_fieldset(&field.arguments),
+        }
+    }
+
+    fn projection(field: &FieldDefinition) -> Self {
         let key = field
             .mapped_name()
             .map(ToString::to_string)
@@ -66,6 +97,7 @@ impl ResolverData {
             args: IndexMap::new(),
             field_type,
             cache_control,
+            requires: None,
         }
     }
 }

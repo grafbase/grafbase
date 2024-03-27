@@ -10,7 +10,10 @@ use super::{
     federation::{InaccessibleDirective, TagDirective},
     visitor::{Visitor, VisitorContext, MUTATION_TYPE, QUERY_TYPE},
 };
-use crate::rules::{cache_directive::CacheDirective, resolver_directive::ResolverDirective};
+use crate::{
+    parser_extensions::FieldExtension,
+    rules::{cache_directive::CacheDirective, resolver_directive::ResolverDirective},
+};
 
 pub struct ExtendQueryAndMutationTypes;
 
@@ -65,17 +68,7 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                     name: name.clone(),
                     mapped_name: None,
                     description: field.node.description.clone().map(|x| x.node),
-                    args: field
-                        .node
-                        .arguments
-                        .iter()
-                        .map(|argument| {
-                            (
-                                argument.node.name.to_string(),
-                                MetaInputValue::new(argument.node.name.to_string(), argument.node.ty.to_string()),
-                            )
-                        })
-                        .collect(),
+                    args: field.converted_arguments(),
                     ty: field.node.ty.clone().node.to_string().into(),
                     deprecation,
                     cache_control,
