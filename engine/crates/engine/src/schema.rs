@@ -558,7 +558,7 @@ impl Schema {
     /// Execute a GraphQL query.
     pub async fn execute(&self, request: impl Into<Request>) -> Response {
         let request = request.into();
-        let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
+        let gql_span = GqlRequestSpan::new().into_span();
 
         let extensions = self.create_extensions(Default::default());
         let request_fut = {
@@ -584,9 +584,9 @@ impl Schema {
         };
         futures_util::pin_mut!(request_fut);
 
-        let request = extensions.request(&mut request_fut).inspect(|_response: &Response| {
+        let request = extensions.request(&mut request_fut).inspect(|response: &Response| {
             Span::current().record_gql_response(GqlResponseAttributes {
-                has_errors: _response.is_err(),
+                has_errors: response.is_err(),
             });
         });
 
@@ -621,7 +621,7 @@ impl Schema {
         let schema = self.clone();
         let request = request.into();
         let extensions = self.create_extensions(session_data.clone());
-        let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
+        let gql_span = GqlRequestSpan::new().into_span();
 
         let request = futures_util::stream::StreamExt::boxed({
             let extensions = extensions.clone();
