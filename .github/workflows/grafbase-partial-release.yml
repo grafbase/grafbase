@@ -18,6 +18,12 @@ on:
         required: true
       NPM_ACCESS_TOKEN:
         required: true
+      CLOUDFLARE_ASSETS_ACCOUNT_ID:
+        required: true
+      CLOUDFLARE_ASSETS_R2_ACCESS_KEY_ID:
+        required: true
+      CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY:
+        required: true
 
 jobs:
   release:
