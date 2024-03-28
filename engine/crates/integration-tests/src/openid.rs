@@ -63,13 +63,17 @@ impl OryHydraOpenIDProvider {
         let provider_metadata = CoreProviderMetadata::discover_async(self.issuer.clone(), &reqwest_client)
             .await
             .unwrap();
+        let token_uri = provider_metadata.token_endpoint().expect("must be defined").clone();
 
         CoreClient::from_provider_metadata(
             provider_metadata,
             ClientId::new(resp.client_id.unwrap()),
             Some(ClientSecret::new(resp.client_secret.unwrap())),
         )
-        .set_token_uri(openidconnect::TokenUrl::from_url(self.issuer.url().clone()))
+        .set_token_uri(token_uri)
+        // It is silly that we need to explicitly pass in the token URL, but that's the only way to ensure the returned
+        // client type's has `HasTokenUrl` set to `EndpointSet`, as `from_provider_metadata()` assumes the metadata passed in
+        // may be missing it.
     }
 }
 
