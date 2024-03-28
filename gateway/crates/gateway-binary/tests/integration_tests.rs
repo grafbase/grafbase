@@ -420,7 +420,7 @@ fn static_schema() {
           "data": {},
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/): client error (Connect)"
+              "message": "error sending request for url (http://127.0.0.1:46697/)"
             }
           ]
         }
@@ -555,7 +555,7 @@ fn custom_path() {
           "data": {},
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/): client error (Connect)"
+              "message": "error sending request for url (http://127.0.0.1:46697/)"
             }
           ]
         }
@@ -614,7 +614,7 @@ fn csrf_with_header() {
           "data": {},
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/): client error (Connect)"
+              "message": "error sending request for url (http://127.0.0.1:46697/)"
             }
           ]
         }
@@ -643,7 +643,7 @@ fn hybrid_graph() {
           "data": {},
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/): client error (Connect)"
+              "message": "error sending request for url (http://127.0.0.1:46697/)"
             }
           ]
         }
