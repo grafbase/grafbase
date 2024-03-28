@@ -477,22 +477,6 @@ checksum = "f1fdabc7756949593fe60f30ec81974b613357de856987752631dea1e3394c80"
 
 [[package]]
 name = "aws_lambda_events"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e84ed7ec0561e54444ad328c76b633f2946b77c234c99baf18c9e84250ceea1"
-dependencies = [
- "base64 0.21.7",
- "bytes",
- "http 1.1.0",
- "http-body 1.0.0",
- "http-serde",
- "query_map",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "aws_lambda_events"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "598e2ade8447dce8d3a15b6159b73354db34257851344b232fb1920c272acc61"
@@ -576,8 +560,7 @@ dependencies = [
 [[package]]
 name = "axum-aws-lambda"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "587169c689d2c09a844e6f74f95e33c53d96f539adf79f807aa68c784b17ee70"
+source = "git+https://github.com/grafbase/axum-aws-lambda?rev=f8d66f135d99b2dd9b65d1ef4e9a382366036220#f8d66f135d99b2dd9b65d1ef4e9a382366036220"
 dependencies = [
  "axum 0.7.5",
  "bytes",
@@ -585,7 +568,7 @@ dependencies = [
  "http 1.1.0",
  "http-body-util",
  "hyper 1.2.0",
- "lambda_http 0.9.3",
+ "lambda_http",
  "tower",
  "tower-service",
 ]
@@ -2274,7 +2257,7 @@ dependencies = [
  "indoc",
  "insta",
  "itertools 0.12.1",
- "lambda_http 0.11.0",
+ "lambda_http",
  "opentelemetry-aws",
  "parser-sdl",
  "regex",
@@ -4064,38 +4047,11 @@ dependencies = [
 
 [[package]]
 name = "lambda_http"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5107d9a9513f340fc9f80ec01ce88c81ab11de0a0826c9c3896504b602ae788b"
-dependencies = [
- "aws_lambda_events 0.14.0",
- "base64 0.21.7",
- "bytes",
- "encoding_rs",
- "futures",
- "futures-util",
- "http 1.1.0",
- "http-body 1.0.0",
- "http-body-util",
- "hyper 1.2.0",
- "lambda_runtime 0.9.2",
- "mime",
- "percent-encoding",
- "pin-project-lite",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "tokio-stream",
- "url",
-]
-
-[[package]]
-name = "lambda_http"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be43a66db1ccbea4d9d504379ec71826f3ccc2ed1b08b6def62e0dd0448c4a30"
 dependencies = [
- "aws_lambda_events 0.15.0",
+ "aws_lambda_events",
  "base64 0.21.7",
  "bytes",
  "encoding_rs",
@@ -4105,7 +4061,7 @@ dependencies = [
  "http-body 1.0.0",
  "http-body-util",
  "hyper 1.2.0",
- "lambda_runtime 0.11.0",
+ "lambda_runtime",
  "mime",
  "percent-encoding",
  "pin-project-lite",
@@ -4114,32 +4070,6 @@ dependencies = [
  "serde_urlencoded",
  "tokio-stream",
  "url",
-]
-
-[[package]]
-name = "lambda_runtime"
-version = "0.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97113292dd7dc3a4f2ca23f6f5e32cbc02b8d54d9966f9e98111a5b3f153d582"
-dependencies = [
- "async-stream",
- "base64 0.21.7",
- "bytes",
- "futures",
- "http 1.1.0",
- "http-body 1.0.0",
- "http-body-util",
- "http-serde",
- "hyper 1.2.0",
- "hyper-util",
- "lambda_runtime_api_client 0.9.0",
- "serde",
- "serde_json",
- "serde_path_to_error",
- "tokio",
- "tokio-stream",
- "tower",
- "tracing",
 ]
 
 [[package]]
@@ -4158,7 +4088,7 @@ dependencies = [
  "http-serde",
  "hyper 1.2.0",
  "hyper-util",
- "lambda_runtime_api_client 0.11.0",
+ "lambda_runtime_api_client",
  "pin-project",
  "serde",
  "serde_json",
@@ -4168,25 +4098,6 @@ dependencies = [
  "tower",
  "tower-layer",
  "tracing",
-]
-
-[[package]]
-name = "lambda_runtime_api_client"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "286b9131ad5312ecac04a655be8f2438988954d19e26f44986aefca6cca15333"
-dependencies = [
- "bytes",
- "futures-channel",
- "futures-util",
- "http 1.1.0",
- "http-body 1.0.0",
- "http-body-util",
- "hyper 1.2.0",
- "hyper-util",
- "tokio",
- "tower",
- "tower-service",
 ]
 
 [[package]]
@@ -4391,9 +4302,9 @@ checksum = "8878cd8d1b3c8c8ae4b2ba0a36652b7cf192f618a599a7fbdfa25cffd4ea72dd"
 
 [[package]]
 name = "memchr"
-version = "2.7.1"
+version = "2.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "523dc4f511e55ab87b694dc30d0f820d60906ef06413f93d4d7a1385599cc149"
+checksum = "6c8640c5d730cb13ebd907d8d04b52f55ac9a2eec55b440c8892f40d56c76c1d"
 
 [[package]]
 name = "memmap2"
