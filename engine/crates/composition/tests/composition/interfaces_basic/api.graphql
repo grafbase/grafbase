@@ -1,0 +1,34 @@
+type Furby {
+    batteryType: String!
+    canDance: Boolean!
+    canSing: Boolean!
+    color: String!
+    connectivity: String
+    friends: [Furby!]
+    height: Float!
+    id: ID!
+    languages: [String!]
+    sensorTypes: [String!]
+    weight: Float!
+}
+
+type Query {
+    furby: Furby
+}
+
+interface FurbyType {
+    batteryType: String!
+    canDance: Boolean!
+    canSing: Boolean!
+    color: String!
+    connectivity: String
+    height: Float!
+    id: ID!
+    languages: [String!]
+    sensorTypes: [String!]
+    weight: Float!
+}
+
+interface SocialFurby {
+    friends: [Furby!]
+}

@@ -6,7 +6,7 @@ pub use self::federated_graph::*;
 mod render_sdl;
 
 #[cfg(feature = "render_sdl")]
-pub use render_sdl::render_sdl;
+pub use render_sdl::{render_api_sdl, render_federated_sdl, render_sdl};
 
 #[cfg(feature = "from_sdl")]
 mod from_sdl;

@@ -1,0 +1,13 @@
+enum Plan {
+    Hobby
+    Pro
+}
+
+type Customer {
+    id: ID!
+    name: String
+}
+
+type Query {
+    customer: Customer
+}

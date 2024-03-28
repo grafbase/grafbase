@@ -14,6 +14,7 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
     }
 
     let subgraphs_dir = federated_graph_path.with_file_name("").join("subgraphs");
+    let api_sdl_path = federated_graph_path.with_file_name("api.graphql");
 
     if !subgraphs_dir.is_dir() {
         return Err(miette::miette!("{} is not a directory.", subgraphs_dir.display()).into());
@@ -40,39 +41,65 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
         subgraphs.ingest(&parsed, name, &format!("http://example.com/{name}"));
     }
 
-    let expected = fs::read_to_string(federated_graph_path)
+    let expected_federated_sdl = fs::read_to_string(federated_graph_path)
         .map_err(|err| miette::miette!("Error trying to read federated.graphql: {}", err))?;
-    let actual = match graphql_composition::compose(&subgraphs).into_result() {
-        Ok(sdl) => graphql_federated_graph::render_sdl(sdl).unwrap(),
-        Err(diagnostics) => format!(
-            "{}\n",
-            diagnostics
-                .iter_messages()
-                .map(|msg| format!("# {msg}"))
-                .collect::<Vec<_>>()
-                .join("\n"),
+    let expected_api_sdl = fs::read_to_string(&api_sdl_path)
+        .map_err(|err| miette::miette!("Error trying to read api.graphql: {}", err))
+        .ok();
+    let (actual_federated_sdl, actual_api_sdl) = match graphql_composition::compose(&subgraphs).into_result() {
+        Ok(federated_graph) => {
+            let federated_graph = federated_graph.into_latest();
+            (
+                graphql_federated_graph::render_federated_sdl(&federated_graph).unwrap(),
+                Some(graphql_federated_graph::render_api_sdl(&federated_graph)),
+            )
+        }
+        Err(diagnostics) => (
+            format!(
+                "{}\n",
+                diagnostics
+                    .iter_messages()
+                    .map(|msg| format!("# {msg}"))
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            ),
+            None,
         ),
     };
 
-    if expected == actual {
-        return Ok(());
-    }
-
     if update_expect() {
-        return fs::write(federated_graph_path, actual).map_err(From::from);
+        if let Some(sdl) = actual_api_sdl {
+            fs::write(api_sdl_path, sdl)?;
+        }
+
+        return fs::write(federated_graph_path, actual_federated_sdl).map_err(From::from);
     }
 
-    Err(miette::miette!(
-        "{}\n\n\n=== Hint: run the tests again with UPDATE_EXPECT=1 to update the snapshot. ===",
-        similar::udiff::unified_diff(
-            similar::Algorithm::default(),
-            &expected,
-            &actual,
-            5,
-            Some(("Expected", "Actual"))
+    if expected_federated_sdl != actual_federated_sdl {
+        return Err(miette::miette!(
+            "{}\n\n\n=== Hint: run the tests again with UPDATE_EXPECT=1 to update the snapshot. ===",
+            similar::udiff::unified_diff(
+                similar::Algorithm::default(),
+                &expected_federated_sdl,
+                &actual_federated_sdl,
+                5,
+                Some(("Expected", "Actual"))
+            )
         )
-    )
-    .into())
+        .into());
+    }
+
+    match (expected_api_sdl, actual_api_sdl) {
+        (None, None) => Ok(()),
+        (Some(_), None) => Err(miette::miette!("Expected no API SDL, but there is an api.graphql expectation.").into()),
+        (None, Some(_)) => Err(miette::miette!("Expected an api.graphql, but found none.").into()),
+        (Some(a), Some(b)) if a == b => Ok(()),
+        (Some(a), Some(b)) => Err(miette::miette!(
+            "{}\n\n\n=== Hint: run the tests again with UPDATE_EXPECT=1 to update the snapshot. ===",
+            similar::udiff::unified_diff(similar::Algorithm::default(), &a, &b, 5, Some(("Expected", "Actual")))
+        )
+        .into()),
+    }
 }
 
 fn test_sdl_roundtrip(federated_graph_path: &Path) -> datatest_stable::Result<()> {
@@ -88,9 +115,10 @@ fn test_sdl_roundtrip(federated_graph_path: &Path) -> datatest_stable::Result<()
         return Ok(());
     }
 
-    let roundtripped = graphql_federated_graph::render_sdl(
-        graphql_federated_graph::from_sdl(&sdl)
-            .map_err(|err| miette::miette!("Error ingesting SDL: {err}\n\nSDL:\n{sdl}"))?,
+    let roundtripped = graphql_federated_graph::render_federated_sdl(
+        &graphql_federated_graph::from_sdl(&sdl)
+            .map_err(|err| miette::miette!("Error ingesting SDL: {err}\n\nSDL:\n{sdl}"))?
+            .into_latest(),
     )?;
 
     if roundtripped == sdl {

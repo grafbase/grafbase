@@ -1,0 +1,41 @@
+enum FavoriteToy {
+    PLUSHTOY
+    TOBOGGAN
+    SCOOTER
+    BAG
+    HAT
+    BALL
+}
+
+enum Mood {
+    HAPPY
+    SAD
+}
+
+type Activity {
+    description: String!
+    name: String!
+    participatingTeletubby: Teletubby!
+}
+
+type Teletubby {
+    activities: [Activity]
+    color: String!
+    episodesFeatured: [Episode]
+    favoriteToy: FavoriteToy
+    mood: Mood
+    name: String!
+}
+
+type Episode {
+    duration: Int!
+    featuredTeletubby: Teletubby!
+    featuredToys: [FavoriteToy!]
+    title: String!
+}
+
+type Query {
+    getActivity: Activity
+    getEpisode: Episode
+    getTeletubby: Teletubby
+}

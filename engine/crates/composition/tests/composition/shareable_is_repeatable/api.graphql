@@ -1,0 +1,11 @@
+type Color {
+    blue: Int!
+    green: Int!
+    name: String!
+    red: Int!
+}
+
+type Query {
+    doubleRainbowAllTheWay: [Color!]!
+    version: String
+}
