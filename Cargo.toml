@@ -17,6 +17,7 @@ members = [
 
 [patch.crates-io]
 async-tungstenite = { git = "https://github.com/grafbase/async-tungstenite", rev = "431cc5963ecb9b13684b1b4e5daeb46971f851e4" } # ring
+axum-aws-lambda = { git = "https://github.com/grafbase/axum-aws-lambda", rev = "f8d66f135d99b2dd9b65d1ef4e9a382366036220" } # main
 # Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
 axum-server = { git = "https://github.com/grafbase/axum-server", rev = "fdce3d3dc71dc69597689cc28003cc0533b47dba" } # rustls-0.23
 http-cache = { git = "https://github.com/grafbase/http-cache", rev = "3c1e65f3be862f264e00db42694e64cd71dad278" } # http-v1-updated
@@ -107,7 +108,7 @@ thiserror = "1"
 tokio = "1"
 tokio-postgres = { version = "0.7", default-features = false }
 tokio-postgres-rustls = "0.11"
-tokio-rustls = { version = "0.25.0", default-features = false }
+tokio-rustls = { version = "0.25", default-features = false }
 tokio-tungstenite = { version = "0.21.0", default-features = false }
 tungstenite = { version = "0.21.0", default-features = false }
 tower-http = "0.5"
@@ -119,7 +120,7 @@ wasm-bindgen = "0.2"
 web-time = "1"
 which = "6"
 wiremock = "0.6.0"
-worker = "0.0.21"
+worker = "0.0.23"
 fnv = "1"
 sha2 = "0.10"
 

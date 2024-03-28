@@ -10,7 +10,7 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-chrono = "0.4.35"
+chrono = "0.4.37"
 const_format = "0.2.32"
 derivative = "2.2.0"
 dirs = "5"
