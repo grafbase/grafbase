@@ -39,7 +39,6 @@ impl TryFrom<Config> for Schema {
 pub(crate) struct BuildContext {
     pub strings: Interner<String, StringId>,
     urls: Interner<Url, UrlId>,
-    cache_configs: Interner<config::latest::CacheConfig, CacheConfigId>,
     idmaps: IdMaps,
     next_subraph_id: usize,
 }
@@ -50,7 +49,6 @@ impl BuildContext {
         let mut ctx = Self {
             strings: Interner::from_vec(Vec::new()),
             urls: Interner::default(),
-            cache_configs: Interner::default(),
             idmaps: IdMaps::empty(),
             next_subraph_id: 0,
         };
@@ -61,13 +59,12 @@ impl BuildContext {
                 mutation: None,
                 subscription: None,
             },
-            definitions: Vec::new(),
+            type_definitions: Vec::new(),
             object_definitions: vec![Object {
                 name: ctx.strings.get_or_insert("Query"),
                 description: None,
                 interfaces: Default::default(),
-                composed_directives: Default::default(),
-                cache_config: Default::default(),
+                directives: Default::default(),
                 fields: IdRange::from_start_and_length((0, 2)),
             }],
             interface_definitions: Vec::new(),
@@ -85,8 +82,7 @@ impl BuildContext {
                     requires: Default::default(),
                     provides: Default::default(),
                     argument_ids: Default::default(),
-                    composed_directives: Default::default(),
-                    cache_config: Default::default(),
+                    directives: Default::default(),
                 },
                 FieldDefinition {
                     name: ctx.strings.get_or_insert("__schema"),
@@ -101,8 +97,7 @@ impl BuildContext {
                     requires: Default::default(),
                     provides: Default::default(),
                     argument_ids: Default::default(),
-                    composed_directives: Default::default(),
-                    cache_config: Default::default(),
+                    directives: Default::default(),
                 },
             ],
             enum_definitions: Vec::new(),
@@ -110,12 +105,14 @@ impl BuildContext {
             scalar_definitions: Vec::new(),
             input_object_definitions: Vec::new(),
             input_value_definitions: Vec::new(),
-            directive_definitions: Vec::new(),
+            type_system_directives: Vec::new(),
             enum_value_definitions: Vec::new(),
             resolvers: Vec::new(),
             required_field_sets: Vec::new(),
             required_fields_arguments: Vec::new(),
+            cache_control: Vec::new(),
             input_values: Default::default(),
+            required_scopes: Vec::new(),
         };
         let out = build(&mut ctx, &mut graph);
         let introspection =
@@ -127,7 +124,6 @@ impl BuildContext {
             },
             graph,
             strings: ctx.strings.into(),
-            cache_configs: Default::default(),
             urls: Default::default(),
             headers: Default::default(),
             settings: Default::default(),
@@ -139,7 +135,6 @@ impl BuildContext {
         Self {
             strings: Interner::from_vec(take(&mut config.graph.strings)),
             urls: Interner::default(),
-            cache_configs: Interner::default(),
             idmaps: IdMaps::new(config),
             next_subraph_id: 0,
         }
@@ -172,7 +167,6 @@ impl BuildContext {
             graph,
             strings: self.strings.into(),
             urls: self.urls.into(),
-            cache_configs: self.cache_configs.into_iter().map(Into::into).collect(),
             headers,
             settings: Settings {
                 default_headers: take(&mut config.default_headers).into_iter().map(Into::into).collect(),
@@ -199,7 +193,6 @@ macro_rules! from_id_newtypes {
 // EnumValueId from federated_graph can't be directly
 // converted, we sort them by their name.
 from_id_newtypes! {
-    federated_graph::DirectiveId => DirectiveId,
     federated_graph::EnumId => EnumId,
     federated_graph::InputObjectId => InputObjectId,
     federated_graph::InterfaceId => InterfaceId,

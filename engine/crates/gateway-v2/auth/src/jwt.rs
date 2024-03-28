@@ -127,16 +127,6 @@ impl JwtProvider {
             .and_then(|value| value.to_str().ok())
             .and_then(|value| value.strip_prefix(&self.config.header_value_prefix))?;
 
-        for part in token_str.rsplit('.') {
-            if let Some(v) = URL_SAFE_NO_PAD
-                .decode(part)
-                .ok()
-                .and_then(|s| serde_json::from_slice::<serde_json::Value>(&s).ok())
-            {
-                tracing::debug!("{}", serde_json::to_string_pretty(&v).unwrap());
-            }
-        }
-
         let jwks_bytes = self.load_metadata().await?;
         let jwks: Jwks<'_> = serde_json::from_slice(&jwks_bytes)
             .inspect_err(|err| {
@@ -158,7 +148,7 @@ impl JwtProvider {
             }
         }
 
-        let jwt_compact::Claims { custom, .. } = token.into_parts().1;
+        let (_header, jwt_compact::Claims { custom, .. }) = token.into_parts();
         let CustomClaims {
             issuer,
             other: mut claims,

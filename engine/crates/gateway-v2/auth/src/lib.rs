@@ -34,6 +34,7 @@ impl AuthService {
                         config::v2::AuthProviderConfig::Jwt(config) => {
                             Box::new(jwt::JwtProvider::new(config, kv.clone()))
                         }
+                        config::v2::AuthProviderConfig::Anonymous => Box::new(AnonymousAuthorizer),
                     };
                     authorizer
                 })

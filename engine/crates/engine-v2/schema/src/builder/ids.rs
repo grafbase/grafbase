@@ -11,6 +11,8 @@ use id_newtypes::IdRange;
 
 use crate::{FieldDefinitionId, InputValueDefinitionId};
 
+use super::graph::is_inaccessible;
+
 pub(super) struct IdMap<FgId: Into<usize>, Id: From<usize> + Copy> {
     skipped_ids: Vec<usize>,
     _fgid: PhantomData<FgId>,
@@ -64,12 +66,6 @@ impl IdMaps {
 
         idmaps
     }
-}
-
-fn is_inaccessible(graph: &federated_graph::FederatedGraphV3, directives: federated_graph::Directives) -> bool {
-    graph[directives]
-        .iter()
-        .any(|directive| matches!(directive, federated_graph::Directive::Inaccessible))
 }
 
 impl<FgId, Id> IdMap<FgId, Id>

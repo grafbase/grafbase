@@ -1,5 +1,5 @@
 pub use engine_parser::types::OperationType;
-use schema::CacheConfig;
+use schema::CacheControl;
 
 use crate::operation::{Operation, OperationCacheControl};
 
@@ -10,7 +10,7 @@ pub struct ExecutionMetadata {
     pub operation_name: Option<String>,
     pub operation_type: Option<OperationType>,
     #[serde(skip, default)]
-    pub cache_config: Option<CacheConfig>,
+    pub cache_config: Option<CacheControl>,
 }
 
 impl ExecutionMetadata {
@@ -23,7 +23,7 @@ impl ExecutionMetadata {
                      max_age,
                      stale_while_revalidate,
                      ..
-                 }| CacheConfig {
+                 }| CacheControl {
                     max_age: *max_age,
                     stale_while_revalidate: *stale_while_revalidate,
                 },

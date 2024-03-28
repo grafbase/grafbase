@@ -9,7 +9,8 @@ const NULL: serde_json::Value = serde_json::Value::Null;
 
 // TODO: Hash is only used to generate a cache key for engine-v2. To be removed once moved to the
 // new cache key.
-#[derive(Hash, serde::Serialize, serde::Deserialize)]
+// TODO: remove Clone with gateway refactor...
+#[derive(Clone, Hash, serde::Serialize, serde::Deserialize)]
 pub enum AccessToken {
     Anonymous,
     Jwt(JwtToken),
@@ -18,7 +19,7 @@ pub enum AccessToken {
 
 /// Represents an *arbitrary* JWT token. It's only guaranteed to have been validated
 /// according to auth config, but there is no guarantee on the claims content.
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct JwtToken {
     /// Claims can be empty.
     pub claims: HashMap<String, serde_json::Value>,
@@ -41,6 +42,13 @@ impl AccessToken {
             AccessToken::Jwt(_) => 1,
             AccessToken::V1(_) => 2,
         }
+    }
+
+    pub fn is_anonymous(&self) -> bool {
+        matches!(
+            self,
+            AccessToken::Anonymous | AccessToken::V1(ExecutionAuth::Public { .. })
+        )
     }
 
     pub fn get_claim(&self, key: &str) -> &serde_json::Value {

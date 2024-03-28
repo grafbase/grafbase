@@ -575,7 +575,7 @@ impl<'a> IntrospectionBuilder<'a> {
                 let value = self.get_or_intern(value);
                 self.enum_value_definitions.push(EnumValue {
                     name: value,
-                    composed_directives: IdRange::empty(),
+                    directives: IdRange::empty(),
                     description: None,
                 })
             }
@@ -590,10 +590,10 @@ impl<'a> IntrospectionBuilder<'a> {
             name,
             description: None,
             value_ids: values,
-            composed_directives: IdRange::empty(),
+            directives: IdRange::empty(),
         });
         let enum_id = EnumId::from(self.enum_definitions.len() - 1);
-        self.definitions.push(Definition::Enum(enum_id));
+        self.type_definitions.push(Definition::Enum(enum_id));
         enum_id
     }
 
@@ -603,8 +603,7 @@ impl<'a> IntrospectionBuilder<'a> {
             name,
             description: None,
             interfaces: vec![],
-            composed_directives: IdRange::empty(),
-            cache_config: None,
+            directives: IdRange::empty(),
             fields: IdRange::empty(),
         });
         ObjectId::from(self.object_definitions.len() - 1)
@@ -629,11 +628,10 @@ impl<'a> IntrospectionBuilder<'a> {
                 only_resolvable_in: vec![subgraph_id],
                 requires: Vec::new(),
                 provides: Vec::new(),
-                composed_directives: IdRange::empty(),
+                directives: IdRange::empty(),
                 resolvers: Vec::new(),
                 argument_ids: IdRange::empty(),
                 description: None,
-                cache_config: None,
             });
 
             out_fields.push((id, tag));
@@ -651,7 +649,7 @@ impl<'a> IntrospectionBuilder<'a> {
 
     fn insert_object(&mut self, name: &str) -> ObjectId {
         let id = self.new_object(name);
-        self.definitions.push(Definition::from(id));
+        self.type_definitions.push(Definition::from(id));
         id
     }
 
@@ -687,7 +685,7 @@ impl<'a> IntrospectionBuilder<'a> {
     fn insert_input_value(
         &mut self,
         name: &str,
-        r#type: Type,
+        ty: Type,
         default_value: Option<SchemaInputValueId>,
     ) -> InputValueDefinitionId {
         let name = self.get_or_intern(name);
@@ -695,7 +693,8 @@ impl<'a> IntrospectionBuilder<'a> {
             name,
             description: None,
             default_value,
-            ty: r#type,
+            ty,
+            directives: IdRange::empty(),
         });
         InputValueDefinitionId::from(self.input_value_definitions.len() - 1)
     }
@@ -716,7 +715,7 @@ impl<'a> IntrospectionBuilder<'a> {
                     ty: scalar_type,
                     description: None,
                     specified_by_url: None,
-                    composed_directives: IdRange::empty(),
+                    directives: IdRange::empty(),
                 });
                 ScalarId::from(self.scalar_definitions.len() - 1)
             }

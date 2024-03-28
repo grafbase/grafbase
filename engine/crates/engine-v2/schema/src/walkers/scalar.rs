@@ -1,11 +1,15 @@
 use super::SchemaWalker;
-use crate::ScalarId;
+use crate::{ScalarId, TypeSystemDirectivesWalker};
 
 pub type ScalarWalker<'a> = SchemaWalker<'a, ScalarId>;
 
 impl<'a> ScalarWalker<'a> {
     pub fn name(&self) -> &'a str {
         self.names.scalar(self.schema, self.item)
+    }
+
+    pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
+        self.walk(self.as_ref().directives)
     }
 }
 

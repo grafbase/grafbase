@@ -1,5 +1,5 @@
 use super::SchemaWalker;
-use crate::{ObjectWalker, UnionId};
+use crate::{ObjectWalker, TypeSystemDirectivesWalker, UnionId};
 
 pub type UnionWalker<'a> = SchemaWalker<'a, UnionId>;
 
@@ -14,6 +14,10 @@ impl<'a> UnionWalker<'a> {
             .clone()
             .into_iter()
             .map(move |id| self.walk(id))
+    }
+
+    pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
+        self.walk(self.as_ref().directives)
     }
 }
 

@@ -1,6 +1,7 @@
 use crate::{sources::IntrospectionMetadata, Names, Schema, StringId};
 
 mod definition;
+mod directives;
 mod r#enum;
 mod field;
 mod field_set;
@@ -16,6 +17,7 @@ mod r#type;
 mod union;
 
 pub use definition::*;
+pub use directives::*;
 pub use field::*;
 pub use field_set::*;
 pub use header::*;
@@ -73,7 +75,7 @@ impl<'a> SchemaWalker<'a, ()> {
         let walker = *self;
         self.schema
             .graph
-            .definitions
+            .type_definitions
             .iter()
             .map(move |definition| walker.walk(*definition))
     }

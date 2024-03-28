@@ -1,6 +1,6 @@
-use schema::{CacheConfig, Merge, Schema};
+use schema::CacheControl;
 
-use crate::response::GraphqlError;
+use crate::{execution::ExecutionContext, response::GraphqlError};
 
 use super::{Operation, OperationCacheControl, OperationWalker, SelectionSetWalker, Variables};
 
@@ -30,14 +30,15 @@ impl Operation {
     ///
     /// All field names are mapped to their actual field id in the schema and respective configuration.
     /// At this stage the operation might not be resolvable but it should make sense given the schema types.
-    pub fn build(schema: &Schema, request: &engine::Request) -> Result<Self, OperationError> {
+    pub fn build(ctx: ExecutionContext<'_>, request: &engine::Request) -> Result<Self, OperationError> {
+        let schema = &ctx.engine.schema;
         let parsed_operation = super::parse::parse_operation(request)?;
         let mut operation = super::bind::bind(schema, parsed_operation)?;
 
         // Creating a walker with no variables enabling validation to use them
         let variables = Variables::empty_for(&operation);
         operation.cache_control = compute_cache_control(operation.walker_with(schema.walker(), &variables), request);
-        super::validation::validate_operation(schema, operation.walker_with(schema.walker(), &variables), request)?;
+        super::validation::validate_operation(ctx, operation.walker_with(schema.walker(), &variables), request)?;
 
         Ok(operation)
     }
@@ -45,12 +46,12 @@ impl Operation {
 
 fn compute_cache_control(operation: OperationWalker<'_>, request: &engine::Request) -> Option<OperationCacheControl> {
     if operation.is_query() {
-        let root_cache_config = operation.root_object().cache_config();
+        let root_cache_control = operation.root_object().directives().cache_control();
         let selection_set = operation.selection_set();
 
-        let selection_set_cache_config = selection_set.cache_config();
-        root_cache_config.merge(selection_set_cache_config).map(
-            |CacheConfig {
+        let selection_set_cache_config = selection_set.computed_cache_control();
+        CacheControl::union_opt(root_cache_control, selection_set_cache_config.as_ref()).map(
+            |CacheControl {
                  max_age,
                  stale_while_revalidate,
              }| OperationCacheControl {
@@ -65,21 +66,22 @@ fn compute_cache_control(operation: OperationWalker<'_>, request: &engine::Reque
 }
 
 impl SelectionSetWalker<'_> {
-    // this merely traverses the selection set recursively and merge all cache_config present in the
+    // this merely traverses the selection set recursively and merge all cache_control present in the
     // selected fields
-    fn cache_config(&self) -> Option<CacheConfig> {
+    fn computed_cache_control(&self) -> Option<CacheControl> {
         self.fields()
             .filter_map(|field| {
-                let cache_config = field.definition().and_then(|definition| {
-                    definition
-                        .cache_config()
-                        .merge(definition.ty().inner().as_object().and_then(|obj| obj.cache_config()))
+                let cache_control = field.definition().and_then(|definition| {
+                    CacheControl::union_opt(
+                        definition.directives().cache_control(),
+                        definition.ty().inner().directives().cache_control(),
+                    )
                 });
-                let selection_set_cache_config = field
-                    .selection_set()
-                    .and_then(|selection_set| selection_set.cache_config());
-                cache_config.merge(selection_set_cache_config)
+                CacheControl::union_opt(
+                    cache_control.as_ref(),
+                    field.selection_set().and_then(|s| s.computed_cache_control()).as_ref(),
+                )
             })
-            .reduce(|a, b| a.merge(b))
+            .reduce(|a, b| a.union(b))
     }
 }

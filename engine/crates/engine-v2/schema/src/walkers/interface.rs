@@ -1,5 +1,5 @@
 use super::{FieldDefinitionWalker, SchemaWalker};
-use crate::{InterfaceId, ObjectWalker};
+use crate::{InterfaceId, ObjectWalker, TypeSystemDirectivesWalker};
 
 pub type InterfaceWalker<'a> = SchemaWalker<'a, InterfaceId>;
 
@@ -27,6 +27,10 @@ impl<'a> InterfaceWalker<'a> {
             .clone()
             .into_iter()
             .map(move |id| self.walk(id))
+    }
+
+    pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
+        self.walk(self.as_ref().directives)
     }
 }
 

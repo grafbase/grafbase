@@ -1,7 +1,7 @@
 use super::{resolver::ResolverWalker, SchemaWalker};
 use crate::{
-    CacheConfig, Directive, FieldDefinitionId, InputValueDefinitionWalker, ProvidableFieldSet, RequiredFieldSet,
-    SubgraphId, TypeWalker,
+    FieldDefinitionId, InputValueDefinitionWalker, ProvidableFieldSet, RequiredFieldSet, SubgraphId,
+    TypeSystemDirectivesWalker, TypeWalker,
 };
 
 pub type FieldDefinitionWalker<'a> = SchemaWalker<'a, FieldDefinitionId>;
@@ -56,19 +56,8 @@ impl<'a> FieldDefinitionWalker<'a> {
         self.walk(self.as_ref().ty)
     }
 
-    pub fn cache_config(&self) -> Option<CacheConfig> {
-        self.as_ref()
-            .cache_config
-            .map(|cache_config_id| self.schema[cache_config_id])
-    }
-
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = &'a Directive> + 'a {
-        self.schema[self.as_ref().composed_directives].iter()
-    }
-
-    pub fn is_deprecated(&self) -> bool {
-        self.directives()
-            .any(|directive| matches!(directive, Directive::Deprecated { .. }))
+    pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
+        self.walk(self.as_ref().directives)
     }
 
     pub fn argument_by_name(&self, name: &str) -> Option<InputValueDefinitionWalker<'a>> {

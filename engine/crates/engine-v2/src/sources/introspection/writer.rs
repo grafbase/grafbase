@@ -7,8 +7,8 @@ use schema::{
         },
         IntrospectionMetadata,
     },
-    Definition, DefinitionWalker, Directive, EnumValueWalker, FieldDefinitionWalker, InputValueDefinitionWalker,
-    ListWrapping, SchemaWalker, TypeWalker, Wrapping,
+    Definition, DefinitionWalker, EnumValueWalker, FieldDefinitionWalker, InputValueDefinitionWalker, ListWrapping,
+    SchemaWalker, TypeWalker, Wrapping,
 };
 
 use crate::{
@@ -194,7 +194,7 @@ impl<'a> IntrospectionWriter<'a> {
                     let include_deprecated = field.as_operation_field().get_arg_value_as::<bool>("includeDeprecated");
                     let values = fields
                         .filter(|field| {
-                            (!field.is_deprecated() || include_deprecated)
+                            (!field.directives().has_deprecated() || include_deprecated)
                                 && !self.metadata.meta_fields.contains(&field.id())
                         })
                         .map(|field| self.__field(field, selection_set))
@@ -229,7 +229,7 @@ impl<'a> IntrospectionWriter<'a> {
                     let include_deprecated = field.as_operation_field().get_arg_value_as::<bool>("includeDeprecated");
                     let values = r#enum
                         .values()
-                        .filter(|value| (!value.is_deprecated() || include_deprecated))
+                        .filter(|value| (!value.directives().has_deprecated() || include_deprecated))
                         .map(|value| self.__enum_value(value, selection_set))
                         .collect::<Vec<_>>();
                     self.output.borrow_mut().push_list(&values)
@@ -272,14 +272,8 @@ impl<'a> IntrospectionWriter<'a> {
                 self.output.borrow_mut().push_list(&values).into()
             }
             __Field::Type => self.__type(target.ty(), field.concrete_selection_set().unwrap()),
-            __Field::IsDeprecated => target.is_deprecated().into(),
-            __Field::DeprecationReason => target
-                .directives()
-                .find_map(|directive| match directive {
-                    Directive::Deprecated { reason } => *reason,
-                    _ => None,
-                })
-                .into(),
+            __Field::IsDeprecated => target.directives().has_deprecated().into(),
+            __Field::DeprecationReason => target.directives().deprecated().map(|d| d.reason).into(),
         })
     }
 
@@ -311,14 +305,8 @@ impl<'a> IntrospectionWriter<'a> {
             |_, __enum_value| match __enum_value {
                 __EnumValue::Name => target.as_ref().name.into(),
                 __EnumValue::Description => target.as_ref().description.into(),
-                __EnumValue::IsDeprecated => target.is_deprecated().into(),
-                __EnumValue::DeprecationReason => target
-                    .directives()
-                    .find_map(|directive| match directive {
-                        Directive::Deprecated { reason } => *reason,
-                        _ => None,
-                    })
-                    .into(),
+                __EnumValue::IsDeprecated => target.directives().has_deprecated().into(),
+                __EnumValue::DeprecationReason => target.directives().deprecated().map(|d| d.reason).into(),
             },
         )
     }

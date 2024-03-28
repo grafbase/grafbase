@@ -85,6 +85,7 @@ fn build_auth_config(config: &FederatedGraphConfig) -> Option<AuthConfig> {
                     header_name: header.name.clone(),
                     header_value_prefix: header.value_prefix.clone(),
                 }),
+                AuthV2Provider::Anonymous => AuthProviderConfig::Anonymous,
             })
             .collect();
         AuthConfig { providers }

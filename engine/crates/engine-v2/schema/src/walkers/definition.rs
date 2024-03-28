@@ -1,6 +1,7 @@
 use super::{field::FieldDefinitionWalker, SchemaWalker};
 use crate::{
     Definition, EnumWalker, InputObjectWalker, InterfaceWalker, ObjectWalker, ScalarType, ScalarWalker, StringId,
+    TypeSystemDirectivesWalker,
 };
 
 pub type DefinitionWalker<'a> = SchemaWalker<'a, Definition>;
@@ -105,6 +106,17 @@ impl<'a> DefinitionWalker<'a> {
 
     pub fn is_object(&self) -> bool {
         matches!(self.item, Definition::Object(_))
+    }
+
+    pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
+        match self.item {
+            Definition::Scalar(s) => self.walk(s).directives(),
+            Definition::Object(o) => self.walk(o).directives(),
+            Definition::Interface(i) => self.walk(i).directives(),
+            Definition::Union(u) => self.walk(u).directives(),
+            Definition::Enum(e) => self.walk(e).directives(),
+            Definition::InputObject(io) => self.walk(io).directives(),
+        }
     }
 }
 

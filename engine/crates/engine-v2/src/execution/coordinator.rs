@@ -9,6 +9,7 @@ use futures_util::{
     Future, SinkExt, StreamExt,
 };
 use grafbase_tracing::span::{GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
+use runtime::auth::AccessToken;
 use tracing::Span;
 
 use crate::{
@@ -28,6 +29,7 @@ pub(crate) struct ExecutionCoordinator {
     engine: Arc<Engine>,
     operation_plan: Arc<OperationPlan>,
     variables: Variables,
+    access_token: AccessToken,
     request_headers: RequestHeaders,
 }
 
@@ -36,12 +38,14 @@ impl ExecutionCoordinator {
         engine: Arc<Engine>,
         operation_plan: Arc<OperationPlan>,
         variables: Variables,
+        access_token: AccessToken,
         request_headers: RequestHeaders,
     ) -> Self {
         Self {
             engine,
             operation_plan,
             variables,
+            access_token,
             request_headers,
         }
     }
@@ -168,7 +172,8 @@ impl ExecutionCoordinator {
         let input = SubscriptionInput {
             ctx: ExecutionContext {
                 engine: self.engine.as_ref(),
-                request_headers: &self.request_headers,
+                access_token: &self.access_token,
+                headers: &self.request_headers,
             },
             plan,
         };
@@ -266,7 +271,8 @@ impl<'ctx> OperationExecution<'ctx> {
         let input = ExecutorInput {
             ctx: ExecutionContext {
                 engine,
-                request_headers: &self.coordinator.request_headers,
+                access_token: &self.coordinator.access_token,
+                headers: &self.coordinator.request_headers,
             },
             plan,
             boundary_objects_view: self.response.read(

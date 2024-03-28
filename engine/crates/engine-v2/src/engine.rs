@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use futures::channel::mpsc;
 use futures_util::{SinkExt, Stream};
+use runtime::auth::AccessToken;
 use tracing::Instrument;
 
 use async_runtime::stream::StreamExt as _;
@@ -11,7 +12,7 @@ use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRespons
 use schema::Schema;
 
 use crate::{
-    execution::{ExecutionCoordinator, PreparedExecution},
+    execution::{ExecutionContext, ExecutionCoordinator, PreparedExecution},
     operation::{Operation, Variables},
     plan::OperationPlan,
     response::{ExecutionMetadata, GraphqlError, Response},
@@ -50,10 +51,15 @@ impl Engine {
         }
     }
 
-    pub async fn execute(self: &Arc<Self>, request: engine::Request, headers: RequestHeaders) -> PreparedExecution {
+    pub async fn execute(
+        self: &Arc<Self>,
+        request: engine::Request,
+        access_token: AccessToken,
+        headers: RequestHeaders,
+    ) -> PreparedExecution {
         let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
 
-        let coordinator = match self.prepare_coordinator(request, headers).await {
+        let coordinator = match self.prepare_coordinator(request, access_token, headers).await {
             Ok(coordinator) => coordinator,
             Err(response) => {
                 return {
@@ -78,6 +84,7 @@ impl Engine {
     pub fn execute_stream(
         self: &Arc<Self>,
         request: engine::Request,
+        access_token: AccessToken,
         headers: RequestHeaders,
     ) -> impl Stream<Item = Response> {
         let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
@@ -87,7 +94,7 @@ impl Engine {
 
         receiver.join({
             let future = async move {
-                let coordinator = match engine.prepare_coordinator(request, headers).await {
+                let coordinator = match engine.prepare_coordinator(request, access_token, headers).await {
                     Ok(coordinator) => coordinator,
                     Err(response) => {
                         sender.send(response).await.ok();
@@ -113,33 +120,50 @@ impl Engine {
     async fn prepare_coordinator(
         self: &Arc<Self>,
         mut request: engine::Request,
+        access_token: AccessToken,
         headers: RequestHeaders,
     ) -> Result<ExecutionCoordinator, Response> {
         self.handle_persisted_query(&mut request, headers.find(CLIENT_NAME_HEADER_NAME), &headers)
             .await
             .map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?;
 
-        let (operation_plan, variables) = self.prepare_operation(request).await?;
+        let (operation_plan, variables) = self
+            .prepare_operation(
+                ExecutionContext {
+                    engine: self.as_ref(),
+                    access_token: &access_token,
+                    headers: &headers,
+                },
+                request,
+            )
+            .await?;
 
         Ok(ExecutionCoordinator::new(
             Arc::clone(self),
             operation_plan,
             variables,
+            access_token,
             headers,
         ))
     }
 
-    async fn prepare_operation(&self, request: engine::Request) -> Result<(Arc<OperationPlan>, Variables), Response> {
+    async fn prepare_operation(
+        &self,
+        ctx: ExecutionContext<'_>,
+        request: engine::Request,
+    ) -> Result<(Arc<OperationPlan>, Variables), Response> {
         #[cfg(feature = "plan_cache")]
         {
             if let Some(operation_plan) = self.plan_cache.get(&request.operation_plan_cache_key) {
+                crate::operation::validate_cached_operation(ctx, &operation_plan)
+                    .map_err(|err| Response::from_error(err, ExecutionMetadata::build(&operation_plan)))?;
                 let variables = Variables::build(self.schema.as_ref(), &operation_plan, request.variables)
                     .map_err(|errors| Response::from_errors(errors, ExecutionMetadata::build(&operation_plan)))?;
                 return Ok((operation_plan, variables));
             }
         }
-        let operation = Operation::build(&self.schema, &request)
-            .map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?;
+        let operation =
+            Operation::build(ctx, &request).map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?;
 
         let variables = Variables::build(self.schema.as_ref(), &operation, request.variables)
             .map_err(|errors| Response::from_errors(errors, ExecutionMetadata::build(&operation)))?;
