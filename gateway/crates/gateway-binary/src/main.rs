@@ -35,7 +35,13 @@ fn main() -> anyhow::Result<()> {
         // if this is not called from tokio context, you'll get:
         // there is no reactor running, must be called from the context of a Tokio 1.x runtime
         // but... only if telemetry is enabled, so be aware and read this when you have a failing test!
-        let provider = init_global_tracing(&args, &mut config)?;
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "lambda")] {
+                let provider = lambda_init_global_tracing(&args, &mut config)?;
+            } else {
+                let provider = init_global_tracing(&args, &mut config)?;
+            }
+        }
 
         federated_server::serve(args.listen_address, config, args.fetch_method()?, provider).await?;
 
@@ -45,7 +51,6 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[cfg(not(feature = "lambda"))]
 fn init_global_tracing(args: &Args, config: &mut Config) -> anyhow::Result<Option<TracerProvider>> {
     use grafbase_tracing::otel::{layer, opentelemetry_sdk::runtime::Tokio};
     use tracing_subscriber::layer::SubscriberExt;
@@ -76,7 +81,7 @@ fn init_global_tracing(args: &Args, config: &mut Config) -> anyhow::Result<Optio
 }
 
 #[cfg(feature = "lambda")]
-fn init_global_tracing(args: &Args, config: &mut Config) -> anyhow::Result<Option<TracerProvider>> {
+fn lambda_init_global_tracing(args: &Args, config: &mut Config) -> anyhow::Result<Option<TracerProvider>> {
     use grafbase_tracing::otel::opentelemetry::global;
     use grafbase_tracing::otel::opentelemetry::trace::TracerProvider;
     use grafbase_tracing::otel::tracing_opentelemetry;

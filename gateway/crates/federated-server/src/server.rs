@@ -73,12 +73,17 @@ pub async fn serve(
         router = csrf::inject_layer(router);
     }
 
-    bind(addr, path, router, config.tls).await?;
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "lambda")] {
+            lambda_bind(addr, path, router, config.tls).await?;
+        } else {
+            bind(addr, path, router, config.tls).await?;
+        }
+    }
 
     Ok(())
 }
 
-#[cfg(not(feature = "lambda"))]
 async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<TlsConfig>) -> crate::Result<()> {
     let app = router.into_make_service();
 
@@ -105,7 +110,7 @@ async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<TlsC
 }
 
 #[cfg(feature = "lambda")]
-async fn bind(_: SocketAddr, path: &str, router: Router<()>, _: Option<TlsConfig>) -> crate::Result<()> {
+async fn lambda_bind(_: SocketAddr, path: &str, router: Router<()>, _: Option<TlsConfig>) -> crate::Result<()> {
     let app = tower::ServiceBuilder::new()
         .layer(axum_aws_lambda::LambdaLayer::default())
         .service(router);
