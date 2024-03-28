@@ -225,11 +225,13 @@ fn write_public_directives(
     graph: &FederatedGraphV3,
 ) -> fmt::Result {
     for directive in graph[directives].iter().filter(|directive| match directive {
-        Directive::Authenticated | Directive::Inaccessible | Directive::Policy(_) | Directive::RequiresScopes(_) => {
-            false
-        }
+        Directive::Inaccessible | Directive::Policy(_) => false,
 
-        Directive::Deprecated { .. } | Directive::Other { .. } => true,
+        Directive::Other { name, .. } if graph[*name] == "tag" => false,
+        Directive::RequiresScopes(_)
+        | Directive::Authenticated
+        | Directive::Deprecated { .. }
+        | Directive::Other { .. } => true,
     }) {
         write_composed_directive(f, directive, graph)?;
     }

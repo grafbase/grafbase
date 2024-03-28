@@ -6,7 +6,7 @@ enum ObserverType {
 
 type Bird @fieldMarks(plumage: "juvenile") @fieldMarks(plumage: "adult") {
     id: ID!
-    location: String! @tag(name: "locationService") @tag(name: "b") @tag(name: "a")
+    location: String!
     name: String!
     notes: String @deprecated(reason: "Field is obsolete due to new data model.")
     observedAt: DateTime! @deprecated(reason: "Use UNIX timestamps instead as customary in bird watching")
