@@ -84,7 +84,7 @@ async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<TlsC
 
     match tls {
         Some(ref tls) => {
-            tracing::info!(target: GRAFBASE_TARGET, "starting the Grafbase gateway at https://{addr}{path}");
+            tracing::info!(target: GRAFBASE_TARGET, "GraphQL endpoint exposed at https://{addr}{path}");
 
             let rustls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(&tls.certificate, &tls.key)
                 .await
@@ -96,7 +96,7 @@ async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<TlsC
                 .map_err(crate::Error::Server)?
         }
         None => {
-            tracing::info!(target: GRAFBASE_TARGET, "starting the Grafbase gateway in http://{addr}{path}");
+            tracing::info!(target: GRAFBASE_TARGET, "GraphQL endpoint exposed at http://{addr}{path}");
             axum_server::bind(addr).serve(app).await.map_err(crate::Error::Server)?
         }
     }
@@ -110,7 +110,7 @@ async fn bind(_: SocketAddr, path: &str, router: Router<()>, _: Option<TlsConfig
         .layer(axum_aws_lambda::LambdaLayer::default())
         .service(router);
 
-    tracing::info!(target: GRAFBASE_TARGET, "starting the Grafbase Lambda gateway in {path}");
+    tracing::info!(target: GRAFBASE_TARGET, "GraphQL endpoint exposed at {path}");
     lambda_http::run(app).await.expect("cannot start lambda http server");
 
     Ok(())

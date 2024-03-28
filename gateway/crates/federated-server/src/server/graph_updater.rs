@@ -35,7 +35,6 @@ const UPLINK_HOST: &str = "https://gdn.grafbase.com";
 
 /// An updater thread for polling graph changes from the API.
 pub(super) struct GraphUpdater {
-    graph_ref: String,
     uplink_url: Url,
     uplink_client: reqwest::Client,
     access_token: AsciiString,
@@ -89,7 +88,6 @@ impl GraphUpdater {
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
         Ok(Self {
-            graph_ref: graph_ref.to_string(),
             uplink_url,
             uplink_client,
             access_token,
@@ -166,12 +164,7 @@ impl GraphUpdater {
             tracing::event!(
                 target: GRAFBASE_TARGET,
                 Level::INFO,
-                message = "creating a new gateway",
-                graph_ref = self.graph_ref,
-                branch = response.branch,
-                operation_limits = self.gateway_config.operation_limits.is_some(),
-                introspection_enabled = self.gateway_config.enable_introspection,
-                authentication = self.gateway_config.authentication.is_some(),
+                message = "Graph fetched from GDN",
             );
 
             let gateway = match super::gateway::generate(
