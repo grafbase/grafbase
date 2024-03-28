@@ -2258,7 +2258,6 @@ dependencies = [
  "insta",
  "itertools 0.12.1",
  "lambda_http",
- "opentelemetry-aws",
  "parser-sdl",
  "regex",
  "reqwest",
@@ -2275,7 +2274,6 @@ dependencies = [
  "tower",
  "tower-http",
  "tracing",
- "tracing-futures",
  "ulid",
  "url",
 ]
