@@ -55,7 +55,7 @@ version = "1.36"
 features = ["macros"]
 
 [dependencies.insta]
-version = "1.36"
+version = "1.37"
 features = ["json"]
 
 [dependencies.engine]
