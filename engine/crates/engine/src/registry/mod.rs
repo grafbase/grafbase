@@ -1933,13 +1933,20 @@ impl Registry {
                 match r#type.fields() {
                     None => types_to_be_removed.push(r#type.name().to_owned()),
                     Some(fields) if fields.is_empty() => types_to_be_removed.push(r#type.name().to_owned()),
-                    Some(fields) => {
-                        for field in fields.values() {
-                            if !self.types.contains_key(field.ty.base_type_name()) {
-                                fields_to_be_removed.push((r#type.name().to_owned(), field.name.clone()));
-                            }
-                        }
-                    }
+                    Some(_) => (),
+                }
+            }
+
+            types_to_be_removed.sort();
+
+            for r#type in self.types.values().filter(|ty| ty.is_object()) {
+                for field in r#type.fields().into_iter().flat_map(|fields| fields.values()) {
+                    if types_to_be_removed
+                        .binary_search_by_key(&field.ty.base_type_name(), |ty| ty.as_str())
+                        .is_ok()
+                    {
+                        fields_to_be_removed.push((r#type.name().to_owned(), field.name.clone()));
+                    };
                 }
             }
 
