@@ -120,7 +120,7 @@ wasm-bindgen = "0.2"
 web-time = "1"
 which = "6"
 wiremock = "0.6.0"
-worker = "0.0.21"
+worker = "0.0.23"
 fnv = "1"
 sha2 = "0.10"
 
