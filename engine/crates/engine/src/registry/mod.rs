@@ -1833,7 +1833,7 @@ impl Registry {
 
     pub fn remove_unused_types(&mut self) {
         let mut used_types = BTreeSet::new();
-        let mut unused_types = BTreeSet::new();
+        let mut unused_types = HashSet::new();
 
         fn traverse_field<'a>(
             types: &'a BTreeMap<String, MetaType>,
@@ -1919,9 +1919,21 @@ impl Registry {
             }
         }
 
-        for type_name in unused_types {
-            self.types.remove(&type_name);
+        for type_name in &unused_types {
+            self.types.remove(type_name);
         }
+
+        self.implements = std::mem::take(&mut self.implements)
+            .into_iter()
+            .filter_map(|(ty, mut implements)| {
+                implements = implements.difference(&unused_types).map(|s| s.to_string()).collect();
+                if implements.is_empty() {
+                    None
+                } else {
+                    Some((ty, implements))
+                }
+            })
+            .collect();
     }
 
     pub fn remove_empty_types(&mut self) {
