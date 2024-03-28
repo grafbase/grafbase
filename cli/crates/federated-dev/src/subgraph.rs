@@ -1,3 +1,5 @@
+mod config;
+
 use serde_json::json;
 use url::Url;
 
