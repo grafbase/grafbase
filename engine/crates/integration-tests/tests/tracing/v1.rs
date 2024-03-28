@@ -16,7 +16,7 @@ async fn query_bad_request() {
 
     let (subscriber, handle) = subscriber::mock()
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
-        .new_span(span.clone().with_field(expect::field("gql.document").with_value(&"")))
+        .new_span(span.clone())
         .enter(span.clone())
         .clone_span(span.clone())
         .record(span.clone(), expect::field("gql.response.has_errors").with_value(&true))
@@ -46,10 +46,7 @@ async fn query() {
 
     let (subscriber, handle) = subscriber::mock()
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
-        .new_span(
-            span.clone()
-                .with_field(expect::field("gql.document").with_value(&query)),
-        )
+        .new_span(span.clone())
         .enter(span.clone())
         .record(
             span.clone(),
@@ -91,11 +88,7 @@ async fn query_named() {
 
     let (subscriber, handle) = subscriber::mock()
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
-        .new_span(
-            graphql_span
-                .clone()
-                .with_field(expect::field("gql.document").with_value(&query)),
-        )
+        .new_span(graphql_span.clone())
         .enter(graphql_span.clone())
         .record(
             graphql_span.clone(),
@@ -140,10 +133,7 @@ async fn batch() {
     let (subscriber, handle) = subscriber::mock()
         .with_filter(move |meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
         // span #1
-        .new_span(
-            span.clone()
-                .with_field(expect::field("gql.document").with_value(&"query-1")),
-        )
+        .new_span(span.clone())
         .enter(span.clone())
         .clone_span(span.clone())
         .record(span.clone(), expect::field("gql.response.has_errors").with_value(&true))
@@ -152,10 +142,7 @@ async fn batch() {
         .enter(span.clone())
         .exit(span.clone())
         // span #2
-        .new_span(
-            span.clone()
-                .with_field(expect::field("gql.document").with_value(&"query-2")),
-        )
+        .new_span(span.clone())
         .enter(span.clone())
         .clone_span(span.clone())
         .record(span.clone(), expect::field("gql.response.has_errors").with_value(&true))
@@ -190,7 +177,7 @@ async fn subscription() {
 
     let (subscriber, handle) = subscriber::mock()
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
-        .new_span(span.clone().with_field(expect::field("gql.document").with_value(&"")))
+        .new_span(span.clone())
         .only()
         .run_with_handle();
 
@@ -216,10 +203,7 @@ async fn resolvers_with_error() {
 
     let (subscriber, handle) = subscriber::mock()
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
-        .new_span(
-            span.clone()
-                .with_field(expect::field("gql.document").with_value(&query)),
-        )
+        .new_span(span.clone())
         .enter(span.clone())
         .record(
             span.clone(),
