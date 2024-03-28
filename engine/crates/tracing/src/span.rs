@@ -1,7 +1,8 @@
 use http::Response;
 use http_body::Body;
 
-pub(crate) const GRAFBASE_TARGET: &str = "grafbase";
+/// Tracing target for logging
+pub const GRAFBASE_TARGET: &str = "grafbase";
 
 /// GraphQL span
 pub mod gql;

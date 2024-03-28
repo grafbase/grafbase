@@ -1,6 +1,6 @@
 [package]
 name = "federated-server"
-version = "0.1.0"
+version = "0.2.0-rc.2"
 edition.workspace = true
 license = "MPL-2.0"
 homepage.workspace = true
@@ -16,8 +16,6 @@ lambda = [
   "dep:axum-aws-lambda",
   "dep:tower",
   "dep:lambda_http",
-  "dep:tracing-futures",
-  "dep:opentelemetry-aws",
   "grafbase-tracing/lambda"
 ]
 
@@ -57,8 +55,6 @@ itertools.workspace = true
 axum-aws-lambda = { version = "0.6.0", optional = true }
 tower = { version = "0.4.13", optional = true }
 lambda_http = { version = "0.9.3", optional = true }
-tracing-futures = { workspace = true, optional = true }
-opentelemetry-aws = { version = "0.10.0", optional = true }
 
 [dev-dependencies]
 indoc = "2.0.5"
