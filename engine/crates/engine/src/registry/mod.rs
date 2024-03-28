@@ -1925,18 +1925,49 @@ impl Registry {
     }
 
     pub fn remove_empty_types(&mut self) {
-        let mut to_be_removed = Vec::new();
+        let mut types_to_be_removed = Vec::new();
+        let mut fields_to_be_removed = Vec::new();
 
-        for r#type in self.types.values().filter(|ty| ty.is_object()) {
-            match r#type.fields() {
-                None => to_be_removed.push(r#type.name().to_owned()),
-                Some(fields) if fields.is_empty() => to_be_removed.push(r#type.name().to_owned()),
-                Some(_) => (),
+        loop {
+            for r#type in self.types.values().filter(|ty| ty.is_object()) {
+                match r#type.fields() {
+                    None => types_to_be_removed.push(r#type.name().to_owned()),
+                    Some(fields) if fields.is_empty() => types_to_be_removed.push(r#type.name().to_owned()),
+                    Some(fields) => {
+                        for field in fields.values() {
+                            if !self.types.contains_key(field.ty.base_type_name()) {
+                                fields_to_be_removed.push((r#type.name().to_owned(), field.name.clone()));
+                            }
+                        }
+                    }
+                }
             }
-        }
 
-        for type_name in to_be_removed {
-            self.types.remove(&type_name);
+            if types_to_be_removed.is_empty() && fields_to_be_removed.is_empty() {
+                break;
+            }
+
+            for type_name in types_to_be_removed.drain(..) {
+                self.types.remove(&type_name);
+            }
+
+            for (type_name, field_name) in fields_to_be_removed.drain(..) {
+                if self.mutation_type.as_ref() == Some(&type_name) {
+                    self.mutation_type = None
+                }
+
+                if self.subscription_type.as_ref() == Some(&type_name) {
+                    self.subscription_type = None
+                }
+
+                let Some(ty) = self.types.get_mut(&type_name) else {
+                    continue;
+                };
+
+                let Some(fields) = ty.fields_mut() else { continue };
+
+                fields.shift_remove(&field_name);
+            }
         }
     }
 
