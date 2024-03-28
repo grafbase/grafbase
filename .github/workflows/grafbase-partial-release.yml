@@ -150,6 +150,9 @@ jobs:
         shell: bash
         env:
           INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
+          CLOUDFLARE_ASSETS_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ASSETS_ACCOUNT_ID }}
+          CLOUDFLARE_ASSETS_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_ASSETS_R2_ACCESS_KEY_ID }}
+          CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY }}
         run: |
           if [[ $INPUT_PRERELEASE == "false" ]]; then
             cd cli/install
