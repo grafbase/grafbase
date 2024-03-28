@@ -1,123 +1,40 @@
-use std::{fmt, fs, net::SocketAddr, path::PathBuf};
+use std::{fs, net::SocketAddr, path::PathBuf};
 
-use anyhow::anyhow;
+use anyhow::Context;
 use ascii::AsciiString;
-use clap::{ArgGroup, Parser, ValueEnum};
+use clap::Parser;
 use federated_server::GraphFetchMethod;
 use grafbase_tracing::otel::layer::BoxedLayer;
 use graph_ref::GraphRef;
 use tracing::Subscriber;
 use tracing_subscriber::{registry::LookupSpan, Layer};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-pub(crate) enum LogLevel {
-    /// Completely disables logging
-    Off,
-    /// Only errors from Grafbase libraries
-    Error,
-    /// Warnings and errors from Grafbase libraries
-    Warn,
-    /// Info, warning and error messages from Grafbase libraries
-    Info,
-    /// Debug, info, warning and error messages from all dependencies
-    Debug,
-    /// Trace, debug, info, warning and error messages from all dependencies
-    Trace,
-}
+mod log;
 
-impl Default for LogLevel {
-    fn default() -> Self {
-        Self::Info
-    }
-}
+pub(crate) use log::LogLevel;
 
-impl LogLevel {
-    pub(crate) fn as_filter_str(&self) -> &'static str {
-        match self {
-            LogLevel::Off => "off",
-            LogLevel::Error => "grafbase=error,off",
-            LogLevel::Warn => "grafbase=warn,off",
-            LogLevel::Info => "grafbase=info,off",
-            LogLevel::Debug => "debug",
-            LogLevel::Trace => "trace",
-        }
-    }
-}
-
-impl AsRef<str> for LogLevel {
-    fn as_ref(&self) -> &str {
-        match self {
-            LogLevel::Off => "off",
-            LogLevel::Error => "error",
-            LogLevel::Warn => "warn",
-            LogLevel::Info => "info",
-            LogLevel::Debug => "debug",
-            LogLevel::Trace => "trace",
-        }
-    }
-}
-
-impl fmt::Display for LogLevel {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_ref())
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-enum LogStyle {
-    /// Standard text
-    Text,
-    /// JSON objects
-    Json,
-}
-
-impl AsRef<str> for LogStyle {
-    fn as_ref(&self) -> &str {
-        match self {
-            LogStyle::Text => "text",
-            LogStyle::Json => "json",
-        }
-    }
-}
-
-impl fmt::Display for LogStyle {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_ref())
-    }
-}
+use self::log::LogStyle;
 
 #[derive(Debug, Parser)]
-#[clap(
-    group(
-        ArgGroup::new("hybrid-or-airgapped")
-            .required(true)
-            .args(["graph_ref", "schema"])
-    ),
-    group(
-        ArgGroup::new("graph-ref-with-access-token")
-            .args(["graph_ref"])
-            .requires("grafbase_access_token")
-    )
-)]
 #[command(name = "The Grafbase Gateway", version)]
 /// The Grafbase Gateway
 pub struct Args {
     /// IP address on which the server will listen for incomming connections. Defaults to 127.0.0.1:5000.
     #[arg(short, long)]
     pub listen_address: Option<SocketAddr>,
-    #[arg(short, long, help = GraphRef::ARG_DESCRIPTION, env = "GRAFBASE_GRAPH_REF")]
+    #[arg(short, long, help = GraphRef::ARG_DESCRIPTION, env = "GRAFBASE_GRAPH_REF", requires = "grafbase_access_token")]
     pub graph_ref: Option<GraphRef>,
     /// An access token to the Grafbase API. The scope must allow operations on the given account,
     /// and graph defined in the graph-ref argument.
     #[arg(env = "GRAFBASE_ACCESS_TOKEN")]
     pub grafbase_access_token: Option<AsciiString>,
     /// Path to the TOML configuration file
-    #[arg(long, short, env = "GRAFBASE_CONFIG_PATH")]
+    #[arg(long, short, env = "GRAFBASE_CONFIG_PATH", default_value = "./grafbase.toml")]
     pub config: PathBuf,
     /// Path to graph SDL. If provided, the graph will be static and no connection is made
     /// to the Grafbase API.
-    #[arg(long, short, env = "GRAFBASE_SCHEMA_PATH")]
-    pub schema: Option<PathBuf>,
+    #[arg(long, short, env = "GRAFBASE_SCHEMA_PATH", default_value = "./federated.graphql")]
+    pub schema: PathBuf,
     /// Set the logging level
     #[arg(long = "log", env = "GRAFBASE_LOG")]
     pub log_level: Option<LogLevel>,
@@ -129,16 +46,9 @@ pub struct Args {
 impl Args {
     /// The method of fetching a graph
     pub fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod> {
-        match (self.graph_ref.as_ref(), self.schema.as_ref()) {
-            (None, Some(path)) => {
-                let federated_graph = fs::read_to_string(path).map_err(|e| anyhow!("error loading schema:\n{e}"))?;
-
-                Ok(GraphFetchMethod::FromLocal {
-                    federated_schema: federated_graph,
-                })
-            }
+        match self.graph_ref.as_ref() {
             #[cfg(not(feature = "lambda"))]
-            (Some(graph_ref), None) => Ok(GraphFetchMethod::FromApi {
+            Some(graph_ref) => Ok(GraphFetchMethod::FromApi {
                 access_token: self
                     .grafbase_access_token
                     .clone()
@@ -147,12 +57,19 @@ impl Args {
                 branch: graph_ref.branch().map(ToString::to_string),
             }),
             #[cfg(feature = "lambda")]
-            (Some(_), None) => {
-                let error = anyhow!("Hybrid mode is not available for lambda deployments, please provide the full GraphQL schema as a file.");
+            Some(_) => {
+                let error = anyhow::anyhow!("Hybrid mode is not available for lambda deployments, please provide the full GraphQL schema as a file.");
 
                 Err(error)
             }
-            _ => unreachable!(),
+            None => {
+                let federated_graph =
+                    fs::read_to_string(&self.schema).context("could not read federated schema file")?;
+
+                Ok(GraphFetchMethod::FromLocal {
+                    federated_schema: federated_graph,
+                })
+            }
         }
     }
 
@@ -164,9 +81,9 @@ impl Args {
 
         match self.log_style {
             // for interactive terminals we provide colored output
-            LogStyle::Text if atty::is(atty::Stream::Stdout) => layer.with_ansi(true).boxed(),
+            LogStyle::Text if atty::is(atty::Stream::Stdout) => layer.with_ansi(true).with_target(false).boxed(),
             // for server logs, colors are off
-            LogStyle::Text => layer.with_ansi(false).boxed(),
+            LogStyle::Text => layer.with_ansi(false).with_target(false).boxed(),
             LogStyle::Json => layer.json().boxed(),
         }
     }

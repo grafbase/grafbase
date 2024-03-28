@@ -2,10 +2,11 @@
 
 use std::fs;
 
+use anyhow::Context;
 use args::Args;
-use clap::Parser;
+use clap::{crate_version, Parser};
 use federated_server::Config;
-use grafbase_tracing::otel::opentelemetry_sdk::trace::TracerProvider;
+use grafbase_tracing::{otel::opentelemetry_sdk::trace::TracerProvider, span::GRAFBASE_TARGET};
 use mimalloc::MiMalloc;
 use tokio::runtime;
 use tracing_subscriber::EnvFilter;
@@ -23,7 +24,7 @@ fn main() -> anyhow::Result<()> {
         .expect("installing default crypto provider");
 
     let args = Args::parse();
-    let config = fs::read_to_string(&args.config)?;
+    let config = fs::read_to_string(&args.config).context("could not read config file")?;
     let mut config: Config = toml::from_str(&config)?;
 
     let runtime = runtime::Builder::new_multi_thread()
@@ -36,6 +37,9 @@ fn main() -> anyhow::Result<()> {
         // there is no reactor running, must be called from the context of a Tokio 1.x runtime
         // but... only if telemetry is enabled, so be aware and read this when you have a failing test!
         let provider = init_global_tracing(&args, &mut config)?;
+
+        let crate_version = crate_version!();
+        tracing::info!(target: GRAFBASE_TARGET, "Grafbase Gateway {crate_version}");
 
         federated_server::serve(args.listen_address, config, args.fetch_method()?, provider).await?;
 
