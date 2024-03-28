@@ -66,9 +66,7 @@ impl fmt::Display for LogLevel {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum LogStyle {
     /// Standard text
-    Ascii,
-    /// Standard text with ANSI coloring
-    Ansi,
+    Text,
     /// JSON objects
     Json,
 }
@@ -76,8 +74,7 @@ enum LogStyle {
 impl AsRef<str> for LogStyle {
     fn as_ref(&self) -> &str {
         match self {
-            LogStyle::Ascii => "ascii",
-            LogStyle::Ansi => "ansi",
+            LogStyle::Text => "text",
             LogStyle::Json => "json",
         }
     }
@@ -125,7 +122,7 @@ pub struct Args {
     #[arg(long = "log", env = "GRAFBASE_LOG")]
     pub log_level: Option<LogLevel>,
     /// Set the style of log output
-    #[arg(long, env = "GRAFBASE_LOG_STYLE", default_value_t = LogStyle::Ascii)]
+    #[arg(long, env = "GRAFBASE_LOG_STYLE", default_value_t = LogStyle::Text)]
     log_style: LogStyle,
 }
 
@@ -163,10 +160,14 @@ impl Args {
     where
         S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
     {
+        let layer = tracing_subscriber::fmt::layer();
+
         match self.log_style {
-            LogStyle::Ascii => tracing_subscriber::fmt::layer().with_ansi(false).boxed(),
-            LogStyle::Ansi => tracing_subscriber::fmt::layer().with_ansi(true).boxed(),
-            LogStyle::Json => tracing_subscriber::fmt::layer().json().boxed(),
+            // for interactive terminals we provide colored output
+            LogStyle::Text if atty::is(atty::Stream::Stdout) => layer.with_ansi(true).boxed(),
+            // for server logs, colors are off
+            LogStyle::Text => layer.with_ansi(false).boxed(),
+            LogStyle::Json => layer.json().boxed(),
         }
     }
 }
