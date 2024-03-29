@@ -20,6 +20,7 @@
 mod response;
 pub mod serializer;
 
+use std::sync::Arc;
 use std::{
     borrow::Cow,
     collections::{BTreeMap, HashMap},
@@ -63,7 +64,17 @@ impl QueryBatcher {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            loader: DataLoader::new(QueryLoader, async_runtime::spawn),
+            loader: DataLoader::new(
+                QueryLoader,
+                async_runtime::spawn,
+                None::<Arc<grafbase_tracing::otel::tracing_subscriber::Registry>>,
+            ),
+        }
+    }
+
+    pub fn new_with_subscriber(tracing_subscriber: Arc<impl tracing::Subscriber + Send + Sync>) -> Self {
+        Self {
+            loader: DataLoader::new(QueryLoader, async_runtime::spawn, Some(tracing_subscriber)),
         }
     }
 }
