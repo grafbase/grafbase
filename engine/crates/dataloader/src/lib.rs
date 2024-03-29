@@ -85,7 +85,7 @@ use futures_channel::oneshot;
 use futures_timer::Delay;
 use futures_util::future::BoxFuture;
 #[cfg(feature = "tracing")]
-use tracing::{instrument::WithSubscriber, Instrument};
+use tracing::{info_span, instrument, Instrument};
 
 #[allow(clippy::type_complexity)]
 struct ResSender<K: Send + Sync + Hash + Eq + Clone + 'static, T: Loader<K>> {
@@ -136,6 +136,7 @@ struct DataLoaderInner<T> {
 }
 
 impl<T> DataLoaderInner<T> {
+    #[cfg_attr(feature = "tracing", instrument(skip_all))]
     async fn do_load<K>(&self, disable_cache: bool, (keys, senders): KeysAndSender<K, T>)
     where
         K: Send + Sync + Hash + Eq + Clone + 'static,
@@ -191,7 +192,6 @@ pub struct DataLoader<T, C = NoCache> {
 
 impl<T> DataLoader<T, NoCache> {
     /// Use `Loader` to create a [`DataLoader`] that does not cache records.
-    #[cfg(not(feature = "tracing"))]
     pub fn new<S, R>(loader: T, spawner: S) -> Self
     where
         S: Fn(BoxFuture<'static, ()>) -> R + Send + Sync + 'static,
@@ -206,36 +206,6 @@ impl<T> DataLoader<T, NoCache> {
             max_batch_size: 1000,
             disable_cache: false.into(),
             spawner: Box::new(move |fut| {
-                spawner(fut);
-            }),
-        }
-    }
-
-    /// Use `Loader` to create a [`DataLoader`] that does not cache records.
-    #[cfg(feature = "tracing")]
-    pub fn new<S, R>(loader: T, spawner: S, subscriber: Option<Arc<impl tracing::Subscriber + Send + Sync>>) -> Self
-    where
-        S: Fn(BoxFuture<'static, ()>) -> R + Send + Sync + 'static,
-    {
-        use futures_util::FutureExt;
-
-        Self {
-            inner: Arc::new(DataLoaderInner {
-                requests: Mutex::new(HashMap::default()),
-                loader,
-            }),
-            cache_factory: NoCache,
-            delay: Duration::from_millis(1),
-            max_batch_size: 1000,
-            disable_cache: false.into(),
-            spawner: Box::new(move |mut fut| {
-                if let Some(subscriber) = &subscriber {
-                    fut = fut
-                        .instrument(tracing::Span::current())
-                        .with_subscriber(subscriber.clone())
-                        .boxed();
-                }
-
                 spawner(fut);
             }),
         }
@@ -312,6 +282,7 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
     /// # Errors
     ///
     /// Errors if [`Loader::load`] returns an error.
+    #[cfg_attr(feature = "tracing", instrument(skip_all))]
     pub async fn load_one<K>(&self, key: K) -> Result<Option<T::Value>, T::Error>
     where
         K: Send + Sync + Hash + Eq + Clone + 'static,
@@ -326,6 +297,7 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
     /// # Errors
     ///
     /// Errors if [`Loader::load`] returns an error.
+    #[cfg_attr(feature = "tracing", instrument(skip_all))]
     #[allow(clippy::missing_panics_doc)]
     pub async fn load_many<K, I>(&self, keys: I) -> Result<HashMap<K, T::Value>, T::Error>
     where
@@ -396,6 +368,8 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
                 let inner = self.inner.clone();
                 let disable_cache = self.disable_cache.load(Ordering::SeqCst);
                 let task = async move { inner.do_load(disable_cache, keys).await };
+                #[cfg(feature = "tracing")]
+                let task = task.instrument(info_span!("immediate_load")).in_current_span();
 
                 (self.spawner)(Box::pin(task));
             }
@@ -417,6 +391,8 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
                         inner.do_load(disable_cache, keys).await;
                     }
                 };
+                #[cfg(feature = "tracing")]
+                let task = task.instrument(info_span!("start_fetch")).in_current_span();
 
                 (self.spawner)(Box::pin(task));
             }
@@ -430,6 +406,7 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
     ///
     /// **NOTE: If the cache type is [`NoCache`], this function will not take
     /// effect. **
+    #[cfg_attr(feature = "tracing", instrument(skip_all))]
     #[allow(clippy::missing_panics_doc)]
     pub fn feed_many<K, I>(&self, values: I)
     where
@@ -453,6 +430,7 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
     ///
     /// **NOTE: If the cache type is [`NoCache`], this function will not take
     /// effect. **
+    #[cfg_attr(feature = "tracing", instrument(skip_all))]
     pub fn feed_one<K>(&self, key: K, value: T::Value)
     where
         K: Send + Sync + Hash + Eq + Clone + 'static,
@@ -465,6 +443,7 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
     ///
     /// **NOTE: If the cache type is [`NoCache`], this function will not take
     /// effect. **
+    #[cfg_attr(feature = "tracing", instrument(skip_all))]
     #[allow(clippy::missing_panics_doc)]
     pub fn clear<K>(&self)
     where
