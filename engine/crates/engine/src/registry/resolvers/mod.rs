@@ -228,7 +228,7 @@ impl Resolver {
                 let error_handler = |error| ctx.add_error(error);
                 let variables = ctx.query_env.variables.clone();
 
-                let batcher = &ctx.data::<QueryBatcher>()?;
+                let batcher = ctx.data::<QueryBatcher>().ok();
 
                 resolver
                     .resolve(
@@ -245,7 +245,7 @@ impl Resolver {
                         variables,
                         variable_definitions,
                         registry,
-                        Some(batcher),
+                        batcher,
                     )
                     .instrument(resolver_span.clone())
                     .inspect_err(|err| {
