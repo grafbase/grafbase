@@ -451,7 +451,7 @@ mod tests {
                 nickname: String! @join(select: "blah(id: $id)")
             }
             "#,
-            "User.nickname is trying to join with Query.blah, but those fields do not have compatible types"
+            "User.nickname is trying to join with Query.blah, but those fields do not have compatible types: 'Int' and 'String!'"
         );
     }
 
@@ -513,7 +513,7 @@ mod tests {
                 nickname: String! @join(select: "blah(id: $id)")
             }
             "#,
-            "User.nickname is trying to join with Query.blah, but those fields do not have compatible types"
+            "User.nickname is trying to join with Query.blah, but those fields do not have compatible types: 'String' and 'String!'"
         );
     }
 
@@ -556,7 +556,7 @@ mod tests {
                 nickname: [String]! @join(select: "blah(id: $id)")
             }
             "#,
-            "User.nickname is trying to join with Query.blah, but those fields do not have compatible types"
+            "User.nickname is trying to join with Query.blah, but those fields do not have compatible types: '[String]' and '[String]!'"
         );
     }
 
@@ -575,7 +575,7 @@ mod tests {
                 nickname: String @join(select: "blah(id: $id)")
             }
             "#,
-            "User.nickname is trying to join with Query.blah, but those fields do not have compatible types"
+            "User.nickname is trying to join with Query.blah, but those fields do not have compatible types: '[String]' and 'String'"
         );
     }
 

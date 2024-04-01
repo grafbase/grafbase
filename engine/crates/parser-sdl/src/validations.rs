@@ -155,9 +155,11 @@ fn validate_join(
         errors.push(RuleError::new(
             vec![],
             format!(
-                "{coord} is trying to join with {}.{}, but those fields do not have compatible types",
+                "{coord} is trying to join with {}.{}, but those fields do not have compatible types: '{}' and '{}'",
                 containing_type.name(),
-                &destination_field.name
+                &destination_field.name,
+                destination_field.ty,
+                expected_return_type
             ),
         ));
     }

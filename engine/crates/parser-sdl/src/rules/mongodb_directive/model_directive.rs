@@ -24,20 +24,26 @@ const RESERVED_FIELDS: [&str; 0] = [];
 pub struct MongoDBModelDirective;
 
 impl<'a> Visitor<'a> for MongoDBModelDirective {
-    fn enter_type_definition(&mut self, ctx: &mut VisitorContext<'a>, r#type: &'a Positioned<TypeDefinition>) {
-        let Some(config) = get_config(ctx, r#type) else { return };
-
-        let TypeKind::Object(ref object) = r#type.node.kind else {
+    fn enter_type_definition(&mut self, ctx: &mut VisitorContext<'a>, type_definition: &'a Positioned<TypeDefinition>) {
+        let Some(config) = get_config(ctx, type_definition) else {
             return;
         };
 
-        if !validate_model_name(ctx, r#type) {
+        let TypeKind::Object(ref object) = type_definition.node.kind else {
+            return;
+        };
+
+        if type_definition.node.extend {
+            return;
+        }
+
+        if !validate_model_name(ctx, type_definition) {
             return;
         }
 
         validate_fields(ctx, object);
 
-        let model_auth = match AuthDirective::parse(ctx, &r#type.node.directives, false) {
+        let model_auth = match AuthDirective::parse(ctx, &type_definition.node.directives, false) {
             Ok(auth) => auth,
             Err(error) => {
                 ctx.report_error(error.locations, error.message);
@@ -45,7 +51,7 @@ impl<'a> Visitor<'a> for MongoDBModelDirective {
             }
         };
 
-        let create_ctx = CreateTypeContext::new(ctx, object, model_auth, r#type, config);
+        let create_ctx = CreateTypeContext::new(ctx, object, model_auth, type_definition, config);
 
         model_type::create(ctx, &create_ctx);
         queries::create(ctx, &create_ctx);

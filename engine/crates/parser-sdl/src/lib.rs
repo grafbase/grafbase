@@ -335,10 +335,7 @@ fn validate_unique_names(ctx: &VisitorContext<'_>) -> Result<(), Error> {
 }
 
 fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
-    let mut first_pass_rules = rules::visitor::VisitorNil
-        .with(CheckBeginsWithDoubleUnderscore)
-        .with(CheckFieldCamelCase)
-        .with(CheckTypeValidity)
+    let mut types_definitions_rules = rules::visitor::VisitorNil
         .with(ModelDirective)
         .with(AuthDirective)
         .with(AuthV2DirectiveVisitor)
@@ -352,7 +349,6 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(MongoDBTypeDirective)
         .with(MongoDBModelDirective)
         .with(LengthDirective)
-        .with(UniqueObjectFields)
         .with(CheckAllDirectivesAreKnown::default())
         .with(ExperimentalDirectiveVisitor)
         .with(FederationDirectiveVisitor) // This will likely need moved.  Here'll do for now though
@@ -361,16 +357,20 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(AllSubgraphsDirectiveVisitor)
         .with(IntrospectionDirectiveVisitor);
 
-    visit(&mut first_pass_rules, ctx, schema);
+    visit(&mut types_definitions_rules, ctx, schema);
 
-    let mut second_pass_rules = rules::visitor::VisitorNil.with(ExtendConnectorTypes);
+    let mut extend_types_rules = rules::visitor::VisitorNil.with(ExtendConnectorTypes);
 
-    visit(&mut second_pass_rules, ctx, schema);
+    visit(&mut extend_types_rules, ctx, schema);
 }
 
 /// Visitors that require all user-defined types to be parsed already.
 fn parse_post_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
     let mut rules = rules::visitor::VisitorNil
+        .with(UniqueObjectFields)
+        .with(CheckBeginsWithDoubleUnderscore)
+        .with(CheckFieldCamelCase)
+        .with(CheckTypeValidity)
         .with(DefaultDirectiveTypes)
         .with(SearchDirective);
 

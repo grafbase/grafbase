@@ -120,3 +120,51 @@ fn test_experimental() {
 
     assert!(!result.enable_kv);
 }
+
+#[test]
+fn mongodb_join() {
+    super::parse_registry(r###"
+    extend schema
+      @mongodb(
+        namespace: false
+        name: "MongoDB"
+        url: "https://mongodb-api.com/something"
+        apiKey: "some-key"
+        dataSource: "Cluster0"
+        database: "sample_analytics"
+      )
+
+    extend type Customer {
+      customerContacts: ContactConnection @join(select: "contactCollection(first: 10, filter: { businessid: { eq: $customerid } })")
+    }
+
+    type Customer @model(connector: "MongoDB", collection: "customer") {
+      customerid: String!
+      category: String!
+      segment: String!
+      status: String!
+    }
+
+    type Contact @model(connector: "MongoDB", collection: "contacts") {
+      businessid: String!
+      parentbusinessid: String!
+      businessentitytype: String!
+      contactMedium: [ContactMedium!]
+    }
+
+    type ContactMedium {
+      type: String
+      emailid: String
+      mobilenumber: String
+      address: [Address!]
+    }
+
+    type Address {
+      address1: String
+      address2: String
+      city: String
+      pincode: String
+    }
+
+    "###).unwrap();
+}
