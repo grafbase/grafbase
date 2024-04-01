@@ -6143,6 +6143,7 @@ dependencies = [
  "common-types",
  "derive_more",
  "futures-util",
+ "grafbase-tracing",
  "headers",
  "http 1.1.0",
  "postgres-connector-types",
