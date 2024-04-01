@@ -27,6 +27,7 @@ use crate::{
     BatchRequest, BatchResponse, CacheControl, ContextExt, ContextSelectionSet, LegacyInputType, LegacyOutputType,
     ObjectType, QueryEnv, QueryEnvBuilder, QueryPath, Request, Response, ServerError, SubscriptionType, Variables, ID,
 };
+use crate::{new_futures_spawner, QuerySpawnedFuturesWaiter};
 
 /// Schema builder
 pub struct SchemaBuilder {
@@ -394,7 +395,7 @@ impl Schema {
         mut extensions: Extensions,
         request: Request,
         session_data: Arc<Data>,
-    ) -> Result<(QueryEnvBuilder, CacheControl), Vec<ServerError>> {
+    ) -> Result<(QueryEnvBuilder, QuerySpawnedFuturesWaiter, CacheControl), Vec<ServerError>> {
         let mut request = request;
         let query_data = Arc::new(std::mem::take(&mut request.data));
         extensions.attach_query_data(query_data.clone());
@@ -491,6 +492,7 @@ impl Schema {
         // LogicalQuery::build(document, registry);
 
         let introspection_state = request.introspection_state();
+        let (futures_spawner, futures_waiter) = new_futures_spawner();
         let env = QueryEnvInner {
             extensions,
             variables: request.variables,
@@ -507,11 +509,16 @@ impl Schema {
             cache_invalidations: validation_result.cache_invalidation_policies,
             response: Default::default(),
             deferred_workloads: None,
+            futures_spawner,
         };
-        Ok((QueryEnvBuilder::new(env), validation_result.cache_control))
+        Ok((
+            QueryEnvBuilder::new(env),
+            futures_waiter,
+            validation_result.cache_control,
+        ))
     }
 
-    async fn execute_once(&self, env: QueryEnv) -> Response {
+    async fn execute_once(&self, env: QueryEnv, futures_waiter: QuerySpawnedFuturesWaiter) -> Response {
         // execute
         let ctx = ContextSelectionSet {
             ty: self.registry().root_type(env.operation.node.ty),
@@ -521,13 +528,19 @@ impl Schema {
             query_env: &env,
         };
 
-        let res = match &env.operation.node.ty {
-            OperationType::Query => resolve_root_container(&ctx).await,
-            OperationType::Mutation => resolve_root_container_serial(&ctx).await,
-            OperationType::Subscription => Err(ServerError::new(
-                "Subscriptions are not supported on this transport.",
-                None,
-            )),
+        let execution = async {
+            match &env.operation.node.ty {
+                OperationType::Query => resolve_root_container(&ctx).await,
+                OperationType::Mutation => resolve_root_container_serial(&ctx).await,
+                OperationType::Subscription => Err(ServerError::new(
+                    "Subscriptions are not supported on this transport.",
+                    None,
+                )),
+            }
+        };
+        let res = futures_util::select! {
+            res = execution.fuse() => res,
+            _ = futures_waiter.wait_until_no_spawners_left().fuse() => unreachable!(),
         };
 
         let operation_name =
@@ -565,14 +578,18 @@ impl Schema {
             let extensions = extensions.clone();
             async move {
                 match self.prepare_request(extensions, request, Default::default()).await {
-                    Ok((env_builder, cache_control)) => {
+                    Ok((env_builder, futures_waiter, cache_control)) => {
                         let env = env_builder.build();
                         Span::current().record_gql_request(GqlRequestAttributes {
                             operation_type: env.operation.ty.as_ref(),
                             operation_name: env.operation_name.as_deref(),
                         });
 
-                        let fut = async { self.execute_once(env.clone()).await.cache_control(cache_control) };
+                        let fut = async {
+                            self.execute_once(env.clone(), futures_waiter)
+                                .await
+                                .cache_control(cache_control)
+                        };
                         futures_util::pin_mut!(fut);
                         env.extensions
                             .execute(env.operation_name.as_deref(), &env.operation, &mut fut)
@@ -626,7 +643,7 @@ impl Schema {
         let request = futures_util::stream::StreamExt::boxed({
             let extensions = extensions.clone();
             async_stream::stream! {
-                let (env_builder, cache_control) = match schema.prepare_request(extensions, request, session_data).await {
+                let (env_builder, futures_waiter, cache_control) = match schema.prepare_request(extensions, request, session_data).await {
                     Ok(res) => res,
                     Err(errors) => {
                         Span::current().record_gql_response(GqlResponseAttributes {
@@ -647,7 +664,7 @@ impl Schema {
                     let env = env_builder.with_deferred_sender(sender).build();
 
                     let initial_response = schema
-                        .execute_once(env.clone())
+                        .execute_once(env.clone(), futures_waiter)
                         .await
                         .cache_control(cache_control);
 

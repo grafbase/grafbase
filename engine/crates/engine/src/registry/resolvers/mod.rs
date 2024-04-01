@@ -232,6 +232,7 @@ impl Resolver {
 
                 resolver
                     .resolve(
+                        ctx.query_env.futures_spawner.clone(),
                         // Be a lot easier to just pass the context in here...
                         operation,
                         ctx.path.clone(),

@@ -1891,6 +1891,7 @@ dependencies = [
  "flexbuffers",
  "fnv",
  "futures",
+ "futures-channel",
  "futures-util",
  "gateway-v2-auth-config",
  "getrandom 0.2.12",

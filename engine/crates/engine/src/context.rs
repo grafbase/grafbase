@@ -12,6 +12,7 @@ use async_lock::Mutex as AsyncMutex;
 use engine_parser::types::OperationType;
 use engine_value::{ConstValue as Value, Variables};
 use fnv::FnvHashMap;
+use futures::{future::BoxFuture, stream::FuturesUnordered, StreamExt};
 use graph_entities::QueryResponse;
 use http::header::HeaderMap;
 
@@ -119,6 +120,7 @@ pub struct QueryEnvInner {
     /// incremental delivery.  In these circumstances we should not defer any workloads
     /// and just return the data as part of the main response.
     pub deferred_workloads: Option<DeferredWorkloadSender>,
+    pub futures_spawner: QueryFutureSpawner,
 }
 
 #[doc(hidden)]
@@ -300,6 +302,44 @@ impl<'a> Iterator for SelectionFieldsIter<'a> {
                 },
                 None => {
                     self.iter.pop();
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct QueryFutureSpawner {
+    sender: futures::channel::mpsc::UnboundedSender<BoxFuture<'static, ()>>,
+}
+
+pub struct QuerySpawnedFuturesWaiter {
+    receiver: futures::channel::mpsc::UnboundedReceiver<BoxFuture<'static, ()>>,
+}
+
+pub fn new_futures_spawner() -> (QueryFutureSpawner, QuerySpawnedFuturesWaiter) {
+    let (sender, receiver) = futures_channel::mpsc::unbounded();
+    (QueryFutureSpawner { sender }, QuerySpawnedFuturesWaiter { receiver })
+}
+
+impl QueryFutureSpawner {
+    pub fn spawn(&self, future: BoxFuture<'static, ()>) {
+        self.sender.unbounded_send(future).unwrap();
+    }
+}
+
+impl QuerySpawnedFuturesWaiter {
+    pub async fn wait_until_no_spawners_left(mut self) {
+        let mut pool = FuturesUnordered::new();
+        loop {
+            futures_util::select! {
+                _ = pool.next() => {},
+                future = self.receiver.next() => {
+                    if let Some(future) = future {
+                        pool.push(future);
+                    } else {
+                        return;
+                    }
                 }
             }
         }
