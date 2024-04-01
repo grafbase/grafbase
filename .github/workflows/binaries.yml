@@ -412,6 +412,9 @@ jobs:
     secrets:
       CRATES_ACCESS_TOKEN: ${{ secrets.CRATES_ACCESS_TOKEN }}
       NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+      CLOUDFLARE_ASSETS_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ASSETS_ACCOUNT_ID }}
+      CLOUDFLARE_ASSETS_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_ASSETS_R2_ACCESS_KEY_ID }}
+      CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY }}
 
   release-gateway:
     needs: [linux, darwin]
@@ -424,6 +427,9 @@ jobs:
     secrets:
       CRATES_ACCESS_TOKEN: ${{ secrets.CRATES_ACCESS_TOKEN }}
       NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+      CLOUDFLARE_ASSETS_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ASSETS_ACCOUNT_ID }}
+      CLOUDFLARE_ASSETS_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_ASSETS_R2_ACCESS_KEY_ID }}
+      CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY }}
 
   after-build:
     # This job is responsible for reacting to build success or failure. It must
