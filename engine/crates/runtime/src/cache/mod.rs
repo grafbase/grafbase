@@ -77,7 +77,7 @@ pub struct StaleEntry<T> {
 }
 
 /// Represents the status of the cache read operation
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CacheReadStatus {
     Hit,
     Bypass,
@@ -86,23 +86,25 @@ pub enum CacheReadStatus {
 }
 
 impl CacheReadStatus {
+    pub fn as_header_value(&self) -> http::HeaderValue {
+        http::HeaderValue::from_static(match self {
+            CacheReadStatus::Hit => "HIT",
+            CacheReadStatus::Miss { .. } => "MISS",
+            CacheReadStatus::Stale { revalidated } => {
+                if *revalidated {
+                    "UPDATING"
+                } else {
+                    "STALE"
+                }
+            }
+            CacheReadStatus::Bypass => "BYPASS",
+        })
+    }
+
     pub fn into_headers(self) -> http::HeaderMap {
         let mut headers = http::HeaderMap::new();
-        headers.insert(
-            http::HeaderName::from_static(X_GRAFBASE_CACHE),
-            http::HeaderValue::from_static(match self {
-                CacheReadStatus::Hit => "HIT",
-                CacheReadStatus::Miss { .. } => "MISS",
-                CacheReadStatus::Stale { revalidated } => {
-                    if revalidated {
-                        "UPDATING"
-                    } else {
-                        "STALE"
-                    }
-                }
-                CacheReadStatus::Bypass => "BYPASS",
-            }),
-        );
+        headers.insert(http::HeaderName::from_static(X_GRAFBASE_CACHE), self.as_header_value());
+
         if let CacheReadStatus::Miss { max_age } = self {
             headers.typed_insert(headers::CacheControl::new().with_public().with_max_age(max_age));
         }
@@ -134,6 +136,16 @@ impl<T> CachedExecutionResponse<T> {
                 cache_revalidation: revalidated,
             } => (response, CacheReadStatus::Stale { revalidated }.into_headers()),
             CachedExecutionResponse::Origin { response, cache_read } => (response, cache_read.into_headers()),
+        }
+    }
+
+    pub fn read_status(&self) -> CacheReadStatus {
+        match self {
+            CachedExecutionResponse::Stale { cache_revalidation, .. } => CacheReadStatus::Stale {
+                revalidated: *cache_revalidation,
+            },
+            CachedExecutionResponse::Cached(_) => CacheReadStatus::Hit,
+            CachedExecutionResponse::Origin { cache_read, .. } => *cache_read,
         }
     }
 }
@@ -210,7 +222,7 @@ pub trait CacheInner: Send + Sync {
     async fn purge_by_hostname(&self, hostname: String) -> Result<()>;
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Default, Clone, Debug, PartialEq, Eq)]
 pub struct CacheMetadata {
     pub max_age: Duration,
     pub stale_while_revalidate: Duration,

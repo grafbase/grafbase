@@ -11,7 +11,7 @@ repository.workspace = true
 
 [dependencies]
 serde.workspace = true
-serde_with.workspace = true
+serde_with = { workspace = true, features = ["base64"] }
 
 [lints]
 workspace = true

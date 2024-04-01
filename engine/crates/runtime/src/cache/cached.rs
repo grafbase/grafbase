@@ -27,8 +27,23 @@ impl Cache {
             .headers()
             .typed_get::<headers::CacheControl>()
             .unwrap_or_else(headers::CacheControl::new);
+        let cache_span =
+            grafbase_tracing::span::cache::CacheSpan::new(CacheReadStatus::Bypass.as_header_value()).into_span();
+
         if self.config.enabled {
-            cached(self, cache_control, ctx, key, execution).await
+            cached(self, cache_control, ctx, key, execution)
+                .inspect_ok(|cached_response| {
+                    use grafbase_tracing::span::CacheRecorderSpanExt;
+
+                    cache_span.record_status(cached_response.read_status().as_header_value());
+                })
+                .inspect_err(|_| {
+                    use grafbase_tracing::span::CacheRecorderSpanExt;
+
+                    cache_span.record_error();
+                })
+                .instrument(cache_span.clone())
+                .await
         } else {
             Ok(CachedExecutionResponse::Origin {
                 response: execution.await?,

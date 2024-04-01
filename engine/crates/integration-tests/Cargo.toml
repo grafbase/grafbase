@@ -93,6 +93,7 @@ headers.workspace = true
 criterion = { version = "0.5", features = ["async_tokio"] }
 sha2.workspace = true
 hex.workspace = true
+serde.workspace = true
 
 [[bench]]
 name = "federation"
