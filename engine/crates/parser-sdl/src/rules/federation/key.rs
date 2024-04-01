@@ -220,7 +220,7 @@ mod tests {
                 id: ID!
             }
             "#,
-            "federation key `id` on the type User is trying to join with Query.blah, but those fields do not have compatible types"
+            "federation key `id` on the type User is trying to join with Query.blah, but those fields do not have compatible types: '[User!]!' and 'User'"
         );
     }
 }
