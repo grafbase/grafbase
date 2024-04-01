@@ -47,6 +47,7 @@ use url::Url;
 use self::serializer::Serializer;
 use super::ResolvedValue;
 use crate::{
+    context::QueryFutureSpawner,
     registry::{
         resolvers::{graphql::response::UpstreamResponse, logged_fetch::send_logged_request},
         type_kinds::SelectionSetTarget,
@@ -63,7 +64,7 @@ impl QueryBatcher {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            loader: DataLoader::new(QueryLoader, async_runtime::spawn),
+            loader: DataLoader::new(QueryLoader),
         }
     }
 }
@@ -499,6 +500,7 @@ impl Resolver {
     #[allow(clippy::too_many_arguments)] // I know clippy, I know
     pub(super) fn resolve<'a>(
         &'a self,
+        futures_spawner: QueryFutureSpawner,
         operation: OperationType,
         path: QueryPath,
         ray_id: &'a str,
@@ -567,7 +569,12 @@ impl Resolver {
 
             let value = match (batcher, operation) {
                 (_, OperationType::Subscription) => return Err(Error::UnsupportedOperation("subscription")),
-                (Some(batcher), OperationType::Query) => batcher.loader.load_one(query_data).await?,
+                (Some(batcher), OperationType::Query) => {
+                    batcher
+                        .loader
+                        .load_one(query_data, |f| futures_spawner.spawn(f))
+                        .await?
+                }
                 _ => load(&[query_data]).await?.into_values().next(),
             };
 
@@ -648,6 +655,7 @@ fn prefix_result_typename(value: &mut serde_json::Value, prefix: &str) {
 #[cfg(test)]
 mod tests {
     use engine_parser::parse_query;
+    use futures::FutureExt;
     use futures_util::join;
     use indoc::indoc;
     use serde_json::{json, Value};
@@ -657,7 +665,7 @@ mod tests {
     };
 
     use super::*;
-    use crate::registry::builder::RegistryBuilder;
+    use crate::{new_futures_spawner, registry::builder::RegistryBuilder};
 
     #[ctor::ctor]
     fn setup_rustls() {
@@ -992,25 +1000,35 @@ mod tests {
 
         let error_handler = |error| errors.push(error);
 
-        let data = resolver
-            .resolve(
-                operation_type,
-                path,
-                "",
-                None,
-                &headers,
-                fragment_definitions,
-                target,
-                Some(current_type),
-                error_handler,
-                Variables::default(),
-                variable_definitions,
-                &registry,
-                batcher,
-            )
-            .await?
-            .data_resolved()
-            .clone();
+        let (futures_spawner, futures_waiter) = new_futures_spawner();
+        let execution = async {
+            resolver
+                .resolve(
+                    futures_spawner,
+                    operation_type,
+                    path,
+                    "",
+                    None,
+                    &headers,
+                    fragment_definitions,
+                    target,
+                    Some(current_type),
+                    error_handler,
+                    Variables::default(),
+                    variable_definitions,
+                    &registry,
+                    batcher,
+                )
+                .await
+                .unwrap()
+                .data_resolved()
+                .clone()
+        };
+
+        let data = futures_util::select! {
+            data = execution.fuse() => data,
+            _ = futures_waiter.wait_until_no_spawners_left().fuse() => unreachable!(),
+        };
 
         let response = if errors.is_empty() {
             json!({ "data": data })

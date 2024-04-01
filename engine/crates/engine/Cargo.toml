@@ -33,6 +33,7 @@ flexbuffers.workspace = true
 fnv.workspace = true
 futures.workspace = true
 futures-util = { workspace = true, features = ["io", "sink"] }
+futures-channel = { version = "0.3", default-features = false }
 gateway-v2-auth-config.workspace = true
 http.workspace = true
 im = "15"
