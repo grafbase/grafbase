@@ -28,7 +28,7 @@ names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2
 # FIXME: Drop when a new version is released.
 openidconnect = { git = "https://github.com/ramosbugs/openidconnect-rs", rev = "7efc8943a8f699aff2db742827fc3d0fc2b3f34d" } # main
 ory-client = { git = "https://github.com/grafbase/client-rust", rev = "88ed8f63c1d71b294c2ef64fd80ca654e91ac25f" } # reqwest-0.12
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "548567b27d7f0c5023a453083f2e78d36f63b084" } # 0.12-with-patches
+reqwest = { git = "https://github.com/grafbase/reqwest", rev = "8bb0c86ed447cd40f6deccb504b2b719fc7b4579" } # 0.12-with-patches
 # FIXME: Drop when https://github.com/jpopesculian/reqwest-eventsource/pull/20 is merged.
 reqwest-eventsource = { git = "https://github.com/Sagebati/reqwest-eventsource", rev = "c2d83622d4c238d61cec4ec201bcd8921b5256b9" } # main
 # FIXME: Drop when https://github.com/TrueLayer/reqwest-middleware/pull/133 is released.
