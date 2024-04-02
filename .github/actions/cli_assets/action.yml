@@ -32,7 +32,7 @@ runs:
       run: |
         npm i
         powershell -c "irm bun.sh/install.ps1 | iex"
-        ~/.bun/bin/bun.exe build udf.ts --external="\${UDF_MAIN_FILE_PATH}" --minify --target=bun > dist.js"
+        ~/.bun/bin/bun.exe build udf.ts --external="\${UDF_MAIN_FILE_PATH}" --minify --target=bun > dist.js
 
     - name: Build Assets
       shell: bash
