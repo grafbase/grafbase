@@ -47,20 +47,19 @@ runs:
         username: ${{ inputs.dockerhub-username }}
         password: ${{ inputs.dockerhub-token }}
 
-    - name: Start local databases
-      if: ${{ inputs.with-integration-tests == 'true' }}
-      shell: bash
-      run: |
-        docker-compose -f engine/crates/integration-tests/docker-compose.yml up -d
-
     - name: Run all tests
       if: ${{ inputs.with-integration-tests == 'true' }}
       shell: bash
       run: |
-        RUST_BACKTRACE=1 cargo nextest run --workspace --profile ci
+        docker-compose -f engine/crates/integration-tests/docker-compose.yml up -d
+        RUST_BACKTRACE=1 cargo nextest run --workspace --profile ci --exclude grafbase-gateway
+        docker-compose -f engine/crates/integration-tests/docker-compose.yml stop -t 3
+
+        docker-compose -f gateway/crates/gateway-binary/docker-compose.yml up -d
+        RUST_BACKTRACE=1 cargo nextest run -p grafbase-gateway --profile ci
 
     - name: Run tests without integration
       if: ${{ inputs.with-integration-tests == 'false' }}
       shell: bash
       run: |
-        RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --profile ci
+        RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --exclude grafbase-gateway --profile ci
