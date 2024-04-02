@@ -19,10 +19,20 @@ runs:
 
     - name: Build wrappers
       shell: bash
+      if: runner.os != 'Windows'
       working-directory: './cli/wrappers'
       run: |
         npm i
         npm run build
+
+    - name: Build wrappers
+      shell: bash
+      if: runner.os == 'Windows'
+      working-directory: './cli/wrappers'
+      run: |
+        npm i
+        powershell -c "irm bun.sh/install.ps1 | iex"
+        bun build udf.ts --external="\${UDF_MAIN_FILE_PATH}" --minify --target=bun > dist.js"
 
     - name: Build Assets
       shell: bash
