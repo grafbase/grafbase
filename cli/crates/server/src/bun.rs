@@ -263,13 +263,15 @@ async fn download_bun(environment: &Environment) -> Result<(), BunError> {
             .map_err(BunError::ExtractBunArchive)?;
 
         let mut archive = zip::ZipArchive::new(decompressed_file)
-            .map_err(|error| Arc::new(error.into()))
+            .map_err(Into::into)
+            .map_err(Arc::new)
             .map_err(BunError::ExtractBunArchive)?;
 
         // the archive contains a directory which has a single file - the bun binary
         let mut binary = archive
             .by_index(1)
-            .map_err(|error| Arc::new(error.into()))
+            .map_err(Into::into)
+            .map_err(Arc::new)
             .map_err(BunError::ExtractBunArchive)?;
 
         let mut outfile = std::fs::File::create(&environment.bun_executable_path)
