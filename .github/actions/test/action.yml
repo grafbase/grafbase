@@ -21,13 +21,6 @@ runs:
       with:
         bun-version: latest
 
-    - name: Build cli-app
-      shell: bash
-      working-directory: './packages/cli-app'
-      run: |
-        npx pnpm i
-        npx pnpm run cli-app:build
-
     - name: Build wrappers
       shell: bash
       if: runner.os != 'Windows'
