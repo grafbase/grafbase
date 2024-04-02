@@ -122,7 +122,7 @@ export default {
    *
    * @param type - A type to be referred.
    */
-  ref: (type: Type | string) => new ReferenceDefinition(type),
+  ref: (type: Type | Union | string) => new ReferenceDefinition(type),
 
   /**
    * Create a new enum field.

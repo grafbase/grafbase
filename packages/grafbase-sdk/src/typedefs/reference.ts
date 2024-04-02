@@ -11,12 +11,13 @@ import { ShareableDefinition } from './shareable'
 import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
 import { InputType } from '../query'
+import { Union } from '../union'
 
 export class ReferenceDefinition {
   private referencedType: string
   private isOptional: boolean
 
-  constructor(referencedType: Type | string) {
+  constructor(referencedType: Type | Union | string) {
     this.referencedType =
       typeof referencedType === 'string' ? referencedType : referencedType.name
     this.isOptional = false

@@ -423,7 +423,7 @@ export class Graph {
    *
    * @param type - A type to be referred.
    */
-  public ref(type: Type | string): ReferenceDefinition {
+  public ref(type: Type | Union | string): ReferenceDefinition {
     return define.ref(type)
   }
 
