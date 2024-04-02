@@ -61,8 +61,8 @@ pub enum BunError {
     #[error("could not create a temporary file")]
     CreateTemporaryFile,
 
-    #[error("could not extract the bun archive")]
-    ExtractBunArchive,
+    #[error("could not extract the bun archive\nCaused by: {0}")]
+    ExtractBunArchive(Arc<io::Error>),
 
     #[error("could not set permissions for the bun executable")]
     SetBunExecutablePermissions,
@@ -258,16 +258,27 @@ async fn download_bun(environment: &Environment) -> Result<(), BunError> {
     tokio::task::spawn_blocking(move || {
         let environment = Environment::get();
 
-        let decompressed_file =
-            std::fs::File::open(&decompressed_file_path).map_err(|_| BunError::ExtractBunArchive)?;
-        let mut archive = zip::ZipArchive::new(decompressed_file).map_err(|_| BunError::ExtractBunArchive)?;
+        let decompressed_file = std::fs::File::open(&decompressed_file_path)
+            .map_err(Arc::new)
+            .map_err(BunError::ExtractBunArchive)?;
+
+        let mut archive = zip::ZipArchive::new(decompressed_file)
+            .map_err(|error| Arc::new(error.into()))
+            .map_err(BunError::ExtractBunArchive)?;
 
         // the archive contains a directory which has a single file - the bun binary
-        let mut binary = archive.by_index(1).map_err(|_| BunError::ExtractBunArchive)?;
+        let mut binary = archive
+            .by_index(1)
+            .map_err(|error| Arc::new(error.into()))
+            .map_err(BunError::ExtractBunArchive)?;
 
-        let mut outfile =
-            std::fs::File::create(&environment.bun_executable_path).map_err(|_| BunError::ExtractBunArchive)?;
-        std::io::copy(&mut binary, &mut outfile).map_err(|_| BunError::ExtractBunArchive)?;
+        let mut outfile = std::fs::File::create(&environment.bun_executable_path)
+            .map_err(Arc::new)
+            .map_err(BunError::ExtractBunArchive)?;
+
+        std::io::copy(&mut binary, &mut outfile)
+            .map_err(Arc::new)
+            .map_err(BunError::ExtractBunArchive)?;
 
         #[cfg(unix)]
         {
