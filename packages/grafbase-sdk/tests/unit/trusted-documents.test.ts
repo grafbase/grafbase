@@ -17,10 +17,11 @@ describe('Trusted documents', () => {
 
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
-        @trustedDocuments"
-      `)
+        @trustedDocuments
+      "
+    `)
   })
- 
+
   it('renders bypassHeader', async () => {
     const cfg = config({
       graph: g,
@@ -35,7 +36,8 @@ describe('Trusted documents', () => {
 
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
-        @trustedDocuments(bypassHeaderName: \"password\", byPassHeaderValue: \"m00se\")"
-      `)
+        @trustedDocuments(bypassHeaderName: "password", byPassHeaderValue: "m00se")
+      "
+    `)
   })
 })
