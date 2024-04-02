@@ -1,5 +1,5 @@
 use integration_tests::udfs::RustUdfs;
-use integration_tests::{runtime, EngineBuilder};
+use integration_tests::{runtime, EngineBuilder, GetPath};
 use runtime::cache::Cacheable;
 use runtime::udf::UdfResponse;
 use serde_json::json;
@@ -369,5 +369,100 @@ fn should_not_purge_related_mutation_invalidation_entity_missing_response_field(
         assert!(!metadata.should_purge_related);
         assert!(!metadata.should_cache);
         assert!(metadata.tags.is_empty());
+    });
+}
+
+#[test]
+fn should_cache_fragments() {
+    let schema = r#"
+        extend type Query {
+            test: Post! @resolver(name: "test")
+        }
+
+        extend schema @cache(rules: [
+                { maxAge: 60, staleWhileRevalidate: 10, types: "Post",  mutationInvalidation: { field: "hello" } },
+            ]
+        )
+
+        type Post {
+            seconds: String
+            hello: String
+            id: ID!
+        }
+    "#;
+
+    runtime().block_on(async {
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(RustUdfs::new().resolver(
+                "test",
+                UdfResponse::Success(json!({
+                    "id": "hello",
+                    "hello": "fragment",
+                })),
+            ))
+            .build()
+            .await;
+
+        // act
+        let response = engine.execute(r"
+            query { test { ...PostFrag } }
+
+            fragment PostFrag on Post {
+              hello
+            }
+        ").await;
+
+        // assert
+        let metadata = response.metadata();
+
+        assert!(!metadata.should_purge_related);
+        assert_eq!(metadata.tags, vec!["Post#hello:fragment"]);
+        assert_eq!(metadata.max_age, Duration::from_secs(60));
+        assert_eq!(metadata.stale_while_revalidate, Duration::from_secs(10));
+    });
+}
+
+#[test]
+fn should_purge_related_mutation_invalidation_fragments() {
+    let schema = r#"
+        extend type Mutation {
+            postCreate(name: String!): Post! @resolver(name: "test")
+        }
+
+        type Post @cache(maxAge: 10, staleWhileRevalidate: 10, mutationInvalidation: { field: "name" }) {
+            id: ID!
+            name: String!
+        }
+    "#;
+
+    runtime().block_on(async {
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(RustUdfs::new().resolver(
+                "test",
+                UdfResponse::Success(json!({
+                    "id": "1",
+                    "name": "hmm",
+                })),
+            ))
+            .build()
+            .await;
+
+        // act
+        let response = engine
+            .execute(r#"
+            mutation { postCreate(name: "hmm") { ...PostFrag } }
+
+            fragment PostFrag on Post {
+              name
+            }
+        "#)
+            .await;
+
+        // assert
+        let metadata = response.metadata();
+
+        assert!(metadata.should_purge_related);
+        assert!(!metadata.should_cache);
+        assert_eq!(metadata.tags, vec!["Post#name:hmm"]);
     });
 }
