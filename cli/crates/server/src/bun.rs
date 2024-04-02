@@ -141,7 +141,7 @@ async fn run_command<P: AsRef<Path>>(
     }
 }
 
-#[cfg(unix)]
+#[cfg(target_family = "unix")]
 const BUN_EXECUTABLE_PERMISSIONS: u32 = 0o755;
 
 const BUN_INSTALL_LOCK_FILE: &str = ".bun.install.lock";
