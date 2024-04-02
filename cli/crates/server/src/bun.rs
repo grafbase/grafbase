@@ -74,9 +74,7 @@ impl From<JoinError> for BunError {
     }
 }
 
-// TODO: add windows once supported in Bun
-
-const BUN_VERSION: &str = "1.0.34";
+const BUN_VERSION: &str = "1.1.0";
 
 #[cfg(target_arch = "aarch64")]
 const ARCH: &str = "aarch64";
@@ -89,6 +87,9 @@ const OS: &str = "darwin";
 
 #[cfg(target_os = "linux")]
 const OS: &str = "linux";
+
+#[cfg(target_os = "windows")]
+const OS: &str = "windows";
 
 const BUN_DOWNLOAD_URL: &str = concatcp!(
     "https://github.com/oven-sh/bun/releases/download/bun-v",
@@ -140,7 +141,9 @@ async fn run_command<P: AsRef<Path>>(
     }
 }
 
+#[cfg(unix)]
 const BUN_EXECUTABLE_PERMISSIONS: u32 = 0o755;
+
 const BUN_INSTALL_LOCK_FILE: &str = ".bun.install.lock";
 
 pub(crate) async fn install_bun() -> Result<(), BunError> {

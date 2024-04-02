@@ -90,6 +90,12 @@ jobs:
           name: ${{ env.VERSION_BUMP }}-linux-arm
           path: cli/npm/aarch64-unknown-linux-musl
 
+      - name: Download windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.VERSION_BUMP }}-windows
+          path: cli/npm/x86_64-pc-windows-msvc
+
       - name: Process artifacts
         shell: bash
         run: |
@@ -97,7 +103,8 @@ jobs:
           mkdir github
           cp aarch64-apple-darwin/grafbase github/grafbase-aarch64-apple-darwin
           cp x86_64-apple-darwin/grafbase github/grafbase-x86_64-apple-darwin
-          # cp x86_64-pc-windows-msvc/grafbase.exe github/grafbase-x86_64-pc-windows-msvc.exe
+          cp x86_64-pc-windows-msvc/grafbase.exe github/grafbase-x86_64-pc-windows-msvc.exe
+          cp x86_64-pc-windows-msvc/grafbase.exe github/grafbase-x86_64-pc-windows-msvc.exe
           cp x86_64-unknown-linux-musl/grafbase github/grafbase-x86_64-unknown-linux-musl
           cp aarch64-unknown-linux-musl/grafbase github/grafbase-aarch64-unknown-linux-musl
 
@@ -133,6 +140,7 @@ jobs:
           fi
           (cd aarch64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd x86_64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd x86_64-pc-windows-msvc && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd x86_64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd aarch64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd cli && npm publish "${PUBLISH_ARGUMENTS[@]}")
@@ -148,7 +156,7 @@ jobs:
             licenses.html
             cli/npm/github/grafbase-aarch64-apple-darwin
             cli/npm/github/grafbase-x86_64-apple-darwin
-            # cli/npm/github/grafbase-x86_64-pc-windows-msvc.exe
+            cli/npm/github/grafbase-x86_64-pc-windows-msvc.exe
             cli/npm/github/grafbase-x86_64-unknown-linux-musl
             cli/npm/github/grafbase-aarch64-unknown-linux-musl
 
