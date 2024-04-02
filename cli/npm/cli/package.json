@@ -2,9 +2,7 @@
   "name": "grafbase",
   "version": "0.65.2",
   "description": "The Grafbase command line interface",
-  "keywords": [
-    "grafbase"
-  ],
+  "keywords": ["grafbase"],
   "homepage": "https://grafbase.com",
   "bugs": {
     "url": "https://github.com/grafbase/grafbase/issues"
