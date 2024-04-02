@@ -310,7 +310,7 @@ jobs:
           path: |
             target/${{ matrix.archs.target }}/release/grafbase-gateway
   windows:
-    needs: [lint]
+    needs: [test]
     runs-on: windows-latest-8-cores
     steps:
       - name: Get sources
