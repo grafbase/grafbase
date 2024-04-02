@@ -43,6 +43,12 @@ pub struct FederatedGraphV3 {
     pub directives: Vec<Directive>,
 }
 
+impl std::fmt::Debug for FederatedGraphV3 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(std::any::type_name::<Self>()).finish_non_exhaustive()
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
 pub enum Directive {
     Authenticated,

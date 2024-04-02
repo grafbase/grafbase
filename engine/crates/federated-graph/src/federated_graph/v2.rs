@@ -47,6 +47,12 @@ pub struct FederatedGraphV2 {
     pub directives: Vec<Directive>,
 }
 
+impl std::fmt::Debug for FederatedGraphV2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(std::any::type_name::<Self>()).finish_non_exhaustive()
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct InputValueDefinition {
     pub name: StringId,
