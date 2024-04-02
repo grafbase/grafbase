@@ -16,21 +16,33 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - uses: oven-sh/setup-bun@v1
+      if: runner.os != 'Windows'
+      with:
+        bun-version: latest
+
+    - name: Build cli-app
+      shell: bash
+      working-directory: './packages/cli-app'
+      run: |
+        npx pnpm i
+        npx pnpm run cli-app:build
+
     - name: Build wrappers
       shell: bash
       if: runner.os != 'Windows'
       working-directory: './cli/wrappers'
       run: |
-        npm i
-        npm run build
+        bun i
+        bun run build
 
     - name: Build wrappers
       shell: bash
       if: runner.os == 'Windows'
       working-directory: './cli/wrappers'
       run: |
-        npm i
         powershell -c "irm bun.sh/install.ps1 | iex"
+        ~/.bun/bin/bun.exe i
         ~/.bun/bin/bun.exe build udf.ts --external="\${UDF_MAIN_FILE_PATH}" --minify --target=bun > dist.js
 
     # https://github.com/actions/setup-node/issues/899

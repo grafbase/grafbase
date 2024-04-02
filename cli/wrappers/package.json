@@ -11,7 +11,7 @@
     "@miniflare/kv": "^2.14.1",
     "@miniflare/storage-file": "^2.14.2"
   },
-  "overrides": {
+  "resolutions": {
     "npx-import": "file:./npx-import-stub"
   },
   "scripts": {
