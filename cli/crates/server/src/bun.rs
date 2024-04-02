@@ -12,6 +12,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use tokio::process::Command;
 use tokio::task::JoinError;
+use zip::result::ZipError;
 
 use crate::atomics::BUN_INSTALLED_FOR_SESSION;
 
@@ -71,6 +72,12 @@ pub enum BunError {
 impl From<JoinError> for BunError {
     fn from(value: JoinError) -> Self {
         Self::SpawnedTaskPanic(Arc::new(value))
+    }
+}
+
+impl From<ZipError> for BunError {
+    fn from(error: ZipError) -> Self {
+        Self::ExtractBunArchive(Arc::new(error.into()))
     }
 }
 
@@ -145,6 +152,15 @@ async fn run_command<P: AsRef<Path>>(
 const BUN_EXECUTABLE_PERMISSIONS: u32 = 0o755;
 
 const BUN_INSTALL_LOCK_FILE: &str = ".bun.install.lock";
+
+#[cfg(unix)]
+// the archive contains a directory which has a single file - the bun binary
+const BUN_EXECUTABLE_ARCHIVE_FILE_INDEX: usize = 1;
+
+#[cfg(windows)]
+// the archive contains a directory which has a single file - the bun binary.
+// in windows this appears to correspond to an index of 0
+const BUN_EXECUTABLE_ARCHIVE_FILE_INDEX: usize = 0;
 
 pub(crate) async fn install_bun() -> Result<(), BunError> {
     if BUN_INSTALLED_FOR_SESSION.load(Ordering::Acquire) {
@@ -262,17 +278,9 @@ async fn download_bun(environment: &Environment) -> Result<(), BunError> {
             .map_err(Arc::new)
             .map_err(BunError::ExtractBunArchive)?;
 
-        let mut archive = zip::ZipArchive::new(decompressed_file)
-            .map_err(Into::into)
-            .map_err(Arc::new)
-            .map_err(BunError::ExtractBunArchive)?;
+        let mut archive = zip::ZipArchive::new(decompressed_file)?;
 
-        // the archive contains a directory which has a single file - the bun binary
-        let mut binary = archive
-            .by_index(1)
-            .map_err(Into::into)
-            .map_err(Arc::new)
-            .map_err(BunError::ExtractBunArchive)?;
+        let mut binary = archive.by_index(BUN_EXECUTABLE_ARCHIVE_FILE_INDEX)?;
 
         let mut outfile = std::fs::File::create(&environment.bun_executable_path)
             .map_err(Arc::new)
