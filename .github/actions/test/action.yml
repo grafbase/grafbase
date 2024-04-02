@@ -18,10 +18,20 @@ runs:
   steps:
     - name: Build wrappers
       shell: bash
+      if: runner.os != 'Windows'
       working-directory: './cli/wrappers'
       run: |
         npm i
         npm run build
+
+    - name: Build wrappers
+      shell: bash
+      if: runner.os == 'Windows'
+      working-directory: './cli/wrappers'
+      run: |
+        npm i
+        powershell -c "irm bun.sh/install.ps1 | iex"
+        ~/.bun/bin/bun.exe build udf.ts --external="\${UDF_MAIN_FILE_PATH}" --minify --target=bun > dist.js
 
     # https://github.com/actions/setup-node/issues/899
     - name: Enable Corepack before setting up Node
