@@ -319,25 +319,17 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: windows
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-cargo-release-${{ hashFiles('Cargo.lock') }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-x86_64-pc-windows-msvc-cargo-release-${{ hashFiles('Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       - name: Prepare Grafbase assets
         uses: ./.github/actions/cli_assets
 
-      - if: ${{ !startsWith(github.ref, 'refs/tags/') && matrix.target == 'x86_64-apple-darwin' }}
-        name: Test
-        uses: ./.github/actions/test
-        with:
-          with-integration-tests: 'false'
-          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
-          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Build grafbase release
         shell: bash
         run: |
           cd cli
-          cargo build --release -p grafbase --target ${{ matrix.archs.target }} --timings
+          cargo build --release -p grafbase --target x86_64-pc-windows-msvc --timings
 
       - uses: actions/upload-artifact@v4
         with:
@@ -352,7 +344,7 @@ jobs:
           VERSION_BUMP=${VERSION_BUMP//grafbase-} # remove the grafbase prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
-      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'ubicloud-standard-8-arm' }}
+      - if: ${{ github.event_name == 'pull_request' }}
         name: Upload the binaries of the change to R2
         shell: bash
         run: |
@@ -361,19 +353,19 @@ jobs:
           aws s3api put-object \
             --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
             --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
-            --key ${GITHUB_SHA}/${{ matrix.target }}/grafbase.exe \
-            --body target/${{ matrix.target }}/release/grafbase.exe
+            --key ${GITHUB_SHA}/x86_64-pc-windows-msvc/grafbase.exe \
+            --body target/x86_64-pc-windows-msvc/release/grafbase.exe
 
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
 
       - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
-        name: Upload grafbase ${{ matrix.target }} binary
+        name: Upload grafbase x86_64-pc-windows-msvc binary
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.VERSION_BUMP }}-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/grafbase.exe
+          name: ${{ env.VERSION_BUMP }}-x86_64-pc-windows-msvc
+          path: target/x86_64-pc-windows-msvc/release/grafbase.exe
 
   darwin:
     needs: [test]
