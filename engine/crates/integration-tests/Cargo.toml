@@ -20,7 +20,7 @@ engine-v2.workspace = true
 gateway-v2.workspace = true
 graphql-mocks.workspace = true
 engine-config-builder = { path = "../engine-config-builder" }
-expect-test = "1.4"
+expect-test = "1.5"
 futures = "0.3"
 gateway-core.workspace = true
 grafbase-graphql-introspection.workspace = true
@@ -51,11 +51,11 @@ tracing.workspace = true
 tracing-mock = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x", version = "0.1" }
 
 [dependencies.tokio]
-version = "1.36"
+version = "1.37"
 features = ["macros"]
 
 [dependencies.insta]
-version = "1.37"
+version = "1.38"
 features = ["json"]
 
 [dependencies.engine]

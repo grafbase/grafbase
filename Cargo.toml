@@ -17,7 +17,6 @@ members = [
 
 [patch.crates-io]
 async-tungstenite = { git = "https://github.com/grafbase/async-tungstenite", rev = "431cc5963ecb9b13684b1b4e5daeb46971f851e4" } # ring
-axum-aws-lambda = { git = "https://github.com/grafbase/axum-aws-lambda", rev = "f8d66f135d99b2dd9b65d1ef4e9a382366036220" } # main
 # Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
 axum-server = { git = "https://github.com/grafbase/axum-server", rev = "fdce3d3dc71dc69597689cc28003cc0533b47dba" } # rustls-0.23
 http-cache = { git = "https://github.com/grafbase/http-cache", rev = "3c1e65f3be862f264e00db42694e64cd71dad278" } # http-v1-updated
@@ -28,9 +27,7 @@ names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2
 # FIXME: Drop when a new version is released.
 openidconnect = { git = "https://github.com/ramosbugs/openidconnect-rs", rev = "7efc8943a8f699aff2db742827fc3d0fc2b3f34d" } # main
 ory-client = { git = "https://github.com/grafbase/client-rust", rev = "88ed8f63c1d71b294c2ef64fd80ca654e91ac25f" } # reqwest-0.12
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "548567b27d7f0c5023a453083f2e78d36f63b084" } # 0.12-with-patches
-# FIXME: Drop when https://github.com/jpopesculian/reqwest-eventsource/pull/20 is merged.
-reqwest-eventsource = { git = "https://github.com/Sagebati/reqwest-eventsource", rev = "c2d83622d4c238d61cec4ec201bcd8921b5256b9" } # main
+reqwest = { git = "https://github.com/grafbase/reqwest", rev = "5e254a782ed4199cb04b8d8f8659891ab944d419" } # 0.12-with-patches
 # FIXME: Drop when https://github.com/TrueLayer/reqwest-middleware/pull/133 is released.
 reqwest-middleware = { git = "https://github.com/TrueLayer/reqwest-middleware", rev = "0d0d8b9411ece3cc162a69540db1d7169de32319" } # campeis:update_http_to_v1
 rudderanalytics =  { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "3e994eb4dcc9c580be311ef9eab6e96dd264293b" } # async
@@ -73,7 +70,7 @@ chrono = { version = "0.4", default-features = false }
 ctor = "0.2"
 cynic = "3"
 cynic-introspection = "3"
-deadpool-postgres = "0.12"
+deadpool-postgres = "0.13"
 derive_more = "1.0.0-beta.6"
 jwt-compact = "0.8"
 flexbuffers = "2"
@@ -120,7 +117,7 @@ wasm-bindgen = "0.2"
 web-time = "1"
 which = "6"
 wiremock = "0.6.0"
-worker = "0.0.23"
+worker = "0.0.24"
 fnv = "1"
 sha2 = "0.10"
 
