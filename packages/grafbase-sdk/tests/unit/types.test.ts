@@ -230,7 +230,7 @@ describe('Type generator', () => {
     `)
   })
 
-  it('references another an enum', () => {
+  it('references an enum', () => {
     g.type('User', {
       name: g.string(),
       age: g.int().optional()
@@ -258,6 +258,43 @@ describe('Type generator', () => {
         street: String
         color: Color
       }"
+    `)
+  })
+
+  it('references a union', () => {
+    const user = g.type('User', {
+      name: g.string(),
+      age: g.int().optional()
+    })
+
+    const organization = g.type('Organization', {
+      domain: g.string(),
+      employeeCount: g.int()
+    })
+
+    const account = g.union('Account', { user, organization })
+
+    g.query('currentAccount', {
+      resolver: 'current-account',
+      returns: g.ref(account)
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type User {
+        name: String!
+        age: Int
+      }
+
+      type Organization {
+        domain: String!
+        employeeCount: Int!
+      }
+
+      extend type Query {
+        currentAccount: Account! @resolver(name: "current-account")
+      }
+
+      union Account = User | Organization"
     `)
   })
 

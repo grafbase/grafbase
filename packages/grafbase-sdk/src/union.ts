@@ -5,16 +5,23 @@ import { validateIdentifier } from './validation'
  * A builder to create a GraphQL union.
  */
 export class Union {
-  private name: string
+  private _name: string
   private _kind: 'union'
   private types: string[]
 
   constructor(name: string) {
     validateIdentifier(name)
 
-    this.name = name
+    this._name = name
     this.types = []
     this._kind = 'union'
+  }
+
+  /**
+   * The name of the type.
+   */
+  public get name(): string {
+    return this._name
   }
 
   /**
