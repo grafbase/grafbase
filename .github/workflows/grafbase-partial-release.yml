@@ -104,7 +104,6 @@ jobs:
           cp aarch64-apple-darwin/grafbase github/grafbase-aarch64-apple-darwin
           cp x86_64-apple-darwin/grafbase github/grafbase-x86_64-apple-darwin
           cp x86_64-pc-windows-msvc/grafbase.exe github/grafbase-x86_64-pc-windows-msvc.exe
-          cp x86_64-pc-windows-msvc/grafbase.exe github/grafbase-x86_64-pc-windows-msvc.exe
           cp x86_64-unknown-linux-musl/grafbase github/grafbase-x86_64-unknown-linux-musl
           cp aarch64-unknown-linux-musl/grafbase github/grafbase-aarch64-unknown-linux-musl
 
