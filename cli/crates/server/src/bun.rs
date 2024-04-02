@@ -153,14 +153,9 @@ const BUN_EXECUTABLE_PERMISSIONS: u32 = 0o755;
 
 const BUN_INSTALL_LOCK_FILE: &str = ".bun.install.lock";
 
-#[cfg(unix)]
 // the archive contains a directory which has a single file - the bun binary
-const BUN_EXECUTABLE_ARCHIVE_FILE_INDEX: usize = 1;
-
-#[cfg(windows)]
-// the archive contains a directory which has a single file - the bun binary.
-// in windows this appears to correspond to an index of 0
-const BUN_EXECUTABLE_ARCHIVE_FILE_INDEX: usize = 0;
+// this index appears to differ between unix and windows
+const BUN_EXECUTABLE_ARCHIVE_FILE_INDEX: usize = if cfg!(unix) { 1 } else { 0 };
 
 pub(crate) async fn install_bun() -> Result<(), BunError> {
     if BUN_INSTALLED_FOR_SESSION.load(Ordering::Acquire) {
