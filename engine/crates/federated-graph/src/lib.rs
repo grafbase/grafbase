@@ -14,17 +14,11 @@ mod from_sdl;
 #[cfg(feature = "from_sdl")]
 pub use from_sdl::{from_sdl, DomainError};
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub enum FederatedGraph {
     V1(FederatedGraphV1),
     V2(FederatedGraphV2),
     V3(FederatedGraphV3),
-}
-
-impl std::fmt::Debug for FederatedGraph {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("FederatedGraph").finish_non_exhaustive()
-    }
 }
 
 impl FederatedGraph {
