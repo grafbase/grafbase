@@ -21,7 +21,7 @@ async-graphql-value = { workspace = true, optional = true }
 indexmap = { optional = true, version = "2" }
 
 [dev-dependencies]
-expect-test = "1.4"
+expect-test = "1.5"
 serde_json.workspace = true
 
 [features]

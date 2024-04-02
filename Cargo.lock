@@ -559,8 +559,9 @@ dependencies = [
 
 [[package]]
 name = "axum-aws-lambda"
-version = "0.6.0"
-source = "git+https://github.com/grafbase/axum-aws-lambda?rev=f8d66f135d99b2dd9b65d1ef4e9a382366036220#f8d66f135d99b2dd9b65d1ef4e9a382366036220"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d639f51be4a3028bbc27d25372ca2273b445bbd6b2f4c08926205a6050a70a0"
 dependencies = [
  "axum 0.7.5",
  "bytes",
@@ -1584,12 +1585,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "deadpool-postgres"
-version = "0.12.1"
+name = "deadpool"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bda39fa1cfff190d8924d447ad04fd22772c250438ca5ce1dfb3c80621c05aaa"
+checksum = "8c380a837cb8cb747898b1be7fa5ba5b871eb1210f8881d6512946c132617f80"
 dependencies = [
- "deadpool",
+ "console",
+ "deadpool-runtime",
+ "num_cpus",
+ "tokio",
+]
+
+[[package]]
+name = "deadpool-postgres"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4aa08f5c838496cbabb672e3614534444145fc6632995f102e13d30a29a25a13"
+dependencies = [
+ "deadpool 0.11.0",
  "tokio",
  "tokio-postgres",
  "tracing",
@@ -2138,9 +2151,9 @@ checksum = "de853764b47027c2e862a995c34978ffa63c1501f2e15f987ba11bd4f9bba193"
 
 [[package]]
 name = "expect-test"
-version = "1.4.1"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30d9eafeadd538e68fb28016364c9732d78e420b9ff8853fa5e4058861e9f8d3"
+checksum = "9e0be0a561335815e06dab7c62e50353134c796e7a6155402a64bcff66b6a5e0"
 dependencies = [
  "dissimilar",
  "once_cell",
@@ -3762,9 +3775,9 @@ dependencies = [
 
 [[package]]
 name = "insta"
-version = "1.37.0"
+version = "1.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1718b3f2b85bb5054baf8ce406e36401f27c3169205f4175504c4b1d98252d3f"
+checksum = "3eab73f58e59ca6526037208f0e98851159ec1633cf17b6cd2e1f2c3fd5d53cc"
 dependencies = [
  "console",
  "lazy_static",
@@ -4047,9 +4060,9 @@ dependencies = [
 
 [[package]]
 name = "lambda_http"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be43a66db1ccbea4d9d504379ec71826f3ccc2ed1b08b6def62e0dd0448c4a30"
+checksum = "5ebde9aedfdf8c2bac4365d9adafae6ca6d631b0ea221734ac802595fcd141cb"
 dependencies = [
  "aws_lambda_events",
  "base64 0.21.7",
@@ -4074,9 +4087,9 @@ dependencies = [
 
 [[package]]
 name = "lambda_runtime"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f287564236fa4d86adf18964d3a2784c1cef5aaf38b3386cee62f995c6aceeac"
+checksum = "276c835f2217fac810a97f2ed8eabfe9be71afe4f3ffd8671b05cb528e95ff8a"
 dependencies = [
  "async-stream",
  "base64 0.21.7",
@@ -5966,8 +5979,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest-eventsource"
-version = "0.5.0"
-source = "git+https://github.com/Sagebati/reqwest-eventsource?rev=c2d83622d4c238d61cec4ec201bcd8921b5256b9#c2d83622d4c238d61cec4ec201bcd8921b5256b9"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "632c55746dbb44275691640e7b40c907c16a2dc1a5842aa98aaec90da6ec6bde"
 dependencies = [
  "eventsource-stream",
  "futures-core",
@@ -7399,9 +7413,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.36.0"
+version = "1.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61285f6515fa018fb2d1e46eb21223fff441ee8db5d0f1435e8ab4f5cdb80931"
+checksum = "1adbebffeca75fcfd058afa480fb6c0b81e165a0323f9c9d39c9697e37c46787"
 dependencies = [
  "backtrace",
  "bytes",
@@ -8524,7 +8538,7 @@ dependencies = [
  "assert-json-diff",
  "async-trait",
  "base64 0.21.7",
- "deadpool",
+ "deadpool 0.10.0",
  "futures",
  "http 1.1.0",
  "http-body-util",
@@ -8541,9 +8555,9 @@ dependencies = [
 
 [[package]]
 name = "worker"
-version = "0.0.23"
+version = "0.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec770518dfe9a63f28548673f68c9fe190baff55813afd9c36c811eb46af80f1"
+checksum = "4731859e9e5e800fffce8fef15e5d0f7fb2f572505da2fc506560776eb4e3359"
 dependencies = [
  "async-trait",
  "bytes",
@@ -8588,9 +8602,9 @@ dependencies = [
 
 [[package]]
 name = "worker-macros"
-version = "0.0.15"
+version = "0.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8810ad96b5e55a5ae6cd4c0df118bb2bde528ae8e8e4df65e25d235f5db36af1"
+checksum = "373e66625067ff52b7f8ddbd0da6b3e87cb7a48ecb5a6a8004e1c743e744b319"
 dependencies = [
  "async-trait",
  "proc-macro2",
@@ -8604,9 +8618,9 @@ dependencies = [
 
 [[package]]
 name = "worker-sys"
-version = "0.0.15"
+version = "0.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09ee8668ebc5665df3f4bea3d241e949694da22f08b77895b08aaf5d5de5f3ea"
+checksum = "018a9de530946a997143c4c662792b06c7754b17cbff1c0ecd0b9afd002cf366"
 dependencies = [
  "cfg-if",
  "js-sys",
@@ -8775,3 +8789,13 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
+
+[[patch.unused]]
+name = "axum-aws-lambda"
+version = "0.6.0"
+source = "git+https://github.com/grafbase/axum-aws-lambda?rev=f8d66f135d99b2dd9b65d1ef4e9a382366036220#f8d66f135d99b2dd9b65d1ef4e9a382366036220"
+
+[[patch.unused]]
+name = "reqwest-eventsource"
+version = "0.5.0"
+source = "git+https://github.com/Sagebati/reqwest-eventsource?rev=c2d83622d4c238d61cec4ec201bcd8921b5256b9#c2d83622d4c238d61cec4ec201bcd8921b5256b9"

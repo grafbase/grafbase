@@ -17,5 +17,5 @@ graphql-parser = { git = "https://github.com/graphql-rust/graphql-parser", versi
 workspace = true
 
 [dev-dependencies]
-expect-test = "1.4.1"
+expect-test = "1.5.0"
 indoc = "2.0.5"

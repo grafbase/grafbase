@@ -95,7 +95,7 @@ reqwest = { workspace = true, features = [
   "rustls-tls",
   "json",
 ] }
-reqwest-eventsource = "0.5"
+reqwest-eventsource = "0.6"
 rsa = "0.9"
 rstest = "0.18"
 rstest_reuse = "0.6"

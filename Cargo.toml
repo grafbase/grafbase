@@ -73,7 +73,7 @@ chrono = { version = "0.4", default-features = false }
 ctor = "0.2"
 cynic = "3"
 cynic-introspection = "3"
-deadpool-postgres = "0.12"
+deadpool-postgres = "0.13"
 derive_more = "1.0.0-beta.6"
 jwt-compact = "0.8"
 flexbuffers = "2"
@@ -108,7 +108,7 @@ thiserror = "1"
 tokio = "1"
 tokio-postgres = { version = "0.7", default-features = false }
 tokio-postgres-rustls = "0.11"
-tokio-rustls = { version = "0.25", default-features = false }
+tokio-rustls = { version = "0.26", default-features = false }
 tokio-tungstenite = { version = "0.21.0", default-features = false }
 tungstenite = { version = "0.21.0", default-features = false }
 tower-http = "0.5"
@@ -120,7 +120,7 @@ wasm-bindgen = "0.2"
 web-time = "1"
 which = "6"
 wiremock = "0.6.0"
-worker = "0.0.23"
+worker = "0.0.24"
 fnv = "1"
 sha2 = "0.10"
 
