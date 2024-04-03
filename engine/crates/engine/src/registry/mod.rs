@@ -1900,10 +1900,12 @@ impl Registry {
             }
         }
 
+        let used_interfaces: HashSet<&String> = self.implements.values().flatten().collect();
         for type_name in Some(&self.query_type)
             .into_iter()
             .chain(self.mutation_type.iter())
             .chain(self.subscription_type.iter())
+            .chain(used_interfaces)
         {
             traverse_type(&self.types, &mut used_types, type_name);
         }
@@ -1922,18 +1924,6 @@ impl Registry {
         for type_name in &unused_types {
             self.types.remove(type_name);
         }
-
-        self.implements = std::mem::take(&mut self.implements)
-            .into_iter()
-            .filter_map(|(ty, mut implements)| {
-                implements = implements.difference(&unused_types).map(|s| s.to_string()).collect();
-                if implements.is_empty() {
-                    None
-                } else {
-                    Some((ty, implements))
-                }
-            })
-            .collect();
     }
 
     pub fn remove_empty_types(&mut self) {

@@ -572,4 +572,38 @@ mod tests {
 
         insta::assert_snapshot!(result);
     }
+
+    #[tokio::test]
+    async fn test_contentful_schema() {
+        let data = include_str!("../tests/contentful.json");
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .respond_with(ResponseTemplate::new(200).set_body_raw(data, "application/json"))
+            .mount(&server)
+            .await;
+
+        let mut registry = parse_schema(
+            reqwest::Client::new(),
+            "Contentful",
+            true,
+            &Url::parse(&server.uri()).unwrap(),
+            ConnectorHeaders::new([]),
+            std::iter::empty(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        registry.remove_unused_types();
+        registry.remove_empty_types();
+
+        let schema = registry.export_sdl(false);
+        let diagnostics = graphql_schema_validation::validate(&schema);
+        assert!(
+            !diagnostics.has_errors(),
+            "{:?}",
+            diagnostics.iter().collect::<Vec<_>>()
+        );
+        insta::assert_snapshot!(schema);
+    }
 }
