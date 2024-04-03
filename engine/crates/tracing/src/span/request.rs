@@ -150,16 +150,15 @@ impl<'a> HttpRequestSpan<'a> {
             "http.response.error" = self.response_error.as_ref().map(|v| v.as_ref()),
             "http.header.user_agent" = self.header_user_agent.as_ref().and_then(|v| v.to_str().ok()),
             "http.header.x_forwarded_for" = self.header_x_forwarded_for.as_ref().and_then(|v| v.to_str().ok()),
-            "http.header.ray_id" = self.header_ray_id.as_ref().as_ref().and_then(|v| v.to_str().ok()),
+            "http.header.ray_id" = self.header_ray_id.as_ref().and_then(|v| v.to_str().ok()),
             "server.address" = self.server_address.map(|v| v.to_string()),
             "server.port" = self.server_port,
             "url.path" = self.url.path(),
-            "url.query" = self.url.query(),
             "url.scheme" = self.url.scheme().map(|v| v.as_str()),
             "url.host" = self.url.host(),
-            "git.branch" = self.git_branch.as_ref().as_ref().and_then(|v| v.to_str().ok()),
-            "git.hash" = self.git_hash.as_ref().as_ref().and_then(|v| v.to_str().ok()),
-            "environment" = self.environment.as_ref().as_ref().and_then(|v| v.to_str().ok()),
+            "git.branch" = self.git_branch.as_ref().and_then(|v| v.to_str().ok()),
+            "git.hash" = self.git_hash.as_ref().and_then(|v| v.to_str().ok()),
+            "environment" = self.environment.as_ref().and_then(|v| v.to_str().ok()),
         )
     }
 }
