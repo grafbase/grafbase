@@ -2814,6 +2814,7 @@ dependencies = [
  "anyhow",
  "ascii 1.1.0",
  "atty",
+ "cfg-if",
  "clap",
  "ctor",
  "duct",

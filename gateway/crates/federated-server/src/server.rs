@@ -5,11 +5,12 @@ mod gateway;
 mod graph_fetch_method;
 #[cfg(not(feature = "lambda"))]
 mod graph_updater;
+mod otel;
 mod state;
 mod trusted_documents_client;
 
-use grafbase_tracing::otel::opentelemetry_sdk::trace::TracerProvider;
 pub use graph_fetch_method::GraphFetchMethod;
+pub use otel::{OtelReload, OtelTracing};
 
 use crate::config::Config;
 use crate::config::TlsConfig;
@@ -33,7 +34,7 @@ pub async fn serve(
     listen_addr: Option<SocketAddr>,
     config: Config,
     fetch_method: GraphFetchMethod,
-    provider: Option<TracerProvider>,
+    mut otel_tracing: Option<OtelTracing>,
 ) -> crate::Result<()> {
     let path = config.graph.path.as_deref().unwrap_or("/graphql");
 
@@ -41,14 +42,19 @@ pub async fn serve(
         .or(config.network.listen_address)
         .unwrap_or(DEFAULT_LISTEN_ADDRESS);
 
-    let gateway = fetch_method.into_gateway(GatewayConfig {
-        enable_introspection: config.graph.introspection,
-        operation_limits: config.operation_limits,
-        authentication: config.authentication,
-        subgraphs: config.subgraphs,
-        default_headers: config.headers,
-        trusted_documents: config.trusted_documents,
-    })?;
+    let otel_provider = otel_tracing.as_mut().and_then(|otel| otel.tracer_provider.take());
+
+    let gateway = fetch_method.into_gateway(
+        GatewayConfig {
+            enable_introspection: config.graph.introspection,
+            operation_limits: config.operation_limits,
+            authentication: config.authentication,
+            subgraphs: config.subgraphs,
+            default_headers: config.headers,
+            trusted_documents: config.trusted_documents,
+        },
+        otel_tracing.map(|otel| otel.reload_trigger),
+    )?;
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
     let websocket_accepter = WebsocketAccepter::new(websocket_receiver, gateway.clone());
@@ -60,7 +66,7 @@ pub async fn serve(
         None => CorsLayer::permissive(),
     };
 
-    let state = ServerState::new(gateway, provider);
+    let state = ServerState::new(gateway, otel_provider);
 
     let mut router = Router::new()
         .route(path, get(engine::get).post(engine::post))
