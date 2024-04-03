@@ -352,19 +352,6 @@ jobs:
           VERSION_BUMP=${VERSION_BUMP//grafbase-} # remove the grafbase prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
-      - if: ${{ github.event_name == 'pull_request' }}
-        name: Upload the binaries of the change to R2
-        shell: bash
-        run: |
-          aws s3api put-object \
-            --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
-            --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
-            --key ${GITHUB_SHA}/x86_64-pc-windows-msvc/grafbase.exe \
-            --body target/x86_64-pc-windows-msvc/release/grafbase.exe
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
-
       - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
         name: Upload grafbase x86_64-pc-windows-msvc binary
         uses: actions/upload-artifact@v4
