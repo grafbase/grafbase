@@ -31,6 +31,6 @@ export class TrustedDocuments {
       ? `(bypassHeaderName: ${JSON.stringify(this.params.bypassHeader.name)}, byPassHeaderValue: ${JSON.stringify(this.params.bypassHeader.value)})`
       : ''
 
-    return `extend schema\n  @trustedDocuments${args}`
+    return `extend schema\n  @trustedDocuments${args}\n`
   }
 }
