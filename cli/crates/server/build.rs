@@ -77,7 +77,7 @@ fn copy_wrappers(dest_path: &Path) -> io::Result<()> {
         dest_path.join("parser/parse-config.mts"),
     )?;
     fs::write(dest_path.join("package.json"), r#"{ "name": "assets" }"#)?;
-    fs::metadata(origin_path.join("dist.js")).expect("Building the worker wrapper is required to continue. Please run `npm install && npm run build` in 'cli/wrappers'");
+    fs::metadata(origin_path.join("dist.js")).expect("Building the worker wrapper is required to continue. Please run `bun install && bun run build` in 'cli/wrappers'");
     fs::copy(
         origin_path.join("dist.js"),
         dest_path.join("custom-resolvers/wrapper.js"),

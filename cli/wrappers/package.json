@@ -11,6 +11,9 @@
     "@miniflare/kv": "^2.14.1",
     "@miniflare/storage-file": "^2.14.2"
   },
+  "resolutions": {
+    "npx-import": "file:./npx-import-stub"
+  },
   "scripts": {
     "build": "bun build udf.ts --external=\"\\${UDF_MAIN_FILE_PATH}\" --minify --target=bun > dist.js"
   }
