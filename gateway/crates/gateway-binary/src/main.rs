@@ -164,7 +164,7 @@ where
     };
 
     let resource_attributes = vec![
-        grafbase_tracing::otel::opentelemetry::KeyValue::new("account_id", reload_data.account_id.to_string()),
+        grafbase_tracing::otel::opentelemetry::KeyValue::new("graph_id", reload_data.graph_id.to_string()),
         grafbase_tracing::otel::opentelemetry::KeyValue::new("branch_id", reload_data.branch_id.to_string()),
     ];
 
@@ -220,7 +220,7 @@ mod test {
         otel_tracing
             .reload_trigger
             .send(OtelReload {
-                account_id: 5.into(),
+                graph_id: 5.into(),
                 branch_id: 6.into(),
             })
             .unwrap();

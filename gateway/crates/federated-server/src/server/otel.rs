@@ -14,8 +14,8 @@ pub struct OtelTracing {
 /// Payload sent when triggering an otel layer reload
 #[derive(Debug, Default)]
 pub struct OtelReload {
-    /// Account id
-    pub account_id: Ulid,
+    /// Graph id
+    pub graph_id: Ulid,
     /// Branch id
     pub branch_id: Ulid,
 }
