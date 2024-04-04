@@ -85,8 +85,9 @@ pub struct OperationPlanCacheKey {
     pub operation_name: Option<String>,
 
     /// Used by [relay-style persisted queries](https://relay.dev/docs/guides/persisted-queries/).
-    #[serde(default, rename = "doc_id", skip_serializing_if = "Option::is_none")]
-    pub doc_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(alias = "doc_id")]
+    pub document_id: Option<String>,
 
     /// Force enable introspection queries for this request.
     #[serde(skip)]
@@ -109,7 +110,7 @@ impl Request {
                 operation_name: None,
                 introspection_state: IntrospectionState::UserPreference,
                 disable_operation_limits: false,
-                doc_id: None,
+                document_id: None,
             },
             ray_id: String::new(),
             variables: Variables::default(),
@@ -223,7 +224,7 @@ impl Debug for Request {
             .field("operation_name", &self.operation_name())
             .field("variables", &self.variables)
             .field("extensions", &self.extensions)
-            .field("doc_id", &self.operation_plan_cache_key.doc_id)
+            .field("document_id", &self.operation_plan_cache_key.document_id)
             .finish_non_exhaustive()
     }
 }

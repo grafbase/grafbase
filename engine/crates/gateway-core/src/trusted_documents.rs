@@ -22,7 +22,7 @@ where
     ) -> Result<(), PersistedQueryError> {
         let trusted_documents_enabled = self.trusted_documents.is_enabled();
         let persisted_query_extension = mem::take(&mut request.extensions.persisted_query);
-        let doc_id = mem::take(&mut request.operation_plan_cache_key.doc_id);
+        let doc_id = mem::take(&mut request.operation_plan_cache_key.document_id);
 
         match (trusted_documents_enabled, persisted_query_extension, doc_id) {
             (true, None, None) => {
@@ -197,7 +197,7 @@ pub(super) enum PersistedQueryError {
     UnsupportedVersion,
     #[error("Internal server error")]
     InternalServerError,
-    #[error("Cannot execute a trusted document query: missing doc_id or the persistedQuery extension.")]
+    #[error("Cannot execute a trusted document query: missing documentId, doc_id or the persistedQuery extension.")]
     BadRequest,
     #[error("Trusted document queries must include the {CLIENT_NAME_HEADER_NAME} header")]
     MissingClientName,
