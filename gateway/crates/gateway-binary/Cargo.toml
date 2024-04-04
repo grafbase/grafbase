@@ -35,6 +35,7 @@ tracing-subscriber = { workspace = true, features = ["json"] }
 workspace = true
 
 [dev-dependencies]
+clickhouse = "0.11"
 ctor.workspace = true
 duct = "0.13.7"
 fslock = "0.2.1"
@@ -43,6 +44,7 @@ grafbase-graphql-introspection.workspace = true
 http.workspace = true
 indoc = "2.0.5"
 insta = { workspace = true, features = ["json", "redactions", "yaml"] }
+rand = "0.8"
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true

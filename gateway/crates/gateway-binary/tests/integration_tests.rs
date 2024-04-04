@@ -1,5 +1,7 @@
 #![allow(unused_crate_dependencies)]
 
+mod telemetry;
+
 use std::{
     env, fs,
     marker::PhantomData,
@@ -425,32 +427,6 @@ fn static_schema() {
           ]
         }
         "###);
-    })
-}
-
-#[test]
-fn with_otel() {
-    let config = indoc! {r#"
-        [telemetry]
-        service_name = "meow"
-
-        [telemetry.tracing.exporters.stdout]
-        enabled = true
-    "#};
-
-    let schema = load_schema("big");
-
-    let query = indoc! {r#"
-        query Me {
-          me {
-            id
-          }
-        }
-    "#};
-
-    with_static_server(config, &schema, None, None, |client| async move {
-        let result: serde_json::Value = client.gql(query).send().await;
-        serde_json::to_string_pretty(&result).unwrap();
     })
 }
 

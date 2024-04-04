@@ -1,0 +1,33 @@
+services:
+  otel-collector:
+    restart: unless-stopped
+    image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.97.0
+    command:
+      - '--config=/etc/otel-collector-config.yml'
+      - '--set=service.telemetry.logs.level=INFO'
+    volumes:
+      - ./data/otel/otel-collector-config.yml:/etc/otel-collector-config.yml
+    ports:
+      - '13133:13133' # health_check extension
+      - '4317:4317'
+    depends_on:
+      - clickhouse
+    networks:
+      - otel-clickhouse
+    healthcheck:
+      test: curl --fail http://localhost:13133 || exit 1
+      interval: 3s
+      retries: 10
+      timeout: 5s
+
+  clickhouse:
+    restart: unless-stopped
+    image: clickhouse/clickhouse-server:latest
+    ports:
+      - '9000:9000'
+      - '8123:8123'
+    networks:
+      - otel-clickhouse
+
+networks:
+  otel-clickhouse:
