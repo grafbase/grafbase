@@ -220,8 +220,8 @@ mod test {
         otel_tracing
             .reload_trigger
             .send(OtelReload {
-                account_id: 0.into(),
-                branch_id: 1.into(),
+                account_id: 5.into(),
+                branch_id: 6.into(),
             })
             .unwrap();
 
