@@ -110,7 +110,7 @@ fn regular_non_persisted_queries_are_rejected() {
         {
           "errors": [
             {
-              "message": "Cannot execute a trusted document query: missing doc_id or the persistedQuery extension."
+              "message": "Cannot execute a trusted document query: missing documentId, doc_id or the persistedQuery extension."
             }
           ]
         }
@@ -193,7 +193,7 @@ fn bypass_header() {
         {
           "errors": [
             {
-              "message": "Cannot execute a trusted document query: missing doc_id or the persistedQuery extension."
+              "message": "Cannot execute a trusted document query: missing documentId, doc_id or the persistedQuery extension."
             }
           ]
         }

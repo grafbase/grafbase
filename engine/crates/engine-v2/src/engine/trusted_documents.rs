@@ -18,9 +18,9 @@ impl Engine {
     ) -> Result<(), GraphqlError> {
         let trusted_documents_enabled = self.env.trusted_documents.is_enabled();
         let persisted_query_extension = mem::take(&mut request.extensions.persisted_query);
-        let doc_id = mem::take(&mut request.operation_plan_cache_key.doc_id);
+        let document_id = mem::take(&mut request.operation_plan_cache_key.document_id);
 
-        match (trusted_documents_enabled, persisted_query_extension, doc_id) {
+        match (trusted_documents_enabled, persisted_query_extension, document_id) {
             (true, None, None) => {
                 if self
                     .env
@@ -32,7 +32,7 @@ impl Engine {
                     Ok(())
                 } else {
                     Err(GraphqlError::new(
-                        "Cannot execute a trusted document query: missing doc_id or the persistedQuery extension.",
+                        "Cannot execute a trusted document query: missing documentId, doc_id or the persistedQuery extension.",
                     ))
                 }
             }
