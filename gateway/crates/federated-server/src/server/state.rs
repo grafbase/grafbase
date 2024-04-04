@@ -33,7 +33,8 @@ impl ServerState {
         // notes on the clone:
         // - avoid long borrows that could block the producer
         // - tracer provider is backed by an arc so its cheaply cloned
-        self.inner.tracer_provider
+        self.inner
+            .tracer_provider
             .as_ref()
             .map(|receiver| receiver.borrow().clone())
     }
