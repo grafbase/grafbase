@@ -30,6 +30,7 @@ tokio = { workspace = true, features = ["rt-multi-thread"] }
 toml = "0.8.12"
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["json"] }
+cfg-if = "1.0.0"
 
 [lints]
 workspace = true

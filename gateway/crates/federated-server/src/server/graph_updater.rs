@@ -1,9 +1,11 @@
 use std::{borrow::Cow, sync::Arc, time::Duration};
 
 use super::gateway::{GatewayConfig, GatewaySender};
+use crate::OtelReload;
 use ascii::AsciiString;
 use grafbase_tracing::span::GRAFBASE_TARGET;
 use http::{HeaderValue, StatusCode};
+use tokio::sync::oneshot;
 use tokio::time::MissedTickBehavior;
 use tracing::Level;
 use ulid::Ulid;
@@ -41,9 +43,9 @@ pub(super) struct GraphUpdater {
     sender: GatewaySender,
     current_id: Option<Ulid>,
     gateway_config: GatewayConfig,
+    otel_reload: Option<oneshot::Sender<OtelReload>>,
 }
 
-/// TODO: here you get the needed values for tracing Hugo!
 #[derive(Debug, serde::Deserialize)]
 #[allow(dead_code)]
 struct UplinkResponse {
@@ -62,6 +64,7 @@ impl GraphUpdater {
         access_token: AsciiString,
         sender: GatewaySender,
         gateway_config: GatewayConfig,
+        otel_reload: Option<oneshot::Sender<OtelReload>>,
     ) -> crate::Result<Self> {
         let uplink_client = reqwest::ClientBuilder::new()
             .timeout(UPLINK_TIMEOUT)
@@ -94,6 +97,7 @@ impl GraphUpdater {
             sender,
             current_id: None,
             gateway_config,
+            otel_reload,
         })
     }
 
@@ -166,6 +170,21 @@ impl GraphUpdater {
                 Level::INFO,
                 message = "Graph fetched from GDN",
             );
+
+            match self.otel_reload.take() {
+                Some(attributes_sender) if !attributes_sender.is_closed() => {
+                    if attributes_sender
+                        .send(OtelReload {
+                            account_id: response.account_id,
+                            branch_id: response.branch_id,
+                        })
+                        .is_err()
+                    {
+                        tracing::error!("error sending otel reload event");
+                    };
+                }
+                _ => {}
+            }
 
             let gateway = match super::gateway::generate(
                 &response.sdl,

@@ -14,7 +14,7 @@ use url::Url;
 
 use self::dynamic_string::DynamicString;
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 /// Configuration struct to define settings for self-hosted
 /// Grafbase gateway.

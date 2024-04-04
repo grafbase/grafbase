@@ -4,9 +4,9 @@
 
 #![deny(missing_docs)]
 
-pub use crate::config::Config;
+pub use crate::config::{Config, TelemetryConfig};
 pub use error::Error;
-pub use server::GraphFetchMethod;
+pub use server::{GraphFetchMethod, OtelReload, OtelTracing};
 
 mod config;
 mod error;

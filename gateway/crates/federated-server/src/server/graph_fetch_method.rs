@@ -1,7 +1,8 @@
 use super::gateway::{self, GatewayWatcher};
 use crate::server::gateway::GatewayConfig;
+use crate::OtelReload;
 use std::sync::Arc;
-use tokio::sync::watch;
+use tokio::sync::{oneshot, watch};
 
 /// The method of running the gateway.
 pub enum GraphFetchMethod {
@@ -27,7 +28,12 @@ impl GraphFetchMethod {
     /// in two ways: if providing a graph SDL, we a new gateway immediately. Alternatively,
     /// if a graph ref and access token is provided, the function returns immediately, and
     /// the gateway will be available eventually when the GDN responds with a working graph.
-    pub(crate) fn into_gateway(self, config: GatewayConfig) -> crate::Result<GatewayWatcher> {
+    #[cfg_attr(feature = "lambda", allow(unused_variables))]
+    pub(crate) fn into_gateway(
+        self,
+        config: GatewayConfig,
+        otel_reload: Option<oneshot::Sender<OtelReload>>,
+    ) -> crate::Result<GatewayWatcher> {
         let (sender, gateway) = watch::channel(None);
 
         match self {
@@ -40,9 +46,16 @@ impl GraphFetchMethod {
                 tokio::spawn(async move {
                     use super::graph_updater::GraphUpdater;
 
-                    GraphUpdater::new(&graph_name, branch.as_deref(), access_token, sender, config)?
-                        .poll()
-                        .await;
+                    GraphUpdater::new(
+                        &graph_name,
+                        branch.as_deref(),
+                        access_token,
+                        sender,
+                        config,
+                        otel_reload,
+                    )?
+                    .poll()
+                    .await;
 
                     Ok::<_, crate::Error>(())
                 });

@@ -19,12 +19,14 @@ pub fn create<R, I>(
     config: TracingConfig,
     id_generator: I,
     runtime: R,
+    resource_attributes: impl Into<Vec<KeyValue>>,
 ) -> Result<TracerProvider, TracingError>
 where
     R: RuntimeChannel,
     I: IdGenerator + 'static,
 {
-    let service_name = service_name.into();
+    let mut resource_attributes = resource_attributes.into();
+    resource_attributes.push(KeyValue::new("service.name", service_name.into()));
 
     let builder = opentelemetry_sdk::trace::TracerProvider::builder().with_config(
         opentelemetry_sdk::trace::config()
@@ -33,7 +35,7 @@ where
             .with_max_events_per_span(config.collect.max_events_per_span as u32)
             .with_max_attributes_per_span(config.collect.max_attributes_per_span as u32)
             .with_max_events_per_span(config.collect.max_events_per_span as u32)
-            .with_resource(Resource::new(vec![KeyValue::new("service.name", service_name)])),
+            .with_resource(Resource::new(resource_attributes)),
     );
 
     Ok(setup_exporters(builder, config, runtime)?.build())
