@@ -164,8 +164,11 @@ where
     };
 
     let resource_attributes = vec![
-        grafbase_tracing::otel::opentelemetry::KeyValue::new("graph_id", reload_data.graph_id.to_string()),
-        grafbase_tracing::otel::opentelemetry::KeyValue::new("branch_id", reload_data.branch_id.to_string()),
+        grafbase_tracing::otel::opentelemetry::KeyValue::new("graph_id", u128::from(reload_data.graph_id).to_string()),
+        grafbase_tracing::otel::opentelemetry::KeyValue::new(
+            "branch_id",
+            u128::from(reload_data.branch_id).to_string(),
+        ),
         grafbase_tracing::otel::opentelemetry::KeyValue::new("branch_name", reload_data.branch_name.to_string()),
     ];
 
