@@ -34,7 +34,7 @@ pub async fn serve(
     listen_addr: Option<SocketAddr>,
     config: Config,
     fetch_method: GraphFetchMethod,
-    mut otel_tracing: Option<OtelTracing>,
+    otel_tracing: Option<OtelTracing>,
 ) -> crate::Result<()> {
     let path = config.graph.path.as_deref().unwrap_or("/graphql");
 
@@ -42,7 +42,9 @@ pub async fn serve(
         .or(config.network.listen_address)
         .unwrap_or(DEFAULT_LISTEN_ADDRESS);
 
-    let otel_provider = otel_tracing.as_mut().and_then(|otel| otel.tracer_provider.take());
+    let (otel_tracer_provider, otel_reload_trigger) = otel_tracing
+        .map(|otel| (Some(otel.tracer_provider), Some(otel.reload_trigger)))
+        .unwrap_or((None, None));
 
     let gateway = fetch_method.into_gateway(
         GatewayConfig {
@@ -53,7 +55,7 @@ pub async fn serve(
             default_headers: config.headers,
             trusted_documents: config.trusted_documents,
         },
-        otel_tracing.map(|otel| otel.reload_trigger),
+        otel_reload_trigger,
     )?;
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
@@ -66,7 +68,7 @@ pub async fn serve(
         None => CorsLayer::permissive(),
     };
 
-    let state = ServerState::new(gateway, otel_provider);
+    let state = ServerState::new(gateway, otel_tracer_provider);
 
     let mut router = Router::new()
         .route(path, get(engine::get).post(engine::post))

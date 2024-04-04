@@ -44,7 +44,7 @@ async fn traced(
     headers: HeaderMap,
     request: BatchRequest,
     gateway: GatewayWatcher,
-    provider: Option<&TracerProvider>,
+    provider: Option<TracerProvider>,
 ) -> http::Response<Body> {
     let response = handle(headers, request, gateway).await;
 
@@ -69,7 +69,7 @@ async fn traced(
     headers: HeaderMap,
     request: BatchRequest,
     gateway: GatewayWatcher,
-    _: Option<&TracerProvider>,
+    _: Option<TracerProvider>,
 ) -> http::Response<Body> {
     handle(headers, request, gateway).await
 }

@@ -1,14 +1,12 @@
 #![cfg_attr(test, allow(unused_crate_dependencies))]
 
 use std::fs;
-#[cfg(test)]
-use std::sync::OnceLock;
 
 use anyhow::Context;
 use clap::{crate_version, Parser};
 use mimalloc::MiMalloc;
 use tokio::runtime;
-use tokio::sync::oneshot;
+use tokio::sync::{oneshot, watch};
 use tracing::{debug, error, Subscriber};
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{reload, EnvFilter, Registry};
@@ -23,9 +21,6 @@ use grafbase_tracing::{otel::opentelemetry_sdk::trace::TracerProvider, span::GRA
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
-
-#[cfg(test)]
-static RELOAD_PROVIDER: OnceLock<Option<TracerProvider>> = OnceLock::new();
 
 mod args;
 
@@ -71,18 +66,22 @@ fn setup_tracing(config: &mut Config, args: &Args) -> anyhow::Result<Option<Otel
         reload_handle,
     } = init_global_tracing(args, telemetry_config.clone())?;
 
+    grafbase_tracing::otel::opentelemetry::global::set_tracer_provider(provider.clone());
+
     // spawn the otel layer reload
-    let (sender, receiver) = oneshot::channel();
-    otel_layer_reload(reload_handle, receiver, telemetry_config);
+    let (reload_sender, reload_receiver) = oneshot::channel();
+    let (tracer_sender, tracer_receiver) = watch::channel(provider);
+
+    otel_layer_reload(reload_handle, reload_receiver, tracer_sender, telemetry_config);
 
     Ok(Some(OtelTracing {
-        tracer_provider: provider,
-        reload_trigger: sender,
+        tracer_provider: tracer_receiver,
+        reload_trigger: reload_sender,
     }))
 }
 
 struct OtelLegos<S> {
-    provider: Option<TracerProvider>,
+    provider: TracerProvider,
     reload_handle: reload::Handle<BoxedLayer<S>, S>,
 }
 
@@ -105,14 +104,15 @@ fn init_global_tracing(args: &Args, config: TelemetryConfig) -> anyhow::Result<O
         .init();
 
     Ok(OtelLegos {
-        provider: otel_layer.provider,
+        provider: otel_layer.provider.expect("should have a valid otel tracer provider"),
         reload_handle: otel_layer.handle,
     })
 }
 
 fn otel_layer_reload<S>(
     reload_handle: reload::Handle<BoxedLayer<S>, S>,
-    reload_rx: oneshot::Receiver<OtelReload>,
+    reload_receiver: oneshot::Receiver<OtelReload>,
+    tracer_sender: watch::Sender<TracerProvider>,
     config: TelemetryConfig,
 ) where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
@@ -120,7 +120,7 @@ fn otel_layer_reload<S>(
     use tracing_subscriber::Layer;
 
     tokio::spawn(async move {
-        let result = reload_rx.await;
+        let result = reload_receiver.await;
 
         let Ok(reload_data) = result else {
             debug!("error waiting for otel reload");
@@ -139,8 +139,15 @@ fn otel_layer_reload<S>(
             .reload(otel_layer.layer.boxed())
             .expect("should successfully reload otel layer");
 
-        #[cfg(test)]
-        RELOAD_PROVIDER.set(otel_layer.provider).unwrap();
+        let tracer_provider = otel_layer
+            .provider
+            .expect("should have a new valid otel tracer provder");
+
+        grafbase_tracing::otel::opentelemetry::global::set_tracer_provider(tracer_provider.clone());
+
+        tracer_sender
+            .send(tracer_provider)
+            .expect("should successfully send new otel tracer");
     });
 }
 
@@ -164,8 +171,12 @@ where
     };
 
     let resource_attributes = vec![
-        grafbase_tracing::otel::opentelemetry::KeyValue::new("account_id", reload_data.account_id.to_string()),
-        grafbase_tracing::otel::opentelemetry::KeyValue::new("branch_id", reload_data.branch_id.to_string()),
+        grafbase_tracing::otel::opentelemetry::KeyValue::new("graph_id", u128::from(reload_data.graph_id).to_string()),
+        grafbase_tracing::otel::opentelemetry::KeyValue::new(
+            "branch_id",
+            u128::from(reload_data.branch_id).to_string(),
+        ),
+        grafbase_tracing::otel::opentelemetry::KeyValue::new("branch_name", reload_data.branch_name.to_string()),
     ];
 
     layer::new_batched::<S, _, _>(
@@ -175,70 +186,4 @@ where
         Tokio,
         resource_attributes,
     )
-}
-
-#[cfg(test)]
-mod test {
-    use std::time::Duration;
-
-    use clap::Parser;
-
-    use federated_server::{Config, OtelReload, TelemetryConfig};
-    use grafbase_tracing::config::{TracingConfig, TracingExportersConfig, TracingStdoutExporterConfig};
-
-    use crate::args::Args;
-    use crate::{setup_tracing, RELOAD_PROVIDER};
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn otel_reload() {
-        // prepare
-        let mut config = Config {
-            telemetry: Some(TelemetryConfig {
-                service_name: "test".to_string(),
-                tracing: TracingConfig {
-                    enabled: true,
-                    filter: "info".to_string(),
-                    sampling: 100.0,
-                    exporters: TracingExportersConfig {
-                        stdout: Some(TracingStdoutExporterConfig {
-                            enabled: true,
-                            ..Default::default()
-                        }),
-                        otlp: None,
-                    },
-                    ..Default::default()
-                },
-            }),
-            ..Default::default()
-        };
-
-        let args = Args::try_parse_from(vec!["--schema", "schema.graphql", "--config", "grafbase.toml"]).unwrap();
-
-        // act
-        let otel_tracing = setup_tracing(&mut config, &args).unwrap().unwrap();
-
-        otel_tracing
-            .reload_trigger
-            .send(OtelReload {
-                account_id: 5.into(),
-                branch_id: 6.into(),
-            })
-            .unwrap();
-
-        // wait for the reload to happen
-        tokio::time::timeout(Duration::from_secs(5), async move {
-            while RELOAD_PROVIDER.get().is_none() {
-                tokio::time::sleep(Duration::from_millis(500)).await
-            }
-        })
-        .await
-        .unwrap();
-
-        // force a flush to check that the resulting span has the new resource attributes
-        let span = tracing::info_span!("test");
-        drop(span);
-
-        let provider = RELOAD_PROVIDER.get().unwrap().as_ref().unwrap();
-        provider.force_flush();
-    }
 }

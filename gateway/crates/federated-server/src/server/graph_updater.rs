@@ -175,8 +175,9 @@ impl GraphUpdater {
                 Some(attributes_sender) if !attributes_sender.is_closed() => {
                     if attributes_sender
                         .send(OtelReload {
-                            account_id: response.account_id,
+                            graph_id: response.graph_id,
                             branch_id: response.branch_id,
+                            branch_name: response.branch.clone(),
                         })
                         .is_err()
                     {
