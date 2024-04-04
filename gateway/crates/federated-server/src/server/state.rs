@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use tokio::sync::watch;
 
 use grafbase_tracing::otel::opentelemetry_sdk::trace::TracerProvider;
 
@@ -6,7 +7,7 @@ use super::gateway::GatewayWatcher;
 
 struct ServerStateInner {
     gateway: GatewayWatcher,
-    tracer_provider: Option<TracerProvider>,
+    tracer_provider: Option<watch::Receiver<TracerProvider>>,
 }
 
 #[derive(Clone)]
@@ -15,7 +16,7 @@ pub(super) struct ServerState {
 }
 
 impl ServerState {
-    pub(super) fn new(gateway: GatewayWatcher, tracer_provider: Option<TracerProvider>) -> Self {
+    pub(super) fn new(gateway: GatewayWatcher, tracer_provider: Option<watch::Receiver<TracerProvider>>) -> Self {
         Self {
             inner: Arc::new(ServerStateInner {
                 gateway,
@@ -28,7 +29,12 @@ impl ServerState {
         &self.inner.gateway
     }
 
-    pub(crate) fn tracer_provider(&self) -> Option<&TracerProvider> {
-        self.inner.tracer_provider.as_ref()
+    pub(crate) fn tracer_provider(&self) -> Option<TracerProvider> {
+        // notes on the clone:
+        // - avoid long borrows that could block the producer
+        // - tracer provider is backed by an arc so its cheaply cloned
+        self.inner.tracer_provider
+            .as_ref()
+            .map(|receiver| receiver.borrow().clone())
     }
 }
