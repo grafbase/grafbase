@@ -99,7 +99,7 @@ where
 
         match self.trusted_documents.fetch(client_name, document_id).await {
             Err(TrustedDocumentsError::RetrievalError(err)) => {
-                tracing::error!(%err, ?err, "Trusted document retrieval error");
+                log::error!(request.ray_id, "Trusted document retrieval error: {err}");
                 Err(PersistedQueryError::InternalServerError)
             }
             Err(TrustedDocumentsError::DocumentNotFound) => Err(PersistedQueryError::UnknownDocumentId {
@@ -195,7 +195,7 @@ pub(super) enum PersistedQueryError {
     NotFound,
     #[error("Persisted query version not supported")]
     UnsupportedVersion,
-    #[error("Internal server error")]
+    #[error("Internal server error (trusted documents)")]
     InternalServerError,
     #[error("Cannot execute a trusted document query: missing doc_id or the persistedQuery extension.")]
     BadRequest,
