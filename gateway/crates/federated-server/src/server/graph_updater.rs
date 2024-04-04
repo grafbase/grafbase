@@ -177,6 +177,7 @@ impl GraphUpdater {
                         .send(OtelReload {
                             graph_id: response.graph_id,
                             branch_id: response.branch_id,
+                            branch_name: response.branch.clone(),
                         })
                         .is_err()
                     {

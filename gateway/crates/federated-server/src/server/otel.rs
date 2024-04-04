@@ -18,4 +18,6 @@ pub struct OtelReload {
     pub graph_id: Ulid,
     /// Branch id
     pub branch_id: Ulid,
+    /// Branch name
+    pub branch_name: String,
 }

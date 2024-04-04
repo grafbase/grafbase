@@ -166,6 +166,7 @@ where
     let resource_attributes = vec![
         grafbase_tracing::otel::opentelemetry::KeyValue::new("graph_id", reload_data.graph_id.to_string()),
         grafbase_tracing::otel::opentelemetry::KeyValue::new("branch_id", reload_data.branch_id.to_string()),
+        grafbase_tracing::otel::opentelemetry::KeyValue::new("branch_name", reload_data.branch_name.to_string()),
     ];
 
     layer::new_batched::<S, _, _>(
@@ -222,6 +223,7 @@ mod test {
             .send(OtelReload {
                 graph_id: 5.into(),
                 branch_id: 6.into(),
+                branch_name: "test".to_string(),
             })
             .unwrap();
 
