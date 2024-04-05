@@ -66,8 +66,6 @@ fn setup_tracing(config: &mut Config, args: &Args) -> anyhow::Result<Option<Otel
         reload_handle,
     } = init_global_tracing(args, telemetry_config.clone())?;
 
-    grafbase_tracing::otel::opentelemetry::global::set_tracer_provider(provider.clone());
-
     // spawn the otel layer reload
     let (reload_sender, reload_receiver) = oneshot::channel();
     let (tracer_sender, tracer_receiver) = watch::channel(provider);
@@ -96,6 +94,9 @@ fn init_global_tracing(args: &Args, config: TelemetryConfig) -> anyhow::Result<O
 
     let env_filter = EnvFilter::new(filter);
     let otel_layer = build_otel_layer(config, Default::default())?;
+    let otel_tracer_provider = otel_layer.provider.expect("should have a valid otel tracer provider");
+
+    grafbase_tracing::otel::opentelemetry::global::set_tracer_provider(otel_tracer_provider.clone());
 
     tracing_subscriber::registry()
         .with(otel_layer.layer)
@@ -104,7 +105,7 @@ fn init_global_tracing(args: &Args, config: TelemetryConfig) -> anyhow::Result<O
         .init();
 
     Ok(OtelLegos {
-        provider: otel_layer.provider.expect("should have a valid otel tracer provider"),
+        provider: otel_tracer_provider,
         reload_handle: otel_layer.handle,
     })
 }
@@ -171,12 +172,18 @@ where
     };
 
     let resource_attributes = vec![
-        grafbase_tracing::otel::opentelemetry::KeyValue::new("graph_id", u128::from(reload_data.graph_id).to_string()),
         grafbase_tracing::otel::opentelemetry::KeyValue::new(
-            "branch_id",
+            "grafbase.graph_id",
+            u128::from(reload_data.graph_id).to_string(),
+        ),
+        grafbase_tracing::otel::opentelemetry::KeyValue::new(
+            "grafbase.branch_id",
             u128::from(reload_data.branch_id).to_string(),
         ),
-        grafbase_tracing::otel::opentelemetry::KeyValue::new("branch_name", reload_data.branch_name.to_string()),
+        grafbase_tracing::otel::opentelemetry::KeyValue::new(
+            "grafbase.branch_name",
+            reload_data.branch_name.to_string(),
+        ),
     ];
 
     layer::new_batched::<S, _, _>(
