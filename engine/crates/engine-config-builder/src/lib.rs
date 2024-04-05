@@ -33,6 +33,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
             name: _,
             websocket_url,
             headers,
+            development_url: _,
         } = config;
 
         let headers = context.insert_headers(headers);

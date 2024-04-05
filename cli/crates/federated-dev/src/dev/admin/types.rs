@@ -3,8 +3,8 @@ use url::Url;
 
 #[derive(InputObject, Clone, Debug)]
 pub(crate) struct Header {
-    key: String,
-    value: String,
+    pub key: String,
+    pub value: String,
 }
 
 impl Header {

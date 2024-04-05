@@ -2265,6 +2265,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tower-http",
+ "tracing",
  "ulid",
  "url",
 ]

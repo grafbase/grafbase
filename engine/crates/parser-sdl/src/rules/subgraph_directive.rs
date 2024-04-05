@@ -17,6 +17,11 @@ pub struct SubgraphDirective {
     /// The name of the subgraph
     name: String,
 
+    /// The URL to use for this subgraph in development
+    ///
+    /// In deployed environments this is ignored
+    development_url: Option<String>,
+
     /// The URL to use for GraphQL-WS calls.
     ///
     /// This will default to the normal URL if not present.
@@ -33,6 +38,13 @@ impl Directive for SubgraphDirective {
         directive @subgraph(
           "The name of the subgraph"
           name: String!
+
+          """
+          The URL to use for this API in development
+
+          In deployed environments this is ignored.
+          """
+          developmentUrl: String!
 
           """
           The URL to use for GraphQL-WS calls.
@@ -106,6 +118,10 @@ impl Visitor<'_> for SubgraphDirectiveVisitor {
                 subgraph.websocket_url = Some(url.to_string())
             }
 
+            if let Some(url) = directive.development_url {
+                subgraph.development_url = Some(url.to_string())
+            }
+
             subgraph.headers.extend(
                 directive
                     .headers
@@ -149,6 +165,7 @@ mod tests {
                 subgraphs: {
                     "Products": SubgraphConfig {
                         name: "Products",
+                        development_url: None,
                         websocket_url: None,
                         headers: [
                             (
@@ -167,6 +184,7 @@ mod tests {
                     },
                     "Reviews": SubgraphConfig {
                         name: "Reviews",
+                        development_url: None,
                         websocket_url: None,
                         headers: [
                             (
