@@ -288,7 +288,7 @@ jobs:
       - name: Build gateway lambda release
         shell: bash
         run: |
-          RUSTFLAGS="-C opt-level=s" cargo build --release -p grafbase-gateway --target ${{ matrix.archs.target }} --features lambda
+          cargo build --profile lambda -p grafbase-gateway --target ${{ matrix.archs.target }} --features lambda
 
       - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'ubicloud-standard-8-arm' }}
         name: Upload lambda gateway binary to R2
