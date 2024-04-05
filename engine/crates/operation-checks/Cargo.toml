@@ -16,7 +16,7 @@ graphql-schema-diff.path = "../graphql-schema-diff"
 datatest-stable = "0.2.3"
 expect-test = "1"
 similar = "2"
-miette = { version = "5.10.0", features = ["fancy"] }
+miette = { version = "7.1.0", features = ["fancy"] }
 
 [lints]
 workspace = true

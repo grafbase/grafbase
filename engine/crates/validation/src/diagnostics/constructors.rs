@@ -5,7 +5,7 @@ pub(crate) fn double_underscore_name(bad_name: &str, pos: Pos, ctx: &mut Context
     ctx.push_error(miette::miette!(
         labels = vec![miette::LabeledSpan::new_with_span(
             None,
-            miette::SourceSpan::new(ctx.miette_pos(pos), bad_name.len().into(),),
+            miette::SourceSpan::new(ctx.miette_pos(pos), bad_name.len()),
         )],
         r#"Name "{bad_name}" must not begin with "__", which is reserved by GraphQL introspection."#
     ));

@@ -13,7 +13,7 @@ pub(crate) fn validate_object_field<'a>(
     if field_name.starts_with("__") {
         let label = vec![miette::LabeledSpan::new_with_span(
             Some("here".to_owned()),
-            miette::SourceSpan::new(ctx.miette_pos(field.node.name.pos), field.node.name.node.len().into()),
+            miette::SourceSpan::new(ctx.miette_pos(field.node.name.pos), field.node.name.node.len()),
         )];
         ctx.push_error(miette::miette!(labels = label, r#"Field name "{parent_type_name}.{field_name}" must not begin with "__", which is reserved by GraphQL introspection."#));
     }
