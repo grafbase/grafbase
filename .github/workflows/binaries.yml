@@ -103,6 +103,7 @@ jobs:
         with:
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          datadog-api-key: ${{ secrets.DATADOG_API_KEY }}
 
   individual-builds:
     needs: [detect-change-type]
@@ -337,6 +338,7 @@ jobs:
           with-integration-tests: 'false'
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          datadog-api-key: ${{ secrets.DATADOG_API_KEY }}
 
       - name: Build grafbase release
         shell: bash
@@ -392,6 +394,7 @@ jobs:
           with-integration-tests: 'false'
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          datadog-api-key: ${{ secrets.DATADOG_API_KEY }}
 
       - name: Build grafbase ${{ matrix.target }} release
         run: |
