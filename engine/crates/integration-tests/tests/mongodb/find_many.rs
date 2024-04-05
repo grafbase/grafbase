@@ -1135,6 +1135,252 @@ fn simple_array_elemmatch() {
 }
 
 #[test]
+fn simple_array_elemmatch_two() {
+    let schema = indoc! {r#"
+        type User @model(connector: "test", collection: "users") {
+          data: [Int]
+        }
+    "#};
+
+    let response = with_mongodb(schema, |api| async move {
+        let documents = json!([
+            { "data": [1] },
+            { "data": [1, 2] },
+            { "data": [1, 2, 3] }
+        ]);
+
+        api.insert_many("users", documents).await;
+
+        let query = indoc! {r"
+            query {
+              userCollection(first: 10, filter: {
+                ALL: [
+                  { data: { elemMatch: { eq: 2 } } },
+                  { data: { elemMatch: { eq: 3 } } },
+                ]
+              }) {
+                edges { node { data } }
+              }
+            }
+        "};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "data": [
+                      1,
+                      2,
+                      3
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn and_with_elemmatch() {
+    let schema = indoc! {r#"
+        type Address {
+          city: String
+        }
+        
+        type ContactMedium {
+          emailId: String
+          address: Address
+        }
+
+        type User @model(connector: "test", collection: "users") {
+          businessId: String
+          contactMedium: [ContactMedium]
+        }
+    "#};
+
+    let response = with_mongodb(schema, |api| async move {
+        let documents = json!([
+            {
+                "businessId": "C01",
+                "contactMedium": [
+                    { "emailId": "c001@email.com", "address": { "city": "Mumbai" } },
+                    { "emailId": "c001personal@email.com", "address": { "city": "Mumbai" } },
+                ],
+            },
+            {
+                "businessId": "C02",
+                "contactMedium": [
+                    { "emailId": "c002@email.com", "address": { "city": "Mumbai" } },
+                    { "emailId": "c002personal@email.com", "address": { "city": "Mumbai" } },
+                ],
+            },
+        ]);
+
+        api.insert_many("users", documents).await;
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10, filter: {
+                ALL: [
+                  { businessId: { eq: "C01" } },
+                  { contactMedium: { elemMatch: { address: { city: { eq: "Mumbai" } } } } },
+                ]
+              }) {
+                edges { node { businessId contactMedium { emailId address { city } } } }
+              }
+            }
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "businessId": "C01",
+                    "contactMedium": [
+                      {
+                        "emailId": "c001@email.com",
+                        "address": {
+                          "city": "Mumbai"
+                        }
+                      },
+                      {
+                        "emailId": "c001personal@email.com",
+                        "address": {
+                          "city": "Mumbai"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn or_with_elemmatch() {
+    let schema = indoc! {r#"
+        type Address {
+          city: String
+        }
+        
+        type ContactMedium {
+          emailId: String
+          address: Address
+        }
+
+        type User @model(connector: "test", collection: "users") {
+          businessId: String
+          contactMedium: [ContactMedium]
+        }
+    "#};
+
+    let response = with_mongodb(schema, |api| async move {
+        let documents = json!([
+            {
+                "businessId": "C01",
+                "contactMedium": [
+                    { "emailId": "c001@email.com", "address": { "city": "Mumbai" } },
+                    { "emailId": "c001personal@email.com", "address": { "city": "Mumbai" } },
+                ],
+            },
+            {
+                "businessId": "C02",
+                "contactMedium": [
+                    { "emailId": "c002@email.com", "address": { "city": "Goa" } },
+                    { "emailId": "c002personal@email.com", "address": { "city": "Goa" } },
+                ],
+            },
+        ]);
+
+        api.insert_many("users", documents).await;
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10, filter: {
+                ANY: [
+                  { businessId: { eq: "C02" } },
+                  { contactMedium: { elemMatch: { address: { city: { eq: "Mumbai" } } } } },
+                ]
+              }) {
+                edges { node { businessId contactMedium { emailId address { city } } } }
+              }
+            }
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "businessId": "C01",
+                    "contactMedium": [
+                      {
+                        "emailId": "c001@email.com",
+                        "address": {
+                          "city": "Mumbai"
+                        }
+                      },
+                      {
+                        "emailId": "c001personal@email.com",
+                        "address": {
+                          "city": "Mumbai"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "node": {
+                    "businessId": "C02",
+                    "contactMedium": [
+                      {
+                        "emailId": "c002@email.com",
+                        "address": {
+                          "city": "Goa"
+                        }
+                      },
+                      {
+                        "emailId": "c002personal@email.com",
+                        "address": {
+                          "city": "Goa"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
 fn complex_array_elemmatch() {
     let schema = indoc! {r#"
         type Address {
