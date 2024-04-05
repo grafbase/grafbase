@@ -7,10 +7,7 @@ pub(crate) fn validate_type_definition<'a>(typedef: &'a Positioned<ast::TypeDefi
     if !typedef.node.extend && is_builtin_scalar(type_name) {
         let labels = vec![miette::LabeledSpan::new_with_span(
             None,
-            (
-                ctx.miette_pos(typedef.node.name.pos),
-                miette::SourceOffset::from(typedef.node.name.node.len()),
-            ),
+            (ctx.miette_pos(typedef.node.name.pos), typedef.node.name.node.len()),
         )];
 
         ctx.push_error(miette::miette! {
@@ -56,15 +53,12 @@ pub(crate) fn validate_type_definition<'a>(typedef: &'a Positioned<ast::TypeDefi
                 Some("Previous definition".to_owned()),
                 miette::SourceSpan::new(
                     ctx.miette_pos(existing_typedef.node.name.pos),
-                    existing_typedef.node.name.node.len().into(),
+                    existing_typedef.node.name.node.len(),
                 ),
             ),
             miette::LabeledSpan::new_with_span(
                 Some("Second definition".to_owned()),
-                miette::SourceSpan::new(
-                    ctx.miette_pos(typedef.node.name.pos),
-                    typedef.node.name.node.len().into(),
-                ),
+                miette::SourceSpan::new(ctx.miette_pos(typedef.node.name.pos), typedef.node.name.node.len()),
             ),
         ];
 

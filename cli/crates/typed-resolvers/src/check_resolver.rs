@@ -168,7 +168,7 @@ fn find_resolved_field_name<'a>(module: &'a ast::Module, ident: &ast::Ident) -> 
 fn swc_span_to_miette_span(span: Span) -> SourceSpan {
     SourceSpan::new(
         miette::SourceOffset::from(span.lo.0 as usize),
-        miette::SourceOffset::from((span.hi.0 - span.lo.0) as usize),
+        (span.hi.0 - span.lo.0) as usize,
     )
 }
 

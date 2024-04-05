@@ -23,7 +23,7 @@ pub(crate) fn validate_arguments<'a>(
         if arg_name.starts_with("__") {
             let label = vec![miette::LabeledSpan::new_with_span(
                 Some("here".to_owned()),
-                miette::SourceSpan::new(ctx.miette_pos(arg.node.name.pos), arg.node.name.node.len().into()),
+                miette::SourceSpan::new(ctx.miette_pos(arg.node.name.pos), arg.node.name.node.len()),
             )];
             ctx.push_error(miette::miette!(labels = label, "Argument names can't start with __"));
         }
