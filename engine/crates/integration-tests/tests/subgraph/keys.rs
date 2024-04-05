@@ -8,11 +8,11 @@ fn test_multi_field_keys() {
         extend schema @federation(version: "2.3")
 
         extend type Query {
-            todo(list: ID!, id: ID!): Todo @resolver(name: "todo")
+            todo(listId: ID!, id: ID!): Todo @resolver(name: "todo")
         }
 
-        type Todo @key(fields: "list id", select: "todo(list: $list, id: $id)") {
-            list: ID!
+        type Todo @key(fields: "listId id", select: "todo(listId: $listId, id: $id)") {
+            listId: ID!
             id: ID!
             name: String!
         }
@@ -22,10 +22,10 @@ fn test_multi_field_keys() {
         let engine = EngineBuilder::new(schema)
             .with_custom_resolvers(RustUdfs::new().resolver("todo", |input: CustomResolverRequestPayload| {
                 let id = input.arguments["id"].as_str().unwrap();
-                let list = input.arguments["list"].as_str().unwrap();
+                let list = input.arguments["listId"].as_str().unwrap();
                 Ok(UdfResponse::Success(json!({
                     "id": id,
-                    "list": list,
+                    "listId": list,
                     "name": format!("Todo {id} in list {list}")
                 })))
             }))
@@ -49,7 +49,7 @@ fn test_multi_field_keys() {
                 .variables(json!({"repr": {
                     "__typename": "Todo",
                     "id": "123",
-                    "list": "456"
+                    "listId": "456"
                 }}))
                 .await
                 .into_data::<Value>(),
@@ -85,8 +85,12 @@ fn test_composite_keys() {
             id: ID!
         }
 
+        type List {
+            id: ID!
+        }
+
         type Todo @key(fields: "id list { id }", select: "todo(input: {id: $id, list: $list})") {
-            list: ID!
+            list: List!
             id: ID!
             name: String!
         }

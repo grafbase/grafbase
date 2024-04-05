@@ -36,6 +36,10 @@ impl QueryPath {
     pub fn iter(&self) -> impl DoubleEndedIterator<Item = &QueryPathSegment> {
         self.0.iter()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 impl IntoIterator for QueryPath {
