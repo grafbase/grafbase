@@ -1,11 +1,11 @@
 === ERRORS ===
 
   × Orphan resolver at ./tests/resolver_discovery/missing_resolver_directive/resolvers/missingDirective.ts. The `Test.shouldHaveAResolver` field in your schema does not define a resolver.
-   ╭─[./tests/resolver_discovery/missing_resolver_directive/resolvers/missingDirective.ts:3:28]
+   ╭─[./tests/resolver_discovery/missing_resolver_directive/resolvers/missingDirective.ts:3:27]
  2 │ 
  3 │ const resolver: Resolvers["Test.shouldHaveAResolver"] = (stuff) => {}
-   ·                            ─────────────┬────────────
-   ·                                         ╰── Inferred from this.
+   ·                           ─────────────┬────────────
+   ·                                        ╰── Inferred from this.
  4 │ 
    ╰────
   help: Try declaring the resolver: `@resolver(name: "missingDirective")` in GraphQL or `.resolver("missingDirective")` in TypeScript.
