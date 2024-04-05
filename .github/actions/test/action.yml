@@ -12,6 +12,9 @@ inputs:
     required: false
     default: 'true'
     description: If enabled, runs integration tests and needs docker
+  datadog-api-key:
+    required: true
+    description: API key for datadog uploads
 
 runs:
   using: 'composite'
@@ -62,7 +65,8 @@ runs:
         username: ${{ inputs.dockerhub-username }}
         password: ${{ inputs.dockerhub-token }}
 
-    - name: Run all tests
+    - name: Run all non-gateway tests
+      id: all_tests
       if: ${{ inputs.with-integration-tests == 'true' }}
       shell: bash
       run: |
@@ -70,11 +74,41 @@ runs:
         RUST_BACKTRACE=1 cargo nextest run --workspace --profile ci --exclude grafbase-gateway
         docker-compose -f engine/crates/integration-tests/docker-compose.yml stop -t 3
 
+    - name: Upload the JUnit files
+      if: ${{ inputs.with-integration-tests == 'true' && ( success() || failure() ) && !contains(steps.all_tests.outputs.exitcode, '101') }}
+      uses: ./.github/actions/test_upload_datadog
+      with:
+        api_key: ${{ inputs.datadog-api-key }}
+        junit_path: target/nextest/ci/junit.xml
+        service: cli
+
+    - name: Run gateway tests
+      id: gateway_tests
+      if: ${{ inputs.with-integration-tests == 'true' }}
+      shell: bash
+      run: |
         docker-compose -f gateway/crates/gateway-binary/docker-compose.yml up -d
         RUST_BACKTRACE=1 cargo nextest run -p grafbase-gateway --profile ci
 
+    - name: Upload the gateway junit files
+      if: ${{ inputs.with-integration-tests == 'true' && ( success() || failure() ) && !contains(steps.gateway_tests.outputs.exitcode, '101') }}
+      uses: ./.github/actions/test_upload_datadog
+      with:
+        api_key: ${{ inputs.datadog-api-key }}
+        junit_path: target/nextest/ci/junit.xml
+        service: cli-gateway
+
     - name: Run tests without integration
+      id: tests_no_integration
       if: ${{ inputs.with-integration-tests == 'false' }}
       shell: bash
       run: |
         RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --exclude grafbase-gateway --profile ci
+
+    - name: Upload the non-integration JUnit files
+      if: ${{ inputs.with-integration-tests == 'false' && ( success() || failure() ) && !contains(steps.tests_no_integration.outputs.exitcode, '101') }}
+      uses: ./.github/actions/test_upload_datadog
+      with:
+        api_key: ${{ inputs.datadog-api-key }}
+        junit_path: target/nextest/ci/junit.xml
+        service: cli

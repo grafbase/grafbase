@@ -41,6 +41,7 @@ jobs:
         with:
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          datadog-api-key: ${{ secrets.DATADOG_API_KEY }}
 
       - name: Report Status
         if: always()
