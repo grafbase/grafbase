@@ -5,7 +5,7 @@
    ·    ╰── Previous definition
  2 │     query: Query
    ╰────
-   ╭─[5:1]
+   ╭─[6:1]
  5 │ 
  6 │ schema {
    · ───┬──

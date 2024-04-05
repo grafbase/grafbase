@@ -1,7 +1,7 @@
 === ERRORS ===
 
   × The resolver for `User.creditScore` isn't at the right location. In your schema, the resolver for `User.creditScore` is declared at `nested/somewhere/else`.
-   ╭─[./tests/resolver_discovery/wrong_location/resolvers/nested/wrongLoc.ts:2:1]
+   ╭─[./tests/resolver_discovery/wrong_location/resolvers/nested/wrongLoc.ts:3:27]
  2 │ 
  3 │ const resolver: Resolver["User.creditScore"] = true
    ·                           ─────────┬────────

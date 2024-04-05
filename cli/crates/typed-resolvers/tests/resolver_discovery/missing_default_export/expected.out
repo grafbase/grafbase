@@ -1,7 +1,7 @@
 === ERRORS ===
 
   × The module is missing a default export. Grafbase expects a resolver function as default export.
-   ╭─[./tests/resolver_discovery/missing_default_export/resolvers/missingDefaultExport.ts:3:1]
+   ╭─[./tests/resolver_discovery/missing_default_export/resolvers/missingDefaultExport.ts:4:2]
  3 │ 
  4 │ export const meowResolver = () => true
    ·  ───────────────────┬──────────────────
