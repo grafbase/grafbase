@@ -16,10 +16,10 @@ workspace = true
 engine-parser = { path = "../../../engine/crates/engine/parser" }
 engine-value = { path = "../../../engine/crates/engine/value" }
 
-swc_ecma_parser = "0.143.11"
-swc_ecma_ast = "0.112.6"
+swc_ecma_parser = "0.143.12"
+swc_ecma_ast = "0.112.7"
 swc_common = "0.33"
-miette = { version = "7.1.0", features = ["fancy"] }
+miette = { version = "7.2.0", features = ["fancy"] }
 thiserror = "1.0.58"
 walkdir = "2"
 

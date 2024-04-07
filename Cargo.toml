@@ -16,7 +16,7 @@ members = [
 ]
 
 [patch.crates-io]
-async-tungstenite = { git = "https://github.com/grafbase/async-tungstenite", rev = "431cc5963ecb9b13684b1b4e5daeb46971f851e4" } # ring
+async-tungstenite = { git = "https://github.com/grafbase/async-tungstenite", rev = "02222f222532b5cf01bba77e6d1cc8a142fe5593" } # ring
 # Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
 axum-server = { git = "https://github.com/grafbase/axum-server", rev = "fdce3d3dc71dc69597689cc28003cc0533b47dba" } # rustls-0.23
 http-cache = { git = "https://github.com/grafbase/http-cache", rev = "3c1e65f3be862f264e00db42694e64cd71dad278" } # http-v1-updated
@@ -94,7 +94,7 @@ reqwest = { version = "0.12", default-features = false, features = ["http2"] }
 rmp-serde = "1"
 rstest = "0.18"
 rustls = { version = "0.23", default-features = false }
-rustls-pemfile = { version = "2.1.1", default-features = false }
+rustls-pemfile = { version = "2.1.2", default-features = false }
 rustls-webpki = { version = "0.102.2", default-features = false }
 secrecy = "0.8"
 send_wrapper = "0.6"
@@ -117,7 +117,7 @@ wasm-bindgen = "0.2"
 web-time = "1"
 which = "6"
 wiremock = "0.6.0"
-worker = "0.0.24"
+worker = "0.1.0"
 fnv = "1"
 sha2 = "0.10"
 
