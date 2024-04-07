@@ -15,7 +15,7 @@ workspace = true
 [dependencies]
 async-runtime.workspace = true
 async-trait = "0.1"
-async-tungstenite = { version = "0.25.0", features = ["tokio-runtime", "tokio-rustls-webpki-roots"] }
+async-tungstenite = { version = "0.25.1", features = ["tokio-runtime", "tokio-rustls-webpki-roots"] }
 futures-util.workspace = true
 graphql-ws-client = { version = "0.8.1", features = ["async-tungstenite"] }
 ulid.workspace = true
