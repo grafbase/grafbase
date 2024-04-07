@@ -5289,6 +5289,7 @@ dependencies = [
  "cynic-introspection",
  "engine",
  "engine-parser",
+ "graphql-schema-validation",
  "http 1.1.0",
  "insta",
  "reqwest",

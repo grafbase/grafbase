@@ -1,0 +1,653 @@
+---
+source: engine/crates/parser-graphql/src/lib.rs
+expression: schema
+---
+"""
+Represents a binary file in a space. An asset can be any file type.
+"""
+type ContentfulAsset {
+	sys: ContentfulSys!
+	contentfulMetadata: ContentfulContentfulMetadata!
+	title(locale: String): String
+	description(locale: String): String
+	contentType(locale: String): String
+	fileName(locale: String): String
+	size(locale: String): Int
+	url(transform: ContentfulImageTransformOptions, locale: String): String
+	width(locale: String): Int
+	height(locale: String): Int
+	linkedFrom(allowedLocales: [String]): ContentfulAssetLinkingCollections
+}
+type ContentfulAssetCollection {
+	total: Int!
+	skip: Int!
+	limit: Int!
+	items: [ContentfulAsset]!
+}
+input ContentfulAssetFilter {
+	sys: ContentfulSysFilter
+	contentfulMetadata: ContentfulContentfulMetadataFilter
+	title_exists: Boolean
+	title: String
+	title_not: String
+	title_in: [String]
+	title_not_in: [String]
+	title_contains: String
+	title_not_contains: String
+	description_exists: Boolean
+	description: String
+	description_not: String
+	description_in: [String]
+	description_not_in: [String]
+	description_contains: String
+	description_not_contains: String
+	url_exists: Boolean
+	url: String
+	url_not: String
+	url_in: [String]
+	url_not_in: [String]
+	url_contains: String
+	url_not_contains: String
+	size_exists: Boolean
+	size: Int
+	size_not: Int
+	size_in: [Int]
+	size_not_in: [Int]
+	size_gt: Int
+	size_gte: Int
+	size_lt: Int
+	size_lte: Int
+	contentType_exists: Boolean
+	contentType: String
+	contentType_not: String
+	contentType_in: [String]
+	contentType_not_in: [String]
+	contentType_contains: String
+	contentType_not_contains: String
+	fileName_exists: Boolean
+	fileName: String
+	fileName_not: String
+	fileName_in: [String]
+	fileName_not_in: [String]
+	fileName_contains: String
+	fileName_not_contains: String
+	width_exists: Boolean
+	width: Int
+	width_not: Int
+	width_in: [Int]
+	width_not_in: [Int]
+	width_gt: Int
+	width_gte: Int
+	width_lt: Int
+	width_lte: Int
+	height_exists: Boolean
+	height: Int
+	height_not: Int
+	height_in: [Int]
+	height_not_in: [Int]
+	height_gt: Int
+	height_gte: Int
+	height_lt: Int
+	height_lte: Int
+	OR: [ContentfulAssetFilter]
+	AND: [ContentfulAssetFilter]
+}
+type ContentfulAssetLinkingCollections {
+	entryCollection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String): ContentfulEntryCollection
+	componentHero5050Collection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String): ContentfulComponentHero5050Collection
+}
+enum ContentfulAssetOrder {
+	url_ASC
+	url_DESC
+	size_ASC
+	size_DESC
+	contentType_ASC
+	contentType_DESC
+	fileName_ASC
+	fileName_DESC
+	width_ASC
+	width_DESC
+	height_ASC
+	height_DESC
+	sys_id_ASC
+	sys_id_DESC
+	sys_publishedAt_ASC
+	sys_publishedAt_DESC
+	sys_firstPublishedAt_ASC
+	sys_firstPublishedAt_DESC
+	sys_publishedVersion_ASC
+	sys_publishedVersion_DESC
+}
+"""
+Hero with a side-by-side image and text. [See type definition](https://app.contentful.com/spaces/1rtrfzj0a37x/content_types/componentHero5050)
+"""
+type ContentfulComponentHero5050 implements ContentfulEntry {
+	sys: ContentfulSys!
+	contentfulMetadata: ContentfulContentfulMetadata!
+	linkedFrom(allowedLocales: [String]): ContentfulComponentHero5050LinkingCollections
+	eyebrow(locale: String): String
+	title(locale: String): String
+	body(locale: String): ContentfulComponentHero5050Body
+	image(preview: Boolean, locale: String): ContentfulAsset
+	link(preview: Boolean, locale: String): ContentfulComponentHero5050Link
+}
+type ContentfulComponentHero5050Body {
+	json: ContentfulJSON!
+	links: ContentfulComponentHero5050BodyLinks!
+}
+type ContentfulComponentHero5050BodyAssets {
+	hyperlink: [ContentfulAsset]!
+	block: [ContentfulAsset]!
+}
+type ContentfulComponentHero5050BodyEntries {
+	inline: [ContentfulEntry]!
+	hyperlink: [ContentfulEntry]!
+	block: [ContentfulEntry]!
+}
+type ContentfulComponentHero5050BodyLinks {
+	entries: ContentfulComponentHero5050BodyEntries!
+	assets: ContentfulComponentHero5050BodyAssets!
+	resources: ContentfulComponentHero5050BodyResources!
+}
+type ContentfulComponentHero5050BodyResources {
+	block: [ContentfulComponentHero5050BodyResourcesBlock!]!
+	inline: [ContentfulComponentHero5050BodyResourcesInline!]!
+	hyperlink: [ContentfulComponentHero5050BodyResourcesHyperlink!]!
+}
+type ContentfulComponentHero5050BodyResourcesBlock implements ContentfulResourceLink {
+	sys: ContentfulResourceSys!
+}
+type ContentfulComponentHero5050BodyResourcesHyperlink implements ContentfulResourceLink {
+	sys: ContentfulResourceSys!
+}
+type ContentfulComponentHero5050BodyResourcesInline implements ContentfulResourceLink {
+	sys: ContentfulResourceSys!
+}
+type ContentfulComponentHero5050Collection {
+	total: Int!
+	skip: Int!
+	limit: Int!
+	items: [ContentfulComponentHero5050]!
+}
+input ContentfulComponentHero5050Filter {
+	sys: ContentfulSysFilter
+	contentfulMetadata: ContentfulContentfulMetadataFilter
+	eyebrow_exists: Boolean
+	eyebrow: String
+	eyebrow_not: String
+	eyebrow_in: [String]
+	eyebrow_not_in: [String]
+	eyebrow_contains: String
+	eyebrow_not_contains: String
+	title_exists: Boolean
+	title: String
+	title_not: String
+	title_in: [String]
+	title_not_in: [String]
+	title_contains: String
+	title_not_contains: String
+	body_exists: Boolean
+	body_contains: String
+	body_not_contains: String
+	image_exists: Boolean
+	link_exists: Boolean
+	OR: [ContentfulComponentHero5050Filter]
+	AND: [ContentfulComponentHero5050Filter]
+}
+union ContentfulComponentHero5050Link = ContentfulLinkExternal | ContentfulLinkInternal
+type ContentfulComponentHero5050LinkingCollections {
+	entryCollection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String): ContentfulEntryCollection
+	pageInformationalLandingCollection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String, order: [ContentfulComponentHero5050LinkingCollectionsPageInformationalLandingCollectionOrder]): ContentfulPageInformationalLandingCollection
+}
+enum ContentfulComponentHero5050LinkingCollectionsPageInformationalLandingCollectionOrder {
+	title_ASC
+	title_DESC
+	slug_ASC
+	slug_DESC
+	sys_id_ASC
+	sys_id_DESC
+	sys_publishedAt_ASC
+	sys_publishedAt_DESC
+	sys_firstPublishedAt_ASC
+	sys_firstPublishedAt_DESC
+	sys_publishedVersion_ASC
+	sys_publishedVersion_DESC
+}
+enum ContentfulComponentHero5050Order {
+	eyebrow_ASC
+	eyebrow_DESC
+	title_ASC
+	title_DESC
+	sys_id_ASC
+	sys_id_DESC
+	sys_publishedAt_ASC
+	sys_publishedAt_DESC
+	sys_firstPublishedAt_ASC
+	sys_firstPublishedAt_DESC
+	sys_publishedVersion_ASC
+	sys_publishedVersion_DESC
+}
+type ContentfulContentfulMetadata {
+	tags: [ContentfulContentfulTag]!
+}
+input ContentfulContentfulMetadataFilter {
+	tags_exists: Boolean
+	tags: ContentfulContentfulMetadataTagsFilter
+}
+input ContentfulContentfulMetadataTagsFilter {
+	id_contains_all: [String]
+	id_contains_some: [String]
+	id_contains_none: [String]
+}
+"""
+Represents a tag entity for finding and organizing content easily.
+    Find out more here: https://www.contentful.com/developers/docs/references/content-delivery-api/#/reference/content-tags
+"""
+type ContentfulContentfulTag {
+	id: String
+	name: String
+}
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z,
+    compliant with the 'date-time' format outlined in section 5.6 of
+    the RFC 3339 profile of the ISO 8601 standard for representation
+    of dates and times using the Gregorian calendar.
+"""
+scalar ContentfulDateTime
+"""
+The 'Dimension' type represents dimensions as whole numeric values between `1` and `4000`.
+"""
+scalar ContentfulDimension
+interface ContentfulEntry {
+	sys: ContentfulSys!
+	contentfulMetadata: ContentfulContentfulMetadata!
+}
+type ContentfulEntryCollection {
+	total: Int!
+	skip: Int!
+	limit: Int!
+	items: [ContentfulEntry]!
+}
+input ContentfulEntryFilter {
+	sys: ContentfulSysFilter
+	contentfulMetadata: ContentfulContentfulMetadataFilter
+	OR: [ContentfulEntryFilter]
+	AND: [ContentfulEntryFilter]
+}
+enum ContentfulEntryOrder {
+	sys_id_ASC
+	sys_id_DESC
+	sys_publishedAt_ASC
+	sys_publishedAt_DESC
+	sys_firstPublishedAt_ASC
+	sys_firstPublishedAt_DESC
+	sys_publishedVersion_ASC
+	sys_publishedVersion_DESC
+}
+"""
+The 'HexColor' type represents color in `rgb:ffffff` string format.
+"""
+scalar ContentfulHexColor
+enum ContentfulImageFormat {
+	JPG
+	JPG_PROGRESSIVE
+	PNG
+	PNG8
+	WEBP
+	AVIF
+}
+enum ContentfulImageResizeFocus {
+	CENTER
+	TOP
+	TOP_RIGHT
+	RIGHT
+	BOTTOM_RIGHT
+	BOTTOM
+	BOTTOM_LEFT
+	LEFT
+	TOP_LEFT
+	FACE
+	FACES
+}
+enum ContentfulImageResizeStrategy {
+	FIT
+	PAD
+	FILL
+	SCALE
+	CROP
+	THUMB
+}
+input ContentfulImageTransformOptions {
+	"""
+	Desired width in pixels. Defaults to the original image width.
+	"""
+	width: ContentfulDimension
+	"""
+	Desired height in pixels. Defaults to the original image height.
+	"""
+	height: ContentfulDimension
+	"""
+	Desired quality of the image in percents.
+        Used for `PNG8`, `JPG`, `JPG_PROGRESSIVE` and `WEBP` formats.
+	"""
+	quality: ContentfulQuality
+	"""
+	Desired corner radius in pixels.
+        Results in an image with rounded corners (pass `-1` for a full circle/ellipse).
+        Defaults to `0`. Uses desired background color as padding color,
+        unless the format is `JPG` or `JPG_PROGRESSIVE` and resize strategy is `PAD`, then defaults to white.
+	"""
+	cornerRadius: Int
+	"""
+	Desired resize strategy. Defaults to `FIT`.
+	"""
+	resizeStrategy: ContentfulImageResizeStrategy
+	"""
+	Desired resize focus area. Defaults to `CENTER`.
+	"""
+	resizeFocus: ContentfulImageResizeFocus
+	"""
+	Desired background color, used with corner radius or `PAD` resize strategy.
+        Defaults to transparent (for `PNG`, `PNG8` and `WEBP`) or white (for `JPG` and `JPG_PROGRESSIVE`).
+	"""
+	backgroundColor: ContentfulHexColor
+	"""
+	Desired image format. Defaults to the original image format.
+	"""
+	format: ContentfulImageFormat
+}
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar ContentfulJSON
+"""
+[See type definition](https://app.contentful.com/spaces/1rtrfzj0a37x/content_types/linkExternal)
+"""
+type ContentfulLinkExternal implements ContentfulEntry {
+	sys: ContentfulSys!
+	contentfulMetadata: ContentfulContentfulMetadata!
+	linkedFrom(allowedLocales: [String]): ContentfulLinkExternalLinkingCollections
+	linkText(locale: String): String
+	url(locale: String): String
+}
+type ContentfulLinkExternalCollection {
+	total: Int!
+	skip: Int!
+	limit: Int!
+	items: [ContentfulLinkExternal]!
+}
+input ContentfulLinkExternalFilter {
+	sys: ContentfulSysFilter
+	contentfulMetadata: ContentfulContentfulMetadataFilter
+	linkText_exists: Boolean
+	linkText: String
+	linkText_not: String
+	linkText_in: [String]
+	linkText_not_in: [String]
+	linkText_contains: String
+	linkText_not_contains: String
+	url_exists: Boolean
+	url: String
+	url_not: String
+	url_in: [String]
+	url_not_in: [String]
+	url_contains: String
+	url_not_contains: String
+	OR: [ContentfulLinkExternalFilter]
+	AND: [ContentfulLinkExternalFilter]
+}
+type ContentfulLinkExternalLinkingCollections {
+	entryCollection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String): ContentfulEntryCollection
+	componentHero5050Collection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String, order: [ContentfulLinkExternalLinkingCollectionsComponentHero5050CollectionOrder]): ContentfulComponentHero5050Collection
+}
+enum ContentfulLinkExternalLinkingCollectionsComponentHero5050CollectionOrder {
+	eyebrow_ASC
+	eyebrow_DESC
+	title_ASC
+	title_DESC
+	sys_id_ASC
+	sys_id_DESC
+	sys_publishedAt_ASC
+	sys_publishedAt_DESC
+	sys_firstPublishedAt_ASC
+	sys_firstPublishedAt_DESC
+	sys_publishedVersion_ASC
+	sys_publishedVersion_DESC
+}
+enum ContentfulLinkExternalOrder {
+	linkText_ASC
+	linkText_DESC
+	url_ASC
+	url_DESC
+	sys_id_ASC
+	sys_id_DESC
+	sys_publishedAt_ASC
+	sys_publishedAt_DESC
+	sys_firstPublishedAt_ASC
+	sys_firstPublishedAt_DESC
+	sys_publishedVersion_ASC
+	sys_publishedVersion_DESC
+}
+"""
+[See type definition](https://app.contentful.com/spaces/1rtrfzj0a37x/content_types/linkInternal)
+"""
+type ContentfulLinkInternal implements ContentfulEntry {
+	sys: ContentfulSys!
+	contentfulMetadata: ContentfulContentfulMetadata!
+	linkedFrom(allowedLocales: [String]): ContentfulLinkInternalLinkingCollections
+	linkTitle(locale: String): String
+	page(preview: Boolean, locale: String): ContentfulEntry
+}
+type ContentfulLinkInternalCollection {
+	total: Int!
+	skip: Int!
+	limit: Int!
+	items: [ContentfulLinkInternal]!
+}
+input ContentfulLinkInternalFilter {
+	sys: ContentfulSysFilter
+	contentfulMetadata: ContentfulContentfulMetadataFilter
+	linkTitle_exists: Boolean
+	linkTitle: String
+	linkTitle_not: String
+	linkTitle_in: [String]
+	linkTitle_not_in: [String]
+	linkTitle_contains: String
+	linkTitle_not_contains: String
+	page_exists: Boolean
+	OR: [ContentfulLinkInternalFilter]
+	AND: [ContentfulLinkInternalFilter]
+}
+type ContentfulLinkInternalLinkingCollections {
+	entryCollection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String): ContentfulEntryCollection
+	componentHero5050Collection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String, order: [ContentfulLinkInternalLinkingCollectionsComponentHero5050CollectionOrder]): ContentfulComponentHero5050Collection
+}
+enum ContentfulLinkInternalLinkingCollectionsComponentHero5050CollectionOrder {
+	eyebrow_ASC
+	eyebrow_DESC
+	title_ASC
+	title_DESC
+	sys_id_ASC
+	sys_id_DESC
+	sys_publishedAt_ASC
+	sys_publishedAt_DESC
+	sys_firstPublishedAt_ASC
+	sys_firstPublishedAt_DESC
+	sys_publishedVersion_ASC
+	sys_publishedVersion_DESC
+}
+enum ContentfulLinkInternalOrder {
+	linkTitle_ASC
+	linkTitle_DESC
+	sys_id_ASC
+	sys_id_DESC
+	sys_publishedAt_ASC
+	sys_publishedAt_DESC
+	sys_firstPublishedAt_ASC
+	sys_firstPublishedAt_DESC
+	sys_publishedVersion_ASC
+	sys_publishedVersion_DESC
+}
+"""
+Detail-oriented landing pages.
+The goal of these pages is to bring together digestible information teasers that users can quickly read through and, from there, navigate to pages with more detail on a particular category. [See type definition](https://app.contentful.com/spaces/1rtrfzj0a37x/content_types/pageInformationalLanding)
+"""
+type ContentfulPageInformationalLanding implements ContentfulEntry {
+	sys: ContentfulSys!
+	contentfulMetadata: ContentfulContentfulMetadata!
+	linkedFrom(allowedLocales: [String]): ContentfulPageInformationalLandingLinkingCollections
+	title(locale: String): String
+	slug(locale: String): String
+	heroComponent(preview: Boolean, locale: String, where: ContentfulComponentHero5050Filter): ContentfulComponentHero5050
+}
+type ContentfulPageInformationalLandingCollection {
+	total: Int!
+	skip: Int!
+	limit: Int!
+	items: [ContentfulPageInformationalLanding]!
+}
+input ContentfulPageInformationalLandingFilter {
+	heroComponent: ContentfulcfComponentHero5050NestedFilter
+	sys: ContentfulSysFilter
+	contentfulMetadata: ContentfulContentfulMetadataFilter
+	title_exists: Boolean
+	title: String
+	title_not: String
+	title_in: [String]
+	title_not_in: [String]
+	title_contains: String
+	title_not_contains: String
+	slug_exists: Boolean
+	slug: String
+	slug_not: String
+	slug_in: [String]
+	slug_not_in: [String]
+	slug_contains: String
+	slug_not_contains: String
+	heroComponent_exists: Boolean
+	OR: [ContentfulPageInformationalLandingFilter]
+	AND: [ContentfulPageInformationalLandingFilter]
+}
+type ContentfulPageInformationalLandingLinkingCollections {
+	entryCollection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String): ContentfulEntryCollection
+}
+enum ContentfulPageInformationalLandingOrder {
+	title_ASC
+	title_DESC
+	slug_ASC
+	slug_DESC
+	sys_id_ASC
+	sys_id_DESC
+	sys_publishedAt_ASC
+	sys_publishedAt_DESC
+	sys_firstPublishedAt_ASC
+	sys_firstPublishedAt_DESC
+	sys_publishedVersion_ASC
+	sys_publishedVersion_DESC
+}
+"""
+The 'Quality' type represents quality as whole numeric values between `1` and `100`.
+"""
+scalar ContentfulQuality
+type ContentfulQuery {
+	asset(id: String!, preview: Boolean, locale: String): ContentfulAsset
+	assetCollection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String, where: ContentfulAssetFilter, order: [ContentfulAssetOrder]): ContentfulAssetCollection
+	linkInternal(id: String!, preview: Boolean, locale: String): ContentfulLinkInternal
+	linkInternalCollection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String, where: ContentfulLinkInternalFilter, order: [ContentfulLinkInternalOrder]): ContentfulLinkInternalCollection
+	linkExternal(id: String!, preview: Boolean, locale: String): ContentfulLinkExternal
+	linkExternalCollection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String, where: ContentfulLinkExternalFilter, order: [ContentfulLinkExternalOrder]): ContentfulLinkExternalCollection
+	componentHero5050(id: String!, preview: Boolean, locale: String): ContentfulComponentHero5050
+	componentHero5050Collection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String, where: ContentfulComponentHero5050Filter, order: [ContentfulComponentHero5050Order]): ContentfulComponentHero5050Collection
+	pageInformationalLanding(id: String!, preview: Boolean, locale: String): ContentfulPageInformationalLanding
+	pageInformationalLandingCollection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String, where: ContentfulPageInformationalLandingFilter, order: [ContentfulPageInformationalLandingOrder]): ContentfulPageInformationalLandingCollection
+	entryCollection(skip: Int = 0, limit: Int = 100, preview: Boolean, locale: String, where: ContentfulEntryFilter, order: [ContentfulEntryOrder]): ContentfulEntryCollection
+	_node(id: ID!, preview: Boolean, locale: String): Contentful_Node
+}
+interface ContentfulResourceLink {
+	sys: ContentfulResourceSys!
+}
+type ContentfulResourceSys {
+	urn: String!
+	linkType: String!
+}
+type ContentfulSys {
+	id: String!
+	spaceId: String!
+	environmentId: String!
+	publishedAt: ContentfulDateTime
+	firstPublishedAt: ContentfulDateTime
+	publishedVersion: Int
+}
+input ContentfulSysFilter {
+	id_exists: Boolean
+	id: String
+	id_not: String
+	id_in: [String]
+	id_not_in: [String]
+	id_contains: String
+	id_not_contains: String
+	publishedAt_exists: Boolean
+	publishedAt: ContentfulDateTime
+	publishedAt_not: ContentfulDateTime
+	publishedAt_in: [ContentfulDateTime]
+	publishedAt_not_in: [ContentfulDateTime]
+	publishedAt_gt: ContentfulDateTime
+	publishedAt_gte: ContentfulDateTime
+	publishedAt_lt: ContentfulDateTime
+	publishedAt_lte: ContentfulDateTime
+	firstPublishedAt_exists: Boolean
+	firstPublishedAt: ContentfulDateTime
+	firstPublishedAt_not: ContentfulDateTime
+	firstPublishedAt_in: [ContentfulDateTime]
+	firstPublishedAt_not_in: [ContentfulDateTime]
+	firstPublishedAt_gt: ContentfulDateTime
+	firstPublishedAt_gte: ContentfulDateTime
+	firstPublishedAt_lt: ContentfulDateTime
+	firstPublishedAt_lte: ContentfulDateTime
+	publishedVersion_exists: Boolean
+	publishedVersion: Float
+	publishedVersion_not: Float
+	publishedVersion_in: [Float]
+	publishedVersion_not_in: [Float]
+	publishedVersion_gt: Float
+	publishedVersion_gte: Float
+	publishedVersion_lt: Float
+	publishedVersion_lte: Float
+}
+interface Contentful_Node {
+	_id: ID!
+}
+input ContentfulcfComponentHero5050NestedFilter {
+	sys: ContentfulSysFilter
+	contentfulMetadata: ContentfulContentfulMetadataFilter
+	eyebrow_exists: Boolean
+	eyebrow: String
+	eyebrow_not: String
+	eyebrow_in: [String]
+	eyebrow_not_in: [String]
+	eyebrow_contains: String
+	eyebrow_not_contains: String
+	title_exists: Boolean
+	title: String
+	title_not: String
+	title_in: [String]
+	title_not_in: [String]
+	title_contains: String
+	title_not_contains: String
+	body_exists: Boolean
+	body_contains: String
+	body_not_contains: String
+	image_exists: Boolean
+	link_exists: Boolean
+	OR: [ContentfulcfComponentHero5050NestedFilter]
+	AND: [ContentfulcfComponentHero5050NestedFilter]
+}
+type Query {
+	"""
+	Access to embedded Contentful API.
+	"""
+	contentful: ContentfulQuery!
+}
+schema {
+	query: Query
+}

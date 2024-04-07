@@ -41,3 +41,5 @@ rustls = { workspace = true, features = ["ring"] }
 insta.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 wiremock.workspace = true
+graphql-schema-validation = { path = "../validation" }
+
