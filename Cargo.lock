@@ -5038,6 +5038,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4bdf28b381f23afcd150afc0b38a4183dd321fc96320c1554752b6b761648f78"
 dependencies = [
+ "async-trait",
  "chrono",
  "futures-util",
  "opentelemetry",
