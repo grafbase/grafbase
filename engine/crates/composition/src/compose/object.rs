@@ -35,6 +35,8 @@ pub(super) fn merge_field_arguments<'a>(
 
         start = end;
 
+        compose_field_argument_defaults(arguments, ctx);
+
         if !intersection.contains(&argument_name) {
             if let Some((_, required)) = arguments.iter().find(|(_name, arg)| arg.r#type().is_required()) {
                 required_argument_not_in_intersection_error(
@@ -95,6 +97,32 @@ pub(super) fn merge_field_arguments<'a>(
     }
 
     ids.unwrap_or(federated::NO_INPUT_VALUE_DEFINITION)
+}
+
+fn compose_field_argument_defaults(
+    arguments: &[(StringId, subgraphs::FieldArgumentWalker<'_>)],
+    ctx: &mut Context<'_>,
+) {
+    let mut default: Option<(&subgraphs::Value, subgraphs::FieldArgumentWalker<'_>)> = None;
+
+    for (_, argument) in arguments {
+        let Some(value) = argument.default() else { continue };
+
+        match &mut default {
+            None => {
+                default = Some((value, *argument));
+            }
+            Some((default, _)) if default == &value => (),
+            Some((_, other_argument)) => ctx.diagnostics.push_fatal(format!(
+                r#"The argument {type_name}.{field_name}.{argument_name} has incompatible defaults in subgraphs "{first_subgraph}" and "{second_subgraph}""#,
+                type_name = argument.field().parent_definition().name().as_str(),
+                field_name = argument.field().name().as_str(),
+                argument_name = argument.name().as_str(),
+                first_subgraph = other_argument.field().parent_definition().subgraph().name().as_str(),
+                second_subgraph = argument.field().parent_definition().subgraph().name().as_str(),
+            )),
+        }
+    }
 }
 
 fn required_argument_not_in_intersection_error(
