@@ -99,6 +99,14 @@ pub(super) fn merge_field_arguments<'a>(
     ids.unwrap_or(federated::NO_INPUT_VALUE_DEFINITION)
 }
 
+/// Default values on arguments (e.g. `field(arg: String! = "N.A")`) are _not_
+/// present in the federated schema produced by composition. This function is only
+/// here for validation.
+///
+/// The rule to enforce is that between the subgraphs that define a default
+/// on the same fileld, the default must be the same. Other subgraphs can have the
+/// same argument without default, that is valid, but everywhere a default value is
+/// specified, it has to be the same.
 fn compose_field_argument_defaults(
     arguments: &[(StringId, subgraphs::FieldArgumentWalker<'_>)],
     ctx: &mut Context<'_>,
