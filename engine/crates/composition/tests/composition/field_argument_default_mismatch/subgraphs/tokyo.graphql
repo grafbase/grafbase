@@ -1,0 +1,8 @@
+extend schema @link(
+	url: "https://specs.apollo.dev/federation/v2.7",
+	import: ["@override"]
+)
+
+type Query {
+  sayHi(userId: ID!, language: String! = "JA" ): String! @override(from: "paris")
+}

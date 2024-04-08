@@ -21,7 +21,7 @@ pub(crate) use self::{
 };
 
 use crate::VecExt;
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 /// A set of subgraphs to be composed.
 pub struct Subgraphs {
