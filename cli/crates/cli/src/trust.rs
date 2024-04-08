@@ -14,9 +14,8 @@ pub(crate) fn trust(
     };
 
     let file = std::fs::File::open(manifest).map_err(CliError::TrustedDocumentsManifestReadError)?;
-    let manifest: TrustedDocumentsManifest = serde_json::from_reader(file).map_err(|err| {
-        CliError::TrustedDocumentsManifestReadError(std::io::Error::new(std::io::ErrorKind::InvalidData, err))
-    })?;
+    let manifest: TrustedDocumentsManifest =
+        serde_json::from_reader(file).map_err(CliError::TrustedDocumentsManifestParseError)?;
 
     report::trust_start(&manifest);
 
