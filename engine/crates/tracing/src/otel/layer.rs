@@ -1,18 +1,17 @@
-use opentelemetry::trace::noop::NoopTracer;
 use opentelemetry::trace::TracerProvider;
 use opentelemetry::KeyValue;
 use opentelemetry_sdk::runtime::RuntimeChannel;
 use opentelemetry_sdk::trace::IdGenerator;
+use opentelemetry_sdk::Resource;
 use tracing::Subscriber;
-use tracing_subscriber::filter::{FilterExt, Filtered};
+use tracing_opentelemetry::MetricsLayer;
+use tracing_subscriber::filter::Filtered;
 use tracing_subscriber::layer::Filter;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{reload, EnvFilter, Layer};
+use tracing_subscriber::{reload, Layer};
 
 use crate::config::TracingConfig;
 use crate::error::TracingError;
-
-use super::provider;
 
 /// A type erased layer
 pub type BoxedLayer<S> = Box<dyn Layer<S> + Send + Sync + 'static>;
@@ -22,33 +21,33 @@ pub type BoxedFilter<S> = Box<dyn Filter<S> + Send + Sync + 'static>;
 pub type FilteredLayer<S> = Filtered<BoxedLayer<S>, BoxedFilter<S>, S>;
 
 /// Holds tracing reloadable layer components
-pub struct ReloadableLayer<S> {
+pub struct ReloadableOtelLayers<S> {
+    /// A reloadable tracing layer
+    pub tracer: Option<ReloadableOtelLayer<S, opentelemetry_sdk::trace::TracerProvider>>,
+    /// A reloadable metrics layer
+    pub meter: Option<ReloadableOtelLayer<S, opentelemetry_sdk::metrics::SdkMeterProvider>>,
+}
+
+/// Holds tracing reloadable layer components
+pub struct ReloadableOtelLayer<Subscriber, Provider> {
     /// A reloadable layer
-    pub layer: reload::Layer<BoxedLayer<S>, S>,
+    pub layer: reload::Layer<BoxedLayer<Subscriber>, Subscriber>,
     /// A reloadable handle to reload a tracing layer
-    pub handle: reload::Handle<BoxedLayer<S>, S>,
+    pub layer_reload_handle: reload::Handle<BoxedLayer<Subscriber>, Subscriber>,
     /// The tracer provider used for tracers attached to the layer
-    pub provider: Option<opentelemetry_sdk::trace::TracerProvider>,
+    pub provider: Provider,
 }
 
 /// Creates a new OTEL tracing layer that doesn't collect or export any tracing data.
 /// The main reason this exists is to act as a placeholder in the subscriber. It's wrapped in a [`reload::Layer`]
 /// enabling its replacement.
-pub fn new_noop<S>() -> ReloadableLayer<S>
+pub fn new_noop<S>() -> ReloadableOtelLayers<S>
 where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
 {
-    let otel_layer = tracing_opentelemetry::layer()
-        .with_tracer(NoopTracer::new())
-        .with_filter(FilterExt::boxed(EnvFilter::new("off")))
-        .boxed();
-
-    let (otel_layer, reload_handle) = reload::Layer::new(otel_layer);
-
-    ReloadableLayer {
-        layer: otel_layer,
-        handle: reload_handle,
-        provider: None,
+    ReloadableOtelLayers {
+        tracer: None,
+        meter: None,
     }
 }
 
@@ -60,22 +59,35 @@ pub fn new_batched<S, R, I>(
     id_generator: I,
     runtime: R,
     resource_attributes: impl Into<Vec<KeyValue>>,
-) -> Result<ReloadableLayer<S>, TracingError>
+) -> Result<ReloadableOtelLayers<S>, TracingError>
 where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
     R: RuntimeChannel,
     I: IdGenerator + 'static,
 {
-    let provider = provider::create(service_name, config, id_generator, runtime, resource_attributes)?;
-    let tracer = provider.tracer("batched-otel");
+    let mut resource_attributes = resource_attributes.into();
+    resource_attributes.push(KeyValue::new("service.name", service_name.into()));
+    let resource = Resource::new(resource_attributes);
 
-    let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer).boxed();
+    let meter_provider = super::metrics::build_meter_provider(runtime.clone(), &config, resource.clone())?;
+    let meter_layer = MetricsLayer::<S>::new(meter_provider.clone()).boxed();
+    let (meter_layer, meter_layer_reload_handle) = reload::Layer::new(meter_layer);
 
-    let (otel_layer, reload_handle) = reload::Layer::new(otel_layer);
+    let tracer_provider = super::traces::create(config, id_generator, runtime, resource.clone())?;
+    let tracer = tracer_provider.tracer("batched-otel");
+    let tracer_layer = tracing_opentelemetry::layer().with_tracer(tracer).boxed();
+    let (tracer_layer, tracer_layer_reload_handle) = reload::Layer::new(tracer_layer);
 
-    Ok(ReloadableLayer {
-        layer: otel_layer,
-        handle: reload_handle,
-        provider: Some(provider),
+    Ok(ReloadableOtelLayers {
+        tracer: Some(ReloadableOtelLayer {
+            layer: tracer_layer,
+            layer_reload_handle: tracer_layer_reload_handle,
+            provider: tracer_provider,
+        }),
+        meter: Some(ReloadableOtelLayer {
+            layer: meter_layer,
+            layer_reload_handle: meter_layer_reload_handle,
+            provider: meter_provider,
+        }),
     })
 }

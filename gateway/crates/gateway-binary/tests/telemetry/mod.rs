@@ -41,6 +41,9 @@ fn with_otel() {
         enabled = true
         sampling = 1
 
+        [telemetry.tracing.exporters.stdout]
+        enabled = true
+
         [telemetry.tracing.exporters.otlp]
         enabled = true
         endpoint = "http://localhost:4317"
@@ -71,7 +74,19 @@ fn with_otel() {
 
         let CountRow { count } = client
             .query("SELECT COUNT(1) as count FROM otel_traces WHERE ServiceName = ?")
-            .bind(service_name)
+            .bind(&service_name)
+            .fetch_one::<CountRow>()
+            .await
+            .unwrap();
+
+        assert!(count > 0);
+
+        // takes a bit more time to push metrics, currently only every 10s
+        tokio::time::sleep(Duration::from_secs(5)).await;
+
+        let CountRow { count } = client
+            .query("SELECT COUNT(1) as count FROM otel_metrics_sum WHERE ResourceAttributes['service.name'] = ?")
+            .bind(&service_name)
             .fetch_one::<CountRow>()
             .await
             .unwrap();
