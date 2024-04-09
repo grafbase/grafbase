@@ -9,6 +9,9 @@ mod otel;
 mod state;
 mod trusted_documents_client;
 
+#[cfg(not(feature = "lambda"))]
+pub use graph_updater::UplinkResponse;
+
 pub use graph_fetch_method::GraphFetchMethod;
 pub use otel::{OtelReload, OtelTracing};
 

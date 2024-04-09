@@ -1,5 +1,6 @@
 #![allow(unused_crate_dependencies)]
 
+mod mocks;
 mod telemetry;
 
 use std::{
@@ -12,6 +13,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
+use crate::mocks::uplink::UplinkResponseMock;
 use duct::{cmd, Handle};
 use futures_util::{Future, FutureExt};
 use http::{HeaderMap, StatusCode};
@@ -336,17 +338,10 @@ where
 
     let addr = listen_address();
 
-    let uplink_response = serde_json::json!({
-        "account_id": "01HR7NP3A4NDVWC10PZW6ZMC5P",
-        "graph_id": "01HR7NPB8E3YW29S5PPSY1AQKR",
-        "branch": "main",
-        "branch_id": "01HR7NPB8E3YW29S5PPSY1AQKA",
-        "sdl": sdl,
-        "version_id": "01HR7NPYWWM6DEKACKKN3EPFP2",
-    });
+    let uplink_response = UplinkResponseMock::mock(sdl);
 
     let res = runtime().block_on(async {
-        let response = ResponseTemplate::new(200).set_body_string(serde_json::to_string(&uplink_response).unwrap());
+        let response = ResponseTemplate::new(200).set_body_string(uplink_response.as_json().to_string());
         let server = wiremock::MockServer::start().await;
 
         Mock::given(method("GET"))
