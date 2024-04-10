@@ -80,15 +80,10 @@ fn with_otel() {
             .await
             .unwrap();
 
-        let expected_resource_attributes = [
-            ("service.name", service_name.as_str()),
-            ("grafbase.graph_id", "0"),
-            ("grafbase.branch_id", "0"),
-            ("grafbase.branch_name", ""),
-        ]
-        .into_iter()
-        .map(|(k, v)| (k.to_string(), v.to_string()))
-        .collect::<HashMap<_, _>>();
+        let expected_resource_attributes = [("service.name", service_name.as_str())]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect::<HashMap<_, _>>();
 
         assert_eq!(resource_attributes, expected_resource_attributes);
 
@@ -152,9 +147,6 @@ fn extra_resource_attributes() {
         let expected_resource_attributes = [
             ("service.name", service_name.as_str()),
             ("my-favorite-app", "graphabase"),
-            ("grafbase.graph_id", "0"),
-            ("grafbase.branch_id", "0"),
-            ("grafbase.branch_name", ""),
         ]
         .into_iter()
         .map(|(k, v)| (k.to_string(), v.to_string()))

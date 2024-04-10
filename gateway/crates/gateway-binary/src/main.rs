@@ -148,7 +148,7 @@ fn otel_layer_reload<S>(
             return;
         };
 
-        let ReloadableOtelLayers { tracer, meter } = match build_otel_layers(config, reload_data) {
+        let ReloadableOtelLayers { tracer, meter } = match build_otel_layers(config, Some(reload_data)) {
             Ok(value) => value,
             Err(err) => {
                 error!("error creating a new otel layer for reload: {err}");
@@ -178,7 +178,7 @@ fn otel_layer_reload<S>(
 
 fn build_otel_layers<S>(
     config: TelemetryConfig,
-    reload_data: OtelReload,
+    reload_data: Option<OtelReload>,
 ) -> Result<ReloadableOtelLayers<S>, TracingError>
 where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
@@ -199,15 +199,17 @@ where
     };
 
     let mut resource_attributes = config.resource_attributes;
-    resource_attributes.insert(
-        "grafbase.graph_id".to_string(),
-        u128::from(reload_data.graph_id).to_string(),
-    );
-    resource_attributes.insert(
-        "grafbase.branch_id".to_string(),
-        u128::from(reload_data.branch_id).to_string(),
-    );
-    resource_attributes.insert("grafbase.branch_name".to_string(), reload_data.branch_name.to_string());
+    if let Some(reload_data) = reload_data {
+        resource_attributes.insert(
+            "grafbase.graph_id".to_string(),
+            u128::from(reload_data.graph_id).to_string(),
+        );
+        resource_attributes.insert(
+            "grafbase.branch_id".to_string(),
+            u128::from(reload_data.branch_id).to_string(),
+        );
+        resource_attributes.insert("grafbase.branch_name".to_string(), reload_data.branch_name.to_string());
+    }
     let resource_attributes = resource_attributes
         .into_iter()
         .map(|(key, value)| grafbase_tracing::otel::opentelemetry::KeyValue::new(key, value))
