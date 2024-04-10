@@ -370,7 +370,9 @@ where
 
         client.poll_endpoint(30, 300).await;
 
-        let res = AssertUnwindSafe(test(client.clone(), uplink_response)).catch_unwind().await;
+        let res = AssertUnwindSafe(test(client.clone(), uplink_response))
+            .catch_unwind()
+            .await;
 
         client.kill_handles();
 
