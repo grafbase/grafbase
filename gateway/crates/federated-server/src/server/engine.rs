@@ -27,7 +27,6 @@ pub(super) async fn get(
     headers: HeaderMap,
     State(state): State<ServerState>,
 ) -> impl IntoResponse {
-    tracing::event!(target: "grafbase", tracing::Level::INFO, counter.request = 1);
     let request = engine::BatchRequest::Single(request.into());
     traced(headers, request, state.gateway().clone(), state.tracer_provider()).await
 }
@@ -37,7 +36,6 @@ pub(super) async fn post(
     headers: HeaderMap,
     Json(request): Json<engine::BatchRequest>,
 ) -> impl IntoResponse {
-    tracing::event!(target: "grafbase", tracing::Level::INFO, counter.request = 1);
     traced(headers, request, state.gateway().clone(), state.tracer_provider()).await
 }
 

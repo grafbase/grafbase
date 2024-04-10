@@ -86,7 +86,7 @@ pub enum CacheReadStatus {
 }
 
 impl CacheReadStatus {
-    pub fn as_header_value(&self) -> http::HeaderValue {
+    pub fn to_header_value(&self) -> http::HeaderValue {
         http::HeaderValue::from_static(match self {
             CacheReadStatus::Hit => "HIT",
             CacheReadStatus::Miss { .. } => "MISS",
@@ -103,7 +103,7 @@ impl CacheReadStatus {
 
     pub fn into_headers(self) -> http::HeaderMap {
         let mut headers = http::HeaderMap::new();
-        headers.insert(http::HeaderName::from_static(X_GRAFBASE_CACHE), self.as_header_value());
+        headers.insert(http::HeaderName::from_static(X_GRAFBASE_CACHE), self.to_header_value());
 
         if let CacheReadStatus::Miss { max_age } = self {
             headers.typed_insert(headers::CacheControl::new().with_public().with_max_age(max_age));
