@@ -6,12 +6,12 @@ use crate::{
 
 #[cfg(feature = "otlp")]
 pub(super) fn build_otlp_exporter<Exporter>(config: &TracingOtlpExporterConfig) -> Result<Exporter, TracingError>
-    where
-        Exporter: From<opentelemetry_otlp::TonicExporterBuilder>,
-        Exporter: From<opentelemetry_otlp::HttpExporterBuilder>,
+where
+    Exporter: From<opentelemetry_otlp::TonicExporterBuilder>,
+    Exporter: From<opentelemetry_otlp::HttpExporterBuilder>,
 {
-    use std::{str::FromStr, time::Duration};
     use opentelemetry_otlp::WithExportConfig;
+    use std::{str::FromStr, time::Duration};
     use tonic::{metadata::MetadataKey, transport::ClientTlsConfig};
 
     let exporter_timeout = Duration::from_secs(config.timeout.num_seconds() as u64);
