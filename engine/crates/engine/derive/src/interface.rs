@@ -340,6 +340,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                             #(#possible_types)*
                             possible_types
                         },
+                        cache_control: ::std::default::Default::default(),
                         extends: #extends,
                         visible: #visible,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),

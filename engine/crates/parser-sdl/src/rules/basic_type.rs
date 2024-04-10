@@ -133,6 +133,13 @@ impl<'a> Visitor<'a> for BasicType {
             &type_name,
         );
 
+        ctx.registry
+            .get_mut()
+            .implements
+            .entry(type_name.clone())
+            .or_default()
+            .extend(object.implements.iter().map(|name| name.to_string()));
+
         // If the type is a non primitive and also not modelized, it means we need to
         // create the Input version of it.
         // If the input is non used by other queries/mutation, it'll be removed from the

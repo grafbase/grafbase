@@ -704,6 +704,7 @@ pub struct InterfaceType {
     pub name: String,
     pub description: Option<String>,
     pub fields: IndexMap<String, MetaField>,
+    pub cache_control: CacheControl,
     pub possible_types: IndexSet<String>,
     pub extends: bool,
     #[derivative(Debug = "ignore")]
@@ -719,6 +720,7 @@ impl InterfaceType {
             description: None,
             fields: fields.into_iter().map(|field| (field.name.clone(), field)).collect(),
             possible_types: Default::default(),
+            cache_control: Default::default(),
             extends: false,
             visible: None,
             rust_typename: String::new(),
@@ -727,6 +729,17 @@ impl InterfaceType {
 
     pub fn field_by_name(&self, name: &str) -> Option<&MetaField> {
         self.fields.get(name)
+    }
+
+    pub fn with_description(self, description: impl Into<Option<String>>) -> Self {
+        InterfaceType {
+            description: description.into(),
+            ..self
+        }
+    }
+
+    pub fn with_cache_control(self, cache_control: CacheControl) -> Self {
+        InterfaceType { cache_control, ..self }
     }
 }
 
@@ -916,6 +929,7 @@ impl Hash for MetaType {
                 name,
                 description,
                 fields,
+                cache_control,
                 possible_types,
                 extends,
                 visible: _,
@@ -924,6 +938,7 @@ impl Hash for MetaType {
                 name.hash(state);
                 description.hash(state);
                 fields.as_slice().hash(state);
+                cache_control.hash(state);
                 possible_types.as_slice().hash(state);
                 extends.hash(state);
                 rust_typename.hash(state);
@@ -1037,6 +1052,7 @@ impl PartialEq for MetaType {
                     name,
                     description,
                     fields,
+                    cache_control,
                     possible_types,
                     extends,
                     visible: _,
@@ -1046,6 +1062,7 @@ impl PartialEq for MetaType {
                     name: o_name,
                     description: o_description,
                     fields: o_fields,
+                    cache_control: o_cache_control,
                     possible_types: o_possible_types,
                     extends: o_extends,
                     visible: _,
@@ -1055,6 +1072,7 @@ impl PartialEq for MetaType {
                 name.eq(o_name)
                     && description.eq(o_description)
                     && fields.as_slice().eq(o_fields.as_slice())
+                    && cache_control.eq(o_cache_control)
                     && possible_types.as_slice().eq(o_possible_types.as_slice())
                     && extends.eq(o_extends)
                     && rust_typename.eq(o_rust_typename)
@@ -1832,30 +1850,35 @@ impl Registry {
     }
 
     pub fn remove_unused_types(&mut self) {
+        self.populate_possible_types();
+
         let mut used_types = BTreeSet::new();
         let mut unused_types = HashSet::new();
 
         fn traverse_field<'a>(
             types: &'a BTreeMap<String, MetaType>,
+            implements: &'a HashMap<String, HashSet<String>>,
             used_types: &mut BTreeSet<&'a str>,
             field: &'a MetaField,
         ) {
-            traverse_type(types, used_types, field.ty.named_type().as_str());
+            traverse_type(types, implements, used_types, field.ty.named_type().as_str());
             for arg in field.args.values() {
-                traverse_input_value(types, used_types, arg);
+                traverse_input_value(types, implements, used_types, arg);
             }
         }
 
         fn traverse_input_value<'a>(
             types: &'a BTreeMap<String, MetaType>,
+            implements: &'a HashMap<String, HashSet<String>>,
             used_types: &mut BTreeSet<&'a str>,
             input_value: &'a MetaInputValue,
         ) {
-            traverse_type(types, used_types, input_value.ty.named_type().as_str());
+            traverse_type(types, implements, used_types, input_value.ty.named_type().as_str());
         }
 
         fn traverse_type<'a>(
             types: &'a BTreeMap<String, MetaType>,
+            implements: &'a HashMap<String, HashSet<String>>,
             used_types: &mut BTreeSet<&'a str>,
             type_name: &str,
         ) {
@@ -1868,25 +1891,25 @@ impl Registry {
                 match ty {
                     MetaType::Object(object) => {
                         for field in object.fields.values() {
-                            traverse_field(types, used_types, field);
+                            traverse_field(types, implements, used_types, field);
                         }
                     }
                     MetaType::Interface(interface) => {
                         for field in interface.fields.values() {
-                            traverse_field(types, used_types, field);
+                            traverse_field(types, implements, used_types, field);
                         }
                         for type_name in &interface.possible_types {
-                            traverse_type(types, used_types, type_name);
+                            traverse_type(types, implements, used_types, type_name);
                         }
                     }
                     MetaType::Union(union_type) => {
                         for type_name in &union_type.possible_types {
-                            traverse_type(types, used_types, type_name);
+                            traverse_type(types, implements, used_types, type_name);
                         }
                     }
                     MetaType::InputObject(input_object) => {
                         for field in input_object.input_fields.values() {
-                            traverse_input_value(types, used_types, field);
+                            traverse_input_value(types, implements, used_types, field);
                         }
                     }
                     _ => {}
@@ -1896,7 +1919,7 @@ impl Registry {
 
         for directive in self.directives.values() {
             for arg in directive.args.values() {
-                traverse_input_value(&self.types, &mut used_types, arg);
+                traverse_input_value(&self.types, &self.implements, &mut used_types, arg);
             }
         }
 
@@ -1907,11 +1930,11 @@ impl Registry {
             .chain(self.subscription_type.iter())
             .chain(used_interfaces)
         {
-            traverse_type(&self.types, &mut used_types, type_name);
+            traverse_type(&self.types, &self.implements, &mut used_types, type_name);
         }
 
         for ty in self.federation_entities.keys() {
-            traverse_type(&self.types, &mut used_types, ty);
+            traverse_type(&self.types, &self.implements, &mut used_types, ty);
         }
 
         for ty in self.types.values() {
@@ -1923,6 +1946,17 @@ impl Registry {
 
         for type_name in &unused_types {
             self.types.remove(type_name);
+        }
+    }
+
+    /// Populates the possible_types field of Interfaces
+    fn populate_possible_types(&mut self) {
+        for (possible_type, interfaces) in &self.implements {
+            for interface_name in interfaces {
+                if let Some(MetaType::Interface(ref mut interface)) = self.types.get_mut(interface_name) {
+                    interface.possible_types.insert(possible_type.clone());
+                }
+            }
         }
     }
 

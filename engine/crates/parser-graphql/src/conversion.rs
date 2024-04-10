@@ -200,6 +200,7 @@ fn interface_from_introspection(interface: cynic_introspection::InterfaceType) -
             .into_iter()
             .map(|v| (v.name.clone(), field_from_introspection(v)))
             .collect(),
+        cache_control: Default::default(),
         possible_types: interface.possible_types.into_iter().collect(),
         extends: false,
         visible: None,

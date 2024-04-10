@@ -22,6 +22,7 @@ pub mod federation;
 pub mod graph_directive;
 pub mod graphql_directive;
 pub mod input_object;
+pub mod interface;
 pub mod introspection;
 pub mod join_directive;
 pub mod length_directive;
