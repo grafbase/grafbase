@@ -25,10 +25,7 @@ import { FederatedGraphHeaders } from './federated/headers'
 import { CacheParams, GlobalCache } from './cache'
 import scalar from './scalar'
 import define from './define'
-import {
-  FederatedGraphSubscriptions,
-  FederatedSubgraphSubscription
-} from './federated/subscriptions'
+import { FederatedGraphSubscriptions } from './federated/subscriptions'
 
 export type PartialDatasource =
   | PartialOpenAPI
@@ -553,17 +550,25 @@ export class Graph {
 }
 
 export interface FederatedGraphInput {
+  subgraphs?: SubgraphConfig[]
   headers?: (headers: FederatedGraphHeaders) => void
   subscriptions?: (subscriptions: FederatedGraphSubscriptions) => void
   cache?: CacheParams
 }
 
+export interface SubgraphConfig {
+  name: string
+  url: string
+}
+
 export class FederatedGraph {
+  private readonly subgraphs: SubgraphConfig[]
   private readonly headers: FederatedGraphHeaders
   private readonly subscriptions: FederatedGraphSubscriptions
   private readonly cache?: GlobalCache
 
   public constructor(input?: FederatedGraphInput) {
+    this.subgraphs = input?.subgraphs ?? []
     this.headers = new FederatedGraphHeaders()
     if (input?.headers) {
       input.headers(this.headers)
@@ -580,9 +585,20 @@ export class FederatedGraph {
   }
 
   public toString(): string {
-    return `\nextend schema\n  @graph(type: federated)${this.headers}${
-      this.subscriptions
-    }\n${this.cache || ''}`
+    const subgraphStrings =
+      this.subgraphs.length > 0
+        ? '\n' +
+          this.subgraphs
+            .map(
+              (subgraph) =>
+                `  @subgraph(name: "${subgraph.name}", developmentUrl: "${subgraph.url}")`
+            )
+            .join('\n')
+        : ''
+
+    return `\nextend schema\n  @graph(type: federated)${subgraphStrings}${
+      this.headers
+    }${this.subscriptions}\n${this.cache || ''}`
   }
 }
 
