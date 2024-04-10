@@ -198,20 +198,20 @@ where
         }
     };
 
-    let resource_attributes = vec![
-        grafbase_tracing::otel::opentelemetry::KeyValue::new(
-            "grafbase.graph_id",
-            u128::from(reload_data.graph_id).to_string(),
-        ),
-        grafbase_tracing::otel::opentelemetry::KeyValue::new(
-            "grafbase.branch_id",
-            u128::from(reload_data.branch_id).to_string(),
-        ),
-        grafbase_tracing::otel::opentelemetry::KeyValue::new(
-            "grafbase.branch_name",
-            reload_data.branch_name.to_string(),
-        ),
-    ];
+    let mut resource_attributes = config.resource_attributes;
+    resource_attributes.insert(
+        "grafbase.graph_id".to_string(),
+        u128::from(reload_data.graph_id).to_string(),
+    );
+    resource_attributes.insert(
+        "grafbase.branch_id".to_string(),
+        u128::from(reload_data.branch_id).to_string(),
+    );
+    resource_attributes.insert("grafbase.branch_name".to_string(), reload_data.branch_name.to_string());
+    let resource_attributes = resource_attributes
+        .into_iter()
+        .map(|(key, value)| grafbase_tracing::otel::opentelemetry::KeyValue::new(key, value))
+        .collect::<Vec<_>>();
 
     layer::new_batched::<S, _, _>(
         config.service_name,
