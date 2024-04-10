@@ -37,6 +37,7 @@ use rules::{
     graph_directive::GraphVisitor,
     graphql_directive::GraphqlVisitor,
     input_object::InputObjectVisitor,
+    interface::Interface,
     introspection::{IntrospectionDirective, IntrospectionDirectiveVisitor},
     join_directive::JoinDirective,
     length_directive::LengthDirective,
@@ -343,6 +344,7 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(CacheVisitor)
         .with(InputObjectVisitor)
         .with(BasicType)
+        .with(Interface)
         .with(ExtendQueryAndMutationTypes)
         .with(EnumType)
         .with(ScalarHydratation)

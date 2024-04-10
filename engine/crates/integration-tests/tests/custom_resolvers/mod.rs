@@ -146,3 +146,77 @@ fn custom_resolver_context() {
         );
     });
 }
+
+#[test]
+fn custom_resolver_with_interfaces() {
+    runtime().block_on(async {
+        let schema = r#"
+            extend type Query {
+                foos: [Foo!]! @resolver(name: "foos")
+            }
+
+            interface Foo {
+                name: String
+            }
+
+            type Bar implements Foo {
+                name: String!
+                barField: String!
+            }
+
+            type Baz implements Foo {
+                name: String!
+                bazField: String! @resolver(name: "bazField")
+            }
+        "#;
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(
+                RustUdfs::new()
+                    .resolver(
+                        "foos",
+                        UdfResponse::Success(json!([
+                            {"__typename": "Bar", "name": "A Bar", "barField": "Bloop"},
+                            {"__typename": "Baz", "name": "Bazza"},
+                        ])),
+                    )
+                    .resolver(
+                        "bazField",
+                        UdfResponse::Success(json!("hello from the bazField resolver")),
+                    ),
+            )
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine.execute(r#"
+                query {
+                    foos {
+                        name
+                        ... on Bar {
+                            barField
+                        }
+                        ... on Baz {
+                            bazField
+                        }
+                    }
+                }
+            "#).await.into_value(),
+            @r###"
+        {
+          "data": {
+            "foos": [
+              {
+                "name": "A Bar",
+                "barField": "Bloop"
+              },
+              {
+                "name": "Bazza",
+                "bazField": "hello from the bazField resolver"
+              }
+            ]
+          }
+        }
+        "###
+        );
+    });
+}
