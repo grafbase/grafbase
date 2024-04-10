@@ -79,6 +79,7 @@ pub(super) fn generate(
                 name: name.clone(),
                 websocket_url: value.websocket_url.map(|url| url.to_string()),
                 headers,
+                development_url: None,
             };
 
             (name, config)

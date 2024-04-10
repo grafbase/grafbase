@@ -473,6 +473,10 @@ pub(crate) fn compose_after_removal_failure(subgraph_name: &str, errors: &str) {
     eprintln!("❌ Failed to compose schema after removing subgraph {subgraph_name}. Errors:\n{errors}");
 }
 
+pub(crate) fn predefined_introspection_failed(subgraph_name: &str, errors: &str) {
+    eprintln!("❌ Failed to introspect the predefined subgraph {subgraph_name}. Errors:\n{errors}");
+}
+
 pub fn print_log_entry(
     LogEvent {
         created_at,
@@ -517,6 +521,10 @@ pub(crate) async fn listen_to_federated_dev_events() {
                 } => {
                     compose_after_removal_failure(&subgraph_name, &rendered_error);
                 }
+                federated_dev::FederatedDevEvent::PredefinedIntrospectionFailed {
+                    subgraph_name,
+                    rendered_error,
+                } => predefined_introspection_failed(&subgraph_name, &rendered_error),
             }
         }
     });

@@ -1,4 +1,7 @@
-use crate::{dev::gateway_nanny::GatewayNanny, ConfigWatcher};
+use crate::{
+    dev::{bus::SubgraphConfigWatcherBus, gateway_nanny::GatewayNanny, subgraph_config_watcher::SubgraphConfigWatcher},
+    ConfigWatcher,
+};
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::GraphQL;
 use axum::{
@@ -43,6 +46,7 @@ mod bus;
 mod composer;
 mod gateway_nanny;
 mod refresher;
+mod subgraph_config_watcher;
 mod ticker;
 
 const REFRESH_INTERVAL: Duration = Duration::from_secs(1);
@@ -85,6 +89,10 @@ pub(super) async fn run(
 
         let refresher = Refresher::new(refresh_bus);
         tokio::spawn(refresher.handler());
+
+        let subgraph_watcher_bus = SubgraphConfigWatcherBus::new(compose_sender.clone());
+        let subgraph_config_watcher = SubgraphConfigWatcher::new(config.clone(), subgraph_watcher_bus);
+        tokio::spawn(subgraph_config_watcher.handler());
 
         let nanny = GatewayNanny::new(graph_receiver, config, gateway_sender);
         tokio::spawn(nanny.handler());
