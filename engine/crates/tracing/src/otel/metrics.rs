@@ -18,17 +18,23 @@ where
 {
     let mut provider = SdkMeterProvider::builder().with_resource(resource);
 
-    if config
-        .exporters
-        .stdout
-        .as_ref()
-        .map(|cfg| cfg.enabled)
-        .unwrap_or_default()
-    {
-        let reader = PeriodicReader::builder(opentelemetry_stdout::MetricsExporter::default(), runtime.clone())
-            .with_interval(Duration::from_secs(10))
-            .with_timeout(Duration::from_secs(10))
-            .build();
+    if let Some(config) = config.exporters.stdout.as_ref().filter(|cfg| cfg.enabled) {
+        let reader = PeriodicReader::builder(
+            opentelemetry_stdout::MetricsExporter::builder()
+                .with_temporality_selector(DeltaTemporality)
+                .with_aggregation_selector(AggForLatencyHistogram)
+                .build(),
+            runtime.clone(),
+        )
+        .with_interval(
+            config
+                .batch_export
+                .scheduled_delay
+                .to_std()
+                .unwrap_or(Duration::from_secs(10)),
+        )
+        .with_timeout(config.timeout.to_std().unwrap_or(Duration::from_secs(60)))
+        .build();
 
         provider = provider.with_reader(reader);
     }
@@ -40,8 +46,14 @@ where
             .build_metrics_exporter(Box::new(DeltaTemporality), Box::new(AggForLatencyHistogram))
             .map_err(|e| TracingError::MetricsExporterSetup(e.to_string()))?;
         let reader = PeriodicReader::builder(exporter, runtime.clone())
-            .with_interval(Duration::from_secs(10))
-            .with_timeout(Duration::from_secs(10))
+            .with_interval(
+                config
+                    .batch_export
+                    .scheduled_delay
+                    .to_std()
+                    .unwrap_or(Duration::from_secs(10)),
+            )
+            .with_timeout(config.timeout.to_std().unwrap_or(Duration::from_secs(60)))
             .build();
 
         provider = provider.with_reader(reader);
