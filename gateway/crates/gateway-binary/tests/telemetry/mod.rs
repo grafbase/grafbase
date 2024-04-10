@@ -3,7 +3,6 @@ use std::time::Duration;
 use indoc::{formatdoc, indoc};
 use serde::Deserialize;
 
-use crate::mocks::uplink::UplinkResponseMock;
 use crate::{load_schema, with_hybrid_server, with_static_server};
 
 #[test]
@@ -124,7 +123,7 @@ fn with_otel_reload_tracing() {
         { __typename }
     "#};
 
-    with_hybrid_server(config, "test_graph", &schema, |client| async move {
+    with_hybrid_server(config, "test_graph", &schema, |client, uplink_mock| async move {
         let result: serde_json::Value = client.gql(query).send().await;
         serde_json::to_string_pretty(&result).unwrap();
 
@@ -137,8 +136,6 @@ fn with_otel_reload_tracing() {
         struct CountRow {
             count: u32,
         }
-
-        let uplink_mock = UplinkResponseMock::mock("");
 
         // wait at least 2 seconds due to the async batch export config
         tokio::time::sleep(Duration::from_secs(2)).await;

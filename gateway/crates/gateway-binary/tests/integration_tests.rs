@@ -328,7 +328,7 @@ fn with_static_server<F, T>(
 
 fn with_hybrid_server<F, T>(config: &str, graph_ref: &str, sdl: &str, test: T)
 where
-    T: FnOnce(Arc<Client>) -> F,
+    T: FnOnce(Arc<Client>, UplinkResponseMock) -> F,
     F: Future<Output = ()>,
 {
     let temp_dir = tempdir().unwrap();
@@ -370,7 +370,7 @@ where
 
         client.poll_endpoint(30, 300).await;
 
-        let res = AssertUnwindSafe(test(client.clone())).catch_unwind().await;
+        let res = AssertUnwindSafe(test(client.clone(), uplink_response)).catch_unwind().await;
 
         client.kill_handles();
 
@@ -605,7 +605,7 @@ fn hybrid_graph() {
         }
     "#};
 
-    with_hybrid_server("", "test_graph", &schema, |client| async move {
+    with_hybrid_server("", "test_graph", &schema, |client, _| async move {
         let result: serde_json::Value = client.gql(query).send().await;
         let result = serde_json::to_string_pretty(&result).unwrap();
 

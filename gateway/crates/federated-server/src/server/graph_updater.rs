@@ -54,7 +54,7 @@ pub struct UplinkResponse {
     pub account_id: Ulid,
     /// The id of the graph
     pub graph_id: Ulid,
-    /// The git repository branch name linked to the graph
+    /// The branch name
     pub branch: String,
     /// Grafbase id to uniquely identify the branch
     pub branch_id: Ulid,
