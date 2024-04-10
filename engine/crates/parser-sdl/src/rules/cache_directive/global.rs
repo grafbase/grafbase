@@ -6,7 +6,7 @@ use std::{
 
 use engine::{
     indexmap::IndexMap,
-    registry::{self, CacheInvalidationPolicy, MetaField, MetaType, Registry, TypeReference},
+    registry::{CacheInvalidationPolicy, MetaField, MetaType, Registry, TypeReference},
     CacheControl,
 };
 use if_chain::if_chain;
@@ -117,8 +117,16 @@ impl<'a> GlobalCacheRules<'a> {
                 GlobalCacheTarget::Type(ty) => {
                     match Self::get_registry_type(ty.as_ref(), registry) {
                         Ok(registry_type) => {
+                            let caching_interest = match registry_type {
+                                MetaType::Object(object) => Some((&mut object.cache_control, &mut object.fields)),
+                                MetaType::Interface(interface) => {
+                                    Some((&mut interface.cache_control, &mut interface.fields))
+                                }
+                                _ => None,
+                            };
+
                             if_chain! {
-                                if let MetaType::Object (registry::ObjectType { cache_control, fields,  .. }) = registry_type;
+                                if let Some((cache_control, fields)) = caching_interest;
                                 // (!= 0) means caching was defined in a different level
                                 // global works as default so we skip
                                 if cache_control.max_age == 0;
