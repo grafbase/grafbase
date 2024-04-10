@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.20.0] - Wed Apr 10 2024
+
+[CHANGELOG](changelog/0.20.0.md)
+
 ## [0.19.2] - Tue Apr 2 2024
 
 [CHANGELOG](changelog/0.19.2.md)
