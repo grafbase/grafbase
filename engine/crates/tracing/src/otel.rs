@@ -1,4 +1,5 @@
 /// exporter
+#[cfg(feature = "otlp")]
 pub mod exporter;
 /// Contains opentelemetry tracing integrations, namely [tracing_subscriber::Layer]'s and
 pub mod layer;
