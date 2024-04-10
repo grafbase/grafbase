@@ -92,7 +92,6 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         });
     }
 
-    // All objects implementing that interface in the subgraph must have the same key.
     let Some(expected_key) = interface_def.entity_keys().next() else {
         ctx.diagnostics.push_fatal(format!(
             "The entity interface `{}` is missing a key in the `{}` subgraph.",
@@ -104,7 +103,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
 
     ctx.insert_interface_resolvable_key(interface_id, expected_key, false);
 
-    // Each object has to have @interfaceObject and the same key as the entity interface.
+    // Each object in other subgraphs has to have @interfaceObject and the same key as the entity interface.
     for definition in definitions.iter().filter(|def| def.kind() == DefinitionKind::Object) {
         if !definition.directives().interface_object() {
             ctx.diagnostics.push_fatal(format!(
@@ -115,12 +114,23 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
             ));
         }
 
-        if definition.entity_keys().next().is_none() {
-            ctx.diagnostics.push_fatal(format!(
-                "The object type `{}` is annotated with @interfaceObject but missing a key in the `{}` subgraph.",
-                first.name().as_str(),
-                definition.subgraph().name().as_str(),
-            ));
+        match definition.entity_keys().next() {
+            None => {
+                ctx.diagnostics.push_fatal(format!(
+                    "The object type `{}` is annotated with @interfaceObject but missing a key in the `{}` subgraph.",
+                    first.name().as_str(),
+                    definition.subgraph().name().as_str(),
+                ));
+            }
+            Some(key) if key.fields() == expected_key.fields() => (),
+            Some(_) => {
+                ctx.diagnostics.push_fatal(format!(
+                    "[{}] The object type `{}` is annotated with @interfaceObject but has a different key than the entity interface `{}`.",
+                    definition.subgraph().name().as_str(),
+                    definition.name().as_str(),
+                    interface_def.name().as_str(),
+                ));
+            }
         }
 
         for entity_key in definition.entity_keys().filter(|key| key.is_resolvable()) {
@@ -175,7 +185,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         match object.entity_keys().next() {
             Some(key) if key.fields() == expected_key.fields() => (),
             Some(_) => ctx.diagnostics.push_fatal(format!(
-                "[{}] The object type `{}` is annotated with @interfaceObject but has a different key than the entity interface `{}`.",
+                "[{}] The object type `{}` implements the entity interface `{}` but does not have the same key. The key must match exactly.",
                 object.subgraph().name().as_str(),
                 object.name().as_str(),
                 first.name().as_str(),
