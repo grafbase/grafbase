@@ -1,5 +1,6 @@
 #![allow(unused_crate_dependencies)]
 
+mod mocks;
 mod telemetry;
 
 use std::{
@@ -12,6 +13,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
+use crate::mocks::uplink::UplinkResponseMock;
 use duct::{cmd, Handle};
 use futures_util::{Future, FutureExt};
 use http::{HeaderMap, StatusCode};
@@ -326,7 +328,7 @@ fn with_static_server<F, T>(
 
 fn with_hybrid_server<F, T>(config: &str, graph_ref: &str, sdl: &str, test: T)
 where
-    T: FnOnce(Arc<Client>) -> F,
+    T: FnOnce(Arc<Client>, UplinkResponseMock) -> F,
     F: Future<Output = ()>,
 {
     let temp_dir = tempdir().unwrap();
@@ -336,17 +338,10 @@ where
 
     let addr = listen_address();
 
-    let uplink_response = serde_json::json!({
-        "account_id": "01HR7NP3A4NDVWC10PZW6ZMC5P",
-        "graph_id": "01HR7NPB8E3YW29S5PPSY1AQKR",
-        "branch": "main",
-        "branch_id": "01HR7NPB8E3YW29S5PPSY1AQKA",
-        "sdl": sdl,
-        "version_id": "01HR7NPYWWM6DEKACKKN3EPFP2",
-    });
+    let uplink_response = UplinkResponseMock::mock(sdl);
 
     let res = runtime().block_on(async {
-        let response = ResponseTemplate::new(200).set_body_string(serde_json::to_string(&uplink_response).unwrap());
+        let response = ResponseTemplate::new(200).set_body_string(uplink_response.as_json().to_string());
         let server = wiremock::MockServer::start().await;
 
         Mock::given(method("GET"))
@@ -375,7 +370,9 @@ where
 
         client.poll_endpoint(30, 300).await;
 
-        let res = AssertUnwindSafe(test(client.clone())).catch_unwind().await;
+        let res = AssertUnwindSafe(test(client.clone(), uplink_response))
+            .catch_unwind()
+            .await;
 
         client.kill_handles();
 
@@ -610,7 +607,7 @@ fn hybrid_graph() {
         }
     "#};
 
-    with_hybrid_server("", "test_graph", &schema, |client| async move {
+    with_hybrid_server("", "test_graph", &schema, |client, _| async move {
         let result: serde_json::Value = client.gql(query).send().await;
         let result = serde_json::to_string_pretty(&result).unwrap();
 
