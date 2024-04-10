@@ -817,6 +817,7 @@ mod tests {
         // prepare
         let telemetry_config = TelemetryConfig {
             service_name: "test".to_string(),
+            resource_attributes: Default::default(),
             tracing: Default::default(),
         };
 
