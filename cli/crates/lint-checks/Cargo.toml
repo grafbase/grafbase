@@ -1,0 +1,17 @@
+[package]
+name = "lint-checks"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cynic-parser = "0.2.1"
+heck = "0.5.0"
+
+[lints]
+workspace = true
