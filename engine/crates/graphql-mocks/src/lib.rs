@@ -3,8 +3,8 @@
 use std::{sync::Arc, time::Duration};
 
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
-use axum::{extract::State, http::HeaderMap, routing::post, Router};
-use tokio::sync::mpsc;
+use axum::{extract::State, http::HeaderMap, response::IntoResponse, routing::post, Router};
+use tokio::sync::{mpsc, Mutex};
 
 mod almost_empty;
 mod disingenuous;
@@ -23,6 +23,7 @@ pub use {
 pub struct MockGraphQlServer {
     pub schema: Arc<dyn Schema>,
     received_requests: mpsc::UnboundedReceiver<async_graphql::Request>,
+    next_response: mpsc::UnboundedSender<axum::response::Response>,
     shutdown: Option<tokio::sync::oneshot::Sender<()>>,
     port: u16,
 }
@@ -42,10 +43,12 @@ impl MockGraphQlServer {
 
     async fn new_impl(schema: Arc<dyn Schema>) -> Self {
         let (sender, receiver) = mpsc::unbounded_channel();
+        let (next_response_sender, next_response_receiver) = mpsc::unbounded_channel();
 
         let state = AppState {
             schema: schema.clone(),
             requests: sender,
+            next_responses: Arc::new(Mutex::new(next_response_receiver)),
         };
         let app = Router::new()
             .route("/", post(graphql_handler))
@@ -73,6 +76,7 @@ impl MockGraphQlServer {
             schema,
             shutdown: Some(shutdown_sender),
             received_requests: receiver,
+            next_response: next_response_sender,
             port,
         }
     }
@@ -92,9 +96,20 @@ impl MockGraphQlServer {
     pub async fn drain_requests(&mut self) -> impl Iterator<Item = async_graphql::Request> + '_ {
         std::iter::from_fn(|| self.received_requests.try_recv().ok())
     }
+
+    pub fn force_next_response(&self, response: impl IntoResponse) {
+        self.next_response.send(response.into_response()).unwrap();
+    }
 }
 
-async fn graphql_handler(State(state): State<AppState>, headers: HeaderMap, req: GraphQLRequest) -> GraphQLResponse {
+async fn graphql_handler(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    req: GraphQLRequest,
+) -> axum::response::Response {
+    if let Ok(response) = state.next_responses.lock().await.try_recv() {
+        return response;
+    }
     let req = req.into_inner();
 
     // Record the request incase tests want to inspect it.
@@ -115,13 +130,14 @@ async fn graphql_handler(State(state): State<AppState>, headers: HeaderMap, req:
         .collect();
 
     let response: GraphQLResponse = state.schema.execute(headers, req).await.into();
-    response
+    response.into_response()
 }
 
 #[derive(Clone)]
 struct AppState {
     schema: Arc<dyn Schema>,
     requests: mpsc::UnboundedSender<async_graphql::Request>,
+    next_responses: Arc<Mutex<mpsc::UnboundedReceiver<axum::response::Response>>>,
 }
 
 /// Creating a trait for schema so we can use it as a trait object and avoid

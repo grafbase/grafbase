@@ -1,6 +1,7 @@
 use std::{
     any::Any,
     collections::BTreeMap,
+    convert::Infallible,
     fmt::{self, Debug, Display, Formatter},
     marker::PhantomData,
     sync::Arc,
@@ -313,13 +314,61 @@ impl Error {
     }
 }
 
-impl<T: Display + Send + Sync> From<T> for Error {
-    fn from(e: T) -> Self {
+impl From<serde_json::Error> for Error {
+    fn from(value: serde_json::Error) -> Self {
+        Self::new(value.to_string())
+    }
+}
+
+impl From<ServerError> for Error {
+    fn from(value: ServerError) -> Self {
         Self {
-            message: e.to_string(),
-            source: None,
-            extensions: None,
+            message: value.message,
+            source: value.source,
+            extensions: value.extensions,
         }
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(value: reqwest::Error) -> Self {
+        Self::new(value.to_string())
+    }
+}
+
+impl From<http::method::InvalidMethod> for Error {
+    fn from(value: http::method::InvalidMethod) -> Self {
+        Self::new(value.to_string())
+    }
+}
+
+impl From<Infallible> for Error {
+    fn from(value: Infallible) -> Self {
+        Self::new(value.to_string())
+    }
+}
+
+impl From<chrono::ParseError> for Error {
+    fn from(value: chrono::ParseError) -> Self {
+        Self::new(value.to_string())
+    }
+}
+
+impl From<std::net::AddrParseError> for Error {
+    fn from(value: std::net::AddrParseError) -> Self {
+        Self::new(value.to_string())
+    }
+}
+
+impl From<uuid::Error> for Error {
+    fn from(value: uuid::Error) -> Self {
+        Self::new(value.to_string())
+    }
+}
+
+impl From<url::ParseError> for Error {
+    fn from(value: url::ParseError) -> Self {
+        Self::new(value.to_string())
     }
 }
 

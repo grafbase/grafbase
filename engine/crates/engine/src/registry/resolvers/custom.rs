@@ -14,6 +14,12 @@ pub struct CustomResolver {
     pub resolver_name: String,
 }
 
+impl From<UdfError> for crate::Error {
+    fn from(value: UdfError) -> Self {
+        Self::new(value.to_string())
+    }
+}
+
 impl CustomResolver {
     pub(super) async fn resolve(
         &self,

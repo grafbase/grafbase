@@ -75,7 +75,7 @@ fn handle_error_after_response(
     }
 
     if !status.is_success() {
-        return Error::HttpErrorResponse(status.as_u16());
+        return Error::HttpErrorResponse(status.as_u16(), response_body.unwrap_or_default().to_string());
     }
 
     error
@@ -142,13 +142,13 @@ mod tests {
 
     #[test]
     fn test_error_paths() {
-        let response = UpstreamResponse::from_response_text(
-            StatusCode::from_u16(500).unwrap(),
-            Ok::<_, Error>(r#"{"blah": {}}"#.into()),
-        )
-        .unwrap_err();
-        assert!(
-            matches!(response, Error::HttpErrorResponse(500)),
+        let text = r#"{"blah": {}}"#.to_string();
+        let response =
+            UpstreamResponse::from_response_text(StatusCode::from_u16(500).unwrap(), Ok::<_, Error>(text.clone()))
+                .unwrap_err();
+        assert_eq!(
+            response,
+            Error::HttpErrorResponse(500, text),
             "`{response}` does not match"
         );
         let response = UpstreamResponse::from_response_text(

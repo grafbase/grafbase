@@ -630,7 +630,24 @@ pub enum Error {
     MalformedUpstreamResponse,
 
     #[error("received an unexpected status from the downstream server: {0}")]
-    HttpErrorResponse(u16),
+    HttpErrorResponse(u16, String),
+}
+
+impl From<Error> for crate::error::Error {
+    fn from(err: Error) -> Self {
+        let message = err.to_string();
+        if let Error::HttpErrorResponse(_, body) = err {
+            crate::error::Error {
+                message,
+                source: None,
+                extensions: Some(crate::ErrorExtensionValues(
+                    [("response_content".to_string(), body.into())].into_iter().collect(),
+                )),
+            }
+        } else {
+            Self::new(message)
+        }
+    }
 }
 
 /// Before the resolver returns the JSON to the caller, it needs to iterate the JSON, find any
