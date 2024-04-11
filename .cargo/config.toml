@@ -1,8 +1,2 @@
 [target.'cfg(all())']
 rustflags = ["--cfg=web_sys_unstable_apis"]
-
-[net]
-git-fetch-with-cli = true
-
-[registries.crates-io]
-protocol = "sparse"
