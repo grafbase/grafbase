@@ -1,0 +1,20 @@
+{
+  "name": "wrappers",
+  "module": "udf.ts",
+  "devDependencies": {
+    "@types/bun": "^1.0.2",
+    "@types/node": "^20.10.5",
+    "bun": "1.1.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@miniflare/kv": "^2.14.1",
+    "@miniflare/storage-file": "^2.14.2"
+  },
+  "resolutions": {
+    "npx-import": "file:./npx-import-stub"
+  },
+  "scripts": {
+    "build": "bun build udf.ts --external=\"\\${UDF_MAIN_FILE_PATH}\" --minify --target=bun > dist.js"
+  }
+}

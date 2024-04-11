@@ -1,7 +1,7 @@
 use engine::registry::{
     self,
     resolvers::{custom::CustomResolver, Resolver},
-    MetaField, MetaInputValue, MetaType,
+    MetaField, MetaType,
 };
 use engine_parser::types::TypeKind;
 
@@ -15,7 +15,9 @@ use super::{
     requires_directive::RequiresDirective,
     visitor::{Visitor, VisitorContext},
 };
-use crate::rules::resolver_directive::ResolverDirective;
+use crate::{
+    parser_extensions::FieldExtension, rules::resolver_directive::ResolverDirective, schema_coord::SchemaCoord,
+};
 
 pub struct ExtendConnectorTypes;
 
@@ -74,7 +76,13 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                             // If someone asks we could do it
                             ctx.report_error(vec![field.pos], "A field can't have a join and a requires on it");
                         }
-                        requires = join_directive.select.required_fieldset();
+                        requires = join_directive.select.required_fieldset(&field.arguments);
+
+                        ctx.warnings.extend(
+                            join_directive
+                                .validate_arguments(&field.arguments, SchemaCoord::Field(type_name, field.name())),
+                        );
+
                         Resolver::Join(join_directive.select.to_join_resolver())
                     }
                     (Some(_), Some(_)) => {
@@ -88,14 +96,7 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                 Some(MetaField {
                     name,
                     description: field.description.clone().map(|x| x.node),
-                    args: field
-                        .arguments
-                        .iter()
-                        .map(|argument| {
-                            MetaInputValue::new(argument.node.name.to_string(), argument.node.ty.to_string())
-                        })
-                        .map(|arg| (arg.name.clone(), arg))
-                        .collect(),
+                    args: field.converted_arguments(),
                     ty: field.ty.clone().node.to_string().into(),
                     requires,
                     resolver,
@@ -158,7 +159,6 @@ mod tests {
         }
         "#,
             &HashMap::new(),
-            false,
             &FakeConnectorParser,
         ));
 
@@ -197,7 +197,6 @@ mod tests {
         }
         "#,
             &HashMap::new(),
-            false,
             &FakeConnectorParser,
         ));
 
@@ -242,7 +241,6 @@ mod tests {
         }
         "#,
             &HashMap::new(),
-            false,
             &FakeConnectorParser,
         ));
 
@@ -289,7 +287,7 @@ mod tests {
         }
     "#, &["Field 'foo' of extended 'StripeCustomer' must have a custom resolver or a join"])]
     fn test_parse_result(#[case] schema: &str, #[case] expected_messages: &[&str]) {
-        let output = futures::executor::block_on(crate::parse(schema, &HashMap::new(), false, &FakeConnectorParser));
+        let output = futures::executor::block_on(crate::parse(schema, &HashMap::new(), &FakeConnectorParser));
 
         let validation_errors = output.unwrap_err().validation_errors().unwrap_or_default();
 

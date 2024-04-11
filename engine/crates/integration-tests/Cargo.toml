@@ -20,10 +20,10 @@ engine-v2.workspace = true
 gateway-v2.workspace = true
 graphql-mocks.workspace = true
 engine-config-builder = { path = "../engine-config-builder" }
-expect-test = "1.4"
+expect-test = "1.5"
 futures = "0.3"
 gateway-core.workspace = true
-grafbase-graphql-introspection = { path = "../../../cli/crates/graphql-introspection" }
+grafbase-graphql-introspection.workspace = true
 graphql-composition.workspace = true
 graphql-parser = "0.4.0"
 http.workspace = true
@@ -45,17 +45,17 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
   "env-filter",
   "ansi",
 ] }
-ctor = "0.2"
+ctor.workspace = true
 rustls = { workspace = true, features = ["ring"] }
 tracing.workspace = true
 tracing-mock = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x", version = "0.1" }
 
 [dependencies.tokio]
-version = "1.36"
+version = "1.37"
 features = ["macros"]
 
 [dependencies.insta]
-version = "1.36"
+version = "1.38"
 features = ["json"]
 
 [dependencies.engine]
@@ -93,6 +93,7 @@ headers.workspace = true
 criterion = { version = "0.5", features = ["async_tokio"] }
 sha2.workspace = true
 hex.workspace = true
+serde.workspace = true
 
 [[bench]]
 name = "federation"

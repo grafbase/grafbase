@@ -2,6 +2,7 @@ mod admin;
 mod compose;
 mod message;
 mod refresh;
+mod subgraph_config_watcher;
 
 use std::sync::Arc;
 
@@ -10,6 +11,7 @@ pub(crate) use compose::ComposeBus;
 use gateway_v2::Gateway;
 pub(crate) use message::*;
 pub(crate) use refresh::RefreshBus;
+pub(crate) use subgraph_config_watcher::SubgraphConfigWatcherBus;
 
 use crate::{dev::composer::Subgraph, error::Error};
 use async_graphql_parser::types::ServiceDocument;

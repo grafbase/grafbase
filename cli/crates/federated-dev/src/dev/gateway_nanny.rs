@@ -53,11 +53,13 @@ pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraph
         subdomain: "localhost".to_string(),
     });
     Some(Arc::new(Gateway::new(
-        config.into_latest().into(),
+        config.into_latest().try_into().ok()?,
         EngineEnv {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
             cache: cache.clone(),
-            trusted_documents: runtime_noop::trusted_documents::NoopTrustedDocuments.into(),
+            trusted_documents: runtime::trusted_documents_client::Client::new(
+                runtime_noop::trusted_documents::NoopTrustedDocuments,
+            ),
         },
         GatewayEnv {
             kv: runtime_local::InMemoryKvStore::runtime(),

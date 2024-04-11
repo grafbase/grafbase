@@ -24,14 +24,14 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
     {
         let result = if let Some(list_wrapping) = self.wrapping.pop_list_wrapping() {
             let list_seed = ListSeed {
-                bound_field_id: self.field.bound_field_id,
+                field_id: self.field.id,
                 ctx: self.ctx,
                 seed: &self,
             };
             match list_wrapping {
                 ListWrapping::RequiredList => list_seed.deserialize(deserializer),
                 ListWrapping::NullableList => NullableSeed {
-                    bound_field_id: self.field.bound_field_id,
+                    field_id: self.field.id,
                     ctx: self.ctx,
                     seed: list_seed,
                 }
@@ -49,13 +49,13 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
         } else {
             match &self.field.ty {
                 FieldType::Scalar(scalar_type) => NullableSeed {
-                    bound_field_id: self.field.bound_field_id,
+                    field_id: self.field.id,
                     ctx: self.ctx,
                     seed: ScalarTypeSeed(*scalar_type),
                 }
                 .deserialize(deserializer),
                 FieldType::SelectionSet(collected) => NullableSeed {
-                    bound_field_id: self.field.bound_field_id,
+                    field_id: self.field.id,
                     ctx: self.ctx,
                     seed: SelectionSetSeed {
                         ctx: self.ctx,
@@ -70,13 +70,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
             if !self.ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
                 self.ctx.response_part.borrow_mut().push_error(GraphqlError {
                     message: err.to_string(),
-                    locations: self
-                        .ctx
-                        .plan
-                        .bound_walk_with(self.field.bound_field_id, ())
-                        .name_location()
-                        .into_iter()
-                        .collect(),
+                    locations: vec![self.ctx.plan[self.field.id].location()],
                     path: Some(self.ctx.response_path()),
                     ..Default::default()
                 });

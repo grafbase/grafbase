@@ -11,7 +11,6 @@ import {
   ScalarDefinition,
   StringDefinition
 } from './scalar'
-import { SearchDefinition } from './search'
 import { FieldType } from '../typedefs'
 import { EnumDefinition } from './enum'
 import { InputDefinition } from './input'
@@ -20,6 +19,7 @@ import { FieldLength } from './length-limited-string'
 import { LengthLimitedStringDefinition } from './length-limited-string'
 import { MapDefinition } from './map'
 import { escapeString } from '../utils'
+import { InputType } from '../query'
 
 export type ListScalarType =
   | ScalarDefinition
@@ -35,11 +35,13 @@ export class ListDefinition {
   private resolverName?: string
   private joinSelect?: string
   private otherDirectives: string[]
+  private _arguments: Record<string, InputType>
 
   constructor(fieldDefinition: ListScalarType) {
     this.fieldDefinition = fieldDefinition
     this.isOptional = false
     this.otherDirectives = []
+    this._arguments = {}
   }
 
   /**
@@ -49,13 +51,6 @@ export class ListDefinition {
     this.isOptional = true
 
     return this
-  }
-
-  /**
-   * Make the field searchable.
-   */
-  public search(): SearchDefinition {
-    return new SearchDefinition(this)
   }
 
   /**
@@ -143,6 +138,20 @@ export class ListDefinition {
   public provides(fields: string): ListDefinition {
     this.otherDirectives.push(`@provides(fields: ${fields})`)
     return this
+  }
+
+  /**
+   * Add arguments to this field
+   *
+   * @param args - The arguments for this field
+   */
+  public arguments(args: Record<string, InputType>): ListDefinition {
+    this._arguments = args
+    return this
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return { ...this._arguments, ...this.fieldDefinition.allArguments }
   }
 
   public toString(): string {

@@ -1,37 +1,28 @@
 use super::SchemaWalker;
-use crate::{DefinitionWalker, ListWrapping, Type, TypeId, Wrapping};
+use crate::{DefinitionWalker, ListWrapping, Type, Wrapping};
 
-pub type TypeWalker<'a> = SchemaWalker<'a, TypeId>;
+pub type TypeWalker<'a> = SchemaWalker<'a, Type>;
 pub type InputTypeWalker<'a> = SchemaWalker<'a, Type>;
 
 impl<'a> TypeWalker<'a> {
     pub fn wrapping(&self) -> Wrapping {
-        self.as_ref().wrapping
+        self.item.wrapping
     }
 
     pub fn inner(&self) -> DefinitionWalker<'a> {
-        self.walk(self.as_ref().inner)
+        self.walk(self.item.inner)
     }
 }
 
 impl From<TypeWalker<'_>> for Type {
     fn from(input: TypeWalker) -> Self {
-        *input.as_ref()
+        input.item
     }
 }
 
 struct Ty<'a> {
     inner: DefinitionWalker<'a>,
     wrapping: Wrapping,
-}
-
-impl<'a> From<SchemaWalker<'a, Type>> for Ty<'a> {
-    fn from(input: SchemaWalker<'a, Type>) -> Self {
-        Ty {
-            inner: input.walk(input.item.inner),
-            wrapping: input.item.wrapping,
-        }
-    }
 }
 
 impl<'a> From<TypeWalker<'a>> for Ty<'a> {
@@ -49,15 +40,9 @@ impl std::fmt::Display for TypeWalker<'_> {
     }
 }
 
-impl std::fmt::Display for SchemaWalker<'_, Type> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Ty::from(*self).fmt(f)
-    }
-}
-
 impl std::fmt::Display for Ty<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for _ in self.wrapping.list_wrappings().rev() {
+        for _ in 0..self.wrapping.list_wrappings().len() {
             write!(f, "[")?;
         }
         write!(f, "{}", self.inner.name())?;
@@ -75,12 +60,6 @@ impl std::fmt::Display for Ty<'_> {
 }
 
 impl std::fmt::Debug for SchemaWalker<'_, Type> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Ty::from(*self).fmt(f)
-    }
-}
-
-impl std::fmt::Debug for TypeWalker<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Ty::from(*self).fmt(f)
     }

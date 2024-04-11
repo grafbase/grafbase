@@ -1,5 +1,7 @@
 use std::{fmt, str};
 
+use graph_ref::GraphRef;
+
 /// Parsed project reference. A project reference is a string of the form `account/project@branch`.
 #[derive(Clone, Debug)]
 pub struct ProjectRef {
@@ -71,6 +73,45 @@ impl fmt::Display for ProjectRef {
     }
 }
 
+#[derive(Debug, Clone)]
+pub(crate) enum ProjectRefOrGraphRef {
+    ProjectRef(ProjectRef),
+    GraphRef(GraphRef),
+}
+
+impl ProjectRefOrGraphRef {
+    pub(crate) fn branch(&self) -> Option<&str> {
+        match self {
+            ProjectRefOrGraphRef::ProjectRef(pr) => pr.branch(),
+            ProjectRefOrGraphRef::GraphRef(gr) => gr.branch(),
+        }
+    }
+
+    pub(crate) fn account(&self) -> Option<&str> {
+        match self {
+            ProjectRefOrGraphRef::ProjectRef(pr) => Some(pr.account()),
+            ProjectRefOrGraphRef::GraphRef(_) => None,
+        }
+    }
+
+    pub(crate) fn project(&self) -> &str {
+        match self {
+            ProjectRefOrGraphRef::ProjectRef(pr) => pr.project(),
+            ProjectRefOrGraphRef::GraphRef(gr) => gr.graph(),
+        }
+    }
+}
+
+impl str::FromStr for ProjectRefOrGraphRef {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        ProjectRef::from_str(s)
+            .map(ProjectRefOrGraphRef::ProjectRef)
+            .or_else(|_| GraphRef::from_str(s).map(ProjectRefOrGraphRef::GraphRef))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -88,5 +129,35 @@ mod tests {
         for case in cases {
             assert_eq!(case, case.parse::<ProjectRef>().unwrap().to_string());
         }
+    }
+
+    #[test]
+    fn project_ref_or_graph_ref() {
+        assert!(matches!(
+            "microsoft/windows@main".parse(),
+            Ok(ProjectRefOrGraphRef::ProjectRef(_))
+        ));
+        assert!(matches!(
+            "test/project@master".parse(),
+            Ok(ProjectRefOrGraphRef::ProjectRef(_))
+        ));
+        assert!(matches!(
+            "__my__/_____project-with-things@branch-here".parse(),
+            Ok(ProjectRefOrGraphRef::ProjectRef(_))
+        ));
+        assert!(matches!("1/2@3".parse(), Ok(ProjectRefOrGraphRef::ProjectRef(_))));
+        assert!(matches!("accnt/prjct".parse(), Ok(ProjectRefOrGraphRef::ProjectRef(_))));
+
+        assert!(matches!("windows@main".parse(), Ok(ProjectRefOrGraphRef::GraphRef(_))));
+        assert!(matches!(
+            "project@master".parse(),
+            Ok(ProjectRefOrGraphRef::GraphRef(_))
+        ));
+        assert!(matches!(
+            "_____project-with-things@branch-here".parse(),
+            Ok(ProjectRefOrGraphRef::GraphRef(_))
+        ));
+        assert!(matches!("2@3".parse(), Ok(ProjectRefOrGraphRef::GraphRef(_))));
+        assert!(matches!("prjct".parse(), Ok(ProjectRefOrGraphRef::GraphRef(_))));
     }
 }

@@ -21,6 +21,7 @@ import { ShareableDefinition } from './typedefs/shareable'
 import { OverrideDefinition } from './typedefs/override'
 import { ProvidesDefinition } from './typedefs/provides'
 import { DeprecatedDefinition } from './typedefs/deprecated'
+import { AuthDefinition } from './typedefs/auth'
 
 /**
  * A collection of fields in a model.
@@ -45,6 +46,7 @@ export type TypeFieldShape =
   | OverrideDefinition
   | ProvidesDefinition
   | DeprecatedDefinition
+  | AuthDefinition
 
 /**
  * A composite type definition (e.g. not a model).

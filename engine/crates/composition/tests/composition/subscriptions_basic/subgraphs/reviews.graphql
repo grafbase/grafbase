@@ -1,4 +1,6 @@
-type Query
+type Query {
+  foo: String!
+}
 
 extend type Product @key(fields: "id") {
   id: ID!

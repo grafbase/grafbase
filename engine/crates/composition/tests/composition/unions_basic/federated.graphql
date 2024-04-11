@@ -33,8 +33,8 @@ type Onion {
 }
 
 type Cheese {
-    type: String! @join__field(graph: PIZZA)
     quantity: Int! @join__field(graph: PIZZA)
+    type: String! @join__field(graph: PIZZA)
 }
 
 type Pineapple {

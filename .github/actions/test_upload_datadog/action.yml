@@ -1,0 +1,34 @@
+name: datadog-test-upload
+description: Uploads tests to datadog
+inputs:
+  api_key:
+    description: Datadog api key
+    required: true
+  junit_path:
+    description: 'The path to a junit XML file'
+    required: true
+  service:
+    description: 'The service to report to datadog'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Get Datadog CLI
+      shell: bash
+      run: npm install -g @datadog/datadog-ci@2.10.0
+
+    - name: Upload the JUnit files
+      shell: bash
+      run: |
+        datadog-ci junit upload \
+          --service $SERVICE \
+          --max-concurrency 20 \
+          $JUNIT_PATH
+      env:
+        DATADOG_API_KEY: ${{ inputs.api_key }}
+        DATADOG_SITE: datadoghq.com
+        JUNIT_PATH: ${{ inputs.junit_path }}
+        SERVICE: ${{ inputs.service }}
+        DD_ENV: ci
+        DD_TAGS: 'os.platform:${{ runner.os }},os.architecture:${{ runner.arch }}'

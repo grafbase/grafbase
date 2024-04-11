@@ -78,7 +78,6 @@ fn test_header_passthrough() {
             "accept": "*/*",
             "another-one": "yes",
             "authorization": "Bearer BLAH",
-            "content-length": "0",
             "wow-what-a-header": "isn't it the best"
           }
         ]

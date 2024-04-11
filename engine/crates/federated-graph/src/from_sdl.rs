@@ -4,11 +4,13 @@ use async_graphql_parser::{
     Positioned,
 };
 use indexmap::IndexSet;
-use std::{collections::HashMap, error::Error as StdError, fmt};
+use std::{collections::HashMap, error::Error as StdError, fmt, ops::Range};
 
-const JOIN_GRAPH_ENUM_NAME: &str = "join__Graph";
-const JOIN_GRAPH_DIRECTIVE_NAME: &str = "join__graph";
 const JOIN_FIELD_DIRECTIVE_NAME: &str = "join__field";
+const JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT: &str = "override";
+const JOIN_FIELD_DIRECTIVE_OVERRIDE_LABEL_ARGUMENT: &str = "overrideLabel";
+const JOIN_GRAPH_DIRECTIVE_NAME: &str = "join__graph";
+const JOIN_GRAPH_ENUM_NAME: &str = "join__Graph";
 const JOIN_TYPE_DIRECTIVE_NAME: &str = "join__type";
 
 #[derive(Debug)]
@@ -27,11 +29,7 @@ struct State<'a> {
     subgraphs: Vec<Subgraph>,
 
     objects: Vec<Object>,
-    object_fields: Vec<ObjectField>,
-
     interfaces: Vec<Interface>,
-    interface_fields: Vec<InterfaceField>,
-
     fields: Vec<Field>,
 
     directives: Vec<Directive>,
@@ -44,8 +42,6 @@ struct State<'a> {
     input_objects: Vec<InputObject>,
 
     strings: IndexSet<String>,
-    field_types: indexmap::IndexSet<FieldType>,
-
     query_type_name: Option<String>,
     mutation_type_name: Option<String>,
     subscription_type_name: Option<String>,
@@ -58,33 +54,28 @@ struct State<'a> {
 }
 
 impl<'a> State<'a> {
-    fn insert_field_type(&mut self, field_type: &'a ast::Type) -> TypeId {
-        let mut list_wrappers = Vec::new();
-        let mut ty = field_type;
-
-        let kind = loop {
-            match &ty.base {
-                ast::BaseType::Named(name) => break self.definition_names[name.as_str()],
-                ast::BaseType::List(inner) => {
-                    list_wrappers.push(if ty.nullable {
-                        ListWrapper::NullableList
+    fn field_type(&mut self, field_type: &'a ast::Type) -> Type {
+        fn unfurl(state: &State<'_>, inner: &ast::Type) -> (wrapping::Wrapping, Definition) {
+            match &inner.base {
+                ast::BaseType::Named(name) => (
+                    wrapping::Wrapping::new(!inner.nullable),
+                    state.definition_names[name.as_str()],
+                ),
+                ast::BaseType::List(new_inner) => {
+                    let (wrapping, definition) = unfurl(state, new_inner);
+                    let wrapping = if inner.nullable {
+                        wrapping.wrapped_by_nullable_list()
                     } else {
-                        ListWrapper::RequiredList
-                    });
-                    ty = inner.as_ref();
+                        wrapping.wrapped_by_required_list()
+                    };
+                    (wrapping, definition)
                 }
             }
-        };
+        }
 
-        let idx = self
-            .field_types
-            .insert_full(FieldType {
-                kind,
-                inner_is_required: !ty.nullable,
-                list_wrappers,
-            })
-            .0;
-        TypeId(idx)
+        let (wrapping, definition) = unfurl(self, field_type);
+
+        Type { definition, wrapping }
     }
 
     fn insert_string(&mut self, s: &str) -> StringId {
@@ -135,17 +126,45 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     let parsed = async_graphql_parser::parse_schema(sdl).map_err(|err| DomainError(err.to_string()))?;
 
     ingest_definitions(&parsed, &mut state)?;
+    ingest_schema_definitions(&parsed, &mut state)?;
+
+    // Ensure that the root query type is defined
+    let query_type = state
+        .definition_names
+        .get(state.query_type_name.as_deref().unwrap_or("Query"));
+
+    if query_type.is_none() {
+        let query_type_name = "Query";
+        state.query_type_name = Some(String::from(query_type_name));
+
+        let object_id = ObjectId(state.objects.len());
+        let query_string_id = state.insert_string(query_type_name);
+
+        state
+            .definition_names
+            .insert(query_type_name, Definition::Object(object_id));
+
+        state.objects.push(Object {
+            name: query_string_id,
+            implements_interfaces: vec![],
+            keys: vec![],
+            composed_directives: NO_DIRECTIVES,
+            fields: NO_FIELDS,
+            description: None,
+        });
+
+        ingest_object_fields(object_id, &[], &mut state);
+    }
+
     ingest_fields(&parsed, &mut state)?;
     // This needs to happen after all fields have been ingested, in order to attach selection sets.
     ingest_selection_sets(&parsed, &mut state)?;
 
-    Ok(FederatedGraph::V2(FederatedGraphV2 {
+    Ok(FederatedGraph::V3(FederatedGraphV3 {
         root_operation_types: state.root_operation_types()?,
         subgraphs: state.subgraphs,
         objects: state.objects,
-        object_fields: state.object_fields,
         interfaces: state.interfaces,
-        interface_fields: state.interface_fields,
         fields: state.fields,
         enums: state.enums,
         enum_values: state.enum_values,
@@ -153,19 +172,25 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         scalars: state.scalars,
         input_objects: state.input_objects,
         strings: state.strings.into_iter().collect(),
-        field_types: state.field_types.into_iter().collect(),
         directives: state.directives,
         input_value_definitions: state.input_value_definitions,
     }))
 }
 
+fn ingest_schema_definitions<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> Result<(), DomainError> {
+    for definition in &parsed.definitions {
+        if let ast::TypeSystemDefinition::Schema(Positioned { node: schema, .. }) = definition {
+            ingest_schema_definition(schema, state)?;
+        }
+    }
+
+    Ok(())
+}
+
 fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> Result<(), DomainError> {
     for definition in &parsed.definitions {
         match definition {
-            ast::TypeSystemDefinition::Schema(Positioned { node: schema, .. }) => {
-                ingest_schema_definition(schema, state)?;
-            }
-            ast::TypeSystemDefinition::Directive(_) => (),
+            ast::TypeSystemDefinition::Schema(_) | ast::TypeSystemDefinition::Directive(_) => (),
             ast::TypeSystemDefinition::Type(typedef) => match &typedef.node.kind {
                 ast::TypeKind::Scalar => (),
                 ast::TypeKind::Object(object) => {
@@ -175,7 +200,7 @@ fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) ->
                         ));
                     };
                     ingest_object_interfaces(object_id, object, state)?;
-                    ingest_object_fields(object_id, object, state);
+                    ingest_object_fields(object_id, &object.fields, state);
                 }
                 ast::TypeKind::Interface(iface) => {
                     let Definition::Interface(interface_id) = state.definition_names[typedef.node.name.node.as_str()]
@@ -374,7 +399,7 @@ fn ingest_provides_requires(parsed: &ast::ServiceDocument, state: &mut State<'_>
 
         let parent_id = state.definition_names[parent_name];
         let field_id = state.selection_map[&(parent_id, field.name.node.as_str())];
-        let field_type_id = state.fields[field_id.0].field_type_id;
+        let field_type = state.fields[field_id.0].r#type.clone();
 
         let Some(subgraph_id) = state.fields[field_id.0].resolvable_in.first().copied() else {
             continue;
@@ -389,7 +414,7 @@ fn ingest_provides_requires(parsed: &ast::ServiceDocument, state: &mut State<'_>
             })
             .map(|provides| {
                 parse_selection_set(provides)
-                    .and_then(|provides| attach_selection(&provides, state.field_types[field_type_id.0].kind, state))
+                    .and_then(|provides| attach_selection(&provides, field_type.definition, state))
                     .map(|fields| vec![FieldProvides { subgraph_id, fields }])
             })
             .transpose()?
@@ -454,6 +479,7 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                             keys: Vec::new(),
                             composed_directives,
                             description,
+                            fields: NO_FIELDS,
                         }));
 
                         state.definition_names.insert(type_name, Definition::Object(object_id));
@@ -465,6 +491,7 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                             keys: Vec::new(),
                             composed_directives,
                             description,
+                            fields: NO_FIELDS,
                         }));
                         state
                             .definition_names
@@ -546,15 +573,24 @@ fn insert_builtin_scalars(state: &mut State<'_>) {
 }
 
 fn ingest_interface<'a>(interface_id: InterfaceId, iface: &'a ast::InterfaceType, state: &mut State<'a>) {
+    let [mut start, mut end] = [None; 2];
+
     for field in &iface.fields {
         let field_id = ingest_field(Definition::Interface(interface_id), &field.node, state);
-        state.interface_fields.push(InterfaceField { interface_id, field_id });
+        start = Some(start.unwrap_or(field_id));
+        end = Some(field_id);
     }
+
+    let [Some(start), Some(end)] = [start, end] else { return };
+    state.interfaces[interface_id.0].fields = Range {
+        start,
+        end: FieldId(end.0 + 1),
+    };
 }
 
 fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, state: &mut State<'a>) -> FieldId {
     let field_name = ast_field.name.node.as_str();
-    let field_type_id = state.insert_field_type(&ast_field.ty.node);
+    let r#type = state.field_type(&ast_field.ty.node);
     let name = state.insert_string(field_name);
     let args_start = state.input_value_definitions.len();
 
@@ -566,11 +602,11 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
             .map(|description| state.insert_string(description.node.as_str()));
         let composed_directives = collect_composed_directives(&arg.node.directives, state);
         let name = state.insert_string(arg.node.name.node.as_str());
-        let type_id = state.insert_field_type(&arg.node.ty.node);
+        let r#type = state.field_type(&arg.node.ty.node);
 
         state.input_value_definitions.push(InputValueDefinition {
             name,
-            type_id,
+            r#type,
             directives: composed_directives,
             description,
         });
@@ -582,7 +618,11 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
         .directives
         .iter()
         .filter(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
-        .filter(|dir| dir.node.get_argument("overrides").is_none())
+        // We implemented "overrides" by mistake, so we allow it for backwards compatibility..
+        .filter(|dir| {
+            dir.node.get_argument("overrides").is_none()
+                && dir.node.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT).is_none()
+        })
         .filter(|dir| {
             !dir.node
                 .get_argument("external")
@@ -603,28 +643,56 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
         .directives
         .iter()
         .filter(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
-        .filter_map(|dir| dir.node.get_argument("graph").zip(dir.node.get_argument("overrides")))
-        .filter_map(|(graph, overrides)| match (&graph.node, &overrides.node) {
-            (async_graphql_value::ConstValue::Enum(graph), async_graphql_value::ConstValue::String(overrides)) => {
-                let subgraph_name = state.insert_string(graph.as_str());
-                Some(Override {
-                    graph: SubgraphId(
-                        state
+        .filter_map(|dir| {
+            dir.node
+                .get_argument("graph")
+                // We implemented "overrides" by mistake, so we allow it for backwards compatibility..
+                .zip(
+                    dir.node
+                        .get_argument("overrides")
+                        .or(dir.node.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT)),
+                )
+                .map(|(graph, overrides)| {
+                    (
+                        graph,
+                        overrides,
+                        dir.node.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_LABEL_ARGUMENT),
+                    )
+                })
+        })
+        .filter_map(
+            |(graph, overrides, override_label)| match (&graph.node, &overrides.node) {
+                (async_graphql_value::ConstValue::Enum(graph), async_graphql_value::ConstValue::String(overrides)) => {
+                    Some(Override {
+                        graph: state.graph_sdl_names.get(graph.as_str()).copied().or_else(|| {
+                            // Previously we used the subgraph name rather than the enum we overrides
+                            // was specified.
+                            let subgraph_name = state.insert_string(graph.as_str());
+                            Some(SubgraphId(
+                                state
+                                    .subgraphs
+                                    .iter()
+                                    .position(|subgraph| subgraph.name == subgraph_name)?,
+                            ))
+                        })?,
+                        label: override_label
+                            .and_then(|value| match &value.node {
+                                async_graphql_value::ConstValue::String(s) => s.parse().ok(),
+                                _ => None,
+                            })
+                            .unwrap_or_default(),
+                        from: state
                             .subgraphs
                             .iter()
-                            .position(|subgraph| subgraph.name == subgraph_name)?,
-                    ),
-                    from: state
-                        .subgraphs
-                        .iter()
-                        .position(|subgraph| &state.strings[subgraph.name.0] == overrides)
-                        .map(SubgraphId)
-                        .map(OverrideSource::Subgraph)
-                        .unwrap_or_else(|| OverrideSource::Missing(state.insert_string(overrides))),
-                })
-            }
-            _ => None, // unreachable in valid schemas
-        })
+                            .position(|subgraph| &state.strings[subgraph.name.0] == overrides)
+                            .map(SubgraphId)
+                            .map(OverrideSource::Subgraph)
+                            .unwrap_or_else(|| OverrideSource::Missing(state.insert_string(overrides))),
+                    })
+                }
+                _ => None, // unreachable in valid schemas
+            },
+        )
         .collect();
 
     let composed_directives = collect_composed_directives(&ast_field.directives, state);
@@ -635,7 +703,7 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
 
     let field_id = FieldId(state.fields.push_return_idx(Field {
         name,
-        field_type_id,
+        r#type,
         resolvable_in,
         provides: Vec::new(),
         requires: Vec::new(),
@@ -673,7 +741,7 @@ fn ingest_input_object<'a>(
     let start = state.input_value_definitions.len();
     for field in &input_object.fields {
         let name = state.insert_string(field.node.name.node.as_str());
-        let type_id = state.insert_field_type(&field.node.ty.node);
+        let r#type = state.field_type(&field.node.ty.node);
         let composed_directives = collect_composed_directives(&field.node.directives, state);
         let description = field
             .node
@@ -682,7 +750,7 @@ fn ingest_input_object<'a>(
             .map(|description| state.insert_string(description.node.as_str()));
         state.input_value_definitions.push(InputValueDefinition {
             name,
-            type_id,
+            r#type,
             directives: composed_directives,
             description,
         });
@@ -692,11 +760,54 @@ fn ingest_input_object<'a>(
     state.input_objects[input_object_id.0].fields = (InputValueDefinitionId(start), end - start);
 }
 
-fn ingest_object_fields<'a>(object_id: ObjectId, object: &'a ast::ObjectType, state: &mut State<'a>) {
-    for field in &object.fields {
+fn ingest_object_fields<'a>(
+    object_id: ObjectId,
+    fields: &'a [Positioned<ast::FieldDefinition>],
+    state: &mut State<'a>,
+) {
+    let [mut start, mut end] = [None; 2];
+
+    for field in fields {
         let field_id = ingest_field(Definition::Object(object_id), &field.node, state);
-        state.object_fields.push(ObjectField { object_id, field_id });
+        start = Some(start.unwrap_or(field_id));
+        end = Some(FieldId(field_id.0 + 1));
     }
+
+    // When we encounter the root query type, we need to make space at the end of the fields for __type and __schema.
+    if object_id
+        == state
+            .root_operation_types()
+            .expect("root operation types to be defined at this point")
+            .query
+    {
+        let new_start = state.fields.len();
+
+        for name in ["__schema", "__type"].map(|name| state.insert_string(name)) {
+            state.fields.push(Field {
+                name,
+                r#type: Type {
+                    wrapping: Wrapping::new(false),
+                    definition: Definition::Object(object_id),
+                },
+                arguments: NO_INPUT_VALUE_DEFINITION,
+                resolvable_in: Vec::new(),
+                provides: Vec::new(),
+                requires: Vec::new(),
+                overrides: Vec::new(),
+                composed_directives: NO_DIRECTIVES,
+                description: None,
+            });
+        }
+
+        start = start.or(Some(FieldId(new_start)));
+        end = end.map(|end| FieldId(end.0 + 2)).or(Some(FieldId(new_start + 2)));
+    }
+
+    let [Some(start), Some(end)] = [start, end] else {
+        return;
+    };
+
+    state.objects[object_id.0].fields = Range { start, end };
 }
 
 fn parse_selection_set(fields: &str) -> Result<Vec<Positioned<ast::Selection>>, DomainError> {
@@ -732,11 +843,29 @@ fn attach_selection(
             let ast::Selection::Field(ast_field) = &selection.node else {
                 return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
             };
-            let field = state.selection_map[&(parent_id, ast_field.node.name.node.as_str())];
-            let field_ty = state.field_types[state.fields[field.0].field_type_id.0].kind;
+            let field: FieldId = state.selection_map[&(parent_id, ast_field.node.name.node.as_str())];
+            let field_ty = state.fields[field.0].r#type.definition;
             let subselection = &ast_field.node.selection_set.node.items;
+            let arguments = ast_field
+                .node
+                .arguments
+                .iter()
+                .map(|(name, value)| {
+                    let name = state.insert_string(&name.node);
+                    let (start, len) = state.fields[field.0].arguments;
+                    let arguments = &state.input_value_definitions[start.0..start.0 + len];
+                    let argument = arguments
+                        .iter()
+                        .position(|arg| arg.name == name)
+                        .map(|idx| InputValueDefinitionId(start.0 + idx))
+                        .expect("unknown argument");
+                    let value = state.insert_value(&value.node.clone().into_const().expect("Value -> ConstValue"));
+                    (argument, value)
+                })
+                .collect();
             Ok(FieldSetItem {
                 field,
+                arguments,
                 subselection: attach_selection(subselection, field_ty, state)?,
             })
         })
@@ -827,6 +956,41 @@ fn collect_composed_directives(directives: &[Positioned<ast::ConstDirective>], s
 
                 state.directives.push(directive)
             }
+            "requiresScopes" => {
+                let scopes: Option<Vec<Vec<String>>> = directive
+                    .node
+                    .get_argument("scopes")
+                    .and_then(|scopes| scopes.node.clone().into_json().ok())
+                    .and_then(|scopes| serde_json::from_value(scopes).ok());
+
+                if let Some(scopes) = scopes {
+                    let transformed = scopes
+                        .into_iter()
+                        .map(|scopes| scopes.into_iter().map(|scope| state.insert_string(&scope)).collect())
+                        .collect();
+                    state.directives.push(Directive::RequiresScopes(transformed));
+                }
+            }
+            "policy" => {
+                let policies: Option<Vec<Vec<String>>> = directive
+                    .node
+                    .get_argument("policies")
+                    .and_then(|policies| policies.node.clone().into_json().ok())
+                    .and_then(|policies| serde_json::from_value(policies).ok());
+
+                if let Some(policies) = policies {
+                    let transformed = policies
+                        .into_iter()
+                        .map(|policies| {
+                            policies
+                                .into_iter()
+                                .map(|policy| state.insert_string(&policy))
+                                .collect()
+                        })
+                        .collect();
+                    state.directives.push(Directive::Policy(transformed));
+                }
+            }
             other => {
                 let name = state.insert_string(other);
                 let arguments = directive
@@ -850,7 +1014,7 @@ fn collect_composed_directives(directives: &[Positioned<ast::ConstDirective>], s
 #[test]
 fn test_from_sdl() {
     // https://github.com/the-guild-org/gateways-benchmark/blob/main/federation-v1/gateways/apollo-router/supergraph.graphql
-    super::from_sdl(r#"
+    let schema = super::from_sdl(r#"
         schema
           @link(url: "https://specs.apollo.dev/link/v1.0")
           @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
@@ -941,4 +1105,257 @@ fn test_from_sdl() {
           reviews: [Review] @join__field(graph: REVIEWS)
         }
     "#).unwrap();
+
+    let schema = schema.into_latest();
+    let query_object = &schema[schema.root_operation_types.query];
+
+    for field_name in ["__type", "__schema"] {
+        let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
+        assert!(schema[query_object.fields.clone()]
+            .iter()
+            .any(|f| f.name.0 == field_name));
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_from_sdl_with_empty_query_root() {
+    // https://github.com/the-guild-org/gateways-benchmark/blob/main/federation-v1/gateways/apollo-router/supergraph.graphql
+    let schema = super::from_sdl(
+        r#"
+        schema
+          @link(url: "https://specs.apollo.dev/link/v1.0")
+          @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+        {
+          query: Query
+        }
+
+        directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+        directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+        directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+        directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+        directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+        directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+        scalar join__FieldSet
+
+        enum join__Graph {
+          ACCOUNTS @join__graph(name: "accounts", url: "http://accounts:4001/graphql")
+          INVENTORY @join__graph(name: "inventory", url: "http://inventory:4002/graphql")
+          PRODUCTS @join__graph(name: "products", url: "http://products:4003/graphql")
+          REVIEWS @join__graph(name: "reviews", url: "http://reviews:4004/graphql")
+        }
+
+        scalar link__Import
+
+        enum link__Purpose {
+          """
+          `SECURITY` features provide metadata necessary to securely resolve fields.
+          """
+          SECURITY
+
+          """
+          `EXECUTION` features provide metadata necessary for operation execution.
+          """
+          EXECUTION
+        }
+
+        type Query
+
+        type User
+          @join__type(graph: ACCOUNTS, key: "id")
+          @join__type(graph: REVIEWS, key: "id")
+        {
+          id: ID!
+          name: String @join__field(graph: ACCOUNTS)
+          username: String @join__field(graph: ACCOUNTS) @join__field(graph: REVIEWS, external: true)
+          birthday: Int @join__field(graph: ACCOUNTS)
+          reviews: [Review] @join__field(graph: REVIEWS)
+        }
+
+        type Review
+          @join__type(graph: REVIEWS, key: "id")
+        {
+          id: ID!
+          body: String
+          author: User @join__field(graph: REVIEWS, provides: "username")
+        }
+    "#,
+    ).unwrap();
+
+    let schema = schema.into_latest();
+    let query_object = &schema[schema.root_operation_types.query];
+
+    for field_name in ["__type", "__schema"] {
+        let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
+        assert!(schema[query_object.fields.clone()]
+            .iter()
+            .any(|f| f.name.0 == field_name));
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_from_sdl_with_missing_query_root() {
+    // https://github.com/the-guild-org/gateways-benchmark/blob/main/federation-v1/gateways/apollo-router/supergraph.graphql
+    let schema = super::from_sdl(
+        r#"
+        schema
+          @link(url: "https://specs.apollo.dev/link/v1.0")
+          @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+        {
+          query: Query
+        }
+
+        directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+        directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+        directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+        directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+        directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+        directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+        scalar join__FieldSet
+
+        enum join__Graph {
+          ACCOUNTS @join__graph(name: "accounts", url: "http://accounts:4001/graphql")
+          INVENTORY @join__graph(name: "inventory", url: "http://inventory:4002/graphql")
+          PRODUCTS @join__graph(name: "products", url: "http://products:4003/graphql")
+          REVIEWS @join__graph(name: "reviews", url: "http://reviews:4004/graphql")
+        }
+
+        scalar link__Import
+
+        enum link__Purpose {
+          """
+          `SECURITY` features provide metadata necessary to securely resolve fields.
+          """
+          SECURITY
+
+          """
+          `EXECUTION` features provide metadata necessary for operation execution.
+          """
+          EXECUTION
+        }
+
+        type Review
+          @join__type(graph: REVIEWS, key: "id")
+        {
+          id: ID!
+          body: String
+          author: User @join__field(graph: REVIEWS, provides: "username")
+        }
+
+        type User
+          @join__type(graph: ACCOUNTS, key: "id")
+          @join__type(graph: REVIEWS, key: "id")
+        {
+          id: ID!
+          name: String @join__field(graph: ACCOUNTS)
+          username: String @join__field(graph: ACCOUNTS) @join__field(graph: REVIEWS, external: true)
+          birthday: Int @join__field(graph: ACCOUNTS)
+          reviews: [Review] @join__field(graph: REVIEWS)
+        }
+    "#,
+    ).unwrap();
+
+    let schema = schema.into_latest();
+    let query_object = &schema[schema.root_operation_types.query];
+
+    for field_name in ["__type", "__schema"] {
+        let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
+        assert!(schema[query_object.fields.clone()]
+            .iter()
+            .any(|f| f.name.0 == field_name));
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn backwards_compatibility() {
+    use expect_test::expect;
+
+    let sdl = r###"
+    directive @core(feature: String!) repeatable on SCHEMA
+
+    directive @join__owner(graph: join__Graph!) on OBJECT
+
+    directive @join__type(
+        graph: join__Graph!
+        key: String!
+        resolvable: Boolean = true
+    ) repeatable on OBJECT | INTERFACE
+
+    directive @join__field(
+        graph: join__Graph
+        requires: String
+        provides: String
+    ) on FIELD_DEFINITION
+
+    directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+    enum join__Graph {
+        MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
+        STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
+    }
+
+    type Mammoth {
+        tuskLength: Int
+        weightGrams: Int @join__field(graph: mangrove, overrides: "steppe")
+    }
+
+    type Query {
+        getMammoth: Mammoth @join__field(graph: mangrove, overrides: "steppe")
+    }
+    "###;
+
+    let expected = expect![[r#"
+    directive @core(feature: String!) repeatable on SCHEMA
+
+    directive @join__owner(graph: join__Graph!) on OBJECT
+
+    directive @join__type(
+        graph: join__Graph!
+        key: String!
+        resolvable: Boolean = true
+    ) repeatable on OBJECT | INTERFACE
+
+    directive @join__field(
+        graph: join__Graph
+        requires: String
+        provides: String
+    ) on FIELD_DEFINITION
+
+    directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+    enum join__Graph {
+        MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
+        STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
+    }
+
+    type Mammoth {
+        tuskLength: Int
+        weightGrams: Int @join__field(graph: MANGROVE, override: "steppe")
+    }
+
+    type Query {
+        getMammoth: Mammoth @join__field(graph: MANGROVE, override: "steppe")
+    }
+    "#]];
+    let actual = super::from_sdl(sdl).unwrap().into_sdl().unwrap();
+
+    expected.assert_eq(&actual);
 }

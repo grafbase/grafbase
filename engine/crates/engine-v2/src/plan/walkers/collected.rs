@@ -1,11 +1,11 @@
 use schema::Definition;
 
 use crate::{
+    operation::SelectionSetTypeWalker,
     plan::{
         AnyCollectedSelectionSet, CollectedField, CollectedFieldId, CollectedSelectionSet, CollectedSelectionSetId,
         ConditionalField, ConditionalFieldId, ConditionalSelectionSet, ConditionalSelectionSetId, FieldType,
     },
-    request::SelectionSetTypeWalker,
     response::UnpackedResponseEdge,
 };
 
@@ -45,9 +45,9 @@ impl<'a> PlanCollectedField<'a> {
         &self.operation_plan[self.item]
     }
 
-    pub fn as_bound_field(&self) -> PlanField<'a> {
+    pub fn as_operation_field(&self) -> PlanField<'a> {
         let field = self.as_ref();
-        self.walk_with(field.bound_field_id, field.schema_field_id)
+        self.walk_with(field.id, field.definition_id)
     }
 
     pub fn concrete_selection_set(&self) -> Option<PlanCollectedSelectionSet<'a>> {
@@ -86,9 +86,9 @@ impl<'a> PlanConditionalField<'a> {
         &self.operation_plan[self.item]
     }
 
-    pub fn as_bound_field(&self) -> PlanField<'a> {
+    pub fn as_operation_field(&self) -> PlanField<'a> {
         let field = self.as_ref();
-        self.walk_with(field.bound_field_id, field.schema_field_id)
+        self.walk_with(field.id, field.definition_id)
     }
 
     pub fn selection_set(&self) -> Option<PlanConditionalSelectionSet<'a>> {
@@ -136,8 +136,8 @@ impl<'a> std::fmt::Debug for PlanCollectedSelectionSet<'a> {
 impl<'a> std::fmt::Debug for PlanCollectedField<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut fmt = f.debug_struct("CollectedField");
-        fmt.field("key", &self.as_bound_field().response_key_str());
-        if self.as_bound_field().response_key() != self.as_ref().expected_key.into() {
+        fmt.field("key", &self.as_operation_field().response_key_str());
+        if self.as_operation_field().response_key() != self.as_ref().expected_key.into() {
             fmt.field(
                 "expected_key",
                 &&self.operation_plan.response_keys[self.as_ref().expected_key],
@@ -170,8 +170,8 @@ impl<'a> std::fmt::Debug for PlanConditionalSelectionSet<'a> {
 impl<'a> std::fmt::Debug for PlanConditionalField<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut fmt = f.debug_struct("ProvisionalField");
-        fmt.field("key", &self.as_bound_field().response_key_str());
-        if self.as_bound_field().response_key() != self.as_ref().expected_key.into() {
+        fmt.field("key", &self.as_operation_field().response_key_str());
+        if self.as_operation_field().response_key() != self.as_ref().expected_key.into() {
             fmt.field(
                 "expected_key",
                 &&self.operation_plan.response_keys[self.as_ref().expected_key],

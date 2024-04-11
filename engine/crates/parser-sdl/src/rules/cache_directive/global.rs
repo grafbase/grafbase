@@ -6,7 +6,7 @@ use std::{
 
 use engine::{
     indexmap::IndexMap,
-    registry::{self, CacheInvalidationPolicy, MetaField, MetaType, Registry, TypeReference},
+    registry::{CacheInvalidationPolicy, MetaField, MetaType, Registry, TypeReference},
     CacheControl,
 };
 use if_chain::if_chain;
@@ -117,8 +117,16 @@ impl<'a> GlobalCacheRules<'a> {
                 GlobalCacheTarget::Type(ty) => {
                     match Self::get_registry_type(ty.as_ref(), registry) {
                         Ok(registry_type) => {
+                            let caching_interest = match registry_type {
+                                MetaType::Object(object) => Some((&mut object.cache_control, &mut object.fields)),
+                                MetaType::Interface(interface) => {
+                                    Some((&mut interface.cache_control, &mut interface.fields))
+                                }
+                                _ => None,
+                            };
+
                             if_chain! {
-                                if let MetaType::Object (registry::ObjectType { cache_control, fields,  .. }) = registry_type;
+                                if let Some((cache_control, fields)) = caching_interest;
                                 // (!= 0) means caching was defined in a different level
                                 // global works as default so we skip
                                 if cache_control.max_age == 0;
@@ -657,6 +665,50 @@ mod tests {
             err.contains(&GlobalCacheRulesError::UnknownMutationInvalidationFieldType(
                 "author".to_string(),
             ))
+        );
+    }
+
+    #[test]
+    #[allow(clippy::panic)]
+    fn should_apply_global_cache_rules_on_resolver_types() {
+        let variables = HashMap::new();
+        const SCHEMA: &str = r#"
+        type Query {
+            slow(seconds: String!): Post! @resolver(name: "slow")
+        }
+
+        extend schema @cache(rules: [{ maxAge: 60, staleWhileRevalidate: 10, types: "Post" }])
+
+        type Post {
+            seconds: String!
+            hello: String!
+        }
+    "#;
+
+        let mut result = to_parse_result_with_variables(SCHEMA, &variables).expect("must succeed");
+
+        // apply caching controls
+        if let Err(global_cache_rules_result) = result.global_cache_rules.apply(&mut result.registry) {
+            panic!("global cache rules apply must succeed - {global_cache_rules_result:?}");
+        };
+
+        let post_type = result
+            .registry
+            .types
+            .get("Post")
+            .unwrap()
+            .object()
+            .expect("should be an object");
+
+        assert_eq!(
+            post_type.cache_control,
+            CacheControl {
+                public: false,
+                max_age: 60,
+                stale_while_revalidate: 10,
+                invalidation_policy: None,
+                access_scopes: None,
+            }
         );
     }
 }

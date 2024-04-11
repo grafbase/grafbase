@@ -17,9 +17,10 @@ http.workspace = true
 http-body = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0"
-tonic = "0.11.0"
+tonic = { version = "0.11.0", optional = true }
 tower-http = { version = "0.5", optional = true, features = ["trace"] }
 url = { version = "2.5", features = ["serde"] }
+worker = { version = "0.1.0", optional = true }
 
 # tracing
 tracing.workspace = true
@@ -27,16 +28,18 @@ tracing-subscriber = { workspace = true, features = ["env-filter"] }
 tracing-opentelemetry = "0.23"
 opentelemetry = "0.22"
 opentelemetry_sdk = { version = "0.22", features = ["rt-tokio"] }
-opentelemetry-stdout = { version = "0.3", features = ["trace"] }
-opentelemetry-otlp = { version = "0.15" , features = ["grpc-tonic", "tls", "tonic", "http-proto"] }
-
+opentelemetry-stdout = { version = "0.3", features = ["trace", "metrics"] }
+opentelemetry-otlp = { version = "0.15" , features = ["grpc-tonic", "tls", "tonic", "http-proto"], optional = true }
 
 [features]
 default = []
 tower = ["tower-http"]
+otlp = ["dep:opentelemetry-otlp", "dep:tonic"]
+worker = ["dep:worker"]
+lambda = []
 
 [dev-dependencies]
-indoc = "2.0.4"
-insta = "1.36.1"
+indoc = "2.0.5"
+insta = "1.38.0"
 tempfile = "3.10"
-toml = "0.8.10"
+toml = "0.8.12"

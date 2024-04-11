@@ -1,7 +1,7 @@
 use tracing::{info_span, Span};
 
 /// Subgraph request span name
-pub const SPAN_NAME: &str = "subgraph";
+pub const SUBGRAPH_SPAN_NAME: &str = "subgraph";
 
 /// A span for a subgraph request
 pub struct SubgraphRequestSpan<'a> {
@@ -22,8 +22,8 @@ impl<'a> SubgraphRequestSpan<'a> {
     }
 
     /// Set the subgraph GraphQL document as an attribute of the span
-    pub fn with_document(mut self, document: impl Into<Option<&'a str>>) -> Self {
-        self.document = document.into();
+    pub fn with_document(mut self, document: &'a str) -> Self {
+        self.document = Some(document);
         self
     }
 
@@ -34,8 +34,8 @@ impl<'a> SubgraphRequestSpan<'a> {
     }
 
     /// Set the subgraph operation type as an attribute of the span
-    pub fn with_operation_type(mut self, operation_type: impl Into<Option<&'a str>>) -> Self {
-        self.operation_type = operation_type.into();
+    pub fn with_operation_type(mut self, operation_type: &'a str) -> Self {
+        self.operation_type = Some(operation_type);
         self
     }
 
@@ -43,7 +43,7 @@ impl<'a> SubgraphRequestSpan<'a> {
     pub fn into_span(self) -> Span {
         info_span!(
             target: crate::span::GRAFBASE_TARGET,
-            SPAN_NAME,
+            SUBGRAPH_SPAN_NAME,
             "subgraph.name" = self.name,
             "subgraph.gql.operation.name" = self.operation_name.as_ref(),
             "subgraph.gql.operation.type" = self.operation_type,

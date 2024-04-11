@@ -31,19 +31,17 @@ type Cheetah implements Animal
     @join__type(graph: MANGROVE, key: "species")
     @join__type(graph: SAVANA, key: "species")
 {
+    favouriteFood: String @join__field(graph: FOREST)
+    runSpeedKmh: Float @join__field(graph: MANGROVE)
     species: String!
     swimSpeedKmh: Float @join__field(graph: MANGROVE)
-    runSpeedKmh: Float @join__field(graph: MANGROVE)
     topSpeed: Int! @join__field(graph: SAVANA)
-    species: String!
-    favouriteFood: String @join__field(graph: FOREST)
-    swimSpeedKmh: Float
     weightGrams: Int @join__field(graph: STEPPE)
 }
 
 type Mammoth {
-    weightGrams: Int @join__field(graph: STEPPE)
     tuskLength: Int @join__field(graph: STEPPE)
+    weightGrams: Int @join__field(graph: STEPPE)
 }
 
 type Query {
@@ -55,8 +53,8 @@ interface Animal
     @join__type(graph: FOREST, key: "species", isInterfaceObject: true)
     @join__type(graph: STEPPE, key: "species", isInterfaceObject: true)
 {
-    species: String!
     favouriteFood: String @join__field(graph: FOREST)
-    swimSpeedKmh: Float
+    species: String!
+    swimSpeedKmh: Float @join__field(graph: MANGROVE)
     weightGrams: Int @join__field(graph: STEPPE)
 }

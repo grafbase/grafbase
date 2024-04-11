@@ -22,7 +22,10 @@ use engine_value::Name;
 use super::{warnings::Warnings, RuleError, TypeStackType, MUTATION_TYPE, QUERY_TYPE};
 use crate::{
     federation::FederatedGraphConfig,
-    rules::{federation::FederationVersion, operation_limits_directive::OperationLimitsDirective},
+    rules::{
+        federation::FederationVersion, operation_limits_directive::OperationLimitsDirective,
+        trusted_documents_directive::TrustedDocumentsDirective,
+    },
     GlobalCacheRules, GlobalCacheTarget, GraphqlDirective, MongoDBDirective, OpenApiDirective, ParseResult,
     PostgresDirective,
 };
@@ -60,8 +63,8 @@ pub struct VisitorContext<'a> {
     pub(crate) postgres_directives: Vec<(PostgresDirective, Pos)>,
     pub(crate) global_cache_rules: GlobalCacheRules<'static>,
     pub(crate) operation_limits_directive: Option<OperationLimitsDirective>,
+    pub(crate) trusted_documents_directive: Option<TrustedDocumentsDirective>,
 
-    pub database_models_enabled: bool,
     pub federation: Option<FederationVersion>,
 
     pub federated_graph_config: FederatedGraphConfig,
@@ -72,14 +75,10 @@ impl<'a> VisitorContext<'a> {
     pub(crate) fn new_for_tests(document: &'a ServiceDocument) -> Self {
         use std::sync::OnceLock;
         static MAP: OnceLock<HashMap<String, String>> = OnceLock::new();
-        Self::new(document, false, MAP.get_or_init(HashMap::new))
+        Self::new(document, MAP.get_or_init(HashMap::new))
     }
 
-    pub(crate) fn new(
-        document: &'a ServiceDocument,
-        database_models_enabled: bool,
-        variables: &'a HashMap<String, String>,
-    ) -> Self {
+    pub(crate) fn new(document: &'a ServiceDocument, variables: &'a HashMap<String, String>) -> Self {
         let mut schema = Vec::new();
         let mut types = HashMap::new();
         let mut directives = HashMap::new();
@@ -125,16 +124,17 @@ impl<'a> VisitorContext<'a> {
             mongodb_directives: Vec::new(),
             postgres_directives: Vec::new(),
             global_cache_rules: Default::default(),
-            database_models_enabled,
             federation: None,
             federated_graph_config: Default::default(),
             operation_limits_directive: None,
+            trusted_documents_directive: None,
         }
     }
 
     /// Finish the Registry
     pub(crate) fn finish(mut self) -> ParseResult<'static> {
         let mut registry = self.registry.take();
+
         if self.federation.is_some() {
             registry.enable_federation = true;
         } else {
@@ -196,6 +196,8 @@ impl<'a> VisitorContext<'a> {
             .take()
             .map(From::from)
             .unwrap_or_default();
+
+        registry.trusted_documents = self.trusted_documents_directive.take().map(From::from);
 
         let mut required_udfs = self
             .required_resolvers

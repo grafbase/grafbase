@@ -65,6 +65,7 @@ impl<'a> Visitor<'a> for AuthV2DirectiveVisitor {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type")]
 pub enum AuthV2Provider {
@@ -76,6 +77,7 @@ pub enum AuthV2Provider {
         #[serde(default)]
         header: JwtTokenHeader,
     },
+    Anonymous,
 }
 
 ///
@@ -115,6 +117,7 @@ impl AuthV2Provider {
     pub fn poll_interval(&self) -> Option<Duration> {
         match self {
             AuthV2Provider::JWT { jwks, .. } => Some(jwks.poll_interval),
+            AuthV2Provider::Anonymous => None,
         }
     }
 }

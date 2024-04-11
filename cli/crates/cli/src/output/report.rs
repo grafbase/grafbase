@@ -473,6 +473,10 @@ pub(crate) fn compose_after_removal_failure(subgraph_name: &str, errors: &str) {
     eprintln!("❌ Failed to compose schema after removing subgraph {subgraph_name}. Errors:\n{errors}");
 }
 
+pub(crate) fn predefined_introspection_failed(subgraph_name: &str, errors: &str) {
+    eprintln!("❌ Failed to introspect the predefined subgraph {subgraph_name}. Errors:\n{errors}");
+}
+
 pub fn print_log_entry(
     LogEvent {
         created_at,
@@ -517,6 +521,10 @@ pub(crate) async fn listen_to_federated_dev_events() {
                 } => {
                     compose_after_removal_failure(&subgraph_name, &rendered_error);
                 }
+                federated_dev::FederatedDevEvent::PredefinedIntrospectionFailed {
+                    subgraph_name,
+                    rendered_error,
+                } => predefined_introspection_failed(&subgraph_name, &rendered_error),
             }
         }
     });
@@ -562,6 +570,10 @@ pub(crate) fn trust_failed() {
     watercolor::output!("❌ Trusted document submission failed", @BrightRed)
 }
 
+pub(crate) fn old_access_token() {
+    watercolor::output!("❌ You must pass a project reference of the form <account>/<project>@<branch> (missing account)", @BrightRed)
+}
+
 pub(crate) fn trust_reused_ids(reused: &backend::api::submit_trusted_documents::ReusedIds) {
     watercolor::output!("Error: there already exist trusted documents with the same ids, but a different body:", @BrightRed);
 
@@ -569,4 +581,8 @@ pub(crate) fn trust_reused_ids(reused: &backend::api::submit_trusted_documents::
         let id = &reused_id.document_id;
         watercolor::output!("- {id}", @BrightRed);
     }
+}
+
+pub(crate) fn upgrade_up_to_date(version: &str) {
+    watercolor::output!("✅ The locally installed version ({version}) is already up to date", @BrightGreen)
 }

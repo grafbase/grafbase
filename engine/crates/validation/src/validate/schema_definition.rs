@@ -6,14 +6,11 @@ pub(crate) fn validate_schema_definition<'a>(def: &'a Positioned<ast::SchemaDefi
         let labels = vec![
             miette::LabeledSpan::new_with_span(
                 Some("Previous definition".to_owned()),
-                (
-                    ctx.miette_pos(previous_def.pos),
-                    miette::SourceOffset::from("schema".len()),
-                ),
+                (ctx.miette_pos(previous_def.pos), "schema".len()),
             ),
             miette::LabeledSpan::new_with_span(
                 Some("Second definition".to_owned()),
-                (ctx.miette_pos(def.pos), miette::SourceOffset::from("schema".len())),
+                (ctx.miette_pos(def.pos), "schema".len()),
             ),
         ];
 
@@ -60,15 +57,11 @@ pub(crate) fn validate_schema_definition_references(ctx: &mut Context<'_>) {
     for (actual, default) in &names {
         let Some(actual) = actual else { continue };
 
-        if actual == default {
-            continue;
-        }
-
         match ctx.definition_names.get(actual) {
             None => {
                 let labels = vec![miette::LabeledSpan::new_with_span(
                     None,
-                    miette::SourceSpan::new(ctx.miette_pos(pos), "schema".len().into()),
+                    miette::SourceSpan::new(ctx.miette_pos(pos), "schema".len()),
                 )];
                 ctx.push_error(miette::miette!(
                     labels = labels,

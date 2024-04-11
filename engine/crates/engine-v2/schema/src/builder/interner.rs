@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{CacheConfigId, StringId};
+use crate::{CacheControl, CacheControlId, RequiredScopes, RequiredScopesId, StringId};
 
 pub struct Interner<T, Id>(indexmap::IndexSet<T, fnv::FnvBuildHasher>, PhantomData<Id>);
 
@@ -39,12 +39,21 @@ impl<T, Id: Into<usize>> std::ops::Index<Id> for Interner<T, Id> {
     }
 }
 
-impl Interner<config::latest::CacheConfig, CacheConfigId> {
-    pub fn get_or_insert(&mut self, value: &config::latest::CacheConfig) -> CacheConfigId {
+impl Interner<CacheControl, CacheControlId> {
+    pub fn get_or_insert(&mut self, value: CacheControl) -> CacheControlId {
         self.0
-            .get_full(value)
+            .get_full(&value)
             .map(|(id, _)| id.into())
-            .unwrap_or_else(|| self.insert(value.clone()))
+            .unwrap_or_else(|| self.insert(value))
+    }
+}
+
+impl Interner<RequiredScopes, RequiredScopesId> {
+    pub fn get_or_insert(&mut self, value: RequiredScopes) -> RequiredScopesId {
+        self.0
+            .get_full(&value)
+            .map(|(id, _)| id.into())
+            .unwrap_or_else(|| self.insert(value))
     }
 }
 

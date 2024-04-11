@@ -1,6 +1,22 @@
 # Changelog
 
-## [0.18.0] - Tue Fed 13 2024
+## [0.20.0] - Wed Apr 10 2024
+
+[CHANGELOG](changelog/0.20.0.md)
+
+## [0.19.2] - Tue Apr 2 2024
+
+[CHANGELOG](changelog/0.19.2.md)
+
+## [0.19.1] - Tue Apr 2 2024
+
+[CHANGELOG](changelog/0.19.1.md)
+
+## [0.19.0] - Wed Mar 20 2024
+
+[CHANGELOG](changelog/0.19.0.md)
+
+## [0.18.0] - Tue Feb 13 2024
 
 [CHANGELOG](changelog/0.18.0.md)
 

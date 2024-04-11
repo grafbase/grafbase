@@ -10,6 +10,7 @@
 //! A Resolver always know how to apply the associated transformers.
 
 use engine_parser::types::SelectionSet;
+use futures_util::TryFutureExt;
 use graphql_cursor::GraphqlCursor;
 use ulid::Ulid;
 
@@ -38,6 +39,8 @@ pub mod postgres;
 mod resolved_value;
 pub mod transformer;
 
+use grafbase_tracing::span::resolver::ResolverInvocationSpan;
+use grafbase_tracing::span::ResolverInvocationRecorderSpanExt;
 use tracing::{info_span, Instrument};
 
 /// Resolver Context
@@ -141,10 +144,17 @@ impl Resolver {
             Resolver::Parent => last_resolver_value.ok_or_else(|| Error::new("No data to propagate!")),
             Resolver::Transformer(ctx_data) => ctx_data.resolve(ctx, resolver_ctx, last_resolver_value).await,
             Resolver::CustomResolver(resolver) => {
-                resolver
+                let resolver_span = ResolverInvocationSpan::new(&resolver.resolver_name).into_span();
+
+                let response: Result<ResolvedValue, Error> = resolver
                     .resolve(ctx, last_resolver_value.as_ref())
-                    .instrument(info_span!("custom_resolver", resolver_name = resolver.resolver_name))
-                    .await
+                    .instrument(resolver_span.clone())
+                    .inspect_err(|err| {
+                        resolver_span.record_failure(&err.message);
+                    })
+                    .await;
+
+                response
             }
             Resolver::Composition(resolvers) => {
                 let [head, tail @ ..] = &resolvers[..] else {
@@ -157,15 +167,21 @@ impl Resolver {
                 Ok(current)
             }
             Resolver::Http(resolver) => {
+                let resolver_span = ResolverInvocationSpan::new(&resolver.api_name).into_span();
+
                 resolver
                     .resolve(ctx, resolver_ctx, last_resolver_value)
-                    .instrument(info_span!("http_resolver", api_name = resolver.api_name))
+                    .instrument(resolver_span.clone())
+                    .inspect_err(|err| {
+                        resolver_span.record_failure(&err.message);
+                    })
                     .await
             }
             Resolver::Graphql(resolver) => {
                 let runtime_ctx = ctx.data::<runtime::Context>()?;
                 let ray_id = runtime_ctx.ray_id();
                 let fetch_log_endpoint_url = runtime_ctx.log.fetch_log_endpoint_url.as_deref();
+                let resolver_span = ResolverInvocationSpan::new(resolver.name().as_ref()).into_span();
 
                 let registry = ctx.registry();
                 let request_headers = ctx.data::<RequestHeaders>().ok();
@@ -212,12 +228,14 @@ impl Resolver {
                 let error_handler = |error| ctx.add_error(error);
                 let variables = ctx.query_env.variables.clone();
 
-                let batcher = &ctx.data::<QueryBatcher>()?;
+                let batcher = ctx.data::<QueryBatcher>().ok();
 
                 resolver
                     .resolve(
+                        ctx.query_env.futures_spawner.clone(),
                         // Be a lot easier to just pass the context in here...
                         operation,
+                        ctx.path.clone(),
                         ray_id,
                         fetch_log_endpoint_url,
                         &headers,
@@ -228,9 +246,12 @@ impl Resolver {
                         variables,
                         variable_definitions,
                         registry,
-                        Some(batcher),
+                        batcher,
                     )
-                    .instrument(info_span!("graphql_resolver", name = resolver.name().as_ref()))
+                    .instrument(resolver_span.clone())
+                    .inspect_err(|err| {
+                        resolver_span.record_failure(&err.to_string());
+                    })
                     .await
                     .map_err(Into::into)
             }

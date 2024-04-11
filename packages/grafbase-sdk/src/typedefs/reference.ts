@@ -10,12 +10,14 @@ import { InaccessibleDefinition } from './inaccessible'
 import { ShareableDefinition } from './shareable'
 import { OverrideDefinition } from './override'
 import { ProvidesDefinition } from './provides'
+import { InputType } from '../query'
+import { Union } from '../union'
 
 export class ReferenceDefinition {
   private referencedType: string
   private isOptional: boolean
 
-  constructor(referencedType: Type | string) {
+  constructor(referencedType: Type | Union | string) {
     this.referencedType =
       typeof referencedType === 'string' ? referencedType : referencedType.name
     this.isOptional = false
@@ -106,6 +108,10 @@ export class ReferenceDefinition {
    */
   public provides(fields: string): ProvidesDefinition {
     return new ProvidesDefinition(this, fields)
+  }
+
+  public get allArguments(): Record<string, InputType> {
+    return {}
   }
 
   public toString(): string {

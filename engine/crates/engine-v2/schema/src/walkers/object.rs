@@ -1,5 +1,5 @@
-use super::{FieldWalker, SchemaWalker};
-use crate::{CacheConfig, InterfaceWalker, ObjectField, ObjectId, RangeWalker};
+use super::{FieldDefinitionWalker, SchemaWalker};
+use crate::{InterfaceWalker, ObjectId, TypeSystemDirectivesWalker};
 
 pub type ObjectWalker<'a> = SchemaWalker<'a, ObjectId>;
 
@@ -8,25 +8,9 @@ impl<'a> ObjectWalker<'a> {
         self.names.object(self.schema, self.item)
     }
 
-    pub fn fields(&self) -> impl Iterator<Item = FieldWalker<'a>> + 'a {
-        let start = self
-            .schema
-            .object_fields
-            .partition_point(|item| item.object_id < self.item);
-        let id = self.item;
-        RangeWalker {
-            schema: self.schema,
-            names: self.names,
-            range: &self.schema.object_fields,
-            index: start,
-            key: move |item: &ObjectField| {
-                if item.object_id == id {
-                    Some(item.field_id)
-                } else {
-                    None
-                }
-            },
-        }
+    pub fn fields(self) -> impl Iterator<Item = FieldDefinitionWalker<'a>> + 'a {
+        let fields = self.schema[self.item].fields;
+        fields.map(move |field_id| self.walk(field_id))
     }
 
     pub fn interfaces(self) -> impl ExactSizeIterator<Item = InterfaceWalker<'a>> + 'a {
@@ -37,10 +21,8 @@ impl<'a> ObjectWalker<'a> {
             .map(move |id| self.walk(id))
     }
 
-    pub fn cache_config(&self) -> Option<CacheConfig> {
-        self.as_ref()
-            .cache_config
-            .map(|cache_config_id| self.schema[cache_config_id])
+    pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
+        self.walk(self.as_ref().directives)
     }
 }
 

@@ -11,4 +11,5 @@ mod openapi;
 mod postgres;
 mod subgraph;
 
+mod caching;
 mod tracing;

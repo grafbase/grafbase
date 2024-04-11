@@ -9,6 +9,7 @@ use engine::{
 };
 
 use crate::{
+    parser_extensions::FieldExtension,
     registry::{get_length_validator, names::MetaNames},
     rules::{
         default_directive::DefaultDirective,
@@ -27,7 +28,11 @@ pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &
         input
     });
 
-    let explicit_fields = create_ctx.object.fields.iter().map(|field| {
+    let explicit_fields = create_ctx.object.fields.iter().filter_map(|field| {
+        if field.is_synthetic_field() {
+            return None;
+        }
+
         let r#type = to_input_type(&visitor_ctx.types, field.r#type().clone());
         let mut input = MetaInputValue::new(field.node.name.node.to_string(), r#type.to_string());
 
@@ -36,7 +41,7 @@ pub(crate) fn register_input(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &
         input.default_value = DefaultDirective::default_value_of(field);
         input.validators = get_length_validator(field).map(|validator| vec![validator]);
 
-        input
+        Some(input)
     });
 
     let input_fields = implicit_fields.chain(explicit_fields);

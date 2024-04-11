@@ -2846,5 +2846,6 @@ expression: registry_from_introspection(schema)
     "aliases": null,
     "rootFields": null,
     "complexity": null
-  }
+  },
+  "trusted_documents": null
 }

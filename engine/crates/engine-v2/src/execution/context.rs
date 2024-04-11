@@ -1,4 +1,5 @@
 use engine::RequestHeaders;
+use runtime::auth::AccessToken;
 
 use crate::Engine;
 
@@ -6,11 +7,12 @@ use crate::Engine;
 #[derive(Clone, Copy)]
 pub(crate) struct ExecutionContext<'ctx> {
     pub engine: &'ctx Engine,
-    pub(super) request_headers: &'ctx RequestHeaders,
+    pub headers: &'ctx RequestHeaders,
+    pub access_token: &'ctx AccessToken,
 }
 
 impl<'ctx> ExecutionContext<'ctx> {
     pub fn header(&self, name: &str) -> Option<&'ctx str> {
-        self.request_headers.find(name)
+        self.headers.find(name)
     }
 }

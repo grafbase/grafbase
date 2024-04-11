@@ -1,0 +1,23 @@
+accepted = [
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "ISC",
+    "MIT",
+    "MPL-2.0",
+    "NOASSERTION",
+    "OpenSSL",
+    "Unicode-DFS-2016",
+    "Unlicense",
+    "Zlib",
+    "zlib-acknowledgement"
+]
+
+targets = [
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+    "x86_64-unknown-linux-musl",
+]

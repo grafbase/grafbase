@@ -2,20 +2,19 @@ use std::sync::Arc;
 
 use futures::channel::mpsc;
 use futures_util::{SinkExt, Stream};
-#[cfg(feature = "tracing")]
+use runtime::auth::AccessToken;
 use tracing::Instrument;
 
 use async_runtime::stream::StreamExt as _;
 use engine::RequestHeaders;
 use engine_parser::types::OperationType;
-#[cfg(feature = "tracing")]
 use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlResponseAttributes};
 use schema::Schema;
 
 use crate::{
-    execution::{ExecutionCoordinator, PreparedExecution},
+    execution::{ExecutionContext, ExecutionCoordinator, PreparedExecution},
+    operation::{Operation, Variables},
     plan::OperationPlan,
-    request::{bind_variables, Operation},
     response::{ExecutionMetadata, GraphqlError, Response},
 };
 
@@ -35,7 +34,7 @@ pub struct Engine {
 pub struct EngineEnv {
     pub fetcher: runtime::fetch::Fetcher,
     pub cache: runtime::cache::Cache,
-    pub trusted_documents: runtime::trusted_documents_service::TrustedDocumentsClient,
+    pub trusted_documents: runtime::trusted_documents_client::Client,
 }
 
 impl Engine {
@@ -52,17 +51,18 @@ impl Engine {
         }
     }
 
-    pub async fn execute(self: &Arc<Self>, request: engine::Request, headers: RequestHeaders) -> PreparedExecution {
-        #[cfg(feature = "tracing")]
+    pub async fn execute(
+        self: &Arc<Self>,
+        request: engine::Request,
+        access_token: AccessToken,
+        headers: RequestHeaders,
+    ) -> PreparedExecution {
         let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
-        #[cfg(not(feature = "tracing"))]
-        let gql_span = tracing::Span::none();
 
-        let coordinator = match self.prepare_coordinator(request, headers).await {
+        let coordinator = match self.prepare_coordinator(request, access_token, headers).await {
             Ok(coordinator) => coordinator,
             Err(response) => {
                 return {
-                    #[cfg(feature = "tracing")]
                     gql_span.record_gql_response(GqlResponseAttributes { has_errors: true });
                     PreparedExecution::bad_request(response)
                 }
@@ -70,7 +70,6 @@ impl Engine {
         };
 
         if matches!(coordinator.operation().ty, OperationType::Subscription) {
-            #[cfg(feature = "tracing")]
             gql_span.record_gql_response(GqlResponseAttributes { has_errors: true });
 
             return PreparedExecution::bad_request(Response::from_error(
@@ -85,9 +84,9 @@ impl Engine {
     pub fn execute_stream(
         self: &Arc<Self>,
         request: engine::Request,
+        access_token: AccessToken,
         headers: RequestHeaders,
     ) -> impl Stream<Item = Response> {
-        #[cfg(feature = "tracing")]
         let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
 
         let (mut sender, receiver) = mpsc::channel(2);
@@ -95,7 +94,7 @@ impl Engine {
 
         receiver.join({
             let future = async move {
-                let coordinator = match engine.prepare_coordinator(request, headers).await {
+                let coordinator = match engine.prepare_coordinator(request, access_token, headers).await {
                     Ok(coordinator) => coordinator,
                     Err(response) => {
                         sender.send(response).await.ok();
@@ -113,52 +112,71 @@ impl Engine {
 
                 coordinator.execute_subscription(sender).await
             };
-            #[cfg(feature = "tracing")]
-            let future = future.instrument(gql_span);
-            future
+
+            future.instrument(gql_span)
         })
     }
 
     async fn prepare_coordinator(
         self: &Arc<Self>,
         mut request: engine::Request,
+        access_token: AccessToken,
         headers: RequestHeaders,
     ) -> Result<ExecutionCoordinator, Response> {
-        // Injecting the query string if necessary.
-        self.handle_persisted_query(&mut request, headers.find(CLIENT_NAME_HEADER_NAME))
+        self.handle_persisted_query(&mut request, headers.find(CLIENT_NAME_HEADER_NAME), &headers)
             .await
             .map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?;
 
-        let operation_plan = match self.prepare_operation(&request).await {
-            Ok(operation) => operation,
-            Err(error) => return Err(Response::from_error(error, ExecutionMetadata::default())),
-        };
-
-        let input_values = bind_variables(self.schema.as_ref(), &operation_plan, &mut request.variables)
-            .map_err(|errors| Response::from_errors(errors, ExecutionMetadata::build(&operation_plan)))?;
+        let (operation_plan, variables) = self
+            .prepare_operation(
+                ExecutionContext {
+                    engine: self.as_ref(),
+                    access_token: &access_token,
+                    headers: &headers,
+                },
+                request,
+            )
+            .await?;
 
         Ok(ExecutionCoordinator::new(
             Arc::clone(self),
             operation_plan,
-            input_values,
+            variables,
+            access_token,
             headers,
         ))
     }
 
-    async fn prepare_operation(&self, request: &engine::Request) -> Result<Arc<OperationPlan>, GraphqlError> {
+    async fn prepare_operation(
+        &self,
+        ctx: ExecutionContext<'_>,
+        request: engine::Request,
+    ) -> Result<(Arc<OperationPlan>, Variables), Response> {
         #[cfg(feature = "plan_cache")]
         {
-            if let Some(cached) = self.plan_cache.get(&request.operation_plan_cache_key) {
-                return Ok(cached);
+            if let Some(operation_plan) = self.plan_cache.get(&request.operation_plan_cache_key) {
+                crate::operation::validate_cached_operation(ctx, &operation_plan)
+                    .map_err(|err| Response::from_error(err, ExecutionMetadata::build(&operation_plan)))?;
+                let variables = Variables::build(self.schema.as_ref(), &operation_plan, request.variables)
+                    .map_err(|errors| Response::from_errors(errors, ExecutionMetadata::build(&operation_plan)))?;
+                return Ok((operation_plan, variables));
             }
         }
-        let operation = Operation::build(&self.schema, request)?;
-        let prepared = Arc::new(OperationPlan::prepare(&self.schema, operation)?);
+        let operation =
+            Operation::build(ctx, &request).map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?;
+
+        let variables = Variables::build(self.schema.as_ref(), &operation, request.variables)
+            .map_err(|errors| Response::from_errors(errors, ExecutionMetadata::build(&operation)))?;
+
+        let operation_plan = Arc::new(
+            OperationPlan::prepare(&self.schema, &variables, operation)
+                .map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?,
+        );
         #[cfg(feature = "plan_cache")]
         {
             self.plan_cache
-                .insert(request.operation_plan_cache_key.clone(), prepared.clone())
+                .insert(request.operation_plan_cache_key.clone(), operation_plan.clone())
         }
-        Ok(prepared)
+        Ok((operation_plan, variables))
     }
 }

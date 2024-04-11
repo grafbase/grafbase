@@ -1,9 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
-    builder::SchemaBuilder, Definition, EnumId, EnumValue, EnumValueId, Field, FieldId, FieldResolver, IdRange,
-    InputValueDefinition, InputValueDefinitionId, ObjectField, ObjectId, ResolverId, ScalarId, ScalarType, Schema,
-    SchemaInputValue, SchemaInputValueId, SchemaWalker, StringId, Type, TypeId, Wrapping,
+    builder::BuildContext, Definition, EnumId, EnumValue, EnumValueId, FieldDefinition, FieldDefinitionId, Graph,
+    IdRange, InputValueDefinition, InputValueDefinitionId, ObjectId, ResolverId, ScalarId, ScalarType,
+    SchemaInputValue, SchemaInputValueId, SchemaWalker, StringId, SubgraphId, Type, Wrapping,
 };
 use strum::EnumCount;
 
@@ -13,20 +13,9 @@ pub struct Resolver;
 pub type ResolverWalker<'a> = SchemaWalker<'a, &'a Resolver>;
 
 impl<'a> ResolverWalker<'a> {
-    pub fn metadata(&self) -> &'a Metadata {
-        self.schema
-            .data_sources
-            .introspection
-            .metadata
-            .as_ref()
-            .expect("Schema wasn't properly finalized with Introspection.")
+    pub fn subgraph_id(&self) -> SubgraphId {
+        self.schema.data_sources.introspection.subgraph_id
     }
-}
-
-#[derive(Default)]
-pub struct DataSource {
-    // Ugly until we have some from of SchemaBuilder
-    pub metadata: Option<Metadata>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -94,8 +83,10 @@ pub enum __Directive {
     IsRepeatable,
 }
 
-pub struct Metadata {
-    pub meta_fields: [FieldId; 2],
+pub struct IntrospectionMetadata {
+    pub subgraph_id: SubgraphId,
+    pub resolver_id: ResolverId,
+    pub meta_fields: [FieldDefinitionId; 2],
     pub type_kind: TypeKind,
     pub directive_location: DirectiveLocation,
     pub __schema: IntrospectionObject<__Schema, { __Schema::COUNT }>,
@@ -108,14 +99,14 @@ pub struct Metadata {
 
 pub struct IntrospectionObject<E, const N: usize> {
     pub id: ObjectId,
-    pub fields: [(FieldId, E); N],
+    pub fields: [(FieldDefinitionId, E); N],
 }
 
 // Used post query validation.
-impl<E: Copy, const N: usize> std::ops::Index<FieldId> for IntrospectionObject<E, N> {
+impl<E: Copy, const N: usize> std::ops::Index<FieldDefinitionId> for IntrospectionObject<E, N> {
     type Output = E;
 
-    fn index(&self, index: FieldId) -> &Self::Output {
+    fn index(&self, index: FieldDefinitionId) -> &Self::Output {
         self.fields
             .iter()
             .find_map(|(id, value)| if *id == index { Some(value) } else { None })
@@ -123,8 +114,8 @@ impl<E: Copy, const N: usize> std::ops::Index<FieldId> for IntrospectionObject<E
     }
 }
 
-impl Metadata {
-    pub fn root_field(&self, id: FieldId) -> IntrospectionField {
+impl IntrospectionMetadata {
+    pub fn root_field(&self, id: FieldDefinitionId) -> IntrospectionField {
         if id == self.meta_fields[0] {
             IntrospectionField::Type
         } else if id == self.meta_fields[1] {
@@ -168,34 +159,45 @@ pub struct DirectiveLocation {
     pub input_field_definition: StringId,
 }
 
-pub(crate) struct IntrospectionSchemaBuilder<'a> {
-    builder: &'a mut SchemaBuilder,
+pub(crate) struct IntrospectionBuilder<'a> {
+    ctx: &'a mut BuildContext,
+    graph: &'a mut Graph,
+    subgraph_id: SubgraphId,
 }
 
-impl<'a> Deref for IntrospectionSchemaBuilder<'a> {
-    type Target = Schema;
+impl<'a> Deref for IntrospectionBuilder<'a> {
+    type Target = Graph;
     fn deref(&self) -> &Self::Target {
-        &self.builder.schema
+        self.graph
     }
 }
 
-impl<'a> DerefMut for IntrospectionSchemaBuilder<'a> {
+impl<'a> DerefMut for IntrospectionBuilder<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.builder.schema
+        self.graph
     }
 }
 
-impl<'a> IntrospectionSchemaBuilder<'a> {
-    pub fn insert_introspection_fields(builder: &'a mut SchemaBuilder) {
-        Self { builder }.create_fields_and_insert_them()
+impl<'a> IntrospectionBuilder<'a> {
+    pub fn create_data_source_and_insert_fields(
+        ctx: &'a mut BuildContext,
+        graph: &'a mut Graph,
+    ) -> IntrospectionMetadata {
+        let subgraph_id = ctx.next_subgraph_id();
+        Self {
+            ctx,
+            graph,
+            subgraph_id,
+        }
+        .create_fields_and_insert_them()
     }
 
     #[allow(non_snake_case)]
-    fn create_fields_and_insert_them(&mut self) {
-        let nullable_string = self.find_or_create_field_type("String", ScalarType::String, Wrapping::nullable());
-        let required_string = self.find_or_create_field_type("String", ScalarType::String, Wrapping::required());
-        let required_boolean = self.find_or_create_field_type("Boolean", ScalarType::Boolean, Wrapping::required());
-        let nullable_boolean = self.find_or_create_field_type("Boolean", ScalarType::Boolean, Wrapping::nullable());
+    fn create_fields_and_insert_them(&mut self) -> IntrospectionMetadata {
+        let nullable_string = self.field_type("String", ScalarType::String, Wrapping::nullable());
+        let required_string = self.field_type("String", ScalarType::String, Wrapping::required());
+        let required_boolean = self.field_type("Boolean", ScalarType::Boolean, Wrapping::required());
+        let nullable_boolean = self.field_type("Boolean", ScalarType::Boolean, Wrapping::nullable());
 
         /*
         enum __TypeKind {
@@ -310,9 +312,11 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
           deprecationReason: String
         }
         */
-        let __enum_value = self.insert_object(
-            "__EnumValue",
-            vec![
+        let __enum_value = self.insert_object("__EnumValue");
+
+        let __enum_value = self.insert_object_fields(
+            __enum_value,
+            [
                 ("name", required_string, __EnumValue::Name),
                 ("description", nullable_string, __EnumValue::Description),
                 ("isDeprecated", required_boolean, __EnumValue::IsDeprecated),
@@ -328,16 +332,12 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
           defaultValue: String
         }
         */
-        let mut __input_value = self.insert_object(
-            "__InputValue",
-            vec![
-                ("name", required_string, __InputValue::Name),
-                ("description", nullable_string, __InputValue::Description),
-                // type added later
-                ("defaultValue", nullable_string, __InputValue::DefaultValue),
-            ],
-        );
-        let args = self.insert_field_type(__input_value.id, Wrapping::required().wrapped_by_required_list());
+        let mut __input_value = self.insert_object("__InputValue");
+
+        let args = Type {
+            inner: __input_value.into(),
+            wrapping: Wrapping::required().wrapped_by_required_list(),
+        };
 
         /*
         type __Field {
@@ -349,17 +349,7 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
           deprecationReason: String
         }
         */
-        let mut __field = self.insert_object(
-            "__Field",
-            vec![
-                ("name", required_string, __Field::Name),
-                ("description", nullable_string, __Field::Description),
-                ("args", args, __Field::Args),
-                // type added later
-                ("isDeprecated", required_boolean, __Field::IsDeprecated),
-                ("deprecationReason", nullable_string, __Field::DeprecationReason),
-            ],
-        );
+        let mut __field = self.insert_object("__Field");
 
         /*
         type __Directive {
@@ -370,20 +360,23 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
           isRepeatable: Boolean!
         }
         */
-        let __directive = {
-            let locations =
-                self.insert_field_type(__directive_location, Wrapping::required().wrapped_by_required_list());
-            self.insert_object(
-                "__Directive",
-                vec![
-                    ("name", required_string, __Directive::Name),
-                    ("description", nullable_string, __Directive::Description),
-                    ("locations", locations, __Directive::Locations),
-                    ("args", args, __Directive::Args),
-                    ("isRepeatable", required_boolean, __Directive::IsRepeatable),
-                ],
-            )
+        let __directive = self.insert_object("__Directive");
+
+        let locations = Type {
+            inner: __directive_location.into(),
+            wrapping: Wrapping::required().wrapped_by_required_list(),
         };
+
+        let __directive = self.insert_object_fields(
+            __directive,
+            [
+                ("name", required_string, __Directive::Name),
+                ("description", nullable_string, __Directive::Description),
+                ("locations", locations, __Directive::Locations),
+                ("args", args, __Directive::Args),
+                ("isRepeatable", required_boolean, __Directive::IsRepeatable),
+            ],
+        );
 
         /*
         type __Type {
@@ -399,70 +392,93 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
           specifiedByURL: String
         }
         */
-        let mut __type = {
-            let kind = self.insert_field_type(__type_kind, Wrapping::required());
-            let input_fields =
-                self.insert_field_type(__input_value.id, Wrapping::required().wrapped_by_nullable_list());
-            let mut __type = self.insert_object(
-                "__Type",
-                vec![
-                    ("kind", kind, __Type::Kind),
-                    ("name", nullable_string, __Type::Name),
-                    ("description", nullable_string, __Type::Description),
-                    ("inputFields", input_fields, __Type::InputFields),
-                    ("specifiedByURL", nullable_string, __Type::SpecifiedByURL),
-                    // other fields added later
-                ],
-            );
-            let default_value = Some(self.input_values.push_value(SchemaInputValue::Boolean(false)));
-            {
-                let nullable__field_list =
-                    self.insert_field_type(__field.id, Wrapping::required().wrapped_by_nullable_list());
-                let field_id = self.insert_object_field(__type.id, "fields", nullable__field_list);
-                __type.fields.push((field_id, __Type::Fields));
-                self.set_field_arguments(
-                    field_id,
-                    std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
-                )
-            }
-            {
-                let nullable__enum_value_list =
-                    self.insert_field_type(__enum_value.id, Wrapping::required().wrapped_by_nullable_list());
-                let field_id = self.insert_object_field(__type.id, "enumValues", nullable__enum_value_list);
-                __type.fields.push((field_id, __Type::EnumValues));
-                self.set_field_arguments(
-                    field_id,
-                    std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
-                );
-            }
-            __type
+        let __type = self.insert_object("__Type");
+
+        let kind = Type {
+            inner: __type_kind.into(),
+            wrapping: Wrapping::required(),
+        };
+        let input_fields = Type {
+            inner: __input_value.into(),
+            wrapping: Wrapping::required().wrapped_by_nullable_list(),
+        };
+        let nullable__field_list = Type {
+            inner: __field.into(),
+            wrapping: Wrapping::required().wrapped_by_nullable_list(),
+        };
+        let nullable__enum_value_list = Type {
+            inner: __enum_value.id.into(),
+            wrapping: Wrapping::required().wrapped_by_nullable_list(),
         };
 
-        let required__type = self.insert_field_type(__type.id, Wrapping::required());
-        let nullable__type = self.insert_field_type(__type.id, Wrapping::nullable());
-        let required__type_list = self.insert_field_type(__type.id, Wrapping::required().wrapped_by_required_list());
-        let nullable__type_list = self.insert_field_type(__type.id, Wrapping::required().wrapped_by_nullable_list());
+        let required__type = Type {
+            inner: __type.into(),
+            wrapping: Wrapping::required(),
+        };
+        let nullable__type = Type {
+            inner: __type.into(),
+            wrapping: Wrapping::nullable(),
+        };
+        let required__type_list = Type {
+            inner: __type.into(),
+            wrapping: Wrapping::required().wrapped_by_required_list(),
+        };
+        let nullable__type_list = Type {
+            inner: __type.into(),
+            wrapping: Wrapping::required().wrapped_by_nullable_list(),
+        };
 
-        __input_value.fields.push((
-            self.insert_object_field(__input_value.id, "type", required__type),
-            __InputValue::Type,
-        ));
-        __field.fields.push((
-            self.insert_object_field(__field.id, "type", required__type),
-            __Field::Type,
-        ));
-        __type.fields.push((
-            self.insert_object_field(__type.id, "ofType", nullable__type),
-            __Type::OfType,
-        ));
-        __type.fields.push((
-            self.insert_object_field(__type.id, "possibleTypes", nullable__type_list),
-            __Type::PossibleTypes,
-        ));
-        __type.fields.push((
-            self.insert_object_field(__type.id, "interfaces", nullable__type_list),
-            __Type::Interfaces,
-        ));
+        let __type = self.insert_object_fields(
+            __type,
+            [
+                ("kind", kind, __Type::Kind),
+                ("name", nullable_string, __Type::Name),
+                ("description", nullable_string, __Type::Description),
+                ("inputFields", input_fields, __Type::InputFields),
+                ("specifiedByURL", nullable_string, __Type::SpecifiedByURL),
+                ("fields", nullable__field_list, __Type::Fields),
+                ("enumValues", nullable__enum_value_list, __Type::EnumValues),
+                ("ofType", nullable__type, __Type::OfType),
+                ("possibleTypes", nullable__type_list, __Type::PossibleTypes),
+                ("interfaces", nullable__type_list, __Type::Interfaces),
+            ],
+        );
+
+        {
+            let default_value = Some(self.graph.input_values.push_value(SchemaInputValue::Boolean(false)));
+            self.set_field_arguments(
+                __type.id,
+                "fields",
+                std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
+            );
+            self.set_field_arguments(
+                __type.id,
+                "enumValues",
+                std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
+            );
+        }
+
+        let __input_value = self.insert_object_fields(
+            __input_value,
+            [
+                ("name", required_string, __InputValue::Name),
+                ("description", nullable_string, __InputValue::Description),
+                ("defaultValue", nullable_string, __InputValue::DefaultValue),
+                ("type", required__type, __InputValue::Type),
+            ],
+        );
+
+        let __field = self.insert_object_fields(
+            __field,
+            [
+                ("name", required_string, __Field::Name),
+                ("description", nullable_string, __Field::Description),
+                ("args", args, __Field::Args),
+                ("isDeprecated", required_boolean, __Field::IsDeprecated),
+                ("deprecationReason", nullable_string, __Field::DeprecationReason),
+                ("type", required__type, __Field::Type),
+            ],
+        );
 
         /*
         type __Schema {
@@ -474,11 +490,15 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
           directives: [__Directive!]!
         }
         */
-        let required__directive_list =
-            self.insert_field_type(__directive.id, Wrapping::required().wrapped_by_required_list());
-        let __schema = self.insert_object(
-            "__Schema",
-            vec![
+        let required__directive_list = Type {
+            inner: __directive.id.into(),
+            wrapping: Wrapping::required().wrapped_by_required_list(),
+        };
+        let __schema = self.insert_object("__Schema");
+
+        let __schema = self.insert_object_fields(
+            __schema,
+            [
                 ("description", nullable_string, __Schema::Description),
                 ("types", required__type_list, __Schema::Types),
                 ("queryType", required__type, __Schema::QueryType),
@@ -494,36 +514,53 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         /*
         __schema: __Schema!
         */
-        let field_type_id = self.insert_field_type(__schema.id, Wrapping::required());
-        let __schema_field_id = self.insert_object_field(self.root_operation_types.query, "__schema", field_type_id);
-        self[__schema_field_id].resolvers.push(FieldResolver {
-            resolver_id,
-            field_requires: Default::default(),
-        });
+        let field_type_id = Type {
+            inner: __schema.id.into(),
+            wrapping: Wrapping::required(),
+        };
+        let [Some(__schema_field_id), Some(__type_field_id)] = ["__schema", "__type"].map(|name| {
+            let fields = self[self.root_operation_types.query].fields;
+            let idx = usize::from(fields.start)
+                + self[fields]
+                    .iter()
+                    .position(|field| self.ctx.strings[field.name] == name)?;
+            Some(FieldDefinitionId::from(idx))
+        }) else {
+            panic!("Invariant broken: missing Query.__type or Query.__schema");
+        };
+        self[__schema_field_id].ty = field_type_id;
+        self[__schema_field_id].resolvers.push(resolver_id);
 
         /*
         __type(name: String!): __Type
         */
-        let field_type_id = self.insert_field_type(__type.id, Wrapping::nullable());
-        let __type_field_id = self.insert_object_field(self.root_operation_types.query, "__type", field_type_id);
-        self[__type_field_id].resolvers.push(FieldResolver {
-            resolver_id,
-            field_requires: Default::default(),
-        });
-        self.set_field_arguments(__type_field_id, std::iter::once(("name", required_string, None)));
+        let field_type_id = Type {
+            inner: __type.id.into(),
+            wrapping: Wrapping::nullable(),
+        };
+        self[__type_field_id].ty = field_type_id;
+        self[__type_field_id].resolvers.push(resolver_id);
+
+        self.set_field_arguments(
+            self.root_operation_types.query,
+            "__type",
+            std::iter::once(("name", required_string, None)),
+        );
 
         // DataSource
-        self.data_sources.introspection.metadata = Some(Metadata {
+        IntrospectionMetadata {
+            subgraph_id: self.subgraph_id,
+            resolver_id,
             meta_fields: [__type_field_id, __schema_field_id],
             type_kind,
             directive_location,
-            __schema: __schema.into(),
-            __type: __type.into(),
-            __enum_value: __enum_value.into(),
-            __input_value: __input_value.into(),
-            __field: __field.into(),
-            __directive: __directive.into(),
-        });
+            __schema,
+            __type,
+            __enum_value,
+            __input_value,
+            __field,
+            __directive,
+        }
     }
 
     fn insert_enum(&mut self, name: &str, values: &[&str]) -> EnumId {
@@ -532,83 +569,105 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         let values = if values.is_empty() {
             IdRange::empty()
         } else {
-            let start_idx = self.enum_values.len();
+            let start_idx = self.enum_value_definitions.len();
 
             for value in values {
                 let value = self.get_or_intern(value);
-                self.enum_values.push(EnumValue {
+                self.enum_value_definitions.push(EnumValue {
                     name: value,
-                    composed_directives: IdRange::empty(),
+                    directives: IdRange::empty(),
                     description: None,
                 })
             }
 
             IdRange {
                 start: EnumValueId::from(start_idx),
-                end: EnumValueId::from(self.enum_values.len()),
+                end: EnumValueId::from(self.enum_value_definitions.len()),
             }
         };
 
-        self.enums.push(crate::Enum {
+        self.enum_definitions.push(crate::Enum {
             name,
             description: None,
             value_ids: values,
-            composed_directives: IdRange::empty(),
+            directives: IdRange::empty(),
         });
-        let enum_id = EnumId::from(self.enums.len() - 1);
-        self.definitions.push(Definition::Enum(enum_id));
+        let enum_id = EnumId::from(self.enum_definitions.len() - 1);
+        self.type_definitions.push(Definition::Enum(enum_id));
         enum_id
     }
 
     fn new_object(&mut self, name: &str) -> ObjectId {
         let name = self.get_or_intern(name);
-        self.objects.push(crate::Object {
+        self.object_definitions.push(crate::Object {
             name,
             description: None,
             interfaces: vec![],
-            composed_directives: IdRange::empty(),
-            cache_config: None,
+            directives: IdRange::empty(),
+            fields: IdRange::empty(),
         });
-        ObjectId::from(self.objects.len() - 1)
+        ObjectId::from(self.object_definitions.len() - 1)
     }
 
-    fn insert_object_field(&mut self, object_id: ObjectId, name: &str, field_type_id: TypeId) -> FieldId {
-        let name = self.get_or_intern(name);
-        self.fields.push(Field {
-            name,
-            type_id: field_type_id,
-            composed_directives: IdRange::empty(),
-            resolvers: vec![],
-            provides: vec![],
-            argument_ids: IdRange::empty(),
-            description: None,
-            cache_config: None,
-        });
-        let field_id = FieldId::from(self.fields.len() - 1);
-        self.object_fields.push(ObjectField { object_id, field_id });
-        field_id
-    }
+    fn insert_object_fields<E: std::fmt::Debug, const N: usize>(
+        &mut self,
+        object_id: ObjectId,
+        fields: [(&str, Type, E); N],
+    ) -> IntrospectionObject<E, N> {
+        let start = self.field_definitions.len().into();
+        let mut out_fields = Vec::new();
 
-    fn insert_object<E>(&mut self, name: &str, fields: Vec<(&str, TypeId, E)>) -> IncompleteIntrospectionObject<E> {
-        let id = self.new_object(name);
-        self.definitions.push(Definition::from(id));
-        IncompleteIntrospectionObject {
-            id,
-            fields: fields
-                .into_iter()
-                .map(|(name, field_type_id, field_enum)| {
-                    (self.insert_object_field(id, name, field_type_id), field_enum)
-                })
-                .collect(),
+        let subgraph_id = self.subgraph_id;
+        for (name, r#type, tag) in fields {
+            let id = self.field_definitions.len().into();
+            let name = self.ctx.strings.get_or_insert(name);
+
+            self.field_definitions.push(FieldDefinition {
+                name,
+                ty: r#type,
+                only_resolvable_in: vec![subgraph_id],
+                requires: Vec::new(),
+                provides: Vec::new(),
+                directives: IdRange::empty(),
+                resolvers: Vec::new(),
+                argument_ids: IdRange::empty(),
+                description: None,
+            });
+
+            out_fields.push((id, tag));
         }
+
+        let end = self.field_definitions.len().into();
+
+        self[object_id].fields = IdRange { start, end };
+
+        IntrospectionObject {
+            id: object_id,
+            fields: out_fields.try_into().unwrap(),
+        }
+    }
+
+    fn insert_object(&mut self, name: &str) -> ObjectId {
+        let id = self.new_object(name);
+        self.type_definitions.push(Definition::from(id));
+        id
     }
 
     /// Warning: if you call this twice, the second call will overwrite the first.
     fn set_field_arguments<'b>(
         &mut self,
-        field_id: FieldId,
-        arguments: impl Iterator<Item = (&'b str, TypeId, Option<SchemaInputValueId>)>,
+        object_id: ObjectId,
+        field_name: &str,
+        arguments: impl Iterator<Item = (&'b str, Type, Option<SchemaInputValueId>)>,
     ) {
+        let fields = self[object_id].fields;
+        let field_id = FieldDefinitionId::from(
+            usize::from(fields.start)
+                + self[fields]
+                    .iter()
+                    .position(|field| self.ctx.strings[field.name] == field_name)
+                    .expect("field to exist"),
+        );
         let start = self.input_value_definitions.len();
 
         for (name, type_id, default_value) in arguments {
@@ -623,18 +682,10 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
         };
     }
 
-    fn insert_field_type(&mut self, kind: impl Into<Definition>, wrapping: Wrapping) -> TypeId {
-        self.types.push(Type {
-            inner: kind.into(),
-            wrapping,
-        });
-        TypeId::from(self.types.len() - 1)
-    }
-
     fn insert_input_value(
         &mut self,
         name: &str,
-        type_id: TypeId,
+        ty: Type,
         default_value: Option<SchemaInputValueId>,
     ) -> InputValueDefinitionId {
         let name = self.get_or_intern(name);
@@ -642,64 +693,42 @@ impl<'a> IntrospectionSchemaBuilder<'a> {
             name,
             description: None,
             default_value,
-            type_id,
+            ty,
+            directives: IdRange::empty(),
         });
         InputValueDefinitionId::from(self.input_value_definitions.len() - 1)
     }
 
-    fn find_or_create_field_type(
-        &mut self,
-        scalar_name: &str,
-        scalar_type: ScalarType,
-        expected_wrapping: Wrapping,
-    ) -> TypeId {
+    fn field_type(&mut self, scalar_name: &str, scalar_type: ScalarType, wrapping: Wrapping) -> Type {
         let scalar_id = match self
-            .scalars
+            .scalar_definitions
             .iter()
             .enumerate()
-            .find(|(_, scalar)| self.builder.strings[scalar.name] == scalar_name)
+            .find(|(_, scalar)| self.ctx.strings[scalar.name] == scalar_name)
             .map(|(id, _)| ScalarId::from(id))
         {
             Some(id) => id,
             None => {
-                let name = self.builder.strings.get_or_insert(scalar_name);
-                self.scalars.push(crate::Scalar {
+                let name = self.ctx.strings.get_or_insert(scalar_name);
+                self.scalar_definitions.push(crate::Scalar {
                     name,
                     ty: scalar_type,
                     description: None,
                     specified_by_url: None,
-                    composed_directives: IdRange::empty(),
+                    directives: IdRange::empty(),
                 });
-                ScalarId::from(self.scalars.len() - 1)
+                ScalarId::from(self.scalar_definitions.len() - 1)
             }
         };
         let expected_kind = Definition::from(scalar_id);
-        match self
-            .types
-            .iter()
-            .enumerate()
-            .find(|(_, Type { inner: kind, wrapping })| kind == &expected_kind && wrapping == &expected_wrapping)
-        {
-            Some((id, _)) => TypeId::from(id),
-            None => self.insert_field_type(expected_kind, expected_wrapping),
+
+        Type {
+            inner: expected_kind,
+            wrapping,
         }
     }
 
     fn get_or_intern(&mut self, value: &str) -> StringId {
-        self.builder.strings.get_or_insert(value)
-    }
-}
-
-struct IncompleteIntrospectionObject<E> {
-    id: ObjectId,
-    fields: Vec<(FieldId, E)>,
-}
-
-impl<E: std::fmt::Debug, const N: usize> From<IncompleteIntrospectionObject<E>> for IntrospectionObject<E, N> {
-    fn from(value: IncompleteIntrospectionObject<E>) -> Self {
-        IntrospectionObject {
-            id: value.id,
-            fields: value.fields.try_into().unwrap(),
-        }
+        self.ctx.strings.get_or_insert(value)
     }
 }

@@ -17,15 +17,6 @@
 //! )
 //! ```
 
-#![deny(clippy::all)]
-#![deny(clippy::pedantic)]
-#![allow(clippy::missing_panics_doc)]
-#![deny(warnings)]
-#![deny(let_underscore)]
-#![deny(nonstandard_style)]
-#![deny(unused)]
-#![deny(rustdoc::all)]
-
 mod response;
 pub mod serializer;
 
@@ -33,6 +24,7 @@ use std::{
     borrow::Cow,
     collections::{BTreeMap, HashMap},
     pin::Pin,
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 use async_runtime::make_send_on_wasm;
@@ -40,24 +32,28 @@ use dataloader::{DataLoader, Loader, NoCache};
 use engine_parser::{
     parse_query,
     types::{
-        ExecutableDocument, Field, FragmentDefinition, OperationType, Selection, SelectionSet, VariableDefinition,
+        DocumentOperations, ExecutableDocument, Field, FragmentDefinition, InlineFragment, OperationType, Selection,
+        SelectionSet, VariableDefinition,
     },
+    Positioned,
 };
 use engine_value::{ConstValue, Name, Variables};
 use futures_util::Future;
 use http::{header::USER_AGENT, StatusCode};
 use inflector::Inflector;
+use internment::ArcIntern;
 use url::Url;
 
 use self::serializer::Serializer;
 use super::ResolvedValue;
 use crate::{
+    context::QueryFutureSpawner,
     registry::{
         resolvers::{graphql::response::UpstreamResponse, logged_fetch::send_logged_request},
         type_kinds::SelectionSetTarget,
         MetaField, Registry,
     },
-    ServerError,
+    QueryPath, QueryPathSegment, ServerError,
 };
 
 pub struct QueryBatcher {
@@ -68,7 +64,7 @@ impl QueryBatcher {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            loader: DataLoader::new(QueryLoader, async_runtime::spawn),
+            loader: DataLoader::new(QueryLoader),
         }
     }
 }
@@ -177,28 +173,28 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
         fetch_log_endpoint_url: Option<String>,
     }
 
-    let mut resolver_queries: BTreeMap<_, Vec<Query>> = BTreeMap::default();
+    let mut resolver_queries: BTreeMap<_, Vec<QueryData>> = BTreeMap::default();
 
     for data in queries.iter().cloned() {
         let id = ResolverDetails {
-            name: data.resolver_name,
-            url: data.url,
-            headers: data.headers,
-            ray_id: data.ray_id,
-            fetch_log_endpoint_url: data.fetch_log_endpoint_url,
+            name: data.resolver_name.clone(),
+            url: data.url.clone(),
+            headers: data.headers.clone(),
+            ray_id: data.ray_id.clone(),
+            fetch_log_endpoint_url: data.fetch_log_endpoint_url.clone(),
         };
 
-        resolver_queries.entry(id).or_default().push(data.query.clone());
+        resolver_queries.entry(id).or_default().push(data);
     }
 
     let mut results: HashMap<QueryData, (UpstreamResponse, StatusCode)> = HashMap::default();
 
     Box::pin(make_send_on_wasm(async move {
         for (resolver, queries) in resolver_queries {
-            let query = if queries.len() == 1 {
-                queries[0].clone()
+            let (query, aliases) = if queries.len() == 1 {
+                (queries[0].query.clone(), vec![HashMap::new()])
             } else {
-                group_queries(queries.clone())
+                group_queries(queries.iter().map(|query| query.query.clone()))
             };
 
             let mut request_builder = reqwest::Client::new()
@@ -225,17 +221,39 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
                 response.text().await.map_err(|e| Error::RequestError(e.to_string())),
             )?;
 
-            for query in queries {
-                let key = QueryData {
-                    query,
-                    headers: resolver.headers.clone(),
-                    url: resolver.url.clone(),
-                    resolver_name: resolver.name.clone(),
-                    ray_id: resolver.ray_id.clone(),
-                    fetch_log_endpoint_url: resolver.fetch_log_endpoint_url.clone(),
-                };
+            for (query, aliases) in queries.into_iter().zip(aliases) {
+                if aliases.is_empty() {
+                    let UpstreamResponse { data, errors } = upstream_response.clone();
+                    let errors = errors
+                        .into_iter()
+                        .map(|error| translate_error_path(error, &query.local_path, None, query.namespaced))
+                        .collect();
 
-                results.insert(key, (upstream_response.clone(), http_status));
+                    results.insert(query.clone(), (UpstreamResponse { data, errors }, http_status));
+                } else {
+                    let errors = filter_and_translate_error_paths_for_group(
+                        &aliases,
+                        &upstream_response,
+                        &query.local_path,
+                        query.namespaced,
+                    );
+
+                    let data = match &upstream_response.data {
+                        serde_json::Value::Object(upstream_data) => {
+                            // Take all our aliased fields and un-alias them
+                            let mut map = serde_json::Map::new();
+                            for (alias, original_name) in &aliases {
+                                if let Some(value) = upstream_data.get(alias) {
+                                    map.insert(original_name.clone(), value.clone());
+                                }
+                            }
+                            serde_json::Value::Object(map)
+                        }
+                        _ => serde_json::Value::Null,
+                    };
+
+                    results.insert(query.clone(), (UpstreamResponse { data, errors }, http_status));
+                }
             }
         }
 
@@ -243,7 +261,69 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
     }))
 }
 
-fn group_queries(queries: Vec<Query>) -> Query {
+fn filter_and_translate_error_paths_for_group(
+    aliases: &HashMap<String, String>,
+    upstream_response: &UpstreamResponse,
+    local_path: &QueryPath,
+    namespaced: bool,
+) -> Vec<ServerError> {
+    let path_prefixes = aliases
+        .iter()
+        .map(|(alias, original_name)| {
+            (
+                vec![QueryPathSegment::Field(ArcIntern::new(alias.clone()))],
+                original_name,
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let errors = upstream_response
+        .errors
+        .iter()
+        .filter_map(|error| {
+            path_prefixes
+                .iter()
+                .find_map(|(prefix, original_name)| error.path.starts_with(prefix).then_some(original_name))
+                .zip(Some(error))
+        })
+        .map(|(field_name, error)| translate_error_path(error.clone(), local_path, Some(field_name), namespaced))
+        .collect();
+
+    errors
+}
+
+fn translate_error_path(
+    mut error: ServerError,
+    local_path: &QueryPath,
+    field_name: Option<&str>,
+    namespaced: bool,
+) -> ServerError {
+    if let Some((field_name, first_segment)) = field_name.zip(error.path.first()) {
+        if first_segment != field_name {
+            // An alias was probably used, so we need to translate the first key in the remote path
+            *error.path.first_mut().unwrap() = QueryPathSegment::Field(ArcIntern::new(field_name.to_string()))
+        }
+    }
+
+    if namespaced {
+        error.path = local_path.iter().cloned().chain(error.path).collect();
+    } else {
+        // Namespaced connectors are resolved at the field level so we need to drop one more path segment
+        error.path = local_path
+            .iter()
+            .cloned()
+            .chain(error.path.into_iter().skip(1))
+            .collect();
+    }
+
+    // Its more bother than its worth to translate locations imo, so
+    // just going to get rid of those
+    error.locations = vec![];
+
+    error
+}
+
+fn group_queries(queries: impl ExactSizeIterator<Item = Query>) -> (Query, Vec<HashMap<String, String>>) {
     let mut variables = BTreeMap::new();
 
     let mut all_fragments = HashMap::new();
@@ -251,16 +331,18 @@ fn group_queries(queries: Vec<Query>) -> Query {
     let mut all_selections = SelectionSet::default();
     let mut all_directives = HashMap::new();
 
-    for Query { query: q, variables: v } in queries {
-        let ExecutableDocument { operations, fragments } = parse_query(&q).expect("valid serialized query");
+    let mut root_aliases = Vec::with_capacity(queries.len());
 
-        let operation = operations
-            .iter()
-            .next()
-            .expect("serialized to a single operation")
-            .1
-            .clone()
-            .into_inner();
+    for Query { query: q, variables: v } in queries {
+        let Ok(ExecutableDocument {
+            operations: DocumentOperations::Single(operation),
+            fragments,
+        }) = parse_query(&q)
+        else {
+            panic!("Expected a valid query with a single operation in it");
+        };
+
+        let mut operation = operation.node;
 
         // Only queries will be grouped.
         debug_assert_eq!(operation.ty, OperationType::Query);
@@ -274,7 +356,19 @@ fn group_queries(queries: Vec<Query>) -> Query {
         }
 
         all_fragments.extend(fragments);
-        all_selections.items.extend(operation.selection_set.items.clone());
+
+        let mut query_root_aliases = HashMap::with_capacity(operation.selection_set.items.len());
+
+        // We need to make sure every field in the root has a unique name in the response
+        // Easiest way to do that is just to put a unique alias on _everything_.
+        alias_root_fields(
+            &mut operation.selection_set.node.items,
+            &mut query_root_aliases,
+            &all_fragments,
+        );
+
+        root_aliases.push(query_root_aliases);
+        all_selections.items.append(&mut operation.selection_set.node.items);
 
         variables.extend(v);
     }
@@ -296,10 +390,65 @@ fn group_queries(queries: Vec<Query>) -> Query {
 
     serializer.query(target, None).expect("valid grouping of queries");
 
-    Query { query, variables }
+    (Query { query, variables }, root_aliases)
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, serde::Serialize)]
+// We use this counter to generate unique aliases for fields to avoid clashes.
+// See its use in alias_root_fields below for more details
+static ALIAS_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+/// When joining queries together we might have some clashing fields
+///
+/// In order to make sure the joined query is correct we need to be careful to ensure that every
+/// root field is unique.  We do that by sticking aliases on all the root selections, and keeping
+/// track of those aliases so we can handle the response.
+fn alias_root_fields(
+    selections: &mut [Positioned<Selection>],
+    alias_map: &mut HashMap<String, String>,
+    fragments: &HashMap<Name, Positioned<FragmentDefinition>>,
+) {
+    for item in selections.iter_mut() {
+        match &mut item.node {
+            Selection::Field(field) => {
+                let original_name = field.alias.clone().unwrap_or_else(|| field.name.clone());
+                let alias = format!("f_{}", ALIAS_COUNTER.fetch_add(1, Ordering::Relaxed));
+
+                alias_map.insert(alias.clone(), original_name.to_string());
+                field.node.alias = Some(Positioned::new(Name::new(alias), Default::default()));
+            }
+            Selection::FragmentSpread(spread) => {
+                // FragmentSpreads are awwkard - we can't put aliases onto the fragment
+                // because it might be used elsewhere.
+                //
+                // So instead we convert it to an inline fragment instead and do our aliasing on that.
+
+                let Some(fragment) = fragments.get(&spread.node.fragment_name.node) else {
+                    // This really shouldn't happen but continue if it does
+                    continue;
+                };
+
+                let mut inline_fragment = InlineFragment {
+                    type_condition: Some(fragment.node.type_condition.clone()),
+                    directives: fragment.node.directives.clone(),
+                    selection_set: fragment.selection_set.clone(),
+                };
+
+                // Alias the fields of that inline fragment, this should also handle any fragment
+                // spreads contained within.
+                alias_root_fields(&mut inline_fragment.selection_set.node.items, alias_map, fragments);
+
+                // Now replace the fragment spread with the inline fragment.
+                item.node = Selection::InlineFragment(Positioned::new(inline_fragment, spread.pos));
+            }
+            Selection::InlineFragment(inline) => {
+                // Recursively alias any fields in this fragment
+                alias_root_fields(&mut inline.node.selection_set.node.items, alias_map, fragments);
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 struct QueryData {
     /// The actual query to be joined with other queries and sent to the remote endpoint.
     query: Query,
@@ -322,6 +471,12 @@ struct QueryData {
 
     /// Used internally in dev mode.
     fetch_log_endpoint_url: Option<String>,
+
+    /// The path prefix that should be used in errors in place of the path we get from remote
+    /// servers
+    local_path: QueryPath,
+
+    namespaced: bool,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, serde::Serialize)]
@@ -345,7 +500,9 @@ impl Resolver {
     #[allow(clippy::too_many_arguments)] // I know clippy, I know
     pub(super) fn resolve<'a>(
         &'a self,
+        futures_spawner: QueryFutureSpawner,
         operation: OperationType,
+        path: QueryPath,
         ray_id: &'a str,
         fetch_log_endpoint_url: Option<&'a str>,
         headers: &'a [(&'a str, &'a str)],
@@ -382,6 +539,8 @@ impl Resolver {
                 registry,
             );
 
+            let namespaced = matches!(target, Target::SelectionSet { .. });
+
             match operation {
                 OperationType::Query => serializer.query(target, current_type)?,
                 OperationType::Mutation => serializer.mutation(target, current_type)?,
@@ -404,11 +563,18 @@ impl Resolver {
                 url: self.url.to_string(),
                 ray_id: ray_id.to_owned(),
                 fetch_log_endpoint_url: fetch_log_endpoint_url.map(str::to_owned),
+                local_path: path,
+                namespaced,
             };
 
             let value = match (batcher, operation) {
                 (_, OperationType::Subscription) => return Err(Error::UnsupportedOperation("subscription")),
-                (Some(batcher), OperationType::Query) => batcher.loader.load_one(query_data).await?,
+                (Some(batcher), OperationType::Query) => {
+                    batcher
+                        .loader
+                        .load_one(query_data, |f| futures_spawner.spawn(f))
+                        .await?
+                }
                 _ => load(&[query_data]).await?.into_values().next(),
             };
 
@@ -489,6 +655,7 @@ fn prefix_result_typename(value: &mut serde_json::Value, prefix: &str) {
 #[cfg(test)]
 mod tests {
     use engine_parser::parse_query;
+    use futures::FutureExt;
     use futures_util::join;
     use indoc::indoc;
     use serde_json::{json, Value};
@@ -498,7 +665,7 @@ mod tests {
     };
 
     use super::*;
-    use crate::registry::builder::RegistryBuilder;
+    use crate::{new_futures_spawner, registry::builder::RegistryBuilder};
 
     #[ctor::ctor]
     fn setup_rustls() {
@@ -614,10 +781,6 @@ mod tests {
 
         // 2. We have two query fields, but expect a single API call due to batching.
         Mock::given(method("POST"))
-            .and(request_fn(|req| {
-                let body = req.body_json::<Value>().unwrap().to_string();
-                body.contains("foo\\n\\tbar") || body.contains("bar\\n\\tfoo")
-            }))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": {} })))
             .expect(1)
             .mount(&server)
@@ -661,10 +824,6 @@ mod tests {
 
         // 2. We have two query fields, but expect a single API call due to batching.
         Mock::given(method("POST"))
-            .and(request_fn(|req| {
-                let body = req.body_json::<Value>().unwrap().to_string();
-                body.contains("foo\\n\\tbar") || body.contains("bar\\n\\tfoo")
-            }))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": {} })))
             .expect(1)
             .mount(&server)
@@ -768,12 +927,7 @@ mod tests {
             .and(request_fn(|req| {
                 let body = req.body_json::<Value>().unwrap().to_string();
 
-                let vars = body.contains("query($foo: ID, $bar: ID)") || body.contains("query($bar: ID, $foo: ID)");
-
-                let fields = body.contains("foo(id: $foo)\\n\\tbar(id: $bar)")
-                    || body.contains("bar(id: $bar)\\n\\tfoo(id: $foo)");
-
-                vars && fields
+                body.contains("query($foo: ID, $bar: ID)") || body.contains("query($bar: ID, $foo: ID)")
             }))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "data": {} })))
             .expect(1)
@@ -842,26 +996,39 @@ mod tests {
             operation.selection_set.node.items.clone().into_iter().map(|v| v.node),
         ));
 
+        let path = QueryPath::default();
+
         let error_handler = |error| errors.push(error);
 
-        let data = resolver
-            .resolve(
-                operation_type,
-                "",
-                None,
-                &headers,
-                fragment_definitions,
-                target,
-                Some(current_type),
-                error_handler,
-                Variables::default(),
-                variable_definitions,
-                &registry,
-                batcher,
-            )
-            .await?
-            .data_resolved()
-            .clone();
+        let (futures_spawner, futures_waiter) = new_futures_spawner();
+        let execution = async {
+            resolver
+                .resolve(
+                    futures_spawner,
+                    operation_type,
+                    path,
+                    "",
+                    None,
+                    &headers,
+                    fragment_definitions,
+                    target,
+                    Some(current_type),
+                    error_handler,
+                    Variables::default(),
+                    variable_definitions,
+                    &registry,
+                    batcher,
+                )
+                .await
+                .unwrap()
+                .data_resolved()
+                .clone()
+        };
+
+        let data = futures_util::select! {
+            data = execution.fuse() => data,
+            _ = futures_waiter.wait_until_no_spawners_left().fuse() => unreachable!(),
+        };
 
         let response = if errors.is_empty() {
             json!({ "data": data })

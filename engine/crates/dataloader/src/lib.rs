@@ -187,15 +187,11 @@ pub struct DataLoader<T, C = NoCache> {
     delay: Duration,
     max_batch_size: usize,
     disable_cache: AtomicBool,
-    spawner: Box<dyn Fn(BoxFuture<'static, ()>) + Send + Sync>,
 }
 
 impl<T> DataLoader<T, NoCache> {
     /// Use `Loader` to create a [`DataLoader`] that does not cache records.
-    pub fn new<S, R>(loader: T, spawner: S) -> Self
-    where
-        S: Fn(BoxFuture<'static, ()>) -> R + Send + Sync + 'static,
-    {
+    pub fn new(loader: T) -> Self {
         Self {
             inner: Arc::new(DataLoaderInner {
                 requests: Mutex::new(HashMap::default()),
@@ -205,19 +201,13 @@ impl<T> DataLoader<T, NoCache> {
             delay: Duration::from_millis(1),
             max_batch_size: 1000,
             disable_cache: false.into(),
-            spawner: Box::new(move |fut| {
-                spawner(fut);
-            }),
         }
     }
 }
 
 impl<T, C: CacheFactory> DataLoader<T, C> {
     /// Use `Loader` to create a [`DataLoader`] with a cache factory.
-    pub fn with_cache<S, R>(loader: T, spawner: S, cache_factory: C) -> Self
-    where
-        S: Fn(BoxFuture<'static, ()>) -> R + Send + Sync + 'static,
-    {
+    pub fn with_cache(loader: T, cache_factory: C) -> Self {
         Self {
             inner: Arc::new(DataLoaderInner {
                 requests: Mutex::new(HashMap::default()),
@@ -227,9 +217,6 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
             delay: Duration::from_millis(1),
             max_batch_size: 1000,
             disable_cache: false.into(),
-            spawner: Box::new(move |fut| {
-                spawner(fut);
-            }),
         }
     }
 
@@ -283,12 +270,16 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
     ///
     /// Errors if [`Loader::load`] returns an error.
     #[cfg_attr(feature = "tracing", instrument(skip_all))]
-    pub async fn load_one<K>(&self, key: K) -> Result<Option<T::Value>, T::Error>
+    pub async fn load_one<K>(
+        &self,
+        key: K,
+        spawner: impl Fn(BoxFuture<'static, ()>),
+    ) -> Result<Option<T::Value>, T::Error>
     where
         K: Send + Sync + Hash + Eq + Clone + 'static,
         T: Loader<K>,
     {
-        let mut values = self.load_many(std::iter::once(key.clone())).await?;
+        let mut values = self.load_many(std::iter::once(key.clone()), spawner).await?;
         Ok(values.remove(&key))
     }
 
@@ -299,7 +290,11 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
     /// Errors if [`Loader::load`] returns an error.
     #[cfg_attr(feature = "tracing", instrument(skip_all))]
     #[allow(clippy::missing_panics_doc)]
-    pub async fn load_many<K, I>(&self, keys: I) -> Result<HashMap<K, T::Value>, T::Error>
+    pub async fn load_many<K, I>(
+        &self,
+        keys: I,
+        spawner: impl Fn(BoxFuture<'static, ()>),
+    ) -> Result<HashMap<K, T::Value>, T::Error>
     where
         K: Send + Sync + Hash + Eq + Clone + 'static,
         I: IntoIterator<Item = K>,
@@ -371,7 +366,7 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
                 #[cfg(feature = "tracing")]
                 let task = task.instrument(info_span!("immediate_load")).in_current_span();
 
-                (self.spawner)(Box::pin(task));
+                spawner(Box::pin(task));
             }
             Action::StartFetch => {
                 let inner = self.inner.clone();
@@ -394,7 +389,7 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
                 #[cfg(feature = "tracing")]
                 let task = task.instrument(info_span!("start_fetch")).in_current_span();
 
-                (self.spawner)(Box::pin(task));
+                spawner(Box::pin(task));
             }
             Action::Delay => {}
         }
@@ -496,13 +491,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_dataloader() {
-        let loader = Arc::new(DataLoader::new(MyLoader, tokio::spawn).max_batch_size(10));
+        let loader = Arc::new(DataLoader::new(MyLoader).max_batch_size(10));
         assert_eq!(
             futures_util::future::try_join_all((0..100i32).map({
                 let loader = loader.clone();
                 move |n| {
                     let loader = loader.clone();
-                    async move { loader.load_one(n).await }
+                    async move {
+                        loader
+                            .load_one(n, |f| {
+                                tokio::spawn(f);
+                            })
+                            .await
+                    }
                 }
             }))
             .await
@@ -515,7 +516,13 @@ mod tests {
                 let loader = loader.clone();
                 move |n| {
                     let loader = loader.clone();
-                    async move { loader.load_one(n).await }
+                    async move {
+                        loader
+                            .load_one(n, |f| {
+                                tokio::spawn(f);
+                            })
+                            .await
+                    }
                 }
             }))
             .await
@@ -526,13 +533,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_duplicate_keys() {
-        let loader = Arc::new(DataLoader::new(MyLoader, tokio::spawn).max_batch_size(10));
+        let loader = Arc::new(DataLoader::new(MyLoader).max_batch_size(10));
         assert_eq!(
             futures_util::future::try_join_all([1, 3, 5, 1, 7, 8, 3, 7].iter().copied().map({
                 let loader = loader.clone();
                 move |n| {
                     let loader = loader.clone();
-                    async move { loader.load_one(n).await }
+                    async move {
+                        loader
+                            .load_one(n, |f| {
+                                tokio::spawn(f);
+                            })
+                            .await
+                    }
                 }
             }))
             .await
@@ -547,108 +560,174 @@ mod tests {
 
     #[tokio::test]
     async fn test_dataloader_load_empty() {
-        let loader = DataLoader::new(MyLoader, tokio::spawn);
-        assert!(loader.load_many::<i32, _>(vec![]).await.unwrap().is_empty());
+        let loader = DataLoader::new(MyLoader);
+        assert!(loader
+            .load_many::<i32, _>(vec![], |f| {
+                tokio::spawn(f);
+            })
+            .await
+            .unwrap()
+            .is_empty());
     }
 
     #[tokio::test]
     async fn test_dataloader_with_cache() {
-        let loader = DataLoader::with_cache(MyLoader, tokio::spawn, HashMapCache::default());
+        let loader = DataLoader::with_cache(MyLoader, HashMapCache::default());
         loader.feed_many(vec![(1, 10), (2, 20), (3, 30)]);
 
         // All from the cache
         assert_eq!(
-            loader.load_many(vec![1, 2, 3]).await.unwrap(),
+            loader
+                .load_many(vec![1, 2, 3], |f| {
+                    tokio::spawn(f);
+                })
+                .await
+                .unwrap(),
             vec![(1, 10), (2, 20), (3, 30)].into_iter().collect()
         );
 
         // Part from the cache
         assert_eq!(
-            loader.load_many(vec![1, 5, 6]).await.unwrap(),
+            loader
+                .load_many(vec![1, 5, 6], |f| {
+                    tokio::spawn(f);
+                })
+                .await
+                .unwrap(),
             vec![(1, 10), (5, 5), (6, 6)].into_iter().collect()
         );
 
         // All from the loader
         assert_eq!(
-            loader.load_many(vec![8, 9, 10]).await.unwrap(),
+            loader
+                .load_many(vec![8, 9, 10], |f| {
+                    tokio::spawn(f);
+                })
+                .await
+                .unwrap(),
             vec![(8, 8), (9, 9), (10, 10)].into_iter().collect()
         );
 
         // Clear cache
         loader.clear::<i32>();
         assert_eq!(
-            loader.load_many(vec![1, 2, 3]).await.unwrap(),
+            loader
+                .load_many(vec![1, 2, 3], |f| {
+                    tokio::spawn(f);
+                })
+                .await
+                .unwrap(),
             vec![(1, 1), (2, 2), (3, 3)].into_iter().collect()
         );
     }
 
     #[tokio::test]
     async fn test_dataloader_with_cache_hashmap_fnv() {
-        let loader = DataLoader::with_cache(MyLoader, tokio::spawn, HashMapCache::<FnvBuildHasher>::new());
+        let loader = DataLoader::with_cache(MyLoader, HashMapCache::<FnvBuildHasher>::new());
         loader.feed_many(vec![(1, 10), (2, 20), (3, 30)]);
 
         // All from the cache
         assert_eq!(
-            loader.load_many(vec![1, 2, 3]).await.unwrap(),
+            loader
+                .load_many(vec![1, 2, 3], |f| {
+                    tokio::spawn(f);
+                })
+                .await
+                .unwrap(),
             vec![(1, 10), (2, 20), (3, 30)].into_iter().collect()
         );
 
         // Part from the cache
         assert_eq!(
-            loader.load_many(vec![1, 5, 6]).await.unwrap(),
+            loader
+                .load_many(vec![1, 5, 6], |f| {
+                    tokio::spawn(f);
+                })
+                .await
+                .unwrap(),
             vec![(1, 10), (5, 5), (6, 6)].into_iter().collect()
         );
 
         // All from the loader
         assert_eq!(
-            loader.load_many(vec![8, 9, 10]).await.unwrap(),
+            loader
+                .load_many(vec![8, 9, 10], |f| {
+                    tokio::spawn(f);
+                })
+                .await
+                .unwrap(),
             vec![(8, 8), (9, 9), (10, 10)].into_iter().collect()
         );
 
         // Clear cache
         loader.clear::<i32>();
         assert_eq!(
-            loader.load_many(vec![1, 2, 3]).await.unwrap(),
+            loader
+                .load_many(vec![1, 2, 3], |f| {
+                    tokio::spawn(f);
+                })
+                .await
+                .unwrap(),
             vec![(1, 1), (2, 2), (3, 3)].into_iter().collect()
         );
     }
 
     #[tokio::test]
     async fn test_dataloader_disable_all_cache() {
-        let loader = DataLoader::with_cache(MyLoader, tokio::spawn, HashMapCache::default());
+        let loader = DataLoader::with_cache(MyLoader, HashMapCache::default());
         loader.feed_many(vec![(1, 10), (2, 20), (3, 30)]);
 
         // All from the loader
         loader.enable_all_cache(false);
         assert_eq!(
-            loader.load_many(vec![1, 2, 3]).await.unwrap(),
+            loader
+                .load_many(vec![1, 2, 3], |f| {
+                    tokio::spawn(f);
+                })
+                .await
+                .unwrap(),
             vec![(1, 1), (2, 2), (3, 3)].into_iter().collect()
         );
 
         // All from the cache
         loader.enable_all_cache(true);
         assert_eq!(
-            loader.load_many(vec![1, 2, 3]).await.unwrap(),
+            loader
+                .load_many(vec![1, 2, 3], |f| {
+                    tokio::spawn(f);
+                })
+                .await
+                .unwrap(),
             vec![(1, 10), (2, 20), (3, 30)].into_iter().collect()
         );
     }
 
     #[tokio::test]
     async fn test_dataloader_disable_cache() {
-        let loader = DataLoader::with_cache(MyLoader, tokio::spawn, HashMapCache::default());
+        let loader = DataLoader::with_cache(MyLoader, HashMapCache::default());
         loader.feed_many(vec![(1, 10), (2, 20), (3, 30)]);
 
         // All from the loader
         loader.enable_cache::<i32>(false);
         assert_eq!(
-            loader.load_many(vec![1, 2, 3]).await.unwrap(),
+            loader
+                .load_many(vec![1, 2, 3], |f| {
+                    tokio::spawn(f);
+                })
+                .await
+                .unwrap(),
             vec![(1, 1), (2, 2), (3, 3)].into_iter().collect()
         );
 
         // All from the cache
         loader.enable_cache::<i32>(true);
         assert_eq!(
-            loader.load_many(vec![1, 2, 3]).await.unwrap(),
+            loader
+                .load_many(vec![1, 2, 3], |f| {
+                    tokio::spawn(f);
+                })
+                .await
+                .unwrap(),
             vec![(1, 10), (2, 20), (3, 30)].into_iter().collect()
         );
     }
@@ -668,17 +747,26 @@ mod tests {
             }
         }
 
-        let loader =
-            Arc::new(DataLoader::with_cache(MyDelayLoader, tokio::spawn, NoCache).delay(Duration::from_secs(1)));
+        let loader = Arc::new(DataLoader::with_cache(MyDelayLoader, NoCache).delay(Duration::from_secs(1)));
         let handle = tokio::spawn({
             let loader = loader.clone();
             async move {
-                loader.load_many(vec![1, 2, 3]).await.unwrap();
+                loader
+                    .load_many(vec![1, 2, 3], |f| {
+                        tokio::spawn(f);
+                    })
+                    .await
+                    .unwrap();
             }
         });
 
         tokio::time::sleep(Duration::from_millis(500)).await;
         handle.abort();
-        loader.load_many(vec![4, 5, 6]).await.unwrap();
+        loader
+            .load_many(vec![4, 5, 6], |f| {
+                tokio::spawn(f);
+            })
+            .await
+            .unwrap();
     }
 }

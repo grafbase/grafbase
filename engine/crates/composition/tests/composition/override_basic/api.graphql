@@ -1,0 +1,8 @@
+type Mammoth {
+    tuskLength: Int
+    weightGrams: Int
+}
+
+type Query {
+    getMammoth: Mammoth
+}

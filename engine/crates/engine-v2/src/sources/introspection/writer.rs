@@ -1,11 +1,14 @@
 use std::cell::RefCell;
 
 use schema::{
-    sources::introspection::{
-        IntrospectionField, IntrospectionObject, Metadata, __EnumValue, __Field, __InputValue, __Schema, __Type,
+    sources::{
+        introspection::{
+            IntrospectionField, IntrospectionObject, __EnumValue, __Field, __InputValue, __Schema, __Type,
+        },
+        IntrospectionMetadata,
     },
-    Definition, DefinitionWalker, Directive, EnumValueWalker, FieldWalker, InputValueDefinitionWalker, ListWrapping,
-    RawInputValuesContext, SchemaWalker, TypeWalker, Wrapping,
+    Definition, DefinitionWalker, EnumValueWalker, FieldDefinitionWalker, InputValueDefinitionWalker, ListWrapping,
+    SchemaWalker, TypeWalker, Wrapping,
 };
 
 use crate::{
@@ -15,7 +18,7 @@ use crate::{
 
 pub(super) struct IntrospectionWriter<'a> {
     pub schema: SchemaWalker<'a, ()>,
-    pub metadata: &'a Metadata,
+    pub metadata: &'a IntrospectionMetadata,
     pub plan: PlanWalker<'a>,
     pub output: RefCell<&'a mut ResponsePart>,
 }
@@ -27,11 +30,11 @@ impl<'a> IntrospectionWriter<'a> {
             Vec::with_capacity(selection_set.as_ref().field_ids.len() + selection_set.as_ref().typename_fields.len());
         for field in selection_set.fields() {
             let &CollectedField {
-                edge, schema_field_id, ..
+                edge, definition_id, ..
             } = field.as_ref();
-            match self.metadata.root_field(schema_field_id) {
+            match self.metadata.root_field(definition_id) {
                 IntrospectionField::Type => {
-                    let name = field.as_bound_field().get_arg_as::<&str>("name");
+                    let name = field.as_operation_field().get_arg_value_as::<&str>("name");
                     fields.push((
                         edge,
                         self.schema
@@ -69,9 +72,9 @@ impl<'a> IntrospectionWriter<'a> {
             Vec::with_capacity(selection_set.as_ref().field_ids.len() + selection_set.as_ref().typename_fields.len());
         for field in selection_set.fields() {
             let &CollectedField {
-                edge, schema_field_id, ..
+                edge, definition_id, ..
             } = field.as_ref();
-            fields.push((edge, build(field, object[schema_field_id])));
+            fields.push((edge, build(field, object[definition_id])));
         }
         if !selection_set.as_ref().typename_fields.is_empty() {
             let name = selection_set.ty().schema_name_id();
@@ -86,7 +89,7 @@ impl<'a> IntrospectionWriter<'a> {
     fn __schema(&self, selection_set: PlanCollectedSelectionSet<'_>) -> ResponseValue {
         self.object(&self.metadata.__schema, selection_set, |field, __schema| {
             match __schema {
-                __Schema::Description => self.schema.description.into(),
+                __Schema::Description => self.schema.description_id().into(),
                 __Schema::Types => {
                     let selection_set = field.concrete_selection_set().unwrap();
                     let values = self
@@ -188,10 +191,10 @@ impl<'a> IntrospectionWriter<'a> {
                 .fields()
                 .map(|fields| {
                     let selection_set = field.concrete_selection_set().unwrap();
-                    let include_deprecated = field.as_bound_field().get_arg_as::<bool>("includeDeprecated");
+                    let include_deprecated = field.as_operation_field().get_arg_value_as::<bool>("includeDeprecated");
                     let values = fields
                         .filter(|field| {
-                            (!field.is_deprecated() || include_deprecated)
+                            (!field.directives().has_deprecated() || include_deprecated)
                                 && !self.metadata.meta_fields.contains(&field.id())
                         })
                         .map(|field| self.__field(field, selection_set))
@@ -223,10 +226,10 @@ impl<'a> IntrospectionWriter<'a> {
                 .as_enum()
                 .map(|r#enum| {
                     let selection_set = field.concrete_selection_set().unwrap();
-                    let include_deprecated = field.as_bound_field().get_arg_as::<bool>("includeDeprecated");
+                    let include_deprecated = field.as_operation_field().get_arg_value_as::<bool>("includeDeprecated");
                     let values = r#enum
                         .values()
-                        .filter(|value| (!value.is_deprecated() || include_deprecated))
+                        .filter(|value| (!value.directives().has_deprecated() || include_deprecated))
                         .map(|value| self.__enum_value(value, selection_set))
                         .collect::<Vec<_>>();
                     self.output.borrow_mut().push_list(&values)
@@ -251,7 +254,11 @@ impl<'a> IntrospectionWriter<'a> {
         })
     }
 
-    fn __field(&self, target: FieldWalker<'a>, selection_set: PlanCollectedSelectionSet<'_>) -> ResponseValue {
+    fn __field(
+        &self,
+        target: FieldDefinitionWalker<'a>,
+        selection_set: PlanCollectedSelectionSet<'_>,
+    ) -> ResponseValue {
         self.object(&self.metadata.__field, selection_set, |field, __field| match __field {
             __Field::Name => target.as_ref().name.into(),
             __Field::Description => target.as_ref().description.into(),
@@ -265,14 +272,8 @@ impl<'a> IntrospectionWriter<'a> {
                 self.output.borrow_mut().push_list(&values).into()
             }
             __Field::Type => self.__type(target.ty(), field.concrete_selection_set().unwrap()),
-            __Field::IsDeprecated => target.is_deprecated().into(),
-            __Field::DeprecationReason => target
-                .directives()
-                .find_map(|directive| match directive {
-                    Directive::Deprecated { reason } => *reason,
-                    _ => None,
-                })
-                .into(),
+            __Field::IsDeprecated => target.directives().has_deprecated().into(),
+            __Field::DeprecationReason => target.directives().deprecated().map(|d| d.reason).into(),
         })
     }
 
@@ -291,7 +292,7 @@ impl<'a> IntrospectionWriter<'a> {
                 __InputValue::DefaultValue => target
                     .as_ref()
                     .default_value
-                    .map(|id| RawInputValuesContext::walk(&self.schema, id).to_string())
+                    .map(|id| self.schema.walk(&self.schema[id]).to_string())
                     .into(),
             },
         )
@@ -304,14 +305,8 @@ impl<'a> IntrospectionWriter<'a> {
             |_, __enum_value| match __enum_value {
                 __EnumValue::Name => target.as_ref().name.into(),
                 __EnumValue::Description => target.as_ref().description.into(),
-                __EnumValue::IsDeprecated => target.is_deprecated().into(),
-                __EnumValue::DeprecationReason => target
-                    .directives()
-                    .find_map(|directive| match directive {
-                        Directive::Deprecated { reason } => *reason,
-                        _ => None,
-                    })
-                    .into(),
+                __EnumValue::IsDeprecated => target.directives().has_deprecated().into(),
+                __EnumValue::DeprecationReason => target.directives().deprecated().map(|d| d.reason).into(),
             },
         )
     }

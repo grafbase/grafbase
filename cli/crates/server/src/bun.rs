@@ -12,6 +12,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use tokio::process::Command;
 use tokio::task::JoinError;
+use zip::result::ZipError;
 
 use crate::atomics::BUN_INSTALLED_FOR_SESSION;
 
@@ -49,7 +50,7 @@ pub enum BunError {
     #[error("{0}")]
     SpawnedTaskPanic(Arc<JoinError>),
 
-    #[error("could not remove a stale verison of bun.\nCaused by: {0}")]
+    #[error("could not remove a stale version of bun.\nCaused by: {0}")]
     RemoveStaleBunVersion(Arc<io::Error>),
 
     #[error("could not hard-link the system bun version.\nCaused by: {0}")]
@@ -61,8 +62,8 @@ pub enum BunError {
     #[error("could not create a temporary file")]
     CreateTemporaryFile,
 
-    #[error("could not extract the bun archive")]
-    ExtractBunArchive,
+    #[error("could not extract the bun archive\nCaused by: {0}")]
+    ExtractBunArchive(Arc<io::Error>),
 
     #[error("could not set permissions for the bun executable")]
     SetBunExecutablePermissions,
@@ -74,9 +75,13 @@ impl From<JoinError> for BunError {
     }
 }
 
-// TODO: add windows once supported in Bun
+impl From<ZipError> for BunError {
+    fn from(error: ZipError) -> Self {
+        Self::ExtractBunArchive(Arc::new(error.into()))
+    }
+}
 
-const BUN_VERSION: &str = "1.0.29";
+const BUN_VERSION: &str = "1.1.3";
 
 #[cfg(target_arch = "aarch64")]
 const ARCH: &str = "aarch64";
@@ -89,6 +94,9 @@ const OS: &str = "darwin";
 
 #[cfg(target_os = "linux")]
 const OS: &str = "linux";
+
+#[cfg(target_os = "windows")]
+const OS: &str = "windows";
 
 const BUN_DOWNLOAD_URL: &str = concatcp!(
     "https://github.com/oven-sh/bun/releases/download/bun-v",
@@ -140,8 +148,14 @@ async fn run_command<P: AsRef<Path>>(
     }
 }
 
+#[cfg(unix)]
 const BUN_EXECUTABLE_PERMISSIONS: u32 = 0o755;
+
 const BUN_INSTALL_LOCK_FILE: &str = ".bun.install.lock";
+
+// the archive contains a directory which has a single file - the bun binary
+// this index appears to differ between unix and windows
+const BUN_EXECUTABLE_ARCHIVE_FILE_INDEX: usize = if cfg!(unix) { 1 } else { 0 };
 
 pub(crate) async fn install_bun() -> Result<(), BunError> {
     if BUN_INSTALLED_FOR_SESSION.load(Ordering::Acquire) {
@@ -255,16 +269,21 @@ async fn download_bun(environment: &Environment) -> Result<(), BunError> {
     tokio::task::spawn_blocking(move || {
         let environment = Environment::get();
 
-        let decompressed_file =
-            std::fs::File::open(&decompressed_file_path).map_err(|_| BunError::ExtractBunArchive)?;
-        let mut archive = zip::ZipArchive::new(decompressed_file).map_err(|_| BunError::ExtractBunArchive)?;
+        let decompressed_file = std::fs::File::open(&decompressed_file_path)
+            .map_err(Arc::new)
+            .map_err(BunError::ExtractBunArchive)?;
 
-        // the archive contains a directory which has a single file - the bun binary
-        let mut binary = archive.by_index(1).map_err(|_| BunError::ExtractBunArchive)?;
+        let mut archive = zip::ZipArchive::new(decompressed_file)?;
 
-        let mut outfile =
-            std::fs::File::create(&environment.bun_executable_path).map_err(|_| BunError::ExtractBunArchive)?;
-        std::io::copy(&mut binary, &mut outfile).map_err(|_| BunError::ExtractBunArchive)?;
+        let mut binary = archive.by_index(BUN_EXECUTABLE_ARCHIVE_FILE_INDEX)?;
+
+        let mut outfile = std::fs::File::create(&environment.bun_executable_path)
+            .map_err(Arc::new)
+            .map_err(BunError::ExtractBunArchive)?;
+
+        std::io::copy(&mut binary, &mut outfile)
+            .map_err(Arc::new)
+            .map_err(BunError::ExtractBunArchive)?;
 
         #[cfg(unix)]
         {

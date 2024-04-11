@@ -1,7 +1,5 @@
 use std::cell::RefCell;
 
-use schema::sources::introspection::Metadata;
-
 use super::{ExecutionError, Executor, ExecutorInput};
 use crate::{
     execution::ExecutionContext,
@@ -27,7 +25,6 @@ impl IntrospectionExecutionPlan {
         Ok(Executor::Introspection(IntrospectionExecutor {
             ctx,
             response_object: root_response_objects.into_single_boundary_item(),
-            metadata: ctx.engine.schema.data_sources.introspection.metadata.as_ref().unwrap(),
             plan,
             output,
         }))
@@ -37,7 +34,6 @@ impl IntrospectionExecutionPlan {
 pub(crate) struct IntrospectionExecutor<'ctx> {
     ctx: ExecutionContext<'ctx>,
     response_object: ResponseBoundaryItem,
-    metadata: &'ctx Metadata,
     plan: PlanWalker<'ctx>,
     output: ResponsePart,
 }
@@ -46,7 +42,7 @@ impl<'ctx> IntrospectionExecutor<'ctx> {
     pub async fn execute(mut self) -> Result<ResponsePart, ExecutionError> {
         writer::IntrospectionWriter {
             schema: self.ctx.engine.schema.walker(),
-            metadata: self.metadata,
+            metadata: self.ctx.engine.schema.walker().introspection_metadata(),
             plan: self.plan,
             output: RefCell::new(&mut self.output),
         }

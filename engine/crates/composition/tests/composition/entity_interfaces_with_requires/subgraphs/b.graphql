@@ -1,0 +1,13 @@
+type Media @key(fields: "id") @interfaceObject {
+  id: ID!
+  title: String! @external
+  reviews: [Review!]! @requires(fields: "title")
+}
+
+type Review {
+  score: Int!
+}
+
+type Query {
+  topRatedMedia: [Media!]!
+}

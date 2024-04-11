@@ -133,7 +133,7 @@ impl User {
 struct Product {
     upc: String,
     #[graphql(external)]
-    price: u32,
+    price: i32,
 }
 
 #[ComplexObject]
@@ -173,6 +173,35 @@ struct Picture {
     alt_text: String,
 }
 
+#[derive(SimpleObject)]
+#[graphql(complex, interface_object)]
+struct ShippingService {
+    id: String,
+    #[graphql(external)]
+    name: String,
+}
+
+#[ComplexObject]
+impl ShippingService {
+    #[graphql(requires = "name")]
+    async fn reviews(&self) -> Vec<ShippingServiceReview> {
+        match self.name.as_str() {
+            "Planet Express" => vec![ShippingServiceReview {
+                body: "Not as good as Mom's Friendly Delivery Company".to_string(),
+            }],
+            "Cher Ami" => vec![ShippingServiceReview {
+                body: "Saved my life in the war".to_string(),
+            }],
+            _ => Vec::new(),
+        }
+    }
+}
+
+#[derive(SimpleObject)]
+struct ShippingServiceReview {
+    body: String,
+}
+
 struct Query;
 
 #[Object]
@@ -185,6 +214,14 @@ impl Query {
     #[graphql(entity)]
     async fn find_product_by_upc(&self, upc: String) -> Product {
         Product { upc, price: 0 }
+    }
+
+    #[graphql(entity)]
+    async fn shipping_service_by_id(&self, #[graphql(key)] id: String, name: Option<String>) -> ShippingService {
+        ShippingService {
+            id,
+            name: name.unwrap_or_default(),
+        }
     }
 }
 

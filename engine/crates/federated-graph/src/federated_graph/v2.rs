@@ -1,7 +1,7 @@
 pub use super::v1::{
     Definition, EnumId, FieldId, FieldProvides, FieldRequires, FieldSet, FieldSetItem, FieldType, InputObjectId,
-    InterfaceField, InterfaceId, Key, ListWrapper, ObjectField, ObjectId, Override, OverrideSource, RootOperationTypes,
-    ScalarId, StringId, Subgraph, SubgraphId, TypeId, UnionId,
+    InterfaceField, InterfaceId, Key, ListWrapper, ObjectField, ObjectId, Override, OverrideLabel, OverrideSource,
+    RootOperationTypes, ScalarId, StringId, Subgraph, SubgraphId, TypeId, UnionId,
 };
 
 /// A composed federated graph.
@@ -47,6 +47,12 @@ pub struct FederatedGraphV2 {
     pub directives: Vec<Directive>,
 }
 
+impl std::fmt::Debug for FederatedGraphV2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(std::any::type_name::<Self>()).finish_non_exhaustive()
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct InputValueDefinition {
     pub name: StringId,
@@ -55,8 +61,10 @@ pub struct InputValueDefinition {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
+#[derive(Default, serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd, Debug)]
 pub enum Value {
+    #[default]
+    Null,
     String(StringId),
     Int(i64),
     Float(f64),
@@ -67,6 +75,32 @@ pub enum Value {
     EnumValue(StringId),
     Object(Box<[(StringId, Value)]>),
     List(Box<[Value]>),
+}
+
+impl Value {
+    pub fn as_list(&self) -> Option<&[Value]> {
+        if let Self::List(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_string(&self) -> Option<&StringId> {
+        if let Self::String(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn is_list(&self) -> bool {
+        matches!(self, Self::List(_))
+    }
+
+    pub fn is_null(&self) -> bool {
+        matches!(self, Self::Null)
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
@@ -230,6 +264,12 @@ impl From<InputValueDefinitionId> for usize {
     }
 }
 
+impl From<usize> for InputValueDefinitionId {
+    fn from(index: usize) -> Self {
+        InputValueDefinitionId(index)
+    }
+}
+
 pub const NO_INPUT_VALUE_DEFINITION: InputValueDefinitions = (InputValueDefinitionId(0), 0);
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -238,6 +278,12 @@ pub struct EnumValueId(pub usize);
 impl From<EnumValueId> for usize {
     fn from(EnumValueId(index): EnumValueId) -> Self {
         index
+    }
+}
+
+impl From<usize> for EnumValueId {
+    fn from(index: usize) -> Self {
+        EnumValueId(index)
     }
 }
 
@@ -563,15 +609,15 @@ impl From<super::v1::FederatedGraphV1> for FederatedGraphV2 {
 impl From<(super::v1::Value, &[String])> for Value {
     fn from((value, strings): (super::v1::Value, &[String])) -> Self {
         match value {
-            crate::v1::Value::String(v) => Value::String(v),
-            crate::v1::Value::Int(v) => Value::Int(v),
-            crate::v1::Value::Float(v) => Value::Float(strings[v.0].parse().unwrap()),
-            crate::v1::Value::Boolean(v) => Value::Boolean(v),
-            crate::v1::Value::EnumValue(v) => Value::EnumValue(v),
-            crate::v1::Value::Object(v) => {
+            super::v1::Value::String(v) => Value::String(v),
+            super::v1::Value::Int(v) => Value::Int(v),
+            super::v1::Value::Float(v) => Value::Float(strings[v.0].parse().unwrap()),
+            super::v1::Value::Boolean(v) => Value::Boolean(v),
+            super::v1::Value::EnumValue(v) => Value::EnumValue(v),
+            super::v1::Value::Object(v) => {
                 Value::Object(v.into_iter().map(|(k, v)| (k, (v, strings).into())).collect())
             }
-            crate::v1::Value::List(v) => Value::List(v.into_iter().map(|v| (v, strings).into()).collect()),
+            super::v1::Value::List(v) => Value::List(v.into_iter().map(|v| (v, strings).into()).collect()),
         }
     }
 }

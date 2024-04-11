@@ -1,0 +1,32 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    FST @join__graph(name: "fst", url: "http://example.com/fst")
+}
+
+type User
+    @join__type(graph: FST, key: "id")
+{
+    id: ID!
+    name: String @join__field(graph: FST, override: "somewhereElse", overrideLabel: "percent(10)")
+}
+
+type Query {
+    me: User @join__field(graph: FST)
+}

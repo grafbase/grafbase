@@ -1,27 +1,33 @@
-use crate::{Names, Schema};
+use crate::{sources::IntrospectionMetadata, Names, Schema, StringId};
 
 mod definition;
+mod directives;
 mod r#enum;
 mod field;
 mod field_set;
+mod header;
 mod input_object;
 mod input_value;
 mod interface;
 mod object;
+mod requires;
 mod resolver;
 mod scalar;
 mod r#type;
 mod union;
 
 pub use definition::*;
+pub use directives::*;
 pub use field::*;
 pub use field_set::*;
+pub use header::*;
 pub use input_object::*;
 pub use input_value::*;
 pub use interface::*;
 pub use object::*;
 pub use r#enum::*;
 pub use r#type::*;
+pub use requires::*;
 pub use resolver::*;
 pub use scalar::*;
 pub use union::*;
@@ -64,48 +70,38 @@ where
     }
 }
 
-pub struct RangeWalker<'a, T, Key> {
-    schema: &'a Schema,
-    names: &'a dyn Names,
-    range: &'a [T],
-    index: usize,
-    key: Key,
-}
-
-impl<'a, T, Key, Id> Iterator for RangeWalker<'a, T, Key>
-where
-    Id: Copy,
-    Key: Fn(&T) -> Option<Id>,
-{
-    type Item = SchemaWalker<'a, Id>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let item = self.range.get(self.index)?;
-        let id = (self.key)(item)?;
-        self.index += 1;
-        Some(SchemaWalker::new(id, self.schema, self.names))
-    }
-}
-
 impl<'a> SchemaWalker<'a, ()> {
     pub fn definitions(&self) -> impl ExactSizeIterator<Item = DefinitionWalker<'a>> + 'a {
         let walker = *self;
         self.schema
-            .definitions
+            .graph
+            .type_definitions
             .iter()
             .map(move |definition| walker.walk(*definition))
     }
 
+    pub fn description_id(&self) -> Option<StringId> {
+        self.schema.graph.description
+    }
+
+    pub fn introspection_metadata(&self) -> &'a IntrospectionMetadata {
+        &self.schema.data_sources.introspection
+    }
+
     pub fn query(&self) -> ObjectWalker<'a> {
-        self.walk(self.schema.root_operation_types.query)
+        self.walk(self.schema.graph.root_operation_types.query)
     }
 
     pub fn mutation(&self) -> Option<ObjectWalker<'a>> {
-        self.schema.root_operation_types.mutation.map(|id| self.walk(id))
+        self.schema.graph.root_operation_types.mutation.map(|id| self.walk(id))
     }
 
     pub fn subscription(&self) -> Option<ObjectWalker<'a>> {
-        self.schema.root_operation_types.subscription.map(|id| self.walk(id))
+        self.schema
+            .graph
+            .root_operation_types
+            .subscription
+            .map(|id| self.walk(id))
     }
 
     pub fn names(&self) -> &'a dyn Names {

@@ -1,10 +1,10 @@
+use id_newtypes::IdRange;
 use schema::{ResolverId, Schema};
 
 use crate::{
-    request::{OpInputValues, Operation, QueryPath},
+    operation::{Operation, QueryPath, Variables},
     response::ReadSelectionSet,
     sources::Plan,
-    utils::IdRange,
 };
 
 mod collected;
@@ -28,11 +28,11 @@ pub(crate) struct OperationPlan {
     // for a plan filtering out other plans fields and to build the collected selection set.
     //
     // BoundFieldId -> PlanId
-    bound_field_to_plan_id: Vec<PlanId>,
+    field_to_plan_id: Vec<PlanId>,
     // BoundSelectionSetId -> PlanId
-    bound_selection_to_plan_id: Vec<PlanId>,
+    selection_to_plan_id: Vec<PlanId>,
     /// BoundSelectionSetId -> Option<CollectedSelectionSetId>
-    bound_to_collected_selection_set: Vec<Option<AnyCollectedSelectionSetId>>,
+    selection_set_to_collected: Vec<Option<AnyCollectedSelectionSetId>>,
 
     // -- Plans --
     // Actual plans for the operation. A plan defines what do for a given selection set at a
@@ -97,20 +97,15 @@ where
 }
 
 impl OperationPlan {
-    pub fn prepare(schema: &Schema, operation: Operation) -> PlanningResult<Self> {
-        planning::plan_operation(schema, operation)
+    pub fn prepare(schema: &Schema, variables: &Variables, operation: Operation) -> PlanningResult<Self> {
+        planning::plan_operation(schema, variables, operation)
     }
 
     pub fn new_execution_state(&self) -> OperationExecutionState {
         OperationExecutionState::new(self)
     }
 
-    pub fn plan_walker<'s>(
-        &'s self,
-        schema: &'s Schema,
-        plan_id: PlanId,
-        input_values: Option<&'s OpInputValues>,
-    ) -> PlanWalker<'s> {
+    pub fn walker_with<'s>(&'s self, schema: &'s Schema, variables: &'s Variables, plan_id: PlanId) -> PlanWalker<'s> {
         let plan_id = PlanId::from(usize::from(plan_id));
         let schema_walker = schema
             .walk(self.planned_resolvers[usize::from(plan_id)].resolver_id)
@@ -119,7 +114,7 @@ impl OperationPlan {
         PlanWalker {
             schema_walker,
             operation_plan: self,
-            input_values,
+            variables,
             plan_id,
             item: (),
         }

@@ -3,7 +3,7 @@ use crate::api::graphql::queries::{
     fetch_subgraph_schema::{FetchSubgraphSchemaArguments, FetchSubgraphSchemaQuery},
 };
 
-use super::{client::create_client, consts::API_URL, errors::ApiError};
+use super::{client::create_client, consts::api_url, errors::ApiError};
 use cynic::{http::ReqwestExt, QueryBuilder};
 
 pub async fn schema(
@@ -37,7 +37,7 @@ async fn subgraph_schema(
         subgraph_name,
         branch,
     });
-    let response = client.post(API_URL).run_graphql(operation).await?;
+    let response = client.post(api_url()).run_graphql(operation).await?;
 
     response
         .data
@@ -54,7 +54,7 @@ async fn federated_graph_schema(account: &str, project: &str, branch: &str) -> R
         project,
         branch,
     });
-    let response = client.post(API_URL).run_graphql(operation).await?;
+    let response = client.post(api_url()).run_graphql(operation).await?;
 
     response
         .data

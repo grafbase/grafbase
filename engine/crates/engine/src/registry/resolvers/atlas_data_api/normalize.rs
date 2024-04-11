@@ -3,7 +3,9 @@ use serde_json::Value;
 use super::{value::MongoValue, JsonMap};
 use crate::{
     registry::{
-        resolvers::atlas_data_api::consts::OP_ELEM_MATCH, type_kinds::InputType, MetaInputValue, TypeReference,
+        resolvers::atlas_data_api::consts::{OP_AND, OP_ELEM_MATCH, OP_OR},
+        type_kinds::InputType,
+        MetaInputValue, TypeReference,
     },
     ContextField,
 };
@@ -81,6 +83,24 @@ pub(super) fn flatten_keys(input: JsonMap) -> JsonMap {
                             output.insert(acc.to_string(), inner.into());
                         }
                     }
+                }
+                Value::Array(values) if key == OP_AND || key == OP_OR => {
+                    let mut output_vec = Vec::with_capacity(values.len());
+
+                    for value in values {
+                        match value {
+                            Value::Object(input) => {
+                                let mut output = JsonMap::new();
+                                recurse(input, &mut output, None);
+                                output_vec.push(Value::Object(output));
+                            }
+                            value => {
+                                output_vec.push(value);
+                            }
+                        }
+                    }
+
+                    output.insert(key, Value::Array(output_vec));
                 }
                 // a special case, if we use any filter functions in the nested
                 // object, the function must be added as a separate object instead

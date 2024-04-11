@@ -1,21 +1,23 @@
 use std::str::FromStr;
 
 mod builder;
-mod cache;
-mod field_set;
+mod directives;
 mod ids;
 mod input_value;
 mod names;
+mod provides;
+mod requires;
 mod resolver;
 pub mod sources;
 mod walkers;
-mod wrapping;
 
-pub use cache::*;
-pub use field_set::*;
+pub use directives::*;
+use id_newtypes::IdRange;
 pub use ids::*;
 pub use input_value::*;
 pub use names::Names;
+pub use provides::*;
+pub use requires::*;
 pub use resolver::*;
 pub use walkers::*;
 pub use wrapping::*;
@@ -24,81 +26,82 @@ pub use wrapping::*;
 /// the source of truth. If the cache is stale we would just re-create this Graph from its source:
 /// federated_graph::FederatedGraph.
 pub struct Schema {
-    pub data_sources: DataSources,
-
-    pub description: Option<StringId>,
-    pub root_operation_types: RootOperationTypes,
-    objects: Vec<Object>,
-    // Sorted by object_id, field name (actual string)
-    object_fields: Vec<ObjectField>,
-    interfaces: Vec<Interface>,
-    // Sorted by interface_id, field name (actual string)
-    interface_fields: Vec<InterfaceField>,
-    fields: Vec<Field>,
-    enums: Vec<Enum>,
-    unions: Vec<Union>,
-    scalars: Vec<Scalar>,
-    input_objects: Vec<InputObject>,
-    input_value_definitions: Vec<InputValueDefinition>,
-    resolvers: Vec<Resolver>,
-    /// All the field types in the supergraph, deduplicated.
-    types: Vec<Type>,
-    // All definitions sorted by their name (actual string)
-    definitions: Vec<Definition>,
-    directives: Vec<Directive>,
-    enum_values: Vec<EnumValue>,
+    data_sources: DataSources,
+    graph: Graph,
 
     /// All strings deduplicated.
     strings: Vec<String>,
     urls: Vec<url::Url>,
-    /// Default input values & directive arguments
-    input_values: SchemaInputValues,
-
     /// Headers we might want to send to a subgraph
     headers: Vec<Header>,
+
+    pub settings: Settings,
+}
+
+#[derive(Default)]
+pub struct Settings {
     default_headers: Vec<HeaderId>,
-    cache_configs: Vec<CacheConfig>,
 
     pub auth_config: Option<config::latest::AuthConfig>,
     pub operation_limits: config::latest::OperationLimits,
     pub disable_introspection: bool,
 }
 
-#[derive(Default)]
+pub struct Graph {
+    pub description: Option<StringId>,
+    pub root_operation_types: RootOperationTypes,
+
+    // All type definitions sorted by their name (actual string)
+    type_definitions: Vec<Definition>,
+    object_definitions: Vec<Object>,
+    interface_definitions: Vec<Interface>,
+    field_definitions: Vec<FieldDefinition>,
+    enum_definitions: Vec<Enum>,
+    union_definitions: Vec<Union>,
+    scalar_definitions: Vec<Scalar>,
+    input_object_definitions: Vec<InputObject>,
+    input_value_definitions: Vec<InputValueDefinition>,
+    enum_value_definitions: Vec<EnumValue>,
+
+    type_system_directives: Vec<TypeSystemDirective>,
+    resolvers: Vec<Resolver>,
+    required_field_sets: Vec<RequiredFieldSet>,
+    // deduplicated
+    required_fields_arguments: Vec<RequiredFieldArguments>,
+    /// Default input values & directive arguments
+    input_values: SchemaInputValues,
+    cache_control: Vec<CacheControl>,
+    required_scopes: Vec<RequiredScopes>,
+}
+
 pub struct DataSources {
-    federation: sources::federation::DataSource,
-    pub introspection: sources::introspection::DataSource,
+    graphql: sources::GraphqlEndpoints,
+    pub introspection: sources::IntrospectionMetadata,
 }
 
 impl Schema {
     pub fn definition_by_name(&self, name: &str) -> Option<Definition> {
-        self.definitions
+        self.graph
+            .type_definitions
             .binary_search_by_key(&name, |definition| self.definition_name(*definition))
-            .map(|index| self.definitions[index])
+            .map(|index| self.graph.type_definitions[index])
             .ok()
     }
 
-    pub fn object_field_by_name(&self, object_id: ObjectId, name: &str) -> Option<FieldId> {
-        self.object_fields
-            .binary_search_by_key(&(object_id, name), |ObjectField { object_id, field_id }| {
-                (*object_id, &self[self[*field_id].name])
-            })
-            .map(|index| self.object_fields[index].field_id)
-            .ok()
+    pub fn object_field_by_name(&self, object_id: ObjectId, name: &str) -> Option<FieldDefinitionId> {
+        let fields = self[object_id].fields;
+        self[fields]
+            .iter()
+            .position(|field| self[field.name] == name)
+            .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
     }
 
-    pub fn interface_field_by_name(&self, interface_id: InterfaceId, name: &str) -> Option<FieldId> {
-        self.interface_fields
-            .binary_search_by_key(&(interface_id, name), |InterfaceField { interface_id, field_id }| {
-                (*interface_id, &self[self[*field_id].name])
-            })
-            .map(|index| self.interface_fields[index].field_id)
-            .ok()
-    }
-
-    // Used as the default resolver
-    pub fn introspection_resolver_id(&self) -> ResolverId {
-        (self.resolvers.len() - 1).into()
+    pub fn interface_field_by_name(&self, interface_id: InterfaceId, name: &str) -> Option<FieldDefinitionId> {
+        let fields = self[interface_id].fields;
+        self[fields]
+            .iter()
+            .position(|field| self[field.name] == name)
+            .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
     }
 
     fn definition_name(&self, definition: Definition) -> &str {
@@ -111,49 +114,6 @@ impl Schema {
             Definition::InputObject(io) => self[io].name,
         };
         &self[name]
-    }
-
-    #[cfg(test)]
-    pub(crate) fn empty() -> Self {
-        Self {
-            data_sources: Default::default(),
-            description: None,
-            root_operation_types: crate::RootOperationTypes {
-                query: ObjectId::from(0),
-                mutation: None,
-                subscription: None,
-            },
-            objects: vec![Object {
-                name: StringId::from(0),
-                description: None,
-                interfaces: Vec::new(),
-                composed_directives: Directives::empty(),
-                cache_config: None,
-            }],
-            object_fields: Vec::new(),
-            interfaces: Vec::new(),
-            interface_fields: Vec::new(),
-            fields: Vec::new(),
-            enums: Vec::new(),
-            unions: Vec::new(),
-            scalars: Vec::new(),
-            input_objects: Vec::new(),
-            input_value_definitions: Vec::new(),
-            resolvers: Vec::new(),
-            types: Vec::new(),
-            definitions: Vec::new(),
-            directives: Vec::new(),
-            enum_values: Vec::new(),
-            strings: vec![String::from("Query")],
-            urls: Vec::new(),
-            input_values: Default::default(),
-            headers: Vec::new(),
-            default_headers: Vec::new(),
-            cache_configs: Vec::new(),
-            auth_config: Default::default(),
-            operation_limits: Default::default(),
-            disable_introspection: false,
-        }
     }
 }
 
@@ -175,52 +135,37 @@ pub struct Object {
     pub name: StringId,
     pub description: Option<StringId>,
     pub interfaces: Vec<InterfaceId>,
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
-    pub cache_config: Option<CacheConfigId>,
-}
-
-pub type Directives = IdRange<DirectiveId>;
-
-#[derive(PartialOrd, Ord, PartialEq, Eq)]
-pub struct ObjectField {
-    pub object_id: ObjectId,
-    pub field_id: FieldId,
+    pub directives: IdRange<TypeSystemDirectiveId>,
+    pub fields: IdRange<FieldDefinitionId>,
 }
 
 #[derive(Debug)]
-pub struct Field {
+pub struct FieldDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub type_id: TypeId,
-    pub resolvers: Vec<FieldResolver>,
-    provides: Vec<FieldProvides>,
+    pub ty: Type,
+    pub resolvers: Vec<ResolverId>,
+    /// By default a field is considered shared and providable by *any* subgraph that exposes it.
+    /// It's up to the composition to ensure it. If this field is specific to some subgraphs, they
+    /// will be specified in this Vec.
+    pub only_resolvable_in: Vec<SubgraphId>,
+    pub requires: Vec<FieldRequires>,
+    pub provides: Vec<FieldProvides>,
     /// The arguments referenced by this range are sorted by their name (string)
     pub argument_ids: IdRange<InputValueDefinitionId>,
-
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
-
-    pub cache_config: Option<CacheConfigId>,
+    pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug)]
-pub enum FieldProvides {
-    // provided only if the current resolver is part of the group.
-    IfResolverGroup { group: ResolverGroup, field_set: FieldSet },
+pub struct FieldProvides {
+    subgraph_id: SubgraphId,
+    field_set: ProvidableFieldSet,
 }
 
 #[derive(Debug)]
-pub struct FieldResolver {
-    resolver_id: ResolverId,
-    field_requires: FieldSet,
-}
-
-#[derive(Debug)]
-pub enum Directive {
-    Inaccessible,
-    Deprecated { reason: Option<StringId> },
-    Other { name: StringId, arguments: SchemaInputMap },
+pub struct FieldRequires {
+    subgraph_id: SubgraphId,
+    field_set_id: RequiredFieldSetId,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -301,15 +246,8 @@ pub struct Interface {
 
     /// sorted by ObjectId
     pub possible_types: Vec<ObjectId>,
-
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
-}
-
-#[derive(Debug)]
-pub struct InterfaceField {
-    pub interface_id: InterfaceId,
-    pub field_id: FieldId,
+    pub directives: IdRange<TypeSystemDirectiveId>,
+    pub fields: IdRange<FieldDefinitionId>,
 }
 
 #[derive(Debug)]
@@ -318,18 +256,14 @@ pub struct Enum {
     pub description: Option<StringId>,
     /// The enum values referenced by this range are sorted by their name (string)
     pub value_ids: IdRange<EnumValueId>,
-
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
+    pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug)]
 pub struct EnumValue {
     pub name: StringId,
     pub description: Option<StringId>,
-
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
+    pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug)]
@@ -338,9 +272,7 @@ pub struct Union {
     pub description: Option<StringId>,
     /// sorted by ObjectId
     pub possible_types: Vec<ObjectId>,
-
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
+    pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug)]
@@ -349,8 +281,7 @@ pub struct Scalar {
     pub ty: ScalarType,
     pub description: Option<StringId>,
     pub specified_by_url: Option<StringId>,
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
+    pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 /// Defines how a scalar should be represented and validated by the engine. They're almost the same
@@ -381,17 +312,16 @@ pub struct InputObject {
     pub description: Option<StringId>,
     /// The input fields referenced by this range are sorted by their name (string)
     pub input_field_ids: IdRange<InputValueDefinitionId>,
-
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
+    pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug, Clone)]
 pub struct InputValueDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub type_id: TypeId,
+    pub ty: Type,
     pub default_value: Option<SchemaInputValueId>,
+    pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 impl Schema {

@@ -96,9 +96,11 @@ fn default_true() -> bool {
 
 pub type FieldSet = Vec<FieldSetItem>;
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct FieldSetItem {
     pub field: FieldId,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub arguments: Vec<(super::v3::InputValueDefinitionId, super::v3::Value)>,
     pub subselection: FieldSet,
 }
 
@@ -157,12 +159,13 @@ pub enum Value {
     Int(i64),
     Float(StringId),
     Boolean(bool),
+    #[allow(clippy::enum_variant_names)]
     EnumValue(StringId),
     Object(Vec<(StringId, Value)>),
     List(Vec<Value>),
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum Definition {
     Scalar(ScalarId),
     Object(ObjectId),
@@ -170,6 +173,16 @@ pub enum Definition {
     Union(UnionId),
     Enum(EnumId),
     InputObject(InputObjectId),
+}
+
+impl Definition {
+    pub fn as_object(&self) -> Option<&ObjectId> {
+        if let Self::Object(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Hash, PartialEq, Eq, Clone)]
@@ -217,6 +230,55 @@ pub struct Override {
     /// Points to a subgraph referenced by name, but this is _not_ validated to allow easier field
     /// migrations between subgraphs.
     pub from: OverrideSource,
+    #[serde(default)]
+    pub label: OverrideLabel,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Default, Debug)]
+pub enum OverrideLabel {
+    Percent(u8),
+    #[serde(other)]
+    #[default]
+    Unknown,
+}
+
+impl OverrideLabel {
+    pub fn as_percent(&self) -> Option<u8> {
+        if let Self::Percent(v) = self {
+            Some(*v)
+        } else {
+            None
+        }
+    }
+}
+
+impl std::fmt::Display for OverrideLabel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OverrideLabel::Percent(percent) => {
+                f.write_str("percent(")?;
+                percent.fmt(f)?;
+                f.write_str(")")
+            }
+            OverrideLabel::Unknown => Ok(()),
+        }
+    }
+}
+
+impl std::str::FromStr for OverrideLabel {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some(percent) = s
+            .strip_prefix("percent(")
+            .and_then(|suffix| suffix.strip_suffix(')'))
+            .and_then(|percent| u8::from_str(percent).ok())
+        {
+            Ok(OverrideLabel::Percent(percent))
+        } else {
+            Err(r#"Expected a field of the format "percent(<number>)" "#)
+        }
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -396,11 +458,12 @@ id_newtypes! {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::FederatedGraph;
 
     #[test]
     fn serde_json_backwards_compatibility() {
-        serde_json::from_str::<FederatedGraph>(
+        let schema = serde_json::from_str::<FederatedGraph>(
             r#"
             {
               "V1": {
@@ -1151,5 +1214,29 @@ mod tests {
             }"#,
         )
         .unwrap();
+
+        let schema = schema.into_latest();
+        let query_object = &schema[schema.root_operation_types.query];
+
+        for field_name in ["__type", "__schema"] {
+            let name_id = schema.strings.iter().position(|s| s == field_name).unwrap();
+            assert!(
+                schema[query_object.fields.clone()].iter().any(|f| f.name.0 == name_id),
+                "Failed assertion: Query.{} must exist",
+                field_name
+            );
+        }
+    }
+
+    #[test]
+    fn override_label() {
+        assert!("".parse::<OverrideLabel>().is_err());
+        assert!("percent(heh)".parse::<OverrideLabel>().is_err());
+        assert!("percent(30".parse::<OverrideLabel>().is_err());
+
+        assert_eq!(
+            "percent(30)".parse::<OverrideLabel>().unwrap().as_percent().unwrap(),
+            30
+        );
     }
 }

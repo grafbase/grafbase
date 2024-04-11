@@ -1,0 +1,19 @@
+type B {
+    foo: String @requiresScopes(scopes: [["yolo",],["wolo",],["scope:1","scope:2",],])
+    id: ID!
+}
+
+type A {
+    id: ID!
+    names: String! @requiresScopes(scopes: [["read:others","and:yetanother",],["read:profiles","read:profiles2","read:others",],])
+}
+
+type User {
+    id: ID!
+    name: String @deprecated(reason: "we have no name")
+}
+
+type Query {
+    oneA: A
+    oneB: B
+}

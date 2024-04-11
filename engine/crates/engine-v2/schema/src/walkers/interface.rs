@@ -1,5 +1,5 @@
-use super::{FieldWalker, RangeWalker, SchemaWalker};
-use crate::{InterfaceField, InterfaceId, ObjectWalker};
+use super::{FieldDefinitionWalker, SchemaWalker};
+use crate::{InterfaceId, ObjectWalker, TypeSystemDirectivesWalker};
 
 pub type InterfaceWalker<'a> = SchemaWalker<'a, InterfaceId>;
 
@@ -8,25 +8,9 @@ impl<'a> InterfaceWalker<'a> {
         self.names.interface(self.schema, self.item)
     }
 
-    pub fn fields(&self) -> impl Iterator<Item = FieldWalker<'a>> + 'a {
-        let start = self
-            .schema
-            .interface_fields
-            .partition_point(|item| item.interface_id < self.item);
-        let id = self.item;
-        RangeWalker {
-            schema: self.schema,
-            names: self.names,
-            range: &self.schema.interface_fields,
-            index: start,
-            key: move |item: &InterfaceField| {
-                if item.interface_id == id {
-                    Some(item.field_id)
-                } else {
-                    None
-                }
-            },
-        }
+    pub fn fields(self) -> impl Iterator<Item = FieldDefinitionWalker<'a>> + 'a {
+        let fields = self.schema[self.item].fields;
+        fields.map(move |field_id| self.walk(field_id))
     }
 
     pub fn interfaces(self) -> impl ExactSizeIterator<Item = InterfaceWalker<'a>> + 'a {
@@ -43,6 +27,10 @@ impl<'a> InterfaceWalker<'a> {
             .clone()
             .into_iter()
             .map(move |id| self.walk(id))
+    }
+
+    pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
+        self.walk(self.as_ref().directives)
     }
 }
 

@@ -2,18 +2,20 @@ use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::{fs, usize};
+use std::usize;
 
 use http::{HeaderName, HeaderValue};
 use serde::de::{Error as DeserializeError, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer};
+#[cfg(feature = "otlp")]
 use tonic::transport::{Certificate, ClientTlsConfig, Identity};
 use url::Url;
 
 use crate::error::TracingError;
 
 pub(crate) const DEFAULT_COLLECT_VALUE: usize = 128;
-pub(crate) const DEFAULT_FILTER: &str = "grafbase=info,off";
+/// Default tracing filter to be applied on spans that are client facing
+pub const DEFAULT_FILTER: &str = "grafbase-gateway=info,federated-server=info,grafbase=info,off";
 pub(crate) const DEFAULT_SAMPLING: f64 = 0.15;
 // FIXME: Use this constant when `unwrap()` becomes const-stable.
 // const DEFAULT_EXPORT_TIMEOUT: chrono::Duration = chrono::Duration::try_seconds(60).unwrap();
@@ -292,10 +294,13 @@ pub struct TracingExporterTlsConfig {
     pub ca: Option<PathBuf>,
 }
 
+#[cfg(feature = "otlp")]
 impl TryFrom<TracingExporterTlsConfig> for ClientTlsConfig {
     type Error = TracingError;
 
     fn try_from(value: TracingExporterTlsConfig) -> Result<ClientTlsConfig, Self::Error> {
+        use std::fs;
+
         let mut tls = ClientTlsConfig::new();
 
         if let Some(domain) = value.domain_name {
@@ -345,6 +350,11 @@ impl Headers {
     /// Consume self and return the inner list
     pub fn into_inner(self) -> Vec<(HeaderName, HeaderValue)> {
         self.0
+    }
+
+    /// Gets the headers as a referenced slice
+    pub fn inner(&self) -> &[(HeaderName, HeaderValue)] {
+        &self.0
     }
 
     /// Consume self and return a map of header/header_value as ascii strings
@@ -402,10 +412,9 @@ pub mod tests {
 
     use http::{HeaderName, HeaderValue};
     use indoc::indoc;
-    use tonic::transport::ClientTlsConfig;
     use url::Url;
 
-    use crate::error::TracingError;
+    use tempfile as _;
 
     use super::{
         Headers, TracingBatchExportConfig, TracingCollectConfig, TracingConfig, TracingExporterTlsConfig,
@@ -697,8 +706,12 @@ pub mod tests {
         );
     }
 
+    #[cfg(feature = "otlp")]
     #[test]
     fn tls_config() {
+        use crate::error::TracingError;
+        use tonic::transport::ClientTlsConfig;
+
         let tls_config = TracingExporterTlsConfig::default();
 
         // ok, no error reading file

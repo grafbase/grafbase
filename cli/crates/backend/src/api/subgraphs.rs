@@ -1,6 +1,6 @@
 use super::{
     client::create_client,
-    consts::API_URL,
+    consts::api_url,
     errors::ApiError,
     graphql::queries::list_subgraphs::{
         ListSubgraphsArguments, ListSubgraphsForProductionBranchArguments, ListSubgraphsForProductionBranchQuery,
@@ -34,7 +34,7 @@ async fn subgraphs_with_branch(
         branch,
     });
 
-    let response = client.post(API_URL).run_graphql(operation).await?;
+    let response = client.post(api_url()).run_graphql(operation).await?;
     let subgraphs = response
         .data
         .as_ref()
@@ -56,7 +56,7 @@ async fn subgraphs_production_branch(account: &str, project: &str) -> Result<(St
     let operation =
         ListSubgraphsForProductionBranchQuery::build(ListSubgraphsForProductionBranchArguments { account, project });
 
-    let response = client.post(API_URL).run_graphql(operation).await?;
+    let response = client.post(api_url()).run_graphql(operation).await?;
     let subgraphs = response
         .data
         .as_ref()

@@ -2,7 +2,10 @@ use std::collections::BTreeMap;
 
 use schema::Schema;
 
-use crate::{request::Operation, response::GraphqlError};
+use crate::{
+    operation::{Operation, Variables},
+    response::GraphqlError,
+};
 
 mod boundary;
 mod collect;
@@ -21,8 +24,6 @@ pub enum PlanningError {
         missing: Vec<String>,
         query_path: Vec<String>,
     },
-    #[error("Could not satisfy required field named '{field}' for resolver named '{resolver}'")]
-    CouldNotSatisfyRequires { resolver: String, field: String },
     #[error("Internal error: {0}")]
     InternalError(String),
 }
@@ -35,7 +36,7 @@ impl From<PlanningError> for GraphqlError {
                 .into_iter()
                 .map(serde_json::Value::String)
                 .collect::<Vec<_>>(),
-            PlanningError::CouldNotSatisfyRequires { .. } | PlanningError::InternalError { .. } => vec![],
+            PlanningError::InternalError { .. } => vec![],
         };
 
         GraphqlError {
@@ -59,8 +60,12 @@ impl From<&str> for PlanningError {
     }
 }
 
-pub(super) fn plan_operation(schema: &Schema, operation: Operation) -> PlanningResult<OperationPlan> {
-    let mut planner = planner::Planner::new(schema, operation);
+pub(super) fn plan_operation(
+    schema: &Schema,
+    variables: &Variables,
+    operation: Operation,
+) -> PlanningResult<OperationPlan> {
+    let mut planner = planner::Planner::new(schema, variables, operation);
     planner.plan_all_fields()?;
     planner.finalize_operation()
 }

@@ -1,123 +1,157 @@
-use crate::{InputValue, RawInputValue, RawInputValueId, RawInputValues, SchemaInputValueId, SchemaWalker, StringId};
+use std::cmp::Ordering;
 
-/// Walker over a RawInputValue providing Serialize, Deserialize, Display and Into<InputValue<'_>>.
-#[derive(Clone, Copy)]
-pub struct RawInputValueWalker<'ctx, Ctx: RawInputValuesContext<'ctx>> {
-    pub(super) ctx: Ctx,
-    pub(super) value: &'ctx RawInputValue<Ctx::Str>,
-}
+use crate::{InputValue, SchemaInputValue, SchemaWalker};
 
-impl<'ctx, Ctx> RawInputValueWalker<'ctx, Ctx>
-where
-    Ctx: RawInputValuesContext<'ctx>,
-{
-    pub(super) fn walk(&self, value: &'ctx RawInputValue<Ctx::Str>) -> Self {
-        Self { ctx: self.ctx, value }
-    }
+pub type SchemaInputValueWalker<'a> = SchemaWalker<'a, &'a SchemaInputValue>;
 
-    /// Undefined values within InputObjects are silently removed according to the GraphQL spec.
-    /// But we can't remove an undefined argument
-    pub fn is_undefined(&self) -> bool {
-        match self.value {
-            RawInputValue::Undefined => true,
-            RawInputValue::Ref(id) => self.ctx.walk(*id).is_undefined(),
-            // I don't think this should ever happen, so should maybe be an unreachable!()
-            RawInputValue::SchemaRef(id) => self.ctx.schema_walk(*id).is_undefined(),
-            _ => false,
-        }
-    }
-}
-
-/// Context providing all the necessary information for the RawInputValueWalker. There are two
-/// cases:
-/// - schema input values, for which the context is simply a SchemaWalker. Strings are all interned
-///   and identified by a Stringid.
-/// - operation input values. Strings are all just Box<str>.
-pub trait RawInputValuesContext<'ctx>: Clone + Copy + 'ctx {
-    type Str: 'static;
-
-    fn schema_walker(&self) -> &SchemaWalker<'ctx, ()>;
-    fn get_str(&self, s: &'ctx Self::Str) -> &'ctx str;
-    fn input_values(&self) -> &'ctx RawInputValues<Self::Str>;
-    /// Defines how to display a InputValue::Ref(id). Used to show variable names
-    /// for operation input values when variables aren't bound yet.
-    fn input_value_ref_display(&self, id: RawInputValueId<Self::Str>) -> impl std::fmt::Display + 'ctx;
-
-    fn walk(&self, id: RawInputValueId<Self::Str>) -> RawInputValueWalker<'ctx, Self> {
-        RawInputValueWalker {
-            ctx: *self,
-            value: &self.input_values()[id],
-        }
-    }
-
-    fn schema_walk(&self, id: SchemaInputValueId) -> RawInputValueWalker<'ctx, SchemaWalker<'ctx, ()>> {
-        let ctx = *self.schema_walker();
-        let value = &ctx.input_values()[id];
-        RawInputValueWalker { ctx, value }
-    }
-}
-
-impl<'ctx> RawInputValuesContext<'ctx> for SchemaWalker<'ctx, ()> {
-    type Str = StringId;
-
-    fn schema_walker(&self) -> &SchemaWalker<'ctx, ()> {
-        self
-    }
-
-    fn get_str(&self, s: &StringId) -> &'ctx str {
-        &self.schema[*s]
-    }
-
-    fn input_values(&self) -> &'ctx RawInputValues<StringId> {
-        &self.schema.input_values
-    }
-
-    fn input_value_ref_display(&self, id: RawInputValueId<StringId>) -> impl std::fmt::Display + 'ctx {
-        RawInputValuesContext::walk(self, id)
-    }
-}
-
-/// A RawInputValue isn't very friendly to manipulate directly and it becomes even more tricky when
-/// one needs to handle default values coming from the schema and request input values.
-/// So when one needs to do more complex processing than Serialize, it's best to just manipulate an
-/// InputValue.
-impl<'ctx, Ctx> From<RawInputValueWalker<'ctx, Ctx>> for InputValue<'ctx>
-where
-    Ctx: RawInputValuesContext<'ctx>,
-{
-    fn from(walker: RawInputValueWalker<'ctx, Ctx>) -> Self {
-        match walker.value {
-            RawInputValue::Null | RawInputValue::Undefined => InputValue::Null,
-            RawInputValue::String(s) | RawInputValue::UnknownEnumValue(s) => InputValue::String(walker.ctx.get_str(s)),
-            RawInputValue::EnumValue(id) => InputValue::EnumValue(*id),
-            RawInputValue::Int(n) => InputValue::Int(*n),
-            RawInputValue::BigInt(n) => InputValue::BigInt(*n),
-            RawInputValue::Float(f) => InputValue::Float(*f),
-            RawInputValue::Boolean(b) => InputValue::Boolean(*b),
-            RawInputValue::InputObject(ids) => {
+impl<'a> From<SchemaInputValueWalker<'a>> for InputValue<'a> {
+    fn from(walker: SchemaInputValueWalker<'a>) -> Self {
+        match walker.item {
+            SchemaInputValue::Null => InputValue::Null,
+            SchemaInputValue::String(id) => InputValue::String(&walker.schema[*id]),
+            SchemaInputValue::EnumValue(id) => InputValue::EnumValue(*id),
+            SchemaInputValue::Int(n) => InputValue::Int(*n),
+            SchemaInputValue::BigInt(n) => InputValue::BigInt(*n),
+            SchemaInputValue::Float(f) => InputValue::Float(*f),
+            SchemaInputValue::Boolean(b) => InputValue::Boolean(*b),
+            SchemaInputValue::InputObject(ids) => {
                 let mut fields = Vec::with_capacity(ids.len());
-                for (input_value_definition_id, value) in &walker.ctx.input_values()[*ids] {
+                for (input_value_definition_id, value) in &walker.schema[*ids] {
                     fields.push((*input_value_definition_id, walker.walk(value).into()));
                 }
                 InputValue::InputObject(fields.into_boxed_slice())
             }
-            RawInputValue::List(ids) => {
+            SchemaInputValue::List(ids) => {
                 let mut values = Vec::with_capacity(ids.len());
-                for id in *ids {
-                    values.push(walker.ctx.walk(id).into());
+                for value in &walker.schema[*ids] {
+                    values.push(walker.walk(value).into());
                 }
                 InputValue::List(values.into_boxed_slice())
             }
-            RawInputValue::Map(ids) => {
+            SchemaInputValue::Map(ids) => {
                 let mut key_values = Vec::with_capacity(ids.len());
-                for (key, value) in &walker.ctx.input_values()[*ids] {
-                    key_values.push((walker.ctx.get_str(key), walker.walk(value).into()));
+                for (key, value) in &walker.schema[*ids] {
+                    key_values.push((walker.schema[*key].as_str(), Self::from(walker.walk(value))));
                 }
                 InputValue::Map(key_values.into_boxed_slice())
             }
-            RawInputValue::U64(n) => InputValue::U64(*n),
-            RawInputValue::Ref(id) => walker.ctx.walk(*id).into(),
-            RawInputValue::SchemaRef(id) => walker.ctx.schema_walk(*id).into(),
+            SchemaInputValue::U64(n) => InputValue::U64(*n),
+        }
+    }
+}
+
+/// Ordering is used to avoid duplciates with a BTreeMap, making RequiredFielSet merging fast and
+/// efficient.
+impl Ord for SchemaInputValueWalker<'_> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.item.discriminant().cmp(&other.item.discriminant()).then_with(|| {
+            match (self.item, other.item) {
+                (SchemaInputValue::Null, SchemaInputValue::Null) => Ordering::Equal,
+                (SchemaInputValue::String(l), SchemaInputValue::String(r)) => l.cmp(r),
+                (SchemaInputValue::EnumValue(l), SchemaInputValue::EnumValue(r)) => l.cmp(r),
+                (SchemaInputValue::Int(l), SchemaInputValue::Int(r)) => l.cmp(r),
+                (SchemaInputValue::BigInt(l), SchemaInputValue::BigInt(r)) => l.cmp(r),
+                (SchemaInputValue::U64(l), SchemaInputValue::U64(r)) => l.cmp(r),
+                (SchemaInputValue::Float(l), SchemaInputValue::Float(r)) => l.total_cmp(r),
+                (SchemaInputValue::Boolean(l), SchemaInputValue::Boolean(r)) => l.cmp(r),
+                (SchemaInputValue::InputObject(lids), SchemaInputValue::InputObject(rids)) => {
+                    let left = &self.schema[*lids];
+                    let right = &self.schema[*rids];
+                    left.len().cmp(&right.len()).then_with(|| {
+                        for ((lid, left_value), (rid, right_value)) in left.iter().zip(right) {
+                            match lid
+                                .cmp(rid)
+                                .then_with(|| self.walk(left_value).cmp(&self.walk(right_value)))
+                            {
+                                Ordering::Equal => continue,
+                                other => return other,
+                            }
+                        }
+                        Ordering::Equal
+                    })
+                }
+                (SchemaInputValue::List(lids), SchemaInputValue::List(rids)) => {
+                    let left = &self.schema[*lids];
+                    let right = &self.schema[*rids];
+                    left.len().cmp(&right.len()).then_with(|| {
+                        for (lv, rv) in left.iter().zip(right) {
+                            match self.walk(lv).cmp(&self.walk(rv)) {
+                                Ordering::Equal => continue,
+                                other => return other,
+                            }
+                        }
+                        Ordering::Equal
+                    })
+                }
+                (SchemaInputValue::Map(lids), SchemaInputValue::Map(rids)) => {
+                    let left = &self.schema[*lids];
+                    let right = &self.schema[*rids];
+                    left.len().cmp(&right.len()).then_with(|| {
+                        for ((lid, left_value), (rid, right_value)) in left.iter().zip(right) {
+                            // StringId are deduplicated so it's safe to compare the ids directly
+                            match lid
+                                .cmp(rid)
+                                .then_with(|| self.walk(left_value).cmp(&self.walk(right_value)))
+                            {
+                                Ordering::Equal => continue,
+                                other => return other,
+                            }
+                        }
+                        Ordering::Equal
+                    })
+                }
+                _ => unreachable!(),
+            }
+        })
+    }
+}
+
+impl PartialEq for SchemaInputValueWalker<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other).is_eq()
+    }
+}
+
+impl Eq for SchemaInputValueWalker<'_> {}
+
+impl PartialOrd for SchemaInputValueWalker<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl std::fmt::Debug for SchemaInputValueWalker<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.item {
+            SchemaInputValue::Null => write!(f, "Null"),
+            SchemaInputValue::String(s) => s.fmt(f),
+            SchemaInputValue::EnumValue(id) => f.debug_tuple("EnumValue").field(&self.walk(*id).name()).finish(),
+            SchemaInputValue::Int(n) => f.debug_tuple("Int").field(n).finish(),
+            SchemaInputValue::BigInt(n) => f.debug_tuple("BigInt").field(n).finish(),
+            SchemaInputValue::U64(n) => f.debug_tuple("U64").field(n).finish(),
+            SchemaInputValue::Float(n) => f.debug_tuple("Float").field(n).finish(),
+            SchemaInputValue::Boolean(b) => b.fmt(f),
+            SchemaInputValue::InputObject(ids) => {
+                let mut map = f.debug_struct("InputObject");
+                for (input_value_definition_id, value) in &self.schema[*ids] {
+                    map.field(self.walk(*input_value_definition_id).name(), &self.walk(value));
+                }
+                map.finish()
+            }
+            SchemaInputValue::List(ids) => {
+                let mut seq = f.debug_list();
+                for value in &self.schema[*ids] {
+                    seq.entry(&self.walk(value));
+                }
+                seq.finish()
+            }
+            SchemaInputValue::Map(ids) => {
+                let mut map = f.debug_map();
+                for (key, value) in &self.schema[*ids] {
+                    map.entry(&key, &self.walk(value));
+                }
+                map.finish()
+            }
         }
     }
 }

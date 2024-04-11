@@ -49,7 +49,13 @@ fn ingest_field_arguments(
             .as_ref()
             .map(|description| subgraphs.strings.intern(description.node.as_str()));
 
-        subgraphs.insert_field_argument(field_id, name, r#type, argument_directives, description);
+        let default = argument
+            .node
+            .default_value
+            .as_ref()
+            .map(|default| ast_value_to_subgraph_value(&default.node, subgraphs));
+
+        subgraphs.insert_field_argument(field_id, name, r#type, argument_directives, description, default);
     }
 }
 

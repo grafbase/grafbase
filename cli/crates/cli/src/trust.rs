@@ -14,9 +14,8 @@ pub(crate) fn trust(
     };
 
     let file = std::fs::File::open(manifest).map_err(CliError::TrustedDocumentsManifestReadError)?;
-    let manifest: TrustedDocumentsManifest = serde_json::from_reader(file).map_err(|err| {
-        CliError::TrustedDocumentsManifestReadError(std::io::Error::new(std::io::ErrorKind::InvalidData, err))
-    })?;
+    let manifest: TrustedDocumentsManifest =
+        serde_json::from_reader(file).map_err(CliError::TrustedDocumentsManifestParseError)?;
 
     report::trust_start(&manifest);
 
@@ -48,6 +47,9 @@ pub(crate) fn trust(
             }
             backend::api::submit_trusted_documents::TrustedDocumentsSubmitPayload::ReusedIds(reused_ids) => {
                 report::trust_reused_ids(&reused_ids)
+            }
+            backend::api::submit_trusted_documents::TrustedDocumentsSubmitPayload::OldToken(_) => {
+                report::old_access_token()
             }
             backend::api::submit_trusted_documents::TrustedDocumentsSubmitPayload::Unknown => report::trust_failed(),
         },

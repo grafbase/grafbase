@@ -70,23 +70,28 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
     for field in interface_def.fields() {
         fields.entry(field.name().id).or_insert_with(|| {
             let arguments = translate_arguments(field, ctx);
+            let resolvable_in = if field.is_part_of_key() {
+                Vec::new()
+            } else {
+                vec![federated::SubgraphId(interface_def.subgraph_id().idx())]
+            };
+            let composed_directives = collect_composed_directives(std::iter::once(field.directives()), ctx);
 
             ir::FieldIr {
                 parent_definition: federated::Definition::Interface(interface_id),
                 field_name: field.name().id,
                 field_type: field.r#type().id,
                 arguments,
-                resolvable_in: Vec::new(),
+                resolvable_in,
                 provides: Vec::new(),
                 requires: Vec::new(),
-                composed_directives: federated::NO_DIRECTIVES,
+                composed_directives,
                 overrides: Vec::new(),
                 description: field.description().map(|description| ctx.insert_string(description.id)),
             }
         });
     }
 
-    // All objects implementing that interface in the subgraph must have the same key.
     let Some(expected_key) = interface_def.entity_keys().next() else {
         ctx.diagnostics.push_fatal(format!(
             "The entity interface `{}` is missing a key in the `{}` subgraph.",
@@ -98,7 +103,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
 
     ctx.insert_interface_resolvable_key(interface_id, expected_key, false);
 
-    // Each object has to have @interfaceObject and the same key as the entity interface.
+    // Each object in other subgraphs has to have @interfaceObject and the same key as the entity interface.
     for definition in definitions.iter().filter(|def| def.kind() == DefinitionKind::Object) {
         if !definition.directives().interface_object() {
             ctx.diagnostics.push_fatal(format!(
@@ -109,12 +114,23 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
             ));
         }
 
-        if definition.entity_keys().next().is_none() {
-            ctx.diagnostics.push_fatal(format!(
-                "The object type `{}` is annotated with @interfaceObject but missing a key in the `{}` subgraph.",
-                first.name().as_str(),
-                definition.subgraph().name().as_str(),
-            ));
+        match definition.entity_keys().next() {
+            None => {
+                ctx.diagnostics.push_fatal(format!(
+                    "The object type `{}` is annotated with @interfaceObject but missing a key in the `{}` subgraph.",
+                    first.name().as_str(),
+                    definition.subgraph().name().as_str(),
+                ));
+            }
+            Some(key) if key.fields() == expected_key.fields() => (),
+            Some(_) => {
+                ctx.diagnostics.push_fatal(format!(
+                    "[{}] The object type `{}` is annotated with @interfaceObject but has a different key than the entity interface `{}`.",
+                    definition.subgraph().name().as_str(),
+                    definition.name().as_str(),
+                    interface_def.name().as_str(),
+                ));
+            }
         }
 
         for entity_key in definition.entity_keys().filter(|key| key.is_resolvable()) {
@@ -122,23 +138,46 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         }
 
         for field in definition.fields() {
-            let description = field.description().map(|description| ctx.insert_string(description.id));
-            fields.entry(field.name().id).or_insert_with(|| ir::FieldIr {
-                parent_definition: federated::Definition::Interface(interface_id),
-                field_name: field.name().id,
-                field_type: field.r#type().id,
-                arguments: translate_arguments(field, ctx),
-                resolvable_in: vec![graphql_federated_graph::SubgraphId(definition.subgraph_id().idx())],
-                provides: Vec::new(),
-                requires: Vec::new(),
-                composed_directives: federated::NO_DIRECTIVES,
-                overrides: Vec::new(),
-                description,
+            fields.entry(field.name().id).or_insert_with(|| {
+                let provides = field
+                    .directives()
+                    .provides()
+                    .is_some()
+                    .then(|| vec![field.id.0])
+                    .unwrap_or_default();
+
+                let requires = field
+                    .directives()
+                    .requires()
+                    .is_some()
+                    .then(|| vec![field.id.0])
+                    .unwrap_or_default();
+
+                let overrides = super::object::collect_overrides(&[field], ctx);
+                let composed_directives = collect_composed_directives(std::iter::once(field.directives()), ctx);
+
+                let description = field.description().map(|description| ctx.insert_string(description.id));
+
+                ir::FieldIr {
+                    parent_definition: federated::Definition::Interface(interface_id),
+                    field_name: field.name().id,
+                    field_type: field.r#type().id,
+                    arguments: translate_arguments(field, ctx),
+                    resolvable_in: vec![graphql_federated_graph::SubgraphId(definition.subgraph_id().idx())],
+                    provides,
+                    requires,
+                    composed_directives,
+                    overrides,
+                    description,
+                }
             });
         }
     }
 
-    let field_ids: Vec<_> = fields.into_values().map(|field| ctx.insert_field(field)).collect();
+    let field_ids: Vec<(StringId, _)> = fields
+        .into_iter()
+        .map(|(name, field)| (name, ctx.insert_field(field)))
+        .collect();
 
     // Contribute the interface fields from the interface object definitions to the implementer of
     // that interface.
@@ -146,7 +185,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         match object.entity_keys().next() {
             Some(key) if key.fields() == expected_key.fields() => (),
             Some(_) => ctx.diagnostics.push_fatal(format!(
-                "[{}] The object type `{}` is annotated with @interfaceObject but has a different key than the entity interface `{}`.",
+                "[{}] The object type `{}` implements the entity interface `{}` but does not have the same key. The key must match exactly.",
                 object.subgraph().name().as_str(),
                 object.name().as_str(),
                 first.name().as_str(),
@@ -159,7 +198,14 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         }
 
         let object_name = ctx.insert_string(object.name().id);
-        for field_id in &field_ids {
+
+        let fields_to_add = field_ids
+            .iter()
+            // Avoid adding fields that are already present on the object by virtue of the object implementing the interface.
+            .filter(|(name, _)| object.find_field(*name).is_none())
+            .map(|(_, field_id)| field_id);
+
+        for field_id in fields_to_add {
             ctx.insert_object_field_from_entity_interface(object_name, *field_id);
         }
     }

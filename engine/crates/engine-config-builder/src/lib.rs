@@ -10,7 +10,7 @@ use engine_v2_config::{
     latest::{self as config, Header, HeaderId},
     VersionedConfig,
 };
-use federated_graph::{FederatedGraph, FederatedGraphV2, FieldId, ObjectId, SubgraphId};
+use federated_graph::{FederatedGraph, FederatedGraphV3, FieldId, ObjectId, SubgraphId};
 use parser_sdl::federation::{FederatedGraphConfig, SubgraphHeaderValue};
 use parser_sdl::{AuthV2Provider, GlobalCacheTarget};
 
@@ -33,6 +33,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
             name: _,
             websocket_url,
             headers,
+            development_url: _,
         } = config;
 
         let headers = context.insert_headers(headers);
@@ -44,7 +45,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
 
     let cache_config = build_cache_config(config, &graph);
 
-    VersionedConfig::V3(config::Config {
+    VersionedConfig::V4(config::Config {
         graph,
         default_headers,
         strings: context.strings.into_vec(),
@@ -85,13 +86,14 @@ fn build_auth_config(config: &FederatedGraphConfig) -> Option<AuthConfig> {
                     header_name: header.name.clone(),
                     header_value_prefix: header.value_prefix.clone(),
                 }),
+                AuthV2Provider::Anonymous => AuthProviderConfig::Anonymous,
             })
             .collect();
         AuthConfig { providers }
     })
 }
 
-fn build_cache_config(config: &FederatedGraphConfig, graph: &FederatedGraphV2) -> CacheConfigs {
+fn build_cache_config(config: &FederatedGraphConfig, graph: &FederatedGraphV3) -> CacheConfigs {
     let mut cache_config = BTreeMap::new();
 
     for (target, cache_control) in config.global_cache_rules.iter() {
@@ -165,7 +167,7 @@ pub trait FederatedGraphExt {
     fn find_object_field(&self, object_name: &str, field_name: &str) -> Option<FieldId>;
 }
 
-impl FederatedGraphExt for FederatedGraphV2 {
+impl FederatedGraphExt for FederatedGraphV3 {
     fn find_subgraph(&self, name: &str) -> Option<SubgraphId> {
         self.subgraphs
             .iter()
@@ -183,15 +185,13 @@ impl FederatedGraphExt for FederatedGraphV2 {
     }
 
     fn find_object_field(&self, object_name: &str, field_name: &str) -> Option<FieldId> {
-        self.object_fields
-            .iter()
-            .enumerate()
-            .find(|(_, object_field)| {
-                let object = &self[object_field.object_id];
-                let field = &self[object_field.field_id];
+        let object = self.find_object(object_name)?;
+        let fields = self[object].fields.clone();
+        let start = fields.start.0;
 
-                self[object.name] == object_name && self[field.name] == field_name
-            })
-            .map(|(_, object_field)| object_field.field_id)
+        self[fields]
+            .iter()
+            .position(|field| self[field.name] == field_name)
+            .map(|pos| FieldId(start + pos))
     }
 }

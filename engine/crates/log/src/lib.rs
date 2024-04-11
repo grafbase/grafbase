@@ -22,7 +22,7 @@ pub fn configure(config: Config) {
 
 thread_local! {
     pub static LOG_ENTRIES: std::cell::RefCell<Vec<LogEntry>> =
-        std::cell::RefCell::new(Vec::new());
+        const { std::cell::RefCell::new(Vec::new()) };
 }
 
 #[cfg(feature = "with-worker")]

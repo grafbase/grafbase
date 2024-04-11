@@ -9,6 +9,7 @@ pub use bench::*;
 use gateway_v2::Gateway;
 use graphql_mocks::MockGraphQlServer;
 use parser_sdl::connector_parsers::MockConnectorParsers;
+use runtime::trusted_documents_client;
 
 pub use self::mock_trusted_documents::TestTrustedDocument;
 
@@ -55,7 +56,10 @@ impl FederationGatewayBuilder {
     }
 
     pub fn with_trusted_documents(mut self, branch_id: String, documents: Vec<TestTrustedDocument>) -> Self {
-        self.trusted_documents = Some(MockTrustedDocumentsClient { branch_id, documents });
+        self.trusted_documents = Some(MockTrustedDocumentsClient {
+            _branch_id: branch_id,
+            documents,
+        });
         self
     }
 
@@ -69,7 +73,7 @@ impl FederationGatewayBuilder {
             .expect("schemas to compose succesfully");
         let federated_graph_config = match self.config_sdl {
             Some(sdl) => {
-                parser_sdl::parse(&sdl, &HashMap::new(), false, &MockConnectorParsers::default())
+                parser_sdl::parse(&sdl, &HashMap::new(), &MockConnectorParsers::default())
                     .await
                     .expect("supergraph config SDL to be valid")
                     .federated_graph_config
@@ -87,14 +91,16 @@ impl FederationGatewayBuilder {
 
         TestFederationGateway {
             gateway: Arc::new(Gateway::new(
-                config.into(),
+                config.try_into().unwrap(),
                 engine_v2::EngineEnv {
                     fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
                     cache: cache.clone(),
                     trusted_documents: self
                         .trusted_documents
-                        .map(From::from)
-                        .unwrap_or_else(|| runtime_noop::trusted_documents::NoopTrustedDocuments.into()),
+                        .map(trusted_documents_client::Client::new)
+                        .unwrap_or_else(|| {
+                            trusted_documents_client::Client::new(runtime_noop::trusted_documents::NoopTrustedDocuments)
+                        }),
                 },
                 gateway_v2::GatewayEnv {
                     kv: runtime_local::InMemoryKvStore::runtime(),

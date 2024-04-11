@@ -1,5 +1,61 @@
 # Changelog
 
+## [0.67.0] - 2024-04-11
+
+[CHANGELOG](changelog/0.67.0.md)
+
+## [0.66.1] - 2024-04-05
+
+[CHANGELOG](changelog/0.66.1.md)
+
+## [0.66.0] - 2024-04-05
+
+[CHANGELOG](changelog/0.66.0.md)
+
+## [0.65.2] - 2024-04-01
+
+[CHANGELOG](changelog/0.65.2.md)
+
+## [0.65.1] - 2024-03-28
+
+[CHANGELOG](changelog/0.65.1.md)
+
+## [0.65.0] - 2024-03-27
+
+[CHANGELOG](changelog/0.65.0.md)
+
+## [0.64.3] - 2024-03-27
+
+[CHANGELOG](changelog/0.64.3.md)
+
+## [0.64.2] - 2024-03-27
+
+[CHANGELOG](changelog/0.64.2.md)
+
+## [0.64.1] - 2024-03-22
+
+[CHANGELOG](changelog/0.64.1.md)
+
+## [0.64.0] - 2024-03-20
+
+[CHANGELOG](changelog/0.64.0.md)
+
+## [0.63.0] - 2024-03-19
+
+[CHANGELOG](changelog/0.63.0.md)
+
+## [0.62.1] - 2024-03-15
+
+[CHANGELOG](changelog/0.62.1.md)
+
+## [0.62.0] - 2024-03-14
+
+[CHANGELOG](changelog/0.62.0.md)
+
+## [0.61.0] - 2024-03-11
+
+[CHANGELOG](changelog/0.61.0.md)
+
 ## [0.60.0] - 2024-03-04
 
 [CHANGELOG](changelog/0.60.0.md)

@@ -1,0 +1,38 @@
+type Kebab {
+    breadType: String
+    id: ID!
+    meatType: String
+    vegetables: [String]
+}
+
+type Brochette {
+    id: ID!
+    marinade: String
+    meatType: String
+    servedWith: String
+}
+
+type Kushi {
+    id: ID!
+    meatType: String
+    sauce: String
+    stickMaterial: String
+}
+
+type Schaschlik {
+    id: ID!
+    meatType: String
+    originCountry: String
+    spices: [String]
+}
+
+type Query {
+    brochette: Brochette
+    brochettes: [Brochette]
+    kebab: Kebab
+    kebabs: [Kebab]
+    kushi: Kushi
+    kushis: [Kushi]
+    schaschlik: Schaschlik
+    schaschliks: [Schaschlik]
+}

@@ -1,0 +1,164 @@
+name: Gateway Release
+
+on:
+  workflow_call:
+    inputs:
+      draft:
+        type: boolean
+        required: true
+      prerelease:
+        type: boolean
+        required: true
+      tag:
+        type: string
+        required: true
+
+    secrets:
+      CRATES_ACCESS_TOKEN:
+        required: true
+      NPM_ACCESS_TOKEN:
+        required: true
+      CLOUDFLARE_ASSETS_ACCOUNT_ID:
+        required: true
+      CLOUDFLARE_ASSETS_R2_ACCESS_KEY_ID:
+        required: true
+      CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY:
+        required: true
+
+jobs:
+  release:
+    name: Release gateway
+    runs-on: ubicloud-standard-2
+    steps:
+      - name: Parse version tag
+        run: |
+          VERSION_BUMP="${{ inputs.tag }}"
+          VERSION_BUMP=${VERSION_BUMP//gateway-} # remove the gateway prefix from the tag
+          echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
+
+      - name: Announce release attempt on Slack
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          notification_title: '({workflow}) grafbase-gateway release for ${{ env.VERSION_BUMP }} started'
+          footer: '<{run_url}|View Run>'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_GATEWAY_WEBHOOK_URL }}
+
+      - name: Get sources
+        uses: actions/checkout@v4
+
+      - name: Rust job init
+        uses: ./.github/actions/init_rust_job
+        with:
+          platform: linux
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('Cargo.lock') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
+
+      - name: Create release directories
+        shell: bash
+        run: |
+          mkdir -p gateway/release/aarch64-apple-darwin
+          mkdir -p gateway/release/x86_64-apple-darwin
+          mkdir -p gateway/release/aarch64-unknown-linux-musl
+          mkdir -p gateway/release/x86_64-unknown-linux-musl
+          mkdir -p gateway/release/aarch64-unknown-linux-musl-lambda
+          mkdir -p gateway/release/x86_64-unknown-linux-musl-lambda
+
+      - name: Download darwin-x86_64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gateway-${{ env.VERSION_BUMP }}-x86_64-apple-darwin
+          path: gateway/release/x86_64-apple-darwin
+
+      - name: Download darwin-aarch64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gateway-${{ env.VERSION_BUMP }}-aarch64-apple-darwin
+          path: gateway/release/aarch64-apple-darwin
+
+      - name: Download Linux AMD artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gateway-${{ env.VERSION_BUMP }}-linux
+          path: gateway/release/x86_64-unknown-linux-musl
+
+      - name: Download Linux ARM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gateway-${{ env.VERSION_BUMP }}-linux-arm
+          path: gateway/release/aarch64-unknown-linux-musl
+
+      - name: Download Lambda AMD artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gateway-lambda-${{ env.VERSION_BUMP }}-linux
+          path: gateway/release/x86_64-unknown-linux-musl-lambda
+
+      - name: Download Lambda ARM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gateway-lambda-${{ env.VERSION_BUMP }}-linux-arm
+          path: gateway/release/aarch64-unknown-linux-musl-lambda
+
+      - name: Process artifacts
+        shell: bash
+        run: |
+          cd gateway/release/
+          mkdir github
+
+          mv aarch64-apple-darwin/grafbase-gateway github/grafbase-gateway-aarch64-apple-darwin
+          mv x86_64-apple-darwin/grafbase-gateway github/grafbase-gateway-x86_64-apple-darwin
+          mv aarch64-unknown-linux-musl/grafbase-gateway github/grafbase-gateway-aarch64-unknown-linux-musl
+          mv x86_64-unknown-linux-musl/grafbase-gateway github/grafbase-gateway-x86_64-unknown-linux-musl
+          mv aarch64-unknown-linux-musl-lambda/grafbase-gateway github/grafbase-gateway-lambda-aarch64-unknown-linux-musl
+          mv x86_64-unknown-linux-musl-lambda/grafbase-gateway github/grafbase-gateway-lambda-x86_64-unknown-linux-musl
+
+          chmod +x github/grafbase-gateway-aarch64-apple-darwin
+          chmod +x github/grafbase-gateway-x86_64-apple-darwin
+          chmod +x github/grafbase-gateway-aarch64-unknown-linux-musl
+          chmod +x github/grafbase-gateway-x86_64-unknown-linux-musl
+          chmod +x github/grafbase-gateway-lambda-aarch64-unknown-linux-musl
+          chmod +x github/grafbase-gateway-lambda-x86_64-unknown-linux-musl
+
+      - name: Install cargo-binstall and cargo-about
+        shell: bash
+        run: |
+          curl -LsSf https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+          cargo binstall --no-symlinks --no-confirm cargo-about
+
+      - name: Generate licenses
+        shell: bash
+        run: |
+          cd gateway/crates/gateway-binary
+          cargo about generate -c ../../about.toml -o "../../licenses.html" ../../about.hbs
+          find ../../ -maxdepth 1 -type d -exec cp ../../licenses.html {} \;
+
+      - name: Github gateway Release
+        id: gh-release-gateway
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: gateway/changelog/${{ env.VERSION_BUMP }}.md
+          draft: ${{ inputs.draft }}
+          prerelease: ${{ inputs.prerelease }}
+          files: |
+            gateway/licenses.html
+            gateway/release/github/grafbase-gateway-aarch64-apple-darwin
+            gateway/release/github/grafbase-gateway-x86_64-apple-darwin
+            gateway/release/github/grafbase-gateway-aarch64-unknown-linux-musl
+            gateway/release/github/grafbase-gateway-x86_64-unknown-linux-musl
+            gateway/release/github/grafbase-gateway-lambda-aarch64-unknown-linux-musl
+            gateway/release/github/grafbase-gateway-lambda-x86_64-unknown-linux-musl
+
+      - name: Publish gateway install script
+        shell: bash
+        env:
+          INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
+          CLOUDFLARE_ASSETS_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ASSETS_ACCOUNT_ID }}
+          CLOUDFLARE_ASSETS_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_ASSETS_R2_ACCESS_KEY_ID }}
+          CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY }}
+        run: |
+          if [[ $INPUT_PRERELEASE == "false" ]]; then
+            cd cli/install
+            sed -i 's/{{LATEST_VERSION}}/${{ env.VERSION_BUMP }}/g' gateway
+            ./upload.sh gateway
+          fi

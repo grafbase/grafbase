@@ -1,4 +1,8 @@
-use std::{net::TcpListener, sync::atomic::Ordering, time::Duration};
+use std::{
+    net::{SocketAddr, TcpListener},
+    sync::atomic::Ordering,
+    time::Duration,
+};
 
 use async_tungstenite::tungstenite::client::IntoClientRequest;
 use axum::{
@@ -31,18 +35,24 @@ struct ProxyState {
 }
 
 pub struct ProxyHandle {
-    pub port: u16,
+    pub address: SocketAddr,
     set: JoinSet<Result<(), ServerError>>,
+}
+
+impl ProxyHandle {
+    pub fn port(&self) -> u16 {
+        self.address.port()
+    }
 }
 
 pub async fn start(port: PortSelection) -> Result<ProxyHandle, ServerError> {
     let listener = port.into_listener().await?;
-    let port = listener.local_addr().expect("must have a local addr").port();
+    let address = listener.local_addr().expect("must have a local addr");
     let mut set = JoinSet::new();
 
     set.spawn(start_inner(listener));
 
-    Ok(ProxyHandle { port, set })
+    Ok(ProxyHandle { address, set })
 }
 
 async fn start_inner(listener: TcpListener) -> Result<(), ServerError> {

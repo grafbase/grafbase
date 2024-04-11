@@ -152,6 +152,10 @@ impl TestApi {
         self.inner.engine.execute(operation.as_ref()).await
     }
 
+    pub fn engine(&self) -> &Engine {
+        &self.inner.engine
+    }
+
     /// Insert a document directly to the underlying database.
     pub async fn insert_one(&self, collection: &str, document: serde_json::Value) -> MongoDBCreateOneResponse {
         let request = MongoDBCreateOneRequest {

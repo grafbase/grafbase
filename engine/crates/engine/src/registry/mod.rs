@@ -704,6 +704,7 @@ pub struct InterfaceType {
     pub name: String,
     pub description: Option<String>,
     pub fields: IndexMap<String, MetaField>,
+    pub cache_control: CacheControl,
     pub possible_types: IndexSet<String>,
     pub extends: bool,
     #[derivative(Debug = "ignore")]
@@ -719,6 +720,7 @@ impl InterfaceType {
             description: None,
             fields: fields.into_iter().map(|field| (field.name.clone(), field)).collect(),
             possible_types: Default::default(),
+            cache_control: Default::default(),
             extends: false,
             visible: None,
             rust_typename: String::new(),
@@ -727,6 +729,17 @@ impl InterfaceType {
 
     pub fn field_by_name(&self, name: &str) -> Option<&MetaField> {
         self.fields.get(name)
+    }
+
+    pub fn with_description(self, description: impl Into<Option<String>>) -> Self {
+        InterfaceType {
+            description: description.into(),
+            ..self
+        }
+    }
+
+    pub fn with_cache_control(self, cache_control: CacheControl) -> Self {
+        InterfaceType { cache_control, ..self }
     }
 }
 
@@ -916,6 +929,7 @@ impl Hash for MetaType {
                 name,
                 description,
                 fields,
+                cache_control,
                 possible_types,
                 extends,
                 visible: _,
@@ -924,6 +938,7 @@ impl Hash for MetaType {
                 name.hash(state);
                 description.hash(state);
                 fields.as_slice().hash(state);
+                cache_control.hash(state);
                 possible_types.as_slice().hash(state);
                 extends.hash(state);
                 rust_typename.hash(state);
@@ -1037,6 +1052,7 @@ impl PartialEq for MetaType {
                     name,
                     description,
                     fields,
+                    cache_control,
                     possible_types,
                     extends,
                     visible: _,
@@ -1046,6 +1062,7 @@ impl PartialEq for MetaType {
                     name: o_name,
                     description: o_description,
                     fields: o_fields,
+                    cache_control: o_cache_control,
                     possible_types: o_possible_types,
                     extends: o_extends,
                     visible: _,
@@ -1055,6 +1072,7 @@ impl PartialEq for MetaType {
                 name.eq(o_name)
                     && description.eq(o_description)
                     && fields.as_slice().eq(o_fields.as_slice())
+                    && cache_control.eq(o_cache_control)
                     && possible_types.as_slice().eq(o_possible_types.as_slice())
                     && extends.eq(o_extends)
                     && rust_typename.eq(o_rust_typename)
@@ -1368,6 +1386,13 @@ impl OperationLimits {
     }
 }
 
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TrustedDocuments {
+    pub bypass_header_name: Option<String>,
+    pub bypass_header_value: Option<String>,
+}
+
 // TODO(@miaxos): Remove this to a separate create as we'll need to use it outside engine
 // for a LogicalQuery
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -1402,6 +1427,8 @@ pub struct Registry {
     pub is_federated: bool,
     #[serde(default)]
     pub operation_limits: OperationLimits,
+    #[serde(default)]
+    pub trusted_documents: Option<TrustedDocuments>,
 }
 
 impl Default for Registry {
@@ -1427,6 +1454,7 @@ impl Default for Registry {
             enable_codegen: false,
             is_federated: false,
             operation_limits: Default::default(),
+            trusted_documents: Default::default(),
         }
     }
 }
@@ -1822,30 +1850,35 @@ impl Registry {
     }
 
     pub fn remove_unused_types(&mut self) {
+        self.populate_possible_types();
+
         let mut used_types = BTreeSet::new();
-        let mut unused_types = BTreeSet::new();
+        let mut unused_types = HashSet::new();
 
         fn traverse_field<'a>(
             types: &'a BTreeMap<String, MetaType>,
+            implements: &'a HashMap<String, HashSet<String>>,
             used_types: &mut BTreeSet<&'a str>,
             field: &'a MetaField,
         ) {
-            traverse_type(types, used_types, field.ty.named_type().as_str());
+            traverse_type(types, implements, used_types, field.ty.named_type().as_str());
             for arg in field.args.values() {
-                traverse_input_value(types, used_types, arg);
+                traverse_input_value(types, implements, used_types, arg);
             }
         }
 
         fn traverse_input_value<'a>(
             types: &'a BTreeMap<String, MetaType>,
+            implements: &'a HashMap<String, HashSet<String>>,
             used_types: &mut BTreeSet<&'a str>,
             input_value: &'a MetaInputValue,
         ) {
-            traverse_type(types, used_types, input_value.ty.named_type().as_str());
+            traverse_type(types, implements, used_types, input_value.ty.named_type().as_str());
         }
 
         fn traverse_type<'a>(
             types: &'a BTreeMap<String, MetaType>,
+            implements: &'a HashMap<String, HashSet<String>>,
             used_types: &mut BTreeSet<&'a str>,
             type_name: &str,
         ) {
@@ -1858,25 +1891,25 @@ impl Registry {
                 match ty {
                     MetaType::Object(object) => {
                         for field in object.fields.values() {
-                            traverse_field(types, used_types, field);
+                            traverse_field(types, implements, used_types, field);
                         }
                     }
                     MetaType::Interface(interface) => {
                         for field in interface.fields.values() {
-                            traverse_field(types, used_types, field);
+                            traverse_field(types, implements, used_types, field);
                         }
                         for type_name in &interface.possible_types {
-                            traverse_type(types, used_types, type_name);
+                            traverse_type(types, implements, used_types, type_name);
                         }
                     }
                     MetaType::Union(union_type) => {
                         for type_name in &union_type.possible_types {
-                            traverse_type(types, used_types, type_name);
+                            traverse_type(types, implements, used_types, type_name);
                         }
                     }
                     MetaType::InputObject(input_object) => {
                         for field in input_object.input_fields.values() {
-                            traverse_input_value(types, used_types, field);
+                            traverse_input_value(types, implements, used_types, field);
                         }
                     }
                     _ => {}
@@ -1886,20 +1919,22 @@ impl Registry {
 
         for directive in self.directives.values() {
             for arg in directive.args.values() {
-                traverse_input_value(&self.types, &mut used_types, arg);
+                traverse_input_value(&self.types, &self.implements, &mut used_types, arg);
             }
         }
 
+        let used_interfaces: HashSet<&String> = self.implements.values().flatten().collect();
         for type_name in Some(&self.query_type)
             .into_iter()
             .chain(self.mutation_type.iter())
             .chain(self.subscription_type.iter())
+            .chain(used_interfaces)
         {
-            traverse_type(&self.types, &mut used_types, type_name);
+            traverse_type(&self.types, &self.implements, &mut used_types, type_name);
         }
 
         for ty in self.federation_entities.keys() {
-            traverse_type(&self.types, &mut used_types, ty);
+            traverse_type(&self.types, &self.implements, &mut used_types, ty);
         }
 
         for ty in self.types.values() {
@@ -1909,8 +1944,73 @@ impl Registry {
             }
         }
 
-        for type_name in unused_types {
-            self.types.remove(&type_name);
+        for type_name in &unused_types {
+            self.types.remove(type_name);
+        }
+    }
+
+    /// Populates the possible_types field of Interfaces
+    fn populate_possible_types(&mut self) {
+        for (possible_type, interfaces) in &self.implements {
+            for interface_name in interfaces {
+                if let Some(MetaType::Interface(ref mut interface)) = self.types.get_mut(interface_name) {
+                    interface.possible_types.insert(possible_type.clone());
+                }
+            }
+        }
+    }
+
+    pub fn remove_empty_types(&mut self) {
+        let mut types_to_be_removed = Vec::new();
+        let mut fields_to_be_removed = Vec::new();
+
+        loop {
+            for r#type in self.types.values().filter(|ty| ty.is_object()) {
+                match r#type.fields() {
+                    None => types_to_be_removed.push(r#type.name().to_owned()),
+                    Some(fields) if fields.is_empty() => types_to_be_removed.push(r#type.name().to_owned()),
+                    Some(_) => (),
+                }
+            }
+
+            types_to_be_removed.sort();
+
+            for r#type in self.types.values().filter(|ty| ty.is_object()) {
+                for field in r#type.fields().into_iter().flat_map(|fields| fields.values()) {
+                    if types_to_be_removed
+                        .binary_search_by_key(&field.ty.base_type_name(), |ty| ty.as_str())
+                        .is_ok()
+                    {
+                        fields_to_be_removed.push((r#type.name().to_owned(), field.name.clone()));
+                    };
+                }
+            }
+
+            if types_to_be_removed.is_empty() && fields_to_be_removed.is_empty() {
+                break;
+            }
+
+            for type_name in types_to_be_removed.drain(..) {
+                self.types.remove(&type_name);
+            }
+
+            for (type_name, field_name) in fields_to_be_removed.drain(..) {
+                if self.mutation_type.as_ref() == Some(&type_name) {
+                    self.mutation_type = None
+                }
+
+                if self.subscription_type.as_ref() == Some(&type_name) {
+                    self.subscription_type = None
+                }
+
+                let Some(ty) = self.types.get_mut(&type_name) else {
+                    continue;
+                };
+
+                let Some(fields) = ty.fields_mut() else { continue };
+
+                fields.shift_remove(&field_name);
+            }
         }
     }
 

@@ -39,10 +39,11 @@ pub(crate) struct CompositionIr {
     pub(crate) keys: Vec<KeyIr>,
 
     /// Fields of an interface entity that are contributed by other subgraphs and must be added to
-    /// the interface's implementers in the federated schema"
+    /// the interface's implementers in the federated schema
     pub(crate) object_fields_from_entity_interfaces: BTreeSet<(federated::StringId, federated::FieldId)>,
 }
 
+#[derive(Clone)]
 pub(crate) struct FieldIr {
     pub(crate) parent_definition: federated::Definition,
     pub(crate) field_name: subgraphs::StringId,

@@ -15,13 +15,11 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: 'release/latest'
-  PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'
 
 jobs:
   sanitize:
-    runs-on: buildjet-8vcpu-ubuntu-2204
+    runs-on: ubicloud-standard-8
     steps:
       - name: Get sources
         uses: actions/checkout@v4
@@ -32,17 +30,18 @@ jobs:
           platform: linux
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('cli/Cargo.lock') }}
 
-      - name: Build CLI assets
+      - name: Build grafbase assets
         uses: ./.github/actions/cli_assets
-        with:
-          cdn: ${{ env.PROD_ASSETS }}
-          assets_version: ${{ env.ASSETS_VERSION }}
 
-      - name: Sanitize
-        uses: ./.github/actions/sanitize
+      - name: Lint
+        uses: ./.github/actions/lint
+
+      - name: Test
+        uses: ./.github/actions/test
         with:
-          lint: true
-          test: true
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          datadog-api-key: ${{ secrets.DATADOG_API_KEY }}
 
       - name: Report Status
         if: always()

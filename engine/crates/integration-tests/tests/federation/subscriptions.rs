@@ -2,7 +2,8 @@ use futures::stream::StreamExt;
 
 use gateway_v2::Gateway;
 use graphql_mocks::{
-    FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema, MockGraphQlServer,
+    FakeFederationAccountsSchema, FakeFederationInventorySchema, FakeFederationProductsSchema,
+    FakeFederationReviewsSchema, MockGraphQlServer,
 };
 use integration_tests::{federation::GatewayV2Ext, runtime};
 
@@ -71,6 +72,7 @@ fn actual_federated_subscription() {
         let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
         let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
         let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
+        let inventory = MockGraphQlServer::new(FakeFederationInventorySchema).await;
 
         let engine = Gateway::builder()
             .with_schema("accounts", &accounts)
@@ -79,16 +81,20 @@ fn actual_federated_subscription() {
             .await
             .with_schema("reviews", &reviews)
             .await
+            .with_schema("inventory", &inventory)
+            .await
             .with_supergraph_config(indoc::formatdoc!(
                 r#"
                     extend schema
                       @subgraph(name: "accounts", websocketUrl: "{}")
                       @subgraph(name: "products", websocketUrl: "{}")
                       @subgraph(name: "reviews", websocketUrl: "{}")
+                      @subgraph(name: "inventory", websocketUrl: "{}")
                 "#,
                 accounts.websocket_url(),
                 products.websocket_url(),
                 reviews.websocket_url(),
+                inventory.websocket_url(),
             ))
             .finish()
             .await;

@@ -1,5 +1,5 @@
 use gateway_v2::Gateway;
-use graphql_mocks::{DisingenuousSchema, EchoSchema, MockGraphQlServer};
+use graphql_mocks::{EchoSchema, MockGraphQlServer};
 use integration_tests::{
     federation::{GatewayV2Ext, GraphqlResponse},
     runtime,
@@ -609,26 +609,13 @@ fn variables_are_used_validation() {
     );
 }
 
+// https://spec.graphql.org/October2021/#sec-Input-Objects.Input-Coercion
 #[test]
 fn undefined_variable() {
-    let query = "query($var: String) { echo(input: { string: $var, int: 10 }) }";
+    let query = "query($var: String) { inputObject(input: { string: $var, int: 10 }) }";
     let response = runtime().block_on({
         async move {
-            let echo_mock = MockGraphQlServer::new(DisingenuousSchema::with_sdl(
-                r#"
-                scalar JSON
-
-                type Query {
-                    echo(input: InputObj!): JSON
-                }
-
-                input InputObj {
-                    string: String
-                    int: Int!
-                }
-                "#,
-            ))
-            .await;
+            let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
 
             let engine = Gateway::builder()
                 .with_schema("schema", &echo_mock)
@@ -640,15 +627,10 @@ fn undefined_variable() {
         }
     });
 
-    // FIXME: This is incorrect with respect to the spec. "string" field should be undefined and
-    // not present. But async-graphql doesn't respect it... So until we support something else than
-    // GraphQL (UDFs typically), we're stuck.
-    // https://spec.graphql.org/October2021/#sec-Input-Objects.Input-Coercion
     insta::assert_json_snapshot!(response, @r###"
     {
       "data": {
-        "echo": {
-          "string": null,
+        "inputObject": {
           "int": 10
         }
       }

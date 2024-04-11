@@ -2,8 +2,8 @@ use cynic::{http::ReqwestExt, QueryBuilder};
 use cynic_introspection::{CapabilitiesQuery, IntrospectionQuery, SpecificationVersion};
 use gateway_v2::Gateway;
 use graphql_mocks::{
-    EchoSchema, FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema,
-    FakeGithubSchema, MockGraphQlServer,
+    EchoSchema, FakeFederationAccountsSchema, FakeFederationInventorySchema, FakeFederationProductsSchema,
+    FakeFederationReviewsSchema, FakeGithubSchema, MockGraphQlServer,
 };
 use integration_tests::{federation::GatewayV2Ext, runtime};
 
@@ -49,6 +49,7 @@ fn can_run_pathfinder_introspection_query() {
       author: UserOrBot!
       checks: [String!]!
       id: ID!
+      status: Status!
       title: String!
     }
 
@@ -70,6 +71,12 @@ fn can_run_pathfinder_introspection_query() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
+      statusString(status: Status!): String!
+    }
+
+    enum Status {
+      CLOSED
+      OPEN
     }
 
     type User {
@@ -127,6 +134,7 @@ fn can_run_2018_introspection_query() {
       author: UserOrBot!
       checks: [String!]!
       id: ID!
+      status: Status!
       title: String!
     }
 
@@ -148,6 +156,12 @@ fn can_run_2018_introspection_query() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
+      statusString(status: Status!): String!
+    }
+
+    enum Status {
+      CLOSED
+      OPEN
     }
 
     type User {
@@ -205,6 +219,7 @@ fn can_run_2021_introspection_query() {
       author: UserOrBot!
       checks: [String!]!
       id: ID!
+      status: Status!
       title: String!
     }
 
@@ -226,6 +241,12 @@ fn can_run_2021_introspection_query() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
+      statusString(status: Status!): String!
+    }
+
+    enum Status {
+      CLOSED
+      OPEN
     }
 
     type User {
@@ -434,6 +455,7 @@ fn can_introsect_when_multiple_subgraphs() {
       author: UserOrBot!
       checks: [String!]!
       id: ID!
+      status: Status!
       title: String!
     }
 
@@ -464,7 +486,13 @@ fn can_introsect_when_multiple_subgraphs() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
+      statusString(status: Status!): String!
       string(input: String!): String!
+    }
+
+    enum Status {
+      CLOSED
+      OPEN
     }
 
     type User {
@@ -539,6 +567,9 @@ fn supports_the_type_field() {
             },
             {
               "name": "id"
+            },
+            {
+              "name": "status"
             },
             {
               "name": "title"
@@ -819,6 +850,7 @@ fn introspection_on_multiple_federation_subgraphs() {
         let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
         let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
         let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
+        let inventory = MockGraphQlServer::new(FakeFederationInventorySchema).await;
 
         let engine = Gateway::builder()
             .with_schema("accounts", &accounts)
@@ -826,6 +858,8 @@ fn introspection_on_multiple_federation_subgraphs() {
             .with_schema("products", &products)
             .await
             .with_schema("reviews", &reviews)
+            .await
+            .with_schema("inventory", &inventory)
             .await
             .finish()
             .await;
@@ -839,6 +873,18 @@ fn introspection_on_multiple_federation_subgraphs() {
       products: [Product!]!
     }
 
+    type DeliveryCompany implements ShippingService {
+      id: String!
+      name: String!
+      reviews: [ShippingServiceReview!]!
+    }
+
+    type HomingPigeon implements ShippingService {
+      id: String!
+      name: String!
+      reviews: [ShippingServiceReview!]!
+    }
+
     type Picture {
       height: Int!
       url: String!
@@ -846,10 +892,13 @@ fn introspection_on_multiple_federation_subgraphs() {
     }
 
     type Product {
+      availableShippingService: [ShippingService!]!
       name: String!
       price: Int!
       reviews: [Review!]!
+      shippingEstimate: Int!
       upc: String!
+      weight(unit: WeightUnit!): Float!
     }
 
     type Query {
@@ -863,6 +912,16 @@ fn introspection_on_multiple_federation_subgraphs() {
       id: ID!
       pictures: [Picture!]!
       product: Product!
+    }
+
+    interface ShippingService {
+      id: String!
+      name: String!
+      reviews: [ShippingServiceReview!]!
+    }
+
+    type ShippingServiceReview {
+      body: String!
     }
 
     type Subscription {
@@ -884,6 +943,11 @@ fn introspection_on_multiple_federation_subgraphs() {
       reviews: [Review!]!
       trustworthiness: Trustworthiness!
       username: String!
+    }
+
+    enum WeightUnit {
+      GRAM
+      KILOGRAM
     }
 
     "###)
@@ -964,17 +1028,24 @@ fn default_values() {
           "name": "__Type",
           "fields": [
             {
+              "name": "kind",
+              "args": []
+            },
+            {
+              "name": "name",
+              "args": []
+            },
+            {
               "name": "description",
               "args": []
             },
             {
-              "name": "enumValues",
-              "args": [
-                {
-                  "name": "includeDeprecated",
-                  "defaultValue": "false"
-                }
-              ]
+              "name": "inputFields",
+              "args": []
+            },
+            {
+              "name": "specifiedByURL",
+              "args": []
             },
             {
               "name": "fields",
@@ -986,20 +1057,13 @@ fn default_values() {
               ]
             },
             {
-              "name": "inputFields",
-              "args": []
-            },
-            {
-              "name": "interfaces",
-              "args": []
-            },
-            {
-              "name": "kind",
-              "args": []
-            },
-            {
-              "name": "name",
-              "args": []
+              "name": "enumValues",
+              "args": [
+                {
+                  "name": "includeDeprecated",
+                  "defaultValue": "false"
+                }
+              ]
             },
             {
               "name": "ofType",
@@ -1010,7 +1074,7 @@ fn default_values() {
               "args": []
             },
             {
-              "name": "specifiedByURL",
+              "name": "interfaces",
               "args": []
             }
           ]

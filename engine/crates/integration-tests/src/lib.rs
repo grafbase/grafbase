@@ -20,7 +20,7 @@ pub use types::{Error, ResponseData};
 pub use crate::engine::{Engine, EngineBuilder};
 
 thread_local! {
-    static NAMES: RefCell<Option<Generator<'static>>> = RefCell::new(None);
+    static NAMES: RefCell<Option<Generator<'static>>> = const { RefCell::new(None) };
 }
 
 #[ctor::ctor]

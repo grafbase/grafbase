@@ -1,0 +1,35 @@
+type Course {
+    description: String
+    enrolledStudents: [Student]
+    id: ID!
+    name: String
+}
+
+type Enrollment {
+    course: Course
+    courseId: ID!
+    enrollmentDate: String
+    enrollmentDetails: Enrollment
+    rating: CourseRating
+    studentId: ID!
+}
+
+type CourseRating {
+    comments: String
+    courseId: ID!
+    rating: Float
+}
+
+type Student {
+    enrollments: [Enrollment]
+    id: ID!
+    name: String
+}
+
+type Query {
+    course: Course
+    courseRating: [CourseRating]
+    courses: [Course]
+    student: Student
+    students: [Student]
+}

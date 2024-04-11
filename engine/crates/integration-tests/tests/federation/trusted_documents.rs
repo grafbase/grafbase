@@ -21,12 +21,6 @@ const TRUSTED_DOCUMENTS: &[TestTrustedDocument] = &[
         document_id: "favourite-repo-query-doc-id",
         document_text: "query { __typename }",
     },
-    TestTrustedDocument {
-        branch_id: "other-branch-id",
-        client_name: "ios-app",
-        document_id: "this-one-should-not-be-reachable-on-my-branch",
-        document_text: "query { serverVersion }",
-    },
 ];
 
 fn test<Fn, Fut>(test_fn: Fn)
@@ -116,7 +110,7 @@ fn regular_non_persisted_queries_are_rejected() {
         {
           "errors": [
             {
-              "message": "Cannot execute a trusted document query: missing doc_id or the persistedQuery extension."
+              "message": "Cannot execute a trusted document query: missing documentId, doc_id or the persistedQuery extension."
             }
           ]
         }
@@ -166,27 +160,43 @@ fn wrong_client_name() {
 }
 
 #[test]
-fn wrong_branch() {
+fn bypass_header() {
     test(|engine| async move {
         let response = engine
-            .execute(GraphQlRequest {
-                query: String::new(),
-                operation_name: None,
-                variables: None,
-                extensions: None,
-                doc_id: Some(TRUSTED_DOCUMENTS.last().unwrap().document_id.to_owned()),
-            })
-            .header("x-grafbase-client-name", "ios-app")
+            .execute("query { pullRequestsAndIssues(filter: { search: \"1\" }) { __typename } }")
+            .header("test-bypass-header", "test-bypass-value")
+            .await;
+
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "pullRequestsAndIssues": [
+              {
+                "__typename": "PullRequest"
+              },
+              {
+                "__typename": "PullRequest"
+              },
+              {
+                "__typename": "Issue"
+              }
+            ]
+          }
+        }
+        "###);
+
+        let response = engine
+            .execute("query { pullRequestsAndIssues(filter: { search: \"1\" }) { __typename } }")
             .await;
 
         insta::assert_json_snapshot!(response, @r###"
         {
           "errors": [
             {
-              "message": "Unknown document id: 'this-one-should-not-be-reachable-on-my-branch'"
+              "message": "Cannot execute a trusted document query: missing documentId, doc_id or the persistedQuery extension."
             }
           ]
         }
         "###);
-    });
+    })
 }

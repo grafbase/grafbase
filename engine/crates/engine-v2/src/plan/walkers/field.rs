@@ -1,13 +1,13 @@
-use schema::{FieldId, FieldWalker};
+use schema::{FieldDefinitionId, FieldDefinitionWalker};
 
 use crate::{
-    request::BoundFieldId,
+    operation::{FieldArgumentsWalker, FieldId, QueryInputValueWalker},
     response::{ResponseEdge, ResponseKey},
 };
 
-use super::{PlanFieldArgument, PlanInputValue, PlanSelectionSet, PlanWalker};
+use super::{PlanSelectionSet, PlanWalker};
 
-pub type PlanField<'a> = PlanWalker<'a, BoundFieldId, FieldId>;
+pub type PlanField<'a> = PlanWalker<'a, FieldId, FieldDefinitionId>;
 
 impl<'a> PlanField<'a> {
     pub fn selection_set(&self) -> Option<PlanSelectionSet<'a>> {
@@ -31,26 +31,39 @@ impl<'a> PlanField<'a> {
             .unwrap()
     }
 
-    pub fn arguments(self) -> impl ExactSizeIterator<Item = PlanFieldArgument<'a>> + 'a {
-        self.as_ref()
-            .argument_ids()
-            .map(move |id| self.walk_with(id, self.operation_plan[id].input_value_definition_id))
+    pub fn arguments(self) -> FieldArgumentsWalker<'a> {
+        self.bound_walk_with(self.as_ref().argument_ids(), ())
     }
 
-    pub fn get_arg(&self, name: &str) -> PlanInputValue<'a> {
+    pub fn get_arg_value_opt(&self, name: &str) -> Option<QueryInputValueWalker<'a>> {
         self.arguments()
-            .find_map(|arg| if arg.name() == name { Some(arg.value()) } else { None })
-            .unwrap_or_else(|| self.walk_with(self.operation_plan.input_values.undefined_value_id(), ()))
+            .into_iter()
+            .find_map(|arg| if arg.name() == name { arg.value() } else { None })
+    }
+
+    #[allow(unused)]
+    #[track_caller]
+    pub fn arguments_as<T: serde::Deserialize<'a>>(&self) -> T {
+        T::deserialize(self.arguments()).expect("Invalid argument type.")
     }
 
     #[track_caller]
-    pub fn get_arg_as<T: serde::Deserialize<'a>>(&self, name: &str) -> T {
-        T::deserialize(self.get_arg(name)).expect("Invalid argument type.")
+    pub fn get_arg_value_as<T: serde::Deserialize<'a>>(&self, name: &str) -> T {
+        T::deserialize(self.get_arg_value_opt(name).expect("Argument is not nullable")).expect("Invalid argument type.")
+    }
+
+    #[allow(unused)]
+    #[track_caller]
+    pub fn get_arg_value_as_opt<T: serde::Deserialize<'a>>(&self, name: &str) -> Option<T> {
+        self.get_arg_value_opt(name)
+            .map(|value| T::deserialize(value))
+            .transpose()
+            .expect("Invalid argument type.")
     }
 }
 
 impl<'a> std::ops::Deref for PlanField<'a> {
-    type Target = FieldWalker<'a>;
+    type Target = FieldDefinitionWalker<'a>;
 
     fn deref(&self) -> &Self::Target {
         &self.schema_walker
@@ -65,7 +78,7 @@ impl<'a> std::fmt::Debug for PlanField<'a> {
         if response_key != name {
             fmt.field("key", &response_key);
         }
-        let arguments = self.arguments().collect::<Vec<_>>();
+        let arguments = self.arguments().into_iter().collect::<Vec<_>>();
         if !arguments.is_empty() {
             fmt.field("arguments", &arguments);
         }

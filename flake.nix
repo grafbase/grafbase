@@ -60,6 +60,9 @@
             # Benchmark tool to send multiple requests
             hey
 
+            # binary bloat inspector
+            cargo-bloat
+
             # Versioning, automation and releasing
             cargo-make
             cargo-release
@@ -70,7 +73,7 @@
             # Node.js
             nodejs
             nodePackages.prettier
-            bun # for udf-wrapper
+            bun # for wrappers
 
             # Native SSL
             openssl

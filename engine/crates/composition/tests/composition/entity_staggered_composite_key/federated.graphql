@@ -31,9 +31,9 @@ type A
 type B
     @join__type(graph: SECOND, key: "id")
 {
-    id: ID!
-    foo: String @join__field(graph: FIRST)
     bar: String @join__field(graph: SECOND)
+    foo: String @join__field(graph: FIRST)
+    id: ID!
 }
 
 type Query {

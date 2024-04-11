@@ -24,6 +24,7 @@ mod start;
 mod subgraphs;
 mod trust;
 mod unlink;
+mod upgrade;
 mod watercolor;
 
 #[macro_use]
@@ -31,7 +32,7 @@ extern crate log;
 
 use crate::{
     build::build,
-    cli_input::{Args, ArgumentNames, FederatedSubCommand, LogsCommand, SubCommand},
+    cli_input::{Args, ArgumentNames, LogsCommand, SubCommand},
     create::create,
     deploy::deploy,
     dev::dev,
@@ -47,7 +48,7 @@ use clap::Parser;
 use common::{analytics::Analytics, environment::Environment};
 use errors::CliError;
 use output::report;
-use std::process;
+use std::{path::PathBuf, process};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use watercolor::ShouldColorize;
 
@@ -77,13 +78,8 @@ fn main() {
 
 fn try_main(args: Args) -> Result<(), CliError> {
     let filter = EnvFilter::builder().parse_lossy(args.log_filter());
-    let (otel_layer, reload_handle) = grafbase_tracing::otel::layer::new_noop();
 
-    tracing_subscriber::registry()
-        .with(matches!(args.command, SubCommand::Federated(..)).then_some(otel_layer))
-        .with(fmt::layer())
-        .with(filter)
-        .init();
+    tracing_subscriber::registry().with(fmt::layer()).with(filter).init();
 
     trace!("subcommand: {}", args.command);
 
@@ -94,17 +90,14 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
     if args.command.in_project_context() {
         Environment::try_init_with_project(args.home).map_err(CliError::CommonError)?;
-    } else if !args.command.runs_production_server() {
+    } else {
         // TODO: temporary if clause
         Environment::try_init(args.home).map_err(CliError::CommonError)?;
     }
 
-    // TODO: temporary
-    if !args.command.runs_production_server() {
-        Analytics::init().map_err(CliError::CommonError)?;
-        Analytics::command_executed(args.command.as_ref(), args.command.argument_names());
-        report::warnings(&Environment::get().warnings);
-    }
+    Analytics::init().map_err(CliError::CommonError)?;
+    Analytics::command_executed(args.command.as_ref(), args.command.argument_names());
+    report::warnings(&Environment::get().warnings);
 
     match args.command {
         SubCommand::Completions(cmd) => {
@@ -139,17 +132,6 @@ fn try_main(args: Args) -> Result<(), CliError> {
             limit,
             no_follow,
         }) => logs(project_branch, limit, !no_follow),
-        SubCommand::Federated(cmd) => match cmd.command {
-            FederatedSubCommand::Start(cmd) => {
-                let _ = ctrlc::set_handler(|| {
-                    report::goodbye();
-                    process::exit(exitcode::OK);
-                });
-
-                production_server::start(cmd.listen_address, &cmd.config, cmd.fetch_method()?, reload_handle)
-                    .map_err(CliError::ProductionServerError)
-            }
-        },
         SubCommand::Start(cmd) => {
             let _ = ctrlc::set_handler(|| {
                 report::goodbye();
@@ -204,5 +186,21 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::DumpConfig => dump_config::dump_config(),
         SubCommand::Check(cmd) => check::check(cmd),
         SubCommand::Trust(cmd) => trust::trust(cmd),
+        SubCommand::Upgrade => {
+            // this command is also hidden in this case
+            // (clippy doesn't have a mechanism to completely disable a command conditionally when using derive, see https://github.com/clap-rs/clap/issues/5251)
+            if is_not_direct_install() {
+                return Err(CliError::NotDirectInstall);
+            }
+            upgrade::install_grafbase().map_err(Into::into)
+        }
     }
+}
+
+pub(crate) fn is_not_direct_install() -> bool {
+    std::env::current_exe().is_ok_and(|path| Some(path) != direct_install_executable_path())
+}
+
+pub(crate) fn direct_install_executable_path() -> Option<PathBuf> {
+    dirs::home_dir().map(|home| home.join(".grafbase").join("bin").join("grafbase"))
 }

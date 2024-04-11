@@ -1,0 +1,25 @@
+type FidgetSpinner {
+    buttonDescriptions: [String!]
+    id: ID!
+    manufacturer: Manufacturer
+    model: String
+}
+
+type Manufacturer {
+    location: String
+    name: String!
+}
+
+type Query {
+    fidgetSpinners: [FidgetSpinner]
+}
+
+interface Spinner {
+    id: ID!
+    model: String
+}
+
+input SpinnerFilter {
+    manufacturer: String
+    maxPrice: Float!
+}

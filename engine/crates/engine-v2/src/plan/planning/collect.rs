@@ -1,51 +1,61 @@
+use id_newtypes::IdRange;
 use itertools::Itertools;
 use schema::Schema;
 use std::collections::HashSet;
 
 use crate::{
+    operation::{FieldId, OperationWalker, SelectionSetId, SelectionSetType, Variables},
     plan::{
         flatten_selection_sets, AnyCollectedSelectionSet, AnyCollectedSelectionSetId, CollectedField, CollectedFieldId,
         CollectedSelectionSet, CollectedSelectionSetId, ConditionalField, ConditionalFieldId, ConditionalSelectionSet,
         ConditionalSelectionSetId, EntityType, FieldType, FlatField, FlatTypeCondition, OperationPlan, PlanBoundaryId,
         PlanId,
     },
-    request::{BoundFieldId, BoundSelectionSetId, OperationWalker, SelectionSetType},
-    utils::IdRange,
 };
 
 use super::PlanningResult;
 
-pub(super) struct Collector<'schema, 'op> {
-    schema: &'schema Schema,
-    operation: &'op mut OperationPlan,
+pub(super) struct Collector<'a> {
+    schema: &'a Schema,
+    operation: &'a mut OperationPlan,
+    variables: &'a Variables,
     plan_id: PlanId,
     support_aliases: bool,
 }
 
-impl<'schema, 'a> Collector<'schema, 'a> {
-    pub(super) fn new(schema: &'schema Schema, operation: &'a mut OperationPlan, plan_id: PlanId) -> Self {
+impl<'a> Collector<'a> {
+    pub(super) fn new(
+        schema: &'a Schema,
+        variables: &'a Variables,
+        operation: &'a mut OperationPlan,
+        plan_id: PlanId,
+    ) -> Self {
         let support_aliases = schema
             .walk(operation.planned_resolvers[usize::from(plan_id)].resolver_id)
             .supports_aliases();
         Collector {
             schema,
             operation,
+            variables,
             plan_id,
             support_aliases,
         }
     }
 
     pub fn walker(&self) -> OperationWalker<'_> {
-        self.operation.walker_with(self.schema.walker())
+        // yes looks weird, will be improved
+        self.operation
+            .operation
+            .walker_with(self.schema.walker(), self.variables)
     }
 
     pub(super) fn collect(
         &mut self,
-        root_selection_set_ids: Vec<BoundSelectionSetId>,
+        root_selection_set_ids: Vec<SelectionSetId>,
     ) -> PlanningResult<CollectedSelectionSetId> {
         let ty = self.operation[root_selection_set_ids[0]].ty;
         let fields = self.find_root_fields(root_selection_set_ids);
-        tracing::debug!(
+        tracing::trace!(
             "Collecting output for plan {} from root fields: {}",
             self.plan_id,
             fields
@@ -56,13 +66,13 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         self.collect_fields(ty, fields, None)
     }
 
-    fn find_root_fields(&self, root_selection_set_ids: Vec<BoundSelectionSetId>) -> Vec<BoundFieldId> {
+    fn find_root_fields(&self, root_selection_set_ids: Vec<SelectionSetId>) -> Vec<FieldId> {
         let walker = self.walker();
         root_selection_set_ids
             .into_iter()
             .flat_map(|id| walker.walk(id).fields())
             .filter_map(|field| {
-                let field_plan_id = self.operation.bound_field_to_plan_id[usize::from(field.id())];
+                let field_plan_id = self.operation.field_to_plan_id[usize::from(field.id())];
                 if field_plan_id == self.plan_id {
                     Some(field.id())
                 } else {
@@ -74,7 +84,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
 
     fn collect_selection_set(
         &mut self,
-        selection_set_ids: Vec<BoundSelectionSetId>,
+        selection_set_ids: Vec<SelectionSetId>,
         concrete_parent: bool,
     ) -> PlanningResult<AnyCollectedSelectionSet> {
         let selection_set = flatten_selection_sets(self.schema, self.operation, selection_set_ids);
@@ -82,11 +92,11 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         let mut maybe_boundary_id = None;
         let mut plan_fields = Vec::new();
         for field in selection_set.fields {
-            if !self.operation[field.bound_field_id].is_read() {
+            if !self.operation[field.id].is_read() {
                 continue;
             }
 
-            let field_plan_id = self.operation.bound_field_to_plan_id[usize::from(field.bound_field_id)];
+            let field_plan_id = self.operation.field_to_plan_id[usize::from(field.id)];
             if field_plan_id == self.plan_id {
                 plan_fields.push(field);
             } else if maybe_boundary_id.is_none() {
@@ -131,7 +141,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         let id = if concrete_parent && !too_complex && conditions.len() == 1 && conditions.contains(&None) {
             self.collect_fields(
                 selection_set.ty,
-                plan_fields.into_iter().map(|field| field.bound_field_id).collect(),
+                plan_fields.into_iter().map(|field| field.id).collect(),
                 maybe_boundary_id,
             )
             .map(AnyCollectedSelectionSetId::Collected)?
@@ -143,7 +153,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
         // We keep track of which collected selection set matches which bound selection sets.
         // This allows us to know whether `__typename` is necessary in the generated subgraph query.
         for root_id in selection_set.root_selection_set_ids {
-            self.operation.bound_to_collected_selection_set[usize::from(root_id)] = Some(id);
+            self.operation.selection_set_to_collected[usize::from(root_id)] = Some(id);
         }
         Ok(match id {
             AnyCollectedSelectionSetId::Collected(id) => AnyCollectedSelectionSet::Collected(id),
@@ -154,7 +164,7 @@ impl<'schema, 'a> Collector<'schema, 'a> {
     fn collect_fields(
         &mut self,
         ty: SelectionSetType,
-        fields: Vec<BoundFieldId>,
+        fields: Vec<FieldId>,
         maybe_boundary_id: Option<PlanBoundaryId>,
     ) -> PlanningResult<CollectedSelectionSetId> {
         let grouped_by_response_key = self
@@ -164,20 +174,20 @@ impl<'schema, 'a> Collector<'schema, 'a> {
 
         let mut fields = vec![];
         let mut typename_fields = vec![];
-        for bound_field_ids in grouped_by_response_key {
-            let bound_field_id: BoundFieldId = bound_field_ids[0];
-            let bound_field = self.operation[bound_field_id].clone();
-            if let Some(schema_field_id) = bound_field.schema_field_id() {
-                let schema_field = self.schema.walk(schema_field_id);
+        for field_ids in grouped_by_response_key {
+            let field_id: FieldId = field_ids[0];
+            let field = self.operation[field_id].clone();
+            if let Some(definition_id) = field.definition_id() {
+                let definition = self.schema.walk(definition_id);
                 let expected_key = if self.support_aliases {
-                    self.operation.response_keys.ensure_safety(bound_field.response_key())
+                    self.operation.response_keys.ensure_safety(field.response_key())
                 } else {
-                    self.operation.response_keys.get_or_intern(schema_field.name())
+                    self.operation.response_keys.get_or_intern(definition.name())
                 };
-                let ty = match schema_field.ty().inner().scalar_type() {
+                let ty = match definition.ty().inner().scalar_type() {
                     Some(scalar_type) => FieldType::Scalar(scalar_type),
                     None => {
-                        let subselection_set_ids = bound_field_ids
+                        let subselection_set_ids = field_ids
                             .into_iter()
                             .filter_map(|id| self.operation[id].selection_set_id())
                             .collect();
@@ -186,14 +196,14 @@ impl<'schema, 'a> Collector<'schema, 'a> {
                 };
                 fields.push(CollectedField {
                     expected_key,
-                    edge: bound_field.response_edge(),
-                    bound_field_id,
-                    schema_field_id,
-                    wrapping: schema_field.ty().wrapping(),
+                    edge: field.response_edge(),
+                    id: field_id,
+                    definition_id,
+                    wrapping: definition.ty().wrapping(),
                     ty,
                 });
             } else {
-                typename_fields.push(bound_field.response_edge());
+                typename_fields.push(field.response_edge());
             }
         }
 
@@ -212,25 +222,25 @@ impl<'schema, 'a> Collector<'schema, 'a> {
     fn collected_conditional_fields(
         &mut self,
         ty: SelectionSetType,
-        fields: Vec<FlatField>,
+        flat_fields: Vec<FlatField>,
         maybe_boundary_id: Option<PlanBoundaryId>,
     ) -> PlanningResult<ConditionalSelectionSetId> {
         let mut typename_fields = Vec::new();
         let mut conditional_fields = Vec::new();
-        for field in fields {
-            let bound_field = self.operation[field.bound_field_id].clone();
-            if let Some(field_id) = bound_field.schema_field_id() {
-                let schema_field = self.schema.walker().walk(field_id);
+        for flat_field in flat_fields {
+            let field = self.operation[flat_field.id].clone();
+            if let Some(definition_id) = field.definition_id() {
+                let definition = self.schema.walker().walk(definition_id);
                 let expected_key = if self.support_aliases {
-                    self.operation.response_keys.ensure_safety(bound_field.response_key())
+                    self.operation.response_keys.ensure_safety(field.response_key())
                 } else {
-                    self.operation.response_keys.get_or_intern(schema_field.name())
+                    self.operation.response_keys.get_or_intern(definition.name())
                 };
-                let ty = match schema_field.ty().inner().scalar_type() {
+                let ty = match definition.ty().inner().scalar_type() {
                     Some(data_type) => FieldType::Scalar(data_type),
                     None => {
                         let selection_set_id =
-                            self.collect_selection_set(bound_field.selection_set_id().into_iter().collect(), false)?;
+                            self.collect_selection_set(field.selection_set_id().into_iter().collect(), false)?;
                         let AnyCollectedSelectionSet::Conditional(selection_set_id) = selection_set_id else {
                             unreachable!("undetermined selection set cannot produce concrete selecitons");
                         };
@@ -238,16 +248,16 @@ impl<'schema, 'a> Collector<'schema, 'a> {
                     }
                 };
                 conditional_fields.push(ConditionalField {
-                    type_condition: field.type_condition,
-                    edge: bound_field.response_edge(),
+                    type_condition: flat_field.type_condition,
+                    edge: field.response_edge(),
                     expected_key,
-                    schema_field_id: field_id,
-                    bound_field_id: field.bound_field_id,
+                    definition_id,
+                    id: flat_field.id,
                     ty,
                 });
             } else {
-                let type_condition = field.type_condition;
-                typename_fields.push((type_condition, bound_field.response_edge()));
+                let type_condition = flat_field.type_condition;
+                typename_fields.push((type_condition, field.response_edge()));
             }
         }
 

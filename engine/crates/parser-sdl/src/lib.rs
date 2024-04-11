@@ -37,6 +37,7 @@ use rules::{
     graph_directive::GraphVisitor,
     graphql_directive::GraphqlVisitor,
     input_object::InputObjectVisitor,
+    interface::Interface,
     introspection::{IntrospectionDirective, IntrospectionDirectiveVisitor},
     join_directive::JoinDirective,
     length_directive::LengthDirective,
@@ -51,12 +52,15 @@ use rules::{
     resolver_directive::ResolverDirective,
     search_directive::SearchDirective,
     subgraph_directive::{SubgraphDirective, SubgraphDirectiveVisitor},
+    trusted_documents_directive::{TrustedDocumentsDirective, TrustedDocumentsVisitor},
     unique_directive::UniqueDirective,
     unique_fields::UniqueObjectFields,
     visitor::{visit, RuleError, Visitor, VisitorContext},
 };
 
 pub mod federation;
+mod parser_extensions;
+mod schema_coord;
 mod type_names;
 mod validations;
 
@@ -80,6 +84,7 @@ use crate::rules::{
     mongodb_directive::MongoDBVisitor,
     scalar_hydratation::ScalarHydratation,
 };
+pub use dynamic_string::DynamicString;
 
 pub mod connector_parsers;
 pub mod usage;
@@ -155,6 +160,7 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<OneOfDirective>()
         .with::<OpenApiDirective>()
         .with::<OperationLimitsDirective>()
+        .with::<TrustedDocumentsDirective>()
         .with::<OverrideDirective>()
         .with::<PostgresDirective>()
         .with::<ProvidesDirective>()
@@ -182,11 +188,10 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
 pub async fn parse<'a>(
     schema: &'a str,
     environment_variables: &HashMap<String, String>,
-    database_models_enabled: bool,
     connector_parsers: &dyn ConnectorParsers,
 ) -> Result<ParseResult<'a>, Error> {
     let schema = parse_schema(schema)?;
-    let mut ctx = VisitorContext::new(&schema, database_models_enabled, environment_variables);
+    let mut ctx = VisitorContext::new(&schema, environment_variables);
 
     // We parse out the basic things like `extend schema @graph`.
     parse_basic(&schema, &mut ctx).await?;
@@ -222,7 +227,8 @@ pub async fn parse<'a>(
 async fn parse_basic<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) -> Result<(), Error> {
     let mut connector_rules = rules::visitor::VisitorNil
         .with(GraphVisitor)
-        .with(OperationLimitsVisitor);
+        .with(OperationLimitsVisitor)
+        .with(TrustedDocumentsVisitor);
 
     visit(&mut connector_rules, ctx, schema);
 
@@ -330,10 +336,7 @@ fn validate_unique_names(ctx: &VisitorContext<'_>) -> Result<(), Error> {
 }
 
 fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
-    let mut first_pass_rules = rules::visitor::VisitorNil
-        .with(CheckBeginsWithDoubleUnderscore)
-        .with(CheckFieldCamelCase)
-        .with(CheckTypeValidity)
+    let mut types_definitions_rules = rules::visitor::VisitorNil
         .with(ModelDirective)
         .with(AuthDirective)
         .with(AuthV2DirectiveVisitor)
@@ -341,13 +344,13 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(CacheVisitor)
         .with(InputObjectVisitor)
         .with(BasicType)
+        .with(Interface)
         .with(ExtendQueryAndMutationTypes)
         .with(EnumType)
         .with(ScalarHydratation)
         .with(MongoDBTypeDirective)
         .with(MongoDBModelDirective)
         .with(LengthDirective)
-        .with(UniqueObjectFields)
         .with(CheckAllDirectivesAreKnown::default())
         .with(ExperimentalDirectiveVisitor)
         .with(FederationDirectiveVisitor) // This will likely need moved.  Here'll do for now though
@@ -356,16 +359,20 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(AllSubgraphsDirectiveVisitor)
         .with(IntrospectionDirectiveVisitor);
 
-    visit(&mut first_pass_rules, ctx, schema);
+    visit(&mut types_definitions_rules, ctx, schema);
 
-    let mut second_pass_rules = rules::visitor::VisitorNil.with(ExtendConnectorTypes);
+    let mut extend_types_rules = rules::visitor::VisitorNil.with(ExtendConnectorTypes);
 
-    visit(&mut second_pass_rules, ctx, schema);
+    visit(&mut extend_types_rules, ctx, schema);
 }
 
 /// Visitors that require all user-defined types to be parsed already.
 fn parse_post_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
     let mut rules = rules::visitor::VisitorNil
+        .with(UniqueObjectFields)
+        .with(CheckBeginsWithDoubleUnderscore)
+        .with(CheckFieldCamelCase)
+        .with(CheckTypeValidity)
         .with(DefaultDirectiveTypes)
         .with(SearchDirective);
 
@@ -377,7 +384,7 @@ pub fn parse_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
     Ok(futures::executor::block_on(async move {
         let variables = HashMap::new();
         let connector_parsers = connector_parsers::MockConnectorParsers::default();
-        parse(input, &variables, true, &connector_parsers).await
+        parse(input, &variables, &connector_parsers).await
     })?
     .registry)
 }
@@ -389,6 +396,6 @@ fn to_parse_result_with_variables<'a>(
 ) -> Result<ParseResult<'a>, Error> {
     futures::executor::block_on(async move {
         let connector_parsers = connector_parsers::MockConnectorParsers::default();
-        parse(input, variables, true, &connector_parsers).await
+        parse(input, variables, &connector_parsers).await
     })
 }

@@ -46,9 +46,10 @@ use futures_util::stream::BoxStream;
 use schema::{Resolver, ResolverWalker};
 
 use crate::{
-    execution::{ExecutionContext, ExecutionError, ExecutionResult},
+    execution::{ExecutionContext, ExecutionError, ExecutionResult, OperationRootPlanExecution},
+    operation::OperationType,
     plan::{PlanWalker, PlanningResult},
-    response::{ResponseBoundaryObjectsView, ResponseBuilder, ResponsePart},
+    response::{ResponseBoundaryObjectsView, ResponsePart},
 };
 
 use self::{
@@ -69,11 +70,19 @@ pub(crate) enum Plan {
 }
 
 impl Plan {
-    pub fn build(walker: ResolverWalker<'_>, plan: PlanWalker<'_>) -> PlanningResult<Self> {
+    pub fn build(
+        walker: ResolverWalker<'_>,
+        operation_type: OperationType,
+        plan: PlanWalker<'_>,
+    ) -> PlanningResult<Self> {
         match walker.as_ref() {
             Resolver::Introspection(_) => Ok(Plan::Introspection(IntrospectionExecutionPlan)),
-            Resolver::FederationRootField(resolver) => GraphqlExecutionPlan::build(walker.walk(resolver), plan),
-            Resolver::FederationEntity(resolver) => FederationEntityExecutionPlan::build(walker.walk(resolver), plan),
+            Resolver::GraphqlRootField(resolver) => {
+                GraphqlExecutionPlan::build(walker.walk(resolver), operation_type, plan)
+            }
+            Resolver::GraphqlFederationEntity(resolver) => {
+                FederationEntityExecutionPlan::build(walker.walk(resolver), plan)
+            }
         }
     }
 }
@@ -135,10 +144,13 @@ pub(crate) enum SubscriptionExecutor<'ctx> {
     Graphql(GraphqlSubscriptionExecutor<'ctx>),
 }
 
-impl<'exc> SubscriptionExecutor<'exc> {
-    pub async fn execute(self) -> ExecutionResult<BoxStream<'exc, (ResponseBuilder, ResponsePart)>> {
+impl<'ctx> SubscriptionExecutor<'ctx> {
+    pub async fn execute(
+        self,
+        new_execution: impl Fn() -> OperationRootPlanExecution<'ctx> + Send + 'ctx,
+    ) -> ExecutionResult<BoxStream<'ctx, OperationRootPlanExecution<'ctx>>> {
         match self {
-            SubscriptionExecutor::Graphql(executor) => executor.execute().await,
+            SubscriptionExecutor::Graphql(executor) => executor.execute(new_execution).await,
         }
     }
 }

@@ -1,9 +1,9 @@
-use schema::{FieldId, ObjectId, ScalarType, Wrapping};
+use id_newtypes::IdRange;
+use schema::{FieldDefinitionId, ObjectId, ScalarType, Wrapping};
 
 use crate::{
-    request::{BoundFieldId, SelectionSetType},
+    operation::{FieldId, SelectionSetType},
     response::{ResponseEdge, SafeResponseKey},
-    utils::IdRange,
 };
 
 use super::{
@@ -58,8 +58,8 @@ pub struct ConditionalField {
     pub type_condition: Option<FlatTypeCondition>,
     /// Expected key from the upstream response when deserializing
     pub expected_key: SafeResponseKey,
-    pub bound_field_id: BoundFieldId,
-    pub schema_field_id: FieldId,
+    pub id: FieldId,
+    pub definition_id: FieldDefinitionId,
     /// a conditional field cannot have anything than a conditional selection set if any
     /// as it may be merged with other subselection at runtime.
     pub ty: FieldType<ConditionalSelectionSetId>,
@@ -94,8 +94,8 @@ pub struct CollectedField {
     pub edge: ResponseEdge,
     /// Expected key from the upstream response when deserializing
     pub expected_key: SafeResponseKey,
-    pub bound_field_id: BoundFieldId,
-    pub schema_field_id: FieldId,
+    pub id: FieldId,
+    pub definition_id: FieldDefinitionId,
     pub ty: FieldType,
     pub wrapping: Wrapping,
 }

@@ -1,0 +1,89 @@
+[network]
+# The listen address for the Grafbase gateway
+# Set it to 0.0.0.0:4000 or [::1]:4000 to listen on a public address
+listen_address = "127.0.0.1:4000"
+
+[graph]
+# The path endpoint for the GraphQL gateway
+path = "/graphql"    
+# Set to true to enable GraphQL introspection
+introspection = false
+
+[csrf]
+# Enable if the gateway is accessed from a browser. If enabled,
+# every request must have the header x-grafbase-csrf-protection set
+enabled = false
+
+# Cross-origin resource sharing settings are for installations that are accessed directly
+# from a browser. If this resource is accessed only from backend, these settings have no effect.
+# [cors]
+## The Access-Control-Allow-Credentials response header tells browsers
+## whether the server allows cross-origin HTTP requests to include credentials.
+## Credentials are cookies, TLS client certificates, or authentication headers
+## containing a username and password. By default, these credentials are not
+## sent in cross-origin requests, and doing so can make a site vulnerable to CSRF attacks.
+# allow_credentials = false
+## Indicates how long the results of a preflight request can be cached.
+# max_age = "60s"
+## Indicates whether the response can be shared with requesting code from the given origin.
+## Can be "any" which allows any origin, or an array of URLs.
+# allow_origins = "any"
+## Specifies methods allowed when accessing the endpoint. Can be "any" or an array of HTTP
+## methods as strings.
+# allow_methods = "any"
+## Indicates which HTTP headers can be used during the request. Can be "any" or an array of
+## header names as strings.
+# allow_headers = "any"
+## Indicates which response headers should be made available in response to a cross-origin request.
+## Can be "any" or an array of header names as strings.
+# expose_headers = "any"
+## Enables access from private networks.
+# allow_private_network = false
+
+## https://grafbase.com/docs/security/operation-limits
+# [operation_limits]
+# depth = 3
+# height = 10
+# aliases = 100
+# root_fields = 10
+# complexity = 1000
+
+## https://grafbase.com/docs/auth/federated
+# [[authentication.providers]]
+#
+# [authentication.providers.jwt]
+# name = "foo"
+#
+# [authentication.providers.jwt.jwks]
+# url = "https://example.com/.well-known/jwks.json"
+# issuer = "https://example.com/"
+# audience = "my-project"
+# poll_interval = "60s"
+
+## Global header configuration. These headers will sent down to every subgraph for every request.
+## Headers can either be static values:
+# [headers.Authentication]
+# value = "Bearer asdf"
+## Or they can be forwarded from the client, so the value here is the name of the header to be forwarded:
+## All header names are case-insensitive.
+# [headers.Content-Type]
+# forward = "content-type"
+## Sometimes a header can hold sensitive data not wanted in the configuration. In these cases environment
+## variables can be used. The environment variable must be set when starting the gateway.
+# [headers.Authentication]
+# value = "Bearer {{ env.ACCESS_TOKEN }}"
+
+## Subgraph level configuration
+# [subgraphs.products]
+## Custom websocket URL to be used for subscription requests. If not set, the default is the subgraph URL.
+# websocket_url = "wss://example.com"
+## Headers can be set per subgraph. The value can either be forwarded from the client:
+# [subgraphs.products.headers.Content-Type]
+# forward = "Content-Type"
+## or be a static value:
+# [subgraphs.products.headers.Authentication]
+# value = "Bearer ufufuf"
+## Environment variables can be used similarly as with global headers. The variables must be set
+## when starting the gateway.
+# [subgraphs.products.headers.Authentication]
+# value = "Bearer {{ env.SUBGRAPH_ACCESS_TOKEN }}"

@@ -38,7 +38,7 @@ impl<'a> FederationGatewayWithoutIO<'a> {
         );
         let federated_graph = FederatedGraph::from_sdl(schema).unwrap().into_latest();
         let config =
-            engine_v2::VersionedConfig::V3(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
+            engine_v2::VersionedConfig::V4(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
 
         let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
             enabled: true,
@@ -46,11 +46,13 @@ impl<'a> FederationGatewayWithoutIO<'a> {
         });
 
         let gateway = gateway_v2::Gateway::new(
-            config.into(),
+            config.try_into().unwrap(),
             engine_v2::EngineEnv {
                 fetcher,
                 cache: cache.clone(),
-                trusted_documents: runtime_noop::trusted_documents::NoopTrustedDocuments.into(),
+                trusted_documents: runtime::trusted_documents_client::Client::new(
+                    runtime_noop::trusted_documents::NoopTrustedDocuments,
+                ),
             },
             gateway_v2::GatewayEnv {
                 kv: runtime_local::InMemoryKvStore::runtime(),

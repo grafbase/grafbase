@@ -13,7 +13,7 @@ inputs:
     description: Target platform to use when installing nextest
     required: true
     options:
-      #- windows
+      - windows
       - macos
       - linux
 
@@ -54,11 +54,11 @@ runs:
         curl -LsSf https://get.nexte.st/latest/${{ inputs.platform }} | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
         sudo apt-get install musl-tools
 
-    # - name: Install cargo-nextest windows
-    #   if: ${{ inputs.platform == 'windows' }}
-    #   shell: bash
-    #   run: |
-    #     curl -LsSf https://get.nexte.st/latest/windows-tar | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+    - name: Install cargo-nextest windows
+      if: ${{ inputs.platform == 'windows' }}
+      shell: bash
+      run: |
+        curl -LsSf https://get.nexte.st/latest/windows-tar | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
 
     - name: Install cargo-nextest macos
       if: ${{ inputs.platform == 'macos' }}

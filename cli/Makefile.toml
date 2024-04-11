@@ -67,7 +67,7 @@ git pull
 cd crates/cli
 VERSION=$(cargo pkgid | rev | cut -d '@' -f 1 | rev)
 cd ../..
-git tag cli-$VERSION
+git tag grafbase-$VERSION
 git push --tags
 '''
 
@@ -99,7 +99,7 @@ command = "cargo"
 args = ["run", "--", "${@}"]
 
 [tasks.run-release]
-description = "Runs the CLI in release mode"
+description = "Runs the grafbase cli in release mode"
 command = "cargo"
 args = ["run", "--release", "--", "${@}"]
 
@@ -116,7 +116,7 @@ command = "cargo"
 args = ["instruments", "-t", "Leaks", "--time-limit", "30000", "--", "dev"]
 
 [tasks.update-assets]
-description = "Updates the CLI assets"
+description = "Updates the grafbase assets"
 script = '''
 cd ../../api/workers/gateway
 RELEASE_FLAG="--dev" ../../scripts/dev/build-cli-assets.sh
@@ -147,12 +147,6 @@ git pull
 ../../scripts/dev/build-cli-assets.sh
 '''
 
-[tasks.update-assets-remote]
-description = "Updates the CLI assets from the latest assets produced by the CI"
-script = '''
-./scripts/load-assets.sh
-'''
-
 [tasks.delete-assets]
 description = "Deletes the exported CLI assets"
 script = '''
@@ -168,10 +162,10 @@ npx --yes pnpm run cli-app:build
 popd
 '''
 
-[tasks.build-udf-wrapper]
-description = "Build cli/udf-wrapper"
+[tasks.build-wrappers]
+description = "Build cli/wrappers"
 script = '''
-pushd udf-wrapper
+pushd wrappers
 npx i
 npm run build
 popd

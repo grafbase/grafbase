@@ -1,0 +1,18 @@
+type Person {
+    age: Int!
+    email: String!
+    firstName: String!
+    id: ID!
+    lastName: String!
+    phoneNumber: String
+}
+
+type Query {
+    getPersonInfo: Person
+    searchPerson: [Person]
+}
+
+input InputPerson {
+    firstName: String!
+    lastName: String!
+}

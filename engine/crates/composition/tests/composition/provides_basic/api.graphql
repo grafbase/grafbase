@@ -1,0 +1,22 @@
+type Product {
+    id: ID!
+    name: String
+    reviews: [Review]
+}
+
+type Review {
+    author: User
+    content: String
+    id: ID!
+}
+
+type User {
+    email: String
+    id: ID!
+    name: String
+}
+
+type Query {
+    product: Product
+    user: User
+}

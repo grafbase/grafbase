@@ -35,6 +35,8 @@ pub(super) fn merge_field_arguments<'a>(
 
         start = end;
 
+        compose_field_argument_defaults(arguments, ctx);
+
         if !intersection.contains(&argument_name) {
             if let Some((_, required)) = arguments.iter().find(|(_name, arg)| arg.r#type().is_required()) {
                 required_argument_not_in_intersection_error(
@@ -95,6 +97,40 @@ pub(super) fn merge_field_arguments<'a>(
     }
 
     ids.unwrap_or(federated::NO_INPUT_VALUE_DEFINITION)
+}
+
+/// Default values on arguments (e.g. `field(arg: String! = "N.A")`) are _not_
+/// present in the federated schema produced by composition. This function is only
+/// here for validation.
+///
+/// The rule to enforce is that between the subgraphs that define a default
+/// on the same fileld, the default must be the same. Other subgraphs can have the
+/// same argument without default, that is valid, but everywhere a default value is
+/// specified, it has to be the same.
+fn compose_field_argument_defaults(
+    arguments: &[(StringId, subgraphs::FieldArgumentWalker<'_>)],
+    ctx: &mut Context<'_>,
+) {
+    let mut default: Option<(&subgraphs::Value, subgraphs::FieldArgumentWalker<'_>)> = None;
+
+    for (_, argument) in arguments {
+        let Some(value) = argument.default() else { continue };
+
+        match &mut default {
+            None => {
+                default = Some((value, *argument));
+            }
+            Some((default, _)) if default == &value => (),
+            Some((_, other_argument)) => ctx.diagnostics.push_fatal(format!(
+                r#"The argument {type_name}.{field_name}.{argument_name} has incompatible defaults in subgraphs "{first_subgraph}" and "{second_subgraph}""#,
+                type_name = argument.field().parent_definition().name().as_str(),
+                field_name = argument.field().name().as_str(),
+                argument_name = argument.name().as_str(),
+                first_subgraph = other_argument.field().parent_definition().subgraph().name().as_str(),
+                second_subgraph = argument.field().parent_definition().subgraph().name().as_str(),
+            )),
+        }
+    }
 }
 
 fn required_argument_not_in_intersection_error(
@@ -255,16 +291,16 @@ fn resolvable_in(fields: &[FieldWalker<'_>], object_is_shareable: bool) -> Vec<f
         .collect()
 }
 
-fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<federated::Override> {
+pub(super) fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<federated::Override> {
     let mut overrides = Vec::new();
 
-    for (field, from) in fields.iter().filter_map(|f| Some(f).zip(f.directives().r#override())) {
+    for (field, override_directive) in fields.iter().filter_map(|f| Some(f).zip(f.directives().r#override())) {
         let field_subgraph = field.parent_definition().subgraph();
 
-        if from.id == field_subgraph.name().id {
+        if override_directive.from == field_subgraph.name().id {
             ctx.diagnostics.push_fatal(format!(
                 r#"Source and destination subgraphs "{}" are the same for overridden field "{}.{}""#,
-                from.as_str(),
+                ctx.subgraphs.walk(override_directive.from).as_str(),
                 field.parent_definition().name().as_str(),
                 field.name().as_str()
             ));
@@ -273,7 +309,7 @@ fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<f
 
         if let Some(override_source) = fields
             .iter()
-            .find(|f| f.parent_definition().subgraph().name().id == from.id)
+            .find(|f| f.parent_definition().subgraph().name().id == override_directive.from)
         {
             if override_source.directives().r#override().is_some() {
                 ctx.diagnostics
@@ -287,13 +323,17 @@ fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) -> Vec<f
 
         overrides.push(federated::Override {
             graph: federated::SubgraphId(field_subgraph.subgraph_id().idx()),
+            label: override_directive
+                .label
+                .and_then(|label| ctx.subgraphs.walk(label).as_str().parse().ok())
+                .unwrap_or_default(),
             from: ctx
                 .subgraphs
                 .iter_subgraphs()
-                .position(|subgraph| subgraph.name().id == from.id)
+                .position(|subgraph| subgraph.name().id == override_directive.from)
                 .map(federated::SubgraphId)
                 .map(federated::OverrideSource::Subgraph)
-                .unwrap_or_else(|| federated::OverrideSource::Missing(ctx.insert_string(from.id))),
+                .unwrap_or_else(|| federated::OverrideSource::Missing(ctx.insert_string(override_directive.from))),
         });
     }
 

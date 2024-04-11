@@ -1,18 +1,11 @@
-use crate::request::{type_condition_name, BoundInlineFragmentId};
-
 use super::{PlanSelectionSet, PlanWalker};
+use crate::operation::InlineFragmentId;
 
-pub type PlanInlineFragment<'a> = PlanWalker<'a, BoundInlineFragmentId, ()>;
+pub type PlanInlineFragment<'a> = PlanWalker<'a, InlineFragmentId, ()>;
 
 impl<'a> PlanInlineFragment<'a> {
     pub fn selection_set(&self) -> PlanSelectionSet<'a> {
         PlanSelectionSet::SelectionSet(self.walk(self.as_ref().selection_set_id))
-    }
-
-    pub fn type_condition_name(&self) -> Option<&str> {
-        self.as_ref()
-            .type_condition
-            .map(|cond| type_condition_name(self.schema_walker, cond))
     }
 }
 

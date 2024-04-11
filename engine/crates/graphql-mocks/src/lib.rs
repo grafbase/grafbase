@@ -4,25 +4,25 @@ use std::{sync::Arc, time::Duration};
 
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{extract::State, http::HeaderMap, routing::post, Router};
+use tokio::sync::mpsc;
 
 mod almost_empty;
 mod disingenuous;
 mod echo;
+mod error_schema;
 mod fake_github;
 mod federation;
+mod secure;
 mod state_mutation;
 
 pub use {
-    almost_empty::AlmostEmptySchema,
-    disingenuous::DisingenuousSchema,
-    echo::EchoSchema,
-    fake_github::FakeGithubSchema,
-    federation::{FakeFederationAccountsSchema, FakeFederationProductsSchema, FakeFederationReviewsSchema},
-    state_mutation::StateMutationSchema,
+    almost_empty::AlmostEmptySchema, disingenuous::DisingenuousSchema, echo::EchoSchema, error_schema::ErrorSchema,
+    fake_github::FakeGithubSchema, federation::*, secure::SecureSchema, state_mutation::StateMutationSchema,
 };
 
 pub struct MockGraphQlServer {
     pub schema: Arc<dyn Schema>,
+    received_requests: mpsc::UnboundedReceiver<async_graphql::Request>,
     shutdown: Option<tokio::sync::oneshot::Sender<()>>,
     port: u16,
 }
@@ -41,7 +41,12 @@ impl MockGraphQlServer {
     }
 
     async fn new_impl(schema: Arc<dyn Schema>) -> Self {
-        let state = AppState { schema: schema.clone() };
+        let (sender, receiver) = mpsc::unbounded_channel();
+
+        let state = AppState {
+            schema: schema.clone(),
+            requests: sender,
+        };
         let app = Router::new()
             .route("/", post(graphql_handler))
             .route_service("/ws", GraphQLSubscription::new(SchemaExecutor(schema.clone())))
@@ -67,6 +72,7 @@ impl MockGraphQlServer {
         MockGraphQlServer {
             schema,
             shutdown: Some(shutdown_sender),
+            received_requests: receiver,
             port,
         }
     }
@@ -82,9 +88,22 @@ impl MockGraphQlServer {
     pub fn websocket_url(&self) -> String {
         format!("ws://localhost:{}/ws", self.port)
     }
+
+    pub async fn drain_requests(&mut self) -> impl Iterator<Item = async_graphql::Request> + '_ {
+        std::iter::from_fn(|| self.received_requests.try_recv().ok())
+    }
 }
 
 async fn graphql_handler(State(state): State<AppState>, headers: HeaderMap, req: GraphQLRequest) -> GraphQLResponse {
+    let req = req.into_inner();
+
+    // Record the request incase tests want to inspect it.
+    // async_graphql::Request isn't clone so we do a deser roundtrip instead
+    state
+        .requests
+        .send(serde_json::from_value(serde_json::to_value(&req).unwrap()).unwrap())
+        .ok();
+
     let headers = headers
         .into_iter()
         .map(|(name, value)| {
@@ -95,13 +114,14 @@ async fn graphql_handler(State(state): State<AppState>, headers: HeaderMap, req:
         })
         .collect();
 
-    let response: GraphQLResponse = state.schema.execute(headers, req.into_inner()).await.into();
+    let response: GraphQLResponse = state.schema.execute(headers, req).await.into();
     response
 }
 
 #[derive(Clone)]
 struct AppState {
     schema: Arc<dyn Schema>,
+    requests: mpsc::UnboundedSender<async_graphql::Request>,
 }
 
 /// Creating a trait for schema so we can use it as a trait object and avoid

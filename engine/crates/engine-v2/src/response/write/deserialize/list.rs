@@ -7,12 +7,12 @@ use serde::{
 
 use super::SeedContextInner;
 use crate::{
-    request::BoundFieldId,
+    operation::FieldId,
     response::{GraphqlError, ResponseValue},
 };
 
 pub(super) struct ListSeed<'ctx, 'parent, Seed> {
-    pub bound_field_id: BoundFieldId,
+    pub field_id: FieldId,
     pub ctx: &'parent SeedContextInner<'ctx>,
     pub seed: &'parent Seed,
 }
@@ -70,13 +70,7 @@ where
                         path.push(index.into());
                         self.ctx.response_part.borrow_mut().push_error(GraphqlError {
                             message: err.to_string(),
-                            locations: self
-                                .ctx
-                                .plan
-                                .bound_walk_with(self.bound_field_id, ())
-                                .name_location()
-                                .into_iter()
-                                .collect(),
+                            locations: vec![self.ctx.plan[self.field_id].location()],
                             path: Some(path),
                             ..Default::default()
                         });

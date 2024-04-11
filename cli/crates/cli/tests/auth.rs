@@ -31,6 +31,11 @@ use crate::utils::consts::{
 const JWT_ISSUER_URL: &str = "https://some.issuer.test";
 const JWT_SECRET: &str = "topsecret";
 
+#[ctor::ctor]
+fn setup_rustls() {
+    rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn simple_authorizer() {
     let mut env = Environment::init_async().await;
@@ -525,7 +530,7 @@ async fn jwks_issuer_token_with_valid_group_should_work() {
 
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
-async fn jwks_endoint_token_with_valid_group_should_work() {
+async fn jwks_endpoint_token_with_valid_group_should_work() {
     const ENDPOINT_PATH: &str = "custom/jwks.json";
     let set_up = set_up_jwks(
         AUTH_JWKS_PROVIDER_WITH_ENDPOINT_SCHEMA,
@@ -554,7 +559,7 @@ async fn jwks_endoint_token_with_valid_group_should_work() {
 
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
-async fn jwks_endoint_and_issuer_token_with_valid_group_should_work() {
+async fn jwks_endpoint_and_issuer_token_with_valid_group_should_work() {
     const ENDPOINT_PATH: &str = "custom/jwks.json";
     let set_up = set_up_jwks(
         AUTH_JWKS_PROVIDER_WITH_ISSUER_ENDPOINT_SCHEMA,

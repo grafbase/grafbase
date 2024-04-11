@@ -60,10 +60,10 @@ services:
   #
   # I only removed the consent service as we don't use it.
   hydra:
-    image: oryd/hydra:v2.2.0-rc.3
+    image: oryd/hydra:v2.2.0
     ports:
-      - "4444:4444" # Public port
-      - "4445:4445" # Admin port
+      - '4444:4444' # Public port
+      - '4445:4445' # Admin port
     command: serve -c /etc/config/hydra/hydra.yml all --dev
     volumes:
       - type: volume
@@ -74,8 +74,8 @@ services:
         source: ./data/hydra-config
         target: /etc/config/hydra
     environment:
-      DSN: "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"
-      URLS_SELF_ISSUER: "http://127.0.0.1:4444"
+      DSN: 'sqlite:///var/lib/sqlite/db.sqlite?_fk=true'
+      URLS_SELF_ISSUER: 'http://127.0.0.1:4444'
     restart: always
     depends_on:
       - hydra-migrate
@@ -83,9 +83,9 @@ services:
       - hydra
 
   hydra-migrate:
-    image: oryd/hydra:v2.2.0-rc.3
+    image: oryd/hydra:v2.2.0
     environment:
-      DSN: "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"
+      DSN: 'sqlite:///var/lib/sqlite/db.sqlite?_fk=true'
     command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
     volumes:
       - type: volume
@@ -101,10 +101,10 @@ services:
 
   # Adding a second hydra to act as a different OAuth2 provider
   hydra-2:
-    image: oryd/hydra:v2.2.0-rc.3
+    image: oryd/hydra:v2.2.0
     ports:
-      - "4454:4454" # Public port
-      - "4455:4455" # Admin port
+      - '4454:4454' # Public port
+      - '4455:4455' # Admin port
     command: serve -c /etc/config/hydra/hydra.yml all --dev
     volumes:
       - type: volume
@@ -115,10 +115,10 @@ services:
         source: ./data/hydra-config
         target: /etc/config/hydra
     environment:
-      DSN: "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"
-      URLS_SELF_ISSUER: "http://127.0.0.1:4454"
-      SERVE_PUBLIC_PORT: "4454"
-      SERVE_ADMIN_PORT: "4455"
+      DSN: 'sqlite:///var/lib/sqlite/db.sqlite?_fk=true'
+      URLS_SELF_ISSUER: 'http://127.0.0.1:4454'
+      SERVE_PUBLIC_PORT: '4454'
+      SERVE_ADMIN_PORT: '4455'
     restart: always
     depends_on:
       - hydra-migrate
@@ -126,9 +126,9 @@ services:
       - hydra-2
 
   hydra-2-migrate:
-    image: oryd/hydra:v2.2.0-rc.3
+    image: oryd/hydra:v2.2.0
     environment:
-      DSN: "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"
+      DSN: 'sqlite:///var/lib/sqlite/db.sqlite?_fk=true'
     command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
     volumes:
       - type: volume

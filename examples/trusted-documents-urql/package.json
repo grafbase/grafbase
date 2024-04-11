@@ -1,0 +1,16 @@
+{
+  "name": "trusted-documents-urql",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@apollo/generate-persisted-query-manifest": "^1.2.0",
+    "@urql/exchange-persisted": "^4.1.1",
+    "urql": "^4.0.6"
+  }
+}

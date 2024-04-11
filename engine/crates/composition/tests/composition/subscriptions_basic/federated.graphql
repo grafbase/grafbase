@@ -35,7 +35,9 @@ type Review {
     text: String! @join__field(graph: REVIEWS)
 }
 
-type Query
+type Query {
+    foo: String! @join__field(graph: REVIEWS)
+}
 
 type Subscription {
     topProducts: Product @join__field(graph: PRODUCTS)

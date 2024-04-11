@@ -205,7 +205,7 @@ async fn handle_github_repo_url(grafbase_path: &Path, repo_url: &Url) -> Result<
             segments.pop();
         }
 
-        // disallow empty path paramters other than the last
+        // disallow empty path parameters other than the last
         if segments.contains(&"") {
             return Err(BackendError::UnsupportedTemplateURL(repo_url.to_string()));
         }

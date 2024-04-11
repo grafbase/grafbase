@@ -4,6 +4,8 @@ use common::errors::CommonError;
 use std::io::{self, ErrorKind};
 use thiserror::Error;
 
+use crate::upgrade::UpgradeError;
+
 #[derive(Error, Debug)]
 pub enum CliError {
     // TODO: this might be better as `expect`
@@ -55,8 +57,10 @@ pub enum CliError {
     LogsNoLinkedProject,
     #[error("error during graph introspection: {0}")]
     Introspection(String),
-    #[error("could not read the trusted documents manifest")]
+    #[error("could not read the trusted documents manifest: {0}")]
     TrustedDocumentsManifestReadError(#[source] io::Error),
+    #[error("could not parse the trusted documents manifest. Expecting a map from document id to GraphQL string or an Apollo Client manifest ({0})")]
+    TrustedDocumentsManifestParseError(#[source] serde_json::Error),
     #[error("could not read the GraphQL schema")]
     SchemaReadError(#[source] io::Error),
     #[error("error in publish: {0}")]
@@ -64,12 +68,11 @@ pub enum CliError {
     /// returned if .grafbase/project.json could not be read
     #[error("could not read '.grafbase/project.json'\nCaused by: {0}")]
     ReadProjectMetadataFile(#[source] io::Error),
-    /// temporary error type for the production server until we figure things out more
-    #[error("{0}")]
-    ProductionServerError(#[source] production_server::Error),
-    /// invalid arguments
-    #[error("{0}")]
-    InvalidArgumentsError(String),
+    #[error(transparent)]
+    UpgradeError(#[from] UpgradeError),
+    /// returned if the CLI was installed via a package manager and not directly (when trying to upgrade)
+    #[error("could not upgrade grafbase as it was installed using a package manager")]
+    NotDirectInstall,
 }
 
 #[cfg(target_family = "windows")]
@@ -112,6 +115,8 @@ impl CliError {
             Self::BackendApiError(ApiError::NotLoggedIn | ApiError::CorruptCredentialsFile) => Some("try running 'grafbase login'".to_owned()),
             Self::BackendApiError(ApiError::ProjectAlreadyLinked) => Some("try running 'grafbase deploy'".to_owned()),
             Self::BackendApiError(ApiError::CorruptProjectMetadataFile | ApiError::UnlinkedProject) => Some("try running 'grafbase link'".to_owned()),
+            Self::UpgradeError(UpgradeError::StartDownload | UpgradeError::StartGetLatestReleaseVersion) => Some("this may be caused by connection issues".to_owned()),
+            Self::NotDirectInstall => Some("try upgrading via your original install method or installing grafbase directly".to_owned()),
             _ => None,
         }
     }

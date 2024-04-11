@@ -8,16 +8,15 @@ use futures_util::{
     stream::{BoxStream, FuturesUnordered},
     Future, SinkExt, StreamExt,
 };
-#[cfg(feature = "tracing")]
 use grafbase_tracing::span::{GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
-#[cfg(feature = "tracing")]
+use runtime::auth::AccessToken;
 use tracing::Span;
 
 use crate::{
     execution::ExecutionContext,
-    plan::{OperationExecutionState, OperationPlan, PlanId},
-    request::{OpInputValues, Operation},
-    response::{ExecutionMetadata, GraphqlError, Response, ResponseBuilder, ResponsePart},
+    operation::{Operation, Variables},
+    plan::{OperationExecutionState, OperationPlan, PlanId, PlanWalker},
+    response::{ExecutionMetadata, GraphqlError, Response, ResponseBoundaryItem, ResponseBuilder, ResponsePart},
     sources::{Executor, ExecutorInput, SubscriptionExecutor, SubscriptionInput},
     Engine,
 };
@@ -29,7 +28,8 @@ pub type ResponseSender = futures::channel::mpsc::Sender<Response>;
 pub(crate) struct ExecutionCoordinator {
     engine: Arc<Engine>,
     operation_plan: Arc<OperationPlan>,
-    input_values: OpInputValues,
+    variables: Variables,
+    access_token: AccessToken,
     request_headers: RequestHeaders,
 }
 
@@ -37,13 +37,15 @@ impl ExecutionCoordinator {
     pub fn new(
         engine: Arc<Engine>,
         operation_plan: Arc<OperationPlan>,
-        input_values: OpInputValues,
+        variables: Variables,
+        access_token: AccessToken,
         request_headers: RequestHeaders,
     ) -> Self {
         Self {
             engine,
             operation_plan,
-            input_values,
+            variables,
+            access_token,
             request_headers,
         }
     }
@@ -52,10 +54,13 @@ impl ExecutionCoordinator {
         &self.operation_plan
     }
 
+    pub fn plan_walker(&self, plan_id: PlanId) -> PlanWalker<'_> {
+        self.operation_plan
+            .walker_with(&self.engine.schema, &self.variables, plan_id)
+    }
+
     pub async fn execute(self) -> Response {
-        #[cfg(feature = "tracing")]
         let gql_span = Span::current();
-        #[cfg(feature = "tracing")]
         gql_span.record_gql_request(GqlRequestAttributes {
             operation_type: self.operation().ty.as_ref(),
             operation_name: self.operation().name.as_deref(),
@@ -75,7 +80,6 @@ impl ExecutionCoordinator {
         .execute()
         .await;
 
-        #[cfg(feature = "tracing")]
         gql_span.record_gql_response(GqlResponseAttributes {
             has_errors: response.has_errors(),
         });
@@ -86,19 +90,34 @@ impl ExecutionCoordinator {
     pub async fn execute_subscription(self, mut responses: ResponseSender) {
         assert!(matches!(self.operation_plan.ty, OperationType::Subscription));
 
-        #[cfg(feature = "tracing")]
+        let current_span = Span::current();
+        current_span.record_gql_request(GqlRequestAttributes {
+            operation_type: self.operation().ty.as_ref(),
+            operation_name: self.operation().name.as_deref(),
+        });
+        let (state, subscription_plan_id) = {
+            let mut state = self.operation_plan.new_execution_state();
+            let id = state.pop_subscription_plan_id();
+            (state, id)
+        };
+        let root_plan_boundary_ids = self.plan_walker(subscription_plan_id).output().boundary_ids;
+        let new_execution = || {
+            let mut response = ResponseBuilder::new(self.operation_plan.root_object_id);
+            OperationRootPlanExecution {
+                root_response_part: response.new_part(root_plan_boundary_ids),
+                operation_execution: OperationExecution {
+                    coordinator: &self,
+                    futures: ExecutorFutureSet::new(),
+                    state: state.clone(),
+                    response,
+                },
+            }
+        };
+
+        let mut stream = match self
+            .build_subscription_stream(subscription_plan_id, new_execution)
+            .await
         {
-            let current_span = Span::current();
-            current_span.record_gql_request(GqlRequestAttributes {
-                operation_type: self.operation().ty.as_ref(),
-                operation_name: self.operation().name.as_deref(),
-            });
-        }
-
-        let mut state = self.operation_plan.new_execution_state();
-        let subscription_plan_id = state.pop_subscription_plan_id();
-
-        let mut stream = match self.build_subscription_stream(subscription_plan_id).await {
             Ok(stream) => stream,
             Err(error) => {
                 responses
@@ -117,50 +136,66 @@ impl ExecutionCoordinator {
             }
         };
 
-        while let Some((response, output)) = stream.next().await {
-            let mut futures = ExecutorFutureSet::new();
-            futures.push(async move {
+        while let Some(OperationRootPlanExecution {
+            mut operation_execution,
+            root_response_part,
+        }) = stream.next().await
+        {
+            operation_execution.futures.push(async move {
                 ExecutorFutureResult {
-                    result: Ok(output),
+                    result: Ok(root_response_part),
                     plan_id: subscription_plan_id,
                 }
             });
-            let response = OperationExecution {
-                coordinator: &self,
-                futures,
-                state: state.clone(),
-                response,
-            }
-            .execute()
-            .await;
-
+            let response = operation_execution.execute().await;
             if responses.send(response).await.is_err() {
                 return;
             }
         }
     }
 
-    async fn build_subscription_stream(
-        &self,
+    async fn build_subscription_stream<'s, 'ctx>(
+        &'s self,
         plan_id: PlanId,
-    ) -> Result<BoxStream<'_, (ResponseBuilder, ResponsePart)>, GraphqlError> {
+        new_execution: impl Fn() -> OperationRootPlanExecution<'ctx> + Send + 'ctx,
+    ) -> Result<BoxStream<'ctx, OperationRootPlanExecution<'ctx>>, GraphqlError>
+    where
+        's: 'ctx,
+    {
         let executor = self.build_subscription_executor(plan_id)?;
-        Ok(executor.execute().await?)
+        Ok(executor.execute(new_execution).await?)
     }
 
     fn build_subscription_executor(&self, plan_id: PlanId) -> ExecutionResult<SubscriptionExecutor<'_>> {
         let execution_plan = &self.operation_plan[plan_id];
-        let plan = self
-            .operation_plan
-            .plan_walker(&self.engine.schema, plan_id, Some(&self.input_values));
+        let plan = self.plan_walker(plan_id);
         let input = SubscriptionInput {
             ctx: ExecutionContext {
                 engine: self.engine.as_ref(),
-                request_headers: &self.request_headers,
+                access_token: &self.access_token,
+                headers: &self.request_headers,
             },
             plan,
         };
         execution_plan.new_subscription_executor(input)
+    }
+}
+
+pub struct OperationRootPlanExecution<'ctx> {
+    operation_execution: OperationExecution<'ctx>,
+    root_response_part: ResponsePart,
+}
+
+impl OperationRootPlanExecution<'_> {
+    pub fn root_response_part(&mut self) -> &mut ResponsePart {
+        &mut self.root_response_part
+    }
+
+    pub fn root_response_boundary_item(&self) -> ResponseBoundaryItem {
+        self.operation_execution
+            .response
+            .root_response_boundary_item()
+            .expect("a fresh response should always have a root")
     }
 }
 
@@ -175,7 +210,7 @@ impl<'ctx> OperationExecution<'ctx> {
     /// Runs a single execution to completion, returning its response
     async fn execute(mut self) -> Response {
         for plan_id in self.state.get_executable_plans() {
-            tracing::debug!(%plan_id, "Starting plan");
+            tracing::trace!(%plan_id, "Starting plan");
             match self.build_executor(plan_id) {
                 Ok(Some(executor)) => self.futures.execute(plan_id, executor),
                 Ok(None) => (),
@@ -187,12 +222,12 @@ impl<'ctx> OperationExecution<'ctx> {
             let output = match result {
                 Ok(output) => output,
                 Err(err) => {
-                    tracing::debug!(%plan_id, "Failed");
+                    tracing::trace!(%plan_id, "Failed");
                     self.response.push_error(err);
                     continue;
                 }
             };
-            tracing::debug!(%plan_id, "Succeeded");
+            tracing::trace!(%plan_id, "Succeeded");
 
             // Ingesting data first to propagate errors and next plans likely rely on it
             for (plan_bounday_id, boundary) in self.response.ingest(output) {
@@ -225,21 +260,19 @@ impl<'ctx> OperationExecution<'ctx> {
             self.state
                 .retrieve_boundary_items(&engine.schema, operation, &self.response, plan_id);
 
-        tracing::debug!(%plan_id, "Found {} response boundary items", response_boundary_items.len());
+        tracing::trace!(%plan_id, "Found {} response boundary items", response_boundary_items.len());
         if response_boundary_items.is_empty() {
             return Ok(None);
         }
 
         let execution_plan = &operation[plan_id];
-        let plan =
-            self.coordinator
-                .operation_plan
-                .plan_walker(&engine.schema, plan_id, Some(&self.coordinator.input_values));
+        let plan = self.coordinator.plan_walker(plan_id);
         let response_part = self.response.new_part(plan.output().boundary_ids);
         let input = ExecutorInput {
             ctx: ExecutionContext {
                 engine,
-                request_headers: &self.coordinator.request_headers,
+                access_token: &self.coordinator.access_token,
+                headers: &self.coordinator.request_headers,
             },
             plan,
             boundary_objects_view: self.response.read(
@@ -252,7 +285,6 @@ impl<'ctx> OperationExecution<'ctx> {
             response_part,
         };
 
-        tracing::debug!("{:#?}", input.plan.collected_selection_set());
         execution_plan.new_executor(input).map(Some)
     }
 }

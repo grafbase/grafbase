@@ -51,4 +51,11 @@ pub enum FederatedDevEvent {
         /// The composition errors
         rendered_error: String,
     },
+    /// Introspection failed for a pre-defined schema
+    PredefinedIntrospectionFailed {
+        /// The name of the predefined subgraph
+        subgraph_name: String,
+        /// The introspection errors
+        rendered_error: String,
+    },
 }

@@ -97,4 +97,31 @@ describe('Federation config', () => {
       "
     `)
   })
+
+  it('supports subgraph development URLs', () => {
+    const cfg = config({
+      graph: graph.Federated({
+        subgraphs: [
+          { name: 'Product', url: 'http://example.com/product' },
+          { name: 'Review', url: 'http://example.com/review' }
+        ],
+        headers: (headers) => {
+          headers.subgraph('Product').set('Bloop', 'Bleep')
+
+          headers.subgraph('Review').set('Bloop', 'Bleep')
+        }
+      })
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "
+      extend schema
+        @graph(type: federated)
+        @subgraph(name: "Product", developmentUrl: "http://example.com/product")
+        @subgraph(name: "Review", developmentUrl: "http://example.com/review")
+        @subgraph(name: "Product", headers: [{ name: "Bloop", value: "Bleep" }]),
+        @subgraph(name: "Review", headers: [{ name: "Bloop", value: "Bleep" }])
+      "
+    `)
+  })
 })

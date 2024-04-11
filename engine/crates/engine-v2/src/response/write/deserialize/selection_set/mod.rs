@@ -10,8 +10,8 @@ use serde::de::DeserializeSeed;
 
 use super::SeedContextInner;
 use crate::{
+    operation::SelectionSetType,
     plan::{AnyCollectedSelectionSet, RuntimeMergedConditionals},
-    request::SelectionSetType,
     response::ResponseValue,
 };
 

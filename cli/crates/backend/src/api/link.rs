@@ -1,6 +1,6 @@
 use super::{
     client::create_client,
-    consts::API_URL,
+    consts::api_url,
     errors::ApiError,
     graphql::queries::viewer_for_link::{PersonalAccount, Viewer},
     types::{self, AccountWithProjects, ProjectMetadata},
@@ -28,13 +28,9 @@ pub async fn project_link_validations() -> Result<(), ApiError> {
 #[allow(clippy::module_name_repetitions)]
 pub async fn get_viewer_data_for_link() -> Result<Vec<AccountWithProjects>, ApiError> {
     let client = create_client().await?;
-
     let query = Viewer::build(());
-
-    let response = client.post(API_URL).run_graphql(query).await?;
-
+    let response = client.post(api_url()).run_graphql(query).await?;
     let response = response.data.expect("must exist");
-
     let viewer_response = response.viewer.ok_or(ApiError::UnauthorizedOrDeletedUser)?;
 
     let PersonalAccount {

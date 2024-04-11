@@ -1,0 +1,36 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.7",
+        import: ["@key", "@requires", "@external"])
+
+schema {
+  query: Query
+}
+
+type Query {
+  wasabiPlants: [WasabiPlant]
+  wasabiProduct(id: ID!): WasabiProduct
+}
+
+type WasabiPlant {
+  id: ID!
+  name(language: String!): String! @external
+  variety: String! @external
+  cultivationArea: String
+  harvestTime: String  @requires(fields: "variety name(language: \"latin\")")
+}
+
+type WasabiProduct {
+  id: ID!
+  name: String!
+  description: String
+  type: ProductType!
+  price: Float
+}
+
+enum ProductType {
+  FRESH
+  PASTE
+  POWDER
+  DRIED
+}
+

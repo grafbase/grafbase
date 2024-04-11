@@ -1,4 +1,4 @@
-extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@interfaceObject", "@key"])
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.8", import: ["@interfaceObject", "@key"])
 
 interface Animal @key(fields: "species") {
   species: String!

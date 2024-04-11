@@ -1,6 +1,4 @@
-use std::borrow::Cow;
-
-use crate::{FieldId, FieldSet, Names, Resolver, ResolverGroup, ResolverId, SchemaWalker};
+use crate::{FieldDefinitionId, Names, RequiredFieldSet, Resolver, ResolverId, SchemaWalker, SubgraphId};
 
 pub type ResolverWalker<'a> = SchemaWalker<'a, ResolverId>;
 
@@ -8,14 +6,14 @@ impl<'a> ResolverWalker<'a> {
     pub fn name(&self) -> String {
         match self.as_ref() {
             Resolver::Introspection(_) => "Introspection resolver".to_string(),
-            Resolver::FederationRootField(resolver) => self.walk(resolver).name(),
-            Resolver::FederationEntity(resolver) => self.walk(resolver).name(),
+            Resolver::GraphqlRootField(resolver) => self.walk(resolver).name(),
+            Resolver::GraphqlFederationEntity(resolver) => self.walk(resolver).name(),
         }
     }
 
     pub fn supports_aliases(&self) -> bool {
         match self.as_ref() {
-            Resolver::FederationRootField(_) | Resolver::Introspection(_) | Resolver::FederationEntity(_) => true,
+            Resolver::GraphqlRootField(_) | Resolver::Introspection(_) | Resolver::GraphqlFederationEntity(_) => true,
         }
     }
 
@@ -27,39 +25,23 @@ impl<'a> ResolverWalker<'a> {
         &()
     }
 
-    pub fn requires(&self) -> Cow<'a, FieldSet> {
+    pub fn requires(&self) -> &'a RequiredFieldSet {
         match self.as_ref() {
-            Resolver::FederationEntity(resolver) => Cow::Borrowed(&resolver.key.fields),
-            _ => Cow::Owned(FieldSet::default()),
+            Resolver::GraphqlFederationEntity(resolver) => self.walk(resolver).requires(),
+            Resolver::Introspection(_) | Resolver::GraphqlRootField(_) => &crate::requires::EMPTY,
         }
     }
 
-    pub fn group(&self) -> Option<ResolverGroup> {
+    pub fn subgraph_id(&self) -> SubgraphId {
         match self.as_ref() {
-            Resolver::Introspection(_) => None,
-            Resolver::FederationRootField(resolver) => Some(ResolverGroup::FederationSubgraph(resolver.subgraph_id)),
-            Resolver::FederationEntity(resolver) => Some(ResolverGroup::FederationSubgraph(resolver.subgraph_id)),
+            Resolver::Introspection(resolver) => self.walk(resolver).subgraph_id(),
+            Resolver::GraphqlRootField(resolver) => self.walk(resolver).subgraph_id(),
+            Resolver::GraphqlFederationEntity(resolver) => self.walk(resolver).subgraph_id(),
         }
     }
 
-    pub fn can_provide(&self, nested_field_id: FieldId) -> bool {
-        let nested_field = self.walk(nested_field_id);
-        if nested_field.as_ref().resolvers.is_empty() {
-            return true;
-        }
-
-        if nested_field.resolvers().any(|fr| fr.resolver.id() == self.id()) {
-            return true;
-        }
-
-        if let Some(compatible_group) = self.group() {
-            nested_field
-                .resolvers()
-                .filter_map(|fr| fr.resolver.group())
-                .any(|group| group == compatible_group)
-        } else {
-            false
-        }
+    pub fn can_provide(&self, field_id: FieldDefinitionId) -> bool {
+        self.walk(field_id).is_resolvable_in(self.subgraph_id())
     }
 }
 
@@ -67,8 +49,8 @@ impl<'a> std::fmt::Debug for ResolverWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.as_ref() {
             Resolver::Introspection(_) => f.debug_struct("Introspection").finish(),
-            Resolver::FederationRootField(resolver) => self.walk(resolver).fmt(f),
-            Resolver::FederationEntity(resolver) => self.walk(resolver).fmt(f),
+            Resolver::GraphqlRootField(resolver) => self.walk(resolver).fmt(f),
+            Resolver::GraphqlFederationEntity(resolver) => self.walk(resolver).fmt(f),
         }
     }
 }

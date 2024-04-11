@@ -14,7 +14,7 @@ use engine_parser::types::{BaseType, Type};
 use indexmap::IndexMap;
 use regex::Regex;
 
-use crate::rules::visitor::RuleError;
+use crate::{rules::visitor::RuleError, schema_coord::SchemaCoord};
 
 static NAME_REGEX: OnceLock<Regex> = OnceLock::new();
 
@@ -155,9 +155,11 @@ fn validate_join(
         errors.push(RuleError::new(
             vec![],
             format!(
-                "{coord} is trying to join with {}.{}, but those fields do not have compatible types",
+                "{coord} is trying to join with {}.{}, but those fields do not have compatible types: '{}' and '{}'",
                 containing_type.name(),
-                &destination_field.name
+                &destination_field.name,
+                destination_field.ty,
+                expected_return_type
             ),
         ));
     }
@@ -320,24 +322,4 @@ fn validate_federation_joins(registry: &Registry) -> Vec<RuleError> {
     }
 
     errors
-}
-
-/// Helper enum for specifying the location of errors
-#[derive(Clone, Copy)]
-enum SchemaCoord<'a> {
-    Field(&'a str, &'a str),
-    Entity(&'a str, &'a str),
-}
-
-impl std::fmt::Display for SchemaCoord<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SchemaCoord::Field(ty, field) => {
-                write!(f, "{ty}.{field}")
-            }
-            SchemaCoord::Entity(ty, key) => {
-                write!(f, "federation key `{key}` on the type {ty}")
-            }
-        }
-    }
 }

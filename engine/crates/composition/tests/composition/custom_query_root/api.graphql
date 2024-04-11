@@ -1,0 +1,42 @@
+type RecyclingCenter {
+    address: String
+    id: ID!
+    materialsAccepted: [String]
+    operatingHours: String
+}
+
+type HazardousWasteStats {
+    categoryBreakdown: [HazardousCategoryBreakdown]
+    city: String
+    totalHazardousWaste: Float
+}
+
+type HazardousCategoryBreakdown {
+    amount: Float
+    category: String
+}
+
+type CollectionPoint {
+    address: String
+    id: ID!
+    openingHours: String
+    type: String
+}
+
+type WasteStats {
+    city: String
+    totalWasteCollected: Float
+    wasteTypeBreakdown: [WasteTypeBreakdown]
+}
+
+type WasteTypeBreakdown {
+    amount: Float
+    type: String
+}
+
+type Query {
+    hazardousWasteData: HazardousWasteStats
+    recyclingCenters: [RecyclingCenter]
+    wasteCollectionPoints: [CollectionPoint]
+    wasteStatistics: WasteStats
+}

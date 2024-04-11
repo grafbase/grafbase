@@ -1,0 +1,114 @@
+name: Sanitize and test
+description: Run cargo fmt, clippy, test
+
+inputs:
+  dockerhub-username:
+    required: true
+    description: Username to log into docker hub
+  dockerhub-token:
+    required: true
+    description: Token to log into docker hub
+  with-integration-tests:
+    required: false
+    default: 'true'
+    description: If enabled, runs integration tests and needs docker
+  datadog-api-key:
+    required: true
+    description: API key for datadog uploads
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: oven-sh/setup-bun@v1
+      if: runner.os != 'Windows'
+      with:
+        bun-version: latest
+
+    - name: Build wrappers
+      shell: bash
+      if: runner.os != 'Windows'
+      working-directory: './cli/wrappers'
+      run: |
+        bun i
+        bun run build
+
+    - name: Build wrappers
+      shell: bash
+      if: runner.os == 'Windows'
+      working-directory: './cli/wrappers'
+      run: |
+        powershell -c "irm bun.sh/install.ps1 | iex"
+        ~/.bun/bin/bun.exe i
+        ~/.bun/bin/bun.exe build udf.ts --external="\${UDF_MAIN_FILE_PATH}" --minify --target=bun > dist.js
+
+    # https://github.com/actions/setup-node/issues/899
+    - name: Enable Corepack before setting up Node
+      shell: bash
+      run: corepack enable
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      id: pnpm-install
+      with:
+        version: 8
+        run_install: false
+
+    - name: Login to Docker Hub
+      if: ${{ inputs.with-integration-tests == 'true' }}
+      uses: docker/login-action@v3
+      with:
+        username: ${{ inputs.dockerhub-username }}
+        password: ${{ inputs.dockerhub-token }}
+
+    - name: Run all non-gateway tests
+      id: all_tests
+      if: ${{ inputs.with-integration-tests == 'true' }}
+      shell: bash
+      run: |
+        docker-compose -f engine/crates/integration-tests/docker-compose.yml up -d
+        RUST_BACKTRACE=1 cargo nextest run --workspace --profile ci --exclude grafbase-gateway
+        docker-compose -f engine/crates/integration-tests/docker-compose.yml stop -t 3
+
+    - name: Upload the JUnit files
+      if: ${{ inputs.with-integration-tests == 'true' && ( success() || failure() ) && !contains(steps.all_tests.outputs.exitcode, '101') }}
+      uses: ./.github/actions/test_upload_datadog
+      with:
+        api_key: ${{ inputs.datadog-api-key }}
+        junit_path: target/nextest/ci/junit.xml
+        service: cli
+
+    - name: Run gateway tests
+      id: gateway_tests
+      if: ${{ inputs.with-integration-tests == 'true' }}
+      shell: bash
+      run: |
+        docker-compose -f gateway/crates/gateway-binary/docker-compose.yml up -d
+        RUST_BACKTRACE=1 cargo nextest run -p grafbase-gateway --profile ci
+
+    - name: Upload the gateway junit files
+      if: ${{ inputs.with-integration-tests == 'true' && ( success() || failure() ) && !contains(steps.gateway_tests.outputs.exitcode, '101') }}
+      uses: ./.github/actions/test_upload_datadog
+      with:
+        api_key: ${{ inputs.datadog-api-key }}
+        junit_path: target/nextest/ci/junit.xml
+        service: cli-gateway
+
+    - name: Run tests without integration
+      id: tests_no_integration
+      if: ${{ inputs.with-integration-tests == 'false' }}
+      shell: bash
+      run: |
+        RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --exclude grafbase-gateway --profile ci
+
+    - name: Upload the non-integration JUnit files
+      if: ${{ inputs.with-integration-tests == 'false' && ( success() || failure() ) && !contains(steps.tests_no_integration.outputs.exitcode, '101') }}
+      uses: ./.github/actions/test_upload_datadog
+      with:
+        api_key: ${{ inputs.datadog-api-key }}
+        junit_path: target/nextest/ci/junit.xml
+        service: cli

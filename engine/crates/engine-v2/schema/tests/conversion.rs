@@ -96,8 +96,8 @@ type User
 #[test]
 fn should_not_fail() {
     let graph = FederatedGraph::from_sdl(SCHEMA).unwrap().into_latest();
-    let config = config::VersionedConfig::V3(config::latest::Config::from_graph(graph)).into_latest();
-    let _schema = Schema::from(config);
+    let config = config::VersionedConfig::V4(config::latest::Config::from_graph(graph)).into_latest();
+    let _schema = Schema::try_from(config).unwrap();
 }
 
 const SCHEMA_WITH_INACCESSIBLES: &str = r#"
@@ -231,8 +231,8 @@ fn should_remove_all_inaccessible_items() {
     let graph = FederatedGraph::from_sdl(SCHEMA_WITH_INACCESSIBLES)
         .unwrap()
         .into_latest();
-    let config = config::VersionedConfig::V3(config::latest::Config::from_graph(graph)).into_latest();
-    let schema = Schema::from(config);
+    let config = config::VersionedConfig::V4(config::latest::Config::from_graph(graph)).into_latest();
+    let schema = Schema::try_from(config).unwrap();
 
     // Inaccessible types are still in the schema, they're just not reachable through input and output fields.
     assert!(schema.walker().definition_by_name("BookInput").is_some());

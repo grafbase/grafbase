@@ -12,6 +12,8 @@ pub(crate) struct Fields {
     /// Output field arguments.
     field_arguments: BTreeMap<ArgumentId, FieldTuple>,
 
+    field_argument_defaults: HashMap<ArgumentId, Value>,
+
     /// Fields of objects, interfaces and input objects.
     definition_fields: BTreeMap<FieldId, FieldTuple>,
 }
@@ -66,15 +68,22 @@ impl Subgraphs {
         r#type: FieldTypeId,
         directives: DirectiveSiteId,
         description: Option<StringId>,
+        default: Option<Value>,
     ) {
+        let argument_id = ArgumentId(definition_id, field_name, argument_name);
+
         self.fields.field_arguments.insert(
-            ArgumentId(definition_id, field_name, argument_name),
+            argument_id,
             FieldTuple {
                 r#type,
                 directives,
                 description,
             },
         );
+
+        if let Some(default) = default {
+            self.fields.field_argument_defaults.insert(argument_id, default);
+        }
     }
 
     pub(crate) fn iter_all_field_arguments(&self) -> impl Iterator<Item = FieldArgumentWalker<'_>> + '_ {
@@ -235,5 +244,9 @@ impl<'a> FieldArgumentWalker<'a> {
     pub(crate) fn directives(&self) -> DirectiveSiteWalker<'a> {
         let (_, tuple) = self.id;
         self.walk(tuple.directives)
+    }
+
+    pub(crate) fn default(&self) -> Option<&Value> {
+        self.subgraphs.fields.field_argument_defaults.get(&self.id.0)
     }
 }

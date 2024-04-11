@@ -20,10 +20,16 @@ pub struct FederatedGraphConfig {
 }
 
 /// Configuration for a subgraph of the current federated graph
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SubgraphConfig {
     /// The name of the subgrah
     pub name: String,
+
+    /// The URL to use in development
+    ///
+    /// This is only used in development and should be ignored in deployed
+    /// environments
+    pub development_url: Option<String>,
 
     /// The URL to use for GraphQL-WS calls.
     ///
@@ -35,7 +41,7 @@ pub struct SubgraphConfig {
 }
 
 /// The value of a header to send to a subgraph
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SubgraphHeaderValue {
     /// We should send a static value for this header
     Static(String),

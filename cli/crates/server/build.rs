@@ -8,7 +8,6 @@ use std::{
 
 /// Env var name
 const GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH: &str = "GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH";
-const ASSETS_GZIP_PATH: &str = "./assets/assets.tar.gz";
 
 /// The path to the contents of the dist/ folder of a successful build of cli-app.
 fn find_pathfinder_bundle_location() -> String {
@@ -40,17 +39,6 @@ Please see the instructions in cli/crates/server/README.md.
     );
 }
 
-fn decompress_assets() -> io::Result<tempfile::TempDir> {
-    use flate2::bufread::GzDecoder;
-    let dir = tempfile::tempdir()?;
-    let assets_gzip_path = env::var("GRAFBASE_ASSETS_GZIP_PATH").unwrap_or_else(|_| ASSETS_GZIP_PATH.to_owned());
-    eprintln!("Decompressing the assets at `{assets_gzip_path}` from `server` crate build script.");
-    let file_reader = io::BufReader::new(fs::File::open(assets_gzip_path)?);
-    let assets_reader = GzDecoder::new(file_reader);
-    tar::Archive::new(assets_reader).unpack(dir.path())?;
-    Ok(dir)
-}
-
 fn recompress_assets(assets_path: &Path) -> io::Result<()> {
     use flate2::{write::GzEncoder, Compression};
 
@@ -68,18 +56,28 @@ fn recompress_assets(assets_path: &Path) -> io::Result<()> {
     Ok(())
 }
 
-fn copy_udf_wrapper(dest_path: &Path, target_path: &Path) -> io::Result<()> {
-    let origin_path = if let Ok(path) = env::var("GRAFBASE_CLI_UDF_WRAPPER_PATH") {
+fn copy_wrappers(dest_path: &Path) -> io::Result<()> {
+    let origin_path = if let Ok(path) = env::var("GRAFBASE_CLI_WRAPPERS_PATH") {
         PathBuf::from(path)
     } else {
-        Path::new("../../udf-wrapper").to_owned()
+        Path::new("../../wrappers").to_owned()
     };
-    fs::create_dir_all(target_path)?;
+    fs::create_dir_all(dest_path.join("custom-resolvers"))?;
+    fs::create_dir_all(dest_path.join("parser"))?;
     fs::copy(
         origin_path.join("bun-multi-wrapper.ts"),
         dest_path.join("custom-resolvers/bun-multi-wrapper.ts"),
     )?;
-    fs::metadata(origin_path.join("dist.js")).expect("Building the worker wrapper is required to continue. Please run `npm install && npm run build` in 'cli/udf-wrapper'");
+    fs::copy(
+        origin_path.join("parse-config.ts"),
+        dest_path.join("parser/parse-config.ts"),
+    )?;
+    fs::copy(
+        origin_path.join("parse-config.mts"),
+        dest_path.join("parser/parse-config.mts"),
+    )?;
+    fs::write(dest_path.join("package.json"), r#"{ "name": "assets" }"#)?;
+    fs::metadata(origin_path.join("dist.js")).expect("Building the worker wrapper is required to continue. Please run `bun install && bun run build` in 'cli/wrappers'");
     fs::copy(
         origin_path.join("dist.js"),
         dest_path.join("custom-resolvers/wrapper.js"),
@@ -91,16 +89,13 @@ fn copy_udf_wrapper(dest_path: &Path, target_path: &Path) -> io::Result<()> {
 fn main() -> io::Result<()> {
     let start = time::Instant::now();
 
-    let tmp_assets = decompress_assets()?;
-    eprintln!(
-        "⏱️ Timing after decompress_assets(): {:?}",
-        time::Instant::now().duration_since(start)
-    );
     let bundle_location = find_pathfinder_bundle_location();
     eprintln!(
         "⏱️ Timing after find_pathfinder_bundle_location(): {:?}",
         time::Instant::now().duration_since(start)
     );
+
+    let tmp_assets = tempfile::tempdir()?;
 
     eprintln!("Copying bundled pathfinder to the assets dir...");
     let target_path = tmp_assets.path().join("static/assets");
@@ -113,8 +108,8 @@ fn main() -> io::Result<()> {
     }
     eprintln!("⏱️ Timing after copy: {:?}", time::Instant::now().duration_since(start));
 
-    eprintln!("Copying udf wrapper to the assets dir...");
-    copy_udf_wrapper(tmp_assets.path(), &target_path)?;
+    eprintln!("Copying wrappers to the assets dir...");
+    copy_wrappers(tmp_assets.path())?;
 
     recompress_assets(tmp_assets.path())?;
     eprintln!(
@@ -125,8 +120,7 @@ fn main() -> io::Result<()> {
     // Tell Cargo to rerun this script only if the assets or the pathfinder bundle changed.
     println!("cargo:rerun-if-changed={bundle_location}");
     println!("cargo:rerun-if-env-changed={GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH}");
-    println!("cargo:rerun-if-changed={ASSETS_GZIP_PATH}");
-    println!("cargo:rerun-if-changed=../../udf-wrapper");
+    println!("cargo:rerun-if-changed=../../wrappers");
 
     Ok(())
 }

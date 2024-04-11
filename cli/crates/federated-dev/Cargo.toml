@@ -19,28 +19,29 @@ futures-concurrency = "7"
 futures-util = "0.3"
 graphql-composition.workspace = true
 handlebars.workspace = true
-indoc = "2.0.4"
+indoc = "2.0.5"
 log = "0.4.21"
 http.workspace = true
-reqwest = { workspace = true, features = ["json", "rustls"] }
+reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 runtime.workspace = true
 runtime-local.workspace = true
 runtime-noop.workspace = true
 serde = "1.0.197"
 serde_json.workspace = true
-thiserror = "1.0.57"
+thiserror = "1.0.58"
+tracing.workspace = true
 tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 ulid.workspace = true
 url = "2.5.0"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.60.0" }
-engine = { path = "../../../engine/crates/engine", features = ["tracing"] }
+common = { package = "grafbase-local-common", path = "../common", version = "0.67.0" }
+engine = { path = "../../../engine/crates/engine" }
 engine-config-builder = { path = "../../../engine/crates/engine-config-builder" }
-engine-v2 = { workspace = true, features = ["plan_cache", "tracing"] }
+engine-v2 = { workspace = true, features = ["plan_cache"] }
 gateway-v2 = { workspace = true, features = ["axum"] }
-grafbase-graphql-introspection = { path = "../graphql-introspection" }
+grafbase-graphql-introspection.workspace = true
 grafbase-tracing = { workspace = true , features = ["tower"] }
 parser-sdl = { path = "../../../engine/crates/parser-sdl" }
 

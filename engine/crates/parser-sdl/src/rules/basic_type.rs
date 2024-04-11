@@ -8,7 +8,7 @@ use engine::registry::{
     self,
     federation::FederationKey,
     resolvers::{custom::CustomResolver, transformer::Transformer, Resolver},
-    MetaField, MetaInputValue, MetaType, ObjectType,
+    MetaField, MetaType, ObjectType,
 };
 use engine_parser::{
     types::{FieldDefinition, TypeKind},
@@ -28,7 +28,8 @@ use super::{
     visitor::{RuleError, Visitor, VisitorContext},
 };
 use crate::{
-    directive_de::parse_directive, registry::add_input_type_non_primitive, rules::cache_directive::CacheDirective,
+    directive_de::parse_directive, parser_extensions::FieldExtension, registry::add_input_type_non_primitive,
+    rules::cache_directive::CacheDirective, schema_coord::SchemaCoord,
 };
 
 pub struct BasicType;
@@ -85,7 +86,13 @@ impl<'a> Visitor<'a> for BasicType {
                         // If someone asks we could do it
                         ctx.report_error(vec![field.pos], "A field can't have a join and a requires on it");
                     }
-                    requires = join_directive.select.required_fieldset();
+                    requires = join_directive.select.required_fieldset(&field.arguments);
+
+                    ctx.warnings.extend(
+                        join_directive
+                            .validate_arguments(&field.arguments, SchemaCoord::Field(type_name.as_str(), field.name())),
+                    );
+
                     resolver = Resolver::Join(join_directive.select.to_join_resolver());
                 }
 
@@ -95,14 +102,7 @@ impl<'a> Visitor<'a> for BasicType {
                     description: field.node.description.clone().map(|x| x.node),
                     ty: field.node.ty.clone().node.to_string().into(),
                     cache_control: CacheDirective::parse(&field.node.directives),
-                    args: field
-                        .arguments
-                        .iter()
-                        .map(|argument| {
-                            MetaInputValue::new(argument.node.name.to_string(), argument.node.ty.to_string())
-                        })
-                        .map(|arg| (arg.name.clone(), arg))
-                        .collect(),
+                    args: field.converted_arguments(),
                     resolver,
                     requires,
                     external,
@@ -132,6 +132,13 @@ impl<'a> Visitor<'a> for BasicType {
             &type_name,
             &type_name,
         );
+
+        ctx.registry
+            .get_mut()
+            .implements
+            .entry(type_name.clone())
+            .or_default()
+            .extend(object.implements.iter().map(|name| name.to_string()));
 
         // If the type is a non primitive and also not modelized, it means we need to
         // create the Input version of it.

@@ -31,7 +31,7 @@ pub enum SchemaLocation {
     Graphql(PathBuf),
 }
 
-/// Points to the location of the Grafabase schema file.
+/// Points to the location of the Grafbase schema file.
 #[derive(Debug)]
 pub struct GrafbaseSchemaPath {
     location: SchemaLocation,
@@ -113,7 +113,7 @@ pub struct Project {
     /// in the nearest ancestor directory with `grafbase/schema.graphql`
     pub dot_grafbase_directory_path: PathBuf,
     /// the path of `$PROJECT/.grafbase/registry.json`, the registry derived from `schema.graphql`,
-    /// in the nearest ancestor directory with a `grabase/schema.graphql` file
+    /// in the nearest ancestor directory with a `grafbase/schema.graphql` file
     pub registry_path: PathBuf,
     /// the location of package.json in '$PROJECT' or its parent
     pub package_json_path: Option<PathBuf>,
@@ -257,7 +257,11 @@ impl Environment {
 
         let bun_installation_path = user_dot_grafbase_path.join(BUN_DIRECTORY_NAME);
 
-        let bun_executable_path = bun_installation_path.join("bun");
+        let bun_executable_path = if cfg!(windows) {
+            bun_installation_path.join("bun.exe")
+        } else {
+            bun_installation_path.join("bun")
+        };
 
         let project = Project::try_init(&mut warnings)?;
 
@@ -284,7 +288,11 @@ impl Environment {
 
         let bun_installation_path = user_dot_grafbase_path.join(BUN_DIRECTORY_NAME);
 
-        let bun_executable_path = bun_installation_path.join("bun");
+        let bun_executable_path = if cfg!(windows) {
+            bun_installation_path.join("bun.exe")
+        } else {
+            bun_installation_path.join("bun")
+        };
 
         ENVIRONMENT
             .set(Self {

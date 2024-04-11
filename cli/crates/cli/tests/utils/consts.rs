@@ -17,9 +17,9 @@ pub const RELATIONS_UNLINK_BLOG_FROM_AUTHOR: &str =
     include_str!("../graphql/relations/unlink-blog-from-author.graphql");
 pub const RELATIONS_UNLINK_AUTHORS_FROM_BLOG: &str =
     include_str!("../graphql/relations/unlink-authors-from-blog.graphql");
-pub const REALTIONS_LINK_SECONDARY_AUTHOR_TO_BLOG: &str =
+pub const RELATIONS_LINK_SECONDARY_AUTHOR_TO_BLOG: &str =
     include_str!("../graphql/relations/link-secondary-author-to-blog.graphql");
-pub const REALTIONS_RENAME_AUTHOR: &str = include_str!("../graphql/relations/rename-author.graphql");
+pub const RELATIONS_RENAME_AUTHOR: &str = include_str!("../graphql/relations/rename-author.graphql");
 
 pub const UNIQUE_SCHEMA: &str = include_str!("../graphql/unique/schema.graphql");
 pub const UNIQUE_CREATE_MUTATION: &str = include_str!("../graphql/unique/create-mutation.graphql");

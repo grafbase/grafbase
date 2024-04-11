@@ -53,15 +53,16 @@ tracing = "0.1"
 which.workspace = true
 zip = "0.6"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.60.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.67.0" }
 gateway = { path = "../gateway" }
 typed-resolvers = { path = "../typed-resolvers" }
 federated-dev = { path = "../federated-dev" }
-engine = { path = "../../../engine/crates/engine", features = ["tracing"] }
+engine = { path = "../../../engine/crates/engine" }
 parser-sdl = { path = "../../../engine/crates/parser-sdl", features = [
   "local",
 ] }
 graphql-federated-graph = { path = "../../../engine/crates/federated-graph", features = ["from_sdl"] }
+graphql-schema-validation = { path = "../../../engine/crates/validation" }
 parser-openapi = { path = "../../../engine/crates/parser-openapi" }
 parser-graphql = { path = "../../../engine/crates/parser-graphql" }
 parser-postgres = { path = "../../../engine/crates/parser-postgres" }

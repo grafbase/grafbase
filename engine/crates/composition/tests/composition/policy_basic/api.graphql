@@ -1,0 +1,19 @@
+type B {
+    foo: String
+    id: ID!
+}
+
+type A {
+    id: ID!
+    names: String!
+}
+
+type User {
+    id: ID!
+    name: String @deprecated(reason: "we have no name")
+}
+
+type Query {
+    oneA: A
+    oneB: B
+}

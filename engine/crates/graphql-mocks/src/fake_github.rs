@@ -85,12 +85,14 @@ impl Query {
                     name: "Jim".into(),
                     email: "jim@example.com".into(),
                 }),
+                status: Status::Open,
             }),
             PullRequestOrIssue::PullRequest(PullRequest {
                 id: "2".into(),
                 title: "Some bot PR".into(),
                 checks: vec!["Success!".into()],
                 author: UserOrBot::Bot(Bot { id: "123".into() }),
+                status: Status::Closed,
             }),
             PullRequestOrIssue::Issue(Issue {
                 title: "Everythings fine".into(),
@@ -113,12 +115,14 @@ impl Query {
                     name: "Jim".into(),
                     email: "jim@example.com".into(),
                 }),
+                status: Status::Open,
             },
             PullRequest {
                 id: "2".into(),
                 title: "Some bot PR".into(),
                 checks: vec!["Success!".into()],
                 author: UserOrBot::Bot(Bot { id: "123".into() }),
+                status: Status::Closed,
             },
         ]
     }
@@ -133,12 +137,14 @@ impl Query {
                     name: "Jim".into(),
                     email: "jim@example.com".into(),
                 }),
+                status: Status::Open,
             },
             PullRequest {
                 id: "2".into(),
                 title: "Some bot PR".into(),
                 checks: vec!["Success!".into()],
                 author: UserOrBot::Bot(Bot { id: "123".into() }),
+                status: Status::Closed,
             },
         ]
     }
@@ -153,6 +159,7 @@ impl Query {
                     name: "Jim".into(),
                     email: "jim@example.com".into(),
                 }),
+                status: Status::Open,
             });
         } else if id == "2" {
             return Some(PullRequest {
@@ -160,6 +167,7 @@ impl Query {
                 title: "Some bot PR".into(),
                 checks: vec!["Success!".into()],
                 author: UserOrBot::Bot(Bot { id: "123".into() }),
+                status: Status::Closed,
             });
         }
         None
@@ -175,6 +183,7 @@ impl Query {
                     name: "Jim".into(),
                     email: "jim@example.com".into(),
                 }),
+                status: Status::Closed,
             }));
         } else if id == "2" {
             return Some(PullRequestOrIssue::PullRequest(PullRequest {
@@ -182,6 +191,7 @@ impl Query {
                 title: "Some bot PR".into(),
                 checks: vec!["Success!".into()],
                 author: UserOrBot::Bot(Bot { id: "123".into() }),
+                status: Status::Closed,
             }));
         } else if id == "3" {
             return Some(PullRequestOrIssue::Issue(Issue {
@@ -203,6 +213,13 @@ impl Query {
             .map(|(name, value)| Header { name, value })
             .collect()
     }
+
+    async fn status_string(&self, status: Status) -> &str {
+        match status {
+            Status::Open => "boo its closed",
+            Status::Closed => "woo its open",
+        }
+    }
 }
 
 #[derive(SimpleObject)]
@@ -217,6 +234,7 @@ struct PullRequest {
     title: String,
     checks: Vec<String>,
     author: UserOrBot,
+    status: Status,
 }
 
 #[derive(SimpleObject)]
@@ -271,4 +289,10 @@ impl From<&UserOrBot> for UserOrBot {
 #[derive(Debug, InputObject)]
 struct PullRequestsAndIssuesFilters {
     search: String,
+}
+
+#[derive(async_graphql::Enum, Clone, Copy, Eq, PartialEq)]
+enum Status {
+    Open,
+    Closed,
 }

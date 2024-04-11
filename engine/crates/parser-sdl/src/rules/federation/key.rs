@@ -19,7 +19,7 @@ impl KeyDirective {
             errors.push("A key with a selection must be resolvable".into());
         }
 
-        if let Some(required_fields) = self.select.as_ref().and_then(FieldSelection::required_fieldset) {
+        if let Some(required_fields) = self.select.as_ref().and_then(|select| select.required_fieldset(&[])) {
             for missing_field in
                 fields_from_fieldset(&required_fields).difference(&fields_from_fieldset(&self.fields.0))
             {
@@ -220,7 +220,7 @@ mod tests {
                 id: ID!
             }
             "#,
-            "federation key `id` on the type User is trying to join with Query.blah, but those fields do not have compatible types"
+            "federation key `id` on the type User is trying to join with Query.blah, but those fields do not have compatible types: '[User!]!' and 'User'"
         );
     }
 }

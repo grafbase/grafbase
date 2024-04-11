@@ -1,5 +1,5 @@
 use super::SchemaWalker;
-use crate::{InputObjectId, InputValueDefinitionWalker};
+use crate::{InputObjectId, InputValueDefinitionWalker, TypeSystemDirectivesWalker};
 
 pub type InputObjectWalker<'a> = SchemaWalker<'a, InputObjectId>;
 
@@ -10,6 +10,10 @@ impl<'a> InputObjectWalker<'a> {
 
     pub fn input_fields(self) -> impl ExactSizeIterator<Item = InputValueDefinitionWalker<'a>> + 'a {
         self.schema[self.item].input_field_ids.map(move |id| self.walk(id))
+    }
+
+    pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
+        self.walk(self.as_ref().directives)
     }
 }
 

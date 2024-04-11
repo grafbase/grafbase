@@ -19,11 +19,9 @@ pub async fn introspect_local() -> Result<IntrospectLocalOutput, ServerError> {
         ..
     } = build_config(&env, None, EnvironmentName::None).await?;
 
-    let is_federated = federated_graph_config.is_some();
+    let rendered_sdl = registry.export_sdl(registry.enable_federation);
 
-    let rendered_sdl = registry.export_sdl(is_federated);
-
-    if is_federated && rendered_sdl.is_empty() {
+    if federated_graph_config.is_some() && rendered_sdl.is_empty() {
         Ok(IntrospectLocalOutput::EmptyFederated)
     } else {
         Ok(IntrospectLocalOutput::Sdl(rendered_sdl))

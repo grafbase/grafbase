@@ -1,5 +1,5 @@
 use super::SchemaWalker;
-use crate::{Directive, EnumId, EnumValueId};
+use crate::{EnumId, EnumValueId, TypeSystemDirectivesWalker};
 
 pub type EnumWalker<'a> = SchemaWalker<'a, EnumId>;
 pub type EnumValueWalker<'a> = SchemaWalker<'a, EnumValueId>;
@@ -20,6 +20,10 @@ impl<'a> EnumWalker<'a> {
             .ok()
             .map(EnumValueId::from)
     }
+
+    pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
+        self.walk(self.as_ref().directives)
+    }
 }
 
 impl<'a> EnumValueWalker<'a> {
@@ -27,13 +31,8 @@ impl<'a> EnumValueWalker<'a> {
         self.names.enum_value(self.schema, self.item)
     }
 
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = &'a Directive> + 'a {
-        self.schema[self.as_ref().composed_directives].iter()
-    }
-
-    pub fn is_deprecated(&self) -> bool {
-        self.directives()
-            .any(|directive| matches!(directive, Directive::Deprecated { .. }))
+    pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
+        self.walk(self.as_ref().directives)
     }
 }
 
