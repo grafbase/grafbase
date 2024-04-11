@@ -6,6 +6,8 @@
 pub mod config;
 /// Potential errors from this crate
 pub mod error;
+/// Execution metadata
+pub mod execution_metadata;
 /// Otel integration
 pub mod otel;
 /// Spans that are represented using types
