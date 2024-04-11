@@ -7,11 +7,18 @@ homepage.workspace = true
 keywords.workspace = true
 repository.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 cynic-parser = "0.2.1"
 heck = "0.5.0"
+thiserror.workspace = true
+
+[dev-dependencies]
+criterion = { version = "0.4", features = ["html_reports"] }
+
+[[bench]]
+name = "benchmark"
+harness = false
 
 [lints]
 workspace = true
+
