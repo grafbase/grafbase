@@ -1,7 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
 use async_runtime::make_send_on_wasm;
-use engine::RequestHeaders;
 use engine_parser::types::OperationType;
 use futures_util::{
     future::BoxFuture,
@@ -30,7 +29,7 @@ pub(crate) struct ExecutionCoordinator {
     operation_plan: Arc<OperationPlan>,
     variables: Variables,
     access_token: AccessToken,
-    request_headers: RequestHeaders,
+    headers: http::HeaderMap,
 }
 
 impl ExecutionCoordinator {
@@ -39,14 +38,14 @@ impl ExecutionCoordinator {
         operation_plan: Arc<OperationPlan>,
         variables: Variables,
         access_token: AccessToken,
-        request_headers: RequestHeaders,
+        headers: http::HeaderMap,
     ) -> Self {
         Self {
             engine,
             operation_plan,
             variables,
             access_token,
-            request_headers,
+            headers,
         }
     }
 
@@ -173,7 +172,7 @@ impl ExecutionCoordinator {
             ctx: ExecutionContext {
                 engine: self.engine.as_ref(),
                 access_token: &self.access_token,
-                headers: &self.request_headers,
+                headers: &self.headers,
             },
             plan,
         };
@@ -272,7 +271,7 @@ impl<'ctx> OperationExecution<'ctx> {
             ctx: ExecutionContext {
                 engine,
                 access_token: &self.coordinator.access_token,
-                headers: &self.coordinator.request_headers,
+                headers: &self.coordinator.headers,
             },
             plan,
             boundary_objects_view: self.response.read(

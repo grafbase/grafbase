@@ -2018,6 +2018,7 @@ dependencies = [
  "futures-util",
  "grafbase-tracing",
  "hex",
+ "http 1.1.0",
  "im",
  "itertools 0.12.1",
  "lasso",

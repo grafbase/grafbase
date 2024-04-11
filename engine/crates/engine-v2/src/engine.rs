@@ -6,7 +6,6 @@ use runtime::auth::AccessToken;
 use tracing::Instrument;
 
 use async_runtime::stream::StreamExt as _;
-use engine::RequestHeaders;
 use engine_parser::types::OperationType;
 use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlResponseAttributes};
 use schema::Schema;
@@ -19,8 +18,6 @@ use crate::{
 };
 
 mod trusted_documents;
-
-const CLIENT_NAME_HEADER_NAME: &str = "x-grafbase-client-name";
 
 pub struct Engine {
     // We use an Arc for the schema to have a self-contained response which may still
@@ -55,7 +52,7 @@ impl Engine {
         self: &Arc<Self>,
         request: engine::Request,
         access_token: AccessToken,
-        headers: RequestHeaders,
+        headers: http::HeaderMap,
     ) -> PreparedExecution {
         let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
 
@@ -85,7 +82,7 @@ impl Engine {
         self: &Arc<Self>,
         request: engine::Request,
         access_token: AccessToken,
-        headers: RequestHeaders,
+        headers: http::HeaderMap,
     ) -> impl Stream<Item = Response> {
         let gql_span = GqlRequestSpan::new().with_document(request.query()).into_span();
 
@@ -121,9 +118,9 @@ impl Engine {
         self: &Arc<Self>,
         mut request: engine::Request,
         access_token: AccessToken,
-        headers: RequestHeaders,
+        headers: http::HeaderMap,
     ) -> Result<ExecutionCoordinator, Response> {
-        self.handle_persisted_query(&mut request, headers.find(CLIENT_NAME_HEADER_NAME), &headers)
+        self.handle_persisted_query(&mut request, &headers)
             .await
             .map_err(|err| Response::from_error(err, ExecutionMetadata::default()))?;
 

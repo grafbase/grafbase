@@ -5,7 +5,7 @@ use std::{
 };
 
 use auth::AuthService;
-use engine::{ErrorCode, Request, RequestHeaders};
+use engine::{ErrorCode, Request};
 use engine_v2::{Engine, EngineEnv, ExecutionMetadata, PreparedExecution, Schema};
 use futures_util::Stream;
 use gateway_core::RequestContext;
@@ -55,10 +55,9 @@ impl Gateway {
 
     // The Engine is directly accessible
     pub async fn unchecked_engine_execute(&self, ctx: &impl RequestContext, request: Request) -> Response {
-        let headers = build_request_headers(ctx.headers());
         let response = self
             .engine
-            .execute(request, AccessToken::Anonymous, headers)
+            .execute(request, AccessToken::Anonymous, ctx.headers().clone())
             .await
             .await;
         let has_errors = response.has_errors();
@@ -80,7 +79,7 @@ impl Gateway {
         Some(Session {
             gateway: Arc::clone(self),
             token,
-            headers: build_request_headers(headers),
+            headers: headers.clone(),
         })
     }
 
@@ -107,7 +106,7 @@ impl Gateway {
 pub struct Session {
     gateway: Arc<Gateway>,
     token: AccessToken,
-    headers: RequestHeaders,
+    headers: http::HeaderMap,
 }
 
 impl Session {
@@ -207,12 +206,4 @@ impl Response {
             has_errors: true,
         }
     }
-}
-
-fn build_request_headers(headers: &http::HeaderMap) -> RequestHeaders {
-    RequestHeaders::from_iter(
-        headers
-            .iter()
-            .map(|(name, value)| (name.to_string(), String::from_utf8_lossy(value.as_bytes()).to_string())),
-    )
 }
