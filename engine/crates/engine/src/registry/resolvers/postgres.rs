@@ -6,7 +6,7 @@ use std::{future::Future, pin::Pin};
 use async_runtime::make_send_on_wasm;
 pub use context::CollectionArgs;
 use context::PostgresContext;
-use runtime::pg::PgTransportFactory;
+use runtime::pg::{PgTransportFactory, PgTransportFactoryError};
 
 use super::{ResolvedValue, ResolverContext};
 use crate::{context::ContextExt, ContextField, Error};
@@ -36,6 +36,12 @@ impl AsRef<str> for Operation {
             Self::UpdateOne => "updateOne",
             Self::UpdateMany => "updateMany",
         }
+    }
+}
+
+impl From<PgTransportFactoryError> for crate::Error {
+    fn from(value: PgTransportFactoryError) -> Self {
+        Self::new(value.to_string())
     }
 }
 
