@@ -124,15 +124,23 @@ impl<'de> serde::Deserialize<'de> for FieldSelection {
 
         validate_field(&field).map_err(D::Error::custom)?;
 
-        let required_fields = field
-            .node
-            .arguments
-            .iter()
-            .flat_map(|(_, value)| value.variables_used())
-            .map(|variable| variable.to_string())
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect::<Vec<_>>();
+        let mut required_fields = BTreeSet::new();
+        let mut next_field = Some(&field.node);
+        while let Some(current_field) = next_field {
+            required_fields.extend(
+                current_field
+                    .arguments
+                    .iter()
+                    .flat_map(|(_, value)| value.variables_used())
+                    .map(|variable| variable.to_string()),
+            );
+            next_field = current_field.selection().next().and_then(|selection| match &selection {
+                engine_parser::types::Selection::Field(field) => Some(&field.node),
+                _ => None,
+            });
+        }
+
+        let required_fields = required_fields.into_iter().collect::<Vec<_>>();
 
         Ok(FieldSelection {
             selections: SelectionIter {
@@ -305,6 +313,21 @@ mod tests {
             ]
           }
         }
+        "###);
+
+        let requires = &registry.types["User"].fields().as_ref().unwrap()["greeting"].requires;
+
+        assert_json_snapshot!(requires, @r###"
+        [
+          {
+            "field": "id",
+            "selections": []
+          },
+          {
+            "field": "name",
+            "selections": []
+          }
+        ]
         "###);
     }
 
