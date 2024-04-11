@@ -33,11 +33,11 @@ COPY --from=build /grafbase/gateway/crates/federated-server/config/grafbase.toml
 
 ENTRYPOINT ["/bin/grafbase-gateway"]
 
-# these args should be set so the binary can start. they have to be changed for successfully running the gateway
+# these args should be set so the binary can start, they have to be changed for successfully running the gateway
 ARG GRAFBASE_GRAPH_REF
 ARG GRAFBASE_ACCESS_TOKEN
 
-CMD ["--config", "/etc/grafbase.toml", "--listen-address", "0.0.0.0:4000"]
+CMD ["--config", "/etc/grafbase.toml", "--listen-address", "0.0.0.0:5000"]
 
 EXPOSE 4000
 

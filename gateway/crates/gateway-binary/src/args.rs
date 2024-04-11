@@ -16,8 +16,8 @@ pub(crate) use log::LogLevel;
 use self::log::LogStyle;
 
 #[derive(Debug, Parser)]
-#[command(name = "The Grafbase Gateway", version)]
-/// The Grafbase Gateway
+#[command(name = "Grafbase Gateway", version)]
+/// Grafbase Gateway
 pub struct Args {
     /// IP address on which the server will listen for incomming connections. Defaults to 127.0.0.1:5000.
     #[arg(short, long)]
@@ -31,7 +31,7 @@ pub struct Args {
     /// Path to the TOML configuration file
     #[arg(long, short, env = "GRAFBASE_CONFIG_PATH", default_value = "./grafbase.toml")]
     pub config: PathBuf,
-    /// Path to graph SDL. If provided, the graph will be static and no connection is made
+    /// Path to the schema SDL. If provided, the graph will be static and no connection is made
     /// to the Grafbase API.
     #[arg(long, short, env = "GRAFBASE_SCHEMA_PATH", default_value = "./federated.graphql")]
     pub schema: PathBuf,
