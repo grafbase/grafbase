@@ -1,0 +1,15 @@
+extend type Query {
+    me: User
+}
+
+type EmailHost @key(fields: "id") {
+    id: String!
+    name: String!
+}
+
+type User @key(fields: "id") {
+    id: ID!
+    host: EmailHost!
+    email: String!
+    username: String!
+}
