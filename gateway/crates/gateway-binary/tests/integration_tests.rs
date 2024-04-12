@@ -443,21 +443,25 @@ fn introspect_enabled() {
         type Cart {
           products: [Product!]!
         }
+
         type Picture {
           url: String!
           width: Int!
           height: Int!
         }
+
         type Product {
           name: String!
           upc: String!
           price: Int!
           reviews: [Review!]!
         }
+
         type Query {
           me: User!
           topProducts: [Product!]!
         }
+
         type Review {
           id: ID!
           body: String!
@@ -465,9 +469,17 @@ fn introspect_enabled() {
           product: Product!
           author: User
         }
+
         type Subscription {
           newProducts: Product!
         }
+
+        enum Trustworthiness {
+          KINDA_TRUSTED
+          NOT_TRUSTED
+          REALLY_TRUSTED
+        }
+
         type User {
           id: ID!
           username: String!
@@ -477,11 +489,6 @@ fn introspect_enabled() {
           cart: Cart!
           reviews: [Review!]!
           trustworthiness: Trustworthiness!
-        }
-        enum Trustworthiness {
-          KINDA_TRUSTED
-          NOT_TRUSTED
-          REALLY_TRUSTED
         }
         "###);
     })

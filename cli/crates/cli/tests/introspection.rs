@@ -225,34 +225,40 @@ async fn standard() {
     type Bot {
       id: ID!
     }
+
     type Header {
       name: String!
       value: String!
     }
+
     type Issue implements PullRequestOrIssue {
       title: String!
       author: UserOrBot!
     }
+
     type PullRequest implements PullRequestOrIssue {
       title: String!
       checks: [String!]!
       author: UserOrBot!
     }
+
+    interface PullRequestOrIssue {
+      title: String!
+      author: UserOrBot!
+    }
+
     type Query {
       serverVersion: String!
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       headers: [Header!]!
     }
+
     type User {
       name: String!
       email: String!
     }
-    interface PullRequestOrIssue {
-      title: String!
-      author: UserOrBot!
-    }
-    union UserOrBot = User | Bot
 
+    union UserOrBot = User | Bot
     "###);
 }
 
