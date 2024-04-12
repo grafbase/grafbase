@@ -195,7 +195,7 @@ fn aliases_on_unnamespaced_queries() {
                 query {
                     one: serverVersion
                     two: pullRequestOrIssue(id: "1") {
-                        title
+                        three: title
                     }
                 }
             "#,
@@ -210,7 +210,7 @@ fn aliases_on_unnamespaced_queries() {
               "data": {
                 "one": "1",
                 "two": {
-                  "title": "Creating the thing"
+                  "three": "Creating the thing"
                 }
               }
             }

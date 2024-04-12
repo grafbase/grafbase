@@ -232,7 +232,7 @@ impl Parser {
 
             for f in i.values_mut() {
                 if f.resolver.is_parent() {
-                    f.resolver = Transformer::select(&f.name).into();
+                    f.resolver = Transformer::GraphqlField.into();
                 }
             }
         }
