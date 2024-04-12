@@ -2,6 +2,7 @@
 
 use std::hash::Hash;
 
+use engine_parser::Positioned;
 use grafbase_sql_ast::ast::Order;
 use graphql_cursor::GraphqlCursor;
 use indexmap::IndexMap;
@@ -23,8 +24,11 @@ use crate::{
 #[serde_with::minify_variant_names(serialize = "minified", deserialize = "minified")]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum Transformer {
+    GraphqlField,
     /// Key based Resolver for ResolverContext
-    Select { key: String },
+    Select {
+        key: String,
+    },
     /// This resolver get the PaginationData
     PaginationData,
     /// Resolves the correct values of a remote enum using the given enum name
@@ -38,7 +42,10 @@ pub enum Transformer {
     /// Calculate cursor value for a Postgres row.
     PostgresCursor,
     /// Set Postgres selection data.
-    PostgresSelectionData { directive_name: String, table_id: TableId },
+    PostgresSelectionData {
+        directive_name: String,
+        table_id: TableId,
+    },
 }
 
 impl From<Transformer> for Resolver {
@@ -63,6 +70,18 @@ impl Transformer {
         last_resolver_value: Option<ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
         match self {
+            Transformer::GraphqlField => {
+                let key = ctx
+                    .item
+                    .node
+                    .alias
+                    .as_ref()
+                    .map(|Positioned { node: alias, .. }| alias.as_str())
+                    .unwrap_or(ctx.field.name.as_str());
+                let new_value = last_resolver_value.and_then(|x| x.get_field(key)).unwrap_or_default();
+
+                Ok(new_value)
+            }
             Transformer::Select { key } => {
                 let new_value = last_resolver_value.and_then(|x| x.get_field(key)).unwrap_or_default();
 
