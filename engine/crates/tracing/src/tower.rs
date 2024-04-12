@@ -39,7 +39,7 @@ pub fn layer<B: Body>() -> tower_http::trace::TraceLayer<
             tracing::event!(
                 target: GRAFBASE_TARGET,
                 tracing::Level::INFO,
-                histogram.latency = latency.as_millis(),
+                histogram.latency = latency.as_millis() as u64,
             );
             span.record_response(response);
         })
