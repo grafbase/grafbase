@@ -3173,7 +3173,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-lint"
-version = "0.67.1"
+version = "0.67.2"
 dependencies = [
  "criterion 0.4.0",
  "cynic-parser",
