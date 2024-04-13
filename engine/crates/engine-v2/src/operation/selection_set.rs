@@ -206,7 +206,7 @@ pub struct InlineFragment {
     pub selection_set_id: SelectionSetId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Fragment {
     pub name: String,
     pub name_location: Location,
@@ -241,7 +241,7 @@ impl From<TypeCondition> for Definition {
 }
 
 /// Represents arguments that were specified in the query with a value
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FieldArgument {
     pub name_location: Option<Location>,
     pub value_location: Option<Location>,

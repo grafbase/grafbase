@@ -1,7 +1,7 @@
 use tracing::Level;
 use tracing_mock::{expect, subscriber};
 
-use gateway_v2::Gateway;
+use engine_v2::Engine;
 use grafbase_tracing::span::{gql::GRAPHQL_SPAN_NAME, subgraph::SUBGRAPH_SPAN_NAME};
 use graphql_mocks::{FakeFederationProductsSchema, FakeGithubSchema, MockGraphQlServer};
 use integration_tests::{federation::GatewayV2Ext, runtime};
@@ -15,10 +15,7 @@ fn query_bad_request() {
 
         let (subscriber, handle) = subscriber::mock()
             .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
-            .new_span(
-                span.clone()
-                    .with_field(expect::field("gql.document").with_value(&query)),
-            )
+            .enter(span.clone())
             .record(span.clone(), expect::field("gql.response.has_errors").with_value(&true))
             .run_with_handle();
 
@@ -26,7 +23,7 @@ fn query_bad_request() {
 
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -50,11 +47,6 @@ fn query_named() {
 
         let (subscriber, handle) = subscriber::mock()
             .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
-            .new_span(
-                graphql_span
-                    .clone()
-                    .with_field(expect::field("gql.document").with_value(&query)),
-            )
             .enter(graphql_span.clone())
             .record(
                 graphql_span.clone(),
@@ -80,7 +72,7 @@ fn query_named() {
 
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("github", &github_mock)
             .await
             .finish()
@@ -97,11 +89,9 @@ fn query_named() {
 #[test]
 fn subscription() {
     runtime().block_on(async {
-        use futures::StreamExt;
-
         // prepare
         let query = r"
-                subscription {
+                subscription Sub {
                     newProducts {
                         upc
                         name
@@ -113,11 +103,11 @@ fn subscription() {
 
         let (subscriber, handle) = subscriber::mock()
             .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
-            .new_span(
-                span.clone()
-                    .with_field(expect::field("gql.document").with_value(&query)),
-            )
             .enter(span.clone())
+            .record(
+                span.clone(),
+                expect::field("gql.request.operation.name").with_value(&"Sub"),
+            )
             .record(
                 span.clone(),
                 expect::field("gql.request.operation.type").with_value(&"subscription"),
@@ -128,7 +118,7 @@ fn subscription() {
 
         // engine
         let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("products", &products)
             .await
             .with_supergraph_config(indoc::formatdoc!(
@@ -141,7 +131,7 @@ fn subscription() {
             .finish()
             .await;
 
-        let _ = engine.execute(query).into_stream().collect::<Vec<_>>().await;
+        let _ = engine.execute(query).into_multipart_stream().collect::<Vec<_>>().await;
 
         // assert
         handle.assert_finished();

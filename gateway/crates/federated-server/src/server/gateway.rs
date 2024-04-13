@@ -1,8 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use ascii::AsciiString;
-use engine_v2::EngineEnv;
-use gateway_v2::{Gateway, GatewayEnv};
+use engine_v2::{Engine, EngineEnv};
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::FederatedGraphConfig;
 use runtime::cache::GlobalCacheConfig;
@@ -14,12 +13,12 @@ use crate::config::{AuthenticationConfig, HeaderValue, OperationLimitsConfig, Su
 
 /// Send half of the gateway watch channel
 #[cfg(not(feature = "lambda"))]
-pub(crate) type GatewaySender = watch::Sender<Option<Arc<Gateway>>>;
+pub(crate) type GatewaySender = watch::Sender<Option<Arc<Engine>>>;
 
 /// Receive half of the gateway watch channel.
 ///
 /// Anything part of the system that needs access to the gateway can use this
-pub(crate) type GatewayWatcher = watch::Receiver<Option<Arc<Gateway>>>;
+pub(crate) type EngineWatcher = watch::Receiver<Option<Arc<Engine>>>;
 
 #[derive(Debug, Clone)]
 pub(crate) struct GatewayConfig {
@@ -36,7 +35,7 @@ pub(super) fn generate(
     federated_schema: &str,
     branch_id: Option<ulid::Ulid>,
     config: GatewayConfig,
-) -> crate::Result<Gateway> {
+) -> crate::Result<Engine> {
     let GatewayConfig {
         enable_introspection,
         operation_limits,
@@ -118,20 +117,15 @@ pub(super) fn generate(
     let engine_env = EngineEnv {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         cache: cache.clone(),
+        kv: InMemoryKvStore::runtime(),
         trusted_documents,
     };
 
-    let gateway_env = GatewayEnv {
-        kv: InMemoryKvStore::runtime(),
-        cache,
-    };
-
-    Ok(Gateway::new(
+    Ok(Engine::new(
         config
             .into_latest()
             .try_into()
             .map_err(|err| crate::Error::InternalError(format!("Failed to generate engine Schema: {err}")))?,
         engine_env,
-        gateway_env,
     ))
 }

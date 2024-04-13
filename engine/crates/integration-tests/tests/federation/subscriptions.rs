@@ -1,6 +1,4 @@
-use futures::stream::StreamExt;
-
-use gateway_v2::Gateway;
+use engine_v2::Engine;
 use graphql_mocks::{
     FakeFederationAccountsSchema, FakeFederationInventorySchema, FakeFederationProductsSchema,
     FakeFederationReviewsSchema, MockGraphQlServer,
@@ -12,7 +10,7 @@ fn single_subgraph_subscription() {
     let response = runtime().block_on(async move {
         let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("products", &products)
             .await
             .with_supergraph_config(indoc::formatdoc!(
@@ -37,7 +35,7 @@ fn single_subgraph_subscription() {
                 }
                 ",
             )
-            .into_stream()
+            .into_multipart_stream()
             .collect::<Vec<_>>()
             .await
     });
@@ -74,7 +72,7 @@ fn actual_federated_subscription() {
         let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
         let inventory = MockGraphQlServer::new(FakeFederationInventorySchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("accounts", &accounts)
             .await
             .with_schema("products", &products)
@@ -116,7 +114,7 @@ fn actual_federated_subscription() {
                 }
                 ",
             )
-            .into_stream()
+            .into_multipart_stream()
             .collect::<Vec<_>>()
             .await
     });

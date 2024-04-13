@@ -15,6 +15,8 @@ use axum::{
 use futures_util::future::BoxFuture;
 use tower_service::Service;
 
+use engine_v2::websocket::Message;
+
 use super::WebsocketSender;
 
 /// A tower service that accepts websocket connections, passing them to the provided sender
@@ -114,15 +116,13 @@ pub trait MessageConvert {
     fn to_axum_message(self) -> Result<ws::Message, serde_json::Error>;
 }
 
-impl MessageConvert for crate::websockets::messages::Message {
+impl MessageConvert for Message {
     fn to_axum_message(self) -> Result<ws::Message, serde_json::Error> {
         match self {
-            crate::websockets::messages::Message::Close { code, reason } => {
-                Ok(ws::Message::Close(Some(ws::CloseFrame {
-                    code,
-                    reason: reason.into(),
-                })))
-            }
+            Message::Close { code, reason } => Ok(ws::Message::Close(Some(ws::CloseFrame {
+                code,
+                reason: reason.into(),
+            }))),
             message => Ok(ws::Message::Text(serde_json::to_string(&message)?)),
         }
     }

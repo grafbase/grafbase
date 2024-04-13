@@ -3,10 +3,10 @@ use tokio::sync::watch;
 
 use grafbase_tracing::otel::opentelemetry_sdk::trace::TracerProvider;
 
-use super::gateway::GatewayWatcher;
+use super::gateway::EngineWatcher;
 
 struct ServerStateInner {
-    gateway: GatewayWatcher,
+    gateway: EngineWatcher,
     tracer_provider: Option<watch::Receiver<TracerProvider>>,
 }
 
@@ -16,7 +16,7 @@ pub(super) struct ServerState {
 }
 
 impl ServerState {
-    pub(super) fn new(gateway: GatewayWatcher, tracer_provider: Option<watch::Receiver<TracerProvider>>) -> Self {
+    pub(super) fn new(gateway: EngineWatcher, tracer_provider: Option<watch::Receiver<TracerProvider>>) -> Self {
         Self {
             inner: Arc::new(ServerStateInner {
                 gateway,
@@ -25,7 +25,7 @@ impl ServerState {
         }
     }
 
-    pub(crate) fn gateway(&self) -> &GatewayWatcher {
+    pub(crate) fn gateway(&self) -> &EngineWatcher {
         &self.inner.gateway
     }
 

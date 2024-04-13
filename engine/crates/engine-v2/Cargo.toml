@@ -16,10 +16,6 @@ doctest = false
 [lints]
 workspace = true
 
-[features]
-default = []
-plan_cache = ["dep:mini-moka"]
-
 [dependencies]
 async-runtime.workspace = true
 futures-util.workspace = true
@@ -29,17 +25,18 @@ id-newtypes = { path = "./id-newtypes", package = "engine-v2-id-newtypes" }
 im = "15"
 itertools.workspace = true
 lasso = "0.7"
-mini-moka = { version = "0.10", optional = true, features = ["sync"] }
 serde = { workspace = true, features = ["rc"] }
 serde-value = "0.7"
 serde_json.workspace = true
-serde_with.workspace = true
 sha2.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 http.workspace = true
+headers.workspace = true
+gateway-core = { path = "../gateway-core" }
 
+gateway-v2-auth = { path = "../gateway-v2/auth" }
 config = { package = "engine-v2-config", path = "./config" }
 engine-parser = { path = "../engine/parser" }
 engine-value = { path = "../engine/value" }
@@ -50,3 +47,4 @@ schema = { path = "./schema", package = "engine-v2-schema" }
 # but having more explicit dependencies for now.
 engine = { path = "../engine" }
 runtime.workspace = true
+

@@ -1,4 +1,4 @@
-use super::gateway::{self, GatewayWatcher};
+use super::gateway::{self, EngineWatcher};
 use crate::server::gateway::GatewayConfig;
 use crate::OtelReload;
 use std::sync::Arc;
@@ -33,7 +33,7 @@ impl GraphFetchMethod {
         self,
         config: GatewayConfig,
         otel_reload: Option<oneshot::Sender<OtelReload>>,
-    ) -> crate::Result<GatewayWatcher> {
+    ) -> crate::Result<EngineWatcher> {
         let (sender, gateway) = watch::channel(None);
 
         match self {

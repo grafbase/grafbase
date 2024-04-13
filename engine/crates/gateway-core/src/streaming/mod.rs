@@ -9,8 +9,7 @@ use headers::HeaderMapExt;
 
 const MULTIPART_BOUNDARY: &str = "-";
 
-pub async fn encode_stream_response<'a, T>(
-    ray_id: String,
+pub fn encode_stream_response<'a, T>(
     payload_stream: impl Stream<Item = T> + Send + 'a,
     streaming_format: StreamingFormat,
 ) -> (http::HeaderMap, BoxStream<'a, Result<Bytes, String>>)
@@ -42,7 +41,7 @@ where
                 .map_err(|e| e.to_string())
             });
 
-            Box::pin(sse_stream(ray_id, payload_stream, sse_sender, response_stream))
+            Box::pin(sse_stream(payload_stream, sse_sender, response_stream))
         }
     };
 
@@ -59,7 +58,6 @@ where
 }
 
 fn sse_stream<'a, T>(
-    _ray_id: String,
     payload_stream: impl Stream<Item = T> + Send + 'a,
     sse_sender: Sender,
     sse_output: impl Stream<Item = Result<Bytes, String>> + Send + 'a,

@@ -2,35 +2,31 @@ use std::sync::Arc;
 
 pub(crate) use error::GraphqlError;
 pub use key::*;
-pub use metadata::*;
 pub use path::*;
 pub use read::*;
 use schema::Schema;
 pub use value::{ResponseObject, ResponseValue};
 pub use write::*;
 
-use crate::plan::OperationPlan;
+use crate::{http_response::HttpGraphqlResponse, plan::OperationPlan};
 
-pub(crate) mod cacheable;
 mod error;
 mod key;
-mod metadata;
 mod path;
 mod read;
 mod value;
 mod write;
 
-pub enum Response {
+pub(crate) enum Response {
     Initial(InitialResponse),
     /// Engine could not execute the request.
-    RequestError(RequestErrorResponse),
+    BadRequest(BadRequestResponse),
 }
 
-pub struct InitialResponse {
+pub(crate) struct InitialResponse {
     // will be None if an error propagated up to the root.
     data: ResponseData,
     errors: Vec<GraphqlError>,
-    metadata: ExecutionMetadata,
 }
 
 struct ResponseData {
@@ -40,64 +36,30 @@ struct ResponseData {
     parts: Vec<ResponseDataPart>,
 }
 
-pub struct RequestErrorResponse {
+pub(crate) struct BadRequestResponse {
     errors: Vec<GraphqlError>,
-    metadata: ExecutionMetadata,
 }
 
 impl Response {
-    pub fn error(
-        message: impl Into<String>,
-        extensions: impl IntoIterator<Item = (String, serde_json::Value)>,
-    ) -> Self {
-        Self::from_error(
-            GraphqlError {
-                message: message.into(),
-                extensions: extensions.into_iter().collect(),
-                ..Default::default()
-            },
-            ExecutionMetadata::default(),
-        )
-    }
-
-    pub(crate) fn from_error(error: impl Into<GraphqlError>, metadata: ExecutionMetadata) -> Self {
-        Self::RequestError(RequestErrorResponse {
+    pub(crate) fn from_error(error: impl Into<GraphqlError>) -> Self {
+        Self::BadRequest(BadRequestResponse {
             errors: vec![error.into()],
-            metadata,
         })
     }
 
-    pub(crate) fn from_errors<E>(errors: impl IntoIterator<Item = E>, metadata: ExecutionMetadata) -> Self
+    pub(crate) fn from_errors<E>(errors: impl IntoIterator<Item = E>) -> Self
     where
         E: Into<GraphqlError>,
     {
-        Self::RequestError(RequestErrorResponse {
+        Self::BadRequest(BadRequestResponse {
             errors: errors.into_iter().map(Into::into).collect(),
-            metadata,
         })
     }
 
-    // Our internal error struct is NOT meant to be public. If we ever need it, we should consider
-    // exposing it through a Serializable struct, in the same way 'data' is only available through
-    // serialization.
-    pub fn has_errors(&self) -> bool {
+    pub(crate) fn has_errors(&self) -> bool {
         match self {
             Self::Initial(resp) => !resp.errors.is_empty(),
-            Self::RequestError(resp) => !resp.errors.is_empty(),
-        }
-    }
-
-    pub fn metadata(&self) -> &ExecutionMetadata {
-        match self {
-            Self::Initial(resp) => &resp.metadata,
-            Self::RequestError(resp) => &resp.metadata,
-        }
-    }
-
-    pub fn take_metadata(self) -> ExecutionMetadata {
-        match self {
-            Self::Initial(initial) => initial.metadata,
-            Self::RequestError(request_error) => request_error.metadata,
+            Self::BadRequest(resp) => !resp.errors.is_empty(),
         }
     }
 }
@@ -105,5 +67,11 @@ impl Response {
 impl std::fmt::Debug for Response {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Response").finish_non_exhaustive()
+    }
+}
+
+impl From<Response> for HttpGraphqlResponse {
+    fn from(response: Response) -> Self {
+        HttpGraphqlResponse::from_json(&response)
     }
 }

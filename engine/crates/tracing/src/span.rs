@@ -31,6 +31,10 @@ pub trait GqlRecorderSpanExt {
     fn record_gql_request(&self, attributes: GqlRequestAttributes<'_>);
     /// Record GraphQL response attributes in the span
     fn record_gql_response(&self, attributes: GqlResponseAttributes);
+    /// Record that the response has errors
+    fn record_has_error(&self) {
+        self.record_gql_response(GqlResponseAttributes { has_errors: true })
+    }
 }
 
 /// Wraps attributes of a graphql request intended to be recorded

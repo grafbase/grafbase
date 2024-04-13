@@ -23,6 +23,7 @@ pub(crate) use selection_set::*;
 pub(crate) use variables::*;
 pub(crate) use walkers::*;
 
+#[derive(Clone)]
 pub(crate) struct Operation {
     pub ty: OperationType,
     pub root_object_id: ObjectId,
@@ -61,13 +62,4 @@ impl Operation {
             item: (),
         }
     }
-}
-
-#[cfg(feature = "plan_cache")]
-pub fn validate_cached_operation(
-    ctx: crate::execution::ExecutionContext<'_>,
-    operation: &Operation,
-) -> Result<(), validation::ValidationError> {
-    let variables = Variables::empty_for(operation);
-    validation::validate_cached_operation(ctx, operation.walker_with(ctx.engine.schema.walker(), &variables))
 }

@@ -2,25 +2,24 @@ use std::sync::Arc;
 
 use crate::ConfigWatcher;
 
-use super::bus::{GatewaySender, GraphWatcher};
-use engine_v2::EngineEnv;
+use super::bus::{EngineSender, GraphWatcher};
+use engine_v2::{Engine, EngineEnv};
 use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
-use gateway_v2::{Gateway, GatewayEnv};
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::FederatedGraphConfig;
 use tokio_stream::wrappers::WatchStream;
 
 /// The GatewayNanny looks after the `Gateway` - on updates to the graph or config it'll
 /// create a new `Gateway` and publish it on the gateway channel
-pub(crate) struct GatewayNanny {
+pub(crate) struct EngineNanny {
     graph: GraphWatcher,
     config: ConfigWatcher,
-    sender: GatewaySender,
+    sender: EngineSender,
 }
 
-impl GatewayNanny {
-    pub fn new(graph: GraphWatcher, config: ConfigWatcher, sender: GatewaySender) -> Self {
+impl EngineNanny {
+    pub fn new(graph: GraphWatcher, config: ConfigWatcher, sender: EngineSender) -> Self {
         Self { graph, config, sender }
     }
 
@@ -45,14 +44,14 @@ impl GatewayNanny {
     }
 }
 
-pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraphConfig) -> Option<Arc<Gateway>> {
+pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraphConfig) -> Option<Arc<Engine>> {
     let config = engine_config_builder::build_config(config, graph?);
     let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
         common_cache_tags: vec![],
         enabled: true,
         subdomain: "localhost".to_string(),
     });
-    Some(Arc::new(Gateway::new(
+    Some(Arc::new(Engine::new(
         config.into_latest().try_into().ok()?,
         EngineEnv {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
@@ -60,10 +59,7 @@ pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraph
             trusted_documents: runtime::trusted_documents_client::Client::new(
                 runtime_noop::trusted_documents::NoopTrustedDocuments,
             ),
-        },
-        GatewayEnv {
             kv: runtime_local::InMemoryKvStore::runtime(),
-            cache,
         },
     )))
 }

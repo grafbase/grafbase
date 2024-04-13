@@ -10,6 +10,13 @@ pub(crate) struct ExecutionContext<'ctx> {
     pub access_token: &'ctx AccessToken,
 }
 
+impl<'ctx> std::ops::Deref for ExecutionContext<'ctx> {
+    type Target = Engine;
+    fn deref(&self) -> &'ctx Self::Target {
+        self.engine
+    }
+}
+
 impl<'ctx> ExecutionContext<'ctx> {
     pub fn header(&self, name: &str) -> Option<&'ctx str> {
         self.headers.get(name).and_then(|v| v.to_str().ok())

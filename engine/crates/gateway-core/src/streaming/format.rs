@@ -13,6 +13,36 @@ pub enum StreamingFormat {
     GraphQLOverSSE,
 }
 
+impl headers::Header for StreamingFormat {
+    fn name() -> &'static http::HeaderName {
+        &http::header::ACCEPT
+    }
+
+    fn decode<'i, I>(values: &mut I) -> Result<Self, headers::Error>
+    where
+        Self: Sized,
+        I: Iterator<Item = &'i http::HeaderValue>,
+    {
+        values
+            .filter_map(|value| match value.to_str() {
+                Ok(value) => StreamingFormat::from_accept_header(value),
+                Err(_) => None,
+            })
+            .last()
+            .ok_or(headers::Error::invalid())
+    }
+
+    fn encode<E: Extend<http::HeaderValue>>(&self, values: &mut E) {
+        values.extend(Some(
+            http::HeaderValue::try_from(match self {
+                StreamingFormat::IncrementalDelivery => INCREMENTAL_MEDIA_TYPE.to_string(),
+                StreamingFormat::GraphQLOverSSE => SSE_MEDIA_TYPE.to_string(),
+            })
+            .unwrap(),
+        ))
+    }
+}
+
 const INCREMENTAL_MEDIA_TYPE: MediaType<'static> =
     MediaType::new(Name::new_unchecked("multipart"), Name::new_unchecked("mixed"));
 const SSE_MEDIA_TYPE: MediaType<'static> =

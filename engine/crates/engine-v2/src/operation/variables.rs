@@ -5,6 +5,7 @@ use super::{
     FieldId, Location, Operation, QueryInputValueId, VariableDefinitionId, VariableInputValueId, VariableInputValues,
 };
 
+#[derive(Clone)]
 pub struct VariableDefinition {
     pub name: String,
     pub name_location: Location,

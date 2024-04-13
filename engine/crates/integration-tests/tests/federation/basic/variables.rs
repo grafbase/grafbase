@@ -1,4 +1,4 @@
-use gateway_v2::Gateway;
+use engine_v2::Engine;
 use graphql_mocks::{EchoSchema, MockGraphQlServer};
 use integration_tests::{
     federation::{GatewayV2Ext, GraphqlResponse},
@@ -617,11 +617,7 @@ fn undefined_variable() {
         async move {
             let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
 
-            let engine = Gateway::builder()
-                .with_schema("schema", &echo_mock)
-                .await
-                .finish()
-                .await;
+            let engine = Engine::builder().with_schema("schema", &echo_mock).await.finish().await;
 
             engine.execute(query).variables(json!({})).await
         }
@@ -677,11 +673,7 @@ fn run_query(query: &str, input: &serde_json::Value) -> GraphqlResponse {
         async move {
             let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
 
-            let engine = Gateway::builder()
-                .with_schema("schema", &echo_mock)
-                .await
-                .finish()
-                .await;
+            let engine = Engine::builder().with_schema("schema", &echo_mock).await.finish().await;
 
             engine.execute(query).variables(input).await
         }

@@ -6,7 +6,7 @@ use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValue, 
 
 use crate::operation::{OperationWalker, VariableDefinitionId};
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct QueryInputValues {
     /// Individual input values and list values
     values: Vec<QueryInputValue>,
@@ -22,7 +22,7 @@ id_newtypes::NonZeroU32! {
     QueryInputValues.key_values[QueryInputKeyValueId] => (String, QueryInputValue),
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub enum QueryInputValue {
     #[default]
     Null,

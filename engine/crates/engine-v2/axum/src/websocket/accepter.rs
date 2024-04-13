@@ -1,20 +1,14 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{
-    websockets::messages::{Event, Message},
-    Session,
-};
 use ::axum::extract::ws::{self, WebSocket};
-use engine_v2::Response;
-use futures_util::{pin_mut, stream::SplitStream, SinkExt, StreamExt};
+use engine_v2::{websocket::InitPayload, Engine, Session};
+use futures_util::{pin_mut, stream::SplitStream, SinkExt, Stream, StreamExt};
 use tokio::sync::{mpsc, watch};
 
-use self::axum::MessageConvert;
+use super::service::MessageConvert;
+use engine_v2::websocket::{Event, Message};
 
-mod axum;
-
-pub use axum::WebsocketService;
-
+pub type EngineWatcher = watch::Receiver<Option<Arc<Engine>>>;
 pub type WebsocketSender = tokio::sync::mpsc::Sender<WebSocket>;
 pub type WebsocketReceiver = tokio::sync::mpsc::Receiver<WebSocket>;
 
@@ -23,23 +17,21 @@ const CONNECTION_INIT_WAIT_TIMEOUT: std::time::Duration = std::time::Duration::f
 /// An actor that manages websocket connections for federated dev
 pub struct WebsocketAccepter {
     sockets: WebsocketReceiver,
-    gateway: watch::Receiver<Option<Arc<crate::Gateway>>>,
+    engine: EngineWatcher,
 }
 
 impl WebsocketAccepter {
-    pub fn new(sockets: WebsocketReceiver, gateway: watch::Receiver<Option<Arc<crate::Gateway>>>) -> Self {
-        Self { sockets, gateway }
+    pub fn new(sockets: WebsocketReceiver, engine: EngineWatcher) -> Self {
+        Self { sockets, engine }
     }
 
     pub async fn handler(mut self) {
         while let Some(mut connection) = self.sockets.recv().await {
-            let gateway = self.gateway.clone();
+            let engine = self.engine.clone();
 
             tokio::spawn(async move {
-                let accept_future = tokio::time::timeout(
-                    CONNECTION_INIT_WAIT_TIMEOUT,
-                    accept_websocket(&mut connection, &gateway),
-                );
+                let accept_future =
+                    tokio::time::timeout(CONNECTION_INIT_WAIT_TIMEOUT, accept_websocket(&mut connection, &engine));
 
                 match accept_future.await {
                     Ok(Some(session)) => websocket_loop(connection, session).await,
@@ -93,8 +85,8 @@ async fn websocket_loop(socket: WebSocket, session: Session) {
     let mut tasks = tokio::task::JoinSet::new();
     let mut subscriptions = HashMap::new();
 
-    while let Some(event) = receiver.recv_graphql().await {
-        let response = handle_incoming_event(event, &session, &sender, &mut tasks, &mut subscriptions).await;
+    while let Some(bytes) = receiver.recv_message().await {
+        let response = handle_incoming_event(bytes, &session, &sender, &mut tasks, &mut subscriptions).await;
         match response {
             None => {}
             Some(message @ Message::Close { .. }) => {
@@ -111,19 +103,21 @@ async fn websocket_loop(socket: WebSocket, session: Session) {
 }
 
 async fn handle_incoming_event(
-    event: Event,
+    bytes: Vec<u8>,
     session: &Session,
     sender: &tokio::sync::mpsc::Sender<Message>,
     tasks: &mut tokio::task::JoinSet<()>,
     subscriptions: &mut HashMap<String, tokio::task::AbortHandle>,
 ) -> Option<Message> {
+    let event: Event = serde_json::from_slice(&bytes).ok()?;
     match event {
         Event::Subscribe { id, payload } => {
             if subscriptions.contains_key(&id) {
                 return Some(Message::close(4409, format!("Subscriber for {id} already exists")));
             }
 
-            let handle = tasks.spawn(subscription_loop(session.clone(), payload, id.clone(), sender.clone()));
+            let stream = session.execute_websocket(id.clone(), payload);
+            let handle = tasks.spawn(subscription_loop(stream, id.clone(), sender.clone()));
             subscriptions.insert(id, handle);
 
             None
@@ -143,36 +137,10 @@ async fn handle_incoming_event(
     }
 }
 
-async fn subscription_loop(
-    session: crate::Session,
-    request: engine::Request,
-    id: String,
-    sender: mpsc::Sender<Message>,
-) {
-    let stream = session.execute_stream(request);
-
+async fn subscription_loop(stream: impl Stream<Item = Message>, id: String, sender: mpsc::Sender<Message>) {
     pin_mut!(stream);
-    while let Some(response) = stream.next().await {
-        if matches!(response, Response::RequestError(_)) {
-            sender
-                .send(Message::Error {
-                    id: id.clone(),
-                    payload: response,
-                })
-                .await
-                .ok();
-
-            return;
-        }
-
-        let result = sender
-            .send(Message::Next {
-                id: id.clone(),
-                payload: response,
-            })
-            .await;
-
-        if result.is_err() {
+    while let Some(message) = stream.next().await {
+        if sender.send(message).await.is_err() {
             // No point continuing if the sender is dead
             return;
         }
@@ -180,14 +148,14 @@ async fn subscription_loop(
     sender.send(Message::Complete { id }).await.ok();
 }
 
-async fn accept_websocket(
-    websocket: &mut WebSocket,
-    gateway: &watch::Receiver<Option<Arc<crate::Gateway>>>,
-) -> Option<Session> {
-    while let Some(event) = websocket.recv_graphql().await {
+async fn accept_websocket(websocket: &mut WebSocket, engine: &EngineWatcher) -> Option<Session> {
+    while let Some(bytes) = websocket.recv_message().await {
+        let event: Event = serde_json::from_slice(&bytes).ok()?;
         match event {
-            Event::ConnectionInit { payload } => {
-                let Some(gateway) = gateway.borrow().clone() else {
+            Event::ConnectionInit {
+                payload: InitPayload { headers },
+            } => {
+                let Some(engine) = engine.borrow().clone() else {
                     websocket
                         .send(
                             Message::close(4995, "register a subgraph before connecting")
@@ -199,7 +167,7 @@ async fn accept_websocket(
                     return None;
                 };
 
-                let Some(session) = gateway.authorize(&TryFrom::try_from(&payload.headers).unwrap()).await else {
+                let Some(session) = engine.create_session(headers).await else {
                     websocket
                         .send(Message::close(4403, "Forbidden").to_axum_message().unwrap())
                         .await
@@ -241,25 +209,18 @@ async fn accept_websocket(
 trait WebsocketExt {
     async fn recv(&mut self) -> Option<Result<ws::Message, ::axum::Error>>;
 
-    async fn recv_graphql(&mut self) -> Option<Event> {
+    async fn recv_message(&mut self) -> Option<Vec<u8>> {
         while let Some(message) = self.recv().await {
-            let event = match message {
+            return match message {
                 Ok(ws::Message::Ping(_) | ws::Message::Pong(_)) => continue,
-                Ok(ws::Message::Close(_)) => return None,
-                Ok(ws::Message::Text(contents)) => serde_json::from_str::<Event>(&contents),
-                Ok(ws::Message::Binary(contents)) => serde_json::from_slice::<Event>(&contents),
+                Ok(ws::Message::Close(_)) => None,
+                Ok(ws::Message::Text(contents)) => Some(contents.into_bytes()),
+                Ok(ws::Message::Binary(contents)) => Some(contents),
                 Err(error) => {
                     tracing::warn!("Error receiving websocket message: {error:?}");
-                    return None;
+                    None
                 }
             };
-
-            return event
-                .map_err(|error| {
-                    tracing::warn!("error decoding websocket message: {error:?}");
-                    error
-                })
-                .ok();
         }
         None
     }
