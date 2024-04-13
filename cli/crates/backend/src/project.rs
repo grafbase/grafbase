@@ -81,7 +81,7 @@ pub enum Template<'a> {
 ///
 /// - returns [`BackendError::TemplateNotFound`] if no files matching the template path were extracted (excluding extraction errors)
 ///
-/// - returns [`BackendError::MoveExtractedFiles`] if the extracted files from the template repository could not be moved
+/// - returns [`BackendError::CopyTemplateFiles`] if the extracted files from the template repository could not be moved
 ///
 /// - returns [`BackendError::ReadArchiveEntries`] if the entries of the template repository archive could not be read
 ///
@@ -407,7 +407,7 @@ async fn stream_github_archive<'a>(
 
         let entries = archive.entries().map_err(|_| BackendError::ReadArchiveEntries)?;
 
-        let temporary_directory = tempfile::tempdir().map_err(BackendError::MoveExtractedFiles)?;
+        let temporary_directory = tempfile::tempdir().map_err(BackendError::CopyTemplateFiles)?;
 
         for entry in entries {
             let mut entry = entry.map_err(BackendError::ExtractArchiveEntry)?;
@@ -448,14 +448,14 @@ async fn stream_github_archive<'a>(
     // Move all contents.
     let mut read_dir = tokio::fs::read_dir(&final_path)
         .await
-        .map_err(BackendError::MoveExtractedFiles)?;
+        .map_err(BackendError::CopyTemplateFiles)?;
 
-    while let Some(dir_entry) = read_dir.next_entry().await.map_err(BackendError::MoveExtractedFiles)? {
+    while let Some(dir_entry) = read_dir.next_entry().await.map_err(BackendError::CopyTemplateFiles)? {
         let source_path = dir_entry.path();
         let relative_path = source_path.strip_prefix(&final_path).expect("must be valid");
-        tokio::fs::rename(&source_path, project_path.join(relative_path))
+        tokio::fs::copy(&source_path, project_path.join(relative_path))
             .await
-            .map_err(BackendError::MoveExtractedFiles)?;
+            .map_err(BackendError::CopyTemplateFiles)?;
     }
 
     Ok(())

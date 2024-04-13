@@ -73,7 +73,7 @@ pub enum BackendError {
 
     /// returned if the extracted files from the template repository could not be moved
     #[error("could not move the extracted files from the template repository\nCaused by: {0}")]
-    MoveExtractedFiles(io::Error),
+    CopyTemplateFiles(io::Error),
 
     /// returned if the entries of the template repository archive could not be read
     #[error("could not read the entries of the template repository archive")]
