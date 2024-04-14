@@ -18,7 +18,9 @@ pub(super) fn router(gateway: Gateway) -> Router {
         .route("/graphql", post(post_graphql).options(options_any).get(get_graphql))
         .with_state(gateway)
         .layer(CorsLayer::permissive())
-        .layer(grafbase_tracing::tower::layer())
+        .layer(grafbase_tracing::tower::layer(
+            grafbase_tracing::metrics::meter_from_global_provider(),
+        ))
 }
 
 async fn post_graphql(State(gateway): State<Gateway>, headers: HeaderMap, body: Bytes) -> crate::Response {

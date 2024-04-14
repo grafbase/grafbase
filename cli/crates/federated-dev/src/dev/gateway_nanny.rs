@@ -60,6 +60,7 @@ pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraph
                 runtime_noop::trusted_documents::NoopTrustedDocuments,
             ),
             kv: runtime_local::InMemoryKvStore::runtime(),
+            meter: grafbase_tracing::metrics::meter_from_global_provider(),
         },
     )))
 }

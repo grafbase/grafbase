@@ -119,6 +119,7 @@ pub(super) fn generate(
         cache: cache.clone(),
         kv: InMemoryKvStore::runtime(),
         trusted_documents,
+        meter: grafbase_tracing::metrics::meter_from_global_provider(),
     };
 
     Ok(Engine::new(

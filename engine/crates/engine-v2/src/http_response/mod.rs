@@ -9,6 +9,17 @@ use runtime::bytes::OwnedOrSharedBytes;
 pub struct HttpGraphqlResponse {
     pub headers: http::HeaderMap,
     pub body: HttpGraphqlResponseBody,
+    // TODO: Used to propagate this metadata to headers for our current analytics on Cloudflare.
+    //       It should not be relied upon otherwise, doesn't work well for batch requests and will
+    //       be removed once we also use otel for the managed version.
+    pub metadata: OperationMetadata,
+}
+
+#[derive(Default)]
+pub struct OperationMetadata {
+    pub operation_name: Option<String>,
+    pub operation_type: Option<&'static str>,
+    pub has_errors: bool,
 }
 
 pub enum HttpGraphqlResponseBody {
@@ -40,11 +51,17 @@ impl HttpGraphqlResponse {
         )
     }
 
+    pub(crate) fn with_metadata(mut self, metadata: OperationMetadata) -> Self {
+        self.metadata = metadata;
+        self
+    }
+
     pub(crate) fn from_bytes(bytes: OwnedOrSharedBytes) -> HttpGraphqlResponse {
         let mut headers = http::HeaderMap::new();
         headers.typed_insert(headers::ContentLength(bytes.len() as u64));
         HttpGraphqlResponse {
             headers,
+            metadata: OperationMetadata::default(),
             body: HttpGraphqlResponseBody::Bytes(bytes),
         }
     }
@@ -117,6 +134,7 @@ impl HttpGraphqlResponse {
         let (headers, stream) = gateway_core::encode_stream_response(stream, format);
         Self {
             headers,
+            metadata: OperationMetadata::default(),
             body: HttpGraphqlResponseBody::Stream(stream.map_ok(|bytes| bytes.into()).boxed()),
         }
     }

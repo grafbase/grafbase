@@ -99,7 +99,9 @@ pub(super) async fn run(
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .nest_service("/static", tower_http::services::ServeDir::new(static_asset_path))
         .layer(CorsLayer::permissive())
-        .layer(grafbase_tracing::tower::layer())
+        .layer(grafbase_tracing::tower::layer(
+            grafbase_tracing::metrics::meter_from_global_provider(),
+        ))
         .with_state(ProxyState {
             admin_pathfinder_html: Html(render_pathfinder(listen_address.port(), "/admin")),
             gateway,

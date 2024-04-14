@@ -25,7 +25,9 @@ async fn expect_gateway_span() {
     // axum server with our tower layer
     let app = Router::new()
         .route("/", get(|| async {}))
-        .layer(grafbase_tracing::tower::layer());
+        .layer(grafbase_tracing::tower::layer(
+            grafbase_tracing::metrics::meter_from_global_provider(),
+        ));
 
     let tcp_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = tcp_listener.local_addr().unwrap().port();

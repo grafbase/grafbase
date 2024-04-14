@@ -77,7 +77,9 @@ pub async fn serve(
         .route(path, get(engine::get).post(engine::post))
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .layer(cors)
-        .layer(grafbase_tracing::tower::layer())
+        .layer(grafbase_tracing::tower::layer(
+            grafbase_tracing::metrics::meter_from_global_provider(),
+        ))
         .with_state(state);
 
     if config.csrf.enabled {

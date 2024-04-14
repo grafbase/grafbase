@@ -35,6 +35,7 @@ tracing.workspace = true
 http.workspace = true
 headers.workspace = true
 gateway-core = { path = "../gateway-core" }
+web-time.workspace = true
 
 gateway-v2-auth = { path = "../gateway-v2/auth" }
 config = { package = "engine-v2-config", path = "./config" }
