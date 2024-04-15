@@ -2783,7 +2783,6 @@ dependencies = [
  "async-graphql-axum",
  "async-trait",
  "async-tungstenite",
- "atty",
  "axum 0.7.5",
  "backtrace",
  "cfg-if",

@@ -1,6 +1,10 @@
 use crate::{cli_input::CheckCommand, errors::CliError, report};
 use backend::api::check;
-use std::{fs, io::Read, process::Command};
+use std::{
+    fs,
+    io::{IsTerminal, Read},
+    process::Command,
+};
 
 const FAILED_CHECK_EXIT_STATUS: i32 = 1;
 
@@ -16,7 +20,7 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
 
     let schema = match schema {
         Some(schema) => fs::read_to_string(schema).map_err(CliError::SchemaReadError)?,
-        None if atty::is(atty::Stream::Stdin) => {
+        None if std::io::stdin().is_terminal() => {
             return Err(CliError::MissingArgument("--schema or a schema piped through stdin"))
         }
         None => {

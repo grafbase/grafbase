@@ -12,7 +12,6 @@ repository.workspace = true
 
 [dependencies]
 assert_matches = "1"
-atty = "0.2"
 backtrace = "0.3"
 chrono = "0.4"
 clap = { version = "4", features = ["cargo", "wrap_help", "derive", "env"] }
