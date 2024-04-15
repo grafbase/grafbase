@@ -8,14 +8,13 @@ mod error;
 mod graphql;
 
 struct AdminContext {
-    ray_id: String,
     host_name: String,
     cache: Cache,
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn handle_graphql_request(
-    ctx: &impl RequestContext,
+    _ctx: &impl RequestContext,
     cache: Cache,
     cache_config: &CacheConfig,
     request: async_graphql::Request,
@@ -23,7 +22,6 @@ pub async fn handle_graphql_request(
     let schema = Schema::build(graphql::Query, graphql::Mutation::default(), EmptySubscription)
         .data(AdminContext {
             cache,
-            ray_id: ctx.ray_id().to_string(),
             host_name: cache_config.host_name.clone(),
         })
         .finish();

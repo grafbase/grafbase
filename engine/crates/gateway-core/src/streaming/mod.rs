@@ -59,7 +59,7 @@ where
 }
 
 fn sse_stream<'a, T>(
-    ray_id: String,
+    _ray_id: String,
     payload_stream: impl Stream<Item = T> + Send + 'a,
     sse_sender: Sender,
     sse_output: impl Stream<Item = Result<Bytes, String>> + Send + 'a,
@@ -76,13 +76,13 @@ where
             let payload_json = match serde_json::to_string(&payload) {
                 Ok(json) => json,
                 Err(error) => {
-                    log::error!(ray_id, "Could not encode StreamingPayload as JSON: {error:?}");
+                    tracing::error!("Could not encode StreamingPayload as JSON: {error:?}");
                     return;
                 }
             };
 
             if let Err(error) = sse_sender.send("next", &payload_json, None).await {
-                log::error!(ray_id, "Could not send next payload via sse_sender: {error}");
+                tracing::error!("Could not send next payload via sse_sender: {error}");
                 return;
             }
         }
@@ -91,7 +91,7 @@ where
         // event but the SSE spec says that you should drop events with an empty data
         // buffer.  So I'm just putting null in the data buffer for now.
         if let Err(error) = sse_sender.send("complete", "null", None).await {
-            log::error!(ray_id, "Could not send complete payload via sse_sender: {error}");
+            tracing::error!("Could not send complete payload via sse_sender: {error}");
         }
     })
 }

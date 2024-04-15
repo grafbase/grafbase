@@ -404,7 +404,7 @@ dependencies = [
  "async-channel",
  "futures-lite",
  "http-types",
- "log 0.4.21",
+ "log",
  "memchr",
  "pin-project-lite",
 ]
@@ -449,7 +449,7 @@ source = "git+https://github.com/grafbase/async-tungstenite?rev=02222f222532b5cf
 dependencies = [
  "futures-io",
  "futures-util",
- "log 0.4.21",
+ "log",
  "pin-project-lite",
  "rustls-pki-types",
  "tokio",
@@ -2004,7 +2004,6 @@ dependencies = [
  "insta",
  "internment",
  "ipnet",
- "log 0.1.0",
  "mime",
  "multer",
  "nom",
@@ -2089,7 +2088,6 @@ dependencies = [
  "im",
  "itertools 0.12.1",
  "lasso",
- "log 0.1.0",
  "mini-moka",
  "runtime",
  "serde",
@@ -2159,7 +2157,7 @@ checksum = "4cd405aab171cb85d6735e5c8d9db038c17d3ca007a4d2c25f337935c3d90580"
 dependencies = [
  "humantime",
  "is-terminal",
- "log 0.4.21",
+ "log",
  "regex",
  "termcolor",
 ]
@@ -2317,7 +2315,7 @@ dependencies = [
  "handlebars 5.1.2",
  "http 1.1.0",
  "indoc",
- "log 0.4.21",
+ "log",
  "parser-sdl",
  "reqwest",
  "runtime",
@@ -2696,7 +2694,6 @@ dependencies = [
  "headers",
  "hex",
  "http 1.1.0",
- "log 0.1.0",
  "mediatype",
  "mime",
  "multipart-stream",
@@ -2722,7 +2719,6 @@ dependencies = [
  "gateway-v2-auth",
  "headers",
  "http 1.1.0",
- "log 0.1.0",
  "runtime",
  "serde",
  "serde_json",
@@ -2744,7 +2740,6 @@ dependencies = [
  "http 1.1.0",
  "jwt-compact",
  "jwt-verifier",
- "log 0.1.0",
  "reqwest",
  "runtime",
  "serde",
@@ -2821,7 +2816,7 @@ checksum = "57da3b9b5b85bd66f31093f8c408b90a74431672542466497dcbdfdc02034be1"
 dependencies = [
  "aho-corasick",
  "bstr 1.9.1",
- "log 0.4.21",
+ "log",
  "regex-automata 0.4.6",
  "regex-syntax 0.8.3",
 ]
@@ -2883,7 +2878,7 @@ dependencies = [
  "itertools 0.12.1",
  "json_dotpath",
  "jwt-compact",
- "log 0.4.21",
+ "log",
  "lru",
  "mimalloc",
  "more-asserts",
@@ -3043,7 +3038,7 @@ dependencies = [
  "hyper 1.2.0",
  "hyper-util",
  "itertools 0.12.1",
- "log 0.4.21",
+ "log",
  "notify",
  "notify-debouncer-mini",
  "parser-graphql",
@@ -3152,8 +3147,8 @@ dependencies = [
  "common-types",
  "engine",
  "engine-value",
- "log 0.1.0",
  "runtime",
+ "tracing",
  "web-time",
 ]
 
@@ -3247,7 +3242,7 @@ checksum = "e3126dd19313cb1493903f04fa1b56bd376dfc779bb9a55cdca88760edf646ca"
 dependencies = [
  "async-trait",
  "futures",
- "log 0.4.21",
+ "log",
  "pin-project",
  "serde",
  "serde_json",
@@ -3320,7 +3315,7 @@ version = "4.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "faa67bab9ff362228eb3d00bd024a4965d8231bbb7921167f0cfa66c6626b225"
 dependencies = [
- "log 0.4.21",
+ "log",
  "pest",
  "pest_derive",
  "serde",
@@ -3334,7 +3329,7 @@ version = "5.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d08485b96a0e6393e9e4d1b8d48cf74ad6c063cd905eb33f42c1ce3f0377539b"
 dependencies = [
- "log 0.4.21",
+ "log",
  "pest",
  "pest_derive",
  "serde",
@@ -3790,7 +3785,7 @@ checksum = "b46810df39e66e925525d6e38ce1e7f6e1d208f72dc39757880fcb66e2c58af1"
 dependencies = [
  "crossbeam-deque",
  "globset",
- "log 0.4.21",
+ "log",
  "memchr",
  "regex-automata 0.4.6",
  "same-file",
@@ -4079,7 +4074,7 @@ dependencies = [
  "cfg-if",
  "combine 4.6.6",
  "jni-sys",
- "log 0.4.21",
+ "log",
  "thiserror",
  "walkdir",
  "windows-sys 0.45.0",
@@ -4153,7 +4148,6 @@ dependencies = [
  "futures-util",
  "json_dotpath",
  "jwt-compact",
- "log 0.1.0",
  "reqwest",
  "runtime",
  "rustls",
@@ -4163,6 +4157,7 @@ dependencies = [
  "serde_with",
  "thiserror",
  "tokio",
+ "tracing",
  "url",
  "wiremock",
 ]
@@ -4370,23 +4365,6 @@ checksum = "3c168f8615b12bc01f9c17e2eb0cc07dcae1940121185446edc3744920e8ef45"
 dependencies = [
  "autocfg",
  "scopeguard",
-]
-
-[[package]]
-name = "log"
-version = "0.1.0"
-dependencies = [
- "bitflags 2.5.0",
- "futures-util",
- "log 0.4.21",
- "maplit",
- "reqwest",
- "secrecy",
- "serde",
- "strum",
- "thiserror",
- "web-time",
- "worker",
 ]
 
 [[package]]
@@ -4642,7 +4620,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4a650543ca06a924e8b371db273b2756685faae30f8487da1b56505a8f78b0c"
 dependencies = [
  "libc",
- "log 0.4.21",
+ "log",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys 0.48.0",
 ]
@@ -4664,7 +4642,7 @@ dependencies = [
  "futures-util",
  "http 1.1.0",
  "httparse",
- "log 0.4.21",
+ "log",
  "memchr",
  "mime",
  "spin 0.9.8",
@@ -4700,7 +4678,7 @@ checksum = "07226173c32f2926027b63cce4bcd8076c3552846cbe7925f3aaffeac0a3b92e"
 dependencies = [
  "lazy_static",
  "libc",
- "log 0.4.21",
+ "log",
  "openssl",
  "openssl-probe",
  "openssl-sys",
@@ -4766,7 +4744,7 @@ dependencies = [
  "inotify",
  "kqueue",
  "libc",
- "log 0.4.21",
+ "log",
  "mio",
  "walkdir",
  "windows-sys 0.48.0",
@@ -4778,7 +4756,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d40b221972a1fc5ef4d858a2f671fb34c75983eb385463dff3780eeff6a9d43"
 dependencies = [
- "log 0.4.21",
+ "log",
  "notify",
 ]
 
@@ -5012,7 +4990,7 @@ dependencies = [
  "hmac",
  "http 1.1.0",
  "itertools 0.10.5",
- "log 0.4.21",
+ "log",
  "oauth2",
  "p256",
  "p384",
@@ -6207,7 +6185,7 @@ dependencies = [
  "hyper-util",
  "ipnet",
  "js-sys",
- "log 0.4.21",
+ "log",
  "mime",
  "mime_guess",
  "once_cell",
@@ -6398,7 +6376,7 @@ source = "git+https://github.com/grafbase/rudder-sdk-rust?rev=3e994eb4dcc9c580be
 dependencies = [
  "chrono",
  "env_logger",
- "log 0.4.21",
+ "log",
  "reqwest",
  "serde",
  "serde_json",
@@ -6439,13 +6417,13 @@ dependencies = [
  "async-tungstenite",
  "futures-util",
  "graphql-ws-client",
- "log 0.1.0",
  "postgres-connector-types",
  "reqwest",
  "runtime",
  "serde",
  "serde_json",
  "tokio",
+ "tracing",
  "ulid",
 ]
 
@@ -7720,7 +7698,7 @@ dependencies = [
  "fallible-iterator",
  "futures-channel",
  "futures-util",
- "log 0.4.21",
+ "log",
  "parking_lot",
  "percent-encoding",
  "phf",
@@ -7776,7 +7754,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c83b561d025642014097b66e6c1bb422783339e0909e4429cde4749d1990bc38"
 dependencies = [
  "futures-util",
- "log 0.4.21",
+ "log",
  "tokio",
  "tungstenite",
 ]
@@ -7943,7 +7921,7 @@ name = "tracing"
 version = "0.1.40"
 source = "git+https://github.com/tokio-rs/tracing?branch=v0.1.x#36bf06310c143e24fb4761dcb7e88a46c99b053c"
 dependencies = [
- "log 0.4.21",
+ "log",
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",
@@ -7984,7 +7962,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee855f1f400bd0e5c02d150ae5de3840039a3f54b025156404e34c23c03f47c3"
 dependencies = [
- "log 0.4.21",
+ "log",
  "once_cell",
  "tracing-core",
 ]
@@ -8073,7 +8051,7 @@ dependencies = [
  "data-encoding",
  "http 1.1.0",
  "httparse",
- "log 0.4.21",
+ "log",
  "rand 0.8.5",
  "rustls",
  "rustls-pki-types",
@@ -8349,7 +8327,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "614d787b966d3989fa7bb98a654e369c762374fd3213d212cfc0251257e747da"
 dependencies = [
  "bumpalo",
- "log 0.4.21",
+ "log",
  "once_cell",
  "proc-macro2",
  "quote",
@@ -8440,7 +8418,7 @@ dependencies = [
  "core-foundation",
  "home",
  "jni",
- "log 0.4.21",
+ "log",
  "ndk-context",
  "objc",
  "raw-window-handle",
@@ -8806,7 +8784,7 @@ dependencies = [
  "http-body-util",
  "hyper 1.2.0",
  "hyper-util",
- "log 0.4.21",
+ "log",
  "once_cell",
  "regex",
  "serde",

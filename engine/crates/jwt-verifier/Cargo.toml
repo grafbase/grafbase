@@ -18,7 +18,7 @@ serde_with.workspace = true
 thiserror = "1"
 url = { workspace = true, features = ["serde"] }
 runtime.workspace = true
-log.workspace = true
+tracing.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { workspace = true, features = ["json"] }

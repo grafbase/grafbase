@@ -155,8 +155,7 @@ async fn resolve_primitive_field(
 
 fn handle_null_primitive(field: &MetaField, ctx: &ContextField<'_>) -> Result<Value, ServerError> {
     if field.ty.is_non_null() {
-        log::warn!(
-            ctx.trace_id(),
+        tracing::warn!(
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
                 "message": "Something went wrong here",
@@ -303,10 +302,7 @@ async fn resolve_requires_fieldset(
 
     let selection_set_string = format!("{{ {requires} }}");
     let selection_set = parse_selection_set(&selection_set_string).map_err(|error| {
-        log::error!(
-            ctx.trace_id(),
-            "Could not parse require string `{selection_set_string} as selection set: {error}"
-        );
+        tracing::error!("Could not parse require string `{selection_set_string} as selection set: {error}");
         ServerError::new("Internal error processing @requires", None)
     })?;
 

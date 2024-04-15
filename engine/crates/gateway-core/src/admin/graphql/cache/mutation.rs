@@ -88,7 +88,7 @@ impl CachePurgeMutation {
                 .collect(),
         };
 
-        log::info!(ctx.ray_id, "Purging cache tags: {:?}", cache_tags);
+        tracing::info!("Purging cache tags: {:?}", cache_tags);
 
         let send_purge_future = make_send_on_wasm(global_cache_provider.purge_by_tags(cache_tags.clone()));
 
@@ -96,7 +96,7 @@ impl CachePurgeMutation {
             .await
             .map_err(|e| AdminError::CachePurgeError(e.to_string()))?;
 
-        log::info!(ctx.ray_id, "Successfully purged tags");
+        tracing::info!("Successfully purged tags");
 
         Ok(output::CachePurgeTypes { tags: cache_tags })
     }
@@ -107,7 +107,7 @@ impl CachePurgeMutation {
             .map_err(|_| AdminError::CachePurgeError("Missing context".to_string()))?;
         let global_cache_provider = &ctx.cache;
 
-        log::info!(ctx.ray_id, "Purging cache for host: {:?}", ctx.host_name);
+        tracing::info!("Purging cache for host: {:?}", ctx.host_name);
 
         let send_purge_future = make_send_on_wasm(global_cache_provider.purge_by_hostname(ctx.host_name.clone()));
 
@@ -115,7 +115,7 @@ impl CachePurgeMutation {
             .await
             .map_err(|e| AdminError::CachePurgeError(e.to_string()))?;
 
-        log::info!(ctx.ray_id, "Successfully purged host");
+        tracing::info!("Successfully purged host");
 
         Ok(output::CachePurgeDomain {
             hostname: ctx.host_name.clone(),

@@ -21,12 +21,12 @@ impl UdfInvokerImpl {
 
 #[async_trait::async_trait]
 impl<Payload: Serialize + Send> UdfInvokerInner<Payload> for UdfInvokerImpl {
-    async fn invoke(&self, ray_id: &str, request: UdfRequest<'_, Payload>) -> Result<UdfResponse, UdfError>
+    async fn invoke(&self, _ray_id: &str, request: UdfRequest<'_, Payload>) -> Result<UdfResponse, UdfError>
     where
         Payload: 'async_trait,
     {
         self.bridge.request("invoke-udf", request).await.map_err(|error| {
-            log::error!(ray_id, "Resolver invocation failed with: {}", error);
+            tracing::error!("Resolver invocation failed with: {}", error);
             UdfError::InvocationError
         })
     }

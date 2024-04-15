@@ -99,7 +99,7 @@ where
 
         match self.trusted_documents.fetch(client_name, document_id).await {
             Err(TrustedDocumentsError::RetrievalError(err)) => {
-                log::error!(request.ray_id, "Trusted document retrieval error: {err}");
+                tracing::error!("Trusted document retrieval error: {err}");
                 Err(PersistedQueryError::InternalServerError)
             }
             Err(TrustedDocumentsError::DocumentNotFound) => Err(PersistedQueryError::UnknownDocumentId {
@@ -121,7 +121,7 @@ where
                     )
                     .await
                     .map_err(|err| {
-                        log::error!(request.ray_id, "Cache error: {}", err);
+                        tracing::error!("Cache error: {}", err);
                         PersistedQueryError::InternalServerError
                     })?;
 
@@ -166,7 +166,7 @@ where
                 )
                 .await
                 .map_err(|err| {
-                    log::error!(request.ray_id, "Cache error: {}", err);
+                    tracing::error!("Cache error: {}", err);
                     PersistedQueryError::InternalServerError
                 })?;
             return Ok(());
@@ -182,7 +182,7 @@ where
                 }
             }
             Err(err) => {
-                log::error!(request.ray_id, "Cache error: {}", err);
+                tracing::error!("Cache error: {}", err);
                 Err(PersistedQueryError::InternalServerError)
             }
         }

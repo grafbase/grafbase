@@ -40,7 +40,7 @@ impl SearchEngineInner for LocalSearchEngine {
         //     .request::<QueryRequest, QueryResponse>("search", request)
         //     .await
         //     .map_err(|error| {
-        //         log::error!(ctx.ray_id(), "Search Request failed with: {}", error);
+        //         tracing::error!("Search Request failed with: {}", error);
         //         QueryError::ServerError
         //     })?
         //     .normalized(|ulid| NodeID::new(&index, &ulid.to_string()).to_string())

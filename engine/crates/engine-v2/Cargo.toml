@@ -29,7 +29,6 @@ id-newtypes = { path = "./id-newtypes", package = "engine-v2-id-newtypes" }
 im = "15"
 itertools.workspace = true
 lasso = "0.7"
-log.workspace = true
 mini-moka = { version = "0.10", optional = true, features = ["sync"] }
 serde = { workspace = true, features = ["rc"] }
 serde-value = "0.7"

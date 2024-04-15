@@ -145,7 +145,7 @@ async fn resolve_container_inner<'a>(
     parallel: bool,
     parent_resolver_value: Option<ResolvedValue>,
 ) -> ServerResult<ResponseNodeId> {
-    log::trace!(ctx.trace_id(), "Where: {}", ctx.ty.name());
+    tracing::trace!("Where: {}", ctx.ty.name());
 
     let mut fields = FieldExecutionSet(Vec::new());
     fields.add_selection_set(ctx, parent_resolver_value)?;
@@ -318,8 +318,7 @@ impl<'a> FieldExecutionSet<'a> {
                 let resolve_fut = resolve_fut.map(|result| result.map(Some));
 
                 let type_name = ctx.ty.name();
-                log::trace!(
-                    ctx.trace_id(),
+                tracing::trace!(
                     "Resolving {field} on {type_name}",
                     field = field.node.name.node.as_str()
                 );
