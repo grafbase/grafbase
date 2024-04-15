@@ -16,6 +16,9 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
 
     let schema = match schema {
         Some(schema) => fs::read_to_string(schema).map_err(CliError::SchemaReadError)?,
+        None if atty::is(atty::Stream::Stdin) => {
+            return Err(CliError::MissingArgument("--schema or a schema piped through stdin"))
+        }
         None => {
             let mut schema = String::new();
 
