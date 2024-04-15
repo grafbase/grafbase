@@ -272,18 +272,7 @@ fn opt_type_eq(a: Option<&ast::Type<'_>>, b: Option<&ast::Type<'_>>) -> bool {
 }
 
 fn type_eq(a: &ast::Type<'_>, b: &ast::Type<'_>) -> bool {
-    if a.name() != b.name() {
-        return false;
-    }
-
-    let mut a_wrappers = a.wrappers();
-    let mut b_wrappers = b.wrappers();
-
-    if (&mut a_wrappers).zip(&mut b_wrappers).any(|(a, b)| a != b) {
-        return false;
-    }
-
-    a_wrappers.next().is_none() && b_wrappers.next().is_none()
+    a.name() == b.name() && a.wrappers().eq(b.wrappers())
 }
 
 fn value_eq(a: &ast::Value<'_>, b: &ast::Value<'_>) -> bool {
@@ -297,7 +286,7 @@ fn value_eq(a: &ast::Value<'_>, b: &ast::Value<'_>) -> bool {
         (ast::Value::BlockString(a), ast::Value::String(b)) => a == b,
         (ast::Value::BlockString(a), ast::Value::BlockString(b)) => a == b,
         (ast::Value::Boolean(a), ast::Value::Boolean(b)) => a == b,
-        (ast::Value::Null, ast::Value::Null) => todo!(),
+        (ast::Value::Null, ast::Value::Null) => true,
         (ast::Value::Enum(a), ast::Value::Enum(b)) => a == b,
         (ast::Value::List(a), ast::Value::List(b)) => {
             a.len() == b.len() && a.iter().zip(b.iter()).all(|(a, b)| value_eq(a, b))

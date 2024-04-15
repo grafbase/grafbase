@@ -1,0 +1,38 @@
+{
+  "src → target": [
+    {
+      "path": "Mutation.isTuesday",
+      "kind": "ChangeFieldType"
+    },
+    {
+      "path": "Mutation.isTuesday.exceptions",
+      "kind": "ChangeFieldArgumentType"
+    },
+    {
+      "path": "Mutation.isTuesday.lat",
+      "kind": "ChangeFieldArgumentType"
+    },
+    {
+      "path": "Mutation.isTuesday.lon",
+      "kind": "ChangeFieldArgumentType"
+    }
+  ],
+  "target → src": [
+    {
+      "path": "Mutation.isTuesday",
+      "kind": "ChangeFieldType"
+    },
+    {
+      "path": "Mutation.isTuesday.exceptions",
+      "kind": "ChangeFieldArgumentType"
+    },
+    {
+      "path": "Mutation.isTuesday.lat",
+      "kind": "ChangeFieldArgumentType"
+    },
+    {
+      "path": "Mutation.isTuesday.lon",
+      "kind": "ChangeFieldArgumentType"
+    }
+  ]
+}

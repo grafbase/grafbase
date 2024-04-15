@@ -1,0 +1,13 @@
+scalar Date
+
+type Mutation {
+  isTuesday(lat: Float, lon: Float, exceptions: [Date]): Boolean
+}
+
+# --- #
+
+scalar Date
+
+type Mutation {
+  isTuesday(lat: Float!, lon: Float!, exceptions: [[Date]]): Boolean!
+}
