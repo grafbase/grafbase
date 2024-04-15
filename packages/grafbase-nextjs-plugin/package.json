@@ -33,6 +33,6 @@
     "next": "^14.0.0",
     "tsconfig": "workspace:*",
     "tsup": "^8.0.0",
-    "typescript": "5.4.4"
+    "typescript": "5.4.5"
   }
 }
