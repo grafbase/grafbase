@@ -9166,21 +9166,6 @@ dependencies = [
 ]
 
 [[patch.unused]]
-name = "http-cache"
-version = "0.18.0"
-source = "git+https://github.com/grafbase/http-cache?rev=3c1e65f3be862f264e00db42694e64cd71dad278#3c1e65f3be862f264e00db42694e64cd71dad278"
-
-[[patch.unused]]
-name = "http-cache-reqwest"
-version = "0.13.0"
-source = "git+https://github.com/grafbase/http-cache?rev=3c1e65f3be862f264e00db42694e64cd71dad278#3c1e65f3be862f264e00db42694e64cd71dad278"
-
-[[patch.unused]]
 name = "reqwest"
 version = "0.12.2"
 source = "git+https://github.com/grafbase/reqwest?rev=5e254a782ed4199cb04b8d8f8659891ab944d419#5e254a782ed4199cb04b8d8f8659891ab944d419"
-
-[[patch.unused]]
-name = "reqwest-middleware"
-version = "0.2.5"
-source = "git+https://github.com/TrueLayer/reqwest-middleware?rev=0d0d8b9411ece3cc162a69540db1d7169de32319#0d0d8b9411ece3cc162a69540db1d7169de32319"
