@@ -1,6 +1,5 @@
-use std::io::Write;
-
 use crate::{cli_input::IntrospectCommand, errors::CliError, output::report};
+use std::io::{IsTerminal as _, Write};
 use tokio::runtime::Runtime;
 
 pub(crate) fn introspect(command: &IntrospectCommand) -> Result<(), CliError> {
@@ -48,7 +47,7 @@ fn print_introspected_schema(sdl: &str, no_color: bool) {
     let mut stdout = std::io::stdout();
 
     // No highlighting when stdout is not a tty (likely a pipe) or when explicitly requested.
-    if no_color || !atty::is(atty::Stream::Stdout) || no_color_env_var() {
+    if no_color || !std::io::stdout().is_terminal() || no_color_env_var() {
         stdout.write_all(sdl.as_bytes()).ok();
         return;
     }

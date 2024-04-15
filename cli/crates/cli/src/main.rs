@@ -48,7 +48,7 @@ use clap::Parser;
 use common::{analytics::Analytics, environment::Environment};
 use errors::CliError;
 use output::report;
-use std::{path::PathBuf, process};
+use std::{io::IsTerminal as _, path::PathBuf, process};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use watercolor::ShouldColorize;
 
@@ -84,7 +84,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
     trace!("subcommand: {}", args.command);
 
     // do not display header if we're in a pipe
-    if atty::is(atty::Stream::Stdout) {
+    if std::io::stdout().is_terminal() {
         report::cli_header();
     }
 

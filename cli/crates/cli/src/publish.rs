@@ -1,5 +1,8 @@
 use crate::{cli_input::PublishCommand, errors::CliError, output::report};
-use std::{fs, io::Read};
+use std::{
+    fs,
+    io::{IsTerminal, Read},
+};
 
 #[tokio::main]
 pub(crate) async fn publish(
@@ -14,7 +17,7 @@ pub(crate) async fn publish(
     let project_ref = project_ref.ok_or_else(|| CliError::MissingArgument("PROJECT_REF"))?;
     let schema = match schema_path {
         Some(path) => fs::read_to_string(path).map_err(CliError::SchemaReadError)?,
-        None if atty::is(atty::Stream::Stdin) => {
+        None if std::io::stdin().is_terminal() => {
             return Err(CliError::MissingArgument("--schema or a schema piped through stdin"))
         }
         None => {
