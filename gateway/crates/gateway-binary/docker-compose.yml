@@ -1,7 +1,7 @@
 services:
   otel-collector:
     restart: unless-stopped
-    image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.97.0
+    image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.98.0
     command:
       - '--config=/etc/otel-collector-config.yml'
       - '--set=service.telemetry.logs.level=INFO'

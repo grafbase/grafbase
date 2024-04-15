@@ -42,5 +42,5 @@ parser-sdl = { path = "../parser-sdl" }
 assert_matches = "1.5"
 insta.workspace = true
 more-asserts = "0.3"
-rstest = "0.18"
+rstest = "0.19"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
