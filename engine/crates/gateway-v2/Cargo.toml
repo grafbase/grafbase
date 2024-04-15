@@ -12,10 +12,11 @@ keywords = ["graphql", "engine", "grafbase"]
 workspace = true
 
 [features]
+tracing = ["dep:tracing"]
 axum = [
+  "tracing",
   "dep:axum",
   "dep:tokio",
-  "dep:tracing",
   "dep:tower-service",
   "dep:async-trait"
 ]
@@ -31,11 +32,11 @@ runtime.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 headers.workspace = true
+tracing = { workspace = true, optional = true }
 
 # local server stuff
 axum = { workspace = true, optional = true, features = ["ws"] }
 tokio = { workspace = true, optional = true }
-tracing = { workspace = true, optional = true }
 tower-service = { workspace = true, optional = true }
 async-trait = { version = "0.1.80", optional = true }
 

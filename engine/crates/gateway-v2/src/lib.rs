@@ -151,8 +151,9 @@ impl Session {
                     headers,
                 }
             })
-            .unwrap_or_else(|err| {
-                tracing::error!("Serialization error: {err}");
+            .unwrap_or_else(|_err| {
+                #[cfg(feature = "tracing")]
+                tracing::error!("Serialization error: {_err}");
                 Response::internal_server_error()
             });
         response
