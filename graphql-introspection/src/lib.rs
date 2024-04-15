@@ -10,10 +10,14 @@ pub async fn introspect(url: &str, headers: &[(impl AsRef<str>, impl AsRef<str>)
 }
 
 fn prettify(graphql: String) -> String {
-    let parsed = apollo_parser::Parser::new(&graphql).parse().document();
-
-    match apollo_encoder::Document::try_from(parsed) {
-        Ok(encoded) => encoded.to_string(),
-        Err(_) => graphql,
+    match cynic_parser::parse_type_system_document(&graphql) {
+        Ok(parsed) => parsed.to_sdl(),
+        Err(_) => {
+            // Don't really want to error out just because we couldn't prettify
+            // so return the original string.
+            // Definitely possible that it's broken, but at least if we return it
+            // a user can potentially fix it manually or w/e
+            graphql
+        }
     }
 }

@@ -15,7 +15,6 @@ indoc = "2.0.5"
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 cynic = { workspace = true, features = ["http-reqwest"] }
 cynic-introspection.workspace = true
+cynic-parser.workspace = true
+cynic-parser.features = ["print"]
 serde = "1.0.197"
-apollo-parser = "0.7.7"
-apollo-encoder = "0.8.0"
-
