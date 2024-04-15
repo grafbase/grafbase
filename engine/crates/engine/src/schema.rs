@@ -607,8 +607,7 @@ impl Schema {
             });
         });
 
-        let request = request.instrument(gql_span);
-        request.await
+        request.instrument(gql_span).await
     }
 
     /// Execute a GraphQL batch query.

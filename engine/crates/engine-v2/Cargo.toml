@@ -18,6 +18,7 @@ workspace = true
 
 [dependencies]
 async-runtime.workspace = true
+blake3.workspace = true
 futures-util.workspace = true
 futures.workspace = true
 hex.workspace = true
@@ -38,6 +39,7 @@ gateway-core = { path = "../gateway-core" }
 web-time.workspace = true
 
 gateway-v2-auth = { path = "../gateway-v2/auth" }
+operation-normalizer = { path = "../operation-normalizer" }
 config = { package = "engine-v2-config", path = "./config" }
 engine-parser = { path = "../engine/parser" }
 engine-value = { path = "../engine/value" }

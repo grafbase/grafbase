@@ -10,6 +10,7 @@ pub fn error(message: &str) -> axum::response::Response {
 
 pub fn into_response(response: HttpGraphqlResponse) -> axum::response::Response {
     let HttpGraphqlResponse { headers, body, .. } = response;
+
     match body {
         HttpGraphqlResponseBody::Bytes(bytes) => match bytes {
             OwnedOrSharedBytes::Owned(bytes) => (headers, bytes).into_response(),

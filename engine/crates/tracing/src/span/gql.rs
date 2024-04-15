@@ -52,8 +52,8 @@ impl<'a> GqlRequestSpan<'a> {
         info_span!(
             target: crate::span::GRAFBASE_TARGET,
             GRAPHQL_SPAN_NAME,
-            "gql.request.operation.name" = self.operation_name,
-            "gql.request.operation.type" = self.operation_type,
+            "gql.operation.name" = self.operation_name,
+            "gql.operation.type" = self.operation_type,
             "gql.response.has_errors" = self.has_errors,
             "gql.document" = self.document,
         )
@@ -63,9 +63,9 @@ impl<'a> GqlRequestSpan<'a> {
 impl GqlRecorderSpanExt for Span {
     fn record_gql_request(&self, attributes: GqlRequestAttributes<'_>) {
         if let Some(name) = attributes.operation_name {
-            self.record("gql.request.operation.name", name);
+            self.record("gql.operation.name", name);
         }
-        self.record("gql.request.operation.type", attributes.operation_type);
+        self.record("gql.operation.type", attributes.operation_type);
     }
 
     fn record_gql_response(&self, attributes: GqlResponseAttributes) {
