@@ -4,11 +4,11 @@ pub(crate) type DiffMap<K, V> = HashMap<K, (Option<V>, Option<V>)>;
 
 #[derive(Default)]
 pub(crate) struct DiffState<'a> {
-    pub(crate) schema_definition_map: [Option<&'a ast::SchemaDefinition>; 2],
+    pub(crate) schema_definition_map: [Option<ast::SchemaDefinition<'a>>; 2],
     pub(crate) types_map: DiffMap<&'a str, DefinitionKind>,
-    pub(crate) fields_map: DiffMap<[&'a str; 2], Option<&'a ast::Type>>,
-    pub(crate) interface_impls: DiffMap<&'a str, &'a [Positioned<async_graphql_value::Name>]>,
-    pub(crate) arguments_map: DiffMap<[&'a str; 3], (&'a ast::Type, Option<&'a ConstValue>)>,
+    pub(crate) fields_map: DiffMap<[&'a str; 2], Option<ast::Type<'a>>>,
+    pub(crate) interface_impls: DiffMap<&'a str, Vec<&'a str>>,
+    pub(crate) arguments_map: DiffMap<[&'a str; 3], (ast::Type<'a>, Option<ast::Value<'a>>)>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -48,19 +48,16 @@ impl DiffState<'_> {
     }
 }
 
-fn push_interface_implementer_changes(
-    interface_impls: DiffMap<&str, &[Positioned<async_graphql_value::Name>]>,
-    changes: &mut Vec<Change>,
-) {
+fn push_interface_implementer_changes(interface_impls: DiffMap<&str, Vec<&str>>, changes: &mut Vec<Change>) {
     // O(n²) but n should always be small enough to not matter
     for (implementer, (src, target)) in &interface_impls {
-        let src = src.unwrap_or(&[]);
-        let target = target.unwrap_or(&[]);
+        let src = src.as_deref().unwrap_or(&[]);
+        let target = target.as_deref().unwrap_or(&[]);
 
         for src_impl in src {
             if !target.contains(src_impl) {
                 changes.push(Change {
-                    path: format!("{}.{}", src_impl.node, implementer),
+                    path: format!("{}.{}", src_impl, implementer),
                     kind: ChangeKind::RemoveInterfaceImplementation,
                 });
             }
@@ -69,7 +66,7 @@ fn push_interface_implementer_changes(
         for target_impl in target {
             if !src.contains(target_impl) {
                 changes.push(Change {
-                    path: format!("{}.{}", target_impl.node, implementer),
+                    path: format!("{}.{}", target_impl, implementer),
                     kind: ChangeKind::AddInterfaceImplementation,
                 });
             }
@@ -78,8 +75,8 @@ fn push_interface_implementer_changes(
 }
 
 fn push_argument_changes(
-    fields_map: &DiffMap<[&str; 2], Option<&ast::Type>>,
-    arguments_map: &DiffMap<[&str; 3], (&ast::Type, Option<&ConstValue>)>,
+    fields_map: &DiffMap<[&str; 2], Option<ast::Type<'_>>>,
+    arguments_map: &DiffMap<[&str; 3], (ast::Type<'_>, Option<ast::Value<'_>>)>,
     changes: &mut Vec<Change>,
 ) {
     for (path @ [type_name, field_name, _arg_name], (src, target)) in arguments_map {
@@ -92,7 +89,7 @@ fn push_argument_changes(
             (Some(_), None) if !parent_is_gone() => Some(ChangeKind::RemoveFieldArgument),
             (Some(_), None) => None,
             (Some((src_type, src_default)), Some((target_type, target_default))) => {
-                if src_type != target_type {
+                if !type_eq(src_type, target_type) {
                     changes.push(Change {
                         path: path.join("."),
                         kind: ChangeKind::ChangeFieldArgumentType,
@@ -102,7 +99,7 @@ fn push_argument_changes(
                 match (src_default, target_default) {
                     (None, Some(_)) => Some(ChangeKind::AddFieldArgumentDefault),
                     (Some(_), None) => Some(ChangeKind::RemoveFieldArgumentDefault),
-                    (Some(a), Some(b)) if a != b => Some(ChangeKind::ChangeFieldArgumentDefault),
+                    (Some(a), Some(b)) if !value_eq(a, b) => Some(ChangeKind::ChangeFieldArgumentDefault),
                     _ => None,
                 }
             }
@@ -118,7 +115,7 @@ fn push_argument_changes(
 }
 
 fn push_field_changes(
-    fields_map: &DiffMap<[&str; 2], Option<&ast::Type>>,
+    fields_map: &DiffMap<[&str; 2], Option<ast::Type<'_>>>,
     types_map: &DiffMap<&str, DefinitionKind>,
     changes: &mut Vec<Change>,
 ) {
@@ -155,7 +152,7 @@ fn push_field_changes(
                 Some(ty_a),
                 Some(ty_b),
                 DefinitionKind::Object | DefinitionKind::InputObject | DefinitionKind::Interface,
-            ) if ty_a != ty_b => Some(ChangeKind::ChangeFieldType),
+            ) if !opt_type_eq(ty_a.as_ref(), ty_b.as_ref()) => Some(ChangeKind::ChangeFieldType),
             (Some(_), None, _) => None,
             (Some(_), Some(_), _) => None,
         };
@@ -222,18 +219,17 @@ fn push_removed_type(name: &str, kind: DefinitionKind, changes: &mut Vec<Change>
 }
 
 fn push_schema_definition_changes(
-    schema_definition_map: [Option<&ast::SchemaDefinition>; 2],
+    schema_definition_map: [Option<ast::SchemaDefinition<'_>>; 2],
     changes: &mut Vec<Change>,
 ) {
     match schema_definition_map {
         [None, None] => (),
         [Some(src), Some(target)] => {
             let [src_query, src_mutation, src_subscription] =
-                [&src.query, &src.mutation, &src.subscription].map(|opt_node| opt_node.as_ref().map(|n| &n.node));
+                [src.query_type(), src.mutation_type(), src.subscription_type()];
 
             let [target_query, target_mutation, target_subscription] =
-                [&target.query, &target.mutation, &target.subscription]
-                    .map(|opt_node| opt_node.as_ref().map(|n| &n.node));
+                [target.query_type(), target.mutation_type(), target.subscription_type()];
 
             if src_query != target_query {
                 changes.push(Change {
@@ -264,5 +260,58 @@ fn push_schema_definition_changes(
             path: String::new(),
             kind: ChangeKind::RemoveSchemaDefinition,
         }),
+    }
+}
+
+fn opt_type_eq(a: Option<&ast::Type<'_>>, b: Option<&ast::Type<'_>>) -> bool {
+    match (a, b) {
+        (Some(a), Some(b)) => type_eq(a, b),
+        (None, None) => true,
+        _ => false,
+    }
+}
+
+fn type_eq(a: &ast::Type<'_>, b: &ast::Type<'_>) -> bool {
+    if a.name() != b.name() {
+        return false;
+    }
+
+    let mut a_wrappers = a.wrappers();
+    let mut b_wrappers = b.wrappers();
+
+    if (&mut a_wrappers).zip(&mut b_wrappers).any(|(a, b)| a != b) {
+        return false;
+    }
+
+    a_wrappers.next().is_none() && b_wrappers.next().is_none()
+}
+
+fn value_eq(a: &ast::Value<'_>, b: &ast::Value<'_>) -> bool {
+    // Same enum variants and equal values
+    match (a, b) {
+        (ast::Value::Int(a), ast::Value::Int(b)) => a == b,
+        (ast::Value::Variable(a), ast::Value::Variable(b)) => a == b,
+        (ast::Value::Float(a), ast::Value::Float(b)) => a == b,
+        (ast::Value::String(a), ast::Value::BlockString(b)) => a == b,
+        (ast::Value::String(a), ast::Value::String(b)) => a == b,
+        (ast::Value::BlockString(a), ast::Value::String(b)) => a == b,
+        (ast::Value::BlockString(a), ast::Value::BlockString(b)) => a == b,
+        (ast::Value::Boolean(a), ast::Value::Boolean(b)) => a == b,
+        (ast::Value::Null, ast::Value::Null) => todo!(),
+        (ast::Value::Enum(a), ast::Value::Enum(b)) => a == b,
+        (ast::Value::List(a), ast::Value::List(b)) => {
+            a.len() == b.len() && a.iter().zip(b.iter()).all(|(a, b)| value_eq(a, b))
+        }
+        (ast::Value::Object(a), ast::Value::Object(b)) => {
+            a.len() == b.len()
+                && a.iter().all(|(name, value)| {
+                    let Some((_, b_value)) = b.iter().find(|(b_name, _)| b_name == name) else {
+                        return false;
+                    };
+
+                    value_eq(value, b_value)
+                })
+        }
+        _ => false,
     }
 }

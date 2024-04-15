@@ -9,8 +9,7 @@ keywords = ["graphql"]
 repository = "https://github.com/grafbase/grafbase/tree/main/engine/crates/graphql-schema-diff"
 
 [dependencies]
-async-graphql-parser.workspace = true
-async-graphql-value.workspace = true
+cynic-parser.workspace = true
 serde = { workspace = true, optional = true, features = ["derive"] }
 
 [features]
