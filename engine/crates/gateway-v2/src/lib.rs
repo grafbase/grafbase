@@ -152,7 +152,7 @@ impl Session {
                 }
             })
             .unwrap_or_else(|err| {
-                log::error!(ctx.ray_id(), "Serialization error: {err}");
+                tracing::error!("Serialization error: {err}");
                 Response::internal_server_error()
             });
         response

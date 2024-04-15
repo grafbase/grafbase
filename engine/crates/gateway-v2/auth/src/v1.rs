@@ -62,7 +62,7 @@ impl V1AuthProvider {
                 };
                 client
                     .verify_rs_token_using_oidc_discovery(&token, &oidc_provider.issuer_base_url, &oidc_provider.issuer)
-                    .inspect_err(|err| log::warn!(self.ray_id, "Unauthorized: {err:?}"))
+                    .inspect_err(|err| tracing::warn!("Unauthorized: {err:?}"))
                     .await
                     .ok()
                     .map(|verified_token| self.build_token_based_auth(verified_token))
@@ -83,7 +83,7 @@ impl V1AuthProvider {
                         &jwks_provider.jwks_endpoint,
                         jwks_provider.issuer.as_deref(),
                     )
-                    .inspect_err(|err| log::warn!(self.ray_id, "Unauthorized: {err:?}"))
+                    .inspect_err(|err| tracing::warn!("Unauthorized: {err:?}"))
                     .await
                     .ok()
                     .map(|verified_token| self.build_token_based_auth(verified_token))
@@ -101,7 +101,7 @@ impl V1AuthProvider {
                 client
                     .verify_hs_token(token, &jwt_provider.issuer, &jwt_provider.secret)
                     .map_err(|err| {
-                        log::warn!(self.ray_id, "Unauthorized: {err:?}");
+                        tracing::warn!("Unauthorized: {err:?}");
                         err
                     })
                     .ok()
@@ -112,11 +112,7 @@ impl V1AuthProvider {
             }
             _ => Some(self.build_public_auth()),
         };
-        log::debug!(
-            self.ray_id,
-            "Authorizing request using {:?} produces {result:?}",
-            self.config
-        );
+        tracing::debug!("Authorizing request using {:?} produces {result:?}", self.config);
         result.map(AccessToken::V1)
     }
 }
@@ -143,13 +139,13 @@ impl V1AuthProvider {
         };
         let Ok(UdfResponse::Success(mut value)) =
             self.udf_invoker.invoke(&self.ray_id, request).await.inspect_err(|err| {
-                log::warn!(self.ray_id, "authorizer failed: {err:?}");
+                tracing::warn!("authorizer failed: {err:?}");
             })
         else {
             return None;
         };
 
-        log::trace!(self.ray_id, "Authorizer response: {value:?}");
+        tracing::trace!("Authorizer response: {value:?}");
         let Some(identity) = value.as_object_mut().and_then(|obj| obj.remove("identity")) else {
             // no identity returned, public access.
             return Some(self.build_public_auth());
@@ -159,10 +155,7 @@ impl V1AuthProvider {
             Some(serde_json::Value::String(sub)) => Some(sub.clone()),
             None => None,
             other => {
-                log::warn!(
-                    self.ray_id,
-                    "authorizer contract violation while getting subject, expected string, got {other:?}"
-                );
+                tracing::warn!("authorizer contract violation while getting subject, expected string, got {other:?}");
                 return None;
             }
         };
@@ -179,8 +172,7 @@ impl V1AuthProvider {
             }
             None => Default::default(),
             other => {
-                log::warn!(
-                    self.ray_id,
+                tracing::warn!(
                     "authorizer contract violation while getting groups, expected array of strings, got {other:?}"
                 );
                 return None;
@@ -194,7 +186,7 @@ impl V1AuthProvider {
             groups,
             token_claims,
         };
-        log::debug!(self.ray_id, "Authorizer verified {verified_token:?}");
+        tracing::debug!("Authorizer verified {verified_token:?}");
         Some(self.build_token_based_auth(verified_token))
     }
 

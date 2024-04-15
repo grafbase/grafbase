@@ -12,7 +12,6 @@ use jwt_compact::{
     prelude::*,
     TimeOptions,
 };
-use log::warn;
 use runtime::kv::{KvError, KvStore};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
@@ -101,7 +100,7 @@ impl<'a> Client<'a> {
         if url.to_string().ends_with('/') {
             url.clone()
         } else {
-            log::debug!(self.trace_id, "Appending trailing slash to {url}");
+            tracing::debug!("Appending trailing slash to {url}");
             format!("{url}/").parse().expect("url was already parsed")
         }
     }
@@ -115,11 +114,10 @@ impl<'a> Client<'a> {
         expected_issuer: &'a str,
     ) -> Result<VerifiedToken, VerificationError> {
         let token = UntrustedToken::new(&token).map_err(|err| {
-            log::warn!(self.trace_id, "Cannot parse JWT - {err}");
+            tracing::warn!("Cannot parse JWT - {err}");
             VerificationError::InvalidToken
         })?;
-        log::trace!(
-            self.trace_id,
+        tracing::trace!(
             "Untrusted token algorith {}, header: {:?}",
             token.algorithm(),
             token.header()
@@ -128,7 +126,7 @@ impl<'a> Client<'a> {
         let rsa = Self::get_rsa_algorithm(&token)?;
 
         let Some(kid) = token.header().key_id.as_ref() else {
-            log::warn!(self.trace_id, "Rejecting JWT, kid is not present");
+            tracing::warn!("Rejecting JWT, kid is not present");
             return Err(VerificationError::InvalidToken);
         };
 
@@ -144,16 +142,16 @@ impl<'a> Client<'a> {
 
         let cached_jwk = self
             .get_jwk_from_cache(&caching_key)
-            .inspect_err(|err| log::error!(self.trace_id, "Cache look-up error: {err:?}"))
+            .inspect_err(|err| tracing::error!("Cache look-up error: {err:?}"))
             .await
             .ok()
             .flatten();
 
         let jwk = if let Some(cached_jwk) = cached_jwk {
-            log::debug!(self.trace_id, "Found JWK {kid} in cache");
+            tracing::debug!("Found JWK {kid} in cache");
             cached_jwk
         } else {
-            log::trace!(self.trace_id, "Getting oidc config from {discovery_url:?}");
+            tracing::trace!("Getting oidc config from {discovery_url:?}");
             // Get JWKS endpoint from OIDC config
             let oidc_config: OidcConfig = self
                 .http_client
@@ -165,7 +163,7 @@ impl<'a> Client<'a> {
                 .await
                 .map_err(VerificationError::HttpRequest)?;
 
-            log::debug!(self.trace_id, "OIDC config: {oidc_config:?}");
+            tracing::debug!("OIDC config: {oidc_config:?}");
 
             // SECURITY: This check is important to make sure that an issuer cannot
             // assume another identity
@@ -191,7 +189,7 @@ impl<'a> Client<'a> {
 
             let _ = self
                 .add_jwk_to_cache(&caching_key, &jwk)
-                .inspect_err(|err| log::error!(self.trace_id, "Cache write error: {err:?}"))
+                .inspect_err(|err| tracing::error!("Cache write error: {err:?}"))
                 .await;
 
             jwk
@@ -218,11 +216,10 @@ impl<'a> Client<'a> {
         expected_issuer: Option<&'a str>,
     ) -> Result<VerifiedToken, VerificationError> {
         let token = UntrustedToken::new(&token).map_err(|err| {
-            log::warn!(self.trace_id, "Cannot parse JWT - {err}");
+            tracing::warn!("Cannot parse JWT - {err}");
             VerificationError::InvalidToken
         })?;
-        log::trace!(
-            self.trace_id,
+        tracing::trace!(
             "Untrusted token algorithm {}, header: {:?}",
             token.algorithm(),
             token.header()
@@ -231,19 +228,19 @@ impl<'a> Client<'a> {
         let rsa = Self::get_rsa_algorithm(&token)?;
 
         let kid = token.header().key_id.as_ref().ok_or({
-            log::warn!(self.trace_id, "Rejecting JWT, kid is not present");
+            tracing::warn!("Rejecting JWT, kid is not present");
             VerificationError::InvalidToken
         })?;
 
         let caching_key = CachingKey::Jwks { jwks_endpoint_url, kid };
         let cached_jwk = self
             .get_jwk_from_cache(&caching_key)
-            .inspect_err(|err| log::error!(self.trace_id, "Cache look-up error: {err:?}"))
+            .inspect_err(|err| tracing::error!("Cache look-up error: {err:?}"))
             .await
             .ok()
             .flatten();
         let jwk = if let Some(cached_jwk) = cached_jwk {
-            log::debug!(self.trace_id, "Found JWK {kid} in cache");
+            tracing::debug!("Found JWK {kid} in cache");
             cached_jwk
         } else {
             let jwk = {
@@ -267,7 +264,7 @@ impl<'a> Client<'a> {
 
             let _ = self
                 .add_jwk_to_cache(&caching_key, &jwk)
-                .inspect_err(|err| log::error!(self.trace_id, "Cache write error: {err:?}"))
+                .inspect_err(|err| tracing::error!("Cache write error: {err:?}"))
                 .await;
             jwk
         };
@@ -297,11 +294,10 @@ impl<'a> Client<'a> {
 
         let key = signing_key.expose_secret().as_bytes();
         let token = UntrustedToken::new(&token).map_err(|err| {
-            log::warn!(self.trace_id, "Cannot parse JWT - {err}");
+            tracing::warn!("Cannot parse JWT - {err}");
             VerificationError::InvalidToken
         })?;
-        log::trace!(
-            self.trace_id,
+        tracing::trace!(
             "Untrusted token algorithm {}, header: {:?}",
             token.algorithm(),
             token.header()
@@ -368,18 +364,14 @@ impl<'a> Client<'a> {
                     .map_err(VerificationError::IssuerFormat)
             })?;
             if expected_url == actual_url {
-                log::debug!(
-                    self.trace_id,
+                tracing::debug!(
                     "Passing issuer verification although expected '{}' does not match exactly the actual '{}'",
                     expected.0,
                     actual.0
                 );
                 Ok(())
             } else {
-                warn!(
-                    self.trace_id,
-                    "Actual issuer {} does not match the expected {}", actual.0, expected.0
-                );
+                tracing::warn!("Actual issuer {} does not match the expected {}", actual.0, expected.0);
                 Err(VerificationError::IssuerClaimMismatch)
             }
         }
@@ -393,7 +385,7 @@ impl<'a> Client<'a> {
         // Check "iss" claim if expected_issuer is set.
         if let Some(expected_issuer) = expected_issuer {
             let Some(actual_issuer) = &claims.custom.issuer else {
-                log::warn!(self.trace_id, "JWT does not contain the 'iss' claim that is required");
+                tracing::warn!("JWT does not contain the 'iss' claim that is required");
                 return Err(VerificationError::IssuerClaimMismatch);
             };
             self.verify_issuer((expected_issuer, None), (actual_issuer, None))?;
@@ -479,7 +471,7 @@ impl<'a> Client<'a> {
         assert_eq!(caching_key.kid(), jwk.id, "key identifier must be the same");
         if let Some(cache) = &self.jwks_cache {
             let key = caching_key.key();
-            log::debug!(self.trace_id, "Adding {key} to cache");
+            tracing::debug!("Adding {key} to cache");
             cache
                 .put(
                     &key,

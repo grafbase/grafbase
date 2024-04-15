@@ -21,7 +21,6 @@ futures-util.workspace = true
 http.workspace = true
 jwt-compact = { workspace = true, features = ["clock", "rsa", "ed25519-compact", "p256"]}
 jwt-verifier.workspace = true
-log.workspace = true
 runtime.workspace = true
 serde.workspace = true
 serde_with.workspace = true

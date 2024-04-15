@@ -18,7 +18,7 @@ pub struct CacheConfig {
 }
 
 pub fn process_execution_response<Error>(
-    ctx: &impl RequestContext,
+    _ctx: &impl RequestContext,
     response: Result<CachedExecutionResponse<Arc<engine::Response>>, Error>,
 ) -> Result<(Arc<engine::Response>, http::HeaderMap), Error>
 where
@@ -26,7 +26,7 @@ where
 {
     Ok(response
         .inspect_err(|error| {
-            log::error!(ctx.ray_id(), "Execution error: {}", error);
+            tracing::error!("Execution error: {}", error);
         })?
         .into_response_and_headers())
 }

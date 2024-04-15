@@ -12,7 +12,6 @@ use engine::{
     AuthConfig, ServerError, ServerResult,
 };
 use engine_value::ConstValue;
-use log::{trace, warn};
 
 const INPUT_ARG: &str = "input";
 const MUTATION_TYPE: &str = "Mutation";
@@ -76,8 +75,7 @@ impl Extension for AuthExtension {
         };
         // Get the allowed operation from the parsed schema.
         let model_allowed_ops = auth_fn(info.auth, execution_auth.global_ops()); // Fall back to global auth if model auth is not configured
-        trace!(
-            self.trace_id,
+        tracing::trace!(
             "Resolving {parent_type}.{name}, auth: {auth:?} allowed ops as {model_allowed_ops:?}, required {required_op:?}",
             parent_type = info.parent_type,
             name = info.name,
@@ -93,7 +91,7 @@ impl Extension for AuthExtension {
                     parent_type = info.parent_type,
                     name = info.name
                 );
-                warn!(self.trace_id, "{msg} auth={auth:?}", auth = info.auth);
+                tracing::warn!("{msg} auth={auth:?}", auth = info.auth);
                 return Err(ServerError::new(msg, None));
             }
 
@@ -155,7 +153,7 @@ impl Extension for AuthExtension {
         // operations) and auth is set.
         } else if let Some(auth) = info.auth {
             let field_ops = auth_fn(Some(auth), Operations::empty());
-            trace!(self.trace_id, "Field level auth. field_ops:{field_ops}");
+            tracing::trace!("Field level auth. field_ops:{field_ops}");
             if !field_ops.intersects(Operations::READ) {
                 // FIXME: Field rule should not have operations configurable.
                 let msg = format!(
@@ -163,7 +161,7 @@ impl Extension for AuthExtension {
                     type_name = info.parent_type,
                     field_name = info.name,
                 );
-                warn!(self.trace_id, "{msg} field_ops={field_ops:?}");
+                tracing::warn!("{msg} field_ops={field_ops:?}");
                 return Err(ServerError::new(msg, None));
             }
         }
@@ -196,9 +194,9 @@ impl AuthExtension {
             return Ok(());
         };
 
-        log::info!(self.trace_id, "{:?}", opts.mutation_name);
-        log::info!(self.trace_id, "{:?}", opts.type_name);
-        log::info!(self.trace_id, "{:?}", input_fields);
+        tracing::info!("{:?}", opts.mutation_name);
+        tracing::info!("{:?}", opts.type_name);
+        tracing::info!("{:?}", input_fields);
         let type_fields = opts
             .registry
             .lookup(&opts.type_name)
@@ -211,7 +209,7 @@ impl AuthExtension {
 
             let field_ops = (opts.auth_fn)(field.auth.as_ref(), opts.model_allowed_ops);
 
-            log::trace!(self.trace_id, "check_input.{field_name} ${field_ops}");
+            tracing::trace!("check_input.{field_name} ${field_ops}");
 
             if !field_ops.contains(opts.required_op) {
                 let msg = format!(
@@ -221,7 +219,7 @@ impl AuthExtension {
                     type_name = opts.type_name,
                 );
 
-                warn!(self.trace_id, "{msg} auth={auth:?}", auth = field.auth);
+                tracing::warn!("{msg} auth={auth:?}", auth = field.auth);
                 return Err(ServerError::new(msg, None));
             }
         }
@@ -252,7 +250,7 @@ impl AuthExtension {
                 let msg = format!(
                     "Unauthorized to access {MUTATION_TYPE}.{mutation_name} (missing delete operation on {type_name}.{name})"
                 );
-                warn!(self.trace_id, "{msg} auth={auth:?}", auth = field.auth);
+                tracing::warn!("{msg} auth={auth:?}", auth = field.auth);
                 return Err(ServerError::new(msg, None));
             }
         }

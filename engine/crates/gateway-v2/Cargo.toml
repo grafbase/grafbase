@@ -27,7 +27,6 @@ engine-v2 = { path = "../engine-v2" }
 futures-util.workspace = true
 gateway-core.workspace = true
 http.workspace = true
-log.workspace = true
 runtime.workspace = true
 serde.workspace = true
 serde_json.workspace = true

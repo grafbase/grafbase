@@ -121,7 +121,7 @@ impl Engine {
                     )
                     .await
                     .map_err(|err| {
-                        log::error!(request.ray_id, "Cache error: {}", err);
+                        tracing::error!("Cache error: {}", err);
                         GraphqlError::internal_server_error()
                     })?;
 
@@ -166,7 +166,7 @@ impl Engine {
                 )
                 .await
                 .map_err(|err| {
-                    log::error!(request.ray_id, "Cache error: {}", err);
+                    tracing::error!("Cache error: {}", err);
                     GraphqlError::internal_server_error()
                 })?;
             return Ok(());
@@ -183,7 +183,7 @@ impl Engine {
                 }
             }
             Err(err) => {
-                log::error!(request.ray_id, "Cache error: {}", err);
+                tracing::error!("Cache error: {}", err);
                 Err(GraphqlError::internal_server_error())
             }
         }

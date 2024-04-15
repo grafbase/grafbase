@@ -13,7 +13,7 @@ use crate::{
         MetaField,
     },
     resolver_utils::field::run_field_resolver,
-    Context, ContextExt, ContextField, Error, Registry,
+    Context, ContextField, Error, Registry,
 };
 
 use super::{resolve_input, InputResolveMode};
@@ -216,12 +216,7 @@ fn resolve_arguments(
                 if join_field_context.field.args.contains_key(variable_name.as_str()) {
                     Ok(join_field_context
                         .input_by_name(variable_name.to_string())
-                        .inspect_err(|error| {
-                            log::warn!(
-                                join_field_context.trace_id(),
-                                "Error resolving argument on joined field: {error}"
-                            )
-                        })
+                        .inspect_err(|error| tracing::warn!("Error resolving argument on joined field: {error}"))
                         .unwrap_or_default())
                 } else {
                     let value = parent_object.get(variable_name.as_str()).cloned().ok_or_else(|| {
