@@ -5350,6 +5350,7 @@ dependencies = [
  "futures",
  "if_chain",
  "indexmap 2.2.6",
+ "indoc",
  "insta",
  "itertools 0.12.1",
  "maplit",

@@ -22,6 +22,7 @@ use rules::{
     check_type_validity::CheckTypeValidity,
     check_types_underscore::CheckBeginsWithDoubleUnderscore,
     connector_transforms::run_transforms,
+    cors_directive::{CorsDirective, CorsVisitor},
     default_directive::DefaultDirective,
     default_directive_types::DefaultDirectiveTypes,
     deprecated_directive::DeprecatedDirective,
@@ -142,6 +143,7 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<AuthDirective>()
         .with::<AuthV2Directive>()
         .with::<CacheDirective>()
+        .with::<CorsDirective>()
         .with::<DefaultDirective>()
         .with::<DeprecatedDirective>()
         .with::<ExperimentalDirective>()
@@ -342,6 +344,7 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(AuthV2DirectiveVisitor)
         .with(ResolverDirective)
         .with(CacheVisitor)
+        .with(CorsVisitor)
         .with(InputObjectVisitor)
         .with(BasicType)
         .with(Interface)
