@@ -1487,9 +1487,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser"
-version = "0.2.3"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9306566c789ca3191dc025f2d25333a16880ad70e04cfd099071cba26d5aa78e"
+checksum = "411ab40d3f72ca1442d50a60e572838e5a2f0719b93a77a29647117ffdf67687"
 dependencies = [
  "indexmap 2.2.6",
  "lalrpop-util",
@@ -3154,8 +3154,7 @@ dependencies = [
 name = "graphql-schema-diff"
 version = "0.1.1"
 dependencies = [
- "async-graphql-parser",
- "async-graphql-value",
+ "cynic-parser",
  "datatest-stable",
  "miette 7.2.0",
  "serde",

@@ -4,11 +4,11 @@ pub(crate) type DiffMap<K, V> = HashMap<K, (Option<V>, Option<V>)>;
 
 #[derive(Default)]
 pub(crate) struct DiffState<'a> {
-    pub(crate) schema_definition_map: [Option<&'a ast::SchemaDefinition>; 2],
+    pub(crate) schema_definition_map: [Option<ast::SchemaDefinition<'a>>; 2],
     pub(crate) types_map: DiffMap<&'a str, DefinitionKind>,
-    pub(crate) fields_map: DiffMap<[&'a str; 2], Option<&'a ast::Type>>,
-    pub(crate) interface_impls: DiffMap<&'a str, &'a [Positioned<async_graphql_value::Name>]>,
-    pub(crate) arguments_map: DiffMap<[&'a str; 3], (&'a ast::Type, Option<&'a ConstValue>)>,
+    pub(crate) fields_map: DiffMap<[&'a str; 2], Option<ast::Type<'a>>>,
+    pub(crate) interface_impls: DiffMap<&'a str, Vec<&'a str>>,
+    pub(crate) arguments_map: DiffMap<[&'a str; 3], (ast::Type<'a>, Option<ast::Value<'a>>)>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -48,19 +48,16 @@ impl DiffState<'_> {
     }
 }
 
-fn push_interface_implementer_changes(
-    interface_impls: DiffMap<&str, &[Positioned<async_graphql_value::Name>]>,
-    changes: &mut Vec<Change>,
-) {
+fn push_interface_implementer_changes(interface_impls: DiffMap<&str, Vec<&str>>, changes: &mut Vec<Change>) {
     // O(n²) but n should always be small enough to not matter
     for (implementer, (src, target)) in &interface_impls {
-        let src = src.unwrap_or(&[]);
-        let target = target.unwrap_or(&[]);
+        let src = src.as_deref().unwrap_or(&[]);
+        let target = target.as_deref().unwrap_or(&[]);
 
         for src_impl in src {
             if !target.contains(src_impl) {
                 changes.push(Change {
-                    path: format!("{}.{}", src_impl.node, implementer),
+                    path: format!("{}.{}", src_impl, implementer),
                     kind: ChangeKind::RemoveInterfaceImplementation,
                 });
             }
@@ -69,7 +66,7 @@ fn push_interface_implementer_changes(
         for target_impl in target {
             if !src.contains(target_impl) {
                 changes.push(Change {
-                    path: format!("{}.{}", target_impl.node, implementer),
+                    path: format!("{}.{}", target_impl, implementer),
                     kind: ChangeKind::AddInterfaceImplementation,
                 });
             }
@@ -78,8 +75,8 @@ fn push_interface_implementer_changes(
 }
 
 fn push_argument_changes(
-    fields_map: &DiffMap<[&str; 2], Option<&ast::Type>>,
-    arguments_map: &DiffMap<[&str; 3], (&ast::Type, Option<&ConstValue>)>,
+    fields_map: &DiffMap<[&str; 2], Option<ast::Type<'_>>>,
+    arguments_map: &DiffMap<[&str; 3], (ast::Type<'_>, Option<ast::Value<'_>>)>,
     changes: &mut Vec<Change>,
 ) {
     for (path @ [type_name, field_name, _arg_name], (src, target)) in arguments_map {
@@ -118,7 +115,7 @@ fn push_argument_changes(
 }
 
 fn push_field_changes(
-    fields_map: &DiffMap<[&str; 2], Option<&ast::Type>>,
+    fields_map: &DiffMap<[&str; 2], Option<ast::Type<'_>>>,
     types_map: &DiffMap<&str, DefinitionKind>,
     changes: &mut Vec<Change>,
 ) {
@@ -155,7 +152,7 @@ fn push_field_changes(
                 Some(ty_a),
                 Some(ty_b),
                 DefinitionKind::Object | DefinitionKind::InputObject | DefinitionKind::Interface,
-            ) if ty_a != ty_b => Some(ChangeKind::ChangeFieldType),
+            ) if ty_a.as_ref() != ty_b.as_ref() => Some(ChangeKind::ChangeFieldType),
             (Some(_), None, _) => None,
             (Some(_), Some(_), _) => None,
         };
@@ -222,18 +219,17 @@ fn push_removed_type(name: &str, kind: DefinitionKind, changes: &mut Vec<Change>
 }
 
 fn push_schema_definition_changes(
-    schema_definition_map: [Option<&ast::SchemaDefinition>; 2],
+    schema_definition_map: [Option<ast::SchemaDefinition<'_>>; 2],
     changes: &mut Vec<Change>,
 ) {
     match schema_definition_map {
         [None, None] => (),
         [Some(src), Some(target)] => {
             let [src_query, src_mutation, src_subscription] =
-                [&src.query, &src.mutation, &src.subscription].map(|opt_node| opt_node.as_ref().map(|n| &n.node));
+                [src.query_type(), src.mutation_type(), src.subscription_type()];
 
             let [target_query, target_mutation, target_subscription] =
-                [&target.query, &target.mutation, &target.subscription]
-                    .map(|opt_node| opt_node.as_ref().map(|n| &n.node));
+                [target.query_type(), target.mutation_type(), target.subscription_type()];
 
             if src_query != target_query {
                 changes.push(Change {

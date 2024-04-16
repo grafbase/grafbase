@@ -9,17 +9,16 @@ mod traverse_schemas;
 pub use change::{Change, ChangeKind};
 
 use self::state::*;
-use async_graphql_parser::{types as ast, Positioned};
-use async_graphql_value::ConstValue;
+use cynic_parser::type_system as ast;
 use std::collections::HashMap;
 
 /// Diff two GraphQL schemas.
-pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, async_graphql_parser::Error> {
-    let [source, target] = [source, target].map(|sdl| -> Result<_, async_graphql_parser::Error> {
+pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, cynic_parser::Error> {
+    let [source, target] = [source, target].map(|sdl| -> Result<_, cynic_parser::Error> {
         if sdl.trim().is_empty() {
             Ok(None)
         } else {
-            Ok(Some(async_graphql_parser::parse_schema(sdl)?))
+            Ok(Some(cynic_parser::parse_type_system_document(sdl)?))
         }
     });
     let [source, target] = [source?, target?];

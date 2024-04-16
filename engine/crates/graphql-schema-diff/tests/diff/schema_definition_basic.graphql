@@ -1,7 +1,11 @@
 extend schema @tag
 
-type Query
+type Query {
+  a: String!
+}
 
 # --- #
 
-type Query
+type Query {
+  a: String!
+}
