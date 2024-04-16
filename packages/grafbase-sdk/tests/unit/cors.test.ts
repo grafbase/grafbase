@@ -18,20 +18,6 @@ describe('CORS settings', () => {
       graph: g,
       cors: {
         maxAge: 88400,
-        allowedHeaders: ['Authorization'],
-        allowedMethods: [
-          'GET',
-          'POST',
-          'PUT',
-          'DELETE',
-          'HEAD',
-          'OPTIONS',
-          'CONNECT',
-          'PATCH',
-          'TRACE'
-        ],
-        exposedHeaders: ['Authorization'],
-        allowCredentials: true,
         allowedOrigins: [new URL('https://example.com')]
       }
     })
@@ -39,12 +25,8 @@ describe('CORS settings', () => {
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
         @cors(
-          allowCredentials: true,
-          maxAge: 88400,
-          allowedHeaders: ["Authorization"],
-          allowedMethods: ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "CONNECT", "PATCH", "TRACE"],
-          exposedHeaders: ["Authorization"],
-          allowedOrigins: ["https://example.com/"]
+          allowedOrigins: ["https://example.com/"],
+          maxAge: 88400
         )
 
       type A {
@@ -64,89 +46,7 @@ describe('CORS settings', () => {
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
         @cors(
-          allowCredentials: false,
           allowedOrigins: "*"
-        )
-
-      type A {
-        b: Int
-      }"
-    `)
-  })
-
-  it('with any allowed header', () => {
-    const cfg = config({
-      graph: g,
-      cors: {
-        allowedHeaders: '*'
-      }
-    })
-
-    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
-      "extend schema
-        @cors(
-          allowCredentials: false,
-          allowedHeaders: "*"
-        )
-
-      type A {
-        b: Int
-      }"
-    `)
-  })
-
-  it('with any allowed method', () => {
-    const cfg = config({
-      graph: g,
-      cors: {
-        allowedMethods: '*'
-      }
-    })
-
-    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
-      "extend schema
-        @cors(
-          allowCredentials: false,
-          allowedMethods: "*"
-        )
-
-      type A {
-        b: Int
-      }"
-    `)
-  })
-
-  it('with any exposed header', () => {
-    const cfg = config({
-      graph: g,
-      cors: {
-        exposedHeaders: '*'
-      }
-    })
-
-    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
-      "extend schema
-        @cors(
-          allowCredentials: false,
-          exposedHeaders: "*"
-        )
-
-      type A {
-        b: Int
-      }"
-    `)
-  })
-
-  it('with no defined settings', () => {
-    const cfg = config({
-      graph: g,
-      cors: {}
-    })
-
-    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
-      "extend schema
-        @cors(
-          allowCredentials: false
         )
 
       type A {

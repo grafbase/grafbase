@@ -14,12 +14,7 @@ const CORS_DIRECTIVE_NAME: &str = "cors";
 #[serde(rename_all = "camelCase")]
 pub struct CorsDirective {
     max_age: Option<u32>,
-    #[serde(default)]
-    allow_credentials: bool,
-    allowed_headers: Option<AnyOrStringArray>,
-    allowed_methods: Option<AnyOrStringArray>,
     allowed_origins: Option<AnyOrStringArray>,
-    exposed_headers: Option<AnyOrStringArray>,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
@@ -70,11 +65,7 @@ impl<'a> Visitor<'a> for CorsVisitor {
 
                     ctx.registry.get_mut().cors_config = Some(CorsConfig {
                         max_age: parsed_directive.max_age,
-                        allow_credentials: parsed_directive.allow_credentials,
-                        allowed_headers: parsed_directive.allowed_headers.map(Into::into),
-                        allowed_methods: parsed_directive.allowed_methods.map(Into::into),
                         allowed_origins,
-                        exposed_headers: parsed_directive.exposed_headers.map(Into::into),
                     });
                 }
                 Err(err) => ctx.report_error(vec![directive.pos], err.to_string()),
@@ -93,11 +84,7 @@ mod tests {
         let config = indoc! {r#"
           extend schema
             @cors(
-              allowCredentials: true,
               maxAge: 88400,
-              allowedHeaders: ["Authorization"],
-              allowedMethods: ["GET", "POST"],
-              exposedHeaders: ["Content-Type"],
               allowedOrigins: ["https://example.com/"]
             )
         "#};
@@ -106,10 +93,6 @@ mod tests {
 
         let expected = CorsConfig {
             max_age: Some(88400),
-            allow_credentials: true,
-            allowed_headers: Some(vec!["Authorization".into()]),
-            allowed_methods: Some(vec!["GET".into(), "POST".into()]),
-            exposed_headers: Some(vec!["Content-Type".into()]),
             allowed_origins: Some(vec!["https://example.com".into()]),
         };
 
@@ -129,80 +112,7 @@ mod tests {
 
         let expected = CorsConfig {
             max_age: None,
-            allow_credentials: false,
-            allowed_headers: None,
-            allowed_methods: None,
-            exposed_headers: None,
             allowed_origins: Some(vec!["*".into()]),
-        };
-
-        assert_eq!(Some(expected), registry.cors_config);
-    }
-
-    #[test]
-    fn with_any_allowed_header() {
-        let config = indoc! {r#"
-          extend schema
-            @cors(
-              allowedHeaders: "*"
-            )
-        "#};
-
-        let registry = crate::parse_registry(config).unwrap();
-
-        let expected = CorsConfig {
-            max_age: None,
-            allow_credentials: false,
-            allowed_headers: Some(vec!["*".into()]),
-            allowed_methods: None,
-            exposed_headers: None,
-            allowed_origins: None,
-        };
-
-        assert_eq!(Some(expected), registry.cors_config);
-    }
-
-    #[test]
-    fn with_any_allowed_method() {
-        let config = indoc! {r#"
-          extend schema
-            @cors(
-              allowedMethods: "*"
-            )
-        "#};
-
-        let registry = crate::parse_registry(config).unwrap();
-
-        let expected = CorsConfig {
-            max_age: None,
-            allow_credentials: false,
-            allowed_headers: None,
-            allowed_methods: Some(vec!["*".into()]),
-            exposed_headers: None,
-            allowed_origins: None,
-        };
-
-        assert_eq!(Some(expected), registry.cors_config);
-    }
-
-    #[test]
-    fn with_any_exposed_header() {
-        let config = indoc! {r#"
-          extend schema
-            @cors(
-              exposedHeaders: "*"
-            )
-        "#};
-
-        let registry = crate::parse_registry(config).unwrap();
-
-        let expected = CorsConfig {
-            max_age: None,
-            allow_credentials: false,
-            allowed_headers: None,
-            allowed_methods: None,
-            exposed_headers: Some(vec!["*".into()]),
-            allowed_origins: None,
         };
 
         assert_eq!(Some(expected), registry.cors_config);

@@ -1396,11 +1396,7 @@ pub struct TrustedDocuments {
 #[serde(rename_all = "camelCase")]
 pub struct CorsConfig {
     pub max_age: Option<u32>,
-    pub allow_credentials: bool,
-    pub allowed_headers: Option<Vec<String>>,
-    pub allowed_methods: Option<Vec<String>>,
     pub allowed_origins: Option<Vec<String>>,
-    pub exposed_headers: Option<Vec<String>>,
 }
 
 // TODO(@miaxos): Remove this to a separate create as we'll need to use it outside engine
