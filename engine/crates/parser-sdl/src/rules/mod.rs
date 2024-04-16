@@ -9,6 +9,7 @@ pub mod check_type_validity;
 pub mod check_types_underscore;
 mod connector_headers;
 pub mod connector_transforms;
+pub mod cors_directive;
 pub mod default_directive;
 pub mod default_directive_types;
 pub mod deprecated_directive;

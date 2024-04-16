@@ -2356,4 +2356,5 @@ Registry {
         complexity: None,
     },
     trusted_documents: None,
+    cors_config: None,
 }

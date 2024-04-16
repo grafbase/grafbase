@@ -1392,6 +1392,13 @@ pub struct TrustedDocuments {
     pub bypass_header_value: Option<String>,
 }
 
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CorsConfig {
+    pub max_age: Option<u32>,
+    pub allowed_origins: Option<Vec<String>>,
+}
+
 // TODO(@miaxos): Remove this to a separate create as we'll need to use it outside engine
 // for a LogicalQuery
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -1428,6 +1435,8 @@ pub struct Registry {
     pub operation_limits: OperationLimits,
     #[serde(default)]
     pub trusted_documents: Option<TrustedDocuments>,
+    #[serde(default)]
+    pub cors_config: Option<CorsConfig>,
 }
 
 impl Default for Registry {
@@ -1454,6 +1463,7 @@ impl Default for Registry {
             is_federated: false,
             operation_limits: Default::default(),
             trusted_documents: Default::default(),
+            cors_config: Default::default(),
         }
     }
 }

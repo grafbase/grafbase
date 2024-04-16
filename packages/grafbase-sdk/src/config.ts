@@ -5,6 +5,7 @@ import {
   AuthenticationV2
 } from './auth'
 import { CacheParams, GlobalCache } from './cache'
+import { Cors, CorsParams } from './cors'
 import { FederatedGraph, Graph } from './grafbase-schema'
 import { OperationLimits, OperationLimitsParams } from './operation-limits'
 import { Experimental, ExperimentalParams } from './experimental'
@@ -18,6 +19,7 @@ export interface GraphConfigInput {
   graph: Graph
   auth?: AuthParams
   cache?: CacheParams
+  cors?: CorsParams
   operationLimits?: OperationLimitsParams
   trustedDocuments?: TrustedDocumentsParams
   experimental?: ExperimentalParams
@@ -34,6 +36,7 @@ export interface DeprecatedGraphConfigInput {
   auth?: AuthParams
   operationLimits?: OperationLimitsParams
   cache?: CacheParams
+  cors?: CorsParams
   experimental?: ExperimentalParams
   introspection?: boolean
   trustedDocuments?: TrustedDocumentsParams
@@ -56,6 +59,7 @@ export class GraphConfig {
   private graph: Graph
   private readonly auth?: Authentication
   private readonly cache?: GlobalCache
+  private readonly cors?: Cors
   private readonly operationLimits?: OperationLimits
   private readonly experimental?: Experimental
   private readonly introspection?: Introspection
@@ -84,29 +88,40 @@ export class GraphConfig {
     if (input.experimental) {
       this.experimental = new Experimental(input.experimental)
     }
+
     if (input.introspection !== undefined) {
       this.introspection = new Introspection({ enabled: input.introspection })
+    }
+
+    if (input.cors) {
+      this.cors = new Cors(input.cors)
     }
   }
 
   public toString(): string {
     const graph = this.graph.toString()
     const auth = this.auth ? this.auth.toString() : ''
+
     const operationLimits = this.operationLimits
       ? this.operationLimits.toString()
       : ''
+
     const trustedDocuments = this.trustedDocuments
       ? this.trustedDocuments.toString()
       : ''
+
     const cache = this.cache ? this.cache.toString() : ''
     const experimental = this.experimental ? this.experimental.toString() : ''
+
     const introspection = this.introspection
       ? this.introspection.toString()
       : process.env.GRAFBASE_ENV === 'dev'
         ? new Introspection({ enabled: true })
         : ''
 
-    return `${experimental}${auth}${operationLimits}${trustedDocuments}${cache}${introspection}${graph}`
+    const cors = this.cors ? this.cors.toString() : ''
+
+    return `${experimental}${auth}${operationLimits}${trustedDocuments}${cache}${cors}${introspection}${graph}`
   }
 }
 
