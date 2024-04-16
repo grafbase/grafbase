@@ -26,7 +26,7 @@ pub struct Args {
     pub graph_ref: Option<GraphRef>,
     /// An access token to the Grafbase API. The scope must allow operations on the given account,
     /// and graph defined in the graph-ref argument.
-    #[arg(env = "GRAFBASE_ACCESS_TOKEN")]
+    #[arg(env = "GRAFBASE_ACCESS_TOKEN", hide_env_values(true))]
     pub grafbase_access_token: Option<AsciiString>,
     /// Path to the TOML configuration file
     #[arg(long, short, env = "GRAFBASE_CONFIG_PATH", default_value = "./grafbase.toml")]
