@@ -89,7 +89,7 @@ fn push_argument_changes(
             (Some(_), None) if !parent_is_gone() => Some(ChangeKind::RemoveFieldArgument),
             (Some(_), None) => None,
             (Some((src_type, src_default)), Some((target_type, target_default))) => {
-                if !type_eq(src_type, target_type) {
+                if src_type != target_type {
                     changes.push(Change {
                         path: path.join("."),
                         kind: ChangeKind::ChangeFieldArgumentType,
@@ -99,7 +99,7 @@ fn push_argument_changes(
                 match (src_default, target_default) {
                     (None, Some(_)) => Some(ChangeKind::AddFieldArgumentDefault),
                     (Some(_), None) => Some(ChangeKind::RemoveFieldArgumentDefault),
-                    (Some(a), Some(b)) if !value_eq(a, b) => Some(ChangeKind::ChangeFieldArgumentDefault),
+                    (Some(a), Some(b)) if a != b => Some(ChangeKind::ChangeFieldArgumentDefault),
                     _ => None,
                 }
             }
@@ -152,7 +152,7 @@ fn push_field_changes(
                 Some(ty_a),
                 Some(ty_b),
                 DefinitionKind::Object | DefinitionKind::InputObject | DefinitionKind::Interface,
-            ) if !opt_type_eq(ty_a.as_ref(), ty_b.as_ref()) => Some(ChangeKind::ChangeFieldType),
+            ) if ty_a.as_ref() != ty_b.as_ref() => Some(ChangeKind::ChangeFieldType),
             (Some(_), None, _) => None,
             (Some(_), Some(_), _) => None,
         };
@@ -260,47 +260,5 @@ fn push_schema_definition_changes(
             path: String::new(),
             kind: ChangeKind::RemoveSchemaDefinition,
         }),
-    }
-}
-
-fn opt_type_eq(a: Option<&ast::Type<'_>>, b: Option<&ast::Type<'_>>) -> bool {
-    match (a, b) {
-        (Some(a), Some(b)) => type_eq(a, b),
-        (None, None) => true,
-        _ => false,
-    }
-}
-
-fn type_eq(a: &ast::Type<'_>, b: &ast::Type<'_>) -> bool {
-    a.name() == b.name() && a.wrappers().eq(b.wrappers())
-}
-
-fn value_eq(a: &ast::Value<'_>, b: &ast::Value<'_>) -> bool {
-    // Same enum variants and equal values
-    match (a, b) {
-        (ast::Value::Int(a), ast::Value::Int(b)) => a == b,
-        (ast::Value::Variable(a), ast::Value::Variable(b)) => a == b,
-        (ast::Value::Float(a), ast::Value::Float(b)) => a == b,
-        (ast::Value::String(a), ast::Value::BlockString(b)) => a == b,
-        (ast::Value::String(a), ast::Value::String(b)) => a == b,
-        (ast::Value::BlockString(a), ast::Value::String(b)) => a == b,
-        (ast::Value::BlockString(a), ast::Value::BlockString(b)) => a == b,
-        (ast::Value::Boolean(a), ast::Value::Boolean(b)) => a == b,
-        (ast::Value::Null, ast::Value::Null) => true,
-        (ast::Value::Enum(a), ast::Value::Enum(b)) => a == b,
-        (ast::Value::List(a), ast::Value::List(b)) => {
-            a.len() == b.len() && a.iter().zip(b.iter()).all(|(a, b)| value_eq(a, b))
-        }
-        (ast::Value::Object(a), ast::Value::Object(b)) => {
-            a.len() == b.len()
-                && a.iter().all(|(name, value)| {
-                    let Some((_, b_value)) = b.iter().find(|(b_name, _)| b_name == name) else {
-                        return false;
-                    };
-
-                    value_eq(value, b_value)
-                })
-        }
-        _ => false,
     }
 }

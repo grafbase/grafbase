@@ -1487,9 +1487,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46ee97b80d5b3a4957644122b5d467b38fd35dd9ba4e8e65ff1b3ac6ae784fe3"
+checksum = "411ab40d3f72ca1442d50a60e572838e5a2f0719b93a77a29647117ffdf67687"
 dependencies = [
  "indexmap 2.2.6",
  "lalrpop-util",
