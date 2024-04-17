@@ -53,7 +53,7 @@ tracing = "0.1"
 which.workspace = true
 zip = "0.6"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.67.3" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.68.0" }
 gateway = { path = "../gateway" }
 typed-resolvers = { path = "../typed-resolvers" }
 federated-dev = { path = "../federated-dev" }
