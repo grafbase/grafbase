@@ -59,8 +59,6 @@ fn setup_tracing(config: &mut Config, args: &Args) -> anyhow::Result<Option<Otel
     let OtelLegos {
         tracer_provider,
         tracer_layer_reload_handle,
-        meter_provider,
-        meter_layer_reload_handle,
     } = init_global_tracing(args, config.telemetry.clone())?;
 
     // spawn the otel layer reload
