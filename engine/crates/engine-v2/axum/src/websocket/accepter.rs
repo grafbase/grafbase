@@ -85,8 +85,8 @@ async fn websocket_loop(socket: WebSocket, session: Session) {
     let mut tasks = tokio::task::JoinSet::new();
     let mut subscriptions = HashMap::new();
 
-    while let Some(bytes) = receiver.recv_message().await {
-        let response = handle_incoming_event(bytes, &session, &sender, &mut tasks, &mut subscriptions).await;
+    while let Some(text) = receiver.recv_message().await {
+        let response = handle_incoming_event(text, &session, &sender, &mut tasks, &mut subscriptions).await;
         match response {
             None => {}
             Some(message @ Message::Close { .. }) => {
@@ -103,13 +103,13 @@ async fn websocket_loop(socket: WebSocket, session: Session) {
 }
 
 async fn handle_incoming_event(
-    bytes: Vec<u8>,
+    text: String,
     session: &Session,
     sender: &tokio::sync::mpsc::Sender<Message>,
     tasks: &mut tokio::task::JoinSet<()>,
     subscriptions: &mut HashMap<String, tokio::task::AbortHandle>,
 ) -> Option<Message> {
-    let event: Event = serde_json::from_slice(&bytes).ok()?;
+    let event: Event = serde_json::from_str(&text).ok()?;
     match event {
         Event::Subscribe { id, payload } => {
             if subscriptions.contains_key(&id) {
