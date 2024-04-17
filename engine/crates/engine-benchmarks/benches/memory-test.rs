@@ -4,7 +4,7 @@ use std::future::IntoFuture;
 
 use divan::AllocProfiler;
 
-use graphql_mocks::{LargeResponseSchema, MockGraphQlServer};
+use engine_benchmarks::MockProcess;
 use integration_tests::{EngineBuilder, ResponseExt};
 
 #[global_allocator]
@@ -16,6 +16,9 @@ fn main() {
 
 #[divan::bench]
 fn ton_of_data_test(bencher: divan::Bencher<'_, '_>) {
+    let mock = MockProcess::new();
+    let port = mock.port;
+
     bencher
         .with_inputs(|| {
             let runtime = tokio::runtime::Builder::new_current_thread()
@@ -23,19 +26,17 @@ fn ton_of_data_test(bencher: divan::Bencher<'_, '_>) {
                 .build()
                 .unwrap();
 
-            let graphql_mock = runtime.block_on(MockGraphQlServer::new(LargeResponseSchema));
+            let engine = runtime.block_on(EngineBuilder::new(schema(port, true)).build());
 
-            let engine = runtime.block_on(EngineBuilder::new(schema(graphql_mock.port(), true)).build());
-
-            (runtime, graphql_mock, engine)
+            (runtime, engine)
         })
-        .bench_values(|(runtime, graphql_mock, engine)| {
+        .bench_values(|(runtime, engine)| {
             let result = runtime.block_on(engine.execute(QUERY).into_future());
 
             let result = result.assert_success();
 
             // Return all our inputs so their Drop doesn't get counted in our bench
-            (result, graphql_mock, engine, runtime)
+            (result, engine, runtime)
         });
 }
 

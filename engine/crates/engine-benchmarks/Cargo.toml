@@ -1,0 +1,27 @@
+[package]
+name = "engine-benchmarks"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+graphql-mocks.workspace = true
+serde_json.workspace = true
+tokio = "1.37"
+
+[dev-dependencies]
+divan = "0.1"
+
+integration-tests.path = "../integration-tests"
+
+[lints]
+workspace = true
+
+[[bench]]
+name = "memory-test"
+harness = false
