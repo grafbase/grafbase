@@ -95,6 +95,12 @@ sha2.workspace = true
 hex.workspace = true
 serde.workspace = true
 
+divan = "0.1"
+
 [[bench]]
 name = "federation"
+harness = false
+
+[[bench]]
+name = "memory-test"
 harness = false
