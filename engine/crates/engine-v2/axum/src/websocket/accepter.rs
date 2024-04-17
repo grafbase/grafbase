@@ -149,8 +149,8 @@ async fn subscription_loop(stream: impl Stream<Item = Message>, id: String, send
 }
 
 async fn accept_websocket(websocket: &mut WebSocket, engine: &EngineWatcher) -> Option<Session> {
-    while let Some(bytes) = websocket.recv_message().await {
-        let event: Event = serde_json::from_slice(&bytes).ok()?;
+    while let Some(text) = websocket.recv_message().await {
+        let event: Event = serde_json::from_str(&text).ok()?;
         match event {
             Event::ConnectionInit {
                 payload: InitPayload { headers },
@@ -209,13 +209,13 @@ async fn accept_websocket(websocket: &mut WebSocket, engine: &EngineWatcher) -> 
 trait WebsocketExt {
     async fn recv(&mut self) -> Option<Result<ws::Message, ::axum::Error>>;
 
-    async fn recv_message(&mut self) -> Option<Vec<u8>> {
+    async fn recv_message(&mut self) -> Option<String> {
         while let Some(message) = self.recv().await {
             return match message {
                 Ok(ws::Message::Ping(_) | ws::Message::Pong(_)) => continue,
                 Ok(ws::Message::Close(_)) => None,
-                Ok(ws::Message::Text(contents)) => Some(contents.into_bytes()),
-                Ok(ws::Message::Binary(contents)) => Some(contents),
+                Ok(ws::Message::Text(contents)) => Some(contents),
+                Ok(ws::Message::Binary(contents)) => String::from_utf8(contents).ok(),
                 Err(error) => {
                     tracing::warn!("Error receiving websocket message: {error:?}");
                     None
