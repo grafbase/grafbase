@@ -1,14 +1,15 @@
 mod engine;
 mod execution;
+mod http_response;
 mod operation;
 mod plan;
 mod response;
 mod sources;
+pub mod websocket;
 
-pub use ::engine::Request;
-pub use engine::{Engine, EngineEnv};
-pub use execution::PreparedExecution;
-pub use response::{cacheable::CacheableResponse, ExecutionMetadata, Response};
+pub use ::engine::{BatchRequest, Request};
+pub use engine::{Engine, EngineEnv, Session};
+pub use http_response::{HttpGraphqlResponse, HttpGraphqlResponseBody};
 pub use schema::{CacheControl, Schema};
 
 pub use ::config::{latest as config, VersionedConfig};

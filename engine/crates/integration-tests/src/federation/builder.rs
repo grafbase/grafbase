@@ -6,7 +6,6 @@ use std::{collections::HashMap, sync::Arc};
 use self::mock_trusted_documents::MockTrustedDocumentsClient;
 use async_graphql_parser::types::ServiceDocument;
 pub use bench::*;
-use gateway_v2::Gateway;
 use graphql_mocks::MockGraphQlServer;
 use parser_sdl::connector_parsers::MockConnectorParsers;
 use runtime::trusted_documents_client;
@@ -32,7 +31,7 @@ pub trait GatewayV2Ext {
     }
 }
 
-impl GatewayV2Ext for gateway_v2::Gateway {}
+impl GatewayV2Ext for engine_v2::Engine {}
 
 #[async_trait::async_trait]
 pub trait SchemaSource {
@@ -90,7 +89,7 @@ impl FederationGatewayBuilder {
         });
 
         TestFederationGateway {
-            gateway: Arc::new(Gateway::new(
+            gateway: Arc::new(engine_v2::Engine::new(
                 config.try_into().unwrap(),
                 engine_v2::EngineEnv {
                     fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
@@ -101,10 +100,7 @@ impl FederationGatewayBuilder {
                         .unwrap_or_else(|| {
                             trusted_documents_client::Client::new(runtime_noop::trusted_documents::NoopTrustedDocuments)
                         }),
-                },
-                gateway_v2::GatewayEnv {
                     kv: runtime_local::InMemoryKvStore::runtime(),
-                    cache,
                 },
             )),
         }

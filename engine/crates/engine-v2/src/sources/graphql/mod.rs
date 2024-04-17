@@ -1,3 +1,4 @@
+use grafbase_tracing::span::{subgraph::SubgraphRequestSpan, GqlRecorderSpanExt, GqlResponseAttributes};
 use runtime::fetch::FetchRequest;
 use schema::{
     sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker, RootFieldResolverWalker},
@@ -22,7 +23,6 @@ mod subscription;
 mod variables;
 
 pub(crate) use federation::*;
-use grafbase_tracing::span::{subgraph::SubgraphRequestSpan, GqlRecorderSpanExt, GqlResponseAttributes};
 pub(crate) use subscription::*;
 
 pub(crate) struct GraphqlExecutionPlan {

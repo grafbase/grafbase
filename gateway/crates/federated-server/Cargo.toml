@@ -27,11 +27,9 @@ axum-server = { version = "0.6.0", features = ["tls-rustls"] }
 duration-str = "0.7.1"
 engine.workspace = true
 engine-config-builder.workspace = true
-engine-v2 = { workspace = true, features = ["plan_cache"] }
-futures-util.workspace = true
+engine-v2.workspace = true
+engine-v2-axum.workspace = true
 grafbase-tracing = { workspace = true, features = ["tower"] }
-gateway-core.workspace = true
-gateway-v2 = { workspace = true, features = ["axum"] }
 graphql-composition.workspace = true
 http.workspace = true
 parser-sdl = { version = "0.1.0", path = "../../../engine/crates/parser-sdl" }
@@ -40,7 +38,6 @@ runtime.workspace = true
 runtime-local.workspace = true
 runtime-noop.workspace = true
 serde.workspace = true
-serde_json.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["signal", "time", "net"] }
 tower-http = { version = "0.5.2", features = ["cors"] }

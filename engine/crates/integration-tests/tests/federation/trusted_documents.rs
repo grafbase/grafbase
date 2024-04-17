@@ -1,5 +1,5 @@
+use engine_v2::Engine;
 use futures::Future;
-use gateway_v2::Gateway;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::{
     engine::GraphQlRequest,
@@ -31,7 +31,7 @@ where
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("schema", &github_mock)
             .await
             .with_trusted_documents("my-branch-id".to_owned(), TRUSTED_DOCUMENTS.to_owned())

@@ -12,7 +12,7 @@ pub fn introspection(c: &mut Criterion) {
     let response = integration_tests::runtime().block_on(bench.execute());
 
     // Sanity check it works.
-    insta::assert_snapshot!(String::from_utf8_lossy(&response.bytes));
+    insta::assert_json_snapshot!(response);
 
     c.bench_function("introspection", |b| {
         // Insert a call to `to_async` to convert the bencher to async mode.
@@ -59,7 +59,7 @@ pub fn basic_federation(c: &mut Criterion) {
     let response = integration_tests::runtime().block_on(bench.execute());
 
     // Sanity check it works.
-    insta::assert_snapshot!(String::from_utf8_lossy(&response.bytes));
+    insta::assert_json_snapshot!(response);
 
     c.bench_function("basic_federation", |b| {
         // Insert a call to `to_async` to convert the bencher to async mode.

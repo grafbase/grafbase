@@ -1,23 +1,20 @@
-use std::{
-    collections::HashMap,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
 };
 
+use engine::BatchRequest;
+use engine_v2::HttpGraphqlResponse;
 use futures::stream::BoxStream;
-use gateway_v2::Response;
 use graphql_composition::FederatedGraph;
 use runtime::fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, GraphqlRequest};
 
-use crate::engine::RequestContext;
+use crate::federation::GraphqlResponse;
 
 #[derive(Clone)]
 pub struct FederationGatewayWithoutIO<'a> {
-    gateway: Arc<gateway_v2::Gateway>,
+    engine: Arc<engine_v2::Engine>,
     query: &'a str,
-    ctx: Arc<RequestContext>,
     dummy_responses_index: Arc<AtomicUsize>,
 }
 
@@ -45,7 +42,7 @@ impl<'a> FederationGatewayWithoutIO<'a> {
             ..Default::default()
         });
 
-        let gateway = gateway_v2::Gateway::new(
+        let engine = engine_v2::Engine::new(
             config.try_into().unwrap(),
             engine_v2::EngineEnv {
                 fetcher,
@@ -53,38 +50,28 @@ impl<'a> FederationGatewayWithoutIO<'a> {
                 trusted_documents: runtime::trusted_documents_client::Client::new(
                     runtime_noop::trusted_documents::NoopTrustedDocuments,
                 ),
-            },
-            gateway_v2::GatewayEnv {
                 kv: runtime_local::InMemoryKvStore::runtime(),
-                cache,
             },
         );
-        let (ctx, _) = RequestContext::new(HashMap::with_capacity(0));
-        let ctx = Arc::new(ctx);
         Self {
-            gateway: Arc::new(gateway),
+            engine: Arc::new(engine),
             query,
-            ctx,
             dummy_responses_index,
         }
     }
 
-    pub async fn execute(&self) -> Response {
-        let response = self.unchecked_execute().await;
-        assert!(
-            response.status.is_success() && !response.has_errors,
-            "Execution failed!\n{}",
-            String::from_utf8_lossy(&response.bytes)
-        );
-        response
+    pub async fn raw_execute(&self) -> HttpGraphqlResponse {
+        self.dummy_responses_index.store(0, Ordering::Relaxed);
+        self.engine
+            .execute(
+                http::HeaderMap::new(),
+                BatchRequest::Single(engine::Request::new(self.query)),
+            )
+            .await
     }
 
-    pub async fn unchecked_execute(&self) -> Response {
-        self.dummy_responses_index.store(0, Ordering::Relaxed);
-        let session = self.gateway.authorize(&Default::default()).await.unwrap();
-        session
-            .execute(self.ctx.as_ref(), engine::Request::new(self.query))
-            .await
+    pub async fn execute(&self) -> GraphqlResponse {
+        self.raw_execute().await.try_into().unwrap()
     }
 }
 

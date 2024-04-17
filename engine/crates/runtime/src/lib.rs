@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod bytes;
 pub mod cache;
 pub mod context;
 pub mod cursor;

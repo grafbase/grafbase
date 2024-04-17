@@ -127,7 +127,7 @@ where
 
         let Some(AccessToken::V1(auth)) = self
             .auth
-            .get_access_token(ctx.headers())
+            .authorize(ctx.headers())
             .instrument(info_span!("authorize_request"))
             .await
         else {
@@ -206,7 +206,7 @@ where
 
         let Some(AccessToken::V1(auth)) = self
             .auth
-            .get_access_token(ctx.headers())
+            .authorize(ctx.headers())
             .instrument(info_span!("authorize_request"))
             .await
         else {

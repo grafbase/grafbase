@@ -4,7 +4,7 @@ mod requires;
 mod sibling_dependencies;
 mod simple_key;
 
-use gateway_v2::Gateway;
+use engine_v2::Engine;
 use graphql_mocks::{
     FakeFederationAccountsSchema, FakeFederationInventorySchema, FakeFederationProductsSchema,
     FakeFederationReviewsSchema, MockGraphQlServer,
@@ -20,7 +20,7 @@ async fn execute(request: &str) -> GraphqlResponse {
     let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
     let inventory = MockGraphQlServer::new(FakeFederationInventorySchema).await;
 
-    let engine = Gateway::builder()
+    let engine = Engine::builder()
         .with_schema("accounts", &accounts)
         .await
         .with_schema("products", &products)

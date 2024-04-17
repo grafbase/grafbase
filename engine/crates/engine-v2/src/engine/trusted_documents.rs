@@ -1,11 +1,12 @@
 //! Handling of trusted documents and Automatic Persisted Queries (APQ).
 
-use super::{Engine, CLIENT_NAME_HEADER_NAME};
+use super::Engine;
 use crate::response::GraphqlError;
-use engine::{AutomaticPersistedQuery, ErrorCode, PersistedQueryRequestExtension, RequestHeaders};
+use engine::{AutomaticPersistedQuery, ErrorCode, PersistedQueryRequestExtension};
 use runtime::trusted_documents_client::TrustedDocumentsError;
 use std::mem;
 
+const CLIENT_NAME_HEADER_NAME: &str = "x-grafbase-client-name";
 const CACHE_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
 
 impl Engine {
@@ -13,9 +14,11 @@ impl Engine {
     pub(super) async fn handle_persisted_query(
         &self,
         request: &mut engine::Request,
-        client_name: Option<&str>,
-        headers: &RequestHeaders,
+        headers: &http::HeaderMap,
     ) -> Result<(), GraphqlError> {
+        let client_name = headers
+            .get(CLIENT_NAME_HEADER_NAME)
+            .and_then(|value| value.to_str().ok());
         let trusted_documents_enabled = self.env.trusted_documents.is_enabled();
         let persisted_query_extension = mem::take(&mut request.extensions.persisted_query);
         let document_id = mem::take(&mut request.operation_plan_cache_key.document_id);
@@ -26,7 +29,7 @@ impl Engine {
                     .env
                     .trusted_documents
                     .bypass_header()
-                    .map(|(name, value)| headers.find(name) == Some(value))
+                    .map(|(name, value)| headers.get(name).and_then(|v| v.to_str().ok()) == Some(value))
                     .unwrap_or_default()
                 {
                     Ok(())

@@ -7,6 +7,7 @@ members = [
   "engine/crates/gateway-v2/auth",
   "engine/crates/gateway-v2/auth-config",
   "engine/crates/engine-v2/config",
+  "engine/crates/engine-v2/axum",
   "engine/crates/engine-v2/schema",
   "engine/crates/engine-v2/id-newtypes",
   "engine/crates/engine/derive",
@@ -15,6 +16,7 @@ members = [
   "graph-ref",
   "graphql-lint",
 ]
+exclude = ["engine/crates/gateway-v2"]
 
 [patch.crates-io]
 async-tungstenite = { git = "https://github.com/grafbase/async-tungstenite", rev = "02222f222532b5cf01bba77e6d1cc8a142fe5593" } # ring
@@ -146,11 +148,11 @@ engine-config-builder = { path = "engine/crates/engine-config-builder" }
 engine-parser = { path = "engine/crates/engine/parser" }
 engine = { path = "engine/crates/engine" }
 engine-v2 = { path = "engine/crates/engine-v2" }
+engine-v2-axum = { path = "engine/crates/engine-v2/axum" }
 engine-value = { path = "engine/crates/engine/value" }
 gateway-adapter-local = { path = "engine/crates/gateway-adapter-local" }
 gateway-adapter = { path = "engine/crates/gateway-adapter" }
 gateway-core = { path = "engine/crates/gateway-core" }
-gateway-v2 = { path = "engine/crates/gateway-v2" }
 gateway-v2-auth = { path = "engine/crates/gateway-v2/auth" }
 gateway-v2-auth-config = { path = "engine/crates/gateway-v2/auth-config" }
 grafbase-tracing = { path = "engine/crates/tracing" }

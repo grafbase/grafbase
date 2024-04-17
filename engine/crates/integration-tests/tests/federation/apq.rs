@@ -1,4 +1,4 @@
-use gateway_v2::Gateway;
+use engine_v2::Engine;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::{federation::GatewayV2Ext, runtime};
 
@@ -7,7 +7,7 @@ fn single_field_from_single_server() {
     runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -58,13 +58,13 @@ fn single_field_from_single_server() {
         "###);
 
         // Wrong hash
-        let invalid_version = serde_json::json!({
+        let invalid_hash = serde_json::json!({
             "persistedQuery": {
                 "version": 1,
                 "sha256Hash": sha256("query { todo { id title } }")
             }
         });
-        insta::assert_json_snapshot!(execute(query, &invalid_version).await, @r###"
+        insta::assert_json_snapshot!(execute(query, &invalid_hash).await, @r###"
         {
           "errors": [
             {

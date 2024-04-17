@@ -1,5 +1,5 @@
+use engine_v2::Engine;
 use futures::Future;
-use gateway_v2::Gateway;
 use graphql_mocks::{MockGraphQlServer, SecureSchema};
 use integration_tests::{
     federation::{GatewayV2Ext, TestFederationGateway},
@@ -14,7 +14,7 @@ where
     runtime().block_on(async move {
         let secure_mock = MockGraphQlServer::new(SecureSchema::default()).await;
 
-        let engine = Gateway::builder()
+        let engine = Engine::builder()
             .with_schema("secure", &secure_mock)
             .await
             .with_supergraph_config(format!(

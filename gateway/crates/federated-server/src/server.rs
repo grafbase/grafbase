@@ -19,7 +19,7 @@ use crate::config::Config;
 use crate::config::TlsConfig;
 use axum::{routing::get, Router};
 use axum_server as _;
-use gateway_v2::local_server::{WebsocketAccepter, WebsocketService};
+use engine_v2_axum::websocket::{WebsocketAccepter, WebsocketService};
 use grafbase_tracing::span::GRAFBASE_TARGET;
 use state::ServerState;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
