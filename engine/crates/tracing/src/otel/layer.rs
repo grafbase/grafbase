@@ -72,7 +72,7 @@ where
     let meter_provider = super::metrics::build_meter_provider(runtime.clone(), &config, resource.clone())?;
 
     let tracing_layer = if config.enabled {
-        let tracer_provider = super::traces::create(config, id_generator, runtime, resource.clone()).expect("should build tracer provider successfully");
+        let tracer_provider = super::traces::create(config, id_generator, runtime, resource.clone())?;
         let tracer = tracer_provider.tracer("batched-otel");
         let tracer_layer = tracing_opentelemetry::layer().with_tracer(tracer).boxed();
         let (tracer_layer, tracer_layer_reload_handle) = reload::Layer::new(tracer_layer);
