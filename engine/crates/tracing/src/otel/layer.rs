@@ -1,5 +1,6 @@
 use opentelemetry::trace::TracerProvider;
 use opentelemetry::KeyValue;
+use opentelemetry::trace::noop::NoopTracer;
 use opentelemetry_sdk::runtime::RuntimeChannel;
 use opentelemetry_sdk::trace::IdGenerator;
 use opentelemetry_sdk::Resource;
@@ -7,7 +8,7 @@ use tracing::Subscriber;
 use tracing_subscriber::filter::Filtered;
 use tracing_subscriber::layer::Filter;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{reload, Layer};
+use tracing_subscriber::{reload, Layer, EnvFilter};
 
 use crate::config::TracingConfig;
 use crate::error::TracingError;
@@ -70,17 +71,34 @@ where
 
     let meter_provider = super::metrics::build_meter_provider(runtime.clone(), &config, resource.clone())?;
 
-    let tracer_provider = super::traces::create(config, id_generator, runtime, resource.clone())?;
-    let tracer = tracer_provider.tracer("batched-otel");
-    let tracer_layer = tracing_opentelemetry::layer().with_tracer(tracer).boxed();
-    let (tracer_layer, tracer_layer_reload_handle) = reload::Layer::new(tracer_layer);
+    let tracing_layer = if config.enabled {
+        let tracer_provider = super::traces::create(config, id_generator, runtime, resource.clone()).expect("should build tracer provider successfully");
+        let tracer = tracer_provider.tracer("batched-otel");
+        let tracer_layer = tracing_opentelemetry::layer().with_tracer(tracer).boxed();
+        let (tracer_layer, tracer_layer_reload_handle) = reload::Layer::new(tracer_layer);
 
-    Ok(ReloadableOtelLayers {
-        tracer: Some(ReloadableOtelLayer {
+        ReloadableOtelLayer {
             layer: tracer_layer,
             layer_reload_handle: tracer_layer_reload_handle,
             provider: tracer_provider,
-        }),
+        }
+    } else {
+        let otel_layer = tracing_opentelemetry::layer()
+            .with_tracer(NoopTracer::new())
+            .with_filter(tracing_subscriber::filter::FilterExt::boxed(EnvFilter::new("off")))
+            .boxed();
+
+        let (otel_layer, reload_handle) = reload::Layer::new(otel_layer);
+
+        ReloadableOtelLayer {
+            layer: otel_layer,
+            layer_reload_handle: reload_handle,
+            provider: Default::default(),
+        }
+    };
+
+    Ok(ReloadableOtelLayers {
+        tracer: Some(tracing_layer),
         meter_provider: Some(meter_provider),
     })
 }
