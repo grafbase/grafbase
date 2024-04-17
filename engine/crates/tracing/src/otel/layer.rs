@@ -1,14 +1,14 @@
-use opentelemetry::KeyValue;
 use opentelemetry::trace::noop::NoopTracer;
 use opentelemetry::trace::TracerProvider;
-use opentelemetry_sdk::Resource;
+use opentelemetry::KeyValue;
 use opentelemetry_sdk::runtime::RuntimeChannel;
 use opentelemetry_sdk::trace::IdGenerator;
+use opentelemetry_sdk::Resource;
 use tracing::Subscriber;
-use tracing_subscriber::{Layer, reload};
 use tracing_subscriber::filter::Filtered;
 use tracing_subscriber::layer::Filter;
 use tracing_subscriber::registry::LookupSpan;
+use tracing_subscriber::{reload, Layer};
 
 use crate::config::TracingConfig;
 use crate::error::TracingError;
@@ -83,9 +83,7 @@ where
             provider: tracer_provider,
         }
     } else {
-        let otel_layer = tracing_opentelemetry::layer()
-            .with_tracer(NoopTracer::new())
-            .boxed();
+        let otel_layer = tracing_opentelemetry::layer().with_tracer(NoopTracer::new()).boxed();
 
         let (otel_layer, reload_handle) = reload::Layer::new(otel_layer);
 
