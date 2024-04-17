@@ -54,28 +54,31 @@ struct State<'a> {
 }
 
 impl<'a> State<'a> {
-    fn field_type(&mut self, field_type: &'a ast::Type) -> Type {
-        fn unfurl(state: &State<'_>, inner: &ast::Type) -> (wrapping::Wrapping, Definition) {
+    fn field_type(&mut self, field_type: &'a ast::Type) -> Result<Type, DomainError> {
+        fn unfurl(state: &State<'_>, inner: &ast::Type) -> Result<(wrapping::Wrapping, Definition), DomainError> {
             match &inner.base {
-                ast::BaseType::Named(name) => (
+                ast::BaseType::Named(name) => Ok((
                     wrapping::Wrapping::new(!inner.nullable),
-                    state.definition_names[name.as_str()],
-                ),
+                    *state
+                        .definition_names
+                        .get(name.as_str())
+                        .ok_or_else(|| DomainError(format!("Unknown type '{name}'")))?,
+                )),
                 ast::BaseType::List(new_inner) => {
-                    let (wrapping, definition) = unfurl(state, new_inner);
+                    let (wrapping, definition) = unfurl(state, new_inner)?;
                     let wrapping = if inner.nullable {
                         wrapping.wrapped_by_nullable_list()
                     } else {
                         wrapping.wrapped_by_required_list()
                     };
-                    (wrapping, definition)
+                    Ok((wrapping, definition))
                 }
             }
         }
 
-        let (wrapping, definition) = unfurl(self, field_type);
+        let (wrapping, definition) = unfurl(self, field_type)?;
 
-        Type { definition, wrapping }
+        Ok(Type { definition, wrapping })
     }
 
     fn insert_string(&mut self, s: &str) -> StringId {
@@ -153,7 +156,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
             description: None,
         });
 
-        ingest_object_fields(object_id, &[], &mut state);
+        ingest_object_fields(object_id, &[], &mut state)?;
     }
 
     ingest_fields(&parsed, &mut state)?;
@@ -200,7 +203,7 @@ fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) ->
                         ));
                     };
                     ingest_object_interfaces(object_id, object, state)?;
-                    ingest_object_fields(object_id, &object.fields, state);
+                    ingest_object_fields(object_id, &object.fields, state)?;
                 }
                 ast::TypeKind::Interface(iface) => {
                     let Definition::Interface(interface_id) = state.definition_names[typedef.node.name.node.as_str()]
@@ -210,7 +213,7 @@ fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) ->
                         ));
                     };
                     ingest_interface_interfaces(interface_id, iface, state)?;
-                    ingest_interface(interface_id, iface, state);
+                    ingest_interface(interface_id, iface, state)?;
                 }
                 ast::TypeKind::Union(union) => {
                     let Definition::Union(union_id) = state.definition_names[typedef.node.name.node.as_str()] else {
@@ -227,7 +230,7 @@ fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) ->
                             "Broken invariant: InputObjectId behind input object name.".to_owned(),
                         ));
                     };
-                    ingest_input_object(input_object_id, input_object, state);
+                    ingest_input_object(input_object_id, input_object, state)?;
                 }
             },
         }
@@ -572,25 +575,35 @@ fn insert_builtin_scalars(state: &mut State<'_>) {
     }
 }
 
-fn ingest_interface<'a>(interface_id: InterfaceId, iface: &'a ast::InterfaceType, state: &mut State<'a>) {
+fn ingest_interface<'a>(
+    interface_id: InterfaceId,
+    iface: &'a ast::InterfaceType,
+    state: &mut State<'a>,
+) -> Result<(), DomainError> {
     let [mut start, mut end] = [None; 2];
 
     for field in &iface.fields {
-        let field_id = ingest_field(Definition::Interface(interface_id), &field.node, state);
+        let field_id = ingest_field(Definition::Interface(interface_id), &field.node, state)?;
         start = Some(start.unwrap_or(field_id));
         end = Some(field_id);
     }
 
-    let [Some(start), Some(end)] = [start, end] else { return };
-    state.interfaces[interface_id.0].fields = Range {
-        start,
-        end: FieldId(end.0 + 1),
+    if let [Some(start), Some(end)] = [start, end] {
+        state.interfaces[interface_id.0].fields = Range {
+            start,
+            end: FieldId(end.0 + 1),
+        };
     };
+    Ok(())
 }
 
-fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, state: &mut State<'a>) -> FieldId {
+fn ingest_field<'a>(
+    parent_id: Definition,
+    ast_field: &'a ast::FieldDefinition,
+    state: &mut State<'a>,
+) -> Result<FieldId, DomainError> {
     let field_name = ast_field.name.node.as_str();
-    let r#type = state.field_type(&ast_field.ty.node);
+    let r#type = state.field_type(&ast_field.ty.node)?;
     let name = state.insert_string(field_name);
     let args_start = state.input_value_definitions.len();
 
@@ -602,7 +615,7 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
             .map(|description| state.insert_string(description.node.as_str()));
         let composed_directives = collect_composed_directives(&arg.node.directives, state);
         let name = state.insert_string(arg.node.name.node.as_str());
-        let r#type = state.field_type(&arg.node.ty.node);
+        let r#type = state.field_type(&arg.node.ty.node)?;
 
         state.input_value_definitions.push(InputValueDefinition {
             name,
@@ -715,7 +728,7 @@ fn ingest_field<'a>(parent_id: Definition, ast_field: &'a ast::FieldDefinition, 
 
     state.selection_map.insert((parent_id, field_name), field_id);
 
-    field_id
+    Ok(field_id)
 }
 
 fn ingest_union_members<'a>(
@@ -737,11 +750,11 @@ fn ingest_input_object<'a>(
     input_object_id: InputObjectId,
     input_object: &'a ast::InputObjectType,
     state: &mut State<'a>,
-) {
+) -> Result<(), DomainError> {
     let start = state.input_value_definitions.len();
     for field in &input_object.fields {
         let name = state.insert_string(field.node.name.node.as_str());
-        let r#type = state.field_type(&field.node.ty.node);
+        let r#type = state.field_type(&field.node.ty.node)?;
         let composed_directives = collect_composed_directives(&field.node.directives, state);
         let description = field
             .node
@@ -758,17 +771,18 @@ fn ingest_input_object<'a>(
     let end = state.input_value_definitions.len();
 
     state.input_objects[input_object_id.0].fields = (InputValueDefinitionId(start), end - start);
+    Ok(())
 }
 
 fn ingest_object_fields<'a>(
     object_id: ObjectId,
     fields: &'a [Positioned<ast::FieldDefinition>],
     state: &mut State<'a>,
-) {
+) -> Result<(), DomainError> {
     let [mut start, mut end] = [None; 2];
 
     for field in fields {
-        let field_id = ingest_field(Definition::Object(object_id), &field.node, state);
+        let field_id = ingest_field(Definition::Object(object_id), &field.node, state)?;
         start = Some(start.unwrap_or(field_id));
         end = Some(FieldId(field_id.0 + 1));
     }
@@ -803,11 +817,11 @@ fn ingest_object_fields<'a>(
         end = end.map(|end| FieldId(end.0 + 2)).or(Some(FieldId(new_start + 2)));
     }
 
-    let [Some(start), Some(end)] = [start, end] else {
-        return;
+    if let [Some(start), Some(end)] = [start, end] {
+        state.objects[object_id.0].fields = Range { start, end };
     };
 
-    state.objects[object_id.0].fields = Range { start, end };
+    Ok(())
 }
 
 fn parse_selection_set(fields: &str) -> Result<Vec<Positioned<ast::Selection>>, DomainError> {
@@ -1358,4 +1372,39 @@ fn backwards_compatibility() {
     let actual = super::from_sdl(sdl).unwrap().into_sdl().unwrap();
 
     expected.assert_eq(&actual);
+}
+
+#[cfg(test)]
+#[test]
+fn test_missing_type() {
+    let sdl = r###"
+    directive @core(feature: String!) repeatable on SCHEMA
+
+    directive @join__owner(graph: join__Graph!) on OBJECT
+
+    directive @join__type(
+        graph: join__Graph!
+        key: String!
+        resolvable: Boolean = true
+    ) repeatable on OBJECT | INTERFACE
+
+    directive @join__field(
+        graph: join__Graph
+        requires: String
+        provides: String
+    ) on FIELD_DEFINITION
+
+    directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+    enum join__Graph {
+        MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
+        STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
+    }
+
+    type Query {
+        getMammoth: Mammoth @join__field(graph: mangrove)
+    }
+    "###;
+    let actual = super::from_sdl(sdl);
+    assert!(actual.is_err());
 }
