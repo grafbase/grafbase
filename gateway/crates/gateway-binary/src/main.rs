@@ -55,9 +55,8 @@ fn main() -> anyhow::Result<()> {
 }
 
 fn setup_tracing(config: &mut Config, args: &Args) -> anyhow::Result<Option<OtelTracing>> {
-    let telemetry_config = match config.telemetry.take() {
-        Some(telemetry_config) => telemetry_config,
-        _ => return Ok(None),
+    let Some(telemetry_config) = config.telemetry.take() else {
+        return Ok(None);
     };
 
     // setup tracing globally
