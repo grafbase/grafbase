@@ -55,16 +55,11 @@ fn main() -> anyhow::Result<()> {
 }
 
 fn setup_tracing(config: &mut Config, args: &Args) -> anyhow::Result<Option<OtelTracing>> {
-    let telemetry_config = match config.telemetry.take() {
-        Some(telemetry_config) if telemetry_config.tracing.enabled => telemetry_config,
-        _ => return Ok(None),
-    };
-
     // setup tracing globally
     let OtelLegos {
         tracer_provider,
         tracer_layer_reload_handle,
-    } = init_global_tracing(args, telemetry_config.clone())?;
+    } = init_global_tracing(args, config.telemetry.clone())?;
 
     // spawn the otel layer reload
     let (reload_sender, reload_receiver) = oneshot::channel();
@@ -74,7 +69,7 @@ fn setup_tracing(config: &mut Config, args: &Args) -> anyhow::Result<Option<Otel
         reload_receiver,
         tracer_layer_reload_handle,
         tracer_sender,
-        telemetry_config,
+        config.telemetry.clone(),
     );
 
     Ok(Some(OtelTracing {
@@ -88,14 +83,11 @@ struct OtelLegos<S> {
     tracer_layer_reload_handle: reload::Handle<BoxedLayer<S>, S>,
 }
 
-fn init_global_tracing(args: &Args, config: TelemetryConfig) -> anyhow::Result<OtelLegos<Registry>> {
+fn init_global_tracing(args: &Args, config: Option<TelemetryConfig>) -> anyhow::Result<OtelLegos<Registry>> {
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
 
-    let filter = args
-        .log_level
-        .map(|l| l.as_filter_str())
-        .unwrap_or(config.tracing.filter.as_str());
+    let filter = args.log_level.map(|l| l.as_filter_str()).unwrap_or("info");
 
     let env_filter = EnvFilter::new(filter);
     let ReloadableOtelLayers { tracer, meter_provider } = build_otel_layers(config, Default::default())?;
@@ -121,7 +113,7 @@ fn otel_layer_reload<S>(
     reload_receiver: oneshot::Receiver<OtelReload>,
     tracer_layer_reload_handle: reload::Handle<BoxedLayer<S>, S>,
     tracer_sender: watch::Sender<TracerProvider>,
-    config: TelemetryConfig,
+    config: Option<TelemetryConfig>,
 ) where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
 {
@@ -156,7 +148,7 @@ fn otel_layer_reload<S>(
 }
 
 fn build_otel_layers<S>(
-    config: TelemetryConfig,
+    config: Option<TelemetryConfig>,
     reload_data: Option<OtelReload>,
 ) -> Result<ReloadableOtelLayers<S>, TracingError>
 where
@@ -176,6 +168,12 @@ where
             }
         }
     };
+
+    let config = config.unwrap_or(TelemetryConfig {
+        service_name: "unknown".to_string(),
+        resource_attributes: Default::default(),
+        tracing: Default::default(),
+    });
 
     let mut resource_attributes = config.resource_attributes;
     if let Some(reload_data) = reload_data {
