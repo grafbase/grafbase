@@ -1,6 +1,6 @@
 {
   "name": "@grafbase/cli-aarch64-unknown-linux-musl",
-  "version": "0.67.3",
+  "version": "0.68.0",
   "description": "aarch64-unknown-linux-musl binary for Grafbase CLI",
   "keywords": [
     "grafbase",
