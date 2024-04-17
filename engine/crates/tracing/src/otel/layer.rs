@@ -4,7 +4,6 @@ use opentelemetry_sdk::runtime::RuntimeChannel;
 use opentelemetry_sdk::trace::IdGenerator;
 use opentelemetry_sdk::Resource;
 use tracing::Subscriber;
-use tracing_opentelemetry::MetricsLayer;
 use tracing_subscriber::filter::Filtered;
 use tracing_subscriber::layer::Filter;
 use tracing_subscriber::registry::LookupSpan;
@@ -25,7 +24,7 @@ pub struct ReloadableOtelLayers<S> {
     /// A reloadable tracing layer
     pub tracer: Option<ReloadableOtelLayer<S, opentelemetry_sdk::trace::TracerProvider>>,
     /// A reloadable metrics layer
-    pub meter: Option<ReloadableOtelLayer<S, opentelemetry_sdk::metrics::SdkMeterProvider>>,
+    pub meter_provider: Option<opentelemetry_sdk::metrics::SdkMeterProvider>,
 }
 
 /// Holds tracing reloadable layer components
@@ -47,7 +46,7 @@ where
 {
     ReloadableOtelLayers {
         tracer: None,
-        meter: None,
+        meter_provider: None,
     }
 }
 
@@ -70,8 +69,6 @@ where
     let resource = Resource::new(resource_attributes);
 
     let meter_provider = super::metrics::build_meter_provider(runtime.clone(), &config, resource.clone())?;
-    let meter_layer = MetricsLayer::<S>::new(meter_provider.clone()).boxed();
-    let (meter_layer, meter_layer_reload_handle) = reload::Layer::new(meter_layer);
 
     let tracer_provider = super::traces::create(config, id_generator, runtime, resource.clone())?;
     let tracer = tracer_provider.tracer("batched-otel");
@@ -84,10 +81,6 @@ where
             layer_reload_handle: tracer_layer_reload_handle,
             provider: tracer_provider,
         }),
-        meter: Some(ReloadableOtelLayer {
-            layer: meter_layer,
-            layer_reload_handle: meter_layer_reload_handle,
-            provider: meter_provider,
-        }),
+        meter_provider: Some(meter_provider),
     })
 }

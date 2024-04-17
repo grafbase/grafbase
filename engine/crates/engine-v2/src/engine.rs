@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use web_time::Instant;
 
 use engine::{BatchRequest, Request};
 use futures::{channel::mpsc, StreamExt};
@@ -9,14 +10,17 @@ use runtime::auth::AccessToken;
 
 use async_runtime::stream::StreamExt as _;
 use engine_parser::types::OperationType;
-use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes};
+use grafbase_tracing::{
+    metrics::{GraphqlOperationMetrics, GraphqlOperationMetricsAttributes},
+    span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes},
+};
 use headers::HeaderMapExt;
 use schema::Schema;
 use tracing::{Instrument, Span};
 
 use crate::{
     execution::{ExecutionContext, ExecutionCoordinator},
-    http_response::HttpGraphqlResponse,
+    http_response::{HttpGraphqlResponse, OperationMetadata},
     operation::{Operation, Variables},
     plan::OperationPlan,
     response::{GraphqlError, Response},
@@ -30,6 +34,7 @@ pub struct Engine {
     // needs access to the schema strings
     pub(crate) schema: Arc<Schema>,
     pub(crate) env: EngineEnv,
+    operation_metrics: GraphqlOperationMetrics,
     auth: AuthService,
 }
 
@@ -38,6 +43,7 @@ pub struct EngineEnv {
     pub cache: runtime::cache::Cache,
     pub trusted_documents: runtime::trusted_documents_client::Client,
     pub kv: runtime::kv::KvStore,
+    pub meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
 }
 
 impl Engine {
@@ -48,8 +54,9 @@ impl Engine {
         );
         Self {
             schema: Arc::new(schema),
-            env,
             auth,
+            operation_metrics: GraphqlOperationMetrics::build(&env.meter),
+            env,
         }
     }
 
@@ -110,14 +117,26 @@ impl Engine {
         request: Request,
     ) -> HttpGraphqlResponse {
         let span = GqlRequestSpan::new().into_span();
-        ExecutionContext {
+        let start = Instant::now();
+        let ctx = ExecutionContext {
             engine: self,
             headers,
             access_token,
+        };
+        let (metrics_attributes, response) = ctx.execute_single(span.clone(), request).instrument(span).await;
+
+        let mut metadata = OperationMetadata {
+            operation_name: None,
+            operation_type: None,
+            has_errors: response.has_errors(),
+        };
+        if let Some(metrics_attributes) = metrics_attributes {
+            metadata.operation_name = metrics_attributes.name.clone();
+            metadata.operation_type = Some(metrics_attributes.ty);
+            self.operation_metrics.record(metrics_attributes, start.elapsed());
         }
-        .execute_single(span.clone(), request)
-        .instrument(span.clone())
-        .await
+
+        HttpGraphqlResponse::from(response).with_metadata(metadata)
     }
 
     fn execute_stream(
@@ -129,71 +148,92 @@ impl Engine {
         let engine = Arc::clone(self);
         let span = GqlRequestSpan::new().into_span();
         let (sender, receiver) = mpsc::channel(2);
-        let execution = {
-            let span = span.clone();
-            async move {
-                ExecutionContext {
-                    engine: &engine,
-                    headers: &headers,
-                    access_token: &access_token,
-                }
-                .execute_stream(span, request, sender)
-                .await
+
+        receiver.join(async move {
+            let start = Instant::now();
+            let ctx = ExecutionContext {
+                engine: &engine,
+                headers: &headers,
+                access_token: &access_token,
+            };
+            let metrics_attributes = ctx.execute_stream(span.clone(), request, sender).instrument(span).await;
+
+            if let Some(metrics_attributes) = metrics_attributes {
+                engine.operation_metrics.record(metrics_attributes, start.elapsed());
             }
-        }
-        .instrument(span.clone());
-        receiver.join(execution)
+        })
     }
 }
 
 impl<'ctx> ExecutionContext<'ctx> {
-    async fn execute_single(self, span: Span, mut request: Request) -> HttpGraphqlResponse {
+    async fn execute_single(
+        self,
+        span: Span,
+        mut request: Request,
+    ) -> (Option<GraphqlOperationMetricsAttributes>, Response) {
         let operation = match self.prepare_operation(&mut request).await {
             Ok(operation) => operation,
             Err(err) => {
                 span.record_has_error();
-                return Response::from_error(err).into();
+                return (None, Response::from_error(err));
             }
         };
+        let metrics_attributes = Some(GraphqlOperationMetricsAttributes {
+            id: String::new(),
+            name: operation.name.clone(),
+            ty: operation.ty.as_str(),
+        });
         span.record_gql_request(GqlRequestAttributes {
-            operation_type: operation.ty.as_ref(),
+            operation_type: operation.ty.as_str(),
             operation_name: operation.name.as_deref(),
         });
 
         if matches!(operation.ty, OperationType::Subscription) {
             span.record_has_error();
-            return Response::from_error(GraphqlError::new(
+            let error = GraphqlError::new(
                 "Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets",
-            ))
-            .into();
+            );
+            return (metrics_attributes, Response::from_error(error));
         }
 
-        match self.prepare_coordinator(operation, request.variables) {
+        let response = match self.prepare_coordinator(operation, request.variables) {
             Ok(coordinator) => {
                 let response = coordinator.execute().await;
                 if response.has_errors() {
                     span.record_has_error();
                 }
-                response.into()
+                response
             }
             Err(errors) => {
                 span.record_has_error();
-                Response::from_errors(errors).into()
+                Response::from_errors(errors)
             }
-        }
+        };
+
+        (metrics_attributes, response)
     }
 
-    async fn execute_stream(self, span: Span, mut request: Request, mut sender: mpsc::Sender<Response>) {
+    async fn execute_stream(
+        self,
+        span: Span,
+        mut request: Request,
+        mut sender: mpsc::Sender<Response>,
+    ) -> Option<GraphqlOperationMetricsAttributes> {
         let operation = match self.prepare_operation(&mut request).await {
             Ok(operation) => operation,
             Err(err) => {
                 span.record_has_error();
                 sender.send(Response::from_error(err)).await.ok();
-                return;
+                return None;
             }
         };
+        let metrics_attributes = Some(GraphqlOperationMetricsAttributes {
+            id: String::new(),
+            ty: operation.ty.as_str(),
+            name: operation.name.clone(),
+        });
         span.record_gql_request(GqlRequestAttributes {
-            operation_type: operation.ty.as_ref(),
+            operation_type: operation.ty.as_str(),
             operation_name: operation.name.as_deref(),
         });
 
@@ -202,7 +242,7 @@ impl<'ctx> ExecutionContext<'ctx> {
             Err(errors) => {
                 span.record_has_error();
                 sender.send(Response::from_errors(errors)).await.ok();
-                return;
+                return metrics_attributes;
             }
         };
 
@@ -212,7 +252,7 @@ impl<'ctx> ExecutionContext<'ctx> {
         ) {
             span.record_has_error();
             sender.send(coordinator.execute().await).await.ok();
-            return;
+            return metrics_attributes;
         }
 
         struct Sender {
@@ -231,6 +271,7 @@ impl<'ctx> ExecutionContext<'ctx> {
         }
 
         coordinator.execute_subscription(Sender { span, sender }).await;
+        metrics_attributes
     }
 
     fn prepare_coordinator(

@@ -5,6 +5,8 @@ use serde::Deserialize;
 
 use crate::{load_schema, with_hybrid_server, with_static_server};
 
+mod metrics;
+
 #[test]
 fn with_stdout_telemetry() {
     let config = indoc! {r#"
@@ -99,82 +101,6 @@ fn with_otel() {
             .unwrap();
 
         assert_eq!(resource_attributes, expected_resource_attributes);
-    });
-}
-
-#[test]
-fn request_metrics() {
-    let service_name = format!("service-{}", rand::random::<u128>());
-    let config = &formatdoc! {r#"
-        [telemetry]
-        service_name = "{service_name}"
-
-        [telemetry.tracing]
-        enabled = true
-        sampling = 1
-
-        [telemetry.tracing.exporters.otlp]
-        enabled = true
-        endpoint = "http://localhost:4317"
-        protocol = "grpc"
-
-        [telemetry.tracing.exporters.otlp.batch_export]
-        scheduled_delay = 1
-        max_export_batch_size = 1
-    "#};
-
-    let schema = load_schema("big");
-
-    let query = indoc! {r#"
-        { __typename }
-    "#};
-
-    with_static_server(config, &schema, None, None, |client| async move {
-        let result: serde_json::Value = client.gql(query).send().await;
-        serde_json::to_string_pretty(&result).unwrap();
-
-        tokio::time::sleep(Duration::from_secs(2)).await;
-
-        let client = clickhouse::Client::default()
-            .with_url("http://localhost:8123")
-            .with_user("default")
-            .with_database("otel");
-
-        #[serde_with::serde_as]
-        #[derive(clickhouse::Row, Deserialize)]
-        struct Row {
-            count: usize,
-        }
-
-        let Row { count } = client
-            .query(
-                r#"
-                SELECT ResourceAttributes
-                FROM otel_metrics_sum
-                WHERE ResourceAttributes['service.name'] = ?
-                    AND MetricName = 'request_count'
-                "#,
-            )
-            .bind(&service_name)
-            .fetch_one()
-            .await
-            .unwrap();
-        assert!(count > 0);
-
-        let Row { count } = client
-            .query(
-                r#"
-                SELECT ResourceAttributes
-                FROM otel_metrics_exponential_histogram
-                WHERE ResourceAttributes['service.name'] = ?
-                    AND MetricName = 'latency'
-                "#,
-            )
-            .bind(&service_name)
-            .fetch_one()
-            .await
-            .unwrap();
-        assert!(count > 0);
     });
 }
 

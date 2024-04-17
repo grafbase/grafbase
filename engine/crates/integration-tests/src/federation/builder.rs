@@ -101,6 +101,7 @@ impl FederationGatewayBuilder {
                             trusted_documents_client::Client::new(runtime_noop::trusted_documents::NoopTrustedDocuments)
                         }),
                     kv: runtime_local::InMemoryKvStore::runtime(),
+                    meter: grafbase_tracing::metrics::meter_from_global_provider(),
                 },
             )),
         }

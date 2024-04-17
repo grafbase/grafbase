@@ -51,6 +51,7 @@ impl<'a> FederationGatewayWithoutIO<'a> {
                     runtime_noop::trusted_documents::NoopTrustedDocuments,
                 ),
                 kv: runtime_local::InMemoryKvStore::runtime(),
+                meter: grafbase_tracing::metrics::meter_from_global_provider(),
             },
         );
         Self {

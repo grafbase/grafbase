@@ -43,13 +43,20 @@ pub enum OperationType {
     Subscription,
 }
 
-impl AsRef<str> for OperationType {
-    fn as_ref(&self) -> &str {
+impl OperationType {
+    /// Operation type as str
+    pub fn as_str(&self) -> &'static str {
         match self {
             Self::Query => "query",
             Self::Mutation => "mutation",
             Self::Subscription => "subscription",
         }
+    }
+}
+
+impl AsRef<str> for OperationType {
+    fn as_ref(&self) -> &str {
+        self.as_str()
     }
 }
 
