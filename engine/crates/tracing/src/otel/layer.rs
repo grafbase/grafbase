@@ -1,6 +1,6 @@
+use opentelemetry::trace::noop::NoopTracer;
 use opentelemetry::trace::TracerProvider;
 use opentelemetry::KeyValue;
-use opentelemetry::trace::noop::NoopTracer;
 use opentelemetry_sdk::runtime::RuntimeChannel;
 use opentelemetry_sdk::trace::IdGenerator;
 use opentelemetry_sdk::Resource;
@@ -8,7 +8,7 @@ use tracing::Subscriber;
 use tracing_subscriber::filter::Filtered;
 use tracing_subscriber::layer::Filter;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{reload, Layer, EnvFilter};
+use tracing_subscriber::{reload, EnvFilter, Layer};
 
 use crate::config::TracingConfig;
 use crate::error::TracingError;
