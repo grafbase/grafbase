@@ -21,6 +21,9 @@ let server_handle = server::start(PORT).unwrap();
 #[macro_use]
 extern crate log;
 
+#[cfg(test)]
+use criterion as _;
+
 mod atomics;
 mod bridge;
 mod bun;
@@ -38,6 +41,10 @@ mod udf_builder;
 
 pub mod errors;
 pub mod types;
+
+/// Only for benchmarks.
+#[doc(hidden)]
+pub use config::parse_sdl;
 
 pub use dump_config::dump_config;
 pub use introspect_local::{introspect_local, IntrospectLocalOutput};
