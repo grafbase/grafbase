@@ -375,42 +375,60 @@ pub fn create_success(name: &str, urls: &[String]) {
     }
 }
 
-pub(crate) fn check_warnings<'a>(operation_check_warnings: impl Iterator<Item = &'a str>) {
-    for warning in operation_check_warnings {
-        watercolor::output!("⚠️  Warning: {warning}", @BrightYellow);
-    }
-}
-
 pub(crate) fn check_success() {
-    watercolor::output!("✨ Successful check!", @BrightBlue);
+    watercolor::output!("\n✨ Successful check!", @BrightBlue);
 }
 
 pub(crate) fn check_errors<'a>(
+    has_errors: bool,
     validation_errors: impl ExactSizeIterator<Item = &'a str>,
     composition_errors: impl ExactSizeIterator<Item = &'a str>,
     operation_errors: impl Iterator<Item = &'a str>,
+    lint_errors: impl Iterator<Item = &'a str>,
+    operation_warnings: impl Iterator<Item = &'a str>,
+    lint_warnings: impl Iterator<Item = &'a str>,
 ) {
-    watercolor::output!("🔴 The schema check failed.\n", @BrightRed);
+    if has_errors {
+        watercolor::output!("\nErrors were found in your schema check:", @BrightRed);
+    } else {
+        watercolor::output!("\nWarnings were found in your schema check:", @BrightYellow);
+    }
 
     if validation_errors.len() > 0 {
-        watercolor::output!("Validation errors:", @BrightRed);
+        watercolor::output!("\nValidation\n", @BrightBlue);
         for error in validation_errors {
-            watercolor::output!("- {error}", @BrightRed);
+            watercolor::output!("❌ [Error] {error}", @BrightRed);
+        }
+    }
+
+    let mut lint_errors = lint_errors.peekable();
+    let mut lint_warnings = lint_warnings.peekable();
+    if lint_errors.peek().is_some() || lint_warnings.peek().is_some() {
+        watercolor::output!("\nLint\n", @BrightBlue);
+        for warning in lint_warnings {
+            watercolor::output!("⚠️ [Warning] {warning}", @BrightYellow);
+        }
+        for error in lint_errors {
+            watercolor::output!("❌ [Error] {error}", @BrightRed);
         }
     }
 
     if composition_errors.len() > 0 {
-        watercolor::output!("Composition errors:", @BrightRed);
+        watercolor::output!("\nComposition\n", @BrightBlue);
         for error in composition_errors {
-            watercolor::output!("- {error}", @BrightRed);
+            watercolor::output!("❌ [Error] {error}", @BrightRed);
         }
     }
 
     let mut operation_errors = operation_errors.peekable();
-    if operation_errors.peek().is_some() {
-        watercolor::output!("Operation check errors:", @BrightRed);
-        for message in operation_errors {
-            watercolor::output!("- {message}", @BrightRed);
+    let mut operation_warnings = operation_warnings.peekable();
+    if operation_errors.peek().is_some() || operation_warnings.peek().is_some() {
+        watercolor::output!("\nOperation\n", @BrightBlue);
+        for warning in operation_warnings {
+            watercolor::output!("⚠️ [Warning] {warning}", @BrightYellow);
+        }
+        for error in operation_errors {
+            watercolor::output!("❌ [Error] {error}", @BrightRed);
         }
     }
 }
