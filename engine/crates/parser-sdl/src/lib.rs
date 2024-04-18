@@ -242,6 +242,8 @@ async fn parse_connectors<'a>(
     ctx: &mut VisitorContext<'a>,
     connector_parsers: &dyn ConnectorParsers,
 ) -> Result<(), Error> {
+    use futures::StreamExt as _;
+
     let mut connector_rules = rules::visitor::VisitorNil
         .with(OpenApiVisitor)
         .with(GraphqlVisitor)
@@ -252,43 +254,56 @@ async fn parse_connectors<'a>(
 
     validate_unique_names(ctx)?;
 
-    // We could probably parallelise this, but the schemas and the associated
-    // processing use a reasonable amount of memory so going to keep it sequential
+    let mut connector_registries: futures::stream::FuturesOrdered<
+        futures::future::BoxFuture<'_, Result<(Registry, Pos), Error>>,
+    > = Default::default();
+
     for (directive, position) in std::mem::take(&mut ctx.openapi_directives) {
         let directive_name = directive.name.clone();
         let transforms = directive.transforms.transforms.clone();
-        match connector_parsers.fetch_and_parse_openapi(directive).await {
-            Ok(mut registry) => {
-                if let Some(transforms) = &transforms {
-                    run_transforms(&mut registry, transforms);
+        connector_registries.push_back(Box::pin(async move {
+            match connector_parsers.fetch_and_parse_openapi(directive).await {
+                Ok(mut registry) => {
+                    if let Some(transforms) = &transforms {
+                        run_transforms(&mut registry, transforms);
+                    }
+
+                    Ok((registry, position))
                 }
-                connector_parsers::merge_registry(ctx, registry, position);
+                Err(errors) => Err(Error::ConnectorErrors(directive_name, errors, position)),
             }
-            Err(errors) => return Err(Error::ConnectorErrors(directive_name, errors, position)),
-        }
+        }));
     }
 
     for (directive, position) in std::mem::take(&mut ctx.graphql_directives) {
         let directive_name = directive.name.clone();
         let transforms = directive.transforms.clone();
-        match connector_parsers.fetch_and_parse_graphql(directive).await {
-            Ok(mut registry) => {
-                if let Some(transforms) = &transforms {
-                    run_transforms(&mut registry, transforms);
+        connector_registries.push_back(Box::pin(async move {
+            match connector_parsers.fetch_and_parse_graphql(directive).await {
+                Ok(mut registry) => {
+                    if let Some(transforms) = &transforms {
+                        run_transforms(&mut registry, transforms);
+                    }
+
+                    Ok((registry, position))
                 }
-                connector_parsers::merge_registry(ctx, registry, position);
+                Err(errors) => Err(Error::ConnectorErrors(directive_name, errors, position)),
             }
-            Err(errors) => return Err(Error::ConnectorErrors(directive_name, errors, position)),
-        }
+        }));
     }
 
     for (directive, position) in std::mem::take(&mut ctx.postgres_directives) {
-        match connector_parsers.fetch_and_parse_postgres(&directive).await {
-            Ok(registry) => {
-                connector_parsers::merge_registry(ctx, registry, position);
+        connector_registries.push_back(Box::pin(async move {
+            match connector_parsers.fetch_and_parse_postgres(&directive).await {
+                Ok(registry) => Ok((registry, position)),
+                Err(errors) => Err(Error::ConnectorErrors(directive.name().to_string(), errors, position)),
             }
-            Err(errors) => return Err(Error::ConnectorErrors(directive.name().to_string(), errors, position)),
-        }
+        }));
+    }
+
+    while let Some(result) = connector_registries.next().await {
+        let (registry, position) = result?;
+        connector_parsers::merge_registry(ctx, registry, position);
     }
 
     Ok(())

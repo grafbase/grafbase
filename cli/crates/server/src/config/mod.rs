@@ -28,7 +28,7 @@ mod actor;
 mod error;
 mod parser;
 
-pub use self::{actor::ConfigActor, error::ConfigError};
+pub use self::{actor::ConfigActor, error::ConfigError, parser::parse_sdl};
 
 #[derive(Debug, Clone)]
 pub struct DetectedUdf {

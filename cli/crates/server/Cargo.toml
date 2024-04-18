@@ -71,8 +71,13 @@ common-types = { path = "../../../engine/crates/common-types" }
 
 [dev-dependencies]
 serde_json = "1"
+criterion = { version = "0.5" }
 
 [build-dependencies]
 flate2 = { version = "1", features = ["zlib"] }
 tar.workspace = true
 tempfile = "3"
+
+[[bench]]
+name = "parse_sdl_benchmark"
+harness = false

@@ -9,7 +9,7 @@ use postgres_connector_types::transport::DirectTcpTransport;
 use super::ConfigError;
 
 // Contract between this crate and CLI
-// #[derive(serde::Serialize)]
+#[derive(Debug)]
 pub struct ParserResult {
     pub registry: Registry,
     pub required_udfs: HashSet<(UdfKind, String)>,
