@@ -299,6 +299,10 @@ pub enum HttpMethod {
     Put,
     Delete,
     Patch,
+    Head,
+    Trace,
+    Options,
+    Connect,
 }
 
 // The GraphQL spec calls the "NonNull"/"List" types "wrapping types" so I'm borrowing
