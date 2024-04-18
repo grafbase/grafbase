@@ -1,4 +1,5 @@
 use runtime::log::LogEvent;
+use tracing::{info_span, Instrument};
 
 pub async fn send_logged_request(
     request_id: &str,
@@ -10,10 +11,12 @@ pub async fn send_logged_request(
     let (client, request) = request_builder.build_split();
     let request = request?;
 
-    let url = request.url().to_string();
+    let url = request.url().clone();
     let method = request.method().to_string();
-
-    let mut response = client.execute(request).await?;
+    let mut response = client
+        .execute(request)
+        .instrument(info_span!("http_request", host = url.host_str()))
+        .await?;
 
     if let Some(fetch_log_endpoint_url) = fetch_log_endpoint_url {
         let status_code = response.status().as_u16();
@@ -46,7 +49,7 @@ pub async fn send_logged_request(
             .json(&LogEvent {
                 request_id,
                 r#type: common_types::LogEventType::NestedRequest {
-                    url,
+                    url: url.to_string(),
                     method,
                     status_code,
                     duration,
