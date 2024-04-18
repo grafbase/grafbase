@@ -1,9 +1,8 @@
 #![cfg_attr(test, allow(unused_crate_dependencies))]
 
-use std::fs;
-
-use anyhow::Context;
+use ascii as _;
 use clap::{crate_version, Parser};
+use graph_ref as _;
 use mimalloc::MiMalloc;
 use tokio::runtime;
 use tokio::sync::{oneshot, watch};
@@ -35,8 +34,7 @@ fn main() -> anyhow::Result<()> {
         .expect("installing default crypto provider");
 
     let args = Args::parse();
-    let config = fs::read_to_string(&args.config).context("could not read config file")?;
-    let mut config: Config = toml::from_str(&config)?;
+    let mut config = args.config()?;
 
     let runtime = runtime::Builder::new_multi_thread()
         .enable_all()
@@ -49,7 +47,17 @@ fn main() -> anyhow::Result<()> {
         let crate_version = crate_version!();
         tracing::info!(target: GRAFBASE_TARGET, "Grafbase Gateway {crate_version}");
 
-        federated_server::serve(args.listen_address, config, args.fetch_method()?, otel_tracing).await?;
+        let listen_address = {
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "lambda")] {
+                    None
+                } else {
+                    args.listen_address
+                }
+            }
+        };
+
+        federated_server::serve(listen_address, config, args.fetch_method()?, otel_tracing).await?;
 
         Ok::<(), anyhow::Error>(())
     })?;
