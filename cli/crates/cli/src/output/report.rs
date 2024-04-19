@@ -604,3 +604,11 @@ pub(crate) fn trust_reused_ids(reused: &backend::api::submit_trusted_documents::
 pub(crate) fn upgrade_up_to_date(version: &str) {
     watercolor::output!("✅ The locally installed version ({version}) is already up to date", @BrightGreen)
 }
+
+pub(crate) fn lint_success() {
+    watercolor::output!("✅ No issues found in your schema", @BrightGreen)
+}
+
+pub(crate) fn lint_warning(warning: String) {
+    watercolor::output!("⚠️ [Warning] {warning}", @BrightYellow);
+}
