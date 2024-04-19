@@ -1,6 +1,6 @@
 [package]
 name = "federated-server"
-version = "0.3.0-rc.3"
+version = "0.3.0-rc.4"
 edition.workspace = true
 license = "MPL-2.0"
 homepage.workspace = true
