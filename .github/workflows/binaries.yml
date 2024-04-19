@@ -299,11 +299,15 @@ jobs:
       - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'ubicloud-standard-8-arm' }}
         name: Upload lambda gateway binary to R2
         run: |
+          BUILD_PROFILE=release
+          if [[ $GITHUB_REF =~ ^refs/tags/gateway- ]]; then
+            BUILD_PROFILE=lambda
+          fi
           aws s3api put-object \
             --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
             --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
             --key ${GITHUB_SHA}/${{ matrix.archs.target }}/grafbase-gateway-lambda \
-            --body target/${{ matrix.archs.target }}/release/grafbase-gateway
+            --body target/${{ matrix.archs.target }}/$BUILD_PROFILE/grafbase-gateway
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
@@ -314,7 +318,7 @@ jobs:
         with:
           name: gateway-lambda-${{ env.VERSION_BUMP }}-${{ matrix.archs.platform }}
           path: |
-            target/${{ matrix.archs.target }}/release/grafbase-gateway
+            target/${{ matrix.archs.target }}/lambda/grafbase-gateway
   windows:
     needs: [test]
     runs-on: windows-latest-8-cores
