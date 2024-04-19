@@ -2,6 +2,7 @@ use backend::api::errors::{ApiError, CreateError, DeployError, LoginApiError, Pu
 use backend::errors::{BackendError, ServerError};
 use common::errors::CommonError;
 use std::io::{self, ErrorKind};
+use std::path::PathBuf;
 use thiserror::Error;
 
 use crate::upgrade::UpgradeError;
@@ -73,6 +74,17 @@ pub enum CliError {
     /// returned if the CLI was installed via a package manager and not directly (when trying to upgrade)
     #[error("could not upgrade grafbase as it was installed using a package manager")]
     NotDirectInstall,
+    #[error(transparent)]
+    LintInvalidSchema(#[from] graphql_lint::LinterError),
+    /// returned if a linted schema could not be read
+    #[error("could not read '{0}'\nCaused by: {1}")]
+    ReadLintSchema(PathBuf, io::Error),
+    /// returned if a directory or file without an extension is passed to lint
+    #[error("attempted to lint a directory or a file without an extension")]
+    LintNoExtension,
+    /// returned if an unsupported extension is passed to lint
+    #[error("attempted to lint a file with an unsupported extension: '{0}'")]
+    LintUnsupportedFileExtension(String),
 }
 
 #[cfg(target_family = "windows")]
@@ -117,6 +129,7 @@ impl CliError {
             Self::BackendApiError(ApiError::CorruptProjectMetadataFile | ApiError::UnlinkedProject) => Some("try running 'grafbase link'".to_owned()),
             Self::UpgradeError(UpgradeError::StartDownload | UpgradeError::StartGetLatestReleaseVersion) => Some("this may be caused by connection issues".to_owned()),
             Self::NotDirectInstall => Some("try upgrading via your original install method or installing grafbase directly".to_owned()),
+            Self::LintUnsupportedFileExtension(_) | Self::LintNoExtension => Some("try passing a file with a supported extension: '.gql', '.graphql', '.graphqls' or '.sdl'".to_owned()),
             _ => None,
         }
     }

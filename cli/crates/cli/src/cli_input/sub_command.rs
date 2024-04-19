@@ -4,8 +4,8 @@ use crate::is_not_direct_install;
 
 use super::{
     trust::TrustCommand, ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand, CreateCommand, DeployCommand,
-    DevCommand, InitCommand, IntrospectCommand, LinkCommand, LogsCommand, PublishCommand, SchemaCommand, StartCommand,
-    SubgraphsCommand,
+    DevCommand, InitCommand, IntrospectCommand, LinkCommand, LintCommand, LogsCommand, PublishCommand, SchemaCommand,
+    StartCommand, SubgraphsCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -55,6 +55,8 @@ pub enum SubCommand {
     /// Upgrade the installed version of the Grafbase CLI
     #[clap(hide=is_not_direct_install())]
     Upgrade,
+    /// Lint a GraphQL schema
+    Lint(LintCommand),
 }
 
 impl SubCommand {
@@ -104,6 +106,7 @@ impl ArgumentNames for SubCommand {
             | SubCommand::DumpConfig
             | SubCommand::Trust(_)
             | SubCommand::Upgrade
+            | SubCommand::Lint(_)
             | SubCommand::Logs(_) => None,
         }
     }

@@ -12,6 +12,7 @@ mod errors;
 mod init;
 mod introspect;
 mod link;
+mod lint;
 mod login;
 mod logout;
 mod logs;
@@ -194,6 +195,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
             }
             upgrade::install_grafbase().map_err(Into::into)
         }
+        SubCommand::Lint(cmd) => lint::lint(cmd.schema),
     }
 }
 

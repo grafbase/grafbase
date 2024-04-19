@@ -56,6 +56,7 @@ backend = { package = "grafbase-local-backend", path = "../backend", version = "
 common = { package = "grafbase-local-common", path = "../common", version = "0.69.1" }
 federated-dev = { path = "../federated-dev" }
 grafbase-graphql-introspection.workspace = true
+graphql-lint.workspace = true
 graph-ref = { path = "../../../graph-ref" }
 server = { package = "grafbase-local-server", path = "../server", version = "0.69.1" }
 

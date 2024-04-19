@@ -137,6 +137,7 @@ tracing-futures = "0.2"
 # Common
 graph-ref = { path = "graph-ref" }
 grafbase-graphql-introspection = { path = "graphql-introspection" }
+graphql-lint = { path = "graphql-lint" }
 
 # Gateway
 federated-server = { path = "gateway/crates/federated-server" }
