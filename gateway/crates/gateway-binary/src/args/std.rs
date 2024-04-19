@@ -42,7 +42,7 @@ pub struct Args {
     /// Path to the schema SDL. If provided, the graph will be static and no connection is made
     /// to the Grafbase API.
     #[arg(long, short, env = "GRAFBASE_SCHEMA_PATH")]
-    pub schema: PathBuf,
+    pub schema: Option<PathBuf>,
     /// Set the logging level
     #[arg(long = "log", env = "GRAFBASE_LOG")]
     pub log_level: Option<LogLevel>,
@@ -65,7 +65,8 @@ impl Args {
             }),
             None => {
                 let federated_graph =
-                    fs::read_to_string(&self.schema).context("could not read federated schema file")?;
+                    fs::read_to_string(self.schema.as_ref().expect("must exist if graph-ref is not defined"))
+                        .context("could not read federated schema file")?;
 
                 Ok(GraphFetchMethod::FromLocal {
                     federated_schema: federated_graph,
