@@ -290,10 +290,8 @@ jobs:
         shell: bash
         run: |
           BUILD_PROFILE=release
-          RUSTFLAGS=""
           if [[ $GITHUB_REF =~ ^refs/tags/gateway- ]]; then
             BUILD_PROFILE=lambda
-            RUSTFLAGS="-C opt-level=s"
           fi
           echo "Building lambda with $BUILD_PROFILE profile"
           cargo build --profile $BUILD_PROFILE -p grafbase-gateway --target ${{ matrix.archs.target }} --features lambda
