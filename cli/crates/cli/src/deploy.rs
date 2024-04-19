@@ -11,7 +11,7 @@ enum UnlinkedDeploymentMethod {
 }
 
 #[tokio::main]
-pub async fn deploy() -> Result<(), CliError> {
+pub async fn deploy(branch: Option<&str>) -> Result<(), CliError> {
     let project = Project::get();
 
     let project_metadata_file_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
@@ -38,7 +38,7 @@ pub async fn deploy() -> Result<(), CliError> {
     }
 
     report::deploy();
-    deploy::deploy().await.map_err(CliError::BackendApiError)?;
+    deploy::deploy(branch).await.map_err(CliError::BackendApiError)?;
     report::deploy_success();
 
     Ok(())

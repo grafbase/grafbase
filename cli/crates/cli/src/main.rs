@@ -124,7 +124,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Login => login(),
         SubCommand::Logout => logout(),
         SubCommand::Create(cmd) => create(&cmd.create_arguments()),
-        SubCommand::Deploy => deploy(),
+        SubCommand::Deploy(cmd) => deploy(cmd.branch.as_deref()),
         SubCommand::Link(cmd) => link(cmd.project),
         SubCommand::Unlink => unlink(),
         SubCommand::Logs(LogsCommand {

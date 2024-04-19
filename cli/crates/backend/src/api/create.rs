@@ -107,7 +107,7 @@ pub async fn create(account_id: &str, project_slug: &str) -> Result<Vec<String>,
             .await
             .map_err(ApiError::WriteProjectMetadataFile)?;
 
-            deploy::deploy().await?;
+            deploy::deploy(None).await?;
 
             let domains = project_create_success
                 .project
