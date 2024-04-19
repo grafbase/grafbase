@@ -54,7 +54,7 @@ fn with_otel() {
 
         [telemetry.tracing.exporters.otlp]
         enabled = true
-        endpoint = "http://localhost:4317"
+        endpoint = "http://localhost:4318"
         protocol = "grpc"
 
         [telemetry.tracing.exporters.otlp.batch_export]
@@ -75,7 +75,7 @@ fn with_otel() {
         tokio::time::sleep(Duration::from_secs(2)).await;
 
         let client = clickhouse::Client::default()
-            .with_url("http://localhost:8123")
+            .with_url("http://localhost:8124")
             .with_user("default")
             .with_database("otel");
 
@@ -120,7 +120,7 @@ fn extra_resource_attributes() {
 
         [telemetry.tracing.exporters.otlp]
         enabled = true
-        endpoint = "http://localhost:4317"
+        endpoint = "http://localhost:4318"
         protocol = "grpc"
 
         [telemetry.tracing.exporters.otlp.batch_export]
@@ -141,7 +141,7 @@ fn extra_resource_attributes() {
         tokio::time::sleep(Duration::from_secs(2)).await;
 
         let client = clickhouse::Client::default()
-            .with_url("http://localhost:8123")
+            .with_url("http://localhost:8124")
             .with_user("default")
             .with_database("otel");
 
@@ -186,7 +186,7 @@ fn with_otel_reload_tracing() {
 
         [telemetry.tracing.exporters.otlp]
         enabled = true
-        endpoint = "http://localhost:4317"
+        endpoint = "http://localhost:4318"
         protocol = "grpc"
 
         [telemetry.tracing.exporters.otlp.batch_export]
@@ -205,7 +205,7 @@ fn with_otel_reload_tracing() {
         serde_json::to_string_pretty(&result).unwrap();
 
         let client = clickhouse::Client::default()
-            .with_url("http://localhost:8123")
+            .with_url("http://localhost:8124")
             .with_user("default")
             .with_database("otel");
 

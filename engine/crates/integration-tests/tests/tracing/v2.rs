@@ -50,11 +50,11 @@ fn query_named() {
             .enter(graphql_span.clone())
             .record(
                 graphql_span.clone(),
-                expect::field("gql.request.operation.name").with_value(&"Named"),
+                expect::field("gql.operation.name").with_value(&"Named"),
             )
             .record(
                 graphql_span.clone(),
-                expect::field("gql.request.operation.type").with_value(&"query"),
+                expect::field("gql.operation.type").with_value(&"query"),
             )
             .new_span(
                 subgraphql_span
@@ -104,13 +104,10 @@ fn subscription() {
         let (subscriber, handle) = subscriber::mock()
             .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
             .enter(span.clone())
+            .record(span.clone(), expect::field("gql.operation.name").with_value(&"Sub"))
             .record(
                 span.clone(),
-                expect::field("gql.request.operation.name").with_value(&"Sub"),
-            )
-            .record(
-                span.clone(),
-                expect::field("gql.request.operation.type").with_value(&"subscription"),
+                expect::field("gql.operation.type").with_value(&"subscription"),
             )
             .run_with_handle();
 

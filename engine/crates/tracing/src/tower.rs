@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use headers::HeaderMapExt;
 use http::Response;
 use http_body::Body;
 use opentelemetry::metrics::Meter;
@@ -7,7 +8,7 @@ use tower_http::classify::{ServerErrorsAsFailures, ServerErrorsFailureClass, Sha
 use tower_http::trace::{DefaultOnBodyChunk, DefaultOnEos, DefaultOnRequest};
 use tracing::Span;
 
-use crate::metrics::{RequestMetrics, RequestMetricsAttributes};
+use crate::metrics::{HasGraphqlErrors, RequestMetrics, RequestMetricsAttributes};
 
 /// A [tower_http::trace::TraceLayer] that creates [crate::span::request::HttpRequestSpan] for each incoming request
 /// and records request and response attributes in the span
@@ -34,10 +35,12 @@ pub fn layer<B: Body>(
                     .headers()
                     .get("x-grafbase-cache")
                     .and_then(|value| value.to_str().ok());
+                let has_graphql_errors = response.headers().typed_get::<HasGraphqlErrors>().is_some();
                 metrics.record(
                     RequestMetricsAttributes {
                         status_code: response.status().as_u16(),
                         cache_status: cache_status.map(|s| s.to_string()),
+                        has_graphql_errors,
                     },
                     latency,
                 );
@@ -55,6 +58,7 @@ pub fn layer<B: Body>(
                 RequestMetricsAttributes {
                     status_code,
                     cache_status: None,
+                    has_graphql_errors: false,
                 },
                 latency,
             );

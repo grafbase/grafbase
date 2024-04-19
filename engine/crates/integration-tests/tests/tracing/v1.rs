@@ -48,10 +48,7 @@ async fn query() {
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
         .new_span(span.clone())
         .enter(span.clone())
-        .record(
-            span.clone(),
-            expect::field("gql.request.operation.type").with_value(&"query"),
-        )
+        .record(span.clone(), expect::field("gql.operation.type").with_value(&"query"))
         .new_span(
             resolver_span
                 .clone()
@@ -92,11 +89,11 @@ async fn query_named() {
         .enter(graphql_span.clone())
         .record(
             graphql_span.clone(),
-            expect::field("gql.request.operation.name").with_value(&"Named"),
+            expect::field("gql.operation.name").with_value(&"Named"),
         )
         .record(
             graphql_span.clone(),
-            expect::field("gql.request.operation.type").with_value(&"query"),
+            expect::field("gql.operation.type").with_value(&"query"),
         )
         .new_span(
             resolver_span
@@ -205,10 +202,7 @@ async fn resolvers_with_error() {
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
         .new_span(span.clone())
         .enter(span.clone())
-        .record(
-            span.clone(),
-            expect::field("gql.request.operation.type").with_value(&"query"),
-        )
+        .record(span.clone(), expect::field("gql.operation.type").with_value(&"query"))
         .new_span(
             resolver_span_error
                 .clone()

@@ -7,6 +7,7 @@ use axum::{
 use bytes::Bytes;
 use futures_util::future::{join_all, BoxFuture};
 use gateway_core::StreamingFormat;
+use grafbase_tracing::metrics::HasGraphqlErrors;
 use http::{HeaderMap, StatusCode};
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tower_http::cors::CorsLayer;
@@ -17,10 +18,16 @@ pub(super) fn router(gateway: Gateway) -> Router {
     Router::new()
         .route("/graphql", post(post_graphql).options(options_any).get(get_graphql))
         .with_state(gateway)
-        .layer(CorsLayer::permissive())
         .layer(grafbase_tracing::tower::layer(
             grafbase_tracing::metrics::meter_from_global_provider(),
         ))
+        .layer(axum::middleware::map_response(
+            |mut response: axum::response::Response<_>| async {
+                response.headers_mut().remove(HasGraphqlErrors::header_name());
+                response
+            },
+        ))
+        .layer(CorsLayer::permissive())
 }
 
 async fn post_graphql(State(gateway): State<Gateway>, headers: HeaderMap, body: Bytes) -> crate::Response {
