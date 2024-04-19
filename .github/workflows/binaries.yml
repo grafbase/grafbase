@@ -305,7 +305,7 @@ jobs:
             --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
             --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
             --key ${GITHUB_SHA}/${{ matrix.archs.target }}/grafbase-gateway-lambda \
-            --body target/${{ matrix.archs.target }}/release/grafbase-gateway
+            --body target/${{ matrix.archs.target }}/lambda/grafbase-gateway
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
