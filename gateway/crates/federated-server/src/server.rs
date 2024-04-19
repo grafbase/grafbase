@@ -9,6 +9,7 @@ mod otel;
 mod state;
 mod trusted_documents_client;
 
+use grafbase_tracing::metrics::HasGraphqlErrors;
 #[cfg(not(feature = "lambda"))]
 pub use graph_updater::UplinkResponse;
 
@@ -76,10 +77,16 @@ pub async fn serve(
     let mut router = Router::new()
         .route(path, get(engine::get).post(engine::post))
         .route_service("/ws", WebsocketService::new(websocket_sender))
-        .layer(cors)
         .layer(grafbase_tracing::tower::layer(
             grafbase_tracing::metrics::meter_from_global_provider(),
         ))
+        .layer(axum::middleware::map_response(
+            |mut response: axum::response::Response<_>| async {
+                response.headers_mut().remove(HasGraphqlErrors::header_name());
+                response
+            },
+        ))
+        .layer(cors)
         .with_state(state);
 
     if config.csrf.enabled {

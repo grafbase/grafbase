@@ -3,6 +3,8 @@ use http_body::Body;
 
 /// Tracing target for logging
 pub const GRAFBASE_TARGET: &str = "grafbase";
+pub(crate) const SCOPE: &str = "grafbase";
+pub(crate) const SCOPE_VERSION: &str = "1.0";
 
 /// Cache span
 pub mod cache;

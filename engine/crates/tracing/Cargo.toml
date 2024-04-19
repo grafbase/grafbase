@@ -12,15 +12,17 @@ keywords = ["tracing", "grafbase"]
 workspace = true
 
 [dependencies]
-chrono = "0.4"
+chrono.workspace = true
+base64.workspace = true
 http.workspace = true
 http-body = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-thiserror = "1.0"
+serde.workspace = true
+thiserror.workspace = true
 tonic = { version = "0.11.0", optional = true }
-tower-http = { version = "0.5", optional = true, features = ["trace"] }
-url = { version = "2.5", features = ["serde"] }
-worker = { version = "0.1.0", optional = true }
+tower-http = { workspace = true, optional = true, features = ["trace"] }
+url = { workspace = true, features = ["serde"] }
+worker = { workspace = true, optional = true }
+headers.workspace = true
 
 # tracing
 tracing.workspace = true
@@ -33,7 +35,7 @@ opentelemetry-otlp = { version = "0.15" , features = ["grpc-tonic", "tls", "toni
 
 [features]
 default = []
-tower = ["tower-http"]
+tower = ["dep:tower-http"]
 otlp = ["dep:opentelemetry-otlp", "dep:tonic"]
 worker = ["dep:worker"]
 lambda = []

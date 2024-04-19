@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use opentelemetry::trace::noop::NoopTracer;
 use opentelemetry::trace::TracerProvider;
 use opentelemetry::KeyValue;
@@ -73,7 +75,12 @@ where
 
     let tracing_layer = if config.enabled {
         let tracer_provider = super::traces::create(config, id_generator, runtime, resource.clone())?;
-        let tracer = tracer_provider.tracer("batched-otel");
+        let tracer = tracer_provider.versioned_tracer(
+            crate::span::SCOPE,
+            Some(crate::span::SCOPE_VERSION),
+            None::<Cow<'static, str>>,
+            None,
+        );
         let tracer_layer = tracing_opentelemetry::layer().with_tracer(tracer).boxed();
         let (tracer_layer, tracer_layer_reload_handle) = reload::Layer::new(tracer_layer);
 

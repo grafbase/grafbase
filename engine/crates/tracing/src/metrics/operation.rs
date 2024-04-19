@@ -1,4 +1,7 @@
-use opentelemetry::metrics::{Counter, Histogram, Meter};
+use opentelemetry::{
+    metrics::{Counter, Histogram, Meter},
+    KeyValue,
+};
 
 #[derive(Clone)]
 pub struct GraphqlOperationMetrics {
@@ -7,9 +10,12 @@ pub struct GraphqlOperationMetrics {
 }
 
 pub struct GraphqlOperationMetricsAttributes {
-    pub id: String,
     pub ty: &'static str,
     pub name: Option<String>,
+    pub normalized_query: String,
+    pub normalized_query_hash: [u8; 32],
+    pub has_errors: bool,
+    pub cache_status: Option<String>,
 }
 
 impl GraphqlOperationMetrics {
@@ -22,14 +28,41 @@ impl GraphqlOperationMetrics {
 
     pub fn record(
         &self,
-        GraphqlOperationMetricsAttributes { id, name, .. }: GraphqlOperationMetricsAttributes,
+        GraphqlOperationMetricsAttributes {
+            name,
+            ty,
+            normalized_query,
+            normalized_query_hash,
+            has_errors,
+            cache_status,
+        }: GraphqlOperationMetricsAttributes,
         latency: std::time::Duration,
     ) {
-        let attributes = vec![
-            opentelemetry::KeyValue::new("gql.operation.id", id),
-            opentelemetry::KeyValue::new("gql.operation.name", name.unwrap_or_default()),
+        use base64::{engine::general_purpose::STANDARD, Engine as _};
+        let normalized_query_hash = STANDARD.encode(normalized_query_hash);
+        let name = name.unwrap_or_default();
+        let mut attributes = vec![
+            KeyValue::new("gql.operation.normalized_query_hash", normalized_query_hash.clone()),
+            KeyValue::new("gql.operation.name", name.clone()),
         ];
+        if let Some(cache_status) = cache_status {
+            attributes.push(KeyValue::new("gql.response.cache_status", cache_status));
+        }
+        if has_errors {
+            attributes.push(KeyValue::new("gql.response.has_errors", "true"));
+        }
         self.count.add(1, &attributes);
-        self.latency.record(latency.as_millis() as u64, &attributes);
+        // We're only sending the type & normalized_query for the latency. Operation name &
+        // normalized_query_hash are enough to uniquely identify the operation currently, so no need to send
+        // this additional metadata twice.
+        self.latency.record(
+            latency.as_millis() as u64,
+            &[
+                KeyValue::new("gql.operation.normalized_query_hash", normalized_query_hash),
+                KeyValue::new("gql.operation.name", name),
+                KeyValue::new("gql.operation.type", ty),
+                KeyValue::new("gql.operation.normalized_query", normalized_query),
+            ],
+        );
     }
 }

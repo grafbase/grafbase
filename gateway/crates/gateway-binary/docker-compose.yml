@@ -8,8 +8,7 @@ services:
     volumes:
       - ./data/otel/otel-collector-config.yml:/etc/otel-collector-config.yml
     ports:
-      - '13133:13133' # health_check extension
-      - '4317:4317'
+      - '4318:4317'
     depends_on:
       - clickhouse
     networks:
@@ -24,8 +23,8 @@ services:
     restart: unless-stopped
     image: clickhouse/clickhouse-server:latest
     ports:
-      - '9000:9000'
-      - '8123:8123'
+      - '9001:9000'
+      - '8124:8123'
     networks:
       - otel-clickhouse
 

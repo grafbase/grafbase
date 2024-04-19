@@ -22,7 +22,7 @@ const ENTRY_BLACKLIST: [&str; 2] = ["node_modules", ".env"];
 /// # Errors
 ///
 /// See [`ApiError`]
-pub async fn deploy() -> Result<(), ApiError> {
+pub async fn deploy(branch: Option<&str>) -> Result<(), ApiError> {
     let project = Project::get();
 
     let project_metadata_file_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
@@ -98,7 +98,7 @@ pub async fn deploy() -> Result<(), ApiError> {
     let operation = DeploymentCreate::build(DeploymentCreateArguments {
         input: DeploymentCreateInput {
             archive_file_size,
-            branch: None,
+            branch,
             project_id: Id::new(project_metadata.project_id),
         },
     });
