@@ -46,7 +46,7 @@ tracing-core = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" 
 tonic = { git = "https://github.com/grafbase/tonic", rev = "58de44e200af96defc4038701df9f18a177bc4c6" } # tokio-rustls-ring
 
 [workspace.package]
-version = "0.69.0"
+version = "0.69.1"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://grafbase.com"

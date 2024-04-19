@@ -1941,7 +1941,7 @@ dependencies = [
 
 [[package]]
 name = "engine-config-builder"
-version = "0.69.0"
+version = "0.69.1"
 dependencies = [
  "engine-v2-config",
  "graphql-federated-graph",
@@ -2215,7 +2215,7 @@ checksum = "658bd65b1cf4c852a3cc96f18a8ce7b5640f6b703f905c7d74532294c2a63984"
 
 [[package]]
 name = "federated-dev"
-version = "0.69.0"
+version = "0.69.1"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
@@ -2567,7 +2567,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.69.0"
+version = "0.69.1"
 dependencies = [
  "async-graphql",
  "async-trait",
@@ -2729,7 +2729,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.69.0"
+version = "0.69.1"
 dependencies = [
  "assert_matches",
  "async-graphql",
@@ -2848,7 +2848,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.69.0"
+version = "0.69.1"
 dependencies = [
  "cynic",
  "cynic-introspection",
@@ -2860,7 +2860,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.69.0"
+version = "0.69.1"
 dependencies = [
  "async-compression",
  "axum 0.7.5",
@@ -2890,7 +2890,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.69.0"
+version = "0.69.1"
 dependencies = [
  "chrono",
  "common-types",
@@ -2909,7 +2909,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.69.0"
+version = "0.69.1"
 dependencies = [
  "async-trait",
  "async-tungstenite",
@@ -3008,7 +3008,7 @@ dependencies = [
 
 [[package]]
 name = "graph-ref"
-version = "0.69.0"
+version = "0.69.1"
 
 [[package]]
 name = "graphql-composition"
@@ -3026,7 +3026,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-cursor"
-version = "0.69.0"
+version = "0.69.1"
 dependencies = [
  "serde",
  "serde_with",
@@ -3061,7 +3061,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-lint"
-version = "0.69.0"
+version = "0.69.1"
 dependencies = [
  "criterion",
  "cynic-parser",
@@ -5038,7 +5038,7 @@ dependencies = [
 
 [[package]]
 name = "operation-checks"
-version = "0.69.0"
+version = "0.69.1"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
@@ -5051,7 +5051,7 @@ dependencies = [
 
 [[package]]
 name = "operation-normalizer"
-version = "0.69.0"
+version = "0.69.1"
 dependencies = [
  "anyhow",
  "expect-test",
@@ -7893,7 +7893,7 @@ checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "typed-resolvers"
-version = "0.69.0"
+version = "0.69.1"
 dependencies = [
  "datatest-stable",
  "engine-parser",
@@ -8690,7 +8690,7 @@ dependencies = [
 
 [[package]]
 name = "wrapping"
-version = "0.69.0"
+version = "0.69.1"
 dependencies = [
  "serde",
 ]
