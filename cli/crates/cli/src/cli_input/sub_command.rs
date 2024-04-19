@@ -3,9 +3,9 @@ use clap::Parser;
 use crate::is_not_direct_install;
 
 use super::{
-    trust::TrustCommand, ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand, CreateCommand, DevCommand, DeployCommand,
-    InitCommand, IntrospectCommand, LinkCommand, LintCommand, LogsCommand, PublishCommand, SchemaCommand, StartCommand, 
-    SubgraphsCommand,
+    trust::TrustCommand, ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand, CreateCommand, DeployCommand,
+    DevCommand, InitCommand, IntrospectCommand, LinkCommand, LintCommand, LogsCommand, PublishCommand, SchemaCommand,
+    StartCommand, SubgraphsCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
