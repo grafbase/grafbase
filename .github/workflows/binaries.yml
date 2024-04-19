@@ -314,7 +314,7 @@ jobs:
         with:
           name: gateway-lambda-${{ env.VERSION_BUMP }}-${{ matrix.archs.platform }}
           path: |
-            target/${{ matrix.archs.target }}/release/grafbase-gateway
+            target/${{ matrix.archs.target }}/lambda/grafbase-gateway
   windows:
     needs: [test]
     runs-on: windows-latest-8-cores
