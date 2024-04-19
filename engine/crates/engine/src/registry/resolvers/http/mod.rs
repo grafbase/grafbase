@@ -84,7 +84,9 @@ impl HttpResolver {
             let fetch_log_endpoint_url = runtime_ctx.log.fetch_log_endpoint_url.as_deref();
             let ray_id = &runtime_ctx.ray_id();
             let url = self.build_url(ctx, last_resolver_value.as_ref())?;
-            let mut request_builder = reqwest::Client::new().request(self.method.parse()?, Url::parse(&url)?);
+            let mut request_builder = reqwest::Client::new()
+                .request(self.method.parse()?, Url::parse(&url)?)
+                .timeout(std::time::Duration::from_secs(30));
 
             for (name, value) in headers {
                 request_builder = request_builder.header(name, value);
