@@ -3,8 +3,8 @@ use clap::Parser;
 use crate::is_not_direct_install;
 
 use super::{
-    trust::TrustCommand, ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand, CreateCommand, DevCommand,
-    InitCommand, IntrospectCommand, LinkCommand, LogsCommand, PublishCommand, SchemaCommand, StartCommand,
+    trust::TrustCommand, ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand, CreateCommand, DeployCommand,
+    DevCommand, InitCommand, IntrospectCommand, LinkCommand, LogsCommand, PublishCommand, SchemaCommand, StartCommand,
     SubgraphsCommand,
 };
 
@@ -25,7 +25,7 @@ pub enum SubCommand {
     /// Set up and deploy a new project
     Create(CreateCommand),
     /// Deploy your project
-    Deploy,
+    Deploy(DeployCommand),
     /// Connect a local project to a remote project
     Link(LinkCommand),
     /// Disconnect a local project from a remote project
@@ -62,7 +62,7 @@ impl SubCommand {
         matches!(
             self,
             Self::Create(_)
-                | Self::Deploy
+                | Self::Deploy(_)
                 | Self::Dev(DevCommand { .. })
                 | Self::Link(_)
                 | Self::Logs(LogsCommand {
@@ -95,7 +95,7 @@ impl ArgumentNames for SubCommand {
             | SubCommand::Introspect(_)
             | SubCommand::Login
             | SubCommand::Logout
-            | SubCommand::Deploy
+            | SubCommand::Deploy(_)
             | SubCommand::Link(_)
             | SubCommand::Unlink
             | SubCommand::Start(_)
