@@ -200,7 +200,8 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
             let mut request_builder = reqwest::Client::new()
                 .post(resolver.url.clone())
                 .header(USER_AGENT, "Grafbase") // Some APIs (such a GitHub's) require a User-Agent.
-                .json(&query);
+                .json(&query)
+                .timeout(std::time::Duration::from_secs(30));
 
             for (name, value) in resolver.headers.clone() {
                 request_builder = request_builder.header(name, value);
