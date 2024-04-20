@@ -226,20 +226,21 @@ mod tests {
     fn test_caching_view() {
         // prepare
         let meta_object = MetaType::Object(ObjectType::new("non-cached-object", []));
-        let meta_cached_object =
-            MetaType::Object(ObjectType::new("cached-object", []).with_cache_control(CacheControl {
+        let meta_cached_object = MetaType::Object(ObjectType::new("cached-object", []).with_cache_control(Some(
+            Box::new(CacheControl {
                 max_age: 60,
                 ..Default::default()
-            }));
+            }),
+        )));
 
         let meta_interface = MetaType::Interface(InterfaceType::new("non-cached-interface", []));
         let meta_cached_interface = MetaType::Interface(InterfaceType::new(
             "cached-interface",
             [
-                MetaField::new("cached_field", "String!").with_cache_control(CacheControl {
+                MetaField::new("cached_field", "String!").with_cache_control(Some(Box::new(CacheControl {
                     max_age: 10,
                     ..Default::default()
-                }),
+                }))),
             ],
         ));
         let meta_scalar = MetaType::Scalar(ScalarType {
@@ -295,12 +296,12 @@ mod tests {
         registry.create_type(
             |_| {
                 MetaType::Object(
-                    ObjectType::new(test.to_string(), [MetaField::new("id", "String!")]).with_cache_control(
-                        CacheControl {
+                    ObjectType::new(test.to_string(), [MetaField::new("id", "String!")]).with_cache_control(Some(
+                        Box::new(CacheControl {
                             max_age: 10,
                             ..Default::default()
-                        },
-                    ),
+                        }),
+                    )),
                 )
             },
             test,

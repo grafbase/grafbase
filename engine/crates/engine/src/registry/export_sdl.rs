@@ -79,26 +79,28 @@ impl Registry {
             }
 
             if federation {
-                if field.external {
-                    write!(sdl, " @external").ok();
-                }
-                if field.shareable {
-                    write!(sdl, " @shareable").ok();
-                }
-                if let Some(from) = &field.r#override {
-                    write!(sdl, " @override(from: \"{from}\")").ok();
+                if let Some(federation_field) = &field.federation {
+                    if federation_field.external {
+                        write!(sdl, " @external").ok();
+                    }
+                    if federation_field.shareable {
+                        write!(sdl, " @shareable").ok();
+                    }
+                    if let Some(from) = &federation_field.r#override {
+                        write!(sdl, " @override(from: \"{from}\")").ok();
+                    }
+                    if let Some(provides) = federation_field.provides.as_deref() {
+                        write!(sdl, " @provides(fields: \"{provides}\")").ok();
+                    }
+                    if federation_field.inaccessible {
+                        write!(sdl, " @inaccessible").ok();
+                    }
+                    for tag in &federation_field.tags {
+                        write!(sdl, " @tag(name: \"{}\")", tag.escape_default()).ok();
+                    }
                 }
                 if let Some(requires) = &field.requires {
                     write!(sdl, " @requires(fields: \"{requires}\")").ok();
-                }
-                if let Some(provides) = field.provides.as_deref() {
-                    write!(sdl, " @provides(fields: \"{provides}\")").ok();
-                }
-                if field.inaccessible {
-                    write!(sdl, " @inaccessible").ok();
-                }
-                for tag in &field.tags {
-                    write!(sdl, " @tag(name: \"{}\")", tag.escape_default()).ok();
                 }
             }
 

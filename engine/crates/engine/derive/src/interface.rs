@@ -252,11 +252,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 ty: <#schema_ty as #crate_name::LegacyOutputType>::create_type_info(registry),
                 deprecation: #deprecation,
                 cache_control: ::std::default::Default::default(),
-                external: #external,
-                provides: #provides,
-                requires: #requires,
                 visible: #visible,
-                edges: Vec::new(),
                 compute_complexity: ::std::option::Option::None,
                 resolver: #crate_name::registry::resolvers::Resolver::Parent,
                 ..Default::default()

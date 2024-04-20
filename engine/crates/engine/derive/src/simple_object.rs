@@ -163,10 +163,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     args: ::std::default::Default::default(),
                     ty: <#ty as #crate_name::LegacyOutputType>::create_type_info(registry),
                     deprecation: #field_deprecation,
-                    cache_control: #cache_control,
-                    external: #external,
-                    provides: #provides,
-                    requires: #requires,
+                    cache_control: Some(Box::new(#cache_control)),
                     visible: #visible,
                     compute_complexity: ::std::option::Option::None,
                     resolver: #crate_name::registry::resolvers::Resolver::Parent,
@@ -317,7 +314,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                                 #concat_complex_fields
                                 fields
                             },
-                            cache_control: #cache_control,
+                            cache_control: Some(Box::new(#cache_control)),
                             extends: #extends,
                             visible: #visible,
                             is_subscription: false,
@@ -386,7 +383,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                                 ::std::iter::Extend::extend(&mut fields, complex_fields.clone());
                                 fields
                             },
-                            cache_control: #cache_control,
+                            cache_control: Some(Box::new(#cache_control)),
                             extends: #extends,
                             visible: #visible,
                             is_subscription: false,

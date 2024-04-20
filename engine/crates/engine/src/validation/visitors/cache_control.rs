@@ -20,12 +20,12 @@ impl<'ctx, 'a> Visitor<'ctx> for CacheControlCalculate<'a> {
     fn enter_selection_set(&mut self, ctx: &mut VisitorContext<'_>, _selection_set: &Positioned<SelectionSet>) {
         match ctx.current_type() {
             Some(MetaType::Interface(crate::registry::InterfaceType {
-                cache_control,
+                cache_control: Some(cache_control),
                 possible_types,
                 name,
                 ..
             })) => {
-                self.cache_control.merge(cache_control.clone());
+                self.cache_control.merge(*cache_control.clone());
                 if let Some(policy) = &cache_control.invalidation_policy {
                     self.invalidation_policies.insert(CacheInvalidation {
                         ty: name.to_string(),
@@ -41,11 +41,11 @@ impl<'ctx, 'a> Visitor<'ctx> for CacheControlCalculate<'a> {
                 }
             }
             Some(MetaType::Object(crate::registry::ObjectType {
-                cache_control,
+                cache_control: Some(cache_control),
                 rust_typename,
                 ..
             })) => {
-                self.cache_control.merge(cache_control.clone());
+                self.cache_control.merge(*cache_control.clone());
                 if let Some(policy) = &cache_control.invalidation_policy {
                     let ty = rust_typename.to_string();
                     self.invalidation_policies.insert(CacheInvalidation {
@@ -64,13 +64,15 @@ impl<'ctx, 'a> Visitor<'ctx> for CacheControlCalculate<'a> {
                 .field_by_name(&field.node.name.node)
                 .map(|field| (field, parent.name()))
         }) {
-            self.cache_control.merge(registry_field.cache_control.clone());
+            if let Some(cache_control) = &registry_field.cache_control {
+                self.cache_control.merge(*cache_control.clone());
 
-            if let Some(policy) = &registry_field.cache_control.invalidation_policy {
-                self.invalidation_policies.insert(CacheInvalidation {
-                    ty: parent_type.to_string(),
-                    policy: policy.clone(),
-                });
+                if let Some(policy) = &cache_control.invalidation_policy {
+                    self.invalidation_policies.insert(CacheInvalidation {
+                        ty: parent_type.to_string(),
+                        policy: policy.clone(),
+                    });
+                }
             }
         }
     }

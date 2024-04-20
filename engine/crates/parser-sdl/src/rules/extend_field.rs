@@ -128,21 +128,41 @@ impl<'a> Visitor<'a> for ExtendFieldVisitor {
             };
 
             if let Some(external) = directive.external {
-                field.external = external;
+                if field.federation.is_none() {
+                    field.federation = Some(Default::default());
+                }
+                field.federation.as_mut().unwrap().external = external;
             }
             if let Some(inaccessible) = directive.inaccessible {
-                field.inaccessible = inaccessible;
+                if field.federation.is_none() {
+                    field.federation = Some(Default::default());
+                }
+                field.federation.as_mut().unwrap().inaccessible = inaccessible;
             }
             if let Some(r#override) = directive.r#override {
-                field.r#override = Some(r#override.from);
+                if field.federation.is_none() {
+                    field.federation = Some(Default::default());
+                }
+                field.federation.as_mut().unwrap().r#override = Some(r#override.from);
             }
             if let Some(provides) = directive.provides {
-                field.provides = Some(provides.fields);
+                if field.federation.is_none() {
+                    field.federation = Some(Default::default());
+                }
+                field.federation.as_mut().unwrap().provides = Some(provides.fields);
             }
             if let Some(shareable) = directive.shareable {
-                field.shareable = shareable;
+                if field.federation.is_none() {
+                    field.federation = Some(Default::default());
+                }
+                field.federation.as_mut().unwrap().shareable = shareable;
             }
-            field.tags.extend(directive.tags);
+            if !directive.tags.is_empty() {
+                if field.federation.is_none() {
+                    field.federation = Some(Default::default());
+                }
+                field.federation.as_mut().unwrap().tags.extend(directive.tags);
+            }
         }
     }
 }

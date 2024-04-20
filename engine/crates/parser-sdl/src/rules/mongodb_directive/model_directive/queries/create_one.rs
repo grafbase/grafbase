@@ -40,7 +40,7 @@ pub(super) fn create(
     });
 
     query.required_operation = Some(Operations::CREATE);
-    query.auth = create_ctx.model_auth().clone();
+    query.auth = create_ctx.model_auth().cloned();
 
     visitor_ctx.push_namespaced_mutation(create_ctx.mutation_type_name(), query);
 }

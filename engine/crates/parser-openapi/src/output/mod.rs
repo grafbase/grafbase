@@ -302,7 +302,7 @@ impl Operation {
         path_parameters: Vec<http::PathParameter>,
         query_parameters: Vec<http::QueryParameter>,
     ) -> Option<Resolver> {
-        Some(Resolver::Http(HttpResolver {
+        Some(Resolver::Http(Box::new(HttpResolver {
             method: self.http_method(graph),
             url: self.url(graph),
             api_name: graph.metadata.unique_namespace(),
@@ -317,7 +317,7 @@ impl Operation {
                     ),
                     content_type: request_body.content_type(graph).clone(),
                 }),
-        }))
+        })))
     }
 }
 

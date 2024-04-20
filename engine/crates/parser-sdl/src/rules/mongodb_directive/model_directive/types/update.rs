@@ -14,7 +14,7 @@ pub(crate) fn register_output(visitor_ctx: &mut VisitorContext<'_>, create_ctx: 
 
         field.resolver = Transformer::select(name).into();
         field.required_operation = Some(Operations::DELETE);
-        field.auth = create_ctx.model_auth().clone();
+        field.auth = create_ctx.model_auth().cloned();
 
         field
     });

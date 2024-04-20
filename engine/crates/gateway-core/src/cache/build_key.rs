@@ -326,11 +326,7 @@ mod tests {
             |_| {
                 MetaType::Object({
                     let obj = ObjectType::new(TEST.to_string(), [MetaField::new("id", "String!")]);
-                    if let Some(cache_control) = cache_control {
-                        obj.with_cache_control(cache_control)
-                    } else {
-                        obj
-                    }
+                    obj.with_cache_control(cache_control.map(Box::new))
                 })
             },
             TEST,

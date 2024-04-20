@@ -1,7 +1,7 @@
 use engine::registry::{
     self,
     resolvers::{custom::CustomResolver, Resolver},
-    MetaField, MetaType,
+    FederationProperties, MetaField, MetaType,
 };
 use engine_parser::types::TypeKind;
 
@@ -93,6 +93,24 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
 
                 let field = &field.node;
 
+                let mut federation = None;
+                if external
+                    || shareable
+                    || r#override.is_some()
+                    || provides.is_some()
+                    || inaccessible
+                    || !tags.is_empty()
+                {
+                    federation = Some(Box::new(FederationProperties {
+                        provides,
+                        tags,
+                        r#override,
+                        external,
+                        shareable,
+                        inaccessible,
+                    }));
+                }
+
                 Some(MetaField {
                     name,
                     description: field.description.clone().map(|x| x.node),
@@ -100,13 +118,8 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                     ty: field.ty.clone().node.to_string().into(),
                     requires,
                     resolver,
-                    external,
-                    shareable,
-                    r#override,
-                    provides,
+                    federation,
                     deprecation,
-                    inaccessible,
-                    tags,
                     ..MetaField::default()
                 })
             })
@@ -252,7 +265,8 @@ mod tests {
             .unwrap()
             .field_by_name("location")
             .expect("StripeCustomer to have a location field after parsing");
-        assert!(location.shareable);
+        let federation = location.federation.as_ref().unwrap();
+        assert!(federation.shareable);
 
         let place = registry.types.get("Place").unwrap();
         let place_object = place.object().unwrap();
@@ -260,13 +274,16 @@ mod tests {
         assert!(place_object.external);
 
         let annual_precipitations = place.field_by_name("annualPrecipitations").unwrap();
-        assert!(annual_precipitations.external);
+        let federation = annual_precipitations.federation.as_ref().unwrap();
+        assert!(federation.external);
 
         let square_meter_price = place.field_by_name("squareMeterPrice").unwrap();
-        assert!(square_meter_price.shareable);
+        let federation = square_meter_price.federation.as_ref().unwrap();
+        assert!(federation.shareable);
 
         let name = place.field_by_name("name").unwrap();
-        assert!(name.shareable);
+        let federation = name.federation.as_ref().unwrap();
+        assert!(federation.shareable);
     }
 
     #[rstest::rstest]

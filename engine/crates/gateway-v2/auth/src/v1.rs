@@ -49,7 +49,7 @@ impl V1AuthProvider {
             .get(http::header::AUTHORIZATION)
             .and_then(|value| value.to_str().ok())
             .and_then(|value| value.strip_prefix("Bearer ").map(str::to_string));
-        let result = match (id_token, &self.config.provider) {
+        let result = match (id_token, &self.config.provider.as_deref()) {
             // API key has precedence over ID token
             (Some(token), Some(AuthProvider::Oidc(oidc_provider))) => {
                 let client = jwt_verifier::Client {

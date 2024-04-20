@@ -288,25 +288,31 @@ pub struct MetaField {
     pub args: IndexMap<String, MetaInputValue>,
     pub ty: MetaFieldType,
     pub deprecation: Deprecation,
-    pub cache_control: CacheControl,
-    pub external: bool,
-    pub shareable: bool,
+    pub cache_control: Option<Box<CacheControl>>,
     pub requires: Option<FieldSet>,
-    pub provides: Option<String>,
+    pub federation: Option<Box<FederationProperties>>,
     #[serde(skip)]
     #[derivative(Debug = "ignore")]
     pub visible: Option<MetaVisibleFn>,
     #[serde(skip)]
     #[derivative(Debug = "ignore")]
     pub compute_complexity: Option<ComplexityType>,
-    /// Deprecated, to remove
-    pub edges: Vec<String>,
     #[serde(skip_serializing_if = "Resolver::is_parent", default)]
     pub resolver: Resolver,
     pub required_operation: Option<Operations>,
-    pub auth: Option<AuthConfig>,
-    pub r#override: Option<String>,
+    pub auth: Option<Box<AuthConfig>>,
+}
+
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl, Deprecation)]
+#[derive(Clone, Default, derivative::Derivative, serde::Deserialize, serde::Serialize)]
+#[derivative(Debug)]
+pub struct FederationProperties {
+    pub provides: Option<String>,
     pub tags: Vec<String>,
+    pub r#override: Option<String>,
+    pub external: bool,
+    pub shareable: bool,
     pub inaccessible: bool,
 }
 
@@ -319,7 +325,7 @@ impl MetaField {
         }
     }
 
-    pub fn with_cache_control(self, cache_control: CacheControl) -> Self {
+    pub fn with_cache_control(self, cache_control: Option<Box<CacheControl>>) -> Self {
         Self { cache_control, ..self }
     }
 
@@ -337,10 +343,7 @@ impl Hash for MetaField {
         self.ty.hash(state);
         self.deprecation.hash(state);
         self.cache_control.hash(state);
-        self.external.hash(state);
         self.requires.hash(state);
-        self.provides.hash(state);
-        self.edges.hash(state);
         self.resolver.hash(state);
     }
 }
@@ -353,10 +356,7 @@ impl PartialEq for MetaField {
             && self.ty.eq(&other.ty)
             && self.deprecation.eq(&other.deprecation)
             && self.cache_control.eq(&other.cache_control)
-            && self.external.eq(&other.external)
             && self.requires.eq(&other.requires)
-            && self.provides.eq(&other.provides)
-            && self.edges.eq(&other.edges)
             && self.resolver.eq(&other.resolver)
     }
 }
@@ -620,7 +620,7 @@ pub struct ObjectType {
     pub name: String,
     pub description: Option<String>,
     pub fields: IndexMap<String, MetaField>,
-    pub cache_control: CacheControl,
+    pub cache_control: Option<Box<CacheControl>>,
     pub extends: bool,
     #[derivative(Debug = "ignore")]
     #[serde(skip)]
@@ -660,7 +660,7 @@ impl ObjectType {
         }
     }
 
-    pub fn with_cache_control(self, cache_control: CacheControl) -> Self {
+    pub fn with_cache_control(self, cache_control: Option<Box<CacheControl>>) -> Self {
         ObjectType { cache_control, ..self }
     }
 
@@ -703,7 +703,7 @@ pub struct InterfaceType {
     pub name: String,
     pub description: Option<String>,
     pub fields: IndexMap<String, MetaField>,
-    pub cache_control: CacheControl,
+    pub cache_control: Option<Box<CacheControl>>,
     pub possible_types: IndexSet<String>,
     pub extends: bool,
     #[derivative(Debug = "ignore")]
@@ -737,7 +737,7 @@ impl InterfaceType {
         }
     }
 
-    pub fn with_cache_control(self, cache_control: CacheControl) -> Self {
+    pub fn with_cache_control(self, cache_control: Option<Box<CacheControl>>) -> Self {
         InterfaceType { cache_control, ..self }
     }
 }
@@ -2160,4 +2160,23 @@ fn is_system_type(name: &str) -> bool {
     }
 
     name == "Boolean" || name == "Int" || name == "Float" || name == "String" || name == "ID"
+}
+
+#[test]
+fn types_should_have_reasonable_sizes() {
+    // We do some testing on the exact size of these.
+    // If the size goes up think very carefully about it.
+    // If it goes down - yay, just update the test so we can keep the new low water mark.
+
+    assert_eq!(std::mem::size_of::<ObjectType>(), 192);
+    assert_eq!(std::mem::size_of::<InterfaceType>(), 240);
+    assert_eq!(std::mem::size_of::<MetaType>(), 240);
+
+    assert_eq!(std::mem::size_of::<MetaField>(), 328);
+
+    assert_eq!(std::mem::size_of::<CacheControl>(), 80);
+
+    assert_eq!(std::mem::size_of::<MetaInputValue>(), 208);
+
+    assert_eq!(std::mem::size_of::<Resolver>(), 56);
 }

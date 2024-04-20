@@ -44,10 +44,10 @@ pub(super) fn create(
         args,
         ty: type_name.into(),
         deprecation: Deprecation::NoDeprecated,
-        cache_control: create_ctx.model_cache().clone(),
+        cache_control: create_ctx.model_cache().cloned(),
         resolver,
         required_operation: Some(Operations::GET),
-        auth: create_ctx.model_auth().clone(),
+        auth: create_ctx.model_auth().cloned(),
         ..Default::default()
     };
 

@@ -41,13 +41,13 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
     let output_type = register_collection_type(
         visitor_ctx.registry.get_mut(),
         create_ctx.r#type,
-        create_ctx.model_auth().as_ref(),
+        create_ctx.model_auth(),
     );
 
     let mut field = MetaField::new(field_name, output_type.as_str());
 
     field.description = Some(format!("Paginated query to fetch the whole list of {type_name}"));
-    field.cache_control = create_ctx.model_cache().clone();
+    field.cache_control = create_ctx.model_cache().cloned();
 
     let mut args = input_args(filter_type);
 
@@ -68,15 +68,16 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
 
     field.args = args;
     field.required_operation = Some(Operations::LIST);
-    field.auth = create_ctx.model_auth().clone();
+    field.auth = create_ctx.model_auth().cloned();
 
     visitor_ctx.push_namespaced_query(create_ctx.query_type_name(), field);
 }
 
+#[allow(clippy::borrowed_box)]
 fn register_collection_type(
     registry: &mut Registry,
     model_type_definition: &TypeDefinition,
-    model_auth: Option<&AuthConfig>,
+    model_auth: Option<&Box<AuthConfig>>,
 ) -> NamedType<'static> {
     let type_name = MetaNames::pagination_connection_type(model_type_definition);
 
@@ -115,10 +116,11 @@ fn register_collection_type(
     type_name.into()
 }
 
+#[allow(clippy::borrowed_box)] // Get to fuck clippy, I'm trying to work here
 fn register_edge_type(
     registry: &mut Registry,
     model_type_definition: &TypeDefinition,
-    model_auth: Option<&AuthConfig>,
+    model_auth: Option<&Box<AuthConfig>>,
 ) -> NamedType<'static> {
     let type_name = MetaNames::pagination_edge_type(model_type_definition);
     let model_name = NamedType::from(MetaNames::model(model_type_definition));

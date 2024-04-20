@@ -21,7 +21,7 @@ pub struct FederationEntity {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum FederationResolver {
     /// Makes an HTTP call to resolve
-    Http(HttpResolver),
+    Http(Box<HttpResolver>),
     /// This "resolver" doesn't actually resolve data in the same way the others do.
     ///
     /// This should be put on entities where the primary representation lives in

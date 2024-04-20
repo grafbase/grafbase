@@ -207,7 +207,7 @@ impl AuthExtension {
         for field_name in input_fields.keys() {
             let field = type_fields.get(field_name.as_str()).expect("field must exist");
 
-            let field_ops = (opts.auth_fn)(field.auth.as_ref(), opts.model_allowed_ops);
+            let field_ops = (opts.auth_fn)(field.auth.as_deref(), opts.model_allowed_ops);
 
             tracing::trace!("check_input.{field_name} ${field_ops}");
 
@@ -244,7 +244,7 @@ impl AuthExtension {
             .expect("type must have fields");
 
         for (name, field) in type_fields {
-            let field_ops = auth_fn(field.auth.as_ref(), model_ops);
+            let field_ops = auth_fn(field.auth.as_deref(), model_ops);
 
             if !field_ops.contains(Operations::DELETE) {
                 let msg = format!(

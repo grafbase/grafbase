@@ -173,7 +173,7 @@ impl<'a> VisitorContext<'a> {
                         self.global_cache_rules
                             .get(&GlobalCacheTarget::Type(Cow::Borrowed(QUERY_TYPE)))
                             .cloned()
-                            .unwrap_or_default(),
+                            .map(Box::new),
                     )
                     .into()
             },
@@ -204,7 +204,9 @@ impl<'a> VisitorContext<'a> {
             .into_iter()
             .map(|udf_name| (UdfKind::Resolver, udf_name))
             .collect::<HashSet<_>>();
-        if let Some(engine::AuthProvider::Authorizer(AuthorizerProvider { ref name })) = registry.auth.provider {
+        if let Some(engine::AuthProvider::Authorizer(AuthorizerProvider { ref name })) =
+            registry.auth.provider.as_deref()
+        {
             required_udfs.insert((UdfKind::Authorizer, name.clone()));
         }
 
