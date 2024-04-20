@@ -77,6 +77,7 @@ pub use rules::{
     openapi_directive::{OpenApiDirective, OpenApiQueryNamingStrategy, OpenApiTransforms},
     postgres_directive::PostgresDirective,
 };
+use serde::{Deserialize, Serialize};
 use validations::post_parsing_validations;
 
 use crate::rules::{
@@ -129,11 +130,13 @@ impl Error {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ParseResult<'a> {
     pub registry: Registry,
     pub required_udfs: HashSet<(UdfKind, String)>,
     pub global_cache_rules: GlobalCacheRules<'a>,
+
+    #[serde(skip)]
     pub federated_graph_config: Option<federation::FederatedGraphConfig>,
 }
 

@@ -22,7 +22,7 @@ pub async fn parse_sdl(schema: &str, environment: &HashMap<String, String>) -> R
         http_client: reqwest::Client::new(),
     };
 
-    let ParseResult {
+    let parse @ ParseResult {
         mut registry,
         required_udfs,
         global_cache_rules,
