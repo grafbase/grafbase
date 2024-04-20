@@ -1,7 +1,5 @@
 #![allow(unused_crate_dependencies)]
 
-use std::future::IntoFuture;
-
 use integration_tests::{EngineBuilder, ResponseExt};
 use serde_json::{json, Value};
 
