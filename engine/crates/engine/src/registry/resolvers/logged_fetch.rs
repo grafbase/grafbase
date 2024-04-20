@@ -35,7 +35,7 @@ pub async fn send_logged_request(
                     .headers_mut()
                     .unwrap()
                     .extend(response.headers_mut().drain());
-                let bytes = response.bytes().await?;
+                let bytes = response.bytes().instrument(info_span!("response_data_fetch")).await?;
                 let body = String::from_utf8(bytes.to_vec()).ok();
                 let response_to_return = response_to_return_builder.body(bytes).expect("must be valid").into();
                 (response_to_return, body)
@@ -44,8 +44,10 @@ pub async fn send_logged_request(
         };
 
         let duration = start_time.elapsed();
+        let url = format!("{fetch_log_endpoint_url}/log-event");
+
         reqwest::Client::new()
-            .post(format!("{fetch_log_endpoint_url}/log-event"))
+            .post(&url)
             .json(&LogEvent {
                 request_id,
                 r#type: common_types::LogEventType::NestedRequest {
@@ -58,6 +60,7 @@ pub async fn send_logged_request(
                 },
             })
             .send()
+            .instrument(info_span!("log_event", url = &url))
             .await?;
 
         Ok(response_to_return)

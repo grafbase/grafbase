@@ -42,6 +42,7 @@ use futures_util::Future;
 use http::{header::USER_AGENT, StatusCode};
 use inflector::Inflector;
 use internment::ArcIntern;
+use tracing::{info_span, Instrument};
 use url::Url;
 
 use self::serializer::Serializer;
@@ -219,7 +220,11 @@ fn load(queries: &[QueryData]) -> Pin<Box<dyn Future<Output = LoadResult> + Send
 
             let upstream_response = UpstreamResponse::from_response_text(
                 http_status,
-                response.text().await.map_err(|e| Error::RequestError(e.to_string())),
+                response
+                    .text()
+                    .instrument(info_span!("response_data_fetch"))
+                    .await
+                    .map_err(|e| Error::RequestError(e.to_string())),
             )?;
 
             for (query, aliases) in queries.into_iter().zip(aliases) {
