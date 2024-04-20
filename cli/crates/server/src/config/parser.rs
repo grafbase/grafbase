@@ -22,14 +22,18 @@ pub async fn parse_sdl(schema: &str, environment: &HashMap<String, String>) -> R
         http_client: reqwest::Client::new(),
     };
 
-    let parse @ ParseResult {
+    let parse = parser_sdl::parse(schema, environment, &connector_parsers)
+        .await
+        .map_err(|e| ConfigError::ParseSchema(e.to_string()))?;
+
+    std::fs::write("parse-result.json", serde_json::to_vec(&parse).unwrap()).unwrap();
+
+    let ParseResult {
         mut registry,
         required_udfs,
         global_cache_rules,
         federated_graph_config,
-    } = parser_sdl::parse(schema, environment, &connector_parsers)
-        .await
-        .map_err(|e| ConfigError::ParseSchema(e.to_string()))?;
+    } = parse;
 
     // apply global caching rules
     global_cache_rules
