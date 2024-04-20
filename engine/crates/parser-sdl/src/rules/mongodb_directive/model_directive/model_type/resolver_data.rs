@@ -21,7 +21,7 @@ pub(super) struct ResolverData {
     pub(super) resolver: Resolver,
     pub(super) args: IndexMap<String, MetaInputValue>,
     pub(super) field_type: String,
-    pub(super) cache_control: CacheControl,
+    pub(super) cache_control: Option<Box<CacheControl>>,
     pub(super) requires: Option<FieldSet>,
 }
 

@@ -17,7 +17,7 @@ pub(crate) fn register_output(visitor_ctx: &mut VisitorContext<'_>, create_ctx: 
     output_field.resolver = Resolver::from(transformer);
 
     output_field.required_operation = Some(Operations::DELETE);
-    output_field.auth = create_ctx.model_auth().clone();
+    output_field.auth = create_ctx.model_auth().cloned();
 
     let object_type = ObjectType::new(&output_type_name, [output_field]);
 

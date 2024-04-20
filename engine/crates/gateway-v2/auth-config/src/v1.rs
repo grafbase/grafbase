@@ -16,7 +16,9 @@ pub struct AuthConfig {
 
     pub allowed_owner_ops: Operations,
 
-    pub provider: Option<AuthProvider>,
+    // Honestly, why are we storing this whole AuthProvider struct for every single field?
+    // Bonkers
+    pub provider: Option<Box<AuthProvider>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -108,5 +110,18 @@ impl AuthConfig {
 
     pub fn owner_based_ops(&self) -> Operations {
         self.allowed_owner_ops
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn what_size_are_things() {
+        // An AuthConfig gets stored on every single field in the registry, so
+        // it shouldn't get too big.
+        assert_eq!(std::mem::size_of::<AuthProvider>(), 168);
+        assert_eq!(std::mem::size_of::<AuthConfig>(), 64);
     }
 }

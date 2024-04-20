@@ -175,13 +175,13 @@ impl<'de> Visitor<'de> for CacheAccessScopeVisitor {
 }
 
 impl CacheDirective {
-    pub fn parse(directives: &[Positioned<ConstDirective>]) -> CacheControl {
+    pub fn parse(directives: &[Positioned<ConstDirective>]) -> Option<Box<CacheControl>> {
         directives
             .iter()
             .find(|d| d.node.name.node == CACHE_DIRECTIVE_NAME)
             .and_then(|directive| parse_directive::<CacheDirective>(&directive.node, &HashMap::default()).ok())
-            .unwrap_or_default()
-            .into()
+            .map(Into::into)
+            .map(Box::new)
     }
 
     fn into_global_rules(self, ctx: &mut VisitorContext<'_>) -> GlobalCacheRules<'static> {

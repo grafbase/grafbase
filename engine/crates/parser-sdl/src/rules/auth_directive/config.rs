@@ -146,49 +146,51 @@ impl From<InternalAuthConfig> for engine::AuthConfig {
 
             allowed_owner_ops: internal_auth.allowed_owner_ops.into(),
 
-            provider: internal_auth.provider.map(|provider| match provider {
-                AuthProvider::Oidc {
-                    issuer,
-                    groups_claim,
-                    client_id,
-                } => {
-                    let issuer_base_url = issuer.parse().expect("issuer format must have been validated");
-                    engine::AuthProvider::Oidc(engine::OidcProvider {
+            provider: internal_auth.provider.map(|provider| {
+                Box::new(match provider {
+                    AuthProvider::Oidc {
                         issuer,
-                        issuer_base_url,
                         groups_claim,
                         client_id,
-                    })
-                }
-                AuthProvider::Jwks {
-                    issuer,
-                    jwks_endpoint,
-                    groups_claim,
-                    client_id,
-                } => {
-                    let jwks_endpoint = jwks_endpoint.as_ref().expect("must have been set");
-                    let jwks_endpoint = jwks_endpoint.parse::<url::Url>().expect("must be a valid URL");
-                    engine::AuthProvider::Jwks(engine::JwksProvider {
+                    } => {
+                        let issuer_base_url = issuer.parse().expect("issuer format must have been validated");
+                        engine::AuthProvider::Oidc(engine::OidcProvider {
+                            issuer,
+                            issuer_base_url,
+                            groups_claim,
+                            client_id,
+                        })
+                    }
+                    AuthProvider::Jwks {
+                        issuer,
                         jwks_endpoint,
+                        groups_claim,
+                        client_id,
+                    } => {
+                        let jwks_endpoint = jwks_endpoint.as_ref().expect("must have been set");
+                        let jwks_endpoint = jwks_endpoint.parse::<url::Url>().expect("must be a valid URL");
+                        engine::AuthProvider::Jwks(engine::JwksProvider {
+                            jwks_endpoint,
+                            issuer,
+                            groups_claim,
+                            client_id,
+                        })
+                    }
+                    AuthProvider::Jwt {
                         issuer,
                         groups_claim,
                         client_id,
-                    })
-                }
-                AuthProvider::Jwt {
-                    issuer,
-                    groups_claim,
-                    client_id,
-                    secret,
-                } => engine::AuthProvider::Jwt(engine::JwtProvider {
-                    issuer,
-                    groups_claim,
-                    client_id,
-                    secret: secrecy::SecretString::new(secret),
-                }),
-                AuthProvider::Authorizer { name } => {
-                    engine::AuthProvider::Authorizer(engine::AuthorizerProvider { name })
-                }
+                        secret,
+                    } => engine::AuthProvider::Jwt(engine::JwtProvider {
+                        issuer,
+                        groups_claim,
+                        client_id,
+                        secret: secrecy::SecretString::new(secret),
+                    }),
+                    AuthProvider::Authorizer { name } => {
+                        engine::AuthProvider::Authorizer(engine::AuthorizerProvider { name })
+                    }
+                })
             }),
         }
     }

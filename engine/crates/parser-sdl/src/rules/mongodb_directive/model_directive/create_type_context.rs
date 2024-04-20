@@ -12,8 +12,8 @@ pub(crate) struct CreateTypeContext<'a> {
     pub(super) r#type: &'a Positioned<TypeDefinition>,
     pub(super) object: &'a ObjectType,
     model_name: &'a str,
-    model_cache: CacheControl,
-    model_auth: Option<AuthConfig>,
+    model_cache: Option<Box<CacheControl>>,
+    model_auth: Option<Box<AuthConfig>>,
     collection: String,
     unique_directives: Vec<UniqueDirective>,
     config: MongoDBConfiguration,
@@ -57,7 +57,7 @@ impl<'a> CreateTypeContext<'a> {
             object,
             model_name,
             model_cache,
-            model_auth,
+            model_auth: model_auth.map(Box::new),
             collection,
             unique_directives,
             config,
@@ -74,12 +74,14 @@ impl<'a> CreateTypeContext<'a> {
         self.r#type.description()
     }
 
-    pub(super) fn model_cache(&self) -> &CacheControl {
-        &self.model_cache
+    #[allow(clippy::borrowed_box)]
+    pub(super) fn model_cache(&self) -> Option<&Box<CacheControl>> {
+        self.model_cache.as_ref()
     }
 
-    pub(super) fn model_auth(&self) -> &Option<AuthConfig> {
-        &self.model_auth
+    #[allow(clippy::borrowed_box)]
+    pub(super) fn model_auth(&self) -> Option<&Box<AuthConfig>> {
+        self.model_auth.as_ref()
     }
 
     pub(super) fn fields(&self) -> impl ExactSizeIterator<Item = &Positioned<FieldDefinition>> + '_ {

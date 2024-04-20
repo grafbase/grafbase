@@ -181,10 +181,10 @@ mod tests {
 
         assert_eq!(
             foo_query.cache_control,
-            CacheControl {
+            Some(Box::new(CacheControl {
                 max_age: 60,
                 ..Default::default()
-            }
+            }))
         );
 
         assert_eq!(foo_mutation.cache_control, Default::default());

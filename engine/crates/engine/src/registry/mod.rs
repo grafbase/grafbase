@@ -288,7 +288,7 @@ pub struct MetaField {
     pub args: IndexMap<String, MetaInputValue>,
     pub ty: MetaFieldType,
     pub deprecation: Deprecation,
-    pub cache_control: CacheControl,
+    pub cache_control: Option<Box<CacheControl>>,
     pub external: bool,
     pub shareable: bool,
     pub requires: Option<FieldSet>,
@@ -304,7 +304,7 @@ pub struct MetaField {
     #[serde(skip_serializing_if = "Resolver::is_parent", default)]
     pub resolver: Resolver,
     pub required_operation: Option<Operations>,
-    pub auth: Option<AuthConfig>,
+    pub auth: Option<Box<AuthConfig>>,
     pub r#override: Option<String>,
     pub tags: Vec<String>,
     pub inaccessible: bool,
@@ -319,7 +319,7 @@ impl MetaField {
         }
     }
 
-    pub fn with_cache_control(self, cache_control: CacheControl) -> Self {
+    pub fn with_cache_control(self, cache_control: Option<Box<CacheControl>>) -> Self {
         Self { cache_control, ..self }
     }
 
@@ -620,7 +620,7 @@ pub struct ObjectType {
     pub name: String,
     pub description: Option<String>,
     pub fields: IndexMap<String, MetaField>,
-    pub cache_control: CacheControl,
+    pub cache_control: Option<Box<CacheControl>>,
     pub extends: bool,
     #[derivative(Debug = "ignore")]
     #[serde(skip)]
@@ -660,7 +660,7 @@ impl ObjectType {
         }
     }
 
-    pub fn with_cache_control(self, cache_control: CacheControl) -> Self {
+    pub fn with_cache_control(self, cache_control: Option<Box<CacheControl>>) -> Self {
         ObjectType { cache_control, ..self }
     }
 
@@ -703,7 +703,7 @@ pub struct InterfaceType {
     pub name: String,
     pub description: Option<String>,
     pub fields: IndexMap<String, MetaField>,
-    pub cache_control: CacheControl,
+    pub cache_control: Option<Box<CacheControl>>,
     pub possible_types: IndexSet<String>,
     pub extends: bool,
     #[derivative(Debug = "ignore")]
@@ -737,7 +737,7 @@ impl InterfaceType {
         }
     }
 
-    pub fn with_cache_control(self, cache_control: CacheControl) -> Self {
+    pub fn with_cache_control(self, cache_control: Option<Box<CacheControl>>) -> Self {
         InterfaceType { cache_control, ..self }
     }
 }
@@ -2160,4 +2160,23 @@ fn is_system_type(name: &str) -> bool {
     }
 
     name == "Boolean" || name == "Int" || name == "Float" || name == "String" || name == "ID"
+}
+
+#[test]
+fn types_should_have_reasonable_sizes() {
+    // We do some testing on the exact size of these.
+    // If the size goes up think very carefully about it.
+    // If it goes down - yay, just update the test so we can keep the new low water mark.
+
+    assert_eq!(std::mem::size_of::<ObjectType>(), 192);
+    assert_eq!(std::mem::size_of::<InterfaceType>(), 240);
+    assert_eq!(std::mem::size_of::<MetaType>(), 240);
+
+    assert_eq!(std::mem::size_of::<MetaField>(), 416);
+
+    assert_eq!(std::mem::size_of::<CacheControl>(), 80);
+
+    assert_eq!(std::mem::size_of::<MetaInputValue>(), 208);
+
+    assert_eq!(std::mem::size_of::<Resolver>(), 56);
 }

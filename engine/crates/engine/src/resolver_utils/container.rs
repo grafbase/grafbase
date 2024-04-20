@@ -354,7 +354,7 @@ impl<'a> FieldExecutionSet<'a> {
                     name: field.node.name.node.as_str(),
                     alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
                     required_operation: meta_field.and_then(|f| f.required_operation),
-                    auth: meta_field.and_then(|f| f.auth.as_ref()),
+                    auth: meta_field.and_then(|f| f.auth.as_deref()),
                     input_values: args_values,
                 };
 
@@ -557,7 +557,7 @@ impl<'a> Fields<'a> {
                                     name: field.node.name.node.as_str(),
                                     alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
                                     required_operation: meta_field.and_then(|f| f.required_operation),
-                                    auth: meta_field.and_then(|f| f.auth.as_ref()),
+                                    auth: meta_field.and_then(|f| f.auth.as_deref()),
                                     input_values: args_values,
                                 };
 

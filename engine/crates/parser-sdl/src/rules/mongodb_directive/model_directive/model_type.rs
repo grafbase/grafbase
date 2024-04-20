@@ -23,7 +23,7 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
             key: String::from(MONGODB_OUTPUT_FIELD_ID),
         };
         id.resolver = transformer.into();
-        id.auth = create_ctx.model_auth().clone();
+        id.auth = create_ctx.model_auth().cloned();
 
         id
     });
@@ -33,13 +33,13 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
         let mapped_name = field.mapped_name().map(ToString::to_string);
 
         let auth = match AuthDirective::parse(visitor_ctx, &field.directives, false) {
-            Ok(auth) => auth,
+            Ok(auth) => auth.map(Box::new),
             Err(err) => {
                 visitor_ctx.report_error(err.locations, err.message);
                 None
             }
         }
-        .or_else(|| create_ctx.model_auth().clone());
+        .or_else(|| create_ctx.model_auth().cloned());
 
         let resolver_data = ResolverData::from_field(&field.node, visitor_ctx, field.pos);
 
@@ -62,7 +62,7 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
     }
 
     let description = create_ctx.type_description().map(ToString::to_string);
-    let cache_control = create_ctx.model_cache().clone();
+    let cache_control = create_ctx.model_cache().cloned();
     let rust_typename = create_ctx.model_name().to_string();
     let constraints = create_ctx.unique_constraints().collect();
 

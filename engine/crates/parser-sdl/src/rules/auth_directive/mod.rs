@@ -356,12 +356,12 @@ pub mod tests {
         }
         "#,
         engine::AuthConfig {
-            provider: Some(engine::AuthProvider::Oidc(engine::OidcProvider {
+            provider: Some(Box::new(engine::AuthProvider::Oidc(engine::OidcProvider {
                 issuer: "https://my.idp.com".to_string(),
                 issuer_base_url: "https://my.idp.com".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
-            })),
+            }))),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
@@ -414,12 +414,12 @@ pub mod tests {
             ("CLIENT_ID".to_string(), "some-id".to_string()),
         ]),
         engine::AuthConfig {
-            provider: Some(engine::AuthProvider::Oidc(engine::OidcProvider {
+            provider: Some(Box::new(engine::AuthProvider::Oidc(engine::OidcProvider {
                 issuer: "https://my.idp.com".to_string(),
                 issuer_base_url: "https://my.idp.com".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: Some("some-id".to_string()),
-            })),
+            }))),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
@@ -490,12 +490,12 @@ pub mod tests {
             ("JWT_SECRET".to_string(), "s3cr3t".to_string())
         ]),
         engine::AuthConfig {
-            provider: Some(engine::AuthProvider::Jwt(engine::JwtProvider {
+            provider: Some(Box::new(engine::AuthProvider::Jwt(engine::JwtProvider {
                 issuer: "https://my.idp.com".to_string(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
-            })),
+            }))),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
@@ -511,12 +511,12 @@ pub mod tests {
         }
         "#,
         engine::AuthConfig {
-            provider: Some(engine::AuthProvider::Jwt(engine::JwtProvider {
+            provider: Some(Box::new(engine::AuthProvider::Jwt(engine::JwtProvider {
                 issuer: "https://my.idp.com".to_string(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: Some("some-id".to_string()),
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
-            })),
+            }))),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
@@ -532,12 +532,12 @@ pub mod tests {
       }
       "#,
         engine::AuthConfig {
-            provider: Some(engine::AuthProvider::Jwt(engine::JwtProvider {
+            provider: Some(Box::new(engine::AuthProvider::Jwt(engine::JwtProvider {
                 issuer: "myidp".to_string(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
-            })),
+            }))),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
@@ -565,12 +565,12 @@ pub mod tests {
       }
       "#,
         engine::AuthConfig {
-            provider: Some(engine::AuthProvider::Oidc(engine::OidcProvider {
+            provider: Some(Box::new(engine::AuthProvider::Oidc(engine::OidcProvider {
                 issuer: "https://my.idp.com".to_string(),
                 issuer_base_url: "https://my.idp.com".parse().unwrap(),
                 groups_claim: "grps".to_string(),
                 client_id: None,
-            })),
+            }))),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
@@ -586,12 +586,12 @@ pub mod tests {
     }
     "#,
         engine::AuthConfig {
-            provider: Some(engine::AuthProvider::Jwt(engine::JwtProvider {
+            provider: Some(Box::new(engine::AuthProvider::Jwt(engine::JwtProvider {
                 issuer: "myidp".to_string(),
                 groups_claim: "grps".to_string(),
                 client_id: None,
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
-            })),
+            }))),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
@@ -607,12 +607,12 @@ schema @auth(
 }
 "#,
         engine::AuthConfig {
-            provider: Some(engine::AuthProvider::Jwks(engine::JwksProvider {
+            provider: Some(Box::new(engine::AuthProvider::Jwks(engine::JwksProvider {
                 issuer: Some("http://example.com".to_string()),
                 jwks_endpoint: "http://example.com/.well-known/jwks.json".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
-            })),
+            }))),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
@@ -628,12 +628,12 @@ schema @auth(
   }
   "#,
         engine::AuthConfig {
-            provider: Some(engine::AuthProvider::Jwks(engine::JwksProvider {
+            provider: Some(Box::new(engine::AuthProvider::Jwks(engine::JwksProvider {
                 issuer: None,
                 jwks_endpoint: "http://example.com/jwks".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
-            })),
+            }))),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
@@ -649,12 +649,12 @@ schema @auth(
 }
 "#,
         engine::AuthConfig {
-            provider: Some(engine::AuthProvider::Jwks(engine::JwksProvider {
+            provider: Some(Box::new(engine::AuthProvider::Jwks(engine::JwksProvider {
                 issuer: Some("myidp".to_string()),
                 jwks_endpoint: "http://example.com/jwks".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
-            })),
+            }))),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
@@ -675,12 +675,12 @@ query: Query
             ("GROUPS".to_string(), "grps".to_string()),
         ]),
         engine::AuthConfig {
-            provider: Some(engine::AuthProvider::Jwks(engine::JwksProvider {
+            provider: Some(Box::new(engine::AuthProvider::Jwks(engine::JwksProvider {
                 issuer: Some("https://my.idp.com".to_string()),
                 jwks_endpoint: "https://my.idp.com/.well-known/jwks.json".parse().unwrap(),
                 groups_claim: "grps".to_string(),
                 client_id: Some("some-id".to_string()),
-            })),
+            }))),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }
@@ -696,12 +696,12 @@ query: Query
       }
       "#,
         engine::AuthConfig {
-            provider: Some(engine::AuthProvider::Oidc(engine::OidcProvider {
+            provider: Some(Box::new(engine::AuthProvider::Oidc(engine::OidcProvider {
                 issuer: "https://my.idp.com/some/path/".to_string(),
                 issuer_base_url: "https://my.idp.com/some/path/".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
-            })),
+            }))),
             allowed_public_ops: allowed_public_ops(Operations::empty()),
             ..Default::default()
         }

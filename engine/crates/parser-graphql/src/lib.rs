@@ -10,12 +10,9 @@ use cynic::{
     GraphQlError, QueryBuilder,
 };
 use cynic_introspection::{query::IntrospectionQuery, SchemaError};
-use engine::{
-    registry::{
-        resolvers::{graphql, transformer::Transformer, Resolver},
-        ConnectorHeaders, Deprecation, MetaField, ObjectType, Registry,
-    },
-    CacheControl,
+use engine::registry::{
+    resolvers::{graphql, transformer::Transformer, Resolver},
+    ConnectorHeaders, Deprecation, MetaField, ObjectType, Registry,
 };
 use http::header::USER_AGENT;
 use inflector::Inflector;
@@ -273,13 +270,13 @@ impl Parser {
                 description: Some(format!("Access to embedded {name} API.")),
                 ty: format!("{}{}!", name.to_pascal_case(), &registry.query_type).into(),
                 deprecation: Deprecation::NoDeprecated,
-                cache_control: CacheControl::default(),
-                resolver: Resolver::Graphql(graphql::Resolver::new(
+                cache_control: None,
+                resolver: Resolver::Graphql(Box::new(graphql::Resolver::new(
                     self.name.clone(),
                     self.url.clone(),
                     Some(name.to_owned()),
                     self.type_prefix.clone(),
-                )),
+                ))),
                 ..Default::default()
             },
         );
@@ -298,12 +295,12 @@ impl Parser {
         // fields from the upstream API. No fields, means no API access exposed by the upstream
         // server.
         for (_name, field) in fields {
-            field.resolver = Resolver::Graphql(graphql::Resolver::new(
+            field.resolver = Resolver::Graphql(Box::new(graphql::Resolver::new(
                 self.name.clone(),
                 self.url.clone(),
                 None,
                 self.type_prefix.clone(),
-            ));
+            )));
         }
     }
 
@@ -327,13 +324,13 @@ impl Parser {
                 description: Some(format!("Access to embedded {name} API.")),
                 ty: format!("{}{mutation_type}!", name.to_pascal_case()).into(),
                 deprecation: Deprecation::NoDeprecated,
-                cache_control: CacheControl::default(),
-                resolver: Resolver::Graphql(graphql::Resolver::new(
+                cache_control: None,
+                resolver: Resolver::Graphql(Box::new(graphql::Resolver::new(
                     self.name.clone(),
                     self.url.clone(),
                     Some(name.to_owned()),
                     self.type_prefix.clone(),
-                )),
+                ))),
                 ..Default::default()
             },
         );
@@ -356,12 +353,12 @@ impl Parser {
         // fields from the upstream API. No fields, means no API access exposed by the upstream
         // server.
         for (_name, field) in fields {
-            field.resolver = Resolver::Graphql(graphql::Resolver::new(
+            field.resolver = Resolver::Graphql(Box::new(graphql::Resolver::new(
                 self.name.clone(),
                 self.url.clone(),
                 None,
                 self.type_prefix.clone(),
-            ));
+            )));
         }
     }
 

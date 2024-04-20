@@ -127,14 +127,15 @@ impl<'a> GlobalCacheRules<'a> {
 
                             if_chain! {
                                 if let Some((cache_control, fields)) = caching_interest;
-                                // (!= 0) means caching was defined in a different level
+                                // Some means caching was defined in a different level
                                 // global works as default so we skip
-                                if cache_control.max_age == 0;
+                                if cache_control.is_none();
                                 then {
-                                    *cache_control = global_cache_control;
+                                    *cache_control = Some(Box::new(global_cache_control));
 
                                     // check the mutation invalidation
                                     if_chain! {
+                                        if let Some(cache_control) = cache_control;
                                         if let Some(mutation_invalidation_policy) = &cache_control.invalidation_policy;
                                         if let Err(err) = validate_mutation_invalidation(
                                             ty.as_ref(),
@@ -158,14 +159,15 @@ impl<'a> GlobalCacheRules<'a> {
                             let registry_type_field = registry_type.field_by_name_mut(field.as_ref());
 
                             if let Some(registry_type_field) = registry_type_field {
-                                // (!= 0) means caching was defined in a different level
+                                // Some means caching was defined in a different level
                                 // global works as default so we skip
-                                if registry_type_field.cache_control.max_age == 0 {
-                                    registry_type_field.cache_control = global_cache_control;
+                                if registry_type_field.cache_control.is_none() {
+                                    registry_type_field.cache_control = Some(Box::new(global_cache_control));
 
                                     // check the mutation invalidation
                                     if_chain! {
-                                        if let Some(mutation_invalidation_policy) = &registry_type_field.cache_control.invalidation_policy;
+                                        if let Some(cache_control) = &registry_type_field.cache_control;
+                                        if let Some(mutation_invalidation_policy) = &cache_control.invalidation_policy;
                                         if let Err(err) = validate_mutation_invalidation(
                                             ty.as_ref(),
                                             // safe, field found means there are fields
@@ -447,7 +449,7 @@ mod tests {
 
         assert_eq!(
             user.cache_control,
-            CacheControl {
+            Some(Box::new(CacheControl {
                 public: false,
                 max_age: 60,
                 stale_while_revalidate: 0,
@@ -455,29 +457,29 @@ mod tests {
                     field: "id".to_string()
                 }),
                 access_scopes: None,
-            }
+            }))
         );
 
         assert_eq!(
             post_type.cache_control,
-            CacheControl {
+            Some(Box::new(CacheControl {
                 public: false,
                 max_age: 20,
                 stale_while_revalidate: 0,
                 invalidation_policy: None,
                 access_scopes: None,
-            }
+            }))
         );
 
         assert_eq!(
-            post_contents_cache_control,
-            &CacheControl {
+            *post_contents_cache_control,
+            Some(Box::new(CacheControl {
                 public: false,
                 max_age: 10,
                 stale_while_revalidate: 0,
                 invalidation_policy: None,
                 access_scopes: None,
-            }
+            }))
         );
     }
 
@@ -702,13 +704,13 @@ mod tests {
 
         assert_eq!(
             post_type.cache_control,
-            CacheControl {
+            Some(Box::new(CacheControl {
                 public: false,
                 max_age: 60,
                 stale_while_revalidate: 10,
                 invalidation_policy: None,
                 access_scopes: None,
-            }
+            }))
         );
     }
 }

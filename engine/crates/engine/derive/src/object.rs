@@ -342,7 +342,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                         },
                         ty: <#schema_ty as #crate_name::LegacyOutputType>::create_type_info(registry),
                         deprecation: #field_deprecation,
-                        cache_control: #cache_control,
+                        cache_control: Some(Box::new(#cache_control)),
                         external: #external,
                         provides: #provides,
                         requires: #requires,
@@ -477,7 +477,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                                 #(#schema_fields)*
                                 fields
                             },
-                            cache_control: #cache_control,
+                            cache_control: Some(Box::new(#cache_control)),
                             extends: #extends,
                             is_node: false,
                             visible: #visible,
@@ -519,7 +519,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                                 #(#schema_fields)*
                                 fields
                             },
-                            cache_control: #cache_control,
+                            cache_control: Some(Box::new(#cache_control)),
                             extends: #extends,
                             visible: #visible,
                             is_node: false,

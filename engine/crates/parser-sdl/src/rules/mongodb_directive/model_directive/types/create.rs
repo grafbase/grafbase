@@ -66,7 +66,7 @@ pub(crate) fn register_single_output(
     let transformer = Transformer::select("insertedId");
     output_field.resolver = Resolver::from(transformer);
     output_field.required_operation = Some(Operations::CREATE);
-    output_field.auth = create_ctx.model_auth().clone();
+    output_field.auth = create_ctx.model_auth().cloned();
 
     let object_type = ObjectType::new(&output_type_name, [output_field]);
 
@@ -85,7 +85,7 @@ pub(crate) fn register_many_output(visitor_ctx: &mut VisitorContext<'_>, create_
     let transformer = Transformer::select("insertedIds");
     output_field.resolver = Resolver::from(transformer);
     output_field.required_operation = Some(Operations::CREATE);
-    output_field.auth = create_ctx.model_auth().clone();
+    output_field.auth = create_ctx.model_auth().cloned();
 
     let object_type = ObjectType::new(&output_type_name, [output_field]);
 
