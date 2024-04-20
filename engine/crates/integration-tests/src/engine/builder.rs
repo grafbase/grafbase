@@ -16,6 +16,7 @@ pub struct EngineBuilder {
     openapi_specs: HashMap<String, String>,
     environment_variables: HashMap<String, String>,
     custom_resolvers: Option<CustomResolverInvoker>,
+    forced_parse_result: Option<ParseResult<'static>>,
 }
 
 pub struct RequestContext {
@@ -72,6 +73,7 @@ impl EngineBuilder {
             openapi_specs: HashMap::new(),
             environment_variables: HashMap::new(),
             custom_resolvers: None,
+            forced_parse_result: None,
         }
     }
 
@@ -95,18 +97,30 @@ impl EngineBuilder {
         }
     }
 
+    pub fn with_forced_parse_result(mut self, result: ParseResult<'static>) -> Self {
+        self.forced_parse_result = Some(result);
+        self
+    }
+
     pub async fn build(self) -> Engine {
         let ParseResult {
             mut registry,
             global_cache_rules,
             ..
-        } = parser_sdl::parse(&self.schema, &self.environment_variables, &self)
-            .await
-            .unwrap();
+        } = match self.forced_parse_result {
+            Some(result) => result,
+            None => {
+                let mut result = parser_sdl::parse(&self.schema, &self.environment_variables, &self)
+                    .await
+                    .unwrap();
+
+                result.registry = serde_json::from_value(serde_json::to_value(result.registry).unwrap()).unwrap();
+
+                result
+            }
+        };
 
         global_cache_rules.apply(&mut registry).unwrap();
-
-        let registry: Registry = serde_json::from_value(serde_json::to_value(registry).unwrap()).unwrap();
 
         let postgres = {
             let mut transports = HashMap::new();
