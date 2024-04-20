@@ -14,10 +14,11 @@ graphql-mocks.workspace = true
 serde_json.workspace = true
 tokio = "1.37"
 
+integration-tests.path = "../integration-tests"
+
 [dev-dependencies]
 divan = "0.1"
 
-integration-tests.path = "../integration-tests"
 
 [lints]
 workspace = true

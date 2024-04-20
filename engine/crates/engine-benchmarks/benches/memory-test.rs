@@ -6,6 +6,7 @@ use std::future::IntoFuture;
 
 use engine_benchmarks::MockProcess;
 use integration_tests::{EngineBuilder, ResponseExt};
+use serde_json::json;
 
 // #[global_allocator]
 // static ALLOC: AllocProfiler = AllocProfiler::system();
@@ -19,11 +20,21 @@ fn ton_of_data_test(bencher: divan::Bencher<'_, '_>) {
     let mock = MockProcess::new();
     let port = mock.port;
 
+    let result = serde_json::from_str(
+        &std::fs::read_to_string("/Users/graeme/src/grafbase/tripadvisor-repro/parse-result.json").unwrap(),
+    )
+    .unwrap();
+
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap();
-    let engine = runtime.block_on(EngineBuilder::new(schema(port, true)).build());
+
+    let engine = runtime.block_on(
+        EngineBuilder::new(schema(port, true))
+            .with_forced_parse_result(result)
+            .build(),
+    );
 
     bencher
         .with_inputs(|| {
@@ -36,7 +47,17 @@ fn ton_of_data_test(bencher: divan::Bencher<'_, '_>) {
             runtime
         })
         .bench_values(|runtime| {
-            let result = runtime.block_on(engine.execute(QUERY).into_future());
+            let result = runtime.block_on(
+                engine
+                    .execute(QUERY)
+                    .variables(json!(
+                        {
+                            "listId": 67,
+                            "countryId": 1
+                        }
+                    ))
+                    .into_future(),
+            );
 
             let result = result.assert_success();
 
@@ -45,6 +66,40 @@ fn ton_of_data_test(bencher: divan::Bencher<'_, '_>) {
         });
 }
 
+const QUERY: &str = "
+query ShelfItems($listId: Float!, $countryId: Float!) {
+    db {
+      listItems(listId: $listId, countryId: $countryId, limit: 9) {
+        id
+        title
+        image
+        subjectId
+        subjectReferenceId
+        destination {
+          id
+          slug
+        }
+        departurePort {
+          id
+          name
+        }
+        port {
+          id
+          slug
+        }
+        ship {
+          id
+          slug
+        }
+        cruiseLine {
+          id
+          slug
+        }
+      }
+    }
+  }
+";
+#[cfg(NOPE)]
 const QUERY: &str = "
     query {
         gothub {
