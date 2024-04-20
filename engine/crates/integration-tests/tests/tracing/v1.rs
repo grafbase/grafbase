@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde_json::json;
 use tracing::Level;
 use tracing_mock::{expect, subscriber};
@@ -31,7 +33,10 @@ async fn query_bad_request() {
 
     // act
 
-    engine::Schema::build(Registry::new()).finish().execute("").await;
+    engine::Schema::build(Arc::new(Registry::new()))
+        .finish()
+        .execute("")
+        .await;
 
     // assert
     handle.assert_finished();
@@ -153,7 +158,7 @@ async fn batch() {
     let _default = tracing::subscriber::set_default(subscriber);
 
     // act
-    engine::Schema::build(Registry::new())
+    engine::Schema::build(Arc::new(Registry::new()))
         .finish()
         .execute_batch(BatchRequest::Batch(vec![
             Request::new("query-1"),
@@ -181,7 +186,7 @@ async fn subscription() {
     let _default = tracing::subscriber::set_default(subscriber);
 
     // act
-    let _: Vec<StreamingPayload> = engine::Schema::build(Registry::new())
+    let _: Vec<StreamingPayload> = engine::Schema::build(Arc::new(Registry::new()))
         .finish()
         .execute_stream("")
         .collect()

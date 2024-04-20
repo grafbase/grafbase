@@ -1729,7 +1729,7 @@ impl Registry {
         }
     }
 
-    pub(crate) fn has_entities(&self) -> bool {
+    pub fn has_entities(&self) -> bool {
         !self.federation_entities.is_empty()
     }
 
@@ -1788,7 +1788,7 @@ impl Registry {
         }
     }
 
-    pub(crate) fn create_federation_types(&mut self) {
+    pub fn create_federation_types(&mut self) {
         <Any as LegacyInputType>::create_type_info(self);
 
         self.types.insert(

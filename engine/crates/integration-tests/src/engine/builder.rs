@@ -120,7 +120,7 @@ impl EngineBuilder {
         // engine-v2 tests don't use wait_until so it's not a problem for the receiver to be
         // dropped immediately.
         let (sender, _) = tokio::sync::mpsc::unbounded_channel();
-        let mut schema_builder = Schema::build(registry)
+        let mut schema_builder = Schema::build(Arc::new(registry))
             .data(QueryBatcher::new())
             .data(runtime::Context::new(
                 &Arc::new(RequestContext {

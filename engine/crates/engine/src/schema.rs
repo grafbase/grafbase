@@ -32,37 +32,12 @@ use crate::{new_futures_spawner, QuerySpawnedFuturesWaiter};
 /// Schema builder
 pub struct SchemaBuilder {
     validation_mode: ValidationMode,
-    registry: Registry,
+    registry: Arc<Registry>,
     data: Data,
     extensions: Vec<Box<dyn ExtensionFactory>>,
 }
 
 impl SchemaBuilder {
-    /// Manually register a input type in the schema.
-    ///
-    /// You can use this function to register schema types that are not directly referenced.
-    #[must_use]
-    pub fn register_input_type<T: LegacyInputType>(mut self) -> Self {
-        T::create_type_info(&mut self.registry);
-        self
-    }
-
-    /// Manually register a output type in the schema.
-    ///
-    /// You can use this function to register schema types that are not directly referenced.
-    #[must_use]
-    pub fn register_output_type<T: LegacyOutputType>(mut self) -> Self {
-        T::create_type_info(&mut self.registry);
-        self
-    }
-
-    /// Disable introspection queries.
-    #[must_use]
-    pub fn disable_introspection(mut self) -> Self {
-        self.registry.disable_introspection = true;
-        self
-    }
-
     /// Add an extension to the schema.
     ///
     /// # Examples
@@ -103,43 +78,8 @@ impl SchemaBuilder {
         self
     }
 
-    /// Enable federation, which is automatically enabled if the Query has least one entity definition.
-    #[must_use]
-    pub fn enable_federation(mut self) -> Self {
-        self.registry.enable_federation = true;
-        self
-    }
-
-    /// Make the Federation SDL include subscriptions.
-    ///
-    /// Note: Not included by default, in order to be compatible with Apollo Server.
-    #[must_use]
-    pub fn enable_subscription_in_federation(mut self) -> Self {
-        self.registry.federation_subscription = true;
-        self
-    }
-
-    /// Override the name of the specified input type.
-    #[must_use]
-    pub fn override_input_type_description<T: LegacyInputType>(mut self, desc: &'static str) -> Self {
-        self.registry.set_description(&T::type_name(), desc);
-        self
-    }
-
-    /// Override the name of the specified output type.
-    #[must_use]
-    pub fn override_output_type_description<T: LegacyOutputType>(mut self, desc: &'static str) -> Self {
-        self.registry.set_description(&T::type_name(), desc);
-        self
-    }
-
     /// Build schema.
-    pub fn finish(mut self) -> Schema {
-        // federation
-        if self.registry.enable_federation && self.registry.has_entities() {
-            self.registry.create_federation_types();
-        }
-
+    pub fn finish(self) -> Schema {
         Schema(Arc::new(SchemaInner {
             validation_mode: self.validation_mode,
             operation_limits: self.registry.operation_limits.clone(),
@@ -154,7 +94,7 @@ impl SchemaBuilder {
 
 #[doc(hidden)]
 pub struct SchemaEnvInner {
-    pub registry: Registry,
+    pub registry: Arc<Registry>,
     pub data: Data,
 }
 
@@ -191,7 +131,7 @@ impl Clone for Schema {
 
 impl Default for Schema {
     fn default() -> Self {
-        Schema::new(Self::create_registry())
+        Schema::new(Arc::new(Self::create_registry()))
     }
 }
 
@@ -209,7 +149,7 @@ impl Schema {
     /// The root object for the query and Mutation needs to be specified.
     /// If there is no mutation, you can use `EmptyMutation`.
     /// If there is no subscription, you can use `EmptySubscription`.
-    pub fn build(registry: Registry) -> SchemaBuilder {
+    pub fn build(registry: Arc<Registry>) -> SchemaBuilder {
         SchemaBuilder {
             validation_mode: ValidationMode::Strict,
             registry,
@@ -353,7 +293,7 @@ impl Schema {
     }
 
     /// Create a schema
-    pub fn new(registry: Registry) -> Schema {
+    pub fn new(registry: Arc<Registry>) -> Schema {
         Self::build(registry).finish()
     }
 
