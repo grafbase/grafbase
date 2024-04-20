@@ -5,6 +5,7 @@
 #![allow(clippy::use_self)]
 #![allow(clippy::if_not_else)]
 #![allow(clippy::vec_init_then_push)]
+#![allow(unused_variables)] // YOLO
 #![forbid(unsafe_code)]
 
 mod args;

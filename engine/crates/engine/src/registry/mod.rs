@@ -289,24 +289,30 @@ pub struct MetaField {
     pub ty: MetaFieldType,
     pub deprecation: Deprecation,
     pub cache_control: Option<Box<CacheControl>>,
-    pub external: bool,
-    pub shareable: bool,
     pub requires: Option<FieldSet>,
-    pub provides: Option<String>,
+    pub federation: Option<Box<FederationProperties>>,
     #[serde(skip)]
     #[derivative(Debug = "ignore")]
     pub visible: Option<MetaVisibleFn>,
     #[serde(skip)]
     #[derivative(Debug = "ignore")]
     pub compute_complexity: Option<ComplexityType>,
-    /// Deprecated, to remove
-    pub edges: Vec<String>,
     #[serde(skip_serializing_if = "Resolver::is_parent", default)]
     pub resolver: Resolver,
     pub required_operation: Option<Operations>,
     pub auth: Option<Box<AuthConfig>>,
-    pub r#override: Option<String>,
+}
+
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl, Deprecation)]
+#[derive(Clone, Default, derivative::Derivative, serde::Deserialize, serde::Serialize)]
+#[derivative(Debug)]
+pub struct FederationProperties {
+    pub provides: Option<String>,
     pub tags: Vec<String>,
+    pub r#override: Option<String>,
+    pub external: bool,
+    pub shareable: bool,
     pub inaccessible: bool,
 }
 
@@ -337,10 +343,7 @@ impl Hash for MetaField {
         self.ty.hash(state);
         self.deprecation.hash(state);
         self.cache_control.hash(state);
-        self.external.hash(state);
         self.requires.hash(state);
-        self.provides.hash(state);
-        self.edges.hash(state);
         self.resolver.hash(state);
     }
 }
@@ -353,10 +356,7 @@ impl PartialEq for MetaField {
             && self.ty.eq(&other.ty)
             && self.deprecation.eq(&other.deprecation)
             && self.cache_control.eq(&other.cache_control)
-            && self.external.eq(&other.external)
             && self.requires.eq(&other.requires)
-            && self.provides.eq(&other.provides)
-            && self.edges.eq(&other.edges)
             && self.resolver.eq(&other.resolver)
     }
 }
@@ -2172,7 +2172,7 @@ fn types_should_have_reasonable_sizes() {
     assert_eq!(std::mem::size_of::<InterfaceType>(), 240);
     assert_eq!(std::mem::size_of::<MetaType>(), 240);
 
-    assert_eq!(std::mem::size_of::<MetaField>(), 416);
+    assert_eq!(std::mem::size_of::<MetaField>(), 328);
 
     assert_eq!(std::mem::size_of::<CacheControl>(), 80);
 

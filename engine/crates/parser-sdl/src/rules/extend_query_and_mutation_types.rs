@@ -1,7 +1,7 @@
 use common_types::auth::Operations;
 use engine::registry::{
     resolvers::{custom::CustomResolver, Resolver},
-    MetaField,
+    FederationProperties, MetaField,
 };
 use engine_parser::types::{ObjectType, TypeKind};
 
@@ -64,6 +64,15 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                     EntryPoint::Mutation => (&mut ctx.mutations, Default::default()),
                 };
 
+                let mut federation = None;
+                if inaccessible || !tags.is_empty() {
+                    federation = Some(Box::new(FederationProperties {
+                        inaccessible,
+                        tags,
+                        ..Default::default()
+                    }));
+                }
+
                 field_collection.push(MetaField {
                     name: name.clone(),
                     mapped_name: None,
@@ -72,21 +81,15 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                     ty: field.node.ty.clone().node.to_string().into(),
                     deprecation,
                     cache_control,
-                    external: false,
-                    r#override: None,
                     requires: None,
-                    provides: None,
                     visible: None,
                     compute_complexity: None,
                     resolver: Resolver::CustomResolver(CustomResolver {
                         resolver_name: resolver_name.to_owned(),
                     }),
-                    edges: Vec::new(),
                     required_operation,
                     auth: None,
-                    shareable: false,
-                    inaccessible,
-                    tags,
+                    federation,
                 });
             }
         }

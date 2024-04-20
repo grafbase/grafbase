@@ -8,7 +8,7 @@ use engine::registry::{
     self,
     federation::FederationKey,
     resolvers::{custom::CustomResolver, transformer::Transformer, Resolver},
-    MetaField, MetaType, ObjectType,
+    FederationProperties, MetaField, MetaType, ObjectType,
 };
 use engine_parser::{
     types::{FieldDefinition, TypeKind},
@@ -96,6 +96,24 @@ impl<'a> Visitor<'a> for BasicType {
                     resolver = Resolver::Join(join_directive.select.to_join_resolver());
                 }
 
+                let mut federation = None;
+                if external
+                    || shareable
+                    || r#override.is_some()
+                    || provides.is_some()
+                    || inaccessible
+                    || !tags.is_empty()
+                {
+                    federation = Some(Box::new(FederationProperties {
+                        provides,
+                        tags,
+                        r#override,
+                        external,
+                        shareable,
+                        inaccessible,
+                    }));
+                }
+
                 MetaField {
                     name: name.clone(),
                     mapped_name,
@@ -105,13 +123,8 @@ impl<'a> Visitor<'a> for BasicType {
                     args: field.converted_arguments(),
                     resolver,
                     requires,
-                    external,
-                    shareable,
-                    provides,
-                    r#override,
+                    federation,
                     deprecation,
-                    inaccessible,
-                    tags,
                     ..Default::default()
                 }
             })
