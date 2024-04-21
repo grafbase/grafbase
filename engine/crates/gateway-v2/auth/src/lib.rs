@@ -5,6 +5,7 @@ mod v1;
 use anonymous::AnonymousAuthorizer;
 use futures_util::{future::BoxFuture, stream::FuturesOrdered, StreamExt};
 use runtime::{auth::AccessToken, kv::KvStore, udf::AuthorizerInvoker};
+use tracing::instrument;
 
 pub trait Authorizer: Send + Sync + 'static {
     fn get_access_token<'a>(&'a self, headers: &'a http::HeaderMap) -> BoxFuture<'a, Option<AccessToken>>;
@@ -43,6 +44,7 @@ impl AuthService {
         Self { authorizers }
     }
 
+    #[instrument(skip_all)]
     pub async fn authorize(&self, headers: &http::HeaderMap) -> Option<AccessToken> {
         let fut = self
             .authorizers

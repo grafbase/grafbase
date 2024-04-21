@@ -125,12 +125,7 @@ where
             ));
         }
 
-        let Some(AccessToken::V1(auth)) = self
-            .auth
-            .authorize(ctx.headers())
-            .instrument(info_span!("authorize_request"))
-            .await
-        else {
+        let Some(AccessToken::V1(auth)) = self.auth.authorize(ctx.headers()).await else {
             return Ok((
                 Arc::new(engine::Response::from_errors_with_type(
                     vec![engine::ServerError::new("Unauthorized", None)],

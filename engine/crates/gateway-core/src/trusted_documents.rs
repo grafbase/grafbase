@@ -4,6 +4,7 @@ use super::{Gateway, CLIENT_NAME_HEADER_NAME};
 use engine::{AutomaticPersistedQuery, ErrorCode, PersistedQueryRequestExtension, ServerError};
 use runtime::trusted_documents_client::TrustedDocumentsError;
 use std::mem;
+use tracing::instrument;
 
 const CACHE_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
 
@@ -14,6 +15,7 @@ where
     Executor::StreamingResponse: super::ConstructableResponse<Error = Executor::Error>,
 {
     /// Handle a request making use of APQ or trusted documents.
+    #[instrument(skip_all)]
     pub(super) async fn handle_persisted_query(
         &self,
         request: &mut engine::Request,
