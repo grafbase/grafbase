@@ -1,0 +1,16 @@
+# Regression test. This caused an infinite loop.
+
+input A {
+  aa: A!
+  ab: B!
+}
+
+input B {
+  ba: A!
+  bb: B!
+}
+
+input C {
+  ca: A!
+  cb: B!
+}

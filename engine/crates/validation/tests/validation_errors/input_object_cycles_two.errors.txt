@@ -1,0 +1,4 @@
+  × Cannot reference Input Object A within itself through a series of non-null fields: "aa"
+
+
+  × Cannot reference Input Object B within itself through a series of non-null fields: "ba.ab"
