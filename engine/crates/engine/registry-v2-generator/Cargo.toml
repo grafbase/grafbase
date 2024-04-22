@@ -1,0 +1,19 @@
+[package]
+name = "registry-v2-generator"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1"
+indexmap = "2"
+indoc = "2"
+itertools = "0.12"
+proc-macro2 = "1"
+quote = "1"
+xshell = "0.2"
+
+cynic-parser.version = "0.2"
+cynic-parser.features = ["report"]
