@@ -144,6 +144,10 @@ pub enum ApiError {
     #[error(transparent)]
     PublishError(#[from] PublishError),
 
+    /// wraps a [`BranchError`]
+    #[error(transparent)]
+    BranchError(#[from] BranchError),
+
     /// returned if the project does not exist
     #[error("could not find the project")]
     ProjectDoesNotExist,
@@ -248,4 +252,17 @@ impl From<CynicReqwestError> for ApiError {
             }
         }
     }
+}
+
+#[derive(Error, Debug)]
+pub enum BranchError {
+    /// returned if the given branch does not exist
+    #[error("branch {0} does not exist")]
+    BranchDoesNotExist(String),
+    /// returned, if trying to delete the production branch
+    #[error("branch `{0}` is the production branch of the graph, and cannot be deleted")]
+    CannotDeleteProductionBranchError(String),
+    /// returned if an unknown error occurs
+    #[error("could not delete branch, encountered an unknown error\nCaused by: {0}")]
+    Unknown(String),
 }

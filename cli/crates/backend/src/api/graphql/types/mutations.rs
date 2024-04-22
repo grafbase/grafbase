@@ -134,6 +134,45 @@ pub struct ProjectDoesNotExistError {
     pub __typename: String,
 }
 
+#[derive(cynic::QueryFragment)]
+#[cynic(graphql_type = "Mutation", variables = "BranchDeleteArguments")]
+pub struct BranchDelete {
+    #[arguments(accountSlug: $account_slug, projectSlug: $project_slug, branchName: $branch_name)]
+    pub branch_delete: BranchDeletePayload,
+}
+
+#[derive(cynic::InlineFragments)]
+pub enum BranchDeletePayload {
+    Success(BranchDeleteSuccess),
+    BranchDoesNotExist(BranchDoesNotExistError),
+    CannotDeleteProductionBranch(CannotDeleteProductionBranchError),
+    #[cynic(fallback)]
+    Unknown(String),
+}
+
+#[derive(cynic::QueryFragment)]
+#[cynic(graphql_type = "Query")]
+pub struct BranchDeleteSuccess {
+    pub __typename: String,
+}
+
+#[derive(cynic::QueryFragment)]
+pub struct BranchDoesNotExistError {
+    pub __typename: String,
+}
+
+#[derive(cynic::QueryFragment)]
+pub struct CannotDeleteProductionBranchError {
+    pub __typename: String,
+}
+
+#[derive(cynic::QueryVariables)]
+pub struct BranchDeleteArguments<'a> {
+    pub account_slug: &'a str,
+    pub project_slug: &'a str,
+    pub branch_name: &'a str,
+}
+
 #[derive(cynic::InputObject, Clone, Debug)]
 #[cynic(rename_all = "camelCase")]
 pub struct DeploymentCreateInput<'a> {

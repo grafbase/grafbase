@@ -1,16 +1,18 @@
 use clap::Parser;
 
-use crate::is_not_direct_install;
+use crate::{cli_input::BranchSubCommand, is_not_direct_install};
 
 use super::{
-    trust::TrustCommand, ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand, CreateCommand, DeployCommand,
-    DevCommand, InitCommand, IntrospectCommand, LinkCommand, LintCommand, LogsCommand, PublishCommand, SchemaCommand,
-    StartCommand, SubgraphsCommand,
+    branch::BranchCommand, trust::TrustCommand, ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand,
+    CreateCommand, DeployCommand, DevCommand, InitCommand, IntrospectCommand, LinkCommand, LintCommand, LogsCommand,
+    PublishCommand, SchemaCommand, StartCommand, SubgraphsCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
 #[strum(serialize_all = "lowercase")]
 pub enum SubCommand {
+    /// Graph branch management
+    Branch(BranchCommand),
     /// Start the Grafbase local development server
     Dev(DevCommand),
     /// Output completions for the chosen shell to use, write the output to the
@@ -64,6 +66,9 @@ impl SubCommand {
         matches!(
             self,
             Self::Create(_)
+                | Self::Branch(BranchCommand {
+                    command: BranchSubCommand::List
+                })
                 | Self::Deploy(_)
                 | Self::Dev(DevCommand { .. })
                 | Self::Link(_)
@@ -91,6 +96,7 @@ impl ArgumentNames for SubCommand {
             SubCommand::Init(command) => command.argument_names(),
             SubCommand::Create(command) => command.argument_names(),
             SubCommand::Schema(_)
+            | SubCommand::Branch(_)
             | SubCommand::Publish(_)
             | SubCommand::Check(_)
             | SubCommand::Subgraphs(_)

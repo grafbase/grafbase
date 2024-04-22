@@ -5,7 +5,7 @@ use inquire::Select;
 use strum::{Display, VariantArray};
 
 #[derive(VariantArray, Display, Clone)]
-enum UnlinkedDeploymentMethod {
+pub enum UnlinkedDeploymentMethod {
     Link,
     Create,
 }

@@ -1,3 +1,5 @@
+directive @oneOf on INPUT_OBJECT
+
 type AccessToken implements Node {
   id: ID!
   name: String!
@@ -10,12 +12,10 @@ type AccessTokenConnection {
   Information to aid in pagination.
   """
   pageInfo: PageInfo!
-
   """
   A list of edges.
   """
   edges: [AccessTokenEdge!]!
-
   """
   A list of nodes.
   """
@@ -61,7 +61,6 @@ type AccessTokenEdge {
   The item at the end of the edge
   """
   node: AccessToken!
-
   """
   A cursor for use in pagination
   """
@@ -73,7 +72,7 @@ enum AccessTokenKind {
   ACCOUNT
 }
 
-interface Account {
+interface Account implements Node {
   id: ID!
   slug: String!
   name: String!
@@ -112,7 +111,7 @@ type AccountIntegration {
 
 union AccountIntegrationAttributes = DatadogIntegration
 
-input AccountIntegrationAttributesInput {
+input AccountIntegrationAttributesInput @oneOf {
   datadog: DatadogIntegrationInput
 }
 
@@ -224,19 +223,17 @@ type BranchConnection {
   Information to aid in pagination.
   """
   pageInfo: PageInfo!
-
   """
   A list of edges.
   """
   edges: [BranchEdge!]!
-
   """
   A list of nodes.
   """
   nodes: [Branch!]!
 }
 
-union BranchDeletePayload = Query | BranchDoesNotExistError
+union BranchDeletePayload = Query | BranchDoesNotExistError | CannotDeleteProductionBranchError
 
 type BranchDoesNotExistError {
   query: Query!
@@ -250,7 +247,6 @@ type BranchEdge {
   The item at the end of the edge
   """
   node: Branch!
-
   """
   A cursor for use in pagination
   """
@@ -286,6 +282,10 @@ input BranchUpdateInput {
 union BranchUpdatePayload = Query | ProjectDoesNotExistError
 
 type CannotBeRenamedError {
+  query: Query!
+}
+
+type CannotDeleteProductionBranchError {
   query: Query!
 }
 
@@ -469,7 +469,6 @@ type Deployment implements Node {
   finishedAt: DateTime
   isRedeployable: Boolean!
   triggerType: DeploymentTriggerType!
-
   """
   The duration of the deployment in milliseconds.
   """
@@ -487,12 +486,10 @@ type DeploymentConnection {
   Information to aid in pagination.
   """
   pageInfo: PageInfo!
-
   """
   A list of edges.
   """
   edges: [DeploymentEdge!]!
-
   """
   A list of nodes.
   """
@@ -530,7 +527,6 @@ type DeploymentEdge {
   The item at the end of the edge
   """
   node: Deployment!
-
   """
   A cursor for use in pagination
   """
@@ -625,12 +621,10 @@ type EnvironmentVariableConnection {
   Information to aid in pagination.
   """
   pageInfo: PageInfo!
-
   """
   A list of edges.
   """
   edges: [EnvironmentVariableEdge!]!
-
   """
   A list of nodes.
   """
@@ -643,7 +637,6 @@ type EnvironmentVariableCountLimitExceededError {
 
 input EnvironmentVariableCreateInput {
   projectId: ID!
-
   """
   Must not be already assigned.
   """
@@ -689,7 +682,6 @@ type EnvironmentVariableEdge {
   The item at the end of the edge
   """
   node: EnvironmentVariable!
-
   """
   A cursor for use in pagination
   """
@@ -772,7 +764,6 @@ type GitAccount {
   id: ID!
   slug: String!
   type: GitAccountType!
-
   """
   Date when the app was authorized to access this account
   """
@@ -918,12 +909,10 @@ type InviteConnection {
   Information to aid in pagination.
   """
   pageInfo: PageInfo!
-
   """
   A list of edges.
   """
   edges: [InviteEdge!]!
-
   """
   A list of nodes.
   """
@@ -953,7 +942,6 @@ type InviteEdge {
   The item at the end of the edge
   """
   node: Invite!
-
   """
   A cursor for use in pagination
   """
@@ -1022,12 +1010,10 @@ type LogEventConnection {
   Information to aid in pagination.
   """
   pageInfo: PageInfo!
-
   """
   A list of edges.
   """
   edges: [LogEventEdge!]!
-
   """
   A list of nodes.
   """
@@ -1042,7 +1028,6 @@ type LogEventEdge {
   The item at the end of the edge
   """
   node: LogEvent!
-
   """
   A cursor for use in pagination
   """
@@ -1078,12 +1063,10 @@ type MemberConnection {
   Information to aid in pagination.
   """
   pageInfo: PageInfo!
-
   """
   A list of edges.
   """
   edges: [MemberEdge!]!
-
   """
   A list of nodes.
   """
@@ -1107,7 +1090,6 @@ type MemberEdge {
   The item at the end of the edge
   """
   node: Member!
-
   """
   A cursor for use in pagination
   """
@@ -1142,12 +1124,10 @@ type Mutation {
   Create a new access token.
   """
   accessTokenCreate(input: AccessTokenCreateInput!): AccessTokenCreatePayload!
-
   """
   Delete a given access token.
   """
   accessTokenDelete(input: AccessTokenDeleteInput!): AccessTokenDeletePayload!
-
   """
   Create new organization account owned by the current user. Slug must be unique.
   """
@@ -1166,28 +1146,23 @@ type Mutation {
   accountIntegrationCreate(accountId: ID!, input: AccountIntegrationInput!): AccountIntegrationMutationPayload!
   accountIntegrationUpdate(id: ID!, input: AccountIntegrationInput!): AccountIntegrationMutationPayload!
   accountIntegrationDelete(id: ID!): AccountIntegrationMutationPayload!
-
   """
   Add a new custom domain.
   """
   customDomainCreate(input: CustomDomainCreateInput!): CustomDomainCreatePayload!
-
   """
   Delete a custom domain.
   """
   customDomainDelete(input: CustomDomainDeleteInput!): CustomDomainDeletePayload!
-
   """
   Replace a configured custom domain with another one (domain and target branch) – or modify the target branch of an existing one
   without changing the domain name.
   """
   customDomainReplace(input: CustomDomainReplaceInput!): CustomDomainReplacePayload!
-
   """
   Create a new deployment for an existing project.
   """
   deploymentCreate(input: DeploymentCreateInput!): DeploymentCreatePayload!
-
   """
   Create a new deployment for an existing project.
   """
@@ -1197,17 +1172,14 @@ type Mutation {
     """
     id: ID!
   ): DeploymentRedeployPayload!
-
   """
   Create a new environment variable.
   """
   environmentVariableCreate(input: EnvironmentVariableCreateInput!): EnvironmentVariableCreatePayload!
-
   """
   Update an environment variable.
   """
   environmentVariableUpdate(input: EnvironmentVariableUpdateInput!): EnvironmentVariableUpdatePayload!
-
   """
   Delete an environment variable.
   """
@@ -1216,47 +1188,38 @@ type Mutation {
   inviteCancel(input: InviteCancelInput!): InviteCancelPayload!
   inviteAccept(input: InviteAcceptInput!): InviteAcceptPayload!
   inviteDecline(input: InviteDeclineInput!): InviteDeclinePayload!
-
   """
   Update role of an organization member
   """
   memberUpdate(input: MemberUpdateInput!): MemberUpdatePayload!
-
   """
   Remove member from an organization
   """
   memberDelete(input: MemberDeleteInput!): MemberDeletePayload!
-
   """
   Create a new project API key.
   """
   projectApiKeyCreate(input: ProjectApiKeyCreateInput!): ProjectApiKeyCreatePayload!
-
   """
   Update a given API key with a new name.
   """
   projectApiKeyUpdate(input: ProjectApiKeyUpdateInput!): ProjectApiKeyUpdatePayload!
-
   """
   Delete a given API key.
   """
   projectApiKeyDelete(input: ProjectApiKeyDeleteInput!): ProjectApiKeyDeletePayload!
-
   """
   Create a new project without any source for an initial deployment.
   """
   projectCreate(input: ProjectCreateInput!): ProjectCreatePayload!
-
   """
   Create a new project from a GitHub repository.
   """
   projectCreateFromSchema(input: ProjectCreateFromSchemaInput!): ProjectCreateFromSchemaPayload!
-
   """
   Create a new project from a GitHub repository.
   """
   projectCreateFromRepository(input: ProjectCreateFromRepositoryInput!): ProjectCreateFromRepositoryPayload!
-
   """
   Create a new project from a template in a newly created GitHub repository.
   """
@@ -1266,17 +1229,14 @@ type Mutation {
     input: ProjectOperationCheckConfigurationInput!
   ): ProjectOperationCheckConfigurationUpdatePayload!
   projectDelete(input: ProjectDeleteInput!): ProjectDeletePayload!
-
   """
   Run checks against the given schema
   """
   schemaCheckCreate(input: SchemaCheckCreateInput!): SchemaCheckPayload!
-
   """
   Publish a new subgraph.
   """
   publish(input: PublishInput!): PublishPayload!
-
   """
   Delete a subgraph
   """
@@ -1288,12 +1248,10 @@ type Mutation {
     slug of the account
     """
     accountSlug: String!
-
     """
     slug of the project
     """
     projectSlug: String!
-
     """
     name of the branch
     """
@@ -1397,12 +1355,10 @@ type OperationRequestMetricsConnection {
   Information to aid in pagination.
   """
   pageInfo: PageInfo!
-
   """
   A list of edges.
   """
   edges: [OperationRequestMetricsEdge!]!
-
   """
   A list of nodes.
   """
@@ -1417,7 +1373,6 @@ type OperationRequestMetricsEdge {
   The item at the end of the edge
   """
   node: OperationRequestMetrics!
-
   """
   A cursor for use in pagination
   """
@@ -1660,7 +1615,6 @@ type Organization implements Account {
   members(after: String, before: String, first: Int, last: Int): MemberConnection!
   projectsCountStatus: ResourceStatus!
   slackIntegration: SlackIntegration
-
   """
   The url for the UI button to install the Grafbase slack app. It is
   important to use this link and keep it private, since it contains the signed
@@ -1679,12 +1633,10 @@ type OrganizationConnection {
   Information to aid in pagination.
   """
   pageInfo: PageInfo!
-
   """
   A list of edges.
   """
   edges: [OrganizationEdge!]!
-
   """
   A list of nodes.
   """
@@ -1738,7 +1690,6 @@ type OrganizationEdge {
   The item at the end of the edge
   """
   node: Organization!
-
   """
   A cursor for use in pagination
   """
@@ -1816,17 +1767,14 @@ type PageInfo {
   When paginating backwards, are there more items?
   """
   hasPreviousPage: Boolean!
-
   """
   When paginating forwards, are there more items?
   """
   hasNextPage: Boolean!
-
   """
   When paginating backwards, the cursor to continue.
   """
   startCursor: String
-
   """
   When paginating forwards, the cursor to continue.
   """
@@ -1922,12 +1870,10 @@ type ProjectApiKeyConnection {
   Information to aid in pagination.
   """
   pageInfo: PageInfo!
-
   """
   A list of edges.
   """
   edges: [ProjectApiKeyEdge!]!
-
   """
   A list of nodes.
   """
@@ -1969,7 +1915,6 @@ type ProjectApiKeyEdge {
   The item at the end of the edge
   """
   node: ProjectApiKey!
-
   """
   A cursor for use in pagination
   """
@@ -1996,12 +1941,10 @@ type ProjectConnection {
   Information to aid in pagination.
   """
   pageInfo: PageInfo!
-
   """
   A list of edges.
   """
   edges: [ProjectEdge!]!
-
   """
   A list of nodes.
   """
@@ -2150,7 +2093,6 @@ type ProjectEdge {
   The item at the end of the edge
   """
   node: Project!
-
   """
   A cursor for use in pagination
   """
@@ -2178,24 +2120,20 @@ type ProjectOperationCheckConfiguration {
   Whether operation checks are enabled for the project.
   """
   enabled: Boolean! @deprecated(reason: "Operation checks are now enabled exclusively at the branch level")
-
   """
   The time range in days to consider for operation checks. Operations older than the specificied
   number of days are ignored.
   """
   timeRangeDays: Int!
-
   """
   The request count threshold to consider for operation checks. Operations that have been
   registered less than the specified number of occurrences are ignored.
   """
   requestCountThreshold: Int!
-
   """
   The clients to exclude from operation checks.
   """
   excludedClients: [String!]!
-
   """
   The operations to exclude from operation checks.
   """
@@ -2207,29 +2145,24 @@ input ProjectOperationCheckConfigurationInput {
   The project to update.
   """
   projectId: ID!
-
   """
   Whether operation checks are enabled for the project. This is ignored, since operation checks are now only enabled at the branch level.
   """
   enabled: Boolean
-
   """
   The time range in days to consider for operation checks. Operations older than the specificied
   number of days are ignored.
   """
   timeRangeDays: Int
-
   """
   The request count threshold to consider for operation checks. Operations that have been
   registered less than the specified number of occurrences are ignored.
   """
   requestCountThreshold: Int
-
   """
   The clients to exclude from operation checks.
   """
   excludedClients: [String!]
-
   """
   The operations to exclude from operation checks.
   """
@@ -2322,7 +2255,6 @@ type Query {
     startDate: DateTime!
     endDate: DateTime!
   ): BranchMetricsPayload!
-
   """
   Get branch by account slug, project slug and the name of the branch.
   """
@@ -2331,18 +2263,15 @@ type Query {
     slug of the account
     """
     accountSlug: String!
-
     """
     slug of the project
     """
     projectSlug: String!
-
     """
     name of the branch
     """
     name: String!
   ): Branch
-
   """
   Get branch by domain.
   """
@@ -2352,7 +2281,6 @@ type Query {
     """
     domain: String!
   ): Branch
-
   """
   Get custom domain by project id and name.
   """
@@ -2361,13 +2289,11 @@ type Query {
     id of the project
     """
     projectId: ID!
-
     """
     name of the domain
     """
     name: String!
   ): CustomDomain
-
   """
   Get deployment by ID.
   """
@@ -2377,30 +2303,25 @@ type Query {
     """
     id: ID!
   ): Deployment
-
   """
   Return a list of git accounts accessible by the current user sorted by the creation date.
   """
   gitAccounts(provider: GitProvider!): GitAccountsPayload!
-
   """
   Return a list of git repositories accessible by the current user, sorted by updatedAt.
   With `query` specified, the list will include up to 10 repos matching the query.
   Without `query`, the list will include the 10 most recently updated repos.
   """
   gitRepos(provider: GitProvider!, gitAccountId: String!, query: String): [GitRepository!]!
-
   """
   Returns details about a specific git repository identified by its URL.
   """
   gitRepoByUrl(url: Url!): GitRepository!
-
   """
   Returns the contents of the `schema.graphql` file located in a particular branch of a repository idenitifed by its URL.
   """
   schema(url: Url!, branch: String!): String
   invite(id: ID!): Invite
-
   """
   Get project by account slug and slug of the project itself.
   """
@@ -2409,13 +2330,11 @@ type Query {
     slug of the account
     """
     accountSlug: String!
-
     """
     slug of the project
     """
     projectSlug: String!
   ): Project
-
   """
   Get project by ID.
   """
@@ -2426,7 +2345,6 @@ type Query {
     id: ID!
   ): Project @deprecated(reason: "use the top-level `node` query")
   schemaCheck(id: ID!): SchemaCheck
-
   """
   Get subgraph.
   """
@@ -2435,17 +2353,14 @@ type Query {
     account slug
     """
     accountSlug: String!
-
     """
     project slug
     """
     projectSlug: String!
-
     """
     name of the branch
     """
     branch: String
-
     """
     name of the subgraph
     """
@@ -2457,17 +2372,14 @@ type Query {
     account slug
     """
     accountSlug: String!
-
     """
     project slug
     """
     projectSlug: String!
-
     """
     name of the branch
     """
     branch: String
-
     """
     name of the subgraph
     """
@@ -2477,7 +2389,6 @@ type Query {
     first: Int
     last: Int
   ): SchemaVersionConnection!
-
   """
   Give the actual connected user.
   """
@@ -2572,12 +2483,10 @@ type ReusedId {
   The document id
   """
   documentId: String!
-
   """
   The existing document body
   """
   existingDocumentText: String!
-
   """
   The different, newly submitted document body
   """
@@ -2681,12 +2590,10 @@ type SchemaCheckConnection {
   Information to aid in pagination.
   """
   pageInfo: PageInfo!
-
   """
   A list of edges.
   """
   edges: [SchemaCheckEdge!]!
-
   """
   A list of nodes.
   """
@@ -2710,7 +2617,6 @@ type SchemaCheckEdge {
   The item at the end of the edge
   """
   node: SchemaCheck!
-
   """
   A cursor for use in pagination
   """
@@ -2771,12 +2677,10 @@ type SchemaVersionChangeConnection {
   Information to aid in pagination.
   """
   pageInfo: PageInfo!
-
   """
   A list of edges.
   """
   edges: [SchemaVersionChangeEdge!]!
-
   """
   A list of nodes.
   """
@@ -2791,7 +2695,6 @@ type SchemaVersionChangeEdge {
   The item at the end of the edge
   """
   node: SchemaVersionChange!
-
   """
   A cursor for use in pagination
   """
@@ -2803,12 +2706,10 @@ type SchemaVersionConnection {
   Information to aid in pagination.
   """
   pageInfo: PageInfo!
-
   """
   A list of edges.
   """
   edges: [SchemaVersionEdge!]!
-
   """
   A list of nodes.
   """
@@ -2820,12 +2721,10 @@ type SchemaVersionDelta {
   Additions.
   """
   added: Int!
-
   """
   Removals.
   """
   removed: Int!
-
   """
   Modifications.
   """
@@ -2840,7 +2739,6 @@ type SchemaVersionEdge {
   The item at the end of the edge
   """
   node: SchemaVersion!
-
   """
   A cursor for use in pagination
   """
@@ -3096,4 +2994,11 @@ type ValueTooLongError {
 type ViewerLimits {
   remainingProjects: Int
   totalProjects: Int
+}
+
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+schema {
+  query: Query
+  mutation: Mutation
 }

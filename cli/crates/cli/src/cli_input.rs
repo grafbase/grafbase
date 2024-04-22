@@ -1,4 +1,6 @@
 mod argument_names;
+mod branch;
+mod branch_ref;
 mod build;
 mod check;
 mod completions;
@@ -22,6 +24,8 @@ mod trust;
 
 pub(crate) use self::{check::CheckCommand, trust::TrustCommand};
 pub(crate) use argument_names::{filter_existing_arguments, ArgumentNames};
+pub(crate) use branch::BranchSubCommand;
+pub(crate) use branch_ref::BranchRef;
 pub(crate) use build::BuildCommand;
 pub(crate) use completions::CompletionsCommand;
 pub(crate) use create::CreateCommand;

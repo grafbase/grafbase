@@ -1,6 +1,7 @@
 #![cfg_attr(test, allow(unused_crate_dependencies))]
 #![forbid(unsafe_code)]
 
+mod branch;
 mod build;
 mod check;
 mod cli_input;
@@ -33,7 +34,7 @@ extern crate log;
 
 use crate::{
     build::build,
-    cli_input::{Args, ArgumentNames, LogsCommand, SubCommand},
+    cli_input::{Args, ArgumentNames, BranchSubCommand, LogsCommand, SubCommand},
     create::create,
     deploy::deploy,
     dev::dev,
@@ -196,6 +197,10 @@ fn try_main(args: Args) -> Result<(), CliError> {
             upgrade::install_grafbase().map_err(Into::into)
         }
         SubCommand::Lint(cmd) => lint::lint(cmd.schema),
+        SubCommand::Branch(cmd) => match cmd.command {
+            BranchSubCommand::List => branch::list(),
+            BranchSubCommand::Delete(cmd) => branch::delete(cmd.branch_ref),
+        },
     }
 }
 

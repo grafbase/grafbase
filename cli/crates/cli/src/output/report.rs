@@ -347,6 +347,15 @@ pub fn deploy() {
 }
 
 // TODO change this to a spinner that is removed on success
+pub fn delete_branch() {
+    watercolor::output!("🕒 Branch is being deleted...", @BrightBlue);
+}
+
+pub fn delete_branch_success() {
+    watercolor::output!("\n✨ The branch was successfully deleted!", @BrightBlue);
+}
+
+// TODO change this to a spinner that is removed on success
 pub fn create() {
     watercolor::output!("🕒 Your project is being created...", @BrightBlue);
 }
@@ -365,6 +374,27 @@ pub fn linked_non_interactive() {
 
 pub fn unlinked() {
     watercolor::output!("✨ Successfully unlinked your project!", @BrightBlue);
+}
+
+pub(crate) fn listing_branches() {
+    println!("⏳ Fetching graph branches...");
+}
+
+pub fn list_branches(branches: &[(String, bool)]) {
+    if branches.is_empty() {
+        watercolor::output!("⚠️  Found no branches.", @BrightYellow);
+        return;
+    }
+
+    watercolor::output!("✨ Branches for the graph:", @BrightBlue);
+
+    for (branch, is_production) in branches {
+        if *is_production {
+            watercolor::output!("- {branch} (production)", @BrightYellow);
+        } else {
+            watercolor::output!("- {branch}", @BrightBlue);
+        }
+    }
 }
 
 pub fn create_success(name: &str, urls: &[String]) {
