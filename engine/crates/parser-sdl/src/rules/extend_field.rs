@@ -171,6 +171,7 @@ impl<'a> Visitor<'a> for ExtendFieldVisitor {
 mod tests {
     use std::collections::HashMap;
 
+    use engine::registry::RegistrySdlExt;
     use engine::{
         registry::{self, MetaField},
         Registry,

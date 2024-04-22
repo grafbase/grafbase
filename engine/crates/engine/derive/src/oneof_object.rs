@@ -21,11 +21,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
         .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
     let s = match &object_args.data {
         Data::Enum(s) => s,
-        _ => {
-            return Err(
-                Error::new_spanned(ident, "InputObject can only be applied to an enum.").into(),
-            )
-        }
+        _ => return Err(Error::new_spanned(ident, "InputObject can only be applied to an enum.").into()),
     };
 
     let mut enum_items = HashSet::new();
@@ -47,32 +43,18 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
         let ty = match variant.fields.style {
             Style::Tuple if variant.fields.fields.len() == 1 => &variant.fields.fields[0],
             Style::Tuple => {
-                return Err(Error::new_spanned(
-                    enum_name,
-                    "Only single value variants are supported",
-                )
-                .into())
+                return Err(Error::new_spanned(enum_name, "Only single value variants are supported").into())
             }
-            Style::Unit => {
-                return Err(
-                    Error::new_spanned(enum_name, "Empty variants are not supported").into(),
-                )
-            }
+            Style::Unit => return Err(Error::new_spanned(enum_name, "Empty variants are not supported").into()),
             Style::Struct => {
-                return Err(Error::new_spanned(
-                    enum_name,
-                    "Variants with named fields are not supported",
-                )
-                .into())
+                return Err(Error::new_spanned(enum_name, "Variants with named fields are not supported").into())
             }
         };
 
         if let Type::Path(p) = ty {
             // This validates that the field type wasn't already used
             if !enum_items.insert(p) {
-                return Err(
-                    Error::new_spanned(ty, "This type already used in another variant").into(),
-                );
+                return Err(Error::new_spanned(ty, "This type already used in another variant").into());
             }
 
             enum_names.push(enum_name);
@@ -87,22 +69,18 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
                     ty: <::std::option::Option<#ty> as #crate_name::LegacyInputType>::create_type_info(registry),
                     default_value: ::std::option::Option::None,
                     validators: None,
-                    visible: #visible,
+
                     is_secret: #secret,
                     rename: None
                 });
             });
 
-            let validators = variant
-                .validator
-                .clone()
-                .unwrap_or_default()
-                .create_validators(
-                    &crate_name,
-                    quote!(&value),
-                    quote!(#ty),
-                    Some(quote!(.map_err(#crate_name::InputValueError::propagate))),
-                )?;
+            let validators = variant.validator.clone().unwrap_or_default().create_validators(
+                &crate_name,
+                quote!(&value),
+                quote!(#ty),
+                Some(quote!(.map_err(#crate_name::InputValueError::propagate))),
+            )?;
 
             parse_item.push(quote! {
                 if obj.contains_key(#field_name) && obj.len() == 1 {
@@ -133,6 +111,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
                 }
 
                 fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::InputValueType {
+                    use crate::registry::LegacyRegistryExt;
                     registry.create_input_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::InputObject(#crate_name::registry::InputObjectType {
                             name: ::std::borrow::ToOwned::to_owned(#gql_typename),
@@ -142,7 +121,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
                                 #(#schema_fields)*
                                 fields
                             },
-                            visible: #visible,
+
                             rust_typename: ::std::any::type_name::<Self>(),
                             oneof: true,
                         })
@@ -182,6 +161,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
             #[allow(clippy::all, clippy::pedantic)]
             impl #impl_generics #ident #ty_generics #where_clause {
                 fn __internal_create_type_info(registry: &mut #crate_name::registry::Registry, name: &str) -> #crate_name::registry::InputValueType where Self: #crate_name::LegacyInputType {
+                    use crate::registry::LegacyRegistryExt;
                     registry.create_input_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::InputObject(#crate_name::registry::InputObjectType {
                             name: ::std::borrow::ToOwned::to_owned(name),
@@ -191,7 +171,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
                                 #(#schema_fields)*
                                 fields
                             },
-                            visible: #visible,
+
                             rust_typename: ::std::any::type_name::<Self>(),
                             oneof: true,
                         })

@@ -16,6 +16,7 @@ workspace = true
 async-trait = "0.1"
 web-time.workspace = true
 engine = { path = "../engine", default-features = false }
+registry-v2.workspace = true
 engine-value.workspace = true
 runtime.workspace = true
 common-types.workspace = true

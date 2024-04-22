@@ -1,16 +1,14 @@
 use common_types::auth::Operations;
-use engine::{
-    indexmap::IndexMap,
-    registry::{
-        resolvers::{
-            postgres::{Operation, PostgresResolver},
-            transformer::Transformer,
-            Resolver,
-        },
-        MetaField, MetaInputValue,
-    },
-};
+use indexmap::IndexMap;
 use postgres_connector_types::database_definition::TableWalker;
+use registry_v1::{
+    resolvers::{
+        postgres::{Operation, PostgresResolver},
+        transformer::Transformer,
+        Resolver,
+    },
+    MetaField, MetaInputValue,
+};
 
 use crate::registry::context::{InputContext, OutputContext};
 

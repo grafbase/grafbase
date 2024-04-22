@@ -2,54 +2,43 @@ use std::collections::HashSet;
 
 use crate::{
     model::{__EnumValue, __Field, __InputValue, __TypeKind},
-    registry,
-    registry::{is_visible, ObjectType},
-    ContextField, Object,
+    registry, ContextField, Object,
 };
 
 enum TypeDetail<'a> {
-    Named(&'a registry::MetaType),
+    Named(registry_v2::MetaType<'a>),
     NonNull(String),
     List(String),
 }
 
 pub struct __Type<'a> {
-    registry: &'a registry::Registry,
-    visible_types: &'a HashSet<&'a str>,
+    registry: &'a registry_v2::Registry,
     detail: TypeDetail<'a>,
 }
 
 impl<'a> __Type<'a> {
     #[inline]
-    pub fn new_simple(
-        registry: &'a registry::Registry,
-        visible_types: &'a HashSet<&'a str>,
-        ty: &'a registry::MetaType,
-    ) -> __Type<'a> {
+    pub fn new_simple(registry: &'a registry_v2::Registry, ty: registry_v2::MetaType<'a>) -> __Type<'a> {
         __Type {
             registry,
-            visible_types,
             detail: TypeDetail::Named(ty),
         }
     }
 
     #[inline]
-    pub fn new(registry: &'a registry::Registry, visible_types: &'a HashSet<&'a str>, type_name: &str) -> __Type<'a> {
+    pub fn new(registry: &'a registry_v2::Registry, type_name: &str) -> __Type<'a> {
         match registry::MetaTypeName::create(type_name) {
             registry::MetaTypeName::NonNull(ty) => __Type {
                 registry,
-                visible_types,
                 detail: TypeDetail::NonNull(ty.to_string()),
             },
             registry::MetaTypeName::List(ty) => __Type {
                 registry,
-                visible_types,
                 detail: TypeDetail::List(ty.to_string()),
             },
             registry::MetaTypeName::Named(ty) => __Type {
                 registry,
-                visible_types,
-                detail: TypeDetail::Named(match registry.types.get(ty) {
+                detail: TypeDetail::Named(match registry.lookup_type(ty) {
                     Some(t) => t,
                     None => panic!("Type '{ty}' not found!"),
                 }),
@@ -67,12 +56,12 @@ impl<'a> __Type<'a> {
     async fn kind(&self) -> __TypeKind {
         match &self.detail {
             TypeDetail::Named(ty) => match ty {
-                registry::MetaType::Scalar { .. } => __TypeKind::Scalar,
-                registry::MetaType::Object { .. } => __TypeKind::Object,
-                registry::MetaType::Interface { .. } => __TypeKind::Interface,
-                registry::MetaType::Union { .. } => __TypeKind::Union,
-                registry::MetaType::Enum { .. } => __TypeKind::Enum,
-                registry::MetaType::InputObject { .. } => __TypeKind::InputObject,
+                registry_v2::MetaType::Scalar { .. } => __TypeKind::Scalar,
+                registry_v2::MetaType::Object { .. } => __TypeKind::Object,
+                registry_v2::MetaType::Interface { .. } => __TypeKind::Interface,
+                registry_v2::MetaType::Union { .. } => __TypeKind::Union,
+                registry_v2::MetaType::Enum { .. } => __TypeKind::Enum,
+                registry_v2::MetaType::InputObject { .. } => __TypeKind::InputObject,
             },
             TypeDetail::NonNull(_) => __TypeKind::NonNull,
             TypeDetail::List(_) => __TypeKind::List,
@@ -92,14 +81,12 @@ impl<'a> __Type<'a> {
     async fn description(&self) -> Option<&str> {
         match &self.detail {
             TypeDetail::Named(ty) => match ty {
-                registry::MetaType::Scalar(registry::ScalarType { description, .. })
-                | registry::MetaType::Object(registry::ObjectType { description, .. })
-                | registry::MetaType::Interface(registry::InterfaceType { description, .. })
-                | registry::MetaType::Union(registry::UnionType { description, .. })
-                | registry::MetaType::Enum(registry::EnumType { description, .. })
-                | registry::MetaType::InputObject(registry::InputObjectType { description, .. }) => {
-                    description.as_deref()
-                }
+                registry_v2::MetaType::Scalar(inner) => inner.description(),
+                registry_v2::MetaType::Object(inner) => inner.description(),
+                registry_v2::MetaType::Interface(inner) => inner.description(),
+                registry_v2::MetaType::Union(inner) => inner.description(),
+                registry_v2::MetaType::Enum(inner) => inner.description(),
+                registry_v2::MetaType::InputObject(inner) => inner.description(),
             },
             TypeDetail::NonNull(_) => None,
             TypeDetail::List(_) => None,
@@ -108,20 +95,16 @@ impl<'a> __Type<'a> {
 
     async fn fields(
         &self,
-        ctx: &ContextField<'_>,
+        _ctx: &ContextField<'_>,
         #[graphql(default = false)] include_deprecated: bool,
     ) -> Option<Vec<__Field<'a>>> {
         if let TypeDetail::Named(ty) = &self.detail {
             ty.fields().map(|fields| {
                 fields
-                    .values()
-                    .filter(|field| is_visible(ctx, &field.visible))
-                    .filter(|field| {
-                        (include_deprecated || !field.deprecation.is_deprecated()) && !field.name.starts_with("__")
-                    })
+                    // .filter(|field| is_visible(ctx, &field.visible))
+                    .filter(|field| (include_deprecated || !field.is_deprecated()) && !field.name().starts_with("__"))
                     .map(|field| __Field {
                         registry: self.registry,
-                        visible_types: self.visible_types,
                         field,
                     })
                     .collect()
@@ -132,15 +115,11 @@ impl<'a> __Type<'a> {
     }
 
     async fn interfaces(&self) -> Option<Vec<__Type<'a>>> {
-        if let TypeDetail::Named(registry::MetaType::Object(ObjectType { name, .. })) = &self.detail {
+        if let TypeDetail::Named(registry_v2::MetaType::Object(object)) = &self.detail {
             Some(
                 self.registry
-                    .implements
-                    .get(name)
-                    .unwrap_or(&Default::default())
-                    .iter()
-                    .filter(|ty| self.visible_types.contains(ty.as_str()))
-                    .map(|ty| __Type::new(self.registry, self.visible_types, ty))
+                    .interfaces_implemented(object.name())
+                    .map(|ty| __Type::new_simple(self.registry, ty))
                     .collect(),
             )
         } else {
@@ -149,35 +128,34 @@ impl<'a> __Type<'a> {
     }
 
     async fn possible_types(&self) -> Option<Vec<__Type<'a>>> {
-        if let TypeDetail::Named(
-            registry::MetaType::Interface(registry::InterfaceType { possible_types, .. })
-            | registry::MetaType::Union(registry::UnionType { possible_types, .. }),
-        ) = &self.detail
-        {
-            Some(
-                possible_types
-                    .iter()
-                    .filter(|ty| self.visible_types.contains(ty.as_str()))
-                    .map(|ty| __Type::new(self.registry, self.visible_types, ty))
+        match self.detail {
+            TypeDetail::Named(registry_v2::MetaType::Interface(inner)) => Some(
+                inner
+                    .possible_types()
+                    .map(|ty| __Type::new_simple(self.registry, ty))
                     .collect(),
-            )
-        } else {
-            None
+            ),
+            TypeDetail::Named(registry_v2::MetaType::Union(inner)) => Some(
+                inner
+                    .possible_types()
+                    .map(|ty| __Type::new_simple(self.registry, ty))
+                    .collect(),
+            ),
+            _ => None,
         }
     }
 
     async fn enum_values(
         &self,
-        ctx: &ContextField<'_>,
+        _ctx: &ContextField<'_>,
         #[graphql(default = false)] include_deprecated: bool,
     ) -> Option<Vec<__EnumValue<'a>>> {
-        if let TypeDetail::Named(registry::MetaType::Enum(enum_type)) = &self.detail {
+        if let TypeDetail::Named(registry_v2::MetaType::Enum(enum_type)) = &self.detail {
             Some(
                 enum_type
-                    .enum_values
                     .values()
-                    .filter(|value| is_visible(ctx, &value.visible))
-                    .filter(|value| include_deprecated || !value.deprecation.is_deprecated())
+                    // .filter(|value| is_visible(ctx, &value.visible))
+                    .filter(|value| include_deprecated || !value.is_deprecated())
                     .map(|value| __EnumValue {
                         registry: self.registry,
                         value,
@@ -189,16 +167,14 @@ impl<'a> __Type<'a> {
         }
     }
 
-    async fn input_fields(&self, ctx: &ContextField<'_>) -> Option<Vec<__InputValue<'a>>> {
-        if let TypeDetail::Named(registry::MetaType::InputObject(input_object)) = &self.detail {
+    async fn input_fields(&self, _ctx: &ContextField<'_>) -> Option<Vec<__InputValue<'a>>> {
+        if let TypeDetail::Named(registry_v2::MetaType::InputObject(input_object)) = &self.detail {
             Some(
                 input_object
-                    .input_fields
-                    .values()
-                    .filter(|input_value| is_visible(ctx, &input_value.visible))
+                    .input_fields()
+                    // .filter(|input_value| is_visible(ctx, &input_value.visible))
                     .map(|input_value| __InputValue {
                         registry: self.registry,
-                        visible_types: self.visible_types,
                         input_value,
                     })
                     .collect(),
@@ -211,9 +187,9 @@ impl<'a> __Type<'a> {
     #[inline]
     async fn of_type(&self) -> Option<__Type<'a>> {
         if let TypeDetail::List(ty) = &self.detail {
-            Some(__Type::new(self.registry, self.visible_types, ty))
+            Some(__Type::new(self.registry, ty))
         } else if let TypeDetail::NonNull(ty) = &self.detail {
-            Some(__Type::new(self.registry, self.visible_types, ty))
+            Some(__Type::new(self.registry, ty))
         } else {
             None
         }
@@ -221,18 +197,16 @@ impl<'a> __Type<'a> {
 
     #[graphql(name = "specifiedByURL")]
     async fn specified_by_url(&self) -> Option<&'a str> {
-        if let TypeDetail::Named(registry::MetaType::Scalar(registry::ScalarType { specified_by_url, .. })) =
-            &self.detail
-        {
-            specified_by_url.as_deref()
+        if let TypeDetail::Named(registry_v2::MetaType::Scalar(scalar)) = &self.detail {
+            scalar.specified_by_url()
         } else {
             None
         }
     }
 
     async fn is_one_of(&self) -> Option<bool> {
-        if let TypeDetail::Named(registry::MetaType::InputObject(input_object)) = &self.detail {
-            Some(input_object.oneof)
+        if let TypeDetail::Named(registry_v2::MetaType::InputObject(input_object)) = &self.detail {
+            Some(input_object.oneof())
         } else {
             None
         }

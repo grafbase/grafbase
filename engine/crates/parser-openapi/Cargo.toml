@@ -37,6 +37,8 @@ openapiv3 = { git = "https://github.com/grafbase/openapiv3.git", rev = "c019f9fc
 engine = { path = "../engine" }
 engine-value.workspace = true
 parser-sdl = { path = "../parser-sdl" }
+registry-v1.workspace = true
+registry-v2.workspace = true
 
 [dev-dependencies]
 assert_matches = "1.5"

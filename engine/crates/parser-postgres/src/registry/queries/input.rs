@@ -5,8 +5,8 @@ pub(super) mod update;
 
 use std::borrow::Cow;
 
-use engine::registry::MetaInputValue;
 use postgres_connector_types::database_definition::TableColumnWalker;
+use registry_v1::MetaInputValue;
 
 fn input_value_from_column(column: TableColumnWalker<'_>, oneof: bool) -> MetaInputValue {
     let mut client_type = column

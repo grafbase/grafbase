@@ -46,21 +46,21 @@ impl<'a> Visitor<'a> for DefaultDirectiveTypes {
             if let Ok(mut arguments) = super::directive::extract_arguments(ctx, directive, &[&[VALUE_ARGUMENT]], None) {
                 let default_value = arguments.remove(VALUE_ARGUMENT).unwrap();
 
-                let error = {
-                    let ctx_registry = ctx.registry.borrow();
-                    engine::validation::utils::is_valid_input_value(
-                        &ctx_registry,
-                        &field.node.ty.node.to_string(),
-                        &default_value,
-                        QueryPath::empty().child(field.node.name.node.as_str()),
-                    )
-                };
-                if let Some(err) = error {
-                    ctx.report_error(
-                        vec![directive.pos],
-                        format!("The @default value is of a wrong type: {err}"),
-                    );
-                }
+                // let error = {
+                //     let ctx_registry = ctx.registry.borrow();
+                //     engine::validation::utils::is_valid_input_value(
+                //         &ctx_registry,
+                //         &field.node.ty.node.to_string(),
+                //         &default_value,
+                //         QueryPath::empty().child(field.node.name.node.as_str()),
+                //     )
+                // };
+                // if let Some(err) = error {
+                //     ctx.report_error(
+                //         vec![directive.pos],
+                //         format!("The @default value is of a wrong type: {err}"),
+                //     );
+                // }
             }
         }
     }

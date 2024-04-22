@@ -3,8 +3,9 @@ mod resolver_data;
 use engine::{
     indexmap::IndexMap,
     names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_FIELD_ID},
-    registry::{self, resolvers::transformer::Transformer, MetaField, MetaType},
+    registry::{self, MetaField, MetaType},
 };
+use registry_v2::resolvers::transformer::Transformer;
 use resolver_data::ResolverData;
 
 use super::CreateTypeContext;
@@ -72,7 +73,6 @@ pub(super) fn create(visitor_ctx: &mut VisitorContext<'_>, create_ctx: &CreateTy
         fields,
         cache_control,
         extends: false,
-        visible: None,
         is_subscription: false,
         is_node: true,
         rust_typename,

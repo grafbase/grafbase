@@ -238,7 +238,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::registry::variables::VariableResolveDefinition;
+    use registry_v2::resolvers::variable_resolve_definition::VariableResolveDefinition;
 
     #[test]
     fn test_path_parameter() {

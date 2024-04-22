@@ -15,7 +15,7 @@ use crate::{
 #[derive(Default)]
 pub struct VariableInAllowedPosition<'a> {
     spreads: HashMap<Scope<'a>, HashSet<&'a str>>,
-    variable_usages: HashMap<Scope<'a>, Vec<(&'a str, Pos, MetaTypeName<'a>)>>,
+    variable_usages: HashMap<Scope<'a>, Vec<(&'a str, Pos, String)>>,
     variable_defs: HashMap<Scope<'a>, Vec<&'a Positioned<VariableDefinition>>>,
     current_scope: Option<Scope<'a>>,
 }
@@ -45,6 +45,7 @@ impl<'a> VariableInAllowedPosition<'a> {
                     } else {
                         declared_variable_type.clone()
                     };
+                    let expected_type = MetaTypeName::create(expected_type);
 
                     if !expected_type.is_subtype(&MetaTypeName::create(&effective_variable_type)) {
                         ctx.report_error(
@@ -118,9 +119,9 @@ impl<'a> Visitor<'a> for VariableInAllowedPosition<'a> {
         &mut self,
         _ctx: &mut VisitorContext<'a>,
         pos: Pos,
-        expected_type: &Option<MetaTypeName<'a>>,
+        expected_type: &Option<MetaTypeName<'_>>,
         value: &'a Value,
-        _meta: Option<&MetaInputValue>,
+        _meta: Option<registry_v2::MetaInputValue<'a>>,
     ) {
         if let Value::Variable(name) = value {
             if let Some(expected_type) = expected_type {
@@ -128,7 +129,7 @@ impl<'a> Visitor<'a> for VariableInAllowedPosition<'a> {
                     self.variable_usages
                         .entry(*scope)
                         .or_default()
-                        .push((name, pos, *expected_type));
+                        .push((name, pos, expected_type.to_string()));
                 }
             }
         }

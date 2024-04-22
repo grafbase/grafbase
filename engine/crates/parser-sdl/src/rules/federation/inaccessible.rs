@@ -25,6 +25,7 @@ impl Directive for InaccessibleDirective {
 
 #[cfg(test)]
 mod tests {
+    use engine::registry::RegistrySdlExt;
     use std::collections::HashMap;
 
     #[test]

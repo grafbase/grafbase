@@ -1,5 +1,4 @@
 use graphql_cursor::GraphqlCursor;
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -9,9 +8,8 @@ use crate::{
     registry::{
         resolvers::ResolverContext,
         type_kinds::{OutputType, SelectionSetTarget},
-        MetaField, MetaType, TypeReference,
     },
-    Context, ContextExt, ContextField, ServerError, ServerResult,
+    ContextField, ServerError, ServerResult,
 };
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -78,19 +76,19 @@ impl AtlasCursor {
 
         let selection_target: SelectionSetTarget<'_> = resolver_ctx.ty.try_into().unwrap();
 
-        let selection_edges = selection_target
-            .field("edges")
-            .and_then(|field| ctx.registry().lookup(&field.ty).ok());
+        let selection_edges = selection_target.field("edges").map(|field| field.ty().named_type());
 
         let selection_node = selection_edges.as_ref().and_then(|output| output.field("node"));
 
-        let node_type = selection_node.and_then(|field| ctx.registry().lookup(&field.ty).ok());
-        let type_info = node_type.as_ref().and_then(OutputType::field_map).unwrap();
+        let node_type = selection_node.map(|field| field.ty().named_type());
+        let type_info = node_type.and_then(|ty| OutputType::try_from(ty).ok()).unwrap();
         let input_type = ctx.find_argument_type("orderBy")?;
 
         let order_by = order_by.iter().fold(JsonMap::new(), |mut acc, map| {
-            let map = embed_type_info(ctx, map, type_info);
-            let map = normalize::keys(ctx, map, input_type);
+            let mut map = embed_type_info(ctx, map, type_info);
+            if let Some(input_object) = input_type.as_input_object() {
+                map = normalize::keys(ctx, map, input_object);
+            }
             let map = normalize::flatten_keys(map);
 
             acc.extend(map);
@@ -163,25 +161,25 @@ impl TryFrom<GraphqlCursor> for AtlasCursor {
     }
 }
 
-fn embed_type_info(ctx: &ContextField<'_>, map: &JsonMap, type_info: &IndexMap<String, MetaField>) -> JsonMap {
+fn embed_type_info(ctx: &ContextField<'_>, map: &JsonMap, type_info: OutputType<'_>) -> JsonMap {
     let mut result = JsonMap::new();
 
     for (key, value) in map {
-        let meta_field = type_info.get(key).unwrap();
-        let meta_type = ctx.get_type(meta_field.ty.base_type_name());
+        let meta_field = type_info.field(key).unwrap();
+        let meta_type = meta_field.ty().named_type();
 
-        match meta_type.and_then(MetaType::fields) {
-            Some(fields) => {
+        match meta_type.fields() {
+            Some(_) => {
                 match value {
                     Value::Object(object) => {
-                        result.extend(embed_type_info(ctx, object, fields));
+                        result.extend(embed_type_info(ctx, object, OutputType::try_from(meta_type).unwrap()));
                     }
                     value => {
-                        let type_name = meta_field.ty.named_type();
+                        let type_name = meta_type.name();
 
                         let value = json!({
                             "$value": value,
-                            "$type": type_name.as_str(),
+                            "$type": type_name,
                         });
 
                         result.insert(key.to_string(), value);
@@ -189,11 +187,11 @@ fn embed_type_info(ctx: &ContextField<'_>, map: &JsonMap, type_info: &IndexMap<S
                 };
             }
             None => {
-                let type_name = meta_field.ty.named_type();
+                let type_name = meta_type.name();
 
                 let value = json!({
                     "$value": value,
-                    "$type": type_name.as_str(),
+                    "$type": type_name,
                 });
 
                 result.insert(key.to_string(), value);

@@ -1,9 +1,8 @@
 use std::collections::BTreeMap;
 
-use engine::registry::{
-    federation::{FederationEntity, FederationKey, FederationResolver},
-    resolvers::{http, Resolver},
-    variables::VariableResolveDefinition,
+use registry_v2::{
+    resolvers::{http, variable_resolve_definition::VariableResolveDefinition, Resolver},
+    FederationEntity, FederationKey, FederationResolver,
 };
 
 use super::OutputFieldKind;
@@ -70,7 +69,30 @@ fn entity_for_resource(resource: Resource, graph: &OpenApiGraph) -> Option<Feder
         return None;
     }
 
-    Some(FederationEntity::builder().with_keys(keys).build())
+    Some(FederationEntityBuilder::new().with_keys(keys).build())
+}
+
+pub struct FederationEntityBuilder(FederationEntity);
+
+impl FederationEntityBuilder {
+    pub fn new() -> Self {
+        FederationEntityBuilder(FederationEntity::default())
+    }
+}
+
+impl FederationEntityBuilder {
+    pub fn with_keys(mut self, keys: Vec<FederationKey>) -> Self {
+        self.0.keys.extend(keys);
+        self
+    }
+
+    pub fn add_key(&mut self, key: FederationKey) {
+        self.0.keys.push(key);
+    }
+
+    pub fn build(self) -> FederationEntity {
+        self.0
+    }
 }
 
 fn key_for_operation(
@@ -146,9 +168,10 @@ impl ResourceOperation {
                 // input_name without applying transforms
                 let variable_resolve_definition = match input_value_type {
                     None => VariableResolveDefinition::local_data(input_name),
-                    Some(input_value_type) => {
-                        VariableResolveDefinition::local_data_with_transforms(input_name, input_value_type)
-                    }
+                    Some(input_value_type) => VariableResolveDefinition::local_data_with_transforms(
+                        input_name,
+                        input_value_type.base_type_name().to_string(),
+                    ),
                 };
 
                 http::PathParameter {

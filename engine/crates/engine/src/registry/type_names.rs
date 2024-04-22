@@ -3,6 +3,7 @@
 use std::borrow::{Borrow, Cow};
 
 use engine_value::Name;
+use registry_v1::{InputValueType, MetaFieldType};
 
 use super::{
     type_kinds::{InputType, OutputType, SelectionSetTarget},
@@ -19,6 +20,10 @@ pub trait TypeReference {
 
     /// The name of the type
     fn named_type(&self) -> NamedType<'_>;
+
+    fn lookup_meta<'a>(&self, registry: &'a registry_v2::Registry) -> Option<registry_v2::MetaType<'a>> {
+        registry.lookup_type(self.named_type().as_str())
+    }
 }
 
 /// Defines basic string conversion functionality for a string wrapper.
@@ -55,40 +60,29 @@ macro_rules! def_string_conversions {
     };
 }
 
-/// The type of a MetaField
-///
-/// This is just a newtype around a string in SDL type notation (e.g. `[Int]!`).
-///
-/// Using a newtype allows us to enforce a bit of type safety, implement methods
-/// on the type etc. etc.
-#[derive(Clone, Default, Hash, Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
-pub struct MetaFieldType(String);
+impl TypeReference for registry_v2::MetaFieldType<'_> {
+    type ExpectedType<'a> = OutputType<'a>;
 
-def_string_conversions!(MetaFieldType);
-
-impl MetaFieldType {
-    pub fn is_non_null(&self) -> bool {
-        // This makes me sad, but for now lets live with it
-        self.0.ends_with('!')
+    fn named_type(&self) -> NamedType<'_> {
+        NamedType(Cow::Owned(self.to_string()))
     }
 
-    pub fn is_nullable(&self) -> bool {
-        // This makes me sad, but for now lets live with it
-        !self.0.ends_with('!')
+    fn lookup_meta<'a>(&self, registry: &'a registry_v2::Registry) -> Option<registry_v2::MetaType<'a>> {
+        // This is annoyingly laborious because lifetimes.  Can be simplified once regisry v1 is gone
+        Some(registry.read(self.id()).named_type())
+    }
+}
+
+impl TypeReference for registry_v2::MetaInputValueType<'_> {
+    type ExpectedType<'a> = InputType<'a>;
+
+    fn named_type(&self) -> NamedType<'_> {
+        NamedType(Cow::Owned(self.to_string()))
     }
 
-    pub fn is_list(&self) -> bool {
-        // Note that we do starts_with here to include both nullable and non-nullable
-        // lists.
-        self.0.starts_with('[')
-    }
-
-    pub fn base_type_name(&self) -> &str {
-        named_type_from_type_str(&self.0)
-    }
-
-    pub fn wrapping_types(&self) -> WrappingTypeIter<'_> {
-        WrappingTypeIter(self.as_str().chars())
+    fn lookup_meta<'a>(&self, registry: &'a registry_v2::Registry) -> Option<registry_v2::MetaType<'a>> {
+        // This is annoyingly laborious because lifetimes.  Can be simplified once regisry v1 is gone
+        Some(registry.read(self.id()).named_type())
     }
 }
 
@@ -96,31 +90,7 @@ impl TypeReference for MetaFieldType {
     type ExpectedType<'a> = OutputType<'a>;
 
     fn named_type(&self) -> NamedType<'_> {
-        NamedType(Cow::Borrowed(named_type_from_type_str(&self.0)))
-    }
-}
-
-/// The type of a MetaInputValue
-///
-/// This is just a newtype around a string in SDL type notation (e.g. `[Int]!`).
-///
-/// Using a newtype allows us to enforce a bit of type safety, implement methods
-/// on the type etc. etc.
-#[derive(Clone, Default, Hash, Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
-pub struct InputValueType(String);
-
-def_string_conversions!(InputValueType);
-
-impl InputValueType {
-    pub fn is_non_null(&self) -> bool {
-        // This makes me sad, but for now lets live with it
-        self.0.ends_with('!')
-    }
-
-    pub fn is_list(&self) -> bool {
-        // Note that we do starts_with here to include both nullable and non-nullable
-        // lists.
-        self.0.starts_with('[')
+        NamedType(Cow::Borrowed(named_type_from_type_str(self.as_str())))
     }
 }
 
@@ -128,7 +98,7 @@ impl TypeReference for InputValueType {
     type ExpectedType<'a> = InputType<'a>;
 
     fn named_type(&self) -> NamedType<'_> {
-        NamedType(Cow::Borrowed(named_type_from_type_str(&self.0)))
+        NamedType(Cow::Borrowed(named_type_from_type_str(self.as_str())))
     }
 }
 
@@ -146,6 +116,10 @@ impl TypeReference for ModelName {
 
     fn named_type(&self) -> NamedType<'_> {
         NamedType(Cow::Borrowed(&self.0))
+    }
+
+    fn lookup_meta<'a>(&self, registry: &'a registry_v2::Registry) -> Option<registry_v2::MetaType<'a>> {
+        registry.lookup_type(&self.0)
     }
 }
 

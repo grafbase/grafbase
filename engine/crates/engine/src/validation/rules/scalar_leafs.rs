@@ -10,27 +10,26 @@ pub struct ScalarLeafs;
 impl<'a> Visitor<'a> for ScalarLeafs {
     fn enter_field(&mut self, ctx: &mut VisitorContext<'a>, field: &'a Positioned<Field>) {
         if let Some(ty) = ctx.parent_type() {
-            if let Some(schema_field) = ty.field_by_name(&field.node.name.node) {
-                if let Ok(ty) = ctx.registry.lookup(&schema_field.ty) {
-                    if ty.is_leaf() && !field.node.selection_set.node.items.is_empty() {
-                        ctx.report_error(
-                            vec![field.pos],
-                            format!(
-                                "Field \"{}\" must not have a selection since type \"{}\" has no subfields",
-                                field.node.name,
-                                ty.name()
-                            ),
-                        );
-                    } else if !ty.is_leaf() && field.node.selection_set.node.items.is_empty() {
-                        ctx.report_error(
-                            vec![field.pos],
-                            format!(
-                                "Field \"{}\" of type \"{}\" must have a selection of subfields",
-                                field.node.name,
-                                ty.name()
-                            ),
-                        );
-                    }
+            if let Some(schema_field) = ty.field(&field.node.name.node) {
+                let ty = schema_field.ty().named_type();
+                if ty.is_leaf() && !field.node.selection_set.node.items.is_empty() {
+                    ctx.report_error(
+                        vec![field.pos],
+                        format!(
+                            "Field \"{}\" must not have a selection since type \"{}\" has no subfields",
+                            field.node.name,
+                            ty.name()
+                        ),
+                    );
+                } else if !ty.is_leaf() && field.node.selection_set.node.items.is_empty() {
+                    ctx.report_error(
+                        vec![field.pos],
+                        format!(
+                            "Field \"{}\" of type \"{}\" must have a selection of subfields",
+                            field.node.name,
+                            ty.name()
+                        ),
+                    );
                 }
             }
         }

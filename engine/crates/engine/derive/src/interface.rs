@@ -201,7 +201,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                     ty: <#ty as #crate_name::LegacyInputType>::create_type_info(registry),
                     default_value: #schema_default,
                     validators: None,
-                    visible: #visible,
+
                     is_secret: #secret,
                     rename: None
                 });
@@ -252,8 +252,6 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 ty: <#schema_ty as #crate_name::LegacyOutputType>::create_type_info(registry),
                 deprecation: #deprecation,
                 cache_control: ::std::default::Default::default(),
-                visible: #visible,
-                compute_complexity: ::std::option::Option::None,
                 resolver: #crate_name::registry::resolvers::Resolver::Parent,
                 ..Default::default()
             });
@@ -320,6 +318,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
             }
 
             fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
+                use crate::registry::LegacyRegistryExt;
                 registry.create_output_type::<Self, _>(|registry| {
                     #(#registry_types)*
 
@@ -338,7 +337,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                         },
                         cache_control: ::std::default::Default::default(),
                         extends: #extends,
-                        visible: #visible,
+
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                     })
                 })

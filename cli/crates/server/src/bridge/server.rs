@@ -17,7 +17,7 @@ pub struct HandlerState {
     pub message_sender: MessageSender,
     pub udf_runtime: UdfRuntime,
     pub tracing: bool,
-    pub registry: Arc<engine::Registry>,
+    pub registry: Arc<registry_v2::Registry>,
 }
 
 // Not great, but I don't want to expose HandlerState and nor do I want to change everything now...
@@ -35,14 +35,14 @@ impl BridgeState for Arc<HandlerState> {
 
 pub async fn build_router(
     message_sender: MessageSender,
-    registry: Arc<engine::Registry>,
+    registry: Arc<registry_v2::Registry>,
     tracing: bool,
     environment_name: EnvironmentName,
 ) -> Result<(Router, Arc<HandlerState>), ServerError> {
     let environment_variables: std::collections::HashMap<_, _> =
         crate::environment::variables(environment_name).collect();
 
-    let udf_runtime = UdfRuntime::new(environment_variables, registry.clone(), tracing, message_sender.clone());
+    let udf_runtime = UdfRuntime::new(environment_variables, tracing, message_sender.clone());
     let handler_state = Arc::new(HandlerState {
         message_sender,
         udf_runtime,
@@ -62,7 +62,7 @@ pub async fn build_router(
 pub async fn start(
     tcp_listener: TcpListener,
     message_sender: MessageSender,
-    registry: Arc<engine::Registry>,
+    registry: Arc<registry_v2::Registry>,
     start_signal: tokio::sync::oneshot::Sender<()>,
     tracing: bool,
     environment_name: EnvironmentName,

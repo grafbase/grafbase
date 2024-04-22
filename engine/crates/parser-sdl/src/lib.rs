@@ -2,6 +2,8 @@
 #[macro_use]
 extern crate assert_matches;
 
+use registry_v1 as _; // We should use this directly instead of going via engine at some point
+
 use std::collections::{HashMap, HashSet};
 
 use common_types::UdfKind;

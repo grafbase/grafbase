@@ -43,16 +43,6 @@ impl<'a> DataContext<'a> for ExtensionContext<'a> {
 }
 
 impl<'a> ExtensionContext<'a> {
-    /// Convert the specified [ExecutableDocument] into a query string.
-    ///
-    /// Usually used for log extension, it can hide secret arguments.
-    pub fn stringify_execute_doc(&self, doc: &ExecutableDocument, variables: &Variables) -> String {
-        self.schema_env
-            .registry
-            .stringify_exec_doc(variables, doc)
-            .unwrap_or_default()
-    }
-
     /// Gets the global data defined in the `Context` or `Schema`.
     ///
     /// If both `Schema` and `Query` have the same data type, the data in the `Query` is obtained.
@@ -95,7 +85,7 @@ pub struct ResolveInfo<'a> {
     pub parent_type: &'a str,
 
     /// Current return type, is qualified name.
-    pub return_type: &'a MetaFieldType,
+    pub return_type: registry_v2::MetaFieldType<'a>,
 
     /// Current field name
     pub name: &'a str,

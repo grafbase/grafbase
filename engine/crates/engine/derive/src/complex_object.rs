@@ -235,7 +235,7 @@ pub fn generate(object_args: &args::ComplexObject, item_impl: &mut ItemImpl) -> 
                         description: #desc,
                         ty: <#ty as #crate_name::LegacyInputType>::create_type_info(registry),
                         default_value: #schema_default,
-                        visible: #visible,
+
                         is_secret: #secret,
                         rename: None
                     });
@@ -332,8 +332,6 @@ pub fn generate(object_args: &args::ComplexObject, item_impl: &mut ItemImpl) -> 
                     cache_control: Some(Box::new(#cache_control)),
                     provides: #provides,
                     requires: #requires,
-                    visible: #visible,
-                    compute_complexity: #complexity,
                     ..Default::default()
                 }));
             });

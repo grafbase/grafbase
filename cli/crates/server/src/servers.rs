@@ -37,7 +37,7 @@ pub enum EnvironmentName {
 pub enum ProductionServer {
     V1 {
         message_sender: MessageSender,
-        registry: Arc<Registry>,
+        registry: Arc<registry_v2::Registry>,
         bridge_app: axum::Router,
         environment_variables: HashMap<String, String>,
     },
@@ -84,6 +84,7 @@ impl ProductionServer {
                 graph,
             })
         } else {
+            let registry = registry_upgrade::convert_v1_to_v2(registry);
             let registry = Arc::new(registry);
 
             let (bridge_app, bridge_state) = bridge::build_router(
@@ -365,6 +366,7 @@ async fn spawn_servers(
         federated_graph_config: _,
     } = config;
 
+    let registry = registry_upgrade::convert_v1_to_v2(registry);
     let registry = Arc::new(registry);
     // If the rebuild has been triggered by a change in the schema file, we can honour the freshness of resolvers
     // determined by inspecting the modified time of final artifacts of detected resolvers compared to the modified time

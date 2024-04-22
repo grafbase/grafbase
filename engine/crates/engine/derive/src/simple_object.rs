@@ -164,8 +164,6 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     ty: <#ty as #crate_name::LegacyOutputType>::create_type_info(registry),
                     deprecation: #field_deprecation,
                     cache_control: Some(Box::new(#cache_control)),
-                    visible: #visible,
-                    compute_complexity: ::std::option::Option::None,
                     resolver: #crate_name::registry::resolvers::Resolver::Parent,
                     ..Default::default()
                 });
@@ -304,6 +302,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                 }
 
                 fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
+                    use crate::registry::LegacyRegistryExt;
                     registry.create_output_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
                             name: ::std::borrow::ToOwned::to_owned(#gql_typename),
@@ -316,7 +315,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                             },
                             cache_control: Some(Box::new(#cache_control)),
                             extends: #extends,
-                            visible: #visible,
+
                             is_subscription: false,
                             is_node: false,
                             rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
@@ -373,6 +372,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     name: &str,
                     complex_fields: #crate_name::indexmap::IndexMap<::std::string::String, #crate_name::registry::MetaField>,
                 ) -> ::std::string::String where Self: #crate_name::LegacyOutputType {
+                    use crate::registry::LegacyRegistryExt;
                     registry.create_output_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
                             name: ::std::borrow::ToOwned::to_owned(name),
@@ -385,7 +385,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                             },
                             cache_control: Some(Box::new(#cache_control)),
                             extends: #extends,
-                            visible: #visible,
+
                             is_subscription: false,
                             is_node: false,
                             rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),

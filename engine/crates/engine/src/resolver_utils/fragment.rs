@@ -71,15 +71,13 @@ impl<'a> FragmentDetails<'a> {
         };
 
         match ctx.ty {
-            SelectionSetTarget::Union(union) => typename == type_condition || type_condition == union.rust_typename,
+            SelectionSetTarget::Union(union) => typename == type_condition || type_condition == union.name(),
             _ => {
                 typename == type_condition
                     || ctx
                         .registry()
-                        .implements
-                        .get(typename)
-                        .map(|interfaces| interfaces.contains(type_condition))
-                        .unwrap_or_default()
+                        .interfaces_implemented(typename)
+                        .any(|ty| ty.name() == type_condition)
             }
         }
     }

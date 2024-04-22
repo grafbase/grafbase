@@ -13,16 +13,15 @@ use crate::{
 
 #[derive(Default)]
 pub struct ArgumentsOfCorrectType<'a> {
-    current_args: Option<&'a IndexMap<String, MetaInputValue>>,
+    current_args: Option<Vec<registry_v2::MetaInputValue<'a>>>,
 }
 
 impl<'a> Visitor<'a> for ArgumentsOfCorrectType<'a> {
     fn enter_directive(&mut self, ctx: &mut VisitorContext<'a>, directive: &'a Positioned<Directive>) {
         self.current_args = ctx
             .registry
-            .directives
-            .get(directive.node.name.node.as_str())
-            .map(|d| &d.args);
+            .lookup_directive(directive.node.name.node.as_str())
+            .map(|d| d.args().collect());
     }
 
     fn exit_directive(&mut self, _ctx: &mut VisitorContext<'a>, _directive: &'a Positioned<Directive>) {
@@ -35,7 +34,11 @@ impl<'a> Visitor<'a> for ArgumentsOfCorrectType<'a> {
         name: &'a Positioned<Name>,
         value: &'a Positioned<Value>,
     ) {
-        if let Some(arg) = self.current_args.and_then(|args| args.get(name.node.as_str())) {
+        if let Some(arg) = self
+            .current_args
+            .as_ref()
+            .and_then(|args| args.iter().find(|arg| arg.name() == name.node.as_str()))
+        {
             let value = value
                 .node
                 .clone()
@@ -49,9 +52,9 @@ impl<'a> Visitor<'a> for ArgumentsOfCorrectType<'a> {
 
             if let Some(reason) = value.and_then(|value| {
                 let mut query_path = QueryPath::empty();
-                query_path.push(arg.name.as_str());
+                query_path.push(arg.name());
 
-                is_valid_input_value(ctx.registry, arg.ty.as_str(), &value, query_path)
+                is_valid_input_value(ctx.registry, &arg.ty().to_string(), &value, query_path)
             }) {
                 ctx.report_error(vec![name.pos], format!("Invalid value for argument {reason}"));
             }
@@ -61,8 +64,8 @@ impl<'a> Visitor<'a> for ArgumentsOfCorrectType<'a> {
     fn enter_field(&mut self, ctx: &mut VisitorContext<'a>, field: &'a Positioned<Field>) {
         self.current_args = ctx
             .parent_type()
-            .and_then(|p| p.field_by_name(&field.node.name.node))
-            .map(|f| &f.args);
+            .and_then(|p| p.field(&field.node.name.node))
+            .map(|f| f.args().collect());
     }
 
     fn exit_field(&mut self, _ctx: &mut VisitorContext<'a>, _field: &'a Positioned<Field>) {

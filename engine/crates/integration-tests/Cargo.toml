@@ -37,6 +37,7 @@ serde_json.workspace = true
 ulid.workspace = true
 url.workspace = true
 wiremock.workspace = true
+registry-upgrade.workspace = true
 runtime-local.workspace = true
 runtime-noop.workspace = true
 ory-client = "1"

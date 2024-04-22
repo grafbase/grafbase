@@ -107,8 +107,8 @@ fn nested_data() {
             [
               {
                 "address_data": {
-                  "street_name": "Wall",
-                  "city": "New York"
+                  "city": "New York",
+                  "street_name": "Wall"
                 }
               }
             ]"#]];

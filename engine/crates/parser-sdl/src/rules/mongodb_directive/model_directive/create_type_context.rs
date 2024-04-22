@@ -1,9 +1,7 @@
 use case::CaseExt;
-use engine::{
-    registry::{Constraint, MongoDBConfiguration},
-    AuthConfig, CacheControl, Positioned,
-};
+use engine::{registry::Constraint, AuthConfig, CacheControl, Positioned};
 use engine_parser::types::{FieldDefinition, ObjectType, TypeDefinition};
+use registry_v2::MongoDBConfiguration;
 
 use super::COLLECTION_KEY;
 use crate::rules::{cache_directive::CacheDirective, unique_directive::UniqueDirective, visitor::VisitorContext};

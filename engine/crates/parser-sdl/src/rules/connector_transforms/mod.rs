@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use engine::registry::{
-    type_kinds::{InputType, OutputType},
     InputObjectType, InterfaceType, MetaType, ObjectType, Registry,
 };
 
@@ -46,54 +45,54 @@ struct SelectedField {
 fn lookup_fields(registry: &Registry, lookup: &FieldLookup) -> HashSet<SelectedField> {
     let mut current_types = registry
         .types
-        .iter()
-        .filter_map(|(name, ty)| lookup.starting_type.is_match(name).then_some(ty))
+        .keys()
+        .filter(|name| lookup.starting_type.is_match(name))
         .collect::<HashSet<_>>();
 
     for segment in &lookup.path {
         let mut next_types = HashSet::new();
-        for ty in current_types {
-            if let Ok(output_type) = OutputType::try_from(ty) {
-                next_types.extend(output_type.fields().filter_map(|field| {
-                    segment
-                        .is_match(&field.name)
-                        .then(|| registry.lookup_expecting::<&MetaType>(&field.ty).ok())
-                        .flatten()
-                }));
-            } else if let Ok(input_type) = InputType::try_from(ty) {
-                next_types.extend(input_type.fields().filter_map(|field| {
-                    segment
-                        .is_match(&field.name)
-                        .then(|| registry.lookup_expecting::<&MetaType>(&field.ty).ok())
-                        .flatten()
-                }));
+        for type_name in current_types {
+            let ty = registry.types.get(type_name).unwrap();
+            match ty {
+                MetaType::Object(_) | MetaType::Interface(_) => {
+                    next_types.extend(ty.fields().unwrap().keys().filter(|name| segment.is_match(name)));
+                }
+                MetaType::InputObject(input) => {
+                    next_types.extend(input.input_fields.keys().filter(|name| segment.is_match(name)));
+                }
+                _ => {}
             }
         }
         current_types = next_types;
     }
 
     let mut fields = HashSet::new();
-    for ty in current_types {
-        if let Ok(output_type) = OutputType::try_from(ty) {
-            fields.extend(
-                output_type
-                    .fields()
+    for type_name in current_types {
+        let ty = registry.types.get(type_name).unwrap();
+        match ty {
+            MetaType::Object(_) | MetaType::Interface(_) => fields.extend(
+                ty.fields()
+                    .unwrap()
+                    .values()
                     .filter(|field| lookup.field.is_match(&field.name))
                     .map(|field| SelectedField {
                         ty: ty.name().to_string(),
                         field: field.name.clone(),
                     }),
-            );
-        } else if let Ok(input_type) = InputType::try_from(ty) {
-            fields.extend(
-                input_type
-                    .fields()
-                    .filter(|field| lookup.field.is_match(&field.name))
-                    .map(|field| SelectedField {
-                        ty: ty.name().to_string(),
-                        field: field.name.clone(),
-                    }),
-            );
+            ),
+            MetaType::InputObject(input) => {
+                fields.extend(
+                    input
+                        .input_fields
+                        .values()
+                        .filter(|field| lookup.field.is_match(&field.name))
+                        .map(|field| SelectedField {
+                            ty: ty.name().to_string(),
+                            field: field.name.clone(),
+                        }),
+                );
+            }
+            _ => {}
         }
     }
 
@@ -105,6 +104,7 @@ mod tests {
     use std::collections::HashMap;
 
     use engine::registry::Registry;
+    use engine::registry::RegistrySdlExt;
     use serde::Deserialize;
     use serde_json::json;
 

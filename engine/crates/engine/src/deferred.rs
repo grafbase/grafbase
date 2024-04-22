@@ -2,7 +2,7 @@ use engine_parser::{types::SelectionSet, Positioned};
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::{
-    registry::{resolvers::ResolvedValue, NamedType},
+    registry::{resolvers::ResolvedValue, NamedType, RegistryV2Ext},
     ContextSelectionSet, Error, QueryEnv, QueryPath, SchemaEnv,
 };
 

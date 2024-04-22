@@ -1,5 +1,5 @@
-use engine::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use petgraph::{graph::NodeIndex, Graph};
+use registry_v2::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use serde_json::Value;
 
 use super::{Edge, Node, WrappingType};

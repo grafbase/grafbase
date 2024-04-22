@@ -16,9 +16,9 @@ use crate::{
             },
             ResolvedValue, ResolverContext,
         },
-        type_kinds::{OutputType, SelectionSetTarget},
+        type_kinds::SelectionSetTarget,
     },
-    Context, ContextField, Error,
+    ContextField, Error,
 };
 
 #[derive(Debug, Clone)]
@@ -54,16 +54,13 @@ impl FindMany {
 
         let selection_target: SelectionSetTarget<'_> = resolver_ctx.ty.try_into().unwrap();
 
-        let selection_type = selection_target
-            .field("edges")
-            .and_then(|field| ctx.registry().lookup(&field.ty).ok());
+        let selection_type = selection_target.field("edges").map(|field| field.ty().named_type());
 
         let selection_field = selection_type.as_ref().and_then(|output| output.field("node"));
-        let selection_type = selection_field.and_then(|field| ctx.registry().lookup(&field.ty).ok());
-        let selection_field_types = selection_type.as_ref().and_then(OutputType::field_map).unwrap();
+        let selection_type = selection_field.map(|field| field.ty().named_type()).unwrap();
 
         let selection = ctx.look_ahead().field("edges").field("node").selection_fields();
-        let projection = projection::project(ctx, selection.into_iter(), selection_field_types)?;
+        let projection = projection::project(ctx, selection.into_iter(), selection_type)?;
         let filter = input::filter(ctx)?;
 
         let order_by = input::order_by(ctx);

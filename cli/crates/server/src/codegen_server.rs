@@ -5,7 +5,7 @@ use std::{
 };
 
 use common::environment::Project;
-use engine::registry::resolvers::Resolver;
+use engine::registry::{resolvers::Resolver, RegistrySdlExt};
 use tokio::task::JoinHandle;
 use tokio_stream::{wrappers::errors::BroadcastStreamRecvError, StreamExt};
 

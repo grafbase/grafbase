@@ -1,5 +1,6 @@
 use crate::{
     parser::types::VariableDefinition,
+    registry::concrete_type_name_from_parsed_type,
     validation::visitor::{Visitor, VisitorContext},
     Positioned,
 };
@@ -13,10 +14,8 @@ impl<'a> Visitor<'a> for VariablesAreInputTypes {
         ctx: &mut VisitorContext<'a>,
         variable_definition: &'a Positioned<VariableDefinition>,
     ) {
-        if let Some(ty) = ctx
-            .registry
-            .concrete_type_by_parsed_type(&variable_definition.node.var_type.node)
-        {
+        let name = concrete_type_name_from_parsed_type(&variable_definition.node.var_type.node);
+        if let Some(ty) = ctx.registry.lookup_type(name) {
             if !ty.is_input() {
                 ctx.report_error(
                     vec![variable_definition.pos],

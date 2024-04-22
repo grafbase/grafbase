@@ -4,8 +4,9 @@ mod queries;
 pub(super) mod types;
 
 use create_type_context::CreateTypeContext;
-use engine::{registry::MongoDBConfiguration, Positioned};
+use engine::Positioned;
 use engine_parser::types::{ObjectType, TypeDefinition, TypeKind};
+use registry_v2::MongoDBConfiguration;
 
 use crate::{
     parser_extensions::FieldExtension,

@@ -1,9 +1,10 @@
 use common_types::auth::Operations;
 use engine::registry::{
     resolvers::{custom::CustomResolver, Resolver},
-    FederationProperties, MetaField,
+    MetaField,
 };
 use engine_parser::types::{ObjectType, TypeKind};
+use registry_v2::FederationProperties;
 
 use super::{
     deprecated_directive::DeprecatedDirective,
@@ -82,8 +83,6 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                     deprecation,
                     cache_control,
                     requires: None,
-                    visible: None,
-                    compute_complexity: None,
                     resolver: Resolver::CustomResolver(CustomResolver {
                         resolver_name: resolver_name.to_owned(),
                     }),

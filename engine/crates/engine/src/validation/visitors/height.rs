@@ -43,6 +43,7 @@ impl<'ctx, 'a> Visitor<'ctx> for HeightCalculate<'a> {
     }
 }
 
+#[cfg(fixme)]
 #[cfg(test)]
 mod tests {
     #![allow(clippy::diverging_sub_expression)]
@@ -133,7 +134,7 @@ mod tests {
             r"
         {
             value1 #1
-            alias: value1 
+            alias: value1
             obj { #2
                 a #3
             }

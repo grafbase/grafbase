@@ -6,15 +6,15 @@
 
 use engine::registry::{
     self,
-    federation::FederationKey,
-    resolvers::{custom::CustomResolver, transformer::Transformer, Resolver},
-    FederationProperties, MetaField, MetaType, ObjectType,
+    resolvers::{custom::CustomResolver, Resolver},
+    MetaField, MetaType, ObjectType,
 };
 use engine_parser::{
     types::{FieldDefinition, TypeKind},
     Pos, Positioned,
 };
 use itertools::Itertools;
+use registry_v2::{resolvers::transformer::Transformer, FederationKey, FederationProperties};
 
 use super::{
     deprecated_directive::DeprecatedDirective,

@@ -1,12 +1,12 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-use engine::registry::{field_set, resolvers::join::JoinResolver, FieldSet};
 use engine_parser::{
     parse_field,
     types::{ConstDirective, Field, InputValueDefinition},
     Positioned,
 };
 use engine_value::{Name, Value};
+use registry_v2::{resolvers::join::JoinResolver, FieldSet};
 use serde::de::Error;
 
 use super::{
@@ -97,7 +97,7 @@ impl FieldSelection {
             self.variables_used
                 .iter()
                 .filter(|field| !arguments.contains(field.as_str()))
-                .map(|field| field_set::Selection {
+                .map(|field| registry_v2::Selection {
                     field: field.clone(),
                     selections: vec![],
                 }),

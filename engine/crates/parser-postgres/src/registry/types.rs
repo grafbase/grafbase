@@ -3,7 +3,7 @@ mod page_info;
 mod scalar;
 mod table;
 
-use engine::registry::MetaEnumValue;
+use registry_v1::MetaEnumValue;
 
 use self::scalar::{create_array_update_type, create_filter_types, create_scalar_update_type, TypeKind};
 

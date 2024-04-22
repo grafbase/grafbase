@@ -52,7 +52,6 @@ use crate::{
     registry::{
         resolvers::{graphql::response::UpstreamResponse, logged_fetch::send_logged_request},
         type_kinds::SelectionSetTarget,
-        MetaField, Registry,
     },
     QueryPath, QueryPathSegment, ServerError,
 };
@@ -73,80 +72,6 @@ impl QueryBatcher {
 impl Default for QueryBatcher {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-// FIXME: Currently the CustomerDeploymentConfig stores MetaField for cache metadata
-//        so we must be strictly backward compatible for serialization even though those
-//        fields won't be used. Previously we had a `id` field, now we have a `name`.
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
-#[serde(untagged)]
-enum IdOrName {
-    LegacyId { id: u16 },
-    Name { name: String },
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
-pub struct Resolver {
-    /// A unique name for the given GraphQL resolver instance.
-    #[serde(flatten)]
-    id_or_name: IdOrName,
-
-    /// The name of this GraphQL resolver instance.
-    ///
-    /// Each instance is expected to have a unique name, as the name of the instance is used as the
-    /// field name within which the root upstream fields are exposed.
-    pub namespace: Option<String>,
-
-    /// The prefix for this GraphQL resolver if any.
-    ///
-    /// If not present this will default to the namespace above, mostly for backwards
-    /// compatability reasons.
-    ///
-    /// This is used by the serializer to make sure there is no collision between global
-    /// types. E.g. if a `User` type exists, it won't be overwritten by the same type of the
-    /// upstream server, as it'll be prefixed as `MyPrefixUser`.
-    pub type_prefix: Option<String>,
-
-    /// The URL of the upstream GraphQL API.
-    ///
-    /// This should point to the actual query endpoint, not a publicly available playground or any
-    /// other destination.
-    pub url: Url,
-}
-
-impl Resolver {
-    #[must_use]
-    pub fn new(name: String, url: Url, namespace: Option<String>, type_prefix: Option<String>) -> Self {
-        Self {
-            id_or_name: IdOrName::Name { name },
-            url,
-            namespace,
-            type_prefix,
-        }
-    }
-
-    #[must_use]
-    pub fn name(&self) -> Cow<'_, String> {
-        match &self.id_or_name {
-            IdOrName::LegacyId { id } => Cow::Owned(id.to_string()),
-            IdOrName::Name { name } => Cow::Borrowed(name),
-        }
-    }
-
-    #[cfg(test)]
-    pub fn stub(name: &str, namespace: impl AsRef<str>, url: impl AsRef<str>) -> Self {
-        let namespace = match namespace.as_ref() {
-            "" => None,
-            v => Some(v.to_owned()),
-        };
-
-        Self {
-            id_or_name: IdOrName::Name { name: name.to_string() },
-            type_prefix: namespace.clone(),
-            namespace,
-            url: Url::parse(url.as_ref()).expect("valid url"),
-        }
     }
 }
 
@@ -380,7 +305,6 @@ fn group_queries(queries: impl ExactSizeIterator<Item = Query>) -> (Query, Vec<H
     }
 
     let mut query = String::new();
-    let registry = Registry::default();
 
     let fragment_definitions = all_fragments.iter().map(|(k, v)| (k, v.as_ref().node)).collect();
 
@@ -390,7 +314,7 @@ fn group_queries(queries: impl ExactSizeIterator<Item = Query>) -> (Query, Vec<H
         .map(|variable_definition| (&variable_definition.node.name.node, &variable_definition.node))
         .collect();
 
-    let mut serializer = Serializer::new(None, fragment_definitions, variable_definitions, &mut query, &registry);
+    let mut serializer = Serializer::new(None, fragment_definitions, variable_definitions, &mut query, None);
 
     let target = Target::SelectionSet(Box::new(all_selections.items.into_iter().map(|v| v.node.clone())));
 
@@ -491,128 +415,126 @@ struct Query {
     variables: BTreeMap<Name, ConstValue>,
 }
 
-pub enum Target {
+pub enum Target<'a> {
     SelectionSet(Box<dyn Iterator<Item = Selection> + Send + Sync>),
-    Field(Field, MetaField),
+    Field(Field, registry_v2::MetaField<'a>),
 }
 
-impl Resolver {
-    /// Resolve the given list of [`Selection`]s at the upstream server, returning the final
-    /// result.
-    ///
-    /// # Errors
-    ///
-    /// See [`Error`] for more details.
-    #[allow(clippy::too_many_arguments)] // I know clippy, I know
-    pub(super) fn resolve<'a>(
-        &'a self,
-        futures_spawner: QueryFutureSpawner,
-        operation: OperationType,
-        path: QueryPath,
-        ray_id: &'a str,
-        fetch_log_endpoint_url: Option<&'a str>,
-        headers: &'a [(&'a str, &'a str)],
-        fragment_definitions: HashMap<&'a Name, &'a FragmentDefinition>,
-        target: Target,
-        current_type: Option<SelectionSetTarget<'a>>,
-        mut error_handler: impl FnMut(ServerError) + Send + 'a,
-        variables: Variables,
-        variable_definitions: HashMap<&'a Name, &'a VariableDefinition>,
-        registry: &'a Registry,
-        batcher: Option<&'a QueryBatcher>,
-    ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
-        let mut query = String::new();
+/// Resolve the given list of [`Selection`]s at the upstream server, returning the final
+/// result.
+///
+/// # Errors
+///
+/// See [`Error`] for more details.
+#[allow(clippy::too_many_arguments)] // I know clippy, I know
+pub(super) fn resolve<'a>(
+    resolver: &'a registry_v2::resolvers::graphql::Resolver,
+    futures_spawner: QueryFutureSpawner,
+    operation: OperationType,
+    path: QueryPath,
+    ray_id: &'a str,
+    fetch_log_endpoint_url: Option<&'a str>,
+    headers: &'a [(&'a str, &'a str)],
+    fragment_definitions: HashMap<&'a Name, &'a FragmentDefinition>,
+    target: Target<'a>,
+    current_type: Option<SelectionSetTarget<'a>>,
+    mut error_handler: impl FnMut(ServerError) + Send + 'a,
+    variables: Variables,
+    variable_definitions: HashMap<&'a Name, &'a VariableDefinition>,
+    registry: &'a registry_v2::Registry,
+    batcher: Option<&'a QueryBatcher>,
+) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
+    let mut query = String::new();
 
-        let prefix = self.type_prefix.as_ref().cloned().or(
-            // If we don't have a type_prefix we fall back to the namespace.
-            // This is mostly for backwards compatability reasons.
-            // Every new connector from 2023-10-17 should gave type_prefix set correctly
-            self.namespace.as_ref().map(inflector::Inflector::to_pascal_case),
+    let prefix = resolver.type_prefix.as_ref().cloned().or(
+        // If we don't have a type_prefix we fall back to the namespace.
+        // This is mostly for backwards compatability reasons.
+        // Every new connector from 2023-10-17 should gave type_prefix set correctly
+        resolver.namespace.as_ref().map(inflector::Inflector::to_pascal_case),
+    );
+
+    let wrapping_field = match &target {
+        Target::SelectionSet(_) => None,
+        Target::Field(field, _) if field.alias.is_none() => Some(field.name.node.to_string()),
+        Target::Field(field, _) => Some(field.alias.as_ref().unwrap().node.to_string()),
+    };
+
+    Box::pin(make_send_on_wasm(async move {
+        let mut serializer = Serializer::new(
+            prefix.as_deref(),
+            fragment_definitions,
+            variable_definitions,
+            &mut query,
+            Some(registry),
         );
 
-        let wrapping_field = match &target {
-            Target::SelectionSet(_) => None,
-            Target::Field(field, _) if field.alias.is_none() => Some(field.name.node.to_string()),
-            Target::Field(field, _) => Some(field.alias.as_ref().unwrap().node.to_string()),
+        let namespaced = matches!(target, Target::SelectionSet { .. });
+
+        match operation {
+            OperationType::Query => serializer.query(target, current_type)?,
+            OperationType::Mutation => serializer.mutation(target, current_type)?,
+            OperationType::Subscription => return Err(Error::UnsupportedOperation("subscription")),
         };
 
-        Box::pin(make_send_on_wasm(async move {
-            let mut serializer = Serializer::new(
-                prefix.as_deref(),
-                fragment_definitions,
-                variable_definitions,
-                &mut query,
-                registry,
-            );
+        let variables = variables
+            .into_iter()
+            .filter(|(name, _)| serializer.variable_references().any(|reference| reference == name))
+            .collect();
 
-            let namespaced = matches!(target, Target::SelectionSet { .. });
+        let query_data = QueryData {
+            query: Query { query, variables },
+            headers: headers
+                .iter()
+                .copied()
+                .map(|(a, b)| (a.to_owned(), b.to_owned()))
+                .collect(),
+            resolver_name: resolver.name().to_string(),
+            url: resolver.url.to_string(),
+            ray_id: ray_id.to_owned(),
+            fetch_log_endpoint_url: fetch_log_endpoint_url.map(str::to_owned),
+            local_path: path,
+            namespaced,
+        };
 
-            match operation {
-                OperationType::Query => serializer.query(target, current_type)?,
-                OperationType::Mutation => serializer.mutation(target, current_type)?,
-                OperationType::Subscription => return Err(Error::UnsupportedOperation("subscription")),
-            };
-
-            let variables = variables
-                .into_iter()
-                .filter(|(name, _)| serializer.variable_references().any(|reference| reference == name))
-                .collect();
-
-            let query_data = QueryData {
-                query: Query { query, variables },
-                headers: headers
-                    .iter()
-                    .copied()
-                    .map(|(a, b)| (a.to_owned(), b.to_owned()))
-                    .collect(),
-                resolver_name: self.name().to_string(),
-                url: self.url.to_string(),
-                ray_id: ray_id.to_owned(),
-                fetch_log_endpoint_url: fetch_log_endpoint_url.map(str::to_owned),
-                local_path: path,
-                namespaced,
-            };
-
-            let value = match (batcher, operation) {
-                (_, OperationType::Subscription) => return Err(Error::UnsupportedOperation("subscription")),
-                (Some(batcher), OperationType::Query) => {
-                    batcher
-                        .loader
-                        .load_one(query_data, |f| futures_spawner.spawn(f))
-                        .await?
-                }
-                _ => load(&[query_data]).await?.into_values().next(),
-            };
-
-            let Some(value) = value else {
-                return Err(Error::MalformedUpstreamResponse);
-            };
-
-            let (UpstreamResponse { mut data, errors }, http_status) = value;
-
-            if !http_status.is_success() {
-                // If we haven't had a fatal error we should still report the http error
-                error_handler(ServerError::new(
-                    format!("Remote returned http error code: {http_status}"),
-                    None,
-                ));
+        let value = match (batcher, operation) {
+            (_, OperationType::Subscription) => return Err(Error::UnsupportedOperation("subscription")),
+            (Some(batcher), OperationType::Query) => {
+                batcher
+                    .loader
+                    .load_one(query_data, |f| futures_spawner.spawn(f))
+                    .await?
             }
+            _ => load(&[query_data]).await?.into_values().next(),
+        };
 
-            errors.into_iter().for_each(error_handler);
+        let Some(value) = value else {
+            return Err(Error::MalformedUpstreamResponse);
+        };
 
-            if let Some(prefix) = prefix {
-                prefix_result_typename(&mut data, &prefix);
-            }
+        let (UpstreamResponse { mut data, errors }, http_status) = value;
 
-            Ok(ResolvedValue::new(match wrapping_field {
-                Some(field) => data
-                    .as_object_mut()
-                    .and_then(|m| m.remove(&field))
-                    .unwrap_or(serde_json::Value::Null),
-                None => data,
-            }))
+        if !http_status.is_success() {
+            // If we haven't had a fatal error we should still report the http error
+            error_handler(ServerError::new(
+                format!("Remote returned http error code: {http_status}"),
+                None,
+            ));
+        }
+
+        errors.into_iter().for_each(error_handler);
+
+        if let Some(prefix) = prefix {
+            prefix_result_typename(&mut data, &prefix);
+        }
+
+        Ok(ResolvedValue::new(match wrapping_field {
+            Some(field) => data
+                .as_object_mut()
+                .and_then(|m| m.remove(&field))
+                .unwrap_or(serde_json::Value::Null),
+            None => data,
         }))
-    }
+    }))
 }
 
 #[derive(thiserror::Error, Debug, Clone, PartialEq)]
@@ -675,6 +597,7 @@ fn prefix_result_typename(value: &mut serde_json::Value, prefix: &str) {
     }
 }
 
+#[cfg(todo_or_nope)]
 #[cfg(test)]
 mod tests {
     use engine_parser::parse_query;

@@ -15,9 +15,12 @@ workspace = true
 [dependencies]
 parser-sdl = { path = "../parser-sdl" }
 postgres-connector-types = { path = "../postgres-connector-types" }
-engine = { path = "../engine" }
+#engine = { path = "../engine" } LETS SEE ABOUT THIS
 serde_json.workspace = true
 serde.workspace = true
+registry-v1.workspace = true
+registry-v2.workspace = true
 Inflector = "0.11.4"
 itertools.workspace = true
 common-types.workspace = true
+indexmap.workspace = true

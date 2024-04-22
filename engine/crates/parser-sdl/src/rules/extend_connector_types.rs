@@ -1,9 +1,10 @@
 use engine::registry::{
     self,
     resolvers::{custom::CustomResolver, Resolver},
-    FederationProperties, MetaField, MetaType,
+    MetaField, MetaType,
 };
 use engine_parser::types::TypeKind;
+use registry_v2::FederationProperties;
 
 use super::{
     deprecated_directive::DeprecatedDirective,

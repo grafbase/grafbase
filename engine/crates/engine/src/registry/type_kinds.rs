@@ -10,10 +10,8 @@ use std::iter;
 
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
+use registry_v2::{MetaInputValue, MetaType, ObjectType};
 
-use super::{
-    EnumType, InputObjectType, InterfaceType, MetaField, MetaInputValue, MetaType, ObjectType, ScalarType, UnionType,
-};
 use crate::Error;
 
 /// The kinds of types we work with in GraphQL
@@ -36,8 +34,25 @@ pub enum TypeKind {
     InputType,
 }
 
-impl MetaType {
-    pub(super) fn kind(&self) -> TypeKind {
+impl TypeKind {
+    pub fn for_metatype(metatype: registry_v2::MetaType) -> Self {
+        match metatype {
+            MetaType::Object(_) => TypeKind::Object,
+            MetaType::Interface(_) => TypeKind::Interface,
+            MetaType::Union(_) => TypeKind::Union,
+            MetaType::Enum(_) => TypeKind::Enum,
+            MetaType::InputObject(_) => TypeKind::InputObject,
+            MetaType::Scalar(_) => TypeKind::Scalar,
+        }
+    }
+}
+
+pub(super) trait MetaTypeExt {
+    fn kind(&self) -> TypeKind;
+}
+
+impl MetaTypeExt for MetaType<'_> {
+    fn kind(&self) -> TypeKind {
         match self {
             MetaType::Scalar(_) => TypeKind::Scalar,
             MetaType::Object(_) => TypeKind::Object,
@@ -52,54 +67,53 @@ impl MetaType {
 /// A type in output position - i.e. the type of a field in an Object/Interface/selection set.
 #[derive(Clone, Copy, Debug)]
 pub enum OutputType<'a> {
-    Scalar(&'a ScalarType),
-    Object(&'a ObjectType),
-    Interface(&'a InterfaceType),
-    Union(&'a UnionType),
-    Enum(&'a EnumType),
+    Scalar(registry_v2::ScalarType<'a>),
+    Object(registry_v2::ObjectType<'a>),
+    Interface(registry_v2::InterfaceType<'a>),
+    Union(registry_v2::UnionType<'a>),
+    Enum(registry_v2::EnumType<'a>),
 }
 
 impl<'a> OutputType<'a> {
     pub fn name(&self) -> &str {
         match self {
-            OutputType::Scalar(scalar) => &scalar.name,
-            OutputType::Object(object) => &object.name,
-            OutputType::Interface(interface) => &interface.name,
-            OutputType::Union(union) => &union.name,
-            OutputType::Enum(en) => &en.name,
+            OutputType::Scalar(scalar) => scalar.name(),
+            OutputType::Object(object) => object.name(),
+            OutputType::Interface(interface) => interface.name(),
+            OutputType::Union(union) => union.name(),
+            OutputType::Enum(en) => en.name(),
         }
     }
 
-    pub fn field(&self, name: &str) -> Option<&MetaField> {
+    pub fn field(&self, name: &str) -> Option<registry_v2::MetaField<'a>> {
         match self {
-            OutputType::Object(object) => object.field_by_name(name),
-            OutputType::Interface(interface) => interface.field_by_name(name),
+            OutputType::Object(object) => object.field(name),
+            OutputType::Interface(interface) => interface.field(name),
             _ => None,
         }
     }
 
-    pub fn field_map(&self) -> Option<&IndexMap<String, MetaField>> {
-        match self {
-            OutputType::Object(object) => Some(&object.fields),
-            OutputType::Interface(interface) => Some(&interface.fields),
-            _ => None,
-        }
-    }
+    // pub fn field_map(&self) -> Option<&IndexMap<String, MetaField>> {
+    //     match self {
+    //         OutputType::Object(object) => Some(&object.fields),
+    //         OutputType::Interface(interface) => Some(&interface.fields),
+    //         _ => None,
+    //     }
+    // }
 
     pub fn is_leaf(&self) -> bool {
         matches!(self, OutputType::Scalar(_) | OutputType::Enum(_))
     }
 
-    pub fn fields(&self) -> Box<dyn Iterator<Item = &MetaField> + '_> {
+    pub fn fields(&self) -> Box<dyn Iterator<Item = registry_v2::MetaField<'a>> + '_> {
         match self {
             OutputType::Scalar(_) | OutputType::Union(_) | OutputType::Enum(_) => Box::new(iter::empty()),
-            OutputType::Object(ObjectType { fields, .. }) | OutputType::Interface(InterfaceType { fields, .. }) => {
-                Box::new(fields.values())
-            }
+            OutputType::Object(object) => Box::new(object.fields()),
+            OutputType::Interface(interface) => Box::new(interface.fields()),
         }
     }
 
-    pub fn object(&self) -> Option<&'a ObjectType> {
+    pub fn object(&self) -> Option<registry_v2::ObjectType<'a>> {
         match self {
             OutputType::Object(obj) => Some(*obj),
             _ => None,
@@ -117,17 +131,31 @@ impl<'a> OutputType<'a> {
     }
 }
 
-impl<'a> TryFrom<&'a MetaType> for OutputType<'a> {
+impl<'a> TryFrom<registry_v2::MetaType<'a>> for OutputType<'a> {
     type Error = Error;
 
-    fn try_from(value: &'a MetaType) -> Result<Self, Self::Error> {
+    fn try_from(value: registry_v2::MetaType<'a>) -> Result<Self, Self::Error> {
         match value {
-            MetaType::Scalar(scalar) => Ok(OutputType::Scalar(scalar)),
-            MetaType::Object(object) => Ok(OutputType::Object(object)),
-            MetaType::Interface(interface) => Ok(OutputType::Interface(interface)),
-            MetaType::Union(union) => Ok(OutputType::Union(union)),
-            MetaType::Enum(en) => Ok(OutputType::Enum(en)),
-            MetaType::InputObject(_) => Err(Error::unexpected_kind(value.name(), value.kind(), TypeKind::OutputType)),
+            registry_v2::MetaType::Scalar(scalar) => Ok(OutputType::Scalar(scalar)),
+            registry_v2::MetaType::Object(object) => Ok(OutputType::Object(object)),
+            registry_v2::MetaType::Interface(interface) => Ok(OutputType::Interface(interface)),
+            registry_v2::MetaType::Union(union) => Ok(OutputType::Union(union)),
+            registry_v2::MetaType::Enum(en) => Ok(OutputType::Enum(en)),
+            registry_v2::MetaType::InputObject(_) => {
+                Err(Error::unexpected_kind(value.name(), value.kind(), TypeKind::OutputType))
+            }
+        }
+    }
+}
+
+impl<'a> From<OutputType<'a>> for registry_v2::MetaType<'a> {
+    fn from(value: OutputType<'a>) -> Self {
+        match value {
+            OutputType::Scalar(inner) => MetaType::Scalar(inner),
+            OutputType::Object(inner) => MetaType::Object(inner),
+            OutputType::Interface(inner) => MetaType::Interface(inner),
+            OutputType::Union(inner) => MetaType::Union(inner),
+            OutputType::Enum(inner) => MetaType::Enum(inner),
         }
     }
 }
@@ -135,47 +163,54 @@ impl<'a> TryFrom<&'a MetaType> for OutputType<'a> {
 /// A type in output position - i.e. an argument or field of an input object
 #[derive(Debug, Clone, Copy)]
 pub enum InputType<'a> {
-    Scalar(&'a ScalarType),
-    Enum(&'a EnumType),
-    InputObject(&'a InputObjectType),
+    Scalar(registry_v2::ScalarType<'a>),
+    Enum(registry_v2::EnumType<'a>),
+    InputObject(registry_v2::InputObjectType<'a>),
 }
 
-impl InputType<'_> {
+impl<'a> InputType<'a> {
     pub fn name(&self) -> &str {
         match self {
-            InputType::Scalar(scalar) => &scalar.name,
-            InputType::Enum(en) => &en.name,
-            InputType::InputObject(input_object) => &input_object.name,
+            InputType::Scalar(scalar) => scalar.name(),
+            InputType::Enum(en) => en.name(),
+            InputType::InputObject(input_object) => input_object.name(),
         }
     }
 
-    pub fn field(&self, name: &str) -> Option<&MetaInputValue> {
+    pub fn field(&self, name: &str) -> Option<MetaInputValue<'a>> {
         match self {
             InputType::Scalar(_) | InputType::Enum(_) => None,
-            InputType::InputObject(input_object) => input_object.input_fields.get(name),
+            InputType::InputObject(input_object) => input_object.field(name),
         }
     }
 
-    pub fn fields(&self) -> Box<dyn ExactSizeIterator<Item = &MetaInputValue> + '_> {
+    pub fn fields(&self) -> Box<dyn ExactSizeIterator<Item = registry_v2::MetaInputValue<'a>> + 'a> {
         match self {
             InputType::Scalar(_) | InputType::Enum(_) => Box::new(iter::empty()),
-            InputType::InputObject(input_object) => Box::new(input_object.input_fields.values()),
+            InputType::InputObject(input_object) => Box::new(input_object.input_fields()),
         }
     }
 
     pub fn is_input_object(&self) -> bool {
         matches!(self, InputType::InputObject(_))
     }
+
+    pub fn as_input_object(&self) -> Option<registry_v2::InputObjectType<'a>> {
+        match self {
+            InputType::InputObject(obj) => Some(*obj),
+            _ => None,
+        }
+    }
 }
 
-impl<'a> TryFrom<&'a MetaType> for InputType<'a> {
+impl<'a> TryFrom<registry_v2::MetaType<'a>> for InputType<'a> {
     type Error = Error;
 
-    fn try_from(value: &'a MetaType) -> Result<Self, Self::Error> {
+    fn try_from(value: registry_v2::MetaType<'a>) -> Result<Self, Self::Error> {
         match value {
-            MetaType::Scalar(scalar) => Ok(InputType::Scalar(scalar)),
-            MetaType::Enum(en) => Ok(InputType::Enum(en)),
-            MetaType::InputObject(object) => Ok(InputType::InputObject(object)),
+            registry_v2::MetaType::Scalar(scalar) => Ok(InputType::Scalar(scalar)),
+            registry_v2::MetaType::Enum(en) => Ok(InputType::Enum(en)),
+            registry_v2::MetaType::InputObject(object) => Ok(InputType::InputObject(object)),
             _ => Err(Error::unexpected_kind(value.name(), value.kind(), TypeKind::InputType)),
         }
     }
@@ -189,45 +224,41 @@ impl<'a> TryFrom<&'a MetaType> for InputType<'a> {
 /// all the MetaType variants.
 #[derive(Clone, Copy, Debug)]
 pub enum SelectionSetTarget<'a> {
-    Object(&'a ObjectType),
-    Interface(&'a InterfaceType),
-    Union(&'a UnionType),
+    Object(registry_v2::ObjectType<'a>),
+    Interface(registry_v2::InterfaceType<'a>),
+    Union(registry_v2::UnionType<'a>),
 }
 
 impl<'a> SelectionSetTarget<'a> {
     pub fn name(&self) -> &str {
         match self {
-            SelectionSetTarget::Object(object) => &object.name,
-            SelectionSetTarget::Interface(interface) => &interface.name,
-            SelectionSetTarget::Union(union) => &union.name,
+            SelectionSetTarget::Object(object) => object.name(),
+            SelectionSetTarget::Interface(interface) => interface.name(),
+            SelectionSetTarget::Union(union) => union.name(),
         }
     }
 
-    pub fn field(&self, name: &str) -> Option<&'a MetaField> {
-        if name == "__typename" {
-            return Some(&*TYPENAME_FIELD);
-        }
-
+    pub fn field(&self, name: &str) -> Option<registry_v2::MetaField<'a>> {
         match self {
-            SelectionSetTarget::Object(obj) => obj.field_by_name(name),
-            SelectionSetTarget::Interface(iface) => iface.fields.get(name),
-            SelectionSetTarget::Union(_) => None,
+            SelectionSetTarget::Object(obj) => obj.field(name),
+            SelectionSetTarget::Interface(iface) => iface.field(name),
+            SelectionSetTarget::Union(union) => union.field(name),
         }
     }
 
-    pub fn field_map(&self) -> Option<&IndexMap<String, MetaField>> {
-        match self {
-            SelectionSetTarget::Object(obj) => Some(&obj.fields),
-            SelectionSetTarget::Interface(iface) => Some(&iface.fields),
-            SelectionSetTarget::Union(_) => None,
-        }
-    }
+    // pub fn field_map(&self) -> Option<&IndexMap<String, MetaField>> {
+    //     match self {
+    //         SelectionSetTarget::Object(obj) => Some(&obj.fields),
+    //         SelectionSetTarget::Interface(iface) => Some(&iface.fields),
+    //         SelectionSetTarget::Union(_) => None,
+    //     }
+    // }
 }
 
-impl<'a> TryFrom<&'a MetaType> for SelectionSetTarget<'a> {
+impl<'a> TryFrom<registry_v2::MetaType<'a>> for SelectionSetTarget<'a> {
     type Error = Error;
 
-    fn try_from(value: &'a MetaType) -> Result<Self, Self::Error> {
+    fn try_from(value: registry_v2::MetaType<'a>) -> Result<Self, Self::Error> {
         match value {
             MetaType::Object(object) => Ok(SelectionSetTarget::Object(object)),
             MetaType::Interface(interface) => Ok(SelectionSetTarget::Interface(interface)),
@@ -257,7 +288,3 @@ impl<'a> TryFrom<OutputType<'a>> for SelectionSetTarget<'a> {
         }
     }
 }
-
-/// __typename is an annoying special case where the `MetaField` doesn't exist in schemas.
-/// We need to fake it here instead...
-static TYPENAME_FIELD: Lazy<MetaField> = Lazy::new(|| MetaField::new("__typename", "String!"));
