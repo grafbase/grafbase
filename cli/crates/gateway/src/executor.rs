@@ -61,7 +61,7 @@ impl Executor {
 
         let resolver_engine = UdfInvokerImpl::custom_resolver(self.bridge.clone());
 
-        Ok(engine::Schema::build(engine::Registry::clone(&self.registry))
+        Ok(engine::Schema::build(Arc::clone(&self.registry))
             .data(engine::TraceId(ctx.ray_id().to_string()))
             .data(graphql::QueryBatcher::new())
             .data(resolver_engine)

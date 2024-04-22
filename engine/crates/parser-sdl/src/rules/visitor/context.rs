@@ -189,6 +189,10 @@ impl<'a> VisitorContext<'a> {
             );
         }
 
+        if registry.enable_federation && registry.has_entities() {
+            registry.create_federation_types();
+        }
+
         registry.remove_unused_types();
 
         registry.operation_limits = self
