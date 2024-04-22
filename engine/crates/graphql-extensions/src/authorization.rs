@@ -8,7 +8,7 @@ use common_types::auth::{ExecutionAuth, Operations};
 use engine::{
     extensions::{Extension, ExtensionContext, ExtensionFactory, NextResolve, ResolveInfo},
     graph_entities::ResponseNodeId,
-    registry::{NamedType, Registry, TypeReference},
+    registry::{NamedType, TypeReference},
     AuthConfig, ServerError, ServerResult,
 };
 use engine_value::ConstValue;
@@ -174,7 +174,7 @@ struct CheckInputOptions<'a, F: Fn(Option<&AuthConfig>, Operations) -> Operation
     input: &'a ConstValue,
     type_name: NamedType<'a>,
     mutation_name: &'a str,
-    registry: &'a Registry,
+    registry: &'a registry_v2::Registry,
     required_op: Operations,
     model_allowed_ops: Operations,
     auth_fn: &'a F,
@@ -199,15 +199,19 @@ impl AuthExtension {
         tracing::info!("{:?}", input_fields);
         let type_fields = opts
             .registry
-            .lookup(&opts.type_name)
+            .lookup_type(opts.type_name.as_str())
             .expect("type must exist")
             .fields()
-            .expect("type must have fields");
+            .expect("type must have fields")
+            .collect::<Vec<_>>();
 
         for field_name in input_fields.keys() {
-            let field = type_fields.get(field_name.as_str()).expect("field must exist");
+            let field = type_fields
+                .iter()
+                .find(|field| field.name() == field_name.as_str())
+                .expect("field must exist");
 
-            let field_ops = (opts.auth_fn)(field.auth.as_deref(), opts.model_allowed_ops);
+            let field_ops = (opts.auth_fn)(field.auth(), opts.model_allowed_ops);
 
             tracing::trace!("check_input.{field_name} ${field_ops}");
 
@@ -219,7 +223,7 @@ impl AuthExtension {
                     type_name = opts.type_name,
                 );
 
-                tracing::warn!("{msg} auth={auth:?}", auth = field.auth);
+                tracing::warn!("{msg} auth={auth:?}", auth = field.auth());
                 return Err(ServerError::new(msg, None));
             }
         }
@@ -233,24 +237,24 @@ impl AuthExtension {
         &self,
         type_name: NamedType<'_>,
         mutation_name: &str,
-        registry: &Registry,
+        registry: &registry_v2::Registry,
         model_ops: Operations,
         auth_fn: &F,
     ) -> Result<(), ServerError> {
         let type_fields = registry
-            .lookup(&type_name)
+            .lookup_type(type_name.as_str())
             .expect("type must exist")
             .fields()
             .expect("type must have fields");
 
-        for (name, field) in type_fields {
-            let field_ops = auth_fn(field.auth.as_deref(), model_ops);
+        for field in type_fields {
+            let field_ops = auth_fn(field.auth(), model_ops);
 
             if !field_ops.contains(Operations::DELETE) {
                 let msg = format!(
-                    "Unauthorized to access {MUTATION_TYPE}.{mutation_name} (missing delete operation on {type_name}.{name})"
+                    "Unauthorized to access {MUTATION_TYPE}.{mutation_name} (missing delete operation on {type_name}.{})", field.name()
                 );
-                tracing::warn!("{msg} auth={auth:?}", auth = field.auth);
+                tracing::warn!("{msg} auth={auth:?}", auth = field.auth());
                 return Err(ServerError::new(msg, None));
             }
         }
@@ -271,7 +275,7 @@ fn guess_type_name(info: &ResolveInfo<'_>, required_op: Operations) -> NamedType
 
     info.return_type
         .named_type()
-        .as_str()
+        .name()
         .strip_suffix(suffix)
         .expect("must be the expected Payload type")
         .to_owned()
@@ -289,7 +293,7 @@ fn guess_batch_operation_type_name(info: &ResolveInfo<'_>, required_op: Operatio
     };
     info.return_type
         .named_type()
-        .as_str()
+        .name()
         .strip_suffix(suffix)
         .map(|name| name.to_owned().into())
 }

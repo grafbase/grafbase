@@ -12,7 +12,7 @@ use common::{
     environment::{Environment, Project, SchemaLocation},
 };
 use common_types::UdfKind;
-use engine::Registry;
+use engine::{registry::RegistrySdlExt, Registry};
 use futures_util::stream::BoxStream;
 use itertools::Itertools as _;
 use tokio::process::Command;

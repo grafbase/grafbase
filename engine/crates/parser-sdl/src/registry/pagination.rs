@@ -1,6 +1,7 @@
 use common_types::auth::Operations;
 
-use engine::registry::{self, resolvers::transformer::Transformer, MetaField, NamedType, Registry};
+use engine::registry::{self, MetaField, NamedType, Registry};
+use registry_v2::resolvers::transformer::Transformer;
 
 use crate::registry::names::{
     PAGE_INFO_FIELD_END_CURSOR, PAGE_INFO_FIELD_HAS_NEXT_PAGE, PAGE_INFO_FIELD_HAS_PREVIOUS_PAGE,

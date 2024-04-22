@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use engine::registry::{self, field_set::Selection};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -11,11 +10,12 @@ use nom::{
     sequence::{delimited, pair},
     AsChar, Finish, IResult, InputTakeAtPosition, Parser,
 };
+use registry_v2::Selection;
 use serde::de::Error;
 
 /// Newtype wrapper around registry::FieldSet that Deserializes from a String
 #[derive(Debug)]
-pub struct FieldSet(pub engine::registry::FieldSet);
+pub struct FieldSet(pub registry_v2::FieldSet);
 
 impl<'de> serde::Deserialize<'de> for FieldSet {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -48,7 +48,7 @@ impl FromStr for FieldSet {
 
 fn parse_field_set(input: &str) -> IResult<&str, FieldSet, VerboseError<&str>> {
     many1(parse_selection)
-        .map(|selections| FieldSet(registry::FieldSet::new(selections)))
+        .map(|selections| FieldSet(registry_v2::FieldSet::new(selections)))
         .parse(input)
 }
 
@@ -99,10 +99,12 @@ where
 
 #[cfg(test)]
 mod tests {
+    use engine::registry::field_set::FieldSetDisplay;
+
     use super::*;
 
     fn roundtrip(input: &str) -> String {
-        input.parse::<FieldSet>().unwrap().0.to_string()
+        FieldSetDisplay(&input.parse::<FieldSet>().unwrap().0).to_string()
     }
 
     #[test]

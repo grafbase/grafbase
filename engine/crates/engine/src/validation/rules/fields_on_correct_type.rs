@@ -1,3 +1,5 @@
+use registry_v2::MetaType;
+
 use crate::{
     parser::types::Field,
     registry,
@@ -14,16 +16,13 @@ pub struct FieldsOnCorrectType;
 impl<'a> Visitor<'a> for FieldsOnCorrectType {
     fn enter_field(&mut self, ctx: &mut VisitorContext<'a>, field: &'a Positioned<Field>) {
         if let Some(parent_type) = ctx.parent_type() {
-            if let Some(registry::MetaType::Union { .. } | registry::MetaType::Interface { .. }) = ctx.parent_type() {
+            if let Some(MetaType::Union { .. } | MetaType::Interface { .. }) = ctx.parent_type() {
                 if field.node.name.node == "__typename" {
                     return;
                 }
             }
 
-            if parent_type
-                .fields()
-                .and_then(|fields| fields.get(field.node.name.node.as_str()))
-                .is_none()
+            if parent_type.field(field.node.name.node.as_str()).is_none()
                 && !field
                     .node
                     .directives
@@ -44,8 +43,7 @@ impl<'a> Visitor<'a> for FieldsOnCorrectType {
                                 parent_type
                                     .fields()
                                     .iter()
-                                    .flat_map(|fields| fields.keys())
-                                    .map(String::as_str),
+                                    .flat_map(|fields| fields.map(|field| field.name())),
                                 &field.node.name.node,
                             )
                             .unwrap_or_default()

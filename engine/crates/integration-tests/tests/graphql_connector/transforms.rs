@@ -33,10 +33,10 @@ fn graphql_test_with_transforms() {
         }
 
         type PullRequest implements PullRequestOrIssue {
-          id: ID!
-          title: String!
           checks: [String!]!
+          id: ID!
           status: Status!
+          title: String!
         }
 
         interface PullRequestOrIssue {
@@ -48,20 +48,20 @@ fn graphql_test_with_transforms() {
         }
 
         type Query {
-          favoriteRepository: CustomRepoId!
-          serverVersion: String!
-          pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
-          botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
           allBotPullRequests: [PullRequest!]!
+          botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+          favoriteRepository: CustomRepoId!
+          headers: [Header!]!
           pullRequest(id: ID!): PullRequest
           pullRequestOrIssue(id: ID!): PullRequestOrIssue
-          headers: [Header!]!
+          pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
+          serverVersion: String!
           statusString(status: Status!): String!
         }
 
         enum Status {
-          OPEN
           CLOSED
+          OPEN
         }
 
         "###);

@@ -1,6 +1,7 @@
 use std::sync::Once;
 
 use assert_matches::assert_matches;
+use engine::registry::RegistrySdlExt;
 use engine::registry::{MetaType, UnionType};
 
 use super::*;
@@ -13,9 +14,13 @@ fn test_stripe_output() {
         url: None,
         ..metadata("stripe", true)
     };
-    insta::assert_snapshot!(build_registry("test_data/stripe.openapi.json", Format::Json, metadata)
-        .unwrap()
-        .export_sdl(false));
+    insta::assert_snapshot!(build_registry(
+        "test_data/stripe.openapi.json",
+        Format::Json,
+        metadata
+    )
+    .unwrap()
+    .export_sdl(false));
 }
 
 #[test]
@@ -184,11 +189,13 @@ fn test_all_of_schema_complex() {
 
 #[test]
 fn test_supabase() {
-    insta::assert_snapshot!(
-        build_registry("test_data/supabase.json", Format::Json, metadata("supabase", true))
-            .unwrap()
-            .export_sdl(false)
-    );
+    insta::assert_snapshot!(build_registry(
+        "test_data/supabase.json",
+        Format::Json,
+        metadata("supabase", true)
+    )
+    .unwrap()
+    .export_sdl(false));
 }
 
 #[test]
@@ -223,13 +230,20 @@ fn test_netlify_schema() {
 
 #[test]
 fn test_stripe_discrimnator_detection() {
-    let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata("stripe", true)).unwrap();
+    let registry = build_registry(
+        "test_data/stripe.openapi.json",
+        Format::Json,
+        metadata("stripe", true),
+    )
+    .unwrap();
     let discriminators = registry
         .types
         .values()
         .filter_map(|ty| match ty {
             MetaType::Union(UnionType {
-                name, discriminators, ..
+                name,
+                discriminators,
+                ..
             }) => Some((name, discriminators)),
             _ => None,
         })
@@ -256,8 +270,30 @@ fn non_required_self_referencing_objects_produce_valid_sdl() {
     );
 }
 
-fn build_registry(schema_path: &str, format: Format, metadata: ApiMetadata) -> Result<Registry, Vec<Error>> {
-    let mut registry = Registry::new();
+#[test]
+fn non_required_self_referencing_objects_produce_valid_sdl() {
+    let registry = build_registry(
+        "test_data/self_referencing.openapi.json",
+        Format::Json,
+        metadata("self-referential", true),
+    )
+    .unwrap();
+    let sdl = registry.export_sdl(false);
+    let diagnostics = graphql_schema_validation::validate(&sdl);
+
+    assert!(
+        !diagnostics.has_errors(),
+        "{:?}",
+        diagnostics.iter().collect::<Vec<_>>()
+    );
+}
+
+fn build_registry(
+    schema_path: &str,
+    format: Format,
+    metadata: ApiMetadata,
+) -> Result<registry_v1::Registry, Vec<Error>> {
+    let mut registry = registry_v1::Registry::new();
 
     parse_spec(
         std::fs::read_to_string(schema_path).unwrap(),

@@ -1,9 +1,9 @@
-use engine::registry::resolvers::http::ExpectedStatusCode;
 use inflector::Inflector;
 use petgraph::{
     graph::NodeIndex,
     visit::{EdgeRef, IntoEdges, Reversed},
 };
+use registry_v2::resolvers::http::ExpectedStatusCode;
 
 use super::{
     output_type::OutputFieldType, Arity, DebugNode, Edge, HttpMethod, Node, OperationDetails, PathParameter,

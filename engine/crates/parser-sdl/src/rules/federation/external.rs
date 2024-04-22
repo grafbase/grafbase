@@ -28,6 +28,7 @@ impl Directive for ExternalDirective {
 
 #[cfg(test)]
 mod tests {
+    use engine::registry::RegistrySdlExt;
     use std::collections::HashMap;
 
     #[test]

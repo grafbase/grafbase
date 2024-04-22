@@ -33,7 +33,7 @@ impl KeyDirective {
     }
 }
 
-fn fields_from_fieldset(fieldset: &engine::registry::FieldSet) -> BTreeSet<&str> {
+fn fields_from_fieldset(fieldset: &registry_v2::FieldSet) -> BTreeSet<&str> {
     fieldset.0.iter().map(|field| field.field.as_str()).collect()
 }
 
@@ -57,6 +57,7 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::tests::assert_validation_error;
+    use engine::registry::RegistrySdlExt;
 
     #[test]
     fn unresolvable_federation_entity_on_normal_type() {

@@ -41,6 +41,7 @@ impl Directive for ProvidesDirective {
 
 #[cfg(test)]
 mod tests {
+    use engine::registry::RegistrySdlExt;
     use std::collections::HashMap;
 
     #[test]

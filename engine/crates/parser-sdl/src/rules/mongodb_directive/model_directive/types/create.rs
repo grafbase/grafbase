@@ -2,11 +2,9 @@ use case::CaseExt;
 use common_types::auth::Operations;
 use engine::{
     names::{MONGODB_OUTPUT_FIELD_ID, OUTPUT_FIELD_ID},
-    registry::{
-        resolvers::{transformer::Transformer, Resolver},
-        InputObjectType, MetaField, MetaInputValue, ObjectType,
-    },
+    registry::{resolvers::Resolver, InputObjectType, MetaField, MetaInputValue, ObjectType},
 };
+use registry_v2::resolvers::transformer::Transformer;
 
 use crate::{
     parser_extensions::FieldExtension,

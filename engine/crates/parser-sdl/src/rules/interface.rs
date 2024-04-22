@@ -1,12 +1,13 @@
 use engine::registry::{
     self,
-    resolvers::{custom::CustomResolver, transformer::Transformer, Resolver},
+    resolvers::{custom::CustomResolver, Resolver},
     MetaField,
 };
 use engine_parser::{
     types::{FieldDefinition, TypeKind},
     Positioned,
 };
+use registry_v2::resolvers::transformer::Transformer;
 
 use super::{
     join_directive::JoinDirective,

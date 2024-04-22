@@ -45,6 +45,7 @@ impl Directive for DeprecatedDirective {
 mod tests {
 
     use crate::parse_registry;
+    use engine::registry::RegistrySdlExt;
 
     #[test]
     fn test_deprecated_directive() {

@@ -1,5 +1,5 @@
-use engine::registry::{EnumType, MetaEnumValue};
 use parser_sdl::{ORDER_BY_ASC, ORDER_BY_DESC, ORDER_BY_DIRECTION};
+use registry_v1::{EnumType, MetaEnumValue};
 
 use crate::registry::context::{InputContext, OutputContext};
 

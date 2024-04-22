@@ -1,8 +1,9 @@
-use engine::registry::{
+use postgres_connector_types::database_definition::{DatabaseType, RelationWalker, TableColumnWalker, TableWalker};
+use registry_v1::{
     resolvers::{transformer::Transformer, Resolver},
     Constraint, InputObjectType, MetaField, MetaInputValue, ObjectType,
 };
-use postgres_connector_types::database_definition::{DatabaseType, RelationWalker, TableColumnWalker, TableWalker};
+use registry_v2::resolvers::transformer;
 
 use crate::registry::context::{InputContext, ObjectTypeBuilder, OutputContext};
 
@@ -161,7 +162,7 @@ fn add_relation(input_ctx: &InputContext<'_>, relation: RelationWalker<'_>, buil
         })
         .and_then(Transformer::PostgresSelectionData {
             directive_name: input_ctx.directive_name().to_string(),
-            table_id: relation.referenced_table().id(),
+            table_id: transformer::TableId(relation.referenced_table().id().into()),
         })
         .and_then(Transformer::PostgresPageInfo);
 

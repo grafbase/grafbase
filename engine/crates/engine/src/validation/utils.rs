@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use engine_value::{ConstValue, Value};
+use registry_v2::{MetaType, ScalarParser};
 
 use crate::{
     registry,
@@ -36,7 +37,7 @@ fn referenced_variables_to_vec<'a>(value: &'a Value, vars: &mut Vec<&'a str>) {
 }
 
 pub fn is_valid_input_value(
-    registry: &registry::Registry,
+    registry: &registry_v2::Registry,
     type_name: &str,
     value: &ConstValue,
     path: QueryPath,
@@ -63,13 +64,12 @@ pub fn is_valid_input_value(
             }
 
             match registry
-                .types
-                .get(type_name)
+                .lookup_type(type_name)
                 .unwrap_or_else(|| panic!("{type_name} unknown"))
             {
-                registry::MetaType::Scalar(scalar) => match scalar.parser {
-                    registry::ScalarParser::PassThrough => None,
-                    registry::ScalarParser::BestEffort => {
+                MetaType::Scalar(scalar) => match scalar.parser() {
+                    ScalarParser::PassThrough => None,
+                    ScalarParser::BestEffort => {
                         if PossibleScalar::is_valid(type_name, value) {
                             None
                         } else {
@@ -77,44 +77,38 @@ pub fn is_valid_input_value(
                         }
                     }
                 },
-                registry::MetaType::Enum(registry::EnumType {
-                    enum_values,
-                    name: enum_name,
-                    ..
-                }) => match value {
-                    ConstValue::Enum(name) => {
-                        if !enum_values.contains_key(name.as_str()) {
-                            Some(valid_error(
-                                &path,
-                                format!("enumeration type \"{enum_name}\" does not contain the value \"{name}\""),
-                            ))
-                        } else {
-                            None
+                MetaType::Enum(enum_type) => {
+                    let enum_name = enum_type.name();
+                    match value {
+                        ConstValue::Enum(name) => {
+                            if enum_type.value(name.as_str()).is_none() {
+                                Some(valid_error(
+                                    &path,
+                                    format!("enumeration type \"{enum_name}\" does not contain the value \"{name}\""),
+                                ))
+                            } else {
+                                None
+                            }
                         }
-                    }
-                    ConstValue::String(name) => {
-                        if !enum_values.contains_key(name.as_str()) {
-                            Some(valid_error(
-                                &path,
-                                format!("enumeration type \"{enum_name}\" does not contain the value \"{name}\""),
-                            ))
-                        } else {
-                            None
+                        ConstValue::String(name) => {
+                            if enum_type.value(name.as_str()).is_none() {
+                                Some(valid_error(
+                                    &path,
+                                    format!("enumeration type \"{enum_name}\" does not contain the value \"{name}\""),
+                                ))
+                            } else {
+                                None
+                            }
                         }
+                        _ => Some(valid_error(
+                            &path,
+                            format!("expected type \"{type_name}\" but got {value}"),
+                        )),
                     }
-                    _ => Some(valid_error(
-                        &path,
-                        format!("expected type \"{type_name}\" but got {value}"),
-                    )),
-                },
-                registry::MetaType::InputObject(registry::InputObjectType {
-                    input_fields,
-                    name: object_name,
-                    oneof,
-                    ..
-                }) => match value {
+                }
+                MetaType::InputObject(input_object) => match value {
                     ConstValue::Object(values) => {
-                        if *oneof {
+                        if input_object.oneof() {
                             if values.len() != 1 {
                                 return Some(valid_error(
                                     &path,
@@ -132,23 +126,24 @@ pub fn is_valid_input_value(
 
                         let mut input_names: HashSet<&str> = values.keys().map(AsRef::as_ref).collect::<HashSet<_>>();
 
-                        for field in input_fields.values() {
-                            input_names.remove::<str>(&field.name);
-                            if let Some(value) = values.get::<str>(&field.name) {
+                        for field in input_object.input_fields() {
+                            input_names.remove::<str>(&field.name());
+                            if let Some(value) = values.get::<str>(field.name()) {
                                 if let Some(reason) = is_valid_input_value(
                                     registry,
-                                    field.ty.as_str(),
+                                    &field.ty().to_string(),
                                     value,
-                                    path.clone().child(field.name.as_str()),
+                                    path.clone().child(field.name()),
                                 ) {
                                     return Some(reason);
                                 }
-                            } else if field.ty.is_non_null() && field.default_value.is_none() {
+                            } else if field.ty().is_non_null() && field.default_value().is_none() {
                                 return Some(valid_error(
                                     &path,
                                     format!(
-                                        "field \"{}\" of type \"{object_name}\" is required but not provided",
-                                        field.name,
+                                        "field \"{}\" of type \"{}\" is required but not provided",
+                                        field.name(),
+                                        input_object.name()
                                     ),
                                 ));
                             }
@@ -157,7 +152,7 @@ pub fn is_valid_input_value(
                         if let Some(name) = input_names.iter().next() {
                             return Some(valid_error(
                                 &path,
-                                format!("unknown field \"{name}\" of type \"{object_name}\""),
+                                format!("unknown field \"{name}\" of type \"{}\"", input_object.name()),
                             ));
                         }
 

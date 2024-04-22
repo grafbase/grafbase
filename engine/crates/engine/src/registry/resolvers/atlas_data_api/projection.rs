@@ -1,17 +1,12 @@
-use indexmap::IndexMap;
 use serde_json::Value;
 
 use super::{normalize, JsonMap};
-use crate::{
-    names::MONGODB_OUTPUT_FIELD_ID,
-    registry::{MetaField, MetaType},
-    ContextExt, ContextField, Error, SelectionField,
-};
+use crate::{names::MONGODB_OUTPUT_FIELD_ID, ContextField, Error, SelectionField};
 
 pub(super) fn project<'a>(
     ctx: &'a ContextField<'a>,
     selection: impl Iterator<Item = SelectionField<'a>> + 'a,
-    target: &IndexMap<String, MetaField>,
+    target: registry_v2::MetaType<'a>,
 ) -> Result<JsonMap, Error> {
     let mut map = JsonMap::new();
     let selection = selection.flat_map(|selection| selection.selection_set());
@@ -28,24 +23,25 @@ pub(super) fn project<'a>(
 fn recurse<'a>(
     ctx: &ContextField<'a>,
     selection: impl Iterator<Item = SelectionField<'a>> + 'a,
-    target: &IndexMap<String, MetaField>,
+    target: registry_v2::MetaType<'a>,
     output: &mut JsonMap,
 ) -> Result<(), Error> {
     for field in selection {
         let field_name = field.field.name.as_str();
 
         let meta_field = target
-            .get(field_name)
+            .field(field_name)
             .ok_or_else(|| Error::new(format!("Field name {field_name} not found from the selection type.")))?;
 
         let database_name = meta_field.target_field_name().to_string();
 
-        match ctx.get_type(meta_field.ty.base_type_name()).and_then(MetaType::fields) {
+        let inner_type = meta_field.ty().named_type();
+        match inner_type.fields() {
             Some(fields) => {
                 let mut inner = JsonMap::new();
                 let selection = field.selection_set();
 
-                recurse(ctx, selection, fields, &mut inner)?;
+                recurse(ctx, selection, inner_type, &mut inner)?;
                 output.insert(database_name, Value::Object(inner));
             }
             None => {

@@ -1,9 +1,7 @@
 use engine_value::Value;
-use indexmap::map::IndexMap;
 
 use crate::{
     parser::types::{Directive, Field},
-    registry::MetaInputValue,
     validation::{
         suggestion::make_suggestion,
         visitor::{Visitor, VisitorContext},
@@ -18,7 +16,7 @@ enum ArgsType<'a> {
 
 #[derive(Default)]
 pub struct KnownArgumentNames<'a> {
-    current_args: Option<(&'a IndexMap<String, MetaInputValue>, ArgsType<'a>)>,
+    current_args: Option<(Vec<registry_v2::MetaInputValue<'a>>, ArgsType<'a>)>,
 }
 
 impl<'a> KnownArgumentNames<'a> {
@@ -27,7 +25,7 @@ impl<'a> KnownArgumentNames<'a> {
             " Did you mean",
             self.current_args
                 .iter()
-                .flat_map(|(args, _)| args.iter().map(|arg| arg.0.as_str())),
+                .flat_map(|(args, _)| args.iter().map(|arg| arg.name())),
             name,
         )
         .unwrap_or_default()
@@ -38,9 +36,8 @@ impl<'a> Visitor<'a> for KnownArgumentNames<'a> {
     fn enter_directive(&mut self, ctx: &mut VisitorContext<'a>, directive: &'a Positioned<Directive>) {
         self.current_args = ctx
             .registry
-            .directives
-            .get(directive.node.name.node.as_str())
-            .map(|d| (&d.args, ArgsType::Directive(&directive.node.name.node)));
+            .lookup_directive(directive.node.name.node.as_str())
+            .map(|d| (d.args().collect(), ArgsType::Directive(&directive.node.name.node)));
     }
 
     fn exit_directive(&mut self, _ctx: &mut VisitorContext<'a>, _directive: &'a Positioned<Directive>) {
@@ -54,7 +51,7 @@ impl<'a> Visitor<'a> for KnownArgumentNames<'a> {
         _value: &'a Positioned<Value>,
     ) {
         if let Some((args, arg_type)) = &self.current_args {
-            if !args.contains_key(name.node.as_str()) {
+            if args.iter().find(|arg| arg.name() == name.node.as_str()).is_none() {
                 match arg_type {
                     ArgsType::Field { field_name, type_name } => {
                         ctx.report_error(
@@ -94,9 +91,9 @@ impl<'a> Visitor<'a> for KnownArgumentNames<'a> {
 
     fn enter_field(&mut self, ctx: &mut VisitorContext<'a>, field: &'a Positioned<Field>) {
         if let Some(parent_type) = ctx.parent_type() {
-            if let Some(schema_field) = parent_type.field_by_name(&field.node.name.node) {
+            if let Some(schema_field) = parent_type.field(&field.node.name.node) {
                 self.current_args = Some((
-                    &schema_field.args,
+                    schema_field.args().collect(),
                     ArgsType::Field {
                         field_name: &field.node.name.node,
                         type_name: ctx.parent_type().unwrap().name(),

@@ -4,8 +4,9 @@
 //!
 
 use case::CaseExt;
-use engine::{registry::MetaInputValue, validation::dynamic_validators::DynValidator};
+use engine::registry::MetaInputValue;
 use engine_parser::types::{FieldDefinition, ObjectType};
+use registry_v2::validators::DynValidator;
 
 use crate::{
     rules::{

@@ -1959,7 +1959,6 @@ dependencies = [
  "case",
  "chrono",
  "common-types",
- "ctor",
  "dataloader",
  "derivative",
  "engine-derive",
@@ -1991,12 +1990,12 @@ dependencies = [
  "once_cell",
  "pin-project-lite",
  "postgres-connector-types",
+ "registry-v1",
+ "registry-v2",
  "reqwest",
  "rstest",
  "runtime",
  "rust_decimal",
- "rustls",
- "sanitize-filename",
  "serde",
  "serde_json",
  "serde_with",
@@ -2006,14 +2005,12 @@ dependencies = [
  "tempfile",
  "thiserror",
  "time",
- "tokio",
  "tracing",
  "ulid",
  "url",
  "urlencoding",
  "uuid",
  "web-time",
- "wiremock",
 ]
 
 [[package]]
@@ -2688,6 +2685,7 @@ dependencies = [
  "graphql-extensions",
  "http 1.1.0",
  "postgres-connector-types",
+ "registry-v2",
  "runtime",
  "runtime-local",
  "runtime-noop",
@@ -3059,6 +3057,8 @@ dependencies = [
  "parser-sdl",
  "path-slash",
  "postgres-connector-types",
+ "registry-upgrade",
+ "registry-v2",
  "reqwest",
  "serde",
  "serde_json",
@@ -3161,6 +3161,7 @@ dependencies = [
  "common-types",
  "engine",
  "engine-value",
+ "registry-v2",
  "runtime",
  "tracing",
  "web-time",
@@ -3998,6 +3999,7 @@ dependencies = [
  "parser-postgres",
  "parser-sdl",
  "postgres-connector-types",
+ "registry-upgrade",
  "reqwest",
  "rstest",
  "runtime",
@@ -5350,6 +5352,7 @@ dependencies = [
  "graphql-schema-validation",
  "http 1.1.0",
  "insta",
+ "registry-v2",
  "reqwest",
  "rustls",
  "serde_json",
@@ -5378,6 +5381,8 @@ dependencies = [
  "parser-sdl",
  "petgraph",
  "regex",
+ "registry-v1",
+ "registry-v2",
  "rstest",
  "serde",
  "serde_json",
@@ -5395,10 +5400,12 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "common-types",
- "engine",
+ "indexmap 2.2.6",
  "itertools 0.12.1",
  "parser-sdl",
  "postgres-connector-types",
+ "registry-v1",
+ "registry-v2",
  "serde",
  "serde_json",
 ]
@@ -5427,6 +5434,8 @@ dependencies = [
  "nom",
  "pretty_assertions",
  "regex",
+ "registry-v1",
+ "registry-v2",
  "rstest",
  "secrecy",
  "serde",
@@ -6639,16 +6648,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "sanitize-filename"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ed72fbaf78e6f2d41744923916966c4fbe3d7c74e3037a8ee482f1115572603"
-dependencies = [
- "lazy_static",
- "regex",
 ]
 
 [[package]]

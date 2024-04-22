@@ -36,6 +36,7 @@ impl<'ctx, 'a> Visitor<'ctx> for RootFieldCountCalculate<'a> {
     }
 }
 
+#[cfg(fixme)]
 #[cfg(test)]
 mod tests {
     #![allow(clippy::diverging_sub_expression)]

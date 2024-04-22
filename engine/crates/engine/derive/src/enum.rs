@@ -66,7 +66,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
                 name: ::std::borrow::ToOwned::to_owned(#gql_item_name),
                 description: #item_desc,
                 deprecation: #item_deprecation,
-                visible: #visible,
+
                 value: None
             });
         });
@@ -129,6 +129,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
             }
 
             fn __create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::InputValueType {
+                use crate::registry::LegacyRegistryExt;
                 registry.create_input_type::<Self, _>(|registry| {
                     #crate_name::registry::MetaType::Enum(#crate_name::registry::EnumType {
                         name: ::std::borrow::ToOwned::to_owned(#gql_typename),
@@ -138,7 +139,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
                             #(#schema_enum_items)*
                             enum_items
                         },
-                        visible: #visible,
+
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                     })
                 })

@@ -1,10 +1,10 @@
 use std::rc::Rc;
 
-use engine::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use indexmap::IndexMap;
 use openapiv3::v3_1::{
     self as openapiv3_1, Encoding, Parameter, ParameterSchemaOrContent, QueryStyle, ReferenceOr, StatusCode,
 };
+use registry_v2::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 
 use super::components::Components;
 use crate::{graph::HttpMethod, parsing::Ref, Error};
@@ -286,7 +286,7 @@ fn convert_status_code(code: &openapiv3_1::StatusCode) -> Result<ExpectedStatusC
 
 #[cfg(test)]
 mod tests {
-    use engine::registry::resolvers::http::ExpectedStatusCode;
+    use registry_v2::resolvers::http::ExpectedStatusCode;
     use rstest::rstest;
 
     use super::*;

@@ -65,41 +65,41 @@ fn nested_sort_schema() {
           """
           eq: ID
           """
-          The value is not the one given
+          The value exists in the document and is not null.
           """
-          ne: ID
+          exists: Boolean
           """
           The value is greater than the one given
           """
           gt: ID
           """
-          The value is less than the one given
-          """
-          lt: ID
-          """
           The value is greater than, or equal to the one given
           """
           gte: ID
-          """
-          The value is less than, or equal to the one given
-          """
-          lte: ID
-          """
-          The value does not match the filters.
-          """
-          not: MongoDBIDSearchFilterInput
           """
           The value is in the given array of values
           """
           in: [ID]
           """
+          The value is less than the one given
+          """
+          lt: ID
+          """
+          The value is less than, or equal to the one given
+          """
+          lte: ID
+          """
+          The value is not the one given
+          """
+          ne: ID
+          """
           The value is not in the given array of values
           """
           nin: [ID]
           """
-          The value exists in the document and is not null.
+          The value does not match the filters.
           """
-          exists: Boolean
+          not: MongoDBIDSearchFilterInput
         }
 
         """
@@ -111,41 +111,41 @@ fn nested_sort_schema() {
           """
           eq: Int
           """
-          The value is not the one given
+          The value exists in the document and is not null.
           """
-          ne: Int
+          exists: Boolean
           """
           The value is greater than the one given
           """
           gt: Int
           """
-          The value is less than the one given
-          """
-          lt: Int
-          """
           The value is greater than, or equal to the one given
           """
           gte: Int
-          """
-          The value is less than, or equal to the one given
-          """
-          lte: Int
-          """
-          The value does not match the filters.
-          """
-          not: MongoDBIntSearchFilterInput
           """
           The value is in the given array of values
           """
           in: [Int]
           """
+          The value is less than the one given
+          """
+          lt: Int
+          """
+          The value is less than, or equal to the one given
+          """
+          lte: Int
+          """
+          The value is not the one given
+          """
+          ne: Int
+          """
           The value is not in the given array of values
           """
           nin: [Int]
           """
-          The value exists in the document and is not null.
+          The value does not match the filters.
           """
-          exists: Boolean
+          not: MongoDBIntSearchFilterInput
         }
 
         """
@@ -157,13 +157,13 @@ fn nested_sort_schema() {
           """
           increment: Int
           """
-          Only updates the field if the specified value is less than the existing field value.
-          """
-          minimum: Int
-          """
           Only updates the field if the specified value is greater than the existing field value.
           """
           maximum: Int
+          """
+          Only updates the field if the specified value is less than the existing field value.
+          """
+          minimum: Int
           """
           Multiplies the value of the field by the specified amount.
           """
@@ -185,6 +185,10 @@ fn nested_sort_schema() {
           """
           userCreate(input: UserCreateInput!): UserCreatePayload
           """
+          Create multiple Users
+          """
+          userCreateMany(input: [UserCreateInput!]!): UserCreateManyPayload
+          """
           Delete a unique User
           """
           userDelete(by: UserByInput!): UserDeletePayload
@@ -192,10 +196,6 @@ fn nested_sort_schema() {
           Delete many Users
           """
           userDeleteMany(filter: UserCollection!): UserDeletePayload
-          """
-          Create multiple Users
-          """
-          userCreateMany(input: [UserCreateInput!]!): UserCreateManyPayload
           """
           Update a unique User
           """
@@ -207,10 +207,10 @@ fn nested_sort_schema() {
         }
 
         type PageInfo {
-          hasPreviousPage: Boolean!
-          hasNextPage: Boolean!
-          startCursor: String
           endCursor: String
+          hasNextPage: Boolean!
+          hasPreviousPage: Boolean!
+          startCursor: String
         }
 
         type Query {
@@ -227,21 +227,21 @@ fn nested_sort_schema() {
           Paginated query to fetch the whole list of User
           """
           userCollection(
+            after: String
+            before: String
             filter: UserCollection
             first: Int
             last: Int
-            before: String
-            after: String
             orderBy: [UserOrderByInput]
           ): UserConnection
         }
 
         type User {
+          age: Age!
           """
           Unique identifier
           """
           id: ID!
-          age: Age!
         }
 
         input UserByInput {
@@ -249,36 +249,36 @@ fn nested_sort_schema() {
         }
 
         input UserCollection {
-          id: MongoDBIDSearchFilterInput
           """
           All of the filters must match
           """
           ALL: [UserCollection]
           """
-          None of the filters must match
-          """
-          NONE: [UserCollection]
-          """
           At least one of the filters must match
           """
           ANY: [UserCollection]
+          """
+          None of the filters must match
+          """
+          NONE: [UserCollection]
           age: MongoDBAgeSearchFilterInput
+          id: MongoDBIDSearchFilterInput
         }
 
         type UserConnection {
+          edges: [UserEdge]
           """
           Information to aid in pagination
           """
           pageInfo: PageInfo!
-          edges: [UserEdge]
         }
 
         """
         Input to create a User
         """
         input UserCreateInput {
-          id: ID
           age: AgeInput!
+          id: ID
         }
 
         type UserCreateManyPayload {
@@ -294,13 +294,13 @@ fn nested_sort_schema() {
         }
 
         type UserEdge {
-          node: User!
           cursor: String!
+          node: User!
         }
 
         input UserOrderByInput {
-          id: MongoOrderByDirection
           age: AgeOrderByInput
+          id: MongoOrderByDirection
         }
 
         input UserUpdateInput {

@@ -56,8 +56,8 @@ fn check_duplicate_directive(ctx: &mut VisitorContext<'_>, directives: &[Positio
 
     for directive in directives {
         let name = &directive.node.name.node;
-        if let Some(meta_directive) = ctx.registry.directives.get(name.as_str()) {
-            if !meta_directive.is_repeatable {
+        if let Some(meta_directive) = ctx.registry.lookup_directive(name.as_str()) {
+            if !meta_directive.is_repeatable() {
                 if exists.contains(name) {
                     ctx.report_error(vec![directive.pos], format!("Duplicate directive \"{name}\""));
                     continue;

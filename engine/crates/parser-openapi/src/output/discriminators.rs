@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
-use engine::registry::UnionDiscriminator;
 use itertools::Itertools;
+use registry_v2::UnionDiscriminator;
 
 use crate::graph::{OpenApiGraph, ScalarKind};
 
@@ -16,7 +16,7 @@ impl crate::graph::OutputType {
     /// The "proper" way to do this would be to run everything through a JSON schema validator,
     /// but pulling the entire specs JSON schema into the registry is likely to be problematic
     /// so this is a best effort attempt to avoid that.
-    pub fn discriminators(self, graph: &OpenApiGraph) -> Vec<(String, engine::registry::UnionDiscriminator)> {
+    pub fn discriminators(self, graph: &OpenApiGraph) -> Vec<(String, registry_v2::UnionDiscriminator)> {
         let possible_types = self.possible_types(graph);
 
         // The easiest discriminator is a field that's unique to a given member on the union.
@@ -148,15 +148,15 @@ impl crate::graph::OutputType {
     }
 }
 
-impl TryFrom<ScalarKind> for engine::registry::union_discriminator::ScalarKind {
+impl TryFrom<ScalarKind> for registry_v2::ScalarKind {
     type Error = ();
 
     fn try_from(value: ScalarKind) -> Result<Self, Self::Error> {
-        use engine::registry::union_discriminator::ScalarKind as EngineScalarKind;
+        use registry_v2::ScalarKind as RegistryScalarKind;
         match value {
-            ScalarKind::String => Ok(EngineScalarKind::String),
-            ScalarKind::Integer | ScalarKind::Float => Ok(EngineScalarKind::Number),
-            ScalarKind::Boolean => Ok(EngineScalarKind::Boolean),
+            ScalarKind::String => Ok(RegistryScalarKind::String),
+            ScalarKind::Integer | ScalarKind::Float => Ok(RegistryScalarKind::Number),
+            ScalarKind::Boolean => Ok(RegistryScalarKind::Boolean),
             ScalarKind::Json => {
                 // I'm really hoping there are no schemas that do this...
                 Err(())

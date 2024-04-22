@@ -3,7 +3,10 @@ use std::{borrow::Cow, pin::Pin};
 use engine_parser::types::OperationType;
 use futures_util::stream::{self, Stream};
 
-use crate::{registry, ContextField, Response, ServerError, SubscriptionType};
+use crate::{
+    registry::{self, LegacyRegistryExt},
+    ContextField, Response, ServerError, SubscriptionType,
+};
 
 /// Empty subscription
 ///

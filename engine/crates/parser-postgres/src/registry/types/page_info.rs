@@ -1,9 +1,9 @@
 use common_types::auth::Operations;
-use engine::registry::{resolvers::transformer::Transformer, MetaField, ObjectType};
 use parser_sdl::{
     PAGE_INFO_FIELD_END_CURSOR, PAGE_INFO_FIELD_HAS_NEXT_PAGE, PAGE_INFO_FIELD_HAS_PREVIOUS_PAGE,
     PAGE_INFO_FIELD_START_CURSOR, PAGE_INFO_TYPE,
 };
+use registry_v1::{resolvers::transformer::Transformer, MetaField, ObjectType};
 
 use crate::registry::context::{InputContext, OutputContext};
 

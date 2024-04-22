@@ -343,11 +343,15 @@ impl Mutation {
 pub struct Subscription;
 
 static TEST_HARNESS: Lazy<Schema> = Lazy::new(|| {
+    todo!(
+        r#"
     Schema::new(Arc::new(Schema::create_registry_static::<
         Query,
         Mutation,
         EmptySubscription,
     >()))
+    "#
+    )
 });
 
 pub(crate) fn validate<'a, V, F>(doc: &'a ExecutableDocument, factory: F) -> Result<(), Vec<RuleError>>

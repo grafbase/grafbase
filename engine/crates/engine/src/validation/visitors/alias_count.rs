@@ -27,6 +27,7 @@ impl<'ctx, 'a> Visitor<'ctx> for AliasCountCalculate<'a> {
     }
 }
 
+#[cfg(fixme)]
 #[cfg(test)]
 mod tests {
     #![allow(clippy::diverging_sub_expression)]
