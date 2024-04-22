@@ -12,7 +12,7 @@ use crate::{
     deferred::DeferredWorkloadSender,
     parser::types::FragmentDefinition,
     query_path::QueryPath,
-    registry::{MetaType, MongoDBConfiguration, Registry},
+    registry::{MetaType, Registry},
     schema::SchemaEnv,
     Error, LegacyInputType, Name, Pos, Positioned, QueryEnv, Result, ServerError, ServerResult,
 };
@@ -22,7 +22,7 @@ pub trait Context<'a> {
     fn query_env(&self) -> &'a QueryEnv;
     fn schema_env(&self) -> &'a SchemaEnv;
 
-    fn registry(&self) -> &'a Registry {
+    fn registry(&self) -> &'a registry_v2::Registry {
         &self.schema_env().registry
     }
 }
@@ -49,12 +49,12 @@ pub trait ContextExt<'a>: Context<'a> {
     }
 
     /// Find a type definition by name.
-    fn get_type(&self, name: &str) -> Option<&'a MetaType> {
-        self.schema_env().registry.types.get(name)
+    fn get_type(&'a self, name: &str) -> Option<registry_v2::MetaType<'a>> {
+        self.schema_env().registry.lookup_type(name)
     }
 
     /// Find a mongodb configuration with name.
-    fn get_mongodb_config(&self, name: &str) -> Option<&'a MongoDBConfiguration> {
+    fn get_mongodb_config(&self, name: &str) -> Option<&'a registry_v2::mongodb::MongoDBConfiguration> {
         self.schema_env().registry.mongodb_configurations.get(name)
     }
 

@@ -1,6 +1,5 @@
 use std::{borrow::Cow, fmt};
 
-use engine::registry::{InputObjectType, MetaInputValue};
 use inflector::Inflector;
 use parser_sdl::{
     INPUT_FIELD_COLLECTION_OP_APPEND, INPUT_FIELD_COLLECTION_OP_DELETE_AT_PATH, INPUT_FIELD_COLLECTION_OP_DELETE_ELEM,
@@ -10,6 +9,7 @@ use parser_sdl::{
     INPUT_FIELD_OP_IN, INPUT_FIELD_OP_LT, INPUT_FIELD_OP_LTE, INPUT_FIELD_OP_NE, INPUT_FIELD_OP_NIN,
     INPUT_FIELD_OP_NOT, INPUT_FIELD_OP_OVERLAPS,
 };
+use registry_v1::{InputObjectType, MetaInputValue};
 
 use crate::registry::context::{InputContext, OutputContext};
 

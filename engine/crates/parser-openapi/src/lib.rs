@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 
-use engine::registry::{resolvers::http::ExpectedStatusCode, ConnectorHeaders, Registry};
 use graph::OpenApiGraph;
 use inflector::Inflector;
 use parser_sdl::OpenApiQueryNamingStrategy as QueryNamingStrategy;
+use registry_v2::{resolvers::http::ExpectedStatusCode, ConnectorHeaders};
 use tracing as _;
 use url::Url;
 
@@ -19,7 +19,7 @@ pub fn parse_spec(
     data: String,
     format: Format,
     mut metadata: ApiMetadata,
-    registry: &mut Registry,
+    registry: &mut registry_v1::Registry,
 ) -> Result<(), Vec<Error>> {
     let parsed = parsing::parse(data, format)?;
 

@@ -18,6 +18,8 @@ colored = "2.1.0"
 common-types.workspace = true
 duration-str = "0.9.1"
 engine = { path = "../engine" }
+registry-v1.workspace = true
+registry-v2.workspace = true
 engine-parser = { path = "../engine/parser" }
 engine-value.workspace = true
 futures = "0.3.30"

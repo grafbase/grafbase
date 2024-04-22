@@ -10,12 +10,13 @@ use cynic::{
     GraphQlError, QueryBuilder,
 };
 use cynic_introspection::{query::IntrospectionQuery, SchemaError};
-use engine::registry::{
-    resolvers::{graphql, transformer::Transformer, Resolver},
-    ConnectorHeaders, Deprecation, MetaField, ObjectType, Registry,
-};
+use engine::registry::{resolvers::Resolver, Deprecation, MetaField, ObjectType, Registry};
 use http::header::USER_AGENT;
 use inflector::Inflector;
+use registry_v2::{
+    resolvers::{graphql, transformer::Transformer},
+    ConnectorHeaders,
+};
 use url::Url;
 
 static BUILTIN_DIRECTIVES: &[&str] = &["deprecated", "include", "skip", "specifiedBy"];
@@ -229,7 +230,7 @@ impl Parser {
 
             for f in i.values_mut() {
                 if f.resolver.is_parent() {
-                    f.resolver = Transformer::GraphqlField.into();
+                    f.resolver = Resolver::Transformer(Transformer::GraphqlField);
                 }
             }
         }
@@ -401,7 +402,8 @@ pub struct ApiMetadata {
 mod tests {
     use std::collections::BTreeMap;
 
-    use engine::registry::ConnectorHeaderValue;
+    use engine::registry::RegistrySdlExt;
+    use registry_v2::ConnectorHeaderValue;
     use serde_json::json;
     use wiremock::{
         matchers::{header, method},

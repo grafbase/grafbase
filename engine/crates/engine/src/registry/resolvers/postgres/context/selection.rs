@@ -139,7 +139,8 @@ impl<'a> Iterator for SelectionIterator<'a> {
         let meta_type = self
             .target
             .field(selection_field.name())
-            .and_then(|field| self.ctx.registry().lookup_expecting(&field.ty).ok())
+            .map(|field| field.ty().named_type())
+            .and_then(|ty| OutputType::try_from(ty).ok())
             .expect("couldn't find a meta type for a selection");
 
         if relation.is_referenced_row_unique() {
@@ -163,10 +164,10 @@ impl<'a> Iterator for SelectionIterator<'a> {
             // `userCollection { edges { node { field } } }`, the type part.
             let meta_type = meta_type
                 .field("edges")
-                .and_then(|field| self.ctx.registry().lookup(&field.ty).ok())
-                .as_ref()
+                .map(|field| field.ty().named_type())
                 .and_then(|output| output.field("node"))
-                .and_then(|field| self.ctx.registry().lookup_expecting(&field.ty).ok())
+                .map(|field| field.ty().named_type())
+                .and_then(|ty| OutputType::try_from(ty).ok())
                 .expect("couldn't find a meta type for a collection selection");
 
             let iterator = Self::new(self.ctx, meta_type, selection_field, selection_set);

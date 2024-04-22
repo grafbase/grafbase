@@ -37,6 +37,7 @@ impl<'a> Visitor<'a> for InputObjectVisitor {
 
 #[cfg(test)]
 mod tests {
+    use engine::registry::RegistrySdlExt;
     #[test]
     fn test_parsing_input_type() {
         let schema = r#"

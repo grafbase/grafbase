@@ -29,13 +29,13 @@ impl Gateway {
     pub async fn new(
         env_vars: HashMap<String, String>,
         bridge: Bridge,
-        registry: Arc<engine::Registry>,
+        registry: Arc<registry_v2::Registry>,
     ) -> Result<Self, crate::Error> {
         let cache_config = CacheConfig {
             global_enabled: true,
             subdomain: "localhost".to_string(),
             host_name: "localhost".to_string(),
-            partial_registry: CachePartialRegistry::from(registry.as_ref()),
+            partial_registry: CachePartialRegistry::default(), // TODO: Revisit this /*CachePartialRegistry::from(registry.as_ref()),*/
             common_cache_tags: vec![],
         };
         let authorizer = Box::new(auth::Authorizer);

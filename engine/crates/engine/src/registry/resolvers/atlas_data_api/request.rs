@@ -5,15 +5,12 @@ use http::{
     StatusCode,
 };
 use query::{AtlasQuery, DeleteMany, DeleteOne, FindMany, FindOne, InsertMany, InsertOne, UpdateMany, UpdateOne};
+use registry_v2::{resolvers::atlas_data_api::OperationType, MongoDBConfiguration};
 use serde::Serialize;
 use serde_json::Value;
 
-use super::OperationType;
 use crate::{
-    registry::{
-        resolvers::{ResolvedValue, ResolverContext},
-        MongoDBConfiguration,
-    },
+    registry::resolvers::{ResolvedValue, ResolverContext},
     ContextExt, ContextField, Error,
 };
 

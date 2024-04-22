@@ -108,12 +108,12 @@ fn openapi_test() {
         insta::assert_json_snapshot!(mock_guard.received_json_bodies().await, @r###"
         [
           {
-            "status": "available",
-            "tags": [],
-            "photoUrls": [],
             "category": {},
+            "id": 123,
             "name": "doggo",
-            "id": 123
+            "photoUrls": [],
+            "status": "available",
+            "tags": []
           }
         ]
         "###);
@@ -206,12 +206,12 @@ fn openapi_flat_namespace() {
         insta::assert_json_snapshot!(mock_guard.received_json_bodies().await, @r###"
         [
           {
-            "status": "available",
-            "tags": [],
-            "photoUrls": [],
             "category": {},
+            "id": 123,
             "name": "doggo",
-            "id": 123
+            "photoUrls": [],
+            "status": "available",
+            "tags": []
           }
         ]
         "###);

@@ -66,6 +66,8 @@ engine-value = { path = "value", version = "3" }
 engine-parser = { path = "parser", version = "3" }
 graph-entities.workspace = true
 graphql-cursor.workspace = true
+registry-v1.workspace = true
+registry-v2.workspace = true
 runtime.workspace = true
 grafbase-tracing.workspace = true
 
@@ -90,14 +92,9 @@ reqwest = { workspace = true, features = [
 ] }
 
 [dev-dependencies]
-ctor.workspace = true
 indoc = "2.0.5"
 insta.workspace = true
 rstest.workspace = true
 runtime = { workspace = true, features = ["test-utils"] }
-rustls = { workspace = true, features = ["ring"] }
-sanitize-filename = "0.5"
 sha2.workspace = true
-tokio = { workspace = true, features = ["macros"] }
 urlencoding = "2.1.3"
-wiremock.workspace = true

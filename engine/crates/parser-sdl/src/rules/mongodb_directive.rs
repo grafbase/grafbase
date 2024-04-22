@@ -1,11 +1,12 @@
 mod model_directive;
 mod type_directive;
 
-use engine::registry::{MetaField, MongoDBConfiguration, ObjectType};
+use engine::registry::{MetaField, ObjectType};
 use engine_parser::types::SchemaDefinition;
 use inflector::Inflector;
 pub(super) use model_directive::create_type_context::CreateTypeContext;
 pub use model_directive::MongoDBModelDirective;
+use registry_v2::MongoDBConfiguration;
 pub use type_directive::MongoDBTypeDirective;
 
 use super::{
@@ -328,15 +329,15 @@ type SomethingElse {
             match tpe {
                 engine::registry::MetaType::Object(obj) => {
                     for field in obj.fields.values() {
-                        if let Err(err) = registry.lookup(&field.ty) {
-                            errs.push(err);
+                        if registry.lookup(&field.ty).is_none() {
+                            errs.push(field.ty.to_string());
                         }
                     }
                 }
                 engine::registry::MetaType::Interface(iface) => {
                     for field in iface.fields.values() {
-                        if let Err(err) = registry.lookup(&field.ty) {
-                            errs.push(err);
+                        if registry.lookup(&field.ty).is_none() {
+                            errs.push(field.ty.to_string());
                         }
                     }
                 }
@@ -347,8 +348,8 @@ type SomethingElse {
                 }
                 engine::registry::MetaType::InputObject(input_object) => {
                     for field in input_object.input_fields.values() {
-                        if let Err(err) = registry.lookup(&field.ty) {
-                            errs.push(err);
+                        if registry.lookup(&field.ty).is_none() {
+                            errs.push(field.ty.to_string());
                         }
                     }
                 }

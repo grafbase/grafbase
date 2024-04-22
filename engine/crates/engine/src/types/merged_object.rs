@@ -6,7 +6,7 @@ use indexmap::IndexMap;
 use crate::{
     futures_util::Stream,
     parser::types::Field,
-    registry::{MetaType, ObjectType, Registry},
+    registry::{LegacyRegistryExt, MetaType, ObjectType, Registry},
     CacheControl, ContainerType, ContextField, ContextSelectionSetLegacy, LegacyOutputType, Positioned, Response,
     ServerResult, SimpleObject, SubscriptionType, Value,
 };

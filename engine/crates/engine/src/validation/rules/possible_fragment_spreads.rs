@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     parser::types::{ExecutableDocument, FragmentSpread, InlineFragment, TypeCondition},
+    registry::type_overlap,
     validation::visitor::{Visitor, VisitorContext},
     Positioned,
 };
@@ -22,8 +23,8 @@ impl<'a> Visitor<'a> for PossibleFragmentSpreads<'a> {
     fn enter_fragment_spread(&mut self, ctx: &mut VisitorContext<'a>, fragment_spread: &'a Positioned<FragmentSpread>) {
         if let Some(fragment_type) = self.fragment_types.get(&*fragment_spread.node.fragment_name.node) {
             if let Some(current_type) = ctx.current_type() {
-                if let Some(on_type) = ctx.registry.types.get(*fragment_type) {
-                    if !current_type.type_overlap(on_type) {
+                if let Some(on_type) = ctx.registry.lookup_type(fragment_type) {
+                    if !type_overlap(&current_type, &on_type) {
                         ctx.report_error(
                             vec![fragment_spread.pos],
                             format!(
@@ -42,8 +43,8 @@ impl<'a> Visitor<'a> for PossibleFragmentSpreads<'a> {
             if let Some(TypeCondition { on: fragment_type }) =
                 &inline_fragment.node.type_condition.as_ref().map(|c| &c.node)
             {
-                if let Some(on_type) = ctx.registry.types.get(fragment_type.node.as_str()) {
-                    if !parent_type.type_overlap(on_type) {
+                if let Some(on_type) = ctx.registry.lookup_type(fragment_type.node.as_str()) {
+                    if !type_overlap(&parent_type, &on_type) {
                         ctx.report_error(
                             vec![inline_fragment.pos],
                             format!(

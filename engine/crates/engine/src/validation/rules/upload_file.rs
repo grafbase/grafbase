@@ -1,5 +1,6 @@
 use crate::{
     parser::types::{OperationDefinition, OperationType},
+    registry::concrete_type_name_from_parsed_type,
     validation::visitor::{Visitor, VisitorContext},
     Name, Positioned,
 };
@@ -15,7 +16,8 @@ impl<'a> Visitor<'a> for UploadFile {
         operation_definition: &'a Positioned<OperationDefinition>,
     ) {
         for var in &operation_definition.node.variable_definitions {
-            if let Some(ty) = ctx.registry.concrete_type_by_parsed_type(&var.node.var_type.node) {
+            let name = concrete_type_name_from_parsed_type(&var.node.var_type.node);
+            if let Some(ty) = ctx.registry.lookup_type(name) {
                 if operation_definition.node.ty != OperationType::Mutation && ty.name() == "Upload" {
                     ctx.report_error(
                         vec![var.pos],

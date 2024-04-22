@@ -56,13 +56,13 @@ pub enum ValidationMode {
 }
 
 pub fn check_rules(
-    registry: &Registry,
+    registry: &registry_v2::Registry,
     doc: &ExecutableDocument,
     variables: Option<&Variables>,
     mode: ValidationMode,
 ) -> Result<ValidationResult, Vec<ServerError>> {
     let mut ctx = VisitorContext::new(registry, doc, variables);
-    let mut cache_control = CacheControl::default();
+    let mut cache_control = registry_v2::cache_control::CacheControl::default();
     let mut cache_invalidation_policies = Default::default();
     let mut complexity = 0;
     let mut depth = 0;
@@ -99,7 +99,6 @@ pub fn check_rules(
                     cache_control: &mut cache_control,
                     invalidation_policies: &mut cache_invalidation_policies,
                 })
-                .with(visitors::ComplexityCalculate::new(&mut complexity))
                 .with(visitors::DepthCalculate::new(&mut depth))
                 .with(visitors::HeightCalculate::new(&mut height))
                 .with(visitors::AliasCountCalculate::new(&mut alias_count))
@@ -115,7 +114,6 @@ pub fn check_rules(
                     cache_control: &mut cache_control,
                     invalidation_policies: &mut cache_invalidation_policies,
                 })
-                .with(visitors::ComplexityCalculate::new(&mut complexity))
                 .with(visitors::DepthCalculate::new(&mut depth))
                 .with(visitors::HeightCalculate::new(&mut height))
                 .with(visitors::AliasCountCalculate::new(&mut alias_count))

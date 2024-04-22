@@ -3,8 +3,10 @@ use std::borrow::Cow;
 use graph_entities::ResponseNodeId;
 
 use crate::{
-    parser::types::Field, registry, resolver_utils::ContainerType, ContextField, ContextSelectionSetLegacy,
-    LegacyOutputType, ObjectType, Positioned, ServerError, ServerResult,
+    parser::types::Field,
+    registry::{self, LegacyRegistryExt},
+    resolver_utils::ContainerType,
+    ContextField, ContextSelectionSetLegacy, LegacyOutputType, ObjectType, Positioned, ServerError, ServerResult,
 };
 
 /// Empty mutation
@@ -56,7 +58,6 @@ impl LegacyOutputType for EmptyMutation {
                 fields: Default::default(),
                 cache_control: Default::default(),
                 extends: false,
-                visible: None,
                 is_subscription: false,
                 is_node: false,
                 rust_typename: std::any::type_name::<Self>().to_owned(),

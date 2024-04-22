@@ -158,6 +158,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
             }
 
             fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
+                use crate::registry::LegacyRegistryExt;
                 registry.create_output_type::<Self, _>(|registry| {
                     #(#registry_types)*
 
@@ -169,7 +170,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
                             #(#possible_types)*
                             possible_types
                         },
-                        visible: #visible,
+
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                         discriminators: None
                     })

@@ -1,5 +1,5 @@
-use engine::registry::{Constraint, EnumType, InputObjectType, MetaEnumValue, MetaField, MetaInputValue, ObjectType};
 use postgres_connector_types::database_definition::{RelationId, TableColumnId, TableId, UniqueConstraintId};
+use registry_v1::{Constraint, EnumType, InputObjectType, MetaEnumValue, MetaField, MetaInputValue, ObjectType};
 
 #[derive(Debug)]
 pub struct ObjectTypeBuilder {

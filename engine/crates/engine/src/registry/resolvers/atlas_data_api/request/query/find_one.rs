@@ -2,12 +2,9 @@ use serde::Serialize;
 
 use super::AtlasQuery;
 use crate::{
-    registry::{
-        resolvers::{
-            atlas_data_api::{input, projection, JsonMap},
-            ResolvedValue, ResolverContext,
-        },
-        type_kinds::SelectionSetTarget,
+    registry::resolvers::{
+        atlas_data_api::{input, projection, JsonMap},
+        ResolvedValue, ResolverContext,
     },
     ContextField, Error,
 };
@@ -21,11 +18,9 @@ pub struct FindOne {
 
 impl FindOne {
     pub fn new(ctx: &ContextField<'_>, resolver_ctx: &ResolverContext<'_>) -> Result<Self, Error> {
-        let selection_set: SelectionSetTarget<'_> = resolver_ctx.ty.try_into().unwrap();
-        let available_fields = selection_set.field_map().unwrap();
         let selection = ctx.look_ahead().selection_fields();
 
-        let projection = projection::project(ctx, selection.into_iter(), available_fields)?;
+        let projection = projection::project(ctx, selection.into_iter(), resolver_ctx.ty.into())?;
         let filter = input::by(ctx)?;
 
         Ok(Self { filter, projection })

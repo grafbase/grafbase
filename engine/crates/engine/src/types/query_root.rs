@@ -7,7 +7,7 @@ use crate::{
     graph::field_into_node,
     model::{__Schema, __Type},
     parser::types::Field,
-    registry,
+    registry::{self, RegistrySdlExt},
     request::IntrospectionState,
     resolver_utils::ContainerType,
     Any, ContextField, ContextSelectionSetLegacy, LegacyOutputType, ObjectType, Positioned, ServerError, ServerResult,
@@ -37,15 +37,10 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
         if ctx.item.node.name.node == "__schema" {
             if introspection_enabled {
                 let ctx_obj = ctx.with_selection_set_legacy(&ctx.item.node.selection_set);
-                let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
 
-                return LegacyOutputType::resolve(
-                    &__Schema::new(&ctx.schema_env.registry, &visible_types),
-                    &ctx_obj,
-                    ctx.item,
-                )
-                .await
-                .map(Some);
+                return LegacyOutputType::resolve(&__Schema::new(&ctx.schema_env.registry), &ctx_obj, ctx.item)
+                    .await
+                    .map(Some);
             } else {
                 return Err(ServerError::new(
                     "Unauthorized for introspection.",
@@ -56,14 +51,11 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
             if introspection_enabled {
                 let (_, type_name) = ctx.param_value::<String>("name", None)?;
                 let ctx_obj = ctx.with_selection_set_legacy(&ctx.item.node.selection_set);
-                let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
                 return LegacyOutputType::resolve(
                     &ctx.schema_env
                         .registry
-                        .types
-                        .get(&type_name)
-                        .filter(|_| visible_types.contains(type_name.as_str()))
-                        .map(|ty| __Type::new_simple(&ctx.schema_env.registry, &visible_types, ty)),
+                        .lookup_type(&type_name)
+                        .map(|ty| __Type::new_simple(&ctx.schema_env.registry, ty)),
                     &ctx_obj,
                     ctx.item,
                 )

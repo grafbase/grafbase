@@ -29,10 +29,9 @@ pub mod context;
 pub mod extensions;
 pub mod http;
 
+pub mod graph;
 pub mod resolver_utils;
 pub mod types;
-
-pub mod graph;
 
 mod deferred;
 mod directive;
@@ -106,3 +105,13 @@ pub use engine_derive::{
 };
 
 pub use crate::request::IntrospectionState;
+
+fn registry_operation_type_from_parser(
+    operation_type: engine_parser::types::OperationType,
+) -> registry_v2::OperationType {
+    match operation_type {
+        parser::types::OperationType::Query => registry_v2::OperationType::Query,
+        parser::types::OperationType::Mutation => registry_v2::OperationType::Mutation,
+        parser::types::OperationType::Subscription => registry_v2::OperationType::Subscription,
+    }
+}

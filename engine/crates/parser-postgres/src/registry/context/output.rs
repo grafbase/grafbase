@@ -1,11 +1,11 @@
 mod builders;
 
-use engine::registry::{EnumType, InputObjectType, MetaField, ObjectType};
 use inflector::Inflector;
 use parser_sdl::Registry;
 use postgres_connector_types::database_definition::{
     DatabaseDefinition, EnumId, RelationId, TableColumnId, TableId, UniqueConstraintId,
 };
+use registry_v1::{EnumType, InputObjectType, MetaField, ObjectType};
 
 pub use self::builders::{EnumBuilder, InputTypeBuilder, ObjectTypeBuilder};
 

@@ -183,7 +183,7 @@ mod tests {
     fn network_ipv4() {
         let input = indoc! {r#"
             [network]
-            listen_address = "0.0.0.0:4000"    
+            listen_address = "0.0.0.0:4000"
         "#};
 
         let config: Config = toml::from_str(input).unwrap();
@@ -196,7 +196,7 @@ mod tests {
     fn network_ipv6() {
         let input = indoc! {r#"
             [network]
-            listen_address = "[::1]:4000"    
+            listen_address = "[::1]:4000"
         "#};
 
         let config: Config = toml::from_str(input).unwrap();
@@ -221,7 +221,7 @@ mod tests {
     fn graph_values() {
         let input = indoc! {r#"
             [graph]
-            path = "/enterprise"    
+            path = "/enterprise"
             introspection = true
         "#};
 

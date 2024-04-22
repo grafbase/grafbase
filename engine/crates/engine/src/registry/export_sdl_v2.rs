@@ -1,12 +1,14 @@
 use std::fmt::Write;
 
-use super::{
-    field_set::FieldSetDisplay, Deprecation, EnumType, InputObjectType, InterfaceType, ObjectType, RegistrySdlExt,
-    ScalarType, UnionType,
-};
-use crate::registry::{MetaField, MetaInputValue, MetaType, Registry};
+// use super::{Deprecation, EnumType, InputObjectType, InterfaceType, ObjectType, ScalarType, UnionType};
+use registry_v2::{Deprecation, MetaField, MetaInputValue, MetaType, Registry};
 
-// TODO: Delete this when we can
+use super::field_set::FieldSetDisplay;
+
+pub trait RegistrySdlExt {
+    fn export_sdl(&self, federation: bool) -> String;
+}
+
 impl RegistrySdlExt for Registry {
     fn export_sdl(&self, federation: bool) -> String {
         let mut sdl = String::new();
@@ -18,7 +20,7 @@ impl RegistrySdlExt for Registry {
             writeln!(sdl, ")").ok();
         }
 
-        for ty in self.types.values() {
+        for ty in self.types() {
             if ty.name().starts_with("__") {
                 continue;
             }
@@ -35,12 +37,12 @@ impl RegistrySdlExt for Registry {
 
         if !federation {
             writeln!(sdl, "schema {{").ok();
-            writeln!(sdl, "\tquery: {}", self.query_type).ok();
-            if let Some(mutation_type) = self.mutation_type.as_deref() {
-                writeln!(sdl, "\tmutation: {mutation_type}").ok();
+            writeln!(sdl, "\tquery: {}", self.query_type().name()).ok();
+            if let Some(mutation_type) = self.mutation_type() {
+                writeln!(sdl, "\tmutation: {}", mutation_type.name()).ok();
             }
-            if let Some(subscription_type) = self.subscription_type.as_deref() {
-                writeln!(sdl, "\tsubscription: {subscription_type}").ok();
+            if let Some(subscription_type) = self.subscription_type() {
+                writeln!(sdl, "\tsubscription: {}", subscription_type.name()).ok();
             }
             writeln!(sdl, "}}").ok();
         }
@@ -49,34 +51,30 @@ impl RegistrySdlExt for Registry {
     }
 }
 
-fn export_fields<'a, I: Iterator<Item = &'a MetaField>>(sdl: &mut String, it: I, federation: bool) {
+fn export_fields<'a, I: Iterator<Item = MetaField<'a>>>(sdl: &mut String, it: I, federation: bool) {
     for field in it {
-        if field.name.starts_with("__") || (federation && matches!(&*field.name, "_service" | "_entities")) {
+        if field.name().starts_with("__") || (federation && matches!(field.name(), "_service" | "_entities")) {
             continue;
         }
 
-        if field.description.is_some() {
-            writeln!(
-                sdl,
-                "\t\"\"\"\n\t{}\n\t\"\"\"",
-                field.description.as_deref().unwrap().replace('\n', "\n\t")
-            )
-            .ok();
+        if let Some(description) = field.description() {
+            writeln!(sdl, "\t\"\"\"\n\t{}\n\t\"\"\"", description.replace('\n', "\n\t")).ok();
         }
-        if !field.args.is_empty() {
-            write!(sdl, "\t{}(", field.name).ok();
-            for (i, arg) in field.args.values().enumerate() {
+        let args = field.args();
+        if args.len() != 0 {
+            write!(sdl, "\t{}(", field.name()).ok();
+            for (i, arg) in args.enumerate() {
                 if i != 0 {
                     sdl.push_str(", ");
                 }
                 sdl.push_str(&export_input_value(arg));
             }
-            write!(sdl, "): {}", field.ty).ok();
+            write!(sdl, "): {}", field.ty().to_string()).ok();
         } else {
-            write!(sdl, "\t{}: {}", field.name, field.ty).ok();
+            write!(sdl, "\t{}: {}", field.name(), field.ty().to_string()).ok();
         }
 
-        if let Deprecation::Deprecated { reason } = &field.deprecation {
+        if let Some(Deprecation::Deprecated { reason }) = field.deprecation() {
             write!(sdl, " @deprecated").ok();
             if let Some(reason) = reason {
                 write!(sdl, "(reason: \"{}\")", reason.escape_default()).ok();
@@ -84,7 +82,7 @@ fn export_fields<'a, I: Iterator<Item = &'a MetaField>>(sdl: &mut String, it: I,
         }
 
         if federation {
-            if let Some(federation_field) = &field.federation {
+            if let Some(federation_field) = field.federation() {
                 if federation_field.external {
                     write!(sdl, " @external").ok();
                 }
@@ -104,7 +102,7 @@ fn export_fields<'a, I: Iterator<Item = &'a MetaField>>(sdl: &mut String, it: I,
                     write!(sdl, " @tag(name: \"{}\")", tag.escape_default()).ok();
                 }
             }
-            if let Some(requires) = &field.requires {
+            if let Some(requires) = field.requires() {
                 write!(sdl, " @requires(fields: \"{}\")", FieldSetDisplay(requires)).ok();
             }
         }
@@ -113,42 +111,38 @@ fn export_fields<'a, I: Iterator<Item = &'a MetaField>>(sdl: &mut String, it: I,
     }
 }
 
-fn export_type(registry: &registry_v1::Registry, ty: &MetaType, sdl: &mut String, federation: bool) {
+fn export_type(registry: &registry_v2::Registry, ty: MetaType<'_>, sdl: &mut String, federation: bool) {
+    let extends = false; // TODO: Reintroduce this if neccesary
     match ty {
-        MetaType::Scalar(ScalarType { name, description, .. }) => {
+        MetaType::Scalar(scalar) => {
             const SYSTEM_SCALARS: &[&str] = &["Int", "Float", "String", "Boolean", "ID"];
             const FEDERATION_SCALARS: &[&str] = &["Any"];
-            let mut export_scalar = !SYSTEM_SCALARS.contains(&name.as_str());
-            if federation && FEDERATION_SCALARS.contains(&name.as_str()) {
+            let name = scalar.name();
+            let mut export_scalar = !SYSTEM_SCALARS.contains(&name);
+            if federation && FEDERATION_SCALARS.contains(&name) {
                 export_scalar = false;
             }
             if export_scalar {
-                if description.is_some() {
-                    writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
+                if let Some(description) = scalar.description() {
+                    writeln!(sdl, "\"\"\"\n{description}\n\"\"\"").ok();
                 }
                 writeln!(sdl, "scalar {name}").ok();
             }
         }
-        MetaType::Object(ObjectType {
-            name,
-            fields,
-            extends,
-            description,
-            external,
-            shareable,
-            ..
-        }) => {
-            if Some(name.as_str()) == registry.subscription_type.as_deref()
+        MetaType::Object(object) => {
+            let name = object.name();
+            if Some(name) == registry.subscription_type().map(|ty| ty.name())
                 && federation
                 && !registry.federation_subscription
             {
                 return;
             }
 
-            if name.as_str() == registry.query_type && federation {
+            if name == registry.query_type().name() && federation {
                 let mut field_count = 0;
-                for field in fields.values() {
-                    if field.name.starts_with("__") || (federation && matches!(&*field.name, "_service" | "_entities"))
+                for field in object.fields() {
+                    if field.name().starts_with("__")
+                        || (federation && matches!(field.name(), "_service" | "_entities"))
                     {
                         continue;
                     }
@@ -159,10 +153,10 @@ fn export_type(registry: &registry_v1::Registry, ty: &MetaType, sdl: &mut String
                 }
             }
 
-            if description.is_some() {
-                writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
+            if let Some(description) = object.description() {
+                writeln!(sdl, "\"\"\"\n{description}\n\"\"\"").ok();
             }
-            if federation && *extends {
+            if federation && extends {
                 write!(sdl, "extend ").ok();
             }
             write!(sdl, "type {name} ").ok();
@@ -180,32 +174,27 @@ fn export_type(registry: &registry_v1::Registry, ty: &MetaType, sdl: &mut String
                         .ok();
                     }
                 }
-                if *external {
+                if object.external() {
                     write!(sdl, "@external ").ok();
                 }
-                if *shareable {
+                if object.shareable() {
                     write!(sdl, "@shareable ").ok();
                 }
             }
 
             writeln!(sdl, "{{").ok();
-            export_fields(sdl, fields.values(), federation);
+            export_fields(sdl, object.fields(), federation);
             writeln!(sdl, "}}").ok();
         }
-        MetaType::Interface(InterfaceType {
-            name,
-            fields,
-            extends,
-            description,
-            ..
-        }) => {
-            if description.is_some() {
-                writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
+        MetaType::Interface(interface) => {
+            let name = interface.name();
+            if let Some(description) = interface.description() {
+                writeln!(sdl, "\"\"\"\n{description}\n\"\"\"",).ok();
             }
-            if federation && *extends {
+            if federation && extends {
                 write!(sdl, "extend ").ok();
             }
-            write!(sdl, "interface {name} ").ok();
+            write!(sdl, "interface {} ", interface.name()).ok();
             if federation {
                 if let Some(entity) = registry.federation_entities.get(name) {
                     for key in entity.keys.iter() {
@@ -222,24 +211,19 @@ fn export_type(registry: &registry_v1::Registry, ty: &MetaType, sdl: &mut String
             write_implements(registry, sdl, name);
 
             writeln!(sdl, "{{").ok();
-            export_fields(sdl, fields.values(), federation);
+            export_fields(sdl, interface.fields(), federation);
             writeln!(sdl, "}}").ok();
         }
-        MetaType::Enum(EnumType {
-            name,
-            enum_values,
-            description,
-            ..
-        }) => {
-            if description.is_some() {
-                writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
+        MetaType::Enum(enum_type) => {
+            if let Some(description) = enum_type.description() {
+                writeln!(sdl, "\"\"\"\n{description}\n\"\"\"",).ok();
             }
-            write!(sdl, "enum {name} ").ok();
+            write!(sdl, "enum {} ", enum_type.name()).ok();
             writeln!(sdl, "{{").ok();
-            for value in enum_values.values() {
-                write!(sdl, "\t{}", value.name).ok();
+            for value in enum_type.values() {
+                write!(sdl, "\t{}", value.name()).ok();
 
-                if let Deprecation::Deprecated { reason } = &value.deprecation {
+                if let Some(Deprecation::Deprecated { reason }) = &value.deprecation() {
                     write!(sdl, " @deprecated").ok();
                     if let Some(reason) = reason {
                         write!(sdl, "(reason: \"{}\")", reason.escape_default()).ok();
@@ -249,21 +233,18 @@ fn export_type(registry: &registry_v1::Registry, ty: &MetaType, sdl: &mut String
             }
             writeln!(sdl, "}}").ok();
         }
-        MetaType::InputObject(InputObjectType {
-            name,
-            input_fields,
-            description,
-            ..
-        }) => {
-            if description.is_some() {
-                writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
+        MetaType::InputObject(input_object) => {
+            let name = input_object.name();
+            if let Some(description) = input_object.description() {
+                writeln!(sdl, "\"\"\"\n{description}\n\"\"\"",).ok();
             }
             write!(sdl, "input {name}").ok();
 
-            if !input_fields.is_empty() {
+            let input_fields = input_object.input_fields();
+            if input_fields.len() != 0 {
                 writeln!(sdl, " {{").ok();
-                for field in input_fields.values() {
-                    if let Some(description) = field.description.as_deref() {
+                for field in input_fields {
+                    if let Some(description) = field.description() {
                         writeln!(sdl, "\t\"\"\"\n\t{description}\n\t\"\"\"").ok();
                     }
                     writeln!(sdl, "\t{}", export_input_value(field)).ok();
@@ -273,21 +254,17 @@ fn export_type(registry: &registry_v1::Registry, ty: &MetaType, sdl: &mut String
                 writeln!(sdl).ok();
             }
         }
-        MetaType::Union(UnionType {
-            name,
-            possible_types,
-            description,
-            ..
-        }) => {
-            if description.is_some() {
-                writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
+        MetaType::Union(union_type) => {
+            let name = union_type.name();
+            if let Some(description) = union_type.description() {
+                writeln!(sdl, "\"\"\"\n{description}\n\"\"\"",).ok();
             }
             write!(sdl, "union {name} =").ok();
-            for (idx, ty) in possible_types.iter().enumerate() {
+            for (idx, ty) in union_type.possible_types().enumerate() {
                 if idx == 0 {
-                    write!(sdl, " {ty}").ok();
+                    write!(sdl, " {}", ty.name()).ok();
                 } else {
-                    write!(sdl, " | {ty}").ok();
+                    write!(sdl, " | {}", ty.name()).ok();
                 }
             }
             writeln!(sdl).ok();
@@ -295,23 +272,26 @@ fn export_type(registry: &registry_v1::Registry, ty: &MetaType, sdl: &mut String
     }
 }
 
-fn write_implements(registry: &registry_v1::Registry, sdl: &mut String, name: &str) {
-    if let Some(implements) = registry.implements.get(name) {
-        if !implements.is_empty() {
-            write!(
-                sdl,
-                "implements {} ",
-                implements.iter().map(AsRef::as_ref).collect::<Vec<&str>>().join(" & ")
-            )
-            .ok();
-        }
+fn write_implements(registry: &Registry, sdl: &mut String, name: &str) {
+    let implements = registry.interfaces_implemented(name);
+    if implements.len() != 0 {
+        write!(
+            sdl,
+            "implements {} ",
+            implements.map(|ty| ty.name()).collect::<Vec<&str>>().join(" & ")
+        )
+        .ok();
     }
 }
 
-fn export_input_value(input_value: &MetaInputValue) -> String {
-    if let Some(default_value) = &input_value.default_value {
-        format!("{}: {} = {default_value}", input_value.name, input_value.ty)
+fn export_input_value(input_value: MetaInputValue) -> String {
+    if let Some(default_value) = input_value.default_value() {
+        format!(
+            "{}: {} = {default_value}",
+            input_value.name(),
+            input_value.ty().to_string()
+        )
     } else {
-        format!("{}: {}", input_value.name, input_value.ty)
+        format!("{}: {}", input_value.name(), input_value.ty().to_string())
     }
 }

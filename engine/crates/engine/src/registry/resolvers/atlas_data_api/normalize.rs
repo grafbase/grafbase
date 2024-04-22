@@ -1,3 +1,4 @@
+use registry_v2::{InputObjectType, MetaType};
 use serde_json::Value;
 
 use super::{value::MongoValue, JsonMap};
@@ -5,7 +6,6 @@ use crate::{
     registry::{
         resolvers::atlas_data_api::consts::{OP_AND, OP_ELEM_MATCH, OP_OR},
         type_kinds::InputType,
-        MetaInputValue, TypeReference,
     },
     ContextField,
 };
@@ -13,14 +13,14 @@ use crate::{
 /// Given the input keys, converts them to the names on MongoDB.
 ///
 /// Has any effect if a field in the data model is having a `@map` directive.
-pub(super) fn keys(ctx: &ContextField<'_>, map: JsonMap, input_type: InputType<'_>) -> JsonMap {
+pub(super) fn keys(ctx: &ContextField<'_>, map: JsonMap, input_type: InputObjectType<'_>) -> JsonMap {
     let mut result = JsonMap::new();
 
     for (key, value) in map {
         let Some(meta_field) = input_type.field(&key) else {
             continue;
         };
-        let key = meta_field.rename.clone().unwrap_or(key);
+        let key = meta_field.rename().map(|s| s.to_string()).unwrap_or(key);
         let value = normalize(keys, ctx, value, meta_field);
 
         result.insert(key, value);
@@ -31,14 +31,14 @@ pub(super) fn keys(ctx: &ContextField<'_>, map: JsonMap, input_type: InputType<'
 
 /// Given the input values, converts them to the extended JSON format
 /// on MongoDB.
-pub(super) fn values(ctx: &ContextField<'_>, map: JsonMap, input_type: InputType<'_>) -> JsonMap {
+pub(super) fn values(ctx: &ContextField<'_>, map: JsonMap, input_type: InputObjectType<'_>) -> JsonMap {
     let mut result = JsonMap::new();
 
     for (key, value) in map {
         let meta_field = input_type.field(&key).unwrap();
         let value = normalize(values, ctx, value, meta_field);
-        let type_name = meta_field.ty.named_type();
-        let value = MongoValue::from_json(type_name.as_str(), value).into();
+        let type_name = meta_field.ty().typename();
+        let value = MongoValue::from_json(type_name, value).into();
 
         result.insert(key, value);
     }
@@ -49,8 +49,12 @@ pub(super) fn values(ctx: &ContextField<'_>, map: JsonMap, input_type: InputType
 /// Given the input, converts the keys to the mapped variants in MongoDB,
 /// and values to the extended JSON format.
 pub(super) fn keys_and_values(ctx: &ContextField<'_>, map: JsonMap, input_type: InputType<'_>) -> JsonMap {
-    let map = values(ctx, map, input_type);
-    keys(ctx, map, input_type)
+    let Some(input_object) = input_type.as_input_object() else {
+        return JsonMap::new();
+    };
+
+    let map = values(ctx, map, input_object);
+    keys(ctx, map, input_object)
 }
 
 /// For filters and projection, fields in nested objects need to be flattened.
@@ -137,23 +141,23 @@ pub(super) fn flatten_keys(input: JsonMap) -> JsonMap {
     result
 }
 
-fn normalize<F>(normalize: F, ctx: &ContextField<'_>, value: Value, input_meta: &MetaInputValue) -> Value
+fn normalize<F>(
+    normalize: F,
+    ctx: &ContextField<'_>,
+    value: Value,
+    input_meta: registry_v2::MetaInputValue<'_>,
+) -> Value
 where
-    F: Fn(&ContextField<'_>, JsonMap, InputType<'_>) -> JsonMap,
+    F: Fn(&ContextField<'_>, JsonMap, InputObjectType<'_>) -> JsonMap,
 {
-    let nested_type = ctx
-        .schema_env
-        .registry
-        .lookup(&input_meta.ty)
-        .ok()
-        .filter(InputType::is_input_object);
+    let nested_type = input_meta.ty().named_type();
 
     match (value, nested_type) {
-        (Value::Object(value), Some(nested_type)) => {
+        (Value::Object(value), MetaType::InputObject(nested_type)) => {
             let value = normalize(ctx, value, nested_type);
             Value::Object(value)
         }
-        (Value::Array(values), Some(nested_type)) => {
+        (Value::Array(values), MetaType::InputObject(nested_type)) => {
             let values = values
                 .into_iter()
                 .map(|value| match value {

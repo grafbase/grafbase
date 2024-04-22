@@ -1,13 +1,13 @@
 use common_types::auth::Operations;
-use engine::registry::{
+use inflector::Inflector;
+use postgres_connector_types::database_definition::TableWalker;
+use registry_v1::{
     resolvers::{
         postgres::{Operation, PostgresResolver},
         Resolver,
     },
     MetaField, MetaInputValue,
 };
-use inflector::Inflector;
-use postgres_connector_types::database_definition::TableWalker;
 
 use crate::registry::context::{InputContext, OutputContext};
 

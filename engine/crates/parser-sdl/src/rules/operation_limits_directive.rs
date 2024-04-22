@@ -1,6 +1,6 @@
-use engine::registry::OperationLimits;
 use engine_parser::types::SchemaDefinition;
 use itertools::Itertools;
+use registry_v2::OperationLimits;
 
 use super::{
     directive::Directive,

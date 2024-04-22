@@ -1,3 +1,5 @@
+use engine::registry::RegistrySdlExt;
+
 use crate::{
     config::{build_config, Config},
     errors::ServerError,

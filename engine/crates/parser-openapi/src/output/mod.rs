@@ -7,17 +7,16 @@ use std::borrow::Cow;
 use engine::{
     indexmap::IndexMap,
     registry::{
-        resolvers::{
-            http::{self, HttpResolver},
-            transformer::Transformer,
-            Resolver,
-        },
-        variables::VariableResolveDefinition,
-        EnumType, InputObjectType, InputValueType, MetaEnumValue, MetaField, MetaInputValue, MetaType, ObjectType,
-        Registry, UnionType,
+        resolvers::Resolver, EnumType, InputObjectType, InputValueType, MetaEnumValue, MetaField, MetaInputValue,
+        MetaType, ObjectType, Registry, UnionType,
     },
 };
 use inflector::Inflector;
+use registry_v2::resolvers::{
+    http::{self, HttpResolver},
+    transformer::Transformer,
+    variable_resolve_definition::VariableResolveDefinition,
+};
 
 use self::namespacing::RegistryExt;
 use crate::graph::{
@@ -101,7 +100,6 @@ impl IntoMetaType for OutputType {
                     .into_iter()
                     .filter_map(|ty| ty.name(graph))
                     .collect(),
-                visible: None,
                 rust_typename: name,
                 discriminators: Some(self.discriminators(graph)),
             })),
@@ -309,14 +307,12 @@ impl Operation {
             expected_status: self.expected_status(graph)?,
             path_parameters,
             query_parameters,
-            request_body: self
-                .request_body(graph)
-                .map(|request_body| engine::registry::resolvers::http::RequestBody {
-                    variable_resolve_definition: VariableResolveDefinition::connector_input_type_name(
-                        request_body.argument_name().to_owned(),
-                    ),
-                    content_type: request_body.content_type(graph).clone(),
-                }),
+            request_body: self.request_body(graph).map(|request_body| http::RequestBody {
+                variable_resolve_definition: VariableResolveDefinition::connector_input_type_name(
+                    request_body.argument_name().to_owned(),
+                ),
+                content_type: request_body.content_type(graph).clone(),
+            }),
         })))
     }
 }
