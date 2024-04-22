@@ -59,11 +59,7 @@ impl TypeWrappers {
         }
     }
 
-    pub(crate) fn write_type_string(
-        self,
-        name: &str,
-        mut formatter: &mut std::fmt::Formatter<'_>,
-    ) -> Result<(), std::fmt::Error> {
+    pub fn write_type_string(self, name: &str, mut formatter: &mut dyn std::fmt::Write) -> Result<(), std::fmt::Error> {
         let wrappers = self.iter().collect::<Vec<_>>();
 
         for wrapping in &wrappers {
