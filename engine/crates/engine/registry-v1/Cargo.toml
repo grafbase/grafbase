@@ -1,0 +1,19 @@
+[package]
+name = "registry-v1"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+common-types.workspace = true
+derivative = "2"
+engine-value.workspace = true
+gateway-v2-auth-config.workspace = true
+indexmap.workspace = true
+indoc = "2"
+postgres-connector-types.workspace = true
+registry-v2.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_with = { workspace = true, features = ["base64", "hex"] }

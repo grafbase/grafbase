@@ -6115,6 +6115,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adad44e29e4c806119491a7f06f03de4d1af22c3a680dd47f1e6e179439d1f56"
 
 [[package]]
+name = "registry-v1"
+version = "0.1.0"
+dependencies = [
+ "common-types",
+ "derivative",
+ "engine-value",
+ "gateway-v2-auth-config",
+ "indexmap 2.2.6",
+ "indoc",
+ "postgres-connector-types",
+ "registry-v2",
+ "serde",
+ "serde_json",
+ "serde_with",
+]
+
+[[package]]
 name = "registry-v2"
 version = "0.1.0"
 dependencies = [
