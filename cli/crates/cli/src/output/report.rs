@@ -4,11 +4,16 @@ use crate::{
     logs::LogEvent,
     watercolor::{self, watercolor},
 };
-use backend::types::{NestedRequestScopedMessage, RequestCompletedOutcome};
+use backend::{
+    api::branch::Branch,
+    types::{NestedRequestScopedMessage, RequestCompletedOutcome},
+};
+use chrono::Utc;
 use colored::Colorize;
 use common::types::{LogLevel, UdfKind};
 use common::{consts::GRAFBASE_TS_CONFIG_FILE_NAME, trusted_documents::TrustedDocumentsManifest};
 use common::{consts::LOCALHOST, environment::Warning};
+use prettytable::{format::TableFormat, row, Table};
 use std::{net::IpAddr, path::Path};
 
 /// reports to stdout that the server has started
@@ -297,6 +302,23 @@ fn log_nested_events(nested_events: Vec<NestedRequestScopedMessage>, log_level_f
     }
 }
 
+pub fn format_long_duration(duration: std::time::Duration) -> String {
+    let days = duration.as_secs() / 60 / 60 / 24;
+    let hours = duration.as_secs() / 60 / 60 - (days * 24);
+    let minutes = duration.as_secs() / 60 - (hours * 60);
+    let seconds = duration.as_secs() - (minutes * 60);
+
+    if days > 0 {
+        format!("{days}d {hours}h")
+    } else if hours > 0 {
+        format!("{hours}h {minutes}m")
+    } else if minutes > 0 {
+        format!("{minutes}m {seconds}s")
+    } else {
+        format!("{seconds}s")
+    }
+}
+
 pub fn format_duration(duration: std::time::Duration) -> String {
     [
         ("ns", duration.as_nanos()),
@@ -376,25 +398,46 @@ pub fn unlinked() {
     watercolor::output!("✨ Successfully unlinked your project!", @BrightBlue);
 }
 
-pub(crate) fn listing_branches() {
-    println!("⏳ Fetching graph branches...");
-}
-
-pub fn list_branches(branches: &[(String, bool)]) {
+pub fn list_branches(branches: Vec<Branch>) {
     if branches.is_empty() {
         watercolor::output!("⚠️  Found no branches.", @BrightYellow);
         return;
     }
 
-    watercolor::output!("✨ Branches for the graph:", @BrightBlue);
+    let mut table = Table::new();
+    let mut format = TableFormat::new();
 
-    for (branch, is_production) in branches {
-        if *is_production {
-            watercolor::output!("- {branch} (production)", @BrightYellow);
+    format.padding(0, 4);
+    table.set_format(format);
+
+    table.add_row(row!["BRANCH", "GRAPH", "ACCOUNT", "LATEST DEPLOY", "STATUS",]);
+
+    for branch in branches {
+        let now = Utc::now();
+
+        let last_updated = branch
+            .last_updated
+            .map(|updated| (now - updated).to_std().unwrap_or_default())
+            .map(format_long_duration)
+            .map(|d| format!("{d} ago"))
+            .unwrap_or_default();
+
+        let branch_name = if branch.is_production {
+            format!("{}*", branch.branch)
         } else {
-            watercolor::output!("- {branch}", @BrightBlue);
-        }
+            branch.branch
+        };
+
+        table.add_row(row![
+            branch_name,
+            branch.graph,
+            branch.account,
+            last_updated,
+            branch.status.unwrap_or_default(),
+        ]);
     }
+
+    table.printstd();
 }
 
 pub fn create_success(name: &str, urls: &[String]) {

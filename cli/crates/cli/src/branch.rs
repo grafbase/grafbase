@@ -17,10 +17,8 @@ pub async fn delete(branch_ref: BranchRef) -> Result<(), CliError> {
 
 #[tokio::main]
 pub async fn list() -> Result<(), CliError> {
-    report::listing_branches();
-
     let branches = branch::list().await.map_err(CliError::BackendApiError)?;
-    report::list_branches(branches.as_slice());
+    report::list_branches(branches);
 
     Ok(())
 }

@@ -59,6 +59,7 @@ grafbase-graphql-introspection.workspace = true
 graphql-lint.workspace = true
 graph-ref = { path = "../../../graph-ref" }
 server = { package = "grafbase-local-server", path = "../server", version = "0.70.0" }
+prettytable = { version = "0.10.0", default-features = false, features = ["win_crlf"] }
 
 [dev-dependencies]
 async-graphql-axum.workspace = true

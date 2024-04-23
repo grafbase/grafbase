@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use common::{consts::PROJECT_METADATA_FILE, environment::Project};
 use cynic::{http::ReqwestExt, MutationBuilder, QueryBuilder};
 use tokio::fs::read_to_string;
@@ -12,6 +13,15 @@ use super::{
     },
     types::ProjectMetadata,
 };
+
+pub struct Branch {
+    pub account: String,
+    pub graph: String,
+    pub branch: String,
+    pub is_production: bool,
+    pub last_updated: Option<DateTime<Utc>>,
+    pub status: Option<String>,
+}
 
 /// # Errors
 ///
@@ -44,7 +54,7 @@ pub async fn delete(account_slug: &str, project_slug: &str, branch_name: &str) -
     }
 }
 
-pub async fn list() -> Result<Vec<(String, bool)>, ApiError> {
+pub async fn list() -> Result<Vec<Branch>, ApiError> {
     let project = Project::get();
 
     let project_metadata_file_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
@@ -71,17 +81,26 @@ pub async fn list() -> Result<Vec<(String, bool)>, ApiError> {
 
     match (data.and_then(|d| d.node), errors) {
         (Some(Node::Project(project)), _) => {
-            let project_ref = format!("{}/{}", project.account_slug, project.slug);
-
             let branches = project
                 .branches
                 .edges
                 .into_iter()
                 .map(|edge| {
-                    (
-                        format!("{}@{}", project_ref, edge.node.name),
-                        edge.node.name == project.production_branch.name,
-                    )
+                    let is_production = edge.node.name == project.production_branch.name;
+
+                    let (last_updated, status) = match edge.node.latest_deployment {
+                        Some(deployment) => (Some(deployment.created_at), Some(deployment.status.to_string())),
+                        None => (None, None),
+                    };
+
+                    Branch {
+                        account: project.account_slug.clone(),
+                        graph: project.slug.clone(),
+                        branch: edge.node.name,
+                        is_production,
+                        last_updated,
+                        status,
+                    }
                 })
                 .collect();
 

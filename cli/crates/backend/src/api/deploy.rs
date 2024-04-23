@@ -5,11 +5,12 @@ use super::graphql::mutations::{
     ArchiveFileSizeLimitExceededError, DailyDeploymentCountLimitExceededError, DeploymentCreate,
     DeploymentCreateArguments, DeploymentCreateInput, DeploymentCreatePayload,
 };
+use super::graphql::queries::deployment_poll::{Deployment, DeploymentLogs, DeploymentLogsArguments, Node};
 use super::types::ProjectMetadata;
 use common::consts::{PROJECT_METADATA_FILE, USER_AGENT};
 use common::environment::Project;
 use cynic::http::ReqwestExt;
-use cynic::{Id, MutationBuilder};
+use cynic::{Id, MutationBuilder, QueryBuilder};
 use ignore::DirEntry;
 use reqwest::{header, Body, Client};
 use std::ffi::OsStr;
@@ -22,7 +23,7 @@ const ENTRY_BLACKLIST: [&str; 2] = ["node_modules", ".env"];
 /// # Errors
 ///
 /// See [`ApiError`]
-pub async fn deploy(branch: Option<&str>) -> Result<(), ApiError> {
+pub async fn deploy(branch: Option<&str>) -> Result<cynic::Id, ApiError> {
     let project = Project::get();
 
     let project_metadata_file_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
@@ -127,7 +128,7 @@ pub async fn deploy(branch: Option<&str>) -> Result<(), ApiError> {
                 return Err(ApiError::UploadError);
             }
 
-            Ok(())
+            Ok(payload.deployment.id)
         }
         DeploymentCreatePayload::ProjectDoesNotExistError(_) => Err(DeployError::ProjectDoesNotExist.into()),
         DeploymentCreatePayload::ArchiveFileSizeLimitExceededError(ArchiveFileSizeLimitExceededError {
@@ -138,6 +139,19 @@ pub async fn deploy(branch: Option<&str>) -> Result<(), ApiError> {
             ..
         }) => Err(DeployError::DailyDeploymentCountLimitExceeded { limit }.into()),
         DeploymentCreatePayload::Unknown(error) => Err(DeployError::Unknown(error).into()),
+    }
+}
+
+pub async fn fetch_logs(deployment_id: cynic::Id) -> Result<Deployment, ApiError> {
+    let operation = DeploymentLogs::build(DeploymentLogsArguments { deployment_id });
+    let client = create_client().await?;
+
+    let cynic::GraphQlResponse { data, errors } = client.post(api_url()).run_graphql(operation).await?;
+
+    if let Some(Node::Deployment(deployment)) = data.and_then(|d| d.node) {
+        Ok(deployment)
+    } else {
+        Err(ApiError::RequestError(format!("{errors:#?}")))
     }
 }
 

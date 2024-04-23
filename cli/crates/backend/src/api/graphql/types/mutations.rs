@@ -197,6 +197,12 @@ pub struct DeploymentCreate {
 pub struct DeploymentCreateSuccess {
     pub __typename: String,
     pub presigned_url: String,
+    pub deployment: Deployment,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct Deployment {
+    pub id: cynic::Id,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
