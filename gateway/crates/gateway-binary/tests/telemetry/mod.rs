@@ -200,7 +200,7 @@ fn with_otel_reload_tracing() {
         { __typename }
     "#};
 
-    with_hybrid_server(config, "test_graph", &schema, |client, uplink_mock| async move {
+    with_hybrid_server(config, "test_graph", &schema, |client, gdn_mock| async move {
         let result: serde_json::Value = client.gql(query).send().await;
         serde_json::to_string_pretty(&result).unwrap();
 
@@ -228,9 +228,9 @@ fn with_otel_reload_tracing() {
                 "#,
             )
             .bind(&service_name)
-            .bind(&uplink_mock.branch)
-            .bind(uplink_mock.branch_id.0.to_string())
-            .bind(uplink_mock.graph_id.0.to_string())
+            .bind(&gdn_mock.branch)
+            .bind(gdn_mock.branch_id.0.to_string())
+            .bind(gdn_mock.graph_id.0.to_string())
             .fetch_one::<CountRow>()
             .await
             .unwrap();

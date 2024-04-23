@@ -7,7 +7,7 @@
 pub use crate::config::{Config, TelemetryConfig};
 pub use error::Error;
 #[cfg(not(feature = "lambda"))]
-pub use server::UplinkResponse;
+pub use server::GdnResponse;
 pub use server::{GraphFetchMethod, OtelReload, OtelTracing};
 
 mod config;

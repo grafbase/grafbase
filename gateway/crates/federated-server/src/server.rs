@@ -11,7 +11,7 @@ mod trusted_documents_client;
 
 use grafbase_tracing::metrics::HasGraphqlErrors;
 #[cfg(not(feature = "lambda"))]
-pub use graph_updater::UplinkResponse;
+pub use graph_updater::GdnResponse;
 
 pub use graph_fetch_method::GraphFetchMethod;
 pub use otel::{OtelReload, OtelTracing};

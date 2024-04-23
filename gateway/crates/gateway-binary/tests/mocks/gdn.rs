@@ -3,21 +3,21 @@ use std::str::FromStr;
 
 use ulid::Ulid;
 
-use federated_server::UplinkResponse;
+use federated_server::GdnResponse;
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub(crate) struct UplinkResponseMock(UplinkResponse);
-impl Deref for UplinkResponseMock {
-    type Target = UplinkResponse;
+pub(crate) struct GdnResponseMock(GdnResponse);
+impl Deref for GdnResponseMock {
+    type Target = GdnResponse;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl UplinkResponseMock {
-    pub(crate) fn mock(sdl: &str) -> UplinkResponseMock {
-        UplinkResponseMock(UplinkResponse {
+impl GdnResponseMock {
+    pub(crate) fn mock(sdl: &str) -> GdnResponseMock {
+        GdnResponseMock(GdnResponse {
             account_id: Ulid::from_str("01HR7NP3A4NDVWC10PZW6ZMC5P").unwrap(),
             graph_id: Ulid::from_str("01HR7NPB8E3YW29S5PPSY1AQKR").unwrap(),
             branch: "main".to_string(),
