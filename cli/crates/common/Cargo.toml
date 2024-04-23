@@ -24,6 +24,7 @@ strum = { version = "0.26", features = ["derive"] }
 thiserror = "1"
 tokio.workspace = true
 ulid = { version = "1", features = ["serde"] }
+which.workspace = true
 
 common-types = { path = "../../../engine/crates/common-types" }
 
