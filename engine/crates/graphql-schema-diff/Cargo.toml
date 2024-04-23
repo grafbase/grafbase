@@ -19,7 +19,7 @@ default = ["serde"]
 workspace = true
 
 [dev-dependencies]
-datatest-stable = "0.2.6"
+datatest-stable = "0.2.7"
 similar = "2"
 miette = { version = "7.2.0", features = ["fancy"] }
 serde_json.workspace = true

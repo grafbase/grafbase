@@ -24,9 +24,9 @@ reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 runtime.workspace = true
 runtime-local.workspace = true
 runtime-noop.workspace = true
-serde = "1.0.197"
+serde = "1.0.198"
 serde_json.workspace = true
-thiserror = "1.0.58"
+thiserror = "1.0.59"
 tracing.workspace = true
 tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }
 tokio-stream = { version = "0.1", features = ["sync"] }

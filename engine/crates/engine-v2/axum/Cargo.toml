@@ -14,7 +14,7 @@ version = "3.0.31"
 workspace = true
 
 [dependencies]
-async-trait = { version = "0.1.77" }
+async-trait = { version = "0.1.80" }
 axum = { workspace = true, features = ["ws"] }
 engine-v2.workspace = true
 futures-util.workspace = true
