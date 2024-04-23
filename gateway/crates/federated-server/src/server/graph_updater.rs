@@ -15,7 +15,7 @@ use url::Url;
 const TICK_INTERVAL: Duration = Duration::from_secs(10);
 
 /// How long we wait for a response from the schema registry.
-const UPLINK_TIMEOUT: Duration = Duration::from_secs(10);
+const GDN_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// How long we wait until a connection is successfully opened.
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -33,12 +33,12 @@ const KEEPALIVE_WHILE_IDLE: bool = true;
 const USER_AGENT: &str = "grafbase-cli";
 
 /// The CDN host we load the graphs from.
-const UPLINK_HOST: &str = "https://gdn.grafbase.com";
+const GDN_HOST: &str = "https://gdn.grafbase.com";
 
 /// An updater thread for polling graph changes from the API.
 pub(super) struct GraphUpdater {
-    uplink_url: Url,
-    uplink_client: reqwest::Client,
+    gdn_url: Url,
+    gdn_client: reqwest::Client,
     access_token: AsciiString,
     sender: GatewaySender,
     current_id: Option<Ulid>,
@@ -49,7 +49,7 @@ pub(super) struct GraphUpdater {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[allow(dead_code)]
 /// Response from the API containing graph information
-pub struct UplinkResponse {
+pub struct GdnResponse {
     /// Account id of the owner of the referenced graph
     pub account_id: Ulid,
     /// The id of the graph
@@ -73,8 +73,8 @@ impl GraphUpdater {
         gateway_config: GatewayConfig,
         otel_reload: Option<oneshot::Sender<OtelReload>>,
     ) -> crate::Result<Self> {
-        let uplink_client = reqwest::ClientBuilder::new()
-            .timeout(UPLINK_TIMEOUT)
+        let gdn_client = reqwest::ClientBuilder::new()
+            .timeout(GDN_TIMEOUT)
             .connect_timeout(CONNECT_TIMEOUT)
             .http2_keep_alive_interval(Some(KEEPALIVE_INTERVAL))
             .http2_keep_alive_timeout(KEEPALIVE_TIMEOUT)
@@ -83,23 +83,23 @@ impl GraphUpdater {
             .build()
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
-        let uplink_host = match std::env::var("GRAFBASE_GDN_URL") {
+        let gdn_host = match std::env::var("GRAFBASE_GDN_URL") {
             Ok(host) => Cow::Owned(host),
-            Err(_) => Cow::Borrowed(UPLINK_HOST),
+            Err(_) => Cow::Borrowed(GDN_HOST),
         };
 
-        let uplink_url = match branch {
-            Some(branch) => format!("{uplink_host}/graphs/{graph_ref}/{branch}/current"),
-            None => format!("{uplink_host}/graphs/{graph_ref}/current"),
+        let gdn_url = match branch {
+            Some(branch) => format!("{gdn_host}/graphs/{graph_ref}/{branch}/current"),
+            None => format!("{gdn_host}/graphs/{graph_ref}/current"),
         };
 
-        let uplink_url = uplink_url
+        let gdn_url = gdn_url
             .parse::<Url>()
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
         Ok(Self {
-            uplink_url,
-            uplink_client,
+            gdn_url,
+            gdn_client,
             access_token,
             sender,
             current_id: None,
@@ -126,8 +126,8 @@ impl GraphUpdater {
             interval.tick().await;
 
             let mut request = self
-                .uplink_client
-                .get(self.uplink_url.as_str())
+                .gdn_client
+                .get(self.gdn_url.as_str())
                 .bearer_auth(&self.access_token);
 
             if let Some(id) = self.current_id {
@@ -164,7 +164,7 @@ impl GraphUpdater {
                 continue;
             }
 
-            let response: UplinkResponse = match response.json().await {
+            let response: GdnResponse = match response.json().await {
                 Ok(response) => response,
                 Err(e) => {
                     tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());

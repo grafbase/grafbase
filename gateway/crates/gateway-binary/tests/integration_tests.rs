@@ -13,7 +13,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use crate::mocks::uplink::UplinkResponseMock;
+use crate::mocks::gdn::GdnResponseMock;
 use duct::{cmd, Handle};
 use futures_util::{Future, FutureExt};
 use http::{HeaderMap, StatusCode};
@@ -328,7 +328,7 @@ fn with_static_server<F, T>(
 
 fn with_hybrid_server<F, T>(config: &str, graph_ref: &str, sdl: &str, test: T)
 where
-    T: FnOnce(Arc<Client>, UplinkResponseMock) -> F,
+    T: FnOnce(Arc<Client>, GdnResponseMock) -> F,
     F: Future<Output = ()>,
 {
     let temp_dir = tempdir().unwrap();
@@ -338,10 +338,10 @@ where
 
     let addr = listen_address();
 
-    let uplink_response = UplinkResponseMock::mock(sdl);
+    let gdn_response = GdnResponseMock::mock(sdl);
 
     let res = runtime().block_on(async {
-        let response = ResponseTemplate::new(200).set_body_string(uplink_response.as_json().to_string());
+        let response = ResponseTemplate::new(200).set_body_string(gdn_response.as_json().to_string());
         let server = wiremock::MockServer::start().await;
 
         Mock::given(method("GET"))
@@ -370,7 +370,7 @@ where
 
         client.poll_endpoint(30, 300).await;
 
-        let res = AssertUnwindSafe(test(client.clone(), uplink_response))
+        let res = AssertUnwindSafe(test(client.clone(), gdn_response))
             .catch_unwind()
             .await;
 
