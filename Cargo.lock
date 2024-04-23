@@ -5292,6 +5292,7 @@ dependencies = [
  "assert_matches",
  "engine",
  "engine-value",
+ "graphql-schema-validation",
  "indexmap 2.2.6",
  "insta",
  "itertools 0.12.1",

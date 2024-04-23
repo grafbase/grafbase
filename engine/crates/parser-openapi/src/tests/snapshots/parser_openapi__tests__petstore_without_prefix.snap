@@ -1,5 +1,5 @@
 ---
-source: crates/parser-openapi/src/tests/mod.rs
+source: engine/crates/parser-openapi/src/tests/mod.rs
 expression: registry.export_sdl(false)
 ---
 type ApiResponse {
@@ -24,8 +24,8 @@ type Mutation {
 	updatePet(input: PetInput!): Pet
 	addPet(input: PetInput!): Pet
 	uploadFile(petId: Int!, additionalMetadata: String): ApiResponse
-	placeOrder(input: OrderInput!): Order
-	createUsersWithListInput(input: [UserInput!]!): User
+	placeOrder(input: OrderInput): Order
+	createUsersWithListInput(input: [UserInput!]): User
 }
 type Order {
 	complete: Boolean
@@ -58,9 +58,9 @@ type Pet {
 }
 input PetInput {
 	status: PetStatus
-	tags: [TagInput!]!
+	tags: [TagInput!]
 	photoUrls: [String!]!
-	category: CategoryInput!
+	category: CategoryInput
 	name: String!
 	id: Int
 }
@@ -110,4 +110,3 @@ schema {
 	query: Query
 	mutation: Mutation
 }
-

@@ -6,6 +6,7 @@ use super::{Edge, Node, WrappingType};
 
 /// Stores details about the parent of a graph node we're currently constructing,
 /// so we can insert the correct edge to each of its children
+#[derive(Debug)]
 pub enum ParentNode {
     Schema(NodeIndex),
     OperationRequest {

@@ -39,9 +39,12 @@ impl InputValue {
                     unreachable!()
                 };
 
-                // The HasType edge can introduce more wrapping so we need to make sure to account
+                // The HasType edge can introduce list wrapping so we need to make sure to account
                 // for that.
-                let wrapping = wrapping.wrap_with(edge_wrapping.clone());
+                let wrapping = match edge_wrapping {
+                    WrappingType::List(_) => wrapping.wrap_required().wrap_with(edge_wrapping.clone()),
+                    WrappingType::NonNull(_) | WrappingType::Named => wrapping,
+                };
 
                 let inner_index = type_edge.target();
 

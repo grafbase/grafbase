@@ -1,0 +1,121 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Test that we deal with requiredness properly with a cycle",
+    "version": "1.0"
+  },
+  "paths": {
+    "/homepage": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegoUnit"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/legos": {
+      "post": {
+        "tags": [
+          "legos"
+        ],
+        "summary": "Find all the legos.",
+        "description": "all of them",
+        "operationId": "postLegos",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegoUnit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_Password": [
+              "basic"
+            ]
+          },
+          {
+            "oauth2_client_credentials": [
+              "extended"
+            ]
+          }
+        ]
+      }
+    }    
+  },
+  "components": {
+    "schemas": {
+      "LegoUnitNode": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identifier of the lego unit represented by the node",
+            "example": "square"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the legounit represented by the node",
+            "example": "Square tile"
+          }
+        }
+      },
+      "LegoUnit": {
+        "required": [
+          "uid"
+        ],
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "description": "Boolean flag of whether a lego unit is active",
+            "example": true
+          },
+          "uid": {
+            "type": "string",
+            "description": "Identifier of the lego unit",
+            "example": "21498"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the lego unit",
+            "example": "Square tile"
+          },
+          "parentOrgUnit": {
+            "$ref": "#/components/schemas/LegoUnit"
+          }
+        }
+      }
+    }
+  }
+}

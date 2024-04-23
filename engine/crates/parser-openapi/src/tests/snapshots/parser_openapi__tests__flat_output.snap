@@ -1,13 +1,13 @@
 ---
-source: common/parser-openapi/src/lib.rs
+source: engine/crates/parser-openapi/src/tests/mod.rs
 expression: registry.export_sdl(false)
 ---
 type Mutation {
 	updatePet(input: PetstorePetInput!): PetstorePet
 	addPet(input: PetstorePetInput!): PetstorePet
 	uploadFile(petId: Int!, additionalMetadata: String): PetstoreApiResponse
-	placeOrder(input: PetstoreOrderInput!): PetstoreOrder
-	createUsersWithListInput(input: [PetstoreUserInput!]!): PetstoreUser
+	placeOrder(input: PetstoreOrderInput): PetstoreOrder
+	createUsersWithListInput(input: [PetstoreUserInput!]): PetstoreUser
 }
 type PetstoreApiResponse {
 	message: String
@@ -58,9 +58,9 @@ type PetstorePet {
 }
 input PetstorePetInput {
 	status: PetstorePetStatus
-	tags: [PetstoreTagInput!]!
+	tags: [PetstoreTagInput!]
 	photoUrls: [String!]!
-	category: PetstoreCategoryInput!
+	category: PetstoreCategoryInput
 	name: String!
 	id: Int
 }
@@ -110,4 +110,3 @@ schema {
 	query: Query
 	mutation: Mutation
 }
-

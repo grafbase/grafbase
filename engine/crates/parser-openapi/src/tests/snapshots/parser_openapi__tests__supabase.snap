@@ -1,6 +1,6 @@
 ---
-source: common/parser-openapi/src/lib.rs
-expression: "build_registry(\"test_data/supabase.json\", Format::Json,\n            metadata(Some(\"supabase\"))).unwrap().export_sdl(false)"
+source: engine/crates/parser-openapi/src/tests/mod.rs
+expression: "build_registry(\"test_data/supabase.json\", Format::Json,\n            metadata(\"supabase\", true)).unwrap().export_sdl(false)"
 ---
 type Mutation {
 	supabase: SupabaseMutation!
@@ -59,7 +59,7 @@ enum SupabaseCreateProjectBodyRegion {
 	SA_EAST_1
 }
 input SupabaseCreateProviderBodyInput {
-	attributeMapping: SupabaseAttributeMappingInput!
+	attributeMapping: SupabaseAttributeMappingInput
 	domains: [String!]
 	metadataUrl: String
 	metadataXml: String
@@ -416,7 +416,7 @@ input SupabaseUpdatePostgrestConfigBodyInput {
 	maxRows: Int
 }
 input SupabaseUpdateProviderBodyInput {
-	attributeMapping: SupabaseAttributeMappingInput!
+	attributeMapping: SupabaseAttributeMappingInput
 	domains: [String!]
 	metadataUrl: String
 	metadataXml: String
@@ -444,4 +444,3 @@ schema {
 	query: Query
 	mutation: Mutation
 }
-

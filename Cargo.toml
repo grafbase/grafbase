@@ -136,6 +136,7 @@ tracing-futures = "0.2"
 
 # Common
 graph-ref = { path = "graph-ref" }
+graphql-schema-validation = { path = "./engine/crates/validation" }
 grafbase-graphql-introspection = { path = "graphql-introspection" }
 graphql-lint = { path = "graphql-lint" }
 

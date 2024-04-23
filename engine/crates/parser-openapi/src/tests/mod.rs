@@ -238,6 +238,24 @@ fn test_stripe_discrimnator_detection() {
     insta::assert_json_snapshot!(discriminators);
 }
 
+#[test]
+fn non_required_self_referencing_objects_produce_valid_sdl() {
+    let registry = build_registry(
+        "test_data/self_referencing.openapi.json",
+        Format::Json,
+        metadata("self-referential", true),
+    )
+    .unwrap();
+    let sdl = registry.export_sdl(false);
+    let diagnostics = graphql_schema_validation::validate(&sdl);
+
+    assert!(
+        !diagnostics.has_errors(),
+        "{:?}",
+        diagnostics.iter().collect::<Vec<_>>()
+    );
+}
+
 fn build_registry(schema_path: &str, format: Format, metadata: ApiMetadata) -> Result<Registry, Vec<Error>> {
     let mut registry = Registry::new();
 

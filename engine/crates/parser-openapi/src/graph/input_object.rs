@@ -13,6 +13,7 @@ pub struct InputObject {
     one_of: bool,
 }
 
+#[derive(Debug)]
 pub struct InputField<'a> {
     pub value_type: InputValue,
     pub name: FieldName<'a>,

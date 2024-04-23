@@ -533,6 +533,7 @@ impl Node {
     }
 }
 
+#[derive(Debug)]
 pub struct FieldName<'a>(Cow<'a, str>);
 
 impl<'a> std::fmt::Display for FieldName<'a> {

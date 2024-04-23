@@ -40,6 +40,7 @@ parser-sdl = { path = "../parser-sdl" }
 
 [dev-dependencies]
 assert_matches = "1.5"
+graphql-schema-validation.workspace = true
 insta.workspace = true
 more-asserts = "0.3"
 rstest = "0.19"

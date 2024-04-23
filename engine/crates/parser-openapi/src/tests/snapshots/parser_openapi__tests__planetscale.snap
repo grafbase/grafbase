@@ -1,6 +1,6 @@
 ---
-source: common/parser-openapi/src/lib.rs
-expression: "build_registry(\"test_data/planetscale.json\", Format::Json,\n            ApiMetadata {\n                url: None,\n                ..metadata(\"planetscale\")\n            }).unwrap().export_sdl(false)"
+source: engine/crates/parser-openapi/src/tests/mod.rs
+expression: "build_registry(\"test_data/planetscale.json\", Format::Json,\n            ApiMetadata {\n                url: None,\n                ..metadata(\"planetscale\", true)\n            }).unwrap().export_sdl(false)"
 ---
 type Mutation {
 	planetscale: PlanetscaleMutation!
@@ -2387,4 +2387,3 @@ schema {
 	query: Query
 	mutation: Mutation
 }
-

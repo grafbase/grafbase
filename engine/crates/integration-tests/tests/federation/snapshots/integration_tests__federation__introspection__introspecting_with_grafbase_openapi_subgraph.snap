@@ -28,8 +28,8 @@ scalar JSON
 
 type Mutation {
   addPet(input: PetInput!): Pet
-  createUsersWithListInput(input: [UserInput!]!): User
-  placeOrder(input: OrderInput!): Order
+  createUsersWithListInput(input: [UserInput!]): User
+  placeOrder(input: OrderInput): Order
   updatePet(input: PetInput!): Pet
   uploadFile(petId: Int!, additionalMetadata: String): ApiResponse
 }
@@ -71,9 +71,9 @@ input PetInput {
   name: String!
   id: Int
   status: PetStatus
-  tags: [TagInput!]!
+  tags: [TagInput!]
   photoUrls: [String!]!
-  category: CategoryInput!
+  category: CategoryInput
 }
 
 enum PetStatus {
