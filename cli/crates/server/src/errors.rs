@@ -201,6 +201,9 @@ pub enum UdfBuildError {
 
     #[error("bun encountered an error: \n{output}")]
     BunBuildFailed { output: String },
+
+    #[error(transparent)]
+    BunNotFound(#[from] common::errors::BunNotFound),
 }
 
 impl IntoResponse for ServerError {

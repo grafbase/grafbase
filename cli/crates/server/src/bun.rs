@@ -7,8 +7,7 @@ use reqwest::Client;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::atomic::Ordering;
-use std::sync::Arc;
+use std::sync::{atomic::Ordering, Arc};
 use thiserror::Error;
 use tokio::process::Command;
 use tokio::task::JoinError;
@@ -67,6 +66,9 @@ pub enum BunError {
 
     #[error("could not set permissions for the bun executable")]
     SetBunExecutablePermissions,
+
+    #[error(transparent)]
+    BunNotFound(#[from] common::errors::BunNotFound),
 }
 
 impl From<JoinError> for BunError {
@@ -162,6 +164,11 @@ pub(crate) async fn install_bun() -> Result<(), BunError> {
         return Ok(());
     }
 
+    if common::environment::is_nixos() {
+        BUN_INSTALLED_FOR_SESSION.store(true, Ordering::Relaxed);
+        return Ok(());
+    }
+
     let environment = Environment::get();
     let lock_file_path = environment.user_dot_grafbase_path.join(BUN_INSTALL_LOCK_FILE);
     let mut lock_file = tokio::task::spawn_blocking(move || {
@@ -172,7 +179,7 @@ pub(crate) async fn install_bun() -> Result<(), BunError> {
     .await?
     .map_err(BunError::Lock)?;
 
-    if let Some(installed_bun_version_string) = installed_bun_version(&environment.bun_executable_path).await {
+    if let Some(installed_bun_version_string) = installed_bun_version(&environment.bun_executable_path()?).await {
         trace!("Installed bun version (grafbase): {installed_bun_version_string}");
         if installed_bun_version_string == BUN_VERSION {
             trace!("bun of the desired version already installed, skipping…");
@@ -191,15 +198,18 @@ pub(crate) async fn install_bun() -> Result<(), BunError> {
                 tokio::fs::create_dir_all(&environment.bun_installation_path)
                     .await
                     .map_err(|_| BunError::CreateDir(environment.bun_installation_path.clone()))?;
-                if environment.bun_executable_path.exists() {
-                    tokio::fs::remove_file(&environment.bun_executable_path)
+
+                let bun_executable_path = environment.bun_executable_path()?;
+
+                if bun_executable_path.exists() {
+                    tokio::fs::remove_file(&bun_executable_path)
                         .await
                         .map_err(Arc::new)
                         .map_err(BunError::RemoveStaleBunVersion)?;
                 }
                 // if we can't hard link the system version (can happen due to being on a different volume)
                 // continue to a normal download
-                if tokio::fs::hard_link(system_bun_path, &environment.bun_executable_path)
+                if tokio::fs::hard_link(system_bun_path, &bun_executable_path)
                     .await
                     .is_ok()
                 {
@@ -230,8 +240,10 @@ async fn download_bun(environment: &Environment) -> Result<(), BunError> {
         .await
         .map_err(|_| BunError::CreateDir(environment.bun_installation_path.clone()))?;
 
-    if environment.bun_executable_path.exists() {
-        tokio::fs::remove_file(&environment.bun_executable_path)
+    let bun_executable_path = environment.bun_executable_path()?;
+
+    if bun_executable_path.exists() {
+        tokio::fs::remove_file(&bun_executable_path)
             .await
             .map_err(Arc::new)
             .map_err(BunError::RemoveStaleBunVersion)?;
@@ -267,8 +279,6 @@ async fn download_bun(environment: &Environment) -> Result<(), BunError> {
     decompressed_file.sync_all().await.map_err(|_| BunError::DownloadBun)?;
 
     tokio::task::spawn_blocking(move || {
-        let environment = Environment::get();
-
         let decompressed_file = std::fs::File::open(&decompressed_file_path)
             .map_err(Arc::new)
             .map_err(BunError::ExtractBunArchive)?;
@@ -277,7 +287,7 @@ async fn download_bun(environment: &Environment) -> Result<(), BunError> {
 
         let mut binary = archive.by_index(BUN_EXECUTABLE_ARCHIVE_FILE_INDEX)?;
 
-        let mut outfile = std::fs::File::create(&environment.bun_executable_path)
+        let mut outfile = std::fs::File::create(&bun_executable_path)
             .map_err(Arc::new)
             .map_err(BunError::ExtractBunArchive)?;
 
@@ -290,7 +300,7 @@ async fn download_bun(environment: &Environment) -> Result<(), BunError> {
             use std::os::unix::fs::PermissionsExt;
 
             std::fs::set_permissions(
-                &environment.bun_executable_path,
+                &bun_executable_path,
                 std::fs::Permissions::from_mode(BUN_EXECUTABLE_PERMISSIONS),
             )
             .map_err(|_| BunError::SetBunExecutablePermissions)?;

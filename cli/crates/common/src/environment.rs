@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use crate::consts::{AUTHORIZERS_DIRECTORY_NAME, GENERATED_SCHEMAS_DIR, GRAFBASE_DIRECTORY_NAME};
+use crate::errors::BunNotFound;
 use crate::types::UdfKind;
 use crate::{
     consts::{
@@ -17,7 +18,7 @@ use std::{
     borrow::Cow,
     env, fs, io,
     path::{Path, PathBuf},
-    sync::OnceLock,
+    sync::{atomic::AtomicBool, OnceLock},
 };
 
 #[derive(Debug)]
@@ -181,12 +182,51 @@ pub struct Environment {
     pub warnings: Vec<Warning>,
     /// the path within `$HOME/.grafbase` where bun gets installed
     pub bun_installation_path: PathBuf,
+}
+
+impl Environment {
     /// the path within `$HOME/.grafbase` where the bun executable is located
-    pub bun_executable_path: PathBuf,
+    pub fn bun_executable_path(&self) -> Result<PathBuf, BunNotFound> {
+        if cfg!(windows) {
+            return Ok(self.bun_installation_path.join("bun.exe"));
+        }
+
+        if is_nixos() {
+            nixos_check_bun_is_available()?;
+            return Ok("bun".into());
+        }
+
+        Ok(self.bun_installation_path.join("bun"))
+    }
 }
 
 /// static singleton for the environment struct
 static ENVIRONMENT: OnceLock<Environment> = OnceLock::new();
+
+fn nixos_check_bun_is_available() -> Result<(), BunNotFound> {
+    static CHECKED: AtomicBool = AtomicBool::new(false);
+
+    if CHECKED.load(std::sync::atomic::Ordering::Relaxed) {
+        return Ok(());
+    }
+
+    if which::which("bun").is_err() {
+        return Err(BunNotFound);
+    }
+
+    Ok(())
+}
+
+/// Returns `true` if we can detect that we are running on NixOS. This is relevant here because downloading binaries from projects will almost never work out the box on NixOS.
+pub fn is_nixos() -> bool {
+    static IS_NIXOS: OnceLock<bool> = OnceLock::new();
+
+    *IS_NIXOS.get_or_init(|| Path::new("/etc/NIXOS").exists())
+}
+
+pub fn system_bun_path() -> Result<PathBuf, which::Error> {
+    which::which("bun")
+}
 
 #[must_use]
 pub fn get_default_user_dot_grafbase_path() -> Option<PathBuf> {
@@ -257,12 +297,6 @@ impl Environment {
 
         let bun_installation_path = user_dot_grafbase_path.join(BUN_DIRECTORY_NAME);
 
-        let bun_executable_path = if cfg!(windows) {
-            bun_installation_path.join("bun.exe")
-        } else {
-            bun_installation_path.join("bun")
-        };
-
         let project = Project::try_init(&mut warnings)?;
 
         ENVIRONMENT
@@ -271,7 +305,6 @@ impl Environment {
                 user_dot_grafbase_path,
                 warnings,
                 bun_installation_path,
-                bun_executable_path,
             })
             .expect("cannot set environment twice");
 
@@ -288,19 +321,12 @@ impl Environment {
 
         let bun_installation_path = user_dot_grafbase_path.join(BUN_DIRECTORY_NAME);
 
-        let bun_executable_path = if cfg!(windows) {
-            bun_installation_path.join("bun.exe")
-        } else {
-            bun_installation_path.join("bun")
-        };
-
         ENVIRONMENT
             .set(Self {
                 project: None,
                 user_dot_grafbase_path,
                 warnings: Vec::new(),
                 bun_installation_path,
-                bun_executable_path,
             })
             .expect("cannot set environment twice");
 

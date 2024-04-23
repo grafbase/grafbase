@@ -2960,6 +2960,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "ulid",
+ "which",
 ]
 
 [[package]]

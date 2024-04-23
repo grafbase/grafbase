@@ -35,4 +35,10 @@ pub enum CommonError {
     RegistryRead(std::path::PathBuf, std::io::Error),
     #[error("could not deserialize to json the contents of '{0}':\nCaused by: {1}")]
     RegistryDeserialization(std::path::PathBuf, serde_json::Error),
+    #[error(transparent)]
+    BunNotFound(#[from] BunNotFound),
 }
+
+#[derive(Debug, thiserror::Error, Clone, Copy)]
+#[error("Could not find a `bun` executable in PATH. Bun is required in order to evaluate your TypeScript configuration. Please install `bun` or run `nix shell nixpkgs#bun`.")]
+pub struct BunNotFound;
