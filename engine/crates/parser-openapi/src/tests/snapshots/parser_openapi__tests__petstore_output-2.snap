@@ -401,7 +401,7 @@ Registry {
                                 name: "input",
                                 description: None,
                                 ty: InputValueType(
-                                    "PetstoreOrderInput!",
+                                    "PetstoreOrderInput",
                                 ),
                                 default_value: None,
                                 is_secret: false,
@@ -447,7 +447,7 @@ Registry {
                                 name: "input",
                                 description: None,
                                 ty: InputValueType(
-                                    "[PetstoreUserInput!]!",
+                                    "[PetstoreUserInput!]",
                                 ),
                                 default_value: None,
                                 is_secret: false,
@@ -903,7 +903,7 @@ Registry {
                         name: "tags",
                         description: None,
                         ty: InputValueType(
-                            "[PetstoreTagInput!]!",
+                            "[PetstoreTagInput!]",
                         ),
                         default_value: None,
                         is_secret: false,
@@ -923,7 +923,7 @@ Registry {
                         name: "category",
                         description: None,
                         ty: InputValueType(
-                            "PetstoreCategoryInput!",
+                            "PetstoreCategoryInput",
                         ),
                         default_value: None,
                         is_secret: false,

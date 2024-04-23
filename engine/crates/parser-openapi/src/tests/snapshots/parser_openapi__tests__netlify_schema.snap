@@ -17,7 +17,7 @@ type Mutation {
 	updateSiteDeploy(deployId: String!, siteId: String!, input: NetlifyDeployFilesInput!): NetlifyDeploy
 	cancelSiteDeploy(deployId: String!): NetlifyDeploy
 	restoreSiteDeploy(deployId: String!, siteId: String!): NetlifyDeploy
-	createSiteBuild(siteId: String!, input: NetlifyBuildSetupInput!): NetlifyBuild
+	createSiteBuild(siteId: String!, input: NetlifyBuildSetupInput): NetlifyBuild
 	unlinkSiteRepo(siteId: String!): NetlifySite
 	configureDNSForSite(siteId: String!): [NetlifyDnsZone!]
 	lockDeploy(deployId: String!): NetlifyDeploy
@@ -30,11 +30,11 @@ type Mutation {
 	createTicket(clientId: String!): NetlifyTicket
 	exchangeTicket(ticketId: String!): NetlifyAccessToken
 	createDeployKey: NetlifyDeployKey
-	createSiteInTeam(accountSlug: String!, configureDns: Boolean, input: NetlifySiteSetupInput!): NetlifySite
+	createSiteInTeam(accountSlug: String!, configureDns: Boolean, input: NetlifySiteSetupInput): NetlifySite
 	addMemberToAccount(accountSlug: String!, input: NetlifyAccountAddMemberSetupInput!): [NetlifyMember!]
 	updateAccountMember(memberId: String!, accountSlug: String!, input: NetlifyAccountUpdateMemberSetupInput!): NetlifyMember
 	createAccount(input: NetlifyAccountSetupInput!): NetlifyAccountMembership
-	updateAccount(accountId: String!, input: NetlifyAccountUpdateSetupInput!): NetlifyAccountMembership
+	updateAccount(accountId: String!, input: NetlifyAccountUpdateSetupInput): NetlifyAccountMembership
 	createServiceInstance(addon: String!, siteId: String!, input: JSON!): NetlifyServiceInstance
 	createSplitTest(siteId: String!, input: NetlifySplitTestSetupInput!): NetlifySplitTest
 	updateSplitTest(splitTestId: String!, siteId: String!, input: NetlifySplitTestSetupInput!): NetlifySplitTest
@@ -210,7 +210,7 @@ type NetlifyBuildStatusMinutes {
 }
 input NetlifyCreateEnvVarsInput {
 	isSecret: Boolean
-	values: [NetlifyEnvVarValueInput!]!
+	values: [NetlifyEnvVarValueInput!]
 	scopes: [NetlifyCreateEnvVarsScopes!]
 	key: String
 }
@@ -275,14 +275,14 @@ input NetlifyDeployFilesInput {
 	framework: String
 	branch: String
 	functionsConfig: JSON
-	functionSchedules: [NetlifyFunctionScheduleInput!]!
+	functionSchedules: [NetlifyFunctionScheduleInput!]
 	functions: JSON
 	async: Boolean
 	draft: Boolean
 	files: JSON
 }
 input NetlifyDeployInput {
-	functionSchedules: [NetlifyFunctionScheduleInput!]!
+	functionSchedules: [NetlifyFunctionScheduleInput!]
 	framework: String
 	siteCapabilities: NetlifyDeploySiteCapabilitiesInput
 	reviewUrl: String
@@ -685,8 +685,8 @@ input NetlifySiteSetupInput {
 	ssl: Boolean
 	sessionId: String
 	screenshotUrl: String
-	repo: NetlifyRepoInfoInput!
-	publishedDeploy: NetlifyDeployInput!
+	repo: NetlifyRepoInfoInput
+	publishedDeploy: NetlifyDeployInput
 	processingSettings: NetlifySiteSetupProcessingSettingsInput
 	prerender: String
 	plan: String
@@ -707,7 +707,7 @@ input NetlifySiteSetupInput {
 	customDomain: String
 	createdAt: String
 	capabilities: JSON
-	buildSettings: NetlifyRepoInfoInput!
+	buildSettings: NetlifyRepoInfoInput
 	buildImage: String
 	branchDeployCustomDomain: String
 	adminUrl: String
@@ -781,7 +781,7 @@ type NetlifyTicket {
 }
 input NetlifyUpdateEnvVarInput {
 	isSecret: Boolean
-	values: [NetlifyEnvVarValueInput!]!
+	values: [NetlifyEnvVarValueInput!]
 	scopes: [NetlifyUpdateEnvVarScopes!]
 	key: String
 }
@@ -868,4 +868,3 @@ schema {
 	query: Query
 	mutation: Mutation
 }
-

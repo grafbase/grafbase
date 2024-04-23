@@ -1,6 +1,6 @@
 ---
-source: common/parser-openapi/src/lib.rs
-expression: "build_registry(\"test_data/orb.json\", Format::Json,\n            ApiMetadata {\n                url: None,\n                ..metadata(Some(\"orb\"))\n            }).unwrap().export_sdl(false)"
+source: engine/crates/parser-openapi/src/tests/mod.rs
+expression: "build_registry(\"test_data/orb.json\", Format::Json,\n            ApiMetadata {\n                url: None,\n                ..metadata(\"orb\", true)\n            }).unwrap().export_sdl(false)"
 ---
 type Mutation {
 	orb: OrbMutation!
@@ -665,7 +665,7 @@ input OrbPostCustomersExternalCustomerIdCreditsLedgerEntryInvoiceSettingsInput {
 }
 input OrbPostCustomersInput {
 	timezone: String = "UTC"
-	taxId: OrbCustomerTaxIdInput!
+	taxId: OrbCustomerTaxIdInput
 	shippingAddress: OrbPostCustomersShippingAddressInput
 	paymentProviderId: String
 	paymentProvider: OrbPostCustomersPaymentProvider = null
@@ -905,7 +905,7 @@ input OrbPutCustomersCustomerIdBillingAddressInput {
 	city: String
 }
 input OrbPutCustomersCustomerIdInput {
-	taxId: OrbCustomerTaxIdInput!
+	taxId: OrbCustomerTaxIdInput
 	shippingAddress: OrbPutCustomersCustomerIdShippingAddressInput
 	paymentProviderId: String
 	paymentProvider: OrbPutCustomersCustomerIdPaymentProvider
@@ -1090,4 +1090,3 @@ schema {
 	query: Query
 	mutation: Mutation
 }
-

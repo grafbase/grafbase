@@ -186,6 +186,7 @@ fn extract_operations(ctx: &mut Context, paths: Option<&openapiv3_1::Paths>, com
                 };
 
                 tracing::trace!("Parsing request for {:?}", request.content_type);
+
                 extract_types(
                     ctx,
                     &schema.json_schema,

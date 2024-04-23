@@ -637,7 +637,7 @@ type GreenlakeScheduleHistoryCollectionV1Beta2 {
 input GreenlakeSchedulePostV1Beta2Input {
 	schedule: GreenlakeSchedulePostV1Beta2ScheduleInput
 	purpose: String
-	operation: JSON!
+	operation: JSON
 	name: String
 	description: String
 	associatedResourceUri: String
@@ -686,7 +686,7 @@ input GreenlakeServerSettingOSV1Beta2Input {
 }
 union GreenlakeServerSettingOSV1Beta2OrServerSettingStorageV1Beta1Union = GreenlakeServerSettingOSV1Beta2 | GreenlakeServerSettingStorageV1Beta1
 input GreenlakeServerSettingOSV1Beta2OrServerSettingsCreateRequestV1Beta1DEFAULTSettingsUnionInput {
-	greenlakeServerSettingOSV1Beta2Input: GreenlakeServerSettingOSV1Beta2Input!
+	greenlakeServerSettingOSV1Beta2Input: GreenlakeServerSettingOSV1Beta2Input
 	greenlakeServerSettingsCreateRequestV1Beta1DEFAULTSettingsInput: GreenlakeServerSettingsCreateRequestV1Beta1DEFAULTSettingsInput
 }
 enum GreenlakeServerSettingOSV1Beta2OsImage {
@@ -988,4 +988,3 @@ schema {
 	query: Query
 	mutation: Mutation
 }
-
