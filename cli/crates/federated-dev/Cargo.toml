@@ -33,7 +33,7 @@ tokio-stream = { version = "0.1", features = ["sync"] }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 url = "2.5.0"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.69.1" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.70.0" }
 engine = { path = "../../../engine/crates/engine" }
 engine-config-builder = { path = "../../../engine/crates/engine-config-builder" }
 engine-v2.workspace = true
