@@ -13,7 +13,7 @@ async-graphql-value.workspace = true
 graphql-schema-diff.path = "../graphql-schema-diff"
 
 [dev-dependencies]
-datatest-stable = "0.2.6"
+datatest-stable = "0.2.7"
 expect-test = "1"
 similar = "2"
 miette = { version = "7.2.0", features = ["fancy"] }

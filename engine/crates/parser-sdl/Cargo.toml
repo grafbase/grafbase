@@ -16,7 +16,7 @@ async-trait = "0.1"
 case = "1"
 colored = "2.1.0"
 common-types.workspace = true
-duration-str = "0.7"
+duration-str = "0.8"
 engine = { path = "../engine" }
 engine-parser = { path = "../engine/parser" }
 engine-value.workspace = true
