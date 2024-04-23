@@ -185,14 +185,8 @@ where
 
     let mut resource_attributes = config.resource_attributes;
     if let Some(reload_data) = reload_data {
-        resource_attributes.insert(
-            "grafbase.graph_id".to_string(),
-            u128::from(reload_data.graph_id).to_string(),
-        );
-        resource_attributes.insert(
-            "grafbase.branch_id".to_string(),
-            u128::from(reload_data.branch_id).to_string(),
-        );
+        resource_attributes.insert("grafbase.graph_id".to_string(), reload_data.graph_id.to_string());
+        resource_attributes.insert("grafbase.branch_id".to_string(), reload_data.branch_id.to_string());
         resource_attributes.insert("grafbase.branch_name".to_string(), reload_data.branch_name.to_string());
     }
     let resource_attributes = resource_attributes
