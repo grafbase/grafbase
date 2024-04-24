@@ -76,8 +76,9 @@ export class Graph {
   private extendedTypes: TypeExtension[]
   private inputs: Input[]
   private subgraph: boolean
+  private typeDefs?: string
 
-  constructor(subgraph: boolean) {
+  constructor(subgraph: boolean, typeDefs?: string) {
     this.enums = []
     this.types = []
     this.unions = []
@@ -87,6 +88,7 @@ export class Graph {
     this.extendedTypes = []
     this.inputs = []
     this.subgraph = subgraph
+    this.typeDefs = typeDefs
   }
 
   /**
@@ -545,7 +547,9 @@ export class Graph {
       models
     ]
 
-    return renderOrder.filter(Boolean).flat().map(String).join('\n\n')
+    const sdkRendered = renderOrder.filter(Boolean).flat().map(String).join('\n\n')
+
+    return [sdkRendered, this.typeDefs].filter(Boolean).join('\n\n')
   }
 }
 
