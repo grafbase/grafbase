@@ -22,4 +22,4 @@ REVIEWS_PID=$!
 
 sleep 1
 
-(cd gateway && npx grafbase@latest dev)
+(cd gateway && npm install && npx grafbase@latest dev)
