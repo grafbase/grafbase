@@ -1,0 +1,29 @@
+extend type EmailHost @key(fields: "id") {
+    id: String! @external
+}
+
+extend type Manufacturer @key(fields: "id") {
+    id: String! @external
+}
+
+extend type Product @key(fields: " manufacturer{  id} id") {
+    id: String! @external
+    manufacturer: Manufacturer! @external
+    reviews: [Review]
+}
+
+extend type User @key(fields: "id") {
+    id: ID! @external
+    host: EmailHost! @external
+    email: String! @external
+    username: String! @external
+    reviews: [Review] @requires(fields: "host {id} email")
+}
+
+type Review {
+    body: String!
+    author: User! @provides(fields: "username")
+    product: Product!
+}
+
+
