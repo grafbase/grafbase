@@ -30,7 +30,8 @@ fn basic() {
         insta::assert_json_snapshot!(attributes, @r###"
         {
           "gql.operation.name": "Simple",
-          "gql.operation.normalized_query_hash": "cAe1+tBRHQLrF/EO1ul4CTx+q5SB9YD+YtG3VDU6VCM="
+          "gql.operation.normalized_query_hash": "cAe1+tBRHQLrF/EO1ul4CTx+q5SB9YD+YtG3VDU6VCM=",
+          "gql.operation.type": "query"
         }
         "###);
         let ExponentialHistogramRow { count, attributes } = clickhouse
@@ -89,6 +90,7 @@ fn has_error() {
         {
           "gql.operation.name": "Simple",
           "gql.operation.normalized_query_hash": "3Dn7H9sNlA2O2Wphw0R6wK0BiqcdP4oRlTiq0Ifq09M=",
+          "gql.operation.type": "query",
           "gql.response.has_errors": "true"
         }
         "###);
