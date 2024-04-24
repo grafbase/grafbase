@@ -229,8 +229,8 @@ fn with_otel_reload_tracing() {
             )
             .bind(&service_name)
             .bind(&gdn_mock.branch)
-            .bind(gdn_mock.branch_id.0.to_string())
-            .bind(gdn_mock.graph_id.0.to_string())
+            .bind(gdn_mock.branch_id.to_string())
+            .bind(gdn_mock.graph_id.to_string())
             .fetch_one::<CountRow>()
             .await
             .unwrap();
