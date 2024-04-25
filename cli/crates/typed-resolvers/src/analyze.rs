@@ -60,7 +60,7 @@ fn analyze_top_level<'doc>(graphql_document: &'doc ast::ServiceDocument, schema:
                             schema.push_enum_variant(id, &variant.node.value.node);
                         }
                     }
-                    // Interfaces are only interesting insofar as they are implemented, so they are handled in the Object branch.
+                    // Interfaces are only relevant insofar as they are implemented, so they are handled in the Object branch.
                     ast::TypeKind::Interface(_) => {}
                 }
             }
