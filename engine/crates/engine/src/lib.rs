@@ -31,8 +31,6 @@ pub mod http;
 
 pub mod resolver_utils;
 pub mod types;
-#[doc(hidden)]
-pub mod validators;
 
 pub mod graph;
 
@@ -93,7 +91,6 @@ pub use static_assertions;
 pub use subscription::SubscriptionType;
 pub use types::*;
 pub use validation::{ValidationMode, ValidationResult, VisitorContext};
-pub use validators::CustomValidator;
 
 /// An alias of [engine::Error](struct.Error.html). Present for backward compatibility
 /// reasons.
