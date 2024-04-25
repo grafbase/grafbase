@@ -1,10 +1,14 @@
 use std::time::Duration;
 
-use crate::{create::create_impl, errors::CliError, link::link_impl, output::report, prompts::handle_inquire_error};
-use backend::api::deploy;
+use crate::{
+    cli_input::ProjectRef, create::create_impl, errors::CliError, link::link_impl, output::report,
+    prompts::handle_inquire_error, watercolor::watercolor,
+};
+use backend::api::{deploy, graphql::queries::deployment_poll::DeploymentLogLevel};
 use chrono::{DateTime, Local, Utc};
 use common::{consts::PROJECT_METADATA_FILE, environment::Project};
 use inquire::Select;
+use prettytable::{format::TableFormat, row, Table};
 use strum::{Display, VariantArray};
 
 #[derive(VariantArray, Display, Clone)]
@@ -14,7 +18,25 @@ pub enum UnlinkedDeploymentMethod {
 }
 
 #[tokio::main]
-pub async fn deploy(branch: Option<&str>) -> Result<(), CliError> {
+pub async fn deploy(graph_ref: Option<ProjectRef>, branch: Option<String>) -> Result<(), CliError> {
+    if graph_ref.is_none() {
+        check_linked_project().await?;
+    }
+
+    report::deploy();
+
+    let deployment_id = deploy::deploy(graph_ref.map(ProjectRef::into_parts), branch)
+        .await
+        .map_err(CliError::BackendApiError)?;
+
+    report_progress(deployment_id.into_inner()).await?;
+
+    report::deploy_success();
+
+    Ok(())
+}
+
+async fn check_linked_project() -> Result<(), CliError> {
     let project = Project::get();
 
     let project_metadata_file_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
@@ -40,17 +62,10 @@ pub async fn deploy(branch: Option<&str>) -> Result<(), CliError> {
         Err(error) => return Err(CliError::ReadProjectMetadataFile(error)),
     }
 
-    report::deploy();
-
-    let deployment_id = deploy::deploy(branch).await.map_err(CliError::BackendApiError)?;
-    report_progress(deployment_id.into_inner()).await?;
-
-    report::deploy_success();
-
     Ok(())
 }
 
-async fn report_progress(deployment_id: String) -> Result<(), CliError> {
+pub async fn report_progress(deployment_id: String) -> Result<(), CliError> {
     const WAIT_DURATION: Duration = Duration::from_secs(10);
     const POLL_TIMEOUT: Duration = Duration::from_secs(1);
 
@@ -61,6 +76,12 @@ async fn report_progress(deployment_id: String) -> Result<(), CliError> {
 
     while !finished {
         interval.tick().await;
+
+        let mut format = TableFormat::new();
+        format.padding(0, 1);
+
+        let mut table = Table::new();
+        table.set_format(format);
 
         let deployment = deploy::fetch_logs(deployment_id.clone().into())
             .await
@@ -76,8 +97,17 @@ async fn report_progress(deployment_id: String) -> Result<(), CliError> {
             }
 
             let created_at: DateTime<Local> = log.created_at.into();
-            println!("{}    {}", created_at.format("%H:%M:%S%.3f"), log.message);
+
+            let level = match log.level {
+                DeploymentLogLevel::Error => watercolor!("ERROR", @BrightRed),
+                DeploymentLogLevel::Warn => watercolor!(" WARN", @BrightYellow),
+                DeploymentLogLevel::Info => watercolor!(" INFO", @BrightGreen),
+            };
+
+            table.add_row(row![created_at.format("%H:%M:%S%.3f"), level, log.message]);
         }
+
+        table.printstd();
 
         last_index = seen_index;
 

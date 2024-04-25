@@ -7,6 +7,13 @@ pub struct ProjectCreateInput<'a> {
     pub account_id: cynic::Id,
     pub project_slug: &'a str,
     pub project_root_path: &'a str,
+    pub environment_variables: Vec<EnvironmentVariableSpecification<'a>>,
+}
+
+#[derive(cynic::InputObject, Clone, Debug)]
+pub struct EnvironmentVariableSpecification<'a> {
+    pub name: &'a str,
+    pub value: &'a str,
 }
 
 #[derive(cynic::QueryVariables)]
@@ -191,6 +198,27 @@ pub struct DeploymentCreateArguments<'a> {
 pub struct DeploymentCreate {
     #[arguments(input: $input)]
     pub deployment_create: DeploymentCreatePayload,
+}
+
+#[derive(cynic::InputObject, Clone, Debug)]
+#[cynic(rename_all = "camelCase")]
+pub struct DeploymentBySlugCreateInput<'a> {
+    pub archive_file_size: i32,
+    pub branch: Option<&'a str>,
+    pub project_slug: &'a str,
+    pub account_slug: &'a str,
+}
+
+#[derive(cynic::QueryVariables)]
+pub struct DeploymentCreateBySlugArguments<'a> {
+    pub input: DeploymentBySlugCreateInput<'a>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(graphql_type = "Mutation", variables = "DeploymentCreateBySlugArguments")]
+pub struct DeploymentCreatebySlug {
+    #[arguments(input: $input)]
+    pub deployment_create_by_slug: DeploymentCreatePayload,
 }
 
 #[derive(cynic::QueryFragment, Debug)]

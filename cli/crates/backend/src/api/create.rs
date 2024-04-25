@@ -3,8 +3,9 @@ use super::consts::api_url;
 use super::deploy;
 use super::errors::{ApiError, CreateError};
 use super::graphql::mutations::{
-    CurrentPlanLimitReachedError, DuplicateDatabaseRegionsError, InvalidDatabaseRegionsError, ProjectCreate,
-    ProjectCreateArguments, ProjectCreateInput, ProjectCreatePayload, SlugTooLongError,
+    CurrentPlanLimitReachedError, DuplicateDatabaseRegionsError, EnvironmentVariableSpecification,
+    InvalidDatabaseRegionsError, ProjectCreate, ProjectCreateArguments, ProjectCreateInput, ProjectCreatePayload,
+    SlugTooLongError,
 };
 use super::graphql::queries::viewer_for_create::{PersonalAccount, Viewer};
 use super::types::{Account, ProjectMetadata};
@@ -60,7 +61,11 @@ pub async fn get_viewer_data_for_creation() -> Result<Vec<Account>, ApiError> {
 /// # Errors
 ///
 /// See [`ApiError`]
-pub async fn create(account_id: &str, project_slug: &str) -> Result<Vec<String>, ApiError> {
+pub async fn create(
+    account_id: &str,
+    project_slug: &str,
+    env_vars: impl Iterator<Item = (&str, &str)>,
+) -> Result<(Vec<String>, cynic::Id), ApiError> {
     let project = Project::get();
 
     match project.dot_grafbase_directory_path.try_exists() {
@@ -86,11 +91,13 @@ pub async fn create(account_id: &str, project_slug: &str) -> Result<Vec<String>,
                 .expect("must be a prefix")
                 .to_str()
                 .expect("must be a valid string"),
+            environment_variables: env_vars
+                .map(|(name, value)| EnvironmentVariableSpecification { name, value })
+                .collect(),
         },
     });
 
     let response = client.post(api_url()).run_graphql(operation).await?;
-
     let payload = response.data.ok_or(ApiError::UnauthorizedOrDeletedUser)?.project_create;
 
     match payload {
@@ -107,7 +114,7 @@ pub async fn create(account_id: &str, project_slug: &str) -> Result<Vec<String>,
             .await
             .map_err(ApiError::WriteProjectMetadataFile)?;
 
-            deploy::deploy(None).await?;
+            let deployment_id = deploy::deploy(None, None).await?;
 
             let domains = project_create_success
                 .project
@@ -117,7 +124,7 @@ pub async fn create(account_id: &str, project_slug: &str) -> Result<Vec<String>,
                 .map(|domain| format!("{domain}/graphql"))
                 .collect();
 
-            Ok(domains)
+            Ok((domains, deployment_id))
         }
         ProjectCreatePayload::SlugAlreadyExistsError(_) => Err(CreateError::SlugAlreadyExists.into()),
         ProjectCreatePayload::SlugInvalidError(_) => Err(CreateError::SlugInvalid.into()),

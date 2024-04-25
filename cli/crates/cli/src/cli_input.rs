@@ -59,6 +59,15 @@ fn split_header(header: &str) -> Option<(&str, &str)> {
     })
 }
 
+fn split_env_var(env_var: &str) -> Option<(&str, &str)> {
+    env_var.find('=').map(|split_index| {
+        let key = env_var[0..split_index].trim();
+        let value = env_var[split_index + 1..].trim();
+
+        (key, value)
+    })
+}
+
 #[derive(Debug, Parser)]
 #[command(name = "Grafbase CLI", version)]
 /// The Grafbase command line interface

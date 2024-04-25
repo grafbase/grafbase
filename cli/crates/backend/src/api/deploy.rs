@@ -2,8 +2,9 @@ use super::client::create_client;
 use super::consts::{api_url, PACKAGE_JSON, TAR_CONTENT_TYPE};
 use super::errors::{ApiError, DeployError};
 use super::graphql::mutations::{
-    ArchiveFileSizeLimitExceededError, DailyDeploymentCountLimitExceededError, DeploymentCreate,
-    DeploymentCreateArguments, DeploymentCreateInput, DeploymentCreatePayload,
+    ArchiveFileSizeLimitExceededError, DailyDeploymentCountLimitExceededError, DeploymentBySlugCreateInput,
+    DeploymentCreate, DeploymentCreateArguments, DeploymentCreateBySlugArguments, DeploymentCreateInput,
+    DeploymentCreatePayload, DeploymentCreatebySlug,
 };
 use super::graphql::queries::deployment_poll::{Deployment, DeploymentLogs, DeploymentLogsArguments, Node};
 use super::types::ProjectMetadata;
@@ -20,96 +21,61 @@ use tokio_util::codec::{BytesCodec, FramedRead};
 
 const ENTRY_BLACKLIST: [&str; 2] = ["node_modules", ".env"];
 
+enum ProjectDefinition {
+    ById {
+        project_id: String,
+        branch: Option<String>,
+    },
+    BySlugs {
+        account_slug: String,
+        project_slug: String,
+        branch: Option<String>,
+    },
+}
+
 /// # Errors
 ///
 /// See [`ApiError`]
-pub async fn deploy(branch: Option<&str>) -> Result<cynic::Id, ApiError> {
-    let project = Project::get();
-
-    let project_metadata_file_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
-
-    match project_metadata_file_path.try_exists() {
-        Ok(true) => {}
-        Ok(false) => return Err(ApiError::UnlinkedProject),
-        Err(error) => return Err(ApiError::ReadProjectMetadataFile(error)),
-    }
-
-    let project_metadata_file = read_to_string(project_metadata_file_path)
-        .await
-        .map_err(ApiError::ReadProjectMetadataFile)?;
-
-    let project_metadata: ProjectMetadata =
-        serde_json::from_str(&project_metadata_file).map_err(|_| ApiError::CorruptProjectMetadataFile)?;
-
-    let tar_file_path = tokio::task::spawn_blocking(|| {
-        let (tar_file, tar_file_path) = tempfile::NamedTempFile::new()
-            .map_err(ApiError::CreateTempFile)?
-            .into_parts();
-
-        let mut tar = tar::Builder::new(tar_file);
-        tar.mode(tar::HeaderMode::Deterministic);
-
-        if project.path.join(PACKAGE_JSON).exists() {
-            tar.append_path_with_name(project.path.join(PACKAGE_JSON), PACKAGE_JSON)
-                .map_err(ApiError::AppendToArchive)?;
-        }
-
-        let walker = ignore::WalkBuilder::new(&project.path)
-            .hidden(false)
-            .filter_entry(|entry| should_traverse_entry(entry, &project.path))
-            .build();
-
-        for entry in walker {
-            let entry = entry.map_err(ApiError::ReadProjectFile)?;
-
-            if entry.path() == project.path {
-                // walker always includes the root path in its traversal, so skip that
-                continue;
-            }
-
-            let entry_path = entry.path().to_owned();
-            let path_in_tar = entry_path.strip_prefix(&project.path).expect("must include prefix");
-            let entry_metadata = entry.metadata().map_err(ApiError::ReadProjectFile)?;
-            if entry_metadata.is_file() {
-                tar.append_path_with_name(&entry_path, path_in_tar)
-                    .map_err(ApiError::AppendToArchive)?;
-            } else {
-                // as we don't follow links, anything else will be a directory
-                tar.append_dir(path_in_tar, &entry_path)
-                    .map_err(ApiError::AppendToArchive)?;
-            }
-        }
-
-        tar.finish().map_err(ApiError::WriteArchive)?;
-
-        Result::Ok::<_, ApiError>(tar_file_path)
-    })
-    .await
-    .expect("must be fine")?;
-
-    let tar_file = tokio::fs::File::open(&tar_file_path)
-        .await
-        .map_err(ApiError::ReadArchive)?;
-
-    let client = create_client().await?;
-
-    #[allow(clippy::cast_possible_truncation)] // must fit or will be over allowed limit
-    let archive_file_size = tar_file.metadata().await.map_err(ApiError::ReadArchiveMetadata)?.len() as i32;
-
-    let operation = DeploymentCreate::build(DeploymentCreateArguments {
-        input: DeploymentCreateInput {
-            archive_file_size,
+pub async fn deploy(
+    graph_ref: Option<(String, String, Option<String>)>,
+    branch: Option<String>,
+) -> Result<cynic::Id, ApiError> {
+    let project_definition = match graph_ref {
+        Some((account_slug, project_slug, branch)) => ProjectDefinition::BySlugs {
+            account_slug,
+            project_slug,
             branch,
-            project_id: Id::new(project_metadata.project_id),
         },
-    });
+        None => {
+            let project = Project::get();
+            let project_metadata_file_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
 
-    let response = client.post(api_url()).run_graphql(operation).await?;
+            match project_metadata_file_path.try_exists() {
+                Ok(true) => {}
+                Ok(false) => return Err(ApiError::UnlinkedProject),
+                Err(error) => return Err(ApiError::ReadProjectMetadataFile(error)),
+            }
 
-    let payload = response
-        .data
-        .ok_or(ApiError::UnauthorizedOrDeletedUser)?
-        .deployment_create;
+            let project_metadata_file = read_to_string(project_metadata_file_path)
+                .await
+                .map_err(ApiError::ReadProjectMetadataFile)?;
+
+            let project_metadata: ProjectMetadata =
+                serde_json::from_str(&project_metadata_file).map_err(|_| ApiError::CorruptProjectMetadataFile)?;
+
+            ProjectDefinition::ById {
+                project_id: project_metadata.project_id,
+                branch,
+            }
+        }
+    };
+
+    let tar_file = create_tar_file().await?;
+
+    let archive_file_size = i32::try_from(tar_file.metadata().await.map_err(ApiError::ReadArchiveMetadata)?.len())
+        .map_err(|_| DeployError::ArchiveFileSizeLimitExceeded { limit: 80000000 })?;
+
+    let payload = create_deployment_payload(project_definition, archive_file_size).await?;
 
     match payload {
         DeploymentCreatePayload::DeploymentCreateSuccess(payload) => {
@@ -163,4 +129,107 @@ fn should_traverse_entry(entry: &DirEntry, root_path: &Path) -> bool {
         .file_name()
         .and_then(OsStr::to_str)
         .is_some_and(|entry_name| !ENTRY_BLACKLIST.contains(&entry_name))
+}
+
+async fn create_tar_file() -> Result<tokio::fs::File, ApiError> {
+    let project = Project::get();
+
+    let tar_file_path = tokio::task::spawn_blocking(|| {
+        let (tar_file, tar_file_path) = tempfile::NamedTempFile::new()
+            .map_err(ApiError::CreateTempFile)?
+            .into_parts();
+
+        let mut tar = tar::Builder::new(tar_file);
+        tar.mode(tar::HeaderMode::Deterministic);
+
+        if project.path.join(PACKAGE_JSON).exists() {
+            tar.append_path_with_name(project.path.join(PACKAGE_JSON), PACKAGE_JSON)
+                .map_err(ApiError::AppendToArchive)?;
+        }
+
+        let walker = ignore::WalkBuilder::new(&project.path)
+            .hidden(false)
+            .filter_entry(|entry| should_traverse_entry(entry, &project.path))
+            .build();
+
+        for entry in walker {
+            let entry = entry.map_err(ApiError::ReadProjectFile)?;
+
+            if entry.path() == project.path {
+                // walker always includes the root path in its traversal, so skip that
+                continue;
+            }
+
+            let entry_path = entry.path().to_owned();
+            let path_in_tar = entry_path.strip_prefix(&project.path).expect("must include prefix");
+            let entry_metadata = entry.metadata().map_err(ApiError::ReadProjectFile)?;
+            if entry_metadata.is_file() {
+                tar.append_path_with_name(&entry_path, path_in_tar)
+                    .map_err(ApiError::AppendToArchive)?;
+            } else {
+                // as we don't follow links, anything else will be a directory
+                tar.append_dir(path_in_tar, &entry_path)
+                    .map_err(ApiError::AppendToArchive)?;
+            }
+        }
+
+        tar.finish().map_err(ApiError::WriteArchive)?;
+
+        Ok::<_, ApiError>(tar_file_path)
+    })
+    .await
+    .expect("must be fine")?;
+
+    tokio::fs::File::open(&tar_file_path)
+        .await
+        .map_err(ApiError::ReadArchive)
+}
+
+async fn create_deployment_payload(
+    project_definition: ProjectDefinition,
+    archive_file_size: i32,
+) -> Result<DeploymentCreatePayload, ApiError> {
+    let client = create_client().await?;
+
+    let payload = match project_definition {
+        ProjectDefinition::ById { project_id, branch } => {
+            let operation = DeploymentCreate::build(DeploymentCreateArguments {
+                input: DeploymentCreateInput {
+                    archive_file_size,
+                    branch: branch.as_deref(),
+                    project_id: Id::new(project_id),
+                },
+            });
+
+            let response = client.post(api_url()).run_graphql(operation).await?;
+
+            response
+                .data
+                .ok_or(ApiError::UnauthorizedOrDeletedUser)?
+                .deployment_create
+        }
+        ProjectDefinition::BySlugs {
+            account_slug,
+            project_slug,
+            branch,
+        } => {
+            let operation = DeploymentCreatebySlug::build(DeploymentCreateBySlugArguments {
+                input: DeploymentBySlugCreateInput {
+                    archive_file_size,
+                    branch: branch.as_deref(),
+                    project_slug: &project_slug,
+                    account_slug: &account_slug,
+                },
+            });
+
+            let response = client.post(api_url()).run_graphql(operation).await?;
+
+            response
+                .data
+                .ok_or(ApiError::UnauthorizedOrDeletedUser)?
+                .deployment_create_by_slug
+        }
+    };
+
+    Ok(payload)
 }

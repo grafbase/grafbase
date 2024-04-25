@@ -35,7 +35,7 @@ pub(crate) async fn publish(
 
     let outcome = backend::api::publish::publish(
         project_ref.account(),
-        project_ref.project(),
+        project_ref.graph(),
         project_ref.branch(),
         &subgraph_name,
         url.as_str(),

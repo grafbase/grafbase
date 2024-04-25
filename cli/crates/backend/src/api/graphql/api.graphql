@@ -481,6 +481,13 @@ type Deployment implements Node {
   diffAgainstLatestProductionDeployment: String
 }
 
+input DeploymentBySlugCreateInput {
+  accountSlug: String!
+  projectSlug: String!
+  archiveFileSize: Int!
+  branch: String
+}
+
 type DeploymentConnection {
   """
   Information to aid in pagination.
@@ -1159,6 +1166,10 @@ type Mutation {
   without changing the domain name.
   """
   customDomainReplace(input: CustomDomainReplaceInput!): CustomDomainReplacePayload!
+  """
+  Create a new deployment for an existing project by slugs.
+  """
+  deploymentCreateBySlug(input: DeploymentBySlugCreateInput!): DeploymentCreatePayload!
   """
   Create a new deployment for an existing project.
   """

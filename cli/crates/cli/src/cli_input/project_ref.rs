@@ -6,24 +6,27 @@ use graph_ref::GraphRef;
 #[derive(Clone, Debug)]
 pub struct ProjectRef {
     account: String,
-    project: String,
+    graph: String,
     branch: Option<String>,
 }
 
 impl ProjectRef {
-    pub(crate) const ARG_DESCRIPTION: &'static str =
-        r#"Project reference following the format "account/project@branch""#;
+    pub(crate) const ARG_DESCRIPTION: &'static str = r#"Graph reference following the format "account/graph@branch""#;
 
     pub(crate) fn account(&self) -> &str {
         self.account.as_ref()
     }
 
-    pub(crate) fn project(&self) -> &str {
-        self.project.as_ref()
+    pub(crate) fn graph(&self) -> &str {
+        self.graph.as_ref()
     }
 
     pub(crate) fn branch(&self) -> Option<&str> {
         self.branch.as_deref()
+    }
+
+    pub(crate) fn into_parts(self) -> (String, String, Option<String>) {
+        (self.account, self.graph, self.branch)
     }
 }
 
@@ -31,7 +34,8 @@ impl str::FromStr for ProjectRef {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        const GENERIC_ERR: &str = r#"Invalid project reference. The project reference argument must follow the format: "account/project@branch""#;
+        const GENERIC_ERR: &str =
+            r#"Invalid graph reference. The graph reference argument must follow the format: "account/graph@branch""#;
 
         let Some((account, rest)) = s.split_once('/') else {
             return Err(GENERIC_ERR);
@@ -52,7 +56,7 @@ impl str::FromStr for ProjectRef {
 
         Ok(ProjectRef {
             account: account.to_owned(),
-            project: project.to_owned(),
+            graph: project.to_owned(),
             branch: branch.filter(|s| !s.is_empty()).map(String::from),
         })
     }
@@ -62,7 +66,7 @@ impl fmt::Display for ProjectRef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.account)?;
         f.write_str("/")?;
-        f.write_str(&self.project)?;
+        f.write_str(&self.graph)?;
 
         if let Some(branch) = &self.branch {
             f.write_str("@")?;
@@ -96,7 +100,7 @@ impl ProjectRefOrGraphRef {
 
     pub(crate) fn project(&self) -> &str {
         match self {
-            ProjectRefOrGraphRef::ProjectRef(pr) => pr.project(),
+            ProjectRefOrGraphRef::ProjectRef(pr) => pr.graph(),
             ProjectRefOrGraphRef::GraphRef(gr) => gr.graph(),
         }
     }

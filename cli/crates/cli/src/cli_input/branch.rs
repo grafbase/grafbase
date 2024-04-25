@@ -12,10 +12,10 @@ pub struct BranchCommand {
 #[strum(serialize_all = "lowercase")]
 pub enum BranchSubCommand {
     /// List all branches
-    #[clap(name = "ls")]
+    #[clap(name = "list", visible_alias = "ls")]
     List,
     /// Delete a branch
-    #[clap(name = "rm")]
+    #[clap(name = "remove", visible_alias = "rm")]
     Delete(BranchDeleteCommand),
 }
 

@@ -67,7 +67,7 @@ pub fn start_federated_dev_server(port: u16) {
     );
 }
 
-pub fn project_created(name: Option<&str>) {
+pub fn graph_created(name: Option<&str>) {
     let slash = std::path::MAIN_SEPARATOR.to_string();
 
     let schema_file_name = GRAFBASE_TS_CONFIG_FILE_NAME;
@@ -78,11 +78,11 @@ pub fn project_created(name: Option<&str>) {
         let schema_path = &[".", name, schema_file_name].join(&slash);
 
         println!(
-            "The configuration for your new project can be found at {}",
+            "The configuration for your new graph can be found at {}",
             watercolor!("{schema_path}", @BrightBlue)
         );
     } else {
-        watercolor::output!(r"✨ Your project was successfully set up for Grafbase!", @BrightBlue);
+        watercolor::output!(r"✨ Your graph was successfully set up for Grafbase!", @BrightBlue);
 
         let schema_path = &[".", schema_file_name].join(&slash);
 
@@ -365,7 +365,7 @@ pub fn logout() {
 
 // TODO change this to a spinner that is removed on success
 pub fn deploy() {
-    watercolor::output!("🕒 Your project is being deployed...", @BrightBlue);
+    watercolor::output!("🕒 Your graph is being deployed...", @BrightBlue);
 }
 
 // TODO change this to a spinner that is removed on success
@@ -379,23 +379,23 @@ pub fn delete_branch_success() {
 
 // TODO change this to a spinner that is removed on success
 pub fn create() {
-    watercolor::output!("🕒 Your project is being created...", @BrightBlue);
+    watercolor::output!("🕒 Your graph is being created...", @BrightBlue);
 }
 
 pub fn deploy_success() {
-    watercolor::output!("\n✨ Your project was successfully deployed!", @BrightBlue);
+    watercolor::output!("\n✨ Your graph was successfully deployed!", @BrightBlue);
 }
 
 pub fn linked(name: &str) {
-    watercolor::output!("\n✨ Successfully linked your local project to {name}!", @BrightBlue);
+    watercolor::output!("\n✨ Successfully linked your local graph to {name}!", @BrightBlue);
 }
 
 pub fn linked_non_interactive() {
-    watercolor::output!("✨ Successfully linked your local project!", @BrightBlue);
+    watercolor::output!("✨ Successfully linked your local graph!", @BrightBlue);
 }
 
 pub fn unlinked() {
-    watercolor::output!("✨ Successfully unlinked your project!", @BrightBlue);
+    watercolor::output!("✨ Successfully unlinked your graph!", @BrightBlue);
 }
 
 pub fn list_branches(branches: Vec<Branch>) {
@@ -662,7 +662,7 @@ pub(crate) fn trust_failed() {
 }
 
 pub(crate) fn old_access_token() {
-    watercolor::output!("❌ You must pass a project reference of the form <account>/<project>@<branch> (missing account)", @BrightRed)
+    watercolor::output!("❌ You must pass a graph reference of the form <account>/<graph>@<branch> (missing account)", @BrightRed)
 }
 
 pub(crate) fn trust_reused_ids(reused: &backend::api::submit_trusted_documents::ReusedIds) {

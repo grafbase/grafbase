@@ -1,3 +1,5 @@
+use core::fmt;
+
 use chrono::{DateTime, Utc};
 
 use super::{super::schema, list_branches::DeploymentStatus};
@@ -32,4 +34,22 @@ pub struct Deployment {
 pub struct DeploymentLogEntry {
     pub created_at: DateTime<Utc>,
     pub message: String,
+    pub level: DeploymentLogLevel,
+}
+
+#[derive(cynic::Enum)]
+pub enum DeploymentLogLevel {
+    Error,
+    Warn,
+    Info,
+}
+
+impl fmt::Display for DeploymentLogLevel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DeploymentLogLevel::Error => f.write_str("ERROR"),
+            DeploymentLogLevel::Warn => f.write_str("WARN"),
+            DeploymentLogLevel::Info => f.write_str("INFO"),
+        }
+    }
 }
