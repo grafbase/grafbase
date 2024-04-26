@@ -1,5 +1,6 @@
 use std::{any::Any, ops::Deref, sync::Arc};
 
+use engine_validation::{check_rules, ValidationMode};
 use futures_util::stream::{self, Stream, StreamExt};
 use futures_util::FutureExt;
 use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
@@ -26,7 +27,6 @@ use crate::{
     response::{IncrementalPayload, StreamingPayload},
     subscription::collect_subscription_streams,
     types::QueryRoot,
-    validation::{check_rules, ValidationMode},
     BatchRequest, BatchResponse, CacheControl, ContextExt, ContextSelectionSet, LegacyInputType, LegacyOutputType,
     ObjectType, QueryEnv, QueryEnvBuilder, QueryPath, Request, Response, ServerError, SubscriptionType, Variables, ID,
 };
@@ -270,6 +270,7 @@ impl Schema {
                     Some(&request.variables),
                     self.validation_mode,
                 )
+                .map_err(|errors| errors.into_iter().map(ServerError::from).collect())
             };
             futures_util::pin_mut!(validation_fut);
             extensions.validation(&mut validation_fut).await?
@@ -656,6 +657,18 @@ fn remove_skipped_selection(selection_set: &mut SelectionSet, variables: &Variab
             Selection::InlineFragment(inline_fragment) => {
                 remove_skipped_selection(&mut inline_fragment.node.selection_set.node, variables);
             }
+        }
+    }
+}
+
+impl From<engine_validation::RuleError> for ServerError {
+    fn from(e: engine_validation::RuleError) -> Self {
+        Self {
+            message: e.message,
+            source: None,
+            locations: e.locations,
+            path: Vec::new(),
+            extensions: None,
         }
     }
 }

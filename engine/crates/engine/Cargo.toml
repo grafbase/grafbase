@@ -28,24 +28,20 @@ chrono = { version = "0.4", default-features = false, features = [
   "std",
 ] }
 derivative = "2"
-fast_chemail = "0.9"
 flexbuffers.workspace = true
 fnv.workspace = true
 futures.workspace = true
 futures-util = { workspace = true, features = ["io", "sink"] }
 futures-channel = { version = "0.3", default-features = false }
 gateway-v2-auth-config.workspace = true
-hex.workspace = true
 http.workspace = true
 im = "15"
 indexmap.workspace = true
 indoc = "2"
 Inflector = { version = "0.11" }
 internment = { version = "0.8", features = ["serde", "arc"] }
-ipnet = "2"
 mime = "0.3"
 multer = "3"
-nom = "7"
 once_cell = "1"
 pin-project-lite = "0.2"
 serde.workspace = true
@@ -62,23 +58,23 @@ web-time.workspace = true
 # API dependencies
 dataloader.workspace = true
 engine-derive = { path = "derive", version = "3" }
-engine-value = { path = "value", version = "3" }
 engine-parser = { path = "parser", version = "3" }
+engine-scalars.path = "scalars"
+engine-validation.workspace = true
+engine-value = { path = "value", version = "3" }
+grafbase-tracing.workspace = true
 graph-entities.workspace = true
 graphql-cursor.workspace = true
+meta-type-name.path = "meta-type-name"
 registry-v1.workspace = true
 registry-v2.workspace = true
 runtime.workspace = true
-grafbase-tracing.workspace = true
 
 # Feature optional dependencies
-rust_decimal = { version = "1" }
 tracing.workspace = true
 async-runtime.workspace = true
 
 # Non-feature optional dependencies
-base64.workspace = true
-time = { version = "0.3.36", features = ["parsing"] }
 uuid.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

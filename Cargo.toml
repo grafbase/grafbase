@@ -11,12 +11,15 @@ members = [
   "engine/crates/engine-v2/schema",
   "engine/crates/engine-v2/id-newtypes",
   "engine/crates/engine/derive",
+  "engine/crates/engine/meta-type-name",
   "engine/crates/engine/parser",
-  "engine/crates/engine/value",
+  "engine/crates/engine/query-path",
   "engine/crates/engine/registry-upgrade",
-  "engine/crates/engine/registry-v1",
+  "engine/crates/engine/registry-upgrade",
   "engine/crates/engine/registry-v2",
   "engine/crates/engine/registry-v2-generator",
+  "engine/crates/engine/scalars",
+  "engine/crates/engine/registry-upgrade",
   "graph-ref",
   "graphql-lint",
 ]
@@ -156,6 +159,7 @@ engine-parser = { path = "engine/crates/engine/parser" }
 engine = { path = "engine/crates/engine" }
 engine-v2 = { path = "engine/crates/engine-v2" }
 engine-v2-axum = { path = "engine/crates/engine-v2/axum" }
+engine-validation = { path = "engine/crates/engine/validation" }
 engine-value = { path = "engine/crates/engine/value" }
 gateway-adapter-local = { path = "engine/crates/gateway-adapter-local" }
 gateway-adapter = { path = "engine/crates/gateway-adapter" }
