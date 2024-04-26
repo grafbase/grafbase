@@ -1,4 +1,6 @@
 mod argument_names;
+mod branch;
+mod branch_ref;
 mod build;
 mod check;
 mod completions;
@@ -22,6 +24,8 @@ mod trust;
 
 pub(crate) use self::{check::CheckCommand, trust::TrustCommand};
 pub(crate) use argument_names::{filter_existing_arguments, ArgumentNames};
+pub(crate) use branch::BranchSubCommand;
+pub(crate) use branch_ref::BranchRef;
 pub(crate) use build::BuildCommand;
 pub(crate) use completions::CompletionsCommand;
 pub(crate) use create::CreateCommand;
@@ -50,6 +54,15 @@ fn split_header(header: &str) -> Option<(&str, &str)> {
     header.find(':').map(|split_index| {
         let key = header[0..split_index].trim();
         let value = header[split_index + 1..].trim();
+
+        (key, value)
+    })
+}
+
+fn split_env_var(env_var: &str) -> Option<(&str, &str)> {
+    env_var.find('=').map(|split_index| {
+        let key = env_var[0..split_index].trim();
+        let value = env_var[split_index + 1..].trim();
 
         (key, value)
     })

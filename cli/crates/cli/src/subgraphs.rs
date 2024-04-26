@@ -4,7 +4,7 @@ use crate::{cli_input::SubgraphsCommand, errors::CliError, output::report};
 pub(super) async fn subgraphs(cmd: SubgraphsCommand) -> Result<(), CliError> {
     let project_ref = cmd.project_ref;
     let (branch, subgraphs) =
-        backend::api::subgraphs::subgraphs(project_ref.account(), project_ref.project(), project_ref.branch())
+        backend::api::subgraphs::subgraphs(project_ref.account(), project_ref.graph(), project_ref.branch())
             .await
             .map_err(CliError::BackendApiError)?;
 

@@ -8,7 +8,7 @@ pub(crate) async fn schema(cmd: SchemaCommand) -> Result<(), CliError> {
     } = cmd;
     let schema = backend::api::schema::schema(
         project_ref.account(),
-        project_ref.project(),
+        project_ref.graph(),
         project_ref.branch(),
         subgraph_name.as_deref(),
     )

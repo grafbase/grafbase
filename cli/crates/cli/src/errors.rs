@@ -85,6 +85,8 @@ pub enum CliError {
     /// returned if an unsupported extension is passed to lint
     #[error("attempted to lint a file with an unsupported extension: '{0}'")]
     LintUnsupportedFileExtension(String),
+    #[error("failed to deploy a graph")]
+    DeploymentFailed,
 }
 
 #[cfg(target_family = "windows")]

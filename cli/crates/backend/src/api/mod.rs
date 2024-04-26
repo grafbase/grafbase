@@ -1,6 +1,7 @@
-mod graphql;
+pub mod graphql;
 mod utils;
 
+pub mod branch;
 pub mod check;
 pub mod client;
 pub mod consts;

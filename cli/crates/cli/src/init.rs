@@ -19,7 +19,7 @@ pub fn init(name: Option<&str>, template: Option<&str>, graph_type: Option<Graph
     };
 
     project::init(name, template).map_err(CliError::BackendError)?;
-    report::project_created(name);
+    report::graph_created(name);
 
     Ok(())
 }

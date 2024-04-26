@@ -4,11 +4,16 @@ use crate::{
     logs::LogEvent,
     watercolor::{self, watercolor},
 };
-use backend::types::{NestedRequestScopedMessage, RequestCompletedOutcome};
+use backend::{
+    api::branch::Branch,
+    types::{NestedRequestScopedMessage, RequestCompletedOutcome},
+};
+use chrono::Utc;
 use colored::Colorize;
 use common::types::{LogLevel, UdfKind};
 use common::{consts::GRAFBASE_TS_CONFIG_FILE_NAME, trusted_documents::TrustedDocumentsManifest};
 use common::{consts::LOCALHOST, environment::Warning};
+use prettytable::{format::TableFormat, row, Table};
 use std::{net::IpAddr, path::Path};
 
 /// reports to stdout that the server has started
@@ -62,7 +67,7 @@ pub fn start_federated_dev_server(port: u16) {
     );
 }
 
-pub fn project_created(name: Option<&str>) {
+pub fn graph_created(name: Option<&str>) {
     let slash = std::path::MAIN_SEPARATOR.to_string();
 
     let schema_file_name = GRAFBASE_TS_CONFIG_FILE_NAME;
@@ -73,11 +78,11 @@ pub fn project_created(name: Option<&str>) {
         let schema_path = &[".", name, schema_file_name].join(&slash);
 
         println!(
-            "The configuration for your new project can be found at {}",
+            "The configuration for your new graph can be found at {}",
             watercolor!("{schema_path}", @BrightBlue)
         );
     } else {
-        watercolor::output!(r"✨ Your project was successfully set up for Grafbase!", @BrightBlue);
+        watercolor::output!(r"✨ Your graph was successfully set up for Grafbase!", @BrightBlue);
 
         let schema_path = &[".", schema_file_name].join(&slash);
 
@@ -297,6 +302,23 @@ fn log_nested_events(nested_events: Vec<NestedRequestScopedMessage>, log_level_f
     }
 }
 
+pub fn format_long_duration(duration: std::time::Duration) -> String {
+    let days = duration.as_secs() / 60 / 60 / 24;
+    let hours = duration.as_secs() / 60 / 60 - (days * 24);
+    let minutes = duration.as_secs() / 60 - (hours * 60);
+    let seconds = duration.as_secs() - (minutes * 60);
+
+    if days > 0 {
+        format!("{days}d {hours}h")
+    } else if hours > 0 {
+        format!("{hours}h {minutes}m")
+    } else if minutes > 0 {
+        format!("{minutes}m {seconds}s")
+    } else {
+        format!("{seconds}s")
+    }
+}
+
 pub fn format_duration(duration: std::time::Duration) -> String {
     [
         ("ns", duration.as_nanos()),
@@ -343,28 +365,79 @@ pub fn logout() {
 
 // TODO change this to a spinner that is removed on success
 pub fn deploy() {
-    watercolor::output!("🕒 Your project is being deployed...", @BrightBlue);
+    watercolor::output!("🕒 Your graph is being deployed...", @BrightBlue);
+}
+
+// TODO change this to a spinner that is removed on success
+pub fn delete_branch() {
+    watercolor::output!("🕒 Branch is being deleted...", @BrightBlue);
+}
+
+pub fn delete_branch_success() {
+    watercolor::output!("\n✨ The branch was successfully deleted!", @BrightBlue);
 }
 
 // TODO change this to a spinner that is removed on success
 pub fn create() {
-    watercolor::output!("🕒 Your project is being created...", @BrightBlue);
+    watercolor::output!("🕒 Your graph is being created...", @BrightBlue);
 }
 
 pub fn deploy_success() {
-    watercolor::output!("\n✨ Your project was successfully deployed!", @BrightBlue);
+    watercolor::output!("\n✨ Your graph was successfully deployed!", @BrightBlue);
 }
 
 pub fn linked(name: &str) {
-    watercolor::output!("\n✨ Successfully linked your local project to {name}!", @BrightBlue);
+    watercolor::output!("\n✨ Successfully linked your local graph to {name}!", @BrightBlue);
 }
 
 pub fn linked_non_interactive() {
-    watercolor::output!("✨ Successfully linked your local project!", @BrightBlue);
+    watercolor::output!("✨ Successfully linked your local graph!", @BrightBlue);
 }
 
 pub fn unlinked() {
-    watercolor::output!("✨ Successfully unlinked your project!", @BrightBlue);
+    watercolor::output!("✨ Successfully unlinked your graph!", @BrightBlue);
+}
+
+pub fn list_branches(branches: Vec<Branch>) {
+    if branches.is_empty() {
+        watercolor::output!("⚠️  Found no branches.", @BrightYellow);
+        return;
+    }
+
+    let mut table = Table::new();
+    let mut format = TableFormat::new();
+
+    format.padding(0, 4);
+    table.set_format(format);
+
+    table.add_row(row!["BRANCH", "GRAPH", "ACCOUNT", "LATEST DEPLOY", "STATUS",]);
+
+    for branch in branches {
+        let now = Utc::now();
+
+        let last_updated = branch
+            .last_updated
+            .map(|updated| (now - updated).to_std().unwrap_or_default())
+            .map(format_long_duration)
+            .map(|d| format!("{d} ago"))
+            .unwrap_or_default();
+
+        let branch_name = if branch.is_production {
+            format!("{}*", branch.branch)
+        } else {
+            branch.branch
+        };
+
+        table.add_row(row![
+            branch_name,
+            branch.graph,
+            branch.account,
+            last_updated,
+            branch.status.unwrap_or_default(),
+        ]);
+    }
+
+    table.printstd();
 }
 
 pub fn create_success(name: &str, urls: &[String]) {
@@ -589,7 +662,7 @@ pub(crate) fn trust_failed() {
 }
 
 pub(crate) fn old_access_token() {
-    watercolor::output!("❌ You must pass a project reference of the form <account>/<project>@<branch> (missing account)", @BrightRed)
+    watercolor::output!("❌ You must pass a graph reference of the form <account>/<graph>@<branch> (missing account)", @BrightRed)
 }
 
 pub(crate) fn trust_reused_ids(reused: &backend::api::submit_trusted_documents::ReusedIds) {

@@ -5,12 +5,15 @@ use super::ArgumentNames;
 #[derive(Debug, clap::Args)]
 #[group(requires_all = ["name", "account"], multiple = true)]
 pub struct CreateCommand {
-    /// The name to use for the new project
+    /// The name to use for the new graph
     #[arg(short, long)]
     pub name: Option<String>,
-    /// The slug of the account in which the new project should be created
+    /// The slug of the account in which the new graph should be created
     #[arg(short, long, value_name = "SLUG")]
     pub account: Option<String>,
+    /// Adds an environment variable to the graph
+    #[clap(short = 'e', long = "env", value_parser, num_args = 0..)]
+    environment_variables: Vec<String>,
 }
 
 impl CreateCommand {
@@ -18,7 +21,17 @@ impl CreateCommand {
         self.name
             .as_deref()
             .zip(self.account.as_deref())
-            .map(|(name, account_slug)| CreateArguments { account_slug, name })
+            .map(|(name, account_slug)| CreateArguments {
+                account_slug,
+                name,
+                env_vars: self.environment_variables().collect(),
+            })
+    }
+
+    pub fn environment_variables(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.environment_variables
+            .iter()
+            .filter_map(|s| super::split_env_var(s))
     }
 }
 
