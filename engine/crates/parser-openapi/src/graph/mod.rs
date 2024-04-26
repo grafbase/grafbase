@@ -251,7 +251,7 @@ pub enum ScalarKind {
 
 impl ScalarKind {
     pub fn type_name(self) -> String {
-        use engine::registry::scalars::{JSONScalar, SDLDefinitionScalar};
+        use engine_scalars::{JSONScalar, SDLDefinitionScalar};
 
         match self {
             ScalarKind::String => "String".to_string(),

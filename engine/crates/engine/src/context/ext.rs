@@ -9,11 +9,7 @@ use http::{
 use postgres_connector_types::database_definition::DatabaseDefinition;
 
 use crate::{
-    deferred::DeferredWorkloadSender,
-    parser::types::FragmentDefinition,
-    query_path::QueryPath,
-    registry::{MetaType, Registry},
-    schema::SchemaEnv,
+    deferred::DeferredWorkloadSender, parser::types::FragmentDefinition, query_path::QueryPath, schema::SchemaEnv,
     Error, LegacyInputType, Name, Pos, Positioned, QueryEnv, Result, ServerError, ServerResult,
 };
 

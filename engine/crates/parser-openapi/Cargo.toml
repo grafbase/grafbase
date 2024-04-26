@@ -35,6 +35,7 @@ openapi = { git = "https://github.com/grafbase/openapi.git", rev = "f028c4943fe7
 openapiv3 = { git = "https://github.com/grafbase/openapiv3.git", rev = "c019f9fcea8fee036da3738bab643439bf6fa85b" } # openapiv3.1-updated-to-upstream }
 
 engine = { path = "../engine" }
+engine-scalars = { path = "../engine/scalars" }
 engine-value.workspace = true
 parser-sdl = { path = "../parser-sdl" }
 registry-v1.workspace = true

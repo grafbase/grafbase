@@ -27,7 +27,7 @@ impl<'a> Visitor<'a> for ProvidedNonNullArguments {
                             "Directive \"@{}\" argument \"{}\" of type \"{}\" is required but not provided",
                             directive.node.name,
                             arg.name(),
-                            arg.ty().to_string()
+                            arg.ty()
                         ),
                     );
                 }

@@ -229,7 +229,7 @@ async fn resolve_array_field(
     field: registry_v2::MetaField<'_>,
     parent_resolver_value: ResolvedValue,
 ) -> Result<ResponseNodeId, ServerError> {
-    let registry = ctx.registry();
+    let _registry = ctx.registry();
     let container_type = field.ty().named_type();
 
     let resolved_value = run_field_resolver(ctx, parent_resolver_value)

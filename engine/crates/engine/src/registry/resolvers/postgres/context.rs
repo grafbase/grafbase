@@ -22,7 +22,7 @@ use crate::{
         resolvers::ResolverContext,
         type_kinds::{OutputType, SelectionSetTarget},
     },
-    Context, ContextExt, ContextField, Error, SelectionField, ServerResult,
+    ContextExt, ContextField, Error, SelectionField, ServerResult,
 };
 
 /// The API to access the request parameters, such as filters and selection, and map that together with
@@ -130,11 +130,6 @@ impl<'a> PostgresContext<'a> {
             .expect("couldn't find a meta type for a collection selection");
 
         SelectionIterator::new(self, output_type, &self.root_field(), selection)
-    }
-
-    /// Access to the schema registry.
-    pub fn registry(&self) -> &registry_v2::Registry {
-        self.context.registry()
     }
 
     /// A simple `user(by: { id: 1 })` filter, that has exactly one equals operation.

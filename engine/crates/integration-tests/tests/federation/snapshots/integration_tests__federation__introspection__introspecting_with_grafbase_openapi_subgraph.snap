@@ -71,9 +71,9 @@ input PetInput {
   id: Int
   name: String!
   status: PetStatus
-  tags: [TagInput!]
-  photoUrls: [String!]!
   category: CategoryInput
+  photoUrls: [String!]!
+  tags: [TagInput!]
 }
 
 enum PetStatus {

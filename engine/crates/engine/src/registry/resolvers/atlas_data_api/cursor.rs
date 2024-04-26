@@ -85,7 +85,7 @@ impl AtlasCursor {
         let input_type = ctx.find_argument_type("orderBy")?;
 
         let order_by = order_by.iter().fold(JsonMap::new(), |mut acc, map| {
-            let mut map = embed_type_info(ctx, map, type_info);
+            let mut map = embed_type_info(map, type_info);
             if let Some(input_object) = input_type.as_input_object() {
                 map = normalize::keys(ctx, map, input_object);
             }
@@ -161,7 +161,7 @@ impl TryFrom<GraphqlCursor> for AtlasCursor {
     }
 }
 
-fn embed_type_info(ctx: &ContextField<'_>, map: &JsonMap, type_info: OutputType<'_>) -> JsonMap {
+fn embed_type_info(map: &JsonMap, type_info: OutputType<'_>) -> JsonMap {
     let mut result = JsonMap::new();
 
     for (key, value) in map {
@@ -172,7 +172,7 @@ fn embed_type_info(ctx: &ContextField<'_>, map: &JsonMap, type_info: OutputType<
             Some(_) => {
                 match value {
                     Value::Object(object) => {
-                        result.extend(embed_type_info(ctx, object, OutputType::try_from(meta_type).unwrap()));
+                        result.extend(embed_type_info(object, OutputType::try_from(meta_type).unwrap()));
                     }
                     value => {
                         let type_name = meta_type.name();

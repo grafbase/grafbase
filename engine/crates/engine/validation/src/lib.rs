@@ -72,7 +72,7 @@ pub fn check_rules(
     let mut ctx = VisitorContext::new(registry, doc, variables);
     let mut cache_control = registry_v2::cache_control::CacheControl::default();
     let mut cache_invalidation_policies = Default::default();
-    let mut complexity = 0;
+    let complexity = 0;
     let mut depth = 0;
     let mut root_field_count: usize = 0;
     let mut height: usize = 0;

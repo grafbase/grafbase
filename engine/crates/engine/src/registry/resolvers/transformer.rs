@@ -1,15 +1,15 @@
 #![allow(deprecated)]
 
-use std::hash::Hash;
+
 
 use engine_parser::Positioned;
 use grafbase_sql_ast::ast::Order;
-use grafbase_tracing::otel::tracing_subscriber::registry;
+
 use graphql_cursor::GraphqlCursor;
-use indexmap::IndexMap;
+
 use postgres_connector_types::{
     cursor::SQLCursor,
-    database_definition::{self, TableId},
+    database_definition::{self},
 };
 use registry_v2::EnumType;
 use serde_json::Value;

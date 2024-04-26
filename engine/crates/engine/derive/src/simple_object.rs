@@ -302,7 +302,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                 }
 
                 fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
-                    use crate::registry::LegacyRegistryExt;
+                    use #crate_name::registry::LegacyRegistryExt;
                     registry.create_output_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
                             name: ::std::borrow::ToOwned::to_owned(#gql_typename),
@@ -372,7 +372,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     name: &str,
                     complex_fields: #crate_name::indexmap::IndexMap<::std::string::String, #crate_name::registry::MetaField>,
                 ) -> ::std::string::String where Self: #crate_name::LegacyOutputType {
-                    use crate::registry::LegacyRegistryExt;
+                    use #crate_name::registry::LegacyRegistryExt;
                     registry.create_output_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
                             name: ::std::borrow::ToOwned::to_owned(name),

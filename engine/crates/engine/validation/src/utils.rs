@@ -124,7 +124,7 @@ pub fn is_valid_input_value(
                         let mut input_names: HashSet<&str> = values.keys().map(AsRef::as_ref).collect::<HashSet<_>>();
 
                         for field in input_object.input_fields() {
-                            input_names.remove::<str>(&field.name());
+                            input_names.remove::<str>(field.name());
                             if let Some(value) = values.get::<str>(field.name()) {
                                 if let Some(reason) = is_valid_input_value(
                                     registry,

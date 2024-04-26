@@ -90,7 +90,7 @@ pub fn generate(newtype_args: &args::NewType) -> GeneratorResult<TokenStream> {
             }
 
             fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::InputValueType {
-                use crate::registry::LegacyRegistryExt;
+                use #crate_name::registry::LegacyRegistryExt;
                 #create_type_info
             }
 

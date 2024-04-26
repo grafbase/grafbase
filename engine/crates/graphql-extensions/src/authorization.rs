@@ -8,7 +8,7 @@ use common_types::auth::{ExecutionAuth, Operations};
 use engine::{
     extensions::{Extension, ExtensionContext, ExtensionFactory, NextResolve, ResolveInfo},
     graph_entities::ResponseNodeId,
-    registry::{NamedType, TypeReference},
+    registry::NamedType,
     AuthConfig, ServerError, ServerResult,
 };
 use engine_value::ConstValue;
@@ -273,9 +273,7 @@ fn guess_type_name(info: &ResolveInfo<'_>, required_op: Operations) -> NamedType
         _ => panic!("unexpected operation"),
     };
 
-    info.return_type
-        .named_type()
-        .name()
+    named_type_from_type_str(info.return_type)
         .strip_suffix(suffix)
         .expect("must be the expected Payload type")
         .to_owned()
@@ -291,9 +289,25 @@ fn guess_batch_operation_type_name(info: &ResolveInfo<'_>, required_op: Operatio
         Operations::DELETE => "DeleteManyPayload",
         _ => panic!("unexpected operation"),
     };
-    info.return_type
-        .named_type()
-        .name()
+
+    named_type_from_type_str(info.return_type)
         .strip_suffix(suffix)
         .map(|name| name.to_owned().into())
+}
+
+fn named_type_from_type_str(meta: &str) -> &str {
+    let mut nested = Some(meta);
+
+    if meta.starts_with('[') && meta.ends_with(']') {
+        nested = nested.and_then(|x| x.strip_prefix('['));
+        nested = nested.and_then(|x| x.strip_suffix(']'));
+        return named_type_from_type_str(nested.expect("Can't fail"));
+    }
+
+    if meta.ends_with('!') {
+        nested = nested.and_then(|x| x.strip_suffix('!'));
+        return named_type_from_type_str(nested.expect("Can't fail"));
+    }
+
+    nested.expect("Can't fail")
 }

@@ -5,8 +5,8 @@ use futures_util::stream::{self, Stream, StreamExt};
 use futures_util::FutureExt;
 use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
 use graph_entities::CompactValue;
-use indexmap::map::IndexMap;
-use registry_v2::{DirectiveLocation, OperationLimits};
+
+use registry_v2::OperationLimits;
 use tracing::{Instrument, Span};
 
 use crate::registry::type_kinds::SelectionSetTarget;
@@ -15,20 +15,19 @@ use crate::{
     current_datetime::CurrentDateTime,
     deferred,
     extensions::{ExtensionFactory, Extensions},
-    model::__DirectiveLocation,
     parser::{
         parse_query,
         types::{Directive, DocumentOperations, OperationType, Selection, SelectionSet},
         Positioned,
     },
+    registry::Registry,
     registry::RegistrySdlExt,
-    registry::{MetaDirective, MetaInputValue, Registry},
     resolver_utils::{self, resolve_root_container, resolve_root_container_serial},
     response::{IncrementalPayload, StreamingPayload},
     subscription::collect_subscription_streams,
     types::QueryRoot,
     BatchRequest, BatchResponse, CacheControl, ContextExt, ContextSelectionSet, LegacyInputType, LegacyOutputType,
-    ObjectType, QueryEnv, QueryEnvBuilder, QueryPath, Request, Response, ServerError, SubscriptionType, Variables, ID,
+    ObjectType, QueryEnv, QueryEnvBuilder, QueryPath, Request, Response, ServerError, SubscriptionType, Variables,
 };
 use crate::{new_futures_spawner, registry_operation_type_from_parser, QuerySpawnedFuturesWaiter};
 
@@ -118,7 +117,7 @@ pub struct SchemaInner {
     pub(crate) validation_mode: ValidationMode,
     pub(crate) operation_limits: OperationLimits,
     pub(crate) extensions: Vec<Box<dyn ExtensionFactory>>,
-    pub(crate) env: SchemaEnv,
+    pub env: SchemaEnv,
 }
 
 /// GraphQL schema.
@@ -129,13 +128,6 @@ pub struct Schema(Arc<SchemaInner>);
 impl Clone for Schema {
     fn clone(&self) -> Self {
         Schema(self.0.clone())
-    }
-}
-
-impl Default for Schema {
-    fn default() -> Self {
-        // Not sure if this is even called
-        Schema::new(Arc::new(todo!("Self::create_registry()")))
     }
 }
 

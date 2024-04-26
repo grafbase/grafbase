@@ -1,8 +1,4 @@
-use std::{
-    borrow::Borrow,
-    collections::{BTreeMap, BTreeSet},
-    hash::Hash,
-};
+use std::{borrow::Borrow, collections::BTreeMap};
 
 use engine_parser::types::OperationType::Query;
 use engine_validation::ValidationMode;
@@ -40,7 +36,7 @@ impl CachePartialRegistry {
         };
 
         engine_validation::check_rules(
-            todo!("&registry_caching_view"), // TODO: Revisit this when conversion is done
+            &build_caching_view(registry_caching_view),
             &document,
             Some(&request.variables),
             ValidationMode::Fast,
@@ -48,6 +44,10 @@ impl CachePartialRegistry {
         .map(|res| res.cache_control)
         .map_err(|errors| CacheControlError::Validate(errors.into_iter().map(ServerError::from).collect()))
     }
+}
+
+fn build_caching_view(_registry_caching_view: Registry) -> registry_v2::Registry {
+    todo!("implement me")
 }
 
 impl<T: Borrow<Registry>> From<T> for CachePartialRegistry {

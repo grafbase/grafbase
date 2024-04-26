@@ -80,7 +80,7 @@ pub fn generate(object_args: &args::MergedObject) -> GeneratorResult<TokenStream
             }
 
             fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
-                use crate::registry::LegacyRegistryExt;
+                use #crate_name::registry::LegacyRegistryExt;
                 registry.create_output_type::<Self, _>(|registry| {
                     let mut fields = ::std::default::Default::default();
                     let mut cache_control = ::std::default::Default::default();

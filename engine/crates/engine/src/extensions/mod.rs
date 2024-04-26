@@ -86,7 +86,7 @@ pub struct ResolveInfo<'a> {
     pub parent_type: &'a str,
 
     /// Current return type, is qualified name.
-    pub return_type: registry_v2::MetaFieldType<'a>,
+    pub return_type: &'a str,
 
     /// Current field name
     pub name: &'a str,
