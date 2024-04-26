@@ -1,6 +1,6 @@
 use engine_parser::types as ast;
 use engine_value::ConstValue;
-use std::{collections::HashMap, ops, str::FromStr};
+use std::{collections::HashMap, iter, ops, str::FromStr};
 
 #[must_use]
 pub fn analyze(graphql_document: &ast::ServiceDocument) -> AnalyzedSchema<'_> {
@@ -29,19 +29,19 @@ fn analyze_top_level<'doc>(graphql_document: &'doc ast::ServiceDocument, schema:
                     ast::TypeKind::Scalar => {
                         schema.push_custom_scalar(CustomScalar { name, docs });
                     }
-                    ast::TypeKind::Object(_) => {
+                    ast::TypeKind::Object(obj) => {
                         schema.push_output_type(Object {
                             name,
                             docs,
                             kind: ObjectKind::Object,
                         });
-                    }
-                    ast::TypeKind::Interface(_) => {
-                        schema.push_output_type(Object {
-                            name,
-                            docs,
-                            kind: ObjectKind::Interface,
-                        });
+
+                        for interface in &obj.implements {
+                            schema.interface_implementations.push(InterfaceImplementation {
+                                interface: interface.node.as_str(),
+                                implementer: name,
+                            });
+                        }
                     }
                     ast::TypeKind::InputObject(_) => {
                         schema.push_output_type(Object {
@@ -60,6 +60,8 @@ fn analyze_top_level<'doc>(graphql_document: &'doc ast::ServiceDocument, schema:
                             schema.push_enum_variant(id, &variant.node.value.node);
                         }
                     }
+                    // Interfaces are only relevant insofar as they are implemented, so they are handled in the Object branch.
+                    ast::TypeKind::Interface(_) => {}
                 }
             }
             ast::TypeSystemDefinition::Schema(_) | ast::TypeSystemDefinition::Directive(_) => (), // not interested
@@ -75,6 +77,8 @@ fn analyze_top_level<'doc>(graphql_document: &'doc ast::ServiceDocument, schema:
             });
         }
     }
+
+    schema.interface_implementations.sort();
 }
 
 /// Second pass. We know about all definitions, now we analyze fields inside object and interface
@@ -267,6 +271,8 @@ pub struct AnalyzedSchema<'doc> {
     object_fields: Vec<(ObjectId, Field<'doc>)>,
     object_field_args: Vec<(FieldId, FieldArgument<'doc>)>,
 
+    interface_implementations: Vec<InterfaceImplementation<'doc>>,
+
     pub(crate) unions: Vec<Union<'doc>>,
     // Invariant: This is sorted because we iterate unions in order. We rely on that for binary
     // search.
@@ -277,6 +283,12 @@ pub struct AnalyzedSchema<'doc> {
     pub(crate) enum_variants: Vec<(EnumId, &'doc str)>,
 
     pub(crate) custom_scalars: Vec<CustomScalar<'doc>>,
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct InterfaceImplementation<'doc> {
+    pub(crate) interface: &'doc str,
+    pub(crate) implementer: &'doc str,
 }
 
 #[derive(Debug)]
@@ -381,6 +393,24 @@ impl<'doc> AnalyzedSchema<'doc> {
             .iter()
             .enumerate()
             .map(|(idx, (object_id, field))| (object_id, FieldId(idx), field))
+    }
+
+    pub(crate) fn iter_interfaces(&self) -> impl Iterator<Item = (&'doc str, &[InterfaceImplementation<'doc>])> {
+        let mut start_idx = 0;
+
+        iter::from_fn(move || {
+            let first_element = self.interface_implementations.get(start_idx)?;
+            let end = self.interface_implementations[start_idx..]
+                .iter()
+                .position(|iface_impl| iface_impl.interface != first_element.interface)
+                .map(|pos| start_idx + pos)
+                .unwrap_or_else(|| self.interface_implementations.len());
+
+            let elements = &self.interface_implementations[start_idx..end];
+            start_idx = end;
+
+            Some((first_element.interface, elements))
+        })
     }
 
     pub(crate) fn iter_object_fields(&self, object_id: ObjectId) -> impl Iterator<Item = &Field<'doc>> {
@@ -529,7 +559,6 @@ pub(crate) struct Object<'doc> {
 pub(crate) enum ObjectKind {
     Object,
     InputObject,
-    Interface,
 }
 
 #[derive(Debug)]

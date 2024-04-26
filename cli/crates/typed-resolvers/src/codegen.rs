@@ -76,6 +76,16 @@ where
         }
     }
 
+    for (interface_name, implementations) in schema.iter_interfaces() {
+        write!(out, "{INDENT}'{interface_name}':")?;
+
+        for implementation in implementations {
+            write!(out, " | Schema['{name}']", name = implementation.implementer)?;
+        }
+
+        writeln!(out, ";")?;
+    }
+
     out.write_str("};\n")?;
 
     write_resolver_type(schema, out)

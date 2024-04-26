@@ -12,7 +12,7 @@
 //  }
 
 export type Schema = {
-  'holycow': | Schema['type'] | Schema['interface'] | Schema['object'] | Schema['union'];
+  'holycow': | Schema['type'] | Schema['interface'] | Schema['object'];
   /**
    * GraphQL field names can be anything.
    */
@@ -44,18 +44,10 @@ export type Schema = {
     __typename?: 'object';
     id: string;
   };
-  'union': {
-    id: string;
-  };
   'interface': {
     __typename?: 'interface';
     type?: Schema['type'];
     interface?: Schema['interface'] | null;
   };
-  'schema': {
-    id: string;
-  };
-  'query': {
-    fragment?: Schema['type'] | null;
-  };
+  'query': | Schema['interface'];
 };

@@ -23,11 +23,6 @@ export type Schema = {
     id: string;
     name: string;
   };
-  'LivingThing': {
-    metabolicRate: number;
-    age: number;
-  };
-  'Animal': {
-    pettable: boolean;
-  };
+  'Animal': | Schema['Dog'];
+  'LivingThing': | Schema['Dog'] | Schema['Human'];
 };
