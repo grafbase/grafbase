@@ -9,6 +9,15 @@ pub struct CodegenDirective {
     pub path: Option<String>,
 }
 
+impl From<CodegenDirective> for engine::registry::CodegenConfig {
+    fn from(value: CodegenDirective) -> Self {
+        engine::registry::CodegenConfig {
+            enabled: value.enabled,
+            path: value.path,
+        }
+    }
+}
+
 impl Directive for CodegenDirective {
     fn definition() -> String {
         r#"

@@ -197,6 +197,10 @@ impl<'a> VisitorContext<'a> {
 
         registry.remove_unused_types();
 
+        if let Some(directive) = self.codegen_directive.take() {
+            registry.codegen = Some(directive.into())
+        }
+
         registry.operation_limits = self
             .operation_limits_directive
             .take()
