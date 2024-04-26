@@ -1394,6 +1394,13 @@ pub struct TrustedDocuments {
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct CodegenConfig {
+    pub enabled: bool,
+    pub path: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct CorsConfig {
     pub max_age: Option<u32>,
     pub allowed_origins: Option<Vec<String>>,
@@ -1427,14 +1434,14 @@ pub struct Registry {
     pub federation_entities: BTreeMap<String, FederationEntity>,
     #[serde(default)]
     pub enable_ai: bool,
-    #[serde(default)]
-    pub enable_codegen: bool,
     // FIXME: Make an enum.
     pub is_federated: bool,
     #[serde(default)]
     pub operation_limits: OperationLimits,
     #[serde(default)]
     pub trusted_documents: Option<TrustedDocuments>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub codegen: Option<CodegenConfig>,
     #[serde(default)]
     pub cors_config: Option<CorsConfig>,
 }
@@ -1459,11 +1466,11 @@ impl Default for Registry {
             enable_kv: false,
             federation_entities: Default::default(),
             enable_ai: false,
-            enable_codegen: false,
             is_federated: false,
             operation_limits: Default::default(),
             trusted_documents: Default::default(),
             cors_config: Default::default(),
+            codegen: None,
         }
     }
 }

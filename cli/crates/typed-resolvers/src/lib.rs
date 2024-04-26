@@ -14,6 +14,7 @@ pub use engine_parser::parse_schema;
 use self::error::CodegenError;
 use std::{ffi, fmt, path::Path};
 
+#[derive(Debug)]
 pub struct CustomResolver {
     pub parent_type_name: String,
     pub field_name: String,

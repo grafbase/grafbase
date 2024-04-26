@@ -81,3 +81,27 @@ async fn dev_watch() {
         assert!(generated_types_path.is_file());
     }
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn dev_watch_with_custom_codegen_path() {
+    let mut env = Environment::init();
+
+    env.grafbase_init(GraphType::Single);
+
+    env.write_schema(
+        r#"
+        extend schema @codegen(enabled: true, path: "custom-generated/directory/")
+
+        extend type Query {
+            hello: String! @resolver(name: "hello")
+        }
+        "#,
+    );
+    env.write_resolver("hello.js", "export default function Resolver() { return 'hello'; }");
+
+    env.grafbase_dev_watch();
+
+    // Check that the TS resolver types are being generated.
+    let generated_types_path = env.directory_path.join("custom-generated/directory/index.ts");
+    assert!(generated_types_path.is_file());
+}

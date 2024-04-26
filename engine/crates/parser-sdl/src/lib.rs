@@ -21,6 +21,7 @@ use rules::{
     check_known_directives::CheckAllDirectivesAreKnown,
     check_type_validity::CheckTypeValidity,
     check_types_underscore::CheckBeginsWithDoubleUnderscore,
+    codegen_directive::CodegenDirective,
     connector_transforms::run_transforms,
     cors_directive::{CorsDirective, CorsVisitor},
     default_directive::DefaultDirective,
@@ -143,6 +144,7 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<AuthDirective>()
         .with::<AuthV2Directive>()
         .with::<CacheDirective>()
+        .with::<CodegenDirective>()
         .with::<CorsDirective>()
         .with::<DefaultDirective>()
         .with::<DeprecatedDirective>()

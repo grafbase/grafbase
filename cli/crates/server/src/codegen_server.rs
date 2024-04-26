@@ -23,18 +23,20 @@ pub(crate) fn start_codegen_worker(
 ) {
     static CODEGEN_WORKER_HANDLE: OnceLock<JoinHandle<()>> = OnceLock::new();
 
+    let project = Project::get();
+
     let initial_config = config_actor
         .current_result()
         .as_ref()
-        .map(transform_config)
+        .map(|config| transform_config(config, project))
         .ok()
         .flatten();
     let config_changes = config_actor.config_stream();
 
     CODEGEN_WORKER_HANDLE.get_or_init(|| {
-        tokio::spawn(
-            async move { codegen_worker_task(file_changes, initial_config, config_changes, message_sender).await },
-        )
+        tokio::spawn(async move {
+            codegen_worker_task(file_changes, initial_config, config_changes, message_sender, project).await
+        })
     });
 }
 
@@ -45,17 +47,21 @@ enum CodegenIncomingEvent {
 
 async fn codegen_worker_task(
     file_changes: ChangeStream,
-    mut last_seen_config: Option<(String, Vec<typed_resolvers::CustomResolver>)>,
+    mut last_seen_config: Option<TransformedConfig>,
     config_changes: ConfigStream,
     message_sender: MessageSender,
+    project: &Project,
 ) {
-    let project = Project::get();
-    let generated_ts_resolver_types_path = project.generated_directory_path().join("index.ts");
     let resolvers_path = project.udfs_source_path(common_types::UdfKind::Resolver);
 
     // Try generating types on start up.
-    if let Some((sdl, resolvers)) = last_seen_config.as_ref() {
-        generate_ts_resolver_types(sdl, resolvers, &generated_ts_resolver_types_path);
+    if let Some(TransformedConfig {
+        sdl,
+        generated_ts_resolver_types_path: resolver_codegen_path,
+        resolvers,
+    }) = last_seen_config.as_ref()
+    {
+        generate_ts_resolver_types(sdl, resolvers, &resolver_codegen_path);
     }
 
     let mut stream = config_changes
@@ -65,8 +71,13 @@ async fn codegen_worker_task(
     while let Some(next) = stream.next().await {
         match next {
             CodegenIncomingEvent::ConfigChange(config) => {
-                last_seen_config = transform_config(&config);
-                if let Some((sdl, resolvers)) = &last_seen_config {
+                last_seen_config = transform_config(&config, project);
+                if let Some(TransformedConfig {
+                    sdl,
+                    generated_ts_resolver_types_path,
+                    resolvers,
+                }) = &last_seen_config
+                {
                     generate_ts_resolver_types(sdl, resolvers, &generated_ts_resolver_types_path);
                 }
             }
@@ -75,7 +86,7 @@ async fn codegen_worker_task(
                     && path.ancestors().any(|ancestor| ancestor == resolvers_path)
                 {
                     // A resolver changed, check it.
-                    let Some((sdl, resolvers)) = last_seen_config.as_ref() else {
+                    let Some(TransformedConfig { sdl, resolvers, .. }) = last_seen_config.as_ref() else {
                         continue;
                     };
 
@@ -101,11 +112,30 @@ async fn codegen_worker_task(
     }
 }
 
-fn transform_config(config: &Config) -> Option<(String, Vec<typed_resolvers::CustomResolver>)> {
-    config.registry.enable_codegen.then(|| {
-        let federation = false; // not relevant for codegen
-        let sdl = config.registry.export_sdl(federation);
-        (sdl, find_resolvers(config))
+#[derive(Debug)]
+struct TransformedConfig {
+    sdl: String,
+    generated_ts_resolver_types_path: PathBuf,
+    resolvers: Vec<typed_resolvers::CustomResolver>,
+}
+
+fn transform_config(config: &Config, project: &Project) -> Option<TransformedConfig> {
+    let codegen_config = config.registry.codegen.as_ref()?;
+
+    if !codegen_config.enabled {
+        return None;
+    }
+
+    let federation = false; // not relevant for codegen
+    let sdl = config.registry.export_sdl(federation);
+    let schema_parent_dir = project.schema_path.parent().expect("the schema path to have a parent");
+
+    Some(TransformedConfig {
+        sdl,
+        generated_ts_resolver_types_path: schema_parent_dir
+            .join(codegen_config.path.as_deref().unwrap_or("generated"))
+            .join("index.ts"),
+        resolvers: find_resolvers(config),
     })
 }
 

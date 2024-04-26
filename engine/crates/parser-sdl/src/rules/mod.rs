@@ -7,6 +7,7 @@ pub mod check_known_directives;
 pub mod check_type_collision;
 pub mod check_type_validity;
 pub mod check_types_underscore;
+pub mod codegen_directive;
 mod connector_headers;
 pub mod connector_transforms;
 pub mod cors_directive;
