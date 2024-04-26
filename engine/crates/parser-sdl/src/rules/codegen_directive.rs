@@ -3,6 +3,7 @@ use crate::directive_de::parse_directive;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct CodegenDirective {
     pub enabled: bool,
     /// The target file path for the generated code.
