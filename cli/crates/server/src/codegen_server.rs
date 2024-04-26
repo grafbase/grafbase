@@ -61,7 +61,7 @@ async fn codegen_worker_task(
         resolvers,
     }) = last_seen_config.as_ref()
     {
-        generate_ts_resolver_types(sdl, resolvers, &resolver_codegen_path);
+        generate_ts_resolver_types(sdl, resolvers, resolver_codegen_path);
     }
 
     let mut stream = config_changes
@@ -78,7 +78,7 @@ async fn codegen_worker_task(
                     resolvers,
                 }) = &last_seen_config
                 {
-                    generate_ts_resolver_types(sdl, resolvers, &generated_ts_resolver_types_path);
+                    generate_ts_resolver_types(sdl, resolvers, generated_ts_resolver_types_path);
                 }
             }
             CodegenIncomingEvent::FileChange(Ok(path)) => {

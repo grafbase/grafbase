@@ -66,7 +66,7 @@ mod tests {
     fn parse_schema(schema: &str) -> crate::ParseResult<'_> {
         let connector_parsers = crate::connector_parsers::MockConnectorParsers::default();
         let variables = HashMap::default();
-        futures::executor::block_on(crate::parse(&schema, &variables, &connector_parsers)).unwrap()
+        futures::executor::block_on(crate::parse(schema, &variables, &connector_parsers)).unwrap()
     }
 
     #[test]
