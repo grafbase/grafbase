@@ -4,6 +4,9 @@
 export interface ExperimentalParams {
   kv?: boolean
   ai?: boolean
+  /**
+   * @deprecated Codegen was stabilized. Use the `codegen` key in the config object.
+   */
   codegen?: boolean
 }
 

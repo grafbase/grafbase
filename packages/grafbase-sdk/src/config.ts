@@ -11,6 +11,7 @@ import { OperationLimits, OperationLimitsParams } from './operation-limits'
 import { Experimental, ExperimentalParams } from './experimental'
 import { Introspection } from './introspection'
 import { TrustedDocuments, TrustedDocumentsParams } from './trusted-documents'
+import { Codegen, CodegenParams } from './codegen'
 
 /**
  * An interface to create the complete config definition.
@@ -20,6 +21,7 @@ export interface GraphConfigInput {
   auth?: AuthParams
   cache?: CacheParams
   cors?: CorsParams
+  codegen?: CodegenParams
   operationLimits?: OperationLimitsParams
   trustedDocuments?: TrustedDocumentsParams
   experimental?: ExperimentalParams
@@ -36,6 +38,7 @@ export interface DeprecatedGraphConfigInput {
   auth?: AuthParams
   operationLimits?: OperationLimitsParams
   cache?: CacheParams
+  codegen?: CodegenParams
   cors?: CorsParams
   experimental?: ExperimentalParams
   introspection?: boolean
@@ -59,6 +62,7 @@ export class GraphConfig {
   private graph: Graph
   private readonly auth?: Authentication
   private readonly cache?: GlobalCache
+  private readonly codegen?: Codegen
   private readonly cors?: Cors
   private readonly operationLimits?: OperationLimits
   private readonly experimental?: Experimental
@@ -93,6 +97,10 @@ export class GraphConfig {
       this.introspection = new Introspection({ enabled: input.introspection })
     }
 
+    if (input.codegen) {
+      this.codegen = new Codegen(input.codegen)
+    }
+
     if (input.cors) {
       this.cors = new Cors(input.cors)
     }
@@ -119,9 +127,10 @@ export class GraphConfig {
         ? new Introspection({ enabled: true })
         : ''
 
+    const codegen = this.codegen ? this.codegen.toString() : ''
     const cors = this.cors ? this.cors.toString() : ''
 
-    return `${experimental}${auth}${operationLimits}${trustedDocuments}${cache}${cors}${introspection}${graph}`
+    return `${experimental}${auth}${operationLimits}${trustedDocuments}${cache}${codegen}${cors}${introspection}${graph}`
   }
 }
 
