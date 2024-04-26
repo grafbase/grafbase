@@ -9,6 +9,7 @@ mod create;
 mod deploy;
 mod dev;
 mod dump_config;
+mod environment_variables;
 mod errors;
 mod init;
 mod introspect;
@@ -34,7 +35,7 @@ extern crate log;
 
 use crate::{
     build::build,
-    cli_input::{Args, ArgumentNames, BranchSubCommand, LogsCommand, SubCommand},
+    cli_input::{Args, ArgumentNames, BranchSubCommand, EnvironmentSubCommand, LogsCommand, SubCommand},
     create::create,
     deploy::deploy,
     dev::dev,
@@ -200,6 +201,15 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Branch(cmd) => match cmd.command {
             BranchSubCommand::List => branch::list(),
             BranchSubCommand::Delete(cmd) => branch::delete(cmd.branch_ref),
+        },
+        SubCommand::Environment(cmd) => match cmd.command {
+            EnvironmentSubCommand::List(cmd) => environment_variables::list(cmd.graph_ref),
+            EnvironmentSubCommand::Create(cmd) => {
+                environment_variables::create(cmd.graph_ref, &cmd.name, &cmd.value, cmd.environment)
+            }
+            EnvironmentSubCommand::Delete(cmd) => {
+                environment_variables::delete(cmd.graph_ref, &cmd.name, cmd.environment)
+            }
         },
     }
 }

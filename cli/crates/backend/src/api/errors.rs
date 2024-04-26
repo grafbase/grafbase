@@ -148,6 +148,10 @@ pub enum ApiError {
     #[error(transparent)]
     BranchError(#[from] BranchError),
 
+    /// wraps an [`EnvironmentVariableError`]
+    #[error(transparent)]
+    EnvironmentVariableError(#[from] EnvironmentVariableError),
+
     /// returned if the project does not exist
     #[error("could not find the project")]
     ProjectDoesNotExist,
@@ -264,5 +268,15 @@ pub enum BranchError {
     CannotDeleteProductionBranchError(String),
     /// returned if an unknown error occurs
     #[error("could not delete branch, encountered an unknown error\nCaused by: {0}")]
+    Unknown(String),
+}
+
+#[derive(Error, Debug)]
+pub enum EnvironmentVariableError {
+    /// the given env var does not exist
+    #[error("environment variable {0} does not exist")]
+    NotFound(String),
+    /// returned if an unknown error occurs
+    #[error("could not delete environment variable, encountered an unknown error\nCaused by: {0}")]
     Unknown(String),
 }

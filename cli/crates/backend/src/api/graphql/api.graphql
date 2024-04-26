@@ -613,6 +613,14 @@ type EmptyDatabaseRegionsError {
   query: Query!
 }
 
+input EnviromentVariableUpsertInput {
+  accountSlug: String!
+  projectSlug: String!
+  name: String!
+  value: String!
+  environments: [BranchEnvironment!]!
+}
+
 type EnvironmentVariable implements Node {
   id: ID!
   name: String!
@@ -659,10 +667,32 @@ union EnvironmentVariableCreatePayload =
   | NameContainsInvalidCharactersError
   | ValueTooLongError
   | ReservedPrefixError
+  | NoEnvironmentsSetError
   | ProjectDoesNotExistError
 
 type EnvironmentVariableCreateSuccess {
   environmentVariable: EnvironmentVariable!
+  query: Query!
+}
+
+input EnvironmentVariableDeleteByValuesInput {
+  projectId: ID!
+  name: String!
+  environments: [BranchEnvironment!]!
+}
+
+union EnvironmentVariableDeleteByValuesPayload =
+  | EnvironmentVariableDeleteByValuesSuccess
+  | EnvironmentVariableDoesNotExistError
+
+input EnvironmentVariableDeleteByValuesSlugsInput {
+  accountSlug: String!
+  projectSlug: String!
+  name: String!
+  environments: [BranchEnvironment!]!
+}
+
+type EnvironmentVariableDeleteByValuesSuccess {
   query: Query!
 }
 
@@ -715,6 +745,7 @@ union EnvironmentVariableUpdatePayload =
   | NameContainsInvalidCharactersError
   | ValueTooLongError
   | ReservedPrefixError
+  | NoEnvironmentsSetError
 
 type EnvironmentVariableUpdateSuccess {
   environmentVariable: EnvironmentVariable!
@@ -864,6 +895,7 @@ enum InvalidEnvironmentVariableErrorType {
   VALUE_TOO_LONG
   RESERVED_PREFIX
   DUPLICATE
+  NO_ENVIRONMENTS_SET
 }
 
 type InvalidEnvironmentVariablesError {
@@ -1192,9 +1224,29 @@ type Mutation {
   """
   environmentVariableUpdate(input: EnvironmentVariableUpdateInput!): EnvironmentVariableUpdatePayload!
   """
+  Create or update an environment variable.
+  """
+  environentVariableUpsert(input: EnvironmentVariableCreateInput!): EnvironmentVariableCreatePayload!
+  """
+  Create or update an environment variable.
+  """
+  environentVariableUpsertBySlug(input: EnviromentVariableUpsertInput!): EnvironmentVariableCreatePayload!
+  """
   Delete an environment variable.
   """
   environmentVariableDelete(input: EnvironmentVariableDeleteInput!): EnvironmentVariableDeletePayload!
+  """
+  Delete an environment variable with variable values.
+  """
+  environmentVariableDeleteWithValues(
+    input: EnvironmentVariableDeleteByValuesInput!
+  ): EnvironmentVariableDeleteByValuesPayload!
+  """
+  Delete an environment variable with variable values.
+  """
+  environmentVariableDeleteWithValuesBySlug(
+    input: EnvironmentVariableDeleteByValuesSlugsInput!
+  ): EnvironmentVariableDeleteByValuesPayload!
   inviteSend(input: InviteSendInput!): InviteSendPayload!
   inviteCancel(input: InviteCancelInput!): InviteCancelPayload!
   inviteAccept(input: InviteAcceptInput!): InviteAcceptPayload!
@@ -1294,6 +1346,10 @@ type NameSizeCheckError {
 }
 
 type NameTooLongError {
+  query: Query!
+}
+
+type NoEnvironmentsSetError {
   query: Query!
 }
 
@@ -2395,6 +2451,10 @@ type Query {
     name of the subgraph
     """
     subgraphName: String
+    """
+    return only versions with changes
+    """
+    populated: Boolean! = true
     after: String
     before: String
     first: Int

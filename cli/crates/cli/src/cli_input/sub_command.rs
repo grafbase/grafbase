@@ -1,11 +1,19 @@
 use clap::Parser;
 
-use crate::{cli_input::BranchSubCommand, is_not_direct_install};
+use crate::{
+    cli_input::{
+        environment::{
+            EnvironmentVariableCreateCommand, EnvironmentVariableDeleteCommand, EnvironmentVariableListCommand,
+        },
+        BranchSubCommand, EnvironmentSubCommand,
+    },
+    is_not_direct_install,
+};
 
 use super::{
     branch::BranchCommand, trust::TrustCommand, ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand,
-    CreateCommand, DeployCommand, DevCommand, InitCommand, IntrospectCommand, LinkCommand, LintCommand, LogsCommand,
-    PublishCommand, SchemaCommand, StartCommand, SubgraphsCommand,
+    CreateCommand, DeployCommand, DevCommand, EnvironmentCommand, InitCommand, IntrospectCommand, LinkCommand,
+    LintCommand, LogsCommand, PublishCommand, SchemaCommand, StartCommand, SubgraphsCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -15,6 +23,9 @@ pub enum SubCommand {
     Branch(BranchCommand),
     /// Start the Grafbase local development server
     Dev(DevCommand),
+    /// Modify graph environment variables
+    #[clap(visible_alias = "env")]
+    Environment(EnvironmentCommand),
     /// Output completions for the chosen shell to use, write the output to the
     /// appropriate location for your shell
     Completions(CompletionsCommand),
@@ -69,6 +80,15 @@ impl SubCommand {
                 | Self::Branch(BranchCommand {
                     command: BranchSubCommand::List
                 })
+                | Self::Environment(EnvironmentCommand {
+                    command: EnvironmentSubCommand::List(EnvironmentVariableListCommand { graph_ref: None })
+                })
+                | Self::Environment(EnvironmentCommand {
+                    command: EnvironmentSubCommand::Create(EnvironmentVariableCreateCommand { graph_ref: None, .. })
+                })
+                | Self::Environment(EnvironmentCommand {
+                    command: EnvironmentSubCommand::Delete(EnvironmentVariableDeleteCommand { graph_ref: None, .. })
+                })
                 | Self::Deploy(_)
                 | Self::Dev(DevCommand { .. })
                 | Self::Link(_)
@@ -97,6 +117,7 @@ impl ArgumentNames for SubCommand {
             SubCommand::Create(command) => command.argument_names(),
             SubCommand::Schema(_)
             | SubCommand::Branch(_)
+            | SubCommand::Environment(_)
             | SubCommand::Publish(_)
             | SubCommand::Check(_)
             | SubCommand::Subgraphs(_)
