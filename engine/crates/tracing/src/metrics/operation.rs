@@ -43,6 +43,7 @@ impl GraphqlOperationMetrics {
         let name = name.unwrap_or_default();
         let mut attributes = vec![
             KeyValue::new("gql.operation.normalized_query_hash", normalized_query_hash.clone()),
+            KeyValue::new("gql.operation.type", ty),
             KeyValue::new("gql.operation.name", name.clone()),
         ];
         if let Some(cache_status) = cache_status {
@@ -52,9 +53,8 @@ impl GraphqlOperationMetrics {
             attributes.push(KeyValue::new("gql.response.has_errors", "true"));
         }
         self.count.add(1, &attributes);
-        // We're only sending the type & normalized_query for the latency. Operation name &
-        // normalized_query_hash are enough to uniquely identify the operation currently, so no need to send
-        // this additional metadata twice.
+        // We're only sending the normalized_query for the latency. It's only send as additional
+        // metadata.
         self.latency.record(
             latency.as_millis() as u64,
             &[

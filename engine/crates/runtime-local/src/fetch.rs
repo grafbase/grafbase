@@ -60,7 +60,9 @@ impl FetcherInner for NativeFetcher {
                 HeaderValue::from_str("graphql-transport-ws").unwrap(),
             );
 
-            async_tungstenite::tokio::connect_async(request).await.unwrap()
+            async_tungstenite::tokio::connect_async(request)
+                .await
+                .map_err(FetchError::any)?
         };
 
         let headers = request.headers.iter().copied().collect::<HashMap<_, _>>();
