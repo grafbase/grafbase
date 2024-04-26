@@ -23,8 +23,8 @@ use super::{warnings::Warnings, RuleError, TypeStackType, MUTATION_TYPE, QUERY_T
 use crate::{
     federation::FederatedGraphConfig,
     rules::{
-        federation::FederationVersion, operation_limits_directive::OperationLimitsDirective,
-        trusted_documents_directive::TrustedDocumentsDirective,
+        codegen_directive::CodegenDirective, federation::FederationVersion,
+        operation_limits_directive::OperationLimitsDirective, trusted_documents_directive::TrustedDocumentsDirective,
     },
     GlobalCacheRules, GlobalCacheTarget, GraphqlDirective, MongoDBDirective, OpenApiDirective, ParseResult,
     PostgresDirective,
@@ -64,6 +64,7 @@ pub struct VisitorContext<'a> {
     pub(crate) global_cache_rules: GlobalCacheRules<'static>,
     pub(crate) operation_limits_directive: Option<OperationLimitsDirective>,
     pub(crate) trusted_documents_directive: Option<TrustedDocumentsDirective>,
+    pub(crate) codegen_directive: Option<CodegenDirective>,
 
     pub federation: Option<FederationVersion>,
 
@@ -128,6 +129,7 @@ impl<'a> VisitorContext<'a> {
             federated_graph_config: Default::default(),
             operation_limits_directive: None,
             trusted_documents_directive: None,
+            codegen_directive: None,
         }
     }
 
@@ -194,6 +196,10 @@ impl<'a> VisitorContext<'a> {
         }
 
         registry.remove_unused_types();
+
+        if let Some(directive) = self.codegen_directive.take() {
+            registry.codegen = Some(directive.into())
+        }
 
         registry.operation_limits = self
             .operation_limits_directive

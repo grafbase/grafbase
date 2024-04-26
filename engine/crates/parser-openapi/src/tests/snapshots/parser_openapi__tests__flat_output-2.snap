@@ -1730,7 +1730,6 @@ Registry {
         },
     },
     enable_ai: false,
-    enable_codegen: false,
     is_federated: false,
     operation_limits: OperationLimits {
         depth: None,
@@ -1740,5 +1739,6 @@ Registry {
         complexity: None,
     },
     trusted_documents: None,
+    codegen: None,
     cors_config: None,
 }

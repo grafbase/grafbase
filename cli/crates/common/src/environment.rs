@@ -57,7 +57,7 @@ impl GrafbaseSchemaPath {
         }
     }
 
-    fn parent(&self) -> Option<&Path> {
+    pub fn parent(&self) -> Option<&Path> {
         self.path().parent()
     }
 
@@ -142,11 +142,6 @@ impl Project {
             UdfKind::Authorizer => AUTHORIZERS_DIRECTORY_NAME,
         };
         self.dot_grafbase_directory_path.join(subdirectory_name)
-    }
-
-    /// The target directory for generated code.
-    pub fn generated_directory_path(&self) -> std::path::PathBuf {
-        self.schema_path.parent().expect("must have a parent").join("generated")
     }
 
     // reads and deserializes to json the contents of `&self.registry_path` in a blocking fashion

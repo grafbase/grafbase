@@ -6,6 +6,9 @@ export interface ExperimentalParams {
   kv?: boolean
   /** @deprecated AI is deprecated. Please adapt your project, and contact us if you need help with the migration.  */
   ai?: boolean
+  /**
+   * @deprecated Codegen was stabilized. Use the `codegen` key in the config object.
+   */
   codegen?: boolean
 }
 

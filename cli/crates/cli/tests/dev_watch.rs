@@ -1,10 +1,9 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
-use std::time::Duration;
-
 use backend::project::GraphType;
 use serde_json::Value;
+use std::time::Duration;
 use utils::environment::Environment;
 
 #[ctor::ctor]
@@ -80,4 +79,30 @@ async fn dev_watch() {
         let generated_types_path = env.directory_path.join("generated/index.ts");
         assert!(generated_types_path.is_file());
     }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn dev_watch_with_custom_codegen_path() {
+    let mut env = Environment::init();
+
+    env.grafbase_init(GraphType::Single);
+
+    env.write_schema(
+        r#"
+        extend schema @codegen(enabled: true, path: "custom-generated/directory/")
+
+        extend type Query {
+            hello: String! @resolver(name: "hello")
+        }
+        "#,
+    );
+    env.write_resolver("hello.js", "export default function Resolver() { return 'hello'; }");
+
+    env.grafbase_dev_watch();
+
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+
+    // Check that the TS resolver types are being generated.
+    let generated_types_path = env.directory_path.join("custom-generated/directory/index.ts");
+    assert!(generated_types_path.is_file());
 }

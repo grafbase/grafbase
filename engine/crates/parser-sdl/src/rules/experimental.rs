@@ -41,7 +41,10 @@ impl<'a> Visitor<'a> for ExperimentalDirectiveVisitor {
             Ok(experimental_directive) => {
                 ctx.registry.get_mut().enable_kv = experimental_directive.kv.unwrap_or_default();
                 ctx.registry.get_mut().enable_ai = experimental_directive.ai.unwrap_or_default();
-                ctx.registry.get_mut().enable_codegen = experimental_directive.codegen.unwrap_or_default();
+
+                if let Some(enabled) = experimental_directive.codegen {
+                    ctx.registry.get_mut().codegen = Some(engine::registry::CodegenConfig { enabled, path: None });
+                }
             }
             Err(err) => {
                 ctx.report_error(
@@ -123,7 +126,7 @@ mod tests {
         match target {
             "ai" => assert_eq!(ctx.registry.borrow().enable_ai, expected),
             "kv" => assert_eq!(ctx.registry.borrow().enable_kv, expected),
-            "codegen" => assert_eq!(ctx.registry.borrow().enable_codegen, expected),
+            "codegen" => assert_eq!(ctx.registry.borrow().codegen.as_ref().unwrap().enabled, expected),
             _ => {}
         }
     }
