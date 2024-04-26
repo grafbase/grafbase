@@ -2,7 +2,9 @@
  * Defines the experimental config.
  */
 export interface ExperimentalParams {
+  /** @deprecated Resolvers KV is deprecated. Please adapt your project, and contact us if you need help with the migration. */
   kv?: boolean
+  /** @deprecated AI is deprecated. Please adapt your project, and contact us if you need help with the migration.  */
   ai?: boolean
   codegen?: boolean
 }
