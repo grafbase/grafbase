@@ -16,7 +16,7 @@ fn setup_rustls() {
 async fn introspection_configuration() {
     let mut env = Environment::init();
 
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
 
     env.write_schema_without_introspection(
         r#"

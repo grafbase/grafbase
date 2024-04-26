@@ -302,7 +302,7 @@ fn introspect_dev_with_federation_directives() {
     extend schema @introspection(enable: true)
     "#;
 
-    // env.grafbase_init(backend::project::GraphType::Single);
+    // env.grafbase_init(backend::project::GraphType::Standalone);
     env.write_schema(config);
 
     let output = env.grafbase_introspect_dev();

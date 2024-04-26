@@ -15,7 +15,7 @@ fn setup_rustls() {
 async fn environment_file() {
     let mut env = Environment::init();
 
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
 
     env.write_schema(ENVIRONMENT_SCHEMA);
 

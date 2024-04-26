@@ -4,7 +4,7 @@ use backend::project::{self, Template};
 pub fn init(name: Option<&str>, template: Option<&str>, graph_type: Option<GraphType>) -> Result<(), CliError> {
     let template = match (template, graph_type) {
         (Some(template), _) => Template::FromUrl(template),
-        (None, Some(GraphType::Single)) => Template::FromDefault(project::GraphType::Single),
+        (None, Some(GraphType::Standalone)) => Template::FromDefault(project::GraphType::Standalone),
         (None, Some(GraphType::Federated)) => Template::FromDefault(project::GraphType::Federated),
         (None, None) => {
             // let graph_type = Select::new(
@@ -14,7 +14,7 @@ pub fn init(name: Option<&str>, template: Option<&str>, graph_type: Option<Graph
             // .prompt()
             // .map_err(handle_inquire_error)?;
 
-            Template::FromDefault(project::GraphType::Single)
+            Template::FromDefault(project::GraphType::Standalone)
         }
     };
 

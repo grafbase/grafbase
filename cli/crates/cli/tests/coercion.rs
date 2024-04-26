@@ -10,7 +10,7 @@ use utils::environment::Environment;
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn coercion() {
     let mut env = Environment::init();
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(COERCION_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();

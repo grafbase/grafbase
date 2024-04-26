@@ -381,7 +381,7 @@ async fn test_field_resolver(
 ) {
     let (subdirectory_path, package_json_path) = variant;
     let mut env = Environment::init_in_subdirectory(subdirectory_path);
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     std::fs::write(
         env.directory_path.join(subdirectory_path).join(".env"),
         "MY_OWN_VARIABLE=test_value",
@@ -571,7 +571,7 @@ async fn test_query_mutation_resolver_dev(
     queries: &[(&str, &str)],
 ) {
     let mut env = Environment::init();
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(schema);
     for (file_name, file_contents) in resolver_files {
         env.write_resolver(file_name, file_contents);
@@ -605,7 +605,7 @@ async fn test_query_mutation_resolver_start(
     queries: &[(&str, &str)],
 ) {
     let mut env = Environment::init();
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(schema);
     for (file_name, file_contents) in resolver_files {
         env.write_resolver(file_name, file_contents);

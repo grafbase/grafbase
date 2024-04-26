@@ -7,8 +7,8 @@ use super::{filter_existing_arguments, ArgumentNames};
 pub enum GraphType {
     /// Creates a federated graph
     Federated,
-    /// Creates a single graph
-    Single,
+    /// Creates a standalone graph
+    Standalone,
 }
 
 #[derive(Debug, Parser)]

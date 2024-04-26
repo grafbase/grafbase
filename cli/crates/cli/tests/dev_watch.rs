@@ -15,7 +15,7 @@ fn setup_rustls() {
 async fn dev_watch() {
     let mut env = Environment::init();
 
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
 
     env.write_schema(
         r#"
@@ -85,7 +85,7 @@ async fn dev_watch() {
 async fn dev_watch_with_custom_codegen_path() {
     let mut env = Environment::init();
 
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
 
     env.write_schema(
         r#"

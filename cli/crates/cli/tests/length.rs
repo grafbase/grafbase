@@ -12,7 +12,7 @@ use utils::environment::Environment;
 async fn length() {
     let mut env = Environment::init();
 
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
 
     env.write_schema(LENGTH_SCHEMA);
 

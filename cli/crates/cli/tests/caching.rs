@@ -332,7 +332,7 @@ async fn no_cache_header_when_caching_is_not_used() {
 }
 
 async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str> + Display) -> AsyncClient {
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(schema);
     env.grafbase_dev_watch();
 
