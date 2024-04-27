@@ -41,7 +41,7 @@ async fn env_var(#[case] case_path: PathBuf) {
     std::env::set_var("GRAFBASE_HOME", case_path.as_os_str());
 
     let mut env = Environment::init();
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(
         r#"
         type Post @model {

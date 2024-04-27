@@ -10,41 +10,31 @@ use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheO
 use reqwest::{header, Client};
 use reqwest_middleware::ClientBuilder;
 use serde::Deserialize;
-use std::fs;
 use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 use std::iter::Iterator;
 use std::path::{Path, PathBuf};
-use std::{env, fmt};
+use std::{env, fs};
 use tokio_stream::StreamExt;
 use tokio_util::io::StreamReader;
 use url::Url;
 
 #[derive(Debug, Clone, Copy)]
 pub enum GraphType {
-    Single,
+    Standalone,
     Federated,
 }
 
 impl AsRef<str> for GraphType {
     fn as_ref(&self) -> &str {
         match self {
-            GraphType::Single => "single",
+            GraphType::Standalone => "standalone",
             GraphType::Federated => "federated",
         }
     }
 }
 
-impl fmt::Display for GraphType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            GraphType::Single => f.write_str("Single"),
-            GraphType::Federated => f.write_str("Federated"),
-        }
-    }
-}
-
 impl GraphType {
-    pub const VARIANTS: &'static [GraphType] = &[Self::Single, Self::Federated];
+    pub const VARIANTS: &'static [GraphType] = &[Self::Standalone, Self::Federated];
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -155,7 +145,7 @@ pub fn init(name: Option<&str>, template: Template<'_>) -> Result<(), BackendErr
                 let dot_env_path = project_path.join(GRAFBASE_ENV_FILE_NAME);
 
                 let schema_write_result = match graph_type {
-                    GraphType::Single => {
+                    GraphType::Standalone => {
                         let schema_path = project_path.join(GRAFBASE_TS_CONFIG_FILE_NAME);
 
                         let add_sdk = environment::add_dev_dependency_to_package_json(

@@ -287,7 +287,7 @@ impl Server {
             .await;
 
         let mut env = Environment::init_async().await;
-        env.grafbase_init(GraphType::Single);
+        env.grafbase_init(GraphType::Standalone);
         env.write_schema(&self.config);
         env.set_variables([("API_KEY", "BLAH")]);
         env.grafbase_dev_watch();

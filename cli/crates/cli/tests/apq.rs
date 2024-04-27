@@ -27,7 +27,7 @@ fn setup_rustls() {
 #[tokio::test(flavor = "multi_thread")]
 async fn automatic_persisted_queries(#[case] method: reqwest::Method) {
     let mut env = Environment::init_async().await;
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(SCHEMA);
     env.grafbase_dev_watch();
     env.write_file(

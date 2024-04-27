@@ -14,7 +14,7 @@ use utils::environment::Environment;
 async fn reserved_dates() {
     // TODO: Create simpler client setup (one-line)
     let mut env = Environment::init();
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(RESERVED_DATES_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();

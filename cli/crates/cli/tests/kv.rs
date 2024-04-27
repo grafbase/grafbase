@@ -14,7 +14,7 @@ fn setup_rustls() {
 async fn test_kv_integration() {
     // prepare
     let mut env = Environment::init();
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(
         r#"
                 extend schema @experimental(kv: true)

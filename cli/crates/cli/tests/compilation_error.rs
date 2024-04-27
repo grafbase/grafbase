@@ -21,7 +21,7 @@ fn setup_rustls() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn compilation_error_schema() {
     let mut env = Environment::init();
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema("type Xyz e");
 
     env.grafbase_dev_watch();
@@ -55,7 +55,7 @@ async fn compilation_error_schema() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn post_startup_compilation_error() {
     let mut env = Environment::init();
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema("");
 
     env.grafbase_dev_watch();
@@ -81,7 +81,7 @@ async fn post_startup_compilation_error() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn compilation_error_resolvers() {
     let mut env = Environment::init();
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(SCHEMA);
     env.write_resolver(
         "hello.js",

@@ -22,7 +22,7 @@ mod global {
         #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
         async fn entity_should_be_visible_only_to_the_owner() {
             let mut env = Environment::init();
-            env.grafbase_init(GraphType::Single);
+            env.grafbase_init(GraphType::Standalone);
             env.write_schema(OWNER_TODO_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
@@ -153,7 +153,7 @@ mod global {
         #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
         async fn owner_create_group_all_should_work() {
             let mut env = Environment::init();
-            env.grafbase_init(GraphType::Single);
+            env.grafbase_init(GraphType::Standalone);
             env.write_schema(OWNER_TODO_OWNER_CREATE_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
@@ -251,7 +251,7 @@ mod global {
         #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
         async fn group_should_supersede_owner_when_listing_entities() {
             let mut env = Environment::init();
-            env.grafbase_init(GraphType::Single);
+            env.grafbase_init(GraphType::Standalone);
             env.write_schema(OWNER_TODO_MIXED_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
@@ -361,7 +361,7 @@ mod global {
         #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
         async fn get_by_id_should_be_filtered_by_the_owner() {
             let mut env = Environment::init();
-            env.grafbase_init(GraphType::Single);
+            env.grafbase_init(GraphType::Standalone);
             env.write_schema(OWNER_TWITTER_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
@@ -409,7 +409,7 @@ mod global {
         #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
         async fn get_by_email_should_be_filtered_by_the_owner() {
             let mut env = Environment::init();
-            env.grafbase_init(GraphType::Single);
+            env.grafbase_init(GraphType::Standalone);
             env.write_schema(OWNER_TWITTER_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();
@@ -453,7 +453,7 @@ mod global {
         #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
         async fn test_linking() {
             let mut env = Environment::init();
-            env.grafbase_init(GraphType::Single);
+            env.grafbase_init(GraphType::Standalone);
             env.write_schema(OWNER_TWITTER_SCHEMA);
             env.grafbase_dev();
             let client = env.create_client();

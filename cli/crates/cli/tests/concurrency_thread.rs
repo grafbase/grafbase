@@ -13,7 +13,7 @@ use utils::environment::Environment;
 async fn concurrency_thread() {
     let mut env = Environment::init_async().await;
 
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(CONCURRENCY_SCHEMA);
     env.grafbase_dev();
 

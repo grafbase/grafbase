@@ -61,7 +61,7 @@ fn error_matching(pattern: &str) -> Result<Value, Regex> {
 #[ignore]
 async fn scalars() {
     let mut env = Environment::init();
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(SCALARS_SCHEMA);
     env.grafbase_dev();
     let client = env.create_client().with_api_key();

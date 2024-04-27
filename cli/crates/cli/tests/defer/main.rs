@@ -183,7 +183,7 @@ const JWT_SECRET: &str = "topsecret";
 #[tokio::test(flavor = "multi_thread")]
 async fn test_auth_with_multipart() {
     let mut env = Environment::init_async().await;
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(JWT_SCHEMA);
     env.set_variables(HashMap::from([
         ("ISSUER_URL".to_string(), JWT_ISSUER_URL.to_string()),
@@ -219,7 +219,7 @@ async fn test_auth_with_sse() {
     // Tests that authentication with the SSE transport works..
 
     let mut env = Environment::init_async().await;
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(JWT_SCHEMA);
     env.set_variables(HashMap::from([
         ("ISSUER_URL".to_string(), JWT_ISSUER_URL.to_string()),
@@ -262,7 +262,7 @@ async fn test_auth_with_sse() {
 }
 
 async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str> + Display) -> AsyncClient {
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(schema);
     env.set_variables([("API_KEY", "BLAH")]);
     env.grafbase_dev_watch();

@@ -14,7 +14,7 @@ async fn concurrency_process() {
     let mut env1 = Environment::init_async().await;
     let mut env2 = Environment::from(&env1);
 
-    env1.grafbase_init(GraphType::Single);
+    env1.grafbase_init(GraphType::Standalone);
     env1.write_schema(CONCURRENCY_SCHEMA);
     env1.grafbase_dev();
 

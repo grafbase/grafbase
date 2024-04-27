@@ -22,7 +22,7 @@ fn init_ts_existing_package_json() {
         }),
     );
 
-    let output = env.grafbase_init_output(GraphType::Single);
+    let output = env.grafbase_init_output(GraphType::Standalone);
     println!("stdout: `{}`", String::from_utf8_lossy(&output.stdout));
     assert!(
         output.stderr.is_empty(),
@@ -60,7 +60,7 @@ fn init_ts_existing_package_json() {
 #[cfg_attr(target_os = "windows", ignore)]
 fn init_ts_new_project() {
     let env = Environment::init();
-    let output = env.grafbase_init_output(GraphType::Single);
+    let output = env.grafbase_init_output(GraphType::Standalone);
     println!("stdout: `{}`", String::from_utf8_lossy(&output.stdout));
     assert!(
         output.stderr.is_empty(),

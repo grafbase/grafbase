@@ -214,7 +214,7 @@ async fn openapi_flat_namespace() {
 }
 
 async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str> + Display) -> AsyncClient {
-    env.grafbase_init(GraphType::Single);
+    env.grafbase_init(GraphType::Standalone);
     env.write_schema(schema);
     env.set_variables([("API_KEY", "BLAH")]);
     env.grafbase_dev_watch();
