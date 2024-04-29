@@ -371,12 +371,7 @@ fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Opti
         let tsconfig_file_path = search_path.join(GRAFBASE_TS_CONFIG_FILE_NAME);
         let schema_graphql_file_path = search_path.join(GRAFBASE_SCHEMA_FILE_NAME);
         match (tsconfig_file_path.is_file(), schema_graphql_file_path.is_file()) {
-            (true, true) => {
-                let warning = Warning::new("Found both grafbase.config.ts and schema.graphql files")
-                    .with_hint("schema.graphql will be ignored");
-                warnings.push(warning);
-                Some(GrafbaseSchemaPath::ts_config(tsconfig_file_path))
-            }
+            (true, true) => Some(GrafbaseSchemaPath::ts_config(tsconfig_file_path)),
             (true, false) => Some(GrafbaseSchemaPath::ts_config(tsconfig_file_path)),
             (false, true) => Some(GrafbaseSchemaPath::graphql(schema_graphql_file_path)),
             (false, false) => None,
