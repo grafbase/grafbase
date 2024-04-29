@@ -1,9 +1,7 @@
 use std::iter::FusedIterator;
 
-use crate::{
-    common::{IdOperations, IdRange},
-    Registry, RegistryId,
-};
+use crate::{Registry, RegistryId};
+use engine_id_newtypes::{IdOperations, IdRange};
 
 /// Iterator for readers
 ///
@@ -40,14 +38,12 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.range.next()?;
-        self.range.start = next;
 
         Some(self.registry.read(next))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = IdOperations::distance(self.range.start, self.range.end);
-        (remaining, Some(remaining))
+        self.range.size_hint()
     }
 }
 
@@ -55,6 +51,7 @@ impl<'a, T> ExactSizeIterator for Iter<'a, T>
 where
     T: IdReader,
     T::Id: IdOperations,
+    IdRange<T::Id>: ExactSizeIterator,
 {
 }
 
@@ -62,5 +59,6 @@ impl<'a, T> FusedIterator for Iter<'a, T>
 where
     T: IdReader,
     T::Id: IdOperations,
+    IdRange<T::Id>: FusedIterator,
 {
 }

@@ -1,9 +1,8 @@
 use std::iter::FusedIterator;
 
-use crate::{
-    common::{IdOperations, IdRange},
-    PartialCacheRegistry, RegistryId,
-};
+use engine_id_newtypes::{IdOperations, IdRange};
+
+use crate::{PartialCacheRegistry, RegistryId};
 
 /// Iterator for readers
 ///
@@ -55,6 +54,7 @@ impl<'a, T> ExactSizeIterator for Iter<'a, T>
 where
     T: IdReader,
     T::Id: IdOperations,
+    IdRange<T::Id>: ExactSizeIterator,
 {
 }
 
@@ -62,5 +62,6 @@ impl<'a, T> FusedIterator for Iter<'a, T>
 where
     T: IdReader,
     T::Id: IdOperations,
+    IdRange<T::Id>: FusedIterator,
 {
 }

@@ -1,10 +1,8 @@
 mod directive_locations;
-mod id_range;
 mod iter;
 mod types;
 
 pub use directive_locations::DirectiveLocation;
-pub use id_range::{IdOperations, IdRange};
 pub use iter::*;
 pub use types::*;
 

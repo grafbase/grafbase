@@ -156,6 +156,7 @@ dataloader = { path = "engine/crates/dataloader", features = ["tracing"] }
 engine-config-builder = { path = "engine/crates/engine-config-builder" }
 engine-parser = { path = "engine/crates/engine/parser" }
 engine = { path = "engine/crates/engine" }
+engine-id-newtypes = { path = "engine/crates/engine/id-newtypes" }
 engine-v2 = { path = "engine/crates/engine-v2" }
 engine-v2-axum = { path = "engine/crates/engine-v2/axum" }
 engine-value = { path = "engine/crates/engine/value" }

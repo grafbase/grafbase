@@ -7,13 +7,9 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1"
-common-types.workspace = true
-engine-value.workspace = true
-gateway-v2-auth-config.workspace = true
+engine-id-newtypes.workspace = true
 indexmap.workspace = true
 registry-v2.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-serde_with.workspace = true
-url.workspace = true
 wrapping.workspace = true

@@ -18,6 +18,7 @@ pub use self::{
     common::*,
     generated::{field::MetaField, interface::InterfaceType, metatype::MetaType, objects::ObjectType},
 };
+pub use engine_id_newtypes::IdRange;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct PartialCacheRegistry {

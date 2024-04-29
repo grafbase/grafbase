@@ -2040,6 +2040,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-id-newtypes"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "common-types",
+ "engine-value",
+ "gateway-v2-auth-config",
+ "indexmap 2.2.6",
+ "postgres-connector-types",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "url",
+]
+
+[[package]]
 name = "engine-parser"
 version = "3.0.31"
 dependencies = [
@@ -6148,6 +6164,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adad44e29e4c806119491a7f06f03de4d1af22c3a680dd47f1e6e179439d1f56"
 
 [[package]]
+name = "registry-for-cache"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "engine-id-newtypes",
+ "indexmap 2.2.6",
+ "registry-v2",
+ "serde",
+ "serde_json",
+ "wrapping",
+]
+
+[[package]]
 name = "registry-upgrade"
 version = "0.1.0"
 dependencies = [
@@ -6179,6 +6208,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "common-types",
+ "engine-id-newtypes",
  "engine-value",
  "gateway-v2-auth-config",
  "indexmap 2.2.6",

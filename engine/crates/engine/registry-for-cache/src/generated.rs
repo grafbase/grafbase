@@ -11,8 +11,9 @@ mod prelude {
     pub(super) use crate::{
         field_types::MetaFieldTypeRecord,
         ids::{self, StringId},
-        IdRange, IdReader, Iter, ReadContext, RecordLookup, RegistryId,
+        IdReader, Iter, ReadContext, RecordLookup, RegistryId,
     };
+    pub(super) use engine_id_newtypes::IdRange;
     pub(super) use registry_v2::CacheControl;
 }
 

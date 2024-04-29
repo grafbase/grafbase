@@ -10,7 +10,7 @@
 mod prelude {
     pub(super) use crate::{
         cache_control::CacheControl,
-        common::{DirectiveLocation, IdRange, IdReader, Iter},
+        common::{DirectiveLocation, IdReader, Iter},
         field_types::{MetaFieldTypeRecord, MetaInputValueTypeRecord},
         ids::{self, StringId},
         misc_types::*,
@@ -19,6 +19,7 @@ mod prelude {
         ReadContext, RecordLookup, RegistryId,
     };
     pub(super) use common_types::auth::Operations;
+    pub(super) use engine_id_newtypes::IdRange;
     pub(super) use engine_value::ConstValue;
     pub(super) use gateway_v2_auth_config::v1::AuthConfig;
 }
