@@ -44,11 +44,18 @@ pub(crate) async fn publish(
     .await
     .map_err(CliError::BackendApiError)?;
 
-    if outcome.composition_errors.is_empty() {
-        report::publish_command_success(&subgraph_name);
-    } else {
-        report::publish_command_composition_failure(&outcome.composition_errors);
-    }
+    match &outcome {
+        backend::api::publish::PublishOutcome::Success { composition_errors } if composition_errors.is_empty() => {
+            report::publish_command_success(&subgraph_name);
+        }
+        backend::api::publish::PublishOutcome::Success { composition_errors } => {
+            report::publish_command_composition_failure(composition_errors);
+        }
+        backend::api::publish::PublishOutcome::ProjectDoesNotExist {
+            account_name,
+            project_name,
+        } => report::publish_project_does_not_exist(account_name, project_name),
+    };
 
     Ok(())
 }

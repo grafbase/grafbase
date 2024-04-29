@@ -9,12 +9,12 @@ use super::{
 };
 use cynic::{http::ReqwestExt, MutationBuilder};
 
-pub struct PublishOutcome {
-    pub composition_errors: Vec<String>,
+pub enum PublishOutcome {
+    Success { composition_errors: Vec<String> },
+    ProjectDoesNotExist { account_name: String, project_name: String },
 }
 
 pub async fn publish(
-    // The Better Code™
     account_slug: &str,
     project_slug: &str,
     branch: Option<&str>,
@@ -39,12 +39,16 @@ pub async fn publish(
 
     if let Some(data) = data {
         match data.publish {
-            PublishPayload::PublishSuccess(_) => Ok(PublishOutcome {
+            PublishPayload::ProjectDoesNotExistError(_) => Ok(PublishOutcome::ProjectDoesNotExist {
+                account_name: account_slug.to_owned(),
+                project_name: project_slug.to_owned(),
+            }),
+            PublishPayload::PublishSuccess(_) => Ok(PublishOutcome::Success {
                 composition_errors: vec![],
             }),
             PublishPayload::FederatedGraphCompositionError(FederatedGraphCompositionError {
                 messages: composition_errors,
-            }) => Ok(PublishOutcome { composition_errors }),
+            }) => Ok(PublishOutcome::Success { composition_errors }),
             PublishPayload::BranchDoesNotExistError(SchemaRegistryBranchDoesNotExistError { .. }) => {
                 Err(ApiError::PublishError(PublishError::BranchDoesNotExist))
             }

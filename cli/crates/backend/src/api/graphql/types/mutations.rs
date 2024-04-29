@@ -273,6 +273,7 @@ pub struct SchemaRegistryBranchDoesNotExistError {
 #[derive(cynic::InlineFragments, Debug)]
 pub enum PublishPayload {
     PublishSuccess(PublishSuccess),
+    ProjectDoesNotExistError(ProjectDoesNotExistError),
     FederatedGraphCompositionError(FederatedGraphCompositionError),
     BranchDoesNotExistError(SchemaRegistryBranchDoesNotExistError),
     #[cynic(fallback)]
