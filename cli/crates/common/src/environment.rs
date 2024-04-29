@@ -373,7 +373,7 @@ fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Opti
         match (tsconfig_file_path.is_file(), schema_graphql_file_path.is_file()) {
             (true, true) => {
                 let warning = Warning::new("Found both grafbase.config.ts and schema.graphql files")
-                    .with_hint("Delete one of them to avoid conflicts");
+                    .with_hint("schema.graphql will be ignored");
                 warnings.push(warning);
                 Some(GrafbaseSchemaPath::ts_config(tsconfig_file_path))
             }
