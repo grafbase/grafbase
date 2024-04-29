@@ -9,8 +9,8 @@ use crate::{
     ids::*,
     resolvers::Resolver,
     storage::{self, *},
-    ConnectorHeaders, CorsConfig, FederationEntity, IdRange, MongoDBConfiguration, OperationLimits, Registry,
-    TrustedDocuments, TypeWrappers,
+    CodegenConfig, ConnectorHeaders, CorsConfig, FederationEntity, IdRange, MongoDBConfiguration, OperationLimits,
+    Registry, TrustedDocuments, TypeWrappers,
 };
 
 /// Writes to a registry.
@@ -59,6 +59,7 @@ pub struct RegistryWriter {
     pub is_federated: bool,
     pub operation_limits: OperationLimits,
     pub trusted_documents: Option<TrustedDocuments>,
+    pub codegen: Option<CodegenConfig>,
     pub cors_config: Option<CorsConfig>,
 }
 
@@ -223,6 +224,7 @@ impl RegistryWriter {
             operation_limits,
             trusted_documents,
             cors_config,
+            codegen,
         } = self;
 
         let types = types
@@ -265,6 +267,7 @@ impl RegistryWriter {
             is_federated,
             operation_limits,
             trusted_documents,
+            codegen,
             cors_config,
         })
     }

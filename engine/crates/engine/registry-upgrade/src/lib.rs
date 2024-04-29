@@ -34,6 +34,7 @@ pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> registry_v2::Registry {
         operation_limits,
         trusted_documents,
         cors_config,
+        codegen,
     } = v1;
 
     // First, copy over the fields that are the same.
@@ -51,6 +52,7 @@ pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> registry_v2::Registry {
     writer.is_federated = is_federated;
     writer.operation_limits = operation_limits;
     writer.trusted_documents = trusted_documents;
+    writer.codegen = codegen;
     writer.cors_config = cors_config;
 
     let types = {
