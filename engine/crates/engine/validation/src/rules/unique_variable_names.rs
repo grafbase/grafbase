@@ -13,10 +13,10 @@ pub struct UniqueVariableNames<'a> {
     names: HashSet<&'a str>,
 }
 
-impl<'a> Visitor<'a> for UniqueVariableNames<'a> {
+impl<'a> Visitor<'a, registry_v2::Registry> for UniqueVariableNames<'a> {
     fn enter_operation_definition(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         _name: Option<&'a Name>,
         _operation_definition: &'a Positioned<OperationDefinition>,
     ) {
@@ -25,7 +25,7 @@ impl<'a> Visitor<'a> for UniqueVariableNames<'a> {
 
     fn enter_variable_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a>,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         variable_definition: &'a Positioned<VariableDefinition>,
     ) {
         if !self.names.insert(&variable_definition.node.name.node) {

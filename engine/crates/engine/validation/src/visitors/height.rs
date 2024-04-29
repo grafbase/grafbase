@@ -2,7 +2,10 @@ use std::collections::HashSet;
 
 use engine_parser::{types::Field, Positioned};
 
-use crate::visitor::{VisitMode, Visitor, VisitorContext};
+use crate::{
+    registries::ValidationRegistry,
+    visitor::{VisitMode, Visitor, VisitorContext},
+};
 
 pub struct HeightCalculate<'a> {
     height: &'a mut usize,
@@ -18,12 +21,15 @@ impl<'a> HeightCalculate<'a> {
     }
 }
 
-impl<'ctx, 'a> Visitor<'ctx> for HeightCalculate<'a> {
+impl<'ctx, 'a, Registry> Visitor<'ctx, Registry> for HeightCalculate<'a>
+where
+    Registry: ValidationRegistry,
+{
     fn mode(&self) -> VisitMode {
         VisitMode::Inline
     }
 
-    fn enter_field(&mut self, _ctx: &mut VisitorContext<'ctx>, field: &'ctx Positioned<Field>) {
+    fn enter_field(&mut self, _ctx: &mut VisitorContext<'ctx, Registry>, field: &'ctx Positioned<Field>) {
         {
             let field_name = field.name.node.as_str();
             let last_stack = self.variable_stack.last_mut().expect("must exist");
@@ -35,7 +41,7 @@ impl<'ctx, 'a> Visitor<'ctx> for HeightCalculate<'a> {
         self.variable_stack.push(HashSet::new());
     }
 
-    fn exit_field(&mut self, _ctx: &mut VisitorContext<'ctx>, _field: &'ctx Positioned<Field>) {
+    fn exit_field(&mut self, _ctx: &mut VisitorContext<'ctx, Registry>, _field: &'ctx Positioned<Field>) {
         self.variable_stack.pop();
     }
 }

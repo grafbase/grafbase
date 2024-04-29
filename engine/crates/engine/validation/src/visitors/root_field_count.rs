@@ -1,6 +1,9 @@
 use engine_parser::{types::Field, Positioned};
 
-use crate::visitor::{VisitMode, Visitor, VisitorContext};
+use crate::{
+    registries::ValidationRegistry,
+    visitor::{VisitMode, Visitor, VisitorContext},
+};
 
 pub struct RootFieldCountCalculate<'a> {
     root_field_count: &'a mut usize,
@@ -16,19 +19,22 @@ impl<'a> RootFieldCountCalculate<'a> {
     }
 }
 
-impl<'ctx, 'a> Visitor<'ctx> for RootFieldCountCalculate<'a> {
+impl<'ctx, 'a, Registry> Visitor<'ctx, Registry> for RootFieldCountCalculate<'a>
+where
+    Registry: ValidationRegistry,
+{
     fn mode(&self) -> VisitMode {
         VisitMode::Inline
     }
 
-    fn enter_field(&mut self, _ctx: &mut VisitorContext<'ctx>, _field: &'ctx Positioned<Field>) {
+    fn enter_field(&mut self, _ctx: &mut VisitorContext<'ctx, Registry>, _field: &'ctx Positioned<Field>) {
         self.current_depth += 1;
         if self.current_depth == 1 {
             *self.root_field_count += 1;
         }
     }
 
-    fn exit_field(&mut self, _ctx: &mut VisitorContext<'ctx>, _field: &'ctx Positioned<Field>) {
+    fn exit_field(&mut self, _ctx: &mut VisitorContext<'ctx, Registry>, _field: &'ctx Positioned<Field>) {
         self.current_depth -= 1;
     }
 }

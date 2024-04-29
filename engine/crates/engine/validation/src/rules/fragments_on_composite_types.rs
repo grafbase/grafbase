@@ -10,10 +10,10 @@ use {
 #[derive(Default)]
 pub struct FragmentsOnCompositeTypes;
 
-impl<'a> Visitor<'a> for FragmentsOnCompositeTypes {
+impl<'a> Visitor<'a, registry_v2::Registry> for FragmentsOnCompositeTypes {
     fn enter_fragment_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a>,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         name: &'a Name,
         fragment_definition: &'a Positioned<FragmentDefinition>,
     ) {
@@ -30,7 +30,11 @@ impl<'a> Visitor<'a> for FragmentsOnCompositeTypes {
         }
     }
 
-    fn enter_inline_fragment(&mut self, ctx: &mut VisitorContext<'a>, inline_fragment: &'a Positioned<InlineFragment>) {
+    fn enter_inline_fragment(
+        &mut self,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        inline_fragment: &'a Positioned<InlineFragment>,
+    ) {
         if let Some(current_type) = ctx.current_type() {
             if !current_type.is_composite() {
                 ctx.report_error(

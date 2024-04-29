@@ -36,8 +36,8 @@ impl<'a> NoUnusedFragments<'a> {
     }
 }
 
-impl<'a> Visitor<'a> for NoUnusedFragments<'a> {
-    fn exit_document(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a ExecutableDocument) {
+impl<'a> Visitor<'a, registry_v2::Registry> for NoUnusedFragments<'a> {
+    fn exit_document(&mut self, ctx: &mut VisitorContext<'a, registry_v2::Registry>, doc: &'a ExecutableDocument) {
         let mut reachable = HashSet::new();
 
         for (name, _) in doc.operations.iter() {
@@ -53,7 +53,7 @@ impl<'a> Visitor<'a> for NoUnusedFragments<'a> {
 
     fn enter_operation_definition(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         name: Option<&'a Name>,
         _operation_definition: &'a Positioned<OperationDefinition>,
     ) {
@@ -62,7 +62,7 @@ impl<'a> Visitor<'a> for NoUnusedFragments<'a> {
 
     fn enter_fragment_definition(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         name: &'a Name,
         fragment_definition: &'a Positioned<FragmentDefinition>,
     ) {
@@ -72,7 +72,7 @@ impl<'a> Visitor<'a> for NoUnusedFragments<'a> {
 
     fn enter_fragment_spread(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         fragment_spread: &'a Positioned<FragmentSpread>,
     ) {
         if let Some(ref scope) = self.current_scope {

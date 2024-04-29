@@ -1,8 +1,11 @@
 use engine_parser::Positioned;
 use registry_v2::MetaType;
-use std::collections::HashSet;
+use std::{collections::HashSet, thread::current};
 
-use crate::CacheInvalidation;
+use crate::{
+    registries::{ValidationField, ValidationMetaType, ValidationRegistry},
+    CacheInvalidation,
+};
 
 use {
     crate::visitor::{VisitMode, Visitor, VisitorContext},
@@ -14,46 +17,43 @@ pub struct CacheControlCalculate<'a> {
     pub invalidation_policies: &'a mut HashSet<CacheInvalidation>,
 }
 
-impl<'ctx, 'a> Visitor<'ctx> for CacheControlCalculate<'a> {
+impl<'ctx, 'a, Registry> Visitor<'ctx, Registry> for CacheControlCalculate<'a>
+where
+    Registry: ValidationRegistry,
+{
     fn mode(&self) -> VisitMode {
         VisitMode::Inline
     }
 
-    fn enter_selection_set(&mut self, ctx: &mut VisitorContext<'_>, _selection_set: &Positioned<SelectionSet>) {
-        match ctx.current_type() {
-            Some(MetaType::Interface(interface)) if interface.cache_control().is_some() => {
-                let cache_control = interface.cache_control().unwrap();
-                self.cache_control.merge(cache_control.clone());
-                if let Some(policy) = &cache_control.invalidation_policy {
-                    self.invalidation_policies.insert(CacheInvalidation {
-                        ty: interface.name().to_string(),
-                        policy: policy.clone(),
-                    });
-
-                    interface.possible_types().for_each(|possible_type| {
-                        self.invalidation_policies.insert(CacheInvalidation {
-                            ty: possible_type.name().to_string(),
-                            policy: policy.clone(),
-                        });
-                    });
-                }
-            }
-            Some(MetaType::Object(object)) if object.cache_control().is_some() => {
-                let cache_control = object.cache_control().unwrap();
-                self.cache_control.merge(cache_control.clone());
-                if let Some(policy) = &cache_control.invalidation_policy {
-                    let ty = object.name().to_string();
-                    self.invalidation_policies.insert(CacheInvalidation {
-                        ty,
-                        policy: policy.clone(),
-                    });
-                }
-            }
-            _ => {}
+    fn enter_selection_set(
+        &mut self,
+        ctx: &mut VisitorContext<'_, Registry>,
+        _selection_set: &Positioned<SelectionSet>,
+    ) {
+        let Some(current_type) = ctx.current_type() else { return };
+        let Some(cache_control) = current_type.cache_control() else {
+            return;
         };
+
+        self.cache_control.merge(cache_control.clone());
+        if let Some(policy) = &cache_control.invalidation_policy {
+            self.invalidation_policies.insert(CacheInvalidation {
+                ty: current_type.name().to_string(),
+                policy: policy.clone(),
+            });
+
+            if let Some(possible_types) = current_type.possible_types() {
+                possible_types.for_each(|possible_type| {
+                    self.invalidation_policies.insert(CacheInvalidation {
+                        ty: possible_type.name().to_string(),
+                        policy: policy.clone(),
+                    });
+                });
+            }
+        }
     }
 
-    fn enter_field(&mut self, ctx: &mut VisitorContext<'_>, field: &Positioned<Field>) {
+    fn enter_field(&mut self, ctx: &mut VisitorContext<'_, Registry>, field: &Positioned<Field>) {
         if let Some((registry_field, parent_type)) = ctx
             .parent_type()
             .and_then(|parent| parent.field(&field.node.name.node).map(|field| (field, parent.name())))

@@ -6,8 +6,12 @@ use {
 #[derive(Default)]
 pub struct KnownFragmentNames;
 
-impl<'a> Visitor<'a> for KnownFragmentNames {
-    fn enter_fragment_spread(&mut self, ctx: &mut VisitorContext<'a>, fragment_spread: &'a Positioned<FragmentSpread>) {
+impl<'a> Visitor<'a, registry_v2::Registry> for KnownFragmentNames {
+    fn enter_fragment_spread(
+        &mut self,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        fragment_spread: &'a Positioned<FragmentSpread>,
+    ) {
         if !ctx.is_known_fragment(&fragment_spread.node.fragment_name.node) {
             ctx.report_error(
                 vec![fragment_spread.pos],

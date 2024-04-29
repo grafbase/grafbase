@@ -3,6 +3,8 @@ use std::collections::{HashMap, HashSet};
 use engine_parser::{Pos, Positioned};
 use engine_value::Name;
 
+use crate::registries::ValidationRegistry;
+
 use {
     crate::visitor::{RuleError, Visitor, VisitorContext},
     engine_parser::types::{ExecutableDocument, FragmentDefinition, FragmentSpread},
@@ -53,8 +55,11 @@ pub struct NoFragmentCycles<'a> {
     fragment_order: Vec<&'a str>,
 }
 
-impl<'a> Visitor<'a> for NoFragmentCycles<'a> {
-    fn exit_document(&mut self, ctx: &mut VisitorContext<'a>, _doc: &'a ExecutableDocument) {
+impl<'a, Registry> Visitor<'a, Registry> for NoFragmentCycles<'a>
+where
+    Registry: ValidationRegistry,
+{
+    fn exit_document(&mut self, ctx: &mut VisitorContext<'a, Registry>, _doc: &'a ExecutableDocument) {
         let mut detector = CycleDetector {
             visited: HashSet::new(),
             spreads: &self.spreads,
@@ -74,7 +79,7 @@ impl<'a> Visitor<'a> for NoFragmentCycles<'a> {
 
     fn enter_fragment_definition(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, Registry>,
         name: &'a Name,
         _fragment_definition: &'a Positioned<FragmentDefinition>,
     ) {
@@ -84,7 +89,7 @@ impl<'a> Visitor<'a> for NoFragmentCycles<'a> {
 
     fn exit_fragment_definition(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, Registry>,
         _name: &'a Name,
         _fragment_definition: &'a Positioned<FragmentDefinition>,
     ) {
@@ -93,7 +98,7 @@ impl<'a> Visitor<'a> for NoFragmentCycles<'a> {
 
     fn enter_fragment_spread(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, Registry>,
         fragment_spread: &'a Positioned<FragmentSpread>,
     ) {
         if let Some(current_fragment) = self.current_fragment {

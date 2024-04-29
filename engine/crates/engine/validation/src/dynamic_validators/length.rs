@@ -27,7 +27,13 @@ fn check_bounds<T: PartialOrd>(item: T, lower: Option<T>, upper: Option<T>) -> L
 }
 
 impl DynValidate<&Value> for LengthValidator {
-    fn validate(&self, ctx: &mut VisitorContext<'_>, meta: MetaInputValue<'_>, pos: Pos, value: &Value) {
+    fn validate(
+        &self,
+        ctx: &mut VisitorContext<'_, registry_v2::Registry>,
+        meta: MetaInputValue<'_>,
+        pos: Pos,
+        value: &Value,
+    ) {
         use LengthTestResult::*;
 
         let var_value = match value {

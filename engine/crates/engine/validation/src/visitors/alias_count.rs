@@ -1,6 +1,9 @@
 use engine_parser::{types::Field, Positioned};
 
-use crate::visitor::{VisitMode, Visitor, VisitorContext};
+use crate::{
+    registries::ValidationRegistry,
+    visitor::{VisitMode, Visitor, VisitorContext},
+};
 
 pub struct AliasCountCalculate<'a> {
     alias_count: &'a mut usize,
@@ -12,12 +15,15 @@ impl<'a> AliasCountCalculate<'a> {
     }
 }
 
-impl<'ctx, 'a> Visitor<'ctx> for AliasCountCalculate<'a> {
+impl<'ctx, 'a, Registry> Visitor<'ctx, Registry> for AliasCountCalculate<'a>
+where
+    Registry: ValidationRegistry,
+{
     fn mode(&self) -> VisitMode {
         VisitMode::Inline
     }
 
-    fn enter_field(&mut self, _ctx: &mut VisitorContext<'ctx>, field: &'ctx Positioned<Field>) {
+    fn enter_field(&mut self, _ctx: &mut VisitorContext<'ctx, Registry>, field: &'ctx Positioned<Field>) {
         if field.node.alias.is_some() {
             *self.alias_count += 1;
         }

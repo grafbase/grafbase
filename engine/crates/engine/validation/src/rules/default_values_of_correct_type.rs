@@ -11,10 +11,10 @@ use {
 
 pub struct DefaultValuesOfCorrectType;
 
-impl<'a> Visitor<'a> for DefaultValuesOfCorrectType {
+impl<'a> Visitor<'a, registry_v2::Registry> for DefaultValuesOfCorrectType {
     fn enter_variable_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a>,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         variable_definition: &'a Positioned<VariableDefinition>,
     ) {
         if let BaseType::Named(vtype_name) = &variable_definition.node.var_type.node.base {

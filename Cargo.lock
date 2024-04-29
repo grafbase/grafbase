@@ -2178,6 +2178,7 @@ dependencies = [
  "meta-type-name",
  "once_cell",
  "query-path",
+ "registry-for-cache",
  "registry-v2",
  "serde",
 ]

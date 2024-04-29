@@ -6,8 +6,8 @@ use {
 #[derive(Default)]
 pub struct ScalarLeafs;
 
-impl<'a> Visitor<'a> for ScalarLeafs {
-    fn enter_field(&mut self, ctx: &mut VisitorContext<'a>, field: &'a Positioned<Field>) {
+impl<'a> Visitor<'a, registry_v2::Registry> for ScalarLeafs {
+    fn enter_field(&mut self, ctx: &mut VisitorContext<'a, registry_v2::Registry>, field: &'a Positioned<Field>) {
         if let Some(ty) = ctx.parent_type() {
             if let Some(schema_field) = ty.field(&field.node.name.node) {
                 let ty = schema_field.ty().named_type();

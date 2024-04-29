@@ -17,7 +17,6 @@ mod provided_non_null_arguments;
 mod scalar_leafs;
 mod unique_argument_names;
 mod unique_variable_names;
-mod upload_file;
 mod variables_are_input_types;
 mod variables_in_allowed_position;
 
@@ -40,7 +39,6 @@ pub use provided_non_null_arguments::ProvidedNonNullArguments;
 pub use scalar_leafs::ScalarLeafs;
 pub use unique_argument_names::UniqueArgumentNames;
 pub use unique_variable_names::UniqueVariableNames;
-pub use upload_file::UploadFile;
 pub use variables_are_input_types::VariablesAreInputTypes;
 pub use variables_in_allowed_position::VariableInAllowedPosition;
 
