@@ -31,6 +31,7 @@ pub fn convert_v1_to_partial_cache_registry(v1: registry_v1::Registry) -> regist
         operation_limits: _,
         trusted_documents: _,
         cors_config: _,
+        codegen: _,
     } = v1;
 
     let types = {
