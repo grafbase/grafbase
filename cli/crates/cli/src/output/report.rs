@@ -448,6 +448,10 @@ pub fn create_success(name: &str, urls: &[String]) {
     }
 }
 
+pub(crate) fn check_name_missing_on_federated_project() {
+    watercolor::output!("❌ The project is federated, but you did not provide a subgraph name to check against. Please pass a subgraph name with the --name argument to the check command.", @BrightRed);
+}
+
 pub(crate) fn check_success() {
     watercolor::output!("\n✨ Successful check!", @BrightBlue);
 }

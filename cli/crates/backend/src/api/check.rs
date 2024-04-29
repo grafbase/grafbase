@@ -8,15 +8,19 @@ use super::{
 };
 use cynic::{http::ReqwestExt, MutationBuilder};
 
+pub enum SchemaCheckResult {
+    Ok(SchemaCheck),
+    SubgraphNameMissingOnFederatedProjectError,
+}
+
 pub async fn check(
-    // The Good Code™
     account: &str,
     project: &str,
     branch: Option<&str>,
     subgraph_name: Option<&str>,
     schema: &str,
     git_commit: Option<SchemaCheckGitCommitInput>,
-) -> Result<SchemaCheck, ApiError> {
+) -> Result<SchemaCheckResult, ApiError> {
     let client = create_client().await?;
 
     let operation = SchemaCheckCreate::build(SchemaCheckCreateArguments {
@@ -36,10 +40,17 @@ pub async fn check(
         cynic::GraphQlResponse {
             data:
                 Some(SchemaCheckCreate {
+                    schema_check_create: Some(SchemaCheckPayload::SubgraphNameMissingOnFederatedProjectError(_)),
+                }),
+            errors: _,
+        } => Ok(SchemaCheckResult::SubgraphNameMissingOnFederatedProjectError),
+        cynic::GraphQlResponse {
+            data:
+                Some(SchemaCheckCreate {
                     schema_check_create: Some(SchemaCheckPayload::SchemaCheck(sc)),
                 }),
             errors: _,
-        } => Ok(sc),
+        } => Ok(SchemaCheckResult::Ok(sc)),
         _ => Err(ApiError::RequestError(format!("API error:\n\n{result:#?}",))),
     }
 }

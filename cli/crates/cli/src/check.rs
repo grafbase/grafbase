@@ -54,7 +54,13 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
         composition_check_errors,
         operation_check_errors,
         lint_check_errors,
-    } = result;
+    } = match result {
+        check::SchemaCheckResult::Ok(check) => check,
+        check::SchemaCheckResult::SubgraphNameMissingOnFederatedProjectError => {
+            report::check_name_missing_on_federated_project();
+            std::process::exit(1);
+        }
+    };
 
     if validation_check_errors.is_empty()
         && composition_check_errors.is_empty()
