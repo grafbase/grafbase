@@ -6181,8 +6181,10 @@ name = "registry-upgrade"
 version = "0.1.0"
 dependencies = [
  "indexmap 2.2.6",
+ "registry-for-cache",
  "registry-v1",
  "registry-v2",
+ "wrapping",
 ]
 
 [[package]]

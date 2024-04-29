@@ -8,6 +8,10 @@ use registry_v2::{
     IdRange, TypeWrappers, UnionDiscriminators,
 };
 
+mod partial_cache_registry;
+
+pub use partial_cache_registry::convert_v1_to_partial_cache_registry;
+
 pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> registry_v2::Registry {
     let mut writer = RegistryWriter::new();
 

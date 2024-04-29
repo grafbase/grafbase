@@ -176,6 +176,7 @@ parser-graphql = { path = "engine/crates/parser-graphql" }
 parser-openapi = { path = "engine/crates/parser-openapi" }
 parser-postgres = { path = "engine/crates/parser-postgres" }
 postgres-connector-types = { path = "engine/crates/postgres-connector-types" }
+registry-for-cache = { path = "engine/crates/engine/registry-for-cache" }
 registry-upgrade = { path = "engine/crates/engine/registry-upgrade" }
 registry-v1 = { path = "engine/crates/engine/registry-v1" }
 registry-v2 = { path = "engine/crates/engine/registry-v2" }

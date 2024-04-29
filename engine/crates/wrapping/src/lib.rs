@@ -220,11 +220,7 @@ impl Wrapping {
         self.next_back()
     }
 
-    pub fn write_type_string(
-        self,
-        name: &str,
-        mut formatter: &mut std::fmt::Formatter<'_>,
-    ) -> Result<(), std::fmt::Error> {
+    pub fn write_type_string(self, name: &str, mut formatter: &mut dyn std::fmt::Write) -> Result<(), std::fmt::Error> {
         for _ in 0..self.len() {
             write!(formatter, "[")?;
         }
