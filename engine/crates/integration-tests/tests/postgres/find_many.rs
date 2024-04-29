@@ -1381,6 +1381,93 @@ fn not() {
 }
 
 #[test]
+fn one_to_one() {
+    let response = query_postgres(|api| async move {
+        let user_table = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            );
+        "#};
+
+        api.execute_sql(user_table).await;
+
+        let profile_table = indoc! {r#"
+            CREATE TABLE "Profile" (
+                id INT PRIMARY KEY,
+                user_id INT NULL UNIQUE,
+                description TEXT NOT NULL,
+                CONSTRAINT Profile_User_fkey FOREIGN KEY (user_id) REFERENCES "User" (id)
+            )  
+        "#};
+
+        api.execute_sql(profile_table).await;
+
+        let insert_users = indoc! {r#"
+            INSERT INTO "User" (id, name) VALUES
+              (1, 'Musti'),
+              (2, 'Naukio')
+        "#};
+
+        api.execute_sql(insert_users).await;
+
+        let insert_profiles = indoc! {r#"
+            INSERT INTO "Profile" (id, user_id, description) VALUES
+              (1, 1, 'meowmeowmeow'),
+              (2, 2, 'purrpurrpurr')
+        "#};
+
+        api.execute_sql(insert_profiles).await;
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10) {
+                edges {
+                  node {
+                    id
+                    name
+                    profile { description }
+                  }
+                }
+              }
+            }
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "id": 1,
+                    "name": "Musti",
+                    "profile": {
+                      "description": "meowmeowmeow"
+                    }
+                  }
+                },
+                {
+                  "node": {
+                    "id": 2,
+                    "name": "Naukio",
+                    "profile": {
+                      "description": "purrpurrpurr"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
 fn one_to_one_relation_filter() {
     let response = query_postgres(|api| async move {
         let user_table = indoc! {r#"
@@ -1447,6 +1534,117 @@ fn one_to_one_relation_filter() {
                     "name": "Naukio",
                     "profile": {
                       "description": "purrpurrpurr"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn one_to_many_child_side() {
+    let response = query_postgres(|api| async move {
+        let user_table = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            );
+        "#};
+
+        api.execute_sql(user_table).await;
+
+        let profile_table = indoc! {r#"
+            CREATE TABLE "Blog" (
+                id INT PRIMARY KEY,
+                user_id INT NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                CONSTRAINT Blog_User_fkey FOREIGN KEY (user_id) REFERENCES "User" (id)
+            )  
+        "#};
+
+        api.execute_sql(profile_table).await;
+
+        let insert_users = indoc! {r#"
+            INSERT INTO "User" (id, name) VALUES
+              (1, 'Musti'),
+              (2, 'Naukio')
+        "#};
+
+        api.execute_sql(insert_users).await;
+
+        let insert_profiles = indoc! {r#"
+            INSERT INTO "Blog" (id, user_id, title) VALUES
+              (1, 1, 'Hello, world!'),
+              (2, 1, 'Sayonara...'),
+              (3, 2, 'Meow meow?'),
+              (4, 2, 'Purr purr!')
+        "#};
+
+        api.execute_sql(insert_profiles).await;
+
+        let query = indoc! {r"
+            query {
+              blogCollection(first: 10) {
+                edges {
+                  node {
+                    id
+                    title
+                    user { id name }
+                  }
+                }
+              }
+            }
+        "};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "blogCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "id": 1,
+                    "title": "Hello, world!",
+                    "user": {
+                      "id": 1,
+                      "name": "Musti"
+                    }
+                  }
+                },
+                {
+                  "node": {
+                    "id": 2,
+                    "title": "Sayonara...",
+                    "user": {
+                      "id": 1,
+                      "name": "Musti"
+                    }
+                  }
+                },
+                {
+                  "node": {
+                    "id": 3,
+                    "title": "Meow meow?",
+                    "user": {
+                      "id": 2,
+                      "name": "Naukio"
+                    }
+                  }
+                },
+                {
+                  "node": {
+                    "id": 4,
+                    "title": "Purr purr!",
+                    "user": {
+                      "id": 2,
+                      "name": "Naukio"
                     }
                   }
                 }
@@ -1537,6 +1735,121 @@ fn one_to_many_relation_filter_child_side() {
                     "user": {
                       "id": 1,
                       "name": "Musti"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn one_to_many_parent_side() {
+    let response = query_postgres(|api| async move {
+        let user_table = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            );
+        "#};
+
+        api.execute_sql(user_table).await;
+
+        let profile_table = indoc! {r#"
+            CREATE TABLE "Blog" (
+                id INT PRIMARY KEY,
+                user_id INT NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                CONSTRAINT Blog_User_fkey FOREIGN KEY (user_id) REFERENCES "User" (id)
+            )  
+        "#};
+
+        api.execute_sql(profile_table).await;
+
+        let insert_users = indoc! {r#"
+            INSERT INTO "User" (id, name) VALUES
+              (1, 'Musti'),
+              (2, 'Naukio')
+        "#};
+
+        api.execute_sql(insert_users).await;
+
+        let insert_profiles = indoc! {r#"
+            INSERT INTO "Blog" (id, user_id, title) VALUES
+              (1, 1, 'Hello, world!'),
+              (2, 1, 'Sayonara...'),
+              (3, 2, 'Meow meow?'),
+              (4, 2, 'Purr purr!')
+        "#};
+
+        api.execute_sql(insert_profiles).await;
+
+        let query = indoc! {r"
+            query {
+              userCollection(first: 10) {
+                edges {
+                  node {
+                    id
+                    name
+                    blogs(first: 10) { edges { node { id title } } }
+                  }
+                }
+              }
+            }
+        "};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "id": 1,
+                    "name": "Musti",
+                    "blogs": {
+                      "edges": [
+                        {
+                          "node": {
+                            "id": 1,
+                            "title": "Hello, world!"
+                          }
+                        },
+                        {
+                          "node": {
+                            "id": 2,
+                            "title": "Sayonara..."
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "node": {
+                    "id": 2,
+                    "name": "Naukio",
+                    "blogs": {
+                      "edges": [
+                        {
+                          "node": {
+                            "id": 3,
+                            "title": "Meow meow?"
+                          }
+                        },
+                        {
+                          "node": {
+                            "id": 4,
+                            "title": "Purr purr!"
+                          }
+                        }
+                      ]
                     }
                   }
                 }
