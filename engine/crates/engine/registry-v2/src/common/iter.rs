@@ -14,8 +14,7 @@ where
     T: IdReader,
 {
     range: IdRange<T::Id>,
-    current: Option<T::Id>,
-    document: &'a crate::Registry,
+    registry: &'a crate::Registry,
 }
 
 impl<'a, T> Iter<'a, T>
@@ -23,12 +22,8 @@ where
     T: IdReader,
     T::Id: IdOperations,
 {
-    pub(crate) fn new(range: IdRange<T::Id>, document: &'a Registry) -> Self {
-        Iter {
-            current: (IdOperations::distance(range.start, range.end) > 0).then_some(range.start),
-            range,
-            document,
-        }
+    pub(crate) fn new(range: IdRange<T::Id>, registry: &'a Registry) -> Self {
+        Iter { range, registry }
     }
 }
 
@@ -44,18 +39,14 @@ where
     type Item = <T::Id as RegistryId>::Reader<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let current = self.current?;
-        let next = self.range.next(current);
-        self.current = next;
+        let next = self.range.next()?;
+        self.range.start = next;
 
-        Some(self.document.read(current))
+        Some(self.registry.read(next))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let Some(current) = self.current else {
-            return (0, Some(0));
-        };
-        let remaining = IdOperations::distance(current, self.range.end);
+        let remaining = IdOperations::distance(self.range.start, self.range.end);
         (remaining, Some(remaining))
     }
 }

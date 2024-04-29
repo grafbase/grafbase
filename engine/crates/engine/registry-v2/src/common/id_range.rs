@@ -21,11 +21,11 @@ impl<Id> IdRange<Id> {
         IdRange { start, end }
     }
 
-    pub(crate) fn next(&self, current: Id) -> Option<Id>
+    pub(crate) fn next(&self) -> Option<Id>
     where
         Id: IdOperations,
     {
-        let next = current.forward()?;
+        let next = self.start;
         matches!(next.cmp(self.end), Ordering::Less).then_some(next)
     }
 }
