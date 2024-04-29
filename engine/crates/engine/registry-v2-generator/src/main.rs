@@ -17,8 +17,8 @@ const ENGINE_DIR: &str = "engine/crates/engine";
 
 fn main() -> anyhow::Result<()> {
     eprintln!("{:?}", std::env::current_dir());
-    for module in ["registry"] {
-        let module_path = format!("{ENGINE_DIR}/registry-v2/src/generated");
+    for module in ["registry-v2", "registry-for-cache"] {
+        let module_path = format!("{ENGINE_DIR}/{module}/src/generated");
         std::fs::create_dir_all(&module_path).with_context(|| format!("creating {module_path}"))?;
 
         let document = std::fs::read_to_string(format!("{ENGINE_DIR}/registry-v2-generator/domain/{module}.graphql"))?;
@@ -44,7 +44,8 @@ fn main() -> anyhow::Result<()> {
         }
 
         let id_trait = match module {
-            "registry" => "RegistryId",
+            "registry-v2" => "RegistryId",
+            "registry-for-cache" => "RegistryId",
             _ => unimplemented!("id_trait for {module} needs defined (see the location of this panic)"),
         };
 

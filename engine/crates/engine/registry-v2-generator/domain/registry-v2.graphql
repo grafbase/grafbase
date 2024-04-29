@@ -1,21 +1,3 @@
-# type SchemaDefinition @file(name: "schemas") {
-#   description: StringLiteral
-#   directives: [Directive!]!
-#   root_operations: [RootOperationTypeDefinition!]!
-# }
-
-# type RootOperationTypeDefinition @file(name: "schemas") {
-#   operation_type: OperationType!
-#   named_type: String!
-# }
-
-# type ScalarDefinition @file(name: "scalars") {
-#   name: String!
-#   description: StringLiteral
-#   directives: [Directive]
-#   span: Span!
-# }
-
 union MetaType
   @distinct
   @file(name: "metatype")
@@ -34,9 +16,6 @@ type ObjectType @file(name: "objects") @distinct {
   cache_control: CacheControl
   external: bool!
   shareable: bool!
-  # directives: [Directive]
-  # implements_interfaces: [String]
-  # span: Span!
 }
 
 type MetaField @file(name: "field") {
@@ -48,14 +27,12 @@ type MetaField @file(name: "field") {
   deprecation: Deprecation
   cache_control: CacheControl
   requires: FieldSet
-  federation: FederationProperties # inline Box this maybe?
+  federation: FederationProperties
   resolver: Resolver!
   required_operation: Operations
-  auth: AuthConfig # inline box this also?
+  auth: AuthConfig
 }
 
-# TODO: Think about whether these should be inline or not...
-# TODO: implement @box
 scalar Deprecation @box @inline
 scalar CacheControl @box @inline
 scalar FieldSet @box @inline
@@ -139,92 +116,6 @@ type InputValidator @file(name: "inputs") {
 }
 
 scalar DynValidator @inline @ref
-
-# type FieldDefinition @file(name: "fields") {
-#   name: String!
-#   ty: Type!
-#   arguments: [InputValueDefinition!]!
-#   description: StringLiteral
-#   directives: [Directive!]!
-#   span: Span!
-# }
-
-# type InterfaceDefinition @file(name: "interfaces") {
-#   name: String!
-#   description: StringLiteral
-#   fields: [FieldDefinition!]!
-#   directives: [Directive!]!
-#   implements_interfaces: [String]
-#   span: Span!
-# }
-
-# type UnionDefinition @file(name: "unions") {
-#   name: String!
-#   description: StringLiteral
-#   members: [String]
-#   directives: [Directive!]!
-#   span: Span!
-# }
-
-# type EnumDefinition @file(name: "enums") {
-#   name: String!
-#   description: StringLiteral
-#   values: [EnumValueDefinition!]!
-#   directives: [Directive!]!
-#   span: Span!
-# }
-
-# type EnumValueDefinition @file(name: "enums") {
-#   value: String!
-#   description: StringLiteral
-#   directives: [Directive!]!
-#   span: Span!
-# }
-
-# type InputObjectDefinition @file(name: "input_objects") {
-#   name: String!
-#   description: StringLiteral
-#   fields: [InputValueDefinition!]!
-#   directives: [Directive!]!
-#   span: Span!
-# }
-
-# type InputValueDefinition @file(name: "input_values") {
-#   name: String!
-#   ty: Type!
-#   description: StringLiteral
-#   default_value: Value
-#   directives: [Directive!]!
-#   span: Span!
-# }
-
-# type DirectiveDefinition @file(name: "directives") {
-#   name: String!
-#   description: StringLiteral
-#   arguments: [InputValueDefinition!]!
-#   is_repeatable: bool!
-#   locations: [DirectiveLocation!]!
-#   span: Span!
-# }
-
-# type Directive @file(name: "directives") {
-#   name: String!
-#   arguments: [Argument!]!
-# }
-
-# type Argument @file(name: "arguments") {
-#   name: String!
-#   value: Value!
-# }
-
-# scalar Span @inline
-# scalar DirectiveLocation @inline
-# scalar OperationType @inline
-
-# Type & Value are kind of special cases that aren't worth automating
-# so we make them scalars and implement them by hand
-# scalar Type @file(name: "types")
-# scalar Value @file(name: "value")
 
 # String is built in, but easier to implement stuff if its just in the .graphql file
 # It is also special cased a bit in the rust code

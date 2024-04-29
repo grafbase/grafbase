@@ -1,0 +1,31 @@
+union MetaType @distinct @file(name: "metatype") @variant(names: ["Object", "Interface"]) = ObjectType | InterfaceType
+
+type ObjectType @file(name: "objects") @distinct {
+  name: String!
+  fields: [MetaField!]!
+  cache_control: CacheControl
+}
+
+type MetaField @file(name: "field") {
+  name: String!
+  ty: MetaFieldTypeRecord! @noreader
+  cache_control: CacheControl
+}
+
+scalar CacheControl @box @inline
+scalar MetaFieldTypeRecord @inline
+
+scalar ConstValue @inline @box
+
+type InterfaceType @file(name: "interface") @distinct {
+  name: String!
+  fields: [MetaField!]!
+  cache_control: CacheControl
+  # TODO: do we need these?  Hoping not
+  # possible_types: [MetaType] @inline
+}
+
+# String is built in, but easier to implement stuff if its just in the .graphql file
+# It is also special cased a bit in the rust code
+scalar String
+scalar bool @inline
