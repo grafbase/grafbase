@@ -173,7 +173,6 @@ pub struct Environment {
     pub project: Option<Project>,
     /// the path of `$HOME/.grafbase`, the user level local developer tool cache directory
     pub user_dot_grafbase_path: PathBuf,
-    /// warnings when loading the environment
     pub warnings: Vec<Warning>,
     /// the path within `$HOME/.grafbase` where bun gets installed
     pub bun_installation_path: PathBuf,
@@ -243,8 +242,8 @@ pub fn get_user_dot_grafbase_path(r#override: Option<PathBuf>) -> Option<PathBuf
 }
 
 impl Project {
-    fn try_init(warnings: &mut Vec<Warning>) -> Result<Self, CommonError> {
-        let (path, schema_path) = get_project_grafbase_path(warnings)?.ok_or(CommonError::FindGrafbaseDirectory)?;
+    fn try_init() -> Result<Self, CommonError> {
+        let (path, schema_path) = get_project_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
 
         let dot_grafbase_directory_path = path.join(DOT_GRAFBASE_DIRECTORY_NAME);
         let registry_path = dot_grafbase_directory_path.join(REGISTRY_FILE);
@@ -286,19 +285,17 @@ impl Environment {
     ///
     /// returns [`CommonError::FindHomeDirectory`] if the home directory is not found
     pub fn try_init_with_project(home_override: Option<PathBuf>) -> Result<(), CommonError> {
-        let mut warnings = Vec::new();
-
         let user_dot_grafbase_path = get_user_dot_grafbase_path(home_override).ok_or(CommonError::FindHomeDirectory)?;
 
         let bun_installation_path = user_dot_grafbase_path.join(BUN_DIRECTORY_NAME);
 
-        let project = Project::try_init(&mut warnings)?;
+        let project = Project::try_init()?;
 
         ENVIRONMENT
             .set(Self {
                 project: Some(project),
                 user_dot_grafbase_path,
-                warnings,
+                warnings: vec![],
                 bun_installation_path,
             })
             .expect("cannot set environment twice");
@@ -351,19 +348,17 @@ impl Environment {
 /// # Errors
 ///
 /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
-fn get_project_grafbase_path(
-    warnings: &mut Vec<Warning>,
-) -> Result<Option<(PathBuf, GrafbaseSchemaPath)>, CommonError> {
+fn get_project_grafbase_path() -> Result<Option<(PathBuf, GrafbaseSchemaPath)>, CommonError> {
     Ok(env::current_dir()
         .map_err(|_| CommonError::ReadCurrentDirectory)?
         .ancestors()
         .find_map(|ancestor| {
-            find_grafbase_configuration(ancestor, warnings)
+            find_grafbase_configuration(ancestor)
                 .map(|grafbase_schema_path| (ancestor.to_owned(), grafbase_schema_path))
         }))
 }
 
-fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Option<GrafbaseSchemaPath> {
+fn find_grafbase_configuration(path: &Path) -> Option<GrafbaseSchemaPath> {
     // FIXME: Deprecate the last look-up path and remove it.
     let search_paths: [std::borrow::Cow<'_, Path>; 2] = [path.into(), path.join(GRAFBASE_DIRECTORY_NAME).into()];
 
