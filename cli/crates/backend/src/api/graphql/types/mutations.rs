@@ -273,6 +273,7 @@ pub struct SchemaRegistryBranchDoesNotExistError {
 #[derive(cynic::InlineFragments, Debug)]
 pub enum PublishPayload {
     PublishSuccess(PublishSuccess),
+    ProjectDoesNotExistError(ProjectDoesNotExistError),
     FederatedGraphCompositionError(FederatedGraphCompositionError),
     BranchDoesNotExistError(SchemaRegistryBranchDoesNotExistError),
     #[cynic(fallback)]
@@ -345,9 +346,15 @@ pub enum SchemaCheckErrorSeverity {
     Warning,
 }
 
+#[derive(cynic::QueryFragment, Debug)]
+pub struct SubgraphNameMissingOnFederatedProjectError {
+    __typename: String,
+}
+
 #[derive(cynic::InlineFragments, Debug)]
 pub enum SchemaCheckPayload {
     SchemaCheck(SchemaCheck),
+    SubgraphNameMissingOnFederatedProjectError(SubgraphNameMissingOnFederatedProjectError),
     #[cynic(fallback)]
     Unknown(String),
 }

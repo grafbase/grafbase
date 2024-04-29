@@ -448,6 +448,10 @@ pub fn create_success(name: &str, urls: &[String]) {
     }
 }
 
+pub(crate) fn check_name_missing_on_federated_project() {
+    watercolor::output!("❌ The project is federated, but you did not provide a subgraph name to check against. Please pass a subgraph name with the --name argument to the check command.", @BrightRed);
+}
+
 pub(crate) fn check_success() {
     watercolor::output!("\n✨ Successful check!", @BrightBlue);
 }
@@ -623,6 +627,10 @@ pub(crate) async fn listen_to_federated_dev_events() {
 
 pub(crate) fn federated_schema_local_introspection_not_implemented() {
     eprintln!("⚠️ The introspected schema is empty. Introspecting federated graphs is not implemented yet.")
+}
+
+pub(crate) fn publish_project_does_not_exist(account_slug: &str, project_slug: &str) {
+    watercolor::output!("❌ Could not publish: there is no project named {project_slug} in the account {account_slug}\n", @BrightRed);
 }
 
 pub(crate) fn publish_command_composition_failure(messages: &[String]) {
