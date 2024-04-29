@@ -13,6 +13,7 @@ members = [
   "engine/crates/engine/derive",
   "engine/crates/engine/parser",
   "engine/crates/engine/value",
+  "engine/crates/engine/registry-v1",
   "engine/crates/engine/registry-v2",
   "engine/crates/engine/registry-v2-generator",
   "graph-ref",

@@ -1,0 +1,6 @@
+{"run_id":"2bab5e53-b736-4e31-ab0b-c6c6ef41dfbf","line":621,"new":{"module_name":"integration_tests","snapshot_name":"hybrid_graph","metadata":{"source":"gateway/crates/gateway-binary/tests/integration_tests.rs","assertion_line":621,"expression":"&result"},"snapshot":"{\n  \"errors\": [\n    {\n      \"message\": \"there are no subgraphs registered currently\"\n    }\n  ]\n}"},"old":{"module_name":"integration_tests","metadata":{},"snapshot":"{\n  \"data\": {},\n  \"errors\": [\n    {\n      \"message\": \"error sending request for url (http://127.0.0.1:46697/)\"\n    }\n  ]\n}"}}
+{"run_id":"2bab5e53-b736-4e31-ab0b-c6c6ef41dfbf","line":533,"new":null,"old":null}
+{"run_id":"2bab5e53-b736-4e31-ab0b-c6c6ef41dfbf","line":417,"new":null,"old":null}
+{"run_id":"2bab5e53-b736-4e31-ab0b-c6c6ef41dfbf","line":592,"new":null,"old":null}
+{"run_id":"2bab5e53-b736-4e31-ab0b-c6c6ef41dfbf","line":508,"new":null,"old":null}
+{"run_id":"2bab5e53-b736-4e31-ab0b-c6c6ef41dfbf","line":442,"new":null,"old":null}
