@@ -13,6 +13,7 @@ members = [
   "engine/crates/engine/derive",
   "engine/crates/engine/parser",
   "engine/crates/engine/value",
+  "engine/crates/engine/registry-v2",
   "graph-ref",
   "graphql-lint",
 ]
@@ -168,6 +169,8 @@ jwt-verifier = { path = "engine/crates/jwt-verifier" }
 parser-graphql = { path = "engine/crates/parser-graphql" }
 parser-openapi = { path = "engine/crates/parser-openapi" }
 parser-postgres = { path = "engine/crates/parser-postgres" }
+postgres-connector-types = { path = "engine/crates/postgres-connector-types" }
+registry-v2 = { path = "engine/crates/engine/registry-v2" }
 runtime-local = { path = "engine/crates/runtime-local" }
 runtime-noop = { path = "engine/crates/runtime-noop" }
 runtime = { path = "engine/crates/runtime" }
