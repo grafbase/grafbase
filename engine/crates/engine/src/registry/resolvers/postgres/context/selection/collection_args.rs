@@ -164,6 +164,7 @@ impl CollectionArgs {
             // We must name our order columns for them to be visible in the order by statement of the
             // outer queries.
             let alias = format!("{}_{}", table.database_name(), column.database_name());
+
             extra_columns.push(sql_column.clone().alias(alias.clone()));
 
             order_by.inner.push((

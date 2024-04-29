@@ -203,6 +203,58 @@ fn order_by() {
 }
 
 #[test]
+fn order_by_without_selecting_id() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            )    
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let insert = indoc! {r#"
+            INSERT INTO "User" (id, name) VALUES (1, 'Musti'), (2, 'Naukio')
+        "#};
+
+        api.execute_sql(insert).await;
+
+        let query = indoc! {r"
+            query {
+              userCollection(first: 10, orderBy: [{ name: DESC }]) {
+                edges { node { name } }  
+              }
+            }
+        "};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "name": "Naukio"
+                  }
+                },
+                {
+                  "node": {
+                    "name": "Musti"
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
 fn namespaced() {
     let response = query_namespaced_postgres("pg", |api| async move {
         let schema = indoc! {r#"

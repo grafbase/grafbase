@@ -129,6 +129,7 @@ pub fn build(builder: SelectBuilder<'_>) -> Result<Select<'_>, crate::Error> {
             let json_value = coalesce([Expression::from(json_agg), raw("'[]'")]);
 
             json_aggregation.value(json_value.alias(builder.field_name().to_string()));
+
             Ok(json_aggregation)
         }
         None => Ok(json_select),

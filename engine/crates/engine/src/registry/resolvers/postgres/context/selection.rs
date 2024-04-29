@@ -47,47 +47,48 @@ impl<'a> SelectionIterator<'a> {
 
         let mut extra_columns = Vec::new();
 
-        match selection_field
+        if let Some(order_by) = selection_field
             .field
             .get_argument("orderBy")
             .and_then(|value| value.as_slice())
         {
-            Some(order_by) => {
-                for value in order_by {
-                    let object = match value {
-                        engine_value::Value::Object(obj) => obj,
-                        _ => continue,
-                    };
+            for value in order_by {
+                let object = match value {
+                    engine_value::Value::Object(obj) => obj,
+                    _ => continue,
+                };
 
-                    for field in object.keys() {
-                        if selection
-                            .iter()
-                            .any(|select| select.field.name.as_str() == field.as_str())
-                        {
-                            continue;
-                        }
-
-                        let column = ctx
-                            .database_definition
-                            .find_column_for_client_field(field, table.id())
-                            .expect("ordering with non-existing column");
-
-                        extra_columns.push(column);
-                    }
-                }
-            }
-            None => {
-                for column in table.implicit_ordering_key().unwrap().columns() {
+                for field in object.keys() {
                     if selection
                         .iter()
-                        .any(|select| select.field.name.as_str() == column.table_column().client_name())
+                        .any(|select| select.field.name.as_str() == field.as_str())
                     {
                         continue;
                     }
 
-                    extra_columns.push(column.table_column());
+                    let column = ctx
+                        .database_definition
+                        .find_column_for_client_field(field, table.id())
+                        .expect("ordering with non-existing column");
+
+                    extra_columns.push(column);
                 }
             }
+        };
+
+        for column in table.implicit_ordering_key().unwrap().columns() {
+            if selection
+                .iter()
+                .any(|select| select.field.name.as_str() == column.table_column().client_name())
+            {
+                continue;
+            }
+
+            if extra_columns.contains(&column.table_column()) {
+                continue;
+            }
+
+            extra_columns.push(column.table_column());
         }
 
         Self {
