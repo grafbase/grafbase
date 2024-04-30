@@ -1,7 +1,5 @@
 use chrono::{DateTime, Utc};
-use common::{consts::PROJECT_METADATA_FILE, environment::Project};
 use cynic::{http::ReqwestExt, MutationBuilder, QueryBuilder};
-use tokio::fs::read_to_string;
 
 use super::{
     client::create_client,
@@ -11,7 +9,6 @@ use super::{
         mutations::{BranchDelete, BranchDeleteArguments, BranchDeletePayload},
         queries::list_branches::{ListBranches, ListBranchesArguments, Node},
     },
-    types::ProjectMetadata,
 };
 
 pub struct Branch {
@@ -55,22 +52,7 @@ pub async fn delete(account_slug: &str, project_slug: &str, branch_name: &str) -
 }
 
 pub async fn list() -> Result<Vec<Branch>, ApiError> {
-    let project = Project::get();
-
-    let project_metadata_file_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
-
-    match project_metadata_file_path.try_exists() {
-        Ok(true) => {}
-        Ok(false) => return Err(ApiError::UnlinkedProject),
-        Err(error) => return Err(ApiError::ReadProjectMetadataFile(error)),
-    }
-
-    let project_metadata_file = read_to_string(project_metadata_file_path)
-        .await
-        .map_err(ApiError::ReadProjectMetadataFile)?;
-
-    let project_metadata: ProjectMetadata =
-        serde_json::from_str(&project_metadata_file).map_err(|_| ApiError::CorruptProjectMetadataFile)?;
+    let project_metadata = crate::api::project_metadata()?;
 
     let operation = ListBranches::build(ListBranchesArguments {
         project_id: project_metadata.project_id.into(),

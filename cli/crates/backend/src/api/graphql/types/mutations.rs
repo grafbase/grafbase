@@ -1,3 +1,5 @@
+pub(crate) mod environment_variable_delete;
+pub(crate) mod environment_variable_upsert_by_slugs;
 pub(crate) mod submit_trusted_documents;
 
 use super::schema;

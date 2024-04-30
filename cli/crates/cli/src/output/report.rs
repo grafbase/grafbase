@@ -5,7 +5,7 @@ use crate::{
     watercolor::{self, watercolor},
 };
 use backend::{
-    api::branch::Branch,
+    api::{branch::Branch, environment_variables::EnvironmentVariable},
     types::{NestedRequestScopedMessage, RequestCompletedOutcome},
 };
 use chrono::Utc;
@@ -368,13 +368,20 @@ pub fn deploy() {
     watercolor::output!("🕒 Your graph is being deployed...", @BrightBlue);
 }
 
-// TODO change this to a spinner that is removed on success
 pub fn delete_branch() {
     watercolor::output!("🕒 Branch is being deleted...", @BrightBlue);
 }
 
 pub fn delete_branch_success() {
     watercolor::output!("\n✨ The branch was successfully deleted!", @BrightBlue);
+}
+
+pub fn delete_env_var_success() {
+    watercolor::output!("\n✨ The environment variable was successfully deleted!", @BrightBlue);
+}
+
+pub fn create_env_var_success() {
+    watercolor::output!("\n✨ The environment variable was successfully created!", @BrightBlue);
 }
 
 // TODO change this to a spinner that is removed on success
@@ -435,6 +442,42 @@ pub fn list_branches(branches: Vec<Branch>) {
             last_updated,
             branch.status.unwrap_or_default(),
         ]);
+    }
+
+    table.printstd();
+}
+
+pub fn list_environment_variables(environment_variables: Vec<EnvironmentVariable>) {
+    if environment_variables.is_empty() {
+        watercolor::output!("⚠️  No environment variables found.", @BrightYellow);
+        return;
+    }
+
+    let mut table = Table::new();
+    let mut format = TableFormat::new();
+
+    format.padding(0, 4);
+    table.set_format(format);
+
+    table.add_row(row!["NAME", "VALUE", "LAST UPDATED", "ENVIRONMENT"]);
+
+    for environment_variable in environment_variables {
+        let now = Utc::now();
+
+        let last_updated = format!(
+            "{} ago",
+            format_long_duration((now - environment_variable.updated_at).to_std().unwrap_or_default())
+        );
+
+        let branch_environment = environment_variable.environments.join(",");
+
+        let value = if environment_variable.value.len() > 50 {
+            format!("{}...", environment_variable.value.chars().take(50).collect::<String>())
+        } else {
+            environment_variable.value
+        };
+
+        table.add_row(row![environment_variable.name, value, last_updated, branch_environment,]);
     }
 
     table.printstd();

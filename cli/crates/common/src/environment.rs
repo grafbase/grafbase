@@ -164,6 +164,12 @@ impl Project {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectMetadata {
+    pub project_id: String,
+}
+
 /// a static representation of the current environment
 ///
 /// must be initialized before use
