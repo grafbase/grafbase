@@ -6,9 +6,10 @@ use std::{
 use engine_value::{Name, Value, Variables};
 use meta_type_name::MetaTypeName;
 
-use crate::registries::{ValidationField, ValidationMetaType, ValidationRegistry};
+use crate::registries::{
+    ValidationDirective, ValidationField, ValidationInputValue, ValidationMetaType, ValidationRegistry,
+};
 
-use super::dynamic_validators::DynValidate;
 use engine_parser::{
     types::{
         Directive, ExecutableDocument, Field, FragmentDefinition, FragmentSpread, InlineFragment, OperationDefinition,
@@ -259,7 +260,7 @@ where
         _pos: Pos,
         _expected_type: &Option<MetaTypeName<'_>>,
         _value: &'a Value,
-        _meta: Option<registry_v2::MetaInputValue<'a>>,
+        _meta: Option<Registry::MetaInputValue<'a>>,
     ) {
     }
     fn exit_input_value(
@@ -268,7 +269,7 @@ where
         _pos: Pos,
         _expected_type: &Option<MetaTypeName<'_>>,
         _value: &Value,
-        _meta: Option<registry_v2::MetaInputValue<'a>>,
+        _meta: Option<Registry::MetaInputValue<'a>>,
     ) {
     }
 }
@@ -475,7 +476,7 @@ where
         pos: Pos,
         expected_type: &Option<MetaTypeName<'_>>,
         value: &'a Value,
-        meta: Option<registry_v2::MetaInputValue<'a>>,
+        meta: Option<Registry::MetaInputValue<'a>>,
     ) {
         self.0.enter_input_value(ctx, pos, expected_type, value, meta);
         self.1.enter_input_value(ctx, pos, expected_type, value, meta);
@@ -487,7 +488,7 @@ where
         pos: Pos,
         expected_type: &Option<MetaTypeName<'_>>,
         value: &Value,
-        meta: Option<registry_v2::MetaInputValue<'a>>,
+        meta: Option<Registry::MetaInputValue<'a>>,
     ) {
         self.0.exit_input_value(ctx, pos, expected_type, value, meta);
         self.1.exit_input_value(ctx, pos, expected_type, value, meta);
@@ -614,7 +615,7 @@ fn visit_field<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
             .and_then(|ty| ty.field(&field.node.name.node))
             .and_then(|schema_field| schema_field.argument(&name.node));
 
-        let type_string = meta_input_value.map(|value| value.ty().to_string());
+        let type_string = meta_input_value.map(|value| value.type_string());
         let expected_ty = type_string
             .as_ref()
             .map(|type_string| MetaTypeName::create(type_string));
@@ -636,7 +637,7 @@ fn visit_input_value<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>
     pos: Pos,
     expected_ty: Option<MetaTypeName<'_>>,
     value: &'a Value,
-    meta: Option<registry_v2::MetaInputValue<'a>>,
+    meta: Option<Registry::MetaInputValue<'a>>,
 ) {
     v.enter_input_value(ctx, pos, &expected_ty, value, meta);
 
@@ -660,12 +661,15 @@ fn visit_input_value<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>
             if let Some(expected_ty) = expected_ty {
                 let expected_ty = expected_ty.unwrap_non_null();
                 if let MetaTypeName::Named(expected_ty) = expected_ty {
-                    if let Some(registry_v2::MetaType::InputObject(input_object)) =
-                        ctx.registry.lookup_type(MetaTypeName::concrete_typename(expected_ty))
-                    {
+                    let maybe_type = ctx.registry.lookup_type(MetaTypeName::concrete_typename(expected_ty));
+
+                    let is_input_object = maybe_type.as_ref().map(|ty| ty.is_input_object()).unwrap_or_default();
+
+                    if is_input_object {
+                        let input_object = maybe_type.unwrap();
                         for (item_key, item_value) in values {
-                            if let Some(input_value) = input_object.field(item_key.as_str()) {
-                                let typename = input_value.ty().to_string();
+                            if let Some(input_value) = input_object.input_field(item_key.as_str()) {
+                                let typename = input_value.type_string();
                                 visit_input_value(
                                     v,
                                     ctx,
@@ -682,12 +686,6 @@ fn visit_input_value<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>
         }
         _ => {}
     }
-
-    if let Some(meta) = meta {
-        for validator in meta.validators() {
-            validator.validator().validate(ctx, meta, pos, value);
-        }
-    };
 
     v.exit_input_value(ctx, pos, &expected_ty, value, meta);
 }
@@ -719,7 +717,7 @@ fn visit_directives<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
         for (name, value) in &d.node.arguments {
             v.enter_argument(ctx, name, value);
             let meta_input_value = schema_directive.and_then(|schema_directive| schema_directive.argument(&name.node));
-            let expected_typename = meta_input_value.map(|input_value| input_value.ty().to_string());
+            let expected_typename = meta_input_value.map(|input_value| input_value.type_string());
             let expected_ty = expected_typename.as_ref().map(|name| MetaTypeName::create(name));
             ctx.with_input_type(meta_input_value, |ctx| {
                 visit_input_value(v, ctx, d.pos, expected_ty, &value.node, meta_input_value);
@@ -812,9 +810,9 @@ pub(crate) mod test {
     use super::{MetaTypeName, Pos, Value, Visitor, VisitorContext};
 
     #[allow(dead_code)]
-    pub(crate) fn visit_input_value<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
+    pub(crate) fn visit_input_value<'a, V: Visitor<'a, registry_v2::Registry>>(
         v: &mut V,
-        ctx: &mut VisitorContext<'a, Registry>,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         pos: Pos,
         expected_ty: Option<MetaTypeName<'_>>,
         value: &'a Value,

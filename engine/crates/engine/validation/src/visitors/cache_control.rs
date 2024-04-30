@@ -1,6 +1,5 @@
 use engine_parser::Positioned;
-use registry_v2::MetaType;
-use std::{collections::HashSet, thread::current};
+use std::collections::HashSet;
 
 use crate::{
     registries::{ValidationField, ValidationMetaType, ValidationRegistry},

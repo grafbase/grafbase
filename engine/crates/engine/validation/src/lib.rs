@@ -98,7 +98,8 @@ pub fn check_strict_rules(
         .with(visitors::DepthCalculate::new(&mut depth))
         .with(visitors::HeightCalculate::new(&mut height))
         .with(visitors::AliasCountCalculate::new(&mut alias_count))
-        .with(visitors::RootFieldCountCalculate::new(&mut root_field_count));
+        .with(visitors::RootFieldCountCalculate::new(&mut root_field_count))
+        .with(visitors::InputValidationVisitor);
 
     visit(&mut visitor, &mut ctx, doc);
 

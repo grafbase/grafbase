@@ -28,7 +28,7 @@ use serde::{Deserialize, Serialize};
 
 use self::type_kinds::TypeKind;
 pub use self::{
-    cache_control::{CacheAccessScope, CacheControl, CacheControlError, CacheInvalidationPolicy, CachePartialRegistry},
+    cache_control::{CacheAccessScope, CacheControl, CacheControlError, CacheInvalidationPolicy},
     export_sdl_v2::RegistrySdlExt,
     type_names::{ModelName, NamedType, TypeCondition, TypeReference, WrappingType, WrappingTypeIter},
 };

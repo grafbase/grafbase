@@ -2,33 +2,66 @@ mod partial_caching_registry;
 mod v2;
 
 /// A trait for registries that provides enough functionalty for the validation visitors
-pub(crate) trait ValidationRegistry {
-    type MetaType<'a>: ValidationMetaType<'a>
+pub trait ValidationRegistry {
+    type MetaType<'a>: ValidationMetaType<'a, Field = Self::Field<'a>>
     where
         Self: 'a;
 
-    type MetaInputValue<'a>: Copy;
+    type Field<'a>: ValidationField<'a, MetaType = Self::MetaType<'a>, MetaInputValue = Self::MetaInputValue<'a>>
+    where
+        Self: 'a;
+
+    type MetaInputValue<'a>: ValidationInputValue<'a, MetaType = Self::MetaType<'a>>
+    where
+        Self: 'a;
+
+    type MetaDirective<'a>: ValidationDirective<'a, MetaInputValue = Self::MetaInputValue<'a>>
+    where
+        Self: 'a;
 
     fn query_type(&self) -> Self::MetaType<'_>;
     fn mutation_type(&self) -> Option<Self::MetaType<'_>>;
     fn subscription_type(&self) -> Option<Self::MetaType<'_>>;
 
     fn lookup_type(&self, name: &str) -> Option<Self::MetaType<'_>>;
+
+    fn directives(&self) -> impl Iterator<Item = Self::MetaDirective<'_>>;
 }
 
-pub(crate) trait ValidationMetaType<'a>: Copy {
+pub trait ValidationMetaType<'a>: Copy {
     type Field: ValidationField<'a, MetaType = Self>;
 
-    fn name(&self) -> &str;
-    fn description(&self) -> Option<&str>;
+    fn name(&self) -> &'a str;
+    fn description(&self) -> Option<&'a str>;
     fn field(&self, name: &str) -> Option<Self::Field>;
-    fn cache_control(&self) -> Option<registry_v2::CacheControl>;
-    fn possible_types(&self) -> Option<impl Iterator<Item = Self::Field>>;
+    fn cache_control(&self) -> Option<&'a registry_v2::CacheControl>;
+    fn possible_types(&self) -> Option<impl Iterator<Item = Self>>;
+
+    fn is_input_object(&self) -> bool;
+    fn input_field(&self, name: &str) -> Option<<Self::Field as ValidationField<'a>>::MetaInputValue>;
 }
 
-pub(crate) trait ValidationField<'a>: Copy {
+pub trait ValidationField<'a>: Copy {
     type MetaType: ValidationMetaType<'a, Field = Self>;
+    type MetaInputValue: ValidationInputValue<'a>;
 
     fn named_type(&self) -> Self::MetaType;
-    fn cache_control(&self) -> Option<registry_v2::CacheControl>;
+    fn cache_control(&self) -> Option<&'a registry_v2::CacheControl>;
+    fn argument(&self, name: &str) -> Option<Self::MetaInputValue>;
+}
+
+pub trait ValidationInputValue<'a>: Copy {
+    type MetaType: ValidationMetaType<'a>;
+
+    fn type_string(&self) -> String;
+    fn named_type(&self) -> Self::MetaType;
+
+    fn validators(&self) -> impl Iterator<Item = &'a registry_v2::validators::DynValidator>;
+}
+
+pub trait ValidationDirective<'a>: Copy {
+    type MetaInputValue: ValidationInputValue<'a>;
+
+    fn name(&self) -> &'a str;
+    fn argument(&self, name: &str) -> Option<Self::MetaInputValue>;
 }

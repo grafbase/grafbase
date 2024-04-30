@@ -10,9 +10,9 @@ pub struct CodegenDirective {
     pub path: Option<String>,
 }
 
-impl From<CodegenDirective> for engine::registry::CodegenConfig {
+impl From<CodegenDirective> for registry_v2::CodegenConfig {
     fn from(value: CodegenDirective) -> Self {
-        engine::registry::CodegenConfig {
+        registry_v2::CodegenConfig {
             enabled: value.enabled,
             path: value.path,
         }
@@ -27,7 +27,7 @@ impl Directive for CodegenDirective {
                 """The target file path for the generated code."""
                 path: String
             ) on SCHEMA
-            
+
         "#
         .to_owned()
     }

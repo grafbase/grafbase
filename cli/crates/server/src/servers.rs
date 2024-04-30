@@ -37,6 +37,7 @@ pub enum ProductionServer {
     V1 {
         message_sender: MessageSender,
         registry: Arc<registry_v2::Registry>,
+        cache_registry: registry_for_cache::PartialCacheRegistry,
         bridge_app: axum::Router,
         environment_variables: HashMap<String, String>,
     },
@@ -83,6 +84,9 @@ impl ProductionServer {
                 graph,
             })
         } else {
+            let cache_registry = registry.clone().prune_for_caching_registry();
+            let cache_registry = registry_upgrade::convert_v1_to_partial_cache_registry(cache_registry);
+
             let registry = registry_upgrade::convert_v1_to_v2(registry);
             let registry = Arc::new(registry);
 
@@ -128,6 +132,7 @@ impl ProductionServer {
                 bridge_app,
                 environment_variables,
                 message_sender,
+                cache_registry,
             })
         }
     }
@@ -152,6 +157,7 @@ impl ProductionServer {
                 bridge_app,
                 environment_variables,
                 message_sender,
+                cache_registry,
             } => {
                 let tcp_listener = tokio::net::TcpListener::bind(&SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
                     .await
@@ -159,11 +165,15 @@ impl ProductionServer {
                 let bridge_port = tcp_listener.local_addr().unwrap().port();
                 let bridge_server = axum::serve(tcp_listener, bridge_app);
 
-                let gateway_app =
-                    gateway::Gateway::new(environment_variables, gateway::Bridge::new(bridge_port), registry)
-                        .await
-                        .map_err(|error| ServerError::GatewayError(error.to_string()))?
-                        .into_router();
+                let gateway_app = gateway::Gateway::new(
+                    environment_variables,
+                    gateway::Bridge::new(bridge_port),
+                    registry,
+                    cache_registry,
+                )
+                .await
+                .map_err(|error| ServerError::GatewayError(error.to_string()))?
+                .into_router();
 
                 let gateway_server = axum::serve(
                     tokio::net::TcpListener::bind(&listen_address)
@@ -365,8 +375,12 @@ async fn spawn_servers(
         federated_graph_config: _,
     } = config;
 
+    let cache_registry = registry.clone().prune_for_caching_registry();
+    let cache_registry = registry_upgrade::convert_v1_to_partial_cache_registry(cache_registry);
+
     let registry = registry_upgrade::convert_v1_to_v2(registry);
     let registry = Arc::new(registry);
+
     // If the rebuild has been triggered by a change in the schema file, we can honour the freshness of resolvers
     // determined by inspecting the modified time of final artifacts of detected resolvers compared to the modified time
     // of the generated schema registry file.
@@ -417,11 +431,16 @@ async fn spawn_servers(
     let gateway_port = tcp_listener.local_addr().unwrap().port();
     let gateway_server = axum::serve(
         tcp_listener,
-        gateway::Gateway::new(environment_variables, gateway::Bridge::new(bridge_port), registry)
-            .await
-            .map_err(|error| ServerError::GatewayError(error.to_string()))?
-            .into_router()
-            .into_make_service(),
+        gateway::Gateway::new(
+            environment_variables,
+            gateway::Bridge::new(bridge_port),
+            registry,
+            cache_registry,
+        )
+        .await
+        .map_err(|error| ServerError::GatewayError(error.to_string()))?
+        .into_router()
+        .into_make_service(),
     );
 
     WORKER_PORT.store(gateway_port, Ordering::Relaxed);

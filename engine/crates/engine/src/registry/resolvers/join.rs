@@ -1,5 +1,3 @@
-
-
 // ArgumentSet can't be hashed so we've got a manual impl here that goes via JSON.
 // Would be nice to get rid of the Hash requirement from these types
 #[cfg(delete_me_maybe)]

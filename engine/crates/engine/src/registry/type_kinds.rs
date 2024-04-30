@@ -8,8 +8,6 @@
 
 use std::iter;
 
-
-
 use registry_v2::{MetaInputValue, MetaType};
 
 use crate::Error;

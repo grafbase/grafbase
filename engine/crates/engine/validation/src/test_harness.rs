@@ -336,12 +336,12 @@ static TEST_HARNESS: Lazy<Schema> = Lazy::new(|| {
 
 pub(crate) fn validate<'a, V, F>(doc: &'a ExecutableDocument, factory: F) -> Result<(), Vec<RuleError>>
 where
-    V: Visitor<'a> + 'a,
+    V: Visitor<'a, registry_v2::Registry> + 'a,
     F: Fn() -> V,
 {
     let schema = &*TEST_HARNESS;
     let registry = &schema.env.registry;
-    let mut ctx = VisitorContext::new(registry, doc, None);
+    let mut ctx = VisitorContext::new(registry.as_ref(), doc, None);
     let mut visitor = factory();
     visit(&mut visitor, &mut ctx, doc);
     if ctx.errors.is_empty() {
@@ -353,7 +353,7 @@ where
 
 pub(crate) fn expect_passes_rule_<'a, V, F>(doc: &'a ExecutableDocument, factory: F)
 where
-    V: Visitor<'a> + 'a,
+    V: Visitor<'a, registry_v2::Registry> + 'a,
     F: Fn() -> V,
 {
     if let Err(errors) = validate(doc, factory) {
@@ -376,7 +376,7 @@ macro_rules! expect_passes_rule {
 
 pub(crate) fn expect_fails_rule_<'a, V, F>(doc: &'a ExecutableDocument, factory: F) -> String
 where
-    V: Visitor<'a> + 'a,
+    V: Visitor<'a, registry_v2::Registry> + 'a,
     F: Fn() -> V,
 {
     let result = validate(doc, factory);

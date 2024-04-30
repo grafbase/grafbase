@@ -2,18 +2,17 @@ use std::{future::Future, sync::Arc};
 
 use super::RequestContext;
 pub use build_key::build_cache_key;
-use engine::registry::CachePartialRegistry;
+use registry_for_cache::PartialCacheRegistry;
 use runtime::cache::{Cache, Cacheable, CachedExecutionResponse};
 
 mod build_key;
 mod key;
 
-#[derive(Clone, Default)]
 pub struct CacheConfig {
     pub global_enabled: bool,
     pub subdomain: String,
     pub host_name: String,
-    pub partial_registry: CachePartialRegistry,
+    pub partial_registry: PartialCacheRegistry,
     pub common_cache_tags: Vec<String>,
 }
 
