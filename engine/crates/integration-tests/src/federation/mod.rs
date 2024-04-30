@@ -13,7 +13,7 @@ use serde::de::Error;
 use crate::engine::GraphQlRequest;
 
 pub struct TestFederationGateway {
-    gateway: Arc<engine_v2::Engine>,
+    pub gateway: Arc<engine_v2::Engine>,
 }
 
 impl TestFederationGateway {
