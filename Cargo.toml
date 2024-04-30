@@ -12,11 +12,12 @@ members = [
   "engine/crates/engine-v2/id-newtypes",
   "engine/crates/engine/derive",
   "engine/crates/engine/parser",
-  "engine/crates/engine/value",
+  "engine/crates/engine/registry-for-cache",
   "engine/crates/engine/registry-upgrade",
   "engine/crates/engine/registry-v1",
   "engine/crates/engine/registry-v2",
   "engine/crates/engine/registry-v2-generator",
+  "engine/crates/engine/value",
   "graph-ref",
   "graphql-lint", 
   "gqlint",
@@ -155,6 +156,7 @@ dataloader = { path = "engine/crates/dataloader", features = ["tracing"] }
 engine-config-builder = { path = "engine/crates/engine-config-builder" }
 engine-parser = { path = "engine/crates/engine/parser" }
 engine = { path = "engine/crates/engine" }
+engine-id-newtypes = { path = "engine/crates/engine/id-newtypes" }
 engine-v2 = { path = "engine/crates/engine-v2" }
 engine-v2-axum = { path = "engine/crates/engine-v2/axum" }
 engine-value = { path = "engine/crates/engine/value" }
@@ -174,13 +176,15 @@ parser-graphql = { path = "engine/crates/parser-graphql" }
 parser-openapi = { path = "engine/crates/parser-openapi" }
 parser-postgres = { path = "engine/crates/parser-postgres" }
 postgres-connector-types = { path = "engine/crates/postgres-connector-types" }
+registry-for-cache = { path = "engine/crates/engine/registry-for-cache" }
 registry-upgrade = { path = "engine/crates/engine/registry-upgrade" }
 registry-v1 = { path = "engine/crates/engine/registry-v1" }
 registry-v2 = { path = "engine/crates/engine/registry-v2" }
 runtime-local = { path = "engine/crates/runtime-local" }
-runtime-noop = { path = "engine/crates/runtime-noop" }
 runtime = { path = "engine/crates/runtime" }
+runtime-noop = { path = "engine/crates/runtime-noop" }
 worker-env = { path = "engine/crates/worker-env" }
+wrapping = { path = "engine/crates/wrapping" }
 
 [profile.bench]
 debug = true

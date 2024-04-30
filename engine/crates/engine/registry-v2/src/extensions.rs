@@ -2,8 +2,8 @@
 
 use crate::{
     ids::{MetaEnumValueId, MetaFieldId, MetaInputValueId},
-    EnumType, InputObjectType, InterfaceType, Iter, MetaDirective, MetaEnumValue, MetaField, MetaInputValue, MetaType,
-    ObjectType, RecordLookup, UnionType,
+    CacheControl, EnumType, InputObjectType, InterfaceType, Iter, MetaDirective, MetaEnumValue, MetaField,
+    MetaInputValue, MetaType, ObjectType, RecordLookup, UnionType,
 };
 
 impl<'a> MetaType<'a> {
@@ -74,6 +74,14 @@ impl<'a> MetaType<'a> {
             MetaType::Union(inner) => inner.possible_types().any(|ty| ty.name() == other),
             MetaType::Object(inner) => inner.name() == other,
             _ => false,
+        }
+    }
+
+    pub fn cache_control(&self) -> Option<&'a CacheControl> {
+        match self {
+            MetaType::Object(object) => object.cache_control(),
+            MetaType::Interface(iface) => iface.cache_control(),
+            _ => None,
         }
     }
 }

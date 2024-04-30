@@ -49,6 +49,7 @@ pub use self::{
     operation_limits::*,
     trusted_docs::*,
 };
+pub use engine_id_newtypes::IdRange;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Registry {

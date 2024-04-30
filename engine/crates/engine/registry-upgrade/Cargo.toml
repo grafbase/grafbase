@@ -7,5 +7,7 @@ edition = "2021"
 
 [dependencies]
 indexmap.workspace = true
+registry-for-cache.workspace = true
 registry-v1.workspace = true
 registry-v2.workspace = true
+wrapping.workspace = true

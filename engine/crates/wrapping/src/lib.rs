@@ -219,6 +219,27 @@ impl Wrapping {
     pub fn pop_list_wrapping(&mut self) -> Option<ListWrapping> {
         self.next_back()
     }
+
+    pub fn write_type_string(self, name: &str, mut formatter: &mut dyn std::fmt::Write) -> Result<(), std::fmt::Error> {
+        for _ in 0..self.len() {
+            write!(formatter, "[")?;
+        }
+
+        write!(formatter, "{name}")?;
+
+        if self.inner_is_required() {
+            write!(formatter, "!")?;
+        }
+
+        for wrapping in self {
+            match wrapping {
+                ListWrapping::RequiredList => write!(&mut formatter, "]!")?,
+                ListWrapping::NullableList => write!(&mut formatter, "]")?,
+            };
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

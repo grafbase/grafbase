@@ -9,30 +9,18 @@
 /// `use prelude::*` and be done with it.
 mod prelude {
     pub(super) use crate::{
-        cache_control::CacheControl,
-        common::{DirectiveLocation, IdReader, Iter},
-        field_types::{MetaFieldTypeRecord, MetaInputValueTypeRecord},
+        field_types::MetaFieldTypeRecord,
         ids::{self, StringId},
-        misc_types::*,
-        resolvers::Resolver,
-        validators::DynValidator,
-        ReadContext, RecordLookup, RegistryId,
+        IdReader, Iter, ReadContext, RecordLookup, RegistryId,
     };
-    pub(super) use common_types::auth::Operations;
     pub(super) use engine_id_newtypes::IdRange;
-    pub(super) use engine_value::ConstValue;
-    pub(super) use gateway_v2_auth_config::v1::AuthConfig;
+    pub(super) use registry_v2::CacheControl;
 }
 
 // The actual generated modules.
 //
 // If you add a new one you'll need to import it here.
-pub mod directives;
-pub mod enums;
 pub mod field;
-pub mod inputs;
 pub mod interface;
 pub mod metatype;
 pub mod objects;
-pub mod scalar;
-pub mod union;
