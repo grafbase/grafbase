@@ -8,7 +8,7 @@ use std::{
 };
 
 use common::{
-    consts::{GENERATED_SCHEMAS_DIR, GRAFBASE_SCHEMA_FILE_NAME},
+    consts::GRAFBASE_SCHEMA_FILE_NAME,
     environment::{Environment, Project, SchemaLocation},
 };
 use common_types::UdfKind;
@@ -153,11 +153,10 @@ async fn parse_and_generate_config_from_ts(
     let environment = Environment::get();
     let project = Project::get();
 
-    let generated_schemas_dir = project.dot_grafbase_directory_path.join(GENERATED_SCHEMAS_DIR);
-    let generated_config_path = generated_schemas_dir.join(GRAFBASE_SCHEMA_FILE_NAME);
+    let generated_config_path = project.dot_grafbase_directory_path.join(GRAFBASE_SCHEMA_FILE_NAME);
 
-    if !generated_schemas_dir.exists() {
-        std::fs::create_dir_all(generated_schemas_dir)?;
+    if !project.dot_grafbase_directory_path.exists() {
+        std::fs::create_dir_all(&project.dot_grafbase_directory_path)?;
     }
 
     let module_type = project

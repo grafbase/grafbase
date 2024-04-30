@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::consts::{AUTHORIZERS_DIRECTORY_NAME, GENERATED_SCHEMAS_DIR, GRAFBASE_DIRECTORY_NAME};
+use crate::consts::{AUTHORIZERS_DIRECTORY_NAME, GRAFBASE_DIRECTORY_NAME};
 use crate::errors::BunNotFound;
 use crate::types::UdfKind;
 use crate::{
@@ -155,10 +155,7 @@ impl Project {
 
     pub fn sdl_location(&self) -> PathBuf {
         match self.schema_path.location() {
-            SchemaLocation::TsConfig(_) => self
-                .dot_grafbase_directory_path
-                .join(GENERATED_SCHEMAS_DIR)
-                .join(GRAFBASE_SCHEMA_FILE_NAME),
+            SchemaLocation::TsConfig(_) => self.dot_grafbase_directory_path.join(GRAFBASE_SCHEMA_FILE_NAME),
             SchemaLocation::Graphql(path) => path.clone(),
         }
     }
