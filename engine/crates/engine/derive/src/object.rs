@@ -342,7 +342,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                         },
                         ty: <#schema_ty as #crate_name::LegacyOutputType>::create_type_info(registry),
                         deprecation: #field_deprecation,
-                        cache_control: Some(Box::new(#cache_control)),
+                        cache_control: None,
                         resolver: #crate_name::registry::resolvers::Resolver::Parent,
                         ..Default::default()
                     });
@@ -473,7 +473,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                                 #(#schema_fields)*
                                 fields
                             },
-                            cache_control: Some(Box::new(#cache_control)),
+                            cache_control: None,
                             extends: #extends,
                             is_node: false,
 
@@ -516,7 +516,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                                 #(#schema_fields)*
                                 fields
                             },
-                            cache_control: Some(Box::new(#cache_control)),
+                            cache_control: None,
                             extends: #extends,
 
                             is_node: false,

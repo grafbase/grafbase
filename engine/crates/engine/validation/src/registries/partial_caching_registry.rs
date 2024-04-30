@@ -54,6 +54,7 @@ impl<'a> AnyMetaType<'a> for MetaType<'a> {
         match self {
             MetaType::Object(_) => None,
             MetaType::Interface(interface) => Some(interface.possible_types()),
+            MetaType::Other(_) => None,
         }
     }
 

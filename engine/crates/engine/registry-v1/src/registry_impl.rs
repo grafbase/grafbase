@@ -533,47 +533,6 @@ impl Registry {
             }
         }
     }
-
-    pub fn prune_for_caching_registry(self) -> Self {
-        let types_with_cache = self
-            .types
-            .iter()
-            .filter_map(|(type_name, type_value)| {
-                // it is expected that the Query node is always present as it is the starting point
-                // for validation visiting. check rules/visitor.rs:588
-                if *type_name == "Query" {
-                    return Some((type_name.to_string(), type_value.clone()));
-                }
-
-                match type_value {
-                    MetaType::Object(o) => {
-                        if o.cache_control != Default::default() {
-                            return Some((type_name.clone(), MetaType::Object(o.clone())));
-                        }
-                        None
-                    }
-                    MetaType::Interface(i) => {
-                        let has_relevant_cache_control = i
-                            .fields
-                            .values()
-                            .find(|value| value.cache_control != Default::default());
-
-                        if has_relevant_cache_control.is_some() {
-                            return Some((type_name.clone(), MetaType::Interface(i.clone())));
-                        }
-                        None
-                    }
-                    _ => None,
-                }
-            })
-            .collect();
-
-        Registry {
-            enable_caching: self.enable_caching,
-            types: types_with_cache,
-            ..Default::default()
-        }
-    }
 }
 
 fn is_system_type(name: &str) -> bool {

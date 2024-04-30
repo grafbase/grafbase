@@ -18,7 +18,9 @@ pub mod writer;
 
 pub use self::{
     common::*,
-    generated::{field::MetaField, interface::InterfaceType, metatype::MetaType, objects::ObjectType},
+    generated::{
+        field::MetaField, interface::InterfaceType, metatype::MetaType, objects::ObjectType, others::OtherType,
+    },
 };
 pub use engine_id_newtypes::IdRange;
 
@@ -32,6 +34,8 @@ pub struct PartialCacheRegistry {
     object_fields: Vec<storage::MetaFieldRecord>,
 
     interfaces: Vec<storage::InterfaceTypeRecord>,
+
+    others: Vec<storage::OtherTypeRecord>,
 
     query_type: MetaTypeId,
     mutation_type: Option<MetaTypeId>,
@@ -71,6 +75,7 @@ impl PartialCacheRegistry {
             .binary_search_by_key(&string_id, |ty| match ty {
                 storage::MetaTypeRecord::Object(id) => self.lookup(*id).name,
                 storage::MetaTypeRecord::Interface(id) => self.lookup(*id).name,
+                storage::MetaTypeRecord::Other(id) => self.lookup(*id).name,
             })
             .ok()?;
 
@@ -124,7 +129,8 @@ pub mod storage {
     pub use super::{
         field_types::MetaFieldTypeRecord,
         generated::{
-            field::MetaFieldRecord, interface::InterfaceTypeRecord, metatype::MetaTypeRecord, objects::ObjectTypeRecord,
+            field::MetaFieldRecord, interface::InterfaceTypeRecord, metatype::MetaTypeRecord,
+            objects::ObjectTypeRecord, others::OtherTypeRecord,
         },
     };
 }

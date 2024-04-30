@@ -6271,6 +6271,7 @@ dependencies = [
  "gateway-v2-auth-config",
  "indexmap 2.2.6",
  "indoc",
+ "petgraph",
  "postgres-connector-types",
  "registry-v2",
  "serde",

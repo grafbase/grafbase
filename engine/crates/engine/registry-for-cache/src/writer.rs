@@ -23,6 +23,8 @@ pub struct RegistryWriter {
 
     interfaces: Vec<storage::InterfaceTypeRecord>,
 
+    others: Vec<storage::OtherTypeRecord>,
+
     pub query_type: Option<MetaTypeId>,
     pub mutation_type: Option<MetaTypeId>,
     pub subscription_type: Option<MetaTypeId>,
@@ -77,6 +79,13 @@ impl RegistryWriter {
     }
 
     #[must_use]
+    pub fn insert_other(&mut self, details: OtherTypeRecord) -> MetaTypeRecord {
+        let id = OtherTypeId::new(self.others.len());
+        self.others.push(details);
+        MetaTypeRecord::Other(id)
+    }
+
+    #[must_use]
     pub fn intern_str(&mut self, string: &str) -> StringId {
         let (id, _) = self.strings.insert_full(string.into());
         StringId::new(id)
@@ -99,6 +108,7 @@ impl RegistryWriter {
             subscription_type,
             interfaces,
             enable_caching,
+            others,
         } = self;
 
         let types = types
@@ -118,6 +128,7 @@ impl RegistryWriter {
             subscription_type,
             interfaces,
             enable_caching,
+            others,
         })
     }
 
@@ -134,6 +145,7 @@ impl RegistryWriter {
         let string_id = match record {
             MetaTypeRecord::Object(inner) => self.objects[inner.to_index()].name,
             MetaTypeRecord::Interface(inner) => self.interfaces[inner.to_index()].name,
+            MetaTypeRecord::Other(inner) => self.others[inner.to_index()].name,
         };
 
         &self.strings[string_id.to_index()]

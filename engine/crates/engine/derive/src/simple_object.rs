@@ -313,7 +313,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                                 #concat_complex_fields
                                 fields
                             },
-                            cache_control: Some(Box::new(#cache_control)),
+                            cache_control: None,
                             extends: #extends,
 
                             is_subscription: false,
@@ -383,7 +383,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                                 ::std::iter::Extend::extend(&mut fields, complex_fields.clone());
                                 fields
                             },
-                            cache_control: Some(Box::new(#cache_control)),
+                            cache_control: None,
                             extends: #extends,
 
                             is_subscription: false,
