@@ -12,6 +12,7 @@ COPY ./cli ./cli
 COPY ./graphql-introspection ./graphql-introspection
 COPY ./graph-ref ./graph-ref
 COPY ./graphql-lint ./graphql-lint
+COPY ./gqlint ./gqlint
 COPY ./engine ./engine
 
 RUN apk add --no-cache git musl-dev
