@@ -3,6 +3,8 @@
 //! We don't use the full registry for this because it's large and caching
 //! needs to be fast.
 
+use std::cmp::Ordering;
+
 use ids::{MetaTypeId, StringId};
 use indexmap::IndexSet;
 
@@ -34,6 +36,8 @@ pub struct PartialCacheRegistry {
     query_type: MetaTypeId,
     mutation_type: Option<MetaTypeId>,
     subscription_type: Option<MetaTypeId>,
+
+    pub enable_caching: bool,
 }
 
 impl PartialCacheRegistry {
@@ -71,6 +75,10 @@ impl PartialCacheRegistry {
             .ok()?;
 
         Some(MetaTypeId::new(type_id))
+    }
+
+    pub(crate) fn string_cmp(&self, lhs: StringId, rhs: &str) -> Ordering {
+        self.strings.get_index(lhs.to_index()).unwrap().as_ref().cmp(rhs)
     }
 }
 

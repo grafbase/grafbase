@@ -1,7 +1,8 @@
 use super::prelude::*;
 use super::{
     field::MetaField,
-    prelude::ids::{InterfaceTypeId, MetaFieldId},
+    metatype::MetaType,
+    prelude::ids::{InterfaceTypeId, MetaFieldId, MetaTypeId},
 };
 #[allow(unused_imports)]
 use std::fmt::{self, Write};
@@ -14,6 +15,8 @@ pub struct InterfaceTypeRecord {
     pub fields: IdRange<MetaFieldId>,
     #[serde(rename = "2", skip_serializing_if = "Option::is_none", default)]
     pub cache_control: Option<Box<CacheControl>>,
+    #[serde(rename = "3", skip_serializing_if = "crate::Container::is_empty", default)]
+    pub possible_types: Vec<MetaTypeId>,
 }
 
 #[derive(Clone, Copy)]
@@ -32,6 +35,14 @@ impl<'a> InterfaceType<'a> {
         let registry = self.0.registry;
         registry.lookup(self.0.id).cache_control.as_deref()
     }
+    pub fn possible_types(&self) -> impl ExactSizeIterator<Item = MetaType<'a>> + 'a {
+        let registry = self.0.registry;
+        registry
+            .lookup(self.0.id)
+            .possible_types
+            .iter()
+            .map(|id| registry.read(*id))
+    }
 }
 
 impl fmt::Debug for InterfaceType<'_> {
@@ -40,6 +51,7 @@ impl fmt::Debug for InterfaceType<'_> {
             .field("name", &self.name())
             .field("fields", &self.fields().collect::<Vec<_>>())
             .field("cache_control", &self.cache_control())
+            .field("possible_types", &self.possible_types().collect::<Vec<_>>())
             .finish()
     }
 }

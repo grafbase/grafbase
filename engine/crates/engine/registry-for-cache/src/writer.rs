@@ -26,6 +26,8 @@ pub struct RegistryWriter {
     pub query_type: Option<MetaTypeId>,
     pub mutation_type: Option<MetaTypeId>,
     pub subscription_type: Option<MetaTypeId>,
+
+    pub enable_caching: bool,
 }
 
 impl RegistryWriter {
@@ -96,6 +98,7 @@ impl RegistryWriter {
             mutation_type,
             subscription_type,
             interfaces,
+            enable_caching,
         } = self;
 
         let types = types
@@ -114,6 +117,7 @@ impl RegistryWriter {
             mutation_type,
             subscription_type,
             interfaces,
+            enable_caching,
         })
     }
 

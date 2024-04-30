@@ -21,7 +21,7 @@ pub fn convert_v1_to_partial_cache_registry(v1: registry_v1::Registry) -> regist
         mongodb_configurations: _,
         http_headers: _,
         postgres_databases: _,
-        enable_caching: _,
+        enable_caching,
         enable_kv: _,
         federation_entities: _,
         enable_ai: _,
@@ -65,6 +65,8 @@ pub fn convert_v1_to_partial_cache_registry(v1: registry_v1::Registry) -> regist
     writer.query_type = Some(type_ids[&query_type]);
     writer.mutation_type = mutation_type.map(|name| type_ids[&name]);
     writer.subscription_type = subscription_type.map(|name| type_ids[&name]);
+
+    writer.enable_caching = enable_caching;
 
     writer.finish().unwrap()
 }
@@ -158,7 +160,7 @@ fn insert_interface(
         description: _,
         fields,
         cache_control,
-        possible_types: _,
+        possible_types,
         extends: _,
         rust_typename: _,
     } = inner;
@@ -166,11 +168,13 @@ fn insert_interface(
     let name = writer.intern_string(name);
 
     let fields = insert_fields(fields, writer, type_ids);
+    let possible_types = possible_types.into_iter().map(|ty| type_ids[&ty]).collect();
 
     writer.insert_interface(InterfaceTypeRecord {
         name,
         fields,
         cache_control,
+        possible_types,
     })
 }
 
