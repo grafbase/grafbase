@@ -26,6 +26,7 @@ pub fn convert_v1_to_partial_cache_registry(v1: registry_v1::Registry) -> regist
         federation_entities: _,
         enable_ai: _,
         enable_codegen: _,
+        codegen: _,
         is_federated: _,
         operation_limits: _,
         trusted_documents: _,
