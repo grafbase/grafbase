@@ -1,7 +1,7 @@
 use engine_parser::{types::Field, Positioned};
 
 use crate::{
-    registries::ValidationRegistry,
+    registries::AnyRegistry,
     visitor::{VisitMode, Visitor, VisitorContext},
 };
 
@@ -21,7 +21,7 @@ impl<'a> RootFieldCountCalculate<'a> {
 
 impl<'ctx, 'a, Registry> Visitor<'ctx, Registry> for RootFieldCountCalculate<'a>
 where
-    Registry: ValidationRegistry,
+    Registry: AnyRegistry,
 {
     fn mode(&self) -> VisitMode {
         VisitMode::Inline

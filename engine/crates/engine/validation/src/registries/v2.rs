@@ -1,8 +1,8 @@
 use registry_v2::*;
 
-use super::{ValidationDirective, ValidationField, ValidationInputValue, ValidationMetaType, ValidationRegistry};
+use super::{AnyDirective, AnyField, AnyInputValue, AnyMetaType, AnyRegistry};
 
-impl ValidationRegistry for Registry {
+impl AnyRegistry for Registry {
     type MetaType<'a> = MetaType<'a>;
     type Field<'a> = MetaField<'a>;
     type MetaDirective<'a> = MetaDirective<'a>;
@@ -30,7 +30,7 @@ impl ValidationRegistry for Registry {
     }
 }
 
-impl<'a> ValidationMetaType<'a> for MetaType<'a> {
+impl<'a> AnyMetaType<'a> for MetaType<'a> {
     type Field = MetaField<'a>;
 
     fn name(&self) -> &'a str {
@@ -57,7 +57,7 @@ impl<'a> ValidationMetaType<'a> for MetaType<'a> {
         matches!(self, MetaType::InputObject(_))
     }
 
-    fn input_field(&self, name: &str) -> Option<<Self::Field as ValidationField<'a>>::MetaInputValue> {
+    fn input_field(&self, name: &str) -> Option<<Self::Field as AnyField<'a>>::MetaInputValue> {
         match self {
             MetaType::InputObject(obj) => obj.field(name),
             _ => None,
@@ -65,7 +65,7 @@ impl<'a> ValidationMetaType<'a> for MetaType<'a> {
     }
 }
 
-impl<'a> ValidationField<'a> for MetaField<'a> {
+impl<'a> AnyField<'a> for MetaField<'a> {
     type MetaType = MetaType<'a>;
     type MetaInputValue = MetaInputValue<'a>;
 
@@ -82,7 +82,7 @@ impl<'a> ValidationField<'a> for MetaField<'a> {
     }
 }
 
-impl<'a> ValidationInputValue<'a> for MetaInputValue<'a> {
+impl<'a> AnyInputValue<'a> for MetaInputValue<'a> {
     type MetaType = MetaType<'a>;
 
     fn type_string(&self) -> String {
@@ -98,7 +98,7 @@ impl<'a> ValidationInputValue<'a> for MetaInputValue<'a> {
     }
 }
 
-impl<'a> ValidationDirective<'a> for MetaDirective<'a> {
+impl<'a> AnyDirective<'a> for MetaDirective<'a> {
     type MetaInputValue = MetaInputValue<'a>;
 
     fn argument(&self, name: &str) -> Option<Self::MetaInputValue> {

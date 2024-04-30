@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use engine_parser::{Pos, Positioned};
 use engine_value::Name;
 
-use crate::registries::ValidationRegistry;
+use crate::registries::AnyRegistry;
 
 use {
     crate::visitor::{RuleError, Visitor, VisitorContext},
@@ -57,7 +57,7 @@ pub struct NoFragmentCycles<'a> {
 
 impl<'a, Registry> Visitor<'a, Registry> for NoFragmentCycles<'a>
 where
-    Registry: ValidationRegistry,
+    Registry: AnyRegistry,
 {
     fn exit_document(&mut self, ctx: &mut VisitorContext<'a, Registry>, _doc: &'a ExecutableDocument) {
         let mut detector = CycleDetector {

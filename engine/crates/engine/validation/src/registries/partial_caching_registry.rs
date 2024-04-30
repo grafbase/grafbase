@@ -1,8 +1,8 @@
 use registry_for_cache::{MetaField, MetaType, PartialCacheRegistry};
 
-use super::{ValidationDirective, ValidationField, ValidationInputValue, ValidationMetaType, ValidationRegistry};
+use super::{AnyDirective, AnyField, AnyInputValue, AnyMetaType, AnyRegistry};
 
-impl ValidationRegistry for PartialCacheRegistry {
+impl AnyRegistry for PartialCacheRegistry {
     type MetaType<'a> = MetaType<'a>;
     type Field<'a> = MetaField<'a>;
     type MetaDirective<'a> = Never;
@@ -30,7 +30,7 @@ impl ValidationRegistry for PartialCacheRegistry {
     }
 }
 
-impl<'a> ValidationMetaType<'a> for MetaType<'a> {
+impl<'a> AnyMetaType<'a> for MetaType<'a> {
     type Field = MetaField<'a>;
 
     fn name(&self) -> &'a str {
@@ -62,13 +62,13 @@ impl<'a> ValidationMetaType<'a> for MetaType<'a> {
         false
     }
 
-    fn input_field(&self, _name: &str) -> Option<<Self::Field as ValidationField<'a>>::MetaInputValue> {
+    fn input_field(&self, _name: &str) -> Option<<Self::Field as AnyField<'a>>::MetaInputValue> {
         // Caching registry has no input fields
         None
     }
 }
 
-impl<'a> ValidationField<'a> for MetaField<'a> {
+impl<'a> AnyField<'a> for MetaField<'a> {
     type MetaType = MetaType<'a>;
     type MetaInputValue = Never;
 
@@ -89,7 +89,7 @@ impl<'a> ValidationField<'a> for MetaField<'a> {
 #[derive(Clone, Copy)]
 pub enum Never {}
 
-impl<'a> ValidationInputValue<'a> for Never {
+impl<'a> AnyInputValue<'a> for Never {
     type MetaType = MetaType<'a>;
 
     fn type_string(&self) -> String {
@@ -109,7 +109,7 @@ impl<'a> ValidationInputValue<'a> for Never {
     }
 }
 
-impl<'a> ValidationDirective<'a> for Never {
+impl<'a> AnyDirective<'a> for Never {
     type MetaInputValue = Never;
 
     fn argument(&self, _name: &str) -> Option<Self::MetaInputValue> {

@@ -6,9 +6,7 @@ use std::{
 use engine_value::{Name, Value, Variables};
 use meta_type_name::MetaTypeName;
 
-use crate::registries::{
-    ValidationDirective, ValidationField, ValidationInputValue, ValidationMetaType, ValidationRegistry,
-};
+use crate::registries::{AnyDirective, AnyField, AnyInputValue, AnyMetaType, AnyRegistry};
 
 use engine_parser::{
     types::{
@@ -21,7 +19,7 @@ use engine_parser::{
 #[doc(hidden)]
 pub struct VisitorContext<'a, Registry>
 where
-    Registry: ValidationRegistry,
+    Registry: AnyRegistry,
 {
     pub(crate) registry: &'a Registry,
     pub(crate) variables: Option<&'a Variables>,
@@ -33,7 +31,7 @@ where
 
 impl<'a, Registry> VisitorContext<'a, Registry>
 where
-    Registry: ValidationRegistry,
+    Registry: AnyRegistry,
 {
     pub(super) fn new(registry: &'a Registry, doc: &'a ExecutableDocument, variables: Option<&'a Variables>) -> Self {
         Self {
@@ -139,7 +137,7 @@ pub(crate) enum VisitMode {
 
 pub(crate) trait Visitor<'a, Registry>
 where
-    Registry: ValidationRegistry,
+    Registry: AnyRegistry,
 {
     fn mode(&self) -> VisitMode {
         VisitMode::Normal
@@ -290,11 +288,11 @@ impl<A, B> VisitorCons<A, B> {
     }
 }
 
-impl<'a, Registry: ValidationRegistry> Visitor<'a, Registry> for VisitorNil {}
+impl<'a, Registry: AnyRegistry> Visitor<'a, Registry> for VisitorNil {}
 
 impl<'a, A, B, Registry> Visitor<'a, Registry> for VisitorCons<A, B>
 where
-    Registry: ValidationRegistry,
+    Registry: AnyRegistry,
     A: Visitor<'a, Registry> + 'a,
     B: Visitor<'a, Registry> + 'a,
 {
@@ -495,7 +493,7 @@ where
     }
 }
 
-pub(crate) fn visit<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
+pub(crate) fn visit<'a, Registry: AnyRegistry, V: Visitor<'a, Registry>>(
     v: &mut V,
     ctx: &mut VisitorContext<'a, Registry>,
     doc: &'a ExecutableDocument,
@@ -517,7 +515,7 @@ pub(crate) fn visit<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
     v.exit_document(ctx, doc);
 }
 
-fn visit_operation_definition<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
+fn visit_operation_definition<'a, Registry: AnyRegistry, V: Visitor<'a, Registry>>(
     v: &mut V,
     ctx: &mut VisitorContext<'a, Registry>,
     name: Option<&'a Name>,
@@ -548,7 +546,7 @@ fn visit_operation_definition<'a, Registry: ValidationRegistry, V: Visitor<'a, R
     v.exit_operation_definition(ctx, name, operation);
 }
 
-fn visit_selection_set<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
+fn visit_selection_set<'a, Registry: AnyRegistry, V: Visitor<'a, Registry>>(
     v: &mut V,
     ctx: &mut VisitorContext<'a, Registry>,
     selection_set: &'a Positioned<SelectionSet>,
@@ -563,7 +561,7 @@ fn visit_selection_set<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry
     }
 }
 
-fn visit_selection<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
+fn visit_selection<'a, Registry: AnyRegistry, V: Visitor<'a, Registry>>(
     v: &mut V,
     ctx: &mut VisitorContext<'a, Registry>,
     selection: &'a Positioned<Selection>,
@@ -602,7 +600,7 @@ fn visit_selection<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
     v.exit_selection(ctx, selection);
 }
 
-fn visit_field<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
+fn visit_field<'a, Registry: AnyRegistry, V: Visitor<'a, Registry>>(
     v: &mut V,
     ctx: &mut VisitorContext<'a, Registry>,
     field: &'a Positioned<Field>,
@@ -631,7 +629,7 @@ fn visit_field<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
     v.exit_field(ctx, field);
 }
 
-fn visit_input_value<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
+fn visit_input_value<'a, Registry: AnyRegistry, V: Visitor<'a, Registry>>(
     v: &mut V,
     ctx: &mut VisitorContext<'a, Registry>,
     pos: Pos,
@@ -690,7 +688,7 @@ fn visit_input_value<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>
     v.exit_input_value(ctx, pos, &expected_ty, value, meta);
 }
 
-fn visit_variable_definitions<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
+fn visit_variable_definitions<'a, Registry: AnyRegistry, V: Visitor<'a, Registry>>(
     v: &mut V,
     ctx: &mut VisitorContext<'a, Registry>,
     variable_definitions: &'a [Positioned<VariableDefinition>],
@@ -701,7 +699,7 @@ fn visit_variable_definitions<'a, Registry: ValidationRegistry, V: Visitor<'a, R
     }
 }
 
-fn visit_directives<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
+fn visit_directives<'a, Registry: AnyRegistry, V: Visitor<'a, Registry>>(
     v: &mut V,
     ctx: &mut VisitorContext<'a, Registry>,
     directives: &'a [Positioned<Directive>],
@@ -729,7 +727,7 @@ fn visit_directives<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
     }
 }
 
-fn visit_fragment_definition<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
+fn visit_fragment_definition<'a, Registry: AnyRegistry, V: Visitor<'a, Registry>>(
     v: &mut V,
     ctx: &mut VisitorContext<'a, Registry>,
     name: &'a Name,
@@ -743,7 +741,7 @@ fn visit_fragment_definition<'a, Registry: ValidationRegistry, V: Visitor<'a, Re
     }
 }
 
-fn visit_fragment_spread<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
+fn visit_fragment_spread<'a, Registry: AnyRegistry, V: Visitor<'a, Registry>>(
     v: &mut V,
     ctx: &mut VisitorContext<'a, Registry>,
     fragment_spread: &'a Positioned<FragmentSpread>,
@@ -758,7 +756,7 @@ fn visit_fragment_spread<'a, Registry: ValidationRegistry, V: Visitor<'a, Regist
     v.exit_fragment_spread(ctx, fragment_spread);
 }
 
-fn visit_inline_fragment<'a, Registry: ValidationRegistry, V: Visitor<'a, Registry>>(
+fn visit_inline_fragment<'a, Registry: AnyRegistry, V: Visitor<'a, Registry>>(
     v: &mut V,
     ctx: &mut VisitorContext<'a, Registry>,
     inline_fragment: &'a Positioned<InlineFragment>,

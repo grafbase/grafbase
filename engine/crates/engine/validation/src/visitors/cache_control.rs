@@ -2,7 +2,7 @@ use engine_parser::Positioned;
 use std::collections::HashSet;
 
 use crate::{
-    registries::{ValidationField, ValidationMetaType, ValidationRegistry},
+    registries::{AnyField, AnyMetaType, AnyRegistry},
     CacheInvalidation,
 };
 
@@ -18,7 +18,7 @@ pub struct CacheControlCalculate<'a> {
 
 impl<'ctx, 'a, Registry> Visitor<'ctx, Registry> for CacheControlCalculate<'a>
 where
-    Registry: ValidationRegistry,
+    Registry: AnyRegistry,
 {
     fn mode(&self) -> VisitMode {
         VisitMode::Inline
