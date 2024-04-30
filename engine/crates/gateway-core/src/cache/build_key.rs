@@ -334,6 +334,8 @@ mod tests {
 
     fn config(cache_control: Option<engine::CacheControl>) -> CacheConfig {
         let mut registry = Registry::new();
+        registry.add_builtins_to_registry();
+
         registry.create_type(
             |_| {
                 MetaType::Object({
@@ -351,6 +353,8 @@ mod tests {
         );
         registry.enable_caching = true;
 
+        registry.remove_unused_types();
+        let registry = dbg!(registry.prune_for_caching_registry());
         let partial_registry = registry_upgrade::convert_v1_to_partial_cache_registry(registry);
 
         CacheConfig {
