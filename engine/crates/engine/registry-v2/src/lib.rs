@@ -8,6 +8,7 @@ use ids::{MetaDirectiveId, MetaFieldId, MetaTypeId, StringId};
 use indexmap::IndexSet;
 use postgres_connector_types::database_definition::DatabaseDefinition;
 
+mod codegen;
 mod common;
 mod cors;
 mod extensions;
@@ -27,6 +28,7 @@ pub mod writer;
 
 pub use self::{
     cache_control::CacheControl,
+    codegen::*,
     common::*,
     cors::CorsConfig,
     federation_entity::*,
@@ -101,6 +103,8 @@ pub struct Registry {
     pub operation_limits: OperationLimits,
     // #[serde(default)]
     pub trusted_documents: Option<TrustedDocuments>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub codegen: Option<CodegenConfig>,
     // #[serde(default)]
     pub cors_config: Option<CorsConfig>,
 }

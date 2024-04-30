@@ -13,7 +13,8 @@ mod types;
 use gateway_v2_auth_config::v1::AuthConfig;
 use postgres_connector_types::database_definition::DatabaseDefinition;
 use registry_v2::{
-    ConnectorHeaders, CorsConfig, FederationEntity, MongoDBConfiguration, OperationLimits, TrustedDocuments,
+    CodegenConfig, ConnectorHeaders, CorsConfig, FederationEntity, MongoDBConfiguration, OperationLimits,
+    TrustedDocuments,
 };
 
 pub use registry_v2::resolvers;
@@ -60,6 +61,8 @@ pub struct Registry {
     pub operation_limits: OperationLimits,
     #[serde(default)]
     pub trusted_documents: Option<TrustedDocuments>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub codegen: Option<CodegenConfig>,
     #[serde(default)]
     pub cors_config: Option<CorsConfig>,
 }
@@ -89,6 +92,7 @@ impl Default for Registry {
             operation_limits: Default::default(),
             trusted_documents: Default::default(),
             cors_config: Default::default(),
+            codegen: Default::default(),
         }
     }
 }
