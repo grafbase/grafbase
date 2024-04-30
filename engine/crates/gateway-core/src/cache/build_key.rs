@@ -350,6 +350,7 @@ mod tests {
             MetaField::new(TEST.to_string(), MetaFieldType::from(TEST)),
         );
         registry.enable_caching = true;
+
         let partial_registry = registry_upgrade::convert_v1_to_partial_cache_registry(registry);
 
         CacheConfig {

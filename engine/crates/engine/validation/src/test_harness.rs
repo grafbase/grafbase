@@ -3,6 +3,8 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
+use std::sync::Arc;
+
 use once_cell::sync::Lazy;
 
 use crate::visitor::{visit, RuleError, Visitor, VisitorContext};
@@ -323,15 +325,9 @@ impl Mutation {
 pub struct Subscription;
 
 static TEST_HARNESS: Lazy<Schema> = Lazy::new(|| {
-    todo!(
-        r#"
-    Schema::new(Arc::new(Schema::create_registry_static::<
-        Query,
-        Mutation,
-        EmptySubscription,
-    >()))
-    "#
-    )
+    let v1 = Schema::create_registry_static::<Query, Mutation, engine::EmptySubscription>();
+    let v2 = registry_upgrade::convert_v1_to_v2(v1);
+    Schema::new(Arc::new(v2))
 });
 
 pub(crate) fn validate<'a, V, F>(doc: &'a ExecutableDocument, factory: F) -> Result<(), Vec<RuleError>>

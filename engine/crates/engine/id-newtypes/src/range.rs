@@ -53,12 +53,12 @@ where
     type Item = Id;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let next = self.start.forward()?;
-        if !matches!(next.cmp(self.end), Ordering::Less) {
+        if IdOperations::cmp(self.start, self.end).is_eq() {
             return None;
         }
-        self.start = next;
-        Some(next)
+        let current = self.start;
+        self.start = self.start.forward()?;
+        Some(current)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

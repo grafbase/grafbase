@@ -2175,12 +2175,15 @@ dependencies = [
  "engine-scalars",
  "engine-value",
  "indexmap 2.2.6",
+ "insta",
  "meta-type-name",
  "once_cell",
  "query-path",
  "registry-for-cache",
+ "registry-upgrade",
  "registry-v2",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

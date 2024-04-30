@@ -807,6 +807,7 @@ impl Display for RuleError {
 
 #[cfg(test)]
 pub(crate) mod test {
+
     use super::{MetaTypeName, Pos, Value, Visitor, VisitorContext};
 
     #[allow(dead_code)]

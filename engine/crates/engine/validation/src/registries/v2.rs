@@ -101,11 +101,11 @@ impl<'a> ValidationInputValue<'a> for MetaInputValue<'a> {
 impl<'a> ValidationDirective<'a> for MetaDirective<'a> {
     type MetaInputValue = MetaInputValue<'a>;
 
-    fn argument(&self, _name: &str) -> Option<Self::MetaInputValue> {
-        todo!()
+    fn argument(&self, name: &str) -> Option<Self::MetaInputValue> {
+        MetaDirective::argument(self, name)
     }
 
     fn name(&self) -> &'a str {
-        todo!()
+        MetaDirective::name(self)
     }
 }
