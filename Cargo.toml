@@ -18,7 +18,8 @@ members = [
   "engine/crates/engine/registry-v2",
   "engine/crates/engine/registry-v2-generator",
   "graph-ref",
-  "graphql-lint",
+  "graphql-lint", 
+  "gqlint",
 ]
 exclude = ["engine/crates/gateway-v2"]
 
