@@ -88,23 +88,21 @@ impl FederationGatewayBuilder {
             ..Default::default()
         });
 
-        TestFederationGateway {
-            gateway: Arc::new(engine_v2::Engine::new(
-                config.try_into().unwrap(),
-                engine_v2::EngineEnv {
-                    fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
-                    cache: cache.clone(),
-                    trusted_documents: self
-                        .trusted_documents
-                        .map(trusted_documents_client::Client::new)
-                        .unwrap_or_else(|| {
-                            trusted_documents_client::Client::new(runtime_noop::trusted_documents::NoopTrustedDocuments)
-                        }),
-                    kv: runtime_local::InMemoryKvStore::runtime(),
-                    meter: grafbase_tracing::metrics::meter_from_global_provider(),
-                },
-            )),
-        }
+        TestFederationGateway::new(Arc::new(engine_v2::Engine::new(
+            config.try_into().unwrap(),
+            engine_v2::EngineEnv {
+                fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
+                cache: cache.clone(),
+                trusted_documents: self
+                    .trusted_documents
+                    .map(trusted_documents_client::Client::new)
+                    .unwrap_or_else(|| {
+                        trusted_documents_client::Client::new(runtime_noop::trusted_documents::NoopTrustedDocuments)
+                    }),
+                kv: runtime_local::InMemoryKvStore::runtime(),
+                meter: grafbase_tracing::metrics::meter_from_global_provider(),
+            },
+        )))
     }
 }
 

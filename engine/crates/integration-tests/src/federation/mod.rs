@@ -13,10 +13,14 @@ use serde::de::Error;
 use crate::engine::GraphQlRequest;
 
 pub struct TestFederationGateway {
-    pub gateway: Arc<engine_v2::Engine>,
+    gateway: Arc<engine_v2::Engine>,
 }
 
 impl TestFederationGateway {
+    pub fn new(gateway: Arc<engine_v2::Engine>) -> Self {
+        TestFederationGateway { gateway }
+    }
+
     pub fn execute(&self, operation: impl Into<GraphQlRequest>) -> ExecutionRequest {
         ExecutionRequest {
             graphql: operation.into(),
