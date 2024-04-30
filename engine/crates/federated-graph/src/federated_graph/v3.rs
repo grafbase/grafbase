@@ -428,3 +428,66 @@ id_newtypes! {
     SubgraphId + subgraphs + Subgraph,
     UnionId + unions + Union,
 }
+
+impl Default for FederatedGraphV3 {
+    fn default() -> Self {
+        FederatedGraphV3 {
+            subgraphs: Vec::new(),
+            root_operation_types: RootOperationTypes {
+                query: ObjectId(0),
+                mutation: None,
+                subscription: None,
+            },
+            objects: vec![Object {
+                name: StringId(0),
+                implements_interfaces: Vec::new(),
+                keys: Vec::new(),
+                composed_directives: NO_DIRECTIVES,
+                fields: FieldId(0)..FieldId(2),
+                description: None,
+            }],
+            interfaces: Vec::new(),
+            fields: vec![
+                Field {
+                    name: StringId(1),
+                    r#type: Type {
+                        wrapping: Default::default(),
+                        definition: Definition::Scalar(ScalarId(0)),
+                    },
+                    arguments: NO_INPUT_VALUE_DEFINITION,
+                    resolvable_in: Vec::new(),
+                    provides: Vec::new(),
+                    requires: Vec::new(),
+                    overrides: Vec::new(),
+                    composed_directives: NO_DIRECTIVES,
+                    description: None,
+                },
+                Field {
+                    name: StringId(2),
+                    r#type: Type {
+                        wrapping: Default::default(),
+                        definition: Definition::Scalar(ScalarId(0)),
+                    },
+                    arguments: NO_INPUT_VALUE_DEFINITION,
+                    resolvable_in: Vec::new(),
+                    provides: Vec::new(),
+                    requires: Vec::new(),
+                    overrides: Vec::new(),
+                    composed_directives: NO_DIRECTIVES,
+                    description: None,
+                },
+            ],
+            enums: Vec::new(),
+            unions: Vec::new(),
+            scalars: Vec::new(),
+            input_objects: Vec::new(),
+            enum_values: Vec::new(),
+            input_value_definitions: Vec::new(),
+            strings: ["Query", "__type", "__schema"]
+                .into_iter()
+                .map(|string| string.to_owned())
+                .collect(),
+            directives: Vec::new(),
+        }
+    }
+}

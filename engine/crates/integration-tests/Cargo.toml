@@ -86,6 +86,7 @@ path = "../tracing"
 features = ["tower"]
 
 [dev-dependencies]
+graphql-federated-graph.path = "../federated-graph"
 similar-asserts = "1.5"
 base64.workspace = true
 rstest.workspace = true
