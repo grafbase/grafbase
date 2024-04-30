@@ -2751,8 +2751,8 @@ expression: registry_from_introspection(schema)
       "name": "deprecated",
       "description": "Marks an element of a GraphQL schema as no longer supported.",
       "locations": [
-        "FIELD_DEFINITION",
-        "ENUM_VALUE"
+        "FieldDefinition",
+        "EnumValue"
       ],
       "args": {
         "reason": {
@@ -2768,9 +2768,9 @@ expression: registry_from_introspection(schema)
       "name": "include",
       "description": "Directs the executor to include this field or fragment only when the `if` argument is true.",
       "locations": [
-        "FIELD",
-        "FRAGMENT_SPREAD",
-        "INLINE_FRAGMENT"
+        "Field",
+        "FragmentSpread",
+        "InlineFragment"
       ],
       "args": {
         "if": {
@@ -2785,9 +2785,9 @@ expression: registry_from_introspection(schema)
       "name": "skip",
       "description": "Directs the executor to skip this field or fragment when the `if` argument is true.",
       "locations": [
-        "FIELD",
-        "FRAGMENT_SPREAD",
-        "INLINE_FRAGMENT"
+        "Field",
+        "FragmentSpread",
+        "InlineFragment"
       ],
       "args": {
         "if": {
@@ -2838,6 +2838,7 @@ expression: registry_from_introspection(schema)
   "enable_caching": false,
   "enable_kv": false,
   "enable_ai": false,
+  "enable_codegen": false,
   "is_federated": false,
   "operation_limits": {
     "depth": null,
