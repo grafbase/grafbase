@@ -2818,6 +2818,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "gqlint"
+version = "0.1.1"
+dependencies = [
+ "clap",
+ "colored",
+ "graphql-lint 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror",
+]
+
+[[package]]
 name = "grafbase"
 version = "0.70.1"
 dependencies = [
@@ -2849,7 +2859,7 @@ dependencies = [
  "grafbase-local-common",
  "grafbase-local-server",
  "graph-ref",
- "graphql-lint",
+ "graphql-lint 0.1.3",
  "graphql-mocks",
  "graphql-ws-client",
  "headers",
@@ -3156,9 +3166,20 @@ dependencies = [
 
 [[package]]
 name = "graphql-lint"
-version = "0.70.1"
+version = "0.1.3"
 dependencies = [
  "criterion",
+ "cynic-parser",
+ "heck 0.5.0",
+ "thiserror",
+]
+
+[[package]]
+name = "graphql-lint"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f471b7a105553bc432d405b90ea7737b1a611de7d3741718daffa5f62ac4ddde"
+dependencies = [
  "cynic-parser",
  "heck 0.5.0",
  "thiserror",
