@@ -81,8 +81,9 @@ impl<'a> PathNode<'a> {
         }
     }
 
-    fn to_vec(&self) -> Vec<String> {
-        let mut previous = self.previous.map(PathNode::to_vec).unwrap_or_default();
+    #[allow(clippy::wrong_self_convention)]
+    fn into_vec(&self) -> Vec<String> {
+        let mut previous = self.previous.map(PathNode::into_vec).unwrap_or_default();
         previous.push(self.name.to_string());
         previous
     }
@@ -114,7 +115,7 @@ impl<'a> ResolveContext<'a> {
     }
 
     fn input_error(self, expected: &str) -> Error {
-        Error::new(format!("{expected} for {}", self.path.to_vec().join(".")))
+        Error::new(format!("{expected} for {}", self.path.into_vec().join(".")))
     }
 }
 

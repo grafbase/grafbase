@@ -15,7 +15,7 @@ use crate::{
     registry::{
         type_kinds::{InputType, OutputType, SelectionSetTarget},
         variables::VariableResolveDefinition,
-        MetaField, NamedType, RegistryV2Ext,
+        NamedType, RegistryV2Ext,
     },
     registry_operation_type_from_parser,
     resolver_utils::{resolve_input, InputResolveMode},

@@ -1,10 +1,9 @@
-use std::collections::HashSet;
+
 
 use meta_type_name::MetaTypeName;
 
 use crate::{
-    model::{__EnumValue, __Field, __InputValue, __TypeKind},
-    registry, ContextField, Object,
+    model::{__EnumValue, __Field, __InputValue, __TypeKind}, ContextField, Object,
 };
 
 enum TypeDetail<'a> {

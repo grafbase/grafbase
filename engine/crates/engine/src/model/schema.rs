@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+
 
 use crate::{
     model::{__Directive, __Type},
@@ -68,7 +68,7 @@ impl<'a> __Schema<'a> {
                 directive,
             })
             .collect();
-        directives.sort_by(|a, b| a.directive.name().cmp(&b.directive.name()));
+        directives.sort_by(|a, b| a.directive.name().cmp(b.directive.name()));
         directives
     }
 }

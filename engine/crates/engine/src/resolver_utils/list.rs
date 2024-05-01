@@ -142,9 +142,8 @@ fn apply_extensions<'a>(
             .lookup_type(type_name)
             .and_then(|ty| ty.field(field.node.name.node.as_str()));
 
-        let parent_type = format!("[{type_name}]");
-        // let return_type = format!("{type_name}!").into();
-        let return_type = todo!("is this even called anymore?");
+        let parent_type = &format!("[{type_name}]");
+        let return_type = &format!("{type_name}!");
         let args_values: Vec<(Positioned<Name>, Option<Value>)> = ctx_field
             .item
             .node
@@ -156,7 +155,7 @@ fn apply_extensions<'a>(
 
         let resolve_info = ResolveInfo {
             path: ctx.path.clone(),
-            parent_type: &parent_type,
+            parent_type,
             return_type,
             name: field.node.name.node.as_str(),
             alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),

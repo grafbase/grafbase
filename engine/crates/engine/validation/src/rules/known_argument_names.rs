@@ -51,7 +51,7 @@ impl<'a> Visitor<'a> for KnownArgumentNames<'a> {
         _value: &'a Positioned<Value>,
     ) {
         if let Some((args, arg_type)) = &self.current_args {
-            if args.iter().find(|arg| arg.name() == name.node.as_str()).is_none() {
+            if !args.iter().any(|arg| arg.name() == name.node.as_str()) {
                 match arg_type {
                     ArgsType::Field { field_name, type_name } => {
                         ctx.report_error(

@@ -129,7 +129,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
             }
 
             fn __create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::InputValueType {
-                use crate::registry::LegacyRegistryExt;
+                use #crate_name::registry::LegacyRegistryExt;
                 registry.create_input_type::<Self, _>(|registry| {
                     #crate_name::registry::MetaType::Enum(#crate_name::registry::EnumType {
                         name: ::std::borrow::ToOwned::to_owned(#gql_typename),

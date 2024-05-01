@@ -50,7 +50,7 @@ pub fn generate(object_args: &args::MergedSubscription) -> GeneratorResult<Token
             }
 
             fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::InputValueType {
-                use crate::registry::LegacyRegistryExt;
+                use #crate_name::registry::LegacyRegistryExt;
                 registry.create_subscription_type::<Self, _>(|registry| {
                     let mut fields = ::std::default::Default::default();
 

@@ -1,9 +1,7 @@
 use std::sync::OnceLock;
 
 use engine::{
-    registry::{
-        field_set::FieldSetDisplay, resolvers::Resolver, MetaField, MetaFieldType,
-    },
+    registry::{field_set::FieldSetDisplay, resolvers::Resolver, MetaField, MetaFieldType},
     Registry,
 };
 use engine_parser::types::{BaseType, Type};
@@ -249,21 +247,15 @@ fn traverse_join_fields<'a>(
                 break;
             }
         };
-        match ty.try_into() {
-            Ok(ty) => {
-                current_type = ty;
-            }
-            Err(_) => {
-                let name = ty.name();
-                errors.push(RuleError::new(
-                    vec![],
-                    format!(
-                        "The join on {coord} tries to select children of {name}, but {name} is not a composite type",
-                    ),
-                ));
-                break;
-            }
+        if !ty.is_composite() {
+            let name = ty.name();
+            errors.push(RuleError::new(
+                vec![],
+                format!("The join on {coord} tries to select children of {name}, but {name} is not a composite type",),
+            ));
+            break;
         }
+        current_type = ty;
     }
 
     assert!(!errors.is_empty(), "we shouldnt ger here if errors is empty");

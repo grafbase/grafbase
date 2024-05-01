@@ -21,6 +21,7 @@ engine = { path = "../engine" }
 registry-v1.workspace = true
 registry-v2.workspace = true
 engine-parser = { path = "../engine/parser" }
+engine-scalars = { path = "../engine/scalars" }
 engine-value.workspace = true
 futures = "0.3.30"
 if_chain = "1.0.2"

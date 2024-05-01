@@ -52,7 +52,7 @@ pub enum VariableResolveDefinition {
 impl VariableResolveDefinition {
     pub fn from_registry_v2(
         value: registry_v2::resolvers::variable_resolve_definition::VariableResolveDefinition,
-        registry: &registry_v2::Registry,
+        _registry: &registry_v2::Registry,
     ) -> Self {
         use registry_v2::resolvers::variable_resolve_definition::VariableResolveDefinition as RegistryDefinition;
         match value {
