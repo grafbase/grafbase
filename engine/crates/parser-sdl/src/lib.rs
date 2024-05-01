@@ -182,6 +182,8 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         directives.to_definition(),
     );
 
+    eprintln!("{}", schema);
+
     engine::parser::parse_schema(schema)
 }
 

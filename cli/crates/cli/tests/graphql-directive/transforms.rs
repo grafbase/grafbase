@@ -32,8 +32,8 @@ async fn graphql_test_with_transforms() {
     }
 
     type PullRequest implements PullRequestOrIssue {
-      title: String!
       checks: [String!]!
+      title: String!
     }
 
     interface PullRequestOrIssue {
@@ -41,9 +41,9 @@ async fn graphql_test_with_transforms() {
     }
 
     type Query {
-      serverVersion: String!
-      pullRequestOrIssue(id: ID!): PullRequestOrIssue
       headers: [Header!]!
+      pullRequestOrIssue(id: ID!): PullRequestOrIssue
+      serverVersion: String!
     }
 
     "###);

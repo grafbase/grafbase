@@ -105,12 +105,12 @@ async fn openapi_test() {
 
     insta::assert_yaml_snapshot!(mock_guard.received_json_bodies().await, @r###"
     ---
-    - status: available
-      tags: []
-      photoUrls: []
-      category: {}
-      name: Doggie
+    - category: {}
       id: 123
+      name: Doggie
+      photoUrls: []
+      status: available
+      tags: []
     "###);
 }
 

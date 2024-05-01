@@ -5478,6 +5478,7 @@ dependencies = [
  "insta",
  "itertools 0.12.1",
  "maplit",
+ "meta-type-name",
  "nom",
  "pretty_assertions",
  "regex",

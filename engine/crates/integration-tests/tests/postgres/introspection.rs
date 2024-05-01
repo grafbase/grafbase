@@ -3547,6 +3547,11 @@ fn table_with_json_column() {
         }
 
         """
+          virtual type for non-JSONB operations (only set)
+        """
+        scalar SimpleJSON
+
+        """
           Update input for SimpleJSON type.
         """
         input SimpleJSONUpdateInput {
