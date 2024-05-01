@@ -1,6 +1,9 @@
 use engine_parser::{types::Field, Positioned};
 
-use crate::visitor::{VisitMode, Visitor, VisitorContext};
+use crate::{
+    registries::AnyRegistry,
+    visitor::{VisitMode, Visitor, VisitorContext},
+};
 
 pub struct RootFieldCountCalculate<'a> {
     root_field_count: &'a mut usize,
@@ -16,40 +19,43 @@ impl<'a> RootFieldCountCalculate<'a> {
     }
 }
 
-impl<'ctx, 'a> Visitor<'ctx> for RootFieldCountCalculate<'a> {
+impl<'ctx, 'a, Registry> Visitor<'ctx, Registry> for RootFieldCountCalculate<'a>
+where
+    Registry: AnyRegistry,
+{
     fn mode(&self) -> VisitMode {
         VisitMode::Inline
     }
 
-    fn enter_field(&mut self, _ctx: &mut VisitorContext<'ctx>, _field: &'ctx Positioned<Field>) {
+    fn enter_field(&mut self, _ctx: &mut VisitorContext<'ctx, Registry>, _field: &'ctx Positioned<Field>) {
         self.current_depth += 1;
         if self.current_depth == 1 {
             *self.root_field_count += 1;
         }
     }
 
-    fn exit_field(&mut self, _ctx: &mut VisitorContext<'ctx>, _field: &'ctx Positioned<Field>) {
+    fn exit_field(&mut self, _ctx: &mut VisitorContext<'ctx, Registry>, _field: &'ctx Positioned<Field>) {
         self.current_depth -= 1;
     }
 }
 
-#[cfg(fixme)]
 #[cfg(test)]
 mod tests {
     #![allow(clippy::diverging_sub_expression)]
 
     use super::*;
+
+    use engine::{EmptyMutation, EmptySubscription, Object, Schema};
     use {
         crate::{visit, VisitorContext},
         engine_parser::parse_query,
-        EmptyMutation, EmptySubscription, Object, Schema,
     };
 
     struct Query;
 
     struct MyObj;
 
-    #[Object(internal)]
+    #[Object]
     #[allow(unreachable_code)]
     impl MyObj {
         async fn a(&self) -> i32 {
@@ -65,7 +71,7 @@ mod tests {
         }
     }
 
-    #[Object(internal)]
+    #[Object]
     #[allow(unreachable_code)]
     impl Query {
         async fn value1(&self) -> i32 {
@@ -83,6 +89,8 @@ mod tests {
 
     fn check_root_field_count(query: &str, expect_root_field_count: usize) {
         let registry = Schema::create_registry_static::<Query, EmptyMutation, EmptySubscription>();
+        let registry = registry_upgrade::convert_v1_to_v2(registry);
+
         let doc = parse_query(query).unwrap();
         let mut ctx = VisitorContext::new(&registry, &doc, None);
         let mut root_field_count = 0;

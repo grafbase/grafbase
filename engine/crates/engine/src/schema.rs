@@ -1,6 +1,6 @@
 use std::{any::Any, ops::Deref, sync::Arc};
 
-use engine_validation::{check_rules, ValidationMode};
+use engine_validation::check_strict_rules;
 use futures_util::stream::{self, Stream, StreamExt};
 use futures_util::FutureExt;
 use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
@@ -33,7 +33,6 @@ use crate::{new_futures_spawner, registry_operation_type_from_parser, QuerySpawn
 
 /// Schema builder
 pub struct SchemaBuilder {
-    validation_mode: ValidationMode,
     registry: Arc<registry_v2::Registry>,
     data: Data,
     extensions: Vec<Box<dyn ExtensionFactory>>,
@@ -73,17 +72,9 @@ impl SchemaBuilder {
         self
     }
 
-    /// Set the validation mode, default is `ValidationMode::Strict`.
-    #[must_use]
-    pub fn validation_mode(mut self, validation_mode: ValidationMode) -> Self {
-        self.validation_mode = validation_mode;
-        self
-    }
-
     /// Build schema.
     pub fn finish(self) -> Schema {
         Schema(Arc::new(SchemaInner {
-            validation_mode: self.validation_mode,
             operation_limits: self.registry.operation_limits.clone(),
             extensions: self.extensions,
             env: SchemaEnv(Arc::new(SchemaEnvInner {
@@ -114,7 +105,6 @@ impl Deref for SchemaEnv {
 
 #[doc(hidden)]
 pub struct SchemaInner {
-    pub(crate) validation_mode: ValidationMode,
     pub(crate) operation_limits: OperationLimits,
     pub(crate) extensions: Vec<Box<dyn ExtensionFactory>>,
     pub env: SchemaEnv,
@@ -147,7 +137,6 @@ impl Schema {
     /// If there is no subscription, you can use `EmptySubscription`.
     pub fn build(registry: Arc<registry_v2::Registry>) -> SchemaBuilder {
         SchemaBuilder {
-            validation_mode: ValidationMode::Strict,
             registry,
             data: Default::default(),
             extensions: Default::default(),
@@ -256,13 +245,8 @@ impl Schema {
         // check rules
         let validation_result = {
             let validation_fut = async {
-                check_rules(
-                    &self.env.registry,
-                    &document,
-                    Some(&request.variables),
-                    self.validation_mode,
-                )
-                .map_err(|errors| errors.into_iter().map(ServerError::from).collect())
+                check_strict_rules(&self.env.registry, &document, Some(&request.variables))
+                    .map_err(|errors| errors.into_iter().map(ServerError::from).collect())
             };
             futures_util::pin_mut!(validation_fut);
             extensions.validation(&mut validation_fut).await?

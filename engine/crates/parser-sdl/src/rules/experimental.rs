@@ -43,7 +43,7 @@ impl<'a> Visitor<'a> for ExperimentalDirectiveVisitor {
                 ctx.registry.get_mut().enable_ai = experimental_directive.ai.unwrap_or_default();
 
                 if let Some(enabled) = experimental_directive.codegen {
-                    ctx.registry.get_mut().codegen = Some(engine::registry::CodegenConfig { enabled, path: None });
+                    ctx.registry.get_mut().codegen = Some(registry_v2::CodegenConfig { enabled, path: None });
                 }
             }
             Err(err) => {

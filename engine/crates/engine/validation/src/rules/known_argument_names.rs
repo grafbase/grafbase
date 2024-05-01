@@ -32,21 +32,29 @@ impl<'a> KnownArgumentNames<'a> {
     }
 }
 
-impl<'a> Visitor<'a> for KnownArgumentNames<'a> {
-    fn enter_directive(&mut self, ctx: &mut VisitorContext<'a>, directive: &'a Positioned<Directive>) {
+impl<'a> Visitor<'a, registry_v2::Registry> for KnownArgumentNames<'a> {
+    fn enter_directive(
+        &mut self,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        directive: &'a Positioned<Directive>,
+    ) {
         self.current_args = ctx
             .registry
             .lookup_directive(directive.node.name.node.as_str())
             .map(|d| (d.args().collect(), ArgsType::Directive(&directive.node.name.node)));
     }
 
-    fn exit_directive(&mut self, _ctx: &mut VisitorContext<'a>, _directive: &'a Positioned<Directive>) {
+    fn exit_directive(
+        &mut self,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        _directive: &'a Positioned<Directive>,
+    ) {
         self.current_args = None;
     }
 
     fn enter_argument(
         &mut self,
-        ctx: &mut VisitorContext<'a>,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         name: &'a Positioned<Name>,
         _value: &'a Positioned<Value>,
     ) {
@@ -89,7 +97,7 @@ impl<'a> Visitor<'a> for KnownArgumentNames<'a> {
         }
     }
 
-    fn enter_field(&mut self, ctx: &mut VisitorContext<'a>, field: &'a Positioned<Field>) {
+    fn enter_field(&mut self, ctx: &mut VisitorContext<'a, registry_v2::Registry>, field: &'a Positioned<Field>) {
         if let Some(parent_type) = ctx.parent_type() {
             if let Some(schema_field) = parent_type.field(&field.node.name.node) {
                 self.current_args = Some((
@@ -103,7 +111,7 @@ impl<'a> Visitor<'a> for KnownArgumentNames<'a> {
         }
     }
 
-    fn exit_field(&mut self, _ctx: &mut VisitorContext<'a>, _field: &'a Positioned<Field>) {
+    fn exit_field(&mut self, _ctx: &mut VisitorContext<'a, registry_v2::Registry>, _field: &'a Positioned<Field>) {
         self.current_args = None;
     }
 }

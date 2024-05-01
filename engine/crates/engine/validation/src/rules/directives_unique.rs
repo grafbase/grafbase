@@ -15,10 +15,10 @@ use {
 #[derive(Default)]
 pub struct DirectivesUnique;
 
-impl<'a> Visitor<'a> for DirectivesUnique {
+impl<'a> Visitor<'a, registry_v2::Registry> for DirectivesUnique {
     fn enter_operation_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a>,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         _name: Option<&'a Name>,
         operation_definition: &'a Positioned<OperationDefinition>,
     ) {
@@ -27,7 +27,7 @@ impl<'a> Visitor<'a> for DirectivesUnique {
 
     fn enter_fragment_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a>,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         _name: &'a Name,
         fragment_definition: &'a Positioned<FragmentDefinition>,
     ) {
@@ -36,26 +36,37 @@ impl<'a> Visitor<'a> for DirectivesUnique {
 
     fn enter_variable_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a>,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         variable_definition: &'a Positioned<VariableDefinition>,
     ) {
         check_duplicate_directive(ctx, &variable_definition.node.directives);
     }
 
-    fn enter_field(&mut self, ctx: &mut VisitorContext<'a>, field: &'a Positioned<Field>) {
+    fn enter_field(&mut self, ctx: &mut VisitorContext<'a, registry_v2::Registry>, field: &'a Positioned<Field>) {
         check_duplicate_directive(ctx, &field.node.directives);
     }
 
-    fn enter_fragment_spread(&mut self, ctx: &mut VisitorContext<'a>, fragment_spread: &'a Positioned<FragmentSpread>) {
+    fn enter_fragment_spread(
+        &mut self,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        fragment_spread: &'a Positioned<FragmentSpread>,
+    ) {
         check_duplicate_directive(ctx, &fragment_spread.node.directives);
     }
 
-    fn enter_inline_fragment(&mut self, ctx: &mut VisitorContext<'a>, inline_fragment: &'a Positioned<InlineFragment>) {
+    fn enter_inline_fragment(
+        &mut self,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        inline_fragment: &'a Positioned<InlineFragment>,
+    ) {
         check_duplicate_directive(ctx, &inline_fragment.node.directives);
     }
 }
 
-fn check_duplicate_directive(ctx: &mut VisitorContext<'_>, directives: &[Positioned<Directive>]) {
+fn check_duplicate_directive(
+    ctx: &mut VisitorContext<'_, registry_v2::Registry>,
+    directives: &[Positioned<Directive>],
+) {
     let mut exists = HashSet::new();
 
     for directive in directives {

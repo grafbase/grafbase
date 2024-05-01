@@ -1,5 +1,3 @@
-
-
 use crate::{model::__Type, Object};
 
 pub struct __InputValue<'a> {

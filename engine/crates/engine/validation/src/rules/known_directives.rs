@@ -15,10 +15,10 @@ pub struct KnownDirectives {
     location_stack: Vec<DirectiveLocation>,
 }
 
-impl<'a> Visitor<'a> for KnownDirectives {
+impl<'a> Visitor<'a, registry_v2::Registry> for KnownDirectives {
     fn enter_operation_definition(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         _name: Option<&'a Name>,
         operation_definition: &'a Positioned<OperationDefinition>,
     ) {
@@ -31,7 +31,7 @@ impl<'a> Visitor<'a> for KnownDirectives {
 
     fn exit_operation_definition(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         _name: Option<&'a Name>,
         _operation_definition: &'a Positioned<OperationDefinition>,
     ) {
@@ -40,7 +40,7 @@ impl<'a> Visitor<'a> for KnownDirectives {
 
     fn enter_fragment_definition(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         _name: &'a Name,
         _fragment_definition: &'a Positioned<FragmentDefinition>,
     ) {
@@ -49,14 +49,18 @@ impl<'a> Visitor<'a> for KnownDirectives {
 
     fn exit_fragment_definition(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         _name: &'a Name,
         _fragment_definition: &'a Positioned<FragmentDefinition>,
     ) {
         self.location_stack.pop();
     }
 
-    fn enter_directive(&mut self, ctx: &mut VisitorContext<'a>, directive: &'a Positioned<Directive>) {
+    fn enter_directive(
+        &mut self,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        directive: &'a Positioned<Directive>,
+    ) {
         if let Some(schema_directive) = ctx.registry.lookup_directive(directive.node.name.node.as_str()) {
             if let Some(current_location) = self.location_stack.last() {
                 if !schema_directive
@@ -80,17 +84,17 @@ impl<'a> Visitor<'a> for KnownDirectives {
         }
     }
 
-    fn enter_field(&mut self, _ctx: &mut VisitorContext<'a>, _field: &'a Positioned<Field>) {
+    fn enter_field(&mut self, _ctx: &mut VisitorContext<'a, registry_v2::Registry>, _field: &'a Positioned<Field>) {
         self.location_stack.push(DirectiveLocation::Field);
     }
 
-    fn exit_field(&mut self, _ctx: &mut VisitorContext<'a>, _field: &'a Positioned<Field>) {
+    fn exit_field(&mut self, _ctx: &mut VisitorContext<'a, registry_v2::Registry>, _field: &'a Positioned<Field>) {
         self.location_stack.pop();
     }
 
     fn enter_fragment_spread(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         _fragment_spread: &'a Positioned<FragmentSpread>,
     ) {
         self.location_stack.push(DirectiveLocation::FragmentSpread);
@@ -98,7 +102,7 @@ impl<'a> Visitor<'a> for KnownDirectives {
 
     fn exit_fragment_spread(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         _fragment_spread: &'a Positioned<FragmentSpread>,
     ) {
         self.location_stack.pop();
@@ -106,7 +110,7 @@ impl<'a> Visitor<'a> for KnownDirectives {
 
     fn enter_inline_fragment(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         _inline_fragment: &'a Positioned<InlineFragment>,
     ) {
         self.location_stack.push(DirectiveLocation::InlineFragment);
@@ -114,7 +118,7 @@ impl<'a> Visitor<'a> for KnownDirectives {
 
     fn exit_inline_fragment(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         _inline_fragment: &'a Positioned<InlineFragment>,
     ) {
         self.location_stack.pop();

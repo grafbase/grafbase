@@ -9,8 +9,12 @@ use {
 #[derive(Default)]
 pub struct ProvidedNonNullArguments;
 
-impl<'a> Visitor<'a> for ProvidedNonNullArguments {
-    fn enter_directive(&mut self, ctx: &mut VisitorContext<'a>, directive: &'a Positioned<Directive>) {
+impl<'a> Visitor<'a, registry_v2::Registry> for ProvidedNonNullArguments {
+    fn enter_directive(
+        &mut self,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        directive: &'a Positioned<Directive>,
+    ) {
         if let Some(schema_directive) = ctx
             .registry
             .directives()
@@ -35,7 +39,7 @@ impl<'a> Visitor<'a> for ProvidedNonNullArguments {
         }
     }
 
-    fn enter_field(&mut self, ctx: &mut VisitorContext<'a>, field: &'a Positioned<Field>) {
+    fn enter_field(&mut self, ctx: &mut VisitorContext<'a, registry_v2::Registry>, field: &'a Positioned<Field>) {
         if let Some(parent_type) = ctx.parent_type() {
             if let Some(schema_field) = parent_type.field(&field.node.name.node) {
                 for arg in schema_field.args() {

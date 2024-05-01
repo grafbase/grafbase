@@ -1,5 +1,3 @@
-
-
 use common_types::UdfKind;
 use runtime::udf::{
     CustomResolverInvoker, CustomResolverRequestPayload, UdfError, UdfRequest, UdfRequestContext,

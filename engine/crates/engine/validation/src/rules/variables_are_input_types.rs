@@ -7,10 +7,10 @@ use {
 #[derive(Default)]
 pub struct VariablesAreInputTypes;
 
-impl<'a> Visitor<'a> for VariablesAreInputTypes {
+impl<'a> Visitor<'a, registry_v2::Registry> for VariablesAreInputTypes {
     fn enter_variable_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a>,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         variable_definition: &'a Positioned<VariableDefinition>,
     ) {
         let name = concrete_type_name_from_parsed_type(&variable_definition.node.var_type.node);

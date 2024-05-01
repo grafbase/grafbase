@@ -27,7 +27,7 @@ impl<'a> VariableInAllowedPosition<'a> {
         &self,
         from: &Scope<'a>,
         var_defs: &[&'a Positioned<VariableDefinition>],
-        ctx: &mut VisitorContext<'a>,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         visited: &mut HashSet<Scope<'a>>,
     ) {
         if visited.contains(from) {
@@ -69,8 +69,8 @@ impl<'a> VariableInAllowedPosition<'a> {
     }
 }
 
-impl<'a> Visitor<'a> for VariableInAllowedPosition<'a> {
-    fn exit_document(&mut self, ctx: &mut VisitorContext<'a>, _doc: &'a ExecutableDocument) {
+impl<'a> Visitor<'a, registry_v2::Registry> for VariableInAllowedPosition<'a> {
+    fn exit_document(&mut self, ctx: &mut VisitorContext<'a, registry_v2::Registry>, _doc: &'a ExecutableDocument) {
         for (op_scope, var_defs) in &self.variable_defs {
             self.collect_incorrect_usages(op_scope, var_defs, ctx, &mut HashSet::new());
         }
@@ -78,7 +78,7 @@ impl<'a> Visitor<'a> for VariableInAllowedPosition<'a> {
 
     fn enter_operation_definition(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         name: Option<&'a Name>,
         _operation_definition: &'a Positioned<OperationDefinition>,
     ) {
@@ -87,7 +87,7 @@ impl<'a> Visitor<'a> for VariableInAllowedPosition<'a> {
 
     fn enter_fragment_definition(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         name: &'a Name,
         _fragment_definition: &'a Positioned<FragmentDefinition>,
     ) {
@@ -96,7 +96,7 @@ impl<'a> Visitor<'a> for VariableInAllowedPosition<'a> {
 
     fn enter_variable_definition(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         variable_definition: &'a Positioned<VariableDefinition>,
     ) {
         if let Some(ref scope) = self.current_scope {
@@ -106,7 +106,7 @@ impl<'a> Visitor<'a> for VariableInAllowedPosition<'a> {
 
     fn enter_fragment_spread(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         fragment_spread: &'a Positioned<FragmentSpread>,
     ) {
         if let Some(ref scope) = self.current_scope {
@@ -119,7 +119,7 @@ impl<'a> Visitor<'a> for VariableInAllowedPosition<'a> {
 
     fn enter_input_value(
         &mut self,
-        _ctx: &mut VisitorContext<'a>,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         pos: Pos,
         expected_type: &Option<MetaTypeName<'_>>,
         value: &'a Value,

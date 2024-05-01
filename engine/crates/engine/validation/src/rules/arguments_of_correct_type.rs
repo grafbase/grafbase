@@ -15,21 +15,29 @@ pub struct ArgumentsOfCorrectType<'a> {
     current_args: Option<Vec<registry_v2::MetaInputValue<'a>>>,
 }
 
-impl<'a> Visitor<'a> for ArgumentsOfCorrectType<'a> {
-    fn enter_directive(&mut self, ctx: &mut VisitorContext<'a>, directive: &'a Positioned<Directive>) {
+impl<'a> Visitor<'a, registry_v2::Registry> for ArgumentsOfCorrectType<'a> {
+    fn enter_directive(
+        &mut self,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        directive: &'a Positioned<Directive>,
+    ) {
         self.current_args = ctx
             .registry
             .lookup_directive(directive.node.name.node.as_str())
             .map(|d| d.args().collect());
     }
 
-    fn exit_directive(&mut self, _ctx: &mut VisitorContext<'a>, _directive: &'a Positioned<Directive>) {
+    fn exit_directive(
+        &mut self,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        _directive: &'a Positioned<Directive>,
+    ) {
         self.current_args = None;
     }
 
     fn enter_argument(
         &mut self,
-        ctx: &mut VisitorContext<'a>,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         name: &'a Positioned<Name>,
         value: &'a Positioned<Value>,
     ) {
@@ -60,14 +68,14 @@ impl<'a> Visitor<'a> for ArgumentsOfCorrectType<'a> {
         }
     }
 
-    fn enter_field(&mut self, ctx: &mut VisitorContext<'a>, field: &'a Positioned<Field>) {
+    fn enter_field(&mut self, ctx: &mut VisitorContext<'a, registry_v2::Registry>, field: &'a Positioned<Field>) {
         self.current_args = ctx
             .parent_type()
             .and_then(|p| p.field(&field.node.name.node))
             .map(|f| f.args().collect());
     }
 
-    fn exit_field(&mut self, _ctx: &mut VisitorContext<'a>, _field: &'a Positioned<Field>) {
+    fn exit_field(&mut self, _ctx: &mut VisitorContext<'a, registry_v2::Registry>, _field: &'a Positioned<Field>) {
         self.current_args = None;
     }
 }

@@ -1,8 +1,6 @@
 use std::collections::HashSet;
 
-use engine::registry::{
-    InputObjectType, InterfaceType, MetaType, ObjectType, Registry,
-};
+use engine::registry::{InputObjectType, InterfaceType, MetaType, ObjectType, Registry};
 
 use self::field_lookup::FieldLookup;
 

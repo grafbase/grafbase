@@ -6,9 +6,7 @@
 use std::ops::Not;
 
 use engine::{
-    registry::{
-        Deprecation, MetaDirective, MetaEnumValue, MetaField, MetaInputValue, MetaType, ObjectType, Registry,
-    },
+    registry::{Deprecation, MetaDirective, MetaEnumValue, MetaField, MetaInputValue, MetaType, ObjectType, Registry},
     Value,
 };
 

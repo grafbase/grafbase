@@ -13,8 +13,12 @@ indexmap.workspace = true
 meta-type-name.path = "../meta-type-name"
 query-path.path = "../query-path"
 registry-v2.workspace = true
+registry-for-cache.workspace = true
 serde.workspace = true
 
 [dev-dependencies]
-once_cell = "1.19"
 engine.workspace = true
+insta.workspace = true
+once_cell = "1.19"
+registry-upgrade.workspace = true
+serde_json.worksace = true

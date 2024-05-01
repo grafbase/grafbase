@@ -72,7 +72,7 @@ impl RegistryWriter {
         let starting_id = MetaTypeId::new(self.types.len());
         self.types.extend(std::iter::repeat_with(|| None).take(capacity));
 
-        IdRange::new(starting_id, MetaTypeId::new(self.types.len())).iter()
+        IdRange::new(starting_id, MetaTypeId::new(self.types.len()))
     }
 
     pub fn populate_preallocated_type(&mut self, id: MetaTypeId, record: MetaTypeRecord) {

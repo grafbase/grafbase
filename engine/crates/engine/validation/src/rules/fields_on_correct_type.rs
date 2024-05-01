@@ -9,8 +9,8 @@ use crate::{
 #[derive(Default)]
 pub struct FieldsOnCorrectType;
 
-impl<'a> Visitor<'a> for FieldsOnCorrectType {
-    fn enter_field(&mut self, ctx: &mut VisitorContext<'a>, field: &'a Positioned<Field>) {
+impl<'a> Visitor<'a, registry_v2::Registry> for FieldsOnCorrectType {
+    fn enter_field(&mut self, ctx: &mut VisitorContext<'a, registry_v2::Registry>, field: &'a Positioned<Field>) {
         if let Some(parent_type) = ctx.parent_type() {
             if let Some(MetaType::Union { .. } | MetaType::Interface { .. }) = ctx.parent_type() {
                 if field.node.name.node == "__typename" {
