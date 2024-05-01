@@ -34,9 +34,9 @@ names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2
 # FIXME: Drop when a new version is released.
 openidconnect = { git = "https://github.com/ramosbugs/openidconnect-rs", rev = "7efc8943a8f699aff2db742827fc3d0fc2b3f34d" } # main
 ory-client = { git = "https://github.com/grafbase/client-rust", rev = "88ed8f63c1d71b294c2ef64fd80ca654e91ac25f" } # reqwest-0.12
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "f5df1625717e72b9f7c5bcd10f09835bdb2e764c" } # 0.12-with-patches-wasm-timeout
+reqwest = { git = "https://github.com/grafbase/reqwest", rev = "7d51ae689856631d6153185e9729b97c539c88ee" } # 0.12-with-patches-wasm-timeout-updated
 rudderanalytics =  { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "3e994eb4dcc9c580be311ef9eab6e96dd264293b" } # async
-serde_with = { git = "https://github.com/grafbase/serde_with", rev = "31165b5a70f329b5e9c8a04284cccec6d76ea248" } # minify-field-names-strum-0.26
+serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a" } # minify-field-names
 # Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
 tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
