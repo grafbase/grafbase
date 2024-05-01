@@ -16,16 +16,16 @@ workspace = true
 engine-parser = { path = "../../../engine/crates/engine/parser" }
 engine-value = { path = "../../../engine/crates/engine/value" }
 
-swc_ecma_parser = "0.143.16"
-swc_ecma_ast = "0.112.8"
-swc_common = "0.33"
+swc_ecma_parser = "0.144.1"
+swc_ecma_ast = "0.113.1"
+swc_common = "0.33.26"
 miette = { version = "7.2.0", features = ["fancy"] }
 thiserror = "1.0.59"
-walkdir = "2"
+walkdir = "2.5.0"
 
 [dev-dependencies]
-similar = "2"
-datatest-stable = "0.2.7"
+similar = "2.5.0"
+datatest-stable = "0.2.9"
 
 [[test]]
 name = "schema_types"

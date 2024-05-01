@@ -7,11 +7,11 @@ edition = "2021"
 
 [dependencies]
 common-types.workspace = true
-derivative = "2"
+derivative = "2.2.0"
 engine-value.workspace = true
 gateway-v2-auth-config.workspace = true
 indexmap.workspace = true
-indoc = "2"
+indoc = "2.0.5"
 postgres-connector-types.workspace = true
 registry-v2.workspace = true
 serde.workspace = true

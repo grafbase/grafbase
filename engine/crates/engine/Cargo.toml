@@ -14,46 +14,46 @@ keywords = ["graphql", "engine", "grafbase"]
 workspace = true
 
 [dependencies]
-async-lock = "3"
-async-recursion = "1"
-async-stream = "0.3"
-async-trait = "0.1"
+async-lock = "3.3.0"
+async-recursion = "1.1.1"
+async-stream = "0.3.5"
+async-trait = "0.1.80"
 common-types.workspace = true
 grafbase-sql-ast = "0.1.9"
 postgres-connector-types = { path = "../postgres-connector-types" }
-bytes = { version = "1", features = ["serde"] }
+bytes = { version = "1.6.0", features = ["serde"] }
 case = "1"
-chrono = { version = "0.4", default-features = false, features = [
+chrono = { version = "0.4.38", default-features = false, features = [
   "clock",
   "std",
 ] }
-derivative = "2"
-fast_chemail = "0.9"
+derivative = "2.2.0"
+fast_chemail = "0.9.6"
 flexbuffers.workspace = true
 fnv.workspace = true
 futures.workspace = true
 futures-util = { workspace = true, features = ["io", "sink"] }
-futures-channel = { version = "0.3", default-features = false }
+futures-channel = { version = "0.3.30", default-features = false }
 gateway-v2-auth-config.workspace = true
 hex.workspace = true
 http.workspace = true
-im = "15"
+im = "15.1.0"
 indexmap.workspace = true
-indoc = "2"
-Inflector = { version = "0.11" }
-internment = { version = "0.8", features = ["serde", "arc"] }
-ipnet = "2"
-mime = "0.3"
+indoc = "2.0.5"
+Inflector = { version = "0.11.4" }
+internment = { version = "0.8.3", features = ["serde", "arc"] }
+ipnet = "2.9.0"
+mime = "0.3.17"
 multer = "3"
-nom = "7"
-once_cell = "1"
-pin-project-lite = "0.2"
+nom = "7.1.3"
+once_cell = "1.19.0"
+pin-project-lite = "0.2.14"
 serde.workspace = true
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64", "hex"] }
-static_assertions = "1"
+static_assertions = "1.1.0"
 strum_macros.workspace = true
-tempfile = "3"
+tempfile = "3.10.1"
 thiserror.workspace = true
 ulid.workspace = true
 url = { workspace = true, features = ["serde"] }
@@ -70,7 +70,7 @@ runtime.workspace = true
 grafbase-tracing.workspace = true
 
 # Feature optional dependencies
-rust_decimal = { version = "1" }
+rust_decimal = { version = "1.35.0" }
 tracing.workspace = true
 async-runtime.workspace = true
 
@@ -81,7 +81,7 @@ uuid.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { workspace = true, features = ["json"] }
-getrandom = { version = "0.2", features = ["js"] }
+getrandom = { version = "0.2.14", features = ["js"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { workspace = true, features = [
@@ -91,7 +91,7 @@ reqwest = { workspace = true, features = [
 
 [dev-dependencies]
 ctor.workspace = true
-indoc = "2"
+indoc = "2.0.5"
 insta.workspace = true
 rstest.workspace = true
 runtime = { workspace = true, features = ["test-utils"] }
@@ -99,5 +99,5 @@ rustls = { workspace = true, features = ["ring"] }
 sanitize-filename = "0.5"
 sha2.workspace = true
 tokio = { workspace = true, features = ["macros"] }
-urlencoding = "2.1"
+urlencoding = "2.1.3"
 wiremock.workspace = true

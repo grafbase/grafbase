@@ -14,8 +14,8 @@ async-graphql = { workspace = true, features = ["url"] }
 async-graphql-axum.workspace = true
 async-graphql-parser.workspace = true
 axum.workspace = true
-futures-concurrency = "7"
-futures-util = "0.3"
+futures-concurrency = "7.6.0"
+futures-util = "0.3.30"
 graphql-composition.workspace = true
 handlebars.workspace = true
 indoc = "2.0.5"
@@ -24,12 +24,12 @@ reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 runtime.workspace = true
 runtime-local.workspace = true
 runtime-noop.workspace = true
-serde = "1.0.198"
+serde = "1.0.199"
 serde_json.workspace = true
 thiserror = "1.0.59"
 tracing.workspace = true
 tokio = { workspace = true, features = ["sync", "rt", "io-std", "time"] }
-tokio-stream = { version = "0.1", features = ["sync"] }
+tokio-stream = { version = "0.1.15", features = ["sync"] }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 url = "2.5.0"
 

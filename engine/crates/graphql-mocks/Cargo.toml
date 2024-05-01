@@ -12,7 +12,7 @@ repository.workspace = true
 [dependencies]
 async-graphql-axum.workspace = true
 async-graphql.workspace = true
-async-trait = "0.1"
+async-trait = "0.1.80"
 axum.workspace = true
 futures.workspace = true
 serde.workspace = true

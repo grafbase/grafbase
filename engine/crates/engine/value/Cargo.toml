@@ -15,5 +15,5 @@ default = []
 [dependencies]
 serde_json.workspace = true
 serde.workspace = true
-bytes = { version = "1", features = ["serde"] }
+bytes = { version = "1.6.0", features = ["serde"] }
 indexmap = { workspace = true, features = ["serde"] }

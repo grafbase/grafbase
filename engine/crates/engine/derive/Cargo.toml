@@ -13,15 +13,15 @@ keywords = ["macros", "engine", "grafbase"]
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1"
-syn = { version = "2", features = [
+proc-macro2 = "1.0.81"
+syn = { version = "2.0.60", features = [
     "full",
     "extra-traits",
     "visit-mut",
     "visit",
 ] }
-quote = "1"
-Inflector = { version = "0.11", default-features = false }
-proc-macro-crate = "3"
-darling = "0.20"
+quote = "1.0.36"
+Inflector = { version = "0.11.4", default-features = false }
+proc-macro-crate = "3.1.0"
+darling = "0.20.8"
 thiserror.workspace = true

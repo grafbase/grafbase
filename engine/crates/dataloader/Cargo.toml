@@ -13,12 +13,12 @@ keywords = ["graphql", "dataloader", "grafbase"]
 workspace = true
 
 [dependencies]
-async-trait = { version = "0.1", default-features = false }
+async-trait = { version = "0.1.80", default-features = false }
 fnv.workspace = true
-futures-channel = { version = "0.3", default-features = false }
-futures-timer = { version = "3", default-features = false, features = ["wasm-bindgen"] }
+futures-channel = { version = "0.3.30", default-features = false }
+futures-timer = { version = "3.0.3", default-features = false, features = ["wasm-bindgen"] }
 futures-util = { workspace = true, features = ["io", "sink"] }
-lru = { version = "0.12", default-features = false }
+lru = { version = "0.12.3", default-features = false }
 tracing = { workspace = true, optional = true }
 
 [dev-dependencies]

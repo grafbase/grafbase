@@ -10,16 +10,16 @@ repository.workspace = true
 
 [dependencies]
 async-graphql.workspace = true
-async-trait = "0.1"
+async-trait = "0.1.80"
 axum.workspace = true
-bytes = "1"
+bytes = "1.6.0"
 futures-util.workspace = true
 http.workspace = true
-serde_json = "1"
-thiserror = "1"
+serde_json = "1.0.116"
+thiserror = "1.0.59"
 tokio.workspace = true
 tower-http = { workspace = true, features = ["cors"] }
-ulid = "1"
+ulid = "1.1.2"
 # hyper = "0.14"
 
 engine = { path = "../../../engine/crates/engine" }

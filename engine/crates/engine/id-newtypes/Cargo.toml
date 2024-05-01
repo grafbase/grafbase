@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1"
+anyhow = "1.0.82"
 common-types.workspace = true
 engine-value.workspace = true
 gateway-v2-auth-config.workspace = true

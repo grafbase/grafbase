@@ -19,7 +19,7 @@ lambda = [
 anyhow = { version = "1.0.82", default-features = false }
 ascii = { version = "1.1.0", default-features = false }
 atty = "0.2.14"
-clap = { version = "4", features = ["cargo", "wrap_help", "derive", "env"] }
+clap = { version = "4.5.4", features = ["cargo", "wrap_help", "derive", "env"] }
 federated-server.workspace = true
 grafbase-tracing = { workspace = true, features = ["otlp"] }
 graph-ref.workspace = true
@@ -36,7 +36,7 @@ cfg-if = "1.0.0"
 workspace = true
 
 [dev-dependencies]
-clickhouse = { version = "0.11" }
+clickhouse = { version = "0.11.6" }
 ctor.workspace = true
 duct = "0.13.7"
 fslock = "0.2.1"
@@ -45,7 +45,7 @@ grafbase-graphql-introspection.workspace = true
 http.workspace = true
 indoc = "2.0.5"
 insta = { workspace = true, features = ["json", "redactions", "yaml"] }
-rand = "0.8"
+rand = "0.8.5"
 reqwest.workspace = true
 serde.workspace = true
 serde_with.workspace = true
