@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
+mod cache_pruning;
 mod constraint;
 mod directives;
 mod enums;

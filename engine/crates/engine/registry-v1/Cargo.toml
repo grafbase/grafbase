@@ -12,6 +12,7 @@ engine-value.workspace = true
 gateway-v2-auth-config.workspace = true
 indexmap.workspace = true
 indoc = "2.0.5"
+petgraph = "0.6"
 postgres-connector-types.workspace = true
 registry-v2.workspace = true
 serde.workspace = true

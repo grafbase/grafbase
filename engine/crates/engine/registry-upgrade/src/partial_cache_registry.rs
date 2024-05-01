@@ -31,19 +31,10 @@ pub fn convert_v1_to_partial_cache_registry(v1: registry_v1::Registry) -> regist
         operation_limits: _,
         trusted_documents: _,
         cors_config: _,
-        codegen: _,
     } = v1;
 
     let types = {
-        let mut types = types
-            .into_values()
-            .filter(|ty| {
-                matches!(
-                    ty,
-                    registry_v1::MetaType::Object(_) | registry_v1::MetaType::Interface(_)
-                )
-            })
-            .collect::<Vec<_>>();
+        let mut types = types.into_values().collect::<Vec<_>>();
 
         // Comes out of a BTreeMap so should be sorted, but it's important
         // so lets sort incase the type changes.
@@ -64,9 +55,9 @@ pub fn convert_v1_to_partial_cache_registry(v1: registry_v1::Registry) -> regist
         writer.populate_preallocated_type(id, record);
     }
 
-    writer.query_type = Some(type_ids[&query_type]);
-    writer.mutation_type = mutation_type.map(|name| type_ids[&name]);
-    writer.subscription_type = subscription_type.map(|name| type_ids[&name]);
+    writer.query_type = Some(lookup_type_id(&type_ids, &query_type));
+    writer.mutation_type = mutation_type.map(|name| lookup_type_id(&type_ids, &name));
+    writer.subscription_type = subscription_type.map(|name| lookup_type_id(&type_ids, &name));
 
     writer.enable_caching = enable_caching;
 
@@ -81,7 +72,7 @@ fn insert_type(
     match ty {
         registry_v1::MetaType::Object(inner) => insert_object(inner, writer, type_ids),
         registry_v1::MetaType::Interface(inner) => insert_interface(inner, writer, type_ids),
-        _ => unreachable!(),
+        other => insert_other(other, writer, type_ids),
     }
 }
 
@@ -170,7 +161,10 @@ fn insert_interface(
     let name = writer.intern_string(name);
 
     let fields = insert_fields(fields, writer, type_ids);
-    let possible_types = possible_types.into_iter().map(|ty| type_ids[&ty]).collect();
+    let possible_types = possible_types
+        .into_iter()
+        .map(|ty| lookup_type_id(type_ids, &ty))
+        .collect();
 
     writer.insert_interface(InterfaceTypeRecord {
         name,
@@ -180,14 +174,30 @@ fn insert_interface(
     })
 }
 
+fn insert_other(
+    inner: registry_v1::MetaType,
+    writer: &mut RegistryWriter,
+    _type_ids: &HashMap<String, MetaTypeId>,
+) -> MetaTypeRecord {
+    let name = writer.intern_str(inner.name());
+
+    writer.insert_other(OtherTypeRecord { name })
+}
+
 fn convert_meta_field_type(
     ty: registry_v1::MetaFieldType,
     type_ids: &HashMap<String, MetaTypeId>,
 ) -> MetaFieldTypeRecord {
     MetaFieldTypeRecord {
         wrappers: wrappers_from_string(ty.as_str()),
-        target: type_ids[ty.base_type_name()],
+        target: lookup_type_id(type_ids, ty.base_type_name()),
     }
+}
+
+fn lookup_type_id(type_ids: &HashMap<String, MetaTypeId>, name: &str) -> MetaTypeId {
+    *type_ids
+        .get(name)
+        .unwrap_or_else(|| panic!("Couldn't find type {name}"))
 }
 
 fn wrappers_from_string(str: &str) -> Wrapping {

@@ -7,6 +7,7 @@ impl<'a> MetaType<'a> {
         match self {
             MetaType::Object(object) => object.name(),
             MetaType::Interface(iface) => iface.name(),
+            MetaType::Other(other) => other.name(),
         }
     }
 
@@ -14,6 +15,7 @@ impl<'a> MetaType<'a> {
         match self {
             MetaType::Object(inner) => Some(inner.fields()),
             MetaType::Interface(inner) => Some(inner.fields()),
+            MetaType::Other(_) => None,
         }
     }
 
@@ -21,6 +23,7 @@ impl<'a> MetaType<'a> {
         match self {
             MetaType::Object(object) => object.cache_control(),
             MetaType::Interface(iface) => iface.cache_control(),
+            MetaType::Other(_) => None,
         }
     }
 }
@@ -30,6 +33,7 @@ impl<'a> MetaType<'a> {
         match self {
             MetaType::Object(obj) => obj.field(name),
             MetaType::Interface(iface) => iface.field(name),
+            MetaType::Other(_) => None,
         }
     }
 }

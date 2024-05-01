@@ -11,4 +11,6 @@ impl_id_range!(MetaFieldId);
 
 make_id!(InterfaceTypeId, InterfaceTypeRecord, interfaces, PartialCacheRegistry);
 
+make_id!(OtherTypeId, OtherTypeRecord, others, PartialCacheRegistry);
+
 make_id!(StringId, str, strings, PartialCacheRegistry);

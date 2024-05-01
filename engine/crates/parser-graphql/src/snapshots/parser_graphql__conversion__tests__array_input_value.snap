@@ -780,10 +780,10 @@ expression: registry_from_introspection(schema)
       "name": "deprecated",
       "description": "Marks an element of a GraphQL schema as no longer supported.",
       "locations": [
-        "ARGUMENT_DEFINITION",
-        "ENUM_VALUE",
-        "FIELD_DEFINITION",
-        "INPUT_FIELD_DEFINITION"
+        "ArgumentDefinition",
+        "EnumValue",
+        "FieldDefinition",
+        "InputFieldDefinition"
       ],
       "args": {
         "reason": {
@@ -799,9 +799,9 @@ expression: registry_from_introspection(schema)
       "name": "include",
       "description": "Directs the executor to include this field or fragment only when the `if` argument is true.",
       "locations": [
-        "FIELD",
-        "FRAGMENT_SPREAD",
-        "INLINE_FRAGMENT"
+        "Field",
+        "FragmentSpread",
+        "InlineFragment"
       ],
       "args": {
         "if": {
@@ -816,9 +816,9 @@ expression: registry_from_introspection(schema)
       "name": "skip",
       "description": "Directs the executor to skip this field or fragment when the `if` argument is true.",
       "locations": [
-        "FIELD",
-        "FRAGMENT_SPREAD",
-        "INLINE_FRAGMENT"
+        "Field",
+        "FragmentSpread",
+        "InlineFragment"
       ],
       "args": {
         "if": {
@@ -833,7 +833,7 @@ expression: registry_from_introspection(schema)
       "name": "specifiedBy",
       "description": "Exposes a URL that specifies the behavior of this scalar.",
       "locations": [
-        "SCALAR"
+        "Scalar"
       ],
       "args": {
         "url": {
@@ -865,6 +865,7 @@ expression: registry_from_introspection(schema)
   "enable_caching": false,
   "enable_kv": false,
   "enable_ai": false,
+  "enable_codegen": false,
   "is_federated": false,
   "operation_limits": {
     "depth": null,

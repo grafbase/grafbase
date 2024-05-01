@@ -164,10 +164,9 @@ impl ResourceOperation {
                 // input_name without applying transforms
                 let variable_resolve_definition = match input_value_type {
                     None => VariableResolveDefinition::local_data(input_name),
-                    Some(input_value_type) => VariableResolveDefinition::local_data_with_transforms(
-                        input_name,
-                        input_value_type.base_type_name().to_string(),
-                    ),
+                    Some(input_value_type) => {
+                        VariableResolveDefinition::local_data_with_transforms(input_name, input_value_type.to_string())
+                    }
                 };
 
                 http::PathParameter {
