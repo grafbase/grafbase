@@ -1,5 +1,4 @@
 use auth::AnyApiKeyProvider;
-use engine::registry::CachePartialRegistry;
 use gateway_core::CacheConfig;
 use runtime_local::{InMemoryCache, InMemoryKvStore};
 use std::{collections::HashMap, ops::Deref, sync::Arc};
@@ -30,12 +29,13 @@ impl Gateway {
         env_vars: HashMap<String, String>,
         bridge: Bridge,
         registry: Arc<registry_v2::Registry>,
+        caching_registry: registry_for_cache::PartialCacheRegistry,
     ) -> Result<Self, crate::Error> {
         let cache_config = CacheConfig {
             global_enabled: true,
             subdomain: "localhost".to_string(),
             host_name: "localhost".to_string(),
-            partial_registry: CachePartialRegistry::default(), // TODO: Revisit this /*CachePartialRegistry::from(registry.as_ref()),*/
+            partial_registry: caching_registry,
             common_cache_tags: vec![],
         };
         let authorizer = Box::new(auth::Authorizer);

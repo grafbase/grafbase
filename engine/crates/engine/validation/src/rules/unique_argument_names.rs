@@ -13,14 +13,18 @@ pub struct UniqueArgumentNames<'a> {
     names: HashSet<&'a str>,
 }
 
-impl<'a> Visitor<'a> for UniqueArgumentNames<'a> {
-    fn enter_directive(&mut self, _ctx: &mut VisitorContext<'a>, _directive: &'a Positioned<Directive>) {
+impl<'a> Visitor<'a, registry_v2::Registry> for UniqueArgumentNames<'a> {
+    fn enter_directive(
+        &mut self,
+        _ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        _directive: &'a Positioned<Directive>,
+    ) {
         self.names.clear();
     }
 
     fn enter_argument(
         &mut self,
-        ctx: &mut VisitorContext<'a>,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         name: &'a Positioned<Name>,
         _value: &'a Positioned<Value>,
     ) {
@@ -32,7 +36,7 @@ impl<'a> Visitor<'a> for UniqueArgumentNames<'a> {
         }
     }
 
-    fn enter_field(&mut self, _ctx: &mut VisitorContext<'a>, _field: &'a Positioned<Field>) {
+    fn enter_field(&mut self, _ctx: &mut VisitorContext<'a, registry_v2::Registry>, _field: &'a Positioned<Field>) {
         self.names.clear();
     }
 }

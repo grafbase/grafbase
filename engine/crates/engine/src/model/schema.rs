@@ -1,5 +1,3 @@
-
-
 use crate::{
     model::{__Directive, __Type},
     Object,

@@ -7,7 +7,13 @@ use engine_parser::Pos;
 mod length;
 
 pub(crate) trait DynValidate<T> {
-    fn validate(&self, _ctx: &mut VisitorContext<'_>, meta: MetaInputValue<'_>, pos: Pos, other: T);
+    fn validate(
+        &self,
+        _ctx: &mut VisitorContext<'_, registry_v2::Registry>,
+        meta: MetaInputValue<'_>,
+        pos: Pos,
+        other: T,
+    );
 }
 
 trait DynValidatorExt {
@@ -24,7 +30,13 @@ impl DynValidatorExt for DynValidator {
 }
 
 impl DynValidate<&Value> for DynValidator {
-    fn validate(&self, ctx: &mut VisitorContext<'_>, meta: MetaInputValue<'_>, pos: Pos, value: &Value) {
+    fn validate(
+        &self,
+        ctx: &mut VisitorContext<'_, registry_v2::Registry>,
+        meta: MetaInputValue<'_>,
+        pos: Pos,
+        value: &Value,
+    ) {
         self.inner().validate(ctx, meta, pos, value);
     }
 }

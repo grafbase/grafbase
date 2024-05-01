@@ -43,7 +43,6 @@ use inflector::Inflector;
 use internment::ArcIntern;
 use tracing::{info_span, Instrument};
 
-
 use self::serializer::Serializer;
 use super::ResolvedValue;
 use crate::{

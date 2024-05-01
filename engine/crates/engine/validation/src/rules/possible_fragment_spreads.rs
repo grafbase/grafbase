@@ -12,15 +12,19 @@ pub struct PossibleFragmentSpreads<'a> {
     fragment_types: HashMap<&'a str, &'a str>,
 }
 
-impl<'a> Visitor<'a> for PossibleFragmentSpreads<'a> {
-    fn enter_document(&mut self, _ctx: &mut VisitorContext<'a>, doc: &'a ExecutableDocument) {
+impl<'a> Visitor<'a, registry_v2::Registry> for PossibleFragmentSpreads<'a> {
+    fn enter_document(&mut self, _ctx: &mut VisitorContext<'a, registry_v2::Registry>, doc: &'a ExecutableDocument) {
         for (name, fragment) in &doc.fragments {
             self.fragment_types
                 .insert(name.as_str(), &fragment.node.type_condition.node.on.node);
         }
     }
 
-    fn enter_fragment_spread(&mut self, ctx: &mut VisitorContext<'a>, fragment_spread: &'a Positioned<FragmentSpread>) {
+    fn enter_fragment_spread(
+        &mut self,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        fragment_spread: &'a Positioned<FragmentSpread>,
+    ) {
         if let Some(fragment_type) = self.fragment_types.get(&*fragment_spread.node.fragment_name.node) {
             if let Some(current_type) = ctx.current_type() {
                 if let Some(on_type) = ctx.registry.lookup_type(fragment_type) {
@@ -38,7 +42,11 @@ impl<'a> Visitor<'a> for PossibleFragmentSpreads<'a> {
         }
     }
 
-    fn enter_inline_fragment(&mut self, ctx: &mut VisitorContext<'a>, inline_fragment: &'a Positioned<InlineFragment>) {
+    fn enter_inline_fragment(
+        &mut self,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        inline_fragment: &'a Positioned<InlineFragment>,
+    ) {
         if let Some(parent_type) = ctx.parent_type() {
             if let Some(TypeCondition { on: fragment_type }) =
                 &inline_fragment.node.type_condition.as_ref().map(|c| &c.node)

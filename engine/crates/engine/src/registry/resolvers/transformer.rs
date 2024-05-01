@@ -1,7 +1,5 @@
 #![allow(deprecated)]
 
-
-
 use engine_parser::Positioned;
 use grafbase_sql_ast::ast::Order;
 

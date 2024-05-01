@@ -10,8 +10,12 @@ use {
 #[derive(Default)]
 pub struct OverlappingFieldsCanBeMerged;
 
-impl<'a> Visitor<'a> for OverlappingFieldsCanBeMerged {
-    fn enter_selection_set(&mut self, ctx: &mut VisitorContext<'a>, selection_set: &'a Positioned<SelectionSet>) {
+impl<'a> Visitor<'a, registry_v2::Registry> for OverlappingFieldsCanBeMerged {
+    fn enter_selection_set(
+        &mut self,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        selection_set: &'a Positioned<SelectionSet>,
+    ) {
         let mut find_conflicts = FindConflicts {
             outputs: Default::default(),
             visited: Default::default(),
@@ -24,7 +28,7 @@ impl<'a> Visitor<'a> for OverlappingFieldsCanBeMerged {
 struct FindConflicts<'a, 'ctx> {
     outputs: HashMap<&'a str, &'a Positioned<Field>>,
     visited: HashSet<&'a str>,
-    ctx: &'a mut VisitorContext<'ctx>,
+    ctx: &'a mut VisitorContext<'ctx, registry_v2::Registry>,
 }
 
 impl<'a, 'ctx> FindConflicts<'a, 'ctx> {

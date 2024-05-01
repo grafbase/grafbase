@@ -1,4 +1,3 @@
-
 use serde_json::Value;
 
 /// Checks if the provided data matches this discriminator

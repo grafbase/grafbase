@@ -27,7 +27,13 @@ fn check_bounds<T: PartialOrd>(item: T, lower: Option<T>, upper: Option<T>) -> L
 }
 
 impl DynValidate<&Value> for LengthValidator {
-    fn validate(&self, ctx: &mut VisitorContext<'_>, meta: MetaInputValue<'_>, pos: Pos, value: &Value) {
+    fn validate(
+        &self,
+        ctx: &mut VisitorContext<'_, registry_v2::Registry>,
+        meta: MetaInputValue<'_>,
+        pos: Pos,
+        value: &Value,
+    ) {
         use LengthTestResult::*;
 
         let var_value = match value {
@@ -60,130 +66,4 @@ impl DynValidate<&Value> for LengthValidator {
             ),
         }
     }
-}
-
-#[cfg(fixme)]
-#[test]
-fn test_length_validator() {
-    #![allow(clippy::diverging_sub_expression)]
-
-    use insta::assert_snapshot;
-
-    use super::{DynValidator, MetaInputValue};
-    use {
-        crate::{visitor::test::visit_input_value, VisitorNil},
-        engine_parser::parse_query,
-        registry::MetaTypeName,
-        EmptyMutation, EmptySubscription, Object, Schema,
-    };
-
-    struct Query;
-
-    #[Object(internal)]
-    #[allow(unreachable_code)]
-    impl Query {
-        async fn value(&self) -> i32 {
-            todo!()
-        }
-    }
-
-    let registry = Schema::create_registry_static::<Query, EmptyMutation, EmptySubscription>();
-    let query = r"{
-        value #1
-    }";
-
-    let doc = parse_query(query).unwrap();
-
-    let meta = MetaInputValue::new("test", "String");
-
-    let mut ctx = VisitorContext::new(&registry, &doc, None);
-    let custom_validator = DynValidator::length(Some(0), None);
-    custom_validator.validate(&mut ctx, &meta, Pos::from((0, 0)), &Value::String("test".to_string()));
-    assert!(ctx.errors.is_empty());
-
-    let mut ctx = VisitorContext::new(&registry, &doc, None);
-    let custom_validator = DynValidator::length(Some(0), Some(1));
-    custom_validator.validate(&mut ctx, &meta, Pos::from((0, 0)), &Value::String("test".to_string()));
-    assert_eq!(ctx.errors.len(), 1);
-    assert_snapshot!(ctx.errors[0].message);
-
-    let mut ctx = VisitorContext::new(&registry, &doc, None);
-    let custom_validator = DynValidator::length(Some(10), Some(15));
-    custom_validator.validate(&mut ctx, &meta, Pos::from((0, 0)), &Value::String("test".to_string()));
-    assert_eq!(ctx.errors.len(), 1, "{:#?}", ctx.errors);
-    assert_snapshot!(ctx.errors[0].message);
-
-    let vars = crate::Variables::from_json(serde_json::json!({"test":"test"}));
-    let mut ctx = VisitorContext::new(&registry, &doc, Some(&vars));
-    let custom_validator = DynValidator::length(Some(10), Some(15));
-    custom_validator.validate(
-        &mut ctx,
-        &meta,
-        Pos::from((0, 0)),
-        &Value::Variable(engine_value::Name::new("test")),
-    );
-    assert_eq!(ctx.errors.len(), 1, "{:#?}", ctx.errors);
-    assert_snapshot!(ctx.errors[0].message);
-
-    // Test nested validation via the visitor
-    let custom_validator = DynValidator::length(Some(10), Some(15));
-    let meta = MetaInputValue {
-        validators: Some(vec![custom_validator]),
-        ..MetaInputValue::new("test", "[String]")
-    };
-    let mut visitor = VisitorNil;
-    let mut ctx = VisitorContext::new(&registry, &doc, None);
-    let value = Value::List(vec![Value::String("test".to_string())]);
-    visit_input_value(
-        &mut visitor,
-        &mut ctx,
-        Pos::from((0, 0)),
-        Some(MetaTypeName::List("String")),
-        &value,
-        Some(&meta),
-    );
-    assert_eq!(ctx.errors.len(), 1, "{:#?}", ctx.errors);
-    assert_snapshot!(ctx.errors[0].message);
-
-    // Test list length validation via the visitor
-    let custom_validator = DynValidator::length(None, Some(3));
-    let meta = MetaInputValue {
-        validators: Some(vec![custom_validator]),
-        ..MetaInputValue::new("test", "[String]")
-    };
-    let mut visitor = VisitorNil;
-    let mut ctx = VisitorContext::new(&registry, &doc, None);
-    let value = Value::List(vec![
-        Value::String("test1".to_string()),
-        Value::String("test2".to_string()),
-        Value::String("test3".to_string()),
-    ]);
-    visit_input_value(
-        &mut visitor,
-        &mut ctx,
-        Pos::from((0, 0)),
-        Some(MetaTypeName::List("String")),
-        &value,
-        Some(&meta),
-    );
-    assert_eq!(ctx.errors.len(), 0, "{:#?}", ctx.errors);
-
-    let mut visitor = VisitorNil;
-    let mut ctx = VisitorContext::new(&registry, &doc, None);
-    let value = Value::List(vec![
-        Value::String("test1".to_string()),
-        Value::String("test2".to_string()),
-        Value::String("test3".to_string()),
-        Value::String("test4".to_string()),
-    ]);
-    visit_input_value(
-        &mut visitor,
-        &mut ctx,
-        Pos::from((0, 0)),
-        Some(MetaTypeName::List("String")),
-        &value,
-        Some(&meta),
-    );
-    assert_eq!(ctx.errors.len(), 1, "{:#?}", ctx.errors);
-    assert_snapshot!(ctx.errors[0].message);
 }

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use registry_v2::{
-    ids::{InputValidatorId, MetaFieldId},
+    ids::{InputValidatorId, MetaFieldId, MetaTypeId},
     storage::*,
     writer::RegistryWriter,
     IdRange, TypeWrappers, UnionDiscriminators,
@@ -69,6 +69,8 @@ pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> registry_v2::Registry {
 
     // Build a map of type name -> the ID it'll have when we insert it.
     let preallocated_ids = writer.preallocate_type_ids(types.len()).collect::<Vec<_>>();
+    assert_eq!(preallocated_ids.len(), types.len());
+
     let type_ids = types
         .iter()
         .zip(preallocated_ids.iter().cloned())
@@ -80,9 +82,9 @@ pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> registry_v2::Registry {
         writer.populate_preallocated_type(id, record);
     }
 
-    writer.query_type = Some(type_ids[&query_type]);
-    writer.mutation_type = mutation_type.map(|name| type_ids[&name]);
-    writer.subscription_type = subscription_type.map(|name| type_ids[&name]);
+    writer.query_type = Some(lookup_type_id(&type_ids, &query_type));
+    writer.mutation_type = mutation_type.map(|name| lookup_type_id(&type_ids, &name));
+    writer.subscription_type = subscription_type.map(|name| lookup_type_id(&type_ids, &name));
 
     let directives = {
         let mut directives = directives.into_values().collect::<Vec<_>>();
@@ -104,7 +106,7 @@ pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> registry_v2::Registry {
 fn insert_type(
     ty: registry_v1::MetaType,
     writer: &mut RegistryWriter,
-    type_ids: &HashMap<String, registry_v2::ids::MetaTypeId>,
+    type_ids: &HashMap<String, MetaTypeId>,
 ) -> MetaTypeRecord {
     match ty {
         registry_v1::MetaType::Scalar(inner) => insert_scalar(inner, writer, type_ids),
@@ -119,7 +121,7 @@ fn insert_type(
 fn insert_scalar(
     scalar: registry_v1::ScalarType,
     writer: &mut RegistryWriter,
-    _type_ids: &HashMap<String, registry_v2::ids::MetaTypeId>,
+    _type_ids: &HashMap<String, MetaTypeId>,
 ) -> MetaTypeRecord {
     let registry_v1::ScalarType {
         name,
@@ -144,7 +146,7 @@ fn insert_scalar(
 fn insert_object(
     inner: registry_v1::ObjectType,
     writer: &mut RegistryWriter,
-    type_ids: &HashMap<String, registry_v2::ids::MetaTypeId>,
+    type_ids: &HashMap<String, MetaTypeId>,
 ) -> MetaTypeRecord {
     let registry_v1::ObjectType {
         name,
@@ -178,7 +180,7 @@ fn insert_object(
 fn insert_fields(
     fields: IndexMap<String, registry_v1::MetaField>,
     writer: &mut RegistryWriter,
-    type_ids: &HashMap<String, registry_v2::ids::MetaTypeId>,
+    type_ids: &HashMap<String, MetaTypeId>,
 ) -> IdRange<MetaFieldId> {
     let fields = fields
         .into_values()
@@ -230,7 +232,7 @@ fn insert_fields(
 fn insert_input_values(
     values: IndexMap<String, registry_v1::MetaInputValue>,
     writer: &mut RegistryWriter,
-    type_ids: &HashMap<String, registry_v2::ids::MetaTypeId>,
+    type_ids: &HashMap<String, MetaTypeId>,
 ) -> IdRange<registry_v2::ids::MetaInputValueId> {
     let values = values
         .into_values()
@@ -271,7 +273,7 @@ fn insert_input_values(
 fn insert_interface(
     inner: registry_v1::InterfaceType,
     writer: &mut RegistryWriter,
-    type_ids: &HashMap<String, registry_v2::ids::MetaTypeId>,
+    type_ids: &HashMap<String, MetaTypeId>,
 ) -> MetaTypeRecord {
     let registry_v1::InterfaceType {
         name,
@@ -287,7 +289,10 @@ fn insert_interface(
     let description = description.map(|desc| writer.intern_string(desc));
 
     let fields = insert_fields(fields, writer, type_ids);
-    let possible_types = possible_types.into_iter().map(|ty| type_ids[&ty]).collect();
+    let possible_types = possible_types
+        .into_iter()
+        .map(|ty| lookup_type_id(type_ids, &ty))
+        .collect();
 
     writer.insert_interface(InterfaceTypeRecord {
         name,
@@ -301,7 +306,7 @@ fn insert_interface(
 fn insert_union(
     inner: registry_v1::UnionType,
     writer: &mut RegistryWriter,
-    type_ids: &HashMap<String, registry_v2::ids::MetaTypeId>,
+    type_ids: &HashMap<String, MetaTypeId>,
 ) -> MetaTypeRecord {
     let registry_v1::UnionType {
         name,
@@ -313,7 +318,10 @@ fn insert_union(
 
     let name = writer.intern_string(name);
     let description = description.map(|desc| writer.intern_string(desc));
-    let possible_types = possible_types.into_iter().map(|ty| type_ids[&ty]).collect();
+    let possible_types = possible_types
+        .into_iter()
+        .map(|ty| lookup_type_id(type_ids, &ty))
+        .collect();
     let discriminators = UnionDiscriminators(discriminators.unwrap_or_default());
 
     writer.insert_union(UnionTypeRecord {
@@ -327,7 +335,7 @@ fn insert_union(
 fn insert_enum(
     inner: registry_v1::EnumType,
     writer: &mut RegistryWriter,
-    _type_ids: &HashMap<String, registry_v2::ids::MetaTypeId>,
+    _type_ids: &HashMap<String, MetaTypeId>,
 ) -> MetaTypeRecord {
     let registry_v1::EnumType {
         name,
@@ -381,7 +389,7 @@ fn insert_enum_values(
 fn insert_input_object(
     inner: registry_v1::InputObjectType,
     writer: &mut RegistryWriter,
-    type_ids: &HashMap<String, registry_v2::ids::MetaTypeId>,
+    type_ids: &HashMap<String, MetaTypeId>,
 ) -> MetaTypeRecord {
     let registry_v1::InputObjectType {
         name,
@@ -407,7 +415,7 @@ fn insert_input_object(
 fn insert_directive(
     directive: registry_v1::MetaDirective,
     writer: &mut RegistryWriter,
-    type_ids: &HashMap<String, registry_v2::ids::MetaTypeId>,
+    type_ids: &HashMap<String, MetaTypeId>,
 ) {
     let registry_v1::MetaDirective {
         name,
@@ -444,22 +452,28 @@ fn insert_validators(
 
 fn convert_meta_field_type(
     ty: registry_v1::MetaFieldType,
-    type_ids: &HashMap<String, registry_v2::ids::MetaTypeId>,
+    type_ids: &HashMap<String, MetaTypeId>,
 ) -> MetaFieldTypeRecord {
     MetaFieldTypeRecord {
         wrappers: wrappers_from_string(ty.as_str()),
-        target: type_ids[ty.base_type_name()],
+        target: lookup_type_id(type_ids, ty.base_type_name()),
     }
 }
 
 fn convert_input_value_type(
     ty: registry_v1::InputValueType,
-    type_ids: &HashMap<String, registry_v2::ids::MetaTypeId>,
+    type_ids: &HashMap<String, MetaTypeId>,
 ) -> MetaInputValueTypeRecord {
     MetaInputValueTypeRecord {
         wrappers: wrappers_from_string(ty.as_str()),
-        target: type_ids[ty.base_type_name()],
+        target: lookup_type_id(type_ids, ty.base_type_name()),
     }
+}
+
+fn lookup_type_id(type_ids: &HashMap<String, MetaTypeId>, name: &str) -> MetaTypeId {
+    *type_ids
+        .get(name)
+        .unwrap_or_else(|| panic!("Couldn't find type {name}"))
 }
 
 fn wrappers_from_string(str: &str) -> TypeWrappers {

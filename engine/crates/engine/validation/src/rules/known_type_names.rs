@@ -11,10 +11,10 @@ use {
 #[derive(Default)]
 pub struct KnownTypeNames;
 
-impl<'a> Visitor<'a> for KnownTypeNames {
+impl<'a> Visitor<'a, registry_v2::Registry> for KnownTypeNames {
     fn enter_fragment_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a>,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         _name: &'a Name,
         fragment_definition: &'a Positioned<FragmentDefinition>,
     ) {
@@ -24,7 +24,7 @@ impl<'a> Visitor<'a> for KnownTypeNames {
 
     fn enter_variable_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a>,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
         variable_definition: &'a Positioned<VariableDefinition>,
     ) {
         validate_type(
@@ -34,14 +34,18 @@ impl<'a> Visitor<'a> for KnownTypeNames {
         );
     }
 
-    fn enter_inline_fragment(&mut self, ctx: &mut VisitorContext<'a>, inline_fragment: &'a Positioned<InlineFragment>) {
+    fn enter_inline_fragment(
+        &mut self,
+        ctx: &mut VisitorContext<'a, registry_v2::Registry>,
+        inline_fragment: &'a Positioned<InlineFragment>,
+    ) {
         if let Some(TypeCondition { on: name }) = inline_fragment.node.type_condition.as_ref().map(|c| &c.node) {
             validate_type(ctx, &name.node, inline_fragment.pos);
         }
     }
 }
 
-fn validate_type(ctx: &mut VisitorContext<'_>, type_name: &str, pos: Pos) {
+fn validate_type(ctx: &mut VisitorContext<'_, registry_v2::Registry>, type_name: &str, pos: Pos) {
     if ctx.registry.lookup_type(type_name).is_none() {
         ctx.report_error(vec![pos], format!(r#"Unknown type "{type_name}""#));
     }

@@ -3,6 +3,8 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
+use std::sync::Arc;
+
 use once_cell::sync::Lazy;
 
 use crate::visitor::{visit, RuleError, Visitor, VisitorContext};
@@ -323,25 +325,19 @@ impl Mutation {
 pub struct Subscription;
 
 static TEST_HARNESS: Lazy<Schema> = Lazy::new(|| {
-    todo!(
-        r#"
-    Schema::new(Arc::new(Schema::create_registry_static::<
-        Query,
-        Mutation,
-        EmptySubscription,
-    >()))
-    "#
-    )
+    let v1 = Schema::create_registry_static::<Query, Mutation, engine::EmptySubscription>();
+    let v2 = registry_upgrade::convert_v1_to_v2(v1);
+    Schema::new(Arc::new(v2))
 });
 
 pub(crate) fn validate<'a, V, F>(doc: &'a ExecutableDocument, factory: F) -> Result<(), Vec<RuleError>>
 where
-    V: Visitor<'a> + 'a,
+    V: Visitor<'a, registry_v2::Registry> + 'a,
     F: Fn() -> V,
 {
     let schema = &*TEST_HARNESS;
     let registry = &schema.env.registry;
-    let mut ctx = VisitorContext::new(registry, doc, None);
+    let mut ctx = VisitorContext::new(registry.as_ref(), doc, None);
     let mut visitor = factory();
     visit(&mut visitor, &mut ctx, doc);
     if ctx.errors.is_empty() {
@@ -353,7 +349,7 @@ where
 
 pub(crate) fn expect_passes_rule_<'a, V, F>(doc: &'a ExecutableDocument, factory: F)
 where
-    V: Visitor<'a> + 'a,
+    V: Visitor<'a, registry_v2::Registry> + 'a,
     F: Fn() -> V,
 {
     if let Err(errors) = validate(doc, factory) {
@@ -376,7 +372,7 @@ macro_rules! expect_passes_rule {
 
 pub(crate) fn expect_fails_rule_<'a, V, F>(doc: &'a ExecutableDocument, factory: F) -> String
 where
-    V: Visitor<'a> + 'a,
+    V: Visitor<'a, registry_v2::Registry> + 'a,
     F: Fn() -> V,
 {
     let result = validate(doc, factory);
