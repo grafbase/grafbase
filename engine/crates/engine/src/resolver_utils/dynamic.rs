@@ -1,18 +1,14 @@
 use std::borrow::{Borrow, Cow};
 
 use engine_parser::Pos;
+use engine_scalars::{DynamicScalar, PossibleScalar};
 use engine_value::{ConstValue, Name};
 use indexmap::IndexMap;
 
+use meta_type_name::MetaTypeName;
 use registry_v2::{EnumType, MetaInputValue, MetaType};
 
-use crate::{
-    registry::{
-        scalars::{DynamicScalar, PossibleScalar},
-        InputValueType, MetaTypeName,
-    },
-    Error, ServerResult,
-};
+use crate::{registry::InputValueType, Error, ServerResult};
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub enum InputResolveMode {

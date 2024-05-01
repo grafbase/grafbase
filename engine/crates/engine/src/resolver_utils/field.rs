@@ -1,4 +1,5 @@
 use engine_parser::parse_selection_set;
+use engine_scalars::{DynamicScalar, PossibleScalar};
 use engine_value::ConstValue;
 use graph_entities::{CompactValue, ResponseNodeId, ResponsePrimitive};
 use serde_json::Value;
@@ -9,7 +10,6 @@ use crate::{
         check_field_cache_tag,
         field_set::{all_fieldset_fields_are_present, FieldSetDisplay},
         resolvers::{ResolvedValue, ResolverContext},
-        scalars::{DynamicScalar, PossibleScalar},
     },
     request::IntrospectionState,
     Context, ContextExt, ContextField, Error, ServerError,
@@ -125,7 +125,7 @@ async fn resolve_primitive_field(
                 serde_json::Value::Null => ConstValue::Null,
                 _ => {
                     let scalar_value = PossibleScalar::to_value(field.ty().named_type().name(), result)
-                        .map_err(|err| err.into_server_error(ctx.item.pos))?;
+                        .map_err(|err| ServerError::new(err.0, Some(ctx.item.pos)))?;
 
                     check_field_cache_tag(ctx, parent_type_name, field.name(), Some(&scalar_value)).await;
 
