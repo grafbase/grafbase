@@ -69,9 +69,9 @@ fn export_fields<'a, I: Iterator<Item = MetaField<'a>>>(sdl: &mut String, it: I,
                 }
                 sdl.push_str(&export_input_value(arg));
             }
-            write!(sdl, "): {}", field.ty().to_string()).ok();
+            write!(sdl, "): {}", field.ty()).ok();
         } else {
-            write!(sdl, "\t{}: {}", field.name(), field.ty().to_string()).ok();
+            write!(sdl, "\t{}: {}", field.name(), field.ty()).ok();
         }
 
         if let Some(Deprecation::Deprecated { reason }) = field.deprecation() {
@@ -286,12 +286,8 @@ fn write_implements(registry: &Registry, sdl: &mut String, name: &str) {
 
 fn export_input_value(input_value: MetaInputValue) -> String {
     if let Some(default_value) = input_value.default_value() {
-        format!(
-            "{}: {} = {default_value}",
-            input_value.name(),
-            input_value.ty().to_string()
-        )
+        format!("{}: {} = {default_value}", input_value.name(), input_value.ty())
     } else {
-        format!("{}: {}", input_value.name(), input_value.ty().to_string())
+        format!("{}: {}", input_value.name(), input_value.ty())
     }
 }

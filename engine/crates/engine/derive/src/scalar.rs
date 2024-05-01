@@ -46,7 +46,7 @@ pub fn generate(scalar_args: &args::Scalar, item_impl: &mut ItemImpl) -> Generat
             }
 
             fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::InputValueType {
-                use crate::registry::LegacyRegistryExt;
+                use #crate_name::registry::LegacyRegistryExt;
                 registry.create_input_type::<#self_ty, _>(|_|
                     #crate_name::registry::MetaType::Scalar(#crate_name::registry::ScalarType {
                         name: ::std::borrow::ToOwned::to_owned(#gql_typename),
@@ -80,7 +80,7 @@ pub fn generate(scalar_args: &args::Scalar, item_impl: &mut ItemImpl) -> Generat
             }
 
             fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
-                use crate::registry::LegacyRegistryExt;
+                use #crate_name::registry::LegacyRegistryExt;
                 registry.create_output_type::<#self_ty, _>(|_|
                     #crate_name::registry::MetaType::Scalar(#crate_name::registry::ScalarType {
                         name: ::std::borrow::ToOwned::to_owned(#gql_typename),

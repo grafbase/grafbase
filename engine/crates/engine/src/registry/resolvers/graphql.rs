@@ -21,7 +21,6 @@ mod response;
 pub mod serializer;
 
 use std::{
-    borrow::Cow,
     collections::{BTreeMap, HashMap},
     pin::Pin,
     sync::atomic::{AtomicU64, Ordering},
@@ -43,7 +42,7 @@ use http::{header::USER_AGENT, StatusCode};
 use inflector::Inflector;
 use internment::ArcIntern;
 use tracing::{info_span, Instrument};
-use url::Url;
+
 
 use self::serializer::Serializer;
 use super::ResolvedValue;

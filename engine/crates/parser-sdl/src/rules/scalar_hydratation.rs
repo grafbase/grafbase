@@ -3,11 +3,9 @@
 //! The user defined scalars can be hydrated to the generated API only if those scalars belongs to
 //! the list of PossibleScalar from engine for now.
 //!
-use engine::{
-    registry::scalars::{DynamicScalar, PossibleScalar},
-    Positioned, Value,
-};
+use engine::{Positioned, Value};
 use engine_parser::types::TypeDefinition;
+use engine_scalars::{DynamicScalar, PossibleScalar};
 
 use super::visitor::{Visitor, VisitorContext};
 

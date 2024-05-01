@@ -1,4 +1,4 @@
-use engine::{Positioned, QueryPath};
+use engine::Positioned;
 use engine_parser::types::{FieldDefinition, TypeDefinition};
 
 use super::{
@@ -44,7 +44,7 @@ impl<'a> Visitor<'a> for DefaultDirectiveTypes {
             }
 
             if let Ok(mut arguments) = super::directive::extract_arguments(ctx, directive, &[&[VALUE_ARGUMENT]], None) {
-                let default_value = arguments.remove(VALUE_ARGUMENT).unwrap();
+                let _default_value = arguments.remove(VALUE_ARGUMENT).unwrap();
 
                 // let error = {
                 //     let ctx_registry = ctx.registry.borrow();
@@ -68,8 +68,8 @@ impl<'a> Visitor<'a> for DefaultDirectiveTypes {
 
 #[cfg(test)]
 mod tests {
-    use engine::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
     use engine_parser::parse_schema;
+    use engine_scalars::{PossibleScalar, SDLDefinitionScalar};
     use pretty_assertions::assert_eq;
 
     use super::*;

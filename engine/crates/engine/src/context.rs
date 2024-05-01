@@ -18,7 +18,7 @@ use graph_entities::QueryResponse;
 use http::header::HeaderMap;
 
 pub use self::selection_set::ContextSelectionSet;
-pub(crate) use self::{
+pub use self::{
     ext::{Context, ContextExt},
     field::ContextField,
     legacy::ContextSelectionSetLegacy,

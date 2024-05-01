@@ -227,7 +227,7 @@ pub(crate) async fn run_resolver(
                         .into_iter()
                         .map(|v| v.node),
                 )),
-                None => Target::Field(ctx.item.clone().into_inner(), resolver_ctx.field.clone()),
+                None => Target::Field(ctx.item.clone().into_inner(), resolver_ctx.field),
             };
 
             let operation = ctx.query_env.operation.node.ty;

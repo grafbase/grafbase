@@ -571,7 +571,7 @@ fn visit_field<'a, V: Visitor<'a>>(v: &mut V, ctx: &mut VisitorContext<'a>, fiel
         let meta_input_value = ctx
             .parent_type()
             .and_then(|ty| ty.field(&field.node.name.node))
-            .and_then(|schema_field| schema_field.argument(&*name.node));
+            .and_then(|schema_field| schema_field.argument(&name.node));
 
         let type_string = meta_input_value.map(|value| value.ty().to_string());
         let expected_ty = type_string
@@ -604,7 +604,7 @@ fn visit_input_value<'a, V: Visitor<'a>>(
             if let Some(expected_ty) = expected_ty {
                 let elem_ty = expected_ty.unwrap_non_null();
                 if let MetaTypeName::List(expected_ty) = elem_ty {
-                    let (name, description) = ctx
+                    let (_name, _description) = ctx
                         .registry
                         .lookup_type(MetaTypeName::concrete_typename(expected_ty))
                         .map(|meta_type| (meta_type.name().to_string(), meta_type.description().map(String::from)))
@@ -677,7 +677,7 @@ fn visit_directives<'a, V: Visitor<'a>>(
 
         for (name, value) in &d.node.arguments {
             v.enter_argument(ctx, name, value);
-            let meta_input_value = schema_directive.and_then(|schema_directive| schema_directive.argument(&*name.node));
+            let meta_input_value = schema_directive.and_then(|schema_directive| schema_directive.argument(&name.node));
             let expected_typename = meta_input_value.map(|input_value| input_value.ty().to_string());
             let expected_ty = expected_typename.as_ref().map(|name| MetaTypeName::create(name));
             ctx.with_input_type(meta_input_value, |ctx| {
@@ -770,6 +770,7 @@ impl Display for RuleError {
 pub(crate) mod test {
     use super::{MetaTypeName, Pos, Value, Visitor, VisitorContext};
 
+    #[allow(dead_code)]
     pub(crate) fn visit_input_value<'a, V: Visitor<'a>>(
         v: &mut V,
         ctx: &mut VisitorContext<'a>,

@@ -11,7 +11,6 @@ use common::channels::constant_watch_receiver;
 use common::consts::MAX_PORT;
 use common::consts::{GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME};
 use common::environment::{Environment, Project};
-use engine::registry::Registry;
 use flate2::read::GzDecoder;
 use futures_util::StreamExt;
 use graphql_federated_graph::FederatedGraph;

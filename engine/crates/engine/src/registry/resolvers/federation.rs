@@ -53,7 +53,7 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
         .get(representation.ty.as_str()) // TODO: should this be keyed by NamedType?
         .ok_or_else(|| Error::new(format!("Unknown __typename in representation: {}", representation.ty)))?;
 
-    let key_being_resolved = find_key_for_entity(&entity, &representation.data)
+    let key_being_resolved = find_key_for_entity(entity, &representation.data)
         .ok_or_else(|| Error::new("Could not find a matching key for the given representation"))?;
 
     // The ctx we're passed will have the generic Entity interface in it's type.

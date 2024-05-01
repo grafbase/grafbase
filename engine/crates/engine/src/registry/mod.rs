@@ -33,7 +33,7 @@ pub use self::{
     type_names::{ModelName, NamedType, TypeCondition, TypeReference, WrappingType, WrappingTypeIter},
 };
 pub use crate::model::__DirectiveLocation;
-use crate::{ContextExt, ContextField, Error, LegacyInputType, LegacyOutputType, SubscriptionType, Value};
+use crate::{ContextExt, ContextField, Error, LegacyInputType, LegacyOutputType, SubscriptionType};
 
 pub use registry_v1::*;
 pub use registry_v2::{Deprecation, OperationLimits, ScalarParser};
@@ -427,12 +427,4 @@ impl LegacyRegistryExt for registry_v1::Registry {
             .cloned()
             .expect("You definitely encountered a bug!")
     }
-}
-
-fn is_system_type(name: &str) -> bool {
-    if name.starts_with("__") {
-        return true;
-    }
-
-    name == "Boolean" || name == "Int" || name == "Float" || name == "String" || name == "ID"
 }

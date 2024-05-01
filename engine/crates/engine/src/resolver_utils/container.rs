@@ -338,18 +338,21 @@ impl<'a> FieldExecutionSet<'a> {
                     .lookup_type(type_name)
                     .and_then(|ty| ty.field(field.node.name.node.as_str()));
 
+                let meta_field_type = match meta_field.map(|field| field.ty()) {
+                    Some(ty) => ty,
+                    None => {
+                        return Err(ServerError::new(
+                            format!(r#"Cannot query field "{field_name}" on type "{type_name}"self."#),
+                            Some(ctx_field.item.pos),
+                        ));
+                    }
+                };
+                let return_type = &meta_field_type.to_string();
+
                 let resolve_info = ResolveInfo {
                     path: ctx_field.path.clone(),
                     parent_type: type_name,
-                    return_type: match meta_field.map(|field| field.ty()) {
-                        Some(ty) => ty,
-                        None => {
-                            return Err(ServerError::new(
-                                format!(r#"Cannot query field "{field_name}" on type "{type_name}"self."#),
-                                Some(ctx_field.item.pos),
-                            ));
-                        }
-                    },
+                    return_type,
                     name: field.node.name.node.as_str(),
                     alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
                     required_operation: meta_field.and_then(|f| f.required_operation().copied()),
@@ -539,18 +542,21 @@ impl<'a> Fields<'a> {
                                     .lookup_type(type_name.as_ref())
                                     .and_then(|ty| ty.field(field.node.name.node.as_str()));
 
+                                let meta_field_type = match meta_field.map(|field| field.ty()) {
+                                    Some(ty) => ty,
+                                    None => {
+                                        return Err(ServerError::new(
+                                            format!(r#"Cannot query field "{field_name}" on type "{type_name}"."#),
+                                            Some(ctx_field.item.pos),
+                                        ));
+                                    }
+                                };
+                                let return_type = &meta_field_type.to_string();
+
                                 let resolve_info = ResolveInfo {
                                     path: ctx_field.path.clone(),
                                     parent_type: &type_name,
-                                    return_type: match meta_field.map(|field| field.ty()) {
-                                        Some(ty) => ty,
-                                        None => {
-                                            return Err(ServerError::new(
-                                                format!(r#"Cannot query field "{field_name}" on type "{type_name}"."#),
-                                                Some(ctx_field.item.pos),
-                                            ));
-                                        }
-                                    },
+                                    return_type,
                                     name: field.node.name.node.as_str(),
                                     alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
                                     required_operation: meta_field.and_then(|f| f.required_operation().cloned()),

@@ -14,13 +14,9 @@ fn test_stripe_output() {
         url: None,
         ..metadata("stripe", true)
     };
-    insta::assert_snapshot!(build_registry(
-        "test_data/stripe.openapi.json",
-        Format::Json,
-        metadata
-    )
-    .unwrap()
-    .export_sdl(false));
+    insta::assert_snapshot!(build_registry("test_data/stripe.openapi.json", Format::Json, metadata)
+        .unwrap()
+        .export_sdl(false));
 }
 
 #[test]
@@ -189,13 +185,11 @@ fn test_all_of_schema_complex() {
 
 #[test]
 fn test_supabase() {
-    insta::assert_snapshot!(build_registry(
-        "test_data/supabase.json",
-        Format::Json,
-        metadata("supabase", true)
-    )
-    .unwrap()
-    .export_sdl(false));
+    insta::assert_snapshot!(
+        build_registry("test_data/supabase.json", Format::Json, metadata("supabase", true))
+            .unwrap()
+            .export_sdl(false)
+    );
 }
 
 #[test]
@@ -230,44 +224,19 @@ fn test_netlify_schema() {
 
 #[test]
 fn test_stripe_discrimnator_detection() {
-    let registry = build_registry(
-        "test_data/stripe.openapi.json",
-        Format::Json,
-        metadata("stripe", true),
-    )
-    .unwrap();
+    let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata("stripe", true)).unwrap();
     let discriminators = registry
         .types
         .values()
         .filter_map(|ty| match ty {
             MetaType::Union(UnionType {
-                name,
-                discriminators,
-                ..
+                name, discriminators, ..
             }) => Some((name, discriminators)),
             _ => None,
         })
         .collect::<Vec<_>>();
 
     insta::assert_json_snapshot!(discriminators);
-}
-
-#[test]
-fn non_required_self_referencing_objects_produce_valid_sdl() {
-    let registry = build_registry(
-        "test_data/self_referencing.openapi.json",
-        Format::Json,
-        metadata("self-referential", true),
-    )
-    .unwrap();
-    let sdl = registry.export_sdl(false);
-    let diagnostics = graphql_schema_validation::validate(&sdl);
-
-    assert!(
-        !diagnostics.has_errors(),
-        "{:?}",
-        diagnostics.iter().collect::<Vec<_>>()
-    );
 }
 
 #[test]

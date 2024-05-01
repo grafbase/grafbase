@@ -3,15 +3,13 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
-use std::sync::Arc;
-
 use once_cell::sync::Lazy;
 
 use crate::visitor::{visit, RuleError, Visitor, VisitorContext};
+use engine::{Enum, InputObject, Interface, Object, Schema, Union, ID};
 use engine_parser::types::ExecutableDocument;
 
 #[derive(InputObject)]
-#[graphql(internal)]
 struct TestInput {
     id: i32,
     name: String,
@@ -27,7 +25,6 @@ impl Default for TestInput {
 }
 
 #[derive(Enum, Eq, PartialEq, Copy, Clone)]
-#[graphql(internal)]
 enum DogCommand {
     Sit,
     Heel,
@@ -36,7 +33,7 @@ enum DogCommand {
 
 struct Dog;
 
-#[Object(internal)]
+#[Object]
 impl Dog {
     async fn name(&self, surname: Option<bool>) -> Option<String> {
         unimplemented!()
@@ -68,7 +65,6 @@ impl Dog {
 }
 
 #[derive(Enum, Copy, Clone, Eq, PartialEq)]
-#[graphql(internal)]
 enum FurColor {
     Brown,
     Black,
@@ -78,7 +74,7 @@ enum FurColor {
 
 struct Cat;
 
-#[Object(internal)]
+#[Object]
 impl Cat {
     async fn name(&self, surname: Option<bool>) -> Option<String> {
         unimplemented!()
@@ -102,7 +98,6 @@ impl Cat {
 }
 
 #[derive(Union)]
-#[graphql(internal)]
 enum CatOrDog {
     Cat(Cat),
     Dog(Dog),
@@ -110,7 +105,7 @@ enum CatOrDog {
 
 struct Human;
 
-#[Object(internal)]
+#[Object]
 impl Human {
     async fn name(&self, surname: Option<bool>) -> Option<String> {
         unimplemented!()
@@ -131,7 +126,7 @@ impl Human {
 
 struct Alien;
 
-#[Object(internal)]
+#[Object]
 impl Alien {
     async fn name(&self, surname: Option<bool>) -> Option<String> {
         unimplemented!()
@@ -147,28 +142,23 @@ impl Alien {
 }
 
 #[derive(Union)]
-#[graphql(internal)]
 enum DogOrHuman {
     Dog(Dog),
     Human(Human),
 }
 
 #[derive(Union)]
-#[graphql(internal)]
 enum HumanOrAlien {
     Human(Human),
     Alien(Alien),
 }
 
 #[derive(Interface)]
-#[graphql(
-    internal,
-    field(
-        name = "name",
-        r#type = "Option<String>",
-        arg(name = "surname", r#type = "Option<bool>")
-    )
-)]
+#[graphql(field(
+    name = "name",
+    r#type = "Option<String>",
+    arg(name = "surname", r#type = "Option<bool>")
+))]
 enum Being {
     Dog(Dog),
     Cat(Cat),
@@ -177,41 +167,34 @@ enum Being {
 }
 
 #[derive(Interface)]
-#[graphql(
-    internal,
-    field(
-        name = "name",
-        r#type = "Option<String>",
-        arg(name = "surname", r#type = "Option<bool>")
-    )
-)]
+#[graphql(field(
+    name = "name",
+    r#type = "Option<String>",
+    arg(name = "surname", r#type = "Option<bool>")
+))]
 enum Pet {
     Dog(Dog),
     Cat(Cat),
 }
 
 #[derive(Interface)]
-#[graphql(
-    internal,
-    field(
-        name = "name",
-        r#type = "Option<String>",
-        arg(name = "surname", r#type = "Option<bool>")
-    )
-)]
+#[graphql(field(
+    name = "name",
+    r#type = "Option<String>",
+    arg(name = "surname", r#type = "Option<bool>")
+))]
 enum Canine {
     Dog(Dog),
 }
 
 #[derive(Interface)]
-#[graphql(internal, field(name = "iq", r#type = "Option<i32>"))]
+#[graphql(field(name = "iq", r#type = "Option<i32>"))]
 enum Intelligent {
     Human(Human),
     Alien(Alien),
 }
 
 #[derive(InputObject)]
-#[graphql(internal)]
 struct ComplexInput {
     required_field: bool,
     int_field: Option<i32>,
@@ -222,7 +205,7 @@ struct ComplexInput {
 
 struct ComplicatedArgs;
 
-#[Object(internal)]
+#[Object]
 impl ComplicatedArgs {
     async fn int_arg_field(&self, int_arg: Option<i32>) -> Option<String> {
         unimplemented!()
@@ -281,7 +264,7 @@ impl ComplicatedArgs {
 
 pub struct Query;
 
-#[Object(internal)]
+#[Object]
 impl Query {
     async fn human(&self, id: Option<ID>) -> Option<Human> {
         unimplemented!()
@@ -330,7 +313,7 @@ impl Query {
 
 pub struct Mutation;
 
-#[Object(internal)]
+#[Object]
 impl Mutation {
     async fn test_input(&self, #[graphql(default)] input: TestInput) -> i32 {
         unimplemented!()
@@ -386,8 +369,8 @@ where
 
 macro_rules! expect_passes_rule {
     ($factory:expr, $query_source:literal $(,)?) => {
-        let doc = crate::parser::parse_query($query_source).expect("Parse error");
-        crate::validation::test_harness::expect_passes_rule_(&doc, $factory);
+        let doc = engine_parser::parse_query($query_source).expect("Parse error");
+        crate::test_harness::expect_passes_rule_(&doc, $factory);
     };
 }
 
