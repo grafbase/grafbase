@@ -1,4 +1,4 @@
-use std::iter::FusedIterator;
+use std::{fmt, iter::FusedIterator};
 
 use crate::{Registry, RegistryId};
 use engine_id_newtypes::{IdOperations, IdRange};
@@ -61,4 +61,17 @@ where
     T::Id: IdOperations,
     IdRange<T::Id>: FusedIterator,
 {
+}
+
+impl<'a, T> fmt::Debug for Iter<'a, T>
+where
+    T: IdReader,
+    T::Id: IdOperations,
+    IdRange<T::Id>: ExactSizeIterator,
+    <T::Id as RegistryId>::Reader<'a>: fmt::Debug,
+    Self: Copy,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_list().entries(*self).finish()
+    }
 }

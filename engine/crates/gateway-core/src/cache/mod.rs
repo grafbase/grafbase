@@ -12,7 +12,7 @@ pub struct CacheConfig {
     pub global_enabled: bool,
     pub subdomain: String,
     pub host_name: String,
-    pub partial_registry: PartialCacheRegistry,
+    pub partial_registry: Arc<PartialCacheRegistry>,
     pub common_cache_tags: Vec<String>,
 }
 

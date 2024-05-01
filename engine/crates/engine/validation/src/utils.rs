@@ -62,7 +62,7 @@ pub fn is_valid_input_value(
 
             match registry
                 .lookup_type(type_name)
-                .unwrap_or_else(|| panic!("{type_name} unknown"))
+                .unwrap_or_else(|| panic!("{type_name} unknown at path {path}"))
             {
                 MetaType::Scalar(scalar) => match scalar.parser() {
                     ScalarParser::PassThrough => None,

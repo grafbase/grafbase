@@ -89,6 +89,7 @@ reqwest = { workspace = true, features = [
 [dev-dependencies]
 indoc = "2.0.5"
 insta.workspace = true
+registry-upgrade.workspace = true
 rstest.workspace = true
 runtime = { workspace = true, features = ["test-utils"] }
 sha2.workspace = true

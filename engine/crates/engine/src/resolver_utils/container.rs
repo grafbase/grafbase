@@ -342,7 +342,7 @@ impl<'a> FieldExecutionSet<'a> {
                     Some(ty) => ty,
                     None => {
                         return Err(ServerError::new(
-                            format!(r#"Cannot query field "{field_name}" on type "{type_name}"self."#),
+                            format!(r#"Cannot query field "{field_name}" on type "{type_name}"."#),
                             Some(ctx_field.item.pos),
                         ));
                     }

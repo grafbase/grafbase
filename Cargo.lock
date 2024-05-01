@@ -1987,6 +1987,7 @@ dependencies = [
  "multer",
  "pin-project-lite",
  "postgres-connector-types",
+ "registry-upgrade",
  "registry-v1",
  "registry-v2",
  "reqwest",
