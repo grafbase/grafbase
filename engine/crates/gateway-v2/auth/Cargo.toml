@@ -30,7 +30,7 @@ strum.workspace = true
 tracing.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
+getrandom = { version = "0.2.14", features = ["js"] }
 reqwest = { workspace = true, features = ["json"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

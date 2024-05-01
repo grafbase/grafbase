@@ -16,8 +16,8 @@ workspace = true
 futures-util.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen-futures = { version = "0.4" }
+wasm-bindgen-futures = { version = "0.4.42" }
 send_wrapper = { version = "0.6", features = ["futures"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { version = "1" }
+tokio = { version = "1.37.0" }

@@ -23,9 +23,9 @@ futures-util.workspace = true
 futures.workspace = true
 hex.workspace = true
 id-newtypes = { path = "./id-newtypes", package = "engine-v2-id-newtypes" }
-im = "15"
+im = "15.1.0"
 itertools.workspace = true
-lasso = "0.7"
+lasso = "0.7.2"
 serde = { workspace = true, features = ["rc"] }
 serde-value = "0.7"
 serde_json.workspace = true

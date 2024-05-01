@@ -13,7 +13,7 @@ keywords = ["extensions", "graphql", "grafbase"]
 workspace = true
 
 [dependencies]
-async-trait = "0.1"
+async-trait = "0.1.80"
 web-time.workspace = true
 engine = { path = "../engine", default-features = false }
 engine-value.workspace = true

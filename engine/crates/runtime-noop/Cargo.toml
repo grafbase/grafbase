@@ -13,6 +13,6 @@ keywords = ["runtime", "grafbase"]
 workspace = true
 
 [dependencies]
-async-trait = "0.1"
+async-trait = "0.1.80"
 thiserror.workspace = true
 runtime.workspace = true

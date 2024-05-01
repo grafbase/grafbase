@@ -12,15 +12,15 @@ keywords = ["openapi", "parser", "grafbase"]
 workspace = true
 
 [dependencies]
-Inflector = "0.11"
-indexmap = "2"
+Inflector = "0.11.4"
+indexmap = "2.2.6"
 itertools.workspace = true
-once_cell = "1"
-petgraph = "0.6"
+once_cell = "1.19.0"
+petgraph = "0.6.4"
 regex.workspace = true
-serde = "1"
-serde_json = "1"
-serde_yaml = "0.9"
+serde = "1.0.199"
+serde_json = "1.0.116"
+serde_yaml = "0.9.34"
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tracing.workspace = true
@@ -42,6 +42,6 @@ parser-sdl = { path = "../parser-sdl" }
 assert_matches = "1.5"
 graphql-schema-validation.workspace = true
 insta.workspace = true
-more-asserts = "0.3"
+more-asserts = "0.3.1"
 rstest = "0.19"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

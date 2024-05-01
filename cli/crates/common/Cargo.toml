@@ -13,17 +13,17 @@ repository.workspace = true
 chrono = "0.4.38"
 const_format = "0.2.32"
 derivative = "2.2.0"
-dirs = "5"
+dirs = "5.0.1"
 expect-test = "1.5.0"
-rudderanalytics = { version = "1", features = [
+rudderanalytics = { version = "1.1.3", features = [
   "rustls-tls",
 ], default-features = false }
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1.0.199", features = ["derive"] }
 serde_json.workspace = true
-strum = { version = "0.26", features = ["derive"] }
-thiserror = "1"
+strum = { version = "0.26.2", features = ["derive"] }
+thiserror = "1.0.59"
 tokio.workspace = true
-ulid = { version = "1", features = ["serde"] }
+ulid = { version = "1.1.2", features = ["serde"] }
 which.workspace = true
 
 common-types = { path = "../../../engine/crates/common-types" }

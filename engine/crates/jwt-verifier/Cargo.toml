@@ -9,13 +9,13 @@ workspace = true
 
 [dependencies]
 futures-util.workspace = true
-json_dotpath = "1"
+json_dotpath = "1.1.0"
 jwt-compact = { version = "0.8", features = ["clock", "rsa"] }
 secrecy.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_with.workspace = true
-thiserror = "1"
+thiserror = "1.0.59"
 url = { workspace = true, features = ["serde"] }
 runtime.workspace = true
 tracing.workspace = true
@@ -30,9 +30,9 @@ reqwest = { workspace = true, features = [
 ] }
 
 [dev-dependencies]
-chrono = "0.4"
+chrono = "0.4.38"
 serde_json.workspace = true
-tokio = { version = "1", features = ["macros"] }
+tokio = { version = "1.37.0", features = ["macros"] }
 wiremock.workspace = true
 ctor.workspace = true
 rustls = { workspace = true, features = ["ring"] }

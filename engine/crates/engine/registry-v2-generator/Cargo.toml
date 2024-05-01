@@ -7,14 +7,14 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1"
-indexmap = "2"
-indoc = "2"
-itertools = "0.12"
-proc-macro2 = "1"
-quote = "1"
-xshell = "0.2"
+anyhow = "1.0.82"
+indexmap = "2.2.6"
+indoc = "2.0.5"
+itertools = "0.12.1"
+proc-macro2 = "1.0.81"
+quote = "1.0.36"
+xshell = "0.2.6"
 
-cynic-parser.version = "0.2"
+cynic-parser.version = "0.2.6"
 
 cynic-parser.features = ["report"]

@@ -11,7 +11,7 @@ repository = "https://github.com/grafbase/grafbase"
 version = "3.0.31"
 
 [dependencies]
-fnv = "1"
+fnv = "1.0.7"
 id-newtypes = { path = "../id-newtypes", package = "engine-v2-id-newtypes" }
 indexmap.workspace = true
 serde.workspace = true
