@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use meta_type_name::MetaTypeName;
+
 use crate::{
     model::{__EnumValue, __Field, __InputValue, __TypeKind},
     registry, ContextField, Object,
@@ -27,16 +29,16 @@ impl<'a> __Type<'a> {
 
     #[inline]
     pub fn new(registry: &'a registry_v2::Registry, type_name: &str) -> __Type<'a> {
-        match registry::MetaTypeName::create(type_name) {
-            registry::MetaTypeName::NonNull(ty) => __Type {
+        match MetaTypeName::create(type_name) {
+            MetaTypeName::NonNull(ty) => __Type {
                 registry,
                 detail: TypeDetail::NonNull(ty.to_string()),
             },
-            registry::MetaTypeName::List(ty) => __Type {
+            MetaTypeName::List(ty) => __Type {
                 registry,
                 detail: TypeDetail::List(ty.to_string()),
             },
-            registry::MetaTypeName::Named(ty) => __Type {
+            MetaTypeName::Named(ty) => __Type {
                 registry,
                 detail: TypeDetail::Named(match registry.lookup_type(ty) {
                     Some(t) => t,

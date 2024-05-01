@@ -5,17 +5,15 @@ use std::{
 };
 
 use engine_parser::types::OperationType::Query;
+use engine_validation::ValidationMode;
 use inflector::Inflector;
 
-use crate::registry::{MetaType, Registry};
+use crate::{
+    registry::{MetaType, Registry},
+    ServerError,
+};
 
 pub use registry_v2::cache_control::*;
-
-#[derive(Clone, PartialEq, Eq, Debug, serde::Deserialize, serde::Serialize, Hash)]
-pub struct CacheInvalidation {
-    pub ty: String,
-    pub policy: CacheInvalidationPolicy,
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum CacheControlError {
@@ -41,14 +39,14 @@ impl CachePartialRegistry {
             ..Default::default()
         };
 
-        crate::validation::check_rules(
+        engine_validation::check_rules(
             todo!("&registry_caching_view"), // TODO: Revisit this when conversion is done
             &document,
             Some(&request.variables),
-            crate::ValidationMode::Fast,
+            ValidationMode::Fast,
         )
         .map(|res| res.cache_control)
-        .map_err(CacheControlError::Validate)
+        .map_err(|errors| CacheControlError::Validate(errors.into_iter().map(ServerError::from).collect()))
     }
 }
 

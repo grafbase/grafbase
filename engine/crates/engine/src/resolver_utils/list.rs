@@ -1,6 +1,7 @@
 use std::future::Future;
 
 use async_runtime::make_send_on_wasm;
+use engine_scalars::{DynamicScalar, PossibleScalar};
 use engine_value::Name;
 use futures_util::future::BoxFuture;
 use graph_entities::{CompactValue, QueryResponseNode, ResponseList, ResponseNodeId, ResponsePrimitive};
@@ -8,11 +9,7 @@ use graph_entities::{CompactValue, QueryResponseNode, ResponseList, ResponseNode
 use crate::{
     extensions::ResolveInfo,
     parser::types::Field,
-    registry::{
-        resolvers::ResolvedValue,
-        scalars::{DynamicScalar, PossibleScalar},
-        type_kinds::OutputType,
-    },
+    registry::{resolvers::ResolvedValue, type_kinds::OutputType},
     resolver_utils::resolve_container,
     Context, ContextExt, ContextField, ContextList, ContextSelectionSetLegacy, ContextWithIndex, Error,
     LegacyOutputType, Positioned, ServerError, ServerResult, Value,
@@ -205,7 +202,8 @@ fn resolve_scalar(value: Value, base_type_name: &str) -> Result<Value, Error> {
         value => PossibleScalar::to_value(
             base_type_name,
             serde_json::to_value(value).expect("ConstValue can always be transformed into a json"),
-        ),
+        )
+        .map_err(|err| Error::new(err.0)),
     }
 }
 

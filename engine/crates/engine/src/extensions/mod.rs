@@ -8,12 +8,13 @@ use std::{
 
 use common_types::auth::Operations;
 use engine_parser::{types::OperationDefinition, Positioned};
+use engine_validation::ValidationResult;
 use engine_value::Name;
 use graph_entities::ResponseNodeId;
 
 use crate::{
-    parser::types::ExecutableDocument, registry::MetaFieldType, Data, DataContext, Error, QueryPath, Request, Response,
-    Result, SchemaEnv, ServerError, ServerResult, ValidationResult, Value, Variables,
+    parser::types::ExecutableDocument, Data, DataContext, Error, QueryPath, Request, Response, Result, SchemaEnv,
+    ServerError, ServerResult, Value, Variables,
 };
 
 /// Context for extension

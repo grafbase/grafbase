@@ -1954,7 +1954,6 @@ dependencies = [
  "async-runtime",
  "async-stream",
  "async-trait",
- "base64 0.22.1",
  "bytes",
  "case",
  "chrono",
@@ -1963,8 +1962,9 @@ dependencies = [
  "derivative",
  "engine-derive",
  "engine-parser",
+ "engine-scalars",
+ "engine-validation",
  "engine-value",
- "fast_chemail",
  "flexbuffers",
  "fnv",
  "futures",
@@ -1976,17 +1976,15 @@ dependencies = [
  "grafbase-tracing",
  "graph-entities",
  "graphql-cursor",
- "hex",
  "http 1.1.0",
  "im",
  "indexmap 2.2.6",
  "indoc",
  "insta",
  "internment",
- "ipnet",
+ "meta-type-name",
  "mime",
  "multer",
- "nom",
  "once_cell",
  "pin-project-lite",
  "postgres-connector-types",
@@ -1995,7 +1993,6 @@ dependencies = [
  "reqwest",
  "rstest",
  "runtime",
- "rust_decimal",
  "serde",
  "serde_json",
  "serde_with",
@@ -2004,7 +2001,6 @@ dependencies = [
  "strum_macros",
  "tempfile",
  "thiserror",
- "time",
  "tracing",
  "ulid",
  "url",
@@ -2060,6 +2056,26 @@ dependencies = [
  "pest",
  "pest_derive",
  "serde",
+]
+
+[[package]]
+name = "engine-scalars"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "chrono",
+ "engine-value",
+ "fast_chemail",
+ "hex",
+ "insta",
+ "ipnet",
+ "nom",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "time",
+ "url",
+ "uuid",
 ]
 
 [[package]]
@@ -2149,6 +2165,22 @@ dependencies = [
  "thiserror",
  "url",
  "wrapping",
+]
+
+[[package]]
+name = "engine-validation"
+version = "0.1.0"
+dependencies = [
+ "engine",
+ "engine-parser",
+ "engine-scalars",
+ "engine-value",
+ "indexmap 2.2.6",
+ "meta-type-name",
+ "once_cell",
+ "query-path",
+ "registry-v2",
+ "serde",
 ]
 
 [[package]]
@@ -4524,6 +4556,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "meta-type-name"
+version = "0.1.0"
+
+[[package]]
 name = "miette"
 version = "5.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5934,6 +5970,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "query-path"
+version = "0.1.0"
+dependencies = [
+ "im",
+ "internment",
+ "serde",
 ]
 
 [[package]]

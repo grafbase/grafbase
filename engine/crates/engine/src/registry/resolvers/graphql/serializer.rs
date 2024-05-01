@@ -12,11 +12,12 @@ use engine_parser::{
     Positioned,
 };
 use engine_value::{Name, Value};
+use meta_type_name::MetaTypeName;
 use registry_v2::{MetaField, Registry};
 use type_names::WrappingType;
 
 use super::Target;
-use crate::registry::{type_kinds::SelectionSetTarget, type_names, MetaTypeName, RegistryV2Ext};
+use crate::registry::{type_kinds::SelectionSetTarget, type_names, RegistryV2Ext};
 
 /// Serialize a list of [`Selection`]s into a GraphQL query string.
 ///
