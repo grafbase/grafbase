@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Validate that required arguments are provided in @requires selections (https://github.com/grafbase/grafbase/pull/1683)
+- More context for error messages regarding `@requires` fields validations (https://github.com/grafbase/grafbase/pull/1683)
+- Subgraph names must now start with an alphabetic character and be entirely alphanumeric characters and hyphens (https://github.com/grafbase/grafbase/pull/1685)
+- Two subgraphs that only differ by name case are not allowed to be composed anymore (https://github.com/grafbase/grafbase/pull/1685)
+
 ## 0.3.0 - 2024-02-06
 
 - Implement non-default root type support (#1154)
