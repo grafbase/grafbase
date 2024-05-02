@@ -54,11 +54,10 @@ pub(crate) async fn build(
     let udf_input_file_path = udf_input_file_path
         .ok_or_else(|| UdfBuildError::UdfDoesNotExist(udf_kind, udf_input_file_path_without_extension.clone()))?;
 
-    let udf_wrapper_worker_contents = udf_wrapper_worker_contents
-        .replace(
-            "${UDF_MAIN_FILE_PATH}",
-            udf_input_file_path.to_slash().expect("must be valid UTF-8").as_ref(),
-        );
+    let udf_wrapper_worker_contents = udf_wrapper_worker_contents.replace(
+        "${UDF_MAIN_FILE_PATH}",
+        udf_input_file_path.to_slash().expect("must be valid UTF-8").as_ref(),
+    );
 
     tokio::fs::create_dir_all(&udf_build_artifact_directory_path)
         .await
