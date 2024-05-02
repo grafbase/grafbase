@@ -45,10 +45,17 @@ pub async fn serve(
         .or(config.network.listen_address)
         .unwrap_or(DEFAULT_LISTEN_ADDRESS);
 
-    let (otel_tracer_provider, otel_reload_trigger) = otel_tracing
-        .map(|otel| (Some(otel.tracer_provider), Some(otel.reload_trigger)))
-        .unwrap_or((None, None));
+    let (otel_tracer_provider, otel_reload_ack_receiver, otel_reload_trigger) = otel_tracing
+        .map(|otel| {
+            (
+                Some(otel.tracer_provider),
+                Some(otel.reload_ack_receiver),
+                Some(otel.reload_trigger),
+            )
+        })
+        .unwrap_or((None, None, None));
 
+    let wait_for_otel_reload = !matches!(fetch_method, GraphFetchMethod::FromLocal { .. });
     let gateway = fetch_method.into_gateway(
         GatewayConfig {
             enable_introspection: config.graph.introspection,
@@ -69,6 +76,17 @@ pub async fn serve(
     let cors = match config.cors {
         Some(cors_config) => cors::generate(cors_config),
         None => CorsLayer::permissive(),
+    };
+
+    // When initializing OTEL we don't have all resources attributes yet, we rely on the GDN call
+    // to retrieve some of them like branch_id. However we only call it asynchronously only if the
+    // schema wasn't provided, so we need to wait on the OTEL reload which is also done
+    // asynchronously in the background if and only if we call the GDN.
+    // We need the resource attributes immediately because the grafbase_tracing::tower::layer
+    // creates a MeterProvider with it and resources attributes won't be updated afterwards.
+    if let Some(reload_ack_receiver) = otel_reload_ack_receiver.filter(|_| wait_for_otel_reload) {
+        tracing::info!("Waiting for OTEL providers to reload after initial GDN call...");
+        reload_ack_receiver.await.ok();
     };
 
     let state = ServerState::new(gateway, otel_tracer_provider);
