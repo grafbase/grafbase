@@ -10,7 +10,7 @@ pub(crate) fn validate_subgraph_names(ctx: &mut ValidateContext<'_>) {
 
         if !seen.insert(name.to_ascii_lowercase()) {
             ctx.diagnostics.push_fatal(format!(
-                r#"Found two subgraphs named "{name}". Subgraph names are case insensitive. "#
+                r#"Found two subgraphs named "{name}". Subgraph names are case insensitive."#
             ));
         }
     }
