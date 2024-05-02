@@ -130,7 +130,7 @@ impl Engine {
             has_errors: response.has_errors(),
         };
         if let Some(metrics_attributes) = metrics_attributes {
-            metadata.operation_name = metrics_attributes.name.clone();
+            metadata.operation_name.clone_from(&metrics_attributes.name);
             metadata.operation_type = Some(metrics_attributes.ty);
             self.operation_metrics.record(metrics_attributes, start.elapsed());
         }

@@ -538,6 +538,7 @@ type MetaVisibleFn = fn(&ContextField<'_>) -> bool;
 #[derive(Debug)]
 pub struct Edge<'a>(pub &'a str);
 
+#[allow(clippy::to_string_trait_impl)]
 impl<'a> ToString for Edge<'a> {
     fn to_string(&self) -> String {
         self.0.to_string()
@@ -1651,7 +1652,7 @@ impl Registry {
     where
         F: FnOnce(&mut Registry) -> MongoDBConfiguration,
     {
-        if self.mongodb_configurations.get(name).is_some() {
+        if self.mongodb_configurations.contains_key(name) {
             panic!("MongoDB directive with `{name}` already exists.");
         }
 

@@ -10,7 +10,6 @@ use engine::registry::{InputValueType, MetaFieldType, NamedType};
 pub trait TypeNameExt<'a> {
     fn as_nullable(self) -> TypeBuilder<'a>;
     fn as_non_null(self) -> TypeBuilder<'a>;
-    fn as_list(self) -> TypeBuilder<'a>;
 }
 
 impl<'a> TypeNameExt<'a> for &'a NamedType<'_> {
@@ -25,13 +24,6 @@ impl<'a> TypeNameExt<'a> for &'a NamedType<'_> {
         TypeBuilder {
             name: self.borrow(),
             wrapping: vec![WrappingType::NonNull],
-        }
-    }
-
-    fn as_list(self) -> TypeBuilder<'a> {
-        TypeBuilder {
-            name: self.borrow(),
-            wrapping: vec![WrappingType::List],
         }
     }
 }

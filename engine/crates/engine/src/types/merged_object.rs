@@ -74,7 +74,7 @@ where
 
             let mut object = ObjectType::new(Self::type_name().to_string(), []);
             object.fields = fields;
-            object.rust_typename = std::any::type_name::<Self>().to_owned();
+            std::any::type_name::<Self>().clone_into(&mut object.rust_typename);
             object.into()
         })
     }
@@ -125,7 +125,7 @@ where
 
                 let mut object = ObjectType::new(Self::type_name().to_string(), []);
                 object.fields = fields;
-                object.rust_typename = std::any::type_name::<Self>().to_owned();
+                std::any::type_name::<Self>().clone_into(&mut object.rust_typename);
                 object.into()
             })
             .into()
@@ -153,7 +153,7 @@ impl SubscriptionType for MergedObjectTail {
         registry
             .create_subscription_type::<Self, _>(|_| {
                 let mut object = ObjectType::new("MergedSubscriptionTail", []);
-                object.rust_typename = std::any::type_name::<Self>().to_owned();
+                std::any::type_name::<Self>().clone_into(&mut object.rust_typename);
                 object.into()
             })
             .into()
