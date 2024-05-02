@@ -20,7 +20,7 @@ interface FetchRequest {
 interface UdfRequestPayload {
   info: unknown
   parent: unknown
-  context: { kv?: unknown }
+  context: unknown
   args: unknown
 }
 
