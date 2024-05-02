@@ -126,6 +126,10 @@ export class Type {
   }
 
   public toString(): string {
+    if (this.fields.length === 0) {
+      throw new Error(`The ${this.name} type has no field. GraphQL types must have at least one field.`)
+    }
+
     const interfaces = this.interfaces.map((i) => i.name).join(' & ')
     const cache = this.cacheDirective ? ` ${this.cacheDirective}` : ''
     const keys =
