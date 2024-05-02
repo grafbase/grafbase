@@ -6,12 +6,12 @@ use graph_ref as _;
 use mimalloc::MiMalloc;
 use tokio::runtime;
 use tokio::sync::{oneshot, watch};
-use tracing::{debug, error, Subscriber};
+use tracing::{error, Subscriber};
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{reload, EnvFilter, Layer, Registry};
 
 use args::Args;
-use federated_server::{Config, OtelReload, OtelTracing, TelemetryConfig};
+use federated_server::{Config, GraphFetchMethod, OtelReload, OtelTracing, TelemetryConfig};
 use grafbase_tracing::error::TracingError;
 use grafbase_tracing::otel::layer::BoxedLayer;
 use grafbase_tracing::otel::layer::{self, ReloadableOtelLayers};
@@ -101,12 +101,16 @@ fn init_global_tracing(args: &Args, config: Option<TelemetryConfig>) -> anyhow::
     let filter = args.log_level.map(|l| l.as_filter_str()).unwrap_or("info");
 
     let env_filter = EnvFilter::new(filter);
-    let ReloadableOtelLayers { tracer, meter_provider } = build_otel_layers(config, Default::default())?;
+
+    let will_reload_otel = !matches!(args.fetch_method()?, GraphFetchMethod::FromLocal { .. });
+    let ReloadableOtelLayers { tracer, meter_provider } =
+        build_otel_layers(config, Default::default(), will_reload_otel)?;
     let tracer = tracer.expect("should have a valid otel trace layer");
-    let meter_provider = meter_provider.expect("should have a valid otel trace layer");
 
     grafbase_tracing::otel::opentelemetry::global::set_tracer_provider(tracer.provider.clone());
-    grafbase_tracing::otel::opentelemetry::global::set_meter_provider(meter_provider.clone());
+    if let Some(meter_provider) = meter_provider {
+        grafbase_tracing::otel::opentelemetry::global::set_meter_provider(meter_provider);
+    }
 
     tracing_subscriber::registry()
         .with(tracer.layer)
@@ -131,7 +135,7 @@ fn otel_layer_reload<S>(
 {
     tokio::spawn(async move {
         let result = reload_receiver.await;
-        debug!("Reloading OTEL layers.");
+        tracing::debug!("Reloading OTEL layers.");
 
         let Ok(reload_data) = result else {
             tracing::info!("error waiting for otel reload");
@@ -139,7 +143,8 @@ fn otel_layer_reload<S>(
             return;
         };
 
-        let ReloadableOtelLayers { tracer, meter_provider } = match build_otel_layers(config, Some(reload_data)) {
+        let ReloadableOtelLayers { tracer, meter_provider } = match build_otel_layers(config, Some(reload_data), false)
+        {
             Ok(value) => value,
             Err(err) => {
                 error!("error creating a new otel layer for reload: {err}");
@@ -153,7 +158,7 @@ fn otel_layer_reload<S>(
             return;
         };
         let Some(meter_provider) = meter_provider else {
-            error!("should have a valid otel trace layer");
+            error!("should have a valid otel meter provider");
             reload_ack_sender.send(()).ok();
             return;
         };
@@ -175,6 +180,7 @@ fn otel_layer_reload<S>(
 fn build_otel_layers<S>(
     config: Option<TelemetryConfig>,
     reload_data: Option<OtelReload>,
+    will_reload_otel: bool,
 ) -> Result<ReloadableOtelLayers<S>, TracingError>
 where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
@@ -217,5 +223,6 @@ where
         id_generator,
         Tokio,
         resource_attributes,
+        will_reload_otel,
     )
 }

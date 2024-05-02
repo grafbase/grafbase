@@ -13,6 +13,8 @@ use grafbase_tracing::metrics::HasGraphqlErrors;
 
 pub use graph_fetch_method::GraphFetchMethod;
 pub use otel::{OtelReload, OtelTracing};
+use tokio::sync::watch;
+use tracing::Level;
 use ulid::Ulid;
 
 use crate::config::Config;
@@ -45,18 +47,18 @@ pub async fn serve(
         .or(config.network.listen_address)
         .unwrap_or(DEFAULT_LISTEN_ADDRESS);
 
-    let (otel_tracer_provider, otel_reload_ack_receiver, otel_reload_trigger) = otel_tracing
+    let (otel_tracer_provider, otel_reload) = otel_tracing
         .map(|otel| {
             (
                 Some(otel.tracer_provider),
-                Some(otel.reload_ack_receiver),
-                Some(otel.reload_trigger),
+                Some((otel.reload_trigger, otel.reload_ack_receiver)),
             )
         })
-        .unwrap_or((None, None, None));
+        .unwrap_or((None, None));
 
-    let wait_for_otel_reload = !matches!(fetch_method, GraphFetchMethod::FromLocal { .. });
-    let gateway = fetch_method.into_gateway(
+    let (sender, mut gateway) = watch::channel(None);
+    gateway.mark_unchanged();
+    fetch_method.start(
         GatewayConfig {
             enable_introspection: config.graph.introspection,
             operation_limits: config.operation_limits,
@@ -65,7 +67,8 @@ pub async fn serve(
             default_headers: config.headers,
             trusted_documents: config.trusted_documents,
         },
-        otel_reload_trigger,
+        otel_reload,
+        sender,
     )?;
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
@@ -78,19 +81,12 @@ pub async fn serve(
         None => CorsLayer::permissive(),
     };
 
-    // When initializing OTEL we don't have all resources attributes yet, we rely on the GDN call
-    // to retrieve some of them like branch_id. However we only call it asynchronously only if the
-    // schema wasn't provided, so we need to wait on the OTEL reload which is also done
-    // asynchronously in the background if and only if we call the GDN.
-    // We need the resource attributes immediately because the grafbase_tracing::tower::layer
-    // creates a MeterProvider with it and resources attributes won't be updated afterwards.
-    if let Some(reload_ack_receiver) = otel_reload_ack_receiver.filter(|_| wait_for_otel_reload) {
-        tracing::info!("Waiting for OTEL providers to reload after initial GDN call...");
-        reload_ack_receiver.await.ok();
-    };
+    let state = ServerState::new(gateway.clone(), otel_tracer_provider);
 
-    let state = ServerState::new(gateway, otel_tracer_provider);
-
+    // HACK: Wait for the engine to be ready. This ensures we did reload OTEL providers if necessary
+    // as we need all resources attributes to be present before creating the tracing layer.
+    tracing::event!(target: GRAFBASE_TARGET, Level::INFO, "Waiting for engine to be ready...");
+    gateway.changed().await.ok();
     let mut router = Router::new()
         .route(path, get(engine::get).post(engine::post))
         .route_service("/ws", WebsocketService::new(websocket_sender))
