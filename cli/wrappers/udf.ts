@@ -1,7 +1,5 @@
 // import { IncomingMessage, ServerResponse, createServer } from 'http'
 // import { Readable } from 'stream'
-import { KVNamespace } from '@miniflare/kv'
-import { FileStorage } from '@miniflare/storage-file'
 
 interface LogEntry {
   loggedAt: number
