@@ -1,0 +1,25 @@
+extend schema @link(
+  url: "https://specs.apollo.dev/federation/v2.6", 
+  import: ["@requires", "@external", "@key"])
+
+type Query {
+  myFarm: Farm
+}
+
+type Farm @key(fields: "id") {
+  id: ID! @external
+  chiliId(format: IDFormat!): ID! @external
+  chiliDetails: ChiliVariety @requires(fields: "chiliId")
+}
+
+type ChiliVariety {
+  id: ID!
+  name: String!
+  scovilles: Int!
+  description: String
+}
+
+enum IDFormat {
+  UUID
+  ULID
+}

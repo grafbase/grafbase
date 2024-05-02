@@ -50,7 +50,14 @@ fn validate_override_labels(ctx: &mut ValidateContext<'_>, field: subgraphs::Fie
 
 fn validate_selections(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldWalker<'_>) {
     for selection in field.directives().requires().into_iter().flatten() {
-        validate_selection(ctx, selection, field.parent_definition())
+        let requires_path = || {
+            format!(
+                "{}.{}",
+                field.parent_definition().name().as_str(),
+                field.name().as_str()
+            )
+        };
+        validate_selection(ctx, selection, field.parent_definition(), &requires_path);
     }
 }
 
@@ -58,6 +65,7 @@ fn validate_selection(
     ctx: &mut ValidateContext<'_>,
     selection: &subgraphs::Selection,
     on_definition: subgraphs::DefinitionWalker<'_>,
+    requires_path: &dyn Fn() -> String,
 ) {
     // The selected field must exist.
     let Some(field) = on_definition.find_field(selection.field) else {
@@ -68,23 +76,40 @@ fn validate_selection(
         ));
     };
 
+    for required_argument in field
+        .arguments()
+        .filter(|arg| arg.r#type().is_required() && arg.default().is_none())
+    {
+        let arg_name = required_argument.name();
+        if selection.arguments.iter().all(|(name, _)| *name != arg_name.id) {
+            ctx.diagnostics.push_fatal(format!(
+                "Error in @requires on {requires_path}: the {field_name}.{arg_name} argument is required but not provided.",
+                field_name = field.name().as_str(),
+                arg_name = arg_name.as_str(),
+                requires_path = requires_path(),
+            ));
+        }
+    }
+
     // The arguments must exist on the field.
     for (argument_name, argument_value) in &selection.arguments {
         let Some(argument) = field.argument_by_name(*argument_name) else {
             return ctx.diagnostics.push_fatal(format!(
-                "Error in @requires: the {field_in_selection}.{argument_name} argument does not exist on {definition_name}",
+                "Error in @requires on {requires_path}: the {field_in_selection}.{argument_name} argument does not exist on {definition_name}",
                 argument_name = ctx.subgraphs.walk(*argument_name).as_str(),
                 field_in_selection = field.name().as_str(),
-                definition_name = on_definition.name().as_str()
+                definition_name = on_definition.name().as_str(),
+                requires_path = requires_path(),
             ));
         };
 
         if !argument_type_matches(on_definition.subgraph_id(), argument.r#type(), argument_value) {
             return ctx.diagnostics.push_fatal(format!(
-                "Error in @requires: the {field_in_selection}.{argument_name} argument does not not match the expected type ({expected_type})",
+                "Error in @requires on {requires_path}: the {field_in_selection}.{argument_name} argument does not not match the expected type ({expected_type})",
                 argument_name = ctx.subgraphs.walk(*argument_name).as_str(),
                 field_in_selection = field.name().as_str(),
                 expected_type = argument.r#type(),
+                requires_path = requires_path(),
             ));
         }
     }

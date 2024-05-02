@@ -1,2 +1,3 @@
-# Error in @requires: the name.extent argument does not exist on WasabiPlant
-# Error in @requires: the name.language argument does not not match the expected type (String!)
+# Error in @requires on WasabiPlant.cultivationArea: the name.language argument is required but not provided.
+# Error in @requires on WasabiPlant.cultivationArea: the name.extent argument does not exist on WasabiPlant
+# Error in @requires on WasabiPlant.harvestTime: the name.language argument does not not match the expected type (String!)
