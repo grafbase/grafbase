@@ -27,7 +27,7 @@ impl super::Registry {
         let graph = build_type_graph(&types);
 
         // Map where keys are types to retain, value is list of fields we should retain on that type
-        let mut retain_map = dbg!(types_and_fields_marked_cache(&types));
+        let mut retain_map = types_and_fields_marked_cache(&types);
         let specifically_cached_types = retain_map.keys().map(|key| Node::Type(key)).collect::<Vec<_>>();
 
         let graph = petgraph::visit::EdgeFiltered::from_fn(&graph, |edge| {

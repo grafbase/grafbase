@@ -3,6 +3,8 @@ use std::marker::PhantomData;
 
 use engine_value::ConstValue;
 
+pub mod simple_json;
+pub use simple_json::SimpleJSON;
 mod string;
 pub use string::StringScalar;
 mod id;
@@ -344,5 +346,6 @@ pub type PossibleScalar = merge_scalar!(
     TimeScalar,
     NaiveDateTimeScalar,
     UuidScalar,
-    FederationAnyScalar
+    FederationAnyScalar,
+    SimpleJSON
 );

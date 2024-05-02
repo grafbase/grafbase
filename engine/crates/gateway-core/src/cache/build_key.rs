@@ -97,7 +97,10 @@ fn get_cache_control(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
+    use std::{
+        collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet},
+        sync::Arc,
+    };
 
     use futures_util::future::BoxFuture;
     use tokio::sync::Mutex;
@@ -354,8 +357,8 @@ mod tests {
         registry.enable_caching = true;
 
         registry.remove_unused_types();
-        let registry = dbg!(registry.prune_for_caching_registry());
-        let partial_registry = registry_upgrade::convert_v1_to_partial_cache_registry(registry);
+        let registry = registry.prune_for_caching_registry();
+        let partial_registry = Arc::new(registry_upgrade::convert_v1_to_partial_cache_registry(registry));
 
         CacheConfig {
             global_enabled: false,

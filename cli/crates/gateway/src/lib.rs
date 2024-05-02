@@ -35,7 +35,7 @@ impl Gateway {
             global_enabled: true,
             subdomain: "localhost".to_string(),
             host_name: "localhost".to_string(),
-            partial_registry: caching_registry,
+            partial_registry: Arc::new(caching_registry),
             common_cache_tags: vec![],
         };
         let authorizer = Box::new(auth::Authorizer);

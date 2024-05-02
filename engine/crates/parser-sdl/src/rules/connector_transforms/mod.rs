@@ -45,6 +45,7 @@ fn lookup_fields(registry: &Registry, lookup: &FieldLookup) -> HashSet<SelectedF
         .types
         .keys()
         .filter(|name| lookup.starting_type.is_match(name))
+        .map(|name| name.as_str())
         .collect::<HashSet<_>>();
 
     for segment in &lookup.path {
@@ -53,10 +54,22 @@ fn lookup_fields(registry: &Registry, lookup: &FieldLookup) -> HashSet<SelectedF
             let ty = registry.types.get(type_name).unwrap();
             match ty {
                 MetaType::Object(_) | MetaType::Interface(_) => {
-                    next_types.extend(ty.fields().unwrap().keys().filter(|name| segment.is_match(name)));
+                    next_types.extend(
+                        ty.fields()
+                            .unwrap()
+                            .values()
+                            .filter(|field| segment.is_match(&field.name))
+                            .map(|field| field.ty.base_type_name()),
+                    );
                 }
                 MetaType::InputObject(input) => {
-                    next_types.extend(input.input_fields.keys().filter(|name| segment.is_match(name)));
+                    next_types.extend(
+                        input
+                            .input_fields
+                            .values()
+                            .filter(|field| segment.is_match(&field.name))
+                            .map(|field| field.ty.base_type_name()),
+                    );
                 }
                 _ => {}
             }

@@ -227,7 +227,7 @@ impl ConnectorIdGenerator {
 
 #[derive(Deserialize, Serialize)]
 pub struct VersionedRegistry<'a> {
-    pub registry: Cow<'a, Registry>,
+    pub registry: registry_v2::Registry,
     pub deployment_id: Cow<'a, str>,
 }
 
