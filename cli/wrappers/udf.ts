@@ -26,10 +26,6 @@ interface UdfRequestPayload {
   args: unknown
 }
 
-declare global {
-  var __grafbaseKv__: KVNamespace | undefined
-}
-
 // type NodeResponse = ServerResponse<IncomingMessage> & { req: IncomingMessage }
 
 // type Headers = Record<string, string | string[]>
@@ -239,9 +235,6 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
 // TODO: if we're doing this we can use an argument rather than building this for each UDF
 const udf = require('${UDF_MAIN_FILE_PATH}').default
 
-// doing this here rather than only if import.meta.main since the multi-wrapper isn't compiled and doesn't have the miniflare deps
-globalThis.__grafbaseKv__ ??= new KVNamespace(new FileStorage('${UDF_KV_DIR_PATH}'))
-
 export const invoke = async (request: Request) => {
   logEntries = []
   fetchRequests = []
@@ -252,13 +245,6 @@ export const invoke = async (request: Request) => {
 
   try {
     context ??= {}
-
-    context.kv = {
-      get: (key: string, options: any) => Promise.resolve(globalThis.__grafbaseKv__?.getWithMetadata(key, options)),
-      set: (key: string, value: any) => globalThis.__grafbaseKv__?.put(key, value),
-      delete: (key: string) => globalThis.__grafbaseKv__?.delete(key),
-      list: (options: any) => globalThis.__grafbaseKv__?.list(options),
-    }
 
     returnValue = udf(parent, args, context, info)
 

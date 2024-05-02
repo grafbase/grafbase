@@ -8,7 +8,6 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@miniflare/kv": "^2.14.1",
     "@miniflare/storage-file": "^2.14.2"
   },
   "resolutions": {

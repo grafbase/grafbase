@@ -1,4 +1,4 @@
-use crate::consts::{ENTRYPOINT_SCRIPT_FILE_NAME, KV_DIR_NAME};
+use crate::consts::ENTRYPOINT_SCRIPT_FILE_NAME;
 use crate::errors::UdfBuildError;
 use common::environment::Environment;
 use common::types::UdfKind;
@@ -58,15 +58,6 @@ pub(crate) async fn build(
         .replace(
             "${UDF_MAIN_FILE_PATH}",
             udf_input_file_path.to_slash().expect("must be valid UTF-8").as_ref(),
-        )
-        .replace(
-            "${UDF_KV_DIR_PATH}",
-            project
-                .dot_grafbase_directory_path
-                .join(KV_DIR_NAME)
-                .to_slash()
-                .expect("must be valid UTF-8")
-                .as_ref(),
         );
 
     tokio::fs::create_dir_all(&udf_build_artifact_directory_path)
