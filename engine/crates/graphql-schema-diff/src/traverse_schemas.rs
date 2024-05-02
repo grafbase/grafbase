@@ -181,7 +181,7 @@ fn fill_args_src<'a>(
     for arg in args {
         insert_source(
             arguments_map,
-            [parent, field, &arg.name()],
+            [parent, field, (arg.name())],
             (arg.ty(), arg.default_value()),
         )
     }

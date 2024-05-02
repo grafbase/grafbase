@@ -85,10 +85,7 @@ impl EngineBuilder {
         self
     }
 
-    pub fn with_custom_resolvers(
-        self,
-        invoker: impl UdfInvokerInner<CustomResolverRequestPayload> + Send + Sync + 'static,
-    ) -> Self {
+    pub fn with_custom_resolvers(self, invoker: impl UdfInvokerInner<CustomResolverRequestPayload> + 'static) -> Self {
         Self {
             custom_resolvers: Some(CustomResolverInvoker::new(invoker)),
             ..self

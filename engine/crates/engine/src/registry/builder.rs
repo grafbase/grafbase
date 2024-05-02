@@ -54,11 +54,11 @@ impl RegistryBuilder {
 
     /// Finalize the [`RegistryBuilder`], and return the final [`Registry`].
     pub fn finalize(mut self) -> Registry {
-        if self.registry.types.get("Query").is_some() {
-            self.registry.query_type = "Query".to_owned();
+        if self.registry.types.contains_key("Query") {
+            "Query".clone_into(&mut self.registry.query_type);
         }
 
-        if self.registry.types.get("Mutation").is_some() {
+        if self.registry.types.contains_key("Mutation") {
             self.registry.mutation_type = Some("Mutation".to_owned());
         }
 
