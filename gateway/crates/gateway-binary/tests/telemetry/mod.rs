@@ -234,7 +234,26 @@ fn with_otel_reload_tracing() {
             .fetch_one::<CountRow>()
             .await
             .unwrap();
+        assert!(count > 0);
 
+        let CountRow { count } = client
+            .query(
+                r#"
+                    SELECT COUNT(1) as count
+                    FROM otel_metrics_sum
+                    WHERE ResourceAttributes['service.name'] = ?
+                    AND ResourceAttributes['grafbase.branch_name'] = ?
+                    AND ResourceAttributes['grafbase.branch_id'] = ?
+                    AND ResourceAttributes['grafbase.graph_id'] = ?
+                "#,
+            )
+            .bind(&service_name)
+            .bind(&gdn_mock.branch)
+            .bind(gdn_mock.branch_id.to_string())
+            .bind(gdn_mock.graph_id.to_string())
+            .fetch_one::<CountRow>()
+            .await
+            .unwrap();
         assert!(count > 0);
     });
 }

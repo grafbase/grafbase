@@ -1,6 +1,7 @@
-use super::gateway::{self, EngineWatcher};
+use super::gateway;
 use crate::server::gateway::GatewayConfig;
 use crate::OtelReload;
+use engine_v2::Engine;
 use std::sync::Arc;
 use tokio::sync::{oneshot, watch};
 
@@ -29,13 +30,12 @@ impl GraphFetchMethod {
     /// if a graph ref and access token is provided, the function returns immediately, and
     /// the gateway will be available eventually when the GDN responds with a working graph.
     #[cfg_attr(feature = "lambda", allow(unused_variables))]
-    pub(crate) fn into_gateway(
+    pub(crate) fn start(
         self,
         config: GatewayConfig,
-        otel_reload: Option<oneshot::Sender<OtelReload>>,
-    ) -> crate::Result<EngineWatcher> {
-        let (sender, gateway) = watch::channel(None);
-
+        otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
+        sender: watch::Sender<Option<Arc<Engine>>>,
+    ) -> crate::Result<()> {
         match self {
             #[cfg(not(feature = "lambda"))]
             GraphFetchMethod::FromApi {
@@ -67,6 +67,6 @@ impl GraphFetchMethod {
             }
         }
 
-        Ok(gateway)
+        Ok(())
     }
 }
