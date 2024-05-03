@@ -61,6 +61,7 @@ pub fn new_batched<S, R, I>(
     id_generator: I,
     runtime: R,
     resource_attributes: impl Into<Vec<KeyValue>>,
+    will_reload_otel: bool,
 ) -> Result<ReloadableOtelLayers<S>, TracingError>
 where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
@@ -71,7 +72,20 @@ where
     resource_attributes.push(KeyValue::new("service.name", service_name.into()));
     let resource = Resource::new(resource_attributes);
 
-    let meter_provider = super::metrics::build_meter_provider(runtime.clone(), &config, resource.clone())?;
+    // HACK: We don't want to create a PeriodicReader if we'll drop it later. Somehow it started spamming
+    // stderr with:
+    // 'OpenTelemetry metrics error occurred. Metrics error: reader is not registered'
+    // as soon as we started waiting on the OTEL reload to be done for engine metrics.
+    // So now I'm just avoiding creating it in the first place.
+    let meter_provider = if will_reload_otel {
+        None
+    } else {
+        Some(super::metrics::build_meter_provider(
+            runtime.clone(),
+            &config,
+            resource.clone(),
+        )?)
+    };
 
     let tracing_layer = if config.enabled {
         let tracer_provider = super::traces::create(config, id_generator, runtime, resource.clone())?;
@@ -103,6 +117,6 @@ where
 
     Ok(ReloadableOtelLayers {
         tracer: Some(tracing_layer),
-        meter_provider: Some(meter_provider),
+        meter_provider,
     })
 }
