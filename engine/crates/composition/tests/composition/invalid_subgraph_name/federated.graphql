@@ -1,0 +1,3 @@
+# Invalid subgraph name: "2timesmoreinvalid". Only alphanumeric characters and hyphens (`-`) are allowed, and the first character must be alphabetic.
+# Invalid subgraph name: "-alsonotvalid". Only alphanumeric characters and hyphens (`-`) are allowed, and the first character must be alphabetic.
+# Invalid subgraph name: "invalid×name". Only alphanumeric characters and hyphens (`-`) are allowed, and the first character must be alphabetic.

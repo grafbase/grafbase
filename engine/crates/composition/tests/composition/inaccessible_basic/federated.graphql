@@ -17,11 +17,11 @@ directive @join__field(
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
 enum join__Graph {
-    FIVE_WITH_ENUM @join__graph(name: "five_with_enum", url: "http://example.com/five_with_enum")
-    FOUR_WITH_UNION @join__graph(name: "four_with_union", url: "http://example.com/four_with_union")
+    FIVE_WITH_ENUM @join__graph(name: "five-with-enum", url: "http://example.com/five-with-enum")
+    FOUR_WITH_UNION @join__graph(name: "four-with-union", url: "http://example.com/four-with-union")
     ONE @join__graph(name: "one", url: "http://example.com/one")
-    SIX_WITH_INPUT_OBJECT @join__graph(name: "six_with_input_object", url: "http://example.com/six_with_input_object")
-    THREE_WITH_INTERFACE @join__graph(name: "three_with_interface", url: "http://example.com/three_with_interface")
+    SIX_WITH_INPUT_OBJECT @join__graph(name: "six-with-input-object", url: "http://example.com/six-with-input-object")
+    THREE_WITH_INTERFACE @join__graph(name: "three-with-interface", url: "http://example.com/three-with-interface")
     TWO @join__graph(name: "two", url: "http://example.com/two")
 }
 

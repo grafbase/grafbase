@@ -17,7 +17,7 @@ directive @join__field(
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
 enum join__Graph {
-    BIRDWATCH_BASIC @join__graph(name: "birdwatch_basic", url: "http://example.com/birdwatch_basic")
+    BIRDWATCH_BASIC @join__graph(name: "birdwatch-basic", url: "http://example.com/birdwatch-basic")
     OBSERVATIONS @join__graph(name: "observations", url: "http://example.com/observations")
     SIGHTINGS @join__graph(name: "sightings", url: "http://example.com/sightings")
 }

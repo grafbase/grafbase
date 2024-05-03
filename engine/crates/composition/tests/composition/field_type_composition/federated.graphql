@@ -17,8 +17,8 @@ directive @join__field(
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
 enum join__Graph {
-    SPINNERS_A @join__graph(name: "spinners_a", url: "http://example.com/spinners_a")
-    SPINNERS_B @join__graph(name: "spinners_b", url: "http://example.com/spinners_b")
+    SPINNERS_A @join__graph(name: "spinners-a", url: "http://example.com/spinners-a")
+    SPINNERS_B @join__graph(name: "spinners-b", url: "http://example.com/spinners-b")
 }
 
 type FidgetSpinner implements Spinner {

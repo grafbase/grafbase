@@ -17,8 +17,8 @@ directive @join__field(
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
 enum join__Graph {
-    HAZARDOUS_WASTE @join__graph(name: "hazardous_waste", url: "http://example.com/hazardous_waste")
-    WASTE_COLLECTION @join__graph(name: "waste collection", url: "http://example.com/waste collection")
+    HAZARDOUS_WASTE @join__graph(name: "hazardous-waste", url: "http://example.com/hazardous-waste")
+    WASTE_COLLECTION @join__graph(name: "waste-collection", url: "http://example.com/waste-collection")
 }
 
 type WasteManagementQuery {
