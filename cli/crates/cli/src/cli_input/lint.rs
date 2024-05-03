@@ -5,5 +5,5 @@ use std::path::PathBuf;
 #[derive(Debug, Parser)]
 pub struct LintCommand {
     /// The path of the schema to lint
-    pub schema: PathBuf,
+    pub schema: Option<PathBuf>,
 }
