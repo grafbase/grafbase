@@ -1,7 +1,8 @@
 #![cfg_attr(test, allow(unused_crate_dependencies))]
 
+use args::Args;
 use ascii as _;
-use clap::{crate_version, Parser};
+use clap::crate_version;
 use graph_ref as _;
 use mimalloc::MiMalloc;
 use tokio::runtime;
@@ -10,7 +11,6 @@ use tracing::{error, Subscriber};
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{reload, EnvFilter, Layer, Registry};
 
-use args::Args;
 use federated_server::{Config, GraphFetchMethod, OtelReload, OtelTracing, TelemetryConfig};
 use grafbase_tracing::error::TracingError;
 use grafbase_tracing::otel::layer::BoxedLayer;
@@ -30,7 +30,7 @@ fn main() -> anyhow::Result<()> {
         .install_default()
         .expect("installing default crypto provider");
 
-    let args = Args::parse();
+    let args = self::args::parse();
     let mut config = args.config()?;
 
     let runtime = runtime::Builder::new_multi_thread()
@@ -44,17 +44,7 @@ fn main() -> anyhow::Result<()> {
         let crate_version = crate_version!();
         tracing::info!(target: GRAFBASE_TARGET, "Grafbase Gateway {crate_version}");
 
-        let listen_address = {
-            cfg_if::cfg_if! {
-                if #[cfg(feature = "lambda")] {
-                    None
-                } else {
-                    args.listen_address
-                }
-            }
-        };
-
-        federated_server::serve(listen_address, config, args.fetch_method()?, otel_tracing).await?;
+        federated_server::serve(args.listen_address(), config, args.fetch_method()?, otel_tracing).await?;
 
         Ok::<(), anyhow::Error>(())
     })?;
@@ -62,7 +52,7 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn setup_tracing(config: &mut Config, args: &Args) -> anyhow::Result<Option<OtelTracing>> {
+fn setup_tracing(config: &mut Config, args: &impl Args) -> anyhow::Result<Option<OtelTracing>> {
     // setup tracing globally
     let OtelLegos {
         tracer_provider,
@@ -94,11 +84,11 @@ struct OtelLegos<S> {
     tracer_layer_reload_handle: reload::Handle<BoxedLayer<S>, S>,
 }
 
-fn init_global_tracing(args: &Args, config: Option<TelemetryConfig>) -> anyhow::Result<OtelLegos<Registry>> {
+fn init_global_tracing(args: &impl Args, config: Option<TelemetryConfig>) -> anyhow::Result<OtelLegos<Registry>> {
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
 
-    let filter = args.log_level.map(|l| l.as_filter_str()).unwrap_or("info");
+    let filter = args.log_level().map(|l| l.as_filter_str()).unwrap_or("info");
 
     let env_filter = EnvFilter::new(filter);
 

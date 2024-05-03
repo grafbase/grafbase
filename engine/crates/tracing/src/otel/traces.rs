@@ -67,7 +67,23 @@ where
             otlp_exporter_config.timeout,
             &otlp_exporter_config.batch_export,
             span_exporter,
-            runtime,
+            runtime.clone(),
+        );
+        tracer_provider_builder = tracer_provider_builder.with_span_processor(span_processor);
+    }
+
+    #[cfg(feature = "otlp")]
+    if let Some(otlp_exporter_config) = config.exporters.grafbase {
+        use opentelemetry_otlp::SpanExporterBuilder;
+        let span_exporter = super::exporter::build_otlp_exporter::<SpanExporterBuilder>(&otlp_exporter_config)?
+            .build_span_exporter()
+            .map_err(|err| TracingError::SpanExporterSetup(err.to_string()))?;
+
+        let span_processor = build_batched_span_processor(
+            otlp_exporter_config.timeout,
+            &otlp_exporter_config.batch_export,
+            span_exporter,
+            runtime.clone(),
         );
         tracer_provider_builder = tracer_provider_builder.with_span_processor(span_processor);
     }
