@@ -1,0 +1,23 @@
+[package]
+name = "repro"
+version = "0.1.0"
+edition = "2021"
+authors = [ "Tom Houlé <tom@tomhoule.com>" ]
+
+[package.metadata.release]
+release = false
+
+# https://github.com/rustwasm/wasm-pack/issues/1247
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+engine.path = "../engine/crates/engine"
+worker = { version="0.2.0", features=['http', 'axum'] }
+worker-macros = { version="0.2.0", features=['http'] }
+axum  = { version = "0.7", default-features = false }
+tower-service = "0.3.2"
+console_error_panic_hook = { version = "0.1.1" }

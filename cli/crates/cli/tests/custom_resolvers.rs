@@ -2,6 +2,8 @@
 #![allow(clippy::too_many_lines)]
 mod utils;
 
+use std::collections::HashMap;
+
 use backend::project::GraphType;
 use rstest_reuse::{self, apply, template};
 use serde_json::Value;
@@ -630,34 +632,65 @@ async fn test_query_mutation_resolver_start(
     }
 }
 
-#[test]
-fn jwt_claims_in_custom_resolver_context() {
+#[tokio::test]
+async fn jwt_claims_in_custom_resolver_context() {
+    const JWT_ISSUER_URL: &str = "https://some.issuer.test";
+    const JWT_SECRET: &str = "topsecret";
+
     let schema = r#"
+        extend schema
+          @auth(
+            providers: [{ type: jwt, issuer: "{{ env.ISSUER_URL }}", secret: "{{ env.JWT_SECRET }}" }]
+            rules: [{ allow: groups, groups: ["backend"] }]
+          )
+
         extend type Query {
             printClaims: String @resolver(name: "printClaims")
         }
     "#;
+
     let mut env = Environment::init();
     env.grafbase_init(GraphType::Standalone);
+    env.set_variables(HashMap::from([
+        ("ISSUER_URL".to_string(), JWT_ISSUER_URL.to_string()),
+        ("JWT_SECRET".to_string(), JWT_SECRET.to_string()),
+    ]));
     env.write_schema(schema);
 
     let resolver = r#"
         export default function(parent, args, ctx) {
-            return `JWT claims: JSON.stringify(ctx.claims)``
+            return `JWT claims: ${JSON.stringify(ctx.request)}`
         }
     "#;
 
-    env.write_resolver("resolvers/printClaims.js", resolver);
+    env.write_resolver("printClaims.js", resolver);
 
     env.grafbase_start();
-    let client = env.create_client().with_api_key();
+
+    let token = {
+        let key = jwt_compact::alg::Hs512Key::new(JWT_SECRET.as_bytes());
+        let time_opts = jwt_compact::TimeOptions::default();
+        let header: jwt_compact::Header<jwt_compact::Empty> = jwt_compact::Header::default().with_token_type("JWT");
+        let claims = jwt_compact::Claims::new(serde_json::json!({
+            "iss": JWT_ISSUER_URL,
+            "sub": "cli_user",
+            "groups": ["reader", "writer"],
+        }))
+        .set_duration_and_issuance(&time_opts, chrono::Duration::try_hours(1).expect("must be fine"));
+
+        jwt_compact::AlgorithmExt::token(&jwt_compact::alg::Hs512, &header, &claims, &key).unwrap()
+    };
+
+    let client = env
+        .create_client()
+        .with_header("Authorization", format!("Bearer {token}"));
     client.poll_endpoint(60, 300).await;
 
     let response = client.gql::<Value>("{ printClaims }").send().await;
 
     let errors = dot_get_opt!(response, "errors", Vec::<serde_json::Value>).unwrap_or_default();
     assert!(errors.is_empty(), "Error response: {errors:?}");
-    let value = dot_get_opt!(response, path, serde_json::Value).unwrap_or_default();
+    let value = dot_get_opt!(response, "data", serde_json::Value).unwrap_or_default();
 
     assert_eq!(value, serde_json::json!("hi there"));
 }
