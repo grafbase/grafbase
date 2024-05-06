@@ -5,7 +5,7 @@ use crate::{
     watercolor::{self, watercolor},
 };
 use backend::{
-    api::{branch::Branch, environment_variables::EnvironmentVariable},
+    api::{branch::Branch, consts::dashboard_url, environment_variables::EnvironmentVariable},
     types::{NestedRequestScopedMessage, RequestCompletedOutcome},
 };
 use chrono::Utc;
@@ -389,8 +389,13 @@ pub fn create() {
     watercolor::output!("🕒 Your graph is being created...", @BrightBlue);
 }
 
-pub fn deploy_success() {
-    watercolor::output!("\n✨ Your graph was successfully deployed!", @BrightBlue);
+pub fn deploy_success(branch: String, account_slug: String, project_slug: String, domains: Vec<String>) {
+    watercolor::output!("\n✨ Your graph was successfully deployed!\n", @BrightBlue);
+    let app_url = dashboard_url();
+    if let Some(url) = domains.first() {
+        watercolor::output!("Endpoint: https://{url}/graphql", @BrightBlue)
+    }
+    watercolor::output!("Dashboard: {app_url}/{account_slug}/{project_slug}/branches/{branch}", @BrightBlue);
 }
 
 pub fn linked(name: &str) {
@@ -483,12 +488,13 @@ pub fn list_environment_variables(environment_variables: Vec<EnvironmentVariable
     table.printstd();
 }
 
-pub fn create_success(name: &str, urls: &[String]) {
+pub fn create_success(name: &str, urls: &[String], account_slug: &str, project_slug: &str) {
     watercolor::output!("\n✨ {name} was successfully created!\n", @BrightBlue);
-    watercolor::output!("Endpoints:", @BrightBlue);
-    for url in urls {
-        watercolor::output!("- https://{url}", @BrightBlue);
+    if let Some(url) = urls.first() {
+        watercolor::output!("Endpoint: https://{url}", @BrightBlue)
     }
+    let app_url = dashboard_url();
+    watercolor::output!("Dashboard: {app_url}/{account_slug}/{project_slug}/branches/main", @BrightBlue);
 }
 
 pub(crate) fn check_name_missing_on_federated_project() {

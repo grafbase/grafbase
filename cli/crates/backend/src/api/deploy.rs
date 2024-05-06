@@ -6,6 +6,7 @@ use super::graphql::mutations::{
     DeploymentCreate, DeploymentCreateArguments, DeploymentCreateBySlugArguments, DeploymentCreateInput,
     DeploymentCreatePayload, DeploymentCreatebySlug,
 };
+use super::graphql::queries::deployment_domains::{self, DeploymentDomains, DeploymentDomainsArguments};
 use super::graphql::queries::deployment_poll::{Deployment, DeploymentLogs, DeploymentLogsArguments, Node};
 use super::types::ProjectMetadata;
 use common::consts::{PROJECT_METADATA_FILE, USER_AGENT};
@@ -39,7 +40,7 @@ enum ProjectDefinition {
 pub async fn deploy(
     graph_ref: Option<(String, String, Option<String>)>,
     branch: Option<String>,
-) -> Result<cynic::Id, ApiError> {
+) -> Result<(cynic::Id, String, String), ApiError> {
     let project_definition = match graph_ref {
         Some((account_slug, project_slug, branch)) => ProjectDefinition::BySlugs {
             account_slug,
@@ -94,7 +95,11 @@ pub async fn deploy(
                 return Err(ApiError::UploadError);
             }
 
-            Ok(payload.deployment.id)
+            Ok((
+                payload.deployment.id,
+                payload.deployment.project.account_slug,
+                payload.deployment.project.slug,
+            ))
         }
         DeploymentCreatePayload::ProjectDoesNotExistError(_) => Err(DeployError::ProjectDoesNotExist.into()),
         DeploymentCreatePayload::ArchiveFileSizeLimitExceededError(ArchiveFileSizeLimitExceededError {
@@ -115,6 +120,19 @@ pub async fn fetch_logs(deployment_id: cynic::Id) -> Result<Deployment, ApiError
     let cynic::GraphQlResponse { data, errors } = client.post(api_url()).run_graphql(operation).await?;
 
     if let Some(Node::Deployment(deployment)) = data.and_then(|d| d.node) {
+        Ok(deployment)
+    } else {
+        Err(ApiError::RequestError(format!("{errors:#?}")))
+    }
+}
+
+pub async fn fetch_domains(deployment_id: cynic::Id) -> Result<deployment_domains::Deployment, ApiError> {
+    let operation = DeploymentDomains::build(DeploymentDomainsArguments { deployment_id });
+    let client = create_client().await?;
+
+    let cynic::GraphQlResponse { data, errors } = client.post(api_url()).run_graphql(operation).await?;
+
+    if let Some(deployment_domains::Node::Deployment(deployment)) = data.and_then(|d| d.node) {
         Ok(deployment)
     } else {
         Err(ApiError::RequestError(format!("{errors:#?}")))

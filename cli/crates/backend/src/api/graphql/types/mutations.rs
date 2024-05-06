@@ -49,6 +49,7 @@ pub struct ProjectCreateSuccess {
 pub struct Project {
     pub id: cynic::Id,
     pub slug: String,
+    pub account_slug: String,
     pub production_branch: Branch,
     #[arguments(last: 5)]
     pub api_keys: ProjectApiKeyConnection,
@@ -233,6 +234,7 @@ pub struct DeploymentCreateSuccess {
 #[derive(cynic::QueryFragment, Debug)]
 pub struct Deployment {
     pub id: cynic::Id,
+    pub project: Project,
 }
 
 #[derive(cynic::QueryFragment, Debug)]

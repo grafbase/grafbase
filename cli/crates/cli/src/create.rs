@@ -48,12 +48,13 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
         .ok_or(CliError::NoAccountFound)?
         .id;
 
-    let (domains, deployment_id) = create::create(&account_id, arguments.name, arguments.env_vars.iter().copied())
-        .await
-        .map_err(CliError::BackendApiError)?;
+    let (domains, deployment_id, project_slug) =
+        create::create(&account_id, arguments.name, arguments.env_vars.iter().copied())
+            .await
+            .map_err(CliError::BackendApiError)?;
 
     deploy::report_progress(deployment_id.into_inner()).await?;
-    report::create_success(arguments.name, &domains);
+    report::create_success(arguments.name, &domains, arguments.account_slug, &project_slug);
 
     Ok(())
 }
@@ -121,7 +122,7 @@ async fn interactive() -> Result<(), CliError> {
         .map_err(handle_inquire_error)?;
 
     if confirm {
-        let (domains, deployment_id) = create::create(
+        let (domains, deployment_id, project_slug) = create::create(
             &selected_account.id,
             &project_name,
             env_vars.iter().map(|(k, v)| (k.as_str(), v.as_str())),
@@ -130,7 +131,7 @@ async fn interactive() -> Result<(), CliError> {
         .map_err(CliError::BackendApiError)?;
 
         deploy::report_progress(deployment_id.into_inner()).await?;
-        report::create_success(&project_name, &domains);
+        report::create_success(&project_name, &domains, &selected_account.slug, &project_slug);
     }
 
     Ok(())
