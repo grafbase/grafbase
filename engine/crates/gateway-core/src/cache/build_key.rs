@@ -109,7 +109,6 @@ mod tests {
     struct FakeRequestContext {
         headers: http::HeaderMap,
         futures: Mutex<Vec<BoxFuture<'static, ()>>>,
-        jwt_claims: BTreeMap<String, serde_json::Value>,
     }
 
     impl FakeRequestContext {
