@@ -60,20 +60,23 @@ fn id_pk_implicit_order_with_after() {
 
         let response: Response = api.execute_as(query).await;
         let page_info = response.data.user_collection.page_info;
-        let cursor = page_info.end_cursor;
 
         assert!(page_info.has_next_page);
 
-        let query = formatdoc! {r#"
-            query {{
-              userCollection(first: 1, after: "{cursor}") {{
-                edges {{ node {{ name }} cursor }}
-                pageInfo {{ hasNextPage hasPreviousPage startCursor endCursor }}
-              }}
-            }}
+        let query = indoc! {r#"
+            query Pg($after: String) {
+              userCollection(first: 1, after: $after) {
+                edges { node { name } cursor }
+                pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
+              }
+            }
         "#};
 
-        api.execute(&query).await
+        let variables = serde_json::json!({
+            "after": page_info.end_cursor,
+        });
+
+        api.execute_parameterized(&query, variables).await
     });
 
     let expected = expect![[r#"
@@ -130,20 +133,23 @@ fn id_pk_implicit_order_with_before() {
 
         let response: Response = api.execute_as(query).await;
         let page_info = response.data.user_collection.page_info;
-        let cursor = page_info.start_cursor;
 
         assert!(page_info.has_previous_page);
 
-        let query = formatdoc! {r#"
-            query {{
-              userCollection(last: 1, before: "{cursor}") {{
-                edges {{ node {{ name }} cursor }}
-                pageInfo {{ hasNextPage hasPreviousPage startCursor endCursor }}
-              }}
-            }}
+        let query = indoc! {r#"
+            query Pg($before: String) {
+              userCollection(last: 1, before: $before) {
+                edges { node { name } cursor }
+                pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
+              }
+            }
         "#};
 
-        api.execute(&query).await
+        let variables = serde_json::json!({
+            "before": page_info.start_cursor,
+        });
+
+        api.execute_parameterized(&query, variables).await
     });
 
     let expected = expect![[r#"

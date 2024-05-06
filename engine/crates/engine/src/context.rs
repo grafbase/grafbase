@@ -236,6 +236,20 @@ impl<'a> SelectionField<'a> {
         Ok(arguments)
     }
 
+    /// Gets an argument with the given name. Please do _not_ use this with complex objects,
+    /// only simple values (or variables). We will be burning all this code in a big fire
+    /// when we implement connectors in engine-v2 anyhow...
+    pub fn get_argument(&self, name: &str) -> Option<Value> {
+        match self.field.get_argument(name) {
+            Some(value) => value
+                .node
+                .clone()
+                .into_const_with(|name| self.context.var_value(&name, value.pos))
+                .ok(),
+            None => None,
+        }
+    }
+
     /// True, if selecting nested fields from the given object.
     pub fn has_nested_items(&self) -> bool {
         !self.field.selection_set.node.items.is_empty()
