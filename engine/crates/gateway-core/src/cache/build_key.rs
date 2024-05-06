@@ -109,6 +109,7 @@ mod tests {
     struct FakeRequestContext {
         headers: http::HeaderMap,
         futures: Mutex<Vec<BoxFuture<'static, ()>>>,
+        jwt_claims: BTreeMap<String, serde_json::Value>,
     }
 
     impl FakeRequestContext {
@@ -130,6 +131,10 @@ mod tests {
 
         fn headers(&self) -> &http::HeaderMap {
             &self.headers
+        }
+
+        fn jwt_claims(&self) -> &BTreeMap<String, serde_json::Value> {
+            &self.jwt_claims
         }
     }
 

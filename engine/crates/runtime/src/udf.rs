@@ -6,6 +6,7 @@ use serde::Serialize;
 #[derive(Debug, serde::Serialize)]
 pub struct UdfRequestContextRequest {
     pub headers: serde_json::Value,
+    pub jwt_claims: BTreeMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, serde::Serialize)]

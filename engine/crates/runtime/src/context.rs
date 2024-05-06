@@ -1,4 +1,8 @@
-use std::{collections::HashMap, ops::Deref, sync::Arc};
+use std::{
+    collections::{BTreeMap, HashMap},
+    ops::Deref,
+    sync::Arc,
+};
 
 use futures_util::future::BoxFuture;
 
@@ -43,6 +47,8 @@ pub trait RequestContext: Send + Sync {
             .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or_default().to_string()))
             .collect()
     }
+
+    fn jwt_claims(&self) -> &BTreeMap<String, serde_json::Value>;
 }
 
 pub trait RequestContextExt: RequestContext {

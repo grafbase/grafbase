@@ -1,9 +1,8 @@
+use futures_util::{FutureExt, TryFutureExt};
+use headers::HeaderMapExt;
 use std::fmt::Display;
 use std::future::Future;
 use std::sync::Arc;
-
-use futures_util::{FutureExt, TryFutureExt};
-use headers::HeaderMapExt;
 use tracing_futures::Instrument;
 
 use crate::cache::{Cache, CacheReadStatus, Cacheable, CachedExecutionResponse, Entry, EntryState};
@@ -255,7 +254,7 @@ async fn update_stale<Value, Error, ValueFut>(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
+    use std::collections::{BTreeMap, HashSet};
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::sync::Arc;
     use std::time::Duration;
@@ -330,6 +329,7 @@ mod tests {
     struct FakeRequestContext {
         headers: http::HeaderMap,
         futures: Mutex<Vec<BoxFuture<'static, ()>>>,
+        jwt_claims: BTreeMap<String, serde_json::Value>,
     }
 
     impl FakeRequestContext {
@@ -356,6 +356,10 @@ mod tests {
 
         fn headers(&self) -> &http::HeaderMap {
             &self.headers
+        }
+
+        fn jwt_claims(&self) -> &BTreeMap<String, serde_json::Value> {
+            &self.jwt_claims
         }
     }
 
