@@ -56,9 +56,13 @@ runs:
 
     - name: Install cargo-nextest windows
       if: ${{ inputs.platform == 'windows' }}
-      shell: bash
+      shell: pwsh
       run: |
-        curl -LsSf https://get.nexte.st/latest/windows-tar | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+        $tmp = New-TemporaryFile | Rename-Item -NewName { $_ -replace 'tmp$', 'zip' } -PassThru
+        Invoke-WebRequest -OutFile $tmp https://get.nexte.st/latest/windows
+        $outputDir = if ($Env:CARGO_HOME) { Join-Path $Env:CARGO_HOME "bin" } else { "~/.cargo/bin" }
+        $tmp | Expand-Archive -DestinationPath $outputDir -Force
+        $tmp | Remove-Item
 
     - name: Install cargo-nextest macos
       if: ${{ inputs.platform == 'macos' }}
