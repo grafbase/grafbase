@@ -45,7 +45,7 @@ async fn check_linked_project() -> Result<(), CliError> {
         Ok(true) => {}
         Ok(false) => {
             let command_to_run = Select::new(
-                "Your project does not appear to be linked. Would you like to create a new project or link to an existing one?",
+                "Your graph has not been linked yet. Would you like to create a new graph or link to an existing one?",
                 UnlinkedDeploymentMethod::VARIANTS.to_vec(),
             )
             .prompt()
