@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
 use http::HeaderMap;
