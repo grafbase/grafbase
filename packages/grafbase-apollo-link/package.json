@@ -14,7 +14,7 @@
     "lint": "eslint src/*.ts*"
   },
   "dependencies": {
-    "@apollo/client": "3.10.1",
+    "@apollo/client": "3.10.2",
     "@n1ru4l/graphql-live-query": "0.10.0",
     "@n1ru4l/graphql-live-query-patch-json-patch": "0.7.0",
     "@n1ru4l/push-pull-async-iterable-iterator": "3.2.0",
