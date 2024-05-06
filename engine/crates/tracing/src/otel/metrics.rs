@@ -59,6 +59,27 @@ where
         provider = provider.with_reader(reader);
     }
 
+    #[cfg(feature = "otlp")]
+    if let Some(config) = config.exporters.grafbase.as_ref().filter(|cfg| cfg.enabled) {
+        use opentelemetry_otlp::MetricsExporterBuilder;
+
+        let exporter = super::exporter::build_otlp_exporter::<MetricsExporterBuilder>(config)?
+            .build_metrics_exporter(Box::new(DeltaTemporality), Box::new(AggForLatencyHistogram))
+            .map_err(|e| TracingError::MetricsExporterSetup(e.to_string()))?;
+        let reader = PeriodicReader::builder(exporter, runtime.clone())
+            .with_interval(
+                config
+                    .batch_export
+                    .scheduled_delay
+                    .to_std()
+                    .unwrap_or(Duration::from_secs(10)),
+            )
+            .with_timeout(config.timeout.to_std().unwrap_or(Duration::from_secs(60)))
+            .build();
+
+        provider = provider.with_reader(reader);
+    }
+
     Ok(provider.build())
 }
 

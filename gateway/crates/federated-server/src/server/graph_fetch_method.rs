@@ -8,7 +8,6 @@ use tokio::sync::{oneshot, watch};
 /// The method of running the gateway.
 pub enum GraphFetchMethod {
     /// The schema is fetched in regular intervals from the Grafbase API.
-    #[cfg(not(feature = "lambda"))]
     FromApi {
         /// The access token for accessing the the API.
         access_token: ascii::AsciiString,
@@ -37,12 +36,12 @@ impl GraphFetchMethod {
         sender: watch::Sender<Option<Arc<Engine>>>,
     ) -> crate::Result<()> {
         match self {
-            #[cfg(not(feature = "lambda"))]
             GraphFetchMethod::FromApi {
                 access_token,
                 graph_name,
                 branch,
             } => {
+                #[cfg(not(feature = "lambda"))]
                 tokio::spawn(async move {
                     use super::graph_updater::GraphUpdater;
 
