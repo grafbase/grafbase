@@ -175,7 +175,7 @@ impl GraphUpdater {
                 };
                 // HACK: Waiting for the OTEL to properly happen ensures we do create engine metrics
                 // with the appropriate resource attributes.
-                tracing::event!(target: GRAFBASE_TARGET, Level::INFO, "Waiting for OTEL reload...");
+                tracing::event!(target: GRAFBASE_TARGET, Level::DEBUG, "Waiting for OTEL reload...");
                 ack_receiver.await.ok();
             }
 
