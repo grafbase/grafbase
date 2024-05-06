@@ -11,6 +11,7 @@ use engine::{
 };
 use if_chain::if_chain;
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 
 use crate::rules::{
     cache_directive::{
@@ -69,7 +70,7 @@ pub struct CacheRule {
     pub access_scopes: Option<BTreeSet<CacheAccessScopeWrapper>>,
 }
 
-#[derive(Debug, Hash, Eq, PartialEq, Clone)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Serialize, Deserialize)]
 pub enum GlobalCacheTarget<'a> {
     /// Type name
     Type(Cow<'a, str>),
@@ -77,7 +78,7 @@ pub enum GlobalCacheTarget<'a> {
     Field(Cow<'a, str>, Cow<'a, str>),
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct GlobalCacheRules<'a>(HashMap<GlobalCacheTarget<'a>, CacheControl>);
 
 impl<'a> Deref for GlobalCacheRules<'a> {

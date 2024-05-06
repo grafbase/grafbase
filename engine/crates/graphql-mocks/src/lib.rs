@@ -12,12 +12,14 @@ mod echo;
 mod error_schema;
 mod fake_github;
 mod federation;
+mod large_response_schema;
 mod secure;
 mod state_mutation;
 
 pub use {
     almost_empty::AlmostEmptySchema, disingenuous::DisingenuousSchema, echo::EchoSchema, error_schema::ErrorSchema,
-    fake_github::FakeGithubSchema, federation::*, secure::SecureSchema, state_mutation::StateMutationSchema,
+    fake_github::FakeGithubSchema, federation::*, large_response_schema::LargeResponseSchema, secure::SecureSchema,
+    state_mutation::StateMutationSchema,
 };
 
 pub struct MockGraphQlServer {
@@ -26,6 +28,7 @@ pub struct MockGraphQlServer {
     next_response: mpsc::UnboundedSender<axum::response::Response>,
     shutdown: Option<tokio::sync::oneshot::Sender<()>>,
     port: u16,
+    task: Option<tokio::task::JoinHandle<()>>,
 }
 
 impl Drop for MockGraphQlServer {
@@ -60,7 +63,7 @@ impl MockGraphQlServer {
 
         let (shutdown_sender, shutdown_receiver) = tokio::sync::oneshot::channel::<()>();
 
-        tokio::spawn(async move {
+        let task = tokio::spawn(async move {
             axum::serve(listener, app.with_state(()))
                 .with_graceful_shutdown(async move {
                     shutdown_receiver.await.ok();
@@ -78,6 +81,7 @@ impl MockGraphQlServer {
             received_requests: receiver,
             next_response: next_response_sender,
             port,
+            task: Some(task),
         }
     }
 
@@ -99,6 +103,12 @@ impl MockGraphQlServer {
 
     pub fn force_next_response(&self, response: impl IntoResponse) {
         self.next_response.send(response.into_response()).unwrap();
+    }
+
+    pub async fn block(mut self) {
+        let Some(task) = self.task.take() else { return };
+
+        task.await.unwrap()
     }
 }
 
