@@ -4,6 +4,7 @@ use common_types::UdfKind;
 use serde::Serialize;
 
 #[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UdfRequestContextRequest {
     pub headers: serde_json::Value,
     pub jwt_claims: BTreeMap<String, serde_json::Value>,

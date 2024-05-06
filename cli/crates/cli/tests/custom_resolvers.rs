@@ -659,7 +659,7 @@ async fn jwt_claims_in_custom_resolver_context() {
 
     let resolver = r#"
         export default function(parent, args, ctx) {
-            return `JWT claims: ${JSON.stringify(ctx.request)}`
+            return `JWT claims: ${JSON.stringify(ctx.request.jwtClaims)}`
         }
     "#;
 
@@ -674,7 +674,7 @@ async fn jwt_claims_in_custom_resolver_context() {
         let claims = jwt_compact::Claims::new(serde_json::json!({
             "iss": JWT_ISSUER_URL,
             "sub": "cli_user",
-            "groups": ["reader", "writer"],
+            "groups": ["reader", "writer", "backend"],
         }))
         .set_duration_and_issuance(&time_opts, chrono::Duration::try_hours(1).expect("must be fine"));
 
@@ -690,7 +690,7 @@ async fn jwt_claims_in_custom_resolver_context() {
 
     let errors = dot_get_opt!(response, "errors", Vec::<serde_json::Value>).unwrap_or_default();
     assert!(errors.is_empty(), "Error response: {errors:?}");
-    let value = dot_get_opt!(response, "data", serde_json::Value).unwrap_or_default();
+    let value = dot_get_opt!(response, "data.printClaims", serde_json::Value).unwrap_or_default();
 
-    assert_eq!(value, serde_json::json!("hi there"));
+    insta::assert_snapshot!(value, @r###""JWT claims: {\"groups\":[\"reader\",\"writer\",\"backend\"],\"iss\":\"https://some.issuer.test\",\"sub\":\"cli_user\"}""###);
 }
