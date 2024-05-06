@@ -110,8 +110,8 @@ tar = "0.4.40"
 thiserror = "1.0.59"
 tokio = "1.37.0"
 tokio-postgres = { version = "0.7.10", default-features = false }
-tokio-postgres-rustls = "0.11.0"
-tokio-rustls = { version = "0.25.0", default-features = false }
+tokio-postgres-rustls = "0.12.0"
+tokio-rustls = { version = "0.26.0", default-features = false }
 tokio-tungstenite = { version = "0.21.0", default-features = false }
 tungstenite = { version = "0.21.0", default-features = false }
 tower = "0.4.13"
