@@ -1,4 +1,0 @@
-extend schema @openapi(
-  name: "sap",
-  schema: "https://raw.githubusercontent.com/El-houssine/grafbase-SAP/main/sap-demo.json",
-)
