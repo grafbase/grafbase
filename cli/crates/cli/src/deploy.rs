@@ -20,7 +20,30 @@ pub enum UnlinkedDeploymentMethod {
 #[tokio::main]
 pub async fn deploy(graph_ref: Option<ProjectRef>, branch: Option<String>) -> Result<(), CliError> {
     if graph_ref.is_none() {
-        check_linked_project().await?;
+        let project = Project::get();
+
+        let project_metadata_file_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
+
+        match project_metadata_file_path.try_exists() {
+            Ok(true) => {}
+            Ok(false) => {
+                let command_to_run = Select::new(
+                "Your project does not appear to be linked. Would you like to create a new project or link to an existing one?",
+                UnlinkedDeploymentMethod::VARIANTS.to_vec(),
+            )
+            .prompt()
+            .map_err(handle_inquire_error)?;
+
+                match command_to_run {
+                    UnlinkedDeploymentMethod::Link => {
+                        link_impl(None).await?;
+                        report::command_separator();
+                    }
+                    UnlinkedDeploymentMethod::Create => return create_impl(&None).await,
+                }
+            }
+            Err(error) => return Err(CliError::ReadProjectMetadataFile(error)),
+        }
     }
 
     report::deploy();
@@ -32,35 +55,6 @@ pub async fn deploy(graph_ref: Option<ProjectRef>, branch: Option<String>) -> Re
     report_progress(deployment_id.into_inner()).await?;
 
     report::deploy_success();
-
-    Ok(())
-}
-
-async fn check_linked_project() -> Result<(), CliError> {
-    let project = Project::get();
-
-    let project_metadata_file_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
-
-    match project_metadata_file_path.try_exists() {
-        Ok(true) => {}
-        Ok(false) => {
-            let command_to_run = Select::new(
-                "Your graph has not been linked yet. Would you like to create a new graph or link to an existing one?",
-                UnlinkedDeploymentMethod::VARIANTS.to_vec(),
-            )
-            .prompt()
-            .map_err(handle_inquire_error)?;
-
-            match command_to_run {
-                UnlinkedDeploymentMethod::Link => {
-                    link_impl(None).await?;
-                    report::command_separator();
-                }
-                UnlinkedDeploymentMethod::Create => return create_impl(&None).await,
-            }
-        }
-        Err(error) => return Err(CliError::ReadProjectMetadataFile(error)),
-    }
 
     Ok(())
 }
