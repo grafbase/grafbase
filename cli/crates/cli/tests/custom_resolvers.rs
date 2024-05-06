@@ -617,7 +617,7 @@ async fn test_query_mutation_resolver_start(
 
     // Run queries.
     for (index, (query_contents, path)) in queries.iter().enumerate() {
-        let response = client.gql::<Value>(query_contents.to_owned()).send().await;
+        let response = client.gql::<Value>(*query_contents).send().await;
         let errors = dot_get_opt!(response, "errors", Vec::<serde_json::Value>).unwrap_or_default();
         assert!(errors.is_empty(), "Error response: {errors:?}");
         let value = dot_get_opt!(response, path, serde_json::Value).unwrap_or_default();
@@ -628,4 +628,36 @@ async fn test_query_mutation_resolver_start(
             insta::assert_json_snapshot!(snapshot_name, value);
         }
     }
+}
+
+#[test]
+fn jwt_claims_in_custom_resolver_context() {
+    let schema = r#"
+        extend type Query {
+            printClaims: String @resolver(name: "printClaims")
+        }
+    "#;
+    let mut env = Environment::init();
+    env.grafbase_init(GraphType::Standalone);
+    env.write_schema(schema);
+
+    let resolver = r#"
+        export default function(parent, args, ctx) {
+            return `JWT claims: JSON.stringify(ctx.claims)``
+        }
+    "#;
+
+    env.write_resolver("resolvers/printClaims.js", resolver);
+
+    env.grafbase_start();
+    let client = env.create_client().with_api_key();
+    client.poll_endpoint(60, 300).await;
+
+    let response = client.gql::<Value>("{ printClaims }").send().await;
+
+    let errors = dot_get_opt!(response, "errors", Vec::<serde_json::Value>).unwrap_or_default();
+    assert!(errors.is_empty(), "Error response: {errors:?}");
+    let value = dot_get_opt!(response, path, serde_json::Value).unwrap_or_default();
+
+    assert_eq!(value, serde_json::json!("hi there"));
 }
