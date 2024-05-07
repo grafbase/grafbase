@@ -1,0 +1,1112 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Hotel List",
+    "version": "1.0.4",
+    "description": "Before using the API you will need to get an access token. Please read our **[Authorization Guide](https://developers.amadeus.com/self-service/apis-docs/guides/authorization)** for more information on how to get your token."
+  },
+  "servers": [
+    {
+      "url": "https://test.api.amadeus.com/v1"
+    }
+  ],
+  "paths": {
+    "/reference-data/locations/hotels/by-hotels": {
+      "get": {
+        "summary": "Search Hotels using its unique Id",
+        "tags": [
+          "Hotels"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.amadeus+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HotelSearchResponse"
+                },
+                "examples": {
+                  "Successful Reply": {
+                    "value": {
+                      "data": [
+                        {
+                          "chainCode": "AC",
+                          "iataCode": "PAR",
+                          "dupeId": 700140792,
+                          "name": "LE NOTRE DAME",
+                          "hotelId": "ACPAR419",
+                          "geoCode": {
+                            "latitude": 48.85306,
+                            "longitude": 2.34654
+                          },
+                          "address": {
+                            "countryCode": "FR"
+                          }
+                        }
+                      ],
+                      "meta": {
+                        "count": 1,
+                        "links": {
+                          "self": "http://test.api.amadeus.com/reference-data/locations/hotels/by-hotels?hotelIds=ACPAR419"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request\n\n Code | Title  \n-----|-----\n00001 | CHECK FORMAT\n00477 | INVALID FORMAT\n00009 | CHECK CITY CODE\n01157 | INVALID CITY CODE\n03237 | PROPERTY CODE NOT FOUND IN SYSTEM\n01257 | INVALID PROPERTY CODE\n00895 | NOTHING FOUND FOR REQUESTED CITY\n01271 | GUEST RECORD NOT FOUND\n11126 | NO PROPERTIES FOUND FOR RP/DI REQUESTED",
+            "content": {
+              "application/vnd.amadeus+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error_400"
+                },
+                "examples": {
+                  "Invalid Format": {
+                    "value": {
+                      "errors": [
+                        {
+                          "status": 400,
+                          "code": 477,
+                          "title": "INVALID FORMAT",
+                          "detail": "invalid query parameter format",
+                          "source": {
+                            "parameter": "hotelIds"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/vnd.amadeus+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error_404"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/vnd.amadeus+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error_500"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-shopping-hotels-by-hotels",
+        "description": "",
+        "parameters": [
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 99,
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "in": "query",
+            "name": "hotelIds",
+            "description": "Amadeus Property Codes (8 chars)",
+            "required": true,
+            "style": "form",
+            "explode": false,
+            "example": ["ACPAR419"]
+          }
+        ]
+      }
+    },
+    "/reference-data/locations/hotels/by-city": {
+      "get": {
+        "summary": "Search Hotels in a city",
+        "tags": [
+          "Hotels"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.amadeus+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HotelSearchResponse"
+                },
+                "examples": {
+                  "Successful Reply": {
+                    "value": {
+                      "data": [
+                        {
+                          "chainCode": "ZZ",
+                          "iataCode": "NCE",
+                          "dupeId": 504813011,
+                          "name": "HOTEL 3",
+                          "hotelId": "ZZNCENVX",
+                          "geoCode": {
+                            "latitude": 43.66665,
+                            "longitude": 7.21465
+                          },
+                          "address": {
+                            "countryCode": "FR"
+                          },
+                          "distance": {
+                            "value": 0.92,
+                            "unit": "KM"
+                          }
+                        },
+                        {
+                          "chainCode": "NN",
+                          "iataCode": "NCE",
+                          "dupeId": 700091936,
+                          "name": "CAMPANILE NICE - A?ROPORT",
+                          "hotelId": "NNNCE357",
+                          "geoCode": {
+                            "latitude": 43.66686,
+                            "longitude": 7.21397
+                          },
+                          "address": {
+                            "countryCode": "FR"
+                          },
+                          "distance": {
+                            "value": 0.96,
+                            "unit": "KM"
+                          }
+                        }
+                      ],
+                      "meta": {
+                        "count": 2,
+                        "links": {
+                          "self": "http://test.api.amadeus.com/reference-data/locations/hotels/by-city?cityCode=NCE&radius=1"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request\n\n Code | Title  \n-----|-----\n00001 | CHECK FORMAT\n00477 | INVALID FORMAT\n00009 | CHECK CITY CODE\n01157 | INVALID CITY CODE\n03237 | PROPERTY CODE NOT FOUND IN SYSTEM\n01257 | INVALID PROPERTY CODE\n00895 | NOTHING FOUND FOR REQUESTED CITY\n01271 | GUEST RECORD NOT FOUND\n11126 | NO PROPERTIES FOUND FOR RP/DI REQUESTED",
+            "content": {
+              "application/vnd.amadeus+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error_400"
+                },
+                "examples": {
+                  "Invalid Format": {
+                    "value": {
+                      "errors": [
+                        {
+                          "status": 400,
+                          "code": 477,
+                          "title": "INVALID FORMAT",
+                          "detail": "invalid query parameter format",
+                          "source": {
+                            "parameter": "cityCode",
+                            "example": "PAR"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/vnd.amadeus+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error_500"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-shopping-hotels-by-city",
+        "description": "",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "[a-zA-Z]{3}",
+              "minLength": 3,
+              "maxLength": 3
+            },
+            "in": "query",
+            "name": "cityCode",
+            "description": "Destination city code or airport code. In case of city  code , the search will be done around the city center. Available codes can be found in [IATA table codes](http://www.iata.org/publications/Pages/code-search.aspx) (3 chars IATA Code).",
+            "required": true,
+            "example": "PAR"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "default": 5,
+              "maximum": 300,
+              "minimum": 1
+            },
+            "in": "query",
+            "name": "radius",
+            "description": "Maximum distance from the geographical coordinates express in defined units. The default unit is metric kilometer."
+          },
+          {
+            "schema": {
+              "type": "string",
+              "default": "KM",
+              "enum": [
+                "KM",
+                "MILE"
+              ]
+            },
+            "in": "query",
+            "name": "radiusUnit",
+            "description": "Unit of measurement used to express the radius. It can be either metric kilometer or imperial mile."
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 99,
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "in": "query",
+            "name": "chainCodes",
+            "description": "Array of hotel chain codes. Each code is a string consisted of 2 capital alphabetic characters.",
+            "style": "form",
+            "explode": false
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "SWIMMING_POOL",
+                  "SPA",
+                  "FITNESS_CENTER",
+                  "AIR_CONDITIONING",
+                  "RESTAURANT",
+                  "PARKING",
+                  "PETS_ALLOWED",
+                  "AIRPORT_SHUTTLE",
+                  "BUSINESS_CENTER",
+                  "DISABLED_FACILITIES",
+                  "WIFI",
+                  "MEETING_ROOMS",
+                  "NO_KID_ALLOWED",
+                  "TENNIS",
+                  "GOLF",
+                  "KITCHEN",
+                  "ANIMAL_WATCHING",
+                  "BABY-SITTING",
+                  "BEACH",
+                  "CASINO",
+                  "JACUZZI",
+                  "SAUNA",
+                  "SOLARIUM",
+                  "MASSAGE",
+                  "VALET_PARKING",
+                  "BAR or LOUNGE",
+                  "KIDS_WELCOME",
+                  "NO_PORN_FILMS",
+                  "MINIBAR",
+                  "TELEVISION",
+                  "WI-FI_IN_ROOM",
+                  "ROOM_SERVICE",
+                  "GUARDED_PARKG",
+                  "SERV_SPEC_MENU"
+                ]
+              },
+              "maxItems": 3,
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "in": "query",
+            "name": "amenities",
+            "description": "List of amenities.",
+            "style": "form",
+            "explode": false
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "1",
+                  "2",
+                  "3",
+                  "4",
+                  "5"
+                ]
+              },
+              "maxItems": 4,
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "in": "query",
+            "name": "ratings",
+            "description": "Hotel stars. Up to four values can be requested at the same time in a comma separated list.",
+            "style": "form",
+            "explode": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "default": "ALL",
+              "enum": [
+                "BEDBANK",
+                "DIRECTCHAIN",
+                "ALL"
+              ]
+            },
+            "in": "query",
+            "name": "hotelSource",
+            "description": "Hotel source with values BEDBANK for aggregators, DIRECTCHAIN for GDS/Distribution and ALL for both."
+          }
+        ]
+      }
+    },
+    "/reference-data/locations/hotels/by-geocode": {
+      "get": {
+        "summary": "Search Hotels using Geocode",
+        "tags": [
+          "Hotels"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/vnd.amadeus+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HotelSearchResponse"
+                },
+                "examples": {
+                  "Successful Reply": {
+                    "value": {
+                      "data": [
+                        {
+                          "chainCode": "OI",
+                          "iataCode": "SXD",
+                          "dupeId": 700118746,
+                          "name": "HOTEL OMEGA - VALBONNE",
+                          "hotelId": "OISXD968",
+                          "geoCode": {
+                            "latitude": 43.61428,
+                            "longitude": 7.05464
+                          },
+                          "address": {
+                            "countryCode": "FR"
+                          },
+                          "distance": {
+                            "value": 0.73,
+                            "unit": "KM"
+                          }
+                        },
+                        {
+                          "chainCode": "DH",
+                          "iataCode": "SCR",
+                          "dupeId": 505001770,
+                          "name": "CHECK SINGLE CIF DHSCRMS8",
+                          "hotelId": "DHSCRMS8",
+                          "geoCode": {
+                            "latitude": 43.62215,
+                            "longitude": 7.04024
+                          },
+                          "distance": {
+                            "value": 0.82,
+                            "unit": "KM"
+                          }
+                        },
+                        {
+                          "chainCode": "DH",
+                          "iataCode": "VLI",
+                          "dupeId": 504621595,
+                          "name": "CHECK SINGLE CIF DHVLIMS8",
+                          "hotelId": "DHVLIMS8",
+                          "geoCode": {
+                            "latitude": 43.62215,
+                            "longitude": 7.04024
+                          },
+                          "distance": {
+                            "value": 0.82,
+                            "unit": "KM"
+                          }
+                        },
+                        {
+                          "chainCode": "DH",
+                          "iataCode": "AET",
+                          "dupeId": 504621441,
+                          "name": "CHECK SINGLE CIF DHAETMS8",
+                          "hotelId": "DHAETMS8",
+                          "geoCode": {
+                            "latitude": 43.62215,
+                            "longitude": 7.04024
+                          },
+                          "address": {
+                            "countryCode": "US"
+                          },
+                          "distance": {
+                            "value": 0.82,
+                            "unit": "KM"
+                          }
+                        },
+                        {
+                          "chainCode": "DH",
+                          "iataCode": "NYC",
+                          "dupeId": 504621445,
+                          "name": "CHECK SINGLE CIF DHNYCMS8",
+                          "hotelId": "DHNYCMS8",
+                          "geoCode": {
+                            "latitude": 43.62215,
+                            "longitude": 7.04024
+                          },
+                          "address": {
+                            "countryCode": "US"
+                          },
+                          "distance": {
+                            "value": 0.82,
+                            "unit": "KM"
+                          }
+                        }
+                      ],
+                      "meta": {
+                        "count": 5,
+                        "links": {
+                          "self": "http://test.api.amadeus.com/reference-data/locations/hotels/by-geocode?latitude=43.61999752&longitude=7.0499998&radius=1"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request\n\n Code | Title  \n-----|-----\n00001 | CHECK FORMAT\n00477 | INVALID FORMAT\n00009 | CHECK CITY CODE\n01157 | INVALID CITY CODE\n03237 | PROPERTY CODE NOT FOUND IN SYSTEM\n01257 | INVALID PROPERTY CODE\n00895 | NOTHING FOUND FOR REQUESTED CITY\n01271 | GUEST RECORD NOT FOUND\n11126 | NO PROPERTIES FOUND FOR RP/DI REQUESTED",
+            "content": {
+              "application/vnd.amadeus+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error_400"
+                },
+                "examples": {
+                  "Invalid Format": {
+                    "value": {
+                      "errors": [
+                        {
+                          "status": 400,
+                          "code": 477,
+                          "title": "INVALID FORMAT",
+                          "detail": "invalid query parameter format",
+                          "source": {
+                            "parameter": "longitude",
+                            "example": 41.397158
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/vnd.amadeus+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error_500"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-shopping-hotels-geocodes",
+        "description": "",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "in": "query",
+            "name": "latitude",
+            "required": true,
+            "description": "The latitude of the searched geographical point expressed in geometric degrees.",
+            "example": 41.397158
+          },
+          {
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "exclusiveMaximum": false
+            },
+            "in": "query",
+            "name": "longitude",
+            "required": true,
+            "description": "The longitude of the searched geographical point expressed in geometric degrees.",
+            "example": 2.160873
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "maximum": 300,
+              "minimum": 1,
+              "default": 5
+            },
+            "in": "query",
+            "name": "radius",
+            "description": "Maximum distance from the geographical coordinates expressed in defined units. The default unit is metric kilometer."
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "KM",
+                "MILE"
+              ],
+              "default": "KM"
+            },
+            "in": "query",
+            "name": "radiusUnit",
+            "description": "Unit of measurement used to express the radius. It can be either metric kilometer or imperial mile."
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 0,
+              "maxItems": 99,
+              "uniqueItems": true
+            },
+            "in": "query",
+            "name": "chainCodes",
+            "description": "Array of hotel chain codes. Each code is a string consisted of 2 capital alphabetic characters.",
+            "style": "form",
+            "explode": false
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "SWIMMING_POOL",
+                  "SPA",
+                  "FITNESS_CENTER",
+                  "AIR_CONDITIONING",
+                  "RESTAURANT",
+                  "PARKING",
+                  "PETS_ALLOWED",
+                  "AIRPORT_SHUTTLE",
+                  "BUSINESS_CENTER",
+                  "DISABLED_FACILITIES",
+                  "WIFI",
+                  "MEETING_ROOMS",
+                  "NO_KID_ALLOWED",
+                  "TENNIS",
+                  "GOLF",
+                  "KITCHEN",
+                  "ANIMAL_WATCHING",
+                  "BABY-SITTING",
+                  "BEACH",
+                  "CASINO",
+                  "JACUZZI",
+                  "SAUNA",
+                  "SOLARIUM",
+                  "MASSAGE",
+                  "VALET_PARKING",
+                  "BAR or LOUNGE",
+                  "KIDS_WELCOME",
+                  "NO_PORN_FILMS",
+                  "MINIBAR",
+                  "TELEVISION",
+                  "WI-FI_IN_ROOM",
+                  "ROOM_SERVICE",
+                  "GUARDED_PARKG",
+                  "SERV_SPEC_MENU"
+                ]
+              },
+              "maxItems": 3,
+              "minItems": 0,
+              "uniqueItems": true
+            },
+            "in": "query",
+            "name": "amenities",
+            "description": "List of amenities.",
+            "style": "form",
+            "explode": false
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "1",
+                  "2",
+                  "3",
+                  "4",
+                  "5"
+                ]
+              },
+              "minItems": 0,
+              "maxItems": 4,
+              "uniqueItems": true
+            },
+            "in": "query",
+            "name": "ratings",
+            "description": "Hotel stars. Up to four values can be requested at the same time in a comma separated list.",
+            "style": "form",
+            "explode": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "default": "ALL",
+              "enum": [
+                "BEDBANK",
+                "DIRECTCHAIN",
+                "ALL"
+              ]
+            },
+            "in": "query",
+            "name": "hotelSource",
+            "description": "Hotel source with values BEDBANK for aggregators, DIRECTCHAIN for GDS/Distribution and ALL for both."
+          }
+        ]
+      },
+      "parameters": []
+    }
+  },
+  "components": {
+    "schemas": {
+      "HotelSearchResponse": {
+        "title": "Hotel Search Response",
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Hotel"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        }
+      },
+      "Error_400":{
+        "type": "object",
+        "description": "A set of errors",
+        "title": "Error 400",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The Error Definition",
+              "title": "Error",
+              "properties": {
+                "status": {
+                  "type": "integer",
+                  "description": "The [HTTP status code](https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml) of this response. This is present only in terminal errors which cause an unsuccessful response. In the case of multiple errors, they must all have the same status."
+                },
+                "code": {
+                  "type": "integer",
+                  "description": "A machine-readable error code from the Amadeus Canned Messages table, that will enable the API Consumers code to handle this type of error"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "An error title from the Canned Messages table with a 1:1 correspondence to the error code. This may be localized"
+                },
+                "detail": {
+                  "type": "string",
+                  "description": "An easy-to-read explanation specific to this occurrence of the problem. It should give the API consumer an idea of what went wrong and how to recover from it. Like the title, this field’s value can be localized."
+                },
+                "source": {
+                  "type": "object",
+                  "title": "Error_Source",
+                  "properties": {
+                    "parameter": {
+                      "type": "string",
+                      "description": "The key of the URI path or query parameter that caused the error"
+                    },
+                    "pointer": {
+                      "type": "string",
+                      "description": "A JSON Pointer [RFC6901] to the associated entity in the request body that caused this error"
+                    },
+                    "example": {
+                      "type": "string",
+                      "description": "A sample input to guide the user when resolving this issue"
+                    }
+                  }
+                },
+                "documentation": {
+                  "type": "string",
+                  "format": "url",
+                  "description": "A link to a web page or file with further documentation to help the API consumer resolve this error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Error_404": {
+        "type": "object",
+        "description": "A set of errors",
+        "title": "Error 404",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The Error Definition",
+              "title": "Error",
+              "properties": {
+                "status": {
+                  "type": "integer",
+                  "description": "The [HTTP status code](https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml) of this response. This is present only in terminal errors which cause an unsuccessful response. In the case of multiple errors, they must all have the same status."
+                },
+                "code": {
+                  "type": "integer",
+                  "description": "A machine-readable error code from the Amadeus Canned Messages table, that will enable the API Consumers code to handle this type of error"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "An error title from the Canned Messages table with a 1:1 correspondence to the error code. This may be localized"
+                },
+                "detail": {
+                  "type": "string",
+                  "description": "An easy-to-read explanation specific to this occurrence of the problem. It should give the API consumer an idea of what went wrong and how to recover from it. Like the title, this field’s value can be localized."
+                },
+                "source": {
+                  "type": "object",
+                  "title": "Error_Source",
+                  "properties": {
+                    "parameter": {
+                      "type": "string",
+                      "description": "The key of the URI path or query parameter that caused the error"
+                    },
+                    "pointer": {
+                      "type": "string",
+                      "description": "A JSON Pointer [RFC6901] to the associated entity in the request body that caused this error"
+                    },
+                    "example": {
+                      "type": "string",
+                      "description": "A sample input to guide the user when resolving this issue"
+                    }
+                  }
+                },
+                "documentation": {
+                  "type": "string",
+                  "format": "url",
+                  "description": "A link to a web page or file with further documentation to help the API consumer resolve this error"
+                }
+              }
+            }
+          }
+        },
+        "example": {        
+          "errors": [
+            {
+              "status": 404,
+              "code": 1797,
+              "title": "NOT FOUND",
+              "detail": "no response found for this query parameter",
+              "source": {
+                "parameter": "hotelIds"
+              }
+            }
+          ]
+        }
+      },
+      "Error_500": {
+        "type": "object",
+        "description": "A set of errors",
+        "title": "Error 500",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The Error Definition",
+              "title": "Error",
+              "properties": {
+                "status": {
+                  "type": "integer",
+                  "description": "The [HTTP status code](https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml) of this response. This is present only in terminal errors which cause an unsuccessful response. In the case of multiple errors, they must all have the same status."
+                },
+                "code": {
+                  "type": "integer",
+                  "description": "A machine-readable error code from the Amadeus Canned Messages table, that will enable the API Consumers code to handle this type of error"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "An error title from the Canned Messages table with a 1:1 correspondence to the error code. This may be localized"
+                },
+                "detail": {
+                  "type": "string",
+                  "description": "An easy-to-read explanation specific to this occurrence of the problem. It should give the API consumer an idea of what went wrong and how to recover from it. Like the title, this field’s value can be localized."
+                },
+                "source": {
+                  "type": "object",
+                  "title": "Error_Source",
+                  "properties": {
+                    "parameter": {
+                      "type": "string",
+                      "description": "The key of the URI path or query parameter that caused the error"
+                    },
+                    "pointer": {
+                      "type": "string",
+                      "description": "A JSON Pointer [RFC6901] to the associated entity in the request body that caused this error"
+                    },
+                    "example": {
+                      "type": "string",
+                      "description": "A sample input to guide the user when resolving this issue"
+                    }
+                  }
+                },
+                "documentation": {
+                  "type": "string",
+                  "format": "url",
+                  "description": "A link to a web page or file with further documentation to help the API consumer resolve this error"
+                }
+              }
+            }
+          }
+        },
+        "example": {        
+          "errors": [
+            {
+              "status": 500,
+              "code": 141,
+              "title": "SYSTEM ERROR HAS OCCURRED"
+            }
+          ]
+        }
+      },
+      "Hotel": {              
+        "title": "Hotel",
+        "description": "Hotel location information",
+        "allOf": [
+          {
+            "title": "Location_Hotel",
+            "description": "Hotel, inheriting from Location",
+            "allOf": [
+              {
+                "type": "object",
+                "description": "Description of a particular point or place in physical space",
+                "title": "Location",
+                "properties": {
+                  "subtype": {
+                    "type": "string",
+                    "description": "Location sub-type (e.g. airport, port, rail-station, restaurant, atm...)"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Label associated to the location (e.g. Eiffel Tower, Madison Square)",
+                    "example": "Eiffel Tower"
+                  },
+                  "timeZoneName": {
+                    "type": "string",
+                    "description": "Olson format name (TZ) of the location time zone (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)",
+                    "example": "Europe/Paris"
+                  },
+                  "iataCode": {
+                    "type": "string",
+                    "description": "IATA location code",
+                    "example": "PAR"
+                  },
+                  "address": {
+                    "type": "object",
+                    "description": "Address information",
+                    "title": "Address",
+                    "properties": {
+                      "countryCode": {
+                        "type": "string",
+                        "description": "ISO 3166-1 country code",
+                        "pattern": "[a-zA-Z]{2}"                      }
+                    }
+                  },
+                  "geoCode": {
+                    "type": "object",
+                    "description": "Geographic coordinates describing the position of any location on the surface of Earth",
+                    "properties": {
+                      "latitude": {
+                        "type": "number",
+                        "format": "float",
+                        "description": "Latitude of the position expressed in decimal degrees (WSG 84), e.g. 6.244203. A positive value denotes northern hemisphere or the equator, and a negative value denotes southern hemisphere. The number of digits to represent the precision of the coordinate.",
+                        "minimum": -90,
+                        "exclusiveMinimum": false,
+                        "maximum": 90,
+                        "exclusiveMaximum": false,
+                        "example": 48.85837
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "format": "float",
+                        "description": "Longitude of the position expressed in decimal degrees (WSG 84), e.g. -75.581211. A positive value denotes east longitude or the prime meridian, and a negative value denotes west longitude.  The number of digits to represent the precision of the coordinate.",
+                        "minimum": -180,
+                        "exclusiveMinimum": false,
+                        "maximum": 180,
+                        "exclusiveMaximum": false,
+                        "example": 2.294481
+                      }
+                    },
+                    "title": "GeoCode"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "description": "Hotel Content",
+                "title": "Hotel",
+                "properties": {
+                  "hotelId": {
+                    "type": "string",
+                    "pattern": "^[A-Z0-9]{8}$",
+                    "example": "ADPAR001",
+                    "description": "Amadeus Property Code (8 chars)\n"
+                  },
+                  "chainCode": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{2}$",
+                    "example": "AD",
+                    "description": "Brand (RT...) or Merchant (AD...) (Amadeus 2 chars Code)\n"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Hotel de Paris",
+                    "description": "Hotel Name"
+                  }
+                }
+              },
+              {
+                "type": "object"
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "distance": {
+                "title": "Distance",
+                "type": "object",
+                "description": "Distance is designed to express a distance reprensentation with its value unit and state unlimited or not.",
+                "properties": {
+                  "unit": {
+                    "type": "string",
+                    "title": "Unit",
+                    "description": "Unit type.",
+                    "enum": [
+                      "NIGHT",
+                      "PIXELS",
+                      "KILOGRAMS",
+                      "POUNDS",
+                      "CENTIMETERS",
+                      "INCHES",
+                      "BITS_PER_PIXEL",
+                      "KILOMETERS",
+                      "MILES",
+                      "BYTES",
+                      "KILOBYTES"
+                    ]
+                  },
+                  "value": {
+                    "type": "number",
+                    "description": "Decimal distance value"
+                  },
+                  "displayValue": {
+                    "type": "string"
+                  },
+                  "isUnlimited": {
+                    "type": "string",
+                    "description": "Conveys whether the distance is limited or not, if unlimited all the other properties should not be provided."
+                  }
+                }
+              },
+              "last_update": {
+                "type": "string",
+                "description": "Last time the content was updated by a provider.",
+                "format": "date-time"
+              }
+            }
+          }
+        ]
+      },
+      "Meta": {
+        "type": "object",
+        "description": "Meta information about the returned object(s) in \"data\"",
+        "title": "Meta",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of object(s) retrieved",
+            "minimum": 0,
+            "exclusiveMinimum": false
+          },
+          "sort": {
+            "type": "array",
+            "description": "Sorting fields criteria and their associated priority and direction. Sorting priority is indicated by the order of the strings within the array. E.g. sort=title,size means that items are ordered by title and then, as a second ordering by size. A '-' sign before the search criteria indicates a descending ordering direction (Z to A), whereas no sign indicates a ascending direction (A to Z). E.g. sort=-title mean that the objects are ordered by title in reverse order (Z to A).",
+            "items": {
+              "type": "string"
+            }
+          },
+          "links": {
+            "type": "object",
+            "title": "Links",
+            "description": "Links related to the returned object(s)",
+            "properties": {
+              "self": {
+                "type": "string",
+                "format": "url",
+                "description": "Link to the same page."
+              },
+              "first": {
+                "type": "string",
+                "format": "url",
+                "description": "Link to the first page."
+              },
+              "prev": {
+                "type": "string",
+                "format": "url",
+                "description": "Link to the previous page."
+              },
+              "next": {
+                "type": "string",
+                "format": "url",
+                "description": "Link to the next page."
+              },
+              "last": {
+                "type": "string",
+                "format": "url",
+                "description": "Link to the last page."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
