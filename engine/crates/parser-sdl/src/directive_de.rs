@@ -345,7 +345,7 @@ mod tests {
                         aNestedObject: {aField: "blah"},
                     )
                 "#,
-                &maplit::hashmap!{"BLAH".to_string() => "OH_LOOK_AN_ENV_VAR".to_string()}
+                &HashMap::from([("BLAH".to_string() , "OH_LOOK_AN_ENV_VAR".to_string())])
             ).unwrap(),
             @r###"
         MyDirective {
