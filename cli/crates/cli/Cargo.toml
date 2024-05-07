@@ -52,13 +52,13 @@ url = "2.5.0"
 uuid = { version = "1.8.0", features = ["v4"] }
 webbrowser = "1.0"
 
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.71.2" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.71.2" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.71.3" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.71.3" }
 federated-dev = { path = "../federated-dev" }
 grafbase-graphql-introspection.workspace = true
 graphql-lint.workspace = true
 graph-ref = { path = "../../../graph-ref" }
-server = { package = "grafbase-local-server", path = "../server", version = "0.71.2" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.71.3" }
 prettytable = { version = "0.10.0", default-features = false, features = ["win_crlf"] }
 
 [dev-dependencies]
