@@ -4952,7 +4952,7 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 [[package]]
 name = "openapi"
 version = "0.1.5"
-source = "git+https://github.com/grafbase/openapi.git?rev=f028c4943fe716ddb02b47e5bc4d8185c3454736#f028c4943fe716ddb02b47e5bc4d8185c3454736"
+source = "git+https://github.com/grafbase/openapi.git?rev=f1f45282c17d07881bb76a8ba50d1960fdf3c810#f1f45282c17d07881bb76a8ba50d1960fdf3c810"
 dependencies = [
  "failure",
  "semver",

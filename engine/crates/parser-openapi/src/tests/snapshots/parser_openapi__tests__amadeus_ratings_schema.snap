@@ -1,0 +1,47 @@
+---
+source: engine/crates/parser-openapi/src/tests/mod.rs
+expression: registry.export_sdl(false)
+---
+type AmadeusCollectionLinks {
+	up: String
+	self: String
+	previous: String
+	next: String
+	last: String
+	first: String
+}
+type AmadeusCollectionMeta {
+	links: AmadeusCollectionLinks
+	count: Int
+}
+type AmadeusGetSentimentsByHotelIds {
+	meta: AmadeusCollectionMeta
+	data: [AmadeusHotelSentiment!]!
+}
+type AmadeusHotelSentiment {
+	type: String
+	sentiments: AmadeusHotelSentimentSentiments
+	overallRating: Int!
+	numberOfReviews: Int!
+	numberOfRatings: Int!
+	hotelId: String!
+}
+type AmadeusHotelSentimentSentiments {
+	valueForMoney: Int
+	swimmingPool: Int
+	staff: Int
+	sleepQuality: Int
+	service: Int
+	roomComforts: Int
+	pointsOfInterest: Int
+	location: Int
+	internet: Int
+	facilities: Int
+	catering: Int
+}
+type Query {
+	sentimentsByHotelIds(hotelIds: String!): AmadeusGetSentimentsByHotelIds
+}
+schema {
+	query: Query
+}
