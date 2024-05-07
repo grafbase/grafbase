@@ -142,9 +142,21 @@ fn extract_operations(ctx: &mut Context, components: &Components, paths: &BTreeM
                 }
             }
 
-            for (status_code, response) in &operation.responses {
+            for (status_code, response_or_ref) in &operation.responses {
                 let Ok(status_code) = status_code.parse::<u16>() else {
                     continue;
+                };
+
+                let response = match &response_or_ref {
+                    openapi::v2::ResponseOrRef::Response(response) => response,
+                    openapi::v2::ResponseOrRef::Ref { ref_path } => {
+                        let response_ref = Ref::absolute(ref_path);
+                        let Some(response) = components.responses.get(&response_ref) else {
+                            ctx.errors.push(response_ref.to_unresolved_error());
+                            continue;
+                        };
+                        response
+                    }
                 };
 
                 let parent_node = ParentNode::OperationResponse {
@@ -249,7 +261,31 @@ fn extract_types(ctx: &mut Context, schema: &openapi::v2::Schema, parent: Parent
                 },
             );
         }
-        None | Some(_) => {
+        None if schema.properties.as_ref().map(|p| !p.is_empty()).unwrap_or_default() => {
+            // Presumably this is an unlabelled object
+            let no_properties = BTreeMap::new();
+            let no_required = Vec::new();
+            extract_object(
+                ctx,
+                parent,
+                schema.properties.as_ref().unwrap_or(&no_properties),
+                schema.required.as_ref().unwrap_or(&no_required),
+            );
+        }
+        None if schema.items.is_some() => {
+            let items = schema.items.as_ref().unwrap();
+
+            extract_types(
+                ctx,
+                items,
+                ParentNode::List {
+                    nullable: false,
+                    parent: Box::new(parent),
+                },
+            );
+        }
+        ty @ None | ty @ Some(_) => {
+            tracing::warn!("Unknown schema type: {ty:?}, skipping");
             // Not sure what (if anything) to do with these.
             // Going to skip them for now and we can look into it if anyone complains
         }

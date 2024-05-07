@@ -1,0 +1,446 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "Before using this API, we recommend you read our **[Authorization Guide](https://developers.amadeus.com/self-service/apis-docs/guides/authorization-262)** for more information on how to generate an access token. \n\nPlease also be aware that our test environment is based on a subset of the production, this API in test only offers 24 hotels; 10 in London and 14 in New-York. You can find the list in our **[data collection](https://github.com/amadeus4dev/data-collection)**.\n",
+    "version": "1.0.2",
+    "title": "Hotel Ratings"
+  },
+  "host": "test.api.amadeus.com",
+  "basePath": "/v2",
+  "tags": [
+    {
+      "name": "Hotel Ratings",
+      "description": "Sentiments about Hotels."
+    }
+  ],
+  "schemes": [
+    "https"
+  ],
+  "produces": [
+    "application/vnd.amadeus+json"
+  ],
+  "paths": {
+    "/e-reputation/hotel-sentiments": {
+      "get": {
+        "tags": [
+          "Hotel Ratings"
+        ],
+        "summary": "Get sentiments by Amadeus Hotel Ids",
+        "description": "",
+        "operationId": "getSentimentsByHotelIds",
+        "parameters": [
+          {
+            "name": "hotelIds",
+            "in": "query",
+            "description": "Comma-separated list of Amadeus Hotel Ids (max. 3) . Amadeus Hotel Ids are found in the Hotel Search response (parameter name is 'hotelId').",
+            "required": true,
+            "x-example": ["TELONMFS"],
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/sentiments"
+          },
+          "400": {
+            "$ref": "#/responses/400"
+          },
+          "401": {
+            "$ref": "#/responses/401"
+          },
+          "default": {
+            "$ref": "#/responses/500"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "HotelSentiment": {
+      "type": "object",
+      "properties": {
+        "hotelId": {
+          "type": "string",
+          "example": "BBLONBTL",
+          "description": "Amadeus Hotel Ids are found in the Hotel Search response (parameter name is 'hotelId')"
+        },
+        "type": {
+          "type": "string",
+          "example": "hotelSentiment"
+        },
+        "overallRating": {
+          "$ref": "#/definitions/Score"
+        },
+        "numberOfRatings": {
+          "type": "integer",
+          "example": 350
+        },
+        "numberOfReviews": {
+          "type": "integer",
+          "example": 200
+        },
+        "sentiments": {
+          "type": "object",
+          "description": "Dictionary containing scores for all the available categories.  If a property does not have any category this object will not be present in the response.",
+          "properties": {
+            "sleepQuality": {
+              "$ref": "#/definitions/Score"
+            },
+            "service": {
+              "$ref": "#/definitions/Score"
+            },
+            "facilities": {
+              "$ref": "#/definitions/Score"
+            },
+            "roomComforts": {
+              "$ref": "#/definitions/Score"
+            },
+            "valueForMoney": {
+              "$ref": "#/definitions/Score"
+            },
+            "catering": {
+              "$ref": "#/definitions/Score"
+            },
+            "swimmingPool": {
+              "$ref": "#/definitions/Score"
+            },
+            "location": {
+              "$ref": "#/definitions/Score"
+            },
+            "internet": {
+              "$ref": "#/definitions/Score"
+            },
+            "pointsOfInterest": {
+              "$ref": "#/definitions/Score"
+            },
+            "staff": {
+              "$ref": "#/definitions/Score"
+            }
+          }
+        }
+      },
+      "required": [
+        "hotelId",
+        "overallRating",
+        "avgHotelAvailabilityResponseTime",
+        "numberOfRatings",
+        "numberOfReviews"
+      ]
+    },
+    "CollectionMeta": {
+      "title": "CollectionMeta",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "example": 1
+        },
+        "links": {
+          "$ref": "#/definitions/CollectionLinks"
+        }
+      }
+    },
+    "CollectionLinks": {
+      "title": "CollectionLinks",
+      "properties": {
+        "self": {
+          "type": "string",
+          "format": "uri",
+          "example": "https://test.api.amadeus.com/v1/area/resources?..."
+        },
+        "next": {
+          "type": "string",
+          "format": "uri",
+          "example": "https://test.api.amadeus.com/v1/area/resources?..."
+        },
+        "previous": {
+          "type": "string",
+          "format": "uri",
+          "example": "https://test.api.amadeus.com/v1/area/resources?..."
+        },
+        "last": {
+          "type": "string",
+          "format": "uri",
+          "example": "https://test.api.amadeus.com/v1/area/resources?..."
+        },
+        "first": {
+          "type": "string",
+          "format": "uri",
+          "example": "https://test.api.amadeus.com/v1/area/resources?..."
+        },
+        "up": {
+          "type": "string",
+          "format": "uri",
+          "example": "https://test.api.amadeus.com/v1/area/resources?..."
+        }
+      },
+      "example": {
+        "self": "https://test.api.amadeus.com/v1/area/resources?param=value"
+      }
+    },
+    "WarningNotFound": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Warning"
+        }
+      ],
+      "example": {
+        "code": 913,
+        "title": "PROPERTIES NOT FOUND",
+        "detail": "Some of the requested properties were not found in our database.",
+        "source": {
+          "parameter": "hotelIds",
+          "pointer": "ABCDEFGH,LPCDEFGQ"
+        }
+      }
+    },
+    "Score": {
+      "type": "integer",
+      "description": "Integer between 0 and 100. It represents the score for a specific category or the overall rating for a given Hotel.",
+      "example": 82
+    },
+    "Error400": {
+      "properties": {
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Error"
+          }
+        }
+      },
+      "required": [
+        "errors"
+      ]
+    },
+    "Error401": {
+      "properties": {
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Error"
+          }
+        }
+      },
+      "required": [
+        "errors"
+      ],
+      "example": {
+        "errors": [
+          {
+            "status": 401,
+            "code": 20,
+            "title": "RESTRICTED",
+            "detail": "Query unauthorized"
+          }
+        ]
+      }
+    },
+    "Error500": {
+      "properties": {
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Error"
+          }
+        }
+      },
+      "required": [
+        "errors"
+      ],
+      "example": {
+        "errors": [
+          {
+            "status": 500,
+            "code": 141,
+            "title": "SYSTEM ERROR HAS OCCURRED"
+          }
+        ]
+      }
+    },
+    "Error": {
+      "required": [
+        "status",
+        "code",
+        "title"
+      ],
+      "properties": {
+        "status": {
+          "type": "integer",
+          "description": "The [HTTP status code](https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml) of this response. This is present only in terminal errors which cause an unsuccessful response. In the case of multiple errors, they must all have the same status."
+        },
+        "code": {
+          "type": "integer",
+          "description": "A machine-readable error code from the Amadeus Canned Messages table, that will enable the API Consumers code to handle this type of error"
+        },
+        "title": {
+          "type": "string",
+          "description": "An error title from the Canned Messages table with a 1:1 correspondence to the error code. This may be localized"
+        },
+        "detail": {
+          "type": "string",
+          "description": "An easy-to-read explanation specific to this occurrence of the problem. It should give the API consumer an idea of what went wrong and how to recover from it. Like the title, this field’s value can be localized."
+        },
+        "source": {
+          "$ref": "#/definitions/ErrorSource"
+        },
+        "documentation": {
+          "type": "string",
+          "format": "url",
+          "description": "A link to a web page or file with further documentation to help the API consumer resolve this error"
+        }
+      }
+    },
+    "Warning": {
+      "required": [
+        "code",
+        "title"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer",
+          "description": "A machine-readable error code from the Canned Messages table, that will enable the API Consumers code to handle this type of error"
+        },
+        "title": {
+          "type": "string",
+          "description": "An error title from the Canned Messages table with a 1:1 correspondence to the error code. This may be localized"
+        },
+        "detail": {
+          "type": "string",
+          "description": "An easy-to-read explanation specific to this occurrence of the problem. It should give the API consumer an idea of what went wrong and how to recover from it. Like the title, this field’s value can be localized."
+        },
+        "source": {
+          "$ref": "#/definitions/ErrorSource"
+        },
+        "documentation": {
+          "type": "string",
+          "format": "url",
+          "description": "A link to a web page or file with further documentation to help the API consumer resolve this error"
+        }
+      }
+    },
+    "ErrorSource": {
+      "properties": {
+        "parameter": {
+          "type": "string",
+          "description": "The key of the URI path or query parameter that caused the error"
+        },
+        "pointer": {
+          "type": "string",
+          "description": "A JSON Pointer [RFC6901] to the associated entity in the request body that caused this error"
+        },
+        "example": {
+          "type": "string",
+          "description": "A sample input to guide the user when resolving this issue"
+        }
+      }
+    }
+  },
+  "responses": {
+    "400": {
+      "description": "Not Found",
+      "schema": {
+        "$ref": "#/definitions/Error400"
+      }
+    },
+    "401": {
+      "description": "Unauthorized",
+      "schema": {
+        "$ref": "#/definitions/Error401"
+      }
+    },
+    "500": {
+      "description": "Unexpected Error",
+      "schema": {
+        "$ref": "#/definitions/Error500"
+      }
+    },
+    "sentiments": {
+      "description": "Successful operation",
+      "schema": {
+        "title": "SuccessSentiments",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/definitions/CollectionMeta"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/WarningNotFound"
+            }
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/HotelSentiment"
+            }
+          }
+        },
+        "example": {
+          "data": [
+            {
+              "type": "hotelSentiment",
+              "numberOfReviews": 218,
+              "numberOfRatings": 278,
+              "hotelId": "ADNYCCTB",
+              "overallRating": 93,
+              "sentiments": {
+                "sleepQuality": 87,
+                "service": 98,
+                "facilities": 90,
+                "roomComforts": 92,
+                "valueForMoney": 87,
+                "catering": 89,
+                "location": 98,
+                "pointsOfInterest": 91,
+                "staff": 100
+              }
+            },
+            {
+              "type": "hotelSentiment",
+              "numberOfReviews": 2667,
+              "numberOfRatings": 2666,
+              "hotelId": "TELONMFS",
+              "overallRating": 81,
+              "sentiments": {
+                "sleepQuality": 78,
+                "service": 80,
+                "facilities": 75,
+                "roomComforts": 87,
+                "valueForMoney": 75,
+                "catering": 81,
+                "location": 89,
+                "internet": 72,
+                "pointsOfInterest": 81,
+                "staff": 89
+              }
+            }
+          ],
+          "meta": {
+            "count": 1,
+            "links": {
+              "self": "https://test.api.amadeus.com/v2/e-reputation/hotel-sentiments?hotelIds=ADNYCCTB,TELONMFS,XXXYYY01"
+            }
+          },
+          "warnings": [
+            {
+              "code": 913,
+              "title": "PROPERTIES NOT FOUND",
+              "detail": "Some of the requested properties were not found in our database.",
+              "source": {
+                "parameter": "hotelIds",
+                "pointer": "XXXYYY01"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

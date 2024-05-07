@@ -236,6 +236,20 @@ fn test_amadeus_schema() {
 }
 
 #[test]
+fn test_amadeus_ratings_schema() {
+    init_tracing();
+
+    let metadata = ApiMetadata {
+        url: None,
+        ..metadata("amadeus", false)
+    };
+
+    let registry = build_registry("test_data/amadeus-ratings.json", Format::Json, metadata).unwrap();
+
+    insta::assert_snapshot!(registry.export_sdl(false));
+}
+
+#[test]
 fn test_stripe_discrimnator_detection() {
     let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata("stripe", true)).unwrap();
     let discriminators = registry
