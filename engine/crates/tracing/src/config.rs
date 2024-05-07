@@ -199,6 +199,9 @@ pub struct TracingExportersConfig {
     pub stdout: Option<TracingStdoutExporterConfig>,
     /// Otlp exporter configuration
     pub otlp: Option<TracingOtlpExporterConfig>,
+    /// Grafbase OTEL exporter configuration when an access token is used.
+    #[serde(skip)]
+    pub grafbase: Option<TracingOtlpExporterConfig>,
 }
 
 /// Stdout exporter configuration
@@ -370,6 +373,13 @@ impl Headers {
             .collect::<Result<HashMap<_, _>, _>>()
     }
 }
+
+impl From<Vec<(HeaderName, HeaderValue)>> for Headers {
+    fn from(headers: Vec<(HeaderName, HeaderValue)>) -> Self {
+        Self(headers)
+    }
+}
+
 impl<'de> Deserialize<'de> for Headers {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

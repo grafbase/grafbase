@@ -238,7 +238,8 @@ impl DebugNode for Operation {
 }
 
 fn is_json(content_type: &str) -> bool {
-    content_type == "application/json"
+    // This covers `application/json` and the jsonAPI style `application/vnd.whatever+json`
+    content_type.ends_with("json")
 }
 
 #[derive(Debug)]

@@ -280,7 +280,7 @@ fn log_nested_events(nested_events: Vec<NestedRequestScopedMessage>, log_level_f
                 let mut url_string = url.to_string();
 
                 if url.path() == "/" && url.query().is_none() {
-                    url_string = url_string.trim_end_matches('/').to_owned();
+                    url_string = url_string.trim_end_matches('/').to_string();
                 }
 
                 let formatted_duration = format_duration(duration);

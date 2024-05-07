@@ -208,6 +208,24 @@ impl TestApi {
         .await
     }
 
+    pub async fn execute_parameterized(
+        &self,
+        operation: impl AsRef<str>,
+        variables: impl serde::Serialize,
+    ) -> Response {
+        Box::pin(
+            self.inner
+                .engine
+                // this prevents a race. we initialize the engine only when executing the first request,
+                // so the introspection runs only after we've modified the database schema.
+                .get_or_init(async { Engine::new(self.inner.schema.clone()).await }),
+        )
+        .await
+        .execute(operation.as_ref())
+        .variables(variables)
+        .await
+    }
+
     pub async fn execute_as<T>(&self, operation: impl AsRef<str>) -> T
     where
         T: DeserializeOwned + Send,

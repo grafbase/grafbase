@@ -2011,7 +2011,7 @@ dependencies = [
 
 [[package]]
 name = "engine-config-builder"
-version = "0.71.0"
+version = "0.71.4"
 dependencies = [
  "engine-v2-config",
  "graphql-federated-graph",
@@ -2354,7 +2354,7 @@ checksum = "9fc0510504f03c51ada170672ac806f1f105a88aa97a5281117e1ddc3368e51a"
 
 [[package]]
 name = "federated-dev"
-version = "0.71.0"
+version = "0.71.4"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
@@ -2390,7 +2390,7 @@ dependencies = [
 
 [[package]]
 name = "federated-server"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "ascii 1.1.0",
  "async-trait",
@@ -2706,7 +2706,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.71.0"
+version = "0.71.4"
 dependencies = [
  "async-graphql",
  "async-trait",
@@ -2884,7 +2884,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.71.0"
+version = "0.71.4"
 dependencies = [
  "assert_matches",
  "async-graphql",
@@ -2967,7 +2967,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-gateway"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "ascii 1.1.0",
@@ -3005,7 +3005,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.71.0"
+version = "0.71.4"
 dependencies = [
  "cynic",
  "cynic-introspection",
@@ -3017,7 +3017,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.71.0"
+version = "0.71.4"
 dependencies = [
  "async-compression",
  "axum 0.7.5",
@@ -3047,7 +3047,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.71.0"
+version = "0.71.4"
 dependencies = [
  "chrono",
  "common-types",
@@ -3067,7 +3067,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.71.0"
+version = "0.71.4"
 dependencies = [
  "async-trait",
  "async-tungstenite",
@@ -3171,7 +3171,7 @@ dependencies = [
 
 [[package]]
 name = "graph-ref"
-version = "0.71.0"
+version = "0.71.4"
 
 [[package]]
 name = "graphql-composition"
@@ -3189,7 +3189,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-cursor"
-version = "0.71.0"
+version = "0.71.4"
 dependencies = [
  "serde",
  "serde_with",
@@ -4514,12 +4514,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "maplit"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
-
-[[package]]
 name = "matchers"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5006,7 +5000,7 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 [[package]]
 name = "openapi"
 version = "0.1.5"
-source = "git+https://github.com/grafbase/openapi.git?rev=f028c4943fe716ddb02b47e5bc4d8185c3454736#f028c4943fe716ddb02b47e5bc4d8185c3454736"
+source = "git+https://github.com/grafbase/openapi.git?rev=f1f45282c17d07881bb76a8ba50d1960fdf3c810#f1f45282c17d07881bb76a8ba50d1960fdf3c810"
 dependencies = [
  "failure",
  "semver",
@@ -5218,7 +5212,7 @@ dependencies = [
 
 [[package]]
 name = "operation-checks"
-version = "0.71.0"
+version = "0.71.4"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
@@ -5231,7 +5225,7 @@ dependencies = [
 
 [[package]]
 name = "operation-normalizer"
-version = "0.71.0"
+version = "0.71.4"
 dependencies = [
  "anyhow",
  "expect-test",
@@ -5478,7 +5472,6 @@ dependencies = [
  "indoc",
  "insta",
  "itertools 0.12.1",
- "maplit",
  "meta-type-name",
  "nom",
  "pretty_assertions",
@@ -7969,6 +7962,7 @@ dependencies = [
  "percent-encoding",
  "pin-project",
  "prost",
+ "rustls-native-certs",
  "rustls-pemfile",
  "rustls-pki-types",
  "tokio",
@@ -8200,7 +8194,7 @@ checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "typed-resolvers"
-version = "0.71.0"
+version = "0.71.4"
 dependencies = [
  "datatest-stable",
  "engine-parser",
@@ -9021,7 +9015,7 @@ dependencies = [
 
 [[package]]
 name = "wrapping"
-version = "0.71.0"
+version = "0.71.4"
 dependencies = [
  "serde",
 ]

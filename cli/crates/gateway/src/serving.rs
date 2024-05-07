@@ -101,7 +101,7 @@ async fn get_graphql(
     let ctx = crate::Context::new(headers, sender);
 
     let mut request: engine::Request = params.into();
-    request.ray_id = ctx.ray_id.clone();
+    request.ray_id.clone_from(&ctx.ray_id);
 
     let result = match streaming_format {
         None => gateway

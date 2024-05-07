@@ -17,8 +17,8 @@ directive @join__field(
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
 enum join__Graph {
-    MULTI_KEY @join__graph(name: "multi_key", url: "http://example.com/multi_key")
-    SINGLE_KEY @join__graph(name: "single_key", url: "http://example.com/single_key")
+    MULTI_KEY @join__graph(name: "multi-key", url: "http://example.com/multi-key")
+    SINGLE_KEY @join__graph(name: "single-key", url: "http://example.com/single-key")
 }
 
 type User

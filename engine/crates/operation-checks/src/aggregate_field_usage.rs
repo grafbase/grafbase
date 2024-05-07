@@ -124,7 +124,7 @@ fn aggregate_field_usage_inner(
                     enum_literal_value,
                 } in arguments
                 {
-                    let Some(argument_id) = schema.find_argument((parent_type_name, field_name, &name)) else {
+                    let Some(argument_id) = schema.find_argument((parent_type_name, field_name, name)) else {
                         continue;
                     };
 

@@ -149,16 +149,14 @@ fn default_to_true() -> bool {
 
 #[cfg(test)]
 mod tests {
-    use rstest::rstest;
-
     use super::OpenApiQueryNamingStrategy;
     use crate::{connector_parsers::MockConnectorParsers, tests::assert_validation_error};
+    use rstest::rstest;
+    use std::collections::HashMap;
 
     #[test]
     fn test_parsing_openapi_directive() {
-        let variables = maplit::hashmap! {
-                "STRIPE_API_KEY".to_string() => "i_am_a_key".to_string()
-        };
+        let variables = HashMap::from([("STRIPE_API_KEY".to_string(), "i_am_a_key".to_string())]);
         let connector_parsers = MockConnectorParsers::default();
         let schema = r#"
             extend schema
@@ -217,9 +215,7 @@ mod tests {
     #[case("OPERATION_ID", OpenApiQueryNamingStrategy::OperationId)]
     #[case("SCHEMA_NAME", OpenApiQueryNamingStrategy::SchemaName)]
     fn test_parse_naming_strategy(#[case] input: &str, #[case] expected: OpenApiQueryNamingStrategy) {
-        let variables = maplit::hashmap! {
-                "STRIPE_API_KEY".to_string() => "i_am_a_key".to_string()
-        };
+        let variables = HashMap::from([("STRIPE_API_KEY".to_string(), "i_am_a_key".to_string())]);
         let schema = format!(
             r#"
                     extend schema

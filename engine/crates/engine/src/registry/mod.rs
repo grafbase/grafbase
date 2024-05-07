@@ -30,7 +30,9 @@ use self::type_kinds::TypeKind;
 pub use self::{
     cache_control::{CacheAccessScope, CacheControl, CacheControlError, CacheInvalidationPolicy},
     export_sdl_v2::RegistrySdlExt,
-    type_names::{ModelName, NamedType, TypeCondition, TypeReference, WrappingType, WrappingTypeIter},
+    type_names::{
+        ModelName, NamedType, TypeCondition, TypeReference, WrappingType, WrappingTypeIter,
+    },
 };
 pub use crate::model::__DirectiveLocation;
 use crate::{ContextExt, ContextField, Error, LegacyInputType, LegacyOutputType, SubscriptionType};
@@ -96,7 +98,8 @@ pub async fn check_field_cache_tag(
     resolved_field_value: Option<&ConstValue>,
 ) {
     use crate::names::{
-        DELETE_PAYLOAD_RETURN_TY_SUFFIX, OUTPUT_FIELD_DELETED_ID, OUTPUT_FIELD_DELETED_IDS, OUTPUT_FIELD_ID,
+        DELETE_PAYLOAD_RETURN_TY_SUFFIX, OUTPUT_FIELD_DELETED_ID, OUTPUT_FIELD_DELETED_IDS,
+        OUTPUT_FIELD_ID,
     };
     let cache_invalidation = ctx
         .query_env
@@ -110,12 +113,19 @@ pub async fn check_field_cache_tag(
         // This is very specific to deletions, not all queries return the @cache type ...
         // Reads, Creates and Updates do return the @cache type but Deletes do not.
         // Deletions return a `xDeletionPayload` with only a `deletedId`
-        if cache_invalidation.ty.ends_with(DELETE_PAYLOAD_RETURN_TY_SUFFIX) {
-            cache_type = cache_invalidation.ty.replace(DELETE_PAYLOAD_RETURN_TY_SUFFIX, "");
+        if cache_invalidation
+            .ty
+            .ends_with(DELETE_PAYLOAD_RETURN_TY_SUFFIX)
+        {
+            cache_type = cache_invalidation
+                .ty
+                .replace(DELETE_PAYLOAD_RETURN_TY_SUFFIX, "");
         }
 
         let cache_tags = match &cache_invalidation.policy {
-            CacheInvalidationPolicy::Entity { field: target_field } => {
+            CacheInvalidationPolicy::Entity {
+                field: target_field,
+            } => {
                 if target_field == resolved_field_name
                     // Deletions return a `xDeletionPayload` with only a `deletedId`
                     // If an invalidation policy is of type `entity.id`, on deletes `id` is the `deletedId`
@@ -143,9 +153,13 @@ pub async fn check_field_cache_tag(
                         field_name: target_field.to_string(),
                         value: resolved_field_value,
                     }]
-                } else if target_field == OUTPUT_FIELD_ID && OUTPUT_FIELD_DELETED_IDS == resolved_field_name {
-                    let ids = Vec::<String>::deserialize(resolved_field_value.unwrap_or(&ConstValue::Null).clone())
-                        .unwrap_or_default();
+                } else if target_field == OUTPUT_FIELD_ID
+                    && OUTPUT_FIELD_DELETED_IDS == resolved_field_name
+                {
+                    let ids = Vec::<String>::deserialize(
+                        resolved_field_value.unwrap_or(&ConstValue::Null).clone(),
+                    )
+                    .unwrap_or_default();
 
                     ids.into_iter()
                         .map(|value| CacheTag::Field {
@@ -158,8 +172,12 @@ pub async fn check_field_cache_tag(
                     return;
                 }
             }
-            CacheInvalidationPolicy::List => vec![CacheTag::List { type_name: cache_type }],
-            CacheInvalidationPolicy::Type => vec![CacheTag::Type { type_name: cache_type }],
+            CacheInvalidationPolicy::List => vec![CacheTag::List {
+                type_name: cache_type,
+            }],
+            CacheInvalidationPolicy::Type => vec![CacheTag::Type {
+                type_name: cache_type,
+            }],
         };
 
         ctx.response().await.add_cache_tags(cache_tags);
@@ -170,6 +188,7 @@ pub async fn check_field_cache_tag(
 #[derive(Debug)]
 pub struct Edge<'a>(pub &'a str);
 
+#[allow(clippy::to_string_trait_impl)]
 impl<'a> ToString for Edge<'a> {
     fn to_string(&self) -> String {
         self.0.to_string()
@@ -247,7 +266,10 @@ pub trait RegistryV2Ext {
     /// Looks up a particular type in the registry, with the expectation that it is of a particular kind.
     ///
     /// Will error if the type doesn't exist or is of an unexpected kind.
-    fn lookup_expecting<'a, Expected>(&'a self, name: &impl TypeReference) -> Result<Expected, Error>
+    fn lookup_expecting<'a, Expected>(
+        &'a self,
+        name: &impl TypeReference,
+    ) -> Result<Expected, Error>
     where
         Expected: TryFrom<registry_v2::MetaType<'a>> + 'a,
         <Expected as TryFrom<registry_v2::MetaType<'a>>>::Error: Into<Error>;
@@ -266,7 +288,10 @@ impl RegistryV2Ext for registry_v2::Registry {
             .map_err(Into::into)
     }
 
-    fn lookup_expecting<'a, Expected>(&'a self, name: &impl TypeReference) -> Result<Expected, Error>
+    fn lookup_expecting<'a, Expected>(
+        &'a self,
+        name: &impl TypeReference,
+    ) -> Result<Expected, Error>
     where
         Expected: TryFrom<registry_v2::MetaType<'a>> + 'a,
         <Expected as TryFrom<registry_v2::MetaType<'a>>>::Error: Into<Error>,
@@ -297,7 +322,10 @@ impl Registry {
     /// Looks up a particular type in the registry, with the expectation that it is of a particular kind.
     ///
     /// Will error if the type doesn't exist or is of an unexpected kind.
-    pub fn lookup_expecting<'a, Expected>(&'a self, name: &impl TypeReference) -> Result<Expected, Error>
+    pub fn lookup_expecting<'a, Expected>(
+        &'a self,
+        name: &impl TypeReference,
+    ) -> Result<Expected, Error>
     where
         Expected: TryFrom<&'a MetaType> + 'a,
         <Expected as TryFrom<&'a MetaType>>::Error: Into<Error>,
@@ -370,7 +398,10 @@ pub trait LegacyRegistryExt {
         &mut self,
         f: F,
     ) -> MetaFieldType;
-    fn create_subscription_type<T: SubscriptionType + ?Sized, F: FnOnce(&mut Registry) -> MetaType>(
+    fn create_subscription_type<
+        T: SubscriptionType + ?Sized,
+        F: FnOnce(&mut Registry) -> MetaType,
+    >(
         &mut self,
         f: F,
     ) -> String;
@@ -396,7 +427,10 @@ impl LegacyRegistryExt for registry_v1::Registry {
         T::qualified_type_name()
     }
 
-    fn create_subscription_type<T: SubscriptionType + ?Sized, F: FnOnce(&mut Registry) -> MetaType>(
+    fn create_subscription_type<
+        T: SubscriptionType + ?Sized,
+        F: FnOnce(&mut Registry) -> MetaType,
+    >(
         &mut self,
         f: F,
     ) -> String {

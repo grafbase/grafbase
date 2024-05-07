@@ -35,6 +35,14 @@ describe('Type generator', () => {
     `)
   })
 
+  it('errors on types with no field', () => {
+    const t = g.type('User', {})
+
+    expect(() => renderGraphQL(t)).toThrowErrorMatchingInlineSnapshot(
+      `"The User type has no field. GraphQL types must have at least one field."`
+    )
+  })
+
   it('generates one with cache', () => {
     const t = g
       .type('User', {

@@ -45,7 +45,7 @@ pub(super) struct GraphUpdater {
     sender: GatewaySender,
     current_id: Option<Ulid>,
     gateway_config: GatewayConfig,
-    otel_reload: Option<oneshot::Sender<OtelReload>>,
+    otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
 }
 
 impl GraphUpdater {
@@ -55,7 +55,7 @@ impl GraphUpdater {
         access_token: AsciiString,
         sender: GatewaySender,
         gateway_config: GatewayConfig,
-        otel_reload: Option<oneshot::Sender<OtelReload>>,
+        otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
     ) -> crate::Result<Self> {
         let gdn_client = reqwest::ClientBuilder::new()
             .timeout(GDN_TIMEOUT)
@@ -162,20 +162,21 @@ impl GraphUpdater {
                 message = "Graph fetched from GDN",
             );
 
-            match self.otel_reload.take() {
-                Some(attributes_sender) if !attributes_sender.is_closed() => {
-                    if attributes_sender
-                        .send(OtelReload {
-                            graph_id: response.graph_id,
-                            branch_id: response.branch_id,
-                            branch_name: response.branch.clone(),
-                        })
-                        .is_err()
-                    {
-                        tracing::error!("error sending otel reload event");
-                    };
-                }
-                _ => {}
+            if let Some((sender, ack_receiver)) = self.otel_reload.take() {
+                if sender
+                    .send(OtelReload {
+                        graph_id: response.graph_id,
+                        branch_id: response.branch_id,
+                        branch_name: response.branch.clone(),
+                    })
+                    .is_err()
+                {
+                    tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, "Error sending otel reload event");
+                };
+                // HACK: Waiting for the OTEL to properly happen ensures we do create engine metrics
+                // with the appropriate resource attributes.
+                tracing::event!(target: GRAFBASE_TARGET, Level::DEBUG, "Waiting for OTEL reload...");
+                ack_receiver.await.ok();
             }
 
             let gateway = match super::gateway::generate(

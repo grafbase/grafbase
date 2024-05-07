@@ -8,8 +8,11 @@ pub struct OtelTracing {
     ///     - the layer related to the handler might be a noop_layer and therefore has no provider attached
     ///     - it can be replaced on reload, and we want the latest
     pub tracer_provider: tokio::sync::watch::Receiver<TracerProvider>,
-    /// A channel to trigger the otel layer reload with new data
+    /// A channel to trigger the otel layer reload with new data. While it's a mpsc, only the first
+    /// reload will be taken into account.
     pub reload_trigger: tokio::sync::oneshot::Sender<OtelReload>,
+    /// A channel to receive confirmation that the OTEL reload happened.
+    pub reload_ack_receiver: tokio::sync::oneshot::Receiver<()>,
 }
 
 /// Payload sent when triggering an otel layer reload

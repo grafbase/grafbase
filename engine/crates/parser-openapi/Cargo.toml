@@ -28,7 +28,7 @@ url.workspace = true
 
 # We use the openapi crate for v2 of OpenAPI - unfortunately it's not been released on
 # crates.io for years so we're forking for now at least.
-openapi = { git = "https://github.com/grafbase/openapi.git", rev = "f028c4943fe716ddb02b47e5bc4d8185c3454736" } # main
+openapi = { git = "https://github.com/grafbase/openapi.git", rev = "f1f45282c17d07881bb76a8ba50d1960fdf3c810" } # main
 # We use the openapiv3 for v3 of OpenAPI.  The version on crates.io currently only supports 3.0
 # so we're maintaining a fork with 3.1 support for now.  Hopefully at some point
 # https://github.com/glademiller/openapiv3/pull/58 is merged and we can go back to mainline

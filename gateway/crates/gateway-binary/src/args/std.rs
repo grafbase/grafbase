@@ -4,7 +4,10 @@ use anyhow::Context;
 use ascii::AsciiString;
 use clap::{ArgGroup, Parser};
 use federated_server::{Config, GraphFetchMethod};
-use grafbase_tracing::otel::layer::BoxedLayer;
+use grafbase_tracing::{
+    config::{TracingOtlpExporterConfig, TracingOtlpExporterGrpcConfig, TracingOtlpExporterProtocol},
+    otel::layer::BoxedLayer,
+};
 use graph_ref::GraphRef;
 use tracing::Subscriber;
 use tracing_subscriber::{registry::LookupSpan, Layer};
@@ -51,9 +54,9 @@ pub struct Args {
     log_style: LogStyle,
 }
 
-impl Args {
+impl super::Args for Args {
     /// The method of fetching a graph
-    pub fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod> {
+    fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod> {
         match self.graph_ref.as_ref() {
             Some(graph_ref) => Ok(GraphFetchMethod::FromApi {
                 access_token: self
@@ -75,17 +78,38 @@ impl Args {
         }
     }
 
-    pub fn config(&self) -> anyhow::Result<Config> {
-        match self.config.as_ref() {
+    fn config(&self) -> anyhow::Result<Config> {
+        let mut config = match self.config.as_ref() {
             Some(path) => {
                 let config = fs::read_to_string(path).context("could not read config file")?;
-                Ok(toml::from_str(&config)?)
+                toml::from_str(&config)?
             }
-            None => Ok(Config::default()),
+            None => Config::default(),
+        };
+        if let Some(ref token) = self.grafbase_access_token {
+            let mut telemetry = std::mem::take(&mut config.telemetry).unwrap_or_default();
+            telemetry.tracing.enabled = true;
+            telemetry.tracing.exporters.grafbase = Some(TracingOtlpExporterConfig {
+                endpoint: "https://otel.grafbase.com".parse().unwrap(),
+                enabled: true,
+                protocol: TracingOtlpExporterProtocol::Grpc,
+                grpc: Some(TracingOtlpExporterGrpcConfig {
+                    tls: None,
+                    headers: vec![(
+                        http::HeaderName::from_static("authorization"),
+                        http::HeaderValue::from_str(&format!("Bearer {token}")).context("Invalid access token")?,
+                    )]
+                    .into(),
+                }),
+                ..Default::default()
+            });
+            config.telemetry = Some(telemetry);
         }
+
+        Ok(config)
     }
 
-    pub fn log_format<S>(&self) -> BoxedLayer<S>
+    fn log_format<S>(&self) -> BoxedLayer<S>
     where
         S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
     {
@@ -98,5 +122,13 @@ impl Args {
             LogStyle::Text => layer.with_ansi(false).with_target(false).boxed(),
             LogStyle::Json => layer.json().boxed(),
         }
+    }
+
+    fn listen_address(&self) -> Option<SocketAddr> {
+        self.listen_address
+    }
+
+    fn log_level(&self) -> Option<LogLevel> {
+        self.log_level
     }
 }

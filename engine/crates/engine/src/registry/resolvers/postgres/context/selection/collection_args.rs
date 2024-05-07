@@ -1,4 +1,4 @@
-use engine_value::{Name, Value};
+use engine_value::{ConstValue, Name, Value};
 use grafbase_sql_ast::ast::{Aliasable, Column, Comparable, ConditionTree, Expression, Order, OrderDefinition};
 use graphql_cursor::GraphqlCursor;
 use indexmap::IndexMap;
@@ -52,8 +52,19 @@ impl CollectionArgs {
         table: TableWalker<'_>,
         value: &SelectionField<'_>,
     ) -> Result<Self, Error> {
-        let first = value.field.get_argument("first").and_then(|value| value.as_u64());
-        let last = value.field.get_argument("last").and_then(|value| value.as_u64());
+        let first = match value.get_argument("first") {
+            Some(ConstValue::Number(num)) if num.is_u64() => num.as_u64(),
+            Some(ConstValue::Number(num)) if num.is_i64() => num.as_i64().and_then(|num| u64::try_from(num).ok()),
+            Some(ConstValue::Number(num)) => num.as_f64().map(|num| num.round() as u64),
+            _ => None,
+        };
+
+        let last = match value.get_argument("last") {
+            Some(ConstValue::Number(num)) if num.is_u64() => num.as_u64(),
+            Some(ConstValue::Number(num)) if num.is_i64() => num.as_i64().and_then(|num| u64::try_from(num).ok()),
+            Some(ConstValue::Number(num)) => num.as_f64().map(|num| num.round() as u64),
+            _ => None,
+        };
 
         match (first, last) {
             (Some(_), Some(_)) => {
@@ -67,12 +78,7 @@ impl CollectionArgs {
             _ => (),
         }
 
-        let before = value
-            .field
-            .get_argument("before")
-            .and_then(|value| value.node.clone().into_const());
-
-        let before = match before {
+        let before = match value.get_argument("before") {
             Some(before) => {
                 let cursor = GraphqlCursor::deserialize(before)
                     .map_err(|error| Error::new(format!("invalid cursor: {error}")))
@@ -83,12 +89,7 @@ impl CollectionArgs {
             None => None,
         };
 
-        let after = value
-            .field
-            .get_argument("after")
-            .and_then(|value| value.node.clone().into_const());
-
-        let after = match after {
+        let after = match value.get_argument("after") {
             Some(after) => {
                 let cursor = GraphqlCursor::deserialize(after)
                     .map_err(|error| Error::new(format!("invalid cursor: {error}")))

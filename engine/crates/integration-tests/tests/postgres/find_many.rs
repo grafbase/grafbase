@@ -3,6 +3,7 @@ mod pagination;
 use expect_test::expect;
 use indoc::indoc;
 use integration_tests::postgres::{query_namespaced_postgres, query_postgres};
+use serde_json::json;
 
 #[test]
 fn eq_pk() {
@@ -1943,6 +1944,110 @@ fn one_to_many_relation_filter_parent_side() {
                         }
                       ]
                     }
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn first_as_parameter() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            )    
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let insert = indoc! {r#"
+            INSERT INTO "User" (id, name) VALUES (1, 'Musti'), (2, 'Naukio')
+        "#};
+
+        api.execute_sql(insert).await;
+
+        let query = indoc! {r"
+            query Pg($first: Int) {
+              userCollection(first: $first) {
+                edges { node { id name } }
+              }
+            }
+        "};
+
+        let variables = json!({
+            "first": 1
+        });
+
+        api.execute_parameterized(query, variables).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "id": 1,
+                    "name": "Musti"
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
+fn last_as_parameter() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            )    
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let insert = indoc! {r#"
+            INSERT INTO "User" (id, name) VALUES (1, 'Musti'), (2, 'Naukio')
+        "#};
+
+        api.execute_sql(insert).await;
+
+        let query = indoc! {r"
+            query Pg($last: Int) {
+              userCollection(last: $last) {
+                edges { node { id name } }
+              }
+            }
+        "};
+
+        let variables = json!({
+            "last": 1
+        });
+
+        api.execute_parameterized(query, variables).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "id": 2,
+                    "name": "Naukio"
                   }
                 }
               ]

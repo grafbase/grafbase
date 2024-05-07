@@ -13,6 +13,8 @@ use grafbase_tracing::metrics::HasGraphqlErrors;
 
 pub use graph_fetch_method::GraphFetchMethod;
 pub use otel::{OtelReload, OtelTracing};
+use tokio::sync::watch;
+use tracing::Level;
 use ulid::Ulid;
 
 use crate::config::Config;
@@ -45,11 +47,18 @@ pub async fn serve(
         .or(config.network.listen_address)
         .unwrap_or(DEFAULT_LISTEN_ADDRESS);
 
-    let (otel_tracer_provider, otel_reload_trigger) = otel_tracing
-        .map(|otel| (Some(otel.tracer_provider), Some(otel.reload_trigger)))
+    let (otel_tracer_provider, otel_reload) = otel_tracing
+        .map(|otel| {
+            (
+                Some(otel.tracer_provider),
+                Some((otel.reload_trigger, otel.reload_ack_receiver)),
+            )
+        })
         .unwrap_or((None, None));
 
-    let gateway = fetch_method.into_gateway(
+    let (sender, mut gateway) = watch::channel(None);
+    gateway.mark_unchanged();
+    fetch_method.start(
         GatewayConfig {
             enable_introspection: config.graph.introspection,
             operation_limits: config.operation_limits,
@@ -58,7 +67,8 @@ pub async fn serve(
             default_headers: config.headers,
             trusted_documents: config.trusted_documents,
         },
-        otel_reload_trigger,
+        otel_reload,
+        sender,
     )?;
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
@@ -71,8 +81,12 @@ pub async fn serve(
         None => CorsLayer::permissive(),
     };
 
-    let state = ServerState::new(gateway, otel_tracer_provider);
+    let state = ServerState::new(gateway.clone(), otel_tracer_provider);
 
+    // HACK: Wait for the engine to be ready. This ensures we did reload OTEL providers if necessary
+    // as we need all resources attributes to be present before creating the tracing layer.
+    tracing::event!(target: GRAFBASE_TARGET, Level::INFO, "Waiting for engine to be ready...");
+    gateway.changed().await.ok();
     let mut router = Router::new()
         .route(path, get(engine::get).post(engine::post))
         .route_service("/ws", WebsocketService::new(websocket_sender))

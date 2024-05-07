@@ -28,9 +28,9 @@ pub struct Args {
     log_style: LogStyle,
 }
 
-impl Args {
+impl super::Args for Args {
     /// The method of fetching a graph
-    pub fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod> {
+    fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod> {
         let federated_graph = fs::read_to_string(&self.schema).context("could not read federated schema file")?;
 
         Ok(GraphFetchMethod::FromLocal {
@@ -39,7 +39,7 @@ impl Args {
     }
 
     /// The gateway configuration
-    pub fn config(&self) -> anyhow::Result<Config> {
+    fn config(&self) -> anyhow::Result<Config> {
         match fs::read_to_string(&self.config) {
             Ok(config) => Ok(toml::from_str(&config)?),
             Err(e) => match e.kind() {
@@ -49,7 +49,7 @@ impl Args {
         }
     }
 
-    pub fn log_format<S>(&self) -> BoxedLayer<S>
+    fn log_format<S>(&self) -> BoxedLayer<S>
     where
         S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
     {
@@ -62,5 +62,13 @@ impl Args {
             LogStyle::Text => layer.with_ansi(false).with_target(false).boxed(),
             LogStyle::Json => layer.json().boxed(),
         }
+    }
+
+    fn listen_address(&self) -> Option<std::net::SocketAddr> {
+        None
+    }
+
+    fn log_level(&self) -> Option<LogLevel> {
+        self.log_level
     }
 }
