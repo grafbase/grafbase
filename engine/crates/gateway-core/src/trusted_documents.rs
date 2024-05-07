@@ -15,7 +15,6 @@ where
     Executor::StreamingResponse: super::ConstructableResponse<Error = Executor::Error>,
 {
     /// Handle a request making use of APQ or trusted documents.
-    #[instrument(skip_all)]
     pub(super) async fn handle_persisted_query(
         &self,
         request: &mut engine::Request,
@@ -74,6 +73,7 @@ where
             .await
     }
 
+    #[instrument(skip_all)]
     async fn handle_trusted_document_query(
         &self,
         request: &mut engine::Request,
@@ -134,6 +134,7 @@ where
     }
 
     /// Handle a request using Automatic Persisted Queries.
+    #[instrument(skip_all)]
     async fn handle_apq(
         &self,
         request: &mut engine::Request,
