@@ -1,9 +1,8 @@
+use futures_util::{FutureExt, TryFutureExt};
+use headers::HeaderMapExt;
 use std::fmt::Display;
 use std::future::Future;
 use std::sync::Arc;
-
-use futures_util::{FutureExt, TryFutureExt};
-use headers::HeaderMapExt;
 use tracing_futures::Instrument;
 
 use crate::cache::{Cache, CacheReadStatus, Cacheable, CachedExecutionResponse, Entry, EntryState};

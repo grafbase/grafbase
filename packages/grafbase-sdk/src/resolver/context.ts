@@ -24,6 +24,10 @@ export type ResolverContext = {
   /** Context about the HTTP request being handled. */
   request: {
     headers: Record<string, any>
+    /**
+     * When a valid and verified JWT is present in the request, the JWT claims are included in this field.
+     */
+    jwtClaims: Record<string, any>
   }
   /**
    * Grafbase KV

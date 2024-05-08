@@ -126,6 +126,7 @@ impl V1AuthProvider {
             payload: runtime::udf::AuthorizerRequestPayload {
                 context: runtime::udf::UdfRequestContext {
                     request: runtime::udf::UdfRequestContextRequest {
+                        jwt_claims: BTreeMap::default(), // intentionally left blank
                         headers: serde_json::to_value(
                             headers
                                 .iter()

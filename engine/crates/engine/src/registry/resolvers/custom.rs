@@ -1,4 +1,4 @@
-use common_types::UdfKind;
+use common_types::{auth, UdfKind};
 use runtime::udf::{
     CustomResolverInvoker, CustomResolverRequestPayload, UdfError, UdfRequest, UdfRequestContext,
     UdfRequestContextRequest, UdfResponse,
@@ -49,6 +49,12 @@ pub(super) async fn resolve(
         .map(|(name, value)| value.into_json().map(|value| (name.to_string(), value)))
         .collect::<serde_json::Result<_>>()?;
     let ray_id = runtime_ctx.ray_id();
+    let auth_token: Option<&auth::ExecutionAuthToken> =
+        ctx.data::<auth::ExecutionAuth>().ok().and_then(|auth| match auth {
+            auth::ExecutionAuth::Token(token) => Some(token),
+            _ => None,
+        });
+
     let future = custom_resolvers_engine.invoke(
         ray_id,
         UdfRequest {
@@ -59,6 +65,7 @@ pub(super) async fn resolve(
                 parent: Some(parent.data_resolved().clone()),
                 context: UdfRequestContext {
                     request: UdfRequestContextRequest {
+                        jwt_claims: auth_token.map(|token| token.claims().clone()).unwrap_or_default(),
                         headers: serde_json::to_value(runtime_ctx.headers_as_map()).expect("must be valid"),
                     },
                 },
