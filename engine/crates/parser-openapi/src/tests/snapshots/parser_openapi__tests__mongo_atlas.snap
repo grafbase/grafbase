@@ -110,9 +110,6 @@ input MongoUpdateOneInput {
 type Mutation {
 	mongo: MongoMutation!
 }
-type Query {
-}
 schema {
-	query: Query
 	mutation: Mutation
 }
