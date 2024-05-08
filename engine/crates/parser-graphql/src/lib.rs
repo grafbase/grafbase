@@ -418,7 +418,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_counries_output() {
+    async fn test_countries_output() {
         let introspection_headers = [
             ("x-client-id", "5ed1175bad06853b3aa1e492"),
             ("x-app-id", "623996f3c35130073829b252"),

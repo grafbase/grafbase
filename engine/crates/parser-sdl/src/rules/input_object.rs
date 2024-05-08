@@ -66,10 +66,7 @@ mod tests {
         type Mutation {
         	checkout(input: CheckoutInput!): CheckoutSession!
         }
-        type Query {
-        }
         schema {
-        	query: Query
         	mutation: Mutation
         }
         "###);

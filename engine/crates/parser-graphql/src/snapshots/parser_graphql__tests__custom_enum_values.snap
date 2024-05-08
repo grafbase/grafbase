@@ -1,5 +1,5 @@
 ---
-source: common/parser-graphql/src/lib.rs
+source: engine/crates/parser-graphql/src/lib.rs
 expression: result
 ---
 """
@@ -11,9 +11,3 @@ enum Amenities {
 	_2048X2048
 	_1536X1536
 }
-type Query {
-}
-schema {
-	query: Query
-}
-

@@ -35,7 +35,7 @@ impl RegistrySdlExt for Registry {
 
         if !federation {
             let query = if !has_empty_query_type(self, federation) {
-                format!("\t query: {}\n", self.query_type)
+                format!("\tquery: {}\n", self.query_type)
             } else {
                 String::new()
             };
