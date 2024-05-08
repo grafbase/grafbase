@@ -27,7 +27,7 @@ impl RequiresDirective {
         }
     }
 
-    pub fn into_fields(self) -> engine::registry::FieldSet {
+    pub fn into_fields(self) -> registry_v2::FieldSet {
         self.fields.0
     }
 }
@@ -44,6 +44,8 @@ impl Directive for RequiresDirective {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+
+    use engine::registry::field_set::FieldSetDisplay;
 
     use crate::tests::assert_validation_error;
 
@@ -73,7 +75,7 @@ mod tests {
             .as_ref()
             .unwrap();
 
-        assert_eq!(requires.to_string(), "id name account { id }");
+        assert_eq!(FieldSetDisplay(requires).to_string(), "id name account { id }");
     }
 
     #[test]

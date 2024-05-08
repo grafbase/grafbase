@@ -28,6 +28,8 @@ graphql-extensions = { path = "../../../engine/crates/graphql-extensions", featu
 ] }
 gateway-core = { path = "../../../engine/crates/gateway-core" }
 grafbase-tracing = { workspace = true , features = ["tower"] }
+registry-v2.workspace = true
+registry-for-cache.workspace = true
 runtime = { path = "../../../engine/crates/runtime" }
 runtime-noop = { path = "../../../engine/crates/runtime-noop" }
 runtime-local = { path = "../../../engine/crates/runtime-local" }

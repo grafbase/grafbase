@@ -1,11 +1,14 @@
+use std::collections::HashSet;
+
 use engine_parser::{types::Field, Positioned};
 use futures_util::future::join_all;
+use registry_v2::FederationResolver;
 use serde::Deserialize;
 use serde_json::Value;
 
 use super::{ResolvedValue, ResolverContext};
 use crate::{
-    registry::{federation::FederationResolver, NamedType},
+    registry::{federation::find_key_for_entity, NamedType, RegistryV2Ext},
     resolver_utils::resolve_joined_field,
     Context, ContextExt, ContextField, Error,
 };
@@ -50,8 +53,7 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
         .get(representation.ty.as_str()) // TODO: should this be keyed by NamedType?
         .ok_or_else(|| Error::new(format!("Unknown __typename in representation: {}", representation.ty)))?;
 
-    let key_being_resolved = entity
-        .find_key(&representation.data)
+    let key_being_resolved = find_key_for_entity(entity, &representation.data)
         .ok_or_else(|| Error::new("Could not find a matching key for the given representation"))?;
 
     // The ctx we're passed will have the generic Entity interface in it's type.
@@ -65,10 +67,10 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
     )?;
     let resolver_context = ResolverContext::new(ctx).with_ty(actual_type);
 
-    let data = match key_being_resolved.resolver() {
+    let data = match &key_being_resolved.resolver {
         Some(FederationResolver::Http(resolver)) => {
             let last_resolver_value = Some(ResolvedValue::new(representation.data));
-            resolver.resolve(ctx, &resolver_context, last_resolver_value).await
+            super::http::resolve(resolver.as_ref(), ctx, &resolver_context, last_resolver_value).await
         }
         Some(FederationResolver::BasicType) => Ok(ResolvedValue::new(serde_json::to_value(&representation)?)),
         Some(FederationResolver::Join(join)) => {
@@ -77,7 +79,7 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
             let ctx = ctx.with_alternative_field(&field);
 
             let last_resolver_value = ResolvedValue::new(representation.data);
-            resolve_joined_field(&ctx, join, last_resolver_value).await
+            resolve_joined_field(&ctx, join.as_ref(), last_resolver_value).await
         }
         None => {
             return Err(Error::new(format!(
@@ -126,10 +128,14 @@ async fn resolve_representation(ctx: &ContextField<'_>, representation: Represen
 /// Pruning like this allows connectors to be unaware of this
 /// complication.
 fn prune_entity_query(field: &mut Positioned<Field>, ty: NamedType<'_>, context: &dyn Context) {
-    let is_type_compatible: Box<dyn Fn(&str) -> bool> = match context.registry().implements.get(ty.as_str()) {
-        Some(implements) => Box::new(|name: &str| name == ty.as_str() || implements.contains(name)),
-        None => Box::new(|name: &str| name == ty.as_str()),
-    };
+    let implements = context
+        .registry()
+        .interfaces_implemented(ty.as_str())
+        .map(|ty| ty.name())
+        .collect::<HashSet<_>>();
+
+    let is_type_compatible: Box<dyn Fn(&str) -> bool> =
+        Box::new(|name: &str| name == ty.as_str() || implements.contains(name));
 
     field.node.selection_set.node.items = std::mem::take(&mut field.node.selection_set.node.items)
         .into_iter()

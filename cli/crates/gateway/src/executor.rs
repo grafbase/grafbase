@@ -12,7 +12,7 @@ pub struct Executor {
     #[allow(dead_code)]
     env_vars: HashMap<String, String>,
     bridge: Bridge,
-    registry: Arc<engine::Registry>,
+    registry: Arc<registry_v2::Registry>,
     postgres: LocalPgTransportFactory,
 }
 
@@ -20,7 +20,7 @@ impl Executor {
     pub(crate) async fn new(
         env_vars: HashMap<String, String>,
         bridge: Bridge,
-        registry: Arc<engine::Registry>,
+        registry: Arc<registry_v2::Registry>,
     ) -> Result<Self, crate::Error> {
         let postgres = {
             let mut transports = HashMap::new();

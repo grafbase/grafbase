@@ -2,17 +2,14 @@
 #[macro_use]
 extern crate assert_matches;
 
+use registry_v1 as _; // We should use this directly instead of going via engine at some point
+
 use std::collections::{HashMap, HashSet};
 
 use common_types::UdfKind;
-use engine::{
-    registry::{
-        enums::EngineEnums,
-        scalars::{PossibleScalar, SDLDefinitionScalar},
-    },
-    Pos,
-};
+use engine::{registry::enums::EngineEnums, Pos};
 use engine_parser::{types::ServiceDocument, Error as ParserError};
+use engine_scalars::{PossibleScalar, SDLDefinitionScalar};
 use rules::{
     all_subgraphs_directive::{AllSubgraphsDirective, AllSubgraphsDirectiveVisitor},
     auth_directive::{v2::AuthV2DirectiveVisitor, AuthDirective},

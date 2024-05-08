@@ -163,7 +163,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
                 ty: <#ty as #crate_name::LegacyInputType>::create_type_info(registry),
                 default_value: #schema_default,
                 validators: None,
-                visible: #visible,
+
                 is_secret: #secret,
                 rename: None
             });
@@ -208,6 +208,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
                 }
 
                 fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::InputValueType {
+                    use #crate_name::registry::LegacyRegistryExt;
                     registry.create_input_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::InputObject(#crate_name::registry::InputObjectType {
                             name: ::std::borrow::ToOwned::to_owned(#gql_typename),
@@ -217,7 +218,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
                                 #(#schema_fields)*
                                 fields
                             },
-                            visible: #visible,
+
                             rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                             oneof: false,
                         })
@@ -257,6 +258,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
             #[allow(clippy::all, clippy::pedantic)]
             impl #impl_generics #ident #ty_generics #where_clause {
                 fn __internal_create_type_info(registry: &mut #crate_name::registry::Registry, name: &str) -> #crate_name::registry::InputValueType where Self: #crate_name::LegacyInputType {
+                    use #crate_name::registry::LegacyRegistryExt;
                     registry.create_input_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::InputObject(#crate_name::registry::InputObjectType {
                             name: ::std::borrow::ToOwned::to_owned(name),
@@ -266,7 +268,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
                                 #(#schema_fields)*
                                 fields
                             },
-                            visible: #visible,
+
                             rust_typename: ::std::any::type_name::<Self>(),
                             oneof: false,
                         })

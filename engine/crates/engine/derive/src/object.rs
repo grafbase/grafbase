@@ -248,7 +248,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                             ty: <#ty as #crate_name::LegacyInputType>::create_type_info(registry),
                             default_value: #schema_default,
                             validators: None,
-                            visible: #visible,
+
                             is_secret: #secret,
                             rename: None
                         });
@@ -342,9 +342,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                         },
                         ty: <#schema_ty as #crate_name::LegacyOutputType>::create_type_info(registry),
                         deprecation: #field_deprecation,
-                        cache_control: Some(Box::new(#cache_control)),
-                        visible: #visible,
-                        compute_complexity: #complexity,
+                        cache_control: None,
                         resolver: #crate_name::registry::resolvers::Resolver::Parent,
                         ..Default::default()
                     });
@@ -465,6 +463,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                 }
 
                 fn create_type_info(registry: &mut #crate_name::registry::Registry) -> #crate_name::registry::MetaFieldType {
+                    use #crate_name::registry::LegacyRegistryExt;
                     let ty = registry.create_output_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
                             name: ::std::borrow::ToOwned::to_owned(#gql_typename),
@@ -474,10 +473,10 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                                 #(#schema_fields)*
                                 fields
                             },
-                            cache_control: Some(Box::new(#cache_control)),
+                            cache_control: None,
                             extends: #extends,
                             is_node: false,
-                            visible: #visible,
+
                             is_subscription: false,
                             rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                             constraints: vec![],
@@ -507,6 +506,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
 
             impl #impl_generics #self_ty #where_clause {
                 fn __internal_create_type_info(registry: &mut #crate_name::registry::Registry, name: &str) -> #crate_name::registry::InputValueType  where Self: #crate_name::LegacyOutputType {
+                    use #crate_name::registry::LegacyRegistryExt;
                     let ty = registry.create_output_type::<Self, _>(|registry|
                         #crate_name::registry::MetaType::Object(#crate_name::registry::ObjectType {
                             name: ::std::borrow::ToOwned::to_owned(name),
@@ -516,9 +516,9 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
                                 #(#schema_fields)*
                                 fields
                             },
-                            cache_control: Some(Box::new(#cache_control)),
+                            cache_control: None,
                             extends: #extends,
-                            visible: #visible,
+
                             is_node: false,
                             is_subscription: false,
                             rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),

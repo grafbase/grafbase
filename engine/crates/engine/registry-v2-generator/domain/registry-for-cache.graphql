@@ -1,4 +1,7 @@
-union MetaType @distinct @file(name: "metatype") @variant(names: ["Object", "Interface"]) = ObjectType | InterfaceType
+union MetaType @distinct @file(name: "metatype") @variant(names: ["Object", "Interface", "Other"]) =
+    ObjectType
+  | InterfaceType
+  | OtherType
 
 type ObjectType @file(name: "objects") @distinct {
   name: String!
@@ -22,6 +25,12 @@ type InterfaceType @file(name: "interface") @distinct {
   fields: [MetaField!]!
   cache_control: CacheControl
   possible_types: [MetaType] @inline
+}
+
+# We do still need to reference scalar etc. types in this schema
+# so here's a catch all
+type OtherType @file(name: "others") @distinct {
+  name: String!
 }
 
 # String is built in, but easier to implement stuff if its just in the .graphql file

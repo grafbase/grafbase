@@ -48,7 +48,8 @@ impl<'a> Iterator for ComplexFilterIterator<'a> {
             let input_type: InputType<'_> = self
                 .input_type
                 .field(&field)
-                .and_then(|field| self.context.registry().lookup(&field.ty).ok())
+                .map(|field| field.ty().named_type())
+                .and_then(|ty| InputType::try_from(ty).ok())
                 .unwrap();
 
             let object = if !relation.is_referenced_row_unique() {

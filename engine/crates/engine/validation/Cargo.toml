@@ -1,0 +1,24 @@
+[package]
+name = "engine-validation"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+engine-parser.workspace = true
+engine-scalars.path = "../scalars"
+engine-value.workspace = true
+indexmap.workspace = true
+meta-type-name.path = "../meta-type-name"
+query-path.path = "../query-path"
+registry-v2.workspace = true
+registry-for-cache.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+engine.workspace = true
+insta.workspace = true
+once_cell = "1.19"
+registry-upgrade.workspace = true
+serde_json.worksace = true

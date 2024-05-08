@@ -55,6 +55,7 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::tests::assert_validation_error;
+    use engine::registry::RegistrySdlExt;
 
     #[test]
     fn test_federation_with_a_resolver() {

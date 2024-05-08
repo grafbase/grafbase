@@ -1,6 +1,7 @@
 use std::sync::Once;
 
 use assert_matches::assert_matches;
+use engine::registry::RegistrySdlExt;
 use engine::registry::{MetaType, UnionType};
 
 use super::*;
@@ -284,8 +285,12 @@ fn non_required_self_referencing_objects_produce_valid_sdl() {
     );
 }
 
-fn build_registry(schema_path: &str, format: Format, metadata: ApiMetadata) -> Result<Registry, Vec<Error>> {
-    let mut registry = Registry::new();
+fn build_registry(
+    schema_path: &str,
+    format: Format,
+    metadata: ApiMetadata,
+) -> Result<registry_v1::Registry, Vec<Error>> {
+    let mut registry = registry_v1::Registry::new();
 
     parse_spec(
         std::fs::read_to_string(schema_path).unwrap(),

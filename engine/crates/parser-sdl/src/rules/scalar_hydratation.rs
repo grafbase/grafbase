@@ -3,11 +3,9 @@
 //! The user defined scalars can be hydrated to the generated API only if those scalars belongs to
 //! the list of PossibleScalar from engine for now.
 //!
-use engine::{
-    registry::scalars::{DynamicScalar, PossibleScalar},
-    Positioned, Value,
-};
+use engine::{Positioned, Value};
 use engine_parser::types::TypeDefinition;
+use engine_scalars::{DynamicScalar, PossibleScalar};
 
 use super::visitor::{Visitor, VisitorContext};
 
@@ -46,7 +44,6 @@ impl<'a> Visitor<'a> for ScalarHydratation {
                             .clone()
                             .map(|x| x.node.as_str().to_string()),
                         is_valid: None,
-                        visible: None,
                         specified_by_url,
                         parser: engine::registry::ScalarParser::BestEffort,
                     })

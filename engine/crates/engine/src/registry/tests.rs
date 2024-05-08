@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 use super::*;
 
-const EXPECTED_SHA: &str = "7e7bd6644c51d7b6ffcb1aad5b6cdb37660d0d05cb835d417d8e79d2a08bbd74";
+const EXPECTED_SHA: &str = "9255c61604b1527e4885ffa7715fcd2a7c80d6f0924ac976808ed725156a2742";
 
 #[test]
 fn test_serde_roundtrip() {
@@ -24,7 +24,7 @@ fn test_serde_roundtrip() {
             the new output presented in the test result.
         ";
 
-    let registry = Cow::Owned(Registry::new().with_sample_data());
+    let registry = registry_upgrade::convert_v1_to_v2(Registry::new().with_sample_data());
     let versioned_registry = VersionedRegistry {
         registry,
         deployment_id: Cow::Borrowed(id),

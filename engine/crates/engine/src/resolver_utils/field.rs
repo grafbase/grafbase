@@ -1,4 +1,5 @@
 use engine_parser::parse_selection_set;
+use engine_scalars::{DynamicScalar, PossibleScalar};
 use engine_value::ConstValue;
 use graph_entities::{CompactValue, ResponseNodeId, ResponsePrimitive};
 use serde_json::Value;
@@ -6,14 +7,14 @@ use serde_json::Value;
 use super::{introspection, joins::resolve_joined_field, resolve_container, resolve_list};
 use crate::{
     registry::{
-        resolvers::{ResolvedValue, Resolver, ResolverContext},
-        scalars::{DynamicScalar, PossibleScalar},
-        type_kinds::OutputType,
-        FieldSet, MetaField, MetaType, ScalarParser, TypeReference,
+        check_field_cache_tag,
+        field_set::{all_fieldset_fields_are_present, FieldSetDisplay},
+        resolvers::{ResolvedValue, ResolverContext},
     },
     request::IntrospectionState,
     Context, ContextExt, ContextField, Error, ServerError,
 };
+use registry_v2::{resolvers::Resolver, MetaType, ScalarParser};
 
 /// Resolves the field inside `ctx` within the type `root`
 pub async fn resolve_field(
@@ -65,7 +66,7 @@ pub async fn resolve_field(
 
     let mut parent_resolver_value = parent_resolver_value.unwrap_or_default();
 
-    if let Some(requires) = &field.requires {
+    if let Some(requires) = field.requires() {
         parent_resolver_value = resolve_requires_fieldset(parent_resolver_value, requires, ctx).await?;
     }
 
@@ -78,7 +79,7 @@ pub async fn resolve_field(
 
     match result {
         Ok(result) => Ok(result),
-        Err(e) if field.ty.is_nullable() => {
+        Err(e) if field.ty().is_nullable() => {
             ctx.add_error(e);
             Ok(ctx.response().await.insert_node(CompactValue::Null))
         }
@@ -91,7 +92,7 @@ pub async fn resolve_field(
 
 async fn resolve_primitive_field(
     ctx: &ContextField<'_>,
-    field: &MetaField,
+    field: registry_v2::MetaField<'_>,
     parent_resolver_value: ResolvedValue,
 ) -> Result<ResponseNodeId, ServerError> {
     let resolved_value = run_field_resolver(ctx, parent_resolver_value)
@@ -105,41 +106,34 @@ async fn resolve_primitive_field(
         Err(err) => return Err(err),
     }?;
 
-    let field_type = ctx
-        .registry()
-        .lookup(&field.ty)
-        .map_err(|error| error.into_server_error(ctx.item.pos))?;
+    let field_type = field.ty().named_type();
 
     let parent_type_name = ctx.parent_type.name();
 
     let result = match field_type {
-        OutputType::Scalar(scalar) => match scalar.parser {
+        MetaType::Scalar(scalar) => match scalar.parser() {
             ScalarParser::PassThrough => {
                 let scalar_value: ConstValue = result
                     .try_into()
                     .map_err(|err: serde_json::Error| ServerError::new(err.to_string(), Some(ctx.item.pos)))?;
 
-                field
-                    .check_cache_tag(ctx, parent_type_name, &field.name, Some(&scalar_value))
-                    .await;
+                check_field_cache_tag(ctx, parent_type_name, field.name(), Some(&scalar_value)).await;
 
                 scalar_value
             }
             ScalarParser::BestEffort => match result {
                 serde_json::Value::Null => ConstValue::Null,
                 _ => {
-                    let scalar_value = PossibleScalar::to_value(field.ty.named_type().as_str(), result)
-                        .map_err(|err| err.into_server_error(ctx.item.pos))?;
+                    let scalar_value = PossibleScalar::to_value(field.ty().named_type().name(), result)
+                        .map_err(|err| ServerError::new(err.0, Some(ctx.item.pos)))?;
 
-                    field
-                        .check_cache_tag(ctx, parent_type_name, &field.name, Some(&scalar_value))
-                        .await;
+                    check_field_cache_tag(ctx, parent_type_name, field.name(), Some(&scalar_value)).await;
 
                     scalar_value
                 }
             },
         },
-        OutputType::Enum { .. } => {
+        registry_v2::MetaType::Enum { .. } => {
             ConstValue::from_json(result).map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))?
         }
         _ => {
@@ -153,13 +147,13 @@ async fn resolve_primitive_field(
     Ok(ctx.response().await.insert_node(ResponsePrimitive::new(result.into())))
 }
 
-fn handle_null_primitive(field: &MetaField, ctx: &ContextField<'_>) -> Result<Value, ServerError> {
-    if field.ty.is_non_null() {
+fn handle_null_primitive(field: registry_v2::MetaField<'_>, ctx: &ContextField<'_>) -> Result<Value, ServerError> {
+    if field.ty().is_non_null() {
         tracing::warn!(
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
                 "message": "Something went wrong here",
-                "expected": serde_json::Value::String(field.ty.to_string()),
+                "expected": serde_json::Value::String(field.ty().to_string()),
                 "path": serde_json::Value::String(ctx.path.to_string()),
             }))
             .unwrap(),
@@ -167,7 +161,7 @@ fn handle_null_primitive(field: &MetaField, ctx: &ContextField<'_>) -> Result<Va
         return Err(ServerError::new(
             format!(
                 "An error happened while fetching `{}`, expected a non null value but found a null",
-                field.name
+                field.name()
             ),
             Some(ctx.item.pos),
         ));
@@ -178,7 +172,7 @@ fn handle_null_primitive(field: &MetaField, ctx: &ContextField<'_>) -> Result<Va
 
 async fn resolve_container_field(
     ctx: &ContextField<'_>,
-    field: &MetaField,
+    field: registry_v2::MetaField<'_>,
     parent_resolver_value: ResolvedValue,
 ) -> Result<ResponseNodeId, ServerError> {
     // If there is a resolver associated to the container we execute it before
@@ -188,7 +182,7 @@ async fn resolve_container_field(
         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
     if resolved_value.is_none() {
-        if field.ty.is_non_null() {
+        if field.ty().is_non_null() {
             return Err(ServerError::new(
                 format!(
                     "An error occured while fetching `{}`, a non-nullable value was expected but no value was found.",
@@ -205,10 +199,7 @@ async fn resolve_container_field(
     }
     let resolved_value = resolved_value.unwrap();
 
-    let field_type = ctx
-        .registry()
-        .lookup_expecting::<&MetaType>(&field.ty)
-        .map_err(|error| error.into_server_error(ctx.item.pos))?;
+    let field_type = field.ty().named_type();
 
     let type_name = field_type.name().to_string();
 
@@ -216,11 +207,11 @@ async fn resolve_container_field(
 
     match resolve_container(&selection_ctx, resolved_value).await {
         result @ Ok(_) => {
-            field.check_cache_tag(ctx, &type_name, &field.name, None).await;
+            check_field_cache_tag(ctx, &type_name, field.name(), None).await;
             result
         }
         Err(err) => {
-            if field.ty.is_non_null() {
+            if field.ty().is_non_null() {
                 Err(err)
             } else {
                 ctx.add_error(err);
@@ -235,22 +226,18 @@ async fn resolve_container_field(
 
 async fn resolve_array_field(
     ctx: &ContextField<'_>,
-    field: &MetaField,
+    field: registry_v2::MetaField<'_>,
     parent_resolver_value: ResolvedValue,
 ) -> Result<ResponseNodeId, ServerError> {
-    let registry = ctx.registry();
-    let container_type = registry
-        .lookup_expecting::<&MetaType>(&field.ty)
-        .map_err(|error| error.into_server_error(ctx.item.pos))?;
+    let _registry = ctx.registry();
+    let container_type = field.ty().named_type();
 
     let resolved_value = run_field_resolver(ctx, parent_resolver_value)
         .await
         .map_err(|err| err.into_server_error(ctx.item.pos))?
         .unwrap_or_default();
 
-    field
-        .check_cache_tag(ctx, container_type.name(), &field.name, None)
-        .await;
+    check_field_cache_tag(ctx, container_type.name(), field.name(), None).await;
 
     let list_ctx = ctx.to_list_context();
     resolve_list(list_ctx, ctx.item, container_type, resolved_value).await
@@ -260,7 +247,7 @@ pub(super) async fn run_field_resolver(
     ctx: &ContextField<'_>,
     parent_resolver_value: ResolvedValue,
 ) -> Result<Option<ResolvedValue>, Error> {
-    let resolver = &ctx.field.resolver;
+    let resolver = &ctx.field.resolver();
 
     match resolver {
         Resolver::Parent => {
@@ -274,9 +261,13 @@ pub(super) async fn run_field_resolver(
         _ => {}
     }
 
-    let resolved_value = resolver
-        .resolve(ctx, &ResolverContext::new(ctx), Some(parent_resolver_value))
-        .await?;
+    let resolved_value = crate::registry::resolvers::run_resolver(
+        resolver,
+        ctx,
+        &ResolverContext::new(ctx),
+        Some(parent_resolver_value),
+    )
+    .await?;
 
     if resolved_value.data_resolved().is_null() {
         // Convert nulls into `None` which will stop us executing child fields
@@ -288,11 +279,11 @@ pub(super) async fn run_field_resolver(
 
 async fn resolve_requires_fieldset(
     parent_resolver_value: ResolvedValue,
-    requires: &FieldSet,
+    requires: &registry_v2::FieldSet,
     ctx: &ContextField<'_>,
 ) -> Result<ResolvedValue, ServerError> {
     let all_fields_present = match parent_resolver_value.data_resolved() {
-        Value::Object(object) => requires.all_fields_are_present(object),
+        Value::Object(object) => all_fieldset_fields_are_present(requires, object),
         _ => false,
     };
 
@@ -300,7 +291,7 @@ async fn resolve_requires_fieldset(
         return Ok(parent_resolver_value);
     }
 
-    let selection_set_string = format!("{{ {requires} }}");
+    let selection_set_string = format!("{{ {} }}", FieldSetDisplay(requires));
     let selection_set = parse_selection_set(&selection_set_string).map_err(|error| {
         tracing::error!("Could not parse require string `{selection_set_string} as selection set: {error}");
         ServerError::new("Internal error processing @requires", None)
@@ -327,8 +318,8 @@ enum CurrentResolverType {
 }
 
 impl CurrentResolverType {
-    fn new(current_field: &MetaField, ctx: &ContextField<'_>) -> Self {
-        if current_field.ty.is_list() {
+    fn new(current_field: registry_v2::MetaField<'_>, ctx: &ContextField<'_>) -> Self {
+        if current_field.ty().is_list() {
             return CurrentResolverType::ARRAY;
         }
 

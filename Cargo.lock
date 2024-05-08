@@ -1954,18 +1954,17 @@ dependencies = [
  "async-runtime",
  "async-stream",
  "async-trait",
- "base64 0.22.1",
  "bytes",
  "case",
  "chrono",
  "common-types",
- "ctor",
  "dataloader",
  "derivative",
  "engine-derive",
  "engine-parser",
+ "engine-scalars",
+ "engine-validation",
  "engine-value",
- "fast_chemail",
  "flexbuffers",
  "fnv",
  "futures",
@@ -1977,26 +1976,23 @@ dependencies = [
  "grafbase-tracing",
  "graph-entities",
  "graphql-cursor",
- "hex",
  "http 1.1.0",
  "im",
  "indexmap 2.2.6",
  "indoc",
  "insta",
  "internment",
- "ipnet",
+ "meta-type-name",
  "mime",
  "multer",
- "nom",
- "once_cell",
  "pin-project-lite",
  "postgres-connector-types",
+ "registry-upgrade",
+ "registry-v1",
+ "registry-v2",
  "reqwest",
  "rstest",
  "runtime",
- "rust_decimal",
- "rustls",
- "sanitize-filename",
  "serde",
  "serde_json",
  "serde_with",
@@ -2005,15 +2001,12 @@ dependencies = [
  "strum_macros",
  "tempfile",
  "thiserror",
- "time",
- "tokio",
  "tracing",
  "ulid",
  "url",
  "urlencoding",
  "uuid",
  "web-time",
- "wiremock",
 ]
 
 [[package]]
@@ -2063,6 +2056,26 @@ dependencies = [
  "pest",
  "pest_derive",
  "serde",
+]
+
+[[package]]
+name = "engine-scalars"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "chrono",
+ "engine-value",
+ "fast_chemail",
+ "hex",
+ "insta",
+ "ipnet",
+ "nom",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "time",
+ "url",
+ "uuid",
 ]
 
 [[package]]
@@ -2152,6 +2165,26 @@ dependencies = [
  "thiserror",
  "url",
  "wrapping",
+]
+
+[[package]]
+name = "engine-validation"
+version = "0.1.0"
+dependencies = [
+ "engine",
+ "engine-parser",
+ "engine-scalars",
+ "engine-value",
+ "indexmap 2.2.6",
+ "insta",
+ "meta-type-name",
+ "once_cell",
+ "query-path",
+ "registry-for-cache",
+ "registry-upgrade",
+ "registry-v2",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2688,6 +2721,8 @@ dependencies = [
  "graphql-extensions",
  "http 1.1.0",
  "postgres-connector-types",
+ "registry-for-cache",
+ "registry-v2",
  "runtime",
  "runtime-local",
  "runtime-noop",
@@ -2709,6 +2744,8 @@ dependencies = [
  "bytes",
  "common-types",
  "engine",
+ "engine-parser",
+ "engine-validation",
  "engine-value",
  "futures-util",
  "gateway-v2-auth",
@@ -2718,6 +2755,8 @@ dependencies = [
  "mediatype",
  "mime",
  "multipart-stream",
+ "registry-for-cache",
+ "registry-upgrade",
  "runtime",
  "serde",
  "serde_json",
@@ -3059,6 +3098,9 @@ dependencies = [
  "parser-sdl",
  "path-slash",
  "postgres-connector-types",
+ "registry-for-cache",
+ "registry-upgrade",
+ "registry-v2",
  "reqwest",
  "serde",
  "serde_json",
@@ -3161,6 +3203,7 @@ dependencies = [
  "common-types",
  "engine",
  "engine-value",
+ "registry-v2",
  "runtime",
  "tracing",
  "web-time",
@@ -3998,6 +4041,7 @@ dependencies = [
  "parser-postgres",
  "parser-sdl",
  "postgres-connector-types",
+ "registry-upgrade",
  "reqwest",
  "rstest",
  "runtime",
@@ -4514,6 +4558,10 @@ checksum = "83faa42c0a078c393f6b29d5db232d8be22776a891f8f56e5284faee4a20b327"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "meta-type-name"
+version = "0.1.0"
 
 [[package]]
 name = "miette"
@@ -5344,6 +5392,7 @@ dependencies = [
  "graphql-schema-validation",
  "http 1.1.0",
  "insta",
+ "registry-v2",
  "reqwest",
  "rustls",
  "serde_json",
@@ -5360,6 +5409,7 @@ dependencies = [
  "Inflector",
  "assert_matches",
  "engine",
+ "engine-scalars",
  "engine-value",
  "graphql-schema-validation",
  "indexmap 2.2.6",
@@ -5372,6 +5422,8 @@ dependencies = [
  "parser-sdl",
  "petgraph",
  "regex",
+ "registry-v1",
+ "registry-v2",
  "rstest",
  "serde",
  "serde_json",
@@ -5389,10 +5441,12 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "common-types",
- "engine",
+ "indexmap 2.2.6",
  "itertools 0.12.1",
  "parser-sdl",
  "postgres-connector-types",
+ "registry-v1",
+ "registry-v2",
  "serde",
  "serde_json",
 ]
@@ -5410,6 +5464,7 @@ dependencies = [
  "duration-str",
  "engine",
  "engine-parser",
+ "engine-scalars",
  "engine-value",
  "futures",
  "if_chain",
@@ -5417,9 +5472,12 @@ dependencies = [
  "indoc",
  "insta",
  "itertools 0.12.1",
+ "meta-type-name",
  "nom",
  "pretty_assertions",
  "regex",
+ "registry-v1",
+ "registry-v2",
  "rstest",
  "secrecy",
  "serde",
@@ -5921,6 +5979,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "query-path"
+version = "0.1.0"
+dependencies = [
+ "im",
+ "internment",
+ "serde",
+]
+
+[[package]]
 name = "query_map"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6199,6 +6266,7 @@ dependencies = [
  "gateway-v2-auth-config",
  "indexmap 2.2.6",
  "indoc",
+ "petgraph",
  "postgres-connector-types",
  "registry-v2",
  "serde",
@@ -6632,16 +6700,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "sanitize-filename"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ed72fbaf78e6f2d41744923916966c4fbe3d7c74e3037a8ee482f1115572603"
-dependencies = [
- "lazy_static",
- "regex",
 ]
 
 [[package]]

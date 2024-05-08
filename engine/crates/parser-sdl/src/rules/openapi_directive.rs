@@ -1,4 +1,4 @@
-use engine::registry::ConnectorHeaders;
+use registry_v2::ConnectorHeaders;
 use url::Url;
 
 use super::{

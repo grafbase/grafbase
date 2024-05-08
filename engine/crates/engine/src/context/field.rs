@@ -15,8 +15,9 @@ use crate::{
     registry::{
         type_kinds::{InputType, OutputType, SelectionSetTarget},
         variables::VariableResolveDefinition,
-        MetaField, NamedType,
+        NamedType, RegistryV2Ext,
     },
+    registry_operation_type_from_parser,
     resolver_utils::{resolve_input, InputResolveMode},
     schema::SchemaEnv,
     Context, ContextSelectionSet, LegacyInputType, Lookahead, Pos, Positioned, QueryEnv, QueryPathSegment,
@@ -27,7 +28,7 @@ use crate::{
 #[derive(Clone)]
 pub struct ContextField<'a> {
     /// The field in the schema
-    pub field: &'a MetaField,
+    pub field: registry_v2::MetaField<'a>,
     /// The field in the query
     pub item: &'a Positioned<Field>,
     /// The type that contains ths field
@@ -101,7 +102,7 @@ impl<'a> ContextField<'a> {
     pub fn to_join_context(
         &self,
         item: &'a Positioned<Field>,
-        field: &'a MetaField,
+        field: registry_v2::MetaField<'a>,
         parent_type: SelectionSetTarget<'a>,
     ) -> Self {
         Self {
@@ -114,9 +115,11 @@ impl<'a> ContextField<'a> {
 
     /// Returns the base type for the currently resolving field
     pub fn field_base_type(&self) -> OutputType<'a> {
-        self.registry()
-            .lookup(&self.field.ty)
-            .expect("a field type was missing in the registry, eek")
+        self.field
+            .ty()
+            .named_type()
+            .try_into()
+            .expect("a field type was wrong in the registry, eek")
     }
 
     #[doc(hidden)]
@@ -126,8 +129,7 @@ impl<'a> ContextField<'a> {
 
     pub fn find_argument_type(&self, name: &str) -> ServerResult<InputType<'_>> {
         self.field
-            .args
-            .get(name)
+            .argument(name)
             .ok_or_else(|| {
                 ServerError::new(
                     format!("Internal Error: Unknown argument '{name}'"),
@@ -135,15 +137,12 @@ impl<'a> ContextField<'a> {
                 )
             })
             .and_then(|input| {
-                self.schema_env
-                    .registry
-                    .lookup(&input.ty)
-                    .map_err(|error| error.into_server_error(self.item.pos))
+                InputType::try_from(input.ty().named_type()).map_err(|error| error.into_server_error(self.item.pos))
             })
     }
 
     pub fn param_value_dynamic(&self, name: &str, mode: InputResolveMode) -> ServerResult<Option<ConstValue>> {
-        if let Some(meta_input_value) = self.field.args.get(name) {
+        if let Some(meta_input_value) = self.field.argument(name) {
             let maybe_value = self
                 .item
                 .node
@@ -280,9 +279,13 @@ impl<'a> ContextField<'a> {
         use engine_parser::types::{BaseType, Type};
 
         let mut keys_and_typenames = vec![];
+        let root_type_name = self
+            .registry()
+            .root_type(registry_operation_type_from_parser(self.query_env.0.operation.ty))?
+            .name();
+
         let mut current_type =
-            engine_parser::types::Type::new(self.registry().root_type(self.query_env.0.operation.ty).name())
-                .expect("the root type name should not be malformed");
+            engine_parser::types::Type::new(root_type_name).expect("the root type name should not be malformed");
 
         for key in self.path.iter() {
             match (key, current_type.base) {
@@ -296,11 +299,11 @@ impl<'a> ContextField<'a> {
                         .lookup_expecting::<OutputType<'_>>(&NamedType::from(&name))
                         .ok()?;
 
-                    let field_type = output_type.field(field_name)?.ty.as_str();
+                    let field_type = output_type.field(field_name)?.ty().to_string();
 
                     keys_and_typenames.push((key, field_type.to_string()));
 
-                    current_type = Type::new(field_type)?;
+                    current_type = Type::new(&field_type)?;
                 }
                 _ => {
                     return None;

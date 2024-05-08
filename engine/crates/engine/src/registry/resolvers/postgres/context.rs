@@ -18,8 +18,11 @@ pub(super) use update_input::{UpdateInputItem, UpdateInputIterator};
 
 use self::filter::{ByFilterIterator, ComplexFilterIterator};
 use crate::{
-    registry::{resolvers::ResolverContext, type_kinds::SelectionSetTarget, Registry},
-    Context, ContextExt, ContextField, Error, SelectionField, ServerResult,
+    registry::{
+        resolvers::ResolverContext,
+        type_kinds::{OutputType, SelectionSetTarget},
+    },
+    ContextExt, ContextField, Error, SelectionField, ServerResult,
 };
 
 /// The API to access the request parameters, such as filters and selection, and map that together with
@@ -99,7 +102,8 @@ impl<'a> PostgresContext<'a> {
 
         let output_type = target
             .field("returning")
-            .and_then(|field| self.registry().lookup(&field.ty).ok())
+            .map(|field| field.ty().named_type())
+            .and_then(|ty| OutputType::try_from(ty).ok())
             .expect("couldn't find a meta type for a returning selection");
 
         Some(SelectionIterator::new(self, output_type, &self.root_field(), selection))
@@ -119,18 +123,13 @@ impl<'a> PostgresContext<'a> {
 
         let output_type = target
             .field("edges")
-            .and_then(|field| self.registry().lookup(&field.ty).ok())
-            .as_ref()
+            .map(|field| field.ty().named_type())
             .and_then(|output| output.field("node"))
-            .and_then(|field| self.registry().lookup(&field.ty).ok())
+            .map(|field| field.ty().named_type())
+            .and_then(|ty| OutputType::try_from(ty).ok())
             .expect("couldn't find a meta type for a collection selection");
 
         SelectionIterator::new(self, output_type, &self.root_field(), selection)
-    }
-
-    /// Access to the schema registry.
-    pub fn registry(&self) -> &Registry {
-        self.context.registry()
     }
 
     /// A simple `user(by: { id: 1 })` filter, that has exactly one equals operation.

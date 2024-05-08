@@ -5,15 +5,12 @@ use engine_parser::{
     Positioned,
 };
 use engine_value::{ConstValue, Name, Value};
+use registry_v2::{resolvers::join::JoinResolver, OperationType};
 
 use crate::{
-    registry::{
-        resolvers::{join::JoinResolver, ResolvedValue},
-        type_kinds::SelectionSetTarget,
-        MetaField,
-    },
+    registry::{resolvers::ResolvedValue, type_kinds::SelectionSetTarget},
     resolver_utils::field::run_field_resolver,
-    Context, ContextField, Error, Registry,
+    Context, ContextField, Error,
 };
 
 use super::{resolve_input, InputResolveMode};
@@ -21,7 +18,7 @@ use super::{resolve_input, InputResolveMode};
 #[async_recursion::async_recursion]
 pub async fn resolve_joined_field(
     ctx: &ContextField<'_>,
-    join: &JoinResolver,
+    join: &registry_v2::resolvers::join::JoinResolver,
     parent_resolve_value_for_join: ResolvedValue,
 ) -> Result<ResolvedValue, Error> {
     let mut query_field = fake_query_ast(ctx.item, join)?;
@@ -29,7 +26,9 @@ pub async fn resolve_joined_field(
     let current_type = ctx
         .schema_env()
         .registry
-        .root_type(engine_parser::types::OperationType::Query);
+        .root_type(OperationType::Query)
+        .and_then(|metatype| SelectionSetTarget::try_from(metatype).ok())
+        .expect("the registry is malformed");
 
     resolve_arguments_recursively(
         ctx,
@@ -65,7 +64,7 @@ pub async fn resolve_joined_field(
         };
 
         if field_iter.peek().is_some() {
-            current_type = ctx.registry().lookup_expecting(&meta_field.ty)?;
+            current_type = meta_field.ty().named_type().try_into()?;
 
             let Selection::Field(inner_field) = query_field
                 .node
@@ -93,7 +92,7 @@ fn resolve_arguments_recursively<'a>(
     parent_resolve_value_for_join: &ResolvedValue,
     mut current_type: SelectionSetTarget<'a>,
     join: &JoinResolver,
-    registry: &'a Registry,
+    registry: &'a registry_v2::Registry,
 ) -> Result<(), Error> {
     let mut field_iter = join.fields.iter().peekable();
 
@@ -115,7 +114,7 @@ fn resolve_arguments_recursively<'a>(
         );
 
         if field_iter.peek().is_some() {
-            current_type = registry.lookup_expecting(&meta_field.ty)?;
+            current_type = meta_field.ty().named_type().try_into()?;
 
             let Selection::Field(new_field) = &mut query_field
                 .selection_set
@@ -194,8 +193,8 @@ fn resolve_arguments(
     join_field_context: &ContextField<'_>,
     arguments: &mut Vec<(Positioned<Name>, Positioned<Value>)>,
     parent_resolve_value_for_join: &ResolvedValue,
-    meta_field: &MetaField,
-    registry: &Registry,
+    meta_field: registry_v2::MetaField<'_>,
+    registry: &registry_v2::Registry,
 ) {
     let serde_json::Value::Object(parent_object) = parent_resolve_value_for_join.data_resolved() else {
         // This might be an error but I'm going to defer reporting to the child resolver for now.
@@ -213,7 +212,7 @@ fn resolve_arguments(
             .node
             .clone()
             .into_const_with(|variable_name| {
-                if join_field_context.field.args.contains_key(variable_name.as_str()) {
+                if join_field_context.field.argument(variable_name.as_str()).is_some() {
                     Ok(join_field_context
                         .input_by_name(variable_name.to_string())
                         .inspect_err(|error| tracing::warn!("Error resolving argument on joined field: {error}"))
@@ -232,8 +231,7 @@ fn resolve_arguments(
             .unwrap_or_default();
 
         value.node = meta_field
-            .args
-            .get(name.as_str())
+            .argument(name.as_str())
             .and_then(|meta_input_value| {
                 // Run things through resolve_input, which will make sure any
                 // enum arguments are actually enums rather than strings

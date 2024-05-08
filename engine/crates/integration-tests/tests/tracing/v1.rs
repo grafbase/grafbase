@@ -31,12 +31,14 @@ async fn query_bad_request() {
 
     let _default = tracing::subscriber::set_default(subscriber);
 
-    // act
+    let mut registry = Registry::new();
+    registry.add_builtins_to_registry();
+    let registry = Arc::new(registry_upgrade::convert_v1_to_v2(registry));
 
-    engine::Schema::build(Arc::new(Registry::new()))
-        .finish()
-        .execute("")
-        .await;
+    // act
+    //
+
+    engine::Schema::build(registry).finish().execute("").await;
 
     // assert
     handle.assert_finished();
@@ -157,8 +159,12 @@ async fn batch() {
 
     let _default = tracing::subscriber::set_default(subscriber);
 
+    let mut registry = Registry::new();
+    registry.add_builtins_to_registry();
+    let registry = Arc::new(registry_upgrade::convert_v1_to_v2(registry));
+
     // act
-    engine::Schema::build(Arc::new(Registry::new()))
+    engine::Schema::build(registry)
         .finish()
         .execute_batch(BatchRequest::Batch(vec![
             Request::new("query-1"),
@@ -185,8 +191,12 @@ async fn subscription() {
 
     let _default = tracing::subscriber::set_default(subscriber);
 
+    let mut registry = Registry::new();
+    registry.add_builtins_to_registry();
+    let registry = Arc::new(registry_upgrade::convert_v1_to_v2(registry));
+
     // act
-    let _: Vec<StreamingPayload> = engine::Schema::build(Arc::new(Registry::new()))
+    let _: Vec<StreamingPayload> = engine::Schema::build(registry)
         .finish()
         .execute_stream("")
         .collect()

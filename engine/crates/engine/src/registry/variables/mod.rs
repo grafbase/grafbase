@@ -50,6 +50,31 @@ pub enum VariableResolveDefinition {
 }
 
 impl VariableResolveDefinition {
+    pub fn from_registry_v2(
+        value: registry_v2::resolvers::variable_resolve_definition::VariableResolveDefinition,
+        _registry: &registry_v2::Registry,
+    ) -> Self {
+        use registry_v2::resolvers::variable_resolve_definition::VariableResolveDefinition as RegistryDefinition;
+        match value {
+            RegistryDefinition::DebugString(inner) => VariableResolveDefinition::DebugString(inner),
+            RegistryDefinition::InputTypeName(inner) => VariableResolveDefinition::InputTypeName(inner),
+            RegistryDefinition::ConnectorInputTypeName(inner) => {
+                VariableResolveDefinition::ConnectorInputTypeName(inner)
+            }
+            RegistryDefinition::ResolverData(inner) => VariableResolveDefinition::ResolverData(inner),
+            RegistryDefinition::LocalData(inner) => VariableResolveDefinition::LocalData(inner),
+            RegistryDefinition::LocalDataWithTransforms(boxed) => {
+                let (cow, input_value_name) = *boxed;
+                VariableResolveDefinition::LocalDataWithTransforms(Box::new((
+                    cow,
+                    InputValueType::from(input_value_name),
+                )))
+            }
+        }
+    }
+}
+
+impl VariableResolveDefinition {
     pub fn debug_string(value: impl Into<Cow<'static, str>>) -> Self {
         Self::DebugString(value.into())
     }

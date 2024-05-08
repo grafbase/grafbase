@@ -1,6 +1,7 @@
 use std::future::Future;
 
 use async_runtime::make_send_on_wasm;
+use engine_scalars::{DynamicScalar, PossibleScalar};
 use engine_value::Name;
 use futures_util::future::BoxFuture;
 use graph_entities::{CompactValue, QueryResponseNode, ResponseList, ResponseNodeId, ResponsePrimitive};
@@ -8,12 +9,7 @@ use graph_entities::{CompactValue, QueryResponseNode, ResponseList, ResponseNode
 use crate::{
     extensions::ResolveInfo,
     parser::types::Field,
-    registry::{
-        resolvers::ResolvedValue,
-        scalars::{DynamicScalar, PossibleScalar},
-        type_kinds::OutputType,
-        MetaType,
-    },
+    registry::{resolvers::ResolvedValue, type_kinds::OutputType},
     resolver_utils::resolve_container,
     Context, ContextExt, ContextField, ContextList, ContextSelectionSetLegacy, ContextWithIndex, Error,
     LegacyOutputType, Positioned, ServerError, ServerResult, Value,
@@ -23,14 +19,14 @@ use crate::{
 pub async fn resolve_list<'a>(
     ctx: ContextList<'a>,
     field: &'a Positioned<Field>,
-    inner_ty: &'a MetaType,
+    inner_ty: registry_v2::MetaType<'a>,
     value: ResolvedValue,
 ) -> ServerResult<ResponseNodeId> {
     #[async_recursion::async_recursion]
     async fn inner(
         ctx: ContextList<'async_recursion>,
         field: &Positioned<Field>,
-        ty: &MetaType,
+        ty: registry_v2::MetaType<'async_recursion>,
         value: ResolvedValue,
     ) -> Result<ResponseNodeId, ServerError> {
         // First we need to make sure our parent resolve data actually has a list
@@ -133,7 +129,7 @@ pub async fn resolve_list<'a>(
 fn apply_extensions<'a>(
     ctx: ContextList<'a>,
     field: &'a Positioned<Field>,
-    inner_ty: &'a MetaType,
+    inner_ty: registry_v2::MetaType<'a>,
     resolve_fut: impl Future<Output = Result<ResponseNodeId, ServerError>> + Send + 'a,
 ) -> impl Future<Output = Result<ResponseNodeId, ServerError>> + 'a {
     let ctx = ctx.clone();
@@ -143,12 +139,11 @@ fn apply_extensions<'a>(
         let meta_field = ctx_field
             .schema_env
             .registry
-            .types
-            .get(type_name)
-            .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()));
+            .lookup_type(type_name)
+            .and_then(|ty| ty.field(field.node.name.node.as_str()));
 
-        let parent_type = format!("[{type_name}]");
-        let return_type = format!("{type_name}!").into();
+        let parent_type = &format!("[{type_name}]");
+        let return_type = &format!("{type_name}!");
         let args_values: Vec<(Positioned<Name>, Option<Value>)> = ctx_field
             .item
             .node
@@ -160,12 +155,12 @@ fn apply_extensions<'a>(
 
         let resolve_info = ResolveInfo {
             path: ctx.path.clone(),
-            parent_type: &parent_type,
-            return_type: &return_type,
+            parent_type,
+            return_type,
             name: field.node.name.node.as_str(),
             alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
-            required_operation: meta_field.and_then(|f| f.required_operation),
-            auth: meta_field.and_then(|f| f.auth.as_deref()),
+            required_operation: meta_field.and_then(|f| f.required_operation().cloned()),
+            auth: meta_field.and_then(|f| f.auth()),
             input_values: args_values,
         };
 
@@ -184,7 +179,7 @@ async fn resolve_leaf_field(ctx: ContextField<'_>, item: ResolvedValue) -> Resul
 
     // Yes it's ugly...
     if let OutputType::Scalar(scalar) = ctx.field_base_type() {
-        result = result.and_then(|value| resolve_scalar(value, &scalar.name));
+        result = result.and_then(|value| resolve_scalar(value, scalar.name()));
     }
 
     let item = result.map_err(|error| ctx.set_error_path(error.into_server_error(ctx.item.pos)))?;
@@ -206,7 +201,8 @@ fn resolve_scalar(value: Value, base_type_name: &str) -> Result<Value, Error> {
         value => PossibleScalar::to_value(
             base_type_name,
             serde_json::to_value(value).expect("ConstValue can always be transformed into a json"),
-        ),
+        )
+        .map_err(|err| Error::new(err.0)),
     }
 }
 

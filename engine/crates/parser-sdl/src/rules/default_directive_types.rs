@@ -1,5 +1,11 @@
+use std::collections::HashSet;
+
 use engine::{Positioned, QueryPath};
 use engine_parser::types::{FieldDefinition, TypeDefinition};
+use engine_scalars::{DynamicScalar, PossibleScalar};
+use engine_value::ConstValue;
+use meta_type_name::MetaTypeName;
+use registry_v2::ScalarParser;
 
 use super::{
     model_directive::ModelDirective,
@@ -48,7 +54,7 @@ impl<'a> Visitor<'a> for DefaultDirectiveTypes {
 
                 let error = {
                     let ctx_registry = ctx.registry.borrow();
-                    engine::validation::utils::is_valid_input_value(
+                    is_valid_input_value(
                         &ctx_registry,
                         &field.node.ty.node.to_string(),
                         &default_value,
@@ -66,10 +72,140 @@ impl<'a> Visitor<'a> for DefaultDirectiveTypes {
     }
 }
 
+pub fn is_valid_input_value(
+    registry: &registry_v1::Registry,
+    type_name: &str,
+    value: &ConstValue,
+    path: QueryPath,
+) -> Option<String> {
+    match MetaTypeName::create(type_name) {
+        MetaTypeName::NonNull(type_name) => match value {
+            ConstValue::Null => Some(valid_error(
+                &path,
+                format!("expected type \"{type_name}\" but found null"),
+            )),
+            _ => is_valid_input_value(registry, type_name, value, path),
+        },
+        MetaTypeName::List(type_name) => match value {
+            ConstValue::List(elems) => elems
+                .iter()
+                .enumerate()
+                .find_map(|(idx, elem)| is_valid_input_value(registry, type_name, elem, path.clone().child(idx))),
+            ConstValue::Null => None,
+            _ => is_valid_input_value(registry, type_name, value, path),
+        },
+        MetaTypeName::Named(type_name) => {
+            if let ConstValue::Null = value {
+                return None;
+            }
+
+            match registry.types.get(type_name)? {
+                registry_v1::MetaType::Scalar(scalar) => match scalar.parser {
+                    ScalarParser::PassThrough => None,
+                    ScalarParser::BestEffort => {
+                        if PossibleScalar::is_valid(type_name, value) {
+                            None
+                        } else {
+                            Some(valid_error(&path, format!("expected type \"{type_name}\"")))
+                        }
+                    }
+                },
+                registry_v1::MetaType::Enum(enum_type) => {
+                    let enum_name = &enum_type.name;
+                    match value {
+                        ConstValue::Enum(name) => {
+                            if enum_type.enum_values.values().all(|value| value.name.as_str() == name) {
+                                Some(valid_error(
+                                    &path,
+                                    format!("enumeration type \"{enum_name}\" does not contain the value \"{name}\""),
+                                ))
+                            } else {
+                                None
+                            }
+                        }
+                        ConstValue::String(name) => {
+                            if enum_type.enum_values.values().all(|value| value.name.as_str() == name) {
+                                Some(valid_error(
+                                    &path,
+                                    format!("enumeration type \"{enum_name}\" does not contain the value \"{name}\""),
+                                ))
+                            } else {
+                                None
+                            }
+                        }
+                        _ => Some(valid_error(
+                            &path,
+                            format!("expected type \"{type_name}\" but got {value}"),
+                        )),
+                    }
+                }
+                registry_v1::MetaType::InputObject(input_object) => match value {
+                    ConstValue::Object(values) => {
+                        if input_object.oneof {
+                            if values.len() != 1 {
+                                return Some(valid_error(
+                                    &path,
+                                    "oneOf input objects require exactly one field".to_string(),
+                                ));
+                            }
+
+                            if let ConstValue::Null = values[0] {
+                                return Some(valid_error(
+                                    &path,
+                                    "oneOf input objects require a non null argument".to_string(),
+                                ));
+                            }
+                        }
+
+                        let mut input_names: HashSet<&str> = values.keys().map(AsRef::as_ref).collect::<HashSet<_>>();
+
+                        for field in input_object.input_fields.values() {
+                            input_names.remove::<str>(&field.name);
+                            if let Some(value) = values.get::<str>(&field.name) {
+                                if let Some(reason) = is_valid_input_value(
+                                    registry,
+                                    &field.ty.to_string(),
+                                    value,
+                                    path.clone().child(field.name.as_str()),
+                                ) {
+                                    return Some(reason);
+                                }
+                            } else if field.ty.is_non_null() && field.default_value.is_none() {
+                                return Some(valid_error(
+                                    &path,
+                                    format!(
+                                        "field \"{}\" of type \"{}\" is required but not provided",
+                                        field.name, input_object.name
+                                    ),
+                                ));
+                            }
+                        }
+
+                        if let Some(name) = input_names.iter().next() {
+                            return Some(valid_error(
+                                &path,
+                                format!("unknown field \"{name}\" of type \"{}\"", input_object.name),
+                            ));
+                        }
+
+                        None
+                    }
+                    _ => None,
+                },
+                _ => None,
+            }
+        }
+    }
+}
+
+fn valid_error(path_node: &QueryPath, msg: String) -> String {
+    format!("\"{path_node}\", {msg}")
+}
+
 #[cfg(test)]
 mod tests {
-    use engine::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
     use engine_parser::parse_schema;
+    use engine_scalars::{PossibleScalar, SDLDefinitionScalar};
     use pretty_assertions::assert_eq;
 
     use super::*;

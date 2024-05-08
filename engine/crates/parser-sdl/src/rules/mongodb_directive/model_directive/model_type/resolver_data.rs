@@ -1,12 +1,13 @@
 use engine::{
     indexmap::IndexMap,
     registry::{
-        resolvers::{custom::CustomResolver, transformer::Transformer, Resolver},
-        FieldSet, MetaInputValue,
+        resolvers::{custom::CustomResolver, Resolver},
+        MetaInputValue,
     },
     CacheControl, Pos,
 };
 use engine_parser::types::FieldDefinition;
+use registry_v2::{resolvers::transformer::Transformer, FieldSet};
 
 use crate::{
     parser_extensions::FieldExtension,

@@ -1,4 +1,4 @@
-use engine::registry::ConnectorHeaderValue;
+use registry_v2::ConnectorHeaderValue;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct IntrospectionHeader {

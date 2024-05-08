@@ -8,12 +8,13 @@ use std::{
 
 use common_types::auth::Operations;
 use engine_parser::{types::OperationDefinition, Positioned};
+use engine_validation::ValidationResult;
 use engine_value::Name;
 use graph_entities::ResponseNodeId;
 
 use crate::{
-    parser::types::ExecutableDocument, registry::MetaFieldType, Data, DataContext, Error, QueryPath, Request, Response,
-    Result, SchemaEnv, ServerError, ServerResult, ValidationResult, Value, Variables,
+    parser::types::ExecutableDocument, Data, DataContext, Error, QueryPath, Request, Response, Result, SchemaEnv,
+    ServerError, ServerResult, Value, Variables,
 };
 
 /// Context for extension
@@ -43,16 +44,6 @@ impl<'a> DataContext<'a> for ExtensionContext<'a> {
 }
 
 impl<'a> ExtensionContext<'a> {
-    /// Convert the specified [ExecutableDocument] into a query string.
-    ///
-    /// Usually used for log extension, it can hide secret arguments.
-    pub fn stringify_execute_doc(&self, doc: &ExecutableDocument, variables: &Variables) -> String {
-        self.schema_env
-            .registry
-            .stringify_exec_doc(variables, doc)
-            .unwrap_or_default()
-    }
-
     /// Gets the global data defined in the `Context` or `Schema`.
     ///
     /// If both `Schema` and `Query` have the same data type, the data in the `Query` is obtained.
@@ -95,7 +86,7 @@ pub struct ResolveInfo<'a> {
     pub parent_type: &'a str,
 
     /// Current return type, is qualified name.
-    pub return_type: &'a MetaFieldType,
+    pub return_type: &'a str,
 
     /// Current field name
     pub name: &'a str,

@@ -1,20 +1,11 @@
 use serde_json::{Map, Value};
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, Hash, PartialEq)]
-pub struct FieldSet(pub Vec<Selection>);
-
-impl FieldSet {
-    pub fn new(selections: impl IntoIterator<Item = Selection>) -> Self {
-        FieldSet(selections.into_iter().collect())
-    }
-
-    /// Checks if all the fields of this FieldSet are present in the given JSON object
-    pub fn all_fields_are_present(&self, object: &Map<String, Value>) -> bool {
-        selections_are_present(object, &self.0)
-    }
+/// Checks if all the fields of this FieldSet are present in the given JSON object
+pub fn all_fieldset_fields_are_present(fieldset: &registry_v2::FieldSet, object: &Map<String, Value>) -> bool {
+    selections_are_present(object, &fieldset.0)
 }
 
-fn selections_are_present(object: &Map<String, Value>, selections: &[Selection]) -> bool {
+fn selections_are_present(object: &Map<String, Value>, selections: &[registry_v2::Selection]) -> bool {
     selections.iter().all(|selection| {
         if !object.contains_key(&selection.field) {
             return false;
@@ -37,34 +28,30 @@ fn selections_are_present(object: &Map<String, Value>, selections: &[Selection])
     })
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, Hash, PartialEq)]
-#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
-#[serde_with::skip_serializing_defaults(Option, Vec, ConstraintType)]
-pub struct Selection {
-    pub field: String,
-    pub selections: Vec<Selection>,
-}
+pub struct FieldSetDisplay<'a>(pub &'a registry_v2::FieldSet);
 
-impl std::fmt::Display for FieldSet {
+impl std::fmt::Display for FieldSetDisplay<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (i, selection) in self.0.iter().enumerate() {
+        for (i, selection) in self.0 .0.iter().enumerate() {
             if i != 0 {
                 write!(f, " ")?;
             }
-            write!(f, "{selection}")?;
+            write!(f, "{}", SelectionDisplay(selection))?;
         }
         Ok(())
     }
 }
 
-impl std::fmt::Display for Selection {
+struct SelectionDisplay<'a>(&'a registry_v2::Selection);
+
+impl std::fmt::Display for SelectionDisplay<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let Selection { field, selections } = self;
+        let registry_v2::Selection { field, selections } = self.0;
         write!(f, "{field}")?;
         if !selections.is_empty() {
             write!(f, " {{")?;
             for selection in selections {
-                write!(f, " {selection}")?;
+                write!(f, " {}", SelectionDisplay(selection))?;
             }
             write!(f, " }}")?;
         }

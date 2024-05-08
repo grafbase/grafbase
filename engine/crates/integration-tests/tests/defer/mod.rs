@@ -150,7 +150,7 @@ fn test_defer_on_field_rejected() {
           "data": null,
           "errors": [
             {
-              "message": "Directive \"defer\" may not be used on \"FIELD\"",
+              "message": "Directive \"defer\" may not be used on \"Field\"",
               "locations": [
                 {
                   "line": 3,

@@ -1,38 +1,39 @@
 use std::{any::Any, ops::Deref, sync::Arc};
 
+use engine_validation::check_strict_rules;
 use futures_util::stream::{self, Stream, StreamExt};
 use futures_util::FutureExt;
 use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
 use graph_entities::CompactValue;
-use indexmap::map::IndexMap;
+
+use registry_v2::OperationLimits;
 use tracing::{Instrument, Span};
 
+use crate::registry::type_kinds::SelectionSetTarget;
 use crate::{
     context::{Data, QueryEnvInner},
     current_datetime::CurrentDateTime,
     deferred,
     extensions::{ExtensionFactory, Extensions},
-    model::__DirectiveLocation,
     parser::{
         parse_query,
         types::{Directive, DocumentOperations, OperationType, Selection, SelectionSet},
         Positioned,
     },
-    registry::{MetaDirective, MetaInputValue, OperationLimits, Registry},
+    registry::Registry,
+    registry::RegistrySdlExt,
     resolver_utils::{self, resolve_root_container, resolve_root_container_serial},
     response::{IncrementalPayload, StreamingPayload},
     subscription::collect_subscription_streams,
     types::QueryRoot,
-    validation::{check_rules, ValidationMode},
     BatchRequest, BatchResponse, CacheControl, ContextExt, ContextSelectionSet, LegacyInputType, LegacyOutputType,
-    ObjectType, QueryEnv, QueryEnvBuilder, QueryPath, Request, Response, ServerError, SubscriptionType, Variables, ID,
+    ObjectType, QueryEnv, QueryEnvBuilder, QueryPath, Request, Response, ServerError, SubscriptionType, Variables,
 };
-use crate::{new_futures_spawner, QuerySpawnedFuturesWaiter};
+use crate::{new_futures_spawner, registry_operation_type_from_parser, QuerySpawnedFuturesWaiter};
 
 /// Schema builder
 pub struct SchemaBuilder {
-    validation_mode: ValidationMode,
-    registry: Arc<Registry>,
+    registry: Arc<registry_v2::Registry>,
     data: Data,
     extensions: Vec<Box<dyn ExtensionFactory>>,
 }
@@ -71,17 +72,9 @@ impl SchemaBuilder {
         self
     }
 
-    /// Set the validation mode, default is `ValidationMode::Strict`.
-    #[must_use]
-    pub fn validation_mode(mut self, validation_mode: ValidationMode) -> Self {
-        self.validation_mode = validation_mode;
-        self
-    }
-
     /// Build schema.
     pub fn finish(self) -> Schema {
         Schema(Arc::new(SchemaInner {
-            validation_mode: self.validation_mode,
             operation_limits: self.registry.operation_limits.clone(),
             extensions: self.extensions,
             env: SchemaEnv(Arc::new(SchemaEnvInner {
@@ -94,7 +87,7 @@ impl SchemaBuilder {
 
 #[doc(hidden)]
 pub struct SchemaEnvInner {
-    pub registry: Arc<Registry>,
+    pub registry: Arc<registry_v2::Registry>,
     pub data: Data,
 }
 
@@ -112,10 +105,9 @@ impl Deref for SchemaEnv {
 
 #[doc(hidden)]
 pub struct SchemaInner {
-    pub(crate) validation_mode: ValidationMode,
     pub(crate) operation_limits: OperationLimits,
     pub(crate) extensions: Vec<Box<dyn ExtensionFactory>>,
-    pub(crate) env: SchemaEnv,
+    pub env: SchemaEnv,
 }
 
 /// GraphQL schema.
@@ -126,12 +118,6 @@ pub struct Schema(Arc<SchemaInner>);
 impl Clone for Schema {
     fn clone(&self) -> Self {
         Schema(self.0.clone())
-    }
-}
-
-impl Default for Schema {
-    fn default() -> Self {
-        Schema::new(Arc::new(Self::create_registry()))
     }
 }
 
@@ -149,9 +135,8 @@ impl Schema {
     /// The root object for the query and Mutation needs to be specified.
     /// If there is no mutation, you can use `EmptyMutation`.
     /// If there is no subscription, you can use `EmptySubscription`.
-    pub fn build(registry: Arc<Registry>) -> SchemaBuilder {
+    pub fn build(registry: Arc<registry_v2::Registry>) -> SchemaBuilder {
         SchemaBuilder {
-            validation_mode: ValidationMode::Strict,
             registry,
             data: Default::default(),
             extensions: Default::default(),
@@ -185,7 +170,7 @@ impl Schema {
             ..Default::default()
         };
 
-        Schema::add_builtins_to_registry(&mut registry);
+        registry.add_builtins_to_registry();
 
         QueryRoot::<Query>::create_type_info(&mut registry);
         if !Mutation::is_empty() {
@@ -200,106 +185,22 @@ impl Schema {
     }
 
     pub fn create_registry() -> Registry {
-        let mut registry = Default::default();
+        let mut registry = Registry::default();
 
-        Schema::add_builtins_to_registry(&mut registry);
+        registry.add_builtins_to_registry();
 
         registry.remove_unused_types();
         registry
     }
 
-    fn add_builtins_to_registry(registry: &mut Registry) {
-        registry.add_directive(MetaDirective {
-            name: "include".to_string(),
-            description: Some(
-                "Directs the executor to include this field or fragment only when the `if` argument is true."
-                    .to_string(),
-            ),
-            locations: vec![
-                __DirectiveLocation::FIELD,
-                __DirectiveLocation::FRAGMENT_SPREAD,
-                __DirectiveLocation::INLINE_FRAGMENT,
-            ],
-            args: {
-                let mut args = IndexMap::new();
-                args.insert(
-                    "if".to_string(),
-                    MetaInputValue::new("if".to_string(), "Boolean!").with_description("Included when true."),
-                );
-                args
-            },
-            is_repeatable: false,
-            visible: None,
-        });
-
-        registry.add_directive(MetaDirective {
-            name: "skip".to_string(),
-            description: Some(
-                "Directs the executor to skip this field or fragment when the `if` argument is true.".to_string(),
-            ),
-            locations: vec![
-                __DirectiveLocation::FIELD,
-                __DirectiveLocation::FRAGMENT_SPREAD,
-                __DirectiveLocation::INLINE_FRAGMENT,
-            ],
-            args: {
-                let mut args = IndexMap::new();
-                args.insert(
-                    "if".to_string(),
-                    MetaInputValue::new("if", "Boolean!").with_description("Skipped when true."),
-                );
-                args
-            },
-            is_repeatable: false,
-            visible: None,
-        });
-
-        registry.add_directive(MetaDirective {
-            name: "oneOf".to_string(),
-            description: Some("Indicates that an input object is a oneOf input object".to_string()),
-            locations: vec![__DirectiveLocation::INPUT_OBJECT],
-            args: IndexMap::new(),
-            is_repeatable: false,
-            visible: Some(|_| true),
-        });
-
-        registry.add_directive(MetaDirective {
-            name: "defer".to_string(),
-            description: Some("De-prioritizes a fragment, causing the fragment to be omitted in the initial response and delivered as a subsequent response afterward.".to_string()),
-            locations: vec![
-                __DirectiveLocation::INLINE_FRAGMENT,
-                __DirectiveLocation::FRAGMENT_SPREAD,
-            ],
-            args: [
-                MetaInputValue::new("if", "Boolean!")
-                    .with_description("When true fragment may be deferred")
-                    .with_default(engine_value::ConstValue::Boolean(true)),
-                MetaInputValue::new("label", "String")
-                    .with_description("This label should be used by GraphQL clients to identify the data from patch responses and associate it with the correct fragment.")
-            ]
-                .into_iter()
-                .map(|directive| (directive.name.clone(), directive))
-                .collect(),
-            is_repeatable: false,
-            visible: None,
-        });
-
-        // register scalars
-        <bool as LegacyInputType>::create_type_info(registry);
-        <i32 as LegacyInputType>::create_type_info(registry);
-        <f32 as LegacyInputType>::create_type_info(registry);
-        <String as LegacyInputType>::create_type_info(registry);
-        <ID as LegacyInputType>::create_type_info(registry);
-    }
-
     /// Create a schema
-    pub fn new(registry: Arc<Registry>) -> Schema {
+    pub fn new(registry: Arc<registry_v2::Registry>) -> Schema {
         Self::build(registry).finish()
     }
 
     #[inline]
     #[allow(unused)]
-    pub fn registry(&self) -> &Registry {
+    pub fn registry(&self) -> &registry_v2::Registry {
         &self.env.registry
     }
 
@@ -311,15 +212,6 @@ impl Schema {
     /// Returns Federation SDL(Schema Definition Language) of this schema.
     pub fn federation_sdl(&self) -> String {
         self.0.env.registry.export_sdl(true)
-    }
-
-    /// Get all names in this schema
-    ///
-    /// Maybe you want to serialize a custom binary protocol. In order to minimize message size, a dictionary
-    /// is usually used to compress type names, field names, directive names, and parameter names. This function gets all the names,
-    /// so you can create this dictionary.
-    pub fn names(&self) -> Vec<String> {
-        self.0.env.registry.names()
     }
 
     fn create_extensions(&self, session_data: Arc<Data>) -> Extensions {
@@ -353,12 +245,8 @@ impl Schema {
         // check rules
         let validation_result = {
             let validation_fut = async {
-                check_rules(
-                    &self.env.registry,
-                    &document,
-                    Some(&request.variables),
-                    self.validation_mode,
-                )
+                check_strict_rules(&self.env.registry, &document, Some(&request.variables))
+                    .map_err(|errors| errors.into_iter().map(ServerError::from).collect())
             };
             futures_util::pin_mut!(validation_fut);
             extensions.validation(&mut validation_fut).await?
@@ -461,7 +349,11 @@ impl Schema {
     async fn execute_once(&self, env: QueryEnv, futures_waiter: QuerySpawnedFuturesWaiter) -> Response {
         // execute
         let ctx = ContextSelectionSet {
-            ty: self.registry().root_type(env.operation.node.ty),
+            ty: self
+                .registry()
+                .root_type(registry_operation_type_from_parser(env.operation.node.ty))
+                .and_then(|ty| SelectionSetTarget::try_from(ty).ok())
+                .expect("registry is malformed"),
             path: QueryPath::empty(),
             item: &env.operation.node.selection_set,
             schema_env: &self.env,
@@ -634,7 +526,7 @@ impl Schema {
                 let ctx = env.create_context(
                     &schema.env,
                     &env.operation.node.selection_set,
-                    schema.registry().root_type(env.operation.node.ty),
+                    schema.registry().root_type(registry_operation_type_from_parser(env.operation.node.ty)).and_then(|ty| SelectionSetTarget::try_from(ty).ok()).expect("registry is malformed"),
                 );
 
                 let mut streams = Vec::new();
@@ -741,6 +633,18 @@ fn remove_skipped_selection(selection_set: &mut SelectionSet, variables: &Variab
             Selection::InlineFragment(inline_fragment) => {
                 remove_skipped_selection(&mut inline_fragment.node.selection_set.node, variables);
             }
+        }
+    }
+}
+
+impl From<engine_validation::RuleError> for ServerError {
+    fn from(e: engine_validation::RuleError) -> Self {
+        Self {
+            message: e.message,
+            source: None,
+            locations: e.locations,
+            path: Vec::new(),
+            extensions: None,
         }
     }
 }

@@ -103,7 +103,10 @@ impl EngineBuilder {
 
         global_cache_rules.apply(&mut registry).unwrap();
 
+        // TODO: Can almost certainly get rid of/move this serde roudntrip
         let registry: Registry = serde_json::from_value(serde_json::to_value(registry).unwrap()).unwrap();
+
+        let registry = registry_upgrade::convert_v1_to_v2(registry);
 
         let postgres = {
             let mut transports = HashMap::new();

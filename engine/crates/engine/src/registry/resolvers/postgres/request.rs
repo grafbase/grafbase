@@ -11,8 +11,9 @@ mod update_one;
 
 use serde_json::Value;
 
-use super::{context::PostgresContext, Operation};
+use super::context::PostgresContext;
 use crate::{registry::resolvers::ResolvedValue, Error};
+use registry_v2::resolvers::postgres::Operation;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 struct RowData {

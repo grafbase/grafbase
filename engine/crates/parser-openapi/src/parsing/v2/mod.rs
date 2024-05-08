@@ -4,12 +4,12 @@ mod components;
 
 use std::collections::BTreeMap;
 
-use engine::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use inflector::Inflector;
 use once_cell::sync::Lazy;
 use openapi::v2::{Operation, PathItem};
 use petgraph::{graph::NodeIndex, visit::EdgeRef};
 use regex::Regex;
+use registry_v2::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use url::Url;
 
 use self::components::Components;

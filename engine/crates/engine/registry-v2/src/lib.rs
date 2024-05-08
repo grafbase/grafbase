@@ -168,16 +168,18 @@ impl Registry {
     }
 
     fn lookup_type_id(&self, name: &str) -> Option<MetaTypeId> {
-        let string_id = StringId::new(self.strings.get_index_of(name)?);
         let type_id = self
             .types
-            .binary_search_by_key(&string_id, |ty| match ty {
-                storage::MetaTypeRecord::Object(id) => self.lookup(*id).name,
-                storage::MetaTypeRecord::Interface(id) => self.lookup(*id).name,
-                storage::MetaTypeRecord::Union(id) => self.lookup(*id).name,
-                storage::MetaTypeRecord::Enum(id) => self.lookup(*id).name,
-                storage::MetaTypeRecord::InputObject(id) => self.lookup(*id).name,
-                storage::MetaTypeRecord::Scalar(id) => self.lookup(*id).name,
+            .binary_search_by(|ty| {
+                let type_name_id = match ty {
+                    storage::MetaTypeRecord::Object(id) => self.lookup(*id).name,
+                    storage::MetaTypeRecord::Interface(id) => self.lookup(*id).name,
+                    storage::MetaTypeRecord::Union(id) => self.lookup(*id).name,
+                    storage::MetaTypeRecord::Enum(id) => self.lookup(*id).name,
+                    storage::MetaTypeRecord::InputObject(id) => self.lookup(*id).name,
+                    storage::MetaTypeRecord::Scalar(id) => self.lookup(*id).name,
+                };
+                self.string_cmp(type_name_id, name)
             })
             .ok()?;
 

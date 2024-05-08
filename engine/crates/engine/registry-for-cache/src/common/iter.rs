@@ -39,7 +39,6 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.range.next()?;
-        self.range.start = next;
 
         Some(self.registry.read(next))
     }

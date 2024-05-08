@@ -23,16 +23,14 @@ mod request;
 mod response;
 mod schema;
 mod subscription;
-pub mod validation;
 
 pub mod context;
 pub mod extensions;
 pub mod http;
 
+pub mod graph;
 pub mod resolver_utils;
 pub mod types;
-
-pub mod graph;
 
 mod deferred;
 mod directive;
@@ -74,7 +72,7 @@ pub use look_ahead::Lookahead;
 #[doc(no_inline)]
 pub use parser::{Pos, Positioned};
 pub use query_path::{QueryPath, QueryPathSegment};
-pub use registry::{CacheControl, CacheInvalidation, Registry};
+pub use registry::{CacheControl, Registry};
 pub use request::{
     BatchRequest, OperationPlanCacheKey, PersistedQueryRequestExtension, QueryParamRequest, Request, RequestCacheKey,
     RequestExtensions,
@@ -90,7 +88,6 @@ pub use static_assertions;
 #[doc(hidden)]
 pub use subscription::SubscriptionType;
 pub use types::*;
-pub use validation::{ValidationMode, ValidationResult, VisitorContext};
 
 /// An alias of [engine::Error](struct.Error.html). Present for backward compatibility
 /// reasons.
@@ -106,3 +103,13 @@ pub use engine_derive::{
 };
 
 pub use crate::request::IntrospectionState;
+
+fn registry_operation_type_from_parser(
+    operation_type: engine_parser::types::OperationType,
+) -> registry_v2::OperationType {
+    match operation_type {
+        parser::types::OperationType::Query => registry_v2::OperationType::Query,
+        parser::types::OperationType::Mutation => registry_v2::OperationType::Mutation,
+        parser::types::OperationType::Subscription => registry_v2::OperationType::Subscription,
+    }
+}

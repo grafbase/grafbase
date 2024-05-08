@@ -1,6 +1,9 @@
 use std::{borrow::Cow, fs::File, io::Read};
 
-use crate::{registry, ContextField, InputValueError, InputValueResult, LegacyInputType, Value};
+use crate::{
+    registry::{self, LegacyRegistryExt},
+    ContextField, InputValueError, InputValueResult, LegacyInputType, Value,
+};
 
 /// A file upload value.
 pub struct UploadValue {
@@ -101,7 +104,6 @@ impl LegacyInputType for Upload {
                 name: Self::type_name().to_string(),
                 description: None,
                 is_valid: Some(|value| matches!(value, Value::String(_))),
-                visible: None,
                 specified_by_url: Some("https://github.com/jaydenseric/graphql-multipart-request-spec".to_string()),
                 parser: registry::ScalarParser::BestEffort,
             })

@@ -5,7 +5,6 @@ use engine::{
     registry::{
         resolvers::{
             atlas_data_api::{AtlasDataApiResolver, OperationType},
-            transformer::Transformer,
             Resolver,
         },
         MetaField, MetaInputValue, NamedType, ObjectType, Registry,
@@ -13,6 +12,7 @@ use engine::{
     AuthConfig,
 };
 use engine_parser::types::TypeDefinition;
+use registry_v2::resolvers::transformer::Transformer;
 
 use crate::{
     registry::{

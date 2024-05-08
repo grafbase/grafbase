@@ -1,5 +1,5 @@
-use engine::registry::{ConnectorHeaderValue, ConnectorHeaders};
 use engine_parser::types::SchemaDefinition;
+use registry_v2::{ConnectorHeaderValue, ConnectorHeaders};
 use url::Url;
 
 use super::{

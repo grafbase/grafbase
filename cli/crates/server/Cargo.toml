@@ -67,6 +67,9 @@ parser-openapi = { path = "../../../engine/crates/parser-openapi" }
 parser-graphql = { path = "../../../engine/crates/parser-graphql" }
 parser-postgres = { path = "../../../engine/crates/parser-postgres" }
 postgres-connector-types = { path = "../../../engine/crates/postgres-connector-types" }
+registry-for-cache.workspace = true
+registry-upgrade.workspace = true
+registry-v2.workspace = true
 common-types = { path = "../../../engine/crates/common-types" }
 
 [dev-dependencies]

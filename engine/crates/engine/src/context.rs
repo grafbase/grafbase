@@ -10,6 +10,7 @@ use std::{
 
 use async_lock::Mutex as AsyncMutex;
 use engine_parser::types::OperationType;
+use engine_validation::CacheInvalidation;
 use engine_value::{ConstValue as Value, Variables};
 use fnv::FnvHashMap;
 use futures::{future::BoxFuture, stream::FuturesUnordered, StreamExt};
@@ -17,7 +18,7 @@ use graph_entities::QueryResponse;
 use http::header::HeaderMap;
 
 pub use self::selection_set::ContextSelectionSet;
-pub(crate) use self::{
+pub use self::{
     ext::{Context, ContextExt},
     field::ContextField,
     legacy::ContextSelectionSetLegacy,
@@ -32,7 +33,7 @@ use crate::{
     registry::type_kinds::SelectionSetTarget,
     request::IntrospectionState,
     schema::SchemaEnv,
-    CacheInvalidation, Name, Positioned, Result, ServerError, ServerResult, UploadValue,
+    Name, Positioned, Result, ServerError, ServerResult, UploadValue,
 };
 pub use ext::TraceId;
 

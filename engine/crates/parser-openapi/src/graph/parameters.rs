@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
-use engine::registry::resolvers::http::{QueryParameterEncodingStyle, RequestBodyContentType};
 use petgraph::graph::EdgeIndex;
+use registry_v2::resolvers::http::{QueryParameterEncodingStyle, RequestBodyContentType};
 
 use super::{input_value::InputValue, DebugNode, Edge, FieldName};
 

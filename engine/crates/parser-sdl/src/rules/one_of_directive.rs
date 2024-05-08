@@ -2,10 +2,11 @@ use std::vec;
 
 use engine::{
     indexmap::IndexMap,
-    registry::{InputObjectType, MetaDirective, MetaInputValue, __DirectiveLocation},
+    registry::{InputObjectType, MetaDirective, MetaInputValue},
 };
 use engine_parser::types::TypeKind;
 use if_chain::if_chain;
+use registry_v2::DirectiveLocation;
 
 use super::{
     directive::Directive,
@@ -69,10 +70,9 @@ impl<'a> Visitor<'a> for OneOfDirective {
                     ctx.registry.get_mut().add_directive(MetaDirective {
                         name: ONE_OF_DIRECTIVE.to_string(),
                         description: Some("Indicates that an input object is a oneOf input object".to_string()),
-                        locations: vec![__DirectiveLocation::INPUT_OBJECT],
+                        locations: vec![DirectiveLocation::InputObject],
                         args: IndexMap::new(),
                         is_repeatable: false,
-                        visible: Some(|_| true),
                     });
                 }
             }

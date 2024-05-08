@@ -2,7 +2,10 @@ use std::collections::{hash_map::DefaultHasher, BTreeSet};
 use tracing::instrument;
 
 use common_types::auth::ExecutionAuth;
-use engine::registry::CacheAccessScope;
+use engine::{
+    registry::{CacheAccessScope, CacheControlError},
+    CacheControl, ServerError,
+};
 use runtime::cache::Key;
 
 use super::{
@@ -26,9 +29,7 @@ pub fn build_cache_key(
     request: &engine::Request,
     auth: &ExecutionAuth,
 ) -> Result<Key, BuildKeyError> {
-    let request_cache_control = config
-        .partial_registry
-        .get_cache_control(request)
+    let request_cache_control = get_cache_control(&config.partial_registry, request)
         .map_err(|err| BuildKeyError::CouldNotDetermineCacheControl(err.to_string()))?;
 
     let cache_access = request_cache_control
@@ -83,9 +84,23 @@ pub fn build_cache_key(
     )))
 }
 
+fn get_cache_control(
+    registry: &registry_for_cache::PartialCacheRegistry,
+    request: &engine::Request,
+) -> Result<CacheControl, CacheControlError> {
+    let document = engine_parser::parse_query(request.query()).map_err(CacheControlError::Parse)?;
+
+    engine_validation::check_fast_rules(registry, &document, Some(&request.variables))
+        .map(|res| res.cache_control)
+        .map_err(|errors| CacheControlError::Validate(errors.into_iter().map(ServerError::from).collect()))
+}
+
 #[cfg(test)]
 mod tests {
-    use std::collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet};
+    use std::{
+        collections::{hash_map::DefaultHasher, BTreeMap, BTreeSet},
+        sync::Arc,
+    };
 
     use futures_util::future::BoxFuture;
     use tokio::sync::Mutex;
@@ -322,6 +337,8 @@ mod tests {
 
     fn config(cache_control: Option<engine::CacheControl>) -> CacheConfig {
         let mut registry = Registry::new();
+        registry.add_builtins_to_registry();
+
         registry.create_type(
             |_| {
                 MetaType::Object({
@@ -338,11 +355,16 @@ mod tests {
             MetaField::new(TEST.to_string(), MetaFieldType::from(TEST)),
         );
         registry.enable_caching = true;
+
+        registry.remove_unused_types();
+        let registry = registry.prune_for_caching_registry();
+        let partial_registry = Arc::new(registry_upgrade::convert_v1_to_partial_cache_registry(registry));
+
         CacheConfig {
             global_enabled: false,
             common_cache_tags: vec![],
             subdomain: String::new(),
-            partial_registry: registry.into(),
+            partial_registry,
             host_name: String::new(),
         }
     }

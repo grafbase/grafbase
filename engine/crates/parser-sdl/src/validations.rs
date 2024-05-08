@@ -1,18 +1,13 @@
 use std::sync::OnceLock;
 
 use engine::{
-    registry::{
-        federation::FederationResolver,
-        field_set::Selection,
-        resolvers::{join::JoinResolver, Resolver},
-        type_kinds::SelectionSetTarget,
-        MetaField, MetaFieldType,
-    },
+    registry::{field_set::FieldSetDisplay, resolvers::Resolver, MetaField, MetaFieldType},
     Registry,
 };
 use engine_parser::types::{BaseType, Type};
 use indexmap::IndexMap;
 use regex::Regex;
+use registry_v2::{resolvers::join::JoinResolver, FederationResolver, Selection};
 
 use crate::{rules::visitor::RuleError, schema_coord::SchemaCoord};
 
@@ -91,7 +86,7 @@ fn validate_single_require(
                 .lookup(&field.ty)
                 .expect("all the registry types to actually exist");
 
-            let Some(fields) = ty.field_map() else {
+            let Some(fields) = ty.fields() else {
                 errors.push(RuleError::new(
                     vec![],
                     format!(
@@ -177,14 +172,14 @@ fn traverse_join_fields<'a>(
     join: &JoinResolver,
     registry: &'a Registry,
     coord: SchemaCoord<'_>,
-) -> Result<(&'a MetaField, SelectionSetTarget<'a>), Vec<RuleError>> {
-    let mut current_type = registry.root_type(engine_parser::types::OperationType::Query);
+) -> Result<(&'a MetaField, &'a registry_v1::MetaType), Vec<RuleError>> {
+    let mut current_type = registry.root_type(registry_v2::OperationType::Query);
 
     let mut errors = vec![];
 
     let mut field_iter = join.fields.iter().peekable();
     while let Some((name, join_arguments)) = field_iter.next() {
-        let Some(field) = current_type.field(name) else {
+        let Some(field) = current_type.field_by_name(name) else {
             errors.push(RuleError::new(
                 vec![],
                 format!(
@@ -243,27 +238,24 @@ fn traverse_join_fields<'a>(
 
         // Lookup the type for the next iteration
         let ty = match registry.lookup(&field.ty) {
-            Ok(ty) => ty,
-            Err(error) => {
-                errors.push(RuleError::new(vec![], error.message));
-                break;
-            }
-        };
-        match ty.try_into() {
-            Ok(ty) => {
-                current_type = ty;
-            }
-            Err(_) => {
-                let name = ty.name();
+            Some(ty) => ty,
+            _error => {
                 errors.push(RuleError::new(
                     vec![],
-                    format!(
-                        "The join on {coord} tries to select children of {name}, but {name} is not a composite type",
-                    ),
+                    format!("Could not find type named {}", field.ty.base_type_name()),
                 ));
                 break;
             }
+        };
+        if !ty.is_composite() {
+            let name = ty.name();
+            errors.push(RuleError::new(
+                vec![],
+                format!("The join on {coord} tries to select children of {name}, but {name} is not a composite type",),
+            ));
+            break;
         }
+        current_type = ty;
     }
 
     assert!(!errors.is_empty(), "we shouldnt ger here if errors is empty");
@@ -309,12 +301,12 @@ fn validate_federation_joins(registry: &Registry) -> Vec<RuleError> {
     for (name, entity) in &registry.federation_entities {
         let Some(ty) = registry.types.get(name) else { continue };
 
-        for key in entity.keys() {
+        for key in entity.keys.iter() {
             if let Some(FederationResolver::Join(join)) = key.resolver() {
                 errors.extend(validate_join(
-                    join,
+                    join.as_ref(),
                     registry,
-                    SchemaCoord::Entity(ty.name(), &key.to_string()),
+                    SchemaCoord::Entity(ty.name(), &FieldSetDisplay(&key.selections).to_string()),
                     &ty.name().into(),
                 ));
             }

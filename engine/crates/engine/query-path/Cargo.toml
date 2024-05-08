@@ -1,0 +1,18 @@
+[package]
+name = "query-path"
+authors = ["Grafbase"]
+description = "Small crate for working with paths in GraphQL queries"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+homepage = "https://grafbase.com"
+repository = "https://github.com/grafbase/grafbase"
+keywords = ["graphql", "value", "grafbase"]
+publish = false
+
+[features]
+
+[dependencies]
+im = "15"
+internment = { version = "0.8", features = ["serde", "arc"] }
+serde.workspace = true

@@ -75,7 +75,6 @@ struct UdfWorker {
 pub struct UdfRuntime {
     udf_workers: Mutex<HashMap<(String, UdfKind), UdfWorkerStatus>>,
     environment_variables: HashMap<String, String>,
-    _registry: Arc<engine::Registry>,
     tracing: bool,
     message_sender: MessageSender,
 }
@@ -109,16 +108,10 @@ pub async fn invoke_udf_endpoint(
 }
 
 impl UdfRuntime {
-    pub fn new(
-        environment_variables: HashMap<String, String>,
-        registry: Arc<engine::Registry>,
-        tracing: bool,
-        message_sender: MessageSender,
-    ) -> Self {
+    pub fn new(environment_variables: HashMap<String, String>, tracing: bool, message_sender: MessageSender) -> Self {
         Self {
             udf_workers: Mutex::default(),
             environment_variables,
-            _registry: registry,
             tracing,
             message_sender,
         }

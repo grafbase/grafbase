@@ -1,21 +1,15 @@
-use std::collections::HashSet;
-
 use crate::{
     model::{__Directive, __Type},
-    registry, Object,
+    Object,
 };
 
 pub struct __Schema<'a> {
-    registry: &'a registry::Registry,
-    visible_types: &'a HashSet<&'a str>,
+    registry: &'a registry_v2::Registry,
 }
 
 impl<'a> __Schema<'a> {
-    pub fn new(registry: &'a registry::Registry, visible_types: &'a HashSet<&'a str>) -> Self {
-        Self {
-            registry,
-            visible_types,
-        }
+    pub fn new(registry: &'a registry_v2::Registry) -> Self {
+        Self { registry }
     }
 }
 
@@ -30,15 +24,8 @@ impl<'a> __Schema<'a> {
     async fn types(&self) -> Vec<__Type<'a>> {
         let mut types: Vec<_> = self
             .registry
-            .types
-            .values()
-            .filter_map(|ty| {
-                if self.visible_types.contains(ty.name()) {
-                    Some((ty.name(), __Type::new_simple(self.registry, self.visible_types, ty)))
-                } else {
-                    None
-                }
-            })
+            .types()
+            .map(|ty| (ty.name(), __Type::new_simple(self.registry, ty)))
             .collect();
         types.sort_by(|a, b| a.0.cmp(b.0));
         types.into_iter().map(|(_, ty)| ty).collect()
@@ -49,56 +36,37 @@ impl<'a> __Schema<'a> {
     async fn query_type(&self) -> __Type<'a> {
         __Type::new_simple(
             self.registry,
-            self.visible_types,
-            &self.registry.types[&self.registry.query_type],
+            self.registry.root_type(registry_v2::OperationType::Query).unwrap(),
         )
     }
 
     /// If this server supports mutation, the type that mutation operations will be rooted at.
     #[inline]
     async fn mutation_type(&self) -> Option<__Type<'a>> {
-        self.registry.mutation_type.as_ref().and_then(|ty| {
-            if self.visible_types.contains(ty.as_str()) {
-                Some(__Type::new_simple(
-                    self.registry,
-                    self.visible_types,
-                    &self.registry.types[ty],
-                ))
-            } else {
-                None
-            }
-        })
+        self.registry
+            .root_type(registry_v2::OperationType::Mutation)
+            .map(|ty| __Type::new_simple(self.registry, ty))
     }
 
     /// If this server support subscription, the type that subscription operations will be rooted at.
     #[inline]
     async fn subscription_type(&self) -> Option<__Type<'a>> {
-        self.registry.subscription_type.as_ref().and_then(|ty| {
-            if self.visible_types.contains(ty.as_str()) {
-                Some(__Type::new_simple(
-                    self.registry,
-                    self.visible_types,
-                    &self.registry.types[ty],
-                ))
-            } else {
-                None
-            }
-        })
+        self.registry
+            .root_type(registry_v2::OperationType::Subscription)
+            .map(|ty| __Type::new_simple(self.registry, ty))
     }
 
     /// A list of all directives supported by this server.
     async fn directives(&self) -> Vec<__Directive<'a>> {
         let mut directives: Vec<_> = self
             .registry
-            .directives
-            .values()
+            .directives()
             .map(|directive| __Directive {
                 registry: self.registry,
-                visible_types: self.visible_types,
                 directive,
             })
             .collect();
-        directives.sort_by(|a, b| a.directive.name.cmp(&b.directive.name));
+        directives.sort_by(|a, b| a.directive.name().cmp(b.directive.name()));
         directives
     }
 }

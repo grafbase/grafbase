@@ -8,7 +8,7 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
     graph::selection_set_into_node,
-    registry::{self, MetaType, Registry, ScalarType},
+    registry::{self, LegacyRegistryExt, MetaType, Registry, ScalarType},
     ContextSelectionSetLegacy, InputValueError, InputValueResult, LegacyInputType, LegacyOutputType, Name,
     ServerResult, Value,
 };
@@ -31,7 +31,6 @@ where
                 name: <Self as LegacyInputType>::type_name().to_string(),
                 description: Some("A scalar that can represent any JSON Object value.".to_string()),
                 is_valid: Some(|_| true),
-                visible: None,
                 specified_by_url: None,
                 parser: registry::ScalarParser::BestEffort,
             })
@@ -85,7 +84,6 @@ where
                 name: <Self as LegacyOutputType>::type_name().to_string(),
                 description: Some("A scalar that can represent any JSON Object value.".to_string()),
                 is_valid: Some(|_| true),
-                visible: None,
                 specified_by_url: None,
                 parser: registry::ScalarParser::BestEffort,
             })

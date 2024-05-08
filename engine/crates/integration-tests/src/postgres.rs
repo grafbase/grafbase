@@ -1,7 +1,7 @@
 use std::{collections::HashMap, future::Future, panic::AssertUnwindSafe, sync::Arc};
 
 use async_once_cell::OnceCell;
-use engine::Response;
+use engine::{registry::RegistrySdlExt, Response};
 use futures::FutureExt;
 use graphql_parser::parse_schema;
 use indoc::formatdoc;

@@ -45,40 +45,24 @@ impl From<PgTransportFactoryError> for crate::Error {
     }
 }
 
-#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
-pub struct PostgresResolver {
-    pub(super) operation: Operation,
-    pub(super) directive_name: String,
-}
+pub fn resolve<'a>(
+    resolver: &'a registry_v2::resolvers::postgres::PostgresResolver,
+    ctx: &'a ContextField<'_>,
+    resolver_ctx: &'a ResolverContext<'_>,
+) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
+    Box::pin(make_send_on_wasm(async move {
+        let pg_transport_factory = ctx.data::<PgTransportFactory>()?;
 
-impl PostgresResolver {
-    pub fn new(operation: Operation, directive_name: &str) -> Self {
-        Self {
-            operation,
-            directive_name: directive_name.to_string(),
-        }
-    }
+        let database_definition = ctx
+            .get_postgres_definition(&resolver.directive_name)
+            .ok_or(Error::new(format!(
+                "pg directive ({}) must exist",
+                &resolver.directive_name
+            )))?;
 
-    pub fn resolve<'a>(
-        &'a self,
-        ctx: &'a ContextField<'_>,
-        resolver_ctx: &'a ResolverContext<'_>,
-    ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
-        Box::pin(make_send_on_wasm(async move {
-            let pg_transport_factory = ctx.data::<PgTransportFactory>()?;
+        let transport = pg_transport_factory.try_get(&resolver.directive_name).await?;
+        let context = PostgresContext::new(ctx, resolver_ctx, database_definition, transport).await?;
 
-            let database_definition = ctx
-                .get_postgres_definition(&self.directive_name)
-                .ok_or(Error::new(format!(
-                    "pg directive ({}) must exist",
-                    &self.directive_name
-                )))?;
-
-            let transport = pg_transport_factory.try_get(&self.directive_name).await?;
-            let context = PostgresContext::new(ctx, resolver_ctx, database_definition, transport).await?;
-
-            request::execute(context, self.operation).await
-        }))
-    }
+        request::execute(context, resolver.operation).await
+    }))
 }

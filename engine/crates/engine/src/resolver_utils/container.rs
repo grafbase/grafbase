@@ -335,26 +335,28 @@ impl<'a> FieldExecutionSet<'a> {
                 let meta_field = ctx_field
                     .schema_env
                     .registry
-                    .types
-                    .get(type_name)
-                    .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()));
+                    .lookup_type(type_name)
+                    .and_then(|ty| ty.field(field.node.name.node.as_str()));
+
+                let meta_field_type = match meta_field.map(|field| field.ty()) {
+                    Some(ty) => ty,
+                    None => {
+                        return Err(ServerError::new(
+                            format!(r#"Cannot query field "{field_name}" on type "{type_name}"."#),
+                            Some(ctx_field.item.pos),
+                        ));
+                    }
+                };
+                let return_type = &meta_field_type.to_string();
 
                 let resolve_info = ResolveInfo {
                     path: ctx_field.path.clone(),
                     parent_type: type_name,
-                    return_type: match meta_field.map(|field| &field.ty) {
-                        Some(ty) => ty,
-                        None => {
-                            return Err(ServerError::new(
-                                format!(r#"Cannot query field "{field_name}" on type "{type_name}"self."#),
-                                Some(ctx_field.item.pos),
-                            ));
-                        }
-                    },
+                    return_type,
                     name: field.node.name.node.as_str(),
                     alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
-                    required_operation: meta_field.and_then(|f| f.required_operation),
-                    auth: meta_field.and_then(|f| f.auth.as_deref()),
+                    required_operation: meta_field.and_then(|f| f.required_operation().copied()),
+                    auth: meta_field.and_then(|f| f.auth()),
                     input_values: args_values,
                 };
 
@@ -398,8 +400,7 @@ impl<'a> FieldExecutionSet<'a> {
                 }
 
                 let subtype = registry
-                    .types
-                    .get(&typename)
+                    .lookup_type(&typename)
                     .ok_or_else(|| ServerError::new(format!(r#"Found an unknown typename: "{typename}"."#,), None))?
                     .try_into()
                     .map_err(|_| ServerError::new(format!("Tried to spread on a leaf type: {typename}"), None))?;
@@ -538,26 +539,28 @@ impl<'a> Fields<'a> {
                                 let meta_field = ctx_field
                                     .schema_env
                                     .registry
-                                    .types
-                                    .get(type_name.as_ref())
-                                    .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()));
+                                    .lookup_type(type_name.as_ref())
+                                    .and_then(|ty| ty.field(field.node.name.node.as_str()));
+
+                                let meta_field_type = match meta_field.map(|field| field.ty()) {
+                                    Some(ty) => ty,
+                                    None => {
+                                        return Err(ServerError::new(
+                                            format!(r#"Cannot query field "{field_name}" on type "{type_name}"."#),
+                                            Some(ctx_field.item.pos),
+                                        ));
+                                    }
+                                };
+                                let return_type = &meta_field_type.to_string();
 
                                 let resolve_info = ResolveInfo {
                                     path: ctx_field.path.clone(),
                                     parent_type: &type_name,
-                                    return_type: match meta_field.map(|field| &field.ty) {
-                                        Some(ty) => ty,
-                                        None => {
-                                            return Err(ServerError::new(
-                                                format!(r#"Cannot query field "{field_name}" on type "{type_name}"."#),
-                                                Some(ctx_field.item.pos),
-                                            ));
-                                        }
-                                    },
+                                    return_type,
                                     name: field.node.name.node.as_str(),
                                     alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
-                                    required_operation: meta_field.and_then(|f| f.required_operation),
-                                    auth: meta_field.and_then(|f| f.auth.as_deref()),
+                                    required_operation: meta_field.and_then(|f| f.required_operation().cloned()),
+                                    auth: meta_field.and_then(|f| f.auth()),
                                     input_values: args_values,
                                 };
 
@@ -611,15 +614,13 @@ impl<'a> Fields<'a> {
                             || ctx
                                 .schema_env
                                 .registry
-                                .implements
-                                .get(&*introspection_type_name)
-                                .map_or(false, |interfaces| interfaces.contains(condition))
+                                .interfaces_implemented(&introspection_type_name)
+                                .any(|ty| ty.name() == condition)
                     });
                     let new_target = type_condition
                         .and_then(|name| {
                             ctx.registry()
-                                .types
-                                .get(name)
+                                .lookup_type(name)
                                 .and_then(|ty| OutputType::try_from(ty).ok())
                         })
                         .unwrap_or(ctx.ty);

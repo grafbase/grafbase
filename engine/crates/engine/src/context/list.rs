@@ -95,7 +95,7 @@ impl<'a> super::ContextField<'a> {
     pub fn to_list_context(&'a self) -> ContextList<'a> {
         ContextList {
             current_type: Cow::Owned(
-                engine_parser::types::Type::new(self.field.ty.as_str()).expect("type names to be well formed"),
+                engine_parser::types::Type::new(&self.field.ty().to_string()).expect("type names to be well formed"),
             ),
             path: self.path.clone(),
             field_context: self,

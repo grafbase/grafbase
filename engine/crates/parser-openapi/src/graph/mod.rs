@@ -1,6 +1,5 @@
 use std::{borrow::Cow, fmt::Debug};
 
-use engine::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use inflector::Inflector;
 use once_cell::sync::Lazy;
 use petgraph::{
@@ -9,6 +8,7 @@ use petgraph::{
     Graph,
 };
 use regex::Regex;
+use registry_v2::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 
 mod enums;
 mod input_object;
@@ -70,8 +70,8 @@ impl OpenApiGraph {
 
     #[cfg(test)]
     pub fn from_petgraph(graph: Graph<Node, Edge>) -> Self {
-        use engine::registry::ConnectorHeaders;
         use parser_sdl::OpenApiQueryNamingStrategy;
+        use registry_v2::ConnectorHeaders;
 
         OpenApiGraph {
             graph,
@@ -251,7 +251,7 @@ pub enum ScalarKind {
 
 impl ScalarKind {
     pub fn type_name(self) -> String {
-        use engine::registry::scalars::{JSONScalar, SDLDefinitionScalar};
+        use engine_scalars::{JSONScalar, SDLDefinitionScalar};
 
         match self {
             ScalarKind::String => "String".to_string(),

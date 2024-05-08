@@ -6,10 +6,7 @@
 use std::ops::Not;
 
 use engine::{
-    registry::{
-        Deprecation, MetaDirective, MetaEnumValue, MetaField, MetaInputValue, MetaType, ObjectType, Registry,
-        __DirectiveLocation,
-    },
+    registry::{Deprecation, MetaDirective, MetaEnumValue, MetaField, MetaInputValue, MetaType, ObjectType, Registry},
     Value,
 };
 
@@ -72,7 +69,6 @@ fn directive_from_introspection(directive: cynic_introspection::Directive) -> Me
             .map(|v| (v.name.clone(), input_value_from_introspection(v)))
             .collect(),
         is_repeatable: false,
-        visible: None,
     }
 }
 
@@ -97,7 +93,6 @@ fn input_value_from_introspection(input: cynic_introspection::InputValue) -> Met
         description: input.description,
         ty: input.ty.to_string().into(),
         default_value: input.default_value.and_then(convert_default_value),
-        visible: None,
         validators: None,
         is_secret: false,
         rename: None,
@@ -111,30 +106,32 @@ fn convert_default_value(default_value: String) -> Option<Value> {
     engine_parser::parse_const_value(default_value).ok()
 }
 
-fn directive_location_from_introspection(location: cynic_introspection::DirectiveLocation) -> __DirectiveLocation {
-    use __DirectiveLocation as EngineLocation;
+fn directive_location_from_introspection(
+    location: cynic_introspection::DirectiveLocation,
+) -> registry_v2::DirectiveLocation {
     use cynic_introspection::DirectiveLocation as IntrospectionLocation;
+    use registry_v2::DirectiveLocation as EngineLocation;
 
     match location {
-        IntrospectionLocation::Query => EngineLocation::QUERY,
-        IntrospectionLocation::Mutation => EngineLocation::MUTATION,
-        IntrospectionLocation::Subscription => EngineLocation::SUBSCRIPTION,
-        IntrospectionLocation::Field => EngineLocation::FIELD,
-        IntrospectionLocation::FragmentDefinition => EngineLocation::FRAGMENT_DEFINITION,
-        IntrospectionLocation::FragmentSpread => EngineLocation::FRAGMENT_SPREAD,
-        IntrospectionLocation::InlineFragment => EngineLocation::INLINE_FRAGMENT,
-        IntrospectionLocation::VariableDefinition => EngineLocation::VARIABLE_DEFINITION,
-        IntrospectionLocation::Schema => EngineLocation::SCHEMA,
-        IntrospectionLocation::Scalar => EngineLocation::SCALAR,
-        IntrospectionLocation::Object => EngineLocation::OBJECT,
-        IntrospectionLocation::FieldDefinition => EngineLocation::FIELD_DEFINITION,
-        IntrospectionLocation::ArgumentDefinition => EngineLocation::ARGUMENT_DEFINITION,
-        IntrospectionLocation::Interface => EngineLocation::INTERFACE,
-        IntrospectionLocation::Union => EngineLocation::UNION,
-        IntrospectionLocation::Enum => EngineLocation::ENUM,
-        IntrospectionLocation::EnumValue => EngineLocation::ENUM_VALUE,
-        IntrospectionLocation::InputObject => EngineLocation::INPUT_OBJECT,
-        IntrospectionLocation::InputFieldDefinition => EngineLocation::INPUT_FIELD_DEFINITION,
+        IntrospectionLocation::Query => EngineLocation::Query,
+        IntrospectionLocation::Mutation => EngineLocation::Mutation,
+        IntrospectionLocation::Subscription => EngineLocation::Subscription,
+        IntrospectionLocation::Field => EngineLocation::Field,
+        IntrospectionLocation::FragmentDefinition => EngineLocation::FragmentDefinition,
+        IntrospectionLocation::FragmentSpread => EngineLocation::FragmentSpread,
+        IntrospectionLocation::InlineFragment => EngineLocation::InlineFragment,
+        IntrospectionLocation::VariableDefinition => EngineLocation::VariableDefinition,
+        IntrospectionLocation::Schema => EngineLocation::Schema,
+        IntrospectionLocation::Scalar => EngineLocation::Scalar,
+        IntrospectionLocation::Object => EngineLocation::Object,
+        IntrospectionLocation::FieldDefinition => EngineLocation::FieldDefinition,
+        IntrospectionLocation::ArgumentDefinition => EngineLocation::ArgumentDefinition,
+        IntrospectionLocation::Interface => EngineLocation::Interface,
+        IntrospectionLocation::Union => EngineLocation::Union,
+        IntrospectionLocation::Enum => EngineLocation::Enum,
+        IntrospectionLocation::EnumValue => EngineLocation::EnumValue,
+        IntrospectionLocation::InputObject => EngineLocation::InputObject,
+        IntrospectionLocation::InputFieldDefinition => EngineLocation::InputFieldDefinition,
     }
 }
 
@@ -186,7 +183,6 @@ fn enum_value_from_introspection(enum_value: cynic_introspection::EnumValue) -> 
         name: enum_value.name,
         description: enum_value.description,
         deprecation: deprecated_from_introspection(enum_value.deprecated),
-        visible: None,
         value: None,
     }
 }
@@ -203,7 +199,6 @@ fn interface_from_introspection(interface: cynic_introspection::InterfaceType) -
         cache_control: Default::default(),
         possible_types: interface.possible_types.into_iter().collect(),
         extends: false,
-        visible: None,
         rust_typename: interface.name,
     })
 }
@@ -213,7 +208,6 @@ fn union_from_introspection(union: cynic_introspection::UnionType) -> MetaType {
         name: union.name.clone(),
         description: union.description,
         possible_types: union.possible_types.into_iter().collect(),
-        visible: None,
         rust_typename: union.name,
         discriminators: None,
     })
@@ -224,7 +218,6 @@ fn scalar_from_introspection(scalar: cynic_introspection::ScalarType) -> MetaTyp
         name: scalar.name,
         description: scalar.description,
         is_valid: None,
-        visible: None,
         specified_by_url: None,
         parser: engine::registry::ScalarParser::PassThrough,
     })
