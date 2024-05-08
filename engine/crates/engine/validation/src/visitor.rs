@@ -83,50 +83,6 @@ where
     pub(crate) fn fragment(&self, name: &str) -> Option<&'a Positioned<FragmentDefinition>> {
         self.fragments.get(name)
     }
-
-    #[cfg(deleteme_probably)]
-    #[doc(hidden)]
-    pub fn param_value<T: LegacyInputType>(
-        &self,
-        variable_definitions: &[Positioned<VariableDefinition>],
-        field: &Field,
-        name: &str,
-        default: Option<fn() -> T>,
-    ) -> ServerResult<T> {
-        let value = field.get_argument(name).cloned();
-
-        if value.is_none() {
-            if let Some(default) = default {
-                return Ok(default());
-            }
-        }
-
-        let (pos, value) = match value {
-            Some(value) => {
-                let pos = value.pos;
-                (
-                    pos,
-                    Some(value.node.into_const_with(|name| {
-                        variable_definitions
-                            .iter()
-                            .find(|def| def.node.name.node == name)
-                            .and_then(|def| {
-                                if let Some(variables) = self.variables {
-                                    variables.get(&def.node.name.node).or_else(|| def.node.default_value())
-                                } else {
-                                    None
-                                }
-                            })
-                            .cloned()
-                            .ok_or_else(|| ServerError::new(format!("Variable {name} is not defined."), Some(pos)))
-                    })?),
-                )
-            }
-            None => (Pos::default(), None),
-        };
-
-        T::parse(value).map_err(|e| e.into_server_error(pos))
-    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]

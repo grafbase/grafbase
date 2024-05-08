@@ -54,8 +54,11 @@ pub trait AnyInputValue<'a>: Copy {
     type MetaType: AnyMetaType<'a>;
 
     fn type_string(&self) -> String;
+
+    #[allow(dead_code)]
     fn named_type(&self) -> Self::MetaType;
 
+    #[allow(dead_code)]
     fn validators(&self) -> impl Iterator<Item = &'a registry_v2::validators::DynValidator>;
 }
 

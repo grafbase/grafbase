@@ -58,6 +58,7 @@ macro_rules! impl_id_range {
 mod tests {
     use crate::IdRange;
 
+    #[allow(dead_code)]
     pub trait RecordLookup<T> {
         type Output;
 
@@ -68,6 +69,7 @@ mod tests {
 
     struct Thing;
 
+    #[allow(dead_code)]
     struct Container {
         things: Vec<Thing>,
     }

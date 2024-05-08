@@ -291,23 +291,3 @@ pub(crate) async fn run_resolver(
         }
     }
 }
-
-#[cfg(deleteme)]
-#[non_exhaustive]
-#[serde_with::minify_variant_names(serialize = "minified", deserialize = "minified")]
-#[derive(Default, Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
-pub enum Resolver {
-    // By default a resolver will just return its parent value
-    #[default]
-    Parent,
-    Transformer(Transformer),
-    CustomResolver(CustomResolver),
-    Composition(Vec<Resolver>),
-    Http(Box<http::HttpResolver>),
-    Graphql(Box<graphql::Resolver>),
-    MongoResolver(atlas_data_api::AtlasDataApiResolver),
-    PostgresResolver(postgres::PostgresResolver),
-    FederationEntitiesResolver,
-    Introspection(IntrospectionResolver),
-    Join(JoinResolver),
-}

@@ -32,6 +32,7 @@ impl Registry {
     ///
     /// This can be useful for testing purposes.
     pub fn with_sample_data(mut self) -> Self {
+        self.add_builtins_to_registry();
         let fields = self.query_root_mut().fields_mut().unwrap();
 
         fields.insert(
