@@ -21,4 +21,3 @@ engine.workspace = true
 insta.workspace = true
 once_cell = "1.19"
 registry-upgrade.workspace = true
-serde_json.worksace = true

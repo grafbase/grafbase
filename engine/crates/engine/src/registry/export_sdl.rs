@@ -34,15 +34,27 @@ impl RegistrySdlExt for Registry {
         }
 
         if !federation {
-            writeln!(sdl, "schema {{").ok();
-            writeln!(sdl, "\tquery: {}", self.query_type).ok();
-            if let Some(mutation_type) = self.mutation_type.as_deref() {
-                writeln!(sdl, "\tmutation: {mutation_type}").ok();
+            let query = if !has_empty_query_type(self, federation) {
+                format!("\tquery: {}\n", self.query_type)
+            } else {
+                String::new()
+            };
+
+            let mutation = if let Some(mutation_type) = self.mutation_type.as_deref() {
+                format!("\tmutation: {mutation_type}\n")
+            } else {
+                String::new()
+            };
+
+            let subscription = if let Some(subscription_type) = self.subscription_type.as_deref() {
+                format!("\tsubscription: {subscription_type}\n")
+            } else {
+                String::new()
+            };
+
+            if !(query.is_empty() && subscription.is_empty() && mutation.is_empty()) {
+                writeln!(sdl, "schema {{\n{query}{mutation}{subscription}}}").ok();
             }
-            if let Some(subscription_type) = self.subscription_type.as_deref() {
-                writeln!(sdl, "\tsubscription: {subscription_type}").ok();
-            }
-            writeln!(sdl, "}}").ok();
         }
 
         sdl
@@ -145,18 +157,8 @@ fn export_type(registry: &registry_v1::Registry, ty: &MetaType, sdl: &mut String
                 return;
             }
 
-            if name.as_str() == registry.query_type && federation {
-                let mut field_count = 0;
-                for field in fields.values() {
-                    if field.name.starts_with("__") || (federation && matches!(&*field.name, "_service" | "_entities"))
-                    {
-                        continue;
-                    }
-                    field_count += 1;
-                }
-                if field_count == 0 {
-                    return;
-                }
+            if name.as_str() == registry.query_type && has_empty_query_type(registry, federation) {
+                return;
             }
 
             if description.is_some() {
@@ -308,10 +310,37 @@ fn write_implements(registry: &registry_v1::Registry, sdl: &mut String, name: &s
     }
 }
 
+fn has_empty_query_type(registry: &registry_v1::Registry, federation: bool) -> bool {
+    let Some(query_object) = registry.types.get(&registry.query_type) else {
+        return true;
+    };
+
+    let mut field_count = 0;
+    for field in query_object.fields().expect("Query to be an object").values() {
+        if field.name.starts_with("__") || (federation && matches!(&*field.name, "_service" | "_entities")) {
+            continue;
+        }
+        field_count += 1;
+    }
+
+    field_count == 0
+}
+
 fn export_input_value(input_value: &MetaInputValue) -> String {
     if let Some(default_value) = &input_value.default_value {
         format!("{}: {} = {default_value}", input_value.name, input_value.ty)
     } else {
         format!("{}: {}", input_value.name, input_value.ty)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_state() {
+        let sdl = Registry::default().export_sdl(false);
+        assert!(sdl.is_empty());
     }
 }

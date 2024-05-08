@@ -589,4 +589,26 @@ describe('Type generator', () => {
       }"
     `)
   })
+
+  it('can deal with the absence of Query', () => {
+    g.type('Project', {
+      title: g.string(),
+      description: g.string(),
+      image: g.url(),
+      liveSiteUrl: g.url(),
+      githubUrl: g.url(),
+      category: g.string()
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type Project {
+        title: String!
+        description: String!
+        image: URL!
+        liveSiteUrl: URL!
+        githubUrl: URL!
+        category: String!
+      }"
+    `)
+  })
 })

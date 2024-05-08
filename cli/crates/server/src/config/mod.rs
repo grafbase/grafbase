@@ -79,7 +79,10 @@ pub(crate) async fn build_config(
 
     // Federated graphs have empty SDL schemas, from the config's perspective.
     if federated_graph_config.is_none() {
-        validate_registry_sdl(&registry.export_sdl(registry.enable_federation))?;
+        let sdl = registry.export_sdl(registry.enable_federation);
+        if !sdl.is_empty() {
+            validate_registry_sdl(&sdl)?;
+        }
     }
 
     let offset = REGISTRY_PARSED_EPOCH_OFFSET_MILLIS.load(Ordering::Acquire);

@@ -1,6 +1,6 @@
 ---
-source: common/parser-openapi/src/lib.rs
-expression: "build_registry(\"test_data/all-ofs-complex.json\", Format::Json,\n            metadata(Some(\"petstore\"))).unwrap().export_sdl(false)"
+source: engine/crates/parser-openapi/src/tests/mod.rs
+expression: "build_registry(\"test_data/all-ofs-complex.json\", Format::Json,\n            metadata(\"petstore\", true)).unwrap().export_sdl(false)"
 ---
 type Mutation {
 	petstore: PetstoreMutation!
@@ -11,10 +11,6 @@ type PetstoreInsertOne {
 type PetstoreMutation {
 	insertOne: PetstoreInsertOne
 }
-type Query {
-}
 schema {
-	query: Query
 	mutation: Mutation
 }
-

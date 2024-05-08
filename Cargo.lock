@@ -2184,7 +2184,6 @@ dependencies = [
  "registry-upgrade",
  "registry-v2",
  "serde",
- "serde_json",
 ]
 
 [[package]]
