@@ -61,12 +61,10 @@ impl<'a> RelationWalker<'a> {
 
     /// The name of the relation field.
     pub fn client_field_name(self) -> String {
-        let base_name = self.referenced_table().client_name().to_camel_case();
-
         let base_name = if self.is_referenced_row_unique() {
-            base_name
+            self.referenced_table().client_field_name()
         } else {
-            base_name.to_plural()
+            self.referenced_table().client_field_name_plural()
         };
 
         let is_name_collision = self
@@ -78,7 +76,7 @@ impl<'a> RelationWalker<'a> {
             let referencing_columns = self.referencing_columns().map(|column| column.client_name()).join("_");
             format!("{base_name}_by_{referencing_columns}").to_camel_case()
         } else {
-            base_name
+            base_name.to_string()
         }
     }
 

@@ -24,6 +24,16 @@ impl<'a> TableWalker<'a> {
         self.get_name(self.get().client_name())
     }
 
+    /// The name of fields relating to the table in the GraphQL APIs.
+    pub fn client_field_name(self) -> &'a str {
+        self.get_name(self.get().client_field_name())
+    }
+
+    /// The name of plural fields relating to the table in the GraphQL APIs.
+    pub fn client_field_name_plural(self) -> &'a str {
+        self.get_name(self.get().client_field_name_plural())
+    }
+
     /// An iterator over all the columns in the table.
     pub fn columns(self) -> impl Iterator<Item = TableColumnWalker<'a>> + 'a {
         let range = super::range_for_key(&self.database_definition.table_columns, self.id, |column| {

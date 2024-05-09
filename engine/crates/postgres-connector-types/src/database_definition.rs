@@ -174,6 +174,8 @@ impl DatabaseDefinition {
             schema_id: table.schema_id(),
             database_name: self.names.intern_string(table.database_name()),
             client_name: self.names.intern_string(table.client_name()),
+            client_field_name: self.names.intern_string(table.client_field_name()),
+            client_field_name_plural: self.names.intern_string(table.client_field_name_plural()),
         });
 
         id
@@ -379,11 +381,15 @@ impl DatabaseDefinition {
             let schema_name = &self.schemas[table.schema_id().0 as usize];
             let client_name = self.names.get_name(table.client_name());
 
-            let client_name = self
-                .names
-                .intern_string(&format!("{schema_name}_{client_name}").to_pascal_case());
+            let new_client_name = format!("{schema_name}_{client_name}").to_pascal_case();
+            let client_name = self.names.intern_string(&new_client_name);
+
+            let new_client_field_name = self.names.intern_string(&new_client_name.to_camel_case());
+            let new_client_field_name_plural = self.names.intern_string(&new_client_name.to_camel_case().to_plural());
 
             table.set_client_name(client_name);
+            table.set_client_field_name(new_client_field_name);
+            table.set_client_field_name_plural(new_client_field_name_plural);
         }
 
         names.clear();
