@@ -5,6 +5,9 @@ use crate::span::ResolverInvocationRecorderSpanExt;
 /// Resolver span name
 pub const RESOLVER_SPAN_NAME: &str = "resolver";
 
+/// Attribute key under which the resolver name is recorded
+pub const RESOLVER_NAME_ATTRIBUTE: &str = "resolver.name";
+
 /// A span for a resolver invocation
 pub struct ResolverInvocationSpan<'a> {
     name: &'a str,

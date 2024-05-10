@@ -5,6 +5,9 @@ use crate::span::{GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttribute
 /// The name of the GraphQL span
 pub const GRAPHQL_SPAN_NAME: &str = "graphql";
 
+/// Attribute key under which the gql operation name is recorded
+pub const GRAPHQL_OPERATION_NAME_ATTRIBUTE: &str = "gql.operation.name";
+
 /// A span for a graphql request
 #[derive(Default)]
 pub struct GqlRequestSpan<'a> {
