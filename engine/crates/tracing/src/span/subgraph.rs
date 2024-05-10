@@ -3,6 +3,9 @@ use tracing::{info_span, Span};
 /// Subgraph request span name
 pub const SUBGRAPH_SPAN_NAME: &str = "subgraph";
 
+/// Attribute key under which the subgraph name is recorded
+pub const SUBGRAPH_NAME_ATTRIBUTE: &str = "subgraph.name";
+
 /// A span for a subgraph request
 pub struct SubgraphRequestSpan<'a> {
     name: &'a str,
