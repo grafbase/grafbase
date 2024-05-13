@@ -120,20 +120,23 @@ impl EngineBuilder {
         // engine-v2 tests don't use wait_until so it's not a problem for the receiver to be
         // dropped immediately.
         let (sender, _) = tokio::sync::mpsc::unbounded_channel();
-        let mut schema_builder = Schema::build(Arc::new(registry))
-            .data(QueryBatcher::new())
-            .data(runtime::Context::new(
-                &Arc::new(RequestContext {
-                    ray_id: String::new(),
-                    headers: Default::default(),
-                    wait_until: sender,
-                }),
-                runtime::context::LogContext {
-                    fetch_log_endpoint_url: None,
-                    request_log_event_id: None,
-                },
-            ))
-            .data(postgres);
+        let mut schema_builder = Schema::build(
+            Arc::new(registry),
+            grafbase_tracing::metrics::meter_from_global_provider(),
+        )
+        .data(QueryBatcher::new())
+        .data(runtime::Context::new(
+            &Arc::new(RequestContext {
+                ray_id: String::new(),
+                headers: Default::default(),
+                wait_until: sender,
+            }),
+            runtime::context::LogContext {
+                fetch_log_endpoint_url: None,
+                request_log_event_id: None,
+            },
+        ))
+        .data(postgres);
 
         if let Some(custom_resolvers) = self.custom_resolvers {
             schema_builder = schema_builder.data(custom_resolvers);

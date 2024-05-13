@@ -38,7 +38,7 @@ async fn query_bad_request() {
     // act
     //
 
-    engine::Schema::build(registry).finish().execute("").await;
+    engine::Schema::new(registry).execute("").await;
 
     // assert
     handle.assert_finished();
@@ -164,8 +164,7 @@ async fn batch() {
     let registry = Arc::new(registry_upgrade::convert_v1_to_v2(registry));
 
     // act
-    engine::Schema::build(registry)
-        .finish()
+    engine::Schema::new(registry)
         .execute_batch(BatchRequest::Batch(vec![
             Request::new("query-1"),
             Request::new("query-2"),
@@ -196,11 +195,7 @@ async fn subscription() {
     let registry = Arc::new(registry_upgrade::convert_v1_to_v2(registry));
 
     // act
-    let _: Vec<StreamingPayload> = engine::Schema::build(registry)
-        .finish()
-        .execute_stream("")
-        .collect()
-        .await;
+    let _: Vec<StreamingPayload> = engine::Schema::new(registry).execute_stream("").collect().await;
 
     // assert
     handle.assert_finished();

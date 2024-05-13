@@ -83,7 +83,7 @@ where
     Ok(provider.build())
 }
 
-struct DeltaTemporality;
+pub struct DeltaTemporality;
 
 impl TemporalitySelector for DeltaTemporality {
     fn temporality(&self, _kind: InstrumentKind) -> Temporality {
@@ -91,7 +91,7 @@ impl TemporalitySelector for DeltaTemporality {
     }
 }
 
-struct AggForLatencyHistogram;
+pub struct AggForLatencyHistogram;
 
 impl AggregationSelector for AggForLatencyHistogram {
     fn aggregation(&self, kind: InstrumentKind) -> Aggregation {

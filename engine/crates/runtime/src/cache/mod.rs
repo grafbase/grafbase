@@ -5,7 +5,7 @@ use std::{sync::Arc, time::Duration};
 
 use serde::{de::DeserializeOwned, Serialize};
 
-const X_GRAFBASE_CACHE: &str = "x-grafbase-cache";
+pub const X_GRAFBASE_CACHE: &str = "x-grafbase-cache";
 
 pub type Result<T> = std::result::Result<T, Error>;
 
