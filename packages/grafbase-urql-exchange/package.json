@@ -24,7 +24,7 @@
     "wonka": "6.3.4"
   },
   "devDependencies": {
-    "eslint": "^8.0.0",
+    "eslint": "^9.0.0",
     "eslint-config-grafbase": "workspace:*",
     "tsconfig": "workspace:*",
     "tsup": "8.0.2",
