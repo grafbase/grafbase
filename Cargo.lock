@@ -454,7 +454,7 @@ dependencies = [
  "pin-project-lite",
  "rustls-pki-types",
  "tokio",
- "tokio-rustls 0.25.0",
+ "tokio-rustls",
  "tungstenite",
  "webpki-roots",
 ]
@@ -642,7 +642,7 @@ dependencies = [
  "rustls",
  "rustls-pemfile",
  "tokio",
- "tokio-rustls 0.25.0",
+ "tokio-rustls",
  "tower",
  "tower-service",
 ]
@@ -3746,7 +3746,7 @@ dependencies = [
  "rustls",
  "rustls-pki-types",
  "tokio",
- "tokio-rustls 0.25.0",
+ "tokio-rustls",
  "tower-service",
 ]
 
@@ -6354,7 +6354,7 @@ dependencies = [
  "serde_urlencoded",
  "sync_wrapper 0.1.2",
  "tokio",
- "tokio-rustls 0.25.0",
+ "tokio-rustls",
  "tokio-util",
  "tower-service",
  "url",
@@ -7830,15 +7830,14 @@ dependencies = [
 
 [[package]]
 name = "tokio-postgres-rustls"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04fb792ccd6bbcd4bba408eb8a292f70fc4a3589e5d793626f45190e6454b6ab"
+version = "0.11.1"
+source = "git+https://github.com/grafbase/tokio-postgres-rustls?rev=c4bb42bb4063c3dd28b75783f846b23622be07f6#c4bb42bb4063c3dd28b75783f846b23622be07f6"
 dependencies = [
  "ring",
  "rustls",
  "tokio",
  "tokio-postgres",
- "tokio-rustls 0.26.0",
+ "tokio-rustls",
  "x509-certificate",
 ]
 
@@ -7846,17 +7845,6 @@ dependencies = [
 name = "tokio-rustls"
 version = "0.25.0"
 source = "git+https://github.com/rustls/tokio-rustls?rev=3a153acec6c4d189eb5de501b2155b4484b8651b#3a153acec6c4d189eb5de501b2155b4484b8651b"
-dependencies = [
- "rustls",
- "rustls-pki-types",
- "tokio",
-]
-
-[[package]]
-name = "tokio-rustls"
-version = "0.26.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c7bc40d0e5a97695bb96e27995cd3a08538541b0a846f65bba7a359f36700d4"
 dependencies = [
  "rustls",
  "rustls-pki-types",
@@ -7979,7 +7967,7 @@ dependencies = [
  "rustls-pemfile",
  "rustls-pki-types",
  "tokio",
- "tokio-rustls 0.25.0",
+ "tokio-rustls",
  "tokio-stream",
  "tower",
  "tower-layer",
@@ -9203,8 +9191,3 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
-
-[[patch.unused]]
-name = "tokio-postgres-rustls"
-version = "0.11.1"
-source = "git+https://github.com/grafbase/tokio-postgres-rustls?rev=c4bb42bb4063c3dd28b75783f846b23622be07f6#c4bb42bb4063c3dd28b75783f846b23622be07f6"
