@@ -1,10 +1,12 @@
+use std::collections::btree_map::Entry;
+
 use engine::registry::{
     self,
     resolvers::{custom::CustomResolver, Resolver},
     MetaField, MetaType,
 };
 use engine_parser::types::TypeKind;
-use registry_v2::FederationProperties;
+use registry_v2::{resolvers::transformer::Transformer, FederationProperties};
 
 use super::{
     deprecated_directive::DeprecatedDirective,
@@ -38,6 +40,8 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
             return;
         }
 
+        super::basic_type::handle_key_directives(&type_definition.directives, type_name, ctx);
+
         let extended_fields = object
             .fields
             .iter()
@@ -61,6 +65,9 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                 let tags = TagDirective::from_directives(&field.directives, ctx);
 
                 let resolver = match (join_directive, resolver_name) {
+                    (None, None) if is_key_field(ctx, type_name, &name) => {
+                        Resolver::Transformer(Transformer::Select { key: name.to_string() })
+                    }
                     (None, None) => {
                         ctx.report_error(
                             vec![field.pos],
@@ -124,33 +131,54 @@ impl<'a> Visitor<'a> for ExtendConnectorTypes {
                     ..MetaField::default()
                 })
             })
-            .map(|field| (field.name.clone(), field))
             .collect::<Vec<_>>();
 
         let is_external = ExternalDirective::from_directives(&type_definition.directives, ctx).is_some();
         let is_shareable = ShareableDirective::from_directives(&type_definition.directives, ctx).is_some();
 
-        super::basic_type::handle_key_directives(&type_definition.directives, type_name, ctx);
-
         let mut registry = ctx.registry.borrow_mut();
 
-        let Some(MetaType::Object(registry::ObjectType {
-            fields,
-            shareable,
-            external,
-            ..
-        })) = registry.types.get_mut(type_name)
-        else {
-            drop(registry);
-            ctx.report_error(vec![type_definition.pos], format!("Type '{type_name}' does not exist"));
-            return;
-        };
+        match registry.types.entry(type_name.to_string()) {
+            Entry::Vacant(entry) => {
+                entry.insert(
+                    registry::ObjectType::new(type_name.to_string(), extended_fields)
+                        .with_external(is_external)
+                        .with_shareable(is_shareable)
+                        .into(),
+                );
+            }
+            Entry::Occupied(mut entry) => {
+                let MetaType::Object(registry::ObjectType {
+                    fields,
+                    shareable,
+                    external,
+                    ..
+                }) = entry.get_mut()
+                else {
+                    drop(registry);
+                    ctx.report_error(
+                        vec![type_definition.pos],
+                        format!("Tried to extend '{type_name}' as an object but this type is not an object"),
+                    );
+                    return;
+                };
 
-        *shareable |= is_shareable;
-        *external |= is_external;
+                *shareable |= is_shareable;
+                *external |= is_external;
 
-        fields.extend(extended_fields);
+                fields.extend(extended_fields.into_iter().map(|field| (field.name.to_owned(), field)));
+            }
+        }
     }
+}
+
+fn is_key_field(ctx: &VisitorContext<'_>, type_name: &str, field_name: &str) -> bool {
+    ctx.registry
+        .borrow()
+        .federation_entities
+        .get(type_name)
+        .map(|entity| entity.keys.iter().any(|key| key.includes_field(field_name)))
+        .unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -184,6 +212,35 @@ mod tests {
             .unwrap()
             .field_by_name("email")
             .expect("StripeCustomer to have an email field after parsing");
+    }
+
+    #[test]
+    fn test_federation_key_fields_dont_need_join_or_resolver() {
+        let output = futures::executor::block_on(crate::parse(
+            r#"
+        extend schema @federation(version: "2.3")
+
+        extend type Whatever @key(fields: "id") {
+            id: String!
+            someNewField: String! @resolver(name: "whatever")
+        }
+        "#,
+            &HashMap::new(),
+            &FakeConnectorParser,
+        ))
+        .unwrap();
+
+        output
+            .registry
+            .types
+            .get("Whatever")
+            .unwrap()
+            .field_by_name("id")
+            .expect("StripeCustomer to have an id field after parsing");
+
+        let number_keys = output.registry.federation_entities.get("Whatever").unwrap().keys.len();
+
+        assert_eq!(number_keys, 1);
     }
 
     #[test]
@@ -288,15 +345,6 @@ mod tests {
     }
 
     #[rstest::rstest]
-    #[case::extend_missing_type(r#"
-        extend schema @openapi(name: "Stripe", namespace: true, schema: "http://example.com")
-
-        extend type Blah {
-            foo: String! @resolver(name: "hello")
-        }
-    "#, &[
-        "Type 'Blah' does not exist"
-    ])]
     #[case::extend_without_resolver(r#"
         extend schema @openapi(name: "Stripe", namespace: true, schema: "http://example.com")
 

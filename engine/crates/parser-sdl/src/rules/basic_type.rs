@@ -7,11 +7,11 @@
 use engine::registry::{
     self,
     resolvers::{custom::CustomResolver, Resolver},
-    MetaField, MetaType, ObjectType,
+    MetaField,
 };
 use engine_parser::{
     types::{FieldDefinition, TypeKind},
-    Pos, Positioned,
+    Positioned,
 };
 use itertools::Itertools;
 use registry_v2::{resolvers::transformer::Transformer, FederationKey, FederationProperties};
@@ -25,7 +25,7 @@ use super::{
     join_directive::JoinDirective,
     requires_directive::RequiresDirective,
     resolver_directive::ResolverDirective,
-    visitor::{RuleError, Visitor, VisitorContext},
+    visitor::{Visitor, VisitorContext},
 };
 use crate::{
     directive_de::parse_directive, parser_extensions::FieldExtension, registry::add_input_type_non_primitive,
@@ -178,7 +178,6 @@ pub(super) fn handle_key_directives(
     type_name: &str,
     ctx: &mut VisitorContext<'_>,
 ) {
-    // We also need to parse any @key directives
     let key_directives = directives
         .iter()
         .filter(|directive| directive.node.name.node == "key")
@@ -196,15 +195,11 @@ pub(super) fn handle_key_directives(
 
     ctx.append_errors(errors);
 
-    ctx.append_errors(validate_keys(&oks, {
-        let registry = ctx.registry.borrow();
-        let Some(MetaType::Object(object)) = registry.types.get(type_name) else {
-            // Apparently this can happen in the face of duplicate types.
-            // Which is annoying but ok
-            return;
-        };
-        object.clone()
-    }));
+    ctx.key_directives_to_validate.extend(
+        oks.clone()
+            .into_iter()
+            .map(|(pos, directive)| (pos, directive, type_name.to_string())),
+    );
 
     for (_, directive) in oks {
         ctx.registry
@@ -225,40 +220,6 @@ fn field_resolver(field: &Positioned<FieldDefinition>, mapped_name: Option<&str>
     }
 
     Transformer::select(mapped_name.unwrap_or_else(|| field.name())).into()
-}
-
-fn validate_keys(key_directives: &[(Pos, KeyDirective)], object: ObjectType) -> Vec<RuleError> {
-    let mut errors = Vec::new();
-
-    // First make sure all the keys are actually fields
-    for (pos, key) in key_directives {
-        errors.extend(
-            key.validate()
-                .into_iter()
-                .map(|error| RuleError::new(vec![*pos], error)),
-        );
-
-        for field in &key.fields.0 .0 {
-            if object.field_by_name(&field.field).is_none() {
-                errors.push(RuleError::new(
-                    vec![*pos],
-                    format!(
-                        "The object {} has a key that requires the field {} but that field isn't present",
-                        object.name, &field.field,
-                    ),
-                ));
-            }
-            // In an ideal world we'd also validate any nested keys, but we don't really have
-            // access to any of the other types involved at this point :(
-        }
-    }
-
-    // Ideally I'd like to do some validation of the fields as well:
-    // Fields should usually be either part of a key or provided by a custom resolver.
-    // But i'm going to leave that out for now as I'd rather not get it wrong
-    // will try to revisit this.
-
-    errors
 }
 
 #[cfg(test)]

@@ -211,6 +211,11 @@ pub async fn parse<'a>(
         return Err(ctx.errors.into());
     }
 
+    ctx.validate();
+    if !ctx.errors.is_empty() {
+        return Err(ctx.errors.into());
+    }
+
     if !ctx.warnings.is_empty() {
         println!("{}", ctx.warnings);
     }

@@ -18,14 +18,18 @@ use engine_parser::{
     Pos, Positioned,
 };
 use engine_value::Name;
+use registry_v1::MetaType;
 
 use super::{warnings::Warnings, RuleError, TypeStackType, MUTATION_TYPE, QUERY_TYPE};
 use crate::{
     federation::FederatedGraphConfig,
     rules::{
-        codegen_directive::CodegenDirective, federation::FederationVersion,
-        operation_limits_directive::OperationLimitsDirective, trusted_documents_directive::TrustedDocumentsDirective,
+        codegen_directive::CodegenDirective,
+        federation::{FederationVersion, KeyDirective},
+        operation_limits_directive::OperationLimitsDirective,
+        trusted_documents_directive::TrustedDocumentsDirective,
     },
+    validations::validate_federation_keys,
     GlobalCacheRules, GlobalCacheTarget, GraphqlDirective, MongoDBDirective, OpenApiDirective, ParseResult,
     PostgresDirective,
 };
@@ -65,6 +69,8 @@ pub struct VisitorContext<'a> {
     pub(crate) operation_limits_directive: Option<OperationLimitsDirective>,
     pub(crate) trusted_documents_directive: Option<TrustedDocumentsDirective>,
     pub(crate) codegen_directive: Option<CodegenDirective>,
+
+    pub(crate) key_directives_to_validate: Vec<(Pos, KeyDirective, String)>,
 
     pub federation: Option<FederationVersion>,
 
@@ -130,7 +136,20 @@ impl<'a> VisitorContext<'a> {
             operation_limits_directive: None,
             trusted_documents_directive: None,
             codegen_directive: None,
+            key_directives_to_validate: vec![],
         }
+    }
+
+    pub(crate) fn validate(&mut self) {
+        let mut key_errors = vec![];
+        let registry = self.registry.borrow();
+        for (pos, directive, type_name) in &self.key_directives_to_validate {
+            let Some(MetaType::Object(object)) = registry.types.get(type_name) else {
+                continue;
+            };
+            key_errors.extend(validate_federation_keys(*pos, directive, object))
+        }
+        self.errors.append(&mut key_errors)
     }
 
     /// Finish the Registry

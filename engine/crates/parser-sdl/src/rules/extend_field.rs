@@ -177,9 +177,7 @@ mod tests {
         Registry,
     };
 
-    use crate::{
-        tests::assert_validation_error, ConnectorParsers, GraphqlDirective, OpenApiDirective, PostgresDirective,
-    };
+    use crate::{ConnectorParsers, GraphqlDirective, OpenApiDirective, PostgresDirective};
 
     #[test]
     fn test_extending_field_on_connector_types() {
@@ -217,22 +215,6 @@ mod tests {
         	blah: Blah
         }
         "###)
-    }
-
-    #[test]
-    fn test_missing_type_error() {
-        assert_validation_error!(
-            r#"
-            extend type Blah
-              @extendField(
-                name: "foo"
-                external: true
-                override: {from: "Blah"}
-                provides: {fields: "id"}
-              )
-            "#,
-            "Type 'Blah' does not exist"
-        );
     }
 
     #[test]
