@@ -63,6 +63,7 @@ impl Gateway {
                 auth,
                 authorizer,
                 trusted_documents,
+                grafbase_tracing::metrics::meter_from_global_provider(),
             )),
         })
     }

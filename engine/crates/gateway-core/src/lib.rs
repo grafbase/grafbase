@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
+use common_types::auth::ExecutionAuth;
 use engine::parser::types::OperationType;
 use futures_util::FutureExt;
 use gateway_v2_auth::AuthService;
+use grafbase_tracing::metrics::GraphqlOperationMetrics;
 pub use runtime::context::RequestContext;
 use runtime::{
     auth::AccessToken,
-    cache::{Cache, CacheReadStatus, CachedExecutionResponse},
+    cache::{Cache, CacheReadStatus, CachedExecutionResponse, X_GRAFBASE_CACHE},
 };
 use tracing::{info_span, Instrument};
 
@@ -48,6 +50,7 @@ pub struct Gateway<Executor: self::Executor> {
     auth: AuthService,
     trusted_documents: runtime::trusted_documents_client::Client,
     authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
+    operation_metrics: GraphqlOperationMetrics,
 }
 
 impl<Executor> Gateway<Executor>
@@ -64,6 +67,7 @@ where
         auth: AuthService,
         authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
         trusted_documents: runtime::trusted_documents_client::Client,
+        meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
     ) -> Self {
         Self {
             executor,
@@ -72,6 +76,7 @@ where
             auth,
             authorizer,
             trusted_documents,
+            operation_metrics: GraphqlOperationMetrics::build(&meter),
         }
     }
 
@@ -105,6 +110,18 @@ where
         ctx: &Arc<Executor::Context>,
         mut request: engine::Request,
     ) -> Result<(Arc<engine::Response>, http::HeaderMap), Executor::Error> {
+        let Some(AccessToken::V1(auth)) = self.auth.authorize(ctx.headers()).await else {
+            return Ok((
+                Arc::new(engine::Response::from_errors_with_type(
+                    vec![engine::ServerError::new("Unauthorized", None)],
+                    // doesn't really matter, this is not client facing
+                    OperationType::Query,
+                )),
+                Default::default(),
+            ));
+        };
+
+        let start = web_time::Instant::now();
         let headers = ctx.headers();
         if let Err(err) = self
             .handle_persisted_query(
@@ -124,53 +141,28 @@ where
                 Default::default(),
             ));
         }
-
-        let Some(AccessToken::V1(auth)) = self.auth.authorize(ctx.headers()).await else {
-            return Ok((
-                Arc::new(engine::Response::from_errors_with_type(
-                    vec![engine::ServerError::new("Unauthorized", None)],
-                    // doesn't really matter, this is not client facing
-                    OperationType::Query,
-                )),
-                Default::default(),
-            ));
-        };
-
-        if !self.cache_config.global_enabled || !self.cache_config.partial_registry.enable_caching {
-            let response = Arc::clone(&self.executor)
-                .execute(Arc::clone(ctx), auth, request)
-                .await?;
-
-            return Ok((Arc::new(response), Default::default()));
+        let normalized_query = operation_normalizer::normalize(request.query(), request.operation_name()).ok();
+        let (response, headers) = self.execute_with_auth(ctx, request, auth).await?;
+        if let Some((operation, normalized_query)) = response.graphql_operation.clone().zip(normalized_query) {
+            self.operation_metrics.record(
+                grafbase_tracing::metrics::GraphqlOperationMetricsAttributes {
+                    ty: match operation.r#type {
+                        common_types::OperationType::Query { .. } => "query",
+                        common_types::OperationType::Mutation => "mutation",
+                        common_types::OperationType::Subscription => "subscription",
+                    },
+                    name: operation.name,
+                    normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
+                    normalized_query,
+                    has_errors: !response.errors.is_empty(),
+                    cache_status: headers
+                        .get(X_GRAFBASE_CACHE)
+                        .and_then(|v| v.to_str().ok().map(|s| s.to_string())),
+                },
+                start.elapsed(),
+            );
         }
-
-        match build_cache_key(&self.cache_config, ctx.as_ref(), &request, &auth) {
-            Ok(cache_key) => {
-                let execution_fut = Arc::clone(&self.executor)
-                    .execute(Arc::clone(ctx), auth, request)
-                    .instrument(info_span!("execute"))
-                    .map(|res| res.map(Arc::new));
-
-                let cached_execution =
-                    cache::cached_execution(&self.cache, cache_key, ctx.as_ref(), execution_fut).await;
-
-                cache::process_execution_response(ctx.as_ref(), cached_execution)
-            }
-            Err(_) => {
-                let result = Arc::clone(&self.executor)
-                    .execute(Arc::clone(ctx), auth, request)
-                    .instrument(info_span!("execute"))
-                    .map(|res| res.map(Arc::new))
-                    .await?;
-
-                let response = CachedExecutionResponse::Origin {
-                    response: result,
-                    cache_read: CacheReadStatus::Bypass,
-                };
-
-                cache::process_execution_response(ctx.as_ref(), Ok(response))
-            }
-        }
+        Ok((response, headers))
     }
 
     pub async fn execute_stream(
@@ -219,5 +211,48 @@ where
             .execute_stream(Arc::clone(ctx), auth, request, streaming_format)
             .instrument(info_span!("execute_stream"))
             .await
+    }
+
+    async fn execute_with_auth(
+        &self,
+        ctx: &Arc<Executor::Context>,
+        request: engine::Request,
+        auth: ExecutionAuth,
+    ) -> Result<(Arc<engine::Response>, http::HeaderMap), Executor::Error> {
+        if !self.cache_config.global_enabled || !self.cache_config.partial_registry.enable_caching {
+            let response = Arc::clone(&self.executor)
+                .execute(Arc::clone(ctx), auth, request)
+                .await?;
+
+            return Ok((Arc::new(response), Default::default()));
+        }
+
+        match build_cache_key(&self.cache_config, ctx.as_ref(), &request, &auth) {
+            Ok(cache_key) => {
+                let execution_fut = Arc::clone(&self.executor)
+                    .execute(Arc::clone(ctx), auth, request)
+                    .instrument(info_span!("execute"))
+                    .map(|res| res.map(Arc::new));
+
+                let cached_execution =
+                    cache::cached_execution(&self.cache, cache_key, ctx.as_ref(), execution_fut).await;
+
+                cache::process_execution_response(ctx.as_ref(), cached_execution)
+            }
+            Err(_) => {
+                let result = Arc::clone(&self.executor)
+                    .execute(Arc::clone(ctx), auth, request)
+                    .instrument(info_span!("execute"))
+                    .map(|res| res.map(Arc::new))
+                    .await?;
+
+                let response = CachedExecutionResponse::Origin {
+                    response: result,
+                    cache_read: CacheReadStatus::Bypass,
+                };
+
+                cache::process_execution_response(ctx.as_ref(), Ok(response))
+            }
+        }
     }
 }

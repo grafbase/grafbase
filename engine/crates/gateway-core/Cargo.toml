@@ -18,6 +18,7 @@ async-graphql.workspace = true
 async-runtime.workspace = true
 async-sse = "5.1.0"
 async-trait = "0.1.80"
+blake3.workspace = true
 bytes.workspace = true
 common-types.workspace = true
 engine-parser.workspace = true
@@ -25,11 +26,13 @@ engine-validation.workspace = true
 engine-value.workspace = true
 engine.workspace = true
 futures-util.workspace = true
+grafbase-tracing.workspace = true
 headers.workspace = true
 http.workspace = true
 mediatype = "0.19.18"
 mime = "0.3.17"
 multipart-stream = "0.1.2"
+operation-normalizer = { path = "../operation-normalizer" }
 registry-for-cache.workspace = true
 runtime = { workspace = true, features = ["test-utils"] }
 serde.workspace = true
@@ -39,6 +42,7 @@ hex.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 gateway-v2-auth = { path = "../gateway-v2/auth" }
+web-time.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros"] }

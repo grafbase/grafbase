@@ -3,6 +3,7 @@ use std::{any::Any, ops::Deref, sync::Arc};
 use engine_validation::check_strict_rules;
 use futures_util::stream::{self, Stream, StreamExt};
 use futures_util::FutureExt;
+use grafbase_tracing::metrics::GraphqlOperationMetrics;
 use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
 use graph_entities::CompactValue;
 
@@ -36,6 +37,7 @@ pub struct SchemaBuilder {
     registry: Arc<registry_v2::Registry>,
     data: Data,
     extensions: Vec<Box<dyn ExtensionFactory>>,
+    operation_metrics: GraphqlOperationMetrics,
 }
 
 impl SchemaBuilder {
@@ -80,6 +82,7 @@ impl SchemaBuilder {
             env: SchemaEnv(Arc::new(SchemaEnvInner {
                 registry: self.registry,
                 data: self.data,
+                operation_metrics: self.operation_metrics,
             })),
         }))
     }
@@ -88,6 +91,7 @@ impl SchemaBuilder {
 #[doc(hidden)]
 pub struct SchemaEnvInner {
     pub registry: Arc<registry_v2::Registry>,
+    pub operation_metrics: GraphqlOperationMetrics,
     pub data: Data,
 }
 
@@ -135,11 +139,15 @@ impl Schema {
     /// The root object for the query and Mutation needs to be specified.
     /// If there is no mutation, you can use `EmptyMutation`.
     /// If there is no subscription, you can use `EmptySubscription`.
-    pub fn build(registry: Arc<registry_v2::Registry>) -> SchemaBuilder {
+    pub fn build(
+        registry: Arc<registry_v2::Registry>,
+        meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
+    ) -> SchemaBuilder {
         SchemaBuilder {
             registry,
             data: Default::default(),
             extensions: Default::default(),
+            operation_metrics: GraphqlOperationMetrics::build(&meter),
         }
     }
 
@@ -195,7 +203,7 @@ impl Schema {
 
     /// Create a schema
     pub fn new(registry: Arc<registry_v2::Registry>) -> Schema {
-        Self::build(registry).finish()
+        Self::build(registry, grafbase_tracing::metrics::meter_from_global_provider()).finish()
     }
 
     #[inline]
@@ -466,10 +474,12 @@ impl Schema {
         request: impl Into<Request> + Send,
         session_data: Arc<Data>,
     ) -> impl Stream<Item = StreamingPayload> + Send + Unpin {
+        let start = web_time::Instant::now();
         let schema = self.clone();
-        let request = request.into();
+        let request: Request = request.into();
         let extensions = self.create_extensions(session_data.clone());
         let gql_span = GqlRequestSpan::new().into_span();
+        let normalized_query = operation_normalizer::normalize(request.query(), request.operation_name()).ok();
 
         let request = futures_util::stream::StreamExt::boxed({
             let extensions = extensions.clone();
@@ -485,14 +495,14 @@ impl Schema {
                     }
                 };
 
-                Span::current().record_gql_request(GqlRequestAttributes {
-                    operation_type: env_builder.operation_type().as_ref(),
-                    operation_name: None,
-                });
-
-                if env_builder.operation_type() != OperationType::Subscription {
+                let mut has_errors = false;
+                let env = if env_builder.operation_type() != OperationType::Subscription {
                     let (sender, mut receiver) = deferred::workload_channel();
                     let env = env_builder.with_deferred_sender(sender).build();
+                    Span::current().record_gql_request(GqlRequestAttributes {
+                        operation_type: env.operation.ty.as_ref(),
+                        operation_name: env.operation_name.as_deref(),
+                    });
 
                     let initial_response = schema
                         .execute_once(env.clone(), futures_waiter)
@@ -509,35 +519,57 @@ impl Schema {
                         let mut next_response = process_deferred_workload(workload, &schema, &env).await;
                         next_workload = receiver.receive();
                         next_response.has_next = next_workload.is_some();
+                        has_errors |= !next_response.errors.is_empty();
                         let response = next_response.into();
 
                         yield response
                     }
-                    return;
-                }
+                    env
+                } else {
+                    let env = env_builder.build();
 
-                let env = env_builder.build();
+                    Span::current().record_gql_request(GqlRequestAttributes {
+                        operation_type: env.operation.ty.as_ref(),
+                        operation_name: env.operation_name.as_deref(),
+                    });
 
-                Span::current().record_gql_request(GqlRequestAttributes {
-                    operation_type: env.operation.ty.as_ref(),
-                    operation_name: env.operation_name.as_deref(),
-                });
+                    let ctx = env.create_context(
+                        &schema.env,
+                        &env.operation.node.selection_set,
+                        schema.registry().root_type(registry_operation_type_from_parser(env.operation.node.ty)).and_then(|ty| SelectionSetTarget::try_from(ty).ok()).expect("registry is malformed"),
+                    );
 
-                let ctx = env.create_context(
-                    &schema.env,
-                    &env.operation.node.selection_set,
-                    schema.registry().root_type(registry_operation_type_from_parser(env.operation.node.ty)).and_then(|ty| SelectionSetTarget::try_from(ty).ok()).expect("registry is malformed"),
-                );
+                    let mut streams = Vec::new();
+                    if let Err(err) = collect_subscription_streams(&ctx, &crate::EmptySubscription, &mut streams) {
+                        has_errors = true;
+                        // This hasNext: false is probably not correct, but we dont' support subscriptios atm so whatever
+                        yield Response::from_errors_with_type(vec![err], OperationType::Subscription).into_streaming_payload(false);
+                    }
 
-                let mut streams = Vec::new();
-                if let Err(err) = collect_subscription_streams(&ctx, &crate::EmptySubscription, &mut streams) {
-                    // This hasNext: false is probably not correct, but we dont' support subscriptios atm so whatever
-                    yield Response::from_errors_with_type(vec![err], OperationType::Subscription).into_streaming_payload(false);
-                }
+                    let mut stream = stream::select_all(streams);
+                    while let Some(resp) = stream.next().await {
+                        has_errors |= !resp.errors.is_empty();
+                        yield resp.into_streaming_payload(false);
+                    }
+                    env.clone()
+                };
 
-                let mut stream = stream::select_all(streams);
-                while let Some(resp) = stream.next().await {
-                    yield resp.into_streaming_payload(false);
+                if let Some(normalized_query) = normalized_query {
+                    schema.env.operation_metrics.record(
+                        grafbase_tracing::metrics::GraphqlOperationMetricsAttributes {
+                            ty: match env.operation.ty {
+                                OperationType::Query { .. } => "query",
+                                OperationType::Mutation => "mutation",
+                                OperationType::Subscription => "subscription",
+                            },
+                            name: env.operation_name.clone(),
+                            normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
+                            normalized_query,
+                            has_errors,
+                            cache_status: None
+                        },
+                        start.elapsed(),
+                    );
                 }
             }
         });

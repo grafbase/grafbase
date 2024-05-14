@@ -61,19 +61,22 @@ impl Executor {
 
         let resolver_engine = UdfInvokerImpl::custom_resolver(self.bridge.clone());
 
-        Ok(engine::Schema::build(Arc::clone(&self.registry))
-            .data(engine::TraceId(ctx.ray_id().to_string()))
-            .data(graphql::QueryBatcher::new())
-            .data(resolver_engine)
-            .data(auth)
-            .data(PgTransportFactory::new(Box::new(self.postgres.clone())))
-            .data(RequestHeaders::from(&ctx.headers_as_map()))
-            .data(runtime_ctx)
-            .extension(RuntimeLogExtension::new(Box::new(
-                runtime_local::LogEventReceiverImpl::new(self.bridge.clone()),
-            )))
-            .extension(AuthExtension::new(ctx.ray_id().to_string()))
-            .finish())
+        Ok(engine::Schema::build(
+            Arc::clone(&self.registry),
+            grafbase_tracing::metrics::meter_from_global_provider(),
+        )
+        .data(engine::TraceId(ctx.ray_id().to_string()))
+        .data(graphql::QueryBatcher::new())
+        .data(resolver_engine)
+        .data(auth)
+        .data(PgTransportFactory::new(Box::new(self.postgres.clone())))
+        .data(RequestHeaders::from(&ctx.headers_as_map()))
+        .data(runtime_ctx)
+        .extension(RuntimeLogExtension::new(Box::new(
+            runtime_local::LogEventReceiverImpl::new(self.bridge.clone()),
+        )))
+        .extension(AuthExtension::new(ctx.ray_id().to_string()))
+        .finish())
     }
 }
 
