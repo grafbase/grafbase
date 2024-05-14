@@ -14,6 +14,6 @@ pub fn meter_from_global_provider() -> Meter {
     meter(opentelemetry::global::meter_provider())
 }
 
-fn meter(provider: impl MeterProvider) -> Meter {
+pub fn meter(provider: impl MeterProvider) -> Meter {
     provider.versioned_meter(SCOPE, Some(SCOPE_VERSION), None::<Cow<'static, str>>, None)
 }
