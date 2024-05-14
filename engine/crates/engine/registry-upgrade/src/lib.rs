@@ -12,7 +12,7 @@ mod partial_cache_registry;
 
 pub use partial_cache_registry::convert_v1_to_partial_cache_registry;
 
-pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> registry_v2::Registry {
+pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> anyhow::Result<registry_v2::Registry> {
     let mut writer = RegistryWriter::new();
 
     let registry_v1::Registry {
@@ -82,9 +82,9 @@ pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> registry_v2::Registry {
         writer.populate_preallocated_type(id, record);
     }
 
-    writer.query_type = Some(lookup_type_id(&type_ids, &query_type));
-    writer.mutation_type = mutation_type.map(|name| lookup_type_id(&type_ids, &name));
-    writer.subscription_type = subscription_type.map(|name| lookup_type_id(&type_ids, &name));
+    writer.query_type = lookup_type_id(&type_ids, &query_type);
+    writer.mutation_type = mutation_type.and_then(|name| lookup_type_id(&type_ids, &name));
+    writer.subscription_type = subscription_type.and_then(|name| lookup_type_id(&type_ids, &name));
 
     let directives = {
         let mut directives = directives.into_values().collect::<Vec<_>>();
@@ -97,10 +97,18 @@ pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> registry_v2::Registry {
 
     writer.implements = implements
         .into_iter()
-        .map(|(ty, implements)| (type_ids[&ty], implements.into_iter().map(|ty| type_ids[&ty]).collect()))
+        .filter_map(|(ty, implements)| {
+            Some((
+                lookup_type_id(&type_ids, &ty)?,
+                implements
+                    .into_iter()
+                    .filter_map(|ty| lookup_type_id(&type_ids, &ty))
+                    .collect(),
+            ))
+        })
         .collect();
 
-    writer.finish().unwrap()
+    writer.finish()
 }
 
 fn insert_type(
@@ -184,7 +192,7 @@ fn insert_fields(
 ) -> IdRange<MetaFieldId> {
     let fields = fields
         .into_values()
-        .map(|field| {
+        .filter_map(|field| {
             let registry_v1::MetaField {
                 name,
                 mapped_name,
@@ -204,12 +212,12 @@ fn insert_fields(
             let mapped_name = mapped_name.map(|name| writer.intern_string(name));
             let description = description.map(|desc| writer.intern_string(desc));
             let args = insert_input_values(args, writer, type_ids);
-            let ty = convert_meta_field_type(ty, type_ids);
+            let ty = convert_meta_field_type(ty, type_ids)?;
             let deprecation = deprecation.is_deprecated().then(|| Box::new(deprecation));
             let requires = requires.map(Box::new);
             let required_operation = required_operation.map(Box::new);
 
-            MetaFieldRecord {
+            Some(MetaFieldRecord {
                 name,
                 mapped_name,
                 description,
@@ -222,7 +230,7 @@ fn insert_fields(
                 resolver,
                 required_operation,
                 auth,
-            }
+            })
         })
         .collect();
 
@@ -236,7 +244,7 @@ fn insert_input_values(
 ) -> IdRange<registry_v2::ids::MetaInputValueId> {
     let values = values
         .into_values()
-        .map(|field| {
+        .filter_map(|field| {
             let registry_v1::MetaInputValue {
                 name,
                 description,
@@ -249,21 +257,21 @@ fn insert_input_values(
 
             let name = writer.intern_string(name);
             let description = description.map(|desc| writer.intern_string(desc));
-            let ty = convert_input_value_type(ty, type_ids);
+            let ty = convert_input_value_type(ty, type_ids)?;
             let default_value = default_value.map(Box::new);
             let rename = rename.map(|rename| writer.intern_string(rename));
             let validators = validators
                 .map(|validators| insert_validators(validators, writer))
                 .unwrap_or_default();
 
-            MetaInputValueRecord {
+            Some(MetaInputValueRecord {
                 name,
                 description,
                 ty,
                 default_value,
                 rename,
                 validators,
-            }
+            })
         })
         .collect();
 
@@ -291,7 +299,7 @@ fn insert_interface(
     let fields = insert_fields(fields, writer, type_ids);
     let possible_types = possible_types
         .into_iter()
-        .map(|ty| lookup_type_id(type_ids, &ty))
+        .filter_map(|ty| lookup_type_id(type_ids, &ty))
         .collect();
 
     writer.insert_interface(InterfaceTypeRecord {
@@ -320,7 +328,7 @@ fn insert_union(
     let description = description.map(|desc| writer.intern_string(desc));
     let possible_types = possible_types
         .into_iter()
-        .map(|ty| lookup_type_id(type_ids, &ty))
+        .filter_map(|ty| lookup_type_id(type_ids, &ty))
         .collect();
     let discriminators = UnionDiscriminators(discriminators.unwrap_or_default());
 
@@ -453,27 +461,37 @@ fn insert_validators(
 fn convert_meta_field_type(
     ty: registry_v1::MetaFieldType,
     type_ids: &HashMap<String, MetaTypeId>,
-) -> MetaFieldTypeRecord {
-    MetaFieldTypeRecord {
+) -> Option<MetaFieldTypeRecord> {
+    Some(MetaFieldTypeRecord {
         wrappers: wrappers_from_string(ty.as_str()),
-        target: lookup_type_id(type_ids, ty.base_type_name()),
-    }
+        target: lookup_type_id(type_ids, ty.base_type_name())?,
+    })
 }
 
 fn convert_input_value_type(
     ty: registry_v1::InputValueType,
     type_ids: &HashMap<String, MetaTypeId>,
-) -> MetaInputValueTypeRecord {
-    MetaInputValueTypeRecord {
+) -> Option<MetaInputValueTypeRecord> {
+    Some(MetaInputValueTypeRecord {
         wrappers: wrappers_from_string(ty.as_str()),
-        target: lookup_type_id(type_ids, ty.base_type_name()),
-    }
+        target: lookup_type_id(type_ids, ty.base_type_name())?,
+    })
 }
 
-fn lookup_type_id(type_ids: &HashMap<String, MetaTypeId>, name: &str) -> MetaTypeId {
-    *type_ids
-        .get(name)
-        .unwrap_or_else(|| panic!("Couldn't find type {name}"))
+fn lookup_type_id(type_ids: &HashMap<String, MetaTypeId>, name: &str) -> Option<MetaTypeId> {
+    match type_ids.get(name) {
+        Some(id) => Some(*id),
+        None => {
+            // This might be a user error, but it might also be a problem in parser-sdl or one
+            // of the connectors.
+            // User errors we should probably detect with validation well before this point,
+            // so we can provide a more useful error.
+            // Grafbase errros we want to fix, but don't want to block the user so log
+            // it and continue as best we can
+            tracing::warn!("Unknown type: {name}, will skip this field");
+            None
+        }
+    }
 }
 
 fn wrappers_from_string(str: &str) -> TypeWrappers {

@@ -85,9 +85,11 @@ impl ProductionServer {
             })
         } else {
             let cache_registry = registry.clone().prune_for_caching_registry();
-            let cache_registry = registry_upgrade::convert_v1_to_partial_cache_registry(cache_registry);
+            let cache_registry = registry_upgrade::convert_v1_to_partial_cache_registry(cache_registry)
+                .map_err(|e| ServerError::SchemaUpgradeError(e.to_string()))?;
 
-            let registry = registry_upgrade::convert_v1_to_v2(registry);
+            let registry = registry_upgrade::convert_v1_to_v2(registry)
+                .map_err(|e| ServerError::SchemaUpgradeError(e.to_string()))?;
             let registry = Arc::new(registry);
 
             let (bridge_app, bridge_state) = bridge::build_router(
@@ -376,9 +378,11 @@ async fn spawn_servers(
     } = config;
 
     let cache_registry = registry.clone().prune_for_caching_registry();
-    let cache_registry = registry_upgrade::convert_v1_to_partial_cache_registry(cache_registry);
+    let cache_registry = registry_upgrade::convert_v1_to_partial_cache_registry(cache_registry)
+        .map_err(|e| ServerError::SchemaUpgradeError(e.to_string()))?;
 
-    let registry = registry_upgrade::convert_v1_to_v2(registry);
+    let registry =
+        registry_upgrade::convert_v1_to_v2(registry).map_err(|e| ServerError::SchemaUpgradeError(e.to_string()))?;
     let registry = Arc::new(registry);
 
     // If the rebuild has been triggered by a change in the schema file, we can honour the freshness of resolvers

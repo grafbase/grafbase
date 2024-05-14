@@ -24,7 +24,7 @@ fn test_serde_roundtrip() {
             the new output presented in the test result.
         ";
 
-    let registry = registry_upgrade::convert_v1_to_v2(Registry::new().with_sample_data());
+    let registry = registry_upgrade::convert_v1_to_v2(Registry::new().with_sample_data()).unwrap();
     let versioned_registry = VersionedRegistry {
         registry,
         deployment_id: Cow::Borrowed(id),

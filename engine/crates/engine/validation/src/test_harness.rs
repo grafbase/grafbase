@@ -326,7 +326,7 @@ pub struct Subscription;
 
 static TEST_HARNESS: Lazy<Schema> = Lazy::new(|| {
     let v1 = Schema::create_registry_static::<Query, Mutation, engine::EmptySubscription>();
-    let v2 = registry_upgrade::convert_v1_to_v2(v1);
+    let v2 = registry_upgrade::convert_v1_to_v2(v1).unwrap();
     Schema::new(Arc::new(v2))
 });
 
