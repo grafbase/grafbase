@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use super::field_set::FieldSet;
 use crate::rules::{directive::Directive, join_directive::FieldSelection};
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct KeyDirective {
     pub fields: FieldSet,

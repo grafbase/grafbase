@@ -2,14 +2,18 @@ use std::sync::OnceLock;
 
 use engine::{
     registry::{field_set::FieldSetDisplay, resolvers::Resolver, MetaField, MetaFieldType},
-    Registry,
+    Pos, Registry,
 };
 use engine_parser::types::{BaseType, Type};
 use indexmap::IndexMap;
 use regex::Regex;
+use registry_v1::ObjectType;
 use registry_v2::{resolvers::join::JoinResolver, FederationResolver, Selection};
 
-use crate::{rules::visitor::RuleError, schema_coord::SchemaCoord};
+use crate::{
+    rules::{federation::KeyDirective, visitor::RuleError},
+    schema_coord::SchemaCoord,
+};
 
 static NAME_REGEX: OnceLock<Regex> = OnceLock::new();
 
@@ -311,6 +315,28 @@ fn validate_federation_joins(registry: &Registry) -> Vec<RuleError> {
                 ));
             }
         }
+    }
+
+    errors
+}
+
+pub fn validate_federation_keys(pos: Pos, key: &KeyDirective, object: &ObjectType) -> Vec<RuleError> {
+    let mut errors = Vec::new();
+
+    errors.extend(key.validate().into_iter().map(|error| RuleError::new(vec![pos], error)));
+
+    for field in &key.fields.0 .0 {
+        if object.field_by_name(&field.field).is_none() {
+            errors.push(RuleError::new(
+                vec![pos],
+                format!(
+                    "The object {} has a key that requires the field {} but that field isn't present",
+                    object.name, &field.field,
+                ),
+            ));
+        }
+        // In an ideal world we'd also validate any nested keys, but I don't want
+        // to write that code today.  If you would like to fix this, feel free.
     }
 
     errors

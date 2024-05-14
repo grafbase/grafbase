@@ -21,13 +21,13 @@ pub struct JoinDirective {
     pub select: FieldSelection,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FieldSelection {
     selections: Vec<Selection>,
     variables_used: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Selection {
     field_name: String,
     arguments: Vec<(Name, Value)>,

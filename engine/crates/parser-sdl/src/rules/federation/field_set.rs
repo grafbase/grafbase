@@ -14,7 +14,7 @@ use registry_v2::Selection;
 use serde::de::Error;
 
 /// Newtype wrapper around registry::FieldSet that Deserializes from a String
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct FieldSet(pub registry_v2::FieldSet);
 
 impl<'de> serde::Deserialize<'de> for FieldSet {
