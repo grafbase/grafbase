@@ -358,7 +358,7 @@ mod tests {
 
         registry.remove_unused_types();
         let registry = registry.prune_for_caching_registry();
-        let partial_registry = Arc::new(registry_upgrade::convert_v1_to_partial_cache_registry(registry));
+        let partial_registry = Arc::new(registry_upgrade::convert_v1_to_partial_cache_registry(registry).unwrap());
 
         CacheConfig {
             global_enabled: false,

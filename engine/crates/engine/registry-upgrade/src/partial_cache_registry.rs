@@ -4,7 +4,9 @@ use indexmap::IndexMap;
 use registry_for_cache::{ids::*, storage::*, writer::RegistryWriter, IdRange};
 use wrapping::Wrapping;
 
-pub fn convert_v1_to_partial_cache_registry(v1: registry_v1::Registry) -> registry_for_cache::PartialCacheRegistry {
+pub fn convert_v1_to_partial_cache_registry(
+    v1: registry_v1::Registry,
+) -> anyhow::Result<registry_for_cache::PartialCacheRegistry> {
     let mut writer = RegistryWriter::new();
 
     let registry_v1::Registry {
@@ -55,13 +57,13 @@ pub fn convert_v1_to_partial_cache_registry(v1: registry_v1::Registry) -> regist
         writer.populate_preallocated_type(id, record);
     }
 
-    writer.query_type = Some(lookup_type_id(&type_ids, &query_type));
-    writer.mutation_type = mutation_type.map(|name| lookup_type_id(&type_ids, &name));
-    writer.subscription_type = subscription_type.map(|name| lookup_type_id(&type_ids, &name));
+    writer.query_type = lookup_type_id(&type_ids, &query_type);
+    writer.mutation_type = mutation_type.and_then(|name| lookup_type_id(&type_ids, &name));
+    writer.subscription_type = subscription_type.and_then(|name| lookup_type_id(&type_ids, &name));
 
     writer.enable_caching = enable_caching;
 
-    writer.finish().unwrap()
+    writer.finish()
 }
 
 fn insert_type(
@@ -113,7 +115,7 @@ fn insert_fields(
 ) -> IdRange<MetaFieldId> {
     let fields = fields
         .into_values()
-        .map(|field| {
+        .filter_map(|field| {
             let registry_v1::MetaField {
                 name,
                 args: _,
@@ -130,13 +132,13 @@ fn insert_fields(
             } = field;
 
             let name = writer.intern_string(name);
-            let ty = convert_meta_field_type(ty, type_ids);
+            let ty = convert_meta_field_type(ty, type_ids)?;
 
-            MetaFieldRecord {
+            Some(MetaFieldRecord {
                 name,
                 ty,
                 cache_control,
-            }
+            })
         })
         .collect();
 
@@ -163,7 +165,7 @@ fn insert_interface(
     let fields = insert_fields(fields, writer, type_ids);
     let possible_types = possible_types
         .into_iter()
-        .map(|ty| lookup_type_id(type_ids, &ty))
+        .filter_map(|ty| lookup_type_id(type_ids, &ty))
         .collect();
 
     writer.insert_interface(InterfaceTypeRecord {
@@ -187,17 +189,27 @@ fn insert_other(
 fn convert_meta_field_type(
     ty: registry_v1::MetaFieldType,
     type_ids: &HashMap<String, MetaTypeId>,
-) -> MetaFieldTypeRecord {
-    MetaFieldTypeRecord {
+) -> Option<MetaFieldTypeRecord> {
+    Some(MetaFieldTypeRecord {
         wrappers: wrappers_from_string(ty.as_str()),
-        target: lookup_type_id(type_ids, ty.base_type_name()),
-    }
+        target: lookup_type_id(type_ids, ty.base_type_name())?,
+    })
 }
 
-fn lookup_type_id(type_ids: &HashMap<String, MetaTypeId>, name: &str) -> MetaTypeId {
-    *type_ids
-        .get(name)
-        .unwrap_or_else(|| panic!("Couldn't find type {name}"))
+fn lookup_type_id(type_ids: &HashMap<String, MetaTypeId>, name: &str) -> Option<MetaTypeId> {
+    match type_ids.get(name) {
+        Some(id) => Some(*id),
+        None => {
+            // This might be a user error, but it might also be a problem in parser-sdl or one
+            // of the connectors.
+            // User errors we should probably detect with validation well before this point,
+            // so we can provide a more useful error.
+            // Grafbase errros we want to fix, but don't want to block the user so log
+            // it and continue as best we can
+            tracing::warn!("Unknown type: {name}, will skip this field");
+            None
+        }
+    }
 }
 
 fn wrappers_from_string(str: &str) -> Wrapping {

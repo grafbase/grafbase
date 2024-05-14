@@ -89,7 +89,7 @@ mod tests {
 
     fn check_root_field_count(query: &str, expect_root_field_count: usize) {
         let registry = Schema::create_registry_static::<Query, EmptyMutation, EmptySubscription>();
-        let registry = registry_upgrade::convert_v1_to_v2(registry);
+        let registry = registry_upgrade::convert_v1_to_v2(registry).unwrap();
 
         let doc = parse_query(query).unwrap();
         let mut ctx = VisitorContext::new(&registry, &doc, None);

@@ -6,8 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1"
 indexmap.workspace = true
 registry-for-cache.workspace = true
 registry-v1.workspace = true
 registry-v2.workspace = true
+tracing.workspace = true
 wrapping.workspace = true

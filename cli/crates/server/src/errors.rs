@@ -71,6 +71,10 @@ pub enum ServerError {
     #[error("{0}")]
     ParseSchema(String),
 
+    /// returned if the schema parser command exits unsuccessfully
+    #[error("Schema error: {0}")]
+    SchemaUpgradeError(String),
+
     /// returned if the typescript config parser command exits unsuccessfully
     #[error("could not load grafbase/grafbase.config.ts\nCaused by: {0}")]
     LoadTsConfig(String),

@@ -33,7 +33,7 @@ async fn query_bad_request() {
 
     let mut registry = Registry::new();
     registry.add_builtins_to_registry();
-    let registry = Arc::new(registry_upgrade::convert_v1_to_v2(registry));
+    let registry = Arc::new(registry_upgrade::convert_v1_to_v2(registry).unwrap());
 
     // act
     //
@@ -161,7 +161,7 @@ async fn batch() {
 
     let mut registry = Registry::new();
     registry.add_builtins_to_registry();
-    let registry = Arc::new(registry_upgrade::convert_v1_to_v2(registry));
+    let registry = Arc::new(registry_upgrade::convert_v1_to_v2(registry).unwrap());
 
     // act
     engine::Schema::build(registry)
@@ -193,7 +193,7 @@ async fn subscription() {
 
     let mut registry = Registry::new();
     registry.add_builtins_to_registry();
-    let registry = Arc::new(registry_upgrade::convert_v1_to_v2(registry));
+    let registry = Arc::new(registry_upgrade::convert_v1_to_v2(registry).unwrap());
 
     // act
     let _: Vec<StreamingPayload> = engine::Schema::build(registry)
