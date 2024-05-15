@@ -48,18 +48,24 @@ pub async fn deploy(graph_ref: Option<ProjectRef>, branch: Option<String>) -> Re
 
     report::deploy();
 
-    let deployment_id = deploy::deploy(graph_ref.map(ProjectRef::into_parts), branch)
-        .await
-        .map_err(CliError::BackendApiError)?;
+    let (deployment_id, account_slug, project_slug) =
+        deploy::deploy(graph_ref.map(ProjectRef::into_parts), branch.clone())
+            .await
+            .map_err(CliError::BackendApiError)?;
 
-    report_progress(deployment_id.into_inner()).await?;
+    let domains = report_progress(deployment_id.into_inner()).await?;
 
-    report::deploy_success();
+    report::deploy_success(
+        branch.unwrap_or(String::from("main")),
+        account_slug,
+        project_slug,
+        domains,
+    );
 
     Ok(())
 }
 
-pub async fn report_progress(deployment_id: String) -> Result<(), CliError> {
+pub async fn report_progress(deployment_id: String) -> Result<Vec<String>, CliError> {
     const WAIT_DURATION: Duration = Duration::from_secs(10);
     const POLL_TIMEOUT: Duration = Duration::from_secs(1);
 
@@ -114,6 +120,9 @@ pub async fn report_progress(deployment_id: String) -> Result<(), CliError> {
     if failed {
         Err(CliError::DeploymentFailed)
     } else {
-        Ok(())
+        let deployment = deploy::fetch_domains(deployment_id.clone().into())
+            .await
+            .map_err(CliError::BackendApiError)?;
+        Ok(deployment.branch.domains)
     }
 }

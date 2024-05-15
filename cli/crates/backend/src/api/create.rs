@@ -65,7 +65,7 @@ pub async fn create(
     account_id: &str,
     project_slug: &str,
     env_vars: impl Iterator<Item = (&str, &str)>,
-) -> Result<(Vec<String>, cynic::Id), ApiError> {
+) -> Result<(Vec<String>, cynic::Id, String), ApiError> {
     let project = Project::get();
 
     match project.dot_grafbase_directory_path.try_exists() {
@@ -114,7 +114,7 @@ pub async fn create(
             .await
             .map_err(ApiError::WriteProjectMetadataFile)?;
 
-            let deployment_id = deploy::deploy(None, None).await?;
+            let (deployment_id, _, project_slug) = deploy::deploy(None, None).await?;
 
             let domains = project_create_success
                 .project
@@ -124,7 +124,7 @@ pub async fn create(
                 .map(|domain| format!("{domain}/graphql"))
                 .collect();
 
-            Ok((domains, deployment_id))
+            Ok((domains, deployment_id, project_slug))
         }
         ProjectCreatePayload::SlugAlreadyExistsError(_) => Err(CreateError::SlugAlreadyExists.into()),
         ProjectCreatePayload::SlugInvalidError(_) => Err(CreateError::SlugInvalid.into()),
