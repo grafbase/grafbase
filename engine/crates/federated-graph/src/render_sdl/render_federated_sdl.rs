@@ -28,62 +28,57 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
         sdl.push('\n');
     }
 
-    let query_type_exists = graph.objects.iter().any(|object| &graph[object.name] == "Query");
-    if !query_type_exists {
-        writeln!(sdl, "type Query\n")?;
-    }
-
     for (idx, object) in graph.objects.iter().enumerate() {
         let object_name = &graph[object.name];
         let is_query_root = graph.root_operation_types.query == ObjectId(idx);
 
-        if let Some(description) = object.description {
-            write!(sdl, "{}", Description(&graph[description], ""))?;
-        }
-
-        sdl.push_str("type ");
-        sdl.push_str(object_name);
-
-        if !object.implements_interfaces.is_empty() {
-            sdl.push_str(" implements ");
-
-            for (idx, interface) in object.implements_interfaces.iter().enumerate() {
-                let interface_name = &graph[graph[*interface].name];
-                sdl.push_str(interface_name);
-
-                if idx < object.implements_interfaces.len() - 1 {
-                    sdl.push_str(" & ");
-                }
-            }
-        }
-
-        write_composed_directives(object.composed_directives, graph, &mut sdl)?;
-
-        if !object.keys.is_empty() {
-            sdl.push('\n');
-            for key in &object.keys {
-                let selection_set = FieldSetDisplay(&key.fields, graph);
-                let subgraph_name = GraphEnumVariantName(&graph[graph[key.subgraph_id].name]);
-                if key.resolvable {
-                    writeln!(
-                        sdl,
-                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set})"#
-                    )?;
-                } else {
-                    writeln!(
-                        sdl,
-                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set}, resolvable: false)"#
-                    )?;
-                }
-            }
-        }
-
         let mut fields = graph[object.fields.clone()]
             .iter()
-            .filter(|field| !(is_query_root && ["__type", "__schema"].contains(&graph[field.name].as_str())))
+            .filter(|field| !graph[field.name].starts_with("__"))
             .peekable();
 
         if fields.peek().is_some() {
+            if let Some(description) = object.description {
+                write!(sdl, "{}", Description(&graph[description], ""))?;
+            }
+
+            sdl.push_str("type ");
+            sdl.push_str(object_name);
+
+            if !object.implements_interfaces.is_empty() {
+                sdl.push_str(" implements ");
+
+                for (idx, interface) in object.implements_interfaces.iter().enumerate() {
+                    let interface_name = &graph[graph[*interface].name];
+                    sdl.push_str(interface_name);
+
+                    if idx < object.implements_interfaces.len() - 1 {
+                        sdl.push_str(" & ");
+                    }
+                }
+            }
+
+            write_composed_directives(object.composed_directives, graph, &mut sdl)?;
+
+            if !object.keys.is_empty() {
+                sdl.push('\n');
+                for key in &object.keys {
+                    let selection_set = FieldSetDisplay(&key.fields, graph);
+                    let subgraph_name = GraphEnumVariantName(&graph[graph[key.subgraph_id].name]);
+                    if key.resolvable {
+                        writeln!(
+                            sdl,
+                            r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set})"#
+                        )?;
+                    } else {
+                        writeln!(
+                            sdl,
+                            r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set}, resolvable: false)"#
+                        )?;
+                    }
+                }
+            }
+
             if object.keys.is_empty() {
                 sdl.push(' ');
             }
@@ -255,23 +250,26 @@ fn write_prelude(sdl: &mut String) -> fmt::Result {
 }
 
 fn write_subgraphs_enum(graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
-    sdl.push_str("enum join__Graph");
-
-    if !graph.subgraphs.is_empty() {
-        sdl.push_str(" {\n");
-        for subgraph in &graph.subgraphs {
-            let name_str = &graph[subgraph.name];
-            let url = &graph[subgraph.url];
-            let loud_name = GraphEnumVariantName(name_str);
-            writeln!(
-                sdl,
-                r#"{INDENT}{loud_name} @join__graph(name: "{name_str}", url: "{url}")"#
-            )?;
-        }
-        sdl.push('}');
+    if graph.subgraphs.is_empty() {
+        return Ok(());
     }
 
-    sdl.push_str("\n\n");
+    sdl.push_str("enum join__Graph");
+
+    sdl.push_str(" {\n");
+
+    for subgraph in &graph.subgraphs {
+        let name_str = &graph[subgraph.name];
+        let url = &graph[subgraph.url];
+        let loud_name = GraphEnumVariantName(name_str);
+        writeln!(
+            sdl,
+            r#"{INDENT}{loud_name} @join__graph(name: "{name_str}", url: "{url}")"#
+        )?;
+    }
+
+    sdl.push_str("}\n\n");
+
     Ok(())
 }
 
@@ -499,7 +497,7 @@ mod tests {
     fn test_render_empty() {
         use expect_test::expect;
 
-        let empty = from_sdl("type Query").unwrap();
+        let empty = crate::FederatedGraph::V3(FederatedGraphV3::default());
         let actual = render_federated_sdl(&empty.into_latest()).expect("valid");
         let expected = expect![[r#"
             directive @core(feature: String!) repeatable on SCHEMA
@@ -519,10 +517,6 @@ mod tests {
             ) on FIELD_DEFINITION
 
             directive @join__graph(name: String!, url: String!) on ENUM_VALUE
-
-            enum join__Graph
-
-            type Query
         "#]];
 
         expected.assert_eq(&actual);
@@ -561,8 +555,6 @@ mod tests {
             ) on FIELD_DEFINITION
 
             directive @join__graph(name: String!, url: String!) on ENUM_VALUE
-
-            enum join__Graph
 
             type Query {
                 field: String @deprecated(reason: "This is a \"deprecated\" reason") @dummy(test: "a \"test\"")
