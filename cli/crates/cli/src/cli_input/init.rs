@@ -18,7 +18,7 @@ pub struct InitCommand {
     /// The name or GitHub URL of the template to use for the new project
     #[arg(short, long)]
     pub template: Option<String>,
-    /// What graph type (federated or single) to initialize the project with
+    /// What graph type (federated or standalone) to initialize the project with
     #[arg(short, long)]
     pub graph: Option<GraphType>,
 }
