@@ -18,24 +18,29 @@ async-trait = "0.1.80"
 async-tungstenite = { version = "0.25.1", features = ["tokio-runtime"] }
 axum.workspace = true
 const_format = "0.2.32"
+cynic-parser = { workspace = true, features = ["print"] }
 dotenv = "0.15"
 flate2 = "1.0.30"
 fslock = "0.2.1"
 futures-util.workspace = true
 handlebars.workspace = true
 hyper.workspace = true
-hyper-util = { workspace = true, features = ["client", "client-legacy", "http1"] }
+hyper-util = { workspace = true, features = [
+    "client",
+    "client-legacy",
+    "http1",
+] }
 itertools.workspace = true
 log = "0.4.21"
 notify = { version = "6.1.1", default-features = false, features = [
-  "macos_fsevent",
+    "macos_fsevent",
 ] }
 notify-debouncer-mini = { version = "0.4.1", default-features = false }
 path-slash = "0.2.1"
 reqwest = { workspace = true, features = [
-  "rustls-tls",
-  "stream",
-  "json",
+    "rustls-tls",
+    "stream",
+    "json",
 ], default-features = false }
 serde = { version = "1.0.199", features = ["serde_derive"] }
 serde_json = "1.0.116"
@@ -46,7 +51,11 @@ tar.workspace = true
 tempfile = "3.10.1"
 thiserror = "1.0.59"
 tokio = { workspace = true, features = ["full"] }
-tokio-stream = { version = "0.1.15", features = ["tokio-util", "io-util", "sync"] }
+tokio-stream = { version = "0.1.15", features = [
+    "tokio-util",
+    "io-util",
+    "sync",
+] }
 tokio-util = { version = "0.7.10", features = ["futures-io", "compat"] }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 tracing = "0.1.40"
@@ -59,9 +68,11 @@ typed-resolvers = { path = "../typed-resolvers" }
 federated-dev = { path = "../federated-dev" }
 engine = { path = "../../../engine/crates/engine" }
 parser-sdl = { path = "../../../engine/crates/parser-sdl", features = [
-  "local",
+    "local",
 ] }
-graphql-federated-graph = { path = "../../../engine/crates/federated-graph", features = ["from_sdl"] }
+graphql-federated-graph = { path = "../../../engine/crates/federated-graph", features = [
+    "from_sdl",
+] }
 graphql-schema-validation = { path = "../../../engine/crates/validation" }
 parser-openapi = { path = "../../../engine/crates/parser-openapi" }
 parser-graphql = { path = "../../../engine/crates/parser-graphql" }
