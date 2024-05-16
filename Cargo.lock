@@ -3090,6 +3090,7 @@ dependencies = [
  "common-types",
  "const_format",
  "criterion",
+ "cynic-parser",
  "dotenv",
  "engine",
  "federated-dev",

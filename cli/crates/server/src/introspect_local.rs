@@ -26,6 +26,13 @@ pub async fn introspect_local() -> Result<IntrospectLocalOutput, ServerError> {
     if federated_graph_config.is_some() && rendered_sdl.is_empty() {
         Ok(IntrospectLocalOutput::EmptyFederated)
     } else {
-        Ok(IntrospectLocalOutput::Sdl(rendered_sdl))
+        Ok(IntrospectLocalOutput::Sdl(prettify(rendered_sdl)))
+    }
+}
+
+fn prettify(graphql: String) -> String {
+    match cynic_parser::parse_type_system_document(&graphql) {
+        Ok(parsed) => parsed.to_sdl(),
+        Err(_) => graphql,
     }
 }
