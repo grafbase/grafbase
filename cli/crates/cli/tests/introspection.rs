@@ -309,27 +309,42 @@ fn introspect_dev_with_federation_directives() {
 
     insta::assert_snapshot!(&String::from_utf8_lossy(&output.stdout), @r###"
     extend schema @link(
-    	url: "https://specs.apollo.dev/federation/v2.3",
-    	import: ["@key", "@tag", "@shareable", "@inaccessible", "@override", "@external", "@provides", "@requires", "@composeDirective", "@interfaceObject"]
+      url: "https://specs.apollo.dev/federation/v2.3"
+      import: [
+        "@key"
+        "@tag"
+        "@shareable"
+        "@inaccessible"
+        "@override"
+        "@external"
+        "@provides"
+        "@requires"
+        "@composeDirective"
+        "@interfaceObject"
+      ]
     )
+
     type Product @key(fields: "id") {
-    	description: String!
-    	name: String!
-    	id: ID!
-    	type: ProductType!
+      description: String!
+      name: String!
+      id: ID!
+      type: ProductType!
     }
+
     enum ProductType {
-    	BACKPACK
-    	HAT
-    	T_SHIRT
+      BACKPACK
+      HAT
+      T_SHIRT
     }
+
     type Query {
-    	product(productId: ID!): Product!
-    	products: [Product!]!
+      product(productId: ID!): Product!
+      products: [Product!]!
     }
+
     type Review @key(fields: "id") {
-    	id: ID!
-    	product: Product!
+      id: ID!
+      product: Product!
     }
     "###);
 }
