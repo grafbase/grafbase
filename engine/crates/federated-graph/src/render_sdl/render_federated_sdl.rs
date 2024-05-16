@@ -28,14 +28,18 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
         sdl.push('\n');
     }
 
-    let query_type_exists = graph.objects.iter().any(|object| &graph[object.name] == "Query");
-    if !query_type_exists {
-        writeln!(sdl, "type Query\n")?;
-    }
-
-    for (idx, object) in graph.objects.iter().enumerate() {
+    for object in &graph.objects {
         let object_name = &graph[object.name];
-        let is_query_root = graph.root_operation_types.query == ObjectId(idx);
+
+        let mut fields = graph[object.fields.clone()]
+            .iter()
+            .filter(|field| !graph[field.name].starts_with("__"))
+            .peekable();
+
+        if fields.peek().is_none() {
+            sdl.push_str("\n\n");
+            continue;
+        }
 
         if let Some(description) = object.description {
             write!(sdl, "{}", Description(&graph[description], ""))?;
@@ -78,23 +82,14 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
             }
         }
 
-        let mut fields = graph[object.fields.clone()]
-            .iter()
-            .filter(|field| !(is_query_root && ["__type", "__schema"].contains(&graph[field.name].as_str())))
-            .peekable();
-
-        if fields.peek().is_some() {
-            if object.keys.is_empty() {
-                sdl.push(' ');
-            }
-            sdl.push_str("{\n");
-            for field in fields {
-                write_field(field, graph, &mut sdl)?;
-            }
-            writeln!(sdl, "}}\n")?;
-        } else {
-            sdl.push_str("\n\n");
+        if object.keys.is_empty() {
+            sdl.push(' ');
         }
+        sdl.push_str("{\n");
+        for field in fields {
+            write_field(field, graph, &mut sdl)?;
+        }
+        writeln!(sdl, "}}\n")?;
     }
 
     for interface in &graph.interfaces {
@@ -255,23 +250,26 @@ fn write_prelude(sdl: &mut String) -> fmt::Result {
 }
 
 fn write_subgraphs_enum(graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
-    sdl.push_str("enum join__Graph");
-
-    if !graph.subgraphs.is_empty() {
-        sdl.push_str(" {\n");
-        for subgraph in &graph.subgraphs {
-            let name_str = &graph[subgraph.name];
-            let url = &graph[subgraph.url];
-            let loud_name = GraphEnumVariantName(name_str);
-            writeln!(
-                sdl,
-                r#"{INDENT}{loud_name} @join__graph(name: "{name_str}", url: "{url}")"#
-            )?;
-        }
-        sdl.push('}');
+    if graph.subgraphs.is_empty() {
+        return Ok(());
     }
 
-    sdl.push_str("\n\n");
+    sdl.push_str("enum join__Graph");
+
+    sdl.push_str(" {\n");
+
+    for subgraph in &graph.subgraphs {
+        let name_str = &graph[subgraph.name];
+        let url = &graph[subgraph.url];
+        let loud_name = GraphEnumVariantName(name_str);
+        writeln!(
+            sdl,
+            r#"{INDENT}{loud_name} @join__graph(name: "{name_str}", url: "{url}")"#
+        )?;
+    }
+
+    sdl.push_str("}\n\n");
+
     Ok(())
 }
 
@@ -499,7 +497,7 @@ mod tests {
     fn test_render_empty() {
         use expect_test::expect;
 
-        let empty = from_sdl("type Query").unwrap();
+        let empty = crate::FederatedGraph::V3(FederatedGraphV3::default());
         let actual = render_federated_sdl(&empty.into_latest()).expect("valid");
         let expected = expect![[r#"
             directive @core(feature: String!) repeatable on SCHEMA
@@ -519,10 +517,6 @@ mod tests {
             ) on FIELD_DEFINITION
 
             directive @join__graph(name: String!, url: String!) on ENUM_VALUE
-
-            enum join__Graph
-
-            type Query
         "#]];
 
         expected.assert_eq(&actual);
@@ -561,8 +555,6 @@ mod tests {
             ) on FIELD_DEFINITION
 
             directive @join__graph(name: String!, url: String!) on ENUM_VALUE
-
-            enum join__Graph
 
             type Query {
                 field: String @deprecated(reason: "This is a \"deprecated\" reason") @dummy(test: "a \"test\"")

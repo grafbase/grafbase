@@ -63,6 +63,13 @@ impl fmt::Display for Renderer<'_> {
                 continue;
             }
 
+            if graph[object.fields.clone()].iter().all(|field| {
+                let field_name = &graph[field.name];
+                field_name.starts_with("__") || has_inaccessible(&field.composed_directives, graph)
+            }) {
+                continue;
+            }
+
             write_leading_whitespace(f)?;
 
             write_description(f, object.description, "", graph)?;
@@ -245,4 +252,16 @@ fn write_enum_variant(f: &mut fmt::Formatter<'_>, enum_variant: &EnumValue, grap
     f.write_str(&graph[enum_variant.value])?;
     write_public_directives(f, enum_variant.composed_directives, graph)?;
     f.write_char('\n')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_empty() {
+        let empty = FederatedGraphV3::default();
+        let sdl = render_api_sdl(&empty);
+        assert!(sdl.is_empty());
+    }
 }
