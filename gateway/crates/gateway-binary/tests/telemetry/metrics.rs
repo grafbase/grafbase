@@ -6,7 +6,7 @@ use std::{
 
 use futures_util::Future;
 use indoc::formatdoc;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{load_schema, with_static_server, Client};
 
@@ -14,22 +14,22 @@ mod operation;
 mod request;
 
 #[serde_with::serde_as]
-#[derive(clickhouse::Row, Deserialize)]
+#[derive(Debug, clickhouse::Row, Deserialize, Serialize, PartialEq)]
 struct SumMetricCountRow {
     #[serde(rename = "Value")]
     value: f64,
     #[serde(rename = "Attributes")]
-    #[serde_as(as = "Vec<(_, _)>")]
+    #[serde_as(deserialize_as = "Vec<(_, _)>")]
     attributes: BTreeMap<String, String>,
 }
 
 #[serde_with::serde_as]
-#[derive(clickhouse::Row, Deserialize)]
+#[derive(Debug, clickhouse::Row, Deserialize, Serialize, PartialEq)]
 struct ExponentialHistogramRow {
     #[serde(rename = "Count")]
     count: u64,
     #[serde(rename = "Attributes")]
-    #[serde_as(as = "Vec<(_, _)>")]
+    #[serde_as(deserialize_as = "Vec<(_, _)>")]
     attributes: BTreeMap<String, String>,
 }
 

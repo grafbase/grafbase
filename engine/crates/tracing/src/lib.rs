@@ -4,6 +4,7 @@
 pub mod config;
 /// Potential errors from this crate
 pub mod error;
+pub mod grafbase_client;
 pub mod metrics;
 /// Otel integration
 pub mod otel;

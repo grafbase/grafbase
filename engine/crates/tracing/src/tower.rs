@@ -1,67 +1,179 @@
-use std::time::Duration;
+use std::{
+    future::Future,
+    task::{ready, Context, Poll},
+    time::Instant,
+};
 
+use ::tower::{Layer, Service};
 use headers::HeaderMapExt;
-use http::Response;
+use http::{Request, Response};
 use http_body::Body;
-use opentelemetry::metrics::Meter;
-use tower_http::classify::{ServerErrorsAsFailures, ServerErrorsFailureClass, SharedClassifier};
-use tower_http::trace::{DefaultOnBodyChunk, DefaultOnEos, DefaultOnRequest};
+use opentelemetry::{metrics::Meter, propagation::Extractor};
+use pin_project_lite::pin_project;
 use tracing::Span;
 
-use crate::metrics::{HasGraphqlErrors, RequestMetrics, RequestMetricsAttributes};
+use crate::{
+    grafbase_client::Client,
+    metrics::{HasGraphqlErrors, RequestMetrics, RequestMetricsAttributes},
+    span::{request::HttpRequestSpan, HttpRecorderSpanExt},
+};
 
-/// A [tower_http::trace::TraceLayer] that creates [crate::span::request::HttpRequestSpan] for each incoming request
-/// and records request and response attributes in the span
-pub fn layer<B: Body>(
-    meter: Meter,
-) -> tower_http::trace::TraceLayer<
-    SharedClassifier<ServerErrorsAsFailures>,
-    crate::span::request::MakeHttpRequestSpan,
-    DefaultOnRequest,
-    impl Fn(&Response<B>, Duration, &Span) + Clone,
-    DefaultOnBodyChunk,
-    DefaultOnEos,
-    impl Fn(ServerErrorsFailureClass, Duration, &Span) + Clone,
-> {
-    let metrics = RequestMetrics::build(&meter);
-    tower_http::trace::TraceLayer::new_for_http()
-        .make_span_with(crate::span::request::MakeHttpRequestSpan)
-        .on_response({
-            let metrics = metrics.clone();
-            move |response: &Response<_>, latency: Duration, span: &Span| {
-                use crate::span::HttpRecorderSpanExt;
+pub fn layer(meter: Meter) -> TelemetryLayer {
+    TelemetryLayer {
+        metrics: RequestMetrics::build(&meter),
+    }
+}
 
+#[derive(Clone)]
+pub struct TelemetryLayer {
+    metrics: RequestMetrics,
+}
+
+impl<S> Layer<S> for TelemetryLayer {
+    type Service = TelemetryService<S>;
+    fn layer(&self, inner: S) -> Self::Service {
+        TelemetryService {
+            inner,
+            metrics: self.metrics.clone(),
+        }
+    }
+}
+
+/// tower-http provides a TraceService as a convenient way to wrap the whole execution. However
+/// it's only meant for tracing and doesn't provide a good way for metrics to access both the
+/// request and the response. As such we end up needing to write a [tower::Service] ourselves.
+/// [TelemetryService] is mostly inspired by how the [tower_http::trace::Trace] works.
+#[derive(Clone)]
+pub struct TelemetryService<S> {
+    inner: S,
+    metrics: RequestMetrics,
+}
+
+impl<S> TelemetryService<S> {
+    #[cfg(not(feature = "lambda"))]
+    fn make_span<B: Body>(&mut self, request: &Request<B>) -> Span {
+        HttpRequestSpan::from_http(request).into_span()
+    }
+
+    #[cfg(feature = "lambda")]
+    fn make_span<B: Body>(&self, request: &Request<B>) -> Span {
+        use opentelemetry::Context;
+        use tracing_opentelemetry::OpenTelemetrySpanExt;
+
+        let parent_ctx = opentelemetry::global::get_text_map_propagator(|propagator| {
+            propagator.extract_with_context(&Context::current(), &HeaderExtractor(request.headers()))
+        });
+
+        let span = HttpRequestSpan::from_http(request).into_span();
+        span.set_parent(parent_ctx);
+
+        span
+    }
+}
+
+// From opentelemetry-http which still uses http 0.X as of 2024/05/17
+#[cfg_attr(not(feature = "lambda"), allow(unused))]
+struct HeaderExtractor<'a>(pub &'a http::HeaderMap);
+
+impl<'a> Extractor for HeaderExtractor<'a> {
+    /// Get a value for a key from the HeaderMap.  If the value is not valid ASCII, returns None.
+    fn get(&self, key: &str) -> Option<&str> {
+        self.0.get(key).and_then(|value| value.to_str().ok())
+    }
+
+    /// Collect all the keys from the HeaderMap.
+    fn keys(&self) -> Vec<&str> {
+        self.0.keys().map(|value| value.as_str()).collect::<Vec<_>>()
+    }
+}
+
+/// See [TelemetryService]
+impl<S, ReqBody, ResBody> Service<Request<ReqBody>> for TelemetryService<S>
+where
+    S: Service<Request<ReqBody>, Response = Response<ResBody>>,
+    S::Error: std::fmt::Display + 'static,
+    ReqBody: Body,
+    ResBody: Body,
+{
+    type Response = http::Response<ResBody>;
+
+    type Error = S::Error;
+
+    type Future = ResponseFuture<S::Future>;
+
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
+        let start = Instant::now();
+        let client = Client::extract_from(req.headers());
+        let metrics = self.metrics.clone();
+        let span = self.make_span(&req);
+        ResponseFuture {
+            inner: self.inner.call(req),
+            metrics,
+            span,
+            start,
+            client,
+        }
+    }
+}
+
+pin_project! {
+    pub struct ResponseFuture<F> {
+        #[pin]
+        inner: F,
+        metrics: RequestMetrics,
+        span: Span,
+        start: Instant,
+        client: Option<Client>,
+    }
+}
+
+/// See [TelemetryService]
+impl<F, ResBody, E> Future for ResponseFuture<F>
+where
+    F: Future<Output = Result<Response<ResBody>, E>>,
+    ResBody: Body,
+    E: std::fmt::Display + 'static,
+{
+    type Output = Result<Response<ResBody>, E>;
+
+    fn poll(self: std::pin::Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let this = self.project();
+        let _guard = this.span.enter();
+        let mut result = ready!(this.inner.poll(cx));
+        let latency = this.start.elapsed();
+
+        let client = this.client.take();
+        let metrics = this.metrics;
+        match result {
+            Ok(ref mut response) => {
                 let cache_status = response
                     .headers()
                     .get("x-grafbase-cache")
-                    .and_then(|value| value.to_str().ok());
+                    .and_then(|value| value.to_str().ok())
+                    .map(str::to_string);
                 let has_graphql_errors = response.headers().typed_get::<HasGraphqlErrors>().is_some();
                 metrics.record(
                     RequestMetricsAttributes {
                         status_code: response.status().as_u16(),
-                        cache_status: cache_status.map(|s| s.to_string()),
+                        cache_status,
                         has_graphql_errors,
+                        client,
                     },
                     latency,
                 );
-                span.record_response(response);
+                this.span.record_response(response);
+                response.headers_mut().remove(HasGraphqlErrors::header_name());
             }
-        })
-        .on_failure(move |error: ServerErrorsFailureClass, latency: Duration, span: &Span| {
-            use crate::span::HttpRecorderSpanExt;
+            Err(ref err) => {
+                metrics.record(RequestMetricsAttributes::server_error(), latency);
+                this.span.record_failure(err.to_string());
+            }
+        }
 
-            let status_code = match error {
-                ServerErrorsFailureClass::StatusCode(code) => code.as_u16(),
-                ServerErrorsFailureClass::Error(_) => 500,
-            };
-            metrics.record(
-                RequestMetricsAttributes {
-                    status_code,
-                    cache_status: None,
-                    has_graphql_errors: false,
-                },
-                latency,
-            );
-            span.record_failure(error.to_string().as_str());
-        })
+        Poll::Ready(result)
+    }
 }

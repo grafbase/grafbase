@@ -53,7 +53,7 @@ impl GraphqlOperationMetrics {
             attributes.push(KeyValue::new("gql.response.has_errors", "true"));
         }
         self.count.add(1, &attributes);
-        // We're only sending the normalized_query for the latency. It's only send as additional
+        // We're only sending the normalized_query for the latency. It's only sent as additional
         // metadata.
         self.latency.record(
             latency.as_millis() as u64,

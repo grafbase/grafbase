@@ -238,7 +238,7 @@ fn runtime() -> &'static Runtime {
 }
 
 fn get_free_port() -> u16 {
-    const INITIAL_PORT: u16 = 4000;
+    const INITIAL_PORT: u16 = 14712;
 
     let test_state_directory_path = std::env::temp_dir().join("grafbase/cli-tests");
     std::fs::create_dir_all(&test_state_directory_path).unwrap();

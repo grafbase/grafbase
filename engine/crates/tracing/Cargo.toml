@@ -19,10 +19,11 @@ http-body = "1.0"
 serde.workspace = true
 thiserror.workspace = true
 tonic = { version = "0.11.0", optional = true, features = ["tls-roots"] }
-tower-http = { workspace = true, optional = true, features = ["trace"] }
+tower = { workspace = true, optional = true }
 url = { workspace = true, features = ["serde"] }
 worker = { workspace = true, optional = true }
 headers.workspace = true
+pin-project-lite = "0.2"
 
 # tracing
 tracing.workspace = true
@@ -35,7 +36,7 @@ opentelemetry-otlp = { version = "0.15" , features = ["grpc-tonic", "tls", "toni
 
 [features]
 default = []
-tower = ["dep:tower-http"]
+tower = ["dep:tower"]
 otlp = ["dep:opentelemetry-otlp", "dep:tonic"]
 worker = ["dep:worker"]
 lambda = []
