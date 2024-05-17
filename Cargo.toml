@@ -64,6 +64,7 @@ keywords = ["grafbase"]
 repository = "https://github.com/grafbase/grafbase"
 
 [workspace.dependencies]
+anyhow = "1"
 async-graphql = "7.0.3"
 async-graphql-axum = "7.0.3"
 async-graphql-parser = "7.0.3"
@@ -181,6 +182,7 @@ operation-normalizer = { path = "engine/crates/operation-normalizer" }
 parser-graphql = { path = "engine/crates/parser-graphql" }
 parser-openapi = { path = "engine/crates/parser-openapi" }
 parser-postgres = { path = "engine/crates/parser-postgres" }
+parser-sdl = { path = "engine/crates/parser-sdl" }
 postgres-connector-types = { path = "engine/crates/postgres-connector-types" }
 registry-for-cache = { path = "engine/crates/engine/registry-for-cache" }
 registry-upgrade = { path = "engine/crates/engine/registry-upgrade" }
