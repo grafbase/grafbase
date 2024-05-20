@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use engine::Positioned;
 use engine_parser::types::SchemaDefinition;
 
@@ -87,6 +89,7 @@ impl<'a> Visitor<'a> for PostgresVisitor {
 impl PostgresDirective {
     fn validate(self) -> Result<Self, String> {
         validate_connector_name(&self.name)?;
+        tokio_postgres::config::Config::from_str(&self.url).map_err(|err| err.to_string())?;
 
         Ok(self)
     }
@@ -229,5 +232,55 @@ mod tests {
             "#,
             "Connector names must be alphanumeric and cannot start with a number"
         );
+    }
+
+    #[test]
+    fn invalid_connection_string_port() {
+        assert_validation_error!(
+            r#"
+            extend schema
+              @postgres(
+                name: "pg",
+                namespace: true,
+                url: "postgres://postgres:grafbase@localhost:xj/postgres",
+              )
+            "#,
+            "invalid connection string: invalid value for option `port`"
+        );
+    }
+
+    #[test]
+    fn invalid_connection_string_password_escaping() {
+        assert_validation_error!(
+            r#"
+            extend schema
+              @postgres(
+                name: "pg",
+                namespace: true,
+                url: "postgres://postgres:graf@localhost:wer/@localhost:5432/postgres",
+              )
+            "#,
+            "invalid connection string: invalid value for option `port`"
+        );
+
+        let schema = r#"
+            extend schema
+              @postgres(
+                name: "possu",
+                namespace: true,
+                url: "postgres://postgres:graf%40localhost%3Awer@localhost:5432/postgres",
+              )
+            "#;
+        let connector_parsers = MockConnectorParsers::default();
+        block_on(crate::parse(schema, &Default::default(), &connector_parsers)).unwrap();
+        insta::assert_debug_snapshot!(connector_parsers.postgres_directives.lock().unwrap(), @r###"
+        [
+            PostgresDirective {
+                name: "possu",
+                url: "postgres://postgres:graf%40localhost%3Awer@localhost:5432/postgres",
+                namespace: true,
+            },
+        ]
+        "###);
     }
 }
