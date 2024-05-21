@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::net::IpAddr;
 
+use crate::grafbase_client::Client;
 use crate::span::HttpRecorderSpanExt;
 use http::header::USER_AGENT;
 use http::{Response, StatusCode};
@@ -29,6 +30,7 @@ pub struct HttpRequestSpan<'a> {
     header_x_forwarded_for: Option<Cow<'a, http::HeaderValue>>,
     /// Value of the ray-id header sent by the server
     header_ray_id: Option<Cow<'a, http::HeaderValue>>,
+    header_x_grafbase_client: Option<Client>,
     /// Address of the local HTTP server that received the request
     server_address: Option<Cow<'a, IpAddr>>,
     /// Port of the local HTTP server that received the request
@@ -84,6 +86,7 @@ impl<'a> HttpRequestSpan<'a> {
             request_method: Cow::Borrowed(request.method()),
             header_user_agent: request.headers().get(USER_AGENT).map(Cow::Borrowed),
             header_x_forwarded_for: request.headers().get(X_FORWARDED_FOR_HEADER).map(Cow::Borrowed),
+            header_x_grafbase_client: Client::extract_from(request.headers()),
             header_ray_id: None,
             url: Cow::Borrowed(request.uri()),
             response_body_size: None,
@@ -102,6 +105,8 @@ impl<'a> HttpRequestSpan<'a> {
     pub fn try_from_worker(request: &'a worker::Request) -> worker::Result<Self> {
         use core::str::FromStr;
         use http::HeaderValue;
+
+        use crate::grafbase_client::{X_GRAFBASE_CLIENT_NAME, X_GRAFBASE_CLIENT_VERSION};
 
         let method =
             http::Method::from_str(request.method().as_ref()).map_err(|e| worker::Error::RustError(e.to_string()))?;
@@ -125,6 +130,10 @@ impl<'a> HttpRequestSpan<'a> {
             request_method: Cow::Owned(method),
             header_user_agent: user_agent,
             header_x_forwarded_for: x_forwarded_for,
+            header_x_grafbase_client: Client::maybe_new(
+                request.headers().get(X_GRAFBASE_CLIENT_NAME.as_str()).ok().flatten(),
+                request.headers().get(X_GRAFBASE_CLIENT_VERSION.as_str()).ok().flatten(),
+            ),
             header_ray_id: None,
             url: Cow::Owned(uri),
             response_body_size: None,
@@ -150,6 +159,8 @@ impl<'a> HttpRequestSpan<'a> {
             "http.response.error" = self.response_error.as_ref().map(|v| v.as_ref()),
             "http.header.user_agent" = self.header_user_agent.as_ref().and_then(|v| v.to_str().ok()),
             "http.header.x_forwarded_for" = self.header_x_forwarded_for.as_ref().and_then(|v| v.to_str().ok()),
+            "http.header.x-grafbase-client-name" = self.header_x_grafbase_client.as_ref().map(|client| client.name.as_str()),
+            "http.header.x-grafbase-client-version" = self.header_x_grafbase_client.as_ref().and_then(|client| client.version.as_deref()),
             "http.header.ray_id" = self.header_ray_id.as_ref().and_then(|v| v.to_str().ok()),
             "server.address" = self.server_address.map(|v| v.to_string()),
             "server.port" = self.server_port,
@@ -163,40 +174,6 @@ impl<'a> HttpRequestSpan<'a> {
     }
 }
 
-#[cfg(feature = "tower")]
-/// Type that implements [tower_http::trace::MakeSpan] to integrate with tower layer's
-#[derive(Clone)]
-pub struct MakeHttpRequestSpan;
-#[cfg(feature = "tower")]
-impl<B: Body> tower_http::trace::MakeSpan<B> for MakeHttpRequestSpan {
-    #[cfg(not(feature = "lambda"))]
-    fn make_span(&mut self, request: &http::Request<B>) -> Span {
-        HttpRequestSpan::from_http(request).into_span()
-    }
-
-    #[cfg(feature = "lambda")]
-    fn make_span(&mut self, request: &http::Request<B>) -> Span {
-        use opentelemetry::Context;
-        use std::collections::HashMap;
-        use tracing_opentelemetry::OpenTelemetrySpanExt;
-
-        let parent_ctx = opentelemetry::global::get_text_map_propagator(|propagator| {
-            let headers = request
-                .headers()
-                .iter()
-                .map(|(key, value)| (key.to_string(), value.to_str().unwrap_or_default().to_string()))
-                .collect::<HashMap<_, _>>();
-
-            propagator.extract_with_context(&Context::current(), &headers)
-        });
-
-        let span = HttpRequestSpan::from_http(request).into_span();
-        span.set_parent(parent_ctx);
-
-        span
-    }
-}
-
 impl HttpRecorderSpanExt for Span {
     fn record_response<B: Body>(&self, response: &Response<B>) {
         self.record(
@@ -206,7 +183,8 @@ impl HttpRecorderSpanExt for Span {
         self.record("http.response.status_code", response.status().as_str());
     }
 
-    fn record_failure(&self, error: &str) {
+    fn record_failure(&self, error: String) {
+        self.record("http.response.status_code", "500");
         self.record("http.response.error", error);
     }
 

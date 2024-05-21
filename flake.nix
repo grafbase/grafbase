@@ -78,6 +78,7 @@
             # Native SSL
             openssl
             pkg-config
+            cmake # for libz-ng-sys
 
             # Rust
             rustup

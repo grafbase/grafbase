@@ -22,7 +22,7 @@ pub trait HttpRecorderSpanExt {
     /// Recording response attributes in the span
     fn record_response<B: Body>(&self, response: &Response<B>);
     /// Record response failure in the span
-    fn record_failure(&self, error: &str);
+    fn record_failure(&self, error: String);
     /// Record response failure in the span
     fn record_status_code(&self, status_code: http::StatusCode);
 }

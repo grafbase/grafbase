@@ -3,6 +3,8 @@ use opentelemetry::{
     KeyValue,
 };
 
+use crate::grafbase_client::Client;
+
 static X_GRAFBASE_HAS_GRAPHQL_ERRORS: http::HeaderName = http::HeaderName::from_static("x-grafbase-graphql-errors");
 
 pub struct HasGraphqlErrors;
@@ -44,6 +46,18 @@ pub struct RequestMetricsAttributes {
     pub status_code: u16,
     pub cache_status: Option<String>,
     pub has_graphql_errors: bool,
+    pub client: Option<Client>,
+}
+
+impl RequestMetricsAttributes {
+    pub fn server_error() -> RequestMetricsAttributes {
+        RequestMetricsAttributes {
+            status_code: 500,
+            cache_status: None,
+            has_graphql_errors: false,
+            client: None,
+        }
+    }
 }
 
 impl RequestMetrics {
@@ -60,6 +74,7 @@ impl RequestMetrics {
             status_code,
             cache_status,
             has_graphql_errors,
+            client,
         }: RequestMetricsAttributes,
         latency: std::time::Duration,
     ) {
@@ -67,10 +82,16 @@ impl RequestMetrics {
         if let Some(cache_status) = cache_status {
             attributes.push(KeyValue::new("http.response.headers.cache_status", cache_status));
         }
+        if let Some(client) = client {
+            attributes.push(KeyValue::new("http.headers.x-grafbase-client-name", client.name));
+            if let Some(version) = client.version {
+                attributes.push(KeyValue::new("http.headers.x-grafbase-client-version", version));
+            }
+        }
         if has_graphql_errors {
             attributes.push(KeyValue::new("gql.response.has_errors", "true"));
         }
         self.count.add(1, &attributes);
-        self.latency.record(latency.as_millis() as u64, &[]);
+        self.latency.record(latency.as_millis() as u64, &attributes);
     }
 }
