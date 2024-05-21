@@ -3,6 +3,8 @@ use opentelemetry::{
     KeyValue,
 };
 
+use crate::grafbase_client::Client;
+
 #[derive(Clone)]
 pub struct GraphqlOperationMetrics {
     count: Counter<u64>,
@@ -16,6 +18,7 @@ pub struct GraphqlOperationMetricsAttributes {
     pub normalized_query_hash: [u8; 32],
     pub has_errors: bool,
     pub cache_status: Option<String>,
+    pub client: Option<Client>,
 }
 
 impl GraphqlOperationMetrics {
@@ -35,6 +38,7 @@ impl GraphqlOperationMetrics {
             normalized_query_hash,
             has_errors,
             cache_status,
+            client,
         }: GraphqlOperationMetricsAttributes,
         latency: std::time::Duration,
     ) {
@@ -43,6 +47,7 @@ impl GraphqlOperationMetrics {
         let name = name.unwrap_or_default();
         let mut attributes = vec![
             KeyValue::new("gql.operation.normalized_query_hash", normalized_query_hash.clone()),
+            KeyValue::new("gql.operation.normalized_query", normalized_query),
             KeyValue::new("gql.operation.type", ty),
             KeyValue::new("gql.operation.name", name.clone()),
         ];
@@ -52,17 +57,13 @@ impl GraphqlOperationMetrics {
         if has_errors {
             attributes.push(KeyValue::new("gql.response.has_errors", "true"));
         }
+        if let Some(client) = client {
+            attributes.push(KeyValue::new("http.headers.x-grafbase-client-name", client.name));
+            if let Some(version) = client.version {
+                attributes.push(KeyValue::new("http.headers.x-grafbase-client-version", version));
+            }
+        }
         self.count.add(1, &attributes);
-        // We're only sending the normalized_query for the latency. It's only sent as additional
-        // metadata.
-        self.latency.record(
-            latency.as_millis() as u64,
-            &[
-                KeyValue::new("gql.operation.normalized_query_hash", normalized_query_hash),
-                KeyValue::new("gql.operation.name", name),
-                KeyValue::new("gql.operation.type", ty),
-                KeyValue::new("gql.operation.normalized_query", normalized_query),
-            ],
-        );
+        self.latency.record(latency.as_millis() as u64, &attributes);
     }
 }

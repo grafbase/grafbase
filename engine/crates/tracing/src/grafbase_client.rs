@@ -1,6 +1,7 @@
 pub static X_GRAFBASE_CLIENT_NAME: http::HeaderName = http::HeaderName::from_static("x-grafbase-client-name");
 pub static X_GRAFBASE_CLIENT_VERSION: http::HeaderName = http::HeaderName::from_static("x-grafbase-client-version");
 
+#[derive(Clone)]
 pub struct Client {
     pub name: String,
     pub version: Option<String>,

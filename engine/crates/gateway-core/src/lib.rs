@@ -4,7 +4,7 @@ use common_types::auth::ExecutionAuth;
 use engine::parser::types::OperationType;
 use futures_util::FutureExt;
 use gateway_v2_auth::AuthService;
-use grafbase_tracing::metrics::GraphqlOperationMetrics;
+use grafbase_tracing::{grafbase_client::Client, metrics::GraphqlOperationMetrics};
 pub use runtime::context::RequestContext;
 use runtime::{
     auth::AccessToken,
@@ -158,6 +158,7 @@ where
                     cache_status: headers
                         .get(X_GRAFBASE_CACHE)
                         .and_then(|v| v.to_str().ok().map(|s| s.to_string())),
+                    client: Client::extract_from(ctx.headers()),
                 },
                 start.elapsed(),
             );

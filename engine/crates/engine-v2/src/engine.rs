@@ -9,6 +9,7 @@ use futures_util::{SinkExt, Stream};
 use gateway_core::StreamingFormat;
 use gateway_v2_auth::AuthService;
 use grafbase_tracing::{
+    grafbase_client::Client,
     metrics::{GraphqlOperationMetrics, GraphqlOperationMetricsAttributes},
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes},
 };
@@ -59,9 +60,14 @@ impl Engine {
         }
     }
 
-    pub async fn execute(self: &Arc<Self>, headers: http::HeaderMap, request: BatchRequest) -> HttpGraphqlResponse {
+    pub async fn execute(
+        self: &Arc<Self>,
+        headers: http::HeaderMap,
+        batch_request: BatchRequest,
+    ) -> HttpGraphqlResponse {
         if let Some(access_token) = self.auth.authorize(&headers).await {
-            self.execute_with_access_token(headers, access_token, request).await
+            self.execute_with_access_token(RequestMetadata::new(headers, access_token), batch_request)
+                .await
         } else if let Some(streaming_format) = headers.typed_get::<StreamingFormat>() {
             HttpGraphqlResponse::stream_error(streaming_format, "Unauthorized")
         } else {
@@ -72,27 +78,25 @@ impl Engine {
     pub async fn create_session(self: &Arc<Self>, headers: http::HeaderMap) -> Option<Session> {
         self.auth.authorize(&headers).await.map(|access_token| Session {
             engine: Arc::clone(self),
-            access_token: Arc::new(access_token),
-            headers: Arc::new(headers),
+            metadata: Arc::new(RequestMetadata::new(headers, access_token)),
         })
     }
 
     async fn execute_with_access_token(
         self: &Arc<Self>,
-        headers: http::HeaderMap,
-        access_token: AccessToken,
+        request_metadata: RequestMetadata,
         batch_request: BatchRequest,
     ) -> HttpGraphqlResponse {
-        let streaming_format = headers.typed_get::<StreamingFormat>();
+        let streaming_format = request_metadata.headers.typed_get::<StreamingFormat>();
         match batch_request {
             BatchRequest::Single(request) => {
                 if let Some(streaming_format) = streaming_format {
                     HttpGraphqlResponse::from_stream(
                         streaming_format,
-                        self.execute_stream(Arc::new(headers), Arc::new(access_token), request),
+                        self.execute_stream(Arc::new(request_metadata), request),
                     )
                 } else {
-                    self.execute_single(&headers, &access_token, request).await
+                    self.execute_single(&request_metadata, request).await
                 }
             }
             BatchRequest::Batch(requests) => {
@@ -101,7 +105,7 @@ impl Engine {
                 }
                 HttpGraphqlResponse::batch_response(
                     futures_util::stream::iter(requests.into_iter())
-                        .then(|request| self.execute_single(&headers, &access_token, request))
+                        .then(|request| self.execute_single(&request_metadata, request))
                         .collect::<Vec<_>>()
                         .await,
                 )
@@ -109,18 +113,12 @@ impl Engine {
         }
     }
 
-    async fn execute_single(
-        &self,
-        headers: &http::HeaderMap,
-        access_token: &AccessToken,
-        request: Request,
-    ) -> HttpGraphqlResponse {
+    async fn execute_single(&self, request_metadata: &RequestMetadata, request: Request) -> HttpGraphqlResponse {
         let span = GqlRequestSpan::new().into_span();
         let start = Instant::now();
         let ctx = ExecutionContext {
             engine: self,
-            headers,
-            access_token,
+            request_metadata,
         };
         let (metrics_attributes, response) = ctx.execute_single(span.clone(), request).instrument(span).await;
 
@@ -140,8 +138,7 @@ impl Engine {
 
     fn execute_stream(
         self: &Arc<Self>,
-        headers: Arc<http::HeaderMap>,
-        access_token: Arc<AccessToken>,
+        request_metadata: Arc<RequestMetadata>,
         request: Request,
     ) -> impl Stream<Item = Response> {
         let engine = Arc::clone(self);
@@ -152,8 +149,7 @@ impl Engine {
             let start = Instant::now();
             let ctx = ExecutionContext {
                 engine: &engine,
-                headers: &headers,
-                access_token: &access_token,
+                request_metadata: &request_metadata,
             };
             let metrics_attributes = ctx.execute_stream(span.clone(), request, sender).instrument(span).await;
 
@@ -190,6 +186,7 @@ impl<'ctx> ExecutionContext<'ctx> {
                 normalized_query,
                 has_errors: false,
                 cache_status: None,
+                client: self.request_metadata.client.clone(),
             });
         span.record_gql_request(GqlRequestAttributes {
             operation_type: operation.ty.as_str(),
@@ -243,6 +240,7 @@ impl<'ctx> ExecutionContext<'ctx> {
                 normalized_query,
                 has_errors: false,
                 cache_status: None,
+                client: self.request_metadata.client.clone(),
             });
         span.record_gql_request(GqlRequestAttributes {
             operation_type: operation.ty.as_str(),
@@ -317,7 +315,7 @@ impl<'ctx> ExecutionContext<'ctx> {
     }
 
     async fn prepare_operation(self, request: &mut engine::Request) -> Result<Operation, GraphqlError> {
-        self.handle_persisted_query(request, self.headers).await?;
+        self.handle_persisted_query(request).await?;
         let operation = Operation::build(self, request)?;
         Ok(operation)
     }
@@ -326,14 +324,30 @@ impl<'ctx> ExecutionContext<'ctx> {
 #[derive(Clone)]
 pub struct Session {
     engine: Arc<Engine>,
-    access_token: Arc<AccessToken>,
-    headers: Arc<http::HeaderMap>,
+    metadata: Arc<RequestMetadata>,
+}
+
+pub(crate) struct RequestMetadata {
+    pub headers: http::HeaderMap,
+    pub client: Option<Client>,
+    pub access_token: AccessToken,
+}
+
+impl RequestMetadata {
+    fn new(headers: http::HeaderMap, access_token: AccessToken) -> Self {
+        let client = Client::extract_from(&headers);
+        Self {
+            headers,
+            client,
+            access_token,
+        }
+    }
 }
 
 impl Session {
     pub fn execute_websocket(&self, id: String, request: Request) -> impl Stream<Item = websocket::Message> {
         self.engine
-            .execute_stream(self.headers.clone(), self.access_token.clone(), request)
+            .execute_stream(self.metadata.clone(), request)
             .map(move |response| match response {
                 Response::BadRequest(_) => websocket::Message::Error {
                     id: id.clone(),

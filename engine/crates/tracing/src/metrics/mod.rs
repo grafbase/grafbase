@@ -11,9 +11,9 @@ const SCOPE: &str = "grafbase";
 const SCOPE_VERSION: &str = "1.0";
 
 pub fn meter_from_global_provider() -> Meter {
-    meter(opentelemetry::global::meter_provider())
+    meter(&opentelemetry::global::meter_provider())
 }
 
-pub fn meter(provider: impl MeterProvider) -> Meter {
+pub fn meter(provider: &impl MeterProvider) -> Meter {
     provider.versioned_meter(SCOPE, Some(SCOPE_VERSION), None::<Cow<'static, str>>, None)
 }
