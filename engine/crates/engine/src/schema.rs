@@ -1,3 +1,4 @@
+use std::any::TypeId;
 use std::{any::Any, ops::Deref, sync::Arc};
 
 use engine_validation::check_strict_rules;
@@ -479,6 +480,13 @@ impl Schema {
         let request: Request = request.into();
         let extensions = self.create_extensions(session_data.clone());
         let gql_span = GqlRequestSpan::new().into_span();
+        let client = schema
+            .env
+            .data
+            .get(&TypeId::of::<runtime::Context>())
+            .and_then(|data| data.downcast_ref::<runtime::Context>())
+            .and_then(|ctx| grafbase_tracing::grafbase_client::Client::extract_from(ctx.headers()));
+
         let normalized_query = operation_normalizer::normalize(request.query(), request.operation_name()).ok();
 
         let request = futures_util::stream::StreamExt::boxed({
@@ -566,7 +574,8 @@ impl Schema {
                             normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
                             normalized_query,
                             has_errors,
-                            cache_status: None
+                            cache_status: None,
+                            client
                         },
                         start.elapsed(),
                     );

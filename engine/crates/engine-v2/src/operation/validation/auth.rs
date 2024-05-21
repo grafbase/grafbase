@@ -21,12 +21,12 @@ impl AuthError {
 
 pub(super) fn validate_auth(ctx: ExecutionContext<'_>, operation: OperationWalker<'_>) -> Result<(), AuthError> {
     let scopes = ctx
-        .access_token
+        .access_token()
         .get_claim("scope")
         .as_str()
         .map(|scope| scope.split(' ').collect::<Vec<_>>())
         .unwrap_or_default();
-    let is_anonymous = ctx.access_token.is_anonymous();
+    let is_anonymous = ctx.access_token().is_anonymous();
     operation.selection_set().validate_auth(is_anonymous, &scopes)
 }
 
