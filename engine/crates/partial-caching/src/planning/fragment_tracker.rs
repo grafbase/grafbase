@@ -1,7 +1,7 @@
 use cynic_parser::executable::{ids::SelectionId, FragmentSpread, Selection};
 use indexmap::{IndexMap, IndexSet};
 
-/// This visitor tracks used fragments in a query, and which selections are
+/// A visitor that tracks used fragments in a query, and which selections are
 /// ancestors of spreads of those fragments
 pub struct FragmentTracker {
     selection_stack: Vec<SelectionId>,

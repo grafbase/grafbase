@@ -50,7 +50,8 @@ impl super::visitor::Visitor for CacheGrouper {
 
     fn enter_field(&mut self, edge: FieldEdge<'_>) {
         if edge.selection.selection_set().len() != 0 {
-            // We're only concerned with the cache control of leaf fields
+            // We're only concerned with the cache control settings of leaf fields
+            // at the moment
             return;
         }
 

@@ -1,8 +1,7 @@
 mod cache_grouper;
+mod fragment_graph;
 mod fragment_tracker;
 mod visitor;
-
-use std::collections::HashSet;
 
 use cynic_parser::{
     common::OperationType,
@@ -14,6 +13,7 @@ use registry_for_cache::PartialCacheRegistry;
 
 use self::{
     cache_grouper::CacheGrouper,
+    fragment_graph::{AncestorEdge, FragmentGraph},
     fragment_tracker::FragmentTracker,
     visitor::{visit_fragment, visit_query, VisitorContext},
 };
@@ -51,13 +51,15 @@ pub fn build_plan(
     visit_query(
         operation,
         registry,
-        // TODO: This API really needs a rethink
         &mut VisitorContext::new(&mut [&mut cache_group_visitor, &mut fragment_tracker]),
     );
 
     let (cache_groups, uncached_group) = visit_fragments(&document, registry, fragment_tracker, cache_group_visitor)?;
 
     let operation = operation.id();
+
+    // TODO: probably want to return none if there are no cache groups
+    // and its all in executor query...
 
     Ok(Some(CachingPlan {
         cache_queries: cache_groups
@@ -67,30 +69,6 @@ pub fn build_plan(
         executor_query: QuerySubset::new(operation, uncached_group, &document),
         document,
     }))
-
-    // TODO:
-    // 1. Parse the query
-    // 2. Walk the query in parallel w/ the registry.
-    // 3. At leaf field, calculate the current cache setting
-    // 4. Add all nodes in heirarchy to a group for the current cache setting.
-    // 5. Also need to record which variables & fragments are used by each leaf/group/whatever.
-    //    Either recorded as we go or as a post-processing step.
-    //
-    //    Recorded as we go for variables means:
-    //    - At the point of recording a field into a group we need to both look at all the parents and gather their varaibles,
-    //      and then gather any variables used by the current field.
-    //
-    //    Post-processing for variables means 1 additional walk of the processed struct (which seems less work overall)
-    //
-    //    Fragments we probably do want to track as we go.
-    //
-    // 6. Need to traverse any fragments as well...
-    //    Assuming we're not doing any fancy traversal based cache rules then
-    //    this is simple: just track any fragments used by the query and traverse them all
-    //    individually, adding their field sets to the set of OK things.
-    //
-    // 7. Printing any individual query doc then just becomes a case of traversing the
-    //    "raw" graph but with some extra "is this node in the current set" filtering.
 }
 
 // TODO: This name is awful
@@ -192,6 +170,8 @@ fn build_ancestor_map(
 ) -> IndexMap<FragmentDefinitionId, FragmentAncestry> {
     let mut direct_parents = IndexMap::<FragmentDefinitionId, IndexSet<FragmentDefinitionId>>::new();
 
+    let graph = FragmentGraph::new(&fragment_child_map, &query_fragment_children);
+
     // Invert fragment_child_map so we have a map from child -> parents
     for (parent_id, children) in &fragment_child_map {
         for child_id in children.fragments_selected.keys() {
@@ -201,46 +181,30 @@ fn build_ancestor_map(
 
     let mut ancestor_map = IndexMap::<FragmentDefinitionId, FragmentAncestry>::new();
 
-    // Now that we have all the direct parents we can calculate ancestors
-    let mut edges_seen = HashSet::new();
-    for (child_id, parent_ids) in &direct_parents {
-        // TODO: Probably extract the traversal logic into an iterator
-        let entry = ancestor_map.entry(*child_id).or_default();
-        let mut edge_stack = parent_ids
-            .into_iter()
-            .map(|parent_id| (child_id, parent_id))
-            .collect::<Vec<_>>();
+    for fragment in graph.fragments() {
+        let entry = ancestor_map.entry(fragment.id).or_default();
 
-        edges_seen.clear();
-        while let Some(edge) = edge_stack.pop() {
-            if edges_seen.contains(&edge) {
-                // There shouldn't be cycles in fragments, but lets err on the safe side.
-                continue;
+        for edge in fragment.ancestor_edges() {
+            let AncestorEdge { parent_id, child_id } = edge;
+
+            match parent_id {
+                Some(parent_id) => {
+                    entry.fragments.insert(parent_id);
+
+                    if let Some(parent_selections) = fragment_child_map
+                        .get(&parent_id)
+                        .and_then(|parent| parent.fragments_selected.get(&child_id))
+                    {
+                        entry.selections.extend(parent_selections);
+                    }
+                }
+                None => {
+                    // No parent indicates this is an edge to the query, so look up in query_fragment_children
+                    if let Some(root_selections) = query_fragment_children.fragments_selected.get(&child_id) {
+                        entry.selections.extend(root_selections);
+                    }
+                }
             }
-            edges_seen.insert(edge);
-
-            let (child_id, parent_id) = edge;
-
-            if let Some(grandparents) = direct_parents.get(parent_id) {
-                edge_stack.extend(grandparents.iter().map(|grandparent_id| (parent_id, grandparent_id)));
-            }
-
-            entry.fragments.insert(*parent_id);
-
-            if let Some(parent_selections) = fragment_child_map
-                .get(parent_id)
-                .and_then(|child| child.fragments_selected.get(child_id))
-            {
-                entry.selections.extend(parent_selections);
-            }
-
-            if let Some(root_selections) = query_fragment_children.fragments_selected.get(parent_id) {
-                entry.selections.extend(root_selections);
-            }
-        }
-
-        if let Some(root_selections) = query_fragment_children.fragments_selected.get(child_id) {
-            entry.selections.extend(root_selections);
         }
     }
     ancestor_map

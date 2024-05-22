@@ -1,6 +1,5 @@
 ---
 source: engine/crates/partial-caching/tests/query-splitting.rs
-assertion_line: 221
 expression: result
 ---
 query @whatever {
@@ -8,6 +7,7 @@ query @whatever {
     ... @defer(if: $hello) {
       hello
     }
+    ... Whatever @whatever
     ... on User @defer(if: $hello) {
       hello
     }

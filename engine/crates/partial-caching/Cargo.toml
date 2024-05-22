@@ -9,10 +9,8 @@ repository.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-# TEMPORARY, DO NOT MERGE LIKE THIS
-#cynic-parser.workspace = true
-cynic-parser.path = "/Users/graeme/src/cynic/cynic-parser"
-cynic-parser.features = ["print"] # TODO: Move this to Cargo.toml
+cynic-parser.workspace = true
+cynic-parser.features = ["print"]
 
 indexmap.workspace = true
 registry-for-cache.workspace = true

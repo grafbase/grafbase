@@ -8,7 +8,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-cynic-parser = "0.2.6"
+cynic-parser = "0.4.0"
 heck = "0.5.0"
 thiserror.workspace = true
 
