@@ -1,20 +1,19 @@
-mod cache_grouper;
+mod fragment_ancestry;
 mod fragment_graph;
 mod fragment_tracker;
+mod query_partitioner;
+mod selected_fragments;
 mod visitor;
 
-use cynic_parser::{
-    common::OperationType,
-    executable::ids::{FragmentDefinitionId, SelectionId},
-    ExecutableDocument,
-};
-use indexmap::{IndexMap, IndexSet};
+use cynic_parser::{common::OperationType, executable::ids::FragmentDefinitionId};
+use indexmap::IndexMap;
 use registry_for_cache::PartialCacheRegistry;
 
 use self::{
-    cache_grouper::QueryPartitioner,
-    fragment_graph::{AncestorEdge, FragmentGraph},
+    fragment_ancestry::{calculate_ancestry, FragmentAncestry},
     fragment_tracker::FragmentTracker,
+    query_partitioner::QueryPartitioner,
+    selected_fragments::FragmentSpreadSet,
     visitor::{visit_fragment, visit_query, VisitorContext},
 };
 use crate::{
@@ -71,37 +70,6 @@ pub fn build_plan(
     }))
 }
 
-// TODO: This name is awful
-#[derive(Default)]
-struct FragmentChildren {
-    /// Fragments selected in an operation or fragment, and the
-    /// selections that need to be included from that operation or fragment
-    /// if the nested fragment needs to be included
-    fragments_selected: IndexMap<FragmentDefinitionId, IndexSet<SelectionId>>,
-}
-
-impl FragmentChildren {
-    fn from_tracker(tracker: FragmentTracker, document: &ExecutableDocument) -> anyhow::Result<Self> {
-        let mut this = Self::default();
-        for (fragment_name, selections) in tracker.used_fragments {
-            let fragment = document
-                .fragments()
-                .find(|fragment| fragment.name() == fragment_name)
-                .ok_or_else(|| {
-                    anyhow::anyhow!("The query contained a spread for a missing fragment: {fragment_name}")
-                })?;
-
-            this.fragments_selected.insert(fragment.id(), selections);
-        }
-
-        Ok(this)
-    }
-
-    fn fragment_ids(&self) -> impl Iterator<Item = FragmentDefinitionId> + '_ {
-        self.fragments_selected.keys().copied()
-    }
-}
-
 fn visit_fragments(
     document: &cynic_parser::ExecutableDocument,
     registry: &PartialCacheRegistry,
@@ -111,33 +79,34 @@ fn visit_fragments(
     IndexMap<registry_for_cache::CacheControl, crate::query_subset::CacheGroup>,
     crate::query_subset::CacheGroup,
 )> {
-    let query_fragment_children = FragmentChildren::from_tracker(fragment_tracker, document)?;
+    let fragments_in_query = FragmentSpreadSet::from_tracker(fragment_tracker, document)?;
 
-    let mut fragments_to_visit = query_fragment_children.fragment_ids().collect::<Vec<_>>();
-    let mut fragment_child_map = IndexMap::<FragmentDefinitionId, FragmentChildren>::new();
+    let mut fragments_to_visit = fragments_in_query.fragment_ids().collect::<Vec<_>>();
+    let mut fragments_in_fragments = IndexMap::<FragmentDefinitionId, FragmentSpreadSet>::new();
 
     while let Some(fragment_id) = fragments_to_visit.pop() {
         let fragment = document.read(fragment_id);
-
-        if fragment_child_map.contains_key(&fragment_id) {
+        if fragments_in_fragments.contains_key(&fragment_id) {
             continue;
         }
 
         partitioner = partitioner.for_next_fragment(fragment_id);
-
         let mut fragment_tracker = FragmentTracker::new();
+
         visit_fragment(
             fragment,
             registry,
             &mut VisitorContext::new(&mut [&mut partitioner, &mut fragment_tracker]),
         );
 
-        let fragment_children = FragmentChildren::from_tracker(fragment_tracker, document)?;
-        fragments_to_visit.extend(fragment_children.fragment_ids());
-        fragment_child_map.insert(fragment_id, fragment_children);
+        let spreads = FragmentSpreadSet::from_tracker(fragment_tracker, document)?;
+
+        fragments_to_visit.extend(spreads.fragment_ids());
+
+        fragments_in_fragments.insert(fragment_id, spreads);
     }
 
-    let ancestor_map = build_ancestor_map(fragment_child_map, query_fragment_children);
+    let ancestor_map = calculate_ancestry(fragments_in_fragments, fragments_in_query);
 
     let mut cache_partitions = partitioner.cache_partitions;
     let mut nocache_partition = partitioner.nocache_partition;
@@ -148,59 +117,6 @@ fn visit_fragments(
     }
 
     Ok((cache_partitions, nocache_partition))
-}
-
-/// The ancestry of a particular fragment
-#[derive(Default)]
-struct FragmentAncestry {
-    /// All the fragments that contain spreads this fragment, directly or indirectly.
-    ///
-    /// These all need to be included in a query if this fragment is
-    fragments: IndexSet<FragmentDefinitionId>,
-
-    /// All the selections that contain spreads of this fragment, directly or indirectly.
-    ///
-    /// These all need to be included in a query if this fragment is
-    selections: IndexSet<SelectionId>,
-}
-
-fn build_ancestor_map(
-    fragment_child_map: IndexMap<FragmentDefinitionId, FragmentChildren>,
-    query_fragment_children: FragmentChildren,
-) -> IndexMap<FragmentDefinitionId, FragmentAncestry> {
-    let graph = FragmentGraph::new(&fragment_child_map, &query_fragment_children);
-
-    let mut ancestor_map = IndexMap::<FragmentDefinitionId, FragmentAncestry>::new();
-
-    for fragment in graph.fragments() {
-        let mut ancestry = FragmentAncestry::default();
-
-        for edge in fragment.ancestor_edges() {
-            let AncestorEdge { parent_id, child_id } = edge;
-
-            match parent_id {
-                Some(parent_id) => {
-                    ancestry.fragments.insert(parent_id);
-
-                    if let Some(parent_selections) = fragment_child_map
-                        .get(&parent_id)
-                        .and_then(|parent| parent.fragments_selected.get(&child_id))
-                    {
-                        ancestry.selections.extend(parent_selections);
-                    }
-                }
-                None => {
-                    // No parent indicates this is an edge to the query, so look up in query_fragment_children
-                    if let Some(root_selections) = query_fragment_children.fragments_selected.get(&child_id) {
-                        ancestry.selections.extend(root_selections);
-                    }
-                }
-            }
-        }
-
-        ancestor_map.insert(fragment.id, ancestry);
-    }
-    ancestor_map
 }
 
 impl CacheGroup {

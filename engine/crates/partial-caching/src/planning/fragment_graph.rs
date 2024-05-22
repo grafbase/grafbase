@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use cynic_parser::executable::ids::FragmentDefinitionId;
 use indexmap::{IndexMap, IndexSet};
 
-use super::FragmentChildren;
+use super::FragmentSpreadSet;
 
 /// A graph of dependencies between fragments, used to calculate which fields/fragments
 /// need to be included if a particular fragment is included.
@@ -15,24 +15,26 @@ pub struct FragmentGraph {
 
 impl FragmentGraph {
     pub fn new(
-        fragment_child_map: &IndexMap<FragmentDefinitionId, FragmentChildren>,
-        query_fragment_children: &FragmentChildren,
+        fragments_in_fragments: &IndexMap<FragmentDefinitionId, FragmentSpreadSet>,
+        fragments_in_query: &FragmentSpreadSet,
     ) -> Self {
         let mut this = FragmentGraph {
             direct_parents: IndexMap::new(),
         };
 
-        // Invert fragment_child_map so we have a map from child -> parents
-        for (parent_id, children) in fragment_child_map {
-            for child_id in children.fragments_selected.keys() {
+        // Invert fragments_in_fragments so we have a map from child -> parents
+        for (parent_id, children) in fragments_in_fragments {
+            for child_id in children.fragment_ids() {
                 this.direct_parents
-                    .entry(*child_id)
+                    .entry(child_id)
                     .or_default()
                     .insert(Some(*parent_id));
             }
         }
-        for child_id in query_fragment_children.fragments_selected.keys() {
-            this.direct_parents.entry(*child_id).or_default().insert(None);
+
+        // Add in the nodes that point to our query
+        for child_id in fragments_in_query.fragment_ids() {
+            this.direct_parents.entry(child_id).or_default().insert(None);
         }
 
         this
