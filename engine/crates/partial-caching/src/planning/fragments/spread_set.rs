@@ -4,7 +4,7 @@ use cynic_parser::{
 };
 use indexmap::{IndexMap, IndexSet};
 
-use super::fragment_tracker::FragmentTracker;
+use super::tracker::FragmentTracker;
 
 #[derive(Default)]
 pub struct FragmentSpreadSet {

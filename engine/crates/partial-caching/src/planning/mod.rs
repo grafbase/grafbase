@@ -1,8 +1,5 @@
-mod fragment_ancestry;
-mod fragment_graph;
-mod fragment_tracker;
+mod fragments;
 mod query_partitioner;
-mod selected_fragments;
 mod visitor;
 
 use cynic_parser::{common::OperationType, executable::ids::FragmentDefinitionId};
@@ -10,10 +7,8 @@ use indexmap::IndexMap;
 use registry_for_cache::PartialCacheRegistry;
 
 use self::{
-    fragment_ancestry::{calculate_ancestry, FragmentAncestry},
-    fragment_tracker::FragmentTracker,
+    fragments::{calculate_ancestry, FragmentAncestry, FragmentSpreadSet, FragmentTracker},
     query_partitioner::QueryPartitioner,
-    selected_fragments::FragmentSpreadSet,
     visitor::{visit_fragment, visit_query, VisitorContext},
 };
 use crate::{
@@ -56,9 +51,6 @@ pub fn build_plan(
     let (cache_groups, uncached_group) = visit_fragments(&document, registry, fragment_tracker, partitioner)?;
 
     let operation = operation.id();
-
-    // TODO: probably want to return none if there are no cache groups
-    // and its all in executor query...
 
     Ok(Some(CachingPlan {
         cache_queries: cache_groups

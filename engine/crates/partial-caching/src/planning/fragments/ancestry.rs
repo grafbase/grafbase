@@ -2,7 +2,7 @@ use cynic_parser::executable::ids::{FragmentDefinitionId, SelectionId};
 use indexmap::{IndexMap, IndexSet};
 
 use super::{
-    fragment_graph::{AncestorEdge, FragmentGraph},
+    graph::{AncestorEdge, FragmentGraph},
     FragmentSpreadSet,
 };
 
@@ -14,12 +14,12 @@ pub struct FragmentAncestry {
     /// All the fragments that contain spreads this fragment, directly or indirectly.
     ///
     /// These all need to be included in a query if this fragment is
-    pub(super) fragments: IndexSet<FragmentDefinitionId>,
+    pub(crate) fragments: IndexSet<FragmentDefinitionId>,
 
     /// All the selections that contain spreads of this fragment, directly or indirectly.
     ///
     /// These all need to be included in a query if this fragment is
-    pub(super) selections: IndexSet<SelectionId>,
+    pub(crate) selections: IndexSet<SelectionId>,
 }
 
 pub fn calculate_ancestry(

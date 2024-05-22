@@ -17,7 +17,7 @@ impl FragmentTracker {
     }
 }
 
-impl super::visitor::Visitor for FragmentTracker {
+impl super::super::visitor::Visitor for FragmentTracker {
     fn enter_selection(&mut self, id: SelectionId, _selection: Selection<'_>) {
         self.selection_stack.push(id)
     }
