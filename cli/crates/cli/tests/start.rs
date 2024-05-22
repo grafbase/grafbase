@@ -1,6 +1,7 @@
 #![allow(unused_crate_dependencies)]
 mod utils;
 
+#[cfg(not(target_os = "windows"))]
 use utils::environment::Environment;
 
 #[ctor::ctor]
