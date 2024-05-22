@@ -123,6 +123,7 @@ impl Composer {
             Err(error) => {
                 emit_event(crate::FederatedDevEvent::ComposeAfterAdditionFailure {
                     subgraph_name: name.clone(),
+                    rendered_error: render_composition_error(&error),
                 });
                 responder
                     .send(Err(Error::composition(&error)))
@@ -177,12 +178,7 @@ impl Composer {
             }
             Err(error) => {
                 log::warn!("Recomposition failed: {error:?}");
-
-                let rendered_error = error
-                    .iter_messages()
-                    .map(|msg| format!("- {msg}"))
-                    .collect::<Vec<_>>()
-                    .join("\n");
+                let rendered_error = render_composition_error(&error);
 
                 emit_event(crate::FederatedDevEvent::ComposeAfterRemovalFailure {
                     subgraph_name: subgraph_name.clone(),
@@ -214,4 +210,12 @@ impl Composer {
 
         Ok(())
     }
+}
+
+fn render_composition_error(error: &graphql_composition::Diagnostics) -> String {
+    error
+        .iter_messages()
+        .map(|msg| format!("- {msg}"))
+        .collect::<Vec<_>>()
+        .join("\n")
 }
