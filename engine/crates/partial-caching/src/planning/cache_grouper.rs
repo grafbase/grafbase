@@ -8,38 +8,38 @@ use super::visitor::FieldEdge;
 use crate::query_subset::CacheGroup;
 
 /// A visitor that groups fields by their caching rules
-pub(crate) struct CacheGrouper {
+pub(crate) struct QueryPartitioner {
     /// A stack of selections the current traversal
     selection_stack: Vec<SelectionId>,
 
     current_fragment: Option<FragmentDefinitionId>,
 
-    pub cache_groups: IndexMap<registry_for_cache::CacheControl, CacheGroup>,
-    pub uncached_group: CacheGroup,
+    pub cache_partitions: IndexMap<registry_for_cache::CacheControl, CacheGroup>,
+    pub nocache_partition: CacheGroup,
 }
 
-impl CacheGrouper {
+impl QueryPartitioner {
     pub fn new() -> Self {
-        CacheGrouper {
+        QueryPartitioner {
             selection_stack: vec![],
             current_fragment: None,
-            cache_groups: IndexMap::new(),
-            uncached_group: CacheGroup::default(),
+            cache_partitions: IndexMap::new(),
+            nocache_partition: CacheGroup::default(),
         }
     }
 
-    pub fn with_current_fragment(self, current_fragment: FragmentDefinitionId) -> Self {
+    pub fn for_next_fragment(self, current_fragment: FragmentDefinitionId) -> Self {
         // If this isn't empty something has gone horribly wrong
         assert!(self.selection_stack.is_empty());
 
-        CacheGrouper {
+        QueryPartitioner {
             current_fragment: Some(current_fragment),
             ..self
         }
     }
 }
 
-impl super::visitor::Visitor for CacheGrouper {
+impl super::visitor::Visitor for QueryPartitioner {
     fn enter_selection(&mut self, id: SelectionId, _selection: Selection<'_>) {
         self.selection_stack.push(id)
     }
@@ -57,12 +57,14 @@ impl super::visitor::Visitor for CacheGrouper {
 
         match edge.field.and_then(|field| field.cache_control()) {
             Some(cache_control) => self
-                .cache_groups
+                .cache_partitions
                 .entry(cache_control.clone())
                 .or_default()
                 .update(&self.selection_stack, self.current_fragment),
 
-            None => self.uncached_group.update(&self.selection_stack, self.current_fragment),
+            None => self
+                .nocache_partition
+                .update(&self.selection_stack, self.current_fragment),
         }
     }
 }

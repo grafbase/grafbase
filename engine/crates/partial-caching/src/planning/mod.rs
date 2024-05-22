@@ -12,7 +12,7 @@ use indexmap::{IndexMap, IndexSet};
 use registry_for_cache::PartialCacheRegistry;
 
 use self::{
-    cache_grouper::CacheGrouper,
+    cache_grouper::QueryPartitioner,
     fragment_graph::{AncestorEdge, FragmentGraph},
     fragment_tracker::FragmentTracker,
     visitor::{visit_fragment, visit_query, VisitorContext},
@@ -45,16 +45,16 @@ pub fn build_plan(
         return Ok(None);
     }
 
-    let mut cache_group_visitor = CacheGrouper::new();
+    let mut partitioner = QueryPartitioner::new();
     let mut fragment_tracker = FragmentTracker::new();
 
     visit_query(
         operation,
         registry,
-        &mut VisitorContext::new(&mut [&mut cache_group_visitor, &mut fragment_tracker]),
+        &mut VisitorContext::new(&mut [&mut partitioner, &mut fragment_tracker]),
     );
 
-    let (cache_groups, uncached_group) = visit_fragments(&document, registry, fragment_tracker, cache_group_visitor)?;
+    let (cache_groups, uncached_group) = visit_fragments(&document, registry, fragment_tracker, partitioner)?;
 
     let operation = operation.id();
 
@@ -106,7 +106,7 @@ fn visit_fragments(
     document: &cynic_parser::ExecutableDocument,
     registry: &PartialCacheRegistry,
     fragment_tracker: FragmentTracker,
-    mut cache_group_visitor: CacheGrouper,
+    mut partitioner: QueryPartitioner,
 ) -> anyhow::Result<(
     IndexMap<registry_for_cache::CacheControl, crate::query_subset::CacheGroup>,
     crate::query_subset::CacheGroup,
@@ -123,13 +123,13 @@ fn visit_fragments(
             continue;
         }
 
-        cache_group_visitor = cache_group_visitor.with_current_fragment(fragment_id);
+        partitioner = partitioner.for_next_fragment(fragment_id);
 
         let mut fragment_tracker = FragmentTracker::new();
         visit_fragment(
             fragment,
             registry,
-            &mut VisitorContext::new(&mut [&mut cache_group_visitor, &mut fragment_tracker]),
+            &mut VisitorContext::new(&mut [&mut partitioner, &mut fragment_tracker]),
         );
 
         let fragment_children = FragmentChildren::from_tracker(fragment_tracker, document)?;
@@ -139,15 +139,15 @@ fn visit_fragments(
 
     let ancestor_map = build_ancestor_map(fragment_child_map, query_fragment_children);
 
-    let mut cache_groups = cache_group_visitor.cache_groups;
-    let mut uncached_group = cache_group_visitor.uncached_group;
+    let mut cache_partitions = partitioner.cache_partitions;
+    let mut nocache_partition = partitioner.nocache_partition;
 
-    uncached_group.update_with_fragment_ancestors(&ancestor_map);
-    for group in cache_groups.values_mut() {
+    nocache_partition.update_with_fragment_ancestors(&ancestor_map);
+    for group in cache_partitions.values_mut() {
         group.update_with_fragment_ancestors(&ancestor_map);
     }
 
-    Ok((cache_groups, uncached_group))
+    Ok((cache_partitions, nocache_partition))
 }
 
 /// The ancestry of a particular fragment
@@ -168,44 +168,37 @@ fn build_ancestor_map(
     fragment_child_map: IndexMap<FragmentDefinitionId, FragmentChildren>,
     query_fragment_children: FragmentChildren,
 ) -> IndexMap<FragmentDefinitionId, FragmentAncestry> {
-    let mut direct_parents = IndexMap::<FragmentDefinitionId, IndexSet<FragmentDefinitionId>>::new();
-
     let graph = FragmentGraph::new(&fragment_child_map, &query_fragment_children);
-
-    // Invert fragment_child_map so we have a map from child -> parents
-    for (parent_id, children) in &fragment_child_map {
-        for child_id in children.fragments_selected.keys() {
-            direct_parents.entry(*child_id).or_default().insert(*parent_id);
-        }
-    }
 
     let mut ancestor_map = IndexMap::<FragmentDefinitionId, FragmentAncestry>::new();
 
     for fragment in graph.fragments() {
-        let entry = ancestor_map.entry(fragment.id).or_default();
+        let mut ancestry = FragmentAncestry::default();
 
         for edge in fragment.ancestor_edges() {
             let AncestorEdge { parent_id, child_id } = edge;
 
             match parent_id {
                 Some(parent_id) => {
-                    entry.fragments.insert(parent_id);
+                    ancestry.fragments.insert(parent_id);
 
                     if let Some(parent_selections) = fragment_child_map
                         .get(&parent_id)
                         .and_then(|parent| parent.fragments_selected.get(&child_id))
                     {
-                        entry.selections.extend(parent_selections);
+                        ancestry.selections.extend(parent_selections);
                     }
                 }
                 None => {
                     // No parent indicates this is an edge to the query, so look up in query_fragment_children
                     if let Some(root_selections) = query_fragment_children.fragments_selected.get(&child_id) {
-                        entry.selections.extend(root_selections);
+                        ancestry.selections.extend(root_selections);
                     }
                 }
             }
         }
+
+        ancestor_map.insert(fragment.id, ancestry);
     }
     ancestor_map
 }

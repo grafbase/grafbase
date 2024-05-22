@@ -80,7 +80,8 @@ impl Iterator for AncestorEdgeIterator<'_> {
             let edge = self.stack.pop()?;
 
             if self.edges_seen.contains(&edge) {
-                // There shouldn't be cycles in fragments, but lets err on the safe side.
+                // Fragment cycles aren't allowed but we check for them here incase
+                // someone tries it.
                 continue;
             }
             self.edges_seen.insert(edge);

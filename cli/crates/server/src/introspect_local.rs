@@ -32,7 +32,7 @@ pub async fn introspect_local() -> Result<IntrospectLocalOutput, ServerError> {
 
 fn prettify(graphql: String) -> String {
     match cynic_parser::parse_type_system_document(&graphql) {
-        Ok(parsed) => parsed.to_sdl(),
+        Ok(parsed) => parsed.to_sdl_pretty(),
         Err(_) => graphql,
     }
 }
