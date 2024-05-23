@@ -30,9 +30,8 @@ pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> anyhow::Result<registry_v2
         http_headers,
         postgres_databases,
         enable_caching,
-        enable_kv,
+        enable_partial_caching,
         federation_entities,
-        enable_ai: _,
         enable_codegen,
         is_federated,
         operation_limits,
@@ -50,7 +49,7 @@ pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> anyhow::Result<registry_v2
     writer.http_headers = http_headers;
     writer.postgres_databases = postgres_databases;
     writer.enable_caching = enable_caching;
-    writer.enable_kv = enable_kv;
+    writer.enable_partial_caching = enable_partial_caching;
     writer.federation_entities = federation_entities;
     writer.enable_codegen = enable_codegen;
     writer.is_federated = is_federated;

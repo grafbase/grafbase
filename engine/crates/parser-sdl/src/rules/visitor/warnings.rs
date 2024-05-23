@@ -30,6 +30,9 @@ impl Extend<Warning> for Warnings {
 #[derive(Clone, Debug, Ord, PartialOrd, PartialEq, Eq)]
 pub(crate) enum Warning {
     ArgumentNotUsedByJoin(String, OwnedSchemaCoord),
+    ExperimentalFeatureRemoved(String),
+    ExperimentalFeaturePromoted { feature: String, documentation: String },
+    ExperimentalFeatureUnreleased { feature: String },
 }
 
 impl std::fmt::Display for Warning {
@@ -41,6 +44,15 @@ impl std::fmt::Display for Warning {
                     "The argument {argument} of {field_coord} is unused by the join on that field"
                 )
             }
+            Warning::ExperimentalFeatureRemoved(feature) => write!(
+                f,
+                "The experimental {feature} feature is not supported anymore, please remove it from your configuration"
+            ),
+            Warning::ExperimentalFeaturePromoted{
+                feature,
+                documentation
+            } => write!(f, "The {feature} feature is not experimental anymore, please see {documentation} for details on how it is now configured"),
+            Warning::ExperimentalFeatureUnreleased { feature } => write!(f, "The experimental {feature} feature is not releaseed yet, it may not work correctly or at all"),
         }
     }
 }

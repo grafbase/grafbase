@@ -24,9 +24,8 @@ pub fn convert_v1_to_partial_cache_registry(
         http_headers: _,
         postgres_databases: _,
         enable_caching,
-        enable_kv: _,
+        enable_partial_caching,
         federation_entities: _,
-        enable_ai: _,
         enable_codegen: _,
         codegen: _,
         is_federated: _,
@@ -62,6 +61,7 @@ pub fn convert_v1_to_partial_cache_registry(
     writer.subscription_type = subscription_type.and_then(|name| lookup_type_id(&type_ids, &name));
 
     writer.enable_caching = enable_caching;
+    writer.enable_partial_caching = enable_partial_caching;
 
     writer.finish()
 }

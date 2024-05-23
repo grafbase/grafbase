@@ -101,27 +101,6 @@ fn should_not_support_search_directive() {
 }
 
 #[test]
-fn test_experimental() {
-    let result = super::parse_registry(
-        r"
-            extend schema @experimental(kv: true)
-        ",
-    )
-    .unwrap();
-
-    assert!(result.enable_kv);
-
-    let result = super::parse_registry(
-        r"
-            extend schema @experimental(kv: false)
-        ",
-    )
-    .unwrap();
-
-    assert!(!result.enable_kv);
-}
-
-#[test]
 fn mongodb_join() {
     super::parse_registry(r###"
     extend schema

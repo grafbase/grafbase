@@ -43,6 +43,7 @@ pub struct PartialCacheRegistry {
     subscription_type: Option<MetaTypeId>,
 
     pub enable_caching: bool,
+    pub enable_partial_caching: bool,
 }
 
 impl fmt::Debug for PartialCacheRegistry {
@@ -102,6 +103,7 @@ impl PartialCacheRegistry {
             mutation_type: Default::default(),
             subscription_type: Default::default(),
             enable_caching: Default::default(),
+            enable_partial_caching: false,
         }
     }
 
