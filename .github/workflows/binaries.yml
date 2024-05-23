@@ -321,7 +321,7 @@ jobs:
             target/${{ matrix.archs.target }}/lambda/grafbase-gateway
   windows:
     needs: [test]
-    runs-on: windows-2022
+    runs-on: windows-latest-8-cores
     steps:
       - name: Get sources
         uses: actions/checkout@v4
