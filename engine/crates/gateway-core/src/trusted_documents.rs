@@ -11,7 +11,7 @@ const CACHE_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(24 * 6
 impl<Executor> Gateway<Executor>
 where
     Executor: super::Executor + 'static,
-    Executor::Error: From<super::Error> + std::error::Error + Send + 'static,
+    Executor::Error: std::error::Error + Send + 'static,
     Executor::StreamingResponse: super::ConstructableResponse<Error = Executor::Error>,
 {
     /// Handle a request making use of APQ or trusted documents.

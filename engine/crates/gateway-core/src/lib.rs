@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
-use common_types::auth::ExecutionAuth;
 use engine::parser::types::OperationType;
 use futures_util::FutureExt;
-use gateway_v2_auth::AuthService;
 use grafbase_tracing::{grafbase_client::Client, metrics::GraphqlOperationMetrics};
 pub use runtime::context::RequestContext;
 use runtime::{
@@ -23,11 +21,17 @@ mod trusted_documents;
 
 pub use crate::cache::build_cache_key;
 
-pub use auth::{AdminAuthError, Authorizer};
-pub use cache::CacheConfig;
-pub use executor::Executor;
-pub use response::ConstructableResponse;
-pub use streaming::{encode_stream_response, format::StreamingFormat};
+// Re-exporting these for convenience.
+pub use common_types::auth::ExecutionAuth;
+pub use gateway_v2_auth::AuthService;
+
+pub use self::{
+    auth::{AdminAuthError, Authorizer},
+    cache::CacheConfig,
+    executor::Executor,
+    response::ConstructableResponse,
+    streaming::{encode_stream_response, format::StreamingFormat},
+};
 
 const CLIENT_NAME_HEADER_NAME: &str = "x-grafbase-client-name";
 
@@ -57,7 +61,7 @@ impl<Executor> Gateway<Executor>
 where
     Executor: self::Executor + 'static,
     Executor::Context: RequestContext,
-    Executor::Error: From<Error> + std::error::Error + Send + 'static,
+    Executor::Error: std::error::Error + Send + 'static,
     Executor::StreamingResponse: self::ConstructableResponse<Error = Executor::Error>,
 {
     pub fn new(
