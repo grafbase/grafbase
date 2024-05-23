@@ -170,7 +170,7 @@ pub async fn check_field_cache_tag(
 #[derive(Debug)]
 pub struct Edge<'a>(pub &'a str);
 
-#[allow(clippy::to_string_trait_impl)]
+// #[allow(clippy::to_string_trait_impl)]
 impl<'a> ToString for Edge<'a> {
     fn to_string(&self) -> String {
         self.0.to_string()
