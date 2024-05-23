@@ -20,15 +20,15 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    # - name: Cargo cache
-    #   uses: actions/cache@v4
-    #   continue-on-error: false
-    #   with:
-    #     key: ${{ inputs.cache-key }}
-    #     restore-keys: ${{ inputs.restore-key }}
-    #     path: |
-    #       ~/.cargo/
-    #       !~/.cargo/registry/src
+    - name: Cargo cache
+      uses: actions/cache@v4
+      continue-on-error: false
+      with:
+        key: ${{ inputs.cache-key }}
+        restore-keys: ${{ inputs.restore-key }}
+        path: |
+          ~/.cargo/
+          !~/.cargo/registry/src
 
     - name: Extract the Rust version to use from the `rust-toolchain.toml` file
       shell: bash
