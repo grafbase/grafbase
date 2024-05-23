@@ -15,6 +15,5 @@ proc-macro2 = "1.0.81"
 quote = "1.0.36"
 xshell = "0.2.6"
 
-cynic-parser.version = "0.2.6"
-
+cynic-parser.workspace = true
 cynic-parser.features = ["report"]

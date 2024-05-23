@@ -11,7 +11,7 @@ pub async fn introspect(url: &str, headers: &[(impl AsRef<str>, impl AsRef<str>)
 
 fn prettify(graphql: String) -> String {
     match cynic_parser::parse_type_system_document(&graphql) {
-        Ok(parsed) => parsed.to_sdl(),
+        Ok(parsed) => parsed.to_sdl_pretty(),
         Err(_) => {
             // Don't really want to error out just because we couldn't prettify
             // so return the original string.

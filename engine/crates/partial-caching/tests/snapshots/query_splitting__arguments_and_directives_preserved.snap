@@ -1,0 +1,19 @@
+---
+source: engine/crates/partial-caching/tests/query-splitting.rs
+expression: result
+---
+query @whatever {
+  user(id: 1) @whatever {
+    ... @defer(if: $hello) {
+      hello
+    }
+    ... Whatever @whatever
+    ... on User @defer(if: $hello) {
+      hello
+    }
+  }
+}
+
+fragment Whatever on User @whatever {
+  hello
+}
