@@ -49,11 +49,9 @@ pub struct Registry {
     #[serde(default)]
     pub enable_caching: bool,
     #[serde(default)]
-    pub enable_kv: bool,
+    pub enable_partial_caching: bool,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub federation_entities: BTreeMap<String, FederationEntity>,
-    #[serde(default)]
-    pub enable_ai: bool,
     #[serde(default)]
     pub enable_codegen: bool,
     // FIXME: Make an enum.
@@ -85,9 +83,8 @@ impl Default for Registry {
             http_headers: Default::default(),
             postgres_databases: Default::default(),
             enable_caching: false,
-            enable_kv: false,
+            enable_partial_caching: false,
             federation_entities: Default::default(),
-            enable_ai: false,
             enable_codegen: false,
             is_federated: false,
             operation_limits: Default::default(),

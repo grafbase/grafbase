@@ -217,7 +217,7 @@ pub async fn parse<'a>(
     }
 
     if !ctx.warnings.is_empty() {
-        println!("{}", ctx.warnings);
+        eprintln!("{}", ctx.warnings);
     }
 
     let result = ctx.finish();

@@ -1685,7 +1685,7 @@ Registry {
     },
     postgres_databases: {},
     enable_caching: false,
-    enable_kv: false,
+    enable_partial_caching: false,
     federation_entities: {
         "PetstoreUser": FederationEntity {
             keys: [
@@ -1727,7 +1727,6 @@ Registry {
             ],
         },
     },
-    enable_ai: false,
     enable_codegen: false,
     is_federated: false,
     operation_limits: OperationLimits {

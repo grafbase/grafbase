@@ -84,29 +84,19 @@ pub struct Registry {
     pub federation_subscription: bool,
 
     pub auth: AuthConfig,
-    // #[serde(default)]
     pub mongodb_configurations: HashMap<String, MongoDBConfiguration>,
-    // #[serde(default)]
     pub http_headers: BTreeMap<String, ConnectorHeaders>,
-    // #[serde(default)]
     pub postgres_databases: HashMap<String, DatabaseDefinition>,
-    // #[serde(default)]
     pub enable_caching: bool,
-    // #[serde(default)]
-    pub enable_kv: bool,
-    // #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    #[serde(default)]
+    pub enable_partial_caching: bool,
     pub federation_entities: BTreeMap<String, FederationEntity>,
-    // #[serde(default)]
     pub enable_codegen: bool,
-    // FIXME: Make an enum.
     pub is_federated: bool,
-    // #[serde(default)]
     pub operation_limits: OperationLimits,
-    // #[serde(default)]
     pub trusted_documents: Option<TrustedDocuments>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub codegen: Option<CodegenConfig>,
-    // #[serde(default)]
     pub cors_config: Option<CorsConfig>,
 }
 

@@ -30,6 +30,7 @@ pub struct RegistryWriter {
     pub subscription_type: Option<MetaTypeId>,
 
     pub enable_caching: bool,
+    pub enable_partial_caching: bool,
 }
 
 impl RegistryWriter {
@@ -108,6 +109,7 @@ impl RegistryWriter {
             subscription_type,
             interfaces,
             enable_caching,
+            enable_partial_caching,
             others,
         } = self;
 
@@ -129,6 +131,7 @@ impl RegistryWriter {
             interfaces,
             enable_caching,
             others,
+            enable_partial_caching,
         })
     }
 
