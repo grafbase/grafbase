@@ -10,6 +10,10 @@ homepage = "https://grafbase.com"
 repository = "https://github.com/grafbase/grafbase"
 keywords = ["graphql", "gateway", "grafbase"]
 
+[features]
+default = []
+partial-caching = ["dep:partial-caching"]
+
 [lints]
 workspace = true
 
@@ -33,6 +37,7 @@ mediatype = "0.19.18"
 mime = "0.3.17"
 multipart-stream = "0.1.2"
 operation-normalizer = { path = "../operation-normalizer" }
+partial-caching = { workspace = true, optional = true }
 registry-for-cache.workspace = true
 runtime = { workspace = true, features = ["test-utils"] }
 serde.workspace = true

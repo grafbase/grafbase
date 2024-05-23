@@ -228,6 +228,11 @@ where
             return Ok((Arc::new(response), Default::default()));
         }
 
+        #[cfg(feature = "partial-caching")]
+        if self.cache_config.partial_registry.enable_partial_caching {
+            todo!("implement this")
+        }
+
         match build_cache_key(&self.cache_config, ctx.as_ref(), &request, &auth) {
             Ok(cache_key) => {
                 let execution_fut = Arc::clone(&self.executor)

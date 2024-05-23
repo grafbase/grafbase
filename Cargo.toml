@@ -187,6 +187,7 @@ parser-graphql = { path = "engine/crates/parser-graphql" }
 parser-openapi = { path = "engine/crates/parser-openapi" }
 parser-postgres = { path = "engine/crates/parser-postgres" }
 parser-sdl = { path = "engine/crates/parser-sdl" }
+partial-caching = { path = "engine/crates/partial-caching" }
 postgres-connector-types = { path = "engine/crates/postgres-connector-types" }
 registry-for-cache = { path = "engine/crates/engine/registry-for-cache" }
 registry-upgrade = { path = "engine/crates/engine/registry-upgrade" }

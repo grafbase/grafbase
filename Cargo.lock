@@ -2827,6 +2827,7 @@ dependencies = [
  "mime",
  "multipart-stream",
  "operation-normalizer",
+ "partial-caching",
  "registry-for-cache",
  "registry-upgrade",
  "runtime",

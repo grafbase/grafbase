@@ -26,7 +26,7 @@ engine = { path = "../../../engine/crates/engine" }
 graphql-extensions = { path = "../../../engine/crates/graphql-extensions", features = [
   "local",
 ] }
-gateway-core = { path = "../../../engine/crates/gateway-core" }
+gateway-core = { path = "../../../engine/crates/gateway-core", features = ["partial-caching"] }
 grafbase-tracing = { workspace = true , features = ["tower"] }
 registry-v2.workspace = true
 registry-for-cache.workspace = true
