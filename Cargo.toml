@@ -48,6 +48,7 @@ tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = 
 tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rustls", rev = "c4bb42bb4063c3dd28b75783f846b23622be07f6" } # rustls-0.23
 # Drop when a new version of tokio-rustls is released.
 tokio-rustls = { git = "https://github.com/rustls/tokio-rustls", rev = "3a153acec6c4d189eb5de501b2155b4484b8651b" } # main
+tracing-opentelemetry = { git = "https://github.com/tokio-rs/tracing-opentelemetry", rev = "2539f4f7bde3dc3f320e5fb935d2c13a69a540dd" } # main
 tungstenite = { git = "https://github.com/grafbase/tungstenite-rs", rev = "783940b2e6cc02c7067efb07dc72ae49d75571b0" } # dependabot/cargo/rustls-0.23.1
 
 # https://github.com/tokio-rs/tracing/tree/v0.1.x/tracing-mock
