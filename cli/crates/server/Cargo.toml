@@ -60,7 +60,7 @@ tokio-util = { version = "0.7.10", features = ["futures-io", "compat"] }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 tracing = "0.1.40"
 which.workspace = true
-zip = "1.0.0"
+zip = "2.0.0"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.72.0" }
 gateway = { path = "../gateway" }
