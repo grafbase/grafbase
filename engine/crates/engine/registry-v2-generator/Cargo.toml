@@ -16,4 +16,5 @@ quote = "1.0.36"
 xshell = "0.2.6"
 
 cynic-parser.workspace = true
+
 cynic-parser.features = ["report"]
