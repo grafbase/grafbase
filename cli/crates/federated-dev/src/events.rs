@@ -38,6 +38,8 @@ pub enum FederatedDevEvent {
     ComposeAfterAdditionFailure {
         /// Which subgraph was added
         subgraph_name: String,
+        /// The composition errors
+        rendered_error: String,
     },
     /// Composition worked after removal
     ComposeAfterRemovalSuccess {

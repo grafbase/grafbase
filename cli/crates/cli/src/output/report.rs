@@ -605,8 +605,8 @@ pub(crate) fn compose_after_addition_success(subgraph_name: &str) {
     eprintln!("🧩 Successfully composed schema after adding subgraph {subgraph_name}");
 }
 
-pub(crate) fn compose_after_addition_failure(subgraph_name: &str) {
-    eprintln!("❌ Failed to compose schema after adding subgraph {subgraph_name}");
+pub(crate) fn compose_after_addition_failure(subgraph_name: &str, composition_errors: &str) {
+    eprintln!("❌ Failed to compose schema after adding subgraph {subgraph_name}. Errors:\n{composition_errors}");
 }
 
 pub(crate) fn compose_after_removal_success(subgraph_name: &str) {
@@ -653,8 +653,11 @@ pub(crate) async fn listen_to_federated_dev_events() {
                 federated_dev::FederatedDevEvent::ComposeAfterAdditionSuccess { subgraph_name } => {
                     compose_after_addition_success(&subgraph_name);
                 }
-                federated_dev::FederatedDevEvent::ComposeAfterAdditionFailure { subgraph_name } => {
-                    compose_after_addition_failure(&subgraph_name);
+                federated_dev::FederatedDevEvent::ComposeAfterAdditionFailure {
+                    subgraph_name,
+                    rendered_error,
+                } => {
+                    compose_after_addition_failure(&subgraph_name, &rendered_error);
                 }
                 federated_dev::FederatedDevEvent::ComposeAfterRemovalSuccess { subgraph_name } => {
                     compose_after_removal_success(&subgraph_name);
