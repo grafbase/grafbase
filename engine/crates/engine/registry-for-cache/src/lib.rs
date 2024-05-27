@@ -43,6 +43,7 @@ pub struct PartialCacheRegistry {
     subscription_type: Option<MetaTypeId>,
 
     pub enable_caching: bool,
+    #[serde(default)]
     pub enable_partial_caching: bool,
 }
 
