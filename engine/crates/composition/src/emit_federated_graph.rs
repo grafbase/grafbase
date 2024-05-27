@@ -266,7 +266,7 @@ fn emit_fields<'a>(
 }
 
 fn emit_union_members(ir_members: &BTreeSet<(federated::StringId, federated::StringId)>, ctx: &mut Context<'_>) {
-    for (union_name, members) in &ir_members.iter().group_by(|(union_name, _)| union_name) {
+    for (union_name, members) in &ir_members.iter().chunk_by(|(union_name, _)| union_name) {
         let federated::Definition::Union(union_id) = ctx.definitions[union_name] else {
             continue;
         };

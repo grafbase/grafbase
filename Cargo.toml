@@ -37,6 +37,7 @@ multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork
 names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" } # main
 # FIXME: Drop when a new version is released.
 openidconnect = { git = "https://github.com/ramosbugs/openidconnect-rs", rev = "7efc8943a8f699aff2db742827fc3d0fc2b3f34d" } # main
+opentelemetry-aws = { git = "https://github.com/open-telemetry/opentelemetry-rust-contrib", rev = "086961e18437743c5ea43c9474cc1a7b13a49c6b" } # main
 ory-client = { git = "https://github.com/grafbase/client-rust", rev = "88ed8f63c1d71b294c2ef64fd80ca654e91ac25f" } # reqwest-0.12
 reqwest = { git = "https://github.com/grafbase/reqwest", rev = "7d51ae689856631d6153185e9729b97c539c88ee" } # 0.12-with-patches-wasm-timeout-updated
 rudderanalytics =  { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "3e994eb4dcc9c580be311ef9eab6e96dd264293b" } # async
@@ -48,6 +49,7 @@ tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = 
 tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rustls", rev = "c4bb42bb4063c3dd28b75783f846b23622be07f6" } # rustls-0.23
 # Drop when a new version of tokio-rustls is released.
 tokio-rustls = { git = "https://github.com/rustls/tokio-rustls", rev = "3a153acec6c4d189eb5de501b2155b4484b8651b" } # main
+tracing-opentelemetry = { git = "https://github.com/tokio-rs/tracing-opentelemetry", rev = "2539f4f7bde3dc3f320e5fb935d2c13a69a540dd" } # main
 tungstenite = { git = "https://github.com/grafbase/tungstenite-rs", rev = "783940b2e6cc02c7067efb07dc72ae49d75571b0" } # dependabot/cargo/rustls-0.23.1
 
 # https://github.com/tokio-rs/tracing/tree/v0.1.x/tracing-mock
@@ -95,7 +97,7 @@ hyper = { version = "1.3.1", features = ["http2"] }
 hyper-util = "0.1.3"
 indexmap = "2.2.6"
 insta = { version = "1.38.0", features = ["json"] }
-itertools = "0.12.1"
+itertools = "0.13.0"
 jsonwebtoken = "9.3.0"
 num-traits = "0.2.18"
 once_cell = "1.19.0"
@@ -129,7 +131,7 @@ wasm-bindgen = "0.2.92"
 web-time = "1.1.0"
 which = "6.0.1"
 wiremock = "0.6.0"
-worker = "0.2.0"
+worker = "0.3.0"
 fnv = "1.0.7"
 sha2 = "0.10.8"
 
