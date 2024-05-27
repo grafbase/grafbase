@@ -37,6 +37,7 @@ multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork
 names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" } # main
 # FIXME: Drop when a new version is released.
 openidconnect = { git = "https://github.com/ramosbugs/openidconnect-rs", rev = "7efc8943a8f699aff2db742827fc3d0fc2b3f34d" } # main
+opentelemetry-aws = { git = "https://github.com/open-telemetry/opentelemetry-rust-contrib", rev = "086961e18437743c5ea43c9474cc1a7b13a49c6b" } # main
 ory-client = { git = "https://github.com/grafbase/client-rust", rev = "88ed8f63c1d71b294c2ef64fd80ca654e91ac25f" } # reqwest-0.12
 reqwest = { git = "https://github.com/grafbase/reqwest", rev = "7d51ae689856631d6153185e9729b97c539c88ee" } # 0.12-with-patches-wasm-timeout-updated
 rudderanalytics =  { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "3e994eb4dcc9c580be311ef9eab6e96dd264293b" } # async
