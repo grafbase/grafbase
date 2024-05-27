@@ -12,11 +12,6 @@
   description = "Grafbase CLI development environment";
 
   inputs = {
-    pnpm2nix = {
-      url = "github:nzbr/pnpm2nix-nzbr";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-    };
     crane = {
       url = "github:ipetkov/crane";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -37,7 +32,6 @@
     flake-parts,
     nixpkgs,
     flake-utils,
-    pnpm2nix,
     crane,
     rust-overlay,
     ...
@@ -125,14 +119,14 @@
         ...
       }: {
         _module.args = {
-          inherit crane pnpm2nix;
+          inherit crane;
           pkgs = import nixpkgs {
             inherit system;
             overlays = [(import rust-overlay)];
           };
         };
 
-        imports = [./cli/nix/cli.nix ./packages/nix/cli-app.nix];
+        imports = [./cli/nix/cli.nix];
       };
     };
 }
