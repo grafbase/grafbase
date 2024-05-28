@@ -4,7 +4,7 @@ use cynic_parser::{
     executable::{
         ids::{FragmentDefinitionId, OperationDefinitionId, SelectionId, VariableDefinitionId},
         iter::Iter,
-        Selection,
+        Selection, VariableDefinition,
     },
     ExecutableDocument,
 };
@@ -42,41 +42,33 @@ impl QuerySubset {
         }
     }
 
-    pub fn write(&self, document: &ExecutableDocument, target: &mut dyn fmt::Write) -> fmt::Result {
-        // Note: be careful about putting query names in this output
-        // This output is used to build a cache key, and we don't want query names to cause
-        // queries that could otherwise share a cache entry to not do so
-        write!(target, "query")?;
+    pub fn is_empty(&self) -> bool {
+        self.cache_group.selections.is_empty()
+    }
 
-        if !self.variables.is_empty() {
-            write!(target, "(")?;
-            for (index, id) in self.variables.iter().enumerate() {
-                let prefix = if index != 0 { ", " } else { "" };
-                write!(target, "{prefix}{}", document.read(*id))?;
-            }
-            write!(target, ")")?;
+    pub fn extend(&mut self, other: &QuerySubset) {
+        self.cache_group
+            .selections
+            .extend(other.cache_group.selections.iter().copied());
+        self.cache_group
+            .fragments
+            .extend(other.cache_group.fragments.iter().copied());
+        self.variables.extend(other.variables.iter().cloned());
+    }
+
+    pub fn as_display<'a>(&'a self, document: &'a ExecutableDocument) -> QuerySubsetDisplay<'a> {
+        QuerySubsetDisplay {
+            subset: self,
+            document,
+            include_query_name: false,
         }
-        let operation = document.read(self.operation);
-        writeln!(
-            target,
-            "{} {}",
-            operation.directives(),
-            self.filter_selection_set(document, operation.selection_set())
-        )?;
+    }
 
-        for id in &self.cache_group.fragments {
-            let fragment = document.read(*id);
-            writeln!(
-                target,
-                "\nfragment {} on {}{} {}",
-                fragment.name(),
-                fragment.type_condition(),
-                fragment.directives(),
-                self.filter_selection_set(document, fragment.selection_set())
-            )?;
-        }
-
-        Ok(())
+    pub fn variables<'a>(
+        &'a self,
+        document: &'a ExecutableDocument,
+    ) -> impl Iterator<Item = VariableDefinition<'a>> + 'a {
+        self.variables.iter().map(|id| document.read(*id))
     }
 
     fn filter_selection_set<'a>(
@@ -89,6 +81,21 @@ impl QuerySubset {
             visible_selections: &self.cache_group.selections,
             selections,
             indent_level: 0,
+        }
+    }
+}
+
+pub struct QuerySubsetDisplay<'a> {
+    subset: &'a QuerySubset,
+    document: &'a ExecutableDocument,
+    include_query_name: bool,
+}
+
+impl QuerySubsetDisplay<'_> {
+    pub fn include_query_name(self) -> Self {
+        QuerySubsetDisplay {
+            include_query_name: true,
+            ..self
         }
     }
 }
@@ -114,26 +121,6 @@ impl<'a> FilteredSelectionSet<'a> {
     }
 }
 
-macro_rules! write_indent {
-    ($f:expr, $level:expr) => {
-        write!($f, "{:indent$}", "", indent = $level * 2)
-    };
-}
-
-impl fmt::Display for FilteredSelectionSet<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.selections.len() == 0 {
-            return Ok(());
-        }
-        writeln!(f, "{{")?;
-        for selection in self.iter() {
-            writeln!(f, "{selection}",)?;
-        }
-        write_indent!(f, self.indent_level)?;
-        write!(f, "}}")
-    }
-}
-
 struct FilteredSelection<'a> {
     document: &'a ExecutableDocument,
     visible_selections: &'a IndexSet<SelectionId>,
@@ -149,6 +136,75 @@ impl<'a> FilteredSelection<'a> {
             selections,
             indent_level: self.indent_level,
         }
+    }
+}
+
+macro_rules! write_indent {
+    ($f:expr, $level:expr) => {
+        write!($f, "{:indent$}", "", indent = $level * 2)
+    };
+}
+
+impl std::fmt::Display for QuerySubsetDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let QuerySubsetDisplay {
+            subset,
+            document,
+            include_query_name,
+        } = self;
+
+        write!(f, "query")?;
+
+        let operation = document.read(subset.operation);
+
+        if *include_query_name {
+            if let Some(name) = operation.name() {
+                write!(f, " {name}")?;
+            }
+        }
+
+        if !subset.variables.is_empty() {
+            write!(f, "(")?;
+            for (index, id) in subset.variables.iter().enumerate() {
+                let prefix = if index != 0 { ", " } else { "" };
+                write!(f, "{prefix}{}", document.read(*id))?;
+            }
+            write!(f, ")")?;
+        }
+        writeln!(
+            f,
+            "{} {}",
+            operation.directives(),
+            subset.filter_selection_set(self.document, operation.selection_set())
+        )?;
+
+        for id in &subset.cache_group.fragments {
+            let fragment = document.read(*id);
+            writeln!(
+                f,
+                "\nfragment {} on {}{} {}",
+                fragment.name(),
+                fragment.type_condition(),
+                fragment.directives(),
+                subset.filter_selection_set(document, fragment.selection_set())
+            )?;
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for FilteredSelectionSet<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.selections.len() == 0 {
+            return Ok(());
+        }
+        writeln!(f, "{{")?;
+        for selection in self.iter() {
+            writeln!(f, "{selection}",)?;
+        }
+        write_indent!(f, self.indent_level)?;
+        write!(f, "}}")
     }
 }
 

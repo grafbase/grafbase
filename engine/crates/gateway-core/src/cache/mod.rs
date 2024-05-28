@@ -8,6 +8,9 @@ use runtime::cache::{Cache, Cacheable, CachedExecutionResponse};
 mod build_key;
 mod key;
 
+#[cfg(feature = "partial-caching")]
+pub mod partial;
+
 #[derive(Clone)]
 pub struct CacheConfig {
     pub global_enabled: bool,

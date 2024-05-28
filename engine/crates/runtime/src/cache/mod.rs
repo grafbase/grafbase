@@ -66,6 +66,10 @@ impl<T> Entry<T> {
             Entry::Stale(StaleEntry { value, .. }) => Some(value),
         }
     }
+
+    pub fn is_miss(&self) -> bool {
+        matches!(self, Entry::Miss)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

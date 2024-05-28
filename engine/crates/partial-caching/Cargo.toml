@@ -9,11 +9,19 @@ repository.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-cynic-parser.workspace = true
+blake3.workspace = true
+common-types.workspace = true
 cynic-parser.features = ["print"]
-
+cynic-parser.workspace = true
+engine-value.workspace = true
+headers.workspace = true
+http.workspace = true
 indexmap.workspace = true
 registry-for-cache.workspace = true
+runtime.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
