@@ -1,10 +1,13 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use common_types::auth::ExecutionAuth;
 use cynic_parser::ExecutableDocument;
-use futures_util::future::join_all;
-use partial_caching::CachingPlan;
-use runtime::{cache::Cache, context::RequestContext};
+use futures_util::{future::join_all, FutureExt};
+use partial_caching::{CacheUpdatePhase, CachingPlan};
+use runtime::{
+    cache::{Cache, CacheMetadata, EntryState},
+    context::RequestContext,
+};
 use tracing::{info_span, Instrument};
 
 use crate::Executor;
@@ -50,19 +53,55 @@ where
                 .instrument(info_span!("execute"))
                 .await?;
 
-            let (merged_data, _updates) = execution_phase.handle_response(executor_response.data);
+            let (merged_data, update_phase) =
+                execution_phase.handle_response(executor_response.data, !executor_response.errors.is_empty());
             executor_response.data = merged_data;
+
+            if let Some(update_phase) = update_phase {
+                ctx.wait_until(run_update_phase(update_phase, cache.clone()).boxed())
+                    .await;
+            }
 
             Ok(Arc::new(executor_response))
         }
         partial_caching::FetchPhaseResult::CompleteHit(hit) => {
-            let (data, _updates) = hit.response_and_updates();
+            let (data, update_phase) = hit.response_and_updates();
+
+            if let Some(update_phase) = update_phase {
+                ctx.wait_until(run_update_phase(update_phase, cache.clone()).boxed())
+                    .await;
+            }
 
             Ok(Arc::new(engine::Response::new(
                 data,
                 request.operation_name(),
                 operation_type,
             )))
+        }
+    }
+}
+
+async fn run_update_phase(update_phase: CacheUpdatePhase, cache: Cache) {
+    // Unsure whether I should run these in parallel or series.
+    // Series will be slower and hogs memory for longer, but in parallel will likely hog the CPU
+    // for longer, which as we know CF does not like.  Sigh.  For now, I'll write it serially.
+    for update in update_phase.updates() {
+        let key = cache.build_key(update.key);
+
+        let metadata = CacheMetadata {
+            max_age: Duration::from_secs(update.cache_control.max_age as u64),
+            stale_while_revalidate: Duration::from_secs(update.cache_control.stale_while_revalidate as u64),
+            tags: vec![],
+            should_purge_related: false,
+            should_cache: true,
+        };
+
+        if let Err(err) = cache
+            .put_json(&key, EntryState::Fresh, &update, metadata)
+            .instrument(tracing::info_span!("cache_put"))
+            .await
+        {
+            tracing::error!("Error cache PUT: {}", err);
         }
     }
 }

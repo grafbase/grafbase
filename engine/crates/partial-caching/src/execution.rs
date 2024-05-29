@@ -8,26 +8,28 @@ use graph_entities::{QueryResponse, ResponseNodeId};
 use registry_for_cache::CacheControl;
 use runtime::cache::Entry;
 
-use crate::QuerySubset;
+use crate::{updating::PartitionIndex, CacheUpdatePhase, QuerySubset};
 
 use super::fetching::CacheFetchPhase;
 
-#[allow(unused)] // Going to update things to use this later
 pub struct ExecutionPhase {
     document: ExecutableDocument,
     cache_partitions: Vec<(CacheControl, QuerySubset)>,
     cache_entries: Vec<Entry<serde_json::Value>>,
     cache_keys: Vec<Option<String>>,
     executor_subset: QuerySubset,
+    cache_miss_count: usize,
 }
 
 impl ExecutionPhase {
     pub(crate) fn new(fetch_phase: CacheFetchPhase) -> Self {
         let plan = fetch_phase.plan;
 
+        let mut cache_miss_count = 0;
         let mut executor_subset = plan.nocache_partition;
         for (entry, (_, partition_subset)) in fetch_phase.cache_entries.iter().zip(plan.cache_partitions.iter()) {
             if entry.is_miss() {
+                cache_miss_count += 1;
                 executor_subset.extend(partition_subset);
             }
         }
@@ -38,6 +40,7 @@ impl ExecutionPhase {
             cache_keys: fetch_phase.cache_keys,
             cache_entries: fetch_phase.cache_entries,
             executor_subset,
+            cache_miss_count,
         }
     }
 
@@ -48,8 +51,19 @@ impl ExecutionPhase {
             .to_string()
     }
 
-    pub fn handle_response(self, mut response: QueryResponse) -> (QueryResponse, CacheUpdates) {
-        for entry in self.cache_entries {
+    pub fn handle_response(
+        self,
+        mut response: QueryResponse,
+        errors: bool,
+    ) -> (QueryResponse, Option<CacheUpdatePhase>) {
+        let mut keys_to_write = Vec::with_capacity(self.cache_miss_count);
+
+        // I'd really like to avoid cloning this, but time is not on my side.
+        // Going to clone before the updates to make it quicker, may restructure things later
+        // to avoid this.
+        let update_respones = response.clone();
+
+        for (index, (entry, key)) in self.cache_entries.into_iter().zip(self.cache_keys).enumerate() {
             match entry {
                 Entry::Hit(hit) => merge_json(&mut response, hit),
                 Entry::Stale(stale) => {
@@ -57,15 +71,28 @@ impl ExecutionPhase {
                     // in GB-6804
                     merge_json(&mut response, stale.value)
                 }
+                Entry::Miss if key.is_some() => {
+                    keys_to_write.push((key.unwrap(), PartitionIndex(index)));
+                }
                 Entry::Miss => {}
             }
         }
-        (response, CacheUpdates)
+
+        let mut update_phase = None;
+        if !keys_to_write.is_empty() && !errors {
+            // If there are errors we _do not_ want to write to the cache,
+
+            update_phase = Some(CacheUpdatePhase::new(
+                self.document,
+                self.cache_partitions,
+                keys_to_write,
+                update_respones,
+            ));
+        }
+
+        (response, update_phase)
     }
 }
-
-// TODO: Going to do this in next PR.
-pub struct CacheUpdates;
 
 pub(super) fn merge_json(response: &mut QueryResponse, json: serde_json::Value) {
     use graph_entities::QueryResponseNode;

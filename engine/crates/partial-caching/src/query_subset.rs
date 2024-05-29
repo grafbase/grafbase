@@ -1,6 +1,7 @@
 use std::fmt;
 
 use cynic_parser::{
+    common::IdRange,
     executable::{
         ids::{FragmentDefinitionId, OperationDefinitionId, SelectionId, VariableDefinitionId},
         iter::Iter,
@@ -16,12 +17,12 @@ use indexmap::IndexSet;
 /// ancestors, variables & fragments required for those fields to make a
 /// valid query
 pub struct QuerySubset {
-    operation: OperationDefinitionId,
+    pub(crate) operation: OperationDefinitionId,
     cache_group: CacheGroup,
     variables: Vec<VariableDefinitionId>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct CacheGroup {
     pub selections: IndexSet<SelectionId>,
     pub fragments: IndexSet<FragmentDefinitionId>,
@@ -71,17 +72,49 @@ impl QuerySubset {
         self.variables.iter().map(|id| document.read(*id))
     }
 
-    fn filter_selection_set<'a>(
+    fn selection_set_display<'a>(
         &'a self,
         document: &'a ExecutableDocument,
         selections: Iter<'a, Selection<'a>>,
-    ) -> FilteredSelectionSet<'a> {
-        FilteredSelectionSet {
+    ) -> SelectionSetDisplay<'a> {
+        SelectionSetDisplay {
             document,
             visible_selections: &self.cache_group.selections,
-            selections,
+            selections: self.selection_iter(document, selections),
             indent_level: 0,
         }
+    }
+
+    pub(crate) fn selection_iter<'a>(
+        &'a self,
+        document: &'a ExecutableDocument,
+        selection_set: Iter<'a, Selection<'a>>,
+    ) -> FilteredSelections<'a> {
+        FilteredSelections {
+            document,
+            visible_selections: &self.cache_group.selections,
+            ids: selection_set.ids(),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct FilteredSelections<'a> {
+    document: &'a ExecutableDocument,
+    visible_selections: &'a IndexSet<SelectionId>,
+    ids: IdRange<SelectionId>,
+}
+
+impl<'a> Iterator for FilteredSelections<'a> {
+    type Item = Selection<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for candidate in self.ids.by_ref() {
+            if self.visible_selections.contains(&candidate) {
+                return Some(self.document.read(candidate));
+            }
+        }
+        None
     }
 }
 
@@ -100,40 +133,30 @@ impl QuerySubsetDisplay<'_> {
     }
 }
 
-struct FilteredSelectionSet<'a> {
+struct SelectionSetDisplay<'a> {
+    selections: FilteredSelections<'a>,
     document: &'a ExecutableDocument,
     visible_selections: &'a IndexSet<SelectionId>,
-    selections: Iter<'a, Selection<'a>>,
     indent_level: usize,
 }
 
-impl<'a> FilteredSelectionSet<'a> {
-    fn iter<'b>(&'b self) -> impl Iterator<Item = FilteredSelection<'a>> + 'b {
-        self.selections
-            .ids()
-            .filter(|id| self.visible_selections.contains(id))
-            .map(|id| FilteredSelection {
-                document: self.document,
-                visible_selections: self.visible_selections,
-                selection: self.document.read(id),
-                indent_level: self.indent_level + 1,
-            })
-    }
-}
-
-struct FilteredSelection<'a> {
+struct SelectionDisplay<'a> {
     document: &'a ExecutableDocument,
     visible_selections: &'a IndexSet<SelectionId>,
     selection: Selection<'a>,
     indent_level: usize,
 }
 
-impl<'a> FilteredSelection<'a> {
-    fn wrap_set(&self, selections: Iter<'a, Selection<'a>>) -> FilteredSelectionSet<'a> {
-        FilteredSelectionSet {
+impl<'a> SelectionDisplay<'a> {
+    fn wrap_set(&self, selections: Iter<'a, Selection<'a>>) -> SelectionSetDisplay<'a> {
+        SelectionSetDisplay {
             document: self.document,
             visible_selections: self.visible_selections,
-            selections,
+            selections: FilteredSelections {
+                document: self.document,
+                visible_selections: self.visible_selections,
+                ids: selections.ids(),
+            },
             indent_level: self.indent_level,
         }
     }
@@ -175,7 +198,7 @@ impl std::fmt::Display for QuerySubsetDisplay<'_> {
             f,
             "{} {}",
             operation.directives(),
-            subset.filter_selection_set(self.document, operation.selection_set())
+            subset.selection_set_display(self.document, operation.selection_set())
         )?;
 
         for id in &subset.cache_group.fragments {
@@ -186,7 +209,7 @@ impl std::fmt::Display for QuerySubsetDisplay<'_> {
                 fragment.name(),
                 fragment.type_condition(),
                 fragment.directives(),
-                subset.filter_selection_set(document, fragment.selection_set())
+                subset.selection_set_display(document, fragment.selection_set())
             )?;
         }
 
@@ -194,21 +217,31 @@ impl std::fmt::Display for QuerySubsetDisplay<'_> {
     }
 }
 
-impl fmt::Display for FilteredSelectionSet<'_> {
+impl fmt::Display for SelectionSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.selections.len() == 0 {
+        let mut selections = self.selections.peekable();
+        if selections.peek().is_none() {
             return Ok(());
         }
         writeln!(f, "{{")?;
-        for selection in self.iter() {
-            writeln!(f, "{selection}",)?;
+        for selection in selections {
+            writeln!(
+                f,
+                "{}",
+                SelectionDisplay {
+                    document: self.document,
+                    visible_selections: self.visible_selections,
+                    selection,
+                    indent_level: self.indent_level + 1
+                }
+            )?;
         }
         write_indent!(f, self.indent_level)?;
         write!(f, "}}")
     }
 }
 
-impl fmt::Display for FilteredSelection<'_> {
+impl fmt::Display for SelectionDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_indent!(f, self.indent_level)?;
         match self.selection {

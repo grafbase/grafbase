@@ -10,7 +10,9 @@
 //! 1. First we build a CachingPlan from the incoming query.
 //! 2. Then we move into the CacheFetchPhase, which provides keys to a consumer,
 //! 3. Then we run an ExecutionPhase if it's required.
-//! 4. TBC after that (need to write the code first)
+//! 4. Then we have a CacheUpdatePhase that runs after the response is retunred
+
+use std::fmt;
 
 use cynic_parser::ExecutableDocument;
 use registry_for_cache::CacheControl;
@@ -20,8 +22,11 @@ mod fetching;
 mod hit;
 mod planning;
 mod query_subset;
+mod updating;
 
-pub use self::{execution::ExecutionPhase, planning::build_plan, query_subset::QuerySubset};
+pub use self::{
+    execution::ExecutionPhase, planning::build_plan, query_subset::QuerySubset, updating::CacheUpdatePhase,
+};
 
 // Renaming this because we have registry_for_cache::CacheControl & headers::CacheControl and
 // it's confusing when you're working with both of them.  Hopefully the alias doesn't add
@@ -32,6 +37,15 @@ pub struct CachingPlan {
     pub document: ExecutableDocument,
     pub cache_partitions: Vec<(CacheControl, QuerySubset)>,
     pub nocache_partition: QuerySubset,
+}
+
+impl fmt::Debug for CachingPlan {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CachingPlan")
+            .field("num_cache_partitions", &self.cache_partitions.len())
+            .field("nocache_partition_present", &!self.nocache_partition.is_empty())
+            .finish()
+    }
 }
 
 /// The output of the fetch phase of partial caching

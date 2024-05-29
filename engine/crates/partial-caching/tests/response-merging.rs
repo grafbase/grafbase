@@ -49,7 +49,7 @@ fn test_simple_response_merging() {
     let root_node = query_response.from_serde_value(json!({"user": {"email": "whatever", "someConstant": "123"}}));
     query_response.set_root_unchecked(root_node);
 
-    let (response, _updates) = execution.handle_response(query_response);
+    let (response, _updates) = execution.handle_response(query_response, false);
 
     // Note: This is technically wrong because the order of the fields doesn't match the query.
     // Have raised GB-6813 to look into this (or not, we'll see)
@@ -88,7 +88,7 @@ fn test_handles_nulls_gracefull() {
     let root_node = query_response.from_serde_value(json!({"user": null}));
     query_response.set_root_unchecked(root_node);
 
-    let (response, _updates) = execution.handle_response(query_response);
+    let (response, _updates) = execution.handle_response(query_response, false);
 
     assert_json_snapshot!(response.as_graphql_data(), @r###"
     {
