@@ -48,7 +48,7 @@ pub struct Response {
     pub graphql_operation: Option<ResponseOperation>,
 }
 
-fn response_operation_for_definition(operation: &OperationDefinition) -> common_types::OperationType {
+pub(crate) fn response_operation_for_definition(operation: &OperationDefinition) -> common_types::OperationType {
     match operation.ty {
         OperationType::Query => common_types::OperationType::Query {
             is_introspection: is_operation_introspection(operation),
@@ -84,14 +84,14 @@ impl Response {
     pub fn new(
         mut data: QueryResponse,
         operation_name: Option<&str>,
-        operation_definition: &OperationDefinition,
+        operation_type: common_types::OperationType,
     ) -> Self {
         data.shrink_to_fit();
         Self {
             data,
             graphql_operation: Some(ResponseOperation {
                 name: operation_name.map(str::to_owned),
-                r#type: response_operation_for_definition(operation_definition),
+                r#type: operation_type,
             }),
             ..Default::default()
         }

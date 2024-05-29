@@ -17,6 +17,7 @@ use registry_for_cache::CacheControl;
 
 mod execution;
 mod fetching;
+mod hit;
 mod planning;
 mod query_subset;
 
@@ -42,7 +43,7 @@ pub enum FetchPhaseResult {
     /// We fetched all the results from the cache, so can just return a response
     ///
     /// Note that I've not implemented this bit yet - it'll come later.
-    CompleteHit,
+    CompleteHit(hit::CompleteHit),
 }
 
 #[cfg(test)]

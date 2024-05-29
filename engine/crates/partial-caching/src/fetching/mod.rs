@@ -12,7 +12,7 @@ use runtime::cache::Entry;
 
 use self::keys::build_cache_keys;
 use super::CachingPlan;
-use crate::{execution::ExecutionPhase, CacheControlHeaders, FetchPhaseResult};
+use crate::{execution::ExecutionPhase, hit::CompleteHit, CacheControlHeaders, FetchPhaseResult};
 
 impl CachingPlan {
     pub fn start_fetch_phase(
@@ -92,7 +92,7 @@ impl CacheFetchPhase {
         if self.cache_entries.iter().any(|entry| entry.is_miss()) || !self.plan.nocache_partition.is_empty() {
             FetchPhaseResult::PartialHit(ExecutionPhase::new(self))
         } else {
-            FetchPhaseResult::CompleteHit
+            FetchPhaseResult::CompleteHit(CompleteHit::new(self.cache_entries))
         }
     }
 }

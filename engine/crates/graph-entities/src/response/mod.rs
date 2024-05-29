@@ -25,7 +25,7 @@ pub use self::{into_response_node::IntoResponseNode, response_node_id::ResponseN
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct QueryResponse {
     /// Root of the whole struct which is a Container
-    root: Option<ResponseNodeId>,
+    pub root: Option<ResponseNodeId>,
     /// Storage of every nodes
     #[serde(with = "vectorize")]
     data: HashMap<ResponseNodeId, QueryResponseNode>,
@@ -195,6 +195,20 @@ impl QueryResponse {
         self.data.get(&id)
     }
 
+    pub fn get_container_node(&self, id: ResponseNodeId) -> Option<&ResponseContainer> {
+        match self.data.get(&id)? {
+            QueryResponseNode::Container(container) => Some(container),
+            _ => None,
+        }
+    }
+
+    pub fn get_container_node_mut(&mut self, id: ResponseNodeId) -> Option<&mut ResponseContainer> {
+        match self.data.get_mut(&id)? {
+            QueryResponseNode::Container(container) => Some(container),
+            _ => None,
+        }
+    }
+
     /// Get a Node by his ID
     pub fn get_node_mut(&mut self, id: ResponseNodeId) -> Option<&mut QueryResponseNode> {
         self.data.get_mut(&id)
@@ -332,6 +346,10 @@ impl QueryResponseNode {
 pub struct ResponseList(Vec<ResponseNodeId>);
 
 impl ResponseList {
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = ResponseNodeId> + '_ {
+        self.0.iter().copied()
+    }
+
     pub fn with_children(children: Vec<ResponseNodeId>) -> Box<Self> {
         Box::new(Self(children))
     }

@@ -84,6 +84,21 @@ impl From<CompactValue> for serde_json::Value {
     }
 }
 
+impl From<serde_json::Value> for CompactValue {
+    fn from(value: serde_json::Value) -> Self {
+        match value {
+            serde_json::Value::Null => CompactValue::Null,
+            serde_json::Value::Number(num) => CompactValue::Number(num),
+            serde_json::Value::String(string) => CompactValue::String(string),
+            serde_json::Value::Bool(boolean) => CompactValue::Boolean(boolean),
+            serde_json::Value::Array(list) => CompactValue::List(list.into_iter().map(Into::into).collect()),
+            serde_json::Value::Object(obj) => {
+                CompactValue::Object(obj.into_iter().map(|(k, v)| (Name::new(k), v.into())).collect())
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use engine_value::ConstValue;

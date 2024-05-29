@@ -12,6 +12,7 @@ use registry_v2::OperationLimits;
 use tracing::{Instrument, Span};
 
 use crate::registry::type_kinds::SelectionSetTarget;
+use crate::response::response_operation_for_definition;
 use crate::{
     context::{Data, QueryEnvInner},
     current_datetime::CurrentDateTime,
@@ -399,7 +400,8 @@ impl Schema {
             Ok(value) => {
                 let response = &mut *ctx.response().await;
                 response.set_root_unchecked(value);
-                Response::new(std::mem::take(response), operation_name, &env.operation)
+                let operation_type = response_operation_for_definition(&env.operation);
+                Response::new(std::mem::take(response), operation_name, operation_type)
             }
             Err(err) => Response::from_errors(vec![err], operation_name, &env.operation),
         }
