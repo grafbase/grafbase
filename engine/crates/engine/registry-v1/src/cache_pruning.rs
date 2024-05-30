@@ -73,8 +73,9 @@ impl super::Registry {
 
         Registry {
             enable_caching: self.enable_caching,
+            enable_partial_caching: self.enable_partial_caching,
             types: types_with_cache,
-            ..Default::default()
+            ..self
         }
     }
 }
@@ -117,25 +118,25 @@ fn types_and_fields_marked_cache(types: &std::collections::BTreeMap<String, Meta
             }
 
             match type_value {
-                MetaType::Object(object) if object.cache_control.is_some() => {
+                MetaType::Object(object) => {
                     let fields = object
                         .fields
                         .values()
                         .filter(|field| field.cache_control.is_some())
                         .map(|field| field.name.as_str())
-                        .collect();
+                        .collect::<Vec<_>>();
 
-                    Some((type_name.as_str(), fields))
+                    (object.cache_control.is_some() || !fields.is_empty()).then_some((type_name.as_str(), fields))
                 }
-                MetaType::Interface(interface) if interface.cache_control.is_some() => {
+                MetaType::Interface(interface) => {
                     let fields = interface
                         .fields
                         .values()
                         .filter(|field| field.cache_control.is_some())
                         .map(|field| field.name.as_str())
-                        .collect();
+                        .collect::<Vec<_>>();
 
-                    Some((type_name.as_str(), fields))
+                    (interface.cache_control.is_some() || !fields.is_empty()).then_some((type_name.as_str(), fields))
                 }
                 _ => None,
             }

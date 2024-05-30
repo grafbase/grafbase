@@ -197,7 +197,7 @@ impl Cache {
     }
 
     // Tried Msgpack, but it doesn't behave really well with engine_v1::Response...
-    pub async fn put_json<T: Serialize + DeserializeOwned>(
+    pub async fn put_json<T: Serialize>(
         &self,
         key: &Key,
         state: EntryState,

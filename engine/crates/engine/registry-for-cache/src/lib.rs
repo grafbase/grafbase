@@ -49,10 +49,9 @@ pub struct PartialCacheRegistry {
 
 impl fmt::Debug for PartialCacheRegistry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Not convinced there's any point in printing the contents of this.
-        // We could probably use the Debug impls of all the Readers if neccesary,
-        // but for now I'm just going to skip.
-        f.debug_struct("PartialCacheRegistry").finish_non_exhaustive()
+        f.debug_struct("PartialCacheRegistry")
+            .field("types", &self.types())
+            .finish_non_exhaustive()
     }
 }
 

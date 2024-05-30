@@ -1,7 +1,7 @@
 use graph_entities::QueryResponse;
 use runtime::cache::Entry;
 
-use crate::execution::{merge_json, CacheUpdates};
+use crate::{execution::merge_json, CacheUpdatePhase};
 
 /// This struct is used when we found everything we needed in the cache
 /// and don't need to make a call to the executor at all.
@@ -14,14 +14,14 @@ impl CompleteHit {
         CompleteHit { cache_entries }
     }
 
-    pub fn response_and_updates(self) -> (QueryResponse, CacheUpdates) {
+    pub fn response_and_updates(self) -> (QueryResponse, Option<CacheUpdatePhase>) {
         let mut response = QueryResponse::default();
         let mut cache_entries = self.cache_entries.into_iter();
 
         let Some(first_entry) = cache_entries.next() else {
             // This really shouldn't happen, but not much else we can do.
             // I'd rather not panic for this case as its not an obvious invariant
-            return (response, CacheUpdates);
+            return (response, None);
         };
 
         match first_entry {
@@ -51,6 +51,6 @@ impl CompleteHit {
             }
         }
 
-        (response, CacheUpdates)
+        (response, None)
     }
 }

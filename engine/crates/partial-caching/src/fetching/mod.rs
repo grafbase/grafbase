@@ -56,7 +56,7 @@ pub struct CacheFetchPhase {
 }
 
 /// The externally visible representation of a cache key
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CacheKey {
     index: usize,
     key: String,

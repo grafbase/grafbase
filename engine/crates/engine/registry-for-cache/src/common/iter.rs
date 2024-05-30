@@ -1,4 +1,4 @@
-use std::iter::FusedIterator;
+use std::{fmt, iter::FusedIterator};
 
 use engine_id_newtypes::{IdOperations, IdRange};
 
@@ -63,4 +63,15 @@ where
     T::Id: IdOperations,
     IdRange<T::Id>: FusedIterator,
 {
+}
+
+impl<'a, T> fmt::Debug for Iter<'a, T>
+where
+    T: IdReader + Copy,
+    Self: Iterator,
+    <Self as Iterator>::Item: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_list().entries(*self).finish()
+    }
 }
