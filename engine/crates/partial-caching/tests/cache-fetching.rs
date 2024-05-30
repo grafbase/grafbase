@@ -107,7 +107,7 @@ fn test_complete_cache_hits() {
     assert_eq!(cache_keys.len(), 1);
     fetch_phase.record_cache_entry(&cache_keys[0], runtime::cache::Entry::Hit(json!("whatever")));
 
-    let FetchPhaseResult::CompleteHit = fetch_phase.finish() else {
+    let FetchPhaseResult::CompleteHit(_) = fetch_phase.finish() else {
         panic!("We hit all the cached fields so should have a complete hit");
     };
 }

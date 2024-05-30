@@ -99,6 +99,7 @@ hyper = { version = "1.3.1", features = ["http2"] }
 hyper-util = "0.1.3"
 indexmap = "2.2.6"
 insta = { version = "1.38.0", features = ["json"] }
+internment = { version = "0.8", features = ["serde", "arc"] }
 itertools = "0.13.0"
 jsonwebtoken = "9.3.0"
 num-traits = "0.2.18"

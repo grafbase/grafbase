@@ -14,5 +14,5 @@ publish = false
 
 [dependencies]
 im = "15"
-internment = { version = "0.8", features = ["serde", "arc"] }
+internment.workspace = true
 serde.workspace = true

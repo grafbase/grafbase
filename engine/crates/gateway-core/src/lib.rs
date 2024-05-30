@@ -230,7 +230,7 @@ where
 
         #[cfg(feature = "partial-caching")]
         if self.cache_config.partial_registry.enable_partial_caching {
-            let cache_plan = ::partial_caching::build_plan(
+            let cache_plan = partial_caching::build_plan(
                 request.query(),
                 request.operation_name(),
                 &self.cache_config.partial_registry,
@@ -238,8 +238,17 @@ where
 
             match cache_plan {
                 Ok(Some(plan)) => {
-                    cache::partial::partial_caching_execution(plan, &self.cache, &auth, request, ctx.as_ref()).await;
-                    todo!("finish this")
+                    let response = cache::partial::partial_caching_execution(
+                        plan,
+                        &self.cache,
+                        auth,
+                        request,
+                        &self.executor,
+                        ctx,
+                    )
+                    .await?;
+
+                    return Ok((response, Default::default()));
                 }
                 Ok(None) => {
                     // None means we should proceed with a normal execution.
