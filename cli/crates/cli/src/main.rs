@@ -80,7 +80,13 @@ fn main() {
 }
 
 fn try_main(args: Args) -> Result<(), CliError> {
-    let filter = EnvFilter::builder().parse_lossy(args.log_filter());
+    let filter = {
+        let builder = EnvFilter::builder();
+        match args.log_filter() {
+            Some(argument_filter) => builder.parse_lossy(argument_filter),
+            None => builder.from_env_lossy(),
+        }
+    };
 
     tracing_subscriber::registry().with(fmt::layer()).with(filter).init();
 
