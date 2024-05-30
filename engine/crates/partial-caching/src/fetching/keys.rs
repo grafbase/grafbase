@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use common_types::auth::ExecutionAuth;
 use engine_value::{ConstValue, Variables};
 use registry_for_cache::{CacheAccessScope, CacheControl};
@@ -48,14 +46,14 @@ fn cache_scopes<'a>(
 
     let actual_scopes = scopes
         .iter()
-        .filter_map(|scope| match scope {
+        .map(|scope| match scope {
             CacheAccessScope::Public | CacheAccessScope::ApiKey => Some(auth.global_ops().to_string()),
             CacheAccessScope::Jwt { claim } => auth.as_token().and_then(|token| token.get_claim(claim)),
             CacheAccessScope::Header { header: header_name } => headers
                 .get(header_name)
                 .and_then(|header| Some(header.to_str().ok()?.to_string())),
         })
-        .collect::<BTreeSet<_>>();
+        .collect::<Vec<_>>();
 
     if actual_scopes.is_empty() {
         tracing::warn!("Could not find any scopes for cache_control {cache_control:?}");
@@ -67,7 +65,7 @@ fn cache_scopes<'a>(
 
 #[derive(Debug, Hash, serde::Serialize)]
 enum CacheAccess<'a> {
-    Scoped(BTreeSet<String>),
+    Scoped(Vec<Option<String>>),
     Default(&'a ExecutionAuth),
 }
 
