@@ -2827,6 +2827,7 @@ dependencies = [
  "mime",
  "multipart-stream",
  "operation-normalizer",
+ "partial-caching",
  "registry-for-cache",
  "registry-upgrade",
  "runtime",
@@ -5633,12 +5634,21 @@ name = "partial-caching"
 version = "0.73.0"
 dependencies = [
  "anyhow",
+ "blake3",
+ "common-types",
  "cynic-parser 0.4.0",
+ "engine-value",
+ "headers",
+ "http 1.1.0",
  "indexmap 2.2.6",
  "insta",
  "parser-sdl",
  "registry-for-cache",
  "registry-upgrade",
+ "runtime",
+ "serde",
+ "serde_json",
+ "tracing",
 ]
 
 [[package]]

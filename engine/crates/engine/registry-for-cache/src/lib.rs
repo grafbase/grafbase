@@ -23,7 +23,7 @@ pub use self::{
     },
 };
 pub use engine_id_newtypes::IdRange;
-pub use registry_v2::CacheControl;
+pub use registry_v2::{cache_control::CacheAccessScope, CacheControl};
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct PartialCacheRegistry {

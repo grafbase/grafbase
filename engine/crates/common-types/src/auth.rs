@@ -93,6 +93,13 @@ impl ExecutionAuth {
     pub fn is_introspection_allowed(&self) -> bool {
         self.global_ops().contains(Operations::INTROSPECTION)
     }
+
+    pub fn as_token(&self) -> Option<&ExecutionAuthToken> {
+        match self {
+            ExecutionAuth::Token(token) => Some(token),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, serde::Deserialize, serde::Serialize, Clone)]

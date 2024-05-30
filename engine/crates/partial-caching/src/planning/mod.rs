@@ -53,11 +53,11 @@ pub fn build_plan(
     let operation = operation.id();
 
     Ok(Some(CachingPlan {
-        cache_queries: cache_groups
+        cache_partitions: cache_groups
             .into_iter()
             .map(|(control, group)| (control, QuerySubset::new(operation, group, &document)))
             .collect(),
-        executor_query: QuerySubset::new(operation, uncached_group, &document),
+        nocache_partition: QuerySubset::new(operation, uncached_group, &document),
         document,
     }))
 }

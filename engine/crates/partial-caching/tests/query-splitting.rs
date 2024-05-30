@@ -26,13 +26,9 @@ fn test_basic_split() {
     let plan = partial_caching::build_plan(QUERY, None, &registry).unwrap().unwrap();
 
     let result = plan
-        .cache_queries
+        .cache_partitions
         .into_iter()
-        .map(|(_, query)| {
-            let mut s = String::new();
-            query.write(&plan.document, &mut s).unwrap();
-            s
-        })
+        .map(|(_, query)| query.as_display(&plan.document).to_string())
         .collect::<Vec<_>>();
 
     assert_eq!(result.len(), 3, "{result:?}");
@@ -102,13 +98,9 @@ fn test_split_with_absurd_fragments() {
     let plan = partial_caching::build_plan(QUERY, None, &registry).unwrap().unwrap();
 
     let result = plan
-        .cache_queries
+        .cache_partitions
         .into_iter()
-        .map(|(_, query)| {
-            let mut s = String::new();
-            query.write(&plan.document, &mut s).unwrap();
-            s
-        })
+        .map(|(_, query)| query.as_display(&plan.document).to_string())
         .collect::<Vec<_>>();
 
     assert_eq!(result.len(), 3, "{result:?}");
@@ -213,10 +205,9 @@ fn test_arguments_and_directives_preserved() {
 
     let plan = partial_caching::build_plan(QUERY, None, &registry).unwrap().unwrap();
 
-    assert!(plan.cache_queries.is_empty());
+    assert!(plan.cache_partitions.is_empty());
 
-    let mut result = String::new();
-    plan.executor_query.write(&plan.document, &mut result).unwrap();
+    let result = plan.nocache_partition.as_display(&plan.document).to_string();
 
     insta::assert_snapshot!(result)
 }

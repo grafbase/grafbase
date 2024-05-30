@@ -228,6 +228,31 @@ where
             return Ok((Arc::new(response), Default::default()));
         }
 
+        #[cfg(feature = "partial-caching")]
+        if self.cache_config.partial_registry.enable_partial_caching {
+            let cache_plan = ::partial_caching::build_plan(
+                request.query(),
+                request.operation_name(),
+                &self.cache_config.partial_registry,
+            );
+
+            match cache_plan {
+                Ok(Some(plan)) => {
+                    cache::partial::partial_caching_execution(plan, &self.cache, &auth, request, ctx.as_ref()).await;
+                    todo!("finish this")
+                }
+                Ok(None) => {
+                    // None means we should proceed with a normal execution.
+                }
+                Err(error) => {
+                    // This probably indicates a malformed query, but the cache planning doesn't have
+                    // especially thorough error reporting in it. So for now I want to pass this to
+                    // the actual execution where it'll get a better error message.
+                    tracing::warn!("error when building cache plan: {error:?}");
+                }
+            }
+        }
+
         match build_cache_key(&self.cache_config, ctx.as_ref(), &request, &auth) {
             Ok(cache_key) => {
                 let execution_fut = Arc::clone(&self.executor)
