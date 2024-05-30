@@ -7,19 +7,24 @@ use super::super::schema;
 #[derive(cynic::QueryFragment)]
 #[cynic(graphql_type = "Query", variables = "ListBranchesArguments")]
 pub struct ListBranches {
-    #[arguments(id: $project_id)]
+    #[arguments(id: $graph_id)]
     pub node: Option<Node>,
 }
 
 #[derive(cynic::QueryVariables)]
 pub struct ListBranchesArguments {
-    pub project_id: cynic::Id,
+    pub graph_id: cynic::Id,
 }
 
 #[derive(cynic::QueryFragment)]
-pub struct Project {
+pub struct Account {
+    pub slug: String,
+}
+
+#[derive(cynic::QueryFragment)]
+pub struct Graph {
     pub branches: BranchConnection,
-    pub account_slug: String,
+    pub account: Account,
     pub slug: String,
     pub production_branch: Branch,
 }
@@ -73,7 +78,7 @@ impl fmt::Display for DeploymentStatus {
 
 #[derive(cynic::InlineFragments)]
 pub enum Node {
-    Project(Project),
+    Graph(Graph),
     #[cynic(fallback)]
     Unknown,
 }

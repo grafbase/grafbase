@@ -5,10 +5,10 @@ pub(crate) mod submit_trusted_documents;
 use super::schema;
 
 #[derive(cynic::InputObject, Clone, Debug)]
-pub struct ProjectCreateInput<'a> {
+pub struct GraphCreateInput<'a> {
     pub account_id: cynic::Id,
-    pub project_slug: &'a str,
-    pub project_root_path: &'a str,
+    pub graph_slug: &'a str,
+    pub repo_root_path: &'a str,
     pub environment_variables: Vec<EnvironmentVariableSpecification<'a>>,
 }
 
@@ -19,8 +19,8 @@ pub struct EnvironmentVariableSpecification<'a> {
 }
 
 #[derive(cynic::QueryVariables)]
-pub struct ProjectCreateArguments<'a> {
-    pub input: ProjectCreateInput<'a>,
+pub struct GraphCreateArguments<'a> {
+    pub input: GraphCreateInput<'a>,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
@@ -40,37 +40,42 @@ pub struct SlugAlreadyExistsError {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-pub struct ProjectCreateSuccess {
+pub struct GraphCreateSuccess {
     pub __typename: String,
-    pub project: Project,
+    pub graph: Graph,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-pub struct Project {
+pub struct Account {
+    pub slug: String,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct Graph {
     pub id: cynic::Id,
     pub slug: String,
-    pub account_slug: String,
+    pub account: Account,
     pub production_branch: Branch,
     #[arguments(last: 5)]
-    pub api_keys: ProjectApiKeyConnection,
+    pub api_keys: GraphApiKeyConnection,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-pub struct ProjectApiKeyConnection {
-    pub nodes: Vec<ProjectApiKey>,
+pub struct GraphApiKeyConnection {
+    pub nodes: Vec<GraphApiKey>,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-pub struct ProjectApiKey {
+pub struct GraphApiKey {
     pub key: String,
     pub name: String,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Mutation", variables = "ProjectCreateArguments")]
-pub struct ProjectCreate {
+#[cynic(graphql_type = "Mutation", variables = "GraphCreateArguments")]
+pub struct GraphCreate {
     #[arguments(input: $input)]
-    pub project_create: ProjectCreatePayload,
+    pub graph_create: GraphCreatePayload,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
@@ -122,8 +127,8 @@ pub struct InvalidEnvironmentVariablesError {
 }
 
 #[derive(cynic::InlineFragments, Debug)]
-pub enum ProjectCreatePayload {
-    ProjectCreateSuccess(ProjectCreateSuccess),
+pub enum GraphCreatePayload {
+    GraphCreateSuccess(GraphCreateSuccess),
     SlugAlreadyExistsError(SlugAlreadyExistsError),
     DisabledAccountError(DisabledAccountError),
     SlugInvalidError(SlugInvalidError),
@@ -188,7 +193,7 @@ pub struct BranchDeleteArguments<'a> {
 pub struct DeploymentCreateInput<'a> {
     pub archive_file_size: i32,
     pub branch: Option<&'a str>,
-    pub project_id: cynic::Id,
+    pub graph_id: cynic::Id,
 }
 
 #[derive(cynic::QueryVariables)]
@@ -208,7 +213,7 @@ pub struct DeploymentCreate {
 pub struct DeploymentBySlugCreateInput<'a> {
     pub archive_file_size: i32,
     pub branch: Option<&'a str>,
-    pub project_slug: &'a str,
+    pub graph_slug: Option<&'a str>,
     pub account_slug: &'a str,
 }
 
@@ -234,7 +239,7 @@ pub struct DeploymentCreateSuccess {
 #[derive(cynic::QueryFragment, Debug)]
 pub struct Deployment {
     pub id: cynic::Id,
-    pub project: Project,
+    pub graph: Graph,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
@@ -286,7 +291,7 @@ pub enum PublishPayload {
 
 cynic::impl_scalar!(url::Url, schema::Url);
 
-#[derive(cynic::QueryVariables)]
+#[derive(cynic::QueryVariables, Debug)]
 pub struct SubgraphCreateArguments<'a> {
     pub input: PublishInput<'a>,
 }
@@ -366,7 +371,7 @@ pub enum SchemaCheckPayload {
 #[derive(cynic::InputObject, Debug)]
 pub struct SchemaCheckCreateInput<'a> {
     pub account_slug: &'a str,
-    pub project_slug: &'a str,
+    pub graph_slug: Option<&'a str>,
     pub branch: Option<&'a str>,
     pub subgraph_name: Option<&'a str>,
     pub schema: &'a str,

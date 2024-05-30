@@ -21,18 +21,10 @@ pub async fn subgraphs(
     }
 }
 
-async fn subgraphs_with_branch(
-    account: &str,
-    project: &str,
-    branch: &str,
-) -> Result<(String, Vec<Subgraph>), ApiError> {
+async fn subgraphs_with_branch(account: &str, graph: &str, branch: &str) -> Result<(String, Vec<Subgraph>), ApiError> {
     let client = create_client().await?;
 
-    let operation = ListSubgraphsQuery::build(ListSubgraphsArguments {
-        account,
-        project,
-        branch,
-    });
+    let operation = ListSubgraphsQuery::build(ListSubgraphsArguments { account, graph, branch });
 
     let response = client.post(api_url()).run_graphql(operation).await?;
     let subgraphs = response
@@ -50,17 +42,17 @@ async fn subgraphs_with_branch(
     }
 }
 
-async fn subgraphs_production_branch(account: &str, project: &str) -> Result<(String, Vec<Subgraph>), ApiError> {
+async fn subgraphs_production_branch(account: &str, graph: &str) -> Result<(String, Vec<Subgraph>), ApiError> {
     let client = create_client().await?;
 
     let operation =
-        ListSubgraphsForProductionBranchQuery::build(ListSubgraphsForProductionBranchArguments { account, project });
+        ListSubgraphsForProductionBranchQuery::build(ListSubgraphsForProductionBranchArguments { account, graph });
 
     let response = client.post(api_url()).run_graphql(operation).await?;
     let subgraphs = response
         .data
         .as_ref()
-        .and_then(|query| query.project_by_account_slug.as_ref())
+        .and_then(|query| query.graph_by_account_slug.as_ref())
         .map(|project| &project.production_branch)
         .and_then(|branch| Some(&branch.name).zip(branch.subgraphs.as_deref()));
 

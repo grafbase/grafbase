@@ -26,14 +26,14 @@ pub async fn schema(
 
 async fn subgraph_schema(
     account: &str,
-    project: &str,
+    graph: &str,
     branch: Option<&str>,
     subgraph_name: &str,
 ) -> Result<String, ApiError> {
     let client = create_client().await?;
     let operation = FetchSubgraphSchemaQuery::build(FetchSubgraphSchemaArguments {
         account,
-        project,
+        graph: Some(graph),
         subgraph_name,
         branch,
     });
@@ -47,13 +47,10 @@ async fn subgraph_schema(
         .ok_or_else(|| ApiError::SubgraphsError(format!("{response:#?}")))
 }
 
-async fn federated_graph_schema(account: &str, project: &str, branch: &str) -> Result<Option<String>, ApiError> {
+async fn federated_graph_schema(account: &str, graph: &str, branch: &str) -> Result<Option<String>, ApiError> {
     let client = create_client().await?;
-    let operation = FetchFederatedGraphSchemaQuery::build(FetchFederatedGraphSchemaArguments {
-        account,
-        project,
-        branch,
-    });
+    let operation =
+        FetchFederatedGraphSchemaQuery::build(FetchFederatedGraphSchemaArguments { account, graph, branch });
     let response = client.post(api_url()).run_graphql(operation).await?;
 
     response

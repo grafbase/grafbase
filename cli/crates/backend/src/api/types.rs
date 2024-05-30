@@ -46,7 +46,17 @@ impl<'a> ToString for Credentials<'a> {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectMetadata {
-    pub project_id: String,
+    project_id: String,
+}
+
+impl ProjectMetadata {
+    pub fn new(project_id: String) -> Self {
+        Self { project_id }
+    }
+
+    pub fn graph_id(&self) -> String {
+        self.project_id.replace("project", "graph")
+    }
 }
 
 #[allow(clippy::to_string_trait_impl)]
