@@ -19,7 +19,7 @@ use indexmap::IndexSet;
 pub struct QuerySubset {
     pub(crate) operation: OperationDefinitionId,
     cache_group: CacheGroup,
-    variables: Vec<VariableDefinitionId>,
+    variables: IndexSet<VariableDefinitionId>,
 }
 
 #[derive(Default, Debug)]
@@ -32,14 +32,12 @@ impl QuerySubset {
     pub(crate) fn new(
         operation: OperationDefinitionId,
         cache_group: CacheGroup,
-        _document: &ExecutableDocument,
+        variables: IndexSet<VariableDefinitionId>,
     ) -> Self {
         QuerySubset {
             operation,
             cache_group,
-
-            // TODO: do this
-            variables: vec![],
+            variables,
         }
     }
 
