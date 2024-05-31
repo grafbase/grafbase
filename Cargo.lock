@@ -1515,7 +1515,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f3f1953f4590381034d75c49a568665567f19ee393d4292835d35bac9724dca"
 dependencies = [
  "counter",
- "cynic-parser 0.4.0",
+ "cynic-parser 0.4.1",
  "darling",
  "once_cell",
  "ouroboros",
@@ -1552,9 +1552,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cdd04fb7248e4ef439cc373564fcdec5b14140b8240e727c264fb85a6f729ee"
+checksum = "7b9f36eeb1107059bea01cc5db8492737c98e9fdf570f909846b8c9fc274aa94"
 dependencies = [
  "ariadne",
  "indexmap 2.2.6",
@@ -2813,7 +2813,7 @@ dependencies = [
  "blake3",
  "bytes",
  "common-types",
- "cynic-parser 0.4.0",
+ "cynic-parser 0.4.1",
  "engine",
  "engine-parser",
  "engine-validation",
@@ -3084,7 +3084,7 @@ version = "0.73.0"
 dependencies = [
  "cynic",
  "cynic-introspection",
- "cynic-parser 0.4.0",
+ "cynic-parser 0.4.1",
  "indoc",
  "reqwest",
  "serde",
@@ -3150,7 +3150,7 @@ dependencies = [
  "common-types",
  "const_format",
  "criterion",
- "cynic-parser 0.4.0",
+ "cynic-parser 0.4.1",
  "dotenv",
  "engine",
  "federated-dev",
@@ -3305,7 +3305,7 @@ name = "graphql-lint"
 version = "0.1.3"
 dependencies = [
  "criterion",
- "cynic-parser 0.4.0",
+ "cynic-parser 0.4.1",
  "heck 0.5.0",
  "thiserror",
 ]
@@ -3358,7 +3358,7 @@ dependencies = [
 name = "graphql-schema-diff"
 version = "0.1.1"
 dependencies = [
- "cynic-parser 0.4.0",
+ "cynic-parser 0.4.1",
  "datatest-stable",
  "miette 7.2.0",
  "serde",
@@ -5637,7 +5637,7 @@ dependencies = [
  "anyhow",
  "blake3",
  "common-types",
- "cynic-parser 0.4.0",
+ "cynic-parser 0.4.1",
  "engine-value",
  "graph-entities",
  "headers",
@@ -6444,7 +6444,7 @@ name = "registry-v2-generator"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "cynic-parser 0.4.0",
+ "cynic-parser 0.4.1",
  "indexmap 2.2.6",
  "indoc",
  "itertools 0.13.0",

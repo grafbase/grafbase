@@ -1,10 +1,12 @@
 mod fragments;
 mod query_partitioner;
+mod variables;
 mod visitor;
 
 use cynic_parser::{common::OperationType, executable::ids::FragmentDefinitionId};
 use indexmap::IndexMap;
 use registry_for_cache::PartialCacheRegistry;
+use variables::variables_required;
 
 use self::{
     fragments::{calculate_ancestry, FragmentAncestry, FragmentSpreadSet, FragmentTracker},
@@ -50,14 +52,17 @@ pub fn build_plan(
 
     let (cache_groups, uncached_group) = visit_fragments(&document, registry, fragment_tracker, partitioner)?;
 
-    let operation = operation.id();
+    let nocache_variables = variables_required(&uncached_group, &document, operation);
 
     Ok(Some(CachingPlan {
         cache_partitions: cache_groups
             .into_iter()
-            .map(|(control, group)| (control, QuerySubset::new(operation, group, &document)))
+            .map(|(control, group)| {
+                let variables = variables_required(&group, &document, operation);
+                (control, QuerySubset::new(operation.id(), group, variables))
+            })
             .collect(),
-        nocache_partition: QuerySubset::new(operation, uncached_group, &document),
+        nocache_partition: QuerySubset::new(operation.id(), uncached_group, nocache_variables),
         document,
     }))
 }

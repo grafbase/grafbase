@@ -7,13 +7,14 @@ const SCHEMA: &str = r#"
 
     type User {
         name: String @cache(maxAge: 140)
-        email: String @cache(maxAge: 130)
+        email(domain: String): String @cache(maxAge: 130)
         someConstant: String @cache(maxAge: 120)
         nested: String @resolver(name: "whatever")
     }
 
     type Nested {
         someThing: String @cache(maxAge: 140)
+        uncached(arg: String): String
     }
 "#;
 
@@ -250,6 +251,42 @@ fn test_subscription() {
     assert!(partial_caching::build_plan(SUBSCRIPTION, None, &registry)
         .unwrap()
         .is_none());
+}
+
+#[test]
+fn test_split_with_variables() {
+    let registry = build_registry(SCHEMA);
+
+    const QUERY: &str = r#"
+        query($theVar: String) {
+            user {
+                email(domain: $theVar)
+                nested { uncached(arg: $theVar) }
+            }
+        }
+    "#;
+
+    let plan = partial_caching::build_plan(QUERY, None, &registry).unwrap().unwrap();
+
+    assert_eq!(plan.cache_partitions.len(), 1);
+
+    insta::assert_snapshot!(plan.cache_partitions[0].1.as_display(&plan.document), @r###"
+    query($theVar: String) {
+      user {
+        email(domain: $theVar)
+      }
+    }
+    "###);
+
+    insta::assert_snapshot!(plan.nocache_partition.as_display(&plan.document), @r###"
+    query($theVar: String) {
+      user {
+        nested {
+          uncached(arg: $theVar)
+        }
+      }
+    }
+    "###);
 }
 
 fn build_registry(schema: &str) -> registry_for_cache::PartialCacheRegistry {
