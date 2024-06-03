@@ -1,0 +1,77 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    LENTILS @join__graph(name: "lentils", url: "http://example.com/lentils")
+    RICE @join__graph(name: "rice", url: "http://example.com/rice")
+}
+
+scalar _Any
+
+type Lentil
+    @join__type(graph: LENTILS, key: "id")
+{
+    color: String! @join__field(graph: LENTILS)
+    id: ID!
+    name: String! @join__field(graph: LENTILS)
+    nutritionalInfo: NutritionalInfo @join__field(graph: LENTILS)
+    origin: String @join__field(graph: LENTILS)
+}
+
+type NutritionalInfo {
+    calories: Int
+    carbohydrates: Float
+    fat: Float
+    fiber: Float
+    protein: Float
+}
+
+type Rice {
+    id: ID! @join__field(graph: RICE)
+    name: String! @join__field(graph: RICE)
+    nutritionalInfo: NutritionalInfo @join__field(graph: RICE)
+    origin: String @join__field(graph: RICE)
+    variety: String! @join__field(graph: RICE)
+}
+
+type Query {
+    lentil(id: ID!): Lentil @join__field(graph: LENTILS)
+    lentils: [Lentil] @join__field(graph: LENTILS)
+    rice(id: ID!): Rice @join__field(graph: RICE)
+    rices: [Rice] @join__field(graph: RICE)
+}
+
+type Mutation {
+    addLentil(input: AddLentilInput!): Lentil @join__field(graph: LENTILS)
+    deleteLentil(id: ID!): Lentil @join__field(graph: LENTILS)
+}
+
+input AddLentilInput {
+    name: String!
+    color: String!
+    origin: String
+    nutritionalInfo: NutritionalInfoInput
+}
+
+input NutritionalInfoInput {
+    calories: Int
+    protein: Float
+    carbohydrates: Float
+    fiber: Float
+    fat: Float
+}

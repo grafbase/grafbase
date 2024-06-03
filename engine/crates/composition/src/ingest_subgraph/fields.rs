@@ -10,6 +10,7 @@ pub(super) fn ingest_input_fields(
     for field in fields {
         let field_type = subgraphs.intern_field_type(&field.node.ty.node);
         let directives = subgraphs.new_directive_site();
+        let field_name = field.node.name.node.as_str();
 
         directives::ingest_directives(directives, &field.node.directives, subgraphs, matcher);
 
@@ -21,7 +22,7 @@ pub(super) fn ingest_input_fields(
 
         subgraphs.push_field(subgraphs::FieldIngest {
             parent_definition_id,
-            field_name: &field.node.name.node,
+            field_name,
             field_type,
             directives,
             description,
@@ -63,10 +64,17 @@ pub(super) fn ingest_fields(
     definition_id: DefinitionId,
     fields: &[Positioned<ast::FieldDefinition>],
     directive_matcher: &DirectiveMatcher<'_>,
+    parent_is_query_root_type: bool,
     subgraphs: &mut Subgraphs,
 ) {
     for field in fields {
         let field = &field.node;
+        let field_name = field.name.node.as_str();
+
+        // These are special fields on Query exposed by subgraphs.
+        if parent_is_query_root_type && ["_entities", "_service"].contains(&field_name) {
+            continue;
+        }
 
         let description = field
             .description
@@ -79,7 +87,7 @@ pub(super) fn ingest_fields(
 
         let field_id = subgraphs.push_field(crate::subgraphs::FieldIngest {
             parent_definition_id: definition_id,
-            field_name: &field.name.node,
+            field_name,
             field_type,
             description,
             directives,
