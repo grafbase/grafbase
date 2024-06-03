@@ -15,6 +15,12 @@ use crate::{
 use async_graphql_parser::{types as ast, Positioned};
 use async_graphql_value::ConstValue;
 
+/// _Service is a special type exposed by subgraphs. It should not be composed.
+const SERVICE_TYPE_NAME: &str = "_Service";
+
+/// _Entity is a special union type exposed by subgraphs. It should not be composed.
+const ENTITY_UNION_NAME: &str = "_Entity";
+
 pub(crate) fn ingest_subgraph(document: &ast::ServiceDocument, name: &str, url: &str, subgraphs: &mut Subgraphs) {
     let subgraph_id = subgraphs.push_subgraph(name, url);
 
@@ -25,7 +31,7 @@ pub(crate) fn ingest_subgraph(document: &ast::ServiceDocument, name: &str, url: 
     });
 
     ingest_top_level_definitions(subgraph_id, document, subgraphs, &directive_matcher, &root_type_matcher);
-    ingest_definition_bodies(subgraph_id, document, subgraphs, &directive_matcher);
+    ingest_definition_bodies(subgraph_id, document, subgraphs, &directive_matcher, &root_type_matcher);
     ingest_nested_key_fields(subgraph_id, subgraphs);
 
     for name in directive_matcher.iter_composed_directives() {
@@ -44,6 +50,7 @@ fn ingest_top_level_definitions(
         match definition {
             ast::TypeSystemDefinition::Type(type_definition) => {
                 let type_name = &type_definition.node.name.node;
+
                 let description = type_definition
                     .node
                     .description
@@ -53,6 +60,9 @@ fn ingest_top_level_definitions(
                 let directives = subgraphs.new_directive_site();
 
                 let definition_id = match &type_definition.node.kind {
+                    ast::TypeKind::Object(_) if type_name == SERVICE_TYPE_NAME => continue,
+                    ast::TypeKind::Union(_) if type_name == ENTITY_UNION_NAME => continue,
+
                     ast::TypeKind::Object(_) => {
                         let definition_id = subgraphs.push_definition(
                             subgraph_id,
@@ -147,6 +157,7 @@ fn ingest_definition_bodies(
     document: &ast::ServiceDocument,
     subgraphs: &mut Subgraphs,
     federation_directives_matcher: &DirectiveMatcher<'_>,
+    root_type_matcher: &RootTypeMatcher<'_>,
 ) {
     let type_definitions = document.definitions.iter().filter_map(|def| match def {
         ast::TypeSystemDefinition::Type(ty) => Some(ty),
@@ -155,6 +166,7 @@ fn ingest_definition_bodies(
 
     for definition in type_definitions {
         match &definition.node.kind {
+            ast::TypeKind::Union(_) if definition.node.name.node == ENTITY_UNION_NAME => continue,
             ast::TypeKind::Union(union) => {
                 let union_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
 
@@ -181,13 +193,17 @@ fn ingest_definition_bodies(
                     subgraphs.push_interface_impl(definition_name, implemented_interface);
                 }
 
+                let is_query_root_type = false; // interfaces can't be at the root
+
                 fields::ingest_fields(
                     definition_id,
                     &interface.fields,
                     federation_directives_matcher,
+                    is_query_root_type,
                     subgraphs,
                 );
             }
+            ast::TypeKind::Object(_) if definition.node.name.node == SERVICE_TYPE_NAME => continue,
             ast::TypeKind::Object(object_type) => {
                 let definition_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
                 let definition_name = subgraphs.walk(definition_id).name().id;
@@ -197,10 +213,13 @@ fn ingest_definition_bodies(
                     subgraphs.push_interface_impl(definition_name, implemented_interface);
                 }
 
+                let is_query_root_type = root_type_matcher.is_query(&definition.node.name.node);
+
                 fields::ingest_fields(
                     definition_id,
                     &object_type.fields,
                     federation_directives_matcher,
+                    is_query_root_type,
                     subgraphs,
                 );
             }

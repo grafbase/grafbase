@@ -31,6 +31,10 @@ pub(super) struct RootTypeMatcher<'a> {
 }
 
 impl RootTypeMatcher<'_> {
+    pub(crate) fn is_query(&self, name: &str) -> bool {
+        matches!(self.match_name(name), RootTypeMatch::Query)
+    }
+
     pub(crate) fn match_name(&self, name: &str) -> RootTypeMatch {
         for (name_from_definition, default_name, match_case) in [
             (self.query, "Query", RootTypeMatch::Query),

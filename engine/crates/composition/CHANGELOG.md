@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Ignore federation mandated fields (_entities, _service) and types (https://github.com/grafbase/grafbase/pull/1743)
 - Validate that required arguments are provided in @requires selections (https://github.com/grafbase/grafbase/pull/1683)
 - More context for error messages regarding `@requires` fields validations (https://github.com/grafbase/grafbase/pull/1683)
 - Subgraph names must now start with an alphabetic character and be entirely alphanumeric characters and hyphens (https://github.com/grafbase/grafbase/pull/1685)

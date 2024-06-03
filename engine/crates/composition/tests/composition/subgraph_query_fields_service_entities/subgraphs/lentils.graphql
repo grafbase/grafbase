@@ -1,0 +1,54 @@
+union _Entity = Lentil
+
+type _Service {
+  sdl: String!
+}
+
+scalar _Any
+
+type Qwery {
+  lentils: [Lentil]
+  lentil(id: ID!): Lentil
+  _service: _Service!
+  _entities(representations: [_Any!]!): [_Entity]!
+}
+
+type Mutation {
+  addLentil(input: AddLentilInput!): Lentil
+  deleteLentil(id: ID!): Lentil
+}
+
+type Lentil @key(fields: "id") {
+  id: ID!
+  name: String!
+  color: String!
+  origin: String
+  nutritionalInfo: NutritionalInfo
+}
+
+type NutritionalInfo @shareable {
+  calories: Int
+  protein: Float
+  carbohydrates: Float
+  fiber: Float
+  fat: Float
+}
+
+input AddLentilInput {
+  name: String!
+  color: String!
+  origin: String
+  nutritionalInfo: NutritionalInfoInput
+}
+
+input NutritionalInfoInput {
+  calories: Int
+  protein: Float
+  carbohydrates: Float
+  fiber: Float
+  fat: Float
+}
+
+schema {
+  query: Qwery
+}

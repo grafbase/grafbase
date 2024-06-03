@@ -1,0 +1,52 @@
+type Lentil {
+    color: String!
+    id: ID!
+    name: String!
+    nutritionalInfo: NutritionalInfo
+    origin: String
+}
+
+type NutritionalInfo {
+    calories: Int
+    carbohydrates: Float
+    fat: Float
+    fiber: Float
+    protein: Float
+}
+
+type Rice {
+    id: ID!
+    name: String!
+    nutritionalInfo: NutritionalInfo
+    origin: String
+    variety: String!
+}
+
+type Query {
+    lentil: Lentil
+    lentils: [Lentil]
+    rice: Rice
+    rices: [Rice]
+}
+
+type Mutation {
+    addLentil: Lentil
+    deleteLentil: Lentil
+}
+
+input AddLentilInput {
+    name: String!
+    color: String!
+    origin: String
+    nutritionalInfo: NutritionalInfoInput
+}
+
+input NutritionalInfoInput {
+    calories: Int
+    protein: Float
+    carbohydrates: Float
+    fiber: Float
+    fat: Float
+}
+
+scalar _Any

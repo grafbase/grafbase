@@ -1,0 +1,30 @@
+type Query {
+  rices: [Rice]
+  rice(id: ID!): Rice
+  _service: _Service!
+  _entities(representations: [_Any!]!): [_Entity]!
+}
+
+type Rice {
+  id: ID!
+  name: String!
+  variety: String!
+  origin: String
+  nutritionalInfo: NutritionalInfo
+}
+
+type NutritionalInfo @shareable {
+  calories: Int
+  protein: Float
+  carbohydrates: Float
+  fiber: Float
+  fat: Float
+}
+
+scalar _Any
+
+union _Entity = Rice
+
+type _Service {
+  sdl: String!
+}

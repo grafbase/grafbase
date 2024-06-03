@@ -103,6 +103,7 @@ fn merge_object_definitions<'a>(
 
     fields::for_each_field_group(definitions, |fields| {
         let Some(first) = fields.first() else { return };
+
         object::compose_object_fields(object_id, is_shareable, *first, fields, ctx);
     });
 }
