@@ -22,22 +22,29 @@ pub(crate) struct QueryPartitioner {
 }
 
 impl QueryPartitioner {
-    pub fn new() -> Self {
+    pub fn new(root_cache_control: Option<&CacheControl>) -> Self {
         QueryPartitioner {
             selection_stack: vec![],
             current_fragment: None,
             cache_partitions: IndexMap::new(),
             nocache_partition: CacheGroup::default(),
-            cache_control_stack: vec![],
+            cache_control_stack: root_cache_control.into_iter().cloned().collect::<Vec<_>>(),
         }
     }
 
-    pub fn for_next_fragment(self, current_fragment: FragmentDefinitionId) -> Self {
+    pub fn for_next_fragment(
+        mut self,
+        next_fragment: FragmentDefinitionId,
+        starting_cache_control: Option<&CacheControl>,
+    ) -> Self {
         // If this isn't empty something has gone horribly wrong
         assert!(self.selection_stack.is_empty());
 
+        self.cache_control_stack.clear();
+        self.cache_control_stack.extend(starting_cache_control.cloned());
+
         QueryPartitioner {
-            current_fragment: Some(current_fragment),
+            current_fragment: Some(next_fragment),
             ..self
         }
     }
@@ -80,16 +87,6 @@ impl super::visitor::Visitor for QueryPartitioner {
         if edge.cache_control().is_some() {
             self.cache_control_stack.pop();
         }
-    }
-}
-
-impl<'a> FieldEdge<'a> {
-    fn cache_control(&self) -> Option<&'a CacheControl> {
-        let field_cache_control = self.field.and_then(|field| field.cache_control());
-        let type_cache_control = self.field_type.and_then(|ty| ty.cache_control());
-
-        // Field cache control takes precedence
-        field_cache_control.or(type_cache_control)
     }
 }
 

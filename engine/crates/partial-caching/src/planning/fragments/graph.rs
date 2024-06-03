@@ -1,21 +1,21 @@
 use std::collections::HashSet;
 
-use cynic_parser::executable::ids::FragmentDefinitionId;
 use indexmap::{IndexMap, IndexSet};
 
-use super::FragmentSpreadSet;
+use super::{FragmentKey, FragmentSpreadSet};
 
 /// A graph of dependencies between fragments, used to calculate which fields/fragments
 /// need to be included if a particular fragment is included.
+#[derive(Debug)]
 pub struct FragmentGraph {
     /// All fragments in the query, and a set of fragments that contain that fragment.
     /// None in the set indicates this fragment is contained in the query
-    direct_parents: IndexMap<FragmentDefinitionId, IndexSet<Option<FragmentDefinitionId>>>,
+    direct_parents: IndexMap<FragmentKey, IndexSet<Option<FragmentKey>>>,
 }
 
 impl FragmentGraph {
     pub fn new(
-        fragments_in_fragments: &IndexMap<FragmentDefinitionId, FragmentSpreadSet>,
+        fragments_in_fragments: &IndexMap<FragmentKey, FragmentSpreadSet>,
         fragments_in_query: &FragmentSpreadSet,
     ) -> Self {
         let mut this = FragmentGraph {
@@ -24,39 +24,39 @@ impl FragmentGraph {
 
         // Invert fragments_in_fragments so we have a map from child -> parents
         for (parent_id, children) in fragments_in_fragments {
-            for child_id in children.fragment_ids() {
+            for child_id in children.fragment_keys() {
                 this.direct_parents
-                    .entry(child_id)
+                    .entry(child_id.clone())
                     .or_default()
-                    .insert(Some(*parent_id));
+                    .insert(Some(parent_id.clone()));
             }
         }
 
         // Add in the nodes that point to our query
-        for child_id in fragments_in_query.fragment_ids() {
-            this.direct_parents.entry(child_id).or_default().insert(None);
+        for child_id in fragments_in_query.fragment_keys() {
+            this.direct_parents.entry(child_id.clone()).or_default().insert(None);
         }
 
         this
     }
 
     pub fn fragments(&self) -> impl Iterator<Item = Fragment<'_>> {
-        self.direct_parents.keys().map(|id| Fragment { graph: self, id: *id })
+        self.direct_parents.keys().map(|id| Fragment { graph: self, key: id })
     }
 }
 
 pub struct Fragment<'a> {
     graph: &'a FragmentGraph,
-    pub id: FragmentDefinitionId,
+    pub key: &'a FragmentKey,
 }
 
 impl<'a> Fragment<'a> {
     pub fn ancestor_edges(&self) -> AncestorEdgeIterator<'a> {
-        let stack = self.graph.direct_parents[&self.id]
+        let stack = self.graph.direct_parents[self.key]
             .iter()
-            .map(|parent_id| AncestorEdge {
-                child_id: self.id,
-                parent_id: *parent_id,
+            .map(|parent_key| AncestorEdge {
+                child_key: self.key,
+                parent_key: parent_key.as_ref(),
             })
             .collect::<Vec<_>>();
 
@@ -70,12 +70,12 @@ impl<'a> Fragment<'a> {
 
 pub struct AncestorEdgeIterator<'a> {
     graph: &'a FragmentGraph,
-    edges_seen: HashSet<AncestorEdge>,
-    stack: Vec<AncestorEdge>,
+    edges_seen: HashSet<AncestorEdge<'a>>,
+    stack: Vec<AncestorEdge<'a>>,
 }
 
-impl Iterator for AncestorEdgeIterator<'_> {
-    type Item = AncestorEdge;
+impl<'a> Iterator for AncestorEdgeIterator<'a> {
+    type Item = AncestorEdge<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -88,12 +88,12 @@ impl Iterator for AncestorEdgeIterator<'_> {
             }
             self.edges_seen.insert(edge);
 
-            if let Some(parent) = edge.parent_id {
-                if let Some(grandparents) = self.graph.direct_parents.get(&parent) {
+            if let Some(parent) = edge.parent_key {
+                if let Some(grandparents) = self.graph.direct_parents.get(parent) {
                     self.stack
                         .extend(grandparents.iter().map(|grandparent_id| AncestorEdge {
-                            child_id: parent,
-                            parent_id: *grandparent_id,
+                            child_key: parent,
+                            parent_key: grandparent_id.as_ref(),
                         }));
                 }
             }
@@ -104,7 +104,7 @@ impl Iterator for AncestorEdgeIterator<'_> {
 }
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy)]
-pub struct AncestorEdge {
-    pub parent_id: Option<FragmentDefinitionId>,
-    pub child_id: FragmentDefinitionId,
+pub struct AncestorEdge<'a> {
+    pub parent_key: Option<&'a FragmentKey>,
+    pub child_key: &'a FragmentKey,
 }

@@ -3,9 +3,10 @@ mod query_partitioner;
 mod variables;
 mod visitor;
 
-use cynic_parser::{common::OperationType, executable::ids::FragmentDefinitionId};
+use cynic_parser::common::OperationType;
+use fragments::FragmentKey;
 use indexmap::IndexMap;
-use registry_for_cache::PartialCacheRegistry;
+use registry_for_cache::{CacheControl, PartialCacheRegistry};
 use variables::variables_required;
 
 use self::{
@@ -41,8 +42,9 @@ pub fn build_plan(
         return Ok(None);
     }
 
-    let mut partitioner = QueryPartitioner::new();
-    let mut fragment_tracker = FragmentTracker::new();
+    let root_cache_control = registry.query_type().cache_control();
+    let mut partitioner = QueryPartitioner::new(root_cache_control);
+    let mut fragment_tracker = FragmentTracker::new(root_cache_control);
 
     visit_query(
         operation,
@@ -76,19 +78,20 @@ fn visit_fragments(
     IndexMap<registry_for_cache::CacheControl, crate::query_subset::CacheGroup>,
     crate::query_subset::CacheGroup,
 )> {
-    let fragments_in_query = FragmentSpreadSet::from_tracker(fragment_tracker, document)?;
+    let fragments_in_query = fragment_tracker.into_spreads()?;
 
-    let mut fragments_to_visit = fragments_in_query.fragment_ids().collect::<Vec<_>>();
-    let mut fragments_in_fragments = IndexMap::<FragmentDefinitionId, FragmentSpreadSet>::new();
+    let mut fragments_to_visit = fragments_in_query.fragment_keys().collect::<Vec<_>>();
+    let mut fragments_in_fragments = IndexMap::<FragmentKey, FragmentSpreadSet>::new();
 
-    while let Some(fragment_id) = fragments_to_visit.pop() {
-        let fragment = document.read(fragment_id);
-        if fragments_in_fragments.contains_key(&fragment_id) {
+    while let Some(fragment_key) = fragments_to_visit.pop() {
+        let fragment = document.read(fragment_key.id);
+        if fragments_in_fragments.contains_key(&fragment_key) {
             continue;
         }
+        eprintln!("Visiting fragment {} with key {:?}", fragment.name(), fragment_key);
 
-        partitioner = partitioner.for_next_fragment(fragment_id);
-        let mut fragment_tracker = FragmentTracker::new();
+        partitioner = partitioner.for_next_fragment(fragment_key.id, fragment_key.spread_cache_control.as_ref());
+        let mut fragment_tracker = FragmentTracker::new(fragment_key.spread_cache_control.as_ref());
 
         visit_fragment(
             fragment,
@@ -96,11 +99,11 @@ fn visit_fragments(
             &mut VisitorContext::new(&mut [&mut partitioner, &mut fragment_tracker]),
         );
 
-        let spreads = FragmentSpreadSet::from_tracker(fragment_tracker, document)?;
+        let spreads = fragment_tracker.into_spreads()?;
 
-        fragments_to_visit.extend(spreads.fragment_ids());
+        fragments_to_visit.extend(spreads.fragment_keys());
 
-        fragments_in_fragments.insert(fragment_id, spreads);
+        fragments_in_fragments.insert(fragment_key, spreads);
     }
 
     let ancestor_map = calculate_ancestry(fragments_in_fragments, fragments_in_query);
@@ -108,21 +111,35 @@ fn visit_fragments(
     let mut cache_partitions = partitioner.cache_partitions;
     let mut nocache_partition = partitioner.nocache_partition;
 
-    nocache_partition.update_with_fragment_ancestors(&ancestor_map);
-    for group in cache_partitions.values_mut() {
-        group.update_with_fragment_ancestors(&ancestor_map);
+    nocache_partition.update_with_fragment_ancestors(None, &ancestor_map);
+    for (cache_control, group) in cache_partitions.iter_mut() {
+        group.update_with_fragment_ancestors(Some(cache_control), &ancestor_map);
     }
 
     Ok((cache_partitions, nocache_partition))
 }
 
 impl CacheGroup {
-    fn update_with_fragment_ancestors(&mut self, ancestors: &IndexMap<FragmentDefinitionId, FragmentAncestry>) {
+    fn update_with_fragment_ancestors(
+        &mut self,
+        cache_control_for_group: Option<&CacheControl>,
+        ancestors: &IndexMap<FragmentKey, FragmentAncestry>,
+    ) {
         for fragment_id in self.fragments.iter().copied().collect::<Vec<_>>() {
-            if let Some(ancestors) = ancestors.get(&fragment_id) {
+            let key = FragmentKey::new(fragment_id, cache_control_for_group.cloned());
+            if let Some(ancestors) = ancestors.get(&key) {
                 self.selections.extend(ancestors.selections.iter().copied());
                 self.fragments.extend(ancestors.fragments.iter().copied())
             }
         }
+    }
+}
+
+impl<'a> visitor::FieldEdge<'a> {
+    fn cache_control(&self) -> Option<&'a registry_for_cache::CacheControl> {
+        let field_cache_control = self.field.and_then(|field| field.cache_control());
+        let type_cache_control = self.field_type.and_then(|ty| ty.cache_control());
+
+        field_cache_control.or(type_cache_control)
     }
 }
