@@ -49,7 +49,7 @@ pub(crate) use sub_command::SubCommand;
 pub(crate) use subgraphs::SubgraphsCommand;
 
 use clap::Parser;
-use common::consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER};
+use common::consts::TRACE_LOG_FILTER;
 use std::path::PathBuf;
 
 const DEFAULT_SUBGRAPH_PORT: u16 = 4000;
@@ -79,6 +79,8 @@ pub struct Args {
     /// Set the tracing level
     #[arg(short, long, default_value_t = 0)]
     pub trace: u16,
+    #[arg(long, hide = true)]
+    pub custom_trace_filter: Option<String>,
     #[command(subcommand)]
     pub command: SubCommand,
     /// An optional replacement path for the home directory
@@ -87,11 +89,13 @@ pub struct Args {
 }
 
 impl Args {
-    pub fn log_filter(&self) -> &str {
-        if self.trace >= 1 {
-            TRACE_LOG_FILTER
+    pub fn log_filter(&self) -> Option<&str> {
+        if let Some(custom_trace) = &self.custom_trace_filter {
+            Some(custom_trace.as_str())
+        } else if self.trace >= 1 {
+            Some(TRACE_LOG_FILTER)
         } else {
-            DEFAULT_LOG_FILTER
+            None
         }
     }
 }
