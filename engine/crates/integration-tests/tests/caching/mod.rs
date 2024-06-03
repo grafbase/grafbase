@@ -13,8 +13,8 @@ fn should_cache_with_entity_mutation_invalidation_custom_field() {
         }
 
         extend schema @cache(rules: [
-                { maxAge: 60, staleWhileRevalidate: 10, types: [{name: "Post", fields: ["seconds"]}],  mutationInvalidation: { field: "seconds" } },
-            ]
+            { maxAge: 60, staleWhileRevalidate: 10, types: [{name: "Post", fields: ["seconds"]}],  mutationInvalidation: { field: "seconds" } },
+        ]
         )
 
         type Post {
