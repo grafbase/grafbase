@@ -74,6 +74,7 @@ pub(super) async fn resolve(
                     "path": ctx.response_path(),
                     "variableValues": &ctx.query_env.variables,
                 })),
+                secrets: runtime_ctx.secrets.clone(),
             },
             udf_kind: UdfKind::Resolver,
         },

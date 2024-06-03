@@ -16,6 +16,7 @@ pub struct EngineBuilder {
     openapi_specs: HashMap<String, String>,
     environment_variables: HashMap<String, String>,
     custom_resolvers: Option<CustomResolverInvoker>,
+    secrets: runtime::context::Secrets,
 }
 
 pub struct RequestContext {
@@ -72,6 +73,7 @@ impl EngineBuilder {
             openapi_specs: HashMap::new(),
             environment_variables: HashMap::new(),
             custom_resolvers: None,
+            secrets: Default::default(),
         }
     }
 
@@ -82,6 +84,11 @@ impl EngineBuilder {
 
     pub fn with_env_var(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.environment_variables.insert(name.into(), value.into());
+        self
+    }
+
+    pub fn with_secrets(mut self, secrets: impl Into<runtime::context::Secrets>) -> Self {
+        self.secrets = secrets.into();
         self
     }
 
@@ -131,6 +138,7 @@ impl EngineBuilder {
                 headers: Default::default(),
                 wait_until: sender,
             }),
+            self.secrets,
             runtime::context::LogContext {
                 fetch_log_endpoint_url: None,
                 request_log_event_id: None,

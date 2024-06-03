@@ -22,6 +22,7 @@ interface UdfRequestPayload {
   parent: unknown
   context: unknown
   args: unknown
+  secrets: unknown
 }
 
 // type NodeResponse = ServerResponse<IncomingMessage> & { req: IncomingMessage }
@@ -237,7 +238,8 @@ export const invoke = async (request: Request) => {
   logEntries = []
   fetchRequests = []
 
-  let { parent, args, context, info } = (await request.json()) as UdfRequestPayload
+  let { parent, args, context, info, secrets } = (await request.json()) as UdfRequestPayload
+  globalThis.process.env = Object.freeze(secrets)
 
   let returnValue: unknown = null
 

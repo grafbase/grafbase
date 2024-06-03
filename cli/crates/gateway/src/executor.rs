@@ -49,6 +49,7 @@ impl Executor {
     ) -> Result<engine::Schema, crate::Error> {
         let runtime_ctx = runtime::context::Context::new(
             ctx,
+            Default::default(),
             runtime::context::LogContext {
                 fetch_log_endpoint_url: Some(format!(
                     "http://{}:{}",
