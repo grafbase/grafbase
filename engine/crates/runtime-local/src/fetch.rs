@@ -50,8 +50,8 @@ impl FetcherInner for NativeFetcher {
         &self,
         request: GraphqlRequest<'_>,
     ) -> FetchResult<BoxStream<'static, Result<serde_json::Value, FetchError>>> {
-        use async_tungstenite::tungstenite::{client::IntoClientRequest, http::HeaderValue};
         use futures_util::StreamExt;
+        use tungstenite::{client::IntoClientRequest, http::HeaderValue};
 
         let (connection, _) = {
             let mut request = request.url.into_client_request().unwrap();

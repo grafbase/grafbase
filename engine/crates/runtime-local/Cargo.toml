@@ -22,6 +22,7 @@ ulid.workspace = true
 serde.workspace = true
 serde_json.workspace  = true
 tracing.workspace = true
+tungstenite = { workspace = true, features = ["url"] }
 
 runtime.workspace = true
 postgres-connector-types = { path = "../postgres-connector-types" }
