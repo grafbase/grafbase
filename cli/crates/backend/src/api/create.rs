@@ -3,9 +3,8 @@ use super::consts::api_url;
 use super::deploy;
 use super::errors::{ApiError, CreateError};
 use super::graphql::mutations::{
-    CurrentPlanLimitReachedError, DuplicateDatabaseRegionsError, EnvironmentVariableSpecification,
-    InvalidDatabaseRegionsError, ProjectCreate, ProjectCreateArguments, ProjectCreateInput, ProjectCreatePayload,
-    SlugTooLongError,
+    CurrentPlanLimitReachedError, DuplicateDatabaseRegionsError, EnvironmentVariableSpecification, GraphCreate,
+    GraphCreateArguments, GraphCreateInput, GraphCreatePayload, InvalidDatabaseRegionsError, SlugTooLongError,
 };
 use super::graphql::queries::viewer_for_create::{PersonalAccount, Viewer};
 use super::types::{Account, ProjectMetadata};
@@ -78,11 +77,11 @@ pub async fn create(
 
     let client = create_client().await?;
 
-    let operation = ProjectCreate::build(ProjectCreateArguments {
-        input: ProjectCreateInput {
+    let operation = GraphCreate::build(GraphCreateArguments {
+        input: GraphCreateInput {
             account_id: Id::new(account_id),
-            project_slug,
-            project_root_path: project
+            graph_slug: project_slug,
+            repo_root_path: project
                 .schema_path
                 .path()
                 .parent()
@@ -98,18 +97,15 @@ pub async fn create(
     });
 
     let response = client.post(api_url()).run_graphql(operation).await?;
-    let payload = response.data.ok_or(ApiError::UnauthorizedOrDeletedUser)?.project_create;
+    let payload = response.data.ok_or(ApiError::UnauthorizedOrDeletedUser)?.graph_create;
 
     match payload {
-        ProjectCreatePayload::ProjectCreateSuccess(project_create_success) => {
+        GraphCreatePayload::GraphCreateSuccess(project_create_success) => {
             let project_metadata_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
 
             tokio::fs::write(
                 &project_metadata_path,
-                ProjectMetadata {
-                    project_id: project_create_success.project.id.into_inner().clone(),
-                }
-                .to_string(),
+                ProjectMetadata::new(project_create_success.graph.id.into_inner().clone()).to_string(),
             )
             .await
             .map_err(ApiError::WriteProjectMetadataFile)?;
@@ -117,7 +113,7 @@ pub async fn create(
             let (deployment_id, _, project_slug) = deploy::deploy(None, None).await?;
 
             let domains = project_create_success
-                .project
+                .graph
                 .production_branch
                 .domains
                 .iter()
@@ -126,29 +122,27 @@ pub async fn create(
 
             Ok((domains, deployment_id, project_slug))
         }
-        ProjectCreatePayload::SlugAlreadyExistsError(_) => Err(CreateError::SlugAlreadyExists.into()),
-        ProjectCreatePayload::SlugInvalidError(_) => Err(CreateError::SlugInvalid.into()),
-        ProjectCreatePayload::SlugTooLongError(SlugTooLongError { max_length, .. }) => {
+        GraphCreatePayload::SlugAlreadyExistsError(_) => Err(CreateError::SlugAlreadyExists.into()),
+        GraphCreatePayload::SlugInvalidError(_) => Err(CreateError::SlugInvalid.into()),
+        GraphCreatePayload::SlugTooLongError(SlugTooLongError { max_length, .. }) => {
             Err(CreateError::SlugTooLong { max_length }.into())
         }
-        ProjectCreatePayload::AccountDoesNotExistError(_) => Err(CreateError::AccountDoesNotExist.into()),
-        ProjectCreatePayload::CurrentPlanLimitReachedError(CurrentPlanLimitReachedError { max, .. }) => {
+        GraphCreatePayload::AccountDoesNotExistError(_) => Err(CreateError::AccountDoesNotExist.into()),
+        GraphCreatePayload::CurrentPlanLimitReachedError(CurrentPlanLimitReachedError { max, .. }) => {
             Err(CreateError::CurrentPlanLimitReached { max }.into())
         }
-        ProjectCreatePayload::DuplicateDatabaseRegionsError(DuplicateDatabaseRegionsError { duplicates, .. }) => {
+        GraphCreatePayload::DuplicateDatabaseRegionsError(DuplicateDatabaseRegionsError { duplicates, .. }) => {
             Err(CreateError::DuplicateDatabaseRegions { duplicates }.into())
         }
-        ProjectCreatePayload::EmptyDatabaseRegionsError(_) => Err(CreateError::EmptyDatabaseRegions.into()),
-        ProjectCreatePayload::InvalidDatabaseRegionsError(InvalidDatabaseRegionsError { invalid, .. }) => {
+        GraphCreatePayload::EmptyDatabaseRegionsError(_) => Err(CreateError::EmptyDatabaseRegions.into()),
+        GraphCreatePayload::InvalidDatabaseRegionsError(InvalidDatabaseRegionsError { invalid, .. }) => {
             Err(CreateError::InvalidDatabaseRegions { invalid }.into())
         }
-        ProjectCreatePayload::InvalidEnvironmentVariablesError(_) => {
-            Err(CreateError::InvalidEnvironmentVariables.into())
-        }
-        ProjectCreatePayload::EnvironmentVariableCountLimitExceededError(_) => {
+        GraphCreatePayload::InvalidEnvironmentVariablesError(_) => Err(CreateError::InvalidEnvironmentVariables.into()),
+        GraphCreatePayload::EnvironmentVariableCountLimitExceededError(_) => {
             Err(CreateError::EnvironmentVariableCountLimitExceeded.into())
         }
-        ProjectCreatePayload::DisabledAccountError(_) => Err(CreateError::DisabledAccount.into()),
-        ProjectCreatePayload::Unknown(error) => Err(CreateError::Unknown(error).into()),
+        GraphCreatePayload::DisabledAccountError(_) => Err(CreateError::DisabledAccount.into()),
+        GraphCreatePayload::Unknown(error) => Err(CreateError::Unknown(error).into()),
     }
 }

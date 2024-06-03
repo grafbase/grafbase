@@ -97,7 +97,7 @@ pub async fn link_project(project_id: String) -> Result<(), ApiError> {
         Err(error) => return Err(ApiError::ReadProjectDotGrafbaseFolder(error)),
     }
     let project_metadata_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
-    tokio::fs::write(&project_metadata_path, ProjectMetadata { project_id }.to_string())
+    tokio::fs::write(&project_metadata_path, ProjectMetadata::new(project_id).to_string())
         .await
         .map_err(ApiError::WriteProjectMetadataFile)
 }

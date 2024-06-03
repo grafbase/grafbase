@@ -3,15 +3,16 @@ use cynic::{http::ReqwestExt, QueryBuilder};
 use crate::api::graphql::queries::log_entries::LogEventsQuery;
 
 pub use super::graphql::queries::log_entries::{FunctionLogEvent, GatewayRequestLogEvent, LogEvent};
+use super::graphql::queries::project_slug_by_id::GraphSlugById;
 pub use super::utils::project_linked;
 use super::{
     client::create_client,
     consts::api_url,
     errors::ApiError,
     graphql::queries::{
-        branch_by_domain::{Branch, BranchByDomain, BranchByDomainArguments, Project},
+        branch_by_domain::{Account, Branch, BranchByDomain, BranchByDomainArguments, Graph},
         log_entries::{LogEventFilter, LogEventsArguments},
-        project_slug_by_id::{ProjectSlugById, ProjectSlugByIdArguments, ProjectSlugByIdProject},
+        project_slug_by_id::GraphSlugByIdArguments,
         viewer_for_link::{PersonalAccount, Viewer},
     },
 };
@@ -51,10 +52,11 @@ pub async fn branch_by_domain(domain: &str) -> Result<Option<(String, String, St
 
     Ok(response.branch_by_domain.map(
         |Branch {
-             project: Project {
-                 account_slug,
-                 slug: project_slug,
-             },
+             graph:
+                 Graph {
+                     account: Account { slug: account_slug },
+                     slug: project_slug,
+                 },
              name,
          }| { (account_slug, project_slug, name) },
     ))
@@ -71,7 +73,7 @@ pub enum LogEventsRange {
 /// see [`ApiError`]
 pub async fn logs_events_by_time_range(
     account_slug: &str,
-    project_slug: &str,
+    graph_slug: &str,
     branch: Option<&str>,
     range: LogEventsRange,
 ) -> Result<Vec<LogEvent>, ApiError> {
@@ -87,7 +89,7 @@ pub async fn logs_events_by_time_range(
         LogEventsRange::Last(count) => (
             LogEventsArguments {
                 account_slug,
-                project_slug,
+                graph_slug,
                 last: Some(i32::from(count)),
                 filter,
                 ..Default::default()
@@ -97,7 +99,7 @@ pub async fn logs_events_by_time_range(
         LogEventsRange::After(after) => (
             LogEventsArguments {
                 account_slug,
-                project_slug,
+                graph_slug,
                 after: Some(after.to_string()),
                 first: Some(i32::from(PAGE_SIZE)),
                 filter,
@@ -114,7 +116,7 @@ pub async fn logs_events_by_time_range(
         let response = client.post(api_url()).run_graphql(query).await?;
         let response = response.data.expect("must exist");
 
-        let mut project = response.project_by_account_slug.ok_or(ApiError::ProjectDoesNotExist)?;
+        let mut project = response.graph_by_account_slug.ok_or(ApiError::ProjectDoesNotExist)?;
 
         assert!(project.log_events.page_info.end_cursor >= project.log_events.page_info.start_cursor);
         if project.log_events.page_info.has_next_page {
@@ -146,16 +148,20 @@ pub async fn logs_events_by_time_range(
 /// # Errors
 ///
 /// see [`ApiError`]
-pub async fn project_slug_by_id(id: &str) -> Result<Option<(String, String)>, ApiError> {
+pub async fn graph_slug_by_id(id: &str) -> Result<Option<(String, String)>, ApiError> {
     let client = create_client().await?;
 
-    let query = ProjectSlugById::build(ProjectSlugByIdArguments { id });
+    let query = GraphSlugById::build(GraphSlugByIdArguments { id });
 
     let response = client.post(api_url()).run_graphql(query).await?;
 
     let response = response.data.expect("must exist");
 
-    Ok(response
-        .project_by_id
-        .map(|ProjectSlugByIdProject { account_slug, slug }| (account_slug, slug)))
+    Ok(response.node.and_then(|node| match node {
+        super::graphql::queries::project_slug_by_id::Node::Graph(graph) => Some((graph.account.slug, graph.slug)),
+        super::graphql::queries::project_slug_by_id::Node::Project(project) => {
+            Some((project.account_slug, project.slug))
+        }
+        super::graphql::queries::project_slug_by_id::Node::Unknown => None,
+    }))
 }

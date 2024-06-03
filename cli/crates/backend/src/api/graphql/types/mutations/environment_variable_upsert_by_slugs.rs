@@ -35,7 +35,7 @@ pub struct EnvironmentVariableUpsertBySlugs {
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Mutation", variables = "EnvironmentVariableUpsertVariables")]
 pub struct EnvironmentVariableUpsert {
-    #[arguments(input: { projectId: $project_id, environments: $environments, name: $name, value: $value })]
+    #[arguments(input: { graphId: $graph_id, environments: $environments, name: $name, value: $value })]
     pub environent_variable_upsert: EnvironmentVariableCreatePayload,
 }
 
@@ -56,7 +56,7 @@ pub struct EnvironmentVariableUpsertBySlugsVariables<'a> {
 
 #[derive(cynic::QueryVariables)]
 pub struct EnvironmentVariableUpsertVariables<'a> {
-    pub project_id: cynic::Id,
+    pub graph_id: cynic::Id,
     pub environments: Vec<BranchEnvironment>,
     pub name: &'a str,
     pub value: &'a str,

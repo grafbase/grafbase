@@ -15,7 +15,7 @@ pub enum SchemaCheckResult {
 
 pub async fn check(
     account: &str,
-    project: &str,
+    graph: &str,
     branch: Option<&str>,
     subgraph_name: Option<&str>,
     schema: &str,
@@ -26,7 +26,7 @@ pub async fn check(
     let operation = SchemaCheckCreate::build(SchemaCheckCreateArguments {
         input: SchemaCheckCreateInput {
             account_slug: account,
-            project_slug: project,
+            graph_slug: Some(graph),
             branch,
             subgraph_name,
             schema,

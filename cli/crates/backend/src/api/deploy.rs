@@ -29,7 +29,7 @@ enum ProjectDefinition {
     },
     BySlugs {
         account_slug: String,
-        project_slug: String,
+        graph_slug: String,
         branch: Option<String>,
     },
 }
@@ -44,7 +44,7 @@ pub async fn deploy(
     let project_definition = match graph_ref {
         Some((account_slug, project_slug, branch)) => ProjectDefinition::BySlugs {
             account_slug,
-            project_slug,
+            graph_slug: project_slug,
             branch,
         },
         None => {
@@ -65,7 +65,7 @@ pub async fn deploy(
                 serde_json::from_str(&project_metadata_file).map_err(|_| ApiError::CorruptProjectMetadataFile)?;
 
             ProjectDefinition::ById {
-                project_id: project_metadata.project_id,
+                project_id: project_metadata.graph_id(),
                 branch,
             }
         }
@@ -97,8 +97,8 @@ pub async fn deploy(
 
             Ok((
                 payload.deployment.id,
-                payload.deployment.project.account_slug,
-                payload.deployment.project.slug,
+                payload.deployment.graph.account.slug,
+                payload.deployment.graph.slug,
             ))
         }
         DeploymentCreatePayload::ProjectDoesNotExistError(_) => Err(DeployError::ProjectDoesNotExist.into()),
@@ -215,7 +215,7 @@ async fn create_deployment_payload(
                 input: DeploymentCreateInput {
                     archive_file_size,
                     branch: branch.as_deref(),
-                    project_id: Id::new(project_id),
+                    graph_id: Id::new(project_id),
                 },
             });
 
@@ -228,14 +228,14 @@ async fn create_deployment_payload(
         }
         ProjectDefinition::BySlugs {
             account_slug,
-            project_slug,
+            graph_slug,
             branch,
         } => {
             let operation = DeploymentCreatebySlug::build(DeploymentCreateBySlugArguments {
                 input: DeploymentBySlugCreateInput {
                     archive_file_size,
                     branch: branch.as_deref(),
-                    project_slug: &project_slug,
+                    graph_slug: Some(&graph_slug),
                     account_slug: &account_slug,
                 },
             });

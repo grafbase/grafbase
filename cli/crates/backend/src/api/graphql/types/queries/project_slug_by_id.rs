@@ -1,20 +1,40 @@
 use super::super::schema;
 
 #[derive(Clone, Default, cynic::QueryVariables)]
-pub struct ProjectSlugByIdArguments<'a> {
+pub struct GraphSlugByIdArguments<'a> {
     pub id: &'a str,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Project", variables = "ProjectSlugByIdArguments")]
-pub struct ProjectSlugByIdProject {
-    pub account_slug: String,
+pub struct Account {
     pub slug: String,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Query", variables = "ProjectSlugByIdArguments")]
-pub struct ProjectSlugById {
+#[cynic(graphql_type = "Graph")]
+pub struct GraphSlugByIdGraph {
+    pub account: Account,
+    pub slug: String,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(graphql_type = "Project")]
+pub struct GraphSlugByIdProject {
+    pub account_slug: String,
+    pub slug: String,
+}
+
+#[derive(cynic::InlineFragments, Debug)]
+pub enum Node {
+    Graph(GraphSlugByIdGraph),
+    Project(GraphSlugByIdProject),
+    #[cynic(fallback)]
+    Unknown,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(graphql_type = "Query", variables = "GraphSlugByIdArguments")]
+pub struct GraphSlugById {
     #[arguments(id: $id)]
-    pub project_by_id: Option<ProjectSlugByIdProject>,
+    pub node: Option<Node>,
 }

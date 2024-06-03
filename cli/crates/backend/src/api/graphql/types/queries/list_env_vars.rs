@@ -5,30 +5,30 @@ use super::super::schema;
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Query", variables = "ListEnvironmentVariablesBySlugsArguments")]
 pub struct ListEnvironmentVariablesBySlugs {
-    #[arguments(accountSlug: $account_slug, projectSlug: $project_slug)]
-    pub project_by_account_slug: Option<Project>,
+    #[arguments(accountSlug: $account_slug, graphSlug: $graph_slug)]
+    pub graph_by_account_slug: Option<Graph>,
 }
 
 #[derive(cynic::QueryVariables)]
 pub struct ListEnvironmentVariablesBySlugsArguments<'a> {
     pub account_slug: &'a str,
-    pub project_slug: &'a str,
+    pub graph_slug: &'a str,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Query", variables = "ListEnvironmentVariablesArguments")]
 pub struct ListEnvironmentVariables {
-    #[arguments(id: $project_id)]
+    #[arguments(id: $graph_id)]
     pub node: Option<Node>,
 }
 
 #[derive(cynic::QueryVariables)]
 pub struct ListEnvironmentVariablesArguments {
-    pub project_id: cynic::Id,
+    pub graph_id: cynic::Id,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-pub struct Project {
+pub struct Graph {
     pub environment_variables: EnvironmentVariableConnection,
 }
 
@@ -52,7 +52,7 @@ pub struct EnvironmentVariable {
 
 #[derive(cynic::InlineFragments, Debug)]
 pub enum Node {
-    Project(Project),
+    Graph(Graph),
     #[cynic(fallback)]
     Unknown,
 }

@@ -57,10 +57,10 @@ pub async fn project_branch_reference_to_account_project_slug(
             .await
             .map_err(CliError::BackendApiError)?
             .ok_or(CliError::LogsNoLinkedProject)?;
-        let (account_slug, project_slug) = api::project_slug_by_id(&project_metadata.project_id)
+        let (account_slug, project_slug) = api::graph_slug_by_id(&project_metadata.graph_id())
             .await
             .map_err(CliError::BackendApiError)?
-            .ok_or_else(|| CliError::ProjectNotFound(project_metadata.project_id))?;
+            .ok_or_else(|| CliError::ProjectNotFound(project_metadata.graph_id()))?;
         BranchReference {
             account_slug,
             project_slug,

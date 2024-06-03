@@ -1,15 +1,20 @@
 use super::super::schema;
 
 #[derive(cynic::QueryFragment, Debug)]
-pub struct Project {
+pub struct Graph {
     pub slug: String,
-    pub account_slug: String,
+    pub account: Account,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct Account {
+    pub slug: String,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
 pub struct Branch {
     pub name: String,
-    pub project: Project,
+    pub graph: Graph,
 }
 
 #[derive(cynic::QueryVariables)]

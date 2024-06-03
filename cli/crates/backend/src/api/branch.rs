@@ -55,20 +55,20 @@ pub async fn list() -> Result<Vec<Branch>, ApiError> {
     let project_metadata = crate::api::project_metadata()?;
 
     let operation = ListBranches::build(ListBranchesArguments {
-        project_id: project_metadata.project_id.into(),
+        graph_id: project_metadata.graph_id().into(),
     });
 
     let client = create_client().await?;
     let cynic::GraphQlResponse { data, errors } = client.post(api_url()).run_graphql(operation).await?;
 
     match (data.and_then(|d| d.node), errors) {
-        (Some(Node::Project(project)), _) => {
-            let branches = project
+        (Some(Node::Graph(graph)), _) => {
+            let branches = graph
                 .branches
                 .edges
                 .into_iter()
                 .map(|edge| {
-                    let is_production = edge.node.name == project.production_branch.name;
+                    let is_production = edge.node.name == graph.production_branch.name;
 
                     let (last_updated, status) = match edge.node.latest_deployment {
                         Some(deployment) => (Some(deployment.created_at), Some(deployment.status.to_string())),
@@ -76,8 +76,8 @@ pub async fn list() -> Result<Vec<Branch>, ApiError> {
                     };
 
                     Branch {
-                        account: project.account_slug.clone(),
-                        graph: project.slug.clone(),
+                        account: graph.account.slug.clone(),
+                        graph: graph.slug.clone(),
                         branch: edge.node.name,
                         is_production,
                         last_updated,

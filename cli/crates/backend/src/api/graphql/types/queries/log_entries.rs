@@ -129,7 +129,7 @@ pub struct LogEventFilter<'a> {
 #[derive(Clone, Default, cynic::QueryVariables)]
 pub struct LogEventsArguments<'a> {
     pub account_slug: &'a str,
-    pub project_slug: &'a str,
+    pub graph_slug: &'a str,
     pub first: Option<i32>,
     pub after: Option<String>,
     pub last: Option<i32>,
@@ -152,8 +152,8 @@ pub struct LogEventConnection {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Project", variables = "LogEventsArguments")]
-pub struct ProjectWithLogEvents {
+#[cynic(graphql_type = "Graph", variables = "LogEventsArguments")]
+pub struct GraphWithLogEvents {
     #[arguments(first: $first, after: $after, last: $last, before: $before, filter: $filter)]
     pub log_events: LogEventConnection,
 }
@@ -161,6 +161,6 @@ pub struct ProjectWithLogEvents {
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Query", variables = "LogEventsArguments")]
 pub struct LogEventsQuery {
-    #[arguments(accountSlug: $account_slug, projectSlug: $project_slug)]
-    pub project_by_account_slug: Option<ProjectWithLogEvents>,
+    #[arguments(accountSlug: $account_slug, graphSlug: $graph_slug)]
+    pub graph_by_account_slug: Option<GraphWithLogEvents>,
 }

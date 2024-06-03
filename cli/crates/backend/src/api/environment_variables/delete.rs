@@ -70,7 +70,7 @@ pub(super) async fn with_linked(
         .collect();
 
     let operation = EnvironmentVariableDeleteWithValues::build(EnvironmentVariableDeleteWithValuesVariables {
-        project_id: project_metadata.project_id.into(),
+        project_id: project_metadata.graph_id().into(),
         environments,
         name,
     });
