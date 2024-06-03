@@ -65,7 +65,7 @@ prettytable = { version = "0.10.0", default-features = false, features = ["win_c
 async-graphql-axum.workspace = true
 async-graphql.workspace = true
 async-trait = "0.1.80"
-async-tungstenite = "0.25.1"
+async-tungstenite = "0.26.0"
 axum.workspace = true
 cfg-if = "1"
 chrono = "0.4.38"
@@ -98,8 +98,8 @@ reqwest = { workspace = true, features = [
 ] }
 reqwest-eventsource = "0.6"
 rsa = "0.9.6"
-rstest = "0.19"
-rstest_reuse = "0.6"
+rstest = "0.21"
+rstest_reuse = "0.7"
 serde = { version = "1.0.199", features = ["derive"] }
 sha2.workspace =true
 strum = { version = "0.26.2", features = ["derive"] }

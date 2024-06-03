@@ -29,9 +29,10 @@ members = [
 exclude = ["engine/crates/gateway-v2"]
 
 [patch.crates-io]
-async-tungstenite = { git = "https://github.com/grafbase/async-tungstenite", rev = "02222f222532b5cf01bba77e6d1cc8a142fe5593" } # ring
+axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac" } # axum-tungstenite-upgrade
 # Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
 axum-server = { git = "https://github.com/grafbase/axum-server", rev = "fdce3d3dc71dc69597689cc28003cc0533b47dba" } # rustls-0.23
+graphql-ws-client = { git = "https://github.com/grafbase/graphql-ws-client", rev = "84aa4e3629ffcf0141702faef37324cd41d64291" } # upgrade-tungstenite-0.23
 hyper-rustls = { git = "https://github.com/grafbase/hyper-rustls", rev = "e8e14ba34c081702297c74e544109be6c8ea5232" } # rustls-0.23
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
 names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" } # main
@@ -52,7 +53,6 @@ tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rust
 tokio-rustls = { git = "https://github.com/rustls/tokio-rustls", rev = "3a153acec6c4d189eb5de501b2155b4484b8651b" } # main
 # FIXME: Uncomment when we upgrade opentelemetry to 0.23.
 # tracing-opentelemetry = { git = "https://github.com/tokio-rs/tracing-opentelemetry", rev = "2539f4f7bde3dc3f320e5fb935d2c13a69a540dd" } # main
-tungstenite = { git = "https://github.com/grafbase/tungstenite-rs", rev = "783940b2e6cc02c7067efb07dc72ae49d75571b0" } # dependabot/cargo/rustls-0.23.1
 
 # https://github.com/tokio-rs/tracing/tree/v0.1.x/tracing-mock
 tracing = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" }
@@ -108,7 +108,7 @@ openidconnect = "4.0.0-alpha.1"
 regex = "1.10.4"
 reqwest = { version = "0.12.4", default-features = false, features = ["http2"] }
 rmp-serde = "1.3.0"
-rstest = "0.19"
+rstest = "0.21"
 rustls = { version = "0.23.5", default-features = false }
 rustls-pemfile = { version = "2.1.2", default-features = false }
 rustls-webpki = { version = "0.102.3", default-features = false }
@@ -122,8 +122,8 @@ tokio = "1.37.0"
 tokio-postgres = { version = "0.7.10", default-features = false }
 tokio-postgres-rustls = "0.11.0"
 tokio-rustls = { version = "0.25.0", default-features = false }
-tokio-tungstenite = { version = "0.21.0", default-features = false }
-tungstenite = { version = "0.21.0", default-features = false }
+tokio-tungstenite = { version = "0.23.0", default-features = false }
+tungstenite = { version = "0.23.0", default-features = false }
 tower = "0.4.13"
 tower-http = "0.5.2"
 tower-service = "0.3.2"
