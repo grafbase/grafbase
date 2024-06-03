@@ -9,6 +9,8 @@ use registry_v2::FederationProperties;
 use super::{
     deprecated_directive::DeprecatedDirective,
     federation::{InaccessibleDirective, TagDirective},
+    join_directive::JoinDirective,
+    requires_directive::RequiresDirective,
     visitor::{Visitor, VisitorContext, MUTATION_TYPE, QUERY_TYPE},
 };
 use crate::{
@@ -49,16 +51,45 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
             };
             for field in &object.fields {
                 let name = field.node.name.node.to_string();
-                let Some(resolver_name) = ResolverDirective::resolver_name(&field.node) else {
-                    ctx.report_error(
-                        vec![field.pos],
-                        format!("Field '{name}' of '{type_name}' must have a resolver defined."),
-                    );
-                    continue;
-                };
                 let deprecation = DeprecatedDirective::from_directives(&field.directives, ctx);
                 let inaccessible = InaccessibleDirective::from_directives(&field.directives, ctx);
                 let tags = TagDirective::from_directives(&field.directives, ctx);
+                let mut requires =
+                    RequiresDirective::from_directives(&field.directives, ctx).map(|requires| requires.into_fields());
+
+                let resolver = match (
+                    ResolverDirective::resolver_name(&field.node),
+                    JoinDirective::from_directives(&field.directives, ctx),
+                ) {
+                    (Some(name), None) => Resolver::CustomResolver(CustomResolver {
+                        resolver_name: name.to_owned(),
+                    }),
+                    (None, Some(_)) if requires.is_some() => {
+                        ctx.report_error(
+                            vec![field.pos],
+                            format!("{type_name}.{name} field can't have a join and a requires on it"),
+                        );
+                        return;
+                    }
+                    (None, Some(join_directive)) => {
+                        requires = join_directive.select.required_fieldset(&field.arguments);
+                        Resolver::Join(join_directive.select.to_join_resolver())
+                    }
+                    (None, None) => {
+                        ctx.report_error(
+                            vec![field.pos],
+                            format!("{type_name}.{name} must have a join or a resolver defined"),
+                        );
+                        return;
+                    }
+                    (Some(_), Some(_)) => {
+                        ctx.report_error(
+                            vec![field.pos],
+                            format!("{type_name}.{name} can't have both a join and a resolver defined"),
+                        );
+                        return;
+                    }
+                };
 
                 let (field_collection, cache_control) = match entry_point {
                     EntryPoint::Query => (&mut ctx.queries, CacheDirective::parse(&field.node.directives)),
@@ -82,10 +113,8 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                     ty: field.node.ty.clone().node.to_string().into(),
                     deprecation,
                     cache_control,
-                    requires: None,
-                    resolver: Resolver::CustomResolver(CustomResolver {
-                        resolver_name: resolver_name.to_owned(),
-                    }),
+                    requires,
+                    resolver,
                     required_operation,
                     auth: None,
                     federation,
@@ -110,12 +139,18 @@ mod tests {
             foo: String! @resolver(name: "blah")
         }
     "#, &[])]
+    #[case(r#"
+        type Query {
+            foo: String! @resolver(name: "blah")
+            bar: String! @join(select: "foo")
+        }
+    "#, &[])]
     #[case(r"
         extend type Query {
             foo: String!
         }
     ", &[
-        "Field 'foo' of 'Query' must have a resolver defined."
+        "Query.foo must have a join or a resolver defined"
     ])]
     #[case(r#"
         extend type Query {
@@ -132,13 +167,18 @@ mod tests {
             foo: String!
         }
     ", &[
-        "Field 'foo' of 'Mutation' must have a resolver defined."
+        "Mutation.foo must have a join or a resolver defined"
     ])]
     #[case(r#"
         extend type Mutation {
             foo: String! @resolver(name: "return-foo")
         }
     "#, &[])]
+    #[case(r#"
+        extend type Query {
+            foo: String! @resolver(name: "return-foo") @join(select: "whatever")
+        }
+    "#, &["Query.foo can't have both a join and a resolver defined"])]
     fn test_parse_result(#[case] schema: &str, #[case] expected_messages: &[&str]) {
         let schema = parse_schema(schema).unwrap();
         let mut ctx = VisitorContext::new_for_tests(&schema);
