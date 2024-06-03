@@ -371,6 +371,11 @@ fn test_cache_control_propagation() {
     "###);
 }
 
+#[test]
+fn test_cache_control_propagation_across_fragments() {
+    todo!("need to implement this somehow...")
+}
+
 fn build_registry(schema: &str) -> registry_for_cache::PartialCacheRegistry {
     registry_upgrade::convert_v1_to_partial_cache_registry(parser_sdl::parse_registry(schema).unwrap()).unwrap()
 }
