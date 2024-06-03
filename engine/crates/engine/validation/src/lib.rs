@@ -91,10 +91,10 @@ pub fn check_strict_rules(
         .with(rules::KnownDirectives::default())
         .with(rules::DirectivesUnique)
         .with(rules::OverlappingFieldsCanBeMerged)
-        .with(visitors::CacheControlCalculate {
-            cache_control: &mut cache_control,
-            invalidation_policies: &mut cache_invalidation_policies,
-        })
+        .with(visitors::CacheControlCalculate::new(
+            &mut cache_control,
+            &mut cache_invalidation_policies,
+        ))
         .with(visitors::DepthCalculate::new(&mut depth))
         .with(visitors::HeightCalculate::new(&mut height))
         .with(visitors::AliasCountCalculate::new(&mut alias_count))
@@ -134,10 +134,10 @@ pub fn check_fast_rules(
 
     let mut visitor = VisitorNil
         .with(rules::NoFragmentCycles::default())
-        .with(visitors::CacheControlCalculate {
-            cache_control: &mut cache_control,
-            invalidation_policies: &mut cache_invalidation_policies,
-        })
+        .with(visitors::CacheControlCalculate::new(
+            &mut cache_control,
+            &mut cache_invalidation_policies,
+        ))
         .with(visitors::DepthCalculate::new(&mut depth))
         .with(visitors::HeightCalculate::new(&mut height))
         .with(visitors::AliasCountCalculate::new(&mut alias_count))
