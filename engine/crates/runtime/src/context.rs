@@ -2,8 +2,8 @@ use std::{collections::HashMap, ops::Deref, sync::Arc};
 
 use futures_util::future::BoxFuture;
 use secrecy::{ExposeSecret, SecretString};
-use serde::{Serialize, Serializer};
 use serde::ser::SerializeMap;
+use serde::{Serialize, Serializer};
 
 #[derive(Debug, Clone, Default)]
 pub struct Secrets {
@@ -11,7 +11,10 @@ pub struct Secrets {
 }
 
 impl Serialize for Secrets {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         let mut map = serializer.serialize_map(Some(self.secrets.len()))?;
         for (k, v) in &self.secrets {
             map.serialize_entry(&k, v.expose_secret())?;
@@ -42,11 +45,7 @@ pub struct LogContext {
 }
 
 impl Context {
-    pub fn new(
-        request: &Arc<impl RequestContext + 'static>,
-        secrets: Secrets,
-        log: LogContext,
-    ) -> Self {
+    pub fn new(request: &Arc<impl RequestContext + 'static>, secrets: Secrets, log: LogContext) -> Self {
         Self {
             request: Arc::clone(request) as Arc<dyn RequestContext>,
             secrets,

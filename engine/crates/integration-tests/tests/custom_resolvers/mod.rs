@@ -1,8 +1,8 @@
-use std::collections::HashMap;
 use integration_tests::{runtime, udfs::RustUdfs, EngineBuilder, ResponseExt};
+use runtime::context::Secrets;
 use runtime::udf::{CustomResolverRequestPayload, UdfResponse};
 use serde_json::json;
-use runtime::context::Secrets;
+use std::collections::HashMap;
 
 #[test]
 fn simple_custom_resolver() {
@@ -235,11 +235,16 @@ fn custom_resolver_with_secrets() {
         "#;
 
         let engine = EngineBuilder::new(schema)
-            .with_custom_resolvers(RustUdfs::new().resolver("hello", move |payload: CustomResolverRequestPayload| {
-                let secret = payload.secrets.get("my_secret").unwrap();
-                Ok(UdfResponse::Success(json!(secret.expose_secret())))
-            }))
-            .with_secrets(Secrets::new(HashMap::from_iter([("my_secret".to_string(), secrecy::SecretString::new("ok".to_string()))])))
+            .with_custom_resolvers(
+                RustUdfs::new().resolver("hello", move |payload: CustomResolverRequestPayload| {
+                    let secret = payload.secrets.get("my_secret").unwrap();
+                    Ok(UdfResponse::Success(json!(secret.expose_secret())))
+                }),
+            )
+            .with_secrets(Secrets::new(HashMap::from_iter([(
+                "my_secret".to_string(),
+                secrecy::SecretString::new("ok".to_string()),
+            )])))
             .build()
             .await;
 
