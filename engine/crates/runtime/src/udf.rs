@@ -78,6 +78,7 @@ pub struct CustomResolverRequestPayload {
     pub parent: Option<serde_json::Value>,
     pub context: UdfRequestContext,
     pub info: Option<serde_json::Value>,
+    pub secrets: crate::context::Secrets,
 }
 
 // Authorizer

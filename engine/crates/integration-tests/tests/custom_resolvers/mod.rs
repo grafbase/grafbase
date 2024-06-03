@@ -1,6 +1,8 @@
+use std::collections::HashMap;
 use integration_tests::{runtime, udfs::RustUdfs, EngineBuilder, ResponseExt};
 use runtime::udf::{CustomResolverRequestPayload, UdfResponse};
 use serde_json::json;
+use runtime::context::Secrets;
 
 #[test]
 fn simple_custom_resolver() {
@@ -214,6 +216,39 @@ fn custom_resolver_with_interfaces() {
                 "bazField": "hello from the bazField resolver"
               }
             ]
+          }
+        }
+        "###
+        );
+    });
+}
+
+#[test]
+fn custom_resolver_with_secrets() {
+    runtime().block_on(async {
+        use secrecy::ExposeSecret;
+
+        let schema = r#"
+            extend type Query {
+                hello: String @resolver(name: "hello")
+            }
+        "#;
+
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(RustUdfs::new().resolver("hello", move |payload: CustomResolverRequestPayload| {
+                let secret = payload.secrets.get("my_secret").unwrap();
+                Ok(UdfResponse::Success(json!(secret.expose_secret())))
+            }))
+            .with_secrets(Secrets::new(HashMap::from_iter([("my_secret".to_string(), secrecy::SecretString::new("ok".to_string()))])))
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine.execute("query { hello }").await.into_value(),
+            @r###"
+        {
+          "data": {
+            "hello": "ok"
           }
         }
         "###
