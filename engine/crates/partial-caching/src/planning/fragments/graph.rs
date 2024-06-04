@@ -23,25 +23,25 @@ impl FragmentGraph {
         };
 
         // Invert fragments_in_fragments so we have a map from child -> parents
-        for (parent_id, children) in fragments_in_fragments {
-            for child_id in children.fragment_keys() {
+        for (parent_key, children) in fragments_in_fragments {
+            for child_key in children.fragment_keys() {
                 this.direct_parents
-                    .entry(child_id.clone())
+                    .entry(child_key)
                     .or_default()
-                    .insert(Some(parent_id.clone()));
+                    .insert(Some(parent_key.clone()));
             }
         }
 
         // Add in the nodes that point to our query
-        for child_id in fragments_in_query.fragment_keys() {
-            this.direct_parents.entry(child_id.clone()).or_default().insert(None);
+        for child_key in fragments_in_query.fragment_keys() {
+            this.direct_parents.entry(child_key).or_default().insert(None);
         }
 
         this
     }
 
     pub fn fragments(&self) -> impl Iterator<Item = Fragment<'_>> {
-        self.direct_parents.keys().map(|id| Fragment { graph: self, key: id })
+        self.direct_parents.keys().map(|key| Fragment { graph: self, key })
     }
 }
 
