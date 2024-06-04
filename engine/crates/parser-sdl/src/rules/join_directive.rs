@@ -93,15 +93,21 @@ impl FieldSelection {
             .map(|argument| argument.node.name.node.as_str())
             .collect::<HashSet<_>>();
 
-        Some(FieldSet::new(
-            self.variables_used
-                .iter()
-                .filter(|field| !arguments.contains(field.as_str()))
-                .map(|field| registry_v2::Selection {
-                    field: field.clone(),
-                    selections: vec![],
-                }),
-        ))
+        let mut selections = self
+            .variables_used
+            .iter()
+            .filter(|field| !arguments.contains(field.as_str()))
+            .map(|field| registry_v2::Selection {
+                field: field.clone(),
+                selections: vec![],
+            })
+            .peekable();
+
+        // If there are no selections then all of the variables referred to arguments
+        // and we don't need to require a fieldset
+        selections.peek()?;
+
+        Some(FieldSet::new(selections))
     }
 
     pub fn to_join_resolver(&self) -> JoinResolver {
