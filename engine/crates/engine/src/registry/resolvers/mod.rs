@@ -32,7 +32,6 @@ mod federation;
 pub mod graphql;
 pub mod http;
 mod introspection;
-pub mod join;
 mod logged_fetch;
 mod pagination;
 pub mod postgres;

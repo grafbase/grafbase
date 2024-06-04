@@ -542,3 +542,51 @@ fn argument_forwarding_for_joins() {
         );
     });
 }
+
+#[test]
+fn test_join_on_root() {
+    runtime().block_on(async {
+        let schema = r#"
+            extend type Query {
+                user: User! @resolver(name: "user")
+                greetPerson(name: String!, salutation: String!): String! @join(select: "user { greetPerson(name: $name, salutation: $salutation)}")
+            }
+
+            type User {
+                id: ID!
+                name: String!
+                greetPerson(name: String!, salutation: String!): String! @resolver(name: "greetPerson")
+            }
+        "#;
+
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(
+                RustUdfs::new()
+                    .resolver("user", UdfResponse::Success(json!({"id": "123", "name": "Bob"})))
+                    .resolver("greetPerson", |input: CustomResolverRequestPayload| {
+                        Ok(UdfResponse::Success(
+                            format!(
+                                "{} {}",
+                                input.arguments["salutation"].as_str().unwrap(),
+                                input.arguments["name"].as_str().unwrap(),
+                            )
+                            .into(),
+                        ))
+                    }),
+            )
+            .build()
+            .await;
+
+        insta::assert_json_snapshot!(
+            engine
+                .execute(r#"{ greetPerson(name: "Jim", salutation: "Hello") }"#)
+                .await
+                .into_data::<Value>(),
+                @r###"
+        {
+          "greetPerson": "Hello Jim"
+        }
+        "###
+        );
+    });
+}

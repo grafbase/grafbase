@@ -196,12 +196,6 @@ fn resolve_arguments(
     meta_field: registry_v2::MetaField<'_>,
     registry: &registry_v2::Registry,
 ) {
-    let serde_json::Value::Object(parent_object) = parent_resolve_value_for_join.data_resolved() else {
-        // This might be an error but I'm going to defer reporting to the child resolver for now.
-        // Saves us some work here.  Can revisit if it doesn't work very well (which is very possible)
-        return;
-    };
-
     for (name, value) in arguments {
         // Any variables this value refers to are either:
         // 1. Arguments on the join field
@@ -218,6 +212,12 @@ fn resolve_arguments(
                         .inspect_err(|error| tracing::warn!("Error resolving argument on joined field: {error}"))
                         .unwrap_or_default())
                 } else {
+                    let serde_json::Value::Object(parent_object) = parent_resolve_value_for_join.data_resolved() else {
+                        // This is a terrible error message, but I'm not sure how best to explain this
+                        return Err(Error::new(format!(
+                            "Join requires a field {variable_name} but that field cannot be resolved"
+                        )));
+                    };
                     let value = parent_object.get(variable_name.as_str()).cloned().ok_or_else(|| {
                         Error::new(format!(
                             "Internal error: couldn't find {variable_name} in parent_resolver_value"
