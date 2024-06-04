@@ -61,7 +61,7 @@ pub fn check_strict_rules(
     variables: Option<&Variables>,
 ) -> Result<ValidationResult, Vec<RuleError>> {
     let mut ctx = VisitorContext::new(registry, doc, variables);
-    let mut cache_control = registry_v2::cache_control::CacheControl::default();
+    let mut cache_control = None;
     let mut cache_invalidation_policies = Default::default();
     let complexity = 0;
     let mut depth = 0;
@@ -108,7 +108,7 @@ pub fn check_strict_rules(
     }
 
     Ok(ValidationResult {
-        cache_control,
+        cache_control: cache_control.unwrap_or_default(),
         cache_invalidation_policies,
         complexity,
         depth,
@@ -124,7 +124,7 @@ pub fn check_fast_rules(
     variables: Option<&Variables>,
 ) -> Result<ValidationResult, Vec<RuleError>> {
     let mut ctx = VisitorContext::new(registry, doc, variables);
-    let mut cache_control = registry_v2::cache_control::CacheControl::default();
+    let mut cache_control = None;
     let mut cache_invalidation_policies = Default::default();
     let complexity = 0;
     let mut depth = 0;
@@ -150,7 +150,7 @@ pub fn check_fast_rules(
     }
 
     Ok(ValidationResult {
-        cache_control,
+        cache_control: cache_control.unwrap_or_default(),
         cache_invalidation_policies,
         complexity,
         depth,

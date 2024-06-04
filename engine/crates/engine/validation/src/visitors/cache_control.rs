@@ -13,14 +13,17 @@ use {
 };
 
 pub struct CacheControlCalculate<'a> {
-    pub cache_control: &'a mut CacheControl,
+    pub cache_control: &'a mut Option<CacheControl>,
     pub invalidation_policies: &'a mut HashSet<CacheInvalidation>,
     pub cache_control_stack: Vec<CacheControl>,
     default_cache_control: CacheControl,
 }
 
 impl<'a> CacheControlCalculate<'a> {
-    pub fn new(cache_control: &'a mut CacheControl, invalidation_policies: &'a mut HashSet<CacheInvalidation>) -> Self {
+    pub fn new(
+        cache_control: &'a mut Option<CacheControl>,
+        invalidation_policies: &'a mut HashSet<CacheInvalidation>,
+    ) -> Self {
         CacheControlCalculate {
             cache_control,
             invalidation_policies,
@@ -43,28 +46,15 @@ where
         ctx: &mut VisitorContext<'_, Registry>,
         _selection_set: &Positioned<SelectionSet>,
     ) {
-        let query_type_name = ctx.registry.query_type().name();
-        let is_query_root = ctx
-            .current_type()
-            .map(|ty| ty.name() == query_type_name)
-            .unwrap_or_default();
         let cache_control = match ctx.current_type().and_then(|ty| ty.cache_control()) {
             Some(cache_control) => {
                 self.cache_control_stack.push(cache_control.clone());
                 cache_control
             }
-            None if is_query_root => {
-                // If the Query type doesn't have an explicit cache control we don't fall
-                // back to the Default.  Without this rule caching would be all or nothing:
-                // without a CacheControl on Query nothing would ever be cached, but a CacheControl
-                // on Query turns on caching for everything.  Not ideal.
-                return;
-            }
             None if self.cache_control_stack.is_empty() => &self.default_cache_control,
             None => self.cache_control_stack.last().unwrap(),
         };
 
-        self.cache_control.merge(cache_control.clone());
         if let Some(policy) = &cache_control.invalidation_policy {
             let Some(current_type) = ctx.current_type() else { return };
 
@@ -95,24 +85,29 @@ where
     }
 
     fn enter_field(&mut self, ctx: &mut VisitorContext<'_, Registry>, field: &Positioned<Field>) {
-        let field = ctx.parent_type().and_then(|parent| parent.field(&field.node.name.node));
-        let cache_control = field.and_then(|field| field.cache_control());
-        let cache_control = match (cache_control, field) {
+        let schema_field = ctx.parent_type().and_then(|parent| parent.field(&field.node.name.node));
+        let cache_control = schema_field.and_then(|field| field.cache_control());
+        let cache_control = match (cache_control, schema_field) {
             (Some(cache_control), _) => {
                 self.cache_control_stack.push(cache_control.clone());
                 cache_control
             }
             (None, _) if !self.cache_control_stack.is_empty() => self.cache_control_stack.last().unwrap(),
             (None, Some(field)) if field.named_type().cache_control().is_some() => {
-                // If the field has no cache control but the type of the field do,
-                // we don't use a default cache control.  This saves users from having to mark
-                // a Type _and_ all the places it appears in the schema as cacheable
-                return;
+                // If the field has no cache control but the type of the field does,
+                // we take that cache control into account here
+                field.named_type().cache_control().unwrap()
             }
             _ => &self.default_cache_control,
         };
 
-        self.cache_control.merge(cache_control.clone());
+        if field.selection_set.items.is_empty() {
+            // This field is a leaf so we merge in whatever the current cache control is
+            match self.cache_control {
+                Some(cache_control) => cache_control.merge(cache_control.clone()),
+                None => *self.cache_control = Some(cache_control.clone()),
+            }
+        }
 
         if let Some(policy) = &cache_control.invalidation_policy {
             let Some(parent_type) = ctx.parent_type() else { return };

@@ -455,8 +455,9 @@ dependencies = [
 
 [[package]]
 name = "async-tungstenite"
-version = "0.25.1"
-source = "git+https://github.com/grafbase/async-tungstenite?rev=02222f222532b5cf01bba77e6d1cc8a142fe5593#02222f222532b5cf01bba77e6d1cc8a142fe5593"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7cf3e0ba34d3cf04731e376a1cf6c16c357396ab66da227bd283e74d49890b2a"
 dependencies = [
  "futures-io",
  "futures-util",
@@ -464,7 +465,7 @@ dependencies = [
  "pin-project-lite",
  "rustls-pki-types",
  "tokio",
- "tokio-rustls",
+ "tokio-rustls 0.26.0",
  "tungstenite",
  "webpki-roots",
 ]
@@ -539,8 +540,7 @@ dependencies = [
 [[package]]
 name = "axum"
 version = "0.7.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a6c9af12842a67734c9a2e355436e5d03b22383ed60cf13cd0c18fbfe3dcbcf"
+source = "git+https://github.com/grafbase/axum?rev=c3146f9ca921907d9884fbf7549a1520e9e72eac#c3146f9ca921907d9884fbf7549a1520e9e72eac"
 dependencies = [
  "async-trait",
  "axum-core 0.4.3",
@@ -611,8 +611,7 @@ dependencies = [
 [[package]]
 name = "axum-core"
 version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a15c63fd72d41492dc4f497196f5da1fb04fb7529e631d73630d1b491e47a2e3"
+source = "git+https://github.com/grafbase/axum?rev=c3146f9ca921907d9884fbf7549a1520e9e72eac#c3146f9ca921907d9884fbf7549a1520e9e72eac"
 dependencies = [
  "async-trait",
  "bytes",
@@ -623,7 +622,7 @@ dependencies = [
  "mime",
  "pin-project-lite",
  "rustversion",
- "sync_wrapper 0.1.2",
+ "sync_wrapper 1.0.1",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -632,8 +631,7 @@ dependencies = [
 [[package]]
 name = "axum-macros"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00c055ee2d014ae5981ce1016374e8213682aa14d9bf40e48ab48b5f3ef20eaa"
+source = "git+https://github.com/grafbase/axum?rev=c3146f9ca921907d9884fbf7549a1520e9e72eac#c3146f9ca921907d9884fbf7549a1520e9e72eac"
 dependencies = [
  "heck 0.4.1",
  "proc-macro2",
@@ -658,7 +656,7 @@ dependencies = [
  "rustls",
  "rustls-pemfile",
  "tokio",
- "tokio-rustls",
+ "tokio-rustls 0.25.0",
  "tower",
  "tower-service",
 ]
@@ -2087,7 +2085,7 @@ dependencies = [
 
 [[package]]
 name = "engine-config-builder"
-version = "0.73.0"
+version = "0.74.0"
 dependencies = [
  "engine-v2-config",
  "graphql-federated-graph",
@@ -2429,7 +2427,7 @@ checksum = "9fc0510504f03c51ada170672ac806f1f105a88aa97a5281117e1ddc3368e51a"
 
 [[package]]
 name = "federated-dev"
-version = "0.73.0"
+version = "0.74.0"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
@@ -2775,7 +2773,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.73.0"
+version = "0.74.0"
 dependencies = [
  "async-graphql",
  "async-trait",
@@ -2959,7 +2957,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.73.0"
+version = "0.74.0"
 dependencies = [
  "assert_matches",
  "async-graphql",
@@ -3080,7 +3078,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.73.0"
+version = "0.74.0"
 dependencies = [
  "cynic",
  "cynic-introspection",
@@ -3092,7 +3090,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.73.0"
+version = "0.74.0"
 dependencies = [
  "async-compression",
  "axum 0.7.5",
@@ -3122,7 +3120,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.73.0"
+version = "0.74.0"
 dependencies = [
  "chrono",
  "common-types",
@@ -3142,7 +3140,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.73.0"
+version = "0.74.0"
 dependencies = [
  "async-trait",
  "async-tungstenite",
@@ -3248,7 +3246,7 @@ dependencies = [
 
 [[package]]
 name = "graph-ref"
-version = "0.73.0"
+version = "0.74.0"
 
 [[package]]
 name = "graphql-composition"
@@ -3266,7 +3264,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-cursor"
-version = "0.73.0"
+version = "0.74.0"
 dependencies = [
  "serde",
  "serde_with",
@@ -3381,11 +3379,11 @@ dependencies = [
 [[package]]
 name = "graphql-ws-client"
 version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db7802310624d21a55797a3bc442dbe405424e9b2c967f86fb415634976f9a97"
+source = "git+https://github.com/grafbase/graphql-ws-client?rev=84aa4e3629ffcf0141702faef37324cd41d64291#84aa4e3629ffcf0141702faef37324cd41d64291"
 dependencies = [
  "async-trait",
  "futures",
+ "futures-timer",
  "log",
  "pin-project",
  "serde",
@@ -3814,7 +3812,7 @@ dependencies = [
  "rustls",
  "rustls-pki-types",
  "tokio",
- "tokio-rustls",
+ "tokio-rustls 0.25.0",
  "tower-service",
 ]
 
@@ -4111,6 +4109,7 @@ dependencies = [
  "runtime-local",
  "runtime-noop",
  "rustls",
+ "secrecy",
  "serde",
  "serde_json",
  "sha2",
@@ -5353,7 +5352,7 @@ dependencies = [
 
 [[package]]
 name = "operation-checks"
-version = "0.73.0"
+version = "0.74.0"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
@@ -5366,7 +5365,7 @@ dependencies = [
 
 [[package]]
 name = "operation-normalizer"
-version = "0.73.0"
+version = "0.74.0"
 dependencies = [
  "anyhow",
  "expect-test",
@@ -5632,7 +5631,7 @@ dependencies = [
 
 [[package]]
 name = "partial-caching"
-version = "0.73.0"
+version = "0.74.0"
 dependencies = [
  "anyhow",
  "blake3",
@@ -6500,7 +6499,7 @@ dependencies = [
  "serde_urlencoded",
  "sync_wrapper 0.1.2",
  "tokio",
- "tokio-rustls",
+ "tokio-rustls 0.25.0",
  "tokio-util",
  "tower-service",
  "url",
@@ -6619,9 +6618,9 @@ dependencies = [
 
 [[package]]
 name = "rstest"
-version = "0.19.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d5316d2a1479eeef1ea21e7f9ddc67c191d497abc8fc3ba2467857abbb68330"
+checksum = "9afd55a67069d6e434a95161415f5beeada95a01c7b815508a82dcb0e1593682"
 dependencies = [
  "futures",
  "futures-timer",
@@ -6631,12 +6630,13 @@ dependencies = [
 
 [[package]]
 name = "rstest_macros"
-version = "0.19.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04a9df72cc1f67020b0d63ad9bfe4a323e459ea7eb68e03bd9824db49f9a4c25"
+checksum = "4165dfae59a39dd41d8dec720d3cbfbc71f69744efb480a3920f5d4e0cc6798d"
 dependencies = [
  "cfg-if",
  "glob",
+ "proc-macro-crate 3.1.0",
  "proc-macro2",
  "quote",
  "regex",
@@ -6648,13 +6648,12 @@ dependencies = [
 
 [[package]]
 name = "rstest_reuse"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88530b681abe67924d42cca181d070e3ac20e0740569441a9e35a7cedd2b34a4"
+checksum = "b3a8fb4672e840a587a66fc577a5491375df51ddb88f2a2c2a792598c326fe14"
 dependencies = [
  "quote",
  "rand 0.8.5",
- "rustc_version",
  "syn 2.0.66",
 ]
 
@@ -6686,6 +6685,7 @@ dependencies = [
  "headers",
  "http 1.1.0",
  "postgres-connector-types",
+ "secrecy",
  "serde",
  "serde_json",
  "strum",
@@ -6713,6 +6713,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing",
+ "tungstenite",
  "ulid",
 ]
 
@@ -7989,7 +7990,7 @@ dependencies = [
  "rustls",
  "tokio",
  "tokio-postgres",
- "tokio-rustls",
+ "tokio-rustls 0.25.0",
  "x509-certificate",
 ]
 
@@ -7997,6 +7998,17 @@ dependencies = [
 name = "tokio-rustls"
 version = "0.25.0"
 source = "git+https://github.com/rustls/tokio-rustls?rev=3a153acec6c4d189eb5de501b2155b4484b8651b#3a153acec6c4d189eb5de501b2155b4484b8651b"
+dependencies = [
+ "rustls",
+ "rustls-pki-types",
+ "tokio",
+]
+
+[[package]]
+name = "tokio-rustls"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c7bc40d0e5a97695bb96e27995cd3a08538541b0a846f65bba7a359f36700d4"
 dependencies = [
  "rustls",
  "rustls-pki-types",
@@ -8017,9 +8029,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-tungstenite"
-version = "0.21.0"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c83b561d025642014097b66e6c1bb422783339e0909e4429cde4749d1990bc38"
+checksum = "becd34a233e7e31a3dbf7c7241b38320f57393dcae8e7324b0167d21b8e320b0"
 dependencies = [
  "futures-util",
  "log",
@@ -8119,7 +8131,7 @@ dependencies = [
  "rustls-pemfile",
  "rustls-pki-types",
  "tokio",
- "tokio-rustls",
+ "tokio-rustls 0.25.0",
  "tokio-stream",
  "tower",
  "tower-layer",
@@ -8311,8 +8323,9 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "tungstenite"
-version = "0.21.0"
-source = "git+https://github.com/grafbase/tungstenite-rs?rev=783940b2e6cc02c7067efb07dc72ae49d75571b0#783940b2e6cc02c7067efb07dc72ae49d75571b0"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e2e2ce1e47ed2994fd43b04c8f618008d4cabdd5ee34027cf14f9d918edd9c8"
 dependencies = [
  "byteorder",
  "bytes",
@@ -8347,7 +8360,7 @@ checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "typed-resolvers"
-version = "0.73.0"
+version = "0.74.0"
 dependencies = [
  "datatest-stable",
  "engine-parser",
@@ -9175,7 +9188,7 @@ dependencies = [
 
 [[package]]
 name = "wrapping"
-version = "0.73.0"
+version = "0.74.0"
 dependencies = [
  "serde",
 ]
