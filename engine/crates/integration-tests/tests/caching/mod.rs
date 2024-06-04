@@ -561,3 +561,38 @@ fn should_purge_related_mutation_invalidation_interfaces() {
         assert_eq!(metadata.tags, vec!["MyInterface#name:hmm"]);
     });
 }
+
+#[test]
+fn should_not_cache_uncacheable_fields() {
+    let schema = r#"
+        extend type Query {
+            test: Post! @resolver(name: "test")
+        }
+
+        type Post {
+            seconds: String @cache(maxAge: 60)
+            hello: String
+        }
+    "#;
+
+    runtime().block_on(async {
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(RustUdfs::new().resolver(
+                "test",
+                UdfResponse::Success(json!({
+                    "hello": "test"
+                })),
+            ))
+            .build()
+            .await;
+
+        // act
+        let response = engine.execute("{ test { hello seconds } }").await;
+
+        // assert
+        let metadata = response.metadata();
+
+        assert_eq!(metadata.max_age, Duration::from_secs(0));
+        assert_eq!(metadata.stale_while_revalidate, Duration::from_secs(0));
+    });
+}
