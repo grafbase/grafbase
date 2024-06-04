@@ -158,13 +158,7 @@ impl<'a> Iterator for FieldIter<'a> {
                         .push(self.subset.selection_iter(self.document, fragment.selection_set()));
                 }
                 Selection::FragmentSpread(spread) => {
-                    let Some(fragment) = self
-                        .document
-                        .fragments()
-                        .find(|fragment| fragment.name() == spread.fragment_name())
-                    else {
-                        continue;
-                    };
+                    let Some(fragment) = spread.fragment() else { continue };
 
                     self.iter_stack
                         .push(self.subset.selection_iter(self.document, fragment.selection_set()));

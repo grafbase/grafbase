@@ -4,10 +4,10 @@ use cynic_parser::{
 };
 use indexmap::IndexSet;
 
-use crate::query_subset::CacheGroup;
+use crate::query_subset::Partition;
 
 pub fn variables_required(
-    partition: &CacheGroup,
+    partition: &Partition,
     document: &ExecutableDocument,
     operation: OperationDefinition<'_>,
 ) -> IndexSet<VariableDefinitionId> {
