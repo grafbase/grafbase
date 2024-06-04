@@ -1,12 +1,8 @@
-use cynic_parser::executable::{
-    ids::{FragmentDefinitionId, SelectionId},
-    Selection,
-};
-use indexmap::IndexMap;
+use cynic_parser::executable::{ids::SelectionId, Selection};
+use indexmap::{IndexMap, IndexSet};
 use registry_for_cache::CacheControl;
 
-use super::visitor::FieldEdge;
-use crate::query_subset::CacheGroup;
+use super::{fragments::FragmentKey, visitor::FieldEdge};
 
 /// A visitor that groups fields by their caching rules
 pub(crate) struct QueryPartitioner {
@@ -15,10 +11,16 @@ pub(crate) struct QueryPartitioner {
 
     cache_control_stack: Vec<CacheControl>,
 
-    current_fragment: Option<FragmentDefinitionId>,
+    current_fragment: Option<FragmentKey>,
 
-    pub cache_partitions: IndexMap<CacheControl, CacheGroup>,
-    pub nocache_partition: CacheGroup,
+    pub cache_partitions: IndexMap<CacheControl, PlanningPartition>,
+    pub nocache_partition: PlanningPartition,
+}
+
+#[derive(Default, Debug)]
+pub(super) struct PlanningPartition {
+    pub selections: IndexSet<SelectionId>,
+    pub fragments: IndexSet<FragmentKey>,
 }
 
 impl QueryPartitioner {
@@ -27,21 +29,18 @@ impl QueryPartitioner {
             selection_stack: vec![],
             current_fragment: None,
             cache_partitions: IndexMap::new(),
-            nocache_partition: CacheGroup::default(),
+            nocache_partition: PlanningPartition::default(),
             cache_control_stack: root_cache_control.into_iter().cloned().collect::<Vec<_>>(),
         }
     }
 
-    pub fn for_next_fragment(
-        mut self,
-        next_fragment: FragmentDefinitionId,
-        starting_cache_control: Option<&CacheControl>,
-    ) -> Self {
+    pub fn for_next_fragment(mut self, next_fragment: FragmentKey) -> Self {
         // If this isn't empty something has gone horribly wrong
         assert!(self.selection_stack.is_empty());
 
         self.cache_control_stack.clear();
-        self.cache_control_stack.extend(starting_cache_control.cloned());
+        self.cache_control_stack
+            .extend(next_fragment.spread_cache_control.clone());
 
         QueryPartitioner {
             current_fragment: Some(next_fragment),
@@ -75,11 +74,11 @@ impl super::visitor::Visitor for QueryPartitioner {
                 .cache_partitions
                 .entry(cache_control.clone())
                 .or_default()
-                .update(&self.selection_stack, self.current_fragment),
+                .update(&self.selection_stack, self.current_fragment.clone()),
 
             None => self
                 .nocache_partition
-                .update(&self.selection_stack, self.current_fragment),
+                .update(&self.selection_stack, self.current_fragment.clone()),
         }
     }
 
@@ -90,9 +89,10 @@ impl super::visitor::Visitor for QueryPartitioner {
     }
 }
 
-impl CacheGroup {
-    fn update(&mut self, selection_stack: &[SelectionId], current_fragment: Option<FragmentDefinitionId>) {
+impl PlanningPartition {
+    fn update(&mut self, selection_stack: &[SelectionId], current_fragment: Option<FragmentKey>) {
         self.fragments.extend(current_fragment);
+
         for id in selection_stack.iter().rev() {
             if self.selections.contains(id) {
                 // If the current node is already in the set we can stop

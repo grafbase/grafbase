@@ -27,10 +27,10 @@ impl FragmentTracker {
     }
 
     fn key_for(&self, spread: FragmentSpread<'_>) -> Option<FragmentKey> {
-        Some(FragmentKey {
-            id: spread.fragment()?.id(),
-            spread_cache_control: self.cache_control_stack.last().cloned(),
-        })
+        Some(FragmentKey::new(
+            spread.fragment()?.id(),
+            self.cache_control_stack.last().cloned(),
+        ))
     }
 
     pub fn into_spreads(self) -> anyhow::Result<FragmentSpreadSet> {

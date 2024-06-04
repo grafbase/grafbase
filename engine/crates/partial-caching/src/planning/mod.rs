@@ -5,8 +5,9 @@ mod visitor;
 
 use cynic_parser::common::OperationType;
 use fragments::FragmentKey;
-use indexmap::IndexMap;
-use registry_for_cache::{CacheControl, PartialCacheRegistry};
+use indexmap::{IndexMap, IndexSet};
+use query_partitioner::PlanningPartition;
+use registry_for_cache::PartialCacheRegistry;
 use variables::variables_required;
 
 use self::{
@@ -15,7 +16,7 @@ use self::{
     visitor::{visit_fragment, visit_query, VisitorContext},
 };
 use crate::{
-    query_subset::{CacheGroup, QuerySubset},
+    query_subset::{Partition, QuerySubset},
     CachingPlan,
 };
 
@@ -75,8 +76,8 @@ fn visit_fragments(
     fragment_tracker: FragmentTracker,
     mut partitioner: QueryPartitioner,
 ) -> anyhow::Result<(
-    IndexMap<registry_for_cache::CacheControl, crate::query_subset::CacheGroup>,
-    crate::query_subset::CacheGroup,
+    IndexMap<registry_for_cache::CacheControl, crate::query_subset::Partition>,
+    crate::query_subset::Partition,
 )> {
     let fragments_in_query = fragment_tracker.into_spreads()?;
 
@@ -88,9 +89,8 @@ fn visit_fragments(
         if fragments_in_fragments.contains_key(&fragment_key) {
             continue;
         }
-        eprintln!("Visiting fragment {} with key {:?}", fragment.name(), fragment_key);
 
-        partitioner = partitioner.for_next_fragment(fragment_key.id, fragment_key.spread_cache_control.as_ref());
+        partitioner = partitioner.for_next_fragment(fragment_key.clone());
         let mut fragment_tracker = FragmentTracker::new(fragment_key.spread_cache_control.as_ref());
 
         visit_fragment(
@@ -108,30 +108,34 @@ fn visit_fragments(
 
     let ancestor_map = calculate_ancestry(fragments_in_fragments, fragments_in_query);
 
-    let mut cache_partitions = partitioner.cache_partitions;
-    let mut nocache_partition = partitioner.nocache_partition;
+    let nocache_partition = partitioner.nocache_partition.finalize(&ancestor_map);
 
-    nocache_partition.update_with_fragment_ancestors(None, &ancestor_map);
-    for (cache_control, group) in cache_partitions.iter_mut() {
-        group.update_with_fragment_ancestors(Some(cache_control), &ancestor_map);
-    }
+    let cache_partitions = partitioner
+        .cache_partitions
+        .into_iter()
+        .map(|(cache_control, group)| (cache_control, group.finalize(&ancestor_map)))
+        .collect();
 
     Ok((cache_partitions, nocache_partition))
 }
 
-impl CacheGroup {
-    fn update_with_fragment_ancestors(
-        &mut self,
-        cache_control_for_group: Option<&CacheControl>,
-        ancestors: &IndexMap<FragmentKey, FragmentAncestry>,
-    ) {
-        for fragment_id in self.fragments.iter().copied().collect::<Vec<_>>() {
-            let key = FragmentKey::new(fragment_id, cache_control_for_group.cloned());
+impl PlanningPartition {
+    fn finalize(self, ancestors: &IndexMap<FragmentKey, FragmentAncestry>) -> Partition {
+        let PlanningPartition { selections, fragments } = self;
+        let mut partition = Partition {
+            selections,
+            fragments: IndexSet::new(),
+        };
+
+        for key in fragments {
+            partition.fragments.insert(key.id);
             if let Some(ancestors) = ancestors.get(&key) {
-                self.selections.extend(ancestors.selections.iter().copied());
-                self.fragments.extend(ancestors.fragments.iter().copied())
+                partition.selections.extend(ancestors.selections.iter().copied());
+                partition.fragments.extend(ancestors.fragments.iter().copied())
             }
         }
+
+        partition
     }
 }
 

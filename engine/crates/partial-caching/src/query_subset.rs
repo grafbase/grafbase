@@ -18,12 +18,12 @@ use indexmap::IndexSet;
 /// valid query
 pub struct QuerySubset {
     pub(crate) operation: OperationDefinitionId,
-    cache_group: CacheGroup,
+    partition: Partition,
     variables: IndexSet<VariableDefinitionId>,
 }
 
 #[derive(Default, Debug)]
-pub(crate) struct CacheGroup {
+pub(crate) struct Partition {
     pub selections: IndexSet<SelectionId>,
     pub fragments: IndexSet<FragmentDefinitionId>,
 }
@@ -31,27 +31,27 @@ pub(crate) struct CacheGroup {
 impl QuerySubset {
     pub(crate) fn new(
         operation: OperationDefinitionId,
-        cache_group: CacheGroup,
+        cache_group: Partition,
         variables: IndexSet<VariableDefinitionId>,
     ) -> Self {
         QuerySubset {
             operation,
-            cache_group,
+            partition: cache_group,
             variables,
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.cache_group.selections.is_empty()
+        self.partition.selections.is_empty()
     }
 
     pub fn extend(&mut self, other: &QuerySubset) {
-        self.cache_group
+        self.partition
             .selections
-            .extend(other.cache_group.selections.iter().copied());
-        self.cache_group
+            .extend(other.partition.selections.iter().copied());
+        self.partition
             .fragments
-            .extend(other.cache_group.fragments.iter().copied());
+            .extend(other.partition.fragments.iter().copied());
         self.variables.extend(other.variables.iter().cloned());
     }
 
@@ -77,7 +77,7 @@ impl QuerySubset {
     ) -> SelectionSetDisplay<'a> {
         SelectionSetDisplay {
             document,
-            visible_selections: &self.cache_group.selections,
+            visible_selections: &self.partition.selections,
             selections: self.selection_iter(document, selections),
             indent_level: 0,
         }
@@ -90,7 +90,7 @@ impl QuerySubset {
     ) -> FilteredSelections<'a> {
         FilteredSelections {
             document,
-            visible_selections: &self.cache_group.selections,
+            visible_selections: &self.partition.selections,
             ids: selection_set.ids(),
         }
     }
@@ -199,7 +199,7 @@ impl std::fmt::Display for QuerySubsetDisplay<'_> {
             subset.selection_set_display(self.document, operation.selection_set())
         )?;
 
-        for id in &subset.cache_group.fragments {
+        for id in &subset.partition.fragments {
             let fragment = document.read(*id);
             writeln!(
                 f,

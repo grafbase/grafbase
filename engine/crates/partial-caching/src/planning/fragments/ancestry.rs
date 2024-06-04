@@ -9,7 +9,7 @@ use super::{
 /// The complete ancestry of a particular fragment
 ///
 /// We use FragmentGraph to build one of these for each fragment.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct FragmentAncestry {
     /// All the fragments that contain spreads this fragment, directly or indirectly.
     ///
