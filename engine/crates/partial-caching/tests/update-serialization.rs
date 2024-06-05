@@ -2,6 +2,7 @@
 
 use common_types::auth::ExecutionAuth;
 use graph_entities::QueryResponse;
+use headers::HeaderMapExt;
 use http::HeaderMap;
 use partial_caching::FetchPhaseResult;
 use serde::Deserialize;
@@ -55,7 +56,7 @@ fn test_serializing_all_updates() {
     let (actual_response, update_phase) = execution.handle_response(executor_response.clone(), false);
 
     assert_eq!(
-        actual_response.to_json_value().unwrap(),
+        actual_response.body.to_json_value().unwrap(),
         executor_response.to_json_value().unwrap()
     );
 
@@ -100,7 +101,9 @@ fn test_serializing_all_updates() {
 #[test]
 fn no_updates_if_errors() {
     let registry = build_registry(SCHEMA);
-    let plan = partial_caching::build_plan(QUERY, None, &registry).unwrap().unwrap();
+    let plan = partial_caching::build_plan("{ user { name } }", None, &registry)
+        .unwrap()
+        .unwrap();
     let fetch_phase = plan.start_fetch_phase(&auth(), &headers(), &variables());
 
     let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
@@ -108,26 +111,40 @@ fn no_updates_if_errors() {
     };
 
     let mut executor_response = QueryResponse::default();
-    let root_node = executor_response.from_serde_value(json!({
-        "user": {
-            "name": "Jane",
-            "email": "whatever",
-            "someConstant": "123",
-            "nested": {
-                "someThing": "whatever",
-                "uncached": "Blah de blah"
-            }
-        }
-
-    }));
+    let root_node = executor_response.from_serde_value(json!({"user": {"name": "Jane"}}));
     executor_response.set_root_unchecked(root_node);
 
     let (actual_response, update_phase) = execution.handle_response(executor_response.clone(), true);
 
     assert_eq!(
-        actual_response.to_json_value().unwrap(),
+        actual_response.body.to_json_value().unwrap(),
         executor_response.to_json_value().unwrap()
     );
+
+    assert!(update_phase.is_none())
+}
+
+#[test]
+fn no_updates_if_no_store_header_provided() {
+    let registry = build_registry(SCHEMA);
+    let plan = partial_caching::build_plan("{ user { name } }", None, &registry)
+        .unwrap()
+        .unwrap();
+
+    let mut headers = http::HeaderMap::new();
+    headers.typed_insert(headers::CacheControl::new().with_no_store());
+
+    let fetch_phase = plan.start_fetch_phase(&auth(), &headers, &variables());
+
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+        panic!("We didn't hit everything so this should always be a partial");
+    };
+
+    let mut executor_response = QueryResponse::default();
+    let root_node = executor_response.from_serde_value(json!({"user": {"name": "Jane"}}));
+    executor_response.set_root_unchecked(root_node);
+
+    let (_, update_phase) = execution.handle_response(executor_response.clone(), true);
 
     assert!(update_phase.is_none())
 }

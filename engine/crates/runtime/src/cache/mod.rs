@@ -38,7 +38,8 @@ pub enum EntryState {
 /// Wraps an entry from cache when getting it from there
 #[derive(Debug, PartialEq, Eq)]
 pub enum Entry<T> {
-    Hit(T),
+    /// A hit, and the current time till stale of that hit
+    Hit(T, Duration),
     Miss,
     Stale(StaleEntry<T>),
 }
@@ -46,7 +47,7 @@ pub enum Entry<T> {
 impl<T> Entry<T> {
     fn try_map<V, F: FnOnce(T) -> Result<V>>(self, f: F) -> Result<Entry<V>> {
         match self {
-            Entry::Hit(value) => f(value).map(Entry::Hit),
+            Entry::Hit(value, max_age) => f(value).map(|new_value| Entry::Hit(new_value, max_age)),
             Entry::Miss => Ok(Entry::Miss),
             Entry::Stale(entry) => f(entry.value).map(|value| {
                 Entry::Stale(StaleEntry {
@@ -61,7 +62,7 @@ impl<T> Entry<T> {
 
     pub fn into_value(self) -> Option<T> {
         match self {
-            Entry::Hit(value) => Some(value),
+            Entry::Hit(value, _) => Some(value),
             Entry::Miss => None,
             Entry::Stale(StaleEntry { value, .. }) => Some(value),
         }
@@ -69,6 +70,10 @@ impl<T> Entry<T> {
 
     pub fn is_miss(&self) -> bool {
         matches!(self, Entry::Miss)
+    }
+
+    pub fn is_hit(&self) -> bool {
+        matches!(self, Entry::Hit(_, _))
     }
 }
 

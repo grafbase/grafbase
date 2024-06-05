@@ -12,7 +12,7 @@ use runtime::cache::Entry;
 
 use self::keys::build_cache_keys;
 use super::CachingPlan;
-use crate::{execution::ExecutionPhase, hit::CompleteHit, CacheControlHeaders, FetchPhaseResult};
+use crate::{execution::ExecutionPhase, headers::RequestCacheControl, hit::CompleteHit, FetchPhaseResult};
 
 impl CachingPlan {
     pub fn start_fetch_phase(
@@ -25,14 +25,13 @@ impl CachingPlan {
             .typed_get::<headers::CacheControl>()
             .unwrap_or_else(headers::CacheControl::new);
 
-        // TODO: don't forget to use CacheControlHeaders
         CacheFetchPhase {
             cache_keys: build_cache_keys(&self, auth, headers, variables),
             cache_entries: std::iter::repeat_with(|| Entry::Miss)
                 .take(self.cache_partitions.len())
                 .collect(),
             plan: self,
-            cache_headers,
+            request_cache_control: cache_headers.into(),
         }
     }
 }
@@ -49,8 +48,7 @@ pub struct CacheFetchPhase {
     pub(crate) cache_keys: Vec<Option<String>>,
 
     /// The cache control headers a user has provided
-    #[allow(unused)]
-    cache_headers: CacheControlHeaders,
+    pub(crate) request_cache_control: RequestCacheControl,
 
     pub(crate) cache_entries: Vec<Entry<serde_json::Value>>,
 }
@@ -71,6 +69,10 @@ impl fmt::Display for CacheKey {
 impl CacheFetchPhase {
     /// The keys that we need to fetch from the cache
     pub fn cache_keys(&self) -> Vec<CacheKey> {
+        if !self.request_cache_control.should_read_from_cache {
+            return vec![];
+        }
+
         self.cache_keys
             .iter()
             .enumerate()

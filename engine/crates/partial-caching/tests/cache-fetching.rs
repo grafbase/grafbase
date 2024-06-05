@@ -1,9 +1,13 @@
 #![allow(unused_crate_dependencies, clippy::panic)]
 
+use std::time::Duration;
+
 use common_types::auth::ExecutionAuth;
+use headers::HeaderMapExt;
 use http::HeaderMap;
 use insta::{assert_json_snapshot, assert_snapshot};
 use partial_caching::FetchPhaseResult;
+use runtime::cache::Entry;
 use serde::Deserialize;
 use serde_json::json;
 
@@ -50,11 +54,8 @@ fn correct_query_when_some_miss_some_hits() {
     let mut fetch_phase = plan.start_fetch_phase(&auth(), &headers(), &variables());
 
     let cache_keys = fetch_phase.cache_keys();
-    fetch_phase.record_cache_entry(
-        &cache_keys[0],
-        runtime::cache::Entry::Hit(json!({"user": {"name": "Jane"}})),
-    );
-    fetch_phase.record_cache_entry(&cache_keys[1], runtime::cache::Entry::Miss);
+    fetch_phase.record_cache_entry(&cache_keys[0], hit(json!({"user": {"name": "Jane"}})));
+    fetch_phase.record_cache_entry(&cache_keys[1], Entry::Miss);
 
     let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
         panic!("We didn't hit everything so this should always be a partial");
@@ -79,7 +80,7 @@ fn nocache_fields_are_always_in_query() {
 
     let cache_keys = fetch_phase.cache_keys();
     for key in &cache_keys {
-        fetch_phase.record_cache_entry(key, runtime::cache::Entry::Hit(json!("whatever")));
+        fetch_phase.record_cache_entry(key, hit(json!("whatever")));
     }
 
     let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
@@ -105,7 +106,7 @@ fn test_complete_cache_hits() {
 
     let cache_keys = fetch_phase.cache_keys();
     assert_eq!(cache_keys.len(), 1);
-    fetch_phase.record_cache_entry(&cache_keys[0], runtime::cache::Entry::Hit(json!("whatever")));
+    fetch_phase.record_cache_entry(&cache_keys[0], hit(json!("whatever")));
 
     let FetchPhaseResult::CompleteHit(_) = fetch_phase.finish() else {
         panic!("We hit all the cached fields so should have a complete hit");
@@ -134,6 +135,22 @@ fn query_name_does_not_factor_into_cache_key() {
     assert_eq!(cache_key_one.to_string(), cache_key_two.to_string())
 }
 
+#[test]
+fn no_cache_fetches_if_nocache_header_provided() {
+    let registry = build_registry(SCHEMA);
+    let plan = partial_caching::build_plan("{ user { name } }", None, &registry)
+        .unwrap()
+        .unwrap();
+
+    let mut headers = http::HeaderMap::new();
+    headers.typed_insert(headers::CacheControl::new().with_no_cache());
+
+    let fetch_phase = plan.start_fetch_phase(&auth(), &headers, &variables());
+
+    let cache_keys = fetch_phase.cache_keys();
+    assert!(cache_keys.is_empty());
+}
+
 fn build_registry(schema: &str) -> registry_for_cache::PartialCacheRegistry {
     registry_upgrade::convert_v1_to_partial_cache_registry(parser_sdl::parse_registry(schema).unwrap()).unwrap()
 }
@@ -148,4 +165,8 @@ fn headers() -> HeaderMap {
 
 fn variables() -> engine_value::Variables {
     engine_value::Variables::deserialize(json!({})).unwrap()
+}
+
+fn hit(value: serde_json::Value) -> Entry<serde_json::Value> {
+    Entry::Hit(value, Duration::from_millis(500))
 }

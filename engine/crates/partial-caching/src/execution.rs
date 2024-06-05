@@ -3,12 +3,16 @@
 //! provides whatever is left.  This can be passed to the executor to run the
 //! query.
 
+use std::time::Duration;
+
 use cynic_parser::ExecutableDocument;
 use graph_entities::{QueryResponse, ResponseNodeId};
 use registry_for_cache::CacheControl;
 use runtime::cache::Entry;
 
-use crate::{updating::PartitionIndex, CacheUpdatePhase, QuerySubset};
+use crate::{
+    headers::RequestCacheControl, response::MaxAge, updating::PartitionIndex, CacheUpdatePhase, QuerySubset, Response,
+};
 
 use super::fetching::CacheFetchPhase;
 
@@ -19,18 +23,24 @@ pub struct ExecutionPhase {
     cache_keys: Vec<Option<String>>,
     executor_subset: QuerySubset,
     cache_miss_count: usize,
+    is_partial_hit: bool,
+
+    request_cache_control: RequestCacheControl,
 }
 
 impl ExecutionPhase {
     pub(crate) fn new(fetch_phase: CacheFetchPhase) -> Self {
         let plan = fetch_phase.plan;
 
+        let mut is_partial_hit = false;
         let mut cache_miss_count = 0;
         let mut executor_subset = plan.nocache_partition;
         for (entry, (_, partition_subset)) in fetch_phase.cache_entries.iter().zip(plan.cache_partitions.iter()) {
             if entry.is_miss() {
                 cache_miss_count += 1;
                 executor_subset.extend(partition_subset);
+            } else {
+                is_partial_hit = true
             }
         }
 
@@ -41,6 +51,8 @@ impl ExecutionPhase {
             cache_entries: fetch_phase.cache_entries,
             executor_subset,
             cache_miss_count,
+            request_cache_control: fetch_phase.request_cache_control,
+            is_partial_hit,
         }
     }
 
@@ -51,11 +63,7 @@ impl ExecutionPhase {
             .to_string()
     }
 
-    pub fn handle_response(
-        self,
-        mut response: QueryResponse,
-        errors: bool,
-    ) -> (QueryResponse, Option<CacheUpdatePhase>) {
+    pub fn handle_response(self, mut response: QueryResponse, errors: bool) -> (Response, Option<CacheUpdatePhase>) {
         let mut keys_to_write = Vec::with_capacity(self.cache_miss_count);
 
         // I'd really like to avoid cloning this, but time is not on my side.
@@ -63,23 +71,35 @@ impl ExecutionPhase {
         // to avoid this.
         let update_respones = response.clone();
 
+        let mut response_max_age = MaxAge::default();
+
         for (index, (entry, key)) in self.cache_entries.into_iter().zip(self.cache_keys).enumerate() {
             match entry {
-                Entry::Hit(hit) => merge_json(&mut response, hit),
+                Entry::Hit(hit, max_age) => {
+                    merge_json(&mut response, hit);
+
+                    response_max_age.merge(max_age);
+                }
                 Entry::Stale(stale) => {
                     // TODO: Also want to issue an update instruction here, but going to do that
                     // in GB-6804
-                    merge_json(&mut response, stale.value)
+                    merge_json(&mut response, stale.value);
+
+                    // This entry was stale so clear the current maxAge until we have revalidated
+                    response_max_age.set_none();
                 }
                 Entry::Miss if key.is_some() => {
+                    response_max_age.merge(Duration::from_secs(self.cache_partitions[index].0.max_age as u64));
                     keys_to_write.push((key.unwrap(), PartitionIndex(index)));
                 }
-                Entry::Miss => {}
+                Entry::Miss => {
+                    response_max_age.merge(Duration::from_secs(self.cache_partitions[index].0.max_age as u64));
+                }
             }
         }
 
         let mut update_phase = None;
-        if !keys_to_write.is_empty() && !errors {
+        if !keys_to_write.is_empty() && !errors && self.request_cache_control.should_write_to_cache {
             // If there are errors we _do not_ want to write to the cache,
 
             update_phase = Some(CacheUpdatePhase::new(
@@ -89,6 +109,12 @@ impl ExecutionPhase {
                 update_respones,
             ));
         }
+
+        let response = if self.is_partial_hit {
+            Response::partial_hit(response, response_max_age)
+        } else {
+            Response::miss(response, response_max_age)
+        };
 
         (response, update_phase)
     }

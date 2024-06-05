@@ -19,19 +19,17 @@ use registry_for_cache::CacheControl;
 
 mod execution;
 mod fetching;
+mod headers;
 mod hit;
 mod planning;
 mod query_subset;
+mod response;
 mod updating;
 
 pub use self::{
-    execution::ExecutionPhase, planning::build_plan, query_subset::QuerySubset, updating::CacheUpdatePhase,
+    execution::ExecutionPhase, planning::build_plan, query_subset::QuerySubset, response::Response,
+    updating::CacheUpdatePhase,
 };
-
-// Renaming this because we have registry_for_cache::CacheControl & headers::CacheControl and
-// it's confusing when you're working with both of them.  Hopefully the alias doesn't add
-// it's own confusion :|
-pub use headers::CacheControl as CacheControlHeaders;
 
 pub struct CachingPlan {
     pub document: ExecutableDocument,
