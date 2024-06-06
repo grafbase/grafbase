@@ -10,6 +10,8 @@ export interface ExperimentalParams {
    * @deprecated Codegen was stabilized. Use the `codegen` key in the config object.
    */
   codegen?: boolean
+  /** Specifies the runtime to be used for the executor: `edge` or `nodejs`. */
+  runtime: 'edge' | 'nodejs'
 }
 
 export class Experimental {

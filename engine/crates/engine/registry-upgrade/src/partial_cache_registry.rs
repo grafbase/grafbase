@@ -32,6 +32,7 @@ pub fn convert_v1_to_partial_cache_registry(
         operation_limits: _,
         trusted_documents: _,
         cors_config: _,
+        runtime: _,
     } = v1;
 
     let types = {
