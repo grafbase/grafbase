@@ -22,6 +22,7 @@ const SCHEMA: &str = r#"
         email: String @cache(maxAge: 130)
         someConstant: String @cache(maxAge: 120)
         nested: Nested
+        noncacheable: String
     }
 
     type Nested {
@@ -241,6 +242,37 @@ fn test_miss_headers() {
 
     let response_cache_control = response.headers.typed_get::<headers::CacheControl>().unwrap();
     assert_eq!(response_cache_control.max_age().unwrap().as_secs(), 120);
+}
+
+#[test]
+fn test_query_that_hits_uncacheable_fields_should_have_no_cache_control_header() {
+    let registry = build_registry(SCHEMA);
+    let plan = partial_caching::build_plan("{ user { email uncacheable } }", None, &registry)
+        .unwrap()
+        .unwrap();
+    let fetch_phase = plan.start_fetch_phase(&auth(), &headers(), &variables());
+
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+        panic!("We didn't hit everything so this should always be a partial");
+    };
+
+    let mut query_response = QueryResponse::default();
+    let root_node = query_response.from_serde_value(json!({
+        "user": {
+            "email": "whatever",
+            "uncacheable": "Hello",
+        }
+    }));
+    query_response.set_root_unchecked(root_node);
+
+    let (response, _updates) = execution.handle_response(query_response, false);
+
+    assert_eq!(
+        response.headers.get("x-grafbase-cache"),
+        Some(&HeaderValue::from_static("MISS"))
+    );
+
+    assert_eq!(response.headers.typed_get::<headers::CacheControl>(), None);
 }
 
 fn build_registry(schema: &str) -> registry_for_cache::PartialCacheRegistry {

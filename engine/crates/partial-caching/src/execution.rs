@@ -24,6 +24,7 @@ pub struct ExecutionPhase {
     executor_subset: QuerySubset,
     cache_miss_count: usize,
     is_partial_hit: bool,
+    has_nocache_partition: bool,
 
     request_cache_control: RequestCacheControl,
 }
@@ -31,6 +32,7 @@ pub struct ExecutionPhase {
 impl ExecutionPhase {
     pub(crate) fn new(fetch_phase: CacheFetchPhase) -> Self {
         let plan = fetch_phase.plan;
+        let has_nocache_partition = !plan.nocache_partition.is_empty();
 
         let mut is_partial_hit = false;
         let mut cache_miss_count = 0;
@@ -51,8 +53,9 @@ impl ExecutionPhase {
             cache_entries: fetch_phase.cache_entries,
             executor_subset,
             cache_miss_count,
-            request_cache_control: fetch_phase.request_cache_control,
             is_partial_hit,
+            has_nocache_partition,
+            request_cache_control: fetch_phase.request_cache_control,
         }
     }
 
@@ -72,6 +75,11 @@ impl ExecutionPhase {
         let update_respones = response.clone();
 
         let mut response_max_age = MaxAge::default();
+
+        if self.has_nocache_partition {
+            // If any portion of our response can't be cached we set the maxAge to none
+            response_max_age.set_none();
+        }
 
         for (index, (entry, key)) in self.cache_entries.into_iter().zip(self.cache_keys).enumerate() {
             match entry {
