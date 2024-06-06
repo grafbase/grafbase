@@ -129,7 +129,7 @@ mod tests {
     #[rstest::rstest]
     #[case::error_parsing_unknown_field(r"
         extend schema @experimental(random: true)
-    ", &["Unable to parse @experimental - [2:37] unknown field `random`, expected one of `kv`, `ai`, `codegen`, `partialCaching`"], "", false)]
+    ", &["Unable to parse @experimental - [2:37] unknown field `random`, expected one of `kv`, `ai`, `codegen`, `partialCaching`, `runtime`"], "", false)]
     #[case::successful_parsing_codegen_disabled(r"
         extend schema @experimental(codegen: false)
     ", &[], "codegen", false)]
