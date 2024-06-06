@@ -11,7 +11,7 @@ export interface ExperimentalParams {
    */
   codegen?: boolean
   /** Specifies the runtime to be used for the executor: `edge` or `nodejs`. */
-  runtime: 'edge' | 'nodejs'
+  runtime?: 'edge' | 'nodejs'
 }
 
 export class Experimental {
