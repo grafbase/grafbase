@@ -23,7 +23,14 @@ export class Experimental {
 
   public toString(): string {
     const params = Object.keys(this.params)
-      .map((key) => `${key}: ${(this.params as any)[key]}`)
+      .map((key) => {
+        const value = (this.params as any)[key]
+        if (typeof value === 'string') {
+          return `${key}: "${value.replace('"', '\\"')}"`
+        } else {
+          return `${key}: ${value}`
+        }
+      })
       .join(', ')
     return params ? `extend schema\n  @experimental(${params})\n\n` : ''
   }

@@ -98,7 +98,7 @@ describe('Experimental generator', () => {
 
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
-        @experimental(runtime: 'nodejs')
+        @experimental(runtime: "nodejs")
       
       "
     `)
