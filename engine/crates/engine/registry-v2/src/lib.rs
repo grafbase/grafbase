@@ -104,6 +104,7 @@ pub struct Registry {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub codegen: Option<CodegenConfig>,
     pub cors_config: Option<CorsConfig>,
+    #[serde(default)]
     pub runtime: Option<Runtime>,
 }
 
