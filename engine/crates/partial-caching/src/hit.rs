@@ -27,10 +27,10 @@ impl CompleteHit {
         let mut response_max_age = MaxAge::default();
 
         match first_entry {
-            Entry::Hit(value, max_age) => {
+            Entry::Hit(value, time_till_miss) => {
                 let root_id = body.from_serde_value(value);
                 body.set_root_unchecked(root_id);
-                response_max_age.merge(max_age);
+                response_max_age.merge(time_till_miss);
             }
             Entry::Miss => {
                 // This is an obvious invariant so lets panic
