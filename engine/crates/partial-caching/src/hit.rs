@@ -49,10 +49,10 @@ impl CompleteHit {
         // Merge in the rest of the entries
         for entry in cache_entries {
             match entry {
-                Entry::Hit(value, max_age) => {
+                Entry::Hit(value, time_till_miss) => {
                     merge_json(&mut body, value);
 
-                    response_max_age.merge(max_age);
+                    response_max_age.merge(time_till_miss);
                 }
                 Entry::Miss => {
                     // This is an obvious invariant so lets panic
