@@ -52,7 +52,7 @@ impl std::fmt::Display for Warning {
                 feature,
                 documentation
             } => write!(f, "The {feature} feature is not experimental anymore, please see {documentation} for details on how it is now configured"),
-            Warning::ExperimentalFeatureUnreleased { feature } => write!(f, "The experimental {feature} feature is not releaseed yet, it may not work correctly or at all"),
+            Warning::ExperimentalFeatureUnreleased { feature } => write!(f, "The {feature} feature is experimental and may cause unexpected behavior"),
         }
     }
 }
