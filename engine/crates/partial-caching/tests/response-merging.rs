@@ -291,6 +291,6 @@ fn variables() -> engine_value::Variables {
     engine_value::Variables::deserialize(json!({})).unwrap()
 }
 
-fn hit(value: serde_json::Value, current_max_age: u64) -> Entry<serde_json::Value> {
-    Entry::Hit(value, Duration::from_secs(current_max_age))
+fn hit(value: serde_json::Value, time_till_miss: u64) -> Entry<serde_json::Value> {
+    Entry::Hit(value, Duration::from_secs(time_till_miss))
 }
