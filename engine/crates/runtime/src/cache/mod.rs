@@ -38,7 +38,7 @@ pub enum EntryState {
 /// Wraps an entry from cache when getting it from there
 #[derive(Debug, PartialEq, Eq)]
 pub enum Entry<T> {
-    /// A hit, and the current time till stale of that hit
+    /// A hit, and the time remaining until this hit becomes a miss
     Hit(T, Duration),
     Miss,
     Stale(StaleEntry<T>),
