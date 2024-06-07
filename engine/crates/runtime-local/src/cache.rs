@@ -107,17 +107,14 @@ impl runtime::cache::CacheInner for InMemoryCache {
         let res = Ok(inner
             .key_to_entry
             .get(key)
-            .map(|entry| {
-                if now < entry.max_age_at {
-                    Entry::Hit(entry.value.clone())
-                } else {
-                    Entry::Stale(StaleEntry {
-                        value: entry.value.clone(),
-                        state: entry.state,
-                        is_early_stale: false,
-                        metadata: entry.metadata.clone(),
-                    })
-                }
+            .map(|entry| match entry.max_age_at.checked_duration_since(now) {
+                Some(current_max_age) => Entry::Hit(entry.value.clone(), current_max_age),
+                None => Entry::Stale(StaleEntry {
+                    value: entry.value.clone(),
+                    state: entry.state,
+                    is_early_stale: false,
+                    metadata: entry.metadata.clone(),
+                }),
             })
             .unwrap_or(Entry::Miss));
         res
@@ -242,10 +239,11 @@ mod tests {
             .unwrap();
 
         assert_eq!(cache.get_json::<Dummy>(&unknown_key).await.unwrap(), Entry::Miss);
-        assert_eq!(
-            cache.get_json(&test_key).await.unwrap(),
-            Entry::Hit(Dummy::new("test value", 10, 20))
-        );
+
+        let entry = cache.get_json(&test_key).await.unwrap();
+        assert!(entry.is_hit());
+        assert_eq!(entry.into_value(), Some(Dummy::new("test value", 10, 20)));
+
         offset.store(25, Relaxed);
         assert_eq!(
             cache.get_json(&test_key).await.unwrap(),
@@ -296,25 +294,26 @@ mod tests {
         put("Great Dane", &["large", "dog"]).await;
         put("Saint Bernard", &["large", "dog"]).await;
         put("Basset Hound", &["small", "dog"]).await;
-        assert_eq!(
-            cache.get_json(&cache.build_key("Basset Hound")).await.unwrap(),
-            Entry::Hit(Dummy::new("Basset Hound", 10, 20))
-        );
-        assert_eq!(
-            cache.get_json(&cache.build_key("Great Dane")).await.unwrap(),
-            Entry::Hit(Dummy::new("Great Dane", 10, 20))
-        );
-        assert_eq!(
-            cache.get_json(&cache.build_key("Saint Bernard")).await.unwrap(),
-            Entry::Hit(Dummy::new("Saint Bernard", 10, 20))
-        );
+
+        let entry = cache.get_json(&cache.build_key("Basset Hound")).await.unwrap();
+        assert!(entry.is_hit());
+        assert_eq!(entry.into_value(), Some(Dummy::new("Basset Hound", 10, 20)));
+
+        let entry = cache.get_json(&cache.build_key("Great Dane")).await.unwrap();
+        assert!(entry.is_hit());
+        assert_eq!(entry.into_value(), Some(Dummy::new("Great Dane", 10, 20)));
+
+        let entry = cache.get_json(&cache.build_key("Saint Bernard")).await.unwrap();
+        assert!(entry.is_hit());
+        assert_eq!(entry.into_value(), Some(Dummy::new("Saint Bernard", 10, 20)));
 
         // multiple keys for a tag;
         cache.purge_by_tags(vec!["large".to_string()]).await.unwrap();
-        assert_eq!(
-            cache.get_json(&cache.build_key("Basset Hound")).await.unwrap(),
-            Entry::Hit(Dummy::new("Basset Hound", 10, 20))
-        );
+
+        let entry = cache.get_json(&cache.build_key("Basset Hound")).await.unwrap();
+        assert!(entry.is_hit());
+        assert_eq!(entry.into_value(), Some(Dummy::new("Basset Hound", 10, 20)));
+
         assert_eq!(
             cache.get_json::<Dummy>(&cache.build_key("Great Dane")).await.unwrap(),
             Entry::Miss

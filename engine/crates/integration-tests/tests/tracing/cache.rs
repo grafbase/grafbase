@@ -1,5 +1,6 @@
 use std::convert::Infallible;
 use std::sync::Arc;
+use std::time::Duration;
 
 use async_trait::async_trait;
 use http::HeaderMap;
@@ -44,7 +45,10 @@ pub fn cache_status_hit() {
     #[async_trait]
     impl CacheInner for TestCache {
         async fn get(&self, _key: &Key) -> runtime::cache::Result<Entry<Vec<u8>>> {
-            Ok(Entry::Hit(serde_json::to_vec(&TestResponse).unwrap()))
+            Ok(Entry::Hit(
+                serde_json::to_vec(&TestResponse).unwrap(),
+                Duration::from_millis(500),
+            ))
         }
 
         async fn put(

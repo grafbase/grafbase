@@ -55,7 +55,11 @@ where
 
             let (merged_data, update_phase) =
                 execution_phase.handle_response(executor_response.data, !executor_response.errors.is_empty());
-            executor_response.data = merged_data;
+
+            let partial_caching::Response { body, headers } = merged_data;
+
+            executor_response.data = body;
+            executor_response.http_headers.extend(headers);
 
             if let Some(update_phase) = update_phase {
                 ctx.wait_until(run_update_phase(update_phase, cache.clone()).boxed())
@@ -65,18 +69,17 @@ where
             Ok(Arc::new(executor_response))
         }
         partial_caching::FetchPhaseResult::CompleteHit(hit) => {
-            let (data, update_phase) = hit.response_and_updates();
+            let (response, update_phase) = hit.response_and_updates();
+            let partial_caching::Response { body, headers } = response;
 
             if let Some(update_phase) = update_phase {
                 ctx.wait_until(run_update_phase(update_phase, cache.clone()).boxed())
                     .await;
             }
 
-            Ok(Arc::new(engine::Response::new(
-                data,
-                request.operation_name(),
-                operation_type,
-            )))
+            Ok(Arc::new(
+                engine::Response::new(body, request.operation_name(), operation_type).http_headers(headers),
+            ))
         }
     }
 }

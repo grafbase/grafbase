@@ -104,7 +104,7 @@ where
                 cache_revalidation: revalidated,
             })
         }
-        Entry::Hit(value) => {
+        Entry::Hit(value, _) => {
             tracing::debug!(ray_id = ctx.ray_id(), "Cache HIT - {}", key);
 
             Ok(CachedExecutionResponse::Cached(Arc::new(value)))
@@ -489,6 +489,7 @@ mod tests {
                         ..Default::default()
                     })
                     .unwrap(),
+                    Duration::from_millis(500),
                 ))
             }
         }
