@@ -47,7 +47,7 @@ pub enum Entry<T> {
 impl<T> Entry<T> {
     fn try_map<V, F: FnOnce(T) -> Result<V>>(self, f: F) -> Result<Entry<V>> {
         match self {
-            Entry::Hit(value, max_age) => f(value).map(|new_value| Entry::Hit(new_value, max_age)),
+            Entry::Hit(value, time_till_miss) => f(value).map(|new_value| Entry::Hit(new_value, time_till_miss)),
             Entry::Miss => Ok(Entry::Miss),
             Entry::Stale(entry) => f(entry.value).map(|value| {
                 Entry::Stale(StaleEntry {
