@@ -5,7 +5,7 @@ use serde::{
     Deserializer,
 };
 
-use super::SeedContextInner;
+use super::SeedContext;
 use crate::{
     operation::FieldId,
     response::{GraphqlError, ResponseValue},
@@ -13,7 +13,7 @@ use crate::{
 
 pub(super) struct NullableSeed<'ctx, 'parent, Seed> {
     pub field_id: FieldId,
-    pub ctx: &'parent SeedContextInner<'ctx>,
+    pub ctx: &'parent SeedContext<'ctx>,
     pub seed: Seed,
 }
 
@@ -63,7 +63,7 @@ where
             Ok(value) => Ok(value.into_nullable()),
             Err(err) => {
                 if !self.ctx.propagating_error.fetch_and(false, Ordering::Relaxed) {
-                    self.ctx.response_part.borrow_mut().push_error(GraphqlError {
+                    self.ctx.writer.push_error(GraphqlError {
                         message: err.to_string(),
                         locations: vec![self.ctx.plan[self.field_id].location()],
                         path: Some(self.ctx.response_path()),

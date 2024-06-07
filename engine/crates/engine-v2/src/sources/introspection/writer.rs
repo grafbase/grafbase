@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-
 use schema::{
     sources::{
         introspection::{
@@ -13,18 +11,18 @@ use schema::{
 
 use crate::{
     plan::{CollectedField, PlanCollectedField, PlanCollectedSelectionSet, PlanWalker},
-    response::{ResponseBoundaryItem, ResponseObject, ResponseObjectUpdate, ResponsePart, ResponseValue},
+    response::{ResponseObject, ResponseValue, ResponseWriter},
 };
 
 pub(super) struct IntrospectionWriter<'a> {
     pub schema: SchemaWalker<'a, ()>,
     pub metadata: &'a IntrospectionMetadata,
     pub plan: PlanWalker<'a>,
-    pub output: RefCell<&'a mut ResponsePart>,
+    pub response: ResponseWriter<'a>,
 }
 
 impl<'a> IntrospectionWriter<'a> {
-    pub(super) fn update_output(&self, response_object: ResponseBoundaryItem) {
+    pub(super) fn execute(self) {
         let selection_set = self.plan.collected_selection_set();
         let mut fields =
             Vec::with_capacity(selection_set.as_ref().field_ids.len() + selection_set.as_ref().typename_fields.len());
@@ -56,10 +54,7 @@ impl<'a> IntrospectionWriter<'a> {
                 fields.push((*edge, name.into()));
             }
         }
-        self.output.borrow_mut().push_update(ResponseObjectUpdate {
-            id: response_object.response_object_id,
-            fields,
-        });
+        self.response.update_root_object_with(fields);
     }
 
     fn object<E: Copy, const N: usize>(
@@ -83,7 +78,7 @@ impl<'a> IntrospectionWriter<'a> {
             }
         }
 
-        self.output.borrow_mut().push_object(ResponseObject::new(fields)).into()
+        self.response.push_object(ResponseObject::new(fields)).into()
     }
 
     fn __schema(&self, selection_set: PlanCollectedSelectionSet<'_>) -> ResponseValue {
@@ -97,7 +92,7 @@ impl<'a> IntrospectionWriter<'a> {
                         .definitions()
                         .map(|definition| self.__type_inner(definition, selection_set))
                         .collect::<Vec<_>>();
-                    self.output.borrow_mut().push_list(&values).into()
+                    self.response.push_list(&values).into()
                 }
                 __Schema::QueryType => {
                     self.__type_inner(self.schema.query().into(), field.concrete_selection_set().unwrap())
@@ -113,7 +108,7 @@ impl<'a> IntrospectionWriter<'a> {
                     .map(|subscription| self.__type_inner(subscription.into(), field.concrete_selection_set().unwrap()))
                     .unwrap_or_default(),
                 // TODO: Need to implemented directives...
-                __Schema::Directives => self.output.borrow_mut().push_list(&[]).into(),
+                __Schema::Directives => self.response.push_list(&[]).into(),
             }
         })
     }
@@ -199,7 +194,7 @@ impl<'a> IntrospectionWriter<'a> {
                         })
                         .map(|field| self.__field(field, selection_set))
                         .collect::<Vec<_>>();
-                    self.output.borrow_mut().push_list(&values)
+                    self.response.push_list(&values)
                 })
                 .into(),
             __Type::Interfaces => definition
@@ -209,7 +204,7 @@ impl<'a> IntrospectionWriter<'a> {
                     let values = interfaces
                         .map(|interface| self.__type_inner(interface.into(), selection_set))
                         .collect::<Vec<_>>();
-                    self.output.borrow_mut().push_list(&values)
+                    self.response.push_list(&values)
                 })
                 .into(),
             __Type::PossibleTypes => definition
@@ -219,7 +214,7 @@ impl<'a> IntrospectionWriter<'a> {
                     let values = possible_types
                         .map(|interface| self.__type_inner(interface.into(), selection_set))
                         .collect::<Vec<_>>();
-                    self.output.borrow_mut().push_list(&values)
+                    self.response.push_list(&values)
                 })
                 .into(),
             __Type::EnumValues => definition
@@ -232,7 +227,7 @@ impl<'a> IntrospectionWriter<'a> {
                         .filter(|value| (!value.directives().has_deprecated() || include_deprecated))
                         .map(|value| self.__enum_value(value, selection_set))
                         .collect::<Vec<_>>();
-                    self.output.borrow_mut().push_list(&values)
+                    self.response.push_list(&values)
                 })
                 .into(),
             __Type::InputFields => definition
@@ -243,7 +238,7 @@ impl<'a> IntrospectionWriter<'a> {
                         .input_fields()
                         .map(|input_field| self.__input_value(input_field, selection_set))
                         .collect::<Vec<_>>();
-                    self.output.borrow_mut().push_list(&values)
+                    self.response.push_list(&values)
                 })
                 .into(),
             __Type::OfType => ResponseValue::Null,
@@ -269,7 +264,7 @@ impl<'a> IntrospectionWriter<'a> {
                     .map(|argument| self.__input_value(argument, selection_set))
                     .collect::<Vec<_>>();
 
-                self.output.borrow_mut().push_list(&values).into()
+                self.response.push_list(&values).into()
             }
             __Field::Type => self.__type(target.ty(), field.concrete_selection_set().unwrap()),
             __Field::IsDeprecated => target.directives().has_deprecated().into(),

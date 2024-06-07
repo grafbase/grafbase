@@ -4,6 +4,8 @@ use crate::response::GraphqlError;
 pub enum ExecutionError {
     #[error("Internal error: {0}")]
     Internal(String),
+    #[error("Deserialization error: {0}")]
+    DeserializationError(String),
     #[error(transparent)]
     Fetch(#[from] runtime::fetch::FetchError),
 }
@@ -28,5 +30,11 @@ impl From<&str> for ExecutionError {
 impl From<String> for ExecutionError {
     fn from(message: String) -> Self {
         Self::Internal(message)
+    }
+}
+
+impl From<serde_json::Error> for ExecutionError {
+    fn from(err: serde_json::Error) -> Self {
+        Self::DeserializationError(err.to_string())
     }
 }

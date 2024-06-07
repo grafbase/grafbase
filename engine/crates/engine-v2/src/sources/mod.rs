@@ -49,7 +49,7 @@ use crate::{
     execution::{ExecutionContext, ExecutionError, ExecutionResult, OperationRootPlanExecution},
     operation::OperationType,
     plan::{PlanWalker, PlanningResult},
-    response::{ResponseBoundaryObjectsView, ResponsePart},
+    response::{ResponseObjectsView, ResponsePart},
 };
 
 use self::{
@@ -90,8 +90,7 @@ impl Plan {
 pub(crate) struct ExecutorInput<'ctx, 'input> {
     pub ctx: ExecutionContext<'ctx>,
     pub plan: PlanWalker<'ctx>,
-    pub boundary_objects_view: ResponseBoundaryObjectsView<'input>,
-    pub response_part: ResponsePart,
+    pub root_response_objects: ResponseObjectsView<'input>,
 }
 
 pub(crate) struct SubscriptionInput<'ctx> {
@@ -131,11 +130,11 @@ pub(crate) enum Executor<'ctx> {
 }
 
 impl<'ctx> Executor<'ctx> {
-    pub async fn execute(self) -> ExecutionResult<ResponsePart> {
+    pub async fn execute(self, response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
         match self {
-            Executor::GraphQL(executor) => executor.execute().await,
-            Executor::Introspection(executor) => executor.execute().await,
-            Executor::FederationEntity(executor) => executor.execute().await,
+            Executor::GraphQL(executor) => executor.execute(response_part).await,
+            Executor::Introspection(executor) => executor.execute(response_part).await,
+            Executor::FederationEntity(executor) => executor.execute(response_part).await,
         }
     }
 }
@@ -148,7 +147,7 @@ impl<'ctx> SubscriptionExecutor<'ctx> {
     pub async fn execute(
         self,
         new_execution: impl Fn() -> OperationRootPlanExecution<'ctx> + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, OperationRootPlanExecution<'ctx>>> {
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<OperationRootPlanExecution<'ctx>>>> {
         match self {
             SubscriptionExecutor::Graphql(executor) => executor.execute(new_execution).await,
         }

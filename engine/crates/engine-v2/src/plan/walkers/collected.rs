@@ -1,12 +1,12 @@
 use schema::Definition;
 
 use crate::{
-    operation::SelectionSetTypeWalker,
+    operation::{SelectionSetType, SelectionSetTypeWalker},
     plan::{
         AnyCollectedSelectionSet, CollectedField, CollectedFieldId, CollectedSelectionSet, CollectedSelectionSetId,
         ConditionalField, ConditionalFieldId, ConditionalSelectionSet, ConditionalSelectionSetId, FieldType,
     },
-    response::UnpackedResponseEdge,
+    response::{ResponseEdge, ResponseValue, UnpackedResponseEdge},
 };
 
 use super::{PlanField, PlanWalker};
@@ -37,6 +37,27 @@ impl<'a> PlanCollectedSelectionSet<'a> {
 
     pub fn fields(self) -> impl ExactSizeIterator<Item = PlanCollectedField<'a>> + 'a {
         self.as_ref().field_ids.map(move |id| self.walk(id))
+    }
+
+    pub fn maybe_default_object(self) -> Option<Vec<(ResponseEdge, ResponseValue)>> {
+        let mut fields = Vec::new();
+        if !self.as_ref().typename_fields.is_empty() {
+            if let SelectionSetType::Object(id) = self.as_ref().ty {
+                let name: ResponseValue = self.schema_walker.walk(id).as_ref().name.into();
+                fields.extend(self.as_ref().typename_fields.iter().map(|&edge| (edge, name.clone())))
+            } else {
+                return None;
+            }
+        }
+        for field in self.fields() {
+            let field = field.as_ref();
+            if field.wrapping.is_required() {
+                return None;
+            }
+            fields.push((field.edge, ResponseValue::Null))
+        }
+
+        Some(fields)
     }
 }
 

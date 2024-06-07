@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use schema::Schema;
 
-use crate::response::{ResponseBoundaryItem, ResponseBuilder};
+use crate::response::{ResponseBuilder, ResponseObjectRef};
 
 use crate::plan::{OperationPlan, PlanBoundaryId};
 
@@ -25,12 +25,12 @@ pub struct OperationExecutionState {
     /// PlanBoundaryId -> u8
     plan_boundary_consummers_count: Vec<u8>,
     /// PlanBoundaryId -> Option<BoundaryItems>
-    boundaries: Vec<Option<BoundaryItems>>,
+    boundaries: Vec<Option<BoundaryResponseObjects>>,
 }
 
 #[derive(Clone)]
-struct BoundaryItems {
-    items: Arc<Vec<ResponseBoundaryItem>>,
+struct BoundaryResponseObjects {
+    response_object_refs: Arc<Vec<ResponseObjectRef>>,
     consummers_left: u8,
 }
 
@@ -60,65 +60,67 @@ impl OperationExecutionState {
             .collect()
     }
 
-    pub fn push_boundary_items(&mut self, boundary_id: PlanBoundaryId, items: Vec<ResponseBoundaryItem>) {
-        self.boundaries[usize::from(boundary_id)] = Some(BoundaryItems {
-            items: Arc::new(items),
+    pub fn push_boundary_response_object_refs(
+        &mut self,
+        boundary_id: PlanBoundaryId,
+        response_object_refs: Vec<ResponseObjectRef>,
+    ) {
+        self.boundaries[usize::from(boundary_id)] = Some(BoundaryResponseObjects {
+            response_object_refs: Arc::new(response_object_refs),
             consummers_left: self.plan_boundary_consummers_count[usize::from(boundary_id)],
         });
     }
 
-    pub fn retrieve_boundary_items(
+    pub fn get_root_response_object_refs(
         &mut self,
         schema: &Schema,
         operation: &OperationPlan,
         response: &ResponseBuilder,
         plan_id: PlanId,
-    ) -> Arc<Vec<ResponseBoundaryItem>> {
+    ) -> Arc<Vec<ResponseObjectRef>> {
         // If there is no root, an error propagated up to it and data will be null. So there's
         // nothing to do anymore.
-        let Some(root_boundary_item) = response.root_response_boundary_item() else {
+        let Some(root_boundary_item) = response.root_response_object() else {
             return Arc::new(Vec::new());
         };
         let Some(input) = &operation.plan_inputs[usize::from(plan_id)] else {
             return Arc::new(vec![root_boundary_item]);
         };
-        let items = {
+        let refs = {
             let n = usize::from(input.boundary_id);
             let Some(ref mut boundary) = self.boundaries[n] else {
                 unreachable!("Missing boundary items");
             };
             boundary.consummers_left -= 1;
             if boundary.consummers_left == 0 {
-                let items = boundary.items.clone();
+                let refs = boundary.response_object_refs.clone();
                 self.boundaries[n] = None;
-                items
+                refs
             } else {
-                boundary.items.clone()
+                boundary.response_object_refs.clone()
             }
         };
         match &operation.plan_outputs[usize::from(plan_id)].type_condition {
             Some(FlatTypeCondition::Interface(id)) => {
                 let possible_types = &schema[*id].possible_types;
                 Arc::new(
-                    items
-                        .iter()
-                        .filter(|root| possible_types.binary_search(&root.object_id).is_ok())
+                    refs.iter()
+                        .filter(|obj| possible_types.binary_search(&obj.definition_id).is_ok())
                         .cloned()
                         .collect(),
                 )
             }
             Some(FlatTypeCondition::Objects(ids)) if ids.len() == 1 => {
                 let id = ids[0];
-                Arc::new(items.iter().filter(|root| root.object_id == id).cloned().collect())
+                Arc::new(refs.iter().filter(|obj| obj.definition_id == id).cloned().collect())
             }
             Some(FlatTypeCondition::Objects(ids)) => Arc::new(
-                items
-                    .iter()
-                    .filter(|root| ids.binary_search(&root.object_id).is_ok())
+                refs.iter()
+                    .filter(|obj| ids.binary_search(&obj.definition_id).is_ok())
                     .cloned()
                     .collect(),
             ),
-            None => items,
+            None => refs,
         }
     }
 

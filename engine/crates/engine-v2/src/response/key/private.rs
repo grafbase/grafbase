@@ -32,6 +32,10 @@ impl Default for ResponseKeys {
 }
 
 impl ResponseKeys {
+    pub fn get(&self, key: &str) -> Option<SafeResponseKey> {
+        self.0.get(key)
+    }
+
     pub fn get_or_intern(&mut self, s: &str) -> SafeResponseKey {
         self.0.get_or_intern(s)
     }

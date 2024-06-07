@@ -2,7 +2,7 @@ use schema::{FieldDefinitionId, FieldDefinitionWalker};
 
 use crate::{
     operation::{FieldArgumentsWalker, FieldId, QueryInputValueWalker},
-    response::{ResponseEdge, ResponseKey},
+    response::ResponseKey,
 };
 
 use super::{PlanSelectionSet, PlanWalker};
@@ -14,10 +14,6 @@ impl<'a> PlanField<'a> {
         self.as_ref()
             .selection_set_id()
             .map(|id| PlanSelectionSet::SelectionSet(self.walk_with(id, ())))
-    }
-
-    pub fn response_edge(&self) -> ResponseEdge {
-        self.as_ref().response_edge()
     }
 
     pub fn response_key(&self) -> ResponseKey {

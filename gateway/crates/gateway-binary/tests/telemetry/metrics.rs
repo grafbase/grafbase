@@ -8,7 +8,7 @@ use futures_util::Future;
 use indoc::formatdoc;
 use serde::{Deserialize, Serialize};
 
-use crate::{load_schema, with_static_server, Client};
+use crate::{clickhouse_client, load_schema, with_static_server, Client};
 
 mod operation;
 mod request;
@@ -35,7 +35,7 @@ struct ExponentialHistogramRow {
 
 fn with_gateway<T, F>(test: T)
 where
-    T: FnOnce(String, u64, Arc<Client>, clickhouse::Client) -> F,
+    T: FnOnce(String, u64, Arc<Client>, &'static clickhouse::Client) -> F,
     F: Future<Output = ()>,
 {
     let service_name = format!("service_{}", ulid::Ulid::new());
@@ -58,20 +58,20 @@ where
     "#};
 
     let schema = load_schema("big");
-    let clickhouse = clickhouse::Client::default()
-        .with_url("http://localhost:8124")
-        .with_user("default")
-        .with_database("otel");
+    let clickhouse = clickhouse_client();
 
     println!("service_name: {}", service_name);
     with_static_server(config, &schema, None, None, |client| async move {
+        const WAIT_SECONDS: u64 = 2;
         let start = std::time::SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
-            .as_secs();
+            .as_secs()
+            + WAIT_SECONDS;
 
-        // wait for initial polling to be pushed
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        // wait for initial polling to be pushed to OTEL tables so we can ignore it with the
+        // appropriate start time filter.
+        tokio::time::sleep(Duration::from_secs(WAIT_SECONDS)).await;
 
         test(service_name, start, client, clickhouse).await
     })
