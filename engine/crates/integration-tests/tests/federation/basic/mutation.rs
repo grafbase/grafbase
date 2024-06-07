@@ -110,9 +110,6 @@ fn mutation_failure_should_stop_later_executions_if_required() {
                     "line": 2,
                     "column": 3
                   }
-                ],
-                "upstream_path": [
-                  "faillible"
                 ]
               }
             }
@@ -158,9 +155,6 @@ fn mutation_failure_should_stop_later_executions_if_required() {
                     "line": 2,
                     "column": 3
                   }
-                ],
-                "upstream_path": [
-                  "fail"
                 ]
               }
             }

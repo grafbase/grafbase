@@ -6,55 +6,42 @@ use serde::ser::{SerializeMap, SerializeSeq};
 use super::ReadSelectionSet;
 use crate::response::{ResponseBuilder, ResponseListId, ResponseObject, ResponseObjectId, ResponsePath, ResponseValue};
 
-pub struct ResponseBoundaryObjectsView<'a> {
+pub struct ResponseObjectsView<'a> {
     pub(super) schema: SchemaWalker<'a, ()>,
     pub(super) response: &'a ResponseBuilder,
-    pub(super) items: Arc<Vec<ResponseBoundaryItem>>,
+    pub(super) refs: Arc<Vec<ResponseObjectRef>>,
     pub(super) selection_set: Cow<'a, ReadSelectionSet>,
     pub(super) extra_constant_fields: Vec<(String, serde_json::Value)>,
 }
 
 #[derive(Debug, Clone)]
-pub struct ResponseBoundaryItem {
-    pub response_object_id: ResponseObjectId,
-    pub response_path: ResponsePath,
-    pub object_id: ObjectId,
+pub struct ResponseObjectRef {
+    pub id: ResponseObjectId,
+    pub path: ResponsePath,
+    pub definition_id: ObjectId,
 }
 
-impl<'a> ResponseBoundaryObjectsView<'a> {
-    pub fn into_single_boundary_item(self) -> ResponseBoundaryItem {
-        self.items
-            .iter()
-            .next()
-            .cloned()
-            .expect("There is always at least one input, there would be no plan otherwise.")
-    }
-
-    // Guaranteed to be in the same order as the response objects themselves
-    pub fn items(&self) -> &Arc<Vec<ResponseBoundaryItem>> {
-        &self.items
-    }
-
+impl<'a> ResponseObjectsView<'a> {
     pub fn with_extra_constant_fields(
         mut self,
         extra_constant_fields: Vec<(String, serde_json::Value)>,
-    ) -> ResponseBoundaryObjectsView<'a> {
+    ) -> ResponseObjectsView<'a> {
         self.extra_constant_fields = extra_constant_fields;
         self
     }
 }
 
-impl<'a> serde::Serialize for ResponseBoundaryObjectsView<'a> {
+impl<'a> serde::Serialize for ResponseObjectsView<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(self.items.len()))?;
-        for item in self.items.as_ref() {
+        let mut seq = serializer.serialize_seq(Some(self.refs.len()))?;
+        for item in self.refs.as_ref() {
             seq.serialize_element(&SerializableFilteredResponseObject {
                 schema: self.schema,
                 response: self.response,
-                response_object: &self.response[item.response_object_id],
+                response_object: &self.response[item.id],
                 selection_set: &self.selection_set,
                 extra_constant_fields: &self.extra_constant_fields,
             })?;

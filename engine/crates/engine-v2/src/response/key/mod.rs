@@ -158,6 +158,12 @@ impl UnpackedResponseEdge {
     }
 }
 
+impl From<UnpackedResponseEdge> for ResponseEdge {
+    fn from(value: UnpackedResponseEdge) -> Self {
+        value.pack()
+    }
+}
+
 impl std::fmt::Debug for BoundResponseKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("BoundResponseKey")

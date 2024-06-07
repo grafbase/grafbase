@@ -10,6 +10,7 @@ pub struct GraphqlOperationMetrics {
     latency: Histogram<u64>,
 }
 
+#[derive(Debug)]
 pub struct GraphqlOperationMetricsAttributes {
     pub ty: &'static str,
     pub name: Option<String>,

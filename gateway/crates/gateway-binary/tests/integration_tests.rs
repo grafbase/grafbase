@@ -1,8 +1,7 @@
 #![allow(unused_crate_dependencies)]
 
 mod mocks;
-// Fixing it with next PR.
-// mod telemetry;
+mod telemetry;
 
 use std::{
     env, fs,
@@ -324,7 +323,9 @@ fn with_static_server<F, T>(
 
     client.kill_handles();
 
-    res.unwrap();
+    if let Err(err) = res {
+        std::panic::resume_unwind(err);
+    }
 }
 
 fn with_hybrid_server<F, T>(config: &str, graph_ref: &str, sdl: &str, test: T)
@@ -394,6 +395,16 @@ async fn introspect(url: &str) -> String {
         .unwrap_or_default()
 }
 
+pub fn clickhouse_client() -> &'static ::clickhouse::Client {
+    static CLIENT: OnceLock<::clickhouse::Client> = OnceLock::new();
+    CLIENT.get_or_init(|| {
+        ::clickhouse::Client::default()
+            .with_url("http://localhost:8124")
+            .with_user("default")
+            .with_database("otel")
+    })
+}
+
 #[ctor::ctor]
 fn setup_rustls() {
     rustls::crypto::ring::default_provider().install_default().unwrap();
@@ -417,10 +428,13 @@ fn static_schema() {
 
         insta::assert_snapshot!(&result, @r###"
         {
-          "data": {},
+          "data": null,
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/)"
+              "message": "error sending request for url (http://127.0.0.1:46697/)",
+              "path": [
+                "me"
+              ]
             }
           ]
         }
@@ -533,10 +547,13 @@ fn custom_path() {
 
         insta::assert_snapshot!(&result, @r###"
         {
-          "data": {},
+          "data": null,
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/)"
+              "message": "error sending request for url (http://127.0.0.1:46697/)",
+              "path": [
+                "me"
+              ]
             }
           ]
         }
@@ -592,10 +609,13 @@ fn csrf_with_header() {
 
         insta::assert_snapshot!(&result, @r###"
         {
-          "data": {},
+          "data": null,
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/)"
+              "message": "error sending request for url (http://127.0.0.1:46697/)",
+              "path": [
+                "me"
+              ]
             }
           ]
         }
@@ -621,10 +641,13 @@ fn hybrid_graph() {
 
         insta::assert_snapshot!(&result, @r###"
         {
-          "data": {},
+          "data": null,
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/)"
+              "message": "error sending request for url (http://127.0.0.1:46697/)",
+              "path": [
+                "me"
+              ]
             }
           ]
         }

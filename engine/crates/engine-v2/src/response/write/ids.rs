@@ -1,4 +1,4 @@
-use super::{ResponseBuilder, ResponseDataPart, ResponsePart};
+use super::{ResponseBuilder, ResponseDataPart};
 use crate::response::{ResponseData, ResponseObject, ResponseValue};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -107,10 +107,10 @@ impl std::ops::IndexMut<ResponseListId> for ResponseDataPart {
     }
 }
 
-impl ResponsePart {
+impl ResponseDataPart {
     pub fn push_object(&mut self, object: ResponseObject) -> ResponseObjectId {
-        let offset = self.data.objects.len() as u32;
-        self.data.objects.push(object);
+        let offset = self.objects.len() as u32;
+        self.objects.push(object);
         ResponseObjectId {
             part_id: self.id,
             index: offset,
@@ -118,9 +118,9 @@ impl ResponsePart {
     }
 
     pub fn push_list(&mut self, value: &[ResponseValue]) -> ResponseListId {
-        let offset = self.data.lists.len() as u32;
+        let offset = self.lists.len() as u32;
         let length = value.len() as u32;
-        self.data.lists.extend_from_slice(value);
+        self.lists.extend_from_slice(value);
         ResponseListId {
             part_id: self.id,
             offset,

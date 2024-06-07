@@ -7,7 +7,7 @@ use crate::{
     operation::SelectionSetType,
     plan::ConditionalSelectionSetId,
     response::{
-        write::deserialize::{key::Key, SeedContextInner},
+        write::deserialize::{key::Key, SeedContext},
         ResponseValue,
     },
 };
@@ -15,7 +15,7 @@ use crate::{
 use super::{CollectedSelectionSetSeed, ObjectIdentifier};
 
 pub(crate) struct ConditionalSelectionSetSeed<'ctx, 'parent> {
-    pub ctx: &'parent SeedContextInner<'ctx>,
+    pub ctx: &'parent SeedContext<'ctx>,
     pub selection_set_ty: SelectionSetType,
     pub selection_set_ids: Cow<'parent, [ConditionalSelectionSetId]>,
 }

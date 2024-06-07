@@ -8,7 +8,7 @@ use conditional::*;
 use schema::{ObjectId, SchemaWalker};
 use serde::de::DeserializeSeed;
 
-use super::SeedContextInner;
+use super::SeedContext;
 use crate::{
     operation::SelectionSetType,
     plan::{AnyCollectedSelectionSet, RuntimeMergedConditionals},
@@ -16,7 +16,7 @@ use crate::{
 };
 
 pub(super) struct SelectionSetSeed<'ctx, 'parent> {
-    pub ctx: &'parent SeedContextInner<'ctx>,
+    pub ctx: &'parent SeedContext<'ctx>,
     pub collected: &'parent AnyCollectedSelectionSet,
 }
 
@@ -60,7 +60,7 @@ struct ObjectIdentifier<'ctx> {
 }
 
 impl<'ctx> ObjectIdentifier<'ctx> {
-    fn new(ctx: &SeedContextInner<'ctx>, root: SelectionSetType) -> Self {
+    fn new(ctx: &SeedContext<'ctx>, root: SelectionSetType) -> Self {
         let schema = ctx.plan.schema();
         match root {
             SelectionSetType::Interface(interface_id) => Self {

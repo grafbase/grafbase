@@ -1,46 +1,41 @@
 use std::fmt;
 
+use grafbase_tracing::{gql_response_status::GraphqlResponseStatus, span::GqlRecorderSpanExt};
 use serde::{
     de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor},
     Deserializer,
 };
+use tracing::Span;
 
-use super::errors::UpstreamGraphqlErrorsSeed;
-use crate::response::{GraphqlError, ResponsePath, SeedContext};
+use super::errors::{ConcreteGraphqlErrorsSeed, GraphqlErrorsSeed};
 
-pub fn ingest_deserializer_into_response<'ctx, 'de, DataSeed, D>(
-    ctx: &SeedContext<'ctx>,
-    root_err_path: &'ctx ResponsePath,
-    seed: DataSeed,
-    deserializer: D,
-) where
-    D: Deserializer<'de>,
-    DataSeed: DeserializeSeed<'de, Value = ()>,
-{
-    let result = GraphqlResponseSeed {
-        ctx,
-        root_err_path,
-        seed: Some(seed),
+pub(in crate::sources::graphql) struct GraphqlResponseSeed<DataSeed, ErrorSeed> {
+    graphql_span: Option<Span>,
+    data_seed: Option<DataSeed>,
+    errors_seed: Option<ConcreteGraphqlErrorsSeed<ErrorSeed>>,
+}
+
+impl<DataSeed, ErrorSeed> GraphqlResponseSeed<DataSeed, ErrorSeed> {
+    pub fn new(data_seed: DataSeed, errors_seed: ErrorSeed) -> Self {
+        Self {
+            graphql_span: None,
+            data_seed: Some(data_seed),
+            errors_seed: Some(ConcreteGraphqlErrorsSeed(errors_seed)),
+        }
     }
-    .deserialize(deserializer);
-    if let Err(err) = result {
-        report_error_if_no_others(
-            ctx,
-            root_err_path,
-            format!("Error decoding response from upstream: {err}"),
-        );
+
+    pub fn with_graphql_span(self, span: Span) -> Self {
+        Self {
+            graphql_span: Some(span),
+            ..self
+        }
     }
 }
 
-struct GraphqlResponseSeed<'ctx, 'parent, DataSeed> {
-    ctx: &'parent SeedContext<'ctx>,
-    seed: Option<DataSeed>,
-    root_err_path: &'ctx ResponsePath,
-}
-
-impl<'ctx, 'parent, 'de, DataSeed> DeserializeSeed<'de> for GraphqlResponseSeed<'ctx, 'parent, DataSeed>
+impl<'de, DataSeed, ErrorsSeed> DeserializeSeed<'de> for GraphqlResponseSeed<DataSeed, ErrorsSeed>
 where
     DataSeed: DeserializeSeed<'de, Value = ()>,
+    ErrorsSeed: GraphqlErrorsSeed<'de>,
 {
     type Value = ();
 
@@ -52,9 +47,10 @@ where
     }
 }
 
-impl<'ctx, 'parent, 'de, DataSeed> Visitor<'de> for GraphqlResponseSeed<'ctx, 'parent, DataSeed>
+impl<'de, DataSeed, ErrorsSeed> Visitor<'de> for GraphqlResponseSeed<DataSeed, ErrorsSeed>
 where
     DataSeed: DeserializeSeed<'de, Value = ()>,
+    ErrorsSeed: GraphqlErrorsSeed<'de>,
 {
     type Value = ();
 
@@ -66,50 +62,52 @@ where
     where
         A: MapAccess<'de>,
     {
-        let mut data_is_null: bool = true;
-        let mut errors = vec![];
+        let mut data_is_null_result = Ok(true);
+        let mut errors_count = 0;
         while let Some(key) = map.next_key::<ResponseKey>()? {
             match key {
-                ResponseKey::Data => match self.seed.take() {
-                    Some(seed) => {
-                        data_is_null = map
-                            .next_value_seed(InfaillibleNullableSeed {
-                                ctx: self.ctx,
-                                root_err_path: self.root_err_path,
-                                seed,
-                            })
-                            .expect("Infaillible by design.");
+                ResponseKey::Data => {
+                    if let Some(seed) = self.data_seed.take() {
+                        data_is_null_result = map.next_value_seed(NullableDataSeed { seed });
                     }
-                    None => return Err(serde::de::Error::custom("data key present multiple times.")),
-                },
-                ResponseKey::Errors => map.next_value_seed(UpstreamGraphqlErrorsSeed {
-                    path: self.root_err_path,
-                    errors: &mut errors,
-                })?,
+                }
+                ResponseKey::Errors => {
+                    if let Some(seed) = self.errors_seed.take() {
+                        errors_count = map.next_value_seed(seed)?;
+                    }
+                }
                 ResponseKey::Unknown => {
                     map.next_value::<IgnoredAny>()?;
                 }
             };
         }
-        if !errors.is_empty() {
-            // Replacing the any serde errors if the data is null, they're not relevant.
-            if data_is_null {
-                self.ctx.borrow_mut_response_part().replace_errors(errors);
+
+        let data_is_present = self.data_seed.is_some();
+        if let Some(span) = self.graphql_span {
+            let status = if errors_count == 0 {
+                GraphqlResponseStatus::Success
+            } else if data_is_present {
+                GraphqlResponseStatus::FieldError {
+                    count: errors_count as u64,
+                    data_is_null: data_is_null_result?,
+                }
             } else {
-                self.ctx.borrow_mut_response_part().push_errors(errors);
-            }
+                GraphqlResponseStatus::RequestError {
+                    count: errors_count as u64,
+                }
+            };
+            span.record_gql_status(status);
         }
+
         Ok(())
     }
 }
 
-struct InfaillibleNullableSeed<'ctx, 'parent, Seed> {
-    ctx: &'parent SeedContext<'ctx>,
-    root_err_path: &'ctx ResponsePath,
+struct NullableDataSeed<Seed> {
     seed: Seed,
 }
 
-impl<'de, 'ctx, 'parent, Seed> DeserializeSeed<'de> for InfaillibleNullableSeed<'ctx, 'parent, Seed>
+impl<'de, Seed> DeserializeSeed<'de> for NullableDataSeed<Seed>
 where
     Seed: DeserializeSeed<'de, Value = ()>,
 {
@@ -123,7 +121,7 @@ where
     }
 }
 
-impl<'de, 'ctx, 'parent, Seed> Visitor<'de> for InfaillibleNullableSeed<'ctx, 'parent, Seed>
+impl<'de, Seed> Visitor<'de> for NullableDataSeed<Seed>
 where
     Seed: DeserializeSeed<'de, Value = ()>,
 {
@@ -144,14 +142,6 @@ where
     where
         E: serde::de::Error,
     {
-        if let Err(err) = self
-            .seed
-            .deserialize(serde_value::ValueDeserializer::<E>::new(serde_value::Value::Option(
-                None,
-            )))
-        {
-            report_error_if_no_others(self.ctx, self.root_err_path, format!("Upstream data error: {err}"));
-        }
         Ok(true)
     }
 
@@ -159,9 +149,7 @@ where
     where
         D: Deserializer<'de>,
     {
-        if let Err(err) = self.seed.deserialize(deserializer) {
-            report_error_if_no_others(self.ctx, self.root_err_path, format!("Upstream data error: {err}"));
-        }
+        self.seed.deserialize(deserializer)?;
         Ok(false)
     }
 }
@@ -173,16 +161,4 @@ enum ResponseKey {
     Errors,
     #[serde(other)]
     Unknown,
-}
-
-fn report_error_if_no_others(ctx: &SeedContext<'_>, err_path: &ResponsePath, message: String) {
-    let mut response_part = ctx.borrow_mut_response_part();
-    // Only adding this if no other more precise errors were added.
-    if !response_part.has_errors() {
-        response_part.push_error(GraphqlError {
-            message,
-            path: Some(err_path.clone()),
-            ..Default::default()
-        });
-    }
 }

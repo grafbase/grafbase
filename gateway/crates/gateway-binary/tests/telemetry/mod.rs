@@ -74,10 +74,7 @@ fn with_otel() {
 
         tokio::time::sleep(Duration::from_secs(2)).await;
 
-        let client = clickhouse::Client::default()
-            .with_url("http://localhost:8124")
-            .with_user("default")
-            .with_database("otel");
+        let client = crate::clickhouse_client();
 
         let Row { resource_attributes } = client
             .query("SELECT ResourceAttributes FROM otel_traces WHERE ServiceName = ?")
@@ -94,7 +91,7 @@ fn with_otel() {
         assert_eq!(resource_attributes, expected_resource_attributes);
 
         let Row { resource_attributes } = client
-            .query("SELECT ResourceAttributes FROM otel_metrics_sum WHERE ResourceAttributes['service.name'] = ?")
+            .query("SELECT ResourceAttributes FROM otel_metrics_exponential_histogram WHERE ResourceAttributes['service.name'] = ?")
             .bind(&service_name)
             .fetch_one()
             .await
@@ -107,6 +104,8 @@ fn with_otel() {
 #[test]
 fn extra_resource_attributes() {
     let service_name = format!("service-{}", rand::random::<u128>());
+    println!("Service name: {service_name}");
+
     let config = &formatdoc! {r#"
         [telemetry]
         service_name = "{service_name}"
@@ -135,15 +134,18 @@ fn extra_resource_attributes() {
     "#};
 
     with_static_server(config, &schema, None, None, |client| async move {
-        let result: serde_json::Value = client.gql(query).send().await;
-        serde_json::to_string_pretty(&result).unwrap();
+        let response: serde_json::Value = client.gql(query).send().await;
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "__typename": "Query"
+          }
+        }
+        "###);
 
         tokio::time::sleep(Duration::from_secs(2)).await;
 
-        let client = clickhouse::Client::default()
-            .with_url("http://localhost:8124")
-            .with_user("default")
-            .with_database("otel");
+        let client = crate::clickhouse_client();
 
         let Row { resource_attributes } = client
             .query("SELECT ResourceAttributes FROM otel_traces WHERE ServiceName = ?")
@@ -163,7 +165,7 @@ fn extra_resource_attributes() {
         assert_eq!(resource_attributes, expected_resource_attributes);
 
         let Row { resource_attributes } = client
-            .query("SELECT ResourceAttributes FROM otel_metrics_sum WHERE ResourceAttributes['service.name'] = ?")
+            .query("SELECT ResourceAttributes FROM otel_metrics_exponential_histogram WHERE ResourceAttributes['service.name'] = ?")
             .bind(&service_name)
             .fetch_one()
             .await
@@ -204,10 +206,7 @@ fn with_otel_reload_tracing() {
         let result: serde_json::Value = client.gql(query).send().await;
         serde_json::to_string_pretty(&result).unwrap();
 
-        let client = clickhouse::Client::default()
-            .with_url("http://localhost:8124")
-            .with_user("default")
-            .with_database("otel");
+        let client = crate::clickhouse_client();
 
         #[derive(clickhouse::Row, Deserialize)]
         struct CountRow {
@@ -240,7 +239,7 @@ fn with_otel_reload_tracing() {
             .query(
                 r#"
                     SELECT COUNT(1) as count
-                    FROM otel_metrics_sum
+                    FROM otel_metrics_exponential_histogram
                     WHERE ResourceAttributes['service.name'] = ?
                     AND ResourceAttributes['grafbase.branch_name'] = ?
                     AND ResourceAttributes['grafbase.branch_id'] = ?

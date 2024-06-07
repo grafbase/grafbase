@@ -3,7 +3,7 @@ use std::sync::atomic::Ordering;
 use schema::{ListWrapping, Wrapping};
 use serde::de::DeserializeSeed;
 
-use super::{ListSeed, NullableSeed, ScalarTypeSeed, SeedContextInner, SelectionSetSeed};
+use super::{ListSeed, NullableSeed, ScalarTypeSeed, SeedContext, SelectionSetSeed};
 use crate::{
     plan::{CollectedField, FieldType},
     response::{GraphqlError, ResponseValue},
@@ -11,7 +11,7 @@ use crate::{
 
 #[derive(Clone)]
 pub(super) struct FieldSeed<'ctx, 'parent> {
-    pub ctx: &'parent SeedContextInner<'ctx>,
+    pub ctx: &'parent SeedContext<'ctx>,
     pub field: &'parent CollectedField,
     pub wrapping: Wrapping,
 }
@@ -68,7 +68,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
 
         result.map_err(move |err| {
             if !self.ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
-                self.ctx.response_part.borrow_mut().push_error(GraphqlError {
+                self.ctx.writer.push_error(GraphqlError {
                     message: err.to_string(),
                     locations: vec![self.ctx.plan[self.field.id].location()],
                     path: Some(self.ctx.response_path()),

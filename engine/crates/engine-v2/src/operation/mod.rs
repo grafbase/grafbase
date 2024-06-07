@@ -27,6 +27,7 @@ pub(crate) use walkers::*;
 pub(crate) struct Operation {
     pub ty: OperationType,
     pub root_object_id: ObjectId,
+    #[allow(dead_code)]
     pub name: Option<String>,
     pub response_keys: ResponseKeys,
     pub root_selection_set_id: SelectionSetId,

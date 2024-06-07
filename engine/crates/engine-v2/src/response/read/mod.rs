@@ -7,19 +7,19 @@ mod view;
 
 use schema::SchemaWalker;
 pub use selection_set::{ReadField, ReadSelectionSet};
-pub use view::{ResponseBoundaryItem, ResponseBoundaryObjectsView};
+pub use view::{ResponseObjectRef, ResponseObjectsView};
 
 impl ResponseBuilder {
     pub fn read<'a>(
         &'a self,
         schema: SchemaWalker<'a, ()>,
-        items: Arc<Vec<ResponseBoundaryItem>>,
+        refs: Arc<Vec<ResponseObjectRef>>,
         selection_set: Cow<'a, ReadSelectionSet>,
-    ) -> ResponseBoundaryObjectsView<'a> {
-        ResponseBoundaryObjectsView {
+    ) -> ResponseObjectsView<'a> {
+        ResponseObjectsView {
             schema,
             response: self,
-            items,
+            refs,
             selection_set,
             extra_constant_fields: vec![],
         }

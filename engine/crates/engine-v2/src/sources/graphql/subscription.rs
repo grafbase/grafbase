@@ -1,9 +1,12 @@
 use futures_util::{stream::BoxStream, StreamExt};
 use runtime::fetch::GraphqlRequest;
 use schema::{sources::graphql::GraphqlEndpointWalker, HeaderValueRef};
+use serde::de::DeserializeSeed;
 
 use super::{
-    deserialize::ingest_deserializer_into_response, query::PreparedGraphqlOperation, variables::SubgraphVariables,
+    deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
+    query::PreparedGraphqlOperation,
+    variables::SubgraphVariables,
     ExecutionContext, GraphqlExecutionPlan,
 };
 use crate::{
@@ -39,7 +42,7 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
     pub async fn execute(
         self,
         new_execution: impl Fn() -> OperationRootPlanExecution<'ctx> + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, OperationRootPlanExecution<'ctx>>> {
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<OperationRootPlanExecution<'ctx>>>> {
         let Self {
             ctx,
             subgraph,
@@ -87,19 +90,11 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
             })
             .await?;
 
-        Ok(Box::pin(
-            stream
-                .take_while(|result| std::future::ready(result.is_ok()))
-                .map(move |response| {
-                    let mut execution = new_execution();
-                    ingest_response(
-                        &mut execution,
-                        plan,
-                        response.expect("errors to be filtered out by the above take_while"),
-                    );
-                    execution
-                }),
-        ))
+        Ok(Box::pin(stream.map(move |response| {
+            let mut execution = new_execution();
+            ingest_response(&mut execution, plan, response?)?;
+            Ok(execution)
+        })))
     }
 }
 
@@ -107,16 +102,15 @@ fn ingest_response(
     execution: &mut OperationRootPlanExecution<'_>,
     plan: PlanWalker<'_>,
     subgraph_response: serde_json::Value,
-) {
-    let boundary_item = execution.root_response_boundary_item();
-    let response_part = execution.root_response_part();
-
-    let err_path = plan.root_error_path(&boundary_item.response_path);
-    let seed_ctx = plan.new_seed(response_part);
-    ingest_deserializer_into_response(
-        &seed_ctx,
-        &err_path,
-        seed_ctx.create_root_seed(&boundary_item),
-        subgraph_response,
-    );
+) -> ExecutionResult<()> {
+    let part = execution.root_response_part().as_mut();
+    GraphqlResponseSeed::new(
+        part.next_seed(plan).expect("Must have a root object to update"),
+        RootGraphqlErrors {
+            response_part: &part,
+            response_keys: plan.response_keys(),
+        },
+    )
+    .deserialize(subgraph_response)?;
+    Ok(())
 }
