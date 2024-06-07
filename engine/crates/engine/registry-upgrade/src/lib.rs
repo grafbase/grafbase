@@ -38,6 +38,7 @@ pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> anyhow::Result<registry_v2
         trusted_documents,
         cors_config,
         codegen,
+        runtime,
     } = v1;
 
     // First, copy over the fields that are the same.
@@ -57,6 +58,10 @@ pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> anyhow::Result<registry_v2
     writer.trusted_documents = trusted_documents;
     writer.codegen = codegen;
     writer.cors_config = cors_config;
+    writer.runtime = runtime.map(|runtime| match runtime {
+        registry_v1::Runtime::Edge => registry_v2::Runtime::Edge,
+        registry_v1::Runtime::NodeJs => registry_v2::Runtime::NodeJs,
+    });
 
     let types = {
         let mut types = types.into_values().collect::<Vec<_>>();

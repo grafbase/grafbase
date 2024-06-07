@@ -51,6 +51,12 @@ pub use self::{
 };
 pub use engine_id_newtypes::IdRange;
 
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+pub enum Runtime {
+    Edge,
+    NodeJs,
+}
+
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Registry {
     strings: IndexSet<Box<str>>,
@@ -98,6 +104,8 @@ pub struct Registry {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub codegen: Option<CodegenConfig>,
     pub cors_config: Option<CorsConfig>,
+    #[serde(default)]
+    pub runtime: Option<Runtime>,
 }
 
 impl Registry {

@@ -10,7 +10,7 @@ use crate::{
     resolvers::Resolver,
     storage::{self, *},
     CodegenConfig, ConnectorHeaders, CorsConfig, FederationEntity, IdRange, MongoDBConfiguration, OperationLimits,
-    Registry, TrustedDocuments, TypeWrappers,
+    Registry, Runtime, TrustedDocuments, TypeWrappers,
 };
 
 /// Writes to a registry.
@@ -61,6 +61,7 @@ pub struct RegistryWriter {
     pub trusted_documents: Option<TrustedDocuments>,
     pub codegen: Option<CodegenConfig>,
     pub cors_config: Option<CorsConfig>,
+    pub runtime: Option<Runtime>,
 }
 
 impl RegistryWriter {
@@ -225,6 +226,7 @@ impl RegistryWriter {
             trusted_documents,
             cors_config,
             codegen,
+            runtime,
         } = self;
 
         let types = types
@@ -269,6 +271,7 @@ impl RegistryWriter {
             trusted_documents,
             codegen,
             cors_config,
+            runtime,
         })
     }
 

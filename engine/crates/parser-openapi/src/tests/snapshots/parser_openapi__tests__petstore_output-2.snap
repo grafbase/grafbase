@@ -1803,4 +1803,5 @@ Registry {
     trusted_documents: None,
     codegen: None,
     cors_config: None,
+    runtime: None,
 }

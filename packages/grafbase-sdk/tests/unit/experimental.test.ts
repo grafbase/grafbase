@@ -88,6 +88,22 @@ describe('Experimental generator', () => {
     `)
   })
 
+  it('renders experimental with the `runtime` property', async () => {
+    const cfg = config({
+      graph: g,
+      experimental: {
+        runtime: 'nodejs'
+      }
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend schema
+        @experimental(runtime: "nodejs")
+      
+      "
+    `)
+  })
+
   it('doesnt render experimental', async () => {
     const cfg = config({
       graph: g,

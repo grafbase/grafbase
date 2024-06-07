@@ -28,6 +28,12 @@ pub use fields::*;
 pub use input_value::*;
 pub use types::*;
 
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+pub enum Runtime {
+    Edge,
+    NodeJs,
+}
+
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Registry {
     pub types: BTreeMap<String, MetaType>,
@@ -64,6 +70,8 @@ pub struct Registry {
     pub codegen: Option<CodegenConfig>,
     #[serde(default)]
     pub cors_config: Option<CorsConfig>,
+    #[serde(default)]
+    pub runtime: Option<Runtime>,
 }
 
 impl Default for Registry {
@@ -91,6 +99,7 @@ impl Default for Registry {
             trusted_documents: Default::default(),
             cors_config: Default::default(),
             codegen: Default::default(),
+            runtime: Default::default(),
         }
     }
 }

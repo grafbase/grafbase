@@ -874,5 +874,6 @@ expression: registry_from_introspection(schema)
     "complexity": null
   },
   "trusted_documents": null,
-  "cors_config": null
+  "cors_config": null,
+  "runtime": null
 }

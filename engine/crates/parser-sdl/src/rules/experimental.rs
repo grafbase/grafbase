@@ -20,6 +20,13 @@ pub enum ExperimentalDirectiveError {
     Parsing(RuleError),
 }
 
+#[derive(Clone, Copy, Debug, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Runtime {
+    Edge,
+    NodeJs,
+}
+
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ExperimentalDirective {
@@ -29,8 +36,8 @@ pub struct ExperimentalDirective {
     pub kv: Option<bool>,
     pub ai: Option<bool>,
     pub codegen: Option<bool>,
-
     pub partial_caching: Option<bool>,
+    pub runtime: Option<Runtime>,
 }
 
 pub struct ExperimentalDirectiveVisitor;
@@ -61,6 +68,15 @@ impl<'a> Visitor<'a> for ExperimentalDirectiveVisitor {
                     ctx.registry.get_mut().codegen = Some(registry_v2::CodegenConfig { enabled, path: None });
                 }
 
+                if let Some(runtime) = experimental_directive.runtime {
+                    ctx.warnings.push(Warning::ExperimentalFeatureUnreleased {
+                        feature: "runtime".into(),
+                    });
+                    ctx.registry.get_mut().runtime = Some(match runtime {
+                        Runtime::Edge => registry_v1::Runtime::Edge,
+                        Runtime::NodeJs => registry_v1::Runtime::NodeJs,
+                    });
+                }
                 if let Some(enabled) = experimental_directive.partial_caching {
                     ctx.warnings.push(Warning::ExperimentalFeatureUnreleased {
                         feature: "partial_caching".into(),
@@ -113,7 +129,7 @@ mod tests {
     #[rstest::rstest]
     #[case::error_parsing_unknown_field(r"
         extend schema @experimental(random: true)
-    ", &["Unable to parse @experimental - [2:37] unknown field `random`, expected one of `kv`, `ai`, `codegen`, `partialCaching`"], "", false)]
+    ", &["Unable to parse @experimental - [2:37] unknown field `random`, expected one of `kv`, `ai`, `codegen`, `partialCaching`, `runtime`"], "", false)]
     #[case::successful_parsing_codegen_disabled(r"
         extend schema @experimental(codegen: false)
     ", &[], "codegen", false)]

@@ -10,6 +10,8 @@ export interface ExperimentalParams {
    * @deprecated Codegen was stabilized. Use the `codegen` key in the config object.
    */
   codegen?: boolean
+  /** Specifies the runtime to be used for the executor: `edge` or `nodejs`. */
+  runtime?: 'edge' | 'nodejs'
 }
 
 export class Experimental {
@@ -21,7 +23,14 @@ export class Experimental {
 
   public toString(): string {
     const params = Object.keys(this.params)
-      .map((key) => `${key}: ${(this.params as any)[key]}`)
+      .map((key) => {
+        const value = (this.params as any)[key]
+        if (typeof value === 'string') {
+          return `${key}: "${value.replace('"', '\\"')}"`
+        } else {
+          return `${key}: ${value}`
+        }
+      })
       .join(', ')
     return params ? `extend schema\n  @experimental(${params})\n\n` : ''
   }
