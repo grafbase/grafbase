@@ -32,7 +32,6 @@ exclude = ["engine/crates/gateway-v2"]
 axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac" } # axum-tungstenite-upgrade
 # Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
 axum-server = { git = "https://github.com/grafbase/axum-server", rev = "fdce3d3dc71dc69597689cc28003cc0533b47dba" } # rustls-0.23
-graphql-ws-client = { git = "https://github.com/grafbase/graphql-ws-client", rev = "84aa4e3629ffcf0141702faef37324cd41d64291" } # upgrade-tungstenite-0.23
 hyper-rustls = { git = "https://github.com/grafbase/hyper-rustls", rev = "e8e14ba34c081702297c74e544109be6c8ea5232" } # rustls-0.23
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
 names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" } # main
