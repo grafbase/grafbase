@@ -17,7 +17,7 @@ async-runtime.workspace = true
 async-trait = "0.1.80"
 async-tungstenite = { version = "0.26.0", features = ["tokio-runtime", "tokio-rustls-webpki-roots"] }
 futures-util.workspace = true
-graphql-ws-client = { version = "0.8.2", features = ["async-tungstenite"] }
+graphql-ws-client = { version = "0.10.0", features = ["tungstenite"] }
 ulid.workspace = true
 serde.workspace = true
 serde_json.workspace  = true
