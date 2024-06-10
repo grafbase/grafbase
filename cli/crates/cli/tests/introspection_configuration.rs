@@ -42,7 +42,6 @@ async fn introspection_configuration() {
 
     insta::assert_json_snapshot!(response, @r###"
     {
-      "data": null,
       "errors": [
         {
           "message": "Unknown field \"hllo\" on type \"Query\". Did you mean \"hello\"?",
@@ -93,7 +92,6 @@ async fn introspection_configuration() {
 
     insta::assert_json_snapshot!(response, @r###"
     {
-      "data": null,
       "errors": [
         {
           "message": "Unknown field \"hllo\" on type \"Query\".",
@@ -131,7 +129,6 @@ async fn introspection_configuration() {
 
     insta::assert_json_snapshot!(response, @r###"
     {
-      "data": null,
       "errors": [
         {
           "message": "Unknown field \"hllo\" on type \"Query\". Did you mean \"hello\"?",
