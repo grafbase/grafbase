@@ -81,8 +81,8 @@
             libiconv
 
             # Resolver tests
-            nodePackages.pnpm
-            nodePackages.yarn
+            pnpm # and cli-app
+            yarn
           ]
           ++ optional (system == systems.aarch64-darwin) [
             cargo-binstall

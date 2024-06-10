@@ -81,7 +81,6 @@ async fn simple_authorizer() {
     client.poll_endpoint(30, 300).await;
     insta::assert_json_snapshot!(client.gql::<Value>("query { todo { id } }").await, @r###"
     {
-      "data": null,
       "errors": [
         {
           "message": "Unauthorized"
@@ -144,7 +143,6 @@ async fn test_naming_clash() {
     client.poll_endpoint(30, 300).await;
     insta::assert_json_snapshot!(client.gql::<Value>("query { clash }").await, @r###"
     {
-      "data": null,
       "errors": [
         {
           "message": "Unauthorized"
