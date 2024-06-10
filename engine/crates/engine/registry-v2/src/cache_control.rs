@@ -49,20 +49,8 @@ impl CacheControl {
     pub fn merge(&mut self, mut other: CacheControl) {
         *self = CacheControl {
             public: self.public && other.public,
-            max_age: if self.max_age == 0 {
-                other.max_age
-            } else if other.max_age == 0 {
-                self.max_age
-            } else {
-                self.max_age.min(other.max_age)
-            },
-            stale_while_revalidate: if self.stale_while_revalidate == 0 {
-                other.stale_while_revalidate
-            } else if other.stale_while_revalidate == 0 {
-                self.stale_while_revalidate
-            } else {
-                self.stale_while_revalidate.min(other.stale_while_revalidate)
-            },
+            max_age: self.max_age.min(other.max_age),
+            stale_while_revalidate: self.stale_while_revalidate.min(other.stale_while_revalidate),
             invalidation_policy: if self.invalidation_policy.is_none() {
                 other.invalidation_policy
             } else if other.invalidation_policy.is_none() {
