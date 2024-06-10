@@ -125,8 +125,7 @@ impl FieldExt for FieldSelection<'_> {
 impl<'a> ObjectSerializer<'a> {
     pub fn field_iter(&self) -> FieldIter<'a> {
         FieldIter {
-            iter_stack: vec![self.ctx.subset.selection_iter(self.ctx.document, self.selection_set)],
-            document: self.ctx.document,
+            iter_stack: vec![self.ctx.subset.selection_iter(self.selection_set)],
             subset: self.ctx.subset,
         }
     }
@@ -137,7 +136,6 @@ impl<'a> ObjectSerializer<'a> {
 /// This will recurse into any selection sets nested inside fragments.
 struct FieldIter<'a> {
     iter_stack: Vec<FilteredSelections<'a>>,
-    document: &'a ExecutableDocument,
     subset: &'a QuerySubset,
 }
 
@@ -155,13 +153,13 @@ impl<'a> Iterator for FieldIter<'a> {
                 Selection::Field(field) => return Some(field),
                 Selection::InlineFragment(fragment) => {
                     self.iter_stack
-                        .push(self.subset.selection_iter(self.document, fragment.selection_set()));
+                        .push(self.subset.selection_iter(fragment.selection_set()));
                 }
                 Selection::FragmentSpread(spread) => {
                     let Some(fragment) = spread.fragment() else { continue };
 
                     self.iter_stack
-                        .push(self.subset.selection_iter(self.document, fragment.selection_set()));
+                        .push(self.subset.selection_iter(fragment.selection_set()));
                 }
             }
         }

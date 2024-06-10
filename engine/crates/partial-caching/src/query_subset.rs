@@ -1,10 +1,9 @@
 use std::fmt;
 
 use cynic_parser::{
-    common::IdRange,
     executable::{
         ids::{FragmentDefinitionId, OperationDefinitionId, SelectionId, VariableDefinitionId},
-        iter::Iter,
+        iter::{IdIter, Iter},
         Selection, VariableDefinition,
     },
     ExecutableDocument,
@@ -70,46 +69,35 @@ impl QuerySubset {
         self.variables.iter().map(|id| document.read(*id))
     }
 
-    fn selection_set_display<'a>(
-        &'a self,
-        document: &'a ExecutableDocument,
-        selections: Iter<'a, Selection<'a>>,
-    ) -> SelectionSetDisplay<'a> {
+    fn selection_set_display<'a>(&'a self, selections: Iter<'a, Selection<'a>>) -> SelectionSetDisplay<'a> {
         SelectionSetDisplay {
-            document,
             visible_selections: &self.partition.selections,
-            selections: self.selection_iter(document, selections),
+            selections: self.selection_iter(selections),
             indent_level: 0,
         }
     }
 
-    pub(crate) fn selection_iter<'a>(
-        &'a self,
-        document: &'a ExecutableDocument,
-        selection_set: Iter<'a, Selection<'a>>,
-    ) -> FilteredSelections<'a> {
+    pub(crate) fn selection_iter<'a>(&'a self, selection_set: Iter<'a, Selection<'a>>) -> FilteredSelections<'a> {
         FilteredSelections {
-            document,
-            visible_selections: &self.partition.selections,
-            ids: selection_set.ids(),
+            visible_ids: &self.partition.selections,
+            selections: selection_set.with_ids(),
         }
     }
 }
 
 #[derive(Clone, Copy)]
 pub(crate) struct FilteredSelections<'a> {
-    document: &'a ExecutableDocument,
-    visible_selections: &'a IndexSet<SelectionId>,
-    ids: IdRange<SelectionId>,
+    visible_ids: &'a IndexSet<SelectionId>,
+    selections: IdIter<'a, Selection<'a>>,
 }
 
 impl<'a> Iterator for FilteredSelections<'a> {
     type Item = Selection<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        for candidate in self.ids.by_ref() {
-            if self.visible_selections.contains(&candidate) {
-                return Some(self.document.read(candidate));
+        for (id, selection) in self.selections.by_ref() {
+            if self.visible_ids.contains(&id) {
+                return Some(selection);
             }
         }
         None
@@ -133,13 +121,11 @@ impl QuerySubsetDisplay<'_> {
 
 struct SelectionSetDisplay<'a> {
     selections: FilteredSelections<'a>,
-    document: &'a ExecutableDocument,
     visible_selections: &'a IndexSet<SelectionId>,
     indent_level: usize,
 }
 
 struct SelectionDisplay<'a> {
-    document: &'a ExecutableDocument,
     visible_selections: &'a IndexSet<SelectionId>,
     selection: Selection<'a>,
     indent_level: usize,
@@ -148,12 +134,10 @@ struct SelectionDisplay<'a> {
 impl<'a> SelectionDisplay<'a> {
     fn wrap_set(&self, selections: Iter<'a, Selection<'a>>) -> SelectionSetDisplay<'a> {
         SelectionSetDisplay {
-            document: self.document,
             visible_selections: self.visible_selections,
             selections: FilteredSelections {
-                document: self.document,
-                visible_selections: self.visible_selections,
-                ids: selections.ids(),
+                visible_ids: self.visible_selections,
+                selections: selections.with_ids(),
             },
             indent_level: self.indent_level,
         }
@@ -196,7 +180,7 @@ impl std::fmt::Display for QuerySubsetDisplay<'_> {
             f,
             "{} {}",
             operation.directives(),
-            subset.selection_set_display(self.document, operation.selection_set())
+            subset.selection_set_display(operation.selection_set())
         )?;
 
         for id in &subset.partition.fragments {
@@ -207,7 +191,7 @@ impl std::fmt::Display for QuerySubsetDisplay<'_> {
                 fragment.name(),
                 fragment.type_condition(),
                 fragment.directives(),
-                subset.selection_set_display(document, fragment.selection_set())
+                subset.selection_set_display(fragment.selection_set())
             )?;
         }
 
@@ -227,7 +211,6 @@ impl fmt::Display for SelectionSetDisplay<'_> {
                 f,
                 "{}",
                 SelectionDisplay {
-                    document: self.document,
                     visible_selections: self.visible_selections,
                     selection,
                     indent_level: self.indent_level + 1
