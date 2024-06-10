@@ -35,6 +35,13 @@ impl QueryResponse {
     pub fn as_graphql_data(&self) -> GraphQlResponseSerializer<'_> {
         GraphQlResponseSerializer(self)
     }
+
+    pub fn is_null(&self) -> bool {
+        self.root
+            .and_then(|id| self.get_node(id))
+            .map(|node| matches!(node, QueryResponseNode::Primitive(primitive) if primitive.is_null()))
+            .unwrap_or(true)
+    }
 }
 
 /// A Wrapper around QueryResponse that serialises the nodes for

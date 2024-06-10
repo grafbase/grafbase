@@ -2,7 +2,11 @@ use std::sync::Arc;
 
 use engine::parser::types::OperationType;
 use futures_util::FutureExt;
-use grafbase_tracing::{grafbase_client::Client, metrics::GraphqlOperationMetrics};
+use grafbase_tracing::{
+    grafbase_client::Client,
+    metrics::GraphqlOperationMetrics,
+    span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes},
+};
 pub use runtime::context::RequestContext;
 use runtime::{
     auth::AccessToken,
@@ -125,29 +129,53 @@ where
             ));
         };
 
+        let gql_span = GqlRequestSpan::new().into_span();
         let start = web_time::Instant::now();
-        let headers = ctx.headers();
-        if let Err(err) = self
-            .handle_persisted_query(
-                &mut request,
-                headers
-                    .get(CLIENT_NAME_HEADER_NAME)
-                    .and_then(|value| value.to_str().ok()),
-                headers,
-            )
-            .await
-        {
-            return Ok((
-                Arc::new(engine::Response {
-                    errors: vec![err.into()],
-                    ..Default::default()
-                }),
-                Default::default(),
-            ));
+
+        let (response, normalized_query, headers) = async move {
+            let headers = ctx.headers();
+            if let Err(err) = self
+                .handle_persisted_query(
+                    &mut request,
+                    headers
+                        .get(CLIENT_NAME_HEADER_NAME)
+                        .and_then(|value| value.to_str().ok()),
+                    headers,
+                )
+                .await
+            {
+                return Ok((
+                    Arc::new(engine::Response {
+                        errors: vec![err.into()],
+                        ..Default::default()
+                    }),
+                    None,
+                    Default::default(),
+                ));
+            }
+
+            let normalized_query = operation_normalizer::normalize(request.query(), request.operation_name()).ok();
+            self.execute_with_auth(ctx, request, auth)
+                .await
+                .map(|(response, headers)| (response, normalized_query, headers))
         }
-        let normalized_query = operation_normalizer::normalize(request.query(), request.operation_name()).ok();
-        let (response, headers) = self.execute_with_auth(ctx, request, auth).await?;
-        if let Some((operation, normalized_query)) = response.graphql_operation.clone().zip(normalized_query) {
+        .instrument(gql_span.clone())
+        .await?;
+
+        let status = response.status();
+        if let Some(operation) = &response.graphql_operation {
+            gql_span.record_gql_request(GqlRequestAttributes {
+                operation_type: match operation.r#type {
+                    common_types::OperationType::Query { .. } => "query",
+                    common_types::OperationType::Mutation => "mutation",
+                    common_types::OperationType::Subscription => "subscription",
+                },
+                operation_name: operation.name.clone(),
+            });
+            gql_span.record_gql_status(status);
+        }
+
+        if let Some((operation, normalized_query)) = response.graphql_operation.as_ref().zip(normalized_query) {
             self.operation_metrics.record(
                 grafbase_tracing::metrics::GraphqlOperationMetricsAttributes {
                     ty: match operation.r#type {
@@ -155,10 +183,10 @@ where
                         common_types::OperationType::Mutation => "mutation",
                         common_types::OperationType::Subscription => "subscription",
                     },
-                    name: operation.name,
+                    name: operation.name.clone(),
                     normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
                     normalized_query,
-                    has_errors: !response.errors.is_empty(),
+                    status,
                     cache_status: headers
                         .get(X_GRAFBASE_CACHE)
                         .and_then(|v| v.to_str().ok().map(|s| s.to_string())),

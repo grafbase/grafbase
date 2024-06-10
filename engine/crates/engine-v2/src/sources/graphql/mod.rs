@@ -1,4 +1,4 @@
-use grafbase_tracing::span::{subgraph::SubgraphRequestSpan, GqlRecorderSpanExt, GqlResponseAttributes};
+use grafbase_tracing::span::subgraph::SubgraphRequestSpan;
 use runtime::fetch::FetchRequest;
 use schema::{
     sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker, RootFieldResolverWalker},
@@ -142,10 +142,6 @@ impl<'ctx> GraphqlExecutor<'ctx> {
         }
         .instrument(subgraph_request_span.clone())
         .await?;
-
-        subgraph_request_span.record_gql_response(GqlResponseAttributes {
-            has_errors: self.response_part.has_errors(),
-        });
 
         Ok(self.response_part)
     }
