@@ -1,6 +1,6 @@
 #![allow(unused_crate_dependencies, clippy::panic)]
 
-pub mod engine;
+pub mod engine_v1;
 pub mod federation;
 pub mod helpers;
 pub mod mongodb;
@@ -9,15 +9,18 @@ pub mod postgres;
 pub mod types;
 pub mod udfs;
 
+mod mock_trusted_documents;
+
 use std::{cell::RefCell, sync::OnceLock};
 
 pub use helpers::{GetPath, ResponseExt};
+pub use mock_trusted_documents::TestTrustedDocument;
 pub use mongodb::{with_mongodb, with_namespaced_mongodb};
 use names::{Generator, Name};
 use tokio::runtime::Runtime;
 pub use types::{Error, ResponseData};
 
-pub use crate::engine::{Engine, EngineBuilder};
+pub use crate::engine_v1::{Engine, EngineBuilder};
 
 thread_local! {
     static NAMES: RefCell<Option<Generator<'static>>> = const { RefCell::new(None) };

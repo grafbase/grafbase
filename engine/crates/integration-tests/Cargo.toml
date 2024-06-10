@@ -34,6 +34,7 @@ openidconnect.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+thiserror.workspace = true
 ulid.workspace = true
 url.workspace = true
 wiremock.workspace = true
@@ -75,6 +76,9 @@ path = "../parser-postgres"
 
 [dependencies.postgres-connector-types]
 path = "../postgres-connector-types"
+
+[dependencies.registry-for-cache]
+workspace = true
 
 [dependencies.runtime]
 path = "../runtime"

@@ -1,4 +1,5 @@
 mod builder;
+mod gateway;
 
 use std::{collections::HashMap, future::IntoFuture, sync::Arc};
 

@@ -8,9 +8,10 @@ pub struct TestTrustedDocument {
     pub document_text: &'static str,
 }
 
+#[derive(Default)]
 pub(super) struct MockTrustedDocumentsClient {
-    pub(super) documents: Vec<TestTrustedDocument>,
-    pub(super) _branch_id: String,
+    pub(crate) documents: Vec<TestTrustedDocument>,
+    pub(crate) _branch_id: String,
 }
 
 #[async_trait::async_trait]

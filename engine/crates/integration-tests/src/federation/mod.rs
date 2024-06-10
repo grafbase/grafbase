@@ -10,7 +10,7 @@ use gateway_core::StreamingFormat;
 use headers::HeaderMapExt;
 use serde::de::Error;
 
-use crate::engine::GraphQlRequest;
+use crate::engine_v1::GraphQlRequest;
 
 pub struct TestFederationGateway {
     gateway: Arc<engine_v2::Engine>,

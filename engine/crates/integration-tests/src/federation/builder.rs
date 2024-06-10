@@ -1,16 +1,13 @@
 mod bench;
-mod mock_trusted_documents;
 
 use std::{collections::HashMap, sync::Arc};
 
-use self::mock_trusted_documents::MockTrustedDocumentsClient;
+use crate::{mock_trusted_documents::MockTrustedDocumentsClient, TestTrustedDocument};
 use async_graphql_parser::types::ServiceDocument;
 pub use bench::*;
 use graphql_mocks::MockGraphQlServer;
 use parser_sdl::connector_parsers::MockConnectorParsers;
 use runtime::trusted_documents_client;
-
-pub use self::mock_trusted_documents::TestTrustedDocument;
 
 use super::TestFederationGateway;
 
