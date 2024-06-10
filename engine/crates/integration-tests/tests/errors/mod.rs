@@ -95,7 +95,6 @@ fn querying_unknown_field() {
                 .into_value(),
             @r###"
         {
-          "data": null,
           "errors": [
             {
               "message": "Unknown field \"someNonsenseField\" on type \"PetstoreQuery\".",

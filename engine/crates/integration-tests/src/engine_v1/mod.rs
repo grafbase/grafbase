@@ -8,6 +8,7 @@ use futures::{future::BoxFuture, Stream, StreamExt};
 use serde::Deserialize;
 
 pub use self::builder::{EngineBuilder, RequestContext};
+pub use self::gateway::GatewayBuilder;
 
 /// An instance of the grafbase-engine code that can be used for testing.
 #[derive(Clone)]
@@ -20,6 +21,12 @@ struct Inner {
 }
 
 impl Engine {
+    pub fn from_schema(schema: Schema) -> Self {
+        Engine {
+            inner: Arc::new(Inner { schema }),
+        }
+    }
+
     pub async fn new(schema: String) -> Self {
         EngineBuilder::new(schema).build().await
     }

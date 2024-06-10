@@ -1,3 +1,4 @@
+use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
 use graph_entities::QueryResponse;
 use serde::{ser::SerializeMap, Serialize};
 
@@ -13,6 +14,25 @@ use crate::{GraphQlResponse, QueryPath, Response, ServerError};
 pub enum StreamingPayload {
     InitialResponse(InitialResponse),
     Incremental(IncrementalPayload),
+}
+
+impl StreamingPayload {
+    pub fn status(&self) -> GraphqlResponseStatus {
+        match self {
+            StreamingPayload::InitialResponse(InitialResponse { response, .. }) => response.status(),
+            StreamingPayload::Incremental(IncrementalPayload { errors, .. }) => {
+                if errors.is_empty() {
+                    GraphqlResponseStatus::Success
+                } else {
+                    GraphqlResponseStatus::FieldError {
+                        count: errors.len() as u64,
+                        // Couldn't have an incremental response otherwise.
+                        data_is_null: false,
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// The initial streaming response is _almost_ identical to a standard response, but with the

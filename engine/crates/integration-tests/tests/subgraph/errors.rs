@@ -214,7 +214,6 @@ fn totally_malformed_representation() {
                 .into_value(),
                 @r###"
         {
-          "data": null,
           "errors": [
             {
               "message": "Invalid value for argument \"representations.0\", expected type \"_Any\"",

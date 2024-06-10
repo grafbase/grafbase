@@ -4,15 +4,15 @@ use std::{any::Any, ops::Deref, sync::Arc};
 use engine_validation::check_strict_rules;
 use futures_util::stream::{self, Stream, StreamExt};
 use futures_util::FutureExt;
+use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
 use grafbase_tracing::metrics::GraphqlOperationMetrics;
-use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
-use graph_entities::CompactValue;
+use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes};
+use graph_entities::{CompactValue, QueryResponse};
 
 use registry_v2::OperationLimits;
 use tracing::{Instrument, Span};
 
 use crate::registry::type_kinds::SelectionSetTarget;
-use crate::response::response_operation_for_definition;
 use crate::{
     context::{Data, QueryEnvInner},
     current_datetime::CurrentDateTime,
@@ -398,14 +398,24 @@ impl Schema {
 
         let mut resp = match res {
             Ok(value) => {
-                let response = &mut *ctx.response().await;
-                response.set_root_unchecked(value);
-                let operation_type = response_operation_for_definition(&env.operation);
-                Response::new(std::mem::take(response), operation_name, operation_type)
+                let data = &mut *ctx.response().await;
+                data.set_root_unchecked(value);
+                Response {
+                    data: std::mem::take(data),
+                    ..Default::default()
+                }
             }
-            Err(err) => Response::from_errors(vec![err], operation_name, &env.operation),
+            Err(err) => Response {
+                // At this point it can't be a request error anymore, so data must be present.
+                // Having an error propagating here just means it propagated up to the root and
+                // data is null.
+                data: QueryResponse::new_root(CompactValue::Null),
+                errors: vec![err],
+                ..Default::default()
+            },
         }
-        .http_headers(std::mem::take(&mut *env.response_http_headers.lock().unwrap()));
+        .http_headers(std::mem::take(&mut *env.response_http_headers.lock().unwrap()))
+        .with_graphql_operation_from(operation_name, &env.operation.node);
 
         resp.errors.extend(std::mem::take(&mut *env.errors.lock().unwrap()));
         resp
@@ -414,7 +424,6 @@ impl Schema {
     /// Execute a GraphQL query.
     pub async fn execute(&self, request: impl Into<Request>) -> Response {
         let request = request.into();
-        let gql_span = GqlRequestSpan::new().into_span();
 
         let extensions = self.create_extensions(Default::default());
         let request_fut = {
@@ -424,8 +433,8 @@ impl Schema {
                     Ok((env_builder, futures_waiter, cache_control)) => {
                         let env = env_builder.build();
                         Span::current().record_gql_request(GqlRequestAttributes {
-                            operation_type: env.operation.ty.as_ref(),
-                            operation_name: env.operation_name.as_deref(),
+                            operation_type: env.operation.ty.as_str(),
+                            operation_name: env.operation_name.clone(),
                         });
 
                         let fut = async {
@@ -444,13 +453,7 @@ impl Schema {
         };
         futures_util::pin_mut!(request_fut);
 
-        let request = extensions.request(&mut request_fut).inspect(|response: &Response| {
-            Span::current().record_gql_response(GqlResponseAttributes {
-                has_errors: response.is_err(),
-            });
-        });
-
-        request.instrument(gql_span).await
+        extensions.request(&mut request_fut).await
     }
 
     /// Execute a GraphQL batch query.
@@ -497,27 +500,26 @@ impl Schema {
                 let (env_builder, futures_waiter, cache_control) = match schema.prepare_request(extensions, request, session_data).await {
                     Ok(res) => res,
                     Err(errors) => {
-                        Span::current().record_gql_response(GqlResponseAttributes {
-                            has_errors: true,
-                        });
+                        Span::current().record_gql_status(GraphqlResponseStatus::RequestError { count: errors.len() as u64 });
                         yield Response::from_errors_with_type(errors, OperationType::Subscription).into_streaming_payload(false);
                         return;
                     }
                 };
 
-                let mut has_errors = false;
+                let mut status = GraphqlResponseStatus::Success;
                 let env = if env_builder.operation_type() != OperationType::Subscription {
                     let (sender, mut receiver) = deferred::workload_channel();
                     let env = env_builder.with_deferred_sender(sender).build();
                     Span::current().record_gql_request(GqlRequestAttributes {
-                        operation_type: env.operation.ty.as_ref(),
-                        operation_name: env.operation_name.as_deref(),
+                        operation_type: env.operation.ty.as_str(),
+                        operation_name: env.operation_name.clone()
                     });
 
                     let initial_response = schema
                         .execute_once(env.clone(), futures_waiter)
                         .await
                         .cache_control(cache_control);
+                    status = initial_response.status();
 
                     let mut next_workload = receiver.receive();
 
@@ -529,8 +531,8 @@ impl Schema {
                         let mut next_response = process_deferred_workload(workload, &schema, &env).await;
                         next_workload = receiver.receive();
                         next_response.has_next = next_workload.is_some();
-                        has_errors |= !next_response.errors.is_empty();
-                        let response = next_response.into();
+                        let response: StreamingPayload = next_response.into();
+                        status = status.union(response.status());
 
                         yield response
                     }
@@ -539,8 +541,8 @@ impl Schema {
                     let env = env_builder.build();
 
                     Span::current().record_gql_request(GqlRequestAttributes {
-                        operation_type: env.operation.ty.as_ref(),
-                        operation_name: env.operation_name.as_deref(),
+                        operation_type: env.operation.ty.as_str(),
+                        operation_name: env.operation_name.clone()
                     });
 
                     let ctx = env.create_context(
@@ -551,31 +553,29 @@ impl Schema {
 
                     let mut streams = Vec::new();
                     if let Err(err) = collect_subscription_streams(&ctx, &crate::EmptySubscription, &mut streams) {
-                        has_errors = true;
+                        status = GraphqlResponseStatus::RequestError {count: 1};
                         // This hasNext: false is probably not correct, but we dont' support subscriptios atm so whatever
                         yield Response::from_errors_with_type(vec![err], OperationType::Subscription).into_streaming_payload(false);
                     }
 
                     let mut stream = stream::select_all(streams);
                     while let Some(resp) = stream.next().await {
-                        has_errors |= !resp.errors.is_empty();
-                        yield resp.into_streaming_payload(false);
+                        let response = resp.into_streaming_payload(false);
+                        status = status.union(response.status());
+                        yield response
                     }
                     env.clone()
                 };
 
+                Span::current().record_gql_status(status);
                 if let Some(normalized_query) = normalized_query {
                     schema.env.operation_metrics.record(
                         grafbase_tracing::metrics::GraphqlOperationMetricsAttributes {
-                            ty: match env.operation.ty {
-                                OperationType::Query { .. } => "query",
-                                OperationType::Mutation => "mutation",
-                                OperationType::Subscription => "subscription",
-                            },
+                            ty: env.operation.ty.as_str(),
                             name: env.operation_name.clone(),
                             normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
                             normalized_query,
-                            has_errors,
+                            status,
                             cache_status: None,
                             client
                         },

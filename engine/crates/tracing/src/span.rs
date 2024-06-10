@@ -1,6 +1,8 @@
 use http::Response;
 use http_body::Body;
 
+use crate::gql_response_status::GraphqlResponseStatus;
+
 /// Tracing target for logging
 pub const GRAFBASE_TARGET: &str = "grafbase";
 pub(crate) const SCOPE: &str = "grafbase";
@@ -30,27 +32,27 @@ pub trait HttpRecorderSpanExt {
 /// Extension trait to record gql request attributes
 pub trait GqlRecorderSpanExt {
     /// Record GraphQL request attributes in the span
-    fn record_gql_request(&self, attributes: GqlRequestAttributes<'_>);
+    fn record_gql_request(&self, attributes: GqlRequestAttributes);
     /// Record GraphQL response attributes in the span
     fn record_gql_response(&self, attributes: GqlResponseAttributes);
-    /// Record that the response has errors
-    fn record_has_error(&self) {
-        self.record_gql_response(GqlResponseAttributes { has_errors: true })
+
+    fn record_gql_status(&self, status: GraphqlResponseStatus) {
+        self.record_gql_response(GqlResponseAttributes { status })
     }
 }
 
 /// Wraps attributes of a graphql request intended to be recorded
-pub struct GqlRequestAttributes<'a> {
+#[derive(Debug)]
+pub struct GqlRequestAttributes {
     /// GraphQL operation type
-    pub operation_type: &'a str,
+    pub operation_type: &'static str,
     /// GraphQL operation name
-    pub operation_name: Option<&'a str>,
+    pub operation_name: Option<String>,
 }
 
 /// Wraps attributes of a graphql response intended to be recorded
 pub struct GqlResponseAttributes {
-    /// If the GraphQL response contains errors, record it in the span
-    pub has_errors: bool,
+    pub status: GraphqlResponseStatus,
 }
 
 /// Extension trait to record resolver invocation attributes

@@ -13,7 +13,6 @@ use axum::{
 };
 use common::environment::Environment;
 use engine_v2_axum::websocket::{WebsocketAccepter, WebsocketService};
-use grafbase_tracing::metrics::HasGraphqlErrors;
 use graphql_composition::FederatedGraph;
 use handlebars::Handlebars;
 use serde_json::json;
@@ -101,12 +100,6 @@ pub(super) async fn run(
         .nest_service("/static", tower_http::services::ServeDir::new(static_asset_path))
         .layer(grafbase_tracing::tower::layer(
             grafbase_tracing::metrics::meter_from_global_provider(),
-        ))
-        .layer(axum::middleware::map_response(
-            |mut response: axum::response::Response<_>| async {
-                response.headers_mut().remove(HasGraphqlErrors::header_name());
-                response
-            },
         ))
         .layer(CorsLayer::permissive())
         .with_state(ProxyState {

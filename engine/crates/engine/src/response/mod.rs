@@ -1,6 +1,7 @@
 use std::{collections::BTreeMap, time::Duration};
 
 use engine_parser::types::{OperationDefinition, OperationType, Selection};
+use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
 use graph_entities::QueryResponse;
 use http::{
     header::{HeaderMap, HeaderName},
@@ -137,21 +138,13 @@ impl Response {
         }
     }
 
-    /// Create a response from some errors.
     #[must_use]
-    pub fn from_errors(
-        errors: Vec<ServerError>,
-        operation_name: Option<&str>,
-        operation_definition: &OperationDefinition,
-    ) -> Self {
-        Self {
-            errors,
-            graphql_operation: Some(ResponseOperation {
-                name: operation_name.map(str::to_owned),
-                r#type: response_operation_for_definition(operation_definition),
-            }),
-            ..Default::default()
-        }
+    pub fn with_graphql_operation_from(mut self, name: Option<&str>, definition: &OperationDefinition) -> Self {
+        self.graphql_operation = Some(ResponseOperation {
+            name: name.map(str::to_owned),
+            r#type: response_operation_for_definition(definition),
+        });
+        self
     }
 
     /// Set the extension result of the response.
@@ -193,6 +186,21 @@ impl Response {
             Err(self.errors)
         } else {
             Ok(self)
+        }
+    }
+
+    pub fn status(&self) -> GraphqlResponseStatus {
+        if self.errors.is_empty() {
+            GraphqlResponseStatus::Success
+        } else if self.data.root.is_none() {
+            GraphqlResponseStatus::RequestError {
+                count: self.errors.len() as u64,
+            }
+        } else {
+            GraphqlResponseStatus::FieldError {
+                count: self.errors.len() as u64,
+                data_is_null: self.data.is_null(),
+            }
         }
     }
 }
@@ -283,7 +291,9 @@ impl serde::Serialize for GraphQlResponse<'_> {
         S: serde::Serializer,
     {
         let mut map = serializer.serialize_map(Some(5))?;
-        map.serialize_entry("data", &self.0.data.as_graphql_data())?;
+        if self.0.data.root.is_some() {
+            map.serialize_entry("data", &self.0.data.as_graphql_data())?;
+        }
         if !self.0.errors.is_empty() {
             map.serialize_entry("errors", &self.0.errors)?;
         }

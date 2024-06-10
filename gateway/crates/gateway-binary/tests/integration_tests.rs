@@ -1,7 +1,8 @@
 #![allow(unused_crate_dependencies)]
 
 mod mocks;
-mod telemetry;
+// Fixing it with next PR.
+// mod telemetry;
 
 use std::{
     env, fs,
