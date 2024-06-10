@@ -13,7 +13,7 @@ impl OutputStore {
         &'a mut self,
         json: &mut serde_json::Value,
         shapes: &'a OutputShapes,
-        active_defers: Option<HashSet<&'a str>>,
+        active_defers: Option<&HashSet<&'a str>>,
     ) {
         CacheMerge {
             store: self,
@@ -31,7 +31,7 @@ struct CacheMerge<'a> {
     /// The defers to limit the merge to, if any.
     ///
     /// If this is None we merge all defers
-    active_defers: Option<HashSet<&'a str>>,
+    active_defers: Option<&'a HashSet<&'a str>>,
 }
 
 impl<'a> CacheMerge<'a> {
@@ -178,11 +178,4 @@ impl<'a> CacheMerge<'a> {
 
         !active_defers.contains(&defer_label)
     }
-}
-
-fn find_typename<'a>(
-    _src_object: &'a serde_json::Map<String, serde_json::Value>,
-    _current_field_shape: &Field<'_>,
-) -> Option<&'a str> {
-    todo!("copy the logic from engine_response")
 }

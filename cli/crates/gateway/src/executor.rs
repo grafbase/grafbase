@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use common_types::auth::ExecutionAuth;
 use engine::{registry::resolvers::graphql, RequestHeaders};
+use futures_util::stream::BoxStream;
 use gateway_core::{RequestContext, StreamingFormat};
 use graphql_extensions::{authorization::AuthExtension, runtime_log::RuntimeLogExtension};
 use postgres_connector_types::transport::{PooledTcpTransport, PoolingConfig};
@@ -113,5 +114,16 @@ impl gateway_core::Executor for Executor {
         Ok((headers, axum::body::Body::from_stream(bytes_stream))
             .into_response()
             .into())
+    }
+
+    async fn execute_stream_v2(
+        self: Arc<Self>,
+        ctx: Arc<Self::Context>,
+        auth: ExecutionAuth,
+        request: engine::Request,
+    ) -> Result<BoxStream<'static, engine::StreamingPayload>, Self::Error> {
+        let schema = self.build_schema(&ctx, auth).await?;
+
+        Ok(Box::pin(schema.execute_stream(request)))
     }
 }

@@ -66,6 +66,7 @@ pub fn build_plan(
             })
             .collect(),
         nocache_partition: QuerySubset::new(operation.id(), uncached_group, nocache_variables),
+        operation_id: operation.id(),
         document,
     }))
 }

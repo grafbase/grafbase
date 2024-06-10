@@ -12,8 +12,8 @@ use super::{
 
 #[derive(Default)]
 pub struct InitialOutput<'a> {
-    pub(super) store: OutputStore,
-    pub(super) active_defers: HashSet<&'a str>,
+    pub store: OutputStore,
+    pub active_defers: HashSet<&'a str>,
 }
 
 impl<'a> InitialOutput<'a> {

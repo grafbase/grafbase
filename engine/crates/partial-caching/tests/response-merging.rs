@@ -53,7 +53,7 @@ fn test_simple_response_merging() {
     let root_node = query_response.from_serde_value(json!({"user": {"email": "whatever", "someConstant": "123"}}));
     query_response.set_root_unchecked(root_node);
 
-    let (response, _updates) = execution.handle_response(query_response, false);
+    let (response, _updates) = execution.handle_full_response(query_response, false);
 
     // Note: This is technically wrong because the order of the fields doesn't match the query.
     // Have raised GB-6813 to look into this (or not, we'll see)
@@ -92,7 +92,7 @@ fn test_handles_nulls_gracefull() {
     let root_node = query_response.from_serde_value(json!({"user": null}));
     query_response.set_root_unchecked(root_node);
 
-    let (response, _updates) = execution.handle_response(query_response, false);
+    let (response, _updates) = execution.handle_full_response(query_response, false);
 
     assert_json_snapshot!(response.body.as_graphql_data(), @r###"
     {
@@ -167,7 +167,7 @@ fn test_partial_hit_when_lowest_max_age_is_hit() {
     }));
     query_response.set_root_unchecked(root_node);
 
-    let (response, _updates) = execution.handle_response(query_response, false);
+    let (response, _updates) = execution.handle_full_response(query_response, false);
 
     assert_eq!(
         response.headers.get("x-grafbase-cache"),
@@ -201,7 +201,7 @@ fn test_partial_hit_when_lowest_max_age_is_miss() {
     }));
     query_response.set_root_unchecked(root_node);
 
-    let (response, _updates) = execution.handle_response(query_response, false);
+    let (response, _updates) = execution.handle_full_response(query_response, false);
 
     assert_eq!(
         response.headers.get("x-grafbase-cache"),
@@ -233,7 +233,7 @@ fn test_miss_headers() {
     }));
     query_response.set_root_unchecked(root_node);
 
-    let (response, _updates) = execution.handle_response(query_response, false);
+    let (response, _updates) = execution.handle_full_response(query_response, false);
 
     assert_eq!(
         response.headers.get("x-grafbase-cache"),
@@ -265,7 +265,7 @@ fn test_query_that_hits_uncacheable_fields_should_have_no_cache_control_header()
     }));
     query_response.set_root_unchecked(root_node);
 
-    let (response, _updates) = execution.handle_response(query_response, false);
+    let (response, _updates) = execution.handle_full_response(query_response, false);
 
     assert_eq!(
         response.headers.get("x-grafbase-cache"),

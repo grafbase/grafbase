@@ -3199,6 +3199,7 @@ dependencies = [
  "engine-parser",
  "engine-validation",
  "engine-value",
+ "futures-channel",
  "futures-util",
  "gateway-v2-auth",
  "grafbase-tracing",

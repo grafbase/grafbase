@@ -3,7 +3,7 @@
 use std::{collections::HashMap, future::IntoFuture, str::FromStr, sync::Arc};
 
 use engine::{AuthConfig, Variables};
-use futures::future::BoxFuture;
+use futures::{future::BoxFuture, stream::BoxStream};
 use gateway_core::{AuthService, CacheConfig, ConstructableResponse, ExecutionAuth, RequestContext, StreamingFormat};
 use http::HeaderMap;
 use registry_for_cache::PartialCacheRegistry;
@@ -221,6 +221,15 @@ impl gateway_core::Executor for super::Engine {
         _streaming_format: StreamingFormat,
     ) -> Result<Self::StreamingResponse, Self::Error> {
         unimplemented!("implement execute_stream if you want to test that, I do not right now")
+    }
+
+    async fn execute_stream_v2(
+        self: Arc<Self>,
+        _ctx: Arc<Self::Context>,
+        _auth: ExecutionAuth,
+        request: engine::Request,
+    ) -> Result<BoxStream<'static, engine::StreamingPayload>, Self::Error> {
+        Ok(Box::pin(self.inner.schema.execute_stream(request)))
     }
 }
 

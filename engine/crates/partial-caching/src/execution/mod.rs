@@ -3,9 +3,14 @@
 //! provides whatever is left.  This can be passed to the executor to run the
 //! query.
 
+mod defer;
+
 use std::time::Duration;
 
-use cynic_parser::ExecutableDocument;
+use cynic_parser::{
+    executable::{ids::OperationDefinitionId, OperationDefinition},
+    ExecutableDocument,
+};
 use graph_entities::{QueryResponse, ResponseNodeId};
 use registry_for_cache::CacheControl;
 use runtime::cache::Entry;
@@ -16,8 +21,11 @@ use crate::{
 
 use super::fetching::CacheFetchPhase;
 
+pub use defer::StreamingExecutionPhase;
+
 pub struct ExecutionPhase {
     document: ExecutableDocument,
+    operation_id: OperationDefinitionId,
     cache_partitions: Vec<(CacheControl, QuerySubset)>,
     cache_entries: Vec<Entry<serde_json::Value>>,
     cache_keys: Vec<Option<String>>,
@@ -48,6 +56,7 @@ impl ExecutionPhase {
 
         Self {
             document: plan.document,
+            operation_id: plan.operation_id,
             cache_partitions: plan.cache_partitions,
             cache_keys: fetch_phase.cache_keys,
             cache_entries: fetch_phase.cache_entries,
@@ -66,7 +75,15 @@ impl ExecutionPhase {
             .to_string()
     }
 
-    pub fn handle_response(self, mut response: QueryResponse, errors: bool) -> (Response, Option<CacheUpdatePhase>) {
+    pub fn streaming(self) -> StreamingExecutionPhase {
+        StreamingExecutionPhase::new(self)
+    }
+
+    pub fn handle_full_response(
+        self,
+        mut response: QueryResponse,
+        errors: bool,
+    ) -> (Response, Option<CacheUpdatePhase>) {
         let mut keys_to_write = Vec::with_capacity(self.cache_miss_count);
 
         // I'd really like to avoid cloning this, but time is not on my side.
@@ -125,6 +142,10 @@ impl ExecutionPhase {
         };
 
         (response, update_phase)
+    }
+
+    fn operation(&self) -> OperationDefinition<'_> {
+        self.document.read(self.operation_id)
     }
 }
 
