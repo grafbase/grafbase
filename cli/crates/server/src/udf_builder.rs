@@ -36,7 +36,7 @@ pub(crate) async fn build(
         .await?
         .replace("\"/invoke\"", &format!("\"{}\"", udf_url_path(udf_kind, udf_name)));
 
-    trace!("building {udf_kind} '{udf_name}'");
+    trace!("building {udf_kind} '{udf_name}'\n");
 
     let udf_input_file_path_without_extension = project.udfs_source_path(udf_kind).join(udf_name);
     let udf_build_artifact_directory_path = project.udfs_build_artifact_path(udf_kind).join(udf_name);

@@ -196,6 +196,10 @@ impl Environment {
             return Ok("bun".into());
         }
 
+        if is_in_docker_image() {
+            return Ok("bun".into());
+        }
+
         Ok(self.bun_installation_path.join("bun"))
     }
 }
@@ -222,6 +226,12 @@ pub fn is_nixos() -> bool {
     static IS_NIXOS: OnceLock<bool> = OnceLock::new();
 
     *IS_NIXOS.get_or_init(|| Path::new("/etc/NIXOS").exists())
+}
+
+pub fn is_in_docker_image() -> bool {
+    static IS_IN_DOCKER: OnceLock<bool> = OnceLock::new();
+
+    *IS_IN_DOCKER.get_or_init(|| Path::new("/etc/grafbase/inside-docker").exists())
 }
 
 pub fn system_bun_path() -> Result<PathBuf, which::Error> {
@@ -253,8 +263,9 @@ impl Project {
 
         let dot_grafbase_directory_path = path.join(DOT_GRAFBASE_DIRECTORY_NAME);
         let registry_path = dot_grafbase_directory_path.join(REGISTRY_FILE);
-        let package_json_path = [path.as_path(), path.parent().expect("must have a parent")]
+        let package_json_path = [Some(path.as_path()), path.parent()]
             .into_iter()
+            .flatten()
             .map(|candidate| candidate.join(PACKAGE_JSON_FILE_NAME))
             .find(|candidate| candidate.exists());
 

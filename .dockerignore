@@ -11,4 +11,11 @@ grafbase
 .direnv
 .idea
 /cli/target
+/cli/Dockerfile
 /engine/target
+/engine/crates/**/snapshots
+/engine/crates/**/tests/**/txt
+/engine/crates/**/tests/**/graphql
+/engine/crates/**/tests/**/json
+/cli/crates/**/snapshots
+/**/changelog
