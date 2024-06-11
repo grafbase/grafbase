@@ -90,6 +90,26 @@ pub(super) fn register(input_ctx: &InputContext<'_>, output_ctx: &mut OutputCont
         create_scalar_update_type(input_ctx, TypeKind::Scalar(scalar), output_ctx);
         create_array_update_type(input_ctx, TypeKind::Scalar(scalar), output_ctx);
     }
+
+    register_string_filters(input_ctx, output_ctx);
+}
+
+fn register_string_filters(input_ctx: &InputContext<'_>, output_ctx: &mut OutputContext) {
+    const LIKE: &str = "like";
+
+    let string_filter_type_name = input_ctx.filter_type_name("String");
+
+    output_ctx.mutate_input_type(&string_filter_type_name, |ty| {
+        let mut input_value = MetaInputValue::new(LIKE, "String".to_owned());
+        input_value.description = Some(indoc::formatdoc! {r#"
+            The string matches the given pattern.
+
+            Example: "%ear%" would match strings containing the substring "ear".
+
+            See the reference at https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-LIKE
+        "#});
+        ty.input_fields.insert(LIKE.to_owned(), input_value);
+    });
 }
 
 pub(super) fn create_array_update_type(

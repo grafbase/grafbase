@@ -1681,6 +1681,14 @@ fn table_with_serial_primary_key_string_unique() {
             The value is not in the given array of values
           """ nin: [String]
           not: StringSearchFilterInput
+          """
+            	The string matches the given pattern.
+
+            Example: "%ear%" would match strings containing the substring "ear".
+
+            See the reference at https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-LIKE
+
+          """ like: String
         }
 
         """
@@ -1929,6 +1937,14 @@ fn table_with_composite_primary_key() {
             The value is not in the given array of values
           """ nin: [String]
           not: StringSearchFilterInput
+          """
+            	The string matches the given pattern.
+
+            Example: "%ear%" would match strings containing the substring "ear".
+
+            See the reference at https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-LIKE
+
+          """ like: String
         }
 
         """
@@ -4044,6 +4060,14 @@ fn two_tables_with_single_column_foreign_key() {
             The value is not in the given array of values
           """ nin: [String]
           not: StringSearchFilterInput
+          """
+            	The string matches the given pattern.
+
+            Example: "%ear%" would match strings containing the substring "ear".
+
+            See the reference at https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-LIKE
+
+          """ like: String
         }
 
         """
@@ -4293,6 +4317,14 @@ fn foreign_key_to_a_table_without_a_key_should_not_create_a_relation() {
             The value is not in the given array of values
           """ nin: [String]
           not: PgStringSearchFilterInput
+          """
+            	The string matches the given pattern.
+
+            Example: "%ear%" would match strings containing the substring "ear".
+
+            See the reference at https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-LIKE
+
+          """ like: String
         }
 
         """

@@ -24,6 +24,14 @@ impl MetaType {
         }
     }
 
+    pub fn as_input_object_mut(&mut self) -> Option<&mut InputObjectType> {
+        if let MetaType::InputObject(object) = self {
+            Some(object)
+        } else {
+            None
+        }
+    }
+
     pub fn is_object(&self) -> bool {
         matches!(self, MetaType::Object(_))
     }

@@ -404,6 +404,54 @@ fn string_eq() {
 }
 
 #[test]
+fn string_like() {
+    let response = query_postgres(|api| async move {
+        let schema = indoc! {r#"
+            CREATE TABLE "User" (
+                id INT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            )    
+        "#};
+
+        api.execute_sql(schema).await;
+
+        let insert = indoc! {r#"
+            INSERT INTO "User" (id, name) VALUES (1, 'Musti'), (2, 'Naukio')
+        "#};
+
+        api.execute_sql(insert).await;
+
+        let query = indoc! {r#"
+            query {
+              userCollection(first: 10, filter: { name: { like: "%us%" } }) {
+                edges { node { id name } }  
+              }
+            }
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "userCollection": {
+              "edges": [
+                {
+                  "node": {
+                    "id": 1,
+                    "name": "Musti"
+                  }
+                }
+              ]
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response);
+}
+
+#[test]
 fn bytea_eq() {
     let response = query_postgres(|api| async move {
         let schema = indoc! {r#"
