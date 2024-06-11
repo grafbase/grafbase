@@ -32,7 +32,6 @@ exclude = ["engine/crates/gateway-v2"]
 axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac" } # axum-tungstenite-upgrade
 # Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
 axum-server = { git = "https://github.com/grafbase/axum-server", rev = "fdce3d3dc71dc69597689cc28003cc0533b47dba" } # rustls-0.23
-hyper-rustls = { git = "https://github.com/grafbase/hyper-rustls", rev = "e8e14ba34c081702297c74e544109be6c8ea5232" } # rustls-0.23
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
 names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" } # main
 # FIXME: Drop when a new version is released.
@@ -40,7 +39,7 @@ openidconnect = { git = "https://github.com/ramosbugs/openidconnect-rs", rev = "
 # FIXME: Uncomment when we upgrade opentelemetry to 0.23.
 # opentelemetry-aws = { git = "https://github.com/open-telemetry/opentelemetry-rust-contrib", rev = "086961e18437743c5ea43c9474cc1a7b13a49c6b" } # main
 ory-client = { git = "https://github.com/grafbase/client-rust", rev = "88ed8f63c1d71b294c2ef64fd80ca654e91ac25f" } # reqwest-0.12
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "7d51ae689856631d6153185e9729b97c539c88ee" } # 0.12-with-patches-wasm-timeout-updated
+reqwest = { git = "https://github.com/grafbase/reqwest", rev = "22a7e4f64422b6e710ad703b62edc18301dea320" } # 0.12-with-patches-wasm-timeout
 rudderanalytics =  { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "3e994eb4dcc9c580be311ef9eab6e96dd264293b" } # async
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a" } # minify-field-names
 # Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
@@ -116,7 +115,7 @@ strum_macros = "0.26.2"
 tar = "0.4.40"
 thiserror = "1.0.59"
 tokio = "1.37.0"
-tokio-postgres = { version = "0.7.10", default-features = false }
+tokio-postgres = { version = "0.7.10", default-features = false, features = ["runtime"] }
 tokio-postgres-rustls = "0.12.0"
 tokio-rustls = { version = "0.26.0", default-features = false }
 tokio-tungstenite = { version = "0.23.0", default-features = false }
