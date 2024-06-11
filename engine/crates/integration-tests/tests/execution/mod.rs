@@ -8,6 +8,7 @@
 
 use std::net::SocketAddr;
 
+mod interfaces;
 mod joins;
 mod requires;
 mod unions;
