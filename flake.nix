@@ -126,7 +126,7 @@
           };
         };
 
-        imports = [./cli/nix/cli.nix];
+        imports = [./cli/nix/cli.nix  ./nix/cli-app.nix];
       };
     };
 }
