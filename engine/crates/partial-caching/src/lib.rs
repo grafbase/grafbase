@@ -21,6 +21,8 @@ mod execution;
 mod fetching;
 mod headers;
 mod hit;
+mod output;
+mod parser_extensions;
 mod planning;
 mod query_subset;
 mod response;
