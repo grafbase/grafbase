@@ -22,7 +22,7 @@ url.workspace = true
 
 config = { package = "engine-v2-config", path = "../config" }
 federated-graph = { package = "graphql-federated-graph", path = "../../federated-graph" }
-wrapping = { path = "../../wrapping" }
+wrapping.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
