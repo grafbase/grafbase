@@ -19,6 +19,7 @@ serde_json.workspace = true
 serde.workspace = true
 registry-v1.workspace = true
 registry-v2.workspace = true
+indoc = "2"
 Inflector = "0.11.4"
 itertools.workspace = true
 common-types.workspace = true

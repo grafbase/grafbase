@@ -131,6 +131,19 @@ impl OutputContext {
         self.registry.create_type(|_| input_object.into(), &name, &name);
     }
 
+    pub(crate) fn mutate_input_type(&mut self, name: &str, f: impl FnOnce(&mut InputObjectType)) {
+        let Some(input_type) = self
+            .registry
+            .types
+            .get_mut(name)
+            .and_then(|ty| ty.as_input_object_mut())
+        else {
+            unreachable!("expected {name} to exist");
+        };
+
+        f(input_type)
+    }
+
     pub fn with_enum<F>(&mut self, name: &str, enum_id: EnumId, f: F)
     where
         F: FnOnce(&mut EnumBuilder),

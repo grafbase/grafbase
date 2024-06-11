@@ -5639,6 +5639,7 @@ dependencies = [
  "Inflector",
  "common-types",
  "indexmap 2.2.6",
+ "indoc",
  "itertools 0.13.0",
  "parser-sdl",
  "postgres-connector-types",

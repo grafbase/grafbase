@@ -162,6 +162,7 @@ fn generate_conditions(operations: Map<String, Value>, column: TableColumnWalker
 
                 continue;
             }
+            "like" => table_column.like(value),
             _ => todo!(),
         };
 
