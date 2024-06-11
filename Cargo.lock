@@ -2097,7 +2097,7 @@ dependencies = [
 
 [[package]]
 name = "engine-config-builder"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "engine-v2-config",
  "graphql-federated-graph",
@@ -2460,7 +2460,7 @@ checksum = "9fc0510504f03c51ada170672ac806f1f105a88aa97a5281117e1ddc3368e51a"
 
 [[package]]
 name = "federated-dev"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
@@ -2819,7 +2819,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "async-graphql",
  "async-trait",
@@ -3003,7 +3003,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "assert_matches",
  "async-graphql",
@@ -3124,7 +3124,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "cynic",
  "cynic-introspection",
@@ -3136,7 +3136,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "async-compression",
  "axum 0.7.5",
@@ -3166,7 +3166,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "chrono",
  "common-types",
@@ -3186,7 +3186,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "async-trait",
  "async-tungstenite",
@@ -3292,7 +3292,7 @@ dependencies = [
 
 [[package]]
 name = "graph-ref"
-version = "0.74.2"
+version = "0.74.3"
 
 [[package]]
 name = "graphql-composition"
@@ -3310,7 +3310,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-cursor"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "serde",
  "serde_with",
@@ -5402,7 +5402,7 @@ dependencies = [
 
 [[package]]
 name = "operation-checks"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
@@ -5415,7 +5415,7 @@ dependencies = [
 
 [[package]]
 name = "operation-normalizer"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "anyhow",
  "expect-test",
@@ -5681,7 +5681,7 @@ dependencies = [
 
 [[package]]
 name = "partial-caching"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "anyhow",
  "blake3",
@@ -8410,7 +8410,7 @@ checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "typed-resolvers"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "datatest-stable",
  "engine-parser",
@@ -9238,7 +9238,7 @@ dependencies = [
 
 [[package]]
 name = "wrapping"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "serde",
 ]
