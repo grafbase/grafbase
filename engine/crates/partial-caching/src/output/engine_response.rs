@@ -1,5 +1,7 @@
 //! This file deals with importing the engines response into the OutputStore
 
+use std::collections::HashSet;
+
 use graph_entities::{CompactValue, QueryResponse, QueryResponseNode, ResponseContainer, ResponseList, ResponseNodeId};
 
 use super::{
@@ -8,15 +10,21 @@ use super::{
     OutputStore,
 };
 
-impl OutputStore {
-    pub fn new(response: QueryResponse, root_object: ConcreteShape<'_>) -> Self {
-        let mut output = OutputStore::default();
+#[derive(Default)]
+pub struct InitialOutput<'a> {
+    pub(super) store: OutputStore,
+    pub(super) active_defers: HashSet<&'a str>,
+}
+
+impl<'a> InitialOutput<'a> {
+    pub fn new(response: QueryResponse, root_object: ConcreteShape<'a>) -> Self {
+        let mut output = InitialOutput::default();
 
         let Some(root) = response.root else {
             todo!("do something about this");
         };
 
-        let root_field_id = output.new_value();
+        let root_field_id = output.store.new_value();
 
         match response.get_node(root) {
             Some(QueryResponseNode::Container(container)) => copy_container(
@@ -33,12 +41,12 @@ impl OutputStore {
     }
 }
 
-fn copy_container(
+fn copy_container<'a>(
     container: &ResponseContainer,
     response: &QueryResponse,
-    output: &mut OutputStore,
+    output: &mut InitialOutput<'a>,
     dest_value_id: ValueId,
-    object_shape: ObjectShape<'_>,
+    object_shape: ObjectShape<'a>,
 ) {
     let concrete_shape = match object_shape {
         ObjectShape::Concrete(concrete) => concrete,
@@ -49,8 +57,8 @@ fn copy_container(
         }
     };
 
-    let object_id = output.insert_object(concrete_shape);
-    output.write_value(dest_value_id, ValueRecord::Object(object_id));
+    let object_id = output.store.insert_object(concrete_shape);
+    output.store.write_value(dest_value_id, ValueRecord::Object(object_id));
 
     for (name, src_id) in container.iter() {
         let Some(field_shape) = concrete_shape.field(name.as_str()) else {
@@ -58,29 +66,29 @@ fn copy_container(
             continue;
         };
 
-        // TODO: We need to record whether a field is associated with a defer,
-        // and if so record that defer as "active" so we know to merge in cache fields associated
-        // with that defer
+        if let Some(label) = field_shape.defer_label() {
+            output.active_defers.insert(label);
+        }
 
         let Some(subselection_shape) = field_shape.subselection_shape() else {
             // This must be a leaf field, process it as such
-            let field_dest_id = output.field_value_id(object_id, field_shape.index());
+            let field_dest_id = output.store.field_value_id(object_id, field_shape.index());
             copy_leaf_value(response, output, *src_id, field_dest_id);
             continue;
         };
 
-        let dest_id = output.field_value_id(object_id, field_shape.index());
+        let dest_id = output.store.field_value_id(object_id, field_shape.index());
 
         copy_node(*src_id, dest_id, response, output, subselection_shape);
     }
 }
 
-fn copy_node(
+fn copy_node<'a>(
     src_id: ResponseNodeId,
     dest_id: ValueId,
     response: &QueryResponse,
-    output: &mut OutputStore,
-    subselection_shape: ObjectShape<'_>,
+    output: &mut InitialOutput<'a>,
+    subselection_shape: ObjectShape<'a>,
 ) {
     match response.get_node(src_id) {
         Some(QueryResponseNode::Container(container)) => {
@@ -94,22 +102,22 @@ fn copy_node(
     }
 }
 
-fn copy_list(
+fn copy_list<'a>(
     list: &ResponseList,
     response: &QueryResponse,
-    output: &mut OutputStore,
+    output: &mut InitialOutput<'a>,
     dest_value_id: ValueId,
-    subselection_shape: ObjectShape<'_>,
+    subselection_shape: ObjectShape<'a>,
 ) {
-    let dest_ids = output.new_list(list.len());
-    output.write_value(dest_value_id, ValueRecord::List(dest_ids));
+    let dest_ids = output.store.new_list(list.len());
+    output.store.write_value(dest_value_id, ValueRecord::List(dest_ids));
 
     for (src_id, dest_id) in list.iter().zip(dest_ids) {
         copy_node(src_id, dest_id, response, output, subselection_shape)
     }
 }
 
-fn copy_leaf_value(response: &QueryResponse, output: &mut OutputStore, src_id: ResponseNodeId, dest_id: ValueId) {
+fn copy_leaf_value(response: &QueryResponse, output: &mut InitialOutput<'_>, src_id: ResponseNodeId, dest_id: ValueId) {
     match response.get_node(src_id) {
         Some(QueryResponseNode::Primitive(primitive)) => {
             let value = match &primitive.0 {
@@ -123,11 +131,11 @@ fn copy_leaf_value(response: &QueryResponse, output: &mut OutputStore, src_id: R
                     ValueRecord::InlineValue(Box::new(value.clone()))
                 }
             };
-            output.write_value(dest_id, value);
+            output.store.write_value(dest_id, value);
         }
         _ => {
             // Will revisit this.
-            todo!("should probably convert lists and objects into ValueRecord::InlineValue");
+            todo!("should this be an error?");
         }
     }
 }

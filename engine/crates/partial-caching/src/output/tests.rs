@@ -6,32 +6,13 @@
 use graph_entities::QueryResponse;
 use serde_json::json;
 
-use super::{shapes::build_output_shapes, OutputStore};
+use crate::output::engine_response::InitialOutput;
 
-// For ease of testing none of these things are cacheable
-const SCHEMA: &str = r#"
-    type Query {
-        user: User @resolver(name: "whatever")
-    }
-
-    type User {
-        name: String
-        email: String
-        someConstant: String
-        nested: [Nested]
-    }
-
-    type Nested {
-        someThing: String
-    }
-"#;
-
-const QUERY: &str = r#"{ user { name email someConstant nested { someThing } } }"#;
+use super::shapes::build_output_shapes;
 
 #[test]
 fn test_initial_response_handling() {
-    // Currently don't need this, but I am assuming I will later so just keeping it around
-    let _registry = build_registry(SCHEMA);
+    const QUERY: &str = r#"{ user { name email someConstant nested { someThing } } }"#;
 
     let document = cynic_parser::parse_executable_document(QUERY).unwrap();
     let operation = document.operations().next().unwrap();
@@ -50,9 +31,9 @@ fn test_initial_response_handling() {
     }));
     query_response.set_root_unchecked(root_node);
 
-    let output = OutputStore::new(query_response, root_shape);
+    let output = InitialOutput::new(query_response, root_shape);
 
-    insta::assert_json_snapshot!(output.serialize_all(&shapes, serde_json::value::Serializer).unwrap(), @r###"
+    insta::assert_json_snapshot!(output.store.serialize_all(&shapes, serde_json::value::Serializer).unwrap(), @r###"
     {
       "user": {
         "name": "G",
@@ -64,6 +45,190 @@ fn test_initial_response_handling() {
           },
           {
             "someThing": "goodbye"
+          }
+        ]
+      }
+    }
+    "###);
+}
+
+#[test]
+fn test_cache_merging() {
+    const QUERY: &str = r#"{ user { name email cacheThing nested { someThing cacheThing } } }"#;
+
+    let document = cynic_parser::parse_executable_document(QUERY).unwrap();
+    let operation = document.operations().next().unwrap();
+
+    let shapes = build_output_shapes(operation);
+    let root_shape = shapes.root();
+
+    let mut query_response = QueryResponse::default();
+    let root_node = query_response.from_serde_value(json!({
+        "user": {
+            "name": "G",
+            "email": "whatever",
+            "nested": [{"someThing": "hello"}, {"someThing": "goodbye"}]
+        }
+    }));
+    query_response.set_root_unchecked(root_node);
+
+    let mut output = InitialOutput::new(query_response, root_shape);
+
+    output.merge_cache_entry(
+        json!({
+            "user": {
+                "cacheThing": "I come from the cache",
+                "nested": [
+                    {"cacheThing": "I also come from the cache"},
+                    {"cacheThing": "you better believe I am cached"}
+                ]
+            }
+        }),
+        &shapes,
+    );
+
+    insta::assert_json_snapshot!(output.store.serialize_all(&shapes, serde_json::value::Serializer).unwrap(), @r###"
+    {
+      "user": {
+        "name": "G",
+        "email": "whatever",
+        "cacheThing": "I come from the cache",
+        "nested": [
+          {
+            "someThing": "hello",
+            "cacheThing": "I also come from the cache"
+          },
+          {
+            "someThing": "goodbye",
+            "cacheThing": "you better believe I am cached"
+          }
+        ]
+      }
+    }
+    "###);
+}
+
+#[test]
+fn test_cache_merging_with_defer() {
+    const QUERY: &str = r#"{
+        user {
+            name
+            email
+            cacheThing
+            ... @defer(label: "foo") {
+                nested {
+                    cacheThing
+                }
+            }
+        }
+    }"#;
+
+    let document = cynic_parser::parse_executable_document(QUERY).unwrap();
+    let operation = document.operations().next().unwrap();
+
+    let shapes = build_output_shapes(operation);
+    let root_shape = shapes.root();
+
+    let mut query_response = QueryResponse::default();
+    let root_node = query_response.from_serde_value(json!({
+        "user": {
+            "name": "G",
+            "email": "whatever",
+        }
+    }));
+    query_response.set_root_unchecked(root_node);
+
+    let mut output = InitialOutput::new(query_response, root_shape);
+
+    output.merge_cache_entry(
+        json!({
+            "user": {
+                "cacheThing": "I come from the cache",
+                "nested": [
+                    {"cacheThing": "I also come from the cache"},
+                    {"cacheThing": "you better believe I am cached"}
+                ]
+            }
+        }),
+        &shapes,
+    );
+
+    // Everything in the cache was part of the defer so we should only
+    // have the name & email here
+    insta::assert_json_snapshot!(output.store.serialize_all(&shapes, serde_json::value::Serializer).unwrap(), @r###"
+    {
+      "user": {
+        "name": "G",
+        "email": "whatever",
+        "cacheThing": "I come from the cache"
+      }
+    }
+    "###);
+}
+
+#[test]
+fn test_cache_merging_when_defer_ignored() {
+    // Servers don't have to defer fields that are behind a @defer.
+    // This tests handling of that case.
+    const QUERY: &str = r#"{
+        user {
+            name
+            cacheThing
+            ... @defer(label: "foo") {
+                email
+                nested {
+                    cacheThing
+                }
+            }
+        }
+    }"#;
+
+    let document = cynic_parser::parse_executable_document(QUERY).unwrap();
+    let operation = document.operations().next().unwrap();
+
+    let shapes = build_output_shapes(operation);
+    let root_shape = shapes.root();
+
+    let mut query_response = QueryResponse::default();
+    let root_node = query_response.from_serde_value(json!({
+        "user": {
+            "name": "G",
+            "email": "whatever",
+        }
+    }));
+    query_response.set_root_unchecked(root_node);
+
+    let mut output = InitialOutput::new(query_response, root_shape);
+
+    assert!(output.active_defers.contains("foo"));
+
+    output.merge_cache_entry(
+        json!({
+            "user": {
+                "cacheThing": "I come from the cache",
+                "nested": [
+                    {"cacheThing": "I also come from the cache"},
+                    {"cacheThing": "you better believe I am cached"}
+                ]
+            }
+        }),
+        &shapes,
+    );
+
+    // Everything in the cache was part of the defer so we should only
+    // have the name & email here
+    insta::assert_json_snapshot!(output.store.serialize_all(&shapes, serde_json::value::Serializer).unwrap(), @r###"
+    {
+      "user": {
+        "name": "G",
+        "cacheThing": "I come from the cache",
+        "email": "whatever",
+        "nested": [
+          {
+            "cacheThing": "I also come from the cache"
+          },
+          {
+            "cacheThing": "you better believe I am cached"
           }
         ]
       }

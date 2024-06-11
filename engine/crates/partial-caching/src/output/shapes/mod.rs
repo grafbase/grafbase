@@ -135,12 +135,20 @@ pub struct Field<'a> {
 }
 
 impl<'a> Field<'a> {
+    pub fn response_key(&self) -> &'a str {
+        &self.record().response_key
+    }
+
     pub fn index(&self) -> FieldIndex {
         self.field_index
     }
 
     pub fn is_leaf(&self) -> bool {
         self.record().subselection_shape.is_none()
+    }
+
+    pub fn defer_label(&self) -> Option<&'a str> {
+        self.record().defer_label.as_deref()
     }
 
     pub fn subselection_shape(&self) -> Option<ObjectShape<'a>> {
