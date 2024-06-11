@@ -2,8 +2,9 @@ use common_types::auth::ExecutionAuth;
 use engine_value::{ConstValue, Variables};
 use registry_for_cache::{CacheAccessScope, CacheControl};
 
-use super::CachingPlan;
 use crate::query_subset::QuerySubsetDisplay;
+
+use super::CachingPlan;
 
 pub fn build_cache_keys(
     plan: &CachingPlan,
