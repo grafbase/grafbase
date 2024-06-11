@@ -132,7 +132,7 @@ where
         let gql_span = GqlRequestSpan::new().into_span();
         let start = web_time::Instant::now();
 
-        let (response, normalized_query, headers) = async move {
+        async {
             let headers = ctx.headers();
             if let Err(err) = self
                 .handle_persisted_query(
@@ -145,57 +145,50 @@ where
                 .await
             {
                 return Ok((
-                    Arc::new(engine::Response {
-                        errors: vec![err.into()],
-                        ..Default::default()
-                    }),
-                    None,
+                    Arc::new(engine::Response::bad_request(vec![err.into()], None)),
                     Default::default(),
                 ));
             }
 
             let normalized_query = operation_normalizer::normalize(request.query(), request.operation_name()).ok();
-            self.execute_with_auth(ctx, request, auth)
-                .await
-                .map(|(response, headers)| (response, normalized_query, headers))
-        }
-        .instrument(gql_span.clone())
-        .await?;
-
-        let status = response.status();
-        if let Some(operation) = &response.graphql_operation {
-            gql_span.record_gql_request(GqlRequestAttributes {
-                operation_type: match operation.r#type {
-                    common_types::OperationType::Query { .. } => "query",
-                    common_types::OperationType::Mutation => "mutation",
-                    common_types::OperationType::Subscription => "subscription",
-                },
-                operation_name: operation.name.clone(),
-            });
-            gql_span.record_gql_status(status);
-        }
-
-        if let Some((operation, normalized_query)) = response.graphql_operation.as_ref().zip(normalized_query) {
-            self.operation_metrics.record(
-                grafbase_tracing::metrics::GraphqlOperationMetricsAttributes {
-                    ty: match operation.r#type {
+            let (response, headers) = self.execute_with_auth(ctx, request, auth).await?;
+            let status = response.status();
+            if let Some(operation) = &response.graphql_operation {
+                gql_span.record_gql_request(GqlRequestAttributes {
+                    operation_type: match operation.r#type {
                         common_types::OperationType::Query { .. } => "query",
                         common_types::OperationType::Mutation => "mutation",
                         common_types::OperationType::Subscription => "subscription",
                     },
-                    name: operation.name.clone(),
-                    normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
-                    normalized_query,
-                    status,
-                    cache_status: headers
-                        .get(X_GRAFBASE_CACHE)
-                        .and_then(|v| v.to_str().ok().map(|s| s.to_string())),
-                    client: Client::extract_from(ctx.headers()),
-                },
-                start.elapsed(),
-            );
+                    operation_name: operation.name.clone(),
+                });
+                gql_span.record_gql_status(status);
+            }
+
+            if let Some((operation, normalized_query)) = response.graphql_operation.as_ref().zip(normalized_query) {
+                self.operation_metrics.record(
+                    grafbase_tracing::metrics::GraphqlOperationMetricsAttributes {
+                        ty: match operation.r#type {
+                            common_types::OperationType::Query { .. } => "query",
+                            common_types::OperationType::Mutation => "mutation",
+                            common_types::OperationType::Subscription => "subscription",
+                        },
+                        name: operation.name.clone(),
+                        normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
+                        normalized_query,
+                        status,
+                        cache_status: headers
+                            .get(X_GRAFBASE_CACHE)
+                            .and_then(|v| v.to_str().ok().map(|s| s.to_string())),
+                        client: Client::extract_from(ctx.headers()),
+                    },
+                    start.elapsed(),
+                );
+            }
+            Ok((response, headers))
         }
-        Ok((response, headers))
+        .instrument(gql_span.clone())
+        .await
     }
 
     pub async fn execute_stream(

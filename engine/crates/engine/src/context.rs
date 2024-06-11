@@ -16,6 +16,7 @@ use fnv::FnvHashMap;
 use futures::{future::BoxFuture, stream::FuturesUnordered, StreamExt};
 use graph_entities::QueryResponse;
 use http::header::HeaderMap;
+use registry_v2::CacheControl;
 
 pub use self::selection_set::ContextSelectionSet;
 pub use self::{
@@ -33,7 +34,7 @@ use crate::{
     registry::type_kinds::SelectionSetTarget,
     request::IntrospectionState,
     schema::SchemaEnv,
-    Name, Positioned, Result, ServerError, ServerResult, UploadValue,
+    GraphqlOperationMetadata, Name, Positioned, Result, ServerError, ServerResult, UploadValue,
 };
 pub use ext::TraceId;
 
@@ -103,6 +104,7 @@ pub struct QueryEnvInner {
     pub variables: Variables,
     pub operation_name: Option<String>,
     pub operation: Positioned<OperationDefinition>,
+    pub operation_metadata: GraphqlOperationMetadata,
     pub fragments: HashMap<Name, Positioned<FragmentDefinition>>,
     pub uploads: Vec<UploadValue>,
     pub session_data: Arc<Data>,
@@ -122,6 +124,7 @@ pub struct QueryEnvInner {
     /// and just return the data as part of the main response.
     pub deferred_workloads: Option<DeferredWorkloadSender>,
     pub futures_spawner: QueryFutureSpawner,
+    pub cache_control: CacheControl,
 }
 
 #[doc(hidden)]
