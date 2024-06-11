@@ -12,7 +12,7 @@ use integration_tests::{Engine, EngineBuilder, GatewayBuilder};
 use runtime::udf::UdfResponse;
 
 #[tokio::test(flavor = "current_thread")]
-#[ignore] // Not sure why but this test just panics within tracing-mock.
+// #[ignore] // Not sure why but this test just panics within tracing-mock.
 async fn query_bad_request() {
     // prepare
     let span = expect::span().at_level(Level::INFO).named(GRAPHQL_SPAN_NAME);

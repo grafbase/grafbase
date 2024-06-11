@@ -17,7 +17,7 @@ mod streaming;
 
 /// GraphQL operation used in the request.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct ResponseOperation {
+pub struct GraphqlOperationMetadata {
     pub name: Option<String>,
     pub r#type: common_types::OperationType,
 }
@@ -46,7 +46,7 @@ pub struct Response {
 
     /// GraphQL operation.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub graphql_operation: Option<ResponseOperation>,
+    pub graphql_operation: Option<GraphqlOperationMetadata>,
 }
 
 pub(crate) fn response_operation_for_definition(operation: &OperationDefinition) -> common_types::OperationType {
@@ -90,7 +90,7 @@ impl Response {
         data.shrink_to_fit();
         Self {
             data,
-            graphql_operation: Some(ResponseOperation {
+            graphql_operation: Some(GraphqlOperationMetadata {
                 name: operation_name.map(str::to_owned),
                 r#type: operation_type,
             }),
@@ -111,10 +111,10 @@ impl Response {
     }
 
     #[must_use]
-    pub fn bad_request(errors: Vec<ServerError>) -> Self {
+    pub fn bad_request(errors: Vec<ServerError>, graphql_operation: Option<GraphqlOperationMetadata>) -> Self {
         Self {
             errors,
-            graphql_operation: None,
+            graphql_operation,
             ..Default::default()
         }
     }
@@ -124,7 +124,7 @@ impl Response {
     pub fn from_errors_with_type(errors: Vec<ServerError>, operation_type: OperationType) -> Self {
         Self {
             errors,
-            graphql_operation: Some(ResponseOperation {
+            graphql_operation: Some(GraphqlOperationMetadata {
                 name: None,
                 r#type: match operation_type {
                     OperationType::Query => common_types::OperationType::Query {
@@ -139,12 +139,11 @@ impl Response {
     }
 
     #[must_use]
-    pub fn with_graphql_operation_from(mut self, name: Option<&str>, definition: &OperationDefinition) -> Self {
-        self.graphql_operation = Some(ResponseOperation {
-            name: name.map(str::to_owned),
-            r#type: response_operation_for_definition(definition),
-        });
-        self
+    pub fn with_graphql_operation(self, graphql_operation: GraphqlOperationMetadata) -> Self {
+        Self {
+            graphql_operation: Some(graphql_operation),
+            ..self
+        }
     }
 
     /// Set the extension result of the response.
