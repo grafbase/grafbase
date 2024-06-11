@@ -269,7 +269,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89b47800b0be77592da0afd425cc03468052844aff33b84e33cc696f64e77b6a"
 dependencies = [
  "concurrent-queue",
- "event-listener-strategy",
+ "event-listener-strategy 0.5.2",
  "futures-core",
  "pin-project-lite",
 ]
@@ -387,7 +387,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d034b430882f8381900d3fe6f0aaa3ad94f2cb4ac519b429692a1bc2dda4ae7b"
 dependencies = [
  "event-listener 4.0.3",
- "event-listener-strategy",
+ "event-listener-strategy 0.4.0",
  "pin-project-lite",
 ]
 
@@ -2097,7 +2097,7 @@ dependencies = [
 
 [[package]]
 name = "engine-config-builder"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "engine-v2-config",
  "graphql-federated-graph",
@@ -2338,12 +2338,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "event-listener"
+version = "5.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6032be9bd27023a771701cc49f9f053c751055f71efb2e0ae5c15809093675ba"
+dependencies = [
+ "concurrent-queue",
+ "parking",
+ "pin-project-lite",
+]
+
+[[package]]
 name = "event-listener-strategy"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "958e4d70b6d5e81971bebec42271ec641e7ff4e170a6fa605f2b8a8b65cb97d3"
 dependencies = [
  "event-listener 4.0.3",
+ "pin-project-lite",
+]
+
+[[package]]
+name = "event-listener-strategy"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f214dc438f977e6d4e3500aaa277f5ad94ca83fbbd9b1a15713ce2344ccc5a1"
+dependencies = [
+ "event-listener 5.3.1",
  "pin-project-lite",
 ]
 
@@ -2439,7 +2460,7 @@ checksum = "9fc0510504f03c51ada170672ac806f1f105a88aa97a5281117e1ddc3368e51a"
 
 [[package]]
 name = "federated-dev"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
@@ -2798,7 +2819,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "async-graphql",
  "async-trait",
@@ -2982,7 +3003,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "assert_matches",
  "async-graphql",
@@ -3103,7 +3124,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "cynic",
  "cynic-introspection",
@@ -3115,7 +3136,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "async-compression",
  "axum 0.7.5",
@@ -3145,7 +3166,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "chrono",
  "common-types",
@@ -3165,7 +3186,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "async-trait",
  "async-tungstenite",
@@ -3271,7 +3292,7 @@ dependencies = [
 
 [[package]]
 name = "graph-ref"
-version = "0.74.2"
+version = "0.74.3"
 
 [[package]]
 name = "graphql-composition"
@@ -3289,7 +3310,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-cursor"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "serde",
  "serde_with",
@@ -5379,7 +5400,7 @@ dependencies = [
 
 [[package]]
 name = "operation-checks"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
@@ -5392,7 +5413,7 @@ dependencies = [
 
 [[package]]
 name = "operation-normalizer"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "anyhow",
  "expect-test",
@@ -5658,7 +5679,7 @@ dependencies = [
 
 [[package]]
 name = "partial-caching"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "anyhow",
  "blake3",
@@ -8387,7 +8408,7 @@ checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "typed-resolvers"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "datatest-stable",
  "engine-parser",
@@ -9215,7 +9236,7 @@ dependencies = [
 
 [[package]]
 name = "wrapping"
-version = "0.74.2"
+version = "0.74.3"
 dependencies = [
  "serde",
 ]
