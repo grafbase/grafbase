@@ -2,12 +2,12 @@ use engine_v2::Engine;
 use futures::Future;
 use graphql_mocks::{MockGraphQlServer, SecureSchema};
 use integration_tests::{
-    federation::{GatewayV2Ext, TestFederationGateway},
+    federation::{GatewayV2Ext, TestFederationEngine},
     openid::{CoreClientExt, OryHydraOpenIDProvider, JWKS_URI},
     runtime,
 };
 
-pub(super) fn with_secure_schema<F, O>(f: impl FnOnce(TestFederationGateway) -> F) -> O
+pub(super) fn with_secure_schema<F, O>(f: impl FnOnce(TestFederationEngine) -> F) -> O
 where
     F: Future<Output = O>,
 {

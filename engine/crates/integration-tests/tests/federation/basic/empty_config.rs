@@ -1,4 +1,4 @@
-use integration_tests::{federation::TestFederationGateway, runtime};
+use integration_tests::{federation::TestFederationEngine, runtime};
 use parser_sdl::federation::FederatedGraphConfig;
 use runtime::trusted_documents_client;
 use std::{future::IntoFuture, sync::Arc};
@@ -16,7 +16,7 @@ fn works_with_empty_config() {
     let federated_graph_config = FederatedGraphConfig::default();
 
     let config = engine_config_builder::build_config(&federated_graph_config, federated_graph);
-    let gateway = TestFederationGateway::new(Arc::new(engine_v2::Engine::new(
+    let gateway = TestFederationEngine::new(Arc::new(engine_v2::Engine::new(
         engine_v2::Schema::try_from(config.into_latest()).unwrap(),
         engine_v2::EngineEnv {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),

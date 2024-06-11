@@ -18,7 +18,7 @@ impl<'a> EnumWalker<'a> {
         self.schema[ids]
             .binary_search_by(|enum_value| self.schema[enum_value.name].as_str().cmp(name))
             .ok()
-            .map(EnumValueId::from)
+            .and_then(|i| ids.get(i))
     }
 
     pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {

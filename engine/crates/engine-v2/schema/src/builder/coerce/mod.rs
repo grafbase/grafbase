@@ -2,8 +2,8 @@ mod error;
 mod path;
 
 use crate::{
-    Definition, EnumId, EnumValueId, Graph, InputObjectId, InputValueDefinitionId, ScalarId, ScalarType,
-    SchemaInputValue, SchemaInputValueId, SchemaInputValues, StringId, Type,
+    Definition, EnumId, Graph, InputObjectId, InputValueDefinitionId, ScalarId, ScalarType, SchemaInputValue,
+    SchemaInputValueId, SchemaInputValues, StringId, Type,
 };
 pub use error::*;
 use federated_graph::Value;
@@ -173,7 +173,7 @@ impl<'a> InputValueCoercer<'a> {
         let value_ids = r#enum.value_ids;
         match self.graph[value_ids].binary_search_by(|enum_value| self.ctx.strings[enum_value.name].as_str().cmp(name))
         {
-            Ok(id) => Ok(SchemaInputValue::EnumValue(EnumValueId::from(id))),
+            Ok(id) => Ok(SchemaInputValue::EnumValue(r#enum.value_ids.get(id).unwrap())),
             Err(_) => Err(InputValueError::UnknownEnumValue {
                 r#enum: self.ctx.strings[r#enum.name].to_string(),
                 value: name.to_string(),
