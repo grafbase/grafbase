@@ -10,6 +10,7 @@ use std::net::SocketAddr;
 
 mod joins;
 mod requires;
+mod unions;
 
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::{runtime, udfs::RustUdfs, Engine, EngineBuilder, ResponseExt};

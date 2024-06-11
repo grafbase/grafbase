@@ -41,6 +41,7 @@ pub mod scalar_hydratation;
 pub mod search_directive;
 pub mod subgraph_directive;
 pub mod trusted_documents_directive;
+pub mod union;
 pub mod unique_directive;
 pub mod unique_fields;
 pub mod visitor;
