@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2024-06-11
 
 - Ignore federation mandated fields (_entities, _service) and types (https://github.com/grafbase/grafbase/pull/1743)
 - Validate that required arguments are provided in @requires selections (https://github.com/grafbase/grafbase/pull/1683)

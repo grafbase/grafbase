@@ -2242,6 +2242,7 @@ dependencies = [
  "engine-v2-id-newtypes",
  "fnv",
  "graphql-federated-graph",
+ "graphql-wrapping-types",
  "indexmap 2.2.6",
  "insta",
  "serde",
@@ -2250,7 +2251,6 @@ dependencies = [
  "strum_macros",
  "thiserror",
  "url",
- "wrapping",
 ]
 
 [[package]]
@@ -3296,7 +3296,7 @@ version = "0.74.3"
 
 [[package]]
 name = "graphql-composition"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
@@ -3332,16 +3332,16 @@ dependencies = [
 
 [[package]]
 name = "graphql-federated-graph"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
  "expect-test",
+ "graphql-wrapping-types",
  "indexmap 2.2.6",
  "indoc",
  "serde",
  "serde_json",
- "wrapping",
 ]
 
 [[package]]
@@ -3420,6 +3420,13 @@ dependencies = [
  "datatest-stable",
  "miette 7.2.0",
  "similar",
+]
+
+[[package]]
+name = "graphql-wrapping-types"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -6433,11 +6440,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "engine-id-newtypes",
+ "graphql-wrapping-types",
  "indexmap 2.2.6",
  "registry-v2",
  "serde",
  "serde_json",
- "wrapping",
 ]
 
 [[package]]
@@ -6445,12 +6452,12 @@ name = "registry-upgrade"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "graphql-wrapping-types",
  "indexmap 2.2.6",
  "registry-for-cache",
  "registry-v1",
  "registry-v2",
  "tracing",
- "wrapping",
 ]
 
 [[package]]
@@ -9234,13 +9241,6 @@ dependencies = [
  "js-sys",
  "wasm-bindgen",
  "web-sys",
-]
-
-[[package]]
-name = "wrapping"
-version = "0.74.3"
-dependencies = [
- "serde",
 ]
 
 [[package]]

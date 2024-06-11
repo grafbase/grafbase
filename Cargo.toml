@@ -197,7 +197,7 @@ runtime-local = { path = "engine/crates/runtime-local" }
 runtime = { path = "engine/crates/runtime" }
 runtime-noop = { path = "engine/crates/runtime-noop" }
 worker-env = { path = "engine/crates/worker-env" }
-wrapping = { path = "engine/crates/wrapping" }
+wrapping = { path = "engine/crates/wrapping", package = "graphql-wrapping-types" }
 
 [profile.bench]
 debug = true
