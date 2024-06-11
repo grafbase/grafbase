@@ -350,6 +350,14 @@ impl ResponseList {
         self.0.iter().copied()
     }
 
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn with_children(children: Vec<ResponseNodeId>) -> Box<Self> {
         Box::new(Self(children))
     }
@@ -366,7 +374,7 @@ impl ResponseList {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ResponsePrimitive(CompactValue);
+pub struct ResponsePrimitive(pub CompactValue);
 
 impl ResponsePrimitive {
     pub fn new(value: CompactValue) -> Box<Self> {
@@ -375,6 +383,17 @@ impl ResponsePrimitive {
 
     pub fn is_null(&self) -> bool {
         matches!(self.0, CompactValue::Null)
+    }
+
+    pub fn is_string(&self) -> bool {
+        matches!(self.0, CompactValue::String(_))
+    }
+
+    pub fn as_str(&self) -> Option<&str> {
+        match &self.0 {
+            CompactValue::String(s) => Some(s.as_str()),
+            _ => None,
+        }
     }
 }
 

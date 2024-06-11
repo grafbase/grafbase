@@ -2,7 +2,7 @@ use cynic_parser::executable::{iter::Iter, FieldSelection, Selection};
 use graph_entities::{QueryResponse, QueryResponseNode, ResponseContainer};
 use serde::ser::{Error, SerializeMap};
 
-use crate::{query_subset::FieldIter, QuerySubset};
+use crate::{parser_extensions::FieldExt, query_subset::FieldIter, QuerySubset};
 
 #[derive(Clone, Copy)]
 struct SerializeContext<'a> {
@@ -104,16 +104,6 @@ impl serde::Serialize for ValueSerializer<'_> {
             }
             QueryResponseNode::Primitive(value) => value.serialize(serializer),
         }
-    }
-}
-
-trait FieldExt {
-    fn response_key(&self) -> &str;
-}
-
-impl FieldExt for FieldSelection<'_> {
-    fn response_key(&self) -> &str {
-        self.alias().unwrap_or(self.name())
     }
 }
 

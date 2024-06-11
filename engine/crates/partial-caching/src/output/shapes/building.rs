@@ -7,34 +7,40 @@ use crate::{
     CachingPlan, QuerySubset,
 };
 
-use super::{fragment_iter::FragmentIter, FieldRecord, ObjectShapeId, ObjectShapeRecord, OutputShapes};
+use super::{
+    fragment_iter::FragmentIter, ConcreteShapeId, FieldRecord, ObjectShapeId, ObjectShapeRecord, OutputShapes,
+};
 
 pub fn build_output_shapes(plan: CachingPlan) -> OutputShapes {
-    let mut objects = vec![];
+    let mut builder = OutputShapesBuilder::default();
     let mut cache_partition_roots = vec![];
 
     for (subset, selection_set) in plan.cache_partitions() {
         let selections = selection_set.map(DeferrableSelection::without_defer).collect();
 
-        cache_partition_roots.push(build_output_shape(&mut objects, selections, subset));
+        let shape_id = build_output_shape(&mut builder, selections, subset);
+        let concrete_id = ConcreteShapeId(shape_id.0);
+
+        cache_partition_roots.push(concrete_id);
     }
 
     let nocache_partition_root = {
         let (subset, selection_set) = plan.nocache_partition();
         let selections = selection_set.map(DeferrableSelection::without_defer).collect();
 
-        build_output_shape(&mut objects, selections, subset)
+        let shape_id = build_output_shape(&mut builder, selections, subset);
+        ConcreteShapeId(shape_id.0)
     };
 
     OutputShapes {
-        objects,
+        objects: builder.objects,
         cache_partition_roots,
         nocache_partition_root,
     }
 }
 
 fn build_output_shape(
-    objects: &mut Vec<ObjectShapeRecord>,
+    builder: &mut OutputShapesBuilder,
     selections: Vec<DeferrableSelection<'_>>,
     subset: &QuerySubset,
 ) -> super::ObjectShapeId {
@@ -43,29 +49,30 @@ fn build_output_shape(
         .collect::<IndexSet<_>>();
 
     if type_conditions.is_empty() {
-        let field_shapes = field_shapes_for_typename(&selections, subset, objects, None);
+        let field_shapes = field_shapes_for_typename(builder, &selections, subset, None);
 
-        insert_record(objects, ObjectShapeRecord::Concrete { fields: field_shapes })
+        builder.insert_concrete_object(field_shapes)
     } else {
-        let mut types = Vec::with_capacity(type_conditions.len() + 1);
+        let unknown_typename_fields = field_shapes_for_typename(builder, &selections, subset, None);
 
-        types.push((None, field_shapes_for_typename(&selections, subset, objects, None)));
+        let known_typename_fields = type_conditions
+            .into_iter()
+            .map(|typename| {
+                (
+                    typename.to_string(),
+                    field_shapes_for_typename(builder, &selections, subset, Some(typename)),
+                )
+            })
+            .collect::<Vec<_>>();
 
-        for typename in type_conditions {
-            types.push((
-                Some(typename.to_string()),
-                field_shapes_for_typename(&selections, subset, objects, Some(typename)),
-            ));
-        }
-
-        insert_record(objects, ObjectShapeRecord::Polymorphic { types })
+        builder.insert_polymorphic_object(unknown_typename_fields, known_typename_fields)
     }
 }
 
 fn field_shapes_for_typename(
+    builder: &mut OutputShapesBuilder,
     selections: &[DeferrableSelection<'_>],
     subset: &QuerySubset,
-    objects: &mut Vec<ObjectShapeRecord>,
     typename: Option<&str>,
 ) -> Vec<FieldRecord> {
     let mut grouped_fields = IndexMap::new();
@@ -79,7 +86,7 @@ fn field_shapes_for_typename(
     for field in merged_fields {
         let mut subselection_shape = None;
         if !field.merged_selections.is_empty() {
-            subselection_shape = Some(build_output_shape(objects, field.merged_selections, subset));
+            subselection_shape = Some(build_output_shape(builder, field.merged_selections, subset));
         }
         field_shapes.push(FieldRecord {
             response_key: field.response_key.to_string(),
@@ -109,7 +116,6 @@ fn collect_fields<'a>(
     grouped_fields: &mut IndexMap<&'a str, Vec<CollectedField<'a>>>,
     defer_stack: &mut Vec<&'a str>,
     selections: &[DeferrableSelection<'a>],
-    // selection_set: FilteredSelectionSet<'a, 'a>,
     subset: &'a QuerySubset,
     typename: Option<&'a str>,
 ) {
@@ -331,10 +337,35 @@ fn merge_selection_sets<'a>(
     output
 }
 
-fn insert_record(records: &mut Vec<ObjectShapeRecord>, record: ObjectShapeRecord) -> ObjectShapeId {
-    let id = ObjectShapeId(u16::try_from(records.len()).expect("too many objects, what the hell"));
-    records.push(record);
-    id
+#[derive(Default)]
+struct OutputShapesBuilder {
+    objects: Vec<ObjectShapeRecord>,
+}
+
+impl OutputShapesBuilder {
+    fn insert_concrete_object(&mut self, fields: Vec<FieldRecord>) -> ObjectShapeId {
+        self.insert_record(ObjectShapeRecord::Concrete { fields })
+    }
+
+    fn insert_polymorphic_object(
+        &mut self,
+        unknown_typename_fields: Vec<FieldRecord>,
+        typename_fields: Vec<(String, Vec<FieldRecord>)>,
+    ) -> ObjectShapeId {
+        let mut types = Vec::with_capacity(typename_fields.len() + 1);
+        types.push((None, self.insert_concrete_object(unknown_typename_fields)));
+        for (typename, fields) in typename_fields {
+            types.push((Some(typename), self.insert_concrete_object(fields)));
+        }
+
+        self.insert_record(ObjectShapeRecord::Polymorphic { types })
+    }
+
+    fn insert_record(&mut self, record: ObjectShapeRecord) -> ObjectShapeId {
+        let id = ObjectShapeId(u16::try_from(self.objects.len()).expect("too many objects, what the hell"));
+        self.objects.push(record);
+        id
+    }
 }
 
 impl CachingPlan {
