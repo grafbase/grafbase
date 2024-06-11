@@ -52,6 +52,7 @@ use rules::{
     search_directive::SearchDirective,
     subgraph_directive::{SubgraphDirective, SubgraphDirectiveVisitor},
     trusted_documents_directive::{TrustedDocumentsDirective, TrustedDocumentsVisitor},
+    union::UnionType,
     unique_directive::UniqueDirective,
     unique_fields::UniqueObjectFields,
     visitor::{visit, RuleError, Visitor, VisitorContext},
@@ -380,7 +381,8 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(ExtendFieldVisitor)
         .with(SubgraphDirectiveVisitor)
         .with(AllSubgraphsDirectiveVisitor)
-        .with(IntrospectionDirectiveVisitor);
+        .with(IntrospectionDirectiveVisitor)
+        .with(UnionType);
 
     visit(&mut types_definitions_rules, ctx, schema);
 

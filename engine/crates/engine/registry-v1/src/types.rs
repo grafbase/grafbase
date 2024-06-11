@@ -207,6 +207,13 @@ impl UnionType {
             discriminators: None,
         }
     }
+
+    pub fn with_description(self, description: impl Into<Option<String>>) -> Self {
+        UnionType {
+            description: description.into(),
+            ..self
+        }
+    }
 }
 
 impl From<UnionType> for MetaType {
