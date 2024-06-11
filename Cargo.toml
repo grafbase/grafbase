@@ -46,8 +46,6 @@ serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e
 # Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
 tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
-# Drop when https://github.com/jbg/tokio-postgres-rustls/pull/22 is merged and our fork is rebased.
-tokio-postgres-rustls = { git = "https://github.com/grafbase/tokio-postgres-rustls", rev = "c4bb42bb4063c3dd28b75783f846b23622be07f6" } # rustls-0.23
 # Drop when a new version of tokio-rustls is released.
 tokio-rustls = { git = "https://github.com/rustls/tokio-rustls", rev = "3a153acec6c4d189eb5de501b2155b4484b8651b" } # main
 # FIXME: Uncomment when we upgrade opentelemetry to 0.23.
@@ -84,7 +82,7 @@ ctor = "0.2.8"
 cynic = "3.7.0"
 cynic-introspection = "3.7.0"
 cynic-parser = "0.4.0"
-deadpool-postgres = "0.13"
+deadpool-postgres = "0.14"
 derive_more = "1.0.0-beta.6"
 jwt-compact = "0.8"
 flexbuffers = "2"
@@ -119,8 +117,8 @@ tar = "0.4.40"
 thiserror = "1.0.59"
 tokio = "1.37.0"
 tokio-postgres = { version = "0.7.10", default-features = false }
-tokio-postgres-rustls = "0.11.0"
-tokio-rustls = { version = "0.25.0", default-features = false }
+tokio-postgres-rustls = "0.12.0"
+tokio-rustls = { version = "0.26.0", default-features = false }
 tokio-tungstenite = { version = "0.23.0", default-features = false }
 tungstenite = { version = "0.23.0", default-features = false }
 tower = "0.4.13"
