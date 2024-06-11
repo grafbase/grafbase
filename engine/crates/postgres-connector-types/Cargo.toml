@@ -42,6 +42,6 @@ reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 rustls.workspace = true
 rustls-native-certs = "0.7.0"
 # https://github.com/sfackler/rust-postgres/pull/1067
-tokio-postgres.workspace = true
+tokio-postgres = { workspace = true, features = ["runtime"] }
 tokio-postgres-rustls.workspace = true
 deadpool-postgres = { workspace = true, optional = true }

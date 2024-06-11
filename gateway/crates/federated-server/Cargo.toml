@@ -24,7 +24,7 @@ ascii = { version = "1.1.0", features = ["serde"] }
 async-trait = "0.1.80"
 axum = { workspace = true, features = ["macros", "ws", "query", "json"] }
 axum-server = { version = "0.6.0", features = ["tls-rustls"] }
-duration-str = "0.10.0"
+duration-str = "0.11.0"
 engine.workspace = true
 engine-config-builder.workspace = true
 engine-v2.workspace = true

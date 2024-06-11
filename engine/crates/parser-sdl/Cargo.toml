@@ -16,7 +16,7 @@ async-trait = "0.1.80"
 case = "1"
 colored = "2.1.0"
 common-types.workspace = true
-duration-str = "0.10.0"
+duration-str = "0.11.0"
 engine = { path = "../engine" }
 registry-v1.workspace = true
 registry-v2.workspace = true
