@@ -54,10 +54,7 @@ impl GraphqlOperationMetrics {
         if let Some(cache_status) = cache_status {
             attributes.push(KeyValue::new("gql.response.cache_status", cache_status));
         }
-        // Not present will simply be assumed to be a success.
-        if !status.is_success() {
-            attributes.push(KeyValue::new("gql.response.status", status.as_str()));
-        }
+        attributes.push(KeyValue::new("gql.response.status", status.as_str()));
         if let Some(client) = client {
             attributes.push(KeyValue::new("http.headers.x-grafbase-client-name", client.name));
             if let Some(version) = client.version {
