@@ -1,4 +1,5 @@
 mod bench;
+mod mock;
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -6,10 +7,11 @@ use crate::{mock_trusted_documents::MockTrustedDocumentsClient, TestTrustedDocum
 use async_graphql_parser::types::ServiceDocument;
 pub use bench::*;
 use graphql_mocks::MockGraphQlServer;
+pub use mock::*;
 use parser_sdl::connector_parsers::MockConnectorParsers;
 use runtime::trusted_documents_client;
 
-use super::TestFederationGateway;
+use super::TestFederationEngine;
 
 #[must_use]
 pub struct FederationGatewayBuilder {
@@ -59,7 +61,7 @@ impl FederationGatewayBuilder {
         self
     }
 
-    pub async fn finish(self) -> TestFederationGateway {
+    pub async fn finish(self) -> TestFederationEngine {
         let mut subgraphs = graphql_composition::Subgraphs::default();
         for (name, url, schema) in self.schemas {
             subgraphs.ingest(&schema, &name, &url);
@@ -85,7 +87,7 @@ impl FederationGatewayBuilder {
             ..Default::default()
         });
 
-        TestFederationGateway::new(Arc::new(engine_v2::Engine::new(
+        TestFederationEngine::new(Arc::new(engine_v2::Engine::new(
             config.try_into().unwrap(),
             engine_v2::EngineEnv {
                 fetcher: runtime_local::NativeFetcher::runtime_fetcher(),

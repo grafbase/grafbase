@@ -3,7 +3,7 @@ use futures::Future;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::{
     engine_v1::GraphQlRequest,
-    federation::{GatewayV2Ext, TestFederationGateway},
+    federation::{GatewayV2Ext, TestFederationEngine},
     runtime, TestTrustedDocument,
 };
 use serde_json::json;
@@ -25,7 +25,7 @@ const TRUSTED_DOCUMENTS: &[TestTrustedDocument] = &[
 
 fn test<Fn, Fut>(test_fn: Fn)
 where
-    Fn: FnOnce(TestFederationGateway) -> Fut,
+    Fn: FnOnce(TestFederationEngine) -> Fut,
     Fut: Future<Output = ()>,
 {
     runtime().block_on(async move {

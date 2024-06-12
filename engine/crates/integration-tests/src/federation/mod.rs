@@ -12,27 +12,27 @@ use serde::de::Error;
 
 use crate::engine_v1::GraphQlRequest;
 
-pub struct TestFederationGateway {
-    gateway: Arc<engine_v2::Engine>,
+pub struct TestFederationEngine {
+    engine: Arc<engine_v2::Engine>,
 }
 
-impl TestFederationGateway {
-    pub fn new(gateway: Arc<engine_v2::Engine>) -> Self {
-        TestFederationGateway { gateway }
+impl TestFederationEngine {
+    pub fn new(engine: Arc<engine_v2::Engine>) -> Self {
+        TestFederationEngine { engine }
     }
 
-    pub fn execute(&self, operation: impl Into<GraphQlRequest>) -> ExecutionRequest {
+    pub fn execute(&self, request: impl Into<GraphQlRequest>) -> ExecutionRequest {
         ExecutionRequest {
-            graphql: operation.into(),
+            request: request.into(),
             headers: HashMap::new(),
-            engine: Arc::clone(&self.gateway),
+            engine: Arc::clone(&self.engine),
         }
     }
 }
 
 #[must_use]
 pub struct ExecutionRequest {
-    graphql: GraphQlRequest,
+    request: GraphQlRequest,
     #[allow(dead_code)]
     headers: HashMap<String, String>,
     engine: Arc<engine_v2::Engine>,
@@ -46,14 +46,14 @@ impl ExecutionRequest {
     }
 
     pub fn variables(mut self, variables: impl serde::Serialize) -> Self {
-        self.graphql.variables = Some(Variables::from_json(
+        self.request.variables = Some(Variables::from_json(
             serde_json::to_value(variables).expect("variables to be serializable"),
         ));
         self
     }
 
     pub fn extensions(mut self, extensions: impl serde::Serialize) -> Self {
-        self.graphql.extensions =
+        self.request.extensions =
             serde_json::from_value(serde_json::to_value(extensions).expect("extensions to be serializable"))
                 .expect("extensions to be deserializable");
         self
@@ -75,7 +75,7 @@ impl IntoFuture for ExecutionRequest {
 
     fn into_future(self) -> Self::IntoFuture {
         let headers = self.http_headers();
-        let request = BatchRequest::Single(self.graphql.into_engine_request());
+        let request = BatchRequest::Single(self.request.into_engine_request());
         Box::pin(async move { self.engine.execute(headers, request).await.try_into().unwrap() })
     }
 }
@@ -99,7 +99,7 @@ impl IntoFuture for MultipartStreamRequest {
     fn into_future(self) -> Self::IntoFuture {
         let mut headers = self.0.http_headers();
         headers.typed_insert(StreamingFormat::IncrementalDelivery);
-        let request = BatchRequest::Single(self.0.graphql.into_engine_request());
+        let request = BatchRequest::Single(self.0.request.into_engine_request());
         Box::pin(async move {
             let response = self.0.engine.execute(headers, request).await;
             let stream = multipart_stream::parse(response.body.into_stream().map_ok(Into::into), "-")
