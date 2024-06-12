@@ -52,7 +52,7 @@ impl<'a> Iterator for ComplexFilterIterator<'a> {
                 .and_then(|ty| InputType::try_from(ty).ok())
                 .unwrap();
 
-            let object = if !relation.is_referenced_row_unique() {
+            let object = if !relation.is_other_side_one() {
                 match value {
                     Value::Object(mut object) => match object.remove("contains") {
                         Some(Value::Object(object)) => object,

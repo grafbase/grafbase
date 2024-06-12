@@ -143,7 +143,7 @@ impl<'a> Iterator for SelectionIterator<'a> {
             .and_then(|ty| OutputType::try_from(ty).ok())
             .expect("couldn't find a meta type for a selection");
 
-        if relation.is_referenced_row_unique() {
+        if relation.is_other_side_one() {
             // The other side has a unique constraint, so our join must return at most one row.
             let selection_set = selection_field.selection_set().collect();
             let iterator = Self::new(self.ctx, meta_type, selection_field, selection_set);

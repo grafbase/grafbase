@@ -63,7 +63,7 @@ fn add_relation(input_ctx: &InputContext<'_>, relation: RelationWalker<'_>, buil
         input_ctx.type_name(relation.referenced_table().client_name())
     );
 
-    if !relation.is_referenced_row_unique() {
+    if !relation.is_other_side_one() {
         type_name = format!("{type_name}Contains");
     }
 
