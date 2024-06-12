@@ -116,10 +116,11 @@ impl EngineBuilder {
         let registry = registry_upgrade::convert_v1_to_v2(registry).unwrap();
 
         let postgres = {
-            let mut transports = HashMap::new();
+            let mut transports: HashMap<String, Arc<dyn postgres_connector_types::transport::Transport>> =
+                HashMap::new();
             for (name, definition) in &registry.postgres_databases {
                 let transport = DirectTcpTransport::new(definition.connection_string()).await.unwrap();
-                transports.insert(name.to_string(), transport);
+                transports.insert(name.to_string(), Arc::new(transport));
             }
             runtime::pg::PgTransportFactory::new(Box::new(runtime_local::LocalPgTransportFactory::new(transports)))
         };

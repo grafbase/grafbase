@@ -97,6 +97,8 @@
 
         shellHook = ''
           project_root="$(git rev-parse --show-toplevel 2>/dev/null || jj workspace root 2>/dev/null)"
+          export POSTGRES_URL=postgresql://postgres:grafbase@localhost:5432
+          export PGBOUNCER_URL=postgresql://postgres:grafbase@localhost:6432
           export CARGO_INSTALL_ROOT="$project_root/cli/.cargo";
           export PATH="$CARGO_INSTALL_ROOT/bin:$project_root/node_modules/.bin:$PATH";
           if [[ "${system}" == "aarch64-darwin" ]]; then
