@@ -2,12 +2,12 @@ use url::Url;
 
 use crate::{HeaderId, HeaderWalker, RequiredFieldSet, RequiredFieldSetId, SchemaWalker, StringId, SubgraphId, UrlId};
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct GraphqlEndpoints {
     pub(crate) endpoints: Vec<GraphqlEndpoint>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct GraphqlEndpoint {
     pub(crate) subgraph_id: SubgraphId,
     pub(crate) name: StringId,
@@ -20,7 +20,7 @@ id_newtypes::U8! {
     GraphqlEndpoints.endpoints[GraphqlEndpointId] => GraphqlEndpoint,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RootFieldResolver {
     pub(crate) endpoint_id: GraphqlEndpointId,
 }
@@ -58,13 +58,13 @@ impl<'a> std::fmt::Debug for RootFieldResolverWalker<'a> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FederationEntityResolver {
     pub(crate) endpoint_id: GraphqlEndpointId,
     pub(crate) key: FederationKey,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FederationKey {
     pub(crate) fields: RequiredFieldSetId,
 }

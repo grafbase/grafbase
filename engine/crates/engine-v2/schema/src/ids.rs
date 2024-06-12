@@ -34,7 +34,7 @@ id_newtypes::NonZeroU32! {
     Schema.strings[StringId] => String | max(MAX_ID),
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct SubgraphId(u8);
 
 impl std::fmt::Debug for SubgraphId {

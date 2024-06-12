@@ -2,9 +2,7 @@ use std::cell::RefCell;
 
 use schema::{
     sources::{
-        introspection::{
-            IntrospectionField, IntrospectionObject, __EnumValue, __Field, __InputValue, __Schema, __Type,
-        },
+        introspection::{IntrospectionField, IntrospectionObject, _Field, __EnumValue, __InputValue, __Schema, __Type},
         IntrospectionMetadata,
     },
     Definition, DefinitionWalker, EnumValueWalker, FieldDefinitionWalker, InputValueDefinitionWalker, ListWrapping,
@@ -260,9 +258,9 @@ impl<'a> IntrospectionWriter<'a> {
         selection_set: PlanCollectedSelectionSet<'_>,
     ) -> ResponseValue {
         self.object(&self.metadata.__field, selection_set, |field, __field| match __field {
-            __Field::Name => target.as_ref().name.into(),
-            __Field::Description => target.as_ref().description.into(),
-            __Field::Args => {
+            _Field::Name => target.as_ref().name.into(),
+            _Field::Description => target.as_ref().description.into(),
+            _Field::Args => {
                 let selection_set = field.concrete_selection_set().unwrap();
                 let values = target
                     .arguments()
@@ -271,9 +269,9 @@ impl<'a> IntrospectionWriter<'a> {
 
                 self.output.borrow_mut().push_list(&values).into()
             }
-            __Field::Type => self.__type(target.ty(), field.concrete_selection_set().unwrap()),
-            __Field::IsDeprecated => target.directives().has_deprecated().into(),
-            __Field::DeprecationReason => target.directives().deprecated().map(|d| d.reason).into(),
+            _Field::Type => self.__type(target.ty(), field.concrete_selection_set().unwrap()),
+            _Field::IsDeprecated => target.directives().has_deprecated().into(),
+            _Field::DeprecationReason => target.directives().deprecated().map(|d| d.reason).into(),
         })
     }
 

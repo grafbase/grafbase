@@ -4,7 +4,7 @@ use crate::FieldDefinitionId;
 
 pub(crate) static EMPTY: ProvidableFieldSet = ProvidableFieldSet(Vec::new());
 
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ProvidableFieldSet(Vec<ProvidableField>);
 
 impl FromIterator<ProvidableField> for ProvidableFieldSet {
@@ -96,7 +96,7 @@ impl ProvidableFieldSet {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ProvidableField {
     pub id: FieldDefinitionId,
     pub subselection: ProvidableFieldSet,

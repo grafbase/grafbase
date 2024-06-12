@@ -7,7 +7,7 @@ use crate::sources::*;
 /// The only exception to this rule are resolvers on Mutation, Query and Subscription root types
 /// as they can't be mixed together in a single operation. So a resolver id can be used
 /// on both Query and Mutation fields.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Resolver {
     Introspection(introspection::Resolver),
     GraphqlRootField(graphql::RootFieldResolver),

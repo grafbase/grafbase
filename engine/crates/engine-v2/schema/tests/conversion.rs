@@ -1,5 +1,6 @@
 use engine_v2_schema::{Definition, Schema};
 use federated_graph::FederatedGraph;
+use pretty_assertions::assert_eq;
 
 const SCHEMA: &str = r#"
 schema
@@ -301,4 +302,21 @@ fn should_remove_all_inaccessible_items() {
 
         assert_eq!(members, &["New"])
     }
+}
+
+#[rstest::rstest]
+#[case(SCHEMA)]
+#[case(SCHEMA_WITH_INACCESSIBLES)]
+fn serde_roundtrip(#[case] sdl: &str) {
+    let graph = FederatedGraph::from_sdl(sdl).unwrap().into_latest();
+    let config = config::VersionedConfig::V4(config::latest::Config::from_graph(graph)).into_latest();
+    let schema = Schema::try_from(config).unwrap();
+
+    let bytes = postcard::to_stdvec(&schema).unwrap();
+    postcard::from_bytes::<Schema>(&bytes).unwrap();
+}
+
+#[test]
+fn non_empty_version() {
+    assert!(!Schema::serde_version().is_empty());
 }

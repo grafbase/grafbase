@@ -43,7 +43,7 @@ impl<'a> FederationGatewayWithoutIO<'a> {
         });
 
         let engine = engine_v2::Engine::new(
-            config.try_into().unwrap(),
+            Arc::new(config.try_into().unwrap()),
             engine_v2::EngineEnv {
                 fetcher,
                 cache: cache.clone(),

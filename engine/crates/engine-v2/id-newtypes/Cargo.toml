@@ -10,3 +10,6 @@ repository = "https://github.com/grafbase/grafbase"
 
 [lints]
 workspace = true
+
+[dependencies]
+serde.workspace = true

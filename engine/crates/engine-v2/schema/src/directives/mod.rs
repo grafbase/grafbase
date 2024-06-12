@@ -6,7 +6,7 @@ pub use requires_scopes::*;
 
 use crate::{CacheControlId, RequiredScopesId, StringId};
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum TypeSystemDirective {
     Deprecated(Deprecated),
     Authenticated,
@@ -14,7 +14,7 @@ pub enum TypeSystemDirective {
     CacheControl(CacheControlId),
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Deprecated {
     pub reason: Option<StringId>,
 }

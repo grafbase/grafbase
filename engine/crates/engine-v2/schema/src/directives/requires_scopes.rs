@@ -1,6 +1,6 @@
 use crate::{RequiredScopesId, SchemaWalker, StringId};
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Debug, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RequiredScopes(Vec<Vec<StringId>>);
 
 impl RequiredScopes {

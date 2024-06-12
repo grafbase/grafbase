@@ -4,7 +4,7 @@ use crate::{FieldDefinitionId, InputValueDefinitionId, RequiredFieldSetArguments
 
 pub(crate) static EMPTY: RequiredFieldSet = RequiredFieldSet(Vec::new());
 
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RequiredFieldSet(Vec<RequiredField>);
 
 impl FromIterator<RequiredField> for RequiredFieldSet {
@@ -81,7 +81,7 @@ impl RequiredFieldSet {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct RequiredFieldId(u32);
 
 impl From<u32> for RequiredFieldId {
@@ -90,7 +90,7 @@ impl From<u32> for RequiredFieldId {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RequiredField {
     /// Unique id used during planning to associate a FieldId to a required field.
     pub id: RequiredFieldId,
@@ -123,7 +123,7 @@ impl PartialOrd for RequiredField {
 }
 
 // sorted by InputValueDefinitionId
-#[derive(Default, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub struct RequiredFieldArguments(pub(crate) Vec<(InputValueDefinitionId, SchemaInputValueId)>);
 
 impl std::ops::Deref for RequiredFieldArguments {
