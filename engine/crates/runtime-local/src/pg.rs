@@ -1,22 +1,17 @@
 use std::{collections::HashMap, sync::Arc};
 
-use postgres_connector_types::transport::{DirectTcpTransport, Transport};
+use postgres_connector_types::transport::Transport;
 use runtime::pg::{PgTransportFactoryError, PgTransportFactoryInner, PgTransportFactoryResult};
 
 #[derive(Clone)]
 pub struct LocalPgTransportFactory {
-    transports: Arc<HashMap<String, Arc<DirectTcpTransport>>>,
+    transports: Arc<HashMap<String, Arc<dyn Transport>>>,
 }
 
 impl LocalPgTransportFactory {
-    pub fn new(transports: HashMap<String, DirectTcpTransport>) -> Self {
+    pub fn new(transports: HashMap<String, Arc<dyn Transport>>) -> Self {
         LocalPgTransportFactory {
-            transports: Arc::new(
-                transports
-                    .into_iter()
-                    .map(|(name, transport)| (name, Arc::new(transport)))
-                    .collect(),
-            ),
+            transports: Arc::new(transports),
         }
     }
 }

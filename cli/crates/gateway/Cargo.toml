@@ -34,7 +34,7 @@ runtime = { path = "../../../engine/crates/runtime" }
 runtime-noop = { path = "../../../engine/crates/runtime-noop" }
 runtime-local = { path = "../../../engine/crates/runtime-local" }
 common-types = { path = "../../../engine/crates/common-types" }
-postgres-connector-types = { path = "../../../engine/crates/postgres-connector-types" }
+postgres-connector-types = { path = "../../../engine/crates/postgres-connector-types", features = ["pooling"] }
 gateway-v2-auth.workspace = true
 
 [features]
