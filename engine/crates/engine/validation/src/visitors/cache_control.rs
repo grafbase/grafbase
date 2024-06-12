@@ -104,7 +104,7 @@ where
         if field.selection_set.items.is_empty() {
             // This field is a leaf so we merge in whatever the current cache control is
             match self.cache_control {
-                Some(cache_control) => cache_control.merge(cache_control.clone()),
+                Some(cc) => cc.merge(cache_control.clone()),
                 None => *self.cache_control = Some(cache_control.clone()),
             }
         }
