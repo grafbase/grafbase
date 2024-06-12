@@ -39,7 +39,8 @@ fn basic() {
             "gql.operation.name": "Simple",
             "gql.operation.normalized_query": "query Simple {\n  __typename\n}\n",
             "gql.operation.normalized_query_hash": "cAe1+tBRHQLrF/EO1ul4CTx+q5SB9YD+YtG3VDU6VCM=",
-            "gql.operation.type": "query"
+            "gql.operation.type": "query",
+            "gql.response.status": "SUCCESS"
           }
         }
         "###);
@@ -246,6 +247,7 @@ fn client() {
             "gql.operation.normalized_query": "query SimpleQuery {\n  __typename\n}\n",
             "gql.operation.normalized_query_hash": "qIzPxtWwHz0t+aJjvOljljbR3aGLQAA0LI5VXjW/FwQ=",
             "gql.operation.type": "query",
+            "gql.response.status": "SUCCESS",
             "http.headers.x-grafbase-client-name": "test",
             "http.headers.x-grafbase-client-version": "1.0.0"
           }

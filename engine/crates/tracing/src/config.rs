@@ -131,20 +131,20 @@ pub struct TracingBatchExportConfig {
         deserialize_with = "deserialize_duration",
         default = "TracingBatchExportConfig::default_scheduled_delay"
     )]
-    pub(crate) scheduled_delay: chrono::Duration,
+    pub scheduled_delay: chrono::Duration,
 
     /// The maximum queue size to buffer spans for delayed processing. If the
     /// queue gets full it drops the spans.
     /// The default value of is 2048.
     #[serde(default = "TracingBatchExportConfig::default_max_queue_size")]
-    pub(crate) max_queue_size: usize,
+    pub max_queue_size: usize,
 
     /// The maximum number of spans to process in a single batch. If there are
     /// more than one batch worth of spans then it processes multiple batches
     /// of spans one batch after the other without any delay.
     /// The default value is 512.
     #[serde(default = "TracingBatchExportConfig::default_max_export_batch_size")]
-    pub(crate) max_export_batch_size: usize,
+    pub max_export_batch_size: usize,
 
     /// Maximum number of concurrent exports
     ///
@@ -153,7 +153,7 @@ pub struct TracingBatchExportConfig {
     /// synchronously on the [`BatchSpanProcessor`] task.
     /// The default is 1.
     #[serde(default = "TracingBatchExportConfig::default_max_concurrent_exports")]
-    pub(crate) max_concurrent_exports: usize,
+    pub max_concurrent_exports: usize,
 }
 
 impl TracingBatchExportConfig {

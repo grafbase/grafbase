@@ -33,7 +33,10 @@ fn basic() {
         insta::assert_json_snapshot!(row, @r###"
         {
           "Count": 1,
-          "Attributes": {}
+          "Attributes": {
+            "gql.response.status": "SUCCESS",
+            "http.response.status_code": "200"
+          }
         }
         "###);
     });
@@ -79,7 +82,8 @@ fn request_error() {
         {
           "Count": 1,
           "Attributes": {
-            "gql.response.status": "REQUEST_ERROR"
+            "gql.response.status": "REQUEST_ERROR",
+            "http.response.status_code": "200"
           }
         }
         "###);
@@ -127,7 +131,8 @@ fn field_error() {
         {
           "Count": 1,
           "Attributes": {
-            "gql.response.status": "FIELD_ERROR_NULL_DATA"
+            "gql.response.status": "FIELD_ERROR_NULL_DATA",
+            "http.response.status_code": "200"
           }
         }
         "###);
@@ -172,7 +177,8 @@ fn field_error_data_null() {
         {
           "Count": 1,
           "Attributes": {
-            "gql.response.status": "FIELD_ERROR_NULL_DATA"
+            "gql.response.status": "FIELD_ERROR_NULL_DATA",
+            "http.response.status_code": "200"
           }
         }
         "###);
@@ -216,8 +222,10 @@ fn client() {
         {
           "Count": 1,
           "Attributes": {
+            "gql.response.status": "SUCCESS",
             "http.headers.x-grafbase-client-name": "test",
-            "http.headers.x-grafbase-client-version": "1.0.0"
+            "http.headers.x-grafbase-client-version": "1.0.0",
+            "http.response.status_code": "200"
           }
         }
         "###);

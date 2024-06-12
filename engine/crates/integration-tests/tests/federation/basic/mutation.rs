@@ -103,15 +103,7 @@ fn mutation_failure_should_stop_later_executions_if_required() {
               "message": "Upstream error: This mutation always fails",
               "path": [
                 "faillible"
-              ],
-              "extensions": {
-                "upstream_locations": [
-                  {
-                    "line": 2,
-                    "column": 3
-                  }
-                ]
-              }
+              ]
             }
           ]
         }
@@ -148,15 +140,7 @@ fn mutation_failure_should_stop_later_executions_if_required() {
               "message": "Upstream error: This mutation always fails",
               "path": [
                 "fail"
-              ],
-              "extensions": {
-                "upstream_locations": [
-                  {
-                    "line": 2,
-                    "column": 3
-                  }
-                ]
-              }
+              ]
             }
           ]
         }
