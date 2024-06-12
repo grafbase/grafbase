@@ -6,6 +6,48 @@ use serde_json::json;
 use std::time::Duration;
 
 #[test]
+fn cache_control_computation() {
+    let schema = r#"
+        type Post @cache(maxAge: 30) {
+            id: String!
+            test: String! @cache(maxAge: 10)
+        }
+
+        extend type Query {
+            post(argument: String!): Post! @resolver(name: "return-post")
+        }
+    "#;
+
+    runtime().block_on(async {
+        let engine = EngineBuilder::new(schema)
+            .with_custom_resolvers(
+                RustUdfs::new().resolver("return-post", UdfResponse::Success(json!({"id": "10", "test": "Hi"}))),
+            )
+            .build()
+            .await;
+
+        // act
+        let response = engine
+            .execute(
+                r###"
+                query PostByTest {
+                    post(argument: "test") {
+                        id
+                        test
+                    }
+                }
+                "###,
+            )
+            .await;
+
+        // assert
+        let metadata = response.metadata();
+        assert_eq!(metadata.max_age, Duration::from_secs(10));
+        assert_eq!(metadata.stale_while_revalidate, Duration::from_secs(00));
+    });
+}
+
+#[test]
 fn should_cache_with_entity_mutation_invalidation_custom_field() {
     let schema = r#"
         extend type Query {
