@@ -76,7 +76,7 @@ macro_rules! id_newtype {
 macro_rules! NonZeroU32 {
     ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(|max($max:expr))? $(|index($ty2:ident$(.$field2:ident)+))? ,)*) => {
         $(
-            #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
+            #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize)]
             pub struct $name(std::num::NonZeroU32);
 
             impl From<usize> for $name {
@@ -112,7 +112,7 @@ macro_rules! NonZeroU32 {
 macro_rules! NonZeroU16 {
     ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max($max:expr))?)?,)*) => {
         $(
-            #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
+            #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize)]
             pub struct $name(std::num::NonZeroU16);
 
             impl From<usize> for $name {
@@ -148,7 +148,7 @@ macro_rules! NonZeroU16 {
 macro_rules! U8 {
     ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max($max:expr))?)?,)*) => {
         $(
-            #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
+            #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize)]
             pub struct $name(u8);
 
             impl From<usize> for $name {

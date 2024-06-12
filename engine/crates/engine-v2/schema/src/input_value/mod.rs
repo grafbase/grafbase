@@ -75,7 +75,7 @@ impl serde::Serialize for SchemaWalker<'_, &InputValue<'_>> {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct SchemaInputValues {
     /// Individual input values and list values
     values: Vec<SchemaInputValue>,
@@ -92,7 +92,7 @@ id_newtypes::NonZeroU32! {
 }
 
 /// Represents a default input value and @requires arguments.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
 pub enum SchemaInputValue {
     Null,
     String(StringId),

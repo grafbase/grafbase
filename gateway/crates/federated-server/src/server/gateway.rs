@@ -123,10 +123,12 @@ pub(super) fn generate(
     };
 
     Ok(Engine::new(
-        config
-            .into_latest()
-            .try_into()
-            .map_err(|err| crate::Error::InternalError(format!("Failed to generate engine Schema: {err}")))?,
+        Arc::new(
+            config
+                .into_latest()
+                .try_into()
+                .map_err(|err| crate::Error::InternalError(format!("Failed to generate engine Schema: {err}")))?,
+        ),
         engine_env,
     ))
 }

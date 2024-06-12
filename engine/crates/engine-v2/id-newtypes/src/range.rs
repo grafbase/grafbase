@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 // Not necessary anymore when Rust stabilize std::iter::Step
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct IdRange<Id: Copy> {
     pub start: Id,
     pub end: Id,

@@ -17,7 +17,7 @@ fn works_with_empty_config() {
 
     let config = engine_config_builder::build_config(&federated_graph_config, federated_graph);
     let gateway = TestFederationEngine::new(Arc::new(engine_v2::Engine::new(
-        engine_v2::Schema::try_from(config.into_latest()).unwrap(),
+        Arc::new(config.into_latest().try_into().unwrap()),
         engine_v2::EngineEnv {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
             cache: cache.clone(),

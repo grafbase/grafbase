@@ -9,12 +9,18 @@ name = "engine-v2-schema"
 readme = "README.md"
 repository = "https://github.com/grafbase/grafbase"
 version = "3.0.31"
+build = "build.rs"
+
+[build-dependencies]
+built = {version = "0.7", features = ["git2"]}
 
 [dependencies]
 fnv = "1.0.7"
+hex.workspace = true
 id-newtypes = { path = "../id-newtypes", package = "engine-v2-id-newtypes" }
 indexmap.workspace = true
 serde.workspace = true
+serde_with.workspace = true
 strum = { workspace = true, features = ["derive"] }
 strum_macros.workspace = true
 thiserror.workspace = true
@@ -27,3 +33,6 @@ wrapping.workspace = true
 [dev-dependencies]
 insta.workspace = true
 serde_json.workspace = true
+postcard.workspace = true
+rstest.workspace = true
+pretty_assertions = "1"

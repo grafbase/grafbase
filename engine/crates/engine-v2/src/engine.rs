@@ -47,13 +47,13 @@ pub struct EngineEnv {
 }
 
 impl Engine {
-    pub fn new(schema: Schema, env: EngineEnv) -> Self {
+    pub fn new(schema: Arc<Schema>, env: EngineEnv) -> Self {
         let auth = gateway_v2_auth::AuthService::new_v2(
             schema.settings.auth_config.clone().unwrap_or_default(),
             env.kv.clone(),
         );
         Self {
-            schema: Arc::new(schema),
+            schema,
             auth,
             operation_metrics: GraphqlOperationMetrics::build(&env.meter),
             env,

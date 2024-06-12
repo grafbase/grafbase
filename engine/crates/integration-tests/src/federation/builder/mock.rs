@@ -34,7 +34,7 @@ impl MockFederationEngine {
         };
 
         let engine = engine_v2::Engine::new(
-            config.try_into().unwrap(),
+            Arc::new(config.try_into().unwrap()),
             engine_v2::EngineEnv {
                 fetcher: runtime::fetch::Fetcher::new(fetcher),
                 cache: cache.clone(),

@@ -7,7 +7,7 @@ use crate::{
 };
 use strum::EnumCount;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Resolver;
 
 pub type ResolverWalker<'a> = SchemaWalker<'a, &'a Resolver>;
@@ -18,13 +18,13 @@ impl<'a> ResolverWalker<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum IntrospectionField {
     Type,
     Schema,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, strum_macros::EnumCount)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, strum_macros::EnumCount, serde::Serialize, serde::Deserialize)]
 pub enum __Schema {
     Description,
     Types,
@@ -34,7 +34,19 @@ pub enum __Schema {
     Directives,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, strum_macros::EnumCount)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    strum_macros::EnumCount,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum __Type {
     Kind,
     Name,
@@ -48,7 +60,19 @@ pub enum __Type {
     SpecifiedByURL,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, strum_macros::EnumCount)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    strum_macros::EnumCount,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum __EnumValue {
     Name,
     Description,
@@ -56,7 +80,19 @@ pub enum __EnumValue {
     DeprecationReason,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, strum_macros::EnumCount)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    strum_macros::EnumCount,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum __InputValue {
     Name,
     Description,
@@ -64,8 +100,21 @@ pub enum __InputValue {
     DefaultValue,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, strum_macros::EnumCount)]
-pub enum __Field {
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    strum_macros::EnumCount,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+// Using __Field conflicts with serde::Deserialize implementation
+pub enum _Field {
     Name,
     Description,
     Args,
@@ -74,7 +123,19 @@ pub enum __Field {
     DeprecationReason,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, strum_macros::EnumCount)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    strum_macros::EnumCount,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum __Directive {
     Name,
     Description,
@@ -83,6 +144,7 @@ pub enum __Directive {
     IsRepeatable,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct IntrospectionMetadata {
     pub subgraph_id: SubgraphId,
     pub resolver_id: ResolverId,
@@ -93,12 +155,16 @@ pub struct IntrospectionMetadata {
     pub __type: IntrospectionObject<__Type, { __Type::COUNT }>,
     pub __enum_value: IntrospectionObject<__EnumValue, { __EnumValue::COUNT }>,
     pub __input_value: IntrospectionObject<__InputValue, { __InputValue::COUNT }>,
-    pub __field: IntrospectionObject<__Field, { __Field::COUNT }>,
+    pub __field: IntrospectionObject<_Field, { _Field::COUNT }>,
     pub __directive: IntrospectionObject<__Directive, { __Directive::COUNT }>,
 }
 
+#[serde_with::serde_as]
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(bound(serialize = "E: serde::Serialize", deserialize = "E: serde::Deserialize<'de>"))]
 pub struct IntrospectionObject<E, const N: usize> {
     pub id: ObjectId,
+    #[serde_as(as = "[_; N]")]
     pub fields: [(FieldDefinitionId, E); N],
 }
 
@@ -126,6 +192,7 @@ impl IntrospectionMetadata {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct TypeKind {
     pub scalar: StringId,
     pub object: StringId,
@@ -137,6 +204,7 @@ pub struct TypeKind {
     pub non_null: StringId,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct DirectiveLocation {
     pub query: StringId,
     pub mutation: StringId,
@@ -471,12 +539,12 @@ impl<'a> IntrospectionBuilder<'a> {
         let __field = self.insert_object_fields(
             __field,
             [
-                ("name", required_string, __Field::Name),
-                ("description", nullable_string, __Field::Description),
-                ("args", args, __Field::Args),
-                ("isDeprecated", required_boolean, __Field::IsDeprecated),
-                ("deprecationReason", nullable_string, __Field::DeprecationReason),
-                ("type", required__type, __Field::Type),
+                ("name", required_string, _Field::Name),
+                ("description", nullable_string, _Field::Description),
+                ("args", args, _Field::Args),
+                ("isDeprecated", required_boolean, _Field::IsDeprecated),
+                ("deprecationReason", nullable_string, _Field::DeprecationReason),
+                ("type", required__type, _Field::Type),
             ],
         );
 

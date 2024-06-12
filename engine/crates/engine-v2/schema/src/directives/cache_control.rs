@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct CacheControl {
     pub max_age: Duration,
     pub stale_while_revalidate: Duration,

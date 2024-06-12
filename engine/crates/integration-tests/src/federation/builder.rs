@@ -88,7 +88,7 @@ impl FederationGatewayBuilder {
         });
 
         TestFederationEngine::new(Arc::new(engine_v2::Engine::new(
-            config.try_into().unwrap(),
+            Arc::new(config.try_into().unwrap()),
             engine_v2::EngineEnv {
                 fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
                 cache: cache.clone(),

@@ -22,9 +22,21 @@ pub use resolver::*;
 pub use walkers::*;
 pub use wrapping::*;
 
-/// This does NOT need to be backwards compatible. We'll probably cache it for performance, but it is not
-/// the source of truth. If the cache is stale we would just re-create this Graph from its source:
-/// federated_graph::FederatedGraph.
+mod built_info {
+    // The file has been placed there by the build script.
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
+
+impl Schema {
+    pub fn serde_version() -> Vec<u8> {
+        hex::decode(built_info::GIT_COMMIT_HASH.expect("No git commit hash found")).expect("Expect hex format")
+    }
+}
+
+/// /!\ This is *NOT* backwards-compatible. /!\
+/// Only a schema serialized with the exact same version is expected to work. For backwards
+/// compatibility use engine-v2-config instead.
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Schema {
     data_sources: DataSources,
     graph: Graph,
@@ -38,7 +50,7 @@ pub struct Schema {
     pub settings: Settings,
 }
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
     default_headers: Vec<HeaderId>,
 
@@ -47,6 +59,7 @@ pub struct Settings {
     pub disable_introspection: bool,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Graph {
     pub description: Option<StringId>,
     pub root_operation_types: RootOperationTypes,
@@ -74,6 +87,7 @@ pub struct Graph {
     required_scopes: Vec<RequiredScopes>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct DataSources {
     graphql: sources::GraphqlEndpoints,
     pub introspection: sources::IntrospectionMetadata,
@@ -117,7 +131,7 @@ impl Schema {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct RootOperationTypes {
     pub query: ObjectId,
     pub mutation: Option<ObjectId>,
@@ -130,7 +144,7 @@ impl std::fmt::Debug for Schema {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Object {
     pub name: StringId,
     pub description: Option<StringId>,
@@ -139,7 +153,7 @@ pub struct Object {
     pub fields: IdRange<FieldDefinitionId>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct FieldDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
@@ -156,19 +170,19 @@ pub struct FieldDefinition {
     pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct FieldProvides {
     subgraph_id: SubgraphId,
     field_set: ProvidableFieldSet,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct FieldRequires {
     subgraph_id: SubgraphId,
     field_set_id: RequiredFieldSetId,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub enum Definition {
     Scalar(ScalarId),
     Object(ObjectId),
@@ -214,7 +228,7 @@ impl From<InputObjectId> for Definition {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Type {
     pub inner: Definition,
     pub wrapping: Wrapping,
@@ -238,7 +252,7 @@ impl Type {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Interface {
     pub name: StringId,
     pub description: Option<StringId>,
@@ -250,7 +264,7 @@ pub struct Interface {
     pub fields: IdRange<FieldDefinitionId>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Enum {
     pub name: StringId,
     pub description: Option<StringId>,
@@ -259,14 +273,14 @@ pub struct Enum {
     pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct EnumValue {
     pub name: StringId,
     pub description: Option<StringId>,
     pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Union {
     pub name: StringId,
     pub description: Option<StringId>,
@@ -275,7 +289,7 @@ pub struct Union {
     pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Scalar {
     pub name: StringId,
     pub ty: ScalarType,
@@ -287,7 +301,9 @@ pub struct Scalar {
 /// Defines how a scalar should be represented and validated by the engine. They're almost the same
 /// as scalars, but scalars like ID which have no own data format are just mapped to String.
 /// https://the-guild.dev/graphql/scalars/docs
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString, serde::Serialize, serde::Deserialize,
+)]
 pub enum ScalarType {
     String,
     Float,
@@ -306,7 +322,7 @@ impl ScalarType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InputObject {
     pub name: StringId,
     pub description: Option<StringId>,
@@ -315,7 +331,7 @@ pub struct InputObject {
     pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct InputValueDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
@@ -338,13 +354,13 @@ impl Schema {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Header {
     pub name: StringId,
     pub value: HeaderValue,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub enum HeaderValue {
     Forward(StringId),
     Static(StringId),
