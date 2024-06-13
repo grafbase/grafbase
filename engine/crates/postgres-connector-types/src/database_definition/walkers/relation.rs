@@ -41,8 +41,8 @@ impl<'a> RelationWalker<'a> {
         }
     }
 
-    /// True, if the referenced row is unique, this means there can only be at most one related row.
-    pub fn is_referenced_row_unique(self) -> bool {
+    /// True, if the referenced column(s) is (are) unique, this means there can only be at most one row on the other side of the relation.
+    pub fn is_other_side_one(self) -> bool {
         self.referenced_table()
             .unique_constraints()
             .any(|constraint| constraint.has_all_the_columns(self.referenced_columns()))
@@ -61,19 +61,33 @@ impl<'a> RelationWalker<'a> {
 
     /// The name of the relation field.
     pub fn client_field_name(self) -> String {
-        let base_name = if self.is_referenced_row_unique() {
+        let base_name = if self.is_other_side_one() {
             self.referenced_table().client_field_name()
         } else {
             self.referenced_table().client_field_name_plural()
         };
 
-        let is_name_collision = self
+        let mut is_name_collision = self
             .referencing_table()
             .columns()
             .any(|column| column.client_name() == base_name);
 
+        let fk = self.foreign_key();
+
+        is_name_collision |= {
+            let constrained_table = fk.constrained_table();
+            let referenced_table = fk.referenced_table();
+            constrained_table
+                .forward_relations()
+                .any(|relation| relation.foreign_key() != fk && relation.referenced_table() == referenced_table)
+        };
+
         if is_name_collision {
-            let referencing_columns = self.referencing_columns().map(|column| column.client_name()).join("_");
+            let referencing_columns = fk
+                .columns()
+                .map(|column| column.constrained_column().client_name())
+                .join("_");
+
             format!("{base_name}_by_{referencing_columns}").to_camel_case()
         } else {
             base_name.to_string()
@@ -89,13 +103,14 @@ impl<'a> RelationWalker<'a> {
     pub fn client_type(self) -> Cow<'a, str> {
         let base_name = self.referenced_table().client_name();
 
-        if self.is_referenced_row_unique() {
+        if self.is_other_side_one() {
             Cow::Borrowed(base_name)
         } else {
             Cow::Owned(format!("{base_name}Collection"))
         }
     }
 
+    /// The foreign key backing the relation.
     fn foreign_key(self) -> ForeignKeyWalker<'a> {
         match self.id() {
             RelationId::Forward(id) => self.walk(id).foreign_key(),

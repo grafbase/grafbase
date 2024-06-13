@@ -30,6 +30,17 @@ impl<'a> ForwardRelationWalker<'a> {
         self.walk(self.get().1)
     }
 
+    /// True, if all the columns of the relation are of supported type.
+    pub fn all_columns_use_supported_types(self) -> bool {
+        self.foreign_key().all_columns_use_supported_types()
+    }
+
+    /// True, if we use the referenced table in the client. E.g. it has at least one
+    /// column of supported type and one unique constraint.
+    pub fn referenced_table_is_allowed_in_client(self) -> bool {
+        self.referenced_table().allowed_in_client()
+    }
+
     fn get(self) -> (TableId, ForeignKeyId) {
         self.database_definition.relations.from[self.id.0 as usize]
     }

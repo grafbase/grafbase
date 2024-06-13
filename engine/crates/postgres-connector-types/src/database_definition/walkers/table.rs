@@ -1,4 +1,7 @@
-use super::{table_column::TableColumnWalker, unique_constraint::UniqueConstraintWalker, RelationWalker, Walker};
+use super::{
+    forward_relation::ForwardRelationWalker, table_column::TableColumnWalker,
+    unique_constraint::UniqueConstraintWalker, RelationWalker, Walker,
+};
 use crate::database_definition::{
     ids::{BackRelationId, ForwardRelationId},
     names::StringId,
@@ -88,17 +91,20 @@ impl<'a> TableWalker<'a> {
             .map(|id| self.walk(id))
     }
 
-    /// An iterator over relations having the foreign key constraint defined from or into this table.
-    pub fn relations(self) -> impl Iterator<Item = RelationWalker<'a>> + 'a {
+    /// Iterate over all relations stemming from a foreign key on this table.
+    pub(crate) fn forward_relations(self) -> impl Iterator<Item = ForwardRelationWalker<'a>> {
         let range = super::range_for_key(&self.database_definition.relations.from, self.id, |(table_id, _)| {
             *table_id
         });
 
-        let forward = range
-            .map(move |id| self.walk(RelationId::Forward(ForwardRelationId(id as u32))))
+        range
+            .map(move |id| self.walk(ForwardRelationId(id as u32)))
             .filter(|relation| relation.all_columns_use_supported_types())
-            .filter(|relation| relation.referenced_table_is_allowed_in_client());
+            .filter(|relation| relation.referenced_table_is_allowed_in_client())
+    }
 
+    /// An iterator over relations having the foreign key constraint defined from or into this table.
+    pub fn relations(self) -> impl Iterator<Item = RelationWalker<'a>> + 'a {
         let range = super::range_for_key(&self.database_definition.relations.to, self.id, |(table_id, _)| {
             *table_id
         });
@@ -108,7 +114,9 @@ impl<'a> TableWalker<'a> {
             .filter(|relation| relation.all_columns_use_supported_types())
             .filter(|relation| relation.referenced_table_is_allowed_in_client());
 
-        forward.chain(back)
+        self.forward_relations()
+            .map(move |fwd| self.walk(RelationId::Forward(fwd.id)))
+            .chain(back)
     }
 
     fn get(self) -> &'a Table<StringId> {

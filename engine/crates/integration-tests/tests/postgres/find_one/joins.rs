@@ -1430,3 +1430,124 @@ fn one_to_one_with_one_to_many_joins_parent_side() {
 
     expected.assert_eq(&response);
 }
+
+#[test]
+fn two_foreign_keys_to_same_table() {
+    let response = query_postgres(|api| async move {
+        let setup = [
+            r#"CREATE TABLE public.colors (
+                id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+                name VARCHAR(255) NOT NULL UNIQUE,
+                rgb INT NOT NULL
+            );"#,
+            r#"CREATE TABLE public.users (
+                id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+                name VARCHAR(255) NOT NULL UNIQUE,
+                favorite_color_id INT NOT NULL REFERENCES colors(id),
+                least_favorite_color_id INT REFERENCES colors(id)
+            );"#,
+            r#"INSERT INTO public.colors (name, rgb) VALUES 
+              ('rebeccapurple',  0x663399),
+              ('tomato',         0xff6347),
+              ('skyblue',        0x87ceeb),
+              ('maroon',         0x800000);"#,
+            r#"INSERT INTO public.users (name, favorite_color_id, least_favorite_color_id) VALUES
+              ('Guignol', 1, 2),
+              ('Gnafron', 2, NULL),
+              ('Flageolet', 3, 2),
+              ('Canezou', 3, 4);
+             "#,
+        ];
+
+        for statement in setup {
+            api.execute_sql(statement).await;
+        }
+
+        let query = indoc! {r#"
+            query {
+              gnafron: users(by: { name: "Gnafron" }) {
+                name
+                colorsByFavoriteColorId { id name rgb }
+                colorsByLeastFavoriteColorId { id name rgb }
+              }
+              guignol: users(by: { name: "Guignol" }) {
+                name
+                colorsByFavoriteColorId { id name rgb }
+                colorsByLeastFavoriteColorId { id name rgb }
+              }
+              colors(by: { name: "tomato" }) {
+                  id
+                  usersByFavoriteColorId(first: 10) { edges { node { id name favoriteColorId leastFavoriteColorId } } }
+                  usersByLeastFavoriteColorId(first: 10) { edges { node { id name favoriteColorId leastFavoriteColorId } } }
+              }
+            }
+        "#};
+
+        api.execute(query).await
+    });
+
+    let expected = expect![[r#"
+        {
+          "data": {
+            "gnafron": {
+              "name": "Gnafron",
+              "colorsByFavoriteColorId": {
+                "id": 2,
+                "name": "tomato",
+                "rgb": 16737095
+              },
+              "colorsByLeastFavoriteColorId": null
+            },
+            "guignol": {
+              "name": "Guignol",
+              "colorsByFavoriteColorId": {
+                "id": 1,
+                "name": "rebeccapurple",
+                "rgb": 6697881
+              },
+              "colorsByLeastFavoriteColorId": {
+                "id": 2,
+                "name": "tomato",
+                "rgb": 16737095
+              }
+            },
+            "colors": {
+              "id": 2,
+              "usersByFavoriteColorId": {
+                "edges": [
+                  {
+                    "node": {
+                      "id": 2,
+                      "name": "Gnafron",
+                      "favoriteColorId": 2,
+                      "leastFavoriteColorId": null
+                    }
+                  }
+                ]
+              },
+              "usersByLeastFavoriteColorId": {
+                "edges": [
+                  {
+                    "node": {
+                      "id": 1,
+                      "name": "Guignol",
+                      "favoriteColorId": 1,
+                      "leastFavoriteColorId": 2
+                    }
+                  },
+                  {
+                    "node": {
+                      "id": 3,
+                      "name": "Flageolet",
+                      "favoriteColorId": 3,
+                      "leastFavoriteColorId": 2
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }"#]];
+
+    expected.assert_eq(&response)
+}

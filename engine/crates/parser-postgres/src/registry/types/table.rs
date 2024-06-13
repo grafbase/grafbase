@@ -129,7 +129,7 @@ fn add_column(input_ctx: &InputContext<'_>, column: TableColumnWalker<'_>, build
 
 fn add_relation(input_ctx: &InputContext<'_>, relation: RelationWalker<'_>, builder: &mut ObjectTypeBuilder) {
     #[allow(clippy::if_not_else)]
-    let field = if !relation.is_referenced_row_unique() {
+    let field = if !relation.is_other_side_one() {
         let connection_type_name = input_ctx.connection_type_name(relation.referenced_table().client_name());
 
         let mut field = MetaField::new(relation.client_field_name(), connection_type_name);
