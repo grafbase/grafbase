@@ -157,15 +157,15 @@ impl Clone for ChangeStream {
     }
 }
 
-const ROOT_FILE_WHITELIST: &[&str] = &[
+const ROOT_FILE_ALLOWLIST: &[&str] = &[
     GRAFBASE_SCHEMA_FILE_NAME,
     GRAFBASE_TS_CONFIG_FILE_NAME,
     DOT_ENV_FILE_NAME,
 ];
-const EXTENSION_WHITELIST: &[&str] = &[
+const EXTENSION_ALLOWLIST: &[&str] = &[
     "js", "ts", "jsx", "tsx", "mjs", "mts", "wasm", "cjs", "json", "yaml", "yml",
 ];
-const DIRECTORY_BLACKLIST: &[&str] = &[
+const DIRECTORY_DENYLIST: &[&str] = &[
     DOT_GRAFBASE_DIRECTORY_NAME,
     "node_modules",
     "generated",
@@ -174,13 +174,13 @@ const DIRECTORY_BLACKLIST: &[&str] = &[
 ];
 
 fn should_handle_change(path: &Path, root: &Path) -> bool {
-    is_whitelisted_root_file(path, root)
-        || !(is_likely_a_directory(path) || in_blacklisted_directory(path, root) || is_lock_file_path(path, root))
-            && has_whitelisted_extension(path)
+    is_allowlisted_root_file(path, root)
+        || !(is_likely_a_directory(path) || in_denylisted_directory(path, root) || is_lock_file_path(path, root))
+            && has_allowlisted_extension(path)
 }
 
-fn is_whitelisted_root_file(path: &Path, root: &Path) -> bool {
-    ROOT_FILE_WHITELIST
+fn is_allowlisted_root_file(path: &Path, root: &Path) -> bool {
+    ROOT_FILE_ALLOWLIST
         .iter()
         .any(|file_name| (root.join(file_name) == path) || (root.join(GRAFBASE_DIRECTORY_NAME).join(file_name) == path))
 }
@@ -193,26 +193,26 @@ fn is_lock_file_path(path: &Path, root: &Path) -> bool {
 
 fn is_likely_a_directory(path: &Path) -> bool {
     // we can't know if something was a directory after removal, so this is based on best effort.
-    // if a directory matching a name in `ROOT_FILE_WHITELIST` is removed, it'll trigger `on_change`, although that's an unlikely edge case.
+    // if a directory matching a name in `ROOT_FILE_ALLOWLIST` is removed, it'll trigger `on_change`, although that's an unlikely edge case.
     // note that we're not using `.is_file()` here since it'd have a false negative for removal.
     // also avoiding notifying on files that we can't access by using the metadata version of `is_dir`
     path.metadata().map(|metadata| metadata.is_dir()).ok().unwrap_or(false)
 }
 
-fn in_blacklisted_directory(path: &Path, root: &Path) -> bool {
-    // we only blacklist directories under the project directory
+fn in_denylisted_directory(path: &Path, root: &Path) -> bool {
+    // we only denylist directories under the project directory
     path.strip_prefix(root)
         .expect("must contain root directory")
         .iter()
         .filter_map(std::ffi::OsStr::to_str)
-        .any(|path_part| DIRECTORY_BLACKLIST.contains(&path_part))
+        .any(|path_part| DIRECTORY_DENYLIST.contains(&path_part))
 }
 
-fn has_whitelisted_extension(path: &Path) -> bool {
+fn has_allowlisted_extension(path: &Path) -> bool {
     path.extension()
         .iter()
         .filter_map(|extension| extension.to_str())
-        .any(|extension| EXTENSION_WHITELIST.contains(&extension))
+        .any(|extension| EXTENSION_ALLOWLIST.contains(&extension))
 }
 
 #[test]
