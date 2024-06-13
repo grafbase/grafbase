@@ -165,14 +165,24 @@ const ROOT_FILE_WHITELIST: &[&str] = &[
 const EXTENSION_WHITELIST: &[&str] = &[
     "js", "ts", "jsx", "tsx", "mjs", "mts", "wasm", "cjs", "json", "yaml", "yml",
 ];
-const DIRECTORY_BLACKLIST: &[&str] = &[DOT_GRAFBASE_DIRECTORY_NAME, "node_modules", "generated"];
-const ROOT_WHITELIST: &[&str] = &[GRAFBASE_DIRECTORY_NAME, "resolvers", "auth"];
+const DIRECTORY_BLACKLIST: &[&str] = &[
+    DOT_GRAFBASE_DIRECTORY_NAME,
+    "node_modules",
+    "generated",
+    "dist",
+    "target",
+];
 
 fn should_handle_change(path: &Path, root: &Path) -> bool {
     is_whitelisted_root_file(path, root)
-        || in_whitelisted_root(path, root)
-            && (!(is_likely_a_directory(path) || in_blacklisted_directory(path, root) || is_lock_file_path(path, root))
-                && has_whitelisted_extension(path))
+        || !(is_likely_a_directory(path) || in_blacklisted_directory(path, root) || is_lock_file_path(path, root))
+            && has_whitelisted_extension(path)
+}
+
+fn is_whitelisted_root_file(path: &Path, root: &Path) -> bool {
+    ROOT_FILE_WHITELIST
+        .iter()
+        .any(|file_name| (root.join(file_name) == path) || (root.join(GRAFBASE_DIRECTORY_NAME).join(file_name) == path))
 }
 
 fn is_lock_file_path(path: &Path, root: &Path) -> bool {
@@ -189,12 +199,6 @@ fn is_likely_a_directory(path: &Path) -> bool {
     path.metadata().map(|metadata| metadata.is_dir()).ok().unwrap_or(false)
 }
 
-fn is_whitelisted_root_file(path: &Path, root: &Path) -> bool {
-    ROOT_FILE_WHITELIST
-        .iter()
-        .any(|file_name| (root.join(file_name) == path) || (root.join(GRAFBASE_DIRECTORY_NAME).join(file_name) == path))
-}
-
 fn in_blacklisted_directory(path: &Path, root: &Path) -> bool {
     // we only blacklist directories under the project directory
     path.strip_prefix(root)
@@ -202,15 +206,6 @@ fn in_blacklisted_directory(path: &Path, root: &Path) -> bool {
         .iter()
         .filter_map(std::ffi::OsStr::to_str)
         .any(|path_part| DIRECTORY_BLACKLIST.contains(&path_part))
-}
-
-fn in_whitelisted_root(path: &Path, root: &Path) -> bool {
-    path.strip_prefix(root)
-        .expect("must contain root directory")
-        .iter()
-        .next()
-        .and_then(|root| root.to_str())
-        .is_some_and(|root| ROOT_WHITELIST.contains(&root))
 }
 
 fn has_whitelisted_extension(path: &Path) -> bool {
@@ -232,7 +227,9 @@ fn test_should_handle_change() {
         "grafbase/file.yml",
         "resolvers/file.js",
         "auth/file.js",
+        "lib/other-package/package.json",
         ".env",
+        "file.ts",
     ];
 
     for path in handled_paths {
@@ -242,10 +239,11 @@ fn test_should_handle_change() {
     }
 
     let unhandled_paths = &[
+        "dist/bundle/out.js",
         "file.txt",
+        "grafbase/dist/bundle/out.js",
         "grafbase/file.txt",
         "resolvers/file.txt",
-        "file.ts",
         "resolvers/node_modules/file.ts",
         "target/file.yml",
         ".envrc",
