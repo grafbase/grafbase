@@ -47,8 +47,6 @@ impl<'a> GraphqlErrorsSeed<'a> for RootGraphqlErrors<'a> {
 pub(super) struct SubgraphGraphqlError {
     pub message: String,
     #[serde(default)]
-    pub locations: serde_json::Value,
-    #[serde(default)]
     pub path: serde_json::Value,
     #[serde(default)]
     pub extensions: serde_json::Value,
@@ -72,9 +70,6 @@ where
             .into_iter()
             .map(|error| {
                 let mut extensions = BTreeMap::new();
-                if !error.locations.is_null() {
-                    extensions.insert("upstream_locations".to_string(), error.locations);
-                }
                 let path = self.0.convert_path(&error.path);
                 if path.is_none() && !error.path.is_null() {
                     extensions.insert("upstream_path".to_string(), error.path);
