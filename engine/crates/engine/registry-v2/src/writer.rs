@@ -272,6 +272,7 @@ impl RegistryWriter {
             codegen,
             cors_config,
             runtime,
+            rate_limiting: Default::default(), // TODO(rate limiting): change me
         })
     }
 

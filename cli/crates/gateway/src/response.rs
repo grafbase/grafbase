@@ -1,6 +1,8 @@
+use crate::error::Error;
 use axum::response::IntoResponse;
 use gateway_core::ConstructableResponse;
 use http::{header, status::StatusCode, HeaderValue};
+use runtime::rate_limiting;
 use std::sync::Arc;
 
 pub struct Response {
@@ -28,6 +30,14 @@ impl From<crate::Error> for Response {
             BadRequest(msg) => Response::error(StatusCode::BAD_REQUEST, &msg),
             Cache(err) => Response::error(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string()),
             Serialization(msg) | Internal(msg) => Response::error(StatusCode::INTERNAL_SERVER_ERROR, &msg),
+            Error::Ratelimit(err) => match err {
+                rate_limiting::Error::ExceededCapacity => {
+                    Response::error(StatusCode::TOO_MANY_REQUESTS, "Too many requests")
+                }
+                rate_limiting::Error::Internal(err) => {
+                    Response::error(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string())
+                }
+            },
         }
     }
 }

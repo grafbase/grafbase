@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
+use crate::rate_limit::RatelimitContext;
 use engine::parser::types::OperationType;
 use futures_util::FutureExt;
 use grafbase_tracing::{grafbase_client::Client, metrics::GraphqlOperationMetrics};
 pub use runtime::context::RequestContext;
+use runtime::rate_limiting::RateLimiter;
 use runtime::{
     auth::AccessToken,
     cache::{Cache, CacheReadStatus, CachedExecutionResponse, X_GRAFBASE_CACHE},
@@ -14,6 +16,7 @@ mod admin;
 mod auth;
 mod cache;
 mod executor;
+mod rate_limit;
 mod response;
 pub mod serving;
 mod streaming;
@@ -55,6 +58,7 @@ pub struct Gateway<Executor: self::Executor> {
     trusted_documents: runtime::trusted_documents_client::Client,
     authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
     operation_metrics: GraphqlOperationMetrics,
+    rate_limiter: Box<dyn RateLimiter>,
 }
 
 impl<Executor> Gateway<Executor>
@@ -64,6 +68,7 @@ where
     Executor::Error: std::error::Error + Send + 'static,
     Executor::StreamingResponse: self::ConstructableResponse<Error = Executor::Error>,
 {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         executor: Arc<Executor>,
         cache: Cache,
@@ -72,6 +77,7 @@ where
         authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
         trusted_documents: runtime::trusted_documents_client::Client,
         meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
+        rate_limiter: Box<dyn RateLimiter>,
     ) -> Self {
         Self {
             executor,
@@ -81,6 +87,7 @@ where
             authorizer,
             trusted_documents,
             operation_metrics: GraphqlOperationMetrics::build(&meter),
+            rate_limiter,
         }
     }
 
@@ -113,16 +120,35 @@ where
         &self,
         ctx: &Arc<Executor::Context>,
         mut request: engine::Request,
-    ) -> Result<(Arc<engine::Response>, http::HeaderMap), Executor::Error> {
-        let Some(AccessToken::V1(auth)) = self.auth.authorize(ctx.headers()).await else {
-            return Ok((
-                Arc::new(engine::Response::from_errors_with_type(
-                    vec![engine::ServerError::new("Unauthorized", None)],
-                    // doesn't really matter, this is not client facing
-                    OperationType::Query,
-                )),
-                Default::default(),
-            ));
+    ) -> Result<(Arc<engine::Response>, http::HeaderMap), Executor::Error>
+    where
+        Executor::Error: From<runtime::rate_limiting::Error>,
+    {
+        let auth = match self
+            .auth
+            .authorize(ctx.headers())
+            .instrument(info_span!("authorize_request"))
+            .await
+        {
+            Some(auth) if matches!(auth, AccessToken::V1(_)) => auth,
+            _ => {
+                return Ok((
+                    Arc::new(engine::Response::from_errors_with_type(
+                        vec![engine::ServerError::new("Unauthorized", None)],
+                        // doesn't really matter, this is not client facing
+                        OperationType::Query,
+                    )),
+                    Default::default(),
+                ));
+            }
+        };
+
+        self.rate_limiter
+            .limit(Box::new(RatelimitContext::new(&request, &auth, ctx.headers())))
+            .await?;
+
+        let AccessToken::V1(auth) = auth else {
+            unreachable!("auth must be AccessToken::V1 at this point");
         };
 
         let start = web_time::Instant::now();
@@ -175,7 +201,10 @@ where
         ctx: &Arc<Executor::Context>,
         mut request: engine::Request,
         streaming_format: StreamingFormat,
-    ) -> Result<Executor::StreamingResponse, Executor::Error> {
+    ) -> Result<Executor::StreamingResponse, Executor::Error>
+    where
+        Executor::Error: From<runtime::rate_limiting::Error>,
+    {
         let headers = ctx.headers();
         if let Err(err) = self
             .handle_persisted_query(
@@ -196,20 +225,31 @@ where
             );
         }
 
-        let Some(AccessToken::V1(auth)) = self
+        let auth = match self
             .auth
             .authorize(ctx.headers())
             .instrument(info_span!("authorize_request"))
             .await
-        else {
-            return Executor::StreamingResponse::engine(
-                Arc::new(engine::Response::from_errors_with_type(
-                    vec![engine::ServerError::new("Unauthorized", None)],
-                    // doesn't really matter, this is not client facing
-                    OperationType::Query,
-                )),
-                Default::default(),
-            );
+        {
+            Some(auth) if matches!(auth, AccessToken::V1(_)) => auth,
+            _ => {
+                return Executor::StreamingResponse::engine(
+                    Arc::new(engine::Response::from_errors_with_type(
+                        vec![engine::ServerError::new("Unauthorized", None)],
+                        // doesn't really matter, this is not client facing
+                        OperationType::Query,
+                    )),
+                    Default::default(),
+                );
+            }
+        };
+
+        self.rate_limiter
+            .limit(Box::new(RatelimitContext::new(&request, &auth, ctx.headers())))
+            .await?;
+
+        let AccessToken::V1(auth) = auth else {
+            unreachable!("auth must be AccessToken::V1 at this point");
         };
 
         Arc::clone(&self.executor)
