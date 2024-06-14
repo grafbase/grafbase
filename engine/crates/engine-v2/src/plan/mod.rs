@@ -124,6 +124,7 @@ impl OperationPlan {
 #[derive(Debug)]
 pub struct PlannedResolver {
     pub resolver_id: ResolverId,
+    #[allow(dead_code)]
     pub path: QueryPath,
 }
 

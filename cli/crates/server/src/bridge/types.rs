@@ -13,6 +13,7 @@ pub struct UdfInvocation {
 #[derive(Deserialize, Debug)]
 pub enum LogEventType {
     OperationStarted {
+        #[allow(dead_code)]
         name: Option<String>,
     },
     OperationCompleted {

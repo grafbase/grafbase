@@ -4,6 +4,7 @@ use syn::{Error, GenericArgument, PathArguments, Result, Type};
 
 pub enum OutputType<'a> {
     Value(&'a Type),
+    #[allow(dead_code)]
     Result(&'a Type, &'a Type),
 }
 

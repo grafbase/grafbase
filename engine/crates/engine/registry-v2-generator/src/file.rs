@@ -46,6 +46,7 @@ pub struct EntityOutput {
     pub requires: BTreeSet<EntityRef>,
     pub id: EntityRef,
     pub contents: String,
+    #[allow(dead_code)]
     pub kind: EntityKind,
 }
 

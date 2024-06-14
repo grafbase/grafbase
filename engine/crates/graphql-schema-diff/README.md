@@ -10,62 +10,60 @@ This crate implements diffing of two GraphQL schemas, returning a list of change
 ```rust
 use graphql_schema_diff::{diff, Change, ChangeKind};
 
-fn main() {
-  let source = r#"
-    type Pizza {
-      id: ID!
-      name: String!
-      toppings: [Topping!]!
-    }
+let source = r#"
+  type Pizza {
+    id: ID!
+    name: String!
+    toppings: [Topping!]!
+  }
 
-    enum Topping {
-      OLIVES
-      MUSHROOMS
-      PINEAPPLE
-    }
-  "#;
+  enum Topping {
+    OLIVES
+    MUSHROOMS
+    PINEAPPLE
+  }
+"#;
 
-  let target = r#"
-    type Pizza {
-      id: ID!
-      name: PizzaName
-      toppings: [Topping!]!
-    }
+let target = r#"
+  type Pizza {
+    id: ID!
+    name: PizzaName
+    toppings: [Topping!]!
+  }
 
-    type PizzaName {
-      english: String
-      italian: String!
-    }
+  type PizzaName {
+    english: String
+    italian: String!
+  }
 
-    enum Topping {
-      OLIVES
-      MUSHROOMS
-      POTATO
-    }
-  "#;
+  enum Topping {
+    OLIVES
+    MUSHROOMS
+    POTATO
+  }
+"#;
 
-  let changes = diff(source, target).unwrap();
+let changes = diff(source, target).unwrap();
 
-  assert_eq!(changes,
-     &[
-          Change {
-              path: String::from("Pizza.name"),
-              kind: ChangeKind::ChangeFieldType
-          },
-          Change {
-              path: String::from("PizzaName"),
-              kind: ChangeKind::AddObjectType
-          },
-          Change {
-              path: String::from("Topping.PINEAPPLE"),
-              kind: ChangeKind::RemoveEnumValue
-          },
-          Change {
-              path: String::from("Topping.POTATO"),
-              kind: ChangeKind::AddEnumValue
-          }
-  ]);
-}
+assert_eq!(changes,
+   &[
+        Change {
+            path: String::from("Pizza.name"),
+            kind: ChangeKind::ChangeFieldType
+        },
+        Change {
+            path: String::from("PizzaName"),
+            kind: ChangeKind::AddObjectType
+        },
+        Change {
+            path: String::from("Topping.PINEAPPLE"),
+            kind: ChangeKind::RemoveEnumValue
+        },
+        Change {
+            path: String::from("Topping.POTATO"),
+            kind: ChangeKind::AddEnumValue
+        }
+]);
 
 ```
 
