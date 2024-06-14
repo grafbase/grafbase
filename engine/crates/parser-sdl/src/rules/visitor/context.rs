@@ -45,6 +45,7 @@ pub struct VisitorContext<'a> {
     pub(crate) type_stack: TypeStackType<'a>,
     pub(crate) queries: Vec<MetaField>,
     pub(crate) mutations: Vec<MetaField>,
+    #[allow(dead_code)]
     pub schema_id_generator: SchemaIDGenerator,
 
     /// A generator used to generate unique identifiers for each connector present in the schema.
@@ -52,11 +53,13 @@ pub struct VisitorContext<'a> {
     /// This identifier is stable for the duration of the schema, but does not persist beyond
     /// schema generation. It can be used to pass along when referencing data stored within the
     /// schema (such as global headers), but *MUST NOT* be used for anything that requires a stable
-    /// identifier across schema generations.
+    /// identifier across schema generations.    
+    #[allow(dead_code)]
     pub connector_id_generator: ConnectorIdGenerator,
 
     /// Each schema to build should contains a SchemaID -> MetaType String to be
     /// able to construct the whole SchemaRegistry at the end of the parsing.
+    #[allow(dead_code)]
     pub schema_to_build: RwLock<HashMap<SchemaID, String>>,
     pub registry: RefCell<Registry>,
     pub variables: &'a HashMap<String, String>,

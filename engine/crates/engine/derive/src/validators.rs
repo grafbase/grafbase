@@ -1,3 +1,5 @@
+#![allow(clippy::manual_unwrap_or_default)] // darling internal
+
 use darling::{util::SpannedValue, FromMeta};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};

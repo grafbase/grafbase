@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::usize;
 
 use http::{HeaderName, HeaderValue};
 use serde::de::{Error as DeserializeError, MapAccess, Visitor};

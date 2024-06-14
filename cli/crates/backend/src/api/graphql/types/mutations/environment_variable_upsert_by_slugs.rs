@@ -28,6 +28,7 @@ pub struct NameContainsInvalidCharactersError {
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Mutation", variables = "EnvironmentVariableUpsertBySlugsVariables")]
 pub struct EnvironmentVariableUpsertBySlugs {
+    #[allow(dead_code)]
     #[arguments(input: { accountSlug: $account_slug, projectSlug: $project_slug, environments: $environments, name: $name, value: $value })]
     pub environent_variable_upsert_by_slug: EnvironmentVariableCreatePayload,
 }
@@ -35,6 +36,7 @@ pub struct EnvironmentVariableUpsertBySlugs {
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Mutation", variables = "EnvironmentVariableUpsertVariables")]
 pub struct EnvironmentVariableUpsert {
+    #[allow(dead_code)]
     #[arguments(input: { graphId: $graph_id, environments: $environments, name: $name, value: $value })]
     pub environent_variable_upsert: EnvironmentVariableCreatePayload,
 }
@@ -67,6 +69,7 @@ pub struct EnvironmentVariableCreateSuccess {
     pub __typename: String,
 }
 
+#[allow(dead_code)]
 #[derive(cynic::InlineFragments, Debug)]
 pub enum EnvironmentVariableCreatePayload {
     EnvironmentVariableCreateSuccess(EnvironmentVariableCreateSuccess),

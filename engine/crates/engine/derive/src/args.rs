@@ -1,3 +1,5 @@
+#![allow(clippy::manual_unwrap_or_default)] // darling internal
+
 use std::fmt::{self, Display, Formatter};
 
 use darling::{
@@ -120,6 +122,7 @@ pub struct SimpleObjectField {
     #[darling(default)]
     pub skip_output: bool,
     // for InputObject
+    #[allow(dead_code)]
     #[darling(default)]
     pub skip_input: bool,
     #[darling(default)]
@@ -143,14 +146,18 @@ pub struct SimpleObjectField {
     #[darling(default, multiple)]
     pub derived: Vec<DerivedField>,
     // for InputObject
+    #[allow(dead_code)]
     #[darling(default)]
     pub default: Option<DefaultValue>,
+    #[allow(dead_code)]
     #[darling(default)]
     pub default_with: Option<LitStr>,
+    #[allow(dead_code)]
     #[darling(default)]
     pub validator: Option<Validators>,
     #[darling(default)]
     pub flatten: bool,
+    #[allow(dead_code)]
     #[darling(default)]
     pub secret: bool,
 }
@@ -173,6 +180,7 @@ pub struct SimpleObject {
     pub name: Option<String>,
     #[darling(default)]
     pub rename_fields: Option<RenameRule>,
+    #[allow(dead_code)]
     #[darling(default)]
     pub rename_args: Option<RenameRule>,
     #[darling(default)]
@@ -186,6 +194,7 @@ pub struct SimpleObject {
     #[darling(default)]
     pub serial: bool,
     // for InputObject
+    #[allow(dead_code)]
     #[darling(default)]
     pub input_name: Option<String>,
 }
@@ -273,6 +282,7 @@ pub struct DerivedField {
 #[darling(attributes(graphql), forward_attrs(doc))]
 pub struct Enum {
     pub ident: Ident,
+    #[allow(dead_code)]
     pub generics: Generics,
     pub attrs: Vec<Attribute>,
     pub data: Data<EnumItem, Ignored>,
@@ -353,6 +363,7 @@ pub struct InputObjectField {
     #[darling(default)]
     pub skip_input: bool,
     // for SimpleObject
+    #[allow(dead_code)]
     #[darling(default)]
     pub skip_output: bool,
     #[darling(default)]
@@ -382,6 +393,7 @@ pub struct InputObject {
     #[darling(default, multiple, rename = "concrete")]
     pub concretes: Vec<ConcreteType>,
     // for SimpleObject
+    #[allow(dead_code)]
     #[darling(default)]
     pub complex: bool,
 }
@@ -503,6 +515,7 @@ pub struct SubscriptionField {
 
 #[derive(FromField)]
 pub struct MergedObjectField {
+    #[allow(dead_code)]
     pub ident: Option<Ident>,
     pub ty: Type,
 }
@@ -519,6 +532,7 @@ pub struct MergedObject {
     pub internal: bool,
     #[darling(default)]
     pub name: Option<String>,
+    #[allow(dead_code)]
     #[darling(default)]
     pub cache_control: CacheControl,
     #[darling(default)]
@@ -531,6 +545,7 @@ pub struct MergedObject {
 
 #[derive(FromField)]
 pub struct MergedSubscriptionField {
+    #[allow(dead_code)]
     pub ident: Option<Ident>,
     pub ty: Type,
 }
@@ -539,6 +554,7 @@ pub struct MergedSubscriptionField {
 #[darling(attributes(graphql), forward_attrs(doc))]
 pub struct MergedSubscription {
     pub ident: Ident,
+    #[allow(dead_code)]
     pub generics: Generics,
     pub attrs: Vec<Attribute>,
     pub data: Data<Ignored, MergedSubscriptionField>,
