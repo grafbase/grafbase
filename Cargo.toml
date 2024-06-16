@@ -31,11 +31,17 @@ exclude = ["engine/crates/gateway-v2"]
 [patch.crates-io]
 axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac" } # axum-tungstenite-upgrade
 # Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
-axum-server = { git = "https://github.com/grafbase/axum-server", rev = "fdce3d3dc71dc69597689cc28003cc0533b47dba" } # rustls-0.23
+axum-server = { git = "https://github.com/grafbase/axum-server", rev = "bc0c489c82e6fa76648f0d47191330ef4e125347" } # rustls-0.23-tokio-rustls-0.26
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
 names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" } # main
 # FIXME: Drop when a new version is released.
 openidconnect = { git = "https://github.com/ramosbugs/openidconnect-rs", rev = "7efc8943a8f699aff2db742827fc3d0fc2b3f34d" } # main
+
+opentelemetry = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "830815740a43f488157e86b0c69b0b86d1aee867" }                    # http-v1
+opentelemetry-otlp = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "830815740a43f488157e86b0c69b0b86d1aee867" }               # http-v1
+opentelemetry-stdout = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "830815740a43f488157e86b0c69b0b86d1aee867" }             # http-v1
+opentelemetry_sdk = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "830815740a43f488157e86b0c69b0b86d1aee867" }                # http-v1
+
 # FIXME: Uncomment when we upgrade opentelemetry to 0.23.
 # opentelemetry-aws = { git = "https://github.com/open-telemetry/opentelemetry-rust-contrib", rev = "086961e18437743c5ea43c9474cc1a7b13a49c6b" } # main
 ory-client = { git = "https://github.com/grafbase/client-rust", rev = "88ed8f63c1d71b294c2ef64fd80ca654e91ac25f" } # reqwest-0.12
@@ -45,15 +51,13 @@ serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e
 # Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
 tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
-# Drop when a new version of tokio-rustls is released.
-tokio-rustls = { git = "https://github.com/rustls/tokio-rustls", rev = "3a153acec6c4d189eb5de501b2155b4484b8651b" } # main
+# FIXME: Remove when a new major version is released.
+tonic = { git = "https://github.com/hyperium/tonic", rev = "3457f9203226f88524b31bf5d64ce6e5ec7c993c" } # main
 # FIXME: Uncomment when we upgrade opentelemetry to 0.23.
 # tracing-opentelemetry = { git = "https://github.com/tokio-rs/tracing-opentelemetry", rev = "2539f4f7bde3dc3f320e5fb935d2c13a69a540dd" } # main
-
-# https://github.com/tokio-rs/tracing/tree/v0.1.x/tracing-mock
-tracing = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" }
-tracing-core = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x" }
-tonic = { git = "https://github.com/grafbase/tonic", rev = "58de44e200af96defc4038701df9f18a177bc4c6" } # tokio-rustls-ring
+tracing = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" } # v0.1.x
+tracing-core = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" } # v0.1.x
+tracing-mock = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" } # v0.1.x
 
 [workspace.package]
 version = "0.75.0"
@@ -146,6 +150,12 @@ serde_with = "3.8.1"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 tracing-futures = "0.2.5"
+tracing-mock = "0.1"
+tracing-opentelemetry = "0.23"
+opentelemetry = "0.22"
+opentelemetry_sdk = "0.22.0"
+opentelemetry-stdout = "0.3"
+opentelemetry-otlp = "0.15"
 
 # Common
 graph-ref = { path = "graph-ref" }
