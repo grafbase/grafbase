@@ -39,21 +39,6 @@ services:
     networks:
       - databases
 
-  pgbouncer:
-    image: brainsam/pgbouncer:latest
-    restart: always
-    environment:
-      DB_HOST: 'postgres'
-      DB_PORT: '5432'
-      DB_USER: 'postgres'
-      DB_PASSWORD: 'grafbase'
-      POOL_MODE: 'transaction'
-      MAX_CLIENT_CONN: '100000'
-    networks:
-      - databases
-    ports:
-      - '6432:6432'
-
   # Pretty much copy pasted from
   # https://www.ory.sh/docs/hydra/5min-tutorial
   # https://github.com/ory/hydra/blob/master/quickstart.yml

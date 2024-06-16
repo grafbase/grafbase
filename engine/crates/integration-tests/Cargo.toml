@@ -55,7 +55,7 @@ tracing-mock = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x",
 
 [dependencies.tokio]
 version = "1.37"
-features = ["macros"]
+features = ["full"]
 
 [dependencies.insta]
 version = "1.38"
@@ -76,6 +76,7 @@ path = "../parser-postgres"
 
 [dependencies.postgres-connector-types]
 path = "../postgres-connector-types"
+features = ["pooling"]
 
 [dependencies.registry-for-cache]
 workspace = true

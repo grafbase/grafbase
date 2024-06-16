@@ -23,6 +23,7 @@ serde.workspace = true
 serde_json.workspace  = true
 tracing.workspace = true
 tungstenite = { workspace = true, features = ["url"] }
+tokio = { workspace = true, features = ["macros", "sync"] }
 
 runtime.workspace = true
 postgres-connector-types = { path = "../postgres-connector-types" }
@@ -32,5 +33,3 @@ reqwest = { workspace = true, features = [
   "rustls-tls",
 ] }
 
-[dev-dependencies]
-tokio = { workspace = true, features = ["macros"] }

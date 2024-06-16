@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use futures::channel::oneshot;
 use futures::stream::BoxStream;
 use serde_json::Value;
 
@@ -11,7 +10,6 @@ use crate::transport::{Transport, TransportTransaction};
 pub struct DirectTcpTransport {
     client: tokio_postgres::Client,
     connection_string: String,
-    close_recv: oneshot::Receiver<()>,
 }
 
 impl DirectTcpTransport {
@@ -33,22 +31,15 @@ impl DirectTcpTransport {
             .await
             .map_err(|error| crate::error::Error::Connection(error.to_string()))?;
 
-        let (close_send, close_recv) = oneshot::channel();
-
         async_runtime::spawn(async move {
             if let Err(e) = connection.await {
                 tracing::trace!("postgres connection error: {e}");
-            }
-
-            if close_send.send(()).is_err() {
-                tracing::trace!("did not close the postgres connection properly (matters only in API)");
             }
         });
 
         let this = Self {
             client,
             connection_string: connection_string.to_string(),
-            close_recv,
         };
 
         Ok(this)
@@ -79,22 +70,15 @@ impl DirectTcpTransport {
             .await
             .map_err(|error| crate::error::Error::Connection(error.to_string()))?;
 
-        let (close_send, close_recv) = oneshot::channel();
-
         async_runtime::spawn(async move {
             if let Err(e) = connection.await {
                 tracing::trace!("postgres connection error: {e}");
-            }
-
-            if close_send.send(()).is_err() {
-                tracing::trace!("did not close the postgres connection properly (matters only in API)");
             }
         });
 
         let this = Self {
             client,
             connection_string: connection_string.to_string(),
-            close_recv,
         };
 
         Ok(this)
@@ -104,11 +88,6 @@ impl DirectTcpTransport {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Transport for DirectTcpTransport {
-    async fn close(self) -> crate::Result<()> {
-        drop(self.client);
-        self.close_recv.await.map_err(|e| Error::Internal(e.to_string()))
-    }
-
     async fn parameterized_execute(&self, query: &str, params: Vec<Value>) -> crate::Result<i64> {
         executor::execute(&self.client, query, params).await
     }

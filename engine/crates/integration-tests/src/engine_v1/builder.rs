@@ -4,8 +4,9 @@ use super::Inner;
 use engine::{registry::resolvers::graphql::QueryBatcher, Schema};
 use futures::future::{join_all, BoxFuture};
 use parser_sdl::{ConnectorParsers, GraphqlDirective, OpenApiDirective, ParseResult, PostgresDirective, Registry};
-use postgres_connector_types::transport::DirectTcpTransport;
+use postgres_connector_types::transport::PooledTcpTransport;
 use runtime::udf::{CustomResolverInvoker, CustomResolverRequestPayload, UdfInvokerInner};
+use runtime_local::LazyPgConnectionsPool;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::Engine;
@@ -17,6 +18,7 @@ pub struct EngineBuilder {
     environment_variables: HashMap<String, String>,
     custom_resolvers: Option<CustomResolverInvoker>,
     secrets: runtime::context::Secrets,
+    connection_pool: LazyPgConnectionsPool,
 }
 
 pub struct RequestContext {
@@ -68,12 +70,30 @@ impl runtime::context::RequestContext for RequestContext {
 
 impl EngineBuilder {
     pub fn new(schema: impl Into<String>) -> Self {
+        Self::new_with_pool(
+            schema,
+            LazyPgConnectionsPool::new(|connection_string| async move {
+                PooledTcpTransport::new(
+                    &connection_string,
+                    postgres_connector_types::transport::PoolingConfig {
+                        max_size: Some(1),
+                        ..Default::default()
+                    },
+                )
+                .await
+                .unwrap()
+            }),
+        )
+    }
+
+    pub fn new_with_pool(schema: impl Into<String>, connection_pool: LazyPgConnectionsPool) -> Self {
         EngineBuilder {
             schema: schema.into(),
             openapi_specs: HashMap::new(),
             environment_variables: HashMap::new(),
             custom_resolvers: None,
             secrets: Default::default(),
+            connection_pool,
         }
     }
 
@@ -116,13 +136,14 @@ impl EngineBuilder {
         let registry = registry_upgrade::convert_v1_to_v2(registry).unwrap();
 
         let postgres = {
-            let mut transports: HashMap<String, Arc<dyn postgres_connector_types::transport::Transport>> =
-                HashMap::new();
-            for (name, definition) in &registry.postgres_databases {
-                let transport = DirectTcpTransport::new(definition.connection_string()).await.unwrap();
-                transports.insert(name.to_string(), Arc::new(transport));
-            }
-            runtime::pg::PgTransportFactory::new(Box::new(runtime_local::LocalPgTransportFactory::new(transports)))
+            let factory = self.connection_pool.to_transport_factory(
+                registry
+                    .postgres_databases
+                    .iter()
+                    .map(|(name, definition)| (name.clone(), definition.connection_string().to_string()))
+                    .collect(),
+            );
+            runtime::pg::PgTransportFactory::new(Box::new(factory))
         };
 
         // engine-v2 tests don't use wait_until so it's not a problem for the receiver to be
@@ -200,10 +221,7 @@ impl ConnectorParsers for EngineBuilder {
     }
 
     async fn fetch_and_parse_postgres(&self, directive: &PostgresDirective) -> Result<Registry, Vec<String>> {
-        let transport = DirectTcpTransport::new(directive.connection_string())
-            .await
-            .map_err(|error| vec![error.to_string()])?;
-
+        let transport = self.connection_pool.get(directive.connection_string()).await;
         parser_postgres::introspect(&transport, directive.name(), directive.namespace())
             .await
             .map_err(|error| vec![error.to_string()])
