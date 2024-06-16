@@ -32,6 +32,7 @@ impl<'a> ResolverInvocationSpan<'a> {
             "resolver.name" = self.name,
             "resolver.invocation.error" = self.error.as_ref(),
             "resolver.invocation.is_error" = self.is_error,
+            "otel.name" = format!("{RESOLVER_SPAN_NAME}:{}", self.name),
         )
     }
 }

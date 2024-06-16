@@ -59,6 +59,7 @@ impl<'a> GqlRequestSpan<'a> {
             "gql.operation.type" = self.operation_type,
             "gql.response.has_errors" = self.has_errors,
             "gql.document" = self.document,
+            "otel.name" = format!("{GRAPHQL_SPAN_NAME}:{}", self.operation_name.unwrap_or("unknown")),
         )
     }
 }

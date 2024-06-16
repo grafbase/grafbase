@@ -98,6 +98,7 @@ impl<'ctx> GraphqlExecutor<'ctx> {
     #[tracing::instrument(skip_all, fields(plan_id = %self.plan.id(), federated_subgraph = %self.subgraph.name()))]
     pub async fn execute(mut self) -> ExecutionResult<ResponsePart> {
         let subgraph_request_span = SubgraphRequestSpan::new(self.subgraph.name())
+            .with_url(self.subgraph.url())
             .with_operation_type(self.operation.ty.as_ref())
             // The query string contains no input values, only variables. So it's safe to log.
             .with_document(&self.operation.query)
