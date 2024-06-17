@@ -108,6 +108,7 @@ pub struct Registry {
     pub cors_config: Option<CorsConfig>,
     #[serde(default)]
     pub runtime: Option<Runtime>,
+    #[serde(default)]
     pub rate_limiting: RateLimitConfig,
 }
 
