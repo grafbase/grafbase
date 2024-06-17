@@ -51,7 +51,7 @@ tracing-subscriber = { version = "0.3.18", default-features = false, features = 
 ctor.workspace = true
 rustls = { workspace = true, features = ["ring"] }
 tracing.workspace = true
-tracing-mock = { git = "https://github.com/tokio-rs/tracing", branch = "v0.1.x", version = "0.1" }
+tracing-mock.workspace = true
 
 [dependencies.tokio]
 version = "1.37"
