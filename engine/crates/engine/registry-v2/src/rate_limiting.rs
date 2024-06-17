@@ -15,8 +15,8 @@ pub struct RateLimitRule {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum RateLimitRuleType {
-    Header(String),
-    GraphqlOperationName(String),
+    Header(Vec<String>),
+    GraphqlOperationName(Vec<String>),
     Ip,
-    JwtClaim(String),
+    JwtClaim(Vec<String>),
 }
