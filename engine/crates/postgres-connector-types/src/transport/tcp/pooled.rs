@@ -70,10 +70,6 @@ impl PooledTcpTransport {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Transport for PooledTcpTransport {
-    async fn close(self) -> crate::Result<()> {
-        Ok(())
-    }
-
     async fn parameterized_execute(&self, query: &str, params: Vec<Value>) -> crate::Result<i64> {
         self.connection().await?.parameterized_execute(query, params).await
     }
@@ -102,10 +98,6 @@ pub struct PooledTcpConnection {
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Transport for PooledTcpConnection {
-    async fn close(self) -> crate::Result<()> {
-        Ok(())
-    }
-
     async fn parameterized_execute(&self, query: &str, params: Vec<Value>) -> crate::Result<i64> {
         executor::execute(self.connection.client(), query, params).await
     }

@@ -1,20 +1,37 @@
 use std::{collections::HashMap, future::Future, panic::AssertUnwindSafe, sync::Arc};
 
-use async_once_cell::OnceCell;
 use engine::{registry::RegistrySdlExt, Response};
 use futures::FutureExt;
 use graphql_parser::parse_schema;
 use indoc::formatdoc;
-use postgres_connector_types::transport::{DirectTcpTransport, Transport, TransportExt};
+use postgres_connector_types::transport::{PooledTcpTransport, Transport, TransportExt};
+use runtime_local::LazyPgConnectionsPool;
 use serde::de::DeserializeOwned;
+use tokio::sync::OnceCell;
 
 use crate::{Engine, EngineBuilder};
 
-// this is for creating/dropping databases, which _should not be done_ over pgbouncer.
-static ADMIN_CONNECTION_STRING: &str = "postgres://postgres:grafbase@localhost:5432/postgres";
+pub async fn admin_pool() -> &'static PooledTcpTransport {
+    // this is for creating/dropping databases, which _should not be done_ over pgbouncer.
+    static ADMIN_CONNECTION_STRING: &str = "postgres://postgres:grafbase@localhost:5432/postgres";
+
+    static POOL: OnceCell<PooledTcpTransport> = OnceCell::const_new();
+    POOL.get_or_init(|| async {
+        PooledTcpTransport::new(
+            ADMIN_CONNECTION_STRING,
+            postgres_connector_types::transport::PoolingConfig {
+                max_size: Some(32),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap()
+    })
+    .await
+}
 
 // url for the engine for introspecting, querying and mutating the database.
-static POOL_CONNECTION_STRING: &str = "postgres://postgres:grafbase@localhost:6432/";
+static BASE_CONNECTION_STRING: &str = "postgres://postgres:grafbase@localhost:5432/";
 
 #[track_caller]
 pub fn query_postgres<F, U>(test: F) -> String
@@ -73,8 +90,7 @@ where
     T: Future<Output = TestApi>,
 {
     super::runtime().block_on(async {
-        let admin = DirectTcpTransport::new(ADMIN_CONNECTION_STRING).await.unwrap();
-
+        let admin = admin_pool().await;
         admin
             .execute(&format!("DROP DATABASE IF EXISTS {database}"))
             .await
@@ -108,7 +124,7 @@ where
     R: Future<Output = TestApi>,
 {
     super::runtime().block_on(async {
-        let admin = DirectTcpTransport::new(ADMIN_CONNECTION_STRING).await.unwrap();
+        let admin = admin_pool().await;
 
         admin
             .execute(&format!("DROP DATABASE IF EXISTS {database}"))
@@ -128,7 +144,8 @@ where
 
 pub struct Inner {
     engine: OnceCell<Engine>,
-    connection: DirectTcpTransport,
+    connection_string: String,
+    connection_pool: LazyPgConnectionsPool,
     schema: String,
 }
 
@@ -138,8 +155,25 @@ pub struct TestApi {
 }
 
 impl TestApi {
+    async fn connection(&self) -> Arc<dyn Transport> {
+        self.inner.connection_pool.get(&self.inner.connection_string).await
+    }
+
+    async fn engine(&self) -> &Engine {
+        self.inner
+            .engine
+            // this prevents a race. we initialize the engine only when executing the first request,
+            // so the introspection runs only after we've modified the database schema.
+            .get_or_init(|| async {
+                EngineBuilder::new_with_pool(self.inner.schema.clone(), self.inner.connection_pool.clone())
+                    .build()
+                    .await
+            })
+            .await
+    }
+
     async fn new(database: &str) -> Self {
-        let mut url = url::Url::parse(POOL_CONNECTION_STRING).unwrap();
+        let mut url = url::Url::parse(BASE_CONNECTION_STRING).unwrap();
         url.set_path(&format!("/{database}"));
 
         let connection_string = url.to_string();
@@ -157,7 +191,7 @@ impl TestApi {
     }
 
     async fn new_namespaced(database: &str, name: &str) -> Self {
-        let mut url = url::Url::parse(POOL_CONNECTION_STRING).unwrap();
+        let mut url = url::Url::parse(BASE_CONNECTION_STRING).unwrap();
         url.set_path(&format!("/{database}"));
 
         let connection_string = url.to_string();
@@ -176,11 +210,23 @@ impl TestApi {
 
     async fn new_inner(schema: String, connection_string: String) -> Self {
         let engine = OnceCell::new();
-        let connection = DirectTcpTransport::new(&connection_string).await.unwrap();
 
         let inner = Inner {
             engine,
-            connection,
+            connection_pool: LazyPgConnectionsPool::new(move |connection_string| async move {
+                PooledTcpTransport::new(
+                    &connection_string,
+                    postgres_connector_types::transport::PoolingConfig {
+                        max_size: Some(1),
+                        wait_timeout: None,
+                        create_timeout: None,
+                        recycle_timeout: None,
+                    },
+                )
+                .await
+                .unwrap()
+            }),
+            connection_string,
             schema,
         };
 
@@ -188,24 +234,15 @@ impl TestApi {
     }
 
     pub async fn execute_sql(&self, query: &str) -> i64 {
-        self.inner
-            .connection
+        self.connection()
+            .await
             .execute(query)
             .await
             .expect("error in query execute")
     }
 
     pub async fn execute(&self, operation: impl AsRef<str>) -> Response {
-        Box::pin(
-            self.inner
-                .engine
-                // this prevents a race. we initialize the engine only when executing the first request,
-                // so the introspection runs only after we've modified the database schema.
-                .get_or_init(async { Engine::new(self.inner.schema.clone()).await }),
-        )
-        .await
-        .execute(operation.as_ref())
-        .await
+        self.engine().await.execute(operation.as_ref()).await
     }
 
     pub async fn execute_parameterized(
@@ -213,17 +250,11 @@ impl TestApi {
         operation: impl AsRef<str>,
         variables: impl serde::Serialize,
     ) -> Response {
-        Box::pin(
-            self.inner
-                .engine
-                // this prevents a race. we initialize the engine only when executing the first request,
-                // so the introspection runs only after we've modified the database schema.
-                .get_or_init(async { Engine::new(self.inner.schema.clone()).await }),
-        )
-        .await
-        .execute(operation.as_ref())
-        .variables(variables)
-        .await
+        self.engine()
+            .await
+            .execute(operation.as_ref())
+            .variables(variables)
+            .await
     }
 
     pub async fn execute_as<T>(&self, operation: impl AsRef<str>) -> T
@@ -242,8 +273,8 @@ impl TestApi {
     where
         T: DeserializeOwned + Send,
     {
-        self.inner
-            .connection
+        self.connection()
+            .await
             .collect_query(query, Vec::new())
             .await
             .expect("error in query")
