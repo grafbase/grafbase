@@ -1,0 +1,32 @@
+[package]
+name = "grafbase-docker-tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+ctor.workspace = true
+ulid.workspace = true
+bollard = "0.16"
+anyhow = "1"
+futures-util.workspace = true
+tempfile = "3"
+tokio = { workspace = true, features = ["full"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = [
+  "fmt",
+  "tracing-log",
+  "env-filter",
+  "ansi",
+] }
+
+[dev-dependencies]
+reqwest = { workspace = true, features = ["json"] }
+serde_json.workspace = true
+insta = { workspace = true, features = ["json", "redactions", "yaml"] }
+

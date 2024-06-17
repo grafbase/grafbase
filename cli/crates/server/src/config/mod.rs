@@ -57,12 +57,15 @@ pub(crate) async fn build_config(
     triggering_file: Option<PathBuf>,
     environment_name: EnvironmentName,
 ) -> Result<Config, ConfigError> {
-    trace!("parsing schema");
+    trace!("building config");
     let project = Project::get();
 
     let schema_path = match project.schema_path.location() {
         SchemaLocation::TsConfig(ref ts_config_path) => {
+            trace!("installing bun");
             install_bun().await?;
+
+            trace!("parsing TS config");
             let written_schema_path = parse_and_generate_config_from_ts(ts_config_path, environment_name).await?;
 
             Cow::Owned(written_schema_path)
@@ -71,6 +74,7 @@ pub(crate) async fn build_config(
     };
     let schema = tokio::fs::read_to_string(Path::new(schema_path.as_ref())).await?;
 
+    trace!("parsing SDL");
     let parser::ParserResult {
         registry,
         required_udfs,
@@ -184,23 +188,24 @@ async fn parse_and_generate_config_from_ts(
         generated_config_path.to_string_lossy().to_string(),
     ];
 
-    let bun_command = Command::new(
-        environment
-            .bun_executable_path()
-            .map_err(|err| ConfigError::LoadTsConfig(err.to_string()))?,
-    )
-    .args(args)
-    .env(
-        "GRAFBASE_ENV",
-        match environment_name {
-            EnvironmentName::Production => "production",
-            EnvironmentName::Dev => "dev",
-            EnvironmentName::None => "",
-        },
-    )
-    .stderr(Stdio::piped())
-    .stdout(Stdio::piped())
-    .spawn()?;
+    let bun_path = environment
+        .bun_executable_path()
+        .map_err(|err| ConfigError::LoadTsConfig(err.to_string()))?;
+
+    trace!("Running bun (\"{}\") with args: {:?}", bun_path.to_string_lossy(), args);
+    let bun_command = Command::new(bun_path)
+        .args(args)
+        .env(
+            "GRAFBASE_ENV",
+            match environment_name {
+                EnvironmentName::Production => "production",
+                EnvironmentName::Dev => "dev",
+                EnvironmentName::None => "",
+            },
+        )
+        .stderr(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()?;
 
     let output = bun_command.wait_with_output().await?;
 

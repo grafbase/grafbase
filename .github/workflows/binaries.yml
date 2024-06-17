@@ -153,7 +153,7 @@ jobs:
           set -euo pipefail
           cargo check --package ${{ matrix.package }}
 
-  docker:
+  docker-grafbase:
     needs: [test]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubicloud-standard-8
@@ -163,8 +163,62 @@ jobs:
       - name: Get sources
         uses: actions/checkout@v4
 
-      - name: Build assets
-        uses: ./.github/actions/cli_assets
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build docker images
+        run: |
+          # Re-use the latest layers if possible
+          docker pull ghcr.io/grafbase/grafbase:latest || true
+          docker build -f cli/Dockerfile -t ghcr.io/grafbase/grafbase:$COMMIT_SHA .
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+
+      - name: Rust job init
+        uses: ./.github/actions/init_rust_job
+        with:
+          platform: linux
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('Cargo.lock') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
+
+      - name: Docker tests
+        run: |
+          GRAFBASE_DOCKER_IMAGE="ghcr.io/grafbase/grafbase:$COMMIT_SHA" RUST_BACKTRACE=1 cargo nextest run -p grafbase-docker-tests
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+
+      - name: Tag latest version
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: |
+          docker tag ghcr.io/grafbase/grafbase:$COMMIT_SHA ghcr.io/grafbase/grafbase:latest
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+
+      - name: Tag released grafbase version
+        if: ${{ startsWith(github.ref, 'refs/tags') && startsWith(github.ref_name, 'grafbase-') }}
+        run: |
+          docker tag ghcr.io/grafbase/grafbase:$COMMIT_SHA ghcr.io/grafbase/grafbase:$(echo "$REF" | sed -e "s/^refs\/tags\/grafbase-//")
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+          REF: ${{ github.ref }}
+
+      - name: Push docker image
+        run: |
+          docker push --all-tags ghcr.io/grafbase/grafbase
+
+  docker-gateway:
+    needs: [test]
+    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubicloud-standard-8
+    permissions:
+      packages: write
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -173,24 +227,33 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build docker image
+      - name: Build docker images
         run: |
-          docker build -t ghcr.io/grafbase/gateway:$SHA_TAG .
+          # Re-use the latest layers if possible
+          docker pull ghcr.io/grafbase/gateway:latest || true
+          docker build -t ghcr.io/grafbase/gateway:$COMMIT_SHA .
         env:
-          SHA_TAG: ${{ github.sha }}
+          COMMIT_SHA: ${{ github.sha }}
 
-      - name: Tag released version
+      - name: Tag latest version
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: |
+          docker tag ghcr.io/grafbase/gateway:$COMMIT_SHA ghcr.io/grafbase/gateway:latest
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+
+      - name: Tag released gateway version
         if: ${{ startsWith(github.ref, 'refs/tags') && startsWith(github.ref_name, 'gateway-') }}
         run: |
-          docker tag ghcr.io/grafbase/gateway:$SHA_TAG ghcr.io/grafbase/gateway:latest
-          docker tag ghcr.io/grafbase/gateway:$SHA_TAG ghcr.io/grafbase/gateway:$(echo "$REF" | sed -e "s/^refs\/tags\/gateway-//")
+          docker tag ghcr.io/grafbase/gateway:$COMMIT_SHA ghcr.io/grafbase/gateway:$(echo "$REF" | sed -e "s/^refs\/tags\/gateway-//")
         env:
-          SHA_TAG: ${{ github.sha }}
+          COMMIT_SHA: ${{ github.sha }}
           REF: ${{ github.ref }}
 
       - name: Push docker image
         run: |
           docker push --all-tags ghcr.io/grafbase/gateway
+
   linux:
     needs: [test]
     strategy:

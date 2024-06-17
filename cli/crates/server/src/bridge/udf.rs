@@ -421,13 +421,15 @@ async fn spawn_bun(
         let bun_arguments = vec!["run", &script_path];
 
         let environment = Environment::get();
-        let mut bun = Command::new(environment.bun_executable_path()?);
+        let bun_path = environment.bun_executable_path()?;
+        trace!("Calling bun ({}) with: {:?}", bun_path.to_string_lossy(), bun_arguments);
+        let mut bun = Command::new(bun_path);
         bun.args(bun_arguments)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true);
-        trace!("Spawning {udf_kind} '{udf_name}'");
 
+        trace!("Spawning {udf_kind} '{udf_name}'");
         let mut bun = bun.spawn().unwrap();
         let bound_port = {
             let stdout = bun.stdout.as_mut().unwrap();
