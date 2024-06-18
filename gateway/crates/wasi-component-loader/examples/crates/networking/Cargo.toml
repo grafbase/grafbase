@@ -1,0 +1,21 @@
+[package]
+name = "networking"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[dependencies]
+waki = "0.3.0"
+wit-bindgen-rt = { version = "0.26.0", features = ["bitflags"] }
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.component]
+package = "component:networking"
+adapter = "../../wasi_snapshot_preview1.reactor.wasm"
+
+[package.metadata.component.dependencies]

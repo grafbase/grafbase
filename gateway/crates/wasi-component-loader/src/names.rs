@@ -1,0 +1,11 @@
+pub(crate) static COMPONENT_TYPES: &str = "component:grafbase/types";
+pub(crate) static GATEWAY_CALLBACK_FUNCTION: &str = "on-gateway-request";
+pub(crate) static GATEWAY_REQUEST_RESOURCE: &str = "gateway-request";
+pub(crate) static SET_OPERATION_NAME_METHOD: &str = "[method]gateway-request.set-operation-name";
+pub(crate) static GET_OPERATION_NAME_METHOD: &str = "[method]gateway-request.get-operation-name";
+pub(crate) static GET_DOCUMENT_ID_METHOD: &str = "[method]gateway-request.get-document-id";
+pub(crate) static SET_DOCUMENT_ID_METHOD: &str = "[method]gateway-request.set-document-id";
+pub(crate) static HEADERS_RESOURCE: &str = "headers";
+pub(crate) static HEADERS_SET_METHOD: &str = "[method]headers.set";
+pub(crate) static HEADERS_GET_METHOD: &str = "[method]headers.get";
+pub(crate) static HEADERS_DELETE_METHOD: &str = "[method]headers.delete";

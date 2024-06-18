@@ -51,6 +51,7 @@
             # Testing
             cargo-insta
             cargo-nextest
+            cargo-component
             # Benchmark tool to send multiple requests
             hey
 
@@ -128,7 +129,7 @@
           };
         };
 
-        imports = [./cli/nix/cli.nix  ./nix/cli-app.nix];
+        imports = [./cli/nix/cli.nix ./nix/cli-app.nix];
       };
     };
 }
