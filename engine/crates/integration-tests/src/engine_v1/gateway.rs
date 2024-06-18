@@ -243,6 +243,7 @@ impl From<gateway_core::Error> for Error {
             gateway_core::Error::BadRequest(msg) => Self::BadRequest(msg),
             gateway_core::Error::Cache(err) => Self::Cache(err),
             gateway_core::Error::Serialization(msg) => Self::Serialization(msg),
+            gateway_core::Error::Ratelimit(err) => Self::Ratelimit(err),
         }
     }
 }
