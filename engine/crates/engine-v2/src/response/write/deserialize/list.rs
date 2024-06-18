@@ -5,7 +5,7 @@ use serde::{
     Deserializer,
 };
 
-use super::SeedContextInner;
+use super::SeedContext;
 use crate::{
     operation::FieldId,
     response::{GraphqlError, ResponseValue},
@@ -13,7 +13,7 @@ use crate::{
 
 pub(super) struct ListSeed<'ctx, 'parent, Seed> {
     pub field_id: FieldId,
-    pub ctx: &'parent SeedContextInner<'ctx>,
+    pub ctx: &'parent SeedContext<'ctx>,
     pub seed: &'parent Seed,
 }
 
@@ -67,8 +67,8 @@ where
                 Err(err) => {
                     if !self.ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
                         let mut path = self.ctx.response_path();
-                        path.push(index.into());
-                        self.ctx.response_part.borrow_mut().push_error(GraphqlError {
+                        path.push(index);
+                        self.ctx.writer.push_error(GraphqlError {
                             message: err.to_string(),
                             locations: vec![self.ctx.plan[self.field_id].location()],
                             path: Some(path),
@@ -82,6 +82,6 @@ where
             }
         }
 
-        Ok(self.ctx.response_part.borrow_mut().push_list(&values).into())
+        Ok(self.ctx.writer.push_list(&values).into())
     }
 }

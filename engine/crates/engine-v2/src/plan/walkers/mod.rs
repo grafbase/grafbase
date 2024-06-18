@@ -7,7 +7,7 @@ use crate::{
         FieldId, Operation, OperationWalker, QueryInputValueId, QueryInputValueWalker, SelectionSetType, Variables,
     },
     plan::{CollectedField, FieldType, RuntimeMergedConditionals},
-    response::{ResponseEdge, ResponseKey, ResponseKeys, ResponsePart, ResponsePath, SafeResponseKey, SeedContext},
+    response::{ResponseEdge, ResponseKey, ResponseKeys, SafeResponseKey},
 };
 
 use super::{
@@ -57,7 +57,7 @@ where
 }
 
 impl<'a> PlanWalker<'a> {
-    pub fn schema(&self) -> SchemaWalker<'a> {
+    pub fn schema(&self) -> SchemaWalker<'a, ()> {
         self.schema_walker
     }
 
@@ -83,22 +83,6 @@ impl<'a> PlanWalker<'a> {
 
     pub fn collected_selection_set(&self) -> PlanWalker<'a, CollectedSelectionSetId, ()> {
         self.walk(self.output().collected_selection_set_id)
-    }
-
-    pub fn new_seed<'out>(self, output: &'out mut ResponsePart) -> SeedContext<'out>
-    where
-        'a: 'out,
-    {
-        SeedContext::new(self, output)
-    }
-
-    pub fn root_error_path(&self, parent: &ResponsePath) -> ResponsePath {
-        let mut fields = self.collected_selection_set().fields();
-        if fields.len() == 1 {
-            parent.child(fields.next().unwrap().as_operation_field().response_edge())
-        } else {
-            parent.clone()
-        }
     }
 }
 

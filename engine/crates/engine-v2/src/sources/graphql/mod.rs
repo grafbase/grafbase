@@ -4,6 +4,7 @@ use schema::{
     sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker, RootFieldResolverWalker},
     HeaderValueRef,
 };
+use serde::de::DeserializeSeed;
 use tracing::Instrument;
 
 use self::query::PreparedGraphqlOperation;
@@ -13,7 +14,8 @@ use super::{ExecutionContext, ExecutionResult, Executor, ExecutorInput, Plan};
 use crate::{
     operation::OperationType,
     plan::{PlanWalker, PlanningResult},
-    response::{ResponseBoundaryItem, ResponsePart},
+    response::ResponsePart,
+    sources::graphql::deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
 };
 
 mod deserialize;
@@ -47,12 +49,7 @@ impl GraphqlExecutionPlan {
 
     #[tracing::instrument(skip_all, fields(plan_id = %input.plan.id()))]
     pub fn new_executor<'ctx>(&'ctx self, input: ExecutorInput<'ctx, '_>) -> ExecutionResult<Executor<'ctx>> {
-        let ExecutorInput {
-            ctx,
-            boundary_objects_view,
-            plan,
-            response_part,
-        } = input;
+        let ExecutorInput { ctx, plan, .. } = input;
 
         let subgraph = plan.schema().walk(self.subgraph_id);
         let variables = SubgraphVariables {
@@ -77,9 +74,7 @@ impl GraphqlExecutionPlan {
             subgraph,
             operation: &self.operation,
             json_body,
-            response_boundary_item: boundary_objects_view.into_single_boundary_item(),
             plan,
-            response_part,
         }))
     }
 }
@@ -89,14 +84,12 @@ pub(crate) struct GraphqlExecutor<'ctx> {
     subgraph: GraphqlEndpointWalker<'ctx>,
     operation: &'ctx PreparedGraphqlOperation,
     json_body: String,
-    response_boundary_item: ResponseBoundaryItem,
     plan: PlanWalker<'ctx>,
-    response_part: ResponsePart,
 }
 
 impl<'ctx> GraphqlExecutor<'ctx> {
     #[tracing::instrument(skip_all, fields(plan_id = %self.plan.id(), federated_subgraph = %self.subgraph.name()))]
-    pub async fn execute(mut self) -> ExecutionResult<ResponsePart> {
+    pub async fn execute(self, mut response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
         let subgraph_request_span = SubgraphRequestSpan::new(self.subgraph.name())
             .with_url(self.subgraph.url())
             .with_operation_type(self.operation.ty.as_ref())
@@ -131,19 +124,20 @@ impl<'ctx> GraphqlExecutor<'ctx> {
                 .bytes;
             tracing::debug!("{}", String::from_utf8_lossy(&bytes));
 
-            let err_path = self.plan.root_error_path(&self.response_boundary_item.response_path);
-            let seed_ctx = self.plan.new_seed(&mut self.response_part);
-            deserialize::ingest_deserializer_into_response(
-                &seed_ctx,
-                &err_path,
-                seed_ctx.create_root_seed(&self.response_boundary_item),
-                &mut serde_json::Deserializer::from_slice(&bytes),
-            );
-            ExecutionResult::Ok(())
+            let part = response_part.as_mut();
+            GraphqlResponseSeed::new(
+                part.next_seed(self.plan).ok_or("No object to update")?,
+                RootGraphqlErrors {
+                    response_part: &part,
+                    response_keys: self.plan.response_keys(),
+                },
+            )
+            .with_graphql_span(subgraph_request_span.clone())
+            .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
+
+            Ok(response_part)
         }
         .instrument(subgraph_request_span.clone())
-        .await?;
-
-        Ok(self.response_part)
+        .await
     }
 }

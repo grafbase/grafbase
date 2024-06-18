@@ -57,17 +57,14 @@ impl GraphqlResponseStatus {
         }
     }
 
-    fn to_header_value(self) -> http::HeaderValue {
+    pub fn encode(&self) -> String {
         use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-        URL_SAFE_NO_PAD
-            .encode(serde_json::to_vec(&self).expect("valid json"))
-            .try_into()
-            .expect("valid header value")
+        URL_SAFE_NO_PAD.encode(serde_json::to_vec(self).expect("valid json"))
     }
 
-    fn from_header_value(value: &http::HeaderValue) -> Option<Self> {
+    pub fn decode(bytes: &str) -> Option<Self> {
         use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-        let bytes = URL_SAFE_NO_PAD.decode(value.as_bytes()).ok()?;
+        let bytes = URL_SAFE_NO_PAD.decode(bytes).ok()?;
         serde_json::from_slice(&bytes).ok()
     }
 }
@@ -84,11 +81,12 @@ impl headers::Header for GraphqlResponseStatus {
     {
         values
             .next()
-            .and_then(Self::from_header_value)
+            .and_then(|value| value.to_str().ok())
+            .and_then(GraphqlResponseStatus::decode)
             .ok_or_else(headers::Error::invalid)
     }
 
     fn encode<E: Extend<http::HeaderValue>>(&self, values: &mut E) {
-        values.extend(Some(self.to_header_value()))
+        values.extend(Some(GraphqlResponseStatus::encode(self).try_into().unwrap()))
     }
 }

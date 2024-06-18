@@ -17,7 +17,7 @@ use grafbase_tracing::{
 use headers::HeaderMapExt;
 use runtime::auth::AccessToken;
 use schema::Schema;
-use tracing::{Instrument, Span};
+use tracing::Instrument;
 
 use crate::{
     execution::{ExecutionContext, ExecutionCoordinator},
@@ -70,9 +70,9 @@ impl Engine {
             self.execute_with_access_token(RequestMetadata::new(headers, access_token), batch_request)
                 .await
         } else if let Some(streaming_format) = headers.typed_get::<StreamingFormat>() {
-            HttpGraphqlResponse::stream_error(streaming_format, "Unauthorized")
+            HttpGraphqlResponse::stream_request_error(streaming_format, "Unauthorized")
         } else {
-            HttpGraphqlResponse::error("Unauthorized")
+            HttpGraphqlResponse::request_error("Unauthorized")
         }
     }
 
@@ -92,17 +92,20 @@ impl Engine {
         match batch_request {
             BatchRequest::Single(request) => {
                 if let Some(streaming_format) = streaming_format {
-                    HttpGraphqlResponse::from_stream(
+                    convert_stream_to_http_response(
                         streaming_format,
                         self.execute_stream(Arc::new(request_metadata), request),
                     )
+                    .await
                 } else {
                     self.execute_single(&request_metadata, request).await
                 }
             }
             BatchRequest::Batch(requests) => {
                 if streaming_format.is_some() {
-                    return HttpGraphqlResponse::error("batch requests can't use multipart or event-stream responses");
+                    return HttpGraphqlResponse::request_error(
+                        "batch requests can't use multipart or event-stream responses",
+                    );
                 }
                 HttpGraphqlResponse::batch_response(
                     futures_util::stream::iter(requests.into_iter())
@@ -115,135 +118,142 @@ impl Engine {
     }
 
     async fn execute_single(&self, request_metadata: &RequestMetadata, request: Request) -> HttpGraphqlResponse {
-        let span = GqlRequestSpan::new().into_span();
         let start = Instant::now();
-        let ctx = ExecutionContext {
-            engine: self,
-            request_metadata,
-        };
-        let (metrics_attributes, response) = ctx.execute_single(span.clone(), request).instrument(span).await;
-
-        let mut metadata = OperationMetadata {
-            operation_name: None,
-            operation_type: None,
-            has_errors: response.has_errors(),
-        };
-        if let Some(metrics_attributes) = metrics_attributes {
-            metadata.operation_name.clone_from(&metrics_attributes.name);
-            metadata.operation_type = Some(metrics_attributes.ty);
-            self.operation_metrics.record(metrics_attributes, start.elapsed());
+        let span = GqlRequestSpan::new().into_span();
+        async {
+            let ctx = ExecutionContext {
+                engine: self,
+                request_metadata,
+            };
+            let (operation_attributes, response) = ctx.execute_single(request).await;
+            let status = response.status();
+            let mut metadata = OperationMetadata {
+                operation_name: None,
+                operation_type: None,
+                has_errors: !status.is_success(),
+            };
+            if let Some(mut attrs) = operation_attributes {
+                span.record_gql_request(GqlRequestAttributes {
+                    operation_type: attrs.ty,
+                    operation_name: attrs.name.clone(),
+                });
+                metadata.operation_name.clone_from(&attrs.name);
+                metadata.operation_type = Some(attrs.ty);
+                attrs.status = status;
+                self.operation_metrics.record(attrs, start.elapsed());
+            }
+            span.record_gql_status(status);
+            HttpGraphqlResponse::from(response).with_metadata(metadata)
         }
-
-        HttpGraphqlResponse::from(response).with_metadata(metadata)
+        .instrument(span.clone())
+        .await
     }
 
     fn execute_stream(
         self: &Arc<Self>,
         request_metadata: Arc<RequestMetadata>,
         request: Request,
-    ) -> impl Stream<Item = Response> {
+    ) -> impl Stream<Item = Response> + Send + 'static {
+        let start = Instant::now();
         let engine = Arc::clone(self);
-        let span = GqlRequestSpan::new().into_span();
         let (sender, receiver) = mpsc::channel(2);
 
-        receiver.join(async move {
-            let start = Instant::now();
-            let ctx = ExecutionContext {
-                engine: &engine,
-                request_metadata: &request_metadata,
-            };
-            let metrics_attributes = ctx.execute_stream(span.clone(), request, sender).instrument(span).await;
+        let span = GqlRequestSpan::new().into_span();
+        let span_clone = span.clone();
+        receiver.join(
+            async move {
+                let ctx = ExecutionContext {
+                    engine: &engine,
+                    request_metadata: &request_metadata,
+                };
+                let (operation_attributes, status) = ctx.execute_stream(request, sender).await;
+                if let Some(mut attrs) = operation_attributes {
+                    span.record_gql_request(GqlRequestAttributes {
+                        operation_type: attrs.ty,
+                        operation_name: attrs.name.clone(),
+                    });
+                    attrs.status = status;
+                    engine.operation_metrics.record(attrs, start.elapsed());
+                }
 
-            if let Some(metrics_attributes) = metrics_attributes {
-                engine.operation_metrics.record(metrics_attributes, start.elapsed());
+                span.record_gql_status(status);
             }
-        })
+            .instrument(span_clone),
+        )
     }
 }
 
+async fn convert_stream_to_http_response(
+    streaming_format: StreamingFormat,
+    stream: impl Stream<Item = Response> + Send + 'static,
+) -> HttpGraphqlResponse {
+    let mut stream = Box::pin(stream);
+    let Some(first_response) = stream.next().await else {
+        return HttpGraphqlResponse::request_error("Empty stream");
+    };
+    HttpGraphqlResponse::from_stream(
+        streaming_format,
+        // Not perfect for the errors count, but good enough to detect a request error
+        first_response.status(),
+        futures_util::stream::iter(std::iter::once(first_response)).chain(stream),
+    )
+}
+
 impl<'ctx> ExecutionContext<'ctx> {
-    async fn execute_single(
-        self,
-        span: Span,
-        mut request: Request,
-    ) -> (Option<GraphqlOperationMetricsAttributes>, Response) {
-        let operation = match self.prepare_operation(&mut request).await {
-            Ok(operation) => operation,
-            Err(err) => {
-                return (None, Response::from_error(err));
+    async fn execute_single(self, mut request: Request) -> (Option<GraphqlOperationMetricsAttributes>, Response) {
+        if let Err(err) = self.handle_persisted_query(&mut request).await {
+            return (None, Response::bad_request(err));
+        }
+        let (operation, operation_attributes) = match Operation::build(self, &request) {
+            Ok(res) => res,
+            Err(mut err) => {
+                return (err.take_operation_attributes(), Response::bad_request(err));
             }
         };
 
-        // Same behavior as in our workers for now
-        // If the query didn't parse, or didn't have the named/unnamed operation (or any operations),
-        // we skip it from the analytics.
-        let metrics_attributes = operation_normalizer::normalize(request.query(), request.operation_name())
-            .ok()
-            .map(|normalized_query| GraphqlOperationMetricsAttributes {
-                normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
-                name: operation.name.clone(),
-                ty: operation.ty.as_str(),
-                normalized_query,
-                status: GraphqlResponseStatus::Success,
-                cache_status: None,
-                client: self.request_metadata.client.clone(),
-            });
-        span.record_gql_request(GqlRequestAttributes {
-            operation_type: operation.ty.as_str(),
-            operation_name: operation.name.clone(),
-        });
-
         let response = if matches!(operation.ty, OperationType::Subscription) {
-            Response::from_error(GraphqlError::new(
+            Response::bad_request(GraphqlError::new(
                 "Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets",
             ))
         } else {
             match self.prepare_coordinator(operation, request.variables) {
                 Ok(coordinator) => coordinator.execute().await,
-                Err(errors) => Response::from_errors(errors),
+                Err(errors) => Response::bad_request_from_errors(errors),
             }
         };
 
-        (metrics_attributes, response)
+        (operation_attributes, response)
     }
 
     async fn execute_stream(
         self,
-        span: Span,
         mut request: Request,
         mut sender: mpsc::Sender<Response>,
-    ) -> Option<GraphqlOperationMetricsAttributes> {
-        let operation = match self.prepare_operation(&mut request).await {
-            Ok(operation) => operation,
-            Err(err) => {
-                sender.send(Response::from_error(err)).await.ok();
-                return None;
+    ) -> (Option<GraphqlOperationMetricsAttributes>, GraphqlResponseStatus) {
+        if let Err(err) = self.handle_persisted_query(&mut request).await {
+            let response = Response::bad_request(err);
+            let status = response.status();
+            sender.send(response).await.ok();
+            return (None, status);
+        }
+        let (operation, operation_attributes) = match Operation::build(self, &request) {
+            Ok(res) => res,
+            Err(mut err) => {
+                let attrs = err.take_operation_attributes();
+                let response = Response::bad_request(err);
+                let status = response.status();
+                sender.send(response).await.ok();
+                return (attrs, status);
             }
         };
-        // Same behavior as in our workers for now
-        // If the query didn't parse, or didn't have the named/unnamed operation (or any operations),
-        // we skip it from the analytics.
-        let metrics_attributes = operation_normalizer::normalize(request.query(), request.operation_name())
-            .ok()
-            .map(|normalized_query| GraphqlOperationMetricsAttributes {
-                normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
-                name: operation.name.clone(),
-                ty: operation.ty.as_str(),
-                normalized_query,
-                status: GraphqlResponseStatus::Success,
-                cache_status: None,
-                client: self.request_metadata.client.clone(),
-            });
-        span.record_gql_request(GqlRequestAttributes {
-            operation_type: operation.ty.as_str(),
-            operation_name: operation.name.clone(),
-        });
 
         let coordinator = match self.prepare_coordinator(operation, request.variables) {
             Ok(coordinator) => coordinator,
             Err(errors) => {
-                sender.send(Response::from_errors(errors)).await.ok();
-                return metrics_attributes;
+                let response = Response::bad_request_from_errors(errors);
+                let status = response.status();
+                sender.send(response).await.ok();
+                return (operation_attributes, status);
             }
         };
 
@@ -251,23 +261,33 @@ impl<'ctx> ExecutionContext<'ctx> {
             coordinator.operation().ty,
             OperationType::Query | OperationType::Mutation
         ) {
-            sender.send(coordinator.execute().await).await.ok();
-            return metrics_attributes;
+            let response = coordinator.execute().await;
+            let status = response.status();
+            sender.send(response).await.ok();
+            return (operation_attributes, status);
         }
 
-        struct Sender {
+        let mut status: GraphqlResponseStatus = GraphqlResponseStatus::Success;
+        struct Sender<'a> {
             sender: mpsc::Sender<Response>,
+            status: &'a mut GraphqlResponseStatus,
         }
 
-        impl crate::execution::ResponseSender for Sender {
+        impl crate::execution::ResponseSender for Sender<'_> {
             type Error = mpsc::SendError;
             async fn send(&mut self, response: Response) -> Result<(), Self::Error> {
+                *self.status = self.status.union(response.status());
                 self.sender.send(response).await
             }
         }
 
-        coordinator.execute_subscription(Sender { sender }).await;
-        metrics_attributes
+        coordinator
+            .execute_subscription(Sender {
+                sender,
+                status: &mut status,
+            })
+            .await;
+        (operation_attributes, status)
     }
 
     fn prepare_coordinator(
@@ -282,12 +302,6 @@ impl<'ctx> ExecutionContext<'ctx> {
             Arc::new(OperationPlan::prepare(&self.schema, &variables, operation).map_err(|err| vec![err.into()])?);
 
         Ok(ExecutionCoordinator::new(self, operation_plan, variables))
-    }
-
-    async fn prepare_operation(self, request: &mut engine::Request) -> Result<Operation, GraphqlError> {
-        self.handle_persisted_query(request).await?;
-        let operation = Operation::build(self, request)?;
-        Ok(operation)
     }
 }
 

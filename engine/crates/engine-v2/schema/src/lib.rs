@@ -28,7 +28,7 @@ mod built_info {
 }
 
 impl Schema {
-    pub fn serde_version() -> Vec<u8> {
+    pub fn commit_sha() -> Vec<u8> {
         hex::decode(built_info::GIT_COMMIT_HASH.expect("No git commit hash found")).expect("Expect hex format")
     }
 }

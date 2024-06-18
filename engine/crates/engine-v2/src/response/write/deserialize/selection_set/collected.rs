@@ -8,28 +8,28 @@ use crate::{
     plan::{CollectedField, CollectedSelectionSetId, PlanBoundaryId, RuntimeCollectedSelectionSet},
     response::{
         value::{ResponseObjectFields, RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD},
-        write::deserialize::{key::Key, FieldSeed, SeedContextInner},
-        ResponseBoundaryItem, ResponseEdge, ResponseObject, ResponseValue,
+        write::deserialize::{key::Key, FieldSeed, SeedContext},
+        ResponseEdge, ResponseObject, ResponseObjectRef, ResponseValue,
     },
 };
 
 /// Seed for a collected selection set, meaning we know exactly which fields should be present
 /// or not. There is no field with type conditions anymore.
 pub(crate) struct CollectedSelectionSetSeed<'ctx, 'parent> {
-    pub ctx: &'parent SeedContextInner<'ctx>,
+    pub ctx: &'parent SeedContext<'ctx>,
     pub boundary_ids: &'parent [PlanBoundaryId],
     pub fields_seed: CollectedFieldsSeed<'ctx, 'parent>,
 }
 
 pub(crate) struct CollectedFieldsSeed<'ctx, 'parent> {
-    pub ctx: &'parent SeedContextInner<'ctx>,
+    pub ctx: &'parent SeedContext<'ctx>,
     pub selection_set_ty: SelectionSetType,
     pub fields: &'parent [CollectedField],
     pub typename_fields: &'parent [ResponseEdge],
 }
 
 impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
-    pub fn new_from_id(ctx: &'parent SeedContextInner<'ctx>, id: CollectedSelectionSetId) -> Self {
+    pub fn new_from_id(ctx: &'parent SeedContext<'ctx>, id: CollectedSelectionSetId) -> Self {
         let selection_set = &ctx.plan[id];
         Self {
             ctx,
@@ -48,7 +48,7 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
         }
     }
 
-    pub fn new(ctx: &'parent SeedContextInner<'ctx>, selection_set: &'parent RuntimeCollectedSelectionSet) -> Self {
+    pub fn new(ctx: &'parent SeedContext<'ctx>, selection_set: &'parent RuntimeCollectedSelectionSet) -> Self {
         Self {
             ctx,
             boundary_ids: &selection_set.boundary_ids,
@@ -85,21 +85,21 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedSelectionSetSeed<'ctx, 'paren
     where
         A: MapAccess<'de>,
     {
-        let (maybe_object_id, fields) = self.fields_seed.visit_map(map)?;
-        let mut data = self.ctx.response_part.borrow_mut();
+        let (maybe_object_definition_id, fields) = self.fields_seed.visit_map(map)?;
 
-        let id = data.push_object(ResponseObject::new(fields));
+        let id = self.ctx.writer.push_object(ResponseObject::new(fields));
         if !self.boundary_ids.is_empty() {
-            let Some(object_id) = maybe_object_id else {
+            let Some(definition_id) = maybe_object_definition_id else {
                 return Err(serde::de::Error::custom("Could not determine the __typename"));
             };
-            for boundary_id in self.boundary_ids {
-                data[*boundary_id].push(ResponseBoundaryItem {
-                    response_object_id: id,
-                    response_path: self.ctx.response_path(),
-                    object_id,
-                });
-            }
+            self.ctx.writer.push_boundary_response_object(
+                self.boundary_ids,
+                ResponseObjectRef {
+                    id,
+                    path: self.ctx.response_path(),
+                    definition_id,
+                },
+            );
         }
 
         Ok(id.into())

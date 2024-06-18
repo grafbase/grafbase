@@ -4,22 +4,21 @@ use super::{BoundResponseKey, ResponseEdge, UnpackedResponseEdge};
 pub struct ResponsePath(Vec<ResponseEdge>);
 
 impl ResponsePath {
-    pub fn child(&self, segment: impl Into<ResponseEdge>) -> ResponsePath {
-        let mut path = self.0.clone();
-        path.push(segment.into());
-        ResponsePath(path)
+    pub fn child(&self, edge: impl Into<ResponseEdge>) -> ResponsePath {
+        let mut path = self.clone();
+        path.push(edge);
+        path
     }
 
-    pub fn push(&mut self, edge: ResponseEdge) {
-        self.0.push(edge);
+    pub fn push(&mut self, edge: impl Into<ResponseEdge>) {
+        self.0.push(edge.into());
     }
+}
 
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &ResponseEdge> {
-        self.0.iter()
+impl std::ops::Deref for ResponsePath {
+    type Target = [ResponseEdge];
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 

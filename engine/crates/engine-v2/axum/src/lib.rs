@@ -5,7 +5,7 @@ use runtime::bytes::OwnedOrSharedBytes;
 pub mod websocket;
 
 pub fn error(message: &str) -> axum::response::Response {
-    into_response(HttpGraphqlResponse::error(message))
+    into_response(HttpGraphqlResponse::request_error(message))
 }
 
 pub fn into_response(response: HttpGraphqlResponse) -> axum::response::Response {

@@ -1,26 +1,24 @@
-use std::sync::Arc;
-
 use grafbase_tracing::span::subgraph::SubgraphRequestSpan;
 use runtime::fetch::FetchRequest;
 use schema::{
     sources::graphql::{FederationEntityResolverWalker, GraphqlEndpointId, GraphqlEndpointWalker},
     HeaderValueRef,
 };
+use serde::de::DeserializeSeed;
 use tracing::Instrument;
 
 use crate::{
     execution::ExecutionContext,
     operation::OperationType,
     plan::{PlanWalker, PlanningResult},
-    response::{ResponseBoundaryItem, ResponsePart},
-    sources::{ExecutionResult, Executor, ExecutorInput, Plan},
+    response::ResponsePart,
+    sources::{
+        graphql::deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},
+        ExecutionResult, Executor, ExecutorInput, Plan,
+    },
 };
 
-use super::{
-    deserialize::{ingest_deserializer_into_response, EntitiesDataSeed},
-    query::PreparedFederationEntityOperation,
-    variables::SubgraphVariables,
-};
+use super::{deserialize::EntitiesDataSeed, query::PreparedFederationEntityOperation, variables::SubgraphVariables};
 
 pub(crate) struct FederationEntityExecutionPlan {
     subgraph_id: GraphqlEndpointId,
@@ -41,12 +39,11 @@ impl FederationEntityExecutionPlan {
     pub fn new_executor<'ctx>(&'ctx self, input: ExecutorInput<'ctx, '_>) -> ExecutionResult<Executor<'ctx>> {
         let ExecutorInput {
             ctx,
-            boundary_objects_view,
             plan,
-            response_part,
+            root_response_objects,
         } = input;
 
-        let boundary_objects_view = boundary_objects_view.with_extra_constant_fields(vec![(
+        let root_response_objects = root_response_objects.with_extra_constant_fields(vec![(
             "__typename".to_string(),
             serde_json::Value::String(
                 ctx.engine
@@ -57,11 +54,10 @@ impl FederationEntityExecutionPlan {
                     .to_string(),
             ),
         )]);
-        let response_boundary_items = boundary_objects_view.items().clone();
         let variables = SubgraphVariables {
             plan,
             variables: &self.operation.variables,
-            inputs: vec![(&self.operation.entities_variable_name, boundary_objects_view)],
+            inputs: vec![(&self.operation.entities_variable_name, root_response_objects)],
         };
 
         let subgraph = ctx.engine.schema.walk(self.subgraph_id);
@@ -82,9 +78,7 @@ impl FederationEntityExecutionPlan {
             subgraph,
             operation: &self.operation,
             json_body,
-            response_boundary_items,
             plan,
-            response_part,
         }))
     }
 }
@@ -94,15 +88,13 @@ pub(crate) struct FederationEntityExecutor<'ctx> {
     subgraph: GraphqlEndpointWalker<'ctx>,
     operation: &'ctx PreparedFederationEntityOperation,
     json_body: String,
-    response_boundary_items: Arc<Vec<ResponseBoundaryItem>>,
     plan: PlanWalker<'ctx>,
-    response_part: ResponsePart,
 }
 
 impl<'ctx> FederationEntityExecutor<'ctx> {
     #[tracing::instrument(skip_all, fields(plan_id = %self.plan.id(), federated_subgraph = %self.subgraph.name()))]
-    pub async fn execute(mut self) -> ExecutionResult<ResponsePart> {
-        let subgraph_request_span = SubgraphRequestSpan::new(self.subgraph.name())
+    pub async fn execute(self, mut response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
+        let subgraph_gql_request_span = SubgraphRequestSpan::new(self.subgraph.name())
             .with_url(self.subgraph.url())
             .with_operation_type(OperationType::Query.as_ref())
             // The query string contains no input values, only variables. So it's safe to log.
@@ -135,24 +127,23 @@ impl<'ctx> FederationEntityExecutor<'ctx> {
                 .await?
                 .bytes;
             tracing::debug!("{}", String::from_utf8_lossy(&bytes));
-            let root_err_path = self
-                .plan
-                .root_error_path(&self.response_boundary_items[0].response_path);
-            let seed_ctx = self.plan.new_seed(&mut self.response_part);
-            ingest_deserializer_into_response(
-                &seed_ctx,
-                &root_err_path,
-                EntitiesDataSeed {
-                    ctx: seed_ctx.clone(),
-                    response_boundary: &self.response_boundary_items,
-                },
-                &mut serde_json::Deserializer::from_slice(&bytes),
-            );
-            ExecutionResult::Ok(())
-        }
-        .instrument(subgraph_request_span.clone())
-        .await?;
 
-        Ok(self.response_part)
+            let part = response_part.as_mut();
+
+            GraphqlResponseSeed::new(
+                EntitiesDataSeed {
+                    response_part: &part,
+                    plan: self.plan,
+                },
+                EntitiesErrorsSeed {
+                    response_part: &part,
+                    response_keys: self.plan.response_keys(),
+                },
+            )
+            .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
+            Ok(response_part)
+        }
+        .instrument(subgraph_gql_request_span.clone())
+        .await
     }
 }

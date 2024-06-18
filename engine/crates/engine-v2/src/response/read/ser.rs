@@ -1,8 +1,8 @@
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use crate::response::{
-    BadRequestResponse, GraphqlError, InitialResponse, Response, ResponseData, ResponseKeys, ResponseListId,
-    ResponseObject, ResponseObjectId, ResponsePath, ResponseValue, UnpackedResponseEdge,
+    BadRequestResponse, ExecutionFailureResponse, GraphqlError, InitialResponse, Response, ResponseData, ResponseKeys,
+    ResponseListId, ResponseObject, ResponseObjectId, ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
 
 impl serde::Serialize for Response {
@@ -27,6 +27,22 @@ impl serde::Serialize for Response {
             }
             Response::BadRequest(BadRequestResponse { errors, .. }) => {
                 let mut map = serializer.serialize_map(Some(1))?;
+                // Shouldn't happen, but better safe than sorry.
+                if !errors.is_empty() {
+                    let empty_keys = ResponseKeys::default();
+                    map.serialize_entry(
+                        "errors",
+                        &SerializableErrors {
+                            keys: &empty_keys,
+                            errors,
+                        },
+                    )?;
+                }
+                map.end()
+            }
+            Response::ExecutionFailure(ExecutionFailureResponse { errors, .. }) => {
+                let mut map = serializer.serialize_map(Some(2))?;
+                map.serialize_entry("data", &serde_json::Value::Null)?;
                 // Shouldn't happen, but better safe than sorry.
                 if !errors.is_empty() {
                     let empty_keys = ResponseKeys::default();

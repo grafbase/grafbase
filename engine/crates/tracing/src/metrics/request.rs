@@ -35,10 +35,7 @@ impl RequestMetrics {
         latency: std::time::Duration,
     ) {
         let mut attributes = Vec::new();
-        // No status code is simply assumed to be 200
-        if status_code != 200 {
-            attributes.push(KeyValue::new("http.response.status_code", status_code as i64));
-        }
+        attributes.push(KeyValue::new("http.response.status_code", status_code as i64));
         if let Some(cache_status) = cache_status {
             attributes.push(KeyValue::new("http.response.headers.cache_status", cache_status));
         }
@@ -48,8 +45,7 @@ impl RequestMetrics {
                 attributes.push(KeyValue::new("http.headers.x-grafbase-client-version", version));
             }
         }
-        // We only really care about keeping track of errors.
-        if let Some(status) = gql_status.filter(|s| !s.is_success()) {
+        if let Some(status) = gql_status {
             attributes.push(KeyValue::new("gql.response.status", status.as_str()));
         }
         self.latency.record(latency.as_millis() as u64, &attributes);

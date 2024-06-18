@@ -1,6 +1,7 @@
 use futures::{StreamExt, TryStreamExt};
 use futures_util::{stream::BoxStream, Stream};
 use gateway_core::StreamingFormat;
+use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
 use headers::HeaderMapExt;
 use runtime::bytes::OwnedOrSharedBytes;
 
@@ -37,17 +38,16 @@ impl HttpGraphqlResponseBody {
 }
 
 impl HttpGraphqlResponse {
-    pub fn error(message: &str) -> HttpGraphqlResponse {
-        Self::from_json_bytes(
-            serde_json::to_vec(&serde_json::json!({
+    pub fn request_error(message: &str) -> HttpGraphqlResponse {
+        Self::from_json(
+            GraphqlResponseStatus::RequestError { count: 1 },
+            &serde_json::json!({
                 "errors": [
                     {
                         "message": message,
                     }
                 ]
-            }))
-            .expect("valid json")
-            .into(),
+            }),
         )
     }
 
@@ -56,28 +56,12 @@ impl HttpGraphqlResponse {
         self
     }
 
-    pub(crate) fn from_bytes(bytes: OwnedOrSharedBytes) -> HttpGraphqlResponse {
-        let mut headers = http::HeaderMap::new();
-        headers.typed_insert(headers::ContentLength(bytes.len() as u64));
-        HttpGraphqlResponse {
-            headers,
-            metadata: OperationMetadata::default(),
-            body: HttpGraphqlResponseBody::Bytes(bytes),
-        }
-    }
-
-    pub(crate) fn from_json_bytes(bytes: OwnedOrSharedBytes) -> HttpGraphqlResponse {
-        let mut response = Self::from_bytes(bytes);
-        response.headers.typed_insert(headers::ContentType::json());
-        response
-    }
-
-    pub(crate) fn from_json(value: &impl serde::Serialize) -> HttpGraphqlResponse {
+    pub(crate) fn from_json(status: GraphqlResponseStatus, value: &impl serde::Serialize) -> HttpGraphqlResponse {
         match serde_json::to_vec(value) {
-            Ok(bytes) => Self::from_json_bytes(bytes.into()),
+            Ok(bytes) => Self::from_json_bytes(status, bytes.into()),
             Err(err) => {
                 tracing::error!("Failed to serialize response: {}", err);
-                Self::error("Internal Server Error")
+                Self::request_error("Internal Server Error")
             }
         }
     }
@@ -86,14 +70,20 @@ impl HttpGraphqlResponse {
         // Currently we only output JSON and those can be easily stitched together for a batch
         // response so we avoid a serde round-trip.
         let mut bytes_batch = Vec::new();
+        let mut status = GraphqlResponseStatus::Success;
         for response in responses {
             // Sanity check
             assert_eq!(
                 response.headers.typed_get::<headers::ContentType>(),
                 Some(headers::ContentType::json())
             );
+            // Kind of best effort at this stage to return something sensible for the request
+            // trace/metric
+            if let Some(response_status) = response.headers.typed_get::<GraphqlResponseStatus>() {
+                status = status.union(response_status);
+            }
             let HttpGraphqlResponseBody::Bytes(bytes) = response.body else {
-                return Self::error("Cannot use stream response with batch request.");
+                return Self::request_error("Cannot use stream response with batch request.");
             };
             bytes_batch.push(bytes);
         }
@@ -111,12 +101,30 @@ impl HttpGraphqlResponse {
             }
         }
         body.push(b']');
-        HttpGraphqlResponse::from_json_bytes(body.into())
+        HttpGraphqlResponse::from_json_bytes(status, body.into())
     }
 
-    pub(crate) fn stream_error(format: StreamingFormat, message: &str) -> HttpGraphqlResponse {
+    fn from_json_bytes(status: GraphqlResponseStatus, bytes: OwnedOrSharedBytes) -> HttpGraphqlResponse {
+        let mut response = Self::from_bytes(status, bytes);
+        response.headers.typed_insert(headers::ContentType::json());
+        response
+    }
+
+    fn from_bytes(status: GraphqlResponseStatus, bytes: OwnedOrSharedBytes) -> HttpGraphqlResponse {
+        let mut headers = http::HeaderMap::new();
+        headers.typed_insert(status);
+        headers.typed_insert(headers::ContentLength(bytes.len() as u64));
+        HttpGraphqlResponse {
+            headers,
+            metadata: OperationMetadata::default(),
+            body: HttpGraphqlResponseBody::Bytes(bytes),
+        }
+    }
+
+    pub(crate) fn stream_request_error(format: StreamingFormat, message: &str) -> HttpGraphqlResponse {
         Self::from_stream(
             format,
+            GraphqlResponseStatus::RequestError { count: 1 },
             futures_util::stream::iter(std::iter::once(serde_json::json!({
                 "errors": [
                     {
@@ -127,11 +135,16 @@ impl HttpGraphqlResponse {
         )
     }
 
-    pub(crate) fn from_stream<T>(format: StreamingFormat, stream: impl Stream<Item = T> + Send + 'static) -> Self
+    pub(crate) fn from_stream<T>(
+        format: StreamingFormat,
+        status: GraphqlResponseStatus,
+        stream: impl Stream<Item = T> + Send + 'static,
+    ) -> Self
     where
         T: serde::Serialize + Send,
     {
-        let (headers, stream) = gateway_core::encode_stream_response(stream, format);
+        let (mut headers, stream) = gateway_core::encode_stream_response(stream, format);
+        headers.typed_insert(status);
         Self {
             headers,
             metadata: OperationMetadata::default(),

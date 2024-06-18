@@ -1,3 +1,4 @@
+use grafbase_tracing::{gql_response_status::GraphqlResponseStatus, metrics::GraphqlOperationMetricsAttributes};
 use schema::CacheControl;
 
 use crate::{execution::ExecutionContext, response::GraphqlError};
@@ -7,19 +8,39 @@ use super::{Operation, OperationCacheControl, OperationWalker, SelectionSetWalke
 #[derive(Debug, thiserror::Error)]
 pub enum OperationError {
     #[error(transparent)]
-    Bind(#[from] super::bind::BindError),
-    #[error(transparent)]
-    Validation(#[from] super::validation::ValidationError),
-    #[error(transparent)]
     Parse(#[from] super::parse::ParseError),
+    #[error("{err}")]
+    Bind {
+        operation_attributes: Box<Option<GraphqlOperationMetricsAttributes>>,
+        err: super::bind::BindError,
+    },
+    #[error("{err}")]
+    Validation {
+        operation_attributes: Box<Option<GraphqlOperationMetricsAttributes>>,
+        err: super::validation::ValidationError,
+    },
 }
 
 impl From<OperationError> for GraphqlError {
     fn from(err: OperationError) -> Self {
         match err {
-            OperationError::Bind(err) => err.into(),
-            OperationError::Validation(err) => err.into(),
+            OperationError::Bind { err, .. } => err.into(),
+            OperationError::Validation { err, .. } => err.into(),
             OperationError::Parse(err) => err.into(),
+        }
+    }
+}
+
+impl OperationError {
+    pub fn take_operation_attributes(&mut self) -> Option<GraphqlOperationMetricsAttributes> {
+        match self {
+            OperationError::Bind {
+                operation_attributes, ..
+            } => std::mem::take(operation_attributes),
+            OperationError::Validation {
+                operation_attributes, ..
+            } => std::mem::take(operation_attributes),
+            _ => None,
         }
     }
 }
@@ -30,17 +51,48 @@ impl Operation {
     ///
     /// All field names are mapped to their actual field id in the schema and respective configuration.
     /// At this stage the operation might not be resolvable but it should make sense given the schema types.
-    pub fn build(ctx: ExecutionContext<'_>, request: &engine::Request) -> Result<Self, OperationError> {
+    pub fn build(
+        ctx: ExecutionContext<'_>,
+        request: &engine::Request,
+    ) -> Result<(Self, Option<GraphqlOperationMetricsAttributes>), OperationError> {
         let schema = &ctx.engine.schema;
         let parsed_operation = super::parse::parse_operation(request)?;
-        let mut operation = super::bind::bind(schema, parsed_operation)?;
+        let operation_attributes = operation_normalizer::normalize(request.query(), request.operation_name())
+            .ok()
+            .map(|normalized_query| GraphqlOperationMetricsAttributes {
+                normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
+                name: parsed_operation.name.clone(),
+                ty: parsed_operation.definition.ty.as_str(),
+                normalized_query,
+                // overridden at the end.
+                status: GraphqlResponseStatus::Success,
+                cache_status: None,
+                client: ctx.request_metadata.client.clone(),
+            });
+
+        let mut operation = match super::bind::bind(schema, parsed_operation) {
+            Ok(operation) => operation,
+            Err(err) => {
+                return Err(OperationError::Bind {
+                    operation_attributes: Box::new(operation_attributes),
+                    err,
+                })
+            }
+        };
 
         // Creating a walker with no variables enabling validation to use them
         let variables = Variables::empty_for(&operation);
         operation.cache_control = compute_cache_control(operation.walker_with(schema.walker(), &variables), request);
-        super::validation::validate_operation(ctx, operation.walker_with(schema.walker(), &variables), request)?;
+        if let Err(err) =
+            super::validation::validate_operation(ctx, operation.walker_with(schema.walker(), &variables), request)
+        {
+            return Err(OperationError::Validation {
+                operation_attributes: Box::new(operation_attributes),
+                err,
+            });
+        }
 
-        Ok(operation)
+        Ok((operation, operation_attributes))
     }
 }
 
