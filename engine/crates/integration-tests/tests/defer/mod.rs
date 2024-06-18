@@ -147,7 +147,6 @@ fn test_defer_on_field_rejected() {
             .await
             .into_value(), @r###"
         {
-          "data": null,
           "errors": [
             {
               "message": "Directive \"defer\" may not be used on \"Field\"",
@@ -679,7 +678,6 @@ fn test_invalid_defer_parameters() {
             @r###"
         [
           {
-            "data": null,
             "errors": [
               {
                 "message": "Invalid value for argument \"if\", expected type \"Boolean\"",

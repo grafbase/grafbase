@@ -3336,6 +3336,7 @@ dependencies = [
  "opentelemetry_sdk",
  "pin-project-lite",
  "serde",
+ "serde_json",
  "tempfile",
  "thiserror",
  "toml",

@@ -1,6 +1,9 @@
 use tracing::{info_span, Span};
 
-use crate::span::{GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
+use crate::{
+    gql_response_status::GraphqlResponseStatus,
+    span::{GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes},
+};
 
 /// The name of the GraphQL span
 pub const GRAPHQL_SPAN_NAME: &str = "graphql";
@@ -11,24 +14,31 @@ pub const GRAPHQL_OPERATION_NAME_ATTRIBUTE: &str = "gql.operation.name";
 /// A span for a graphql request
 #[derive(Default)]
 pub struct GqlRequestSpan<'a> {
-    /// True if the response contains errors
-    has_errors: Option<bool>,
     /// The operation name from the graphql query
     operation_name: Option<&'a str>,
     /// The GraphQL operation type
     operation_type: Option<&'a str>,
     /// The GraphQL query
     document: Option<&'a str>,
+
+    // -- response --
+    status: Option<&'a str>,
+    field_errors_count: Option<u64>,
+    data_is_null: Option<bool>,
+    request_errors_count: Option<u64>,
 }
 
 impl<'a> GqlRequestSpan<'a> {
     /// Create a new instance
     pub fn new() -> Self {
         Self {
-            has_errors: None,
             operation_name: None,
             operation_type: None,
             document: None,
+            status: None,
+            field_errors_count: None,
+            data_is_null: None,
+            request_errors_count: None,
         }
     }
 
@@ -57,15 +67,18 @@ impl<'a> GqlRequestSpan<'a> {
             GRAPHQL_SPAN_NAME,
             "gql.operation.name" = self.operation_name,
             "gql.operation.type" = self.operation_type,
-            "gql.response.has_errors" = self.has_errors,
             "gql.document" = self.document,
             "otel.name" = format!("{GRAPHQL_SPAN_NAME}:{}", self.operation_name.unwrap_or("unknown")),
+            "gql.response.status" = self.status,
+            "gql.response.field_errors_count" = self.field_errors_count,
+            "gql.response.data_is_null" = self.data_is_null,
+            "gql.response.request_errors_count" = self.request_errors_count,
         )
     }
 }
 
 impl GqlRecorderSpanExt for Span {
-    fn record_gql_request(&self, attributes: GqlRequestAttributes<'_>) {
+    fn record_gql_request(&self, attributes: GqlRequestAttributes) {
         if let Some(name) = attributes.operation_name {
             self.record("gql.operation.name", name);
         }
@@ -73,6 +86,16 @@ impl GqlRecorderSpanExt for Span {
     }
 
     fn record_gql_response(&self, attributes: GqlResponseAttributes) {
-        self.record("gql.response.has_errors", attributes.has_errors);
+        self.record("gql.response.status", attributes.status.as_str());
+        match attributes.status {
+            GraphqlResponseStatus::Success => {}
+            GraphqlResponseStatus::FieldError { count, data_is_null } => {
+                self.record("gql.response.field_errors_count", count);
+                self.record("gql.response.data_is_null", data_is_null);
+            }
+            GraphqlResponseStatus::RequestError { count } => {
+                self.record("gql.response.request_errors_count", count);
+            }
+        }
     }
 }

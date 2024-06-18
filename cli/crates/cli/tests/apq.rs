@@ -74,7 +74,6 @@ async fn automatic_persisted_queries(#[case] method: reqwest::Method) {
     // Missing query
     insta::assert_json_snapshot!(execute("", &apq_ext).await, @r###"
     {
-      "data": null,
       "errors": [
         {
           "message": "Persisted query not found",
@@ -119,7 +118,6 @@ async fn automatic_persisted_queries(#[case] method: reqwest::Method) {
     });
     insta::assert_json_snapshot!(execute(query, &invalid_version).await, @r###"
     {
-      "data": null,
       "errors": [
         {
           "message": "Invalid persisted query sha256Hash"
@@ -137,7 +135,6 @@ async fn automatic_persisted_queries(#[case] method: reqwest::Method) {
     });
     insta::assert_json_snapshot!(execute(query, &invalid_version).await, @r###"
     {
-      "data": null,
       "errors": [
         {
           "message": "Persisted query version not supported"

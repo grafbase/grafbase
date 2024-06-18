@@ -16,7 +16,7 @@ pub trait StreamExt<'a> {
     /// This can be used when you have the receiving side of a channel and a future that sends
     /// on that channel - combining the two into a single stream that'll run till the channel
     /// is exhausted.  If you drop the stream you also cancel the underlying process.
-    fn join<F>(self, future: F) -> impl Stream<Item = Self::Item> + 'a
+    fn join<F>(self, future: F) -> impl Stream<Item = Self::Item> + Send + 'a
     where
         F: Future<Output = ()> + Send + 'a;
 }
@@ -28,7 +28,7 @@ where
 {
     type Item = Item;
 
-    fn join<F>(self, future: F) -> impl Stream<Item = Self::Item> + 'a
+    fn join<F>(self, future: F) -> impl Stream<Item = Self::Item> + Send + 'a
     where
         F: Future<Output = ()> + Send + 'a,
     {

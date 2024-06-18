@@ -1,6 +1,6 @@
 #![allow(dead_code)] // Can remove this when this code is being used.
 
-use std::{collections::HashMap, future::IntoFuture, sync::Arc};
+use std::{collections::HashMap, future::IntoFuture, str::FromStr, sync::Arc};
 
 use engine::{AuthConfig, Variables};
 use futures::future::BoxFuture;
@@ -23,6 +23,15 @@ pub struct GatewayBuilder {
 }
 
 impl GatewayBuilder {
+    pub fn new(engine: super::Engine) -> Self {
+        Self {
+            engine: Arc::new(engine),
+            partial_cache_registry: unsafe { PartialCacheRegistry::empty() },
+            trusted_documents: None,
+            auth_config: Default::default(),
+            authorizers: None,
+        }
+    }
     pub fn with_authorizers(self, authorizers: RustUdfs) -> Self {
         Self {
             authorizers: Some(authorizers),
@@ -94,7 +103,9 @@ impl gateway_core::Authorizer for AnythingGoes {
     }
 }
 
-pub struct GatewayTesterRequestContext {}
+pub struct GatewayTesterRequestContext {
+    headers: http::HeaderMap,
+}
 
 #[async_trait::async_trait]
 impl RequestContext for GatewayTesterRequestContext {
@@ -107,7 +118,7 @@ impl RequestContext for GatewayTesterRequestContext {
     }
 
     fn headers(&self) -> &http::HeaderMap {
-        todo!("probably want to implement this")
+        &self.headers
     }
 }
 
@@ -161,7 +172,21 @@ impl IntoFuture for GatewayTesterExecutionRequest {
 
             // TODO: Do something with headers...
             self.gateway
-                .execute(&Arc::new(GatewayTesterRequestContext {}), request)
+                .execute(
+                    &Arc::new(GatewayTesterRequestContext {
+                        headers: self
+                            .headers
+                            .into_iter()
+                            .map(|(k, v)| {
+                                (
+                                    http::HeaderName::from_str(&k).expect("valid header name"),
+                                    http::HeaderValue::from_str(&v).expect("valid header value"),
+                                )
+                            })
+                            .collect(),
+                    }),
+                    request,
+                )
                 .await
             // TODO: Probably want to do any wait_untils here as well...
         })

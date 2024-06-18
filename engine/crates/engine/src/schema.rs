@@ -1,12 +1,13 @@
 use std::any::TypeId;
 use std::{any::Any, ops::Deref, sync::Arc};
 
-use engine_validation::check_strict_rules;
+use engine_validation::{check_strict_rules, ValidationResult};
 use futures_util::stream::{self, Stream, StreamExt};
 use futures_util::FutureExt;
+use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
 use grafbase_tracing::metrics::GraphqlOperationMetrics;
-use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes};
-use graph_entities::CompactValue;
+use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes};
+use graph_entities::{CompactValue, QueryResponse};
 
 use registry_v2::OperationLimits;
 use tracing::{Instrument, Span};
@@ -29,10 +30,12 @@ use crate::{
     response::{IncrementalPayload, StreamingPayload},
     subscription::collect_subscription_streams,
     types::QueryRoot,
-    BatchRequest, BatchResponse, CacheControl, ContextExt, ContextSelectionSet, LegacyInputType, LegacyOutputType,
-    ObjectType, QueryEnv, QueryEnvBuilder, QueryPath, Request, Response, ServerError, SubscriptionType, Variables,
+    BatchRequest, BatchResponse, ContextExt, ContextSelectionSet, LegacyInputType, LegacyOutputType, ObjectType,
+    QueryEnv, QueryEnvBuilder, QueryPath, Request, Response, ServerError, SubscriptionType, Variables,
 };
-use crate::{new_futures_spawner, registry_operation_type_from_parser, QuerySpawnedFuturesWaiter};
+use crate::{
+    new_futures_spawner, registry_operation_type_from_parser, GraphqlOperationMetadata, QuerySpawnedFuturesWaiter,
+};
 
 /// Schema builder
 pub struct SchemaBuilder {
@@ -237,19 +240,53 @@ impl Schema {
         mut extensions: Extensions,
         request: Request,
         session_data: Arc<Data>,
-    ) -> Result<(QueryEnvBuilder, QuerySpawnedFuturesWaiter, CacheControl), Vec<ServerError>> {
+    ) -> Result<(QueryEnvBuilder, QuerySpawnedFuturesWaiter), (Option<GraphqlOperationMetadata>, Vec<ServerError>)>
+    {
         let mut request = request;
         let query_data = Arc::new(std::mem::take(&mut request.data));
         extensions.attach_query_data(query_data.clone());
 
-        let request = extensions.prepare_request(request).await?;
+        let request = extensions
+            .prepare_request(request)
+            .await
+            .map_err(|err| (None, vec![err]))?;
         let mut document = {
             let query = request.query();
             let fut_parse = async { parse_query(query).map_err(Into::<ServerError>::into) };
             futures_util::pin_mut!(fut_parse);
             extensions
                 .parse_query(query, &request.variables, &mut fut_parse)
-                .await?
+                .await
+                .map_err(|err| (None, vec![err]))?
+        };
+
+        let operation_metadata = if let Some(operation_name) = request.operation_name() {
+            match &document.operations {
+                DocumentOperations::Multiple(operations) => {
+                    operations
+                        .get(operation_name)
+                        .map(|operation| GraphqlOperationMetadata {
+                            name: Some(operation_name.to_string()),
+                            r#type: response_operation_for_definition(&operation.node),
+                        })
+                }
+                _ => None,
+            }
+        } else {
+            match &document.operations {
+                DocumentOperations::Single(operation) => Some(GraphqlOperationMetadata {
+                    name: None,
+                    r#type: response_operation_for_definition(&operation.node),
+                }),
+                DocumentOperations::Multiple(operations) if operations.len() == 1 => {
+                    let (operation_name, operation) = operations.iter().next().unwrap();
+                    Some(GraphqlOperationMetadata {
+                        name: Some(operation_name.to_string()),
+                        r#type: response_operation_for_definition(&operation.node),
+                    })
+                }
+                _ => None,
+            }
         };
 
         // check rules
@@ -259,62 +296,33 @@ impl Schema {
                     .map_err(|errors| errors.into_iter().map(ServerError::from).collect())
             };
             futures_util::pin_mut!(validation_fut);
-            extensions.validation(&mut validation_fut).await?
+            match extensions.validation(&mut validation_fut).await {
+                Ok(res) => res,
+                Err(errors) => return Err((operation_metadata, errors)),
+            }
         };
 
-        if !request.operation_limits_disabled() {
-            // Check limits.
-            if let Some(limit_complexity) = self.operation_limits.complexity {
-                if validation_result.complexity > limit_complexity as usize {
-                    return Err(vec![ServerError::new("Query is too complex.", None)]);
-                }
-            }
-
-            if let Some(limit_depth) = self.operation_limits.depth {
-                if validation_result.depth > limit_depth as usize {
-                    return Err(vec![ServerError::new("Query is nested too deep.", None)]);
-                }
-            }
-
-            if let Some(height) = self.operation_limits.height {
-                if validation_result.height > height as usize {
-                    return Err(vec![ServerError::new("Query is too high.", None)]);
-                }
-            }
-
-            if let Some(root_field_count) = self.operation_limits.root_fields {
-                if validation_result.root_field_count > root_field_count as usize {
-                    return Err(vec![ServerError::new("Query has too many root fields.", None)]);
-                }
-            }
-
-            if let Some(alias_count) = self.operation_limits.aliases {
-                if validation_result.alias_count > alias_count as usize {
-                    return Err(vec![ServerError::new("Query has too many aliases.", None)]);
-                }
-            }
-        }
-
-        let operation = if let Some(operation_name) = request.operation_name() {
+        let mut operation = if let Some(operation_name) = request.operation_name() {
             match document.operations {
                 DocumentOperations::Single(_) => None,
-                DocumentOperations::Multiple(mut operations) => operations
-                    .remove(operation_name)
-                    .map(|operation| (Some(operation_name.to_string()), operation)),
+                DocumentOperations::Multiple(mut operations) => operations.remove(operation_name),
             }
             .ok_or_else(|| ServerError::new(format!(r#"Unknown operation named "{operation_name}""#), None))
         } else {
             match document.operations {
-                DocumentOperations::Single(operation) => Ok((None, operation)),
-                DocumentOperations::Multiple(map) if map.len() == 1 => {
-                    let (operation_name, operation) = map.into_iter().next().unwrap();
-                    Ok((Some(operation_name.to_string()), operation))
-                }
+                DocumentOperations::Single(operation) => Ok(operation),
+                DocumentOperations::Multiple(map) if map.len() == 1 => Ok(map.into_values().next().unwrap()),
                 DocumentOperations::Multiple(_) => Err(ServerError::new("Operation name required in request.", None)),
             }
-        };
+        }
+        .map_err(|err| (None, vec![err]))?;
 
-        let (operation_name, mut operation) = operation.map_err(|err| vec![err])?;
+        if !request.operation_limits_disabled() {
+            // Check limits.
+            if let Err(message) = self.validate_operation_limits(&validation_result) {
+                return Err((operation_metadata, vec![ServerError::new(message, None)]));
+            }
+        }
 
         // remove skipped fields
         for fragment in document.fragments.values_mut() {
@@ -331,10 +339,11 @@ impl Schema {
 
         let introspection_state = request.introspection_state();
         let (futures_spawner, futures_waiter) = new_futures_spawner();
+        let operation_metadata = operation_metadata.expect("Passed validation, so must be present");
         let env = QueryEnvInner {
             extensions,
             variables: request.variables,
-            operation_name,
+            operation_name: operation_metadata.name.clone(),
             operation,
             fragments: document.fragments,
             uploads: request.uploads,
@@ -348,12 +357,45 @@ impl Schema {
             response: Default::default(),
             deferred_workloads: None,
             futures_spawner,
+            cache_control: validation_result.cache_control,
+            operation_metadata,
         };
-        Ok((
-            QueryEnvBuilder::new(env),
-            futures_waiter,
-            validation_result.cache_control,
-        ))
+        Ok((QueryEnvBuilder::new(env), futures_waiter))
+    }
+
+    fn validate_operation_limits(&self, validation_result: &ValidationResult) -> Result<(), &'static str> {
+        // Check limits.
+        if let Some(limit_complexity) = self.operation_limits.complexity {
+            if validation_result.complexity > limit_complexity as usize {
+                return Err("Query is too complex.");
+            }
+        }
+
+        if let Some(limit_depth) = self.operation_limits.depth {
+            if validation_result.depth > limit_depth as usize {
+                return Err("Query is nested too deep.");
+            }
+        }
+
+        if let Some(height) = self.operation_limits.height {
+            if validation_result.height > height as usize {
+                return Err("Query is too high.");
+            }
+        }
+
+        if let Some(root_field_count) = self.operation_limits.root_fields {
+            if validation_result.root_field_count > root_field_count as usize {
+                return Err("Query has too many root fields.");
+            }
+        }
+
+        if let Some(alias_count) = self.operation_limits.aliases {
+            if validation_result.alias_count > alias_count as usize {
+                return Err("Query has too many aliases.");
+            }
+        }
+
+        Ok(())
     }
 
     async fn execute_once(&self, env: QueryEnv, futures_waiter: QuerySpawnedFuturesWaiter) -> Response {
@@ -385,27 +427,26 @@ impl Schema {
             _ = futures_waiter.wait_until_no_spawners_left().fuse() => unreachable!(),
         };
 
-        let operation_name =
-            env.operation_name
-                .as_deref()
-                .or_else(|| match env.operation.selection_set.node.items.as_slice() {
-                    [Positioned {
-                        node: Selection::Field(field),
-                        ..
-                    }] => Some(field.node.name.node.as_str()),
-                    _ => None,
-                });
-
         let mut resp = match res {
             Ok(value) => {
-                let response = &mut *ctx.response().await;
-                response.set_root_unchecked(value);
-                let operation_type = response_operation_for_definition(&env.operation);
-                Response::new(std::mem::take(response), operation_name, operation_type)
+                let data = &mut *ctx.response().await;
+                data.set_root_unchecked(value);
+                Response {
+                    data: std::mem::take(data),
+                    ..Default::default()
+                }
             }
-            Err(err) => Response::from_errors(vec![err], operation_name, &env.operation),
+            Err(err) => Response {
+                // At this point it can't be a request error anymore, so data must be present.
+                // Having an error propagating here just means it propagated up to the root and
+                // data is null.
+                data: QueryResponse::new_root(CompactValue::Null),
+                errors: vec![err],
+                ..Default::default()
+            },
         }
-        .http_headers(std::mem::take(&mut *env.response_http_headers.lock().unwrap()));
+        .http_headers(std::mem::take(&mut *env.response_http_headers.lock().unwrap()))
+        .with_graphql_operation(env.operation_metadata.clone());
 
         resp.errors.extend(std::mem::take(&mut *env.errors.lock().unwrap()));
         resp
@@ -414,43 +455,36 @@ impl Schema {
     /// Execute a GraphQL query.
     pub async fn execute(&self, request: impl Into<Request>) -> Response {
         let request = request.into();
-        let gql_span = GqlRequestSpan::new().into_span();
 
         let extensions = self.create_extensions(Default::default());
         let request_fut = {
             let extensions = extensions.clone();
             async move {
                 match self.prepare_request(extensions, request, Default::default()).await {
-                    Ok((env_builder, futures_waiter, cache_control)) => {
+                    Ok((env_builder, futures_waiter)) => {
                         let env = env_builder.build();
                         Span::current().record_gql_request(GqlRequestAttributes {
-                            operation_type: env.operation.ty.as_ref(),
-                            operation_name: env.operation_name.as_deref(),
+                            operation_type: env.operation.ty.as_str(),
+                            operation_name: env.operation_name.clone(),
                         });
 
                         let fut = async {
                             self.execute_once(env.clone(), futures_waiter)
                                 .await
-                                .cache_control(cache_control)
+                                .cache_control(env.cache_control.clone())
                         };
                         futures_util::pin_mut!(fut);
                         env.extensions
                             .execute(env.operation_name.as_deref(), &env.operation, &mut fut)
                             .await
                     }
-                    Err(errors) => Response::bad_request(errors),
+                    Err((operation_metadata, errors)) => Response::bad_request(errors, operation_metadata),
                 }
             }
         };
         futures_util::pin_mut!(request_fut);
 
-        let request = extensions.request(&mut request_fut).inspect(|response: &Response| {
-            Span::current().record_gql_response(GqlResponseAttributes {
-                has_errors: response.is_err(),
-            });
-        });
-
-        request.instrument(gql_span).await
+        extensions.request(&mut request_fut).await
     }
 
     /// Execute a GraphQL batch query.
@@ -494,30 +528,29 @@ impl Schema {
         let request = futures_util::stream::StreamExt::boxed({
             let extensions = extensions.clone();
             async_stream::stream! {
-                let (env_builder, futures_waiter, cache_control) = match schema.prepare_request(extensions, request, session_data).await {
+                let (env_builder, futures_waiter) = match schema.prepare_request(extensions, request, session_data).await {
                     Ok(res) => res,
-                    Err(errors) => {
-                        Span::current().record_gql_response(GqlResponseAttributes {
-                            has_errors: true,
-                        });
-                        yield Response::from_errors_with_type(errors, OperationType::Subscription).into_streaming_payload(false);
+                    Err((operation_metadata, errors)) => {
+                        Span::current().record_gql_status(GraphqlResponseStatus::RequestError { count: errors.len() as u64 });
+                        yield Response::bad_request(errors, operation_metadata).into_streaming_payload(false);
                         return;
                     }
                 };
 
-                let mut has_errors = false;
+                let mut status = GraphqlResponseStatus::Success;
                 let env = if env_builder.operation_type() != OperationType::Subscription {
                     let (sender, mut receiver) = deferred::workload_channel();
                     let env = env_builder.with_deferred_sender(sender).build();
                     Span::current().record_gql_request(GqlRequestAttributes {
-                        operation_type: env.operation.ty.as_ref(),
-                        operation_name: env.operation_name.as_deref(),
+                        operation_type: env.operation.ty.as_str(),
+                        operation_name: env.operation_name.clone()
                     });
 
                     let initial_response = schema
                         .execute_once(env.clone(), futures_waiter)
                         .await
-                        .cache_control(cache_control);
+                        .cache_control(env.cache_control.clone());
+                    status = initial_response.status();
 
                     let mut next_workload = receiver.receive();
 
@@ -529,8 +562,8 @@ impl Schema {
                         let mut next_response = process_deferred_workload(workload, &schema, &env).await;
                         next_workload = receiver.receive();
                         next_response.has_next = next_workload.is_some();
-                        has_errors |= !next_response.errors.is_empty();
-                        let response = next_response.into();
+                        let response: StreamingPayload = next_response.into();
+                        status = status.union(response.status());
 
                         yield response
                     }
@@ -539,8 +572,8 @@ impl Schema {
                     let env = env_builder.build();
 
                     Span::current().record_gql_request(GqlRequestAttributes {
-                        operation_type: env.operation.ty.as_ref(),
-                        operation_name: env.operation_name.as_deref(),
+                        operation_type: env.operation.ty.as_str(),
+                        operation_name: env.operation_name.clone()
                     });
 
                     let ctx = env.create_context(
@@ -551,31 +584,29 @@ impl Schema {
 
                     let mut streams = Vec::new();
                     if let Err(err) = collect_subscription_streams(&ctx, &crate::EmptySubscription, &mut streams) {
-                        has_errors = true;
+                        status = GraphqlResponseStatus::RequestError {count: 1};
                         // This hasNext: false is probably not correct, but we dont' support subscriptios atm so whatever
-                        yield Response::from_errors_with_type(vec![err], OperationType::Subscription).into_streaming_payload(false);
+                        yield Response::bad_request(vec![err], Some(env.operation_metadata.clone())).into_streaming_payload(false);
                     }
 
                     let mut stream = stream::select_all(streams);
                     while let Some(resp) = stream.next().await {
-                        has_errors |= !resp.errors.is_empty();
-                        yield resp.into_streaming_payload(false);
+                        let response = resp.into_streaming_payload(false);
+                        status = status.union(response.status());
+                        yield response
                     }
                     env.clone()
                 };
 
+                Span::current().record_gql_status(status);
                 if let Some(normalized_query) = normalized_query {
                     schema.env.operation_metrics.record(
                         grafbase_tracing::metrics::GraphqlOperationMetricsAttributes {
-                            ty: match env.operation.ty {
-                                OperationType::Query { .. } => "query",
-                                OperationType::Mutation => "mutation",
-                                OperationType::Subscription => "subscription",
-                            },
+                            ty: env.operation.ty.as_str(),
                             name: env.operation_name.clone(),
                             normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
                             normalized_query,
-                            has_errors,
+                            status,
                             cache_status: None,
                             client
                         },

@@ -9,8 +9,7 @@ mod otel;
 mod state;
 mod trusted_documents_client;
 
-use grafbase_tracing::metrics::HasGraphqlErrors;
-
+use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
 pub use graph_fetch_method::GraphFetchMethod;
 pub use otel::{OtelReload, OtelTracing};
 use tokio::sync::watch;
@@ -95,7 +94,7 @@ pub async fn serve(
         ))
         .layer(axum::middleware::map_response(
             |mut response: axum::response::Response<_>| async {
-                response.headers_mut().remove(HasGraphqlErrors::header_name());
+                response.headers_mut().remove(GraphqlResponseStatus::header_name());
                 response
             },
         ))

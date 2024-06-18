@@ -9,6 +9,7 @@ use futures_util::{SinkExt, Stream};
 use gateway_core::StreamingFormat;
 use gateway_v2_auth::AuthService;
 use grafbase_tracing::{
+    gql_response_status::GraphqlResponseStatus,
     grafbase_client::Client,
     metrics::{GraphqlOperationMetrics, GraphqlOperationMetricsAttributes},
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes},
@@ -169,7 +170,6 @@ impl<'ctx> ExecutionContext<'ctx> {
         let operation = match self.prepare_operation(&mut request).await {
             Ok(operation) => operation,
             Err(err) => {
-                span.record_has_error();
                 return (None, Response::from_error(err));
             }
         };
@@ -177,20 +177,20 @@ impl<'ctx> ExecutionContext<'ctx> {
         // Same behavior as in our workers for now
         // If the query didn't parse, or didn't have the named/unnamed operation (or any operations),
         // we skip it from the analytics.
-        let mut metrics_attributes = operation_normalizer::normalize(request.query(), request.operation_name())
+        let metrics_attributes = operation_normalizer::normalize(request.query(), request.operation_name())
             .ok()
             .map(|normalized_query| GraphqlOperationMetricsAttributes {
                 normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
                 name: operation.name.clone(),
                 ty: operation.ty.as_str(),
                 normalized_query,
-                has_errors: false,
+                status: GraphqlResponseStatus::Success,
                 cache_status: None,
                 client: self.request_metadata.client.clone(),
             });
         span.record_gql_request(GqlRequestAttributes {
             operation_type: operation.ty.as_str(),
-            operation_name: operation.name.as_deref(),
+            operation_name: operation.name.clone(),
         });
 
         let response = if matches!(operation.ty, OperationType::Subscription) {
@@ -204,13 +204,6 @@ impl<'ctx> ExecutionContext<'ctx> {
             }
         };
 
-        if response.has_errors() {
-            span.record_has_error();
-            if let Some(attrs) = &mut metrics_attributes {
-                attrs.has_errors = true;
-            }
-        }
-
         (metrics_attributes, response)
     }
 
@@ -223,7 +216,6 @@ impl<'ctx> ExecutionContext<'ctx> {
         let operation = match self.prepare_operation(&mut request).await {
             Ok(operation) => operation,
             Err(err) => {
-                span.record_has_error();
                 sender.send(Response::from_error(err)).await.ok();
                 return None;
             }
@@ -231,29 +223,25 @@ impl<'ctx> ExecutionContext<'ctx> {
         // Same behavior as in our workers for now
         // If the query didn't parse, or didn't have the named/unnamed operation (or any operations),
         // we skip it from the analytics.
-        let mut metrics_attributes = operation_normalizer::normalize(request.query(), request.operation_name())
+        let metrics_attributes = operation_normalizer::normalize(request.query(), request.operation_name())
             .ok()
             .map(|normalized_query| GraphqlOperationMetricsAttributes {
                 normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
                 name: operation.name.clone(),
                 ty: operation.ty.as_str(),
                 normalized_query,
-                has_errors: false,
+                status: GraphqlResponseStatus::Success,
                 cache_status: None,
                 client: self.request_metadata.client.clone(),
             });
         span.record_gql_request(GqlRequestAttributes {
             operation_type: operation.ty.as_str(),
-            operation_name: operation.name.as_deref(),
+            operation_name: operation.name.clone(),
         });
 
         let coordinator = match self.prepare_coordinator(operation, request.variables) {
             Ok(coordinator) => coordinator,
             Err(errors) => {
-                span.record_has_error();
-                if let Some(attrs) = &mut metrics_attributes {
-                    attrs.has_errors = true;
-                }
                 sender.send(Response::from_errors(errors)).await.ok();
                 return metrics_attributes;
             }
@@ -263,40 +251,22 @@ impl<'ctx> ExecutionContext<'ctx> {
             coordinator.operation().ty,
             OperationType::Query | OperationType::Mutation
         ) {
-            span.record_has_error();
-            if let Some(attrs) = &mut metrics_attributes {
-                attrs.has_errors = true;
-            }
             sender.send(coordinator.execute().await).await.ok();
             return metrics_attributes;
         }
 
-        struct Sender<'a> {
-            span: Span,
+        struct Sender {
             sender: mpsc::Sender<Response>,
-            metrics_attributes: &'a mut Option<GraphqlOperationMetricsAttributes>,
         }
 
-        impl crate::execution::ResponseSender for Sender<'_> {
+        impl crate::execution::ResponseSender for Sender {
             type Error = mpsc::SendError;
             async fn send(&mut self, response: Response) -> Result<(), Self::Error> {
-                if response.has_errors() {
-                    self.span.record_has_error();
-                    if let Some(attrs) = &mut self.metrics_attributes {
-                        attrs.has_errors = true;
-                    }
-                }
                 self.sender.send(response).await
             }
         }
 
-        coordinator
-            .execute_subscription(Sender {
-                span,
-                sender,
-                metrics_attributes: &mut metrics_attributes,
-            })
-            .await;
+        coordinator.execute_subscription(Sender { sender }).await;
         metrics_attributes
     }
 

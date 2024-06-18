@@ -1,6 +1,7 @@
 use std::{collections::BTreeMap, time::Duration};
 
 use engine_parser::types::{OperationDefinition, OperationType, Selection};
+use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
 use graph_entities::QueryResponse;
 use http::{
     header::{HeaderMap, HeaderName},
@@ -16,7 +17,7 @@ mod streaming;
 
 /// GraphQL operation used in the request.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct ResponseOperation {
+pub struct GraphqlOperationMetadata {
     pub name: Option<String>,
     pub r#type: common_types::OperationType,
 }
@@ -45,7 +46,7 @@ pub struct Response {
 
     /// GraphQL operation.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub graphql_operation: Option<ResponseOperation>,
+    pub graphql_operation: Option<GraphqlOperationMetadata>,
 }
 
 pub(crate) fn response_operation_for_definition(operation: &OperationDefinition) -> common_types::OperationType {
@@ -89,7 +90,7 @@ impl Response {
         data.shrink_to_fit();
         Self {
             data,
-            graphql_operation: Some(ResponseOperation {
+            graphql_operation: Some(GraphqlOperationMetadata {
                 name: operation_name.map(str::to_owned),
                 r#type: operation_type,
             }),
@@ -110,10 +111,10 @@ impl Response {
     }
 
     #[must_use]
-    pub fn bad_request(errors: Vec<ServerError>) -> Self {
+    pub fn bad_request(errors: Vec<ServerError>, graphql_operation: Option<GraphqlOperationMetadata>) -> Self {
         Self {
             errors,
-            graphql_operation: None,
+            graphql_operation,
             ..Default::default()
         }
     }
@@ -123,7 +124,7 @@ impl Response {
     pub fn from_errors_with_type(errors: Vec<ServerError>, operation_type: OperationType) -> Self {
         Self {
             errors,
-            graphql_operation: Some(ResponseOperation {
+            graphql_operation: Some(GraphqlOperationMetadata {
                 name: None,
                 r#type: match operation_type {
                     OperationType::Query => common_types::OperationType::Query {
@@ -137,20 +138,11 @@ impl Response {
         }
     }
 
-    /// Create a response from some errors.
     #[must_use]
-    pub fn from_errors(
-        errors: Vec<ServerError>,
-        operation_name: Option<&str>,
-        operation_definition: &OperationDefinition,
-    ) -> Self {
+    pub fn with_graphql_operation(self, graphql_operation: GraphqlOperationMetadata) -> Self {
         Self {
-            errors,
-            graphql_operation: Some(ResponseOperation {
-                name: operation_name.map(str::to_owned),
-                r#type: response_operation_for_definition(operation_definition),
-            }),
-            ..Default::default()
+            graphql_operation: Some(graphql_operation),
+            ..self
         }
     }
 
@@ -193,6 +185,21 @@ impl Response {
             Err(self.errors)
         } else {
             Ok(self)
+        }
+    }
+
+    pub fn status(&self) -> GraphqlResponseStatus {
+        if self.errors.is_empty() {
+            GraphqlResponseStatus::Success
+        } else if self.data.root.is_none() {
+            GraphqlResponseStatus::RequestError {
+                count: self.errors.len() as u64,
+            }
+        } else {
+            GraphqlResponseStatus::FieldError {
+                count: self.errors.len() as u64,
+                data_is_null: self.data.is_null(),
+            }
         }
     }
 }
@@ -283,7 +290,9 @@ impl serde::Serialize for GraphQlResponse<'_> {
         S: serde::Serializer,
     {
         let mut map = serializer.serialize_map(Some(5))?;
-        map.serialize_entry("data", &self.0.data.as_graphql_data())?;
+        if self.0.data.root.is_some() {
+            map.serialize_entry("data", &self.0.data.as_graphql_data())?;
+        }
         if !self.0.errors.is_empty() {
             map.serialize_entry("errors", &self.0.errors)?;
         }

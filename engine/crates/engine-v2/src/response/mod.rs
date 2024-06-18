@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
 pub(crate) use error::GraphqlError;
-use grafbase_tracing::metrics::HasGraphqlErrors;
-use headers::HeaderMapExt;
 pub use key::*;
 pub use path::*;
 pub use read::*;
@@ -74,10 +72,6 @@ impl std::fmt::Debug for Response {
 
 impl From<Response> for HttpGraphqlResponse {
     fn from(response: Response) -> Self {
-        let mut resp = HttpGraphqlResponse::from_json(&response);
-        if response.has_errors() {
-            resp.headers.typed_insert(HasGraphqlErrors);
-        }
-        resp
+        HttpGraphqlResponse::from_json(&response)
     }
 }

@@ -13,8 +13,9 @@ use pin_project_lite::pin_project;
 use tracing::Span;
 
 use crate::{
+    gql_response_status::GraphqlResponseStatus,
     grafbase_client::Client,
-    metrics::{HasGraphqlErrors, RequestMetrics, RequestMetricsAttributes},
+    metrics::{RequestMetrics, RequestMetricsAttributes},
     span::{request::HttpRequestSpan, HttpRecorderSpanExt},
 };
 
@@ -155,21 +156,28 @@ where
                     .get("x-grafbase-cache")
                     .and_then(|value| value.to_str().ok())
                     .map(str::to_string);
-                let has_graphql_errors = response.headers().typed_get::<HasGraphqlErrors>().is_some();
                 metrics.record(
                     RequestMetricsAttributes {
                         status_code: response.status().as_u16(),
                         cache_status,
-                        has_graphql_errors,
+                        gql_status: response.headers().typed_get(),
                         client,
                     },
                     latency,
                 );
                 this.span.record_response(response);
-                response.headers_mut().remove(HasGraphqlErrors::header_name());
+                response.headers_mut().remove(GraphqlResponseStatus::header_name());
             }
             Err(ref err) => {
-                metrics.record(RequestMetricsAttributes::server_error(), latency);
+                metrics.record(
+                    RequestMetricsAttributes {
+                        status_code: 500,
+                        client,
+                        cache_status: None,
+                        gql_status: None,
+                    },
+                    latency,
+                );
                 this.span.record_failure(err.to_string());
             }
         }

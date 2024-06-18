@@ -24,6 +24,7 @@ url = { workspace = true, features = ["serde"] }
 worker = { workspace = true, optional = true }
 headers.workspace = true
 pin-project-lite = { version = "0.2", optional = true }
+serde_json.workspace = true
 
 # tracing
 tracing.workspace = true

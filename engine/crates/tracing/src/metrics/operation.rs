@@ -1,13 +1,12 @@
 use opentelemetry::{
-    metrics::{Counter, Histogram, Meter},
+    metrics::{Histogram, Meter},
     KeyValue,
 };
 
-use crate::grafbase_client::Client;
+use crate::{gql_response_status::GraphqlResponseStatus, grafbase_client::Client};
 
 #[derive(Clone)]
 pub struct GraphqlOperationMetrics {
-    count: Counter<u64>,
     latency: Histogram<u64>,
 }
 
@@ -16,7 +15,7 @@ pub struct GraphqlOperationMetricsAttributes {
     pub name: Option<String>,
     pub normalized_query: String,
     pub normalized_query_hash: [u8; 32],
-    pub has_errors: bool,
+    pub status: GraphqlResponseStatus,
     pub cache_status: Option<String>,
     pub client: Option<Client>,
 }
@@ -24,7 +23,6 @@ pub struct GraphqlOperationMetricsAttributes {
 impl GraphqlOperationMetrics {
     pub fn build(meter: &Meter) -> Self {
         Self {
-            count: meter.u64_counter("gql_operation_count").init(),
             latency: meter.u64_histogram("gql_operation_latency").init(),
         }
     }
@@ -36,7 +34,7 @@ impl GraphqlOperationMetrics {
             ty,
             normalized_query,
             normalized_query_hash,
-            has_errors,
+            status,
             cache_status,
             client,
         }: GraphqlOperationMetricsAttributes,
@@ -44,18 +42,20 @@ impl GraphqlOperationMetrics {
     ) {
         use base64::{engine::general_purpose::STANDARD, Engine as _};
         let normalized_query_hash = STANDARD.encode(normalized_query_hash);
-        let name = name.unwrap_or_default();
         let mut attributes = vec![
-            KeyValue::new("gql.operation.normalized_query_hash", normalized_query_hash.clone()),
+            KeyValue::new("gql.operation.normalized_query_hash", normalized_query_hash),
             KeyValue::new("gql.operation.normalized_query", normalized_query),
             KeyValue::new("gql.operation.type", ty),
-            KeyValue::new("gql.operation.name", name.clone()),
         ];
+        if let Some(name) = name {
+            attributes.push(KeyValue::new("gql.operation.name", name));
+        }
         if let Some(cache_status) = cache_status {
             attributes.push(KeyValue::new("gql.response.cache_status", cache_status));
         }
-        if has_errors {
-            attributes.push(KeyValue::new("gql.response.has_errors", "true"));
+        // Not present will simply be assumed to be a success.
+        if !status.is_success() {
+            attributes.push(KeyValue::new("gql.response.status", status.as_str()));
         }
         if let Some(client) = client {
             attributes.push(KeyValue::new("http.headers.x-grafbase-client-name", client.name));
@@ -63,7 +63,6 @@ impl GraphqlOperationMetrics {
                 attributes.push(KeyValue::new("http.headers.x-grafbase-client-version", version));
             }
         }
-        self.count.add(1, &attributes);
         self.latency.record(latency.as_millis() as u64, &attributes);
     }
 }

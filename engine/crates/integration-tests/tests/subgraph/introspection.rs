@@ -35,7 +35,6 @@ fn introspecting_service_field_when_no_federation() {
 
         insta::assert_json_snapshot!(result, @r###"
         {
-          "data": null,
           "errors": [
             {
               "message": "Unknown field \"_service\" on type \"Query\".",
