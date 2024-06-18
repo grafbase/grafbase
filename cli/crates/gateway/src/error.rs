@@ -4,6 +4,8 @@ pub enum Error {
     BadRequest(String),
     #[error(transparent)]
     Cache(runtime::cache::Error),
+    #[error(transparent)]
+    Ratelimit(#[from] runtime::rate_limiting::Error),
     #[error("Serialization error: {0}")]
     Serialization(String),
     #[error("Internal error: {0}")]

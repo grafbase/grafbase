@@ -9,6 +9,7 @@ use http::HeaderMap;
 use registry_for_cache::PartialCacheRegistry;
 use runtime::{kv::KvStore, trusted_documents_client, udf::UdfInvoker};
 use runtime_noop::kv::NoopKvStore;
+use runtime_noop::rate_limiting::NoopRateLimiter;
 
 use crate::{mock_trusted_documents::MockTrustedDocumentsClient, udfs::RustUdfs, TestTrustedDocument};
 
@@ -84,6 +85,7 @@ impl GatewayBuilder {
                 authorizer,
                 trusted_documents,
                 grafbase_tracing::metrics::meter_from_global_provider(),
+                Box::new(NoopRateLimiter),
             )),
         }
     }
@@ -227,6 +229,8 @@ pub enum Error {
     BadRequest(String),
     #[error(transparent)]
     Cache(runtime::cache::Error),
+    #[error(transparent)]
+    Ratelimit(#[from] runtime::rate_limiting::Error),
     #[error("Serialization error: {0}")]
     Serialization(String),
     #[error("Internal error: {0}")]

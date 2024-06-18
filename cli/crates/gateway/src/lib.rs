@@ -16,6 +16,7 @@ pub(crate) use context::Context;
 pub(crate) use error::Error;
 pub(crate) use response::Response;
 pub use runtime_local::Bridge;
+use runtime_noop::rate_limiting::NoopRateLimiter;
 
 pub type GatewayInner = gateway_core::Gateway<Executor>;
 
@@ -64,6 +65,7 @@ impl Gateway {
                 authorizer,
                 trusted_documents,
                 grafbase_tracing::metrics::meter_from_global_provider(),
+                Box::new(NoopRateLimiter),
             )),
         })
     }

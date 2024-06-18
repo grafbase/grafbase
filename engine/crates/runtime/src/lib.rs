@@ -7,6 +7,7 @@ pub mod fetch;
 pub mod kv;
 pub mod log;
 pub mod pg;
+pub mod rate_limiting;
 pub mod trusted_documents_client;
 pub mod udf;
 

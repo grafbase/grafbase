@@ -22,6 +22,7 @@ mod trusted_docs;
 pub mod cache_control;
 pub mod ids;
 pub mod mongodb;
+pub mod rate_limiting;
 pub mod resolvers;
 pub mod validators;
 pub mod writer;
@@ -49,6 +50,7 @@ pub use self::{
     operation_limits::*,
     trusted_docs::*,
 };
+use crate::rate_limiting::RateLimitConfig;
 pub use engine_id_newtypes::IdRange;
 
 #[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
@@ -106,6 +108,8 @@ pub struct Registry {
     pub cors_config: Option<CorsConfig>,
     #[serde(default)]
     pub runtime: Option<Runtime>,
+    #[serde(default)]
+    pub rate_limiting: RateLimitConfig,
 }
 
 impl Registry {
