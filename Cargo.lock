@@ -2523,7 +2523,7 @@ dependencies = [
 
 [[package]]
 name = "federated-server"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "ascii 1.1.0",
  "async-trait",
@@ -3155,7 +3155,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-gateway"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "anyhow",
  "ascii 1.1.0",
