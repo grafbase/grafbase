@@ -2848,5 +2848,8 @@ expression: registry_from_introspection(schema)
   },
   "trusted_documents": null,
   "cors_config": null,
-  "runtime": null
+  "runtime": null,
+  "rate_limiting": {
+    "rules": []
+  }
 }

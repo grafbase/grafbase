@@ -39,6 +39,7 @@ pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> anyhow::Result<registry_v2
         cors_config,
         codegen,
         runtime,
+        rate_limiting,
     } = v1;
 
     // First, copy over the fields that are the same.
@@ -62,6 +63,7 @@ pub fn convert_v1_to_v2(v1: registry_v1::Registry) -> anyhow::Result<registry_v2
         registry_v1::Runtime::Edge => registry_v2::Runtime::Edge,
         registry_v1::Runtime::NodeJs => registry_v2::Runtime::NodeJs,
     });
+    writer.rate_limiting = rate_limiting;
 
     let types = {
         let mut types = types.into_values().collect::<Vec<_>>();

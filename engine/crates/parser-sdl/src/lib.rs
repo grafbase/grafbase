@@ -78,6 +78,7 @@ pub use rules::{
 };
 use validations::post_parsing_validations;
 
+use crate::rules::rate_limiting_directive::{RateLimitingDirective, RateLimitingVisitor};
 use crate::rules::{
     cache_directive::{visitor::CacheVisitor, CacheDirective},
     experimental::{ExperimentalDirective, ExperimentalDirectiveVisitor},
@@ -173,7 +174,8 @@ fn parse_schema(schema: &str) -> engine::parser::Result<ServiceDocument> {
         .with::<SubgraphDirective>()
         .with::<TagDirective>()
         .with::<UniqueDirective>()
-        .with::<IntrospectionDirective>();
+        .with::<IntrospectionDirective>()
+        .with::<RateLimitingDirective>();
 
     let schema = format!(
         "{}\n{}\n{}\n{}",
@@ -382,6 +384,7 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(SubgraphDirectiveVisitor)
         .with(AllSubgraphsDirectiveVisitor)
         .with(IntrospectionDirectiveVisitor)
+        .with(RateLimitingVisitor)
         .with(UnionType);
 
     visit(&mut types_definitions_rules, ctx, schema);

@@ -26,6 +26,7 @@ pub use enums::*;
 pub use field_types::*;
 pub use fields::*;
 pub use input_value::*;
+use registry_v2::rate_limiting::RateLimitConfig;
 pub use types::*;
 
 #[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
@@ -72,6 +73,8 @@ pub struct Registry {
     pub cors_config: Option<CorsConfig>,
     #[serde(default)]
     pub runtime: Option<Runtime>,
+    #[serde(default)]
+    pub rate_limiting: RateLimitConfig,
 }
 
 impl Default for Registry {
@@ -100,6 +103,7 @@ impl Default for Registry {
             cors_config: Default::default(),
             codegen: Default::default(),
             runtime: Default::default(),
+            rate_limiting: Default::default(),
         }
     }
 }

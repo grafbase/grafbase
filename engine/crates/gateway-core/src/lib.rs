@@ -151,6 +151,7 @@ where
 
         self.rate_limiter
             .limit(Box::new(RatelimitContext::new(&request, &auth, ctx.headers())))
+            .instrument(info_span!("rate_limit_check"))
             .await?;
 
         let AccessToken::V1(auth) = auth else {

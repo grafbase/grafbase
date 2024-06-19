@@ -1804,4 +1804,7 @@ Registry {
     codegen: None,
     cors_config: None,
     runtime: None,
+    rate_limiting: RateLimitConfig {
+        rules: [],
+    },
 }

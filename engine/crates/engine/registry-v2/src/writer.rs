@@ -5,6 +5,7 @@ use gateway_v2_auth_config::v1::AuthConfig;
 use indexmap::IndexSet;
 use postgres_connector_types::database_definition::DatabaseDefinition;
 
+use crate::rate_limiting::RateLimitConfig;
 use crate::{
     ids::*,
     resolvers::Resolver,
@@ -62,6 +63,7 @@ pub struct RegistryWriter {
     pub codegen: Option<CodegenConfig>,
     pub cors_config: Option<CorsConfig>,
     pub runtime: Option<Runtime>,
+    pub rate_limiting: RateLimitConfig,
 }
 
 impl RegistryWriter {
@@ -227,6 +229,7 @@ impl RegistryWriter {
             cors_config,
             codegen,
             runtime,
+            rate_limiting,
         } = self;
 
         let types = types
@@ -272,7 +275,7 @@ impl RegistryWriter {
             codegen,
             cors_config,
             runtime,
-            rate_limiting: Default::default(), // TODO(rate limiting): change me
+            rate_limiting,
         })
     }
 
