@@ -1,15 +1,11 @@
-use cynic_parser::{
-    executable::{iter::Iter, FieldSelection, Selection},
-    ExecutableDocument,
-};
+use cynic_parser::executable::{iter::Iter, FieldSelection, Selection};
 use graph_entities::{QueryResponse, QueryResponseNode, ResponseContainer};
 use serde::ser::{Error, SerializeMap};
 
-use crate::{query_subset::FilteredSelections, QuerySubset};
+use crate::{query_subset::FieldIter, QuerySubset};
 
 #[derive(Clone, Copy)]
 struct SerializeContext<'a> {
-    document: &'a ExecutableDocument,
     subset: &'a QuerySubset,
     response: &'a QueryResponse,
 }
@@ -20,7 +16,6 @@ impl serde::Serialize for super::CacheUpdate<'_> {
         S: serde::Serializer,
     {
         let ctx = SerializeContext {
-            document: self.document,
             subset: self.subset,
             response: self.response,
         };
@@ -124,48 +119,6 @@ impl FieldExt for FieldSelection<'_> {
 
 impl<'a> ObjectSerializer<'a> {
     pub fn field_iter(&self) -> FieldIter<'a> {
-        FieldIter {
-            iter_stack: vec![self.ctx.subset.selection_iter(self.ctx.document, self.selection_set)],
-            document: self.ctx.document,
-            subset: self.ctx.subset,
-        }
-    }
-}
-
-/// An iterator over the fields of a selection set.
-///
-/// This will recurse into any selection sets nested inside fragments.
-struct FieldIter<'a> {
-    iter_stack: Vec<FilteredSelections<'a>>,
-    document: &'a ExecutableDocument,
-    subset: &'a QuerySubset,
-}
-
-impl<'a> Iterator for FieldIter<'a> {
-    type Item = FieldSelection<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(current_iter) = self.iter_stack.last_mut() {
-            let Some(selection) = current_iter.next() else {
-                self.iter_stack.pop();
-                continue;
-            };
-
-            match selection {
-                Selection::Field(field) => return Some(field),
-                Selection::InlineFragment(fragment) => {
-                    self.iter_stack
-                        .push(self.subset.selection_iter(self.document, fragment.selection_set()));
-                }
-                Selection::FragmentSpread(spread) => {
-                    let Some(fragment) = spread.fragment() else { continue };
-
-                    self.iter_stack
-                        .push(self.subset.selection_iter(self.document, fragment.selection_set()));
-                }
-            }
-        }
-
-        None
+        FieldIter::new(self.ctx.subset.selection_iter(self.selection_set), self.ctx.subset)
     }
 }

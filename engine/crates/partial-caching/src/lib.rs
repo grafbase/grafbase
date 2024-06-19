@@ -53,8 +53,6 @@ pub enum FetchPhaseResult {
     PartialHit(ExecutionPhase),
 
     /// We fetched all the results from the cache, so can just return a response
-    ///
-    /// Note that I've not implemented this bit yet - it'll come later.
     CompleteHit(hit::CompleteHit),
 }
 

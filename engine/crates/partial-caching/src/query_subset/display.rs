@@ -1,125 +1,17 @@
 use std::fmt;
 
 use cynic_parser::{
-    common::IdRange,
-    executable::{
-        ids::{FragmentDefinitionId, OperationDefinitionId, SelectionId, VariableDefinitionId},
-        iter::Iter,
-        Selection, VariableDefinition,
-    },
+    executable::{ids::SelectionId, iter::Iter, Selection},
     ExecutableDocument,
 };
 use indexmap::IndexSet;
 
-/// Part of a query that was submitted to the API.
-///
-/// This is a group of fields with the same cache settings, and all the
-/// ancestors, variables & fragments required for those fields to make a
-/// valid query
-pub struct QuerySubset {
-    pub(crate) operation: OperationDefinitionId,
-    partition: Partition,
-    variables: IndexSet<VariableDefinitionId>,
-}
-
-#[derive(Default, Debug)]
-pub(crate) struct Partition {
-    pub selections: IndexSet<SelectionId>,
-    pub fragments: IndexSet<FragmentDefinitionId>,
-}
-
-impl QuerySubset {
-    pub(crate) fn new(
-        operation: OperationDefinitionId,
-        cache_group: Partition,
-        variables: IndexSet<VariableDefinitionId>,
-    ) -> Self {
-        QuerySubset {
-            operation,
-            partition: cache_group,
-            variables,
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.partition.selections.is_empty()
-    }
-
-    pub fn extend(&mut self, other: &QuerySubset) {
-        self.partition
-            .selections
-            .extend(other.partition.selections.iter().copied());
-        self.partition
-            .fragments
-            .extend(other.partition.fragments.iter().copied());
-        self.variables.extend(other.variables.iter().cloned());
-    }
-
-    pub fn as_display<'a>(&'a self, document: &'a ExecutableDocument) -> QuerySubsetDisplay<'a> {
-        QuerySubsetDisplay {
-            subset: self,
-            document,
-            include_query_name: false,
-        }
-    }
-
-    pub fn variables<'a>(
-        &'a self,
-        document: &'a ExecutableDocument,
-    ) -> impl Iterator<Item = VariableDefinition<'a>> + 'a {
-        self.variables.iter().map(|id| document.read(*id))
-    }
-
-    fn selection_set_display<'a>(
-        &'a self,
-        document: &'a ExecutableDocument,
-        selections: Iter<'a, Selection<'a>>,
-    ) -> SelectionSetDisplay<'a> {
-        SelectionSetDisplay {
-            document,
-            visible_selections: &self.partition.selections,
-            selections: self.selection_iter(document, selections),
-            indent_level: 0,
-        }
-    }
-
-    pub(crate) fn selection_iter<'a>(
-        &'a self,
-        document: &'a ExecutableDocument,
-        selection_set: Iter<'a, Selection<'a>>,
-    ) -> FilteredSelections<'a> {
-        FilteredSelections {
-            document,
-            visible_selections: &self.partition.selections,
-            ids: selection_set.ids(),
-        }
-    }
-}
-
-#[derive(Clone, Copy)]
-pub(crate) struct FilteredSelections<'a> {
-    document: &'a ExecutableDocument,
-    visible_selections: &'a IndexSet<SelectionId>,
-    ids: IdRange<SelectionId>,
-}
-
-impl<'a> Iterator for FilteredSelections<'a> {
-    type Item = Selection<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        for candidate in self.ids.by_ref() {
-            if self.visible_selections.contains(&candidate) {
-                return Some(self.document.read(candidate));
-            }
-        }
-        None
-    }
-}
+use super::{FilteredSelectionSet, QuerySubset};
 
 pub struct QuerySubsetDisplay<'a> {
-    subset: &'a QuerySubset,
-    document: &'a ExecutableDocument,
-    include_query_name: bool,
+    pub(super) subset: &'a QuerySubset,
+    pub(super) document: &'a ExecutableDocument,
+    pub(super) include_query_name: bool,
 }
 
 impl QuerySubsetDisplay<'_> {
@@ -131,15 +23,13 @@ impl QuerySubsetDisplay<'_> {
     }
 }
 
-struct SelectionSetDisplay<'a> {
-    selections: FilteredSelections<'a>,
-    document: &'a ExecutableDocument,
-    visible_selections: &'a IndexSet<SelectionId>,
-    indent_level: usize,
+pub(super) struct SelectionSetDisplay<'a> {
+    pub(super) selections: FilteredSelectionSet<'a, 'a>,
+    pub(super) visible_selections: &'a IndexSet<SelectionId>,
+    pub(super) indent_level: usize,
 }
 
 struct SelectionDisplay<'a> {
-    document: &'a ExecutableDocument,
     visible_selections: &'a IndexSet<SelectionId>,
     selection: Selection<'a>,
     indent_level: usize,
@@ -148,12 +38,10 @@ struct SelectionDisplay<'a> {
 impl<'a> SelectionDisplay<'a> {
     fn wrap_set(&self, selections: Iter<'a, Selection<'a>>) -> SelectionSetDisplay<'a> {
         SelectionSetDisplay {
-            document: self.document,
             visible_selections: self.visible_selections,
-            selections: FilteredSelections {
-                document: self.document,
-                visible_selections: self.visible_selections,
-                ids: selections.ids(),
+            selections: FilteredSelectionSet {
+                visible_ids: self.visible_selections,
+                selections: selections.with_ids(),
             },
             indent_level: self.indent_level,
         }
@@ -196,7 +84,7 @@ impl std::fmt::Display for QuerySubsetDisplay<'_> {
             f,
             "{} {}",
             operation.directives(),
-            subset.selection_set_display(self.document, operation.selection_set())
+            subset.selection_set_display(operation.selection_set())
         )?;
 
         for id in &subset.partition.fragments {
@@ -207,7 +95,7 @@ impl std::fmt::Display for QuerySubsetDisplay<'_> {
                 fragment.name(),
                 fragment.type_condition(),
                 fragment.directives(),
-                subset.selection_set_display(document, fragment.selection_set())
+                subset.selection_set_display(fragment.selection_set())
             )?;
         }
 
@@ -227,7 +115,6 @@ impl fmt::Display for SelectionSetDisplay<'_> {
                 f,
                 "{}",
                 SelectionDisplay {
-                    document: self.document,
                     visible_selections: self.visible_selections,
                     selection,
                     indent_level: self.indent_level + 1
