@@ -2,13 +2,13 @@ use cynic_parser::executable::{FragmentDefinition, InlineFragment, Selection};
 
 use crate::{query_subset::FilteredSelectionSet, QuerySubset};
 
-use super::building::MergedSelection;
+use super::building::DeferrableSelection;
 
 /// An iterator over the fragments of a selection set.
 ///
 /// This will recurse into any selection sets nested inside fragments, but not fields.
 pub struct FragmentIter<'doc, 'ctx> {
-    root_selection: std::slice::Iter<'ctx, MergedSelection<'doc>>,
+    root_selection: std::slice::Iter<'ctx, DeferrableSelection<'doc>>,
     iter_stack: Vec<FilteredSelectionSet<'doc, 'ctx>>,
     subset: &'ctx QuerySubset,
 }
@@ -19,7 +19,7 @@ pub enum Fragment<'a> {
 }
 
 impl<'doc, 'ctx> FragmentIter<'doc, 'ctx> {
-    pub fn new(root_selection: &'ctx [MergedSelection<'doc>], subset: &'ctx QuerySubset) -> Self {
+    pub fn new(root_selection: &'ctx [DeferrableSelection<'doc>], subset: &'ctx QuerySubset) -> Self {
         FragmentIter {
             root_selection: root_selection.iter(),
             iter_stack: vec![],

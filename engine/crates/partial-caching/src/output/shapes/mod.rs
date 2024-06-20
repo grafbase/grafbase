@@ -14,18 +14,18 @@ pub struct OutputShapes {
 /// PartitionShape is the root of a partitions output shape heirarchy.
 pub struct PartitionShape<'a> {
     object_id: ObjectShapeId,
-    plans: &'a OutputShapes,
+    shapes: &'a OutputShapes,
 }
 
 impl<'a> PartitionShape<'a> {
     pub fn root_object(&self) -> ObjectShape<'a> {
-        match self.plans.objects[self.object_id.0 as usize] {
+        match self.shapes.objects[self.object_id.0 as usize] {
             ObjectShapeRecord::Concrete { .. } => ObjectShape::Concrete(ConcreteShape {
-                plans: self.plans,
+                shapes: self.shapes,
                 id: self.object_id,
             }),
             ObjectShapeRecord::Polymorphic { .. } => ObjectShape::Polymorphic(PolymorphicShape {
-                plans: self.plans,
+                shapes: self.shapes,
                 id: self.object_id,
             }),
         }
@@ -46,15 +46,15 @@ pub enum ObjectShape<'a> {
 impl<'a> ObjectShape<'a> {
     pub fn id(&self) -> ObjectShapeId {
         match self {
-            ObjectShape::Concrete(plan) => plan.id,
-            ObjectShape::Polymorphic(plan) => plan.id,
+            ObjectShape::Concrete(shape) => shape.id,
+            ObjectShape::Polymorphic(shape) => shape.id,
         }
     }
 }
 
 #[derive(Clone, Copy)]
 pub struct Field<'a> {
-    plans: &'a OutputShapes,
+    shapes: &'a OutputShapes,
     id: ObjectShapeId,
     field_index: FieldIndex,
 }
@@ -77,17 +77,17 @@ enum ObjectShapeRecord {
 pub struct FieldRecord {
     response_key: String,
     defer_label: Option<String>,
-    child_object: Option<ObjectShapeId>,
+    subselection_shape: Option<ObjectShapeId>,
 }
 
 #[derive(Clone, Copy)]
 pub struct ConcreteShape<'a> {
-    plans: &'a OutputShapes,
+    shapes: &'a OutputShapes,
     id: ObjectShapeId,
 }
 
 #[derive(Clone, Copy)]
 pub struct PolymorphicShape<'a> {
-    plans: &'a OutputShapes,
+    shapes: &'a OutputShapes,
     id: ObjectShapeId,
 }

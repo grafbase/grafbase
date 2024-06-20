@@ -14,24 +14,14 @@ pub fn build_output_shapes(plan: CachingPlan) -> OutputShapes {
     let mut cache_partition_roots = vec![];
 
     for (subset, selection_set) in plan.cache_partitions() {
-        let selections = selection_set
-            .map(|selection| MergedSelection {
-                selection,
-                propagate_defer_label: None,
-            })
-            .collect();
+        let selections = selection_set.map(DeferrableSelection::without_defer).collect();
 
         cache_partition_roots.push(build_output_shape(&mut objects, selections, subset));
     }
 
     let nocache_partition_root = {
         let (subset, selection_set) = plan.nocache_partition();
-        let selections = selection_set
-            .map(|selection| MergedSelection {
-                selection,
-                propagate_defer_label: None,
-            })
-            .collect();
+        let selections = selection_set.map(DeferrableSelection::without_defer).collect();
 
         build_output_shape(&mut objects, selections, subset)
     };
@@ -45,7 +35,7 @@ pub fn build_output_shapes(plan: CachingPlan) -> OutputShapes {
 
 fn build_output_shape(
     objects: &mut Vec<ObjectShapeRecord>,
-    selections: Vec<MergedSelection<'_>>,
+    selections: Vec<DeferrableSelection<'_>>,
     subset: &QuerySubset,
 ) -> super::ObjectShapeId {
     let type_conditions = FragmentIter::new(&selections, subset)
@@ -73,7 +63,7 @@ fn build_output_shape(
 }
 
 fn field_shapes_for_typename(
-    selections: &[MergedSelection<'_>],
+    selections: &[DeferrableSelection<'_>],
     subset: &QuerySubset,
     objects: &mut Vec<ObjectShapeRecord>,
     typename: Option<&str>,
@@ -87,14 +77,14 @@ fn field_shapes_for_typename(
     let mut field_shapes = vec![];
 
     for field in merged_fields {
-        let mut child_object = None;
-        if !field.selections.is_empty() {
-            child_object = Some(build_output_shape(objects, field.selections, subset));
+        let mut subselection_shape = None;
+        if !field.merged_selections.is_empty() {
+            subselection_shape = Some(build_output_shape(objects, field.merged_selections, subset));
         }
         field_shapes.push(FieldRecord {
             response_key: field.response_key.to_string(),
             defer_label: field.defer_label.map(ToString::to_string),
-            child_object,
+            subselection_shape,
         });
     }
 
@@ -118,7 +108,7 @@ struct CollectedField<'a> {
 fn collect_fields<'a>(
     grouped_fields: &mut IndexMap<&'a str, Vec<CollectedField<'a>>>,
     defer_stack: &mut Vec<&'a str>,
-    selections: &[MergedSelection<'a>],
+    selections: &[DeferrableSelection<'a>],
     // selection_set: FilteredSelectionSet<'a, 'a>,
     subset: &'a QuerySubset,
     typename: Option<&'a str>,
@@ -128,7 +118,7 @@ fn collect_fields<'a>(
             Selection::Field(field) => {
                 // If the current selection has applied a defer we take that, otherwise we take the propagated
                 // defer label (if present)
-                let defer_label = defer_stack.last().copied().or(selection.propagate_defer_label);
+                let defer_label = defer_stack.last().copied().or(selection.parent_defer_label);
 
                 grouped_fields
                     .entry(field.response_key())
@@ -154,9 +144,9 @@ fn collect_fields<'a>(
                     defer_stack,
                     &subset
                         .selection_iter(fragment.selection_set())
-                        .map(|nested_selection| MergedSelection {
+                        .map(|nested_selection| DeferrableSelection {
                             selection: nested_selection,
-                            propagate_defer_label: selection.propagate_defer_label,
+                            parent_defer_label: selection.parent_defer_label,
                         })
                         .collect::<Vec<_>>(),
                     subset,
@@ -188,9 +178,9 @@ fn collect_fields<'a>(
                     defer_stack,
                     &subset
                         .selection_iter(fragment.selection_set())
-                        .map(|nested_selection| MergedSelection {
+                        .map(|nested_selection| DeferrableSelection {
                             selection: nested_selection,
-                            propagate_defer_label: selection.propagate_defer_label,
+                            parent_defer_label: selection.parent_defer_label,
                         })
                         .collect::<Vec<_>>(),
                     subset,
@@ -205,6 +195,11 @@ fn collect_fields<'a>(
     }
 }
 
+/// A field in a selection set after it's been through MergeSelectionSets
+///
+/// The same field can appear multiple times in a selection set, with different
+/// child selection sets in each case.  This struct contains all of the selections
+/// from those instances of the field.
 struct MergedField<'a> {
     response_key: &'a str,
 
@@ -213,13 +208,24 @@ struct MergedField<'a> {
     /// This should only be set if none of the parent fields have the same defer_label
     defer_label: Option<&'a str>,
 
-    selections: Vec<MergedSelection<'a>>,
+    merged_selections: Vec<DeferrableSelection<'a>>,
 }
 
-pub(super) struct MergedSelection<'a> {
+/// Wrapper around a Selection that allows defer labels to be propagated where
+/// neccesary
+pub(super) struct DeferrableSelection<'a> {
     pub(super) selection: Selection<'a>,
 
-    propagate_defer_label: Option<&'a str>,
+    parent_defer_label: Option<&'a str>,
+}
+
+impl<'a> DeferrableSelection<'a> {
+    pub fn without_defer(selection: Selection<'a>) -> Self {
+        DeferrableSelection {
+            selection,
+            parent_defer_label: None,
+        }
+    }
 }
 
 /// An implementation of MergeSelectionSets from the GraphQL spec.
@@ -271,12 +277,9 @@ fn merge_selection_sets<'a>(
             output.push(MergedField {
                 response_key,
                 defer_label: fields[0].defer_label,
-                selections: subset
+                merged_selections: subset
                     .selection_iter(fields[0].field.selection_set())
-                    .map(|selection| MergedSelection {
-                        selection,
-                        propagate_defer_label: None,
-                    })
+                    .map(DeferrableSelection::without_defer)
                     .collect(),
             });
             continue;
@@ -288,7 +291,7 @@ fn merge_selection_sets<'a>(
             output.push(MergedField {
                 response_key,
                 defer_label: fields[0].defer_label,
-                selections: vec![],
+                merged_selections: vec![],
             });
             continue;
         }
@@ -303,26 +306,23 @@ fn merge_selection_sets<'a>(
         let mut merged_field = MergedField {
             response_key: "",
             defer_label: None,
-            selections: vec![],
+            merged_selections: vec![],
         };
 
         for field in fields {
             merged_field.response_key = field.field.response_key();
             let selections = subset.selection_iter(field.field.selection_set());
-            if !all_defers_match {
+            if all_defers_match {
                 merged_field.defer_label = field.defer_label;
                 merged_field
-                    .selections
-                    .extend(selections.map(|selection| MergedSelection {
-                        selection,
-                        propagate_defer_label: None,
-                    }));
+                    .merged_selections
+                    .extend(selections.map(DeferrableSelection::without_defer));
             } else {
                 merged_field
-                    .selections
-                    .extend(selections.map(|selection| MergedSelection {
+                    .merged_selections
+                    .extend(selections.map(|selection| DeferrableSelection {
                         selection,
-                        propagate_defer_label: merged_field.defer_label,
+                        parent_defer_label: merged_field.defer_label,
                     }));
             }
         }
