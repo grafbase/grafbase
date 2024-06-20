@@ -8,4 +8,4 @@ mod store;
 #[cfg(test)]
 mod tests;
 
-pub use self::{shapes::PartitionShape, store::OutputStore};
+pub use self::store::OutputStore;

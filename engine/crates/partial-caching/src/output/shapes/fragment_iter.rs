@@ -1,16 +1,15 @@
 use cynic_parser::executable::{FragmentDefinition, InlineFragment, Selection};
 
-use crate::{query_subset::FilteredSelectionSet, QuerySubset};
-
 use super::building::DeferrableSelection;
+
+type SelectionSet<'a> = cynic_parser::executable::iter::Iter<'a, Selection<'a>>;
 
 /// An iterator over the fragments of a selection set.
 ///
 /// This will recurse into any selection sets nested inside fragments, but not fields.
 pub struct FragmentIter<'doc, 'ctx> {
     root_selection: std::slice::Iter<'ctx, DeferrableSelection<'doc>>,
-    iter_stack: Vec<FilteredSelectionSet<'doc, 'ctx>>,
-    subset: &'ctx QuerySubset,
+    selection_set_stack: Vec<SelectionSet<'doc>>,
 }
 
 pub enum Fragment<'a> {
@@ -19,11 +18,10 @@ pub enum Fragment<'a> {
 }
 
 impl<'doc, 'ctx> FragmentIter<'doc, 'ctx> {
-    pub fn new(root_selection: &'ctx [DeferrableSelection<'doc>], subset: &'ctx QuerySubset) -> Self {
+    pub fn new(root_selection: &'ctx [DeferrableSelection<'doc>]) -> Self {
         FragmentIter {
             root_selection: root_selection.iter(),
-            iter_stack: vec![],
-            subset,
+            selection_set_stack: vec![],
         }
     }
 
@@ -31,16 +29,14 @@ impl<'doc, 'ctx> FragmentIter<'doc, 'ctx> {
         match selection {
             Selection::Field(_) => None,
             Selection::InlineFragment(fragment) => {
-                self.iter_stack
-                    .push(self.subset.selection_iter(fragment.selection_set()));
+                self.selection_set_stack.push(fragment.selection_set());
 
                 Some(Fragment::Inline(fragment))
             }
             Selection::FragmentSpread(spread) => {
                 let fragment = spread.fragment()?;
 
-                self.iter_stack
-                    .push(self.subset.selection_iter(fragment.selection_set()));
+                self.selection_set_stack.push(fragment.selection_set());
 
                 Some(Fragment::Named(fragment))
             }
@@ -52,9 +48,9 @@ impl<'doc, 'ctx> Iterator for FragmentIter<'doc, 'ctx> {
     type Item = Fragment<'doc>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(current_iter) = self.iter_stack.last_mut() {
-            let Some(selection) = current_iter.next() else {
-                self.iter_stack.pop();
+        while let Some(current_selection_set) = self.selection_set_stack.last_mut() {
+            let Some(selection) = current_selection_set.next() else {
+                self.selection_set_stack.pop();
                 continue;
             };
 

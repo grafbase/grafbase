@@ -9,16 +9,14 @@ pub use building::build_output_shapes;
 pub struct OutputShapes {
     objects: Vec<ObjectShapeRecord>,
 
-    // The root object of each of the query partitions.
-    cache_partition_roots: Vec<ConcreteShapeId>,
-    nocache_partition_root: ConcreteShapeId,
+    root: ConcreteShapeId,
 }
 
 impl OutputShapes {
-    pub fn nocache_shape(&self) -> PartitionShape<'_> {
-        PartitionShape {
-            object_id: self.nocache_partition_root,
+    pub fn root(&self) -> ConcreteShape<'_> {
+        ConcreteShape {
             shapes: self,
+            id: self.root,
         }
     }
 
@@ -33,21 +31,6 @@ impl OutputShapes {
                 id: ConcreteShapeId(id.0),
             }),
             ObjectShapeRecord::Polymorphic { .. } => ObjectShape::Polymorphic(PolymorphicShape { shapes: self, id }),
-        }
-    }
-}
-
-/// PartitionShape is the root of a partitions output shape heirarchy.
-pub struct PartitionShape<'a> {
-    object_id: ConcreteShapeId,
-    shapes: &'a OutputShapes,
-}
-
-impl<'a> PartitionShape<'a> {
-    pub fn root_object(&self) -> ConcreteShape<'a> {
-        ConcreteShape {
-            shapes: self.shapes,
-            id: self.object_id,
         }
     }
 }
