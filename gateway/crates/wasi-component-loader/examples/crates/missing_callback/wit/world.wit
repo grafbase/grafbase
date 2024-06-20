@@ -12,13 +12,6 @@ interface types {
         delete: func(name: string) -> result<option<string>, header-error>;
     }
 
-    resource gateway-request {
-        get-operation-name: func() -> option<string>;
-        set-operation-name: func(name: option<string>);
-        get-document-id: func() -> option<string>;
-        set-document-id: func(id: option<string>);   
-    }
-
     record error-response {
         status: option<u16>,
         message: string,
@@ -26,7 +19,7 @@ interface types {
 }
 
 world gateway {
-    use types.{headers, gateway-request, error-response};
+    use types.{headers, error-response};
 
-    export on-subgraph-request: func(headers: headers, request: gateway-request) -> result<_, error-response>;
+    export on-subgraph-request: func(headers: headers) -> result<_, error-response>;
 }

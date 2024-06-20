@@ -1,5 +1,3 @@
-pub(crate) mod resources;
-
 use grafbase_tracing::span::GRAFBASE_TARGET;
 use http::HeaderMap;
 use wasmtime::{
@@ -12,7 +10,7 @@ use crate::{names::GATEWAY_CALLBACK_FUNCTION, state::WasiState, ComponentLoader,
 /// The callback function takes two parameters: the headers and the request.
 /// They are wrapped as resources, meaning they are in a shared memory space
 /// accessible from the host and from the guest.
-pub(crate) type CallbackParameters = (Resource<HeaderMap>, Resource<engine::Request>);
+pub(crate) type CallbackParameters = (Resource<HeaderMap>,);
 
 /// The guest can read and modify the input headers and request as it wishes. A successful
 /// call returns unit. The user can return an error response, which should be mapped to a
@@ -25,21 +23,15 @@ pub(crate) type CallbackResponse = (Result<(), ErrorResponse>,);
 pub struct GatewayCallbackInstance {
     store: Store<WasiState>,
     headers: Resource<HeaderMap>,
-    request: Resource<engine::Request>,
     callback: Option<TypedFunc<CallbackParameters, CallbackResponse>>,
 }
 
 impl GatewayCallbackInstance {
-    pub(crate) async fn new(
-        loader: &ComponentLoader,
-        headers: HeaderMap,
-        request: engine::Request,
-    ) -> crate::Result<Self> {
+    pub(crate) async fn new(loader: &ComponentLoader, headers: HeaderMap) -> crate::Result<Self> {
         let mut store = super::initialize_store(loader.config(), loader.engine())?;
 
         // adds the data to the shared memory
         let headers = store.data_mut().push_resource(headers)?;
-        let request = store.data_mut().push_resource(request)?;
 
         let instance = loader
             .linker()
@@ -63,28 +55,22 @@ impl GatewayCallbackInstance {
         Ok(Self {
             store,
             headers,
-            request,
             callback,
         })
     }
 
-    pub(crate) async fn call(mut self) -> crate::Result<(HeaderMap, engine::Request)> {
+    pub(crate) async fn call(mut self) -> crate::Result<HeaderMap> {
         // we need to take the pointers now, because a resource is not Copy and we need
         // the pointers to get the data back from the shared memory.
         let headers_rep = self.headers.rep();
-        let request_rep = self.request.rep();
 
         if let Some(callback) = self.callback {
-            callback
-                .call_async(&mut self.store, (self.headers, self.request))
-                .await?
-                .0?;
+            callback.call_async(&mut self.store, (self.headers,)).await?.0?;
         };
 
         // take the data back from the shared memory
         let headers = self.store.data_mut().take_resource(headers_rep)?;
-        let request = self.store.data_mut().take_resource(request_rep)?;
 
-        Ok((headers, request))
+        Ok(headers)
     }
 }

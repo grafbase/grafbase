@@ -9499,7 +9499,6 @@ name = "wasi-component-loader"
 version = "0.75.0"
 dependencies = [
  "anyhow",
- "engine",
  "expect-test",
  "grafbase-tracing",
  "http 1.1.0",

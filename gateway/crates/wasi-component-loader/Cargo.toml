@@ -9,7 +9,6 @@ repository.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-engine.workspace = true
 grafbase-tracing.workspace = true
 http.workspace = true
 serde.workspace = true

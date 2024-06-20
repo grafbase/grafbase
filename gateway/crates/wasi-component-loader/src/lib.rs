@@ -75,9 +75,7 @@ impl ComponentLoader {
                 }
 
                 let mut types = linker.instance(COMPONENT_TYPES)?;
-
                 headers::map(&mut types)?;
-                callbacks::gateway::resources::map(&mut types)?;
 
                 Some(Self {
                     engine,
@@ -101,12 +99,8 @@ impl ComponentLoader {
     /// for every request.
     ///
     /// Calls the user-defined callback from the guest, if the function is defined.
-    pub async fn on_gateway_request(
-        &self,
-        headers: HeaderMap,
-        request: engine::Request,
-    ) -> Result<(HeaderMap, engine::Request)> {
-        let callback = GatewayCallbackInstance::new(self, headers, request).await?;
+    pub async fn on_gateway_request(&self, headers: HeaderMap) -> Result<HeaderMap> {
+        let callback = GatewayCallbackInstance::new(self, headers).await?;
 
         callback.call().await
     }

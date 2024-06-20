@@ -1,12 +1,12 @@
 #[allow(warnings)]
 mod bindings;
 
-use bindings::{ErrorResponse, GatewayRequest, Guest, Headers};
+use bindings::{ErrorResponse, Guest, Headers};
 
 struct Component;
 
 impl Guest for Component {
-    fn on_subgraph_request(headers: Headers, _: GatewayRequest) -> Result<(), ErrorResponse> {
+    fn on_subgraph_request(headers: Headers) -> Result<(), ErrorResponse> {
         headers.set("direct", "call").unwrap();
 
         Ok(())

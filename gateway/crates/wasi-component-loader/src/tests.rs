@@ -5,12 +5,6 @@ use indoc::{formatdoc, indoc};
 use tempdir::TempDir;
 use wiremock::{matchers::method, ResponseTemplate};
 
-static QUERY: &str = indoc! {r#"
-    query {
-        findUser(id: 1) { id }
-    }
-"#};
-
 #[tokio::test]
 async fn missing_wasm() {
     let config = Config::default();
@@ -34,11 +28,7 @@ async fn missing_callback() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-
-    let (headers, _) = loader
-        .on_gateway_request(HeaderMap::new(), engine::Request::new(QUERY))
-        .await
-        .unwrap();
+    let headers = loader.on_gateway_request(HeaderMap::new()).await.unwrap();
 
     assert_eq!(HeaderMap::new(), headers);
 }
@@ -60,17 +50,10 @@ async fn simple_no_io() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-
-    let (headers, request) = loader
-        .on_gateway_request(HeaderMap::new(), engine::Request::new(QUERY))
-        .await
-        .unwrap();
+    let headers = loader.on_gateway_request(HeaderMap::new()).await.unwrap();
 
     assert_eq!(Some(&HeaderValue::from_static("call")), headers.get("direct"));
     assert_eq!(Some(&HeaderValue::from_static("meow")), headers.get("fromEnv"));
-
-    assert_eq!(Some("test"), request.operation_plan_cache_key.operation_name.as_deref());
-    assert_eq!(Some("jest"), request.operation_plan_cache_key.document_id.as_deref());
 }
 
 #[tokio::test]
@@ -99,11 +82,7 @@ async fn dir_access_read_only() {
     std::fs::write(path.join("contents.txt"), "test string").unwrap();
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-
-    let (headers, _) = loader
-        .on_gateway_request(HeaderMap::new(), engine::Request::new(QUERY))
-        .await
-        .unwrap();
+    let headers = loader.on_gateway_request(HeaderMap::new()).await.unwrap();
 
     assert_eq!(
         Some(&HeaderValue::from_static("test string")),
@@ -139,11 +118,7 @@ async fn dir_access_write() {
     std::fs::write(path.join("contents.txt"), "test string").unwrap();
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-
-    let (_, _) = loader
-        .on_gateway_request(HeaderMap::new(), engine::Request::new(QUERY))
-        .await
-        .unwrap();
+    loader.on_gateway_request(HeaderMap::new()).await.unwrap();
 
     let path = path.join("guest_write.txt");
 
@@ -179,11 +154,7 @@ async fn networking() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-
-    let (headers, _) = loader
-        .on_gateway_request(HeaderMap::new(), engine::Request::new(QUERY))
-        .await
-        .unwrap();
+    let headers = loader.on_gateway_request(HeaderMap::new()).await.unwrap();
 
     assert_eq!(Some(&HeaderValue::from_static("kekw")), headers.get("HTTP_RESPONSE"));
 }
@@ -214,11 +185,7 @@ async fn networking_no_network() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-
-    let error = loader
-        .on_gateway_request(HeaderMap::new(), engine::Request::new(QUERY))
-        .await
-        .unwrap_err();
+    let error = loader.on_gateway_request(HeaderMap::new()).await.unwrap_err();
 
     let expected = expect![
         "component imports instance `wasi:http/types@0.2.0`, but a matching implementation was not found in the linker"
@@ -239,18 +206,12 @@ async fn guest_error() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-
-    let error = loader
-        .on_gateway_request(HeaderMap::new(), engine::Request::new(QUERY))
-        .await
-        .unwrap_err();
-
-    let error_response = error.into_user_error();
+    let error = loader.on_gateway_request(HeaderMap::new()).await.unwrap_err();
 
     let expected = ErrorResponse {
         status: Some(404),
         message: String::from("not found"),
     };
 
-    assert_eq!(Some(expected), error_response);
+    assert_eq!(Some(expected), error.into_user_error());
 }
