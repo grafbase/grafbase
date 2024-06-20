@@ -65,6 +65,14 @@ runs:
         username: ${{ inputs.dockerhub-username }}
         password: ${{ inputs.dockerhub-token }}
 
+    - name: Build the WASI components for tests
+      if: ${{ inputs.with-integration-tests == 'true' }}
+      working-directory: engine/crates/wasi-component-loader/examples
+      shell: bash
+      run: |
+        cargo install cargo-component
+        cargo component build
+
     - name: Run all non-gateway tests
       id: all_tests
       if: ${{ inputs.with-integration-tests == 'true' }}
@@ -103,7 +111,7 @@ runs:
       if: ${{ inputs.with-integration-tests == 'false' }}
       shell: bash
       run: |
-        RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --exclude grafbase-docker-tests --exclude grafbase-gateway --profile ci
+        RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --exclude grafbase-docker-tests --exclude grafbase-gateway --exclude wasi-component-loader --profile ci
 
     - name: Upload the non-integration JUnit files
       if: ${{ inputs.with-integration-tests == 'false' && ( success() || failure() ) && !contains(steps.tests_no_integration.outputs.exitcode, '101') }}

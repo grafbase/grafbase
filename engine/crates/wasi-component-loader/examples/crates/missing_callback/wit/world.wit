@@ -1,0 +1,25 @@
+package component:grafbase;
+
+interface types {
+    enum header-error {
+        invalid-header-value,
+        invalid-header-name,
+    }
+
+    resource headers {
+        get: func(name: string) -> result<option<string>, header-error>;
+        set: func(name: string, value: string) -> result<_, header-error>;
+        delete: func(name: string) -> result<option<string>, header-error>;
+    }
+
+    record error-response {
+        status: option<u16>,
+        message: string,
+    }
+}
+
+world gateway {
+    use types.{headers, error-response};
+
+    export on-subgraph-request: func(headers: headers) -> result<_, error-response>;
+}
