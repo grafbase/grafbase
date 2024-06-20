@@ -24,7 +24,7 @@ members = [
   "graphql-lint",
   "gqlint",
 ]
-exclude = ["engine/crates/gateway-v2", "gateway/crates/wasi-component-loader/examples"]
+exclude = ["engine/crates/gateway-v2", "engine/crates/wasi-component-loader/examples"]
 
 [patch.crates-io]
 axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac" } # axum-tungstenite-upgrade

@@ -67,7 +67,7 @@ runs:
 
     - name: Build the WASI components for tests
       if: ${{ inputs.with-integration-tests == 'true' }}
-      working-directory: gateway/crates/wasi-component-loader/examples
+      working-directory: engine/crates/wasi-component-loader/examples
       shell: bash
       run: |
         cargo install cargo-component
