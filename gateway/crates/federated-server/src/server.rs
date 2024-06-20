@@ -57,6 +57,7 @@ pub async fn serve(
 
     let (sender, mut gateway) = watch::channel(None);
     gateway.mark_unchanged();
+
     fetch_method.start(
         GatewayConfig {
             enable_introspection: config.graph.introspection,
@@ -65,6 +66,7 @@ pub async fn serve(
             subgraphs: config.subgraphs,
             default_headers: config.headers,
             trusted_documents: config.trusted_documents,
+            wasi: config.wasi,
         },
         otel_reload,
         sender,

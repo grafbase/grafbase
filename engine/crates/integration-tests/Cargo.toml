@@ -52,6 +52,7 @@ ctor.workspace = true
 rustls = { workspace = true, features = ["ring"] }
 tracing.workspace = true
 tracing-mock.workspace = true
+runtime = { path = "../runtime" }
 
 [dependencies.tokio]
 version = "1.37"
@@ -80,9 +81,6 @@ features = ["pooling"]
 
 [dependencies.registry-for-cache]
 workspace = true
-
-[dependencies.runtime]
-path = "../runtime"
 
 [dependencies.parser-openapi]
 path = "../parser-openapi"

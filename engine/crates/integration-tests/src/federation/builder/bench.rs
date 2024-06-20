@@ -7,7 +7,11 @@ use engine::BatchRequest;
 use engine_v2::HttpGraphqlResponse;
 use futures::stream::BoxStream;
 use graphql_composition::FederatedGraph;
-use runtime::fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, GraphqlRequest};
+use runtime::{
+    fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, GraphqlRequest},
+    user_hooks::UserHooks,
+};
+use runtime_noop::user_hooks::UserHooksNoop;
 
 use crate::federation::GraphqlResponse;
 
@@ -52,6 +56,7 @@ impl<'a> FederationGatewayWithoutIO<'a> {
                 ),
                 kv: runtime_local::InMemoryKvStore::runtime(),
                 meter: grafbase_tracing::metrics::meter_from_global_provider(),
+                user_hooks: UserHooks::new(UserHooksNoop),
             },
         );
         Self {

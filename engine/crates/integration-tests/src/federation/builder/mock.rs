@@ -5,7 +5,11 @@ use std::{
 
 use futures::stream::BoxStream;
 use graphql_composition::FederatedGraph;
-use runtime::fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, GraphqlRequest};
+use runtime::{
+    fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, GraphqlRequest},
+    user_hooks::UserHooks,
+};
+use runtime_noop::user_hooks::UserHooksNoop;
 use tokio::sync::mpsc;
 
 use crate::{engine_v1::GraphQlRequest, federation::ExecutionRequest};
@@ -43,6 +47,7 @@ impl MockFederationEngine {
                 ),
                 kv: runtime_local::InMemoryKvStore::runtime(),
                 meter: grafbase_tracing::metrics::meter_from_global_provider(),
+                user_hooks: UserHooks::new(UserHooksNoop),
             },
         );
         Self {

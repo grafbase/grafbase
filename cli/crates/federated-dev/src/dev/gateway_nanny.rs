@@ -8,6 +8,8 @@ use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::FederatedGraphConfig;
+use runtime::user_hooks::UserHooks;
+use runtime_noop::user_hooks::UserHooksNoop;
 use tokio_stream::wrappers::WatchStream;
 
 /// The GatewayNanny looks after the `Gateway` - on updates to the graph or config it'll
@@ -46,23 +48,28 @@ impl EngineNanny {
 
 pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraphConfig) -> Option<Arc<Engine>> {
     let config = engine_config_builder::build_config(config, graph?);
+
     let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
         common_cache_tags: vec![],
         enabled: true,
         subdomain: "localhost".to_string(),
     });
-    Some(Arc::new(Engine::new(
-        Arc::new(config.into_latest().try_into().ok()?),
-        EngineEnv {
-            fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
-            cache: cache.clone(),
-            trusted_documents: runtime::trusted_documents_client::Client::new(
-                runtime_noop::trusted_documents::NoopTrustedDocuments,
-            ),
-            kv: runtime_local::InMemoryKvStore::runtime(),
-            meter: grafbase_tracing::metrics::meter_from_global_provider(),
-        },
-    )))
+
+    let engine_env = EngineEnv {
+        fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
+        cache: cache.clone(),
+        trusted_documents: runtime::trusted_documents_client::Client::new(
+            runtime_noop::trusted_documents::NoopTrustedDocuments,
+        ),
+        kv: runtime_local::InMemoryKvStore::runtime(),
+        meter: grafbase_tracing::metrics::meter_from_global_provider(),
+        user_hooks: UserHooks::new(UserHooksNoop),
+    };
+
+    let config = config.into_latest().try_into().ok()?;
+    let engine = Engine::new(Arc::new(config), engine_env);
+
+    Some(Arc::new(engine))
 }
 
 #[derive(Debug)]

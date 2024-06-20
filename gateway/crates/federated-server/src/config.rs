@@ -9,6 +9,7 @@ use ascii::AsciiString;
 pub use authentication::AuthenticationConfig;
 pub use cors::CorsConfig;
 use parser_sdl::federation::SubgraphHeaderValue;
+use runtime_local::WasiConfig;
 pub use telemetry::TelemetryConfig;
 use url::Url;
 
@@ -47,6 +48,9 @@ pub struct Config {
     /// Subgraph configuration
     #[serde(default)]
     pub subgraphs: BTreeMap<String, SubgraphConfig>,
+    /// WASI configuration
+    #[serde(default)]
+    pub wasi: Option<WasiConfig>,
 }
 
 #[derive(Debug, serde::Deserialize, Clone)]

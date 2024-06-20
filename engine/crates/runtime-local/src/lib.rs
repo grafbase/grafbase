@@ -5,6 +5,7 @@ mod kv;
 mod log;
 mod pg;
 mod ufd_invoker;
+mod user_hooks;
 
 pub use bridge::Bridge;
 pub use cache::InMemoryCache;
@@ -12,6 +13,7 @@ pub use fetch::NativeFetcher;
 pub use kv::*;
 pub use pg::{LazyPgConnectionsPool, LocalPgTransportFactory};
 pub use ufd_invoker::UdfInvokerImpl;
+pub use user_hooks::{ComponentLoader, UserHooksWasi, WasiConfig};
 
 pub use crate::log::LogEventReceiverImpl;
 

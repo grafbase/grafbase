@@ -8,8 +8,8 @@ struct Component;
 impl Guest for Component {
     fn on_gateway_request(_: Headers) -> Result<(), ErrorResponse> {
         Err(ErrorResponse {
-            status: Some(404),
             message: String::from("not found"),
+            extensions: vec![(String::from("my"), String::from("extension"))],
         })
     }
 }

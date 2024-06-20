@@ -209,8 +209,8 @@ async fn guest_error() {
     let error = loader.on_gateway_request(HeaderMap::new()).await.unwrap_err();
 
     let expected = ErrorResponse {
-        status: Some(404),
         message: String::from("not found"),
+        extensions: vec![(String::from("my"), String::from("extension"))],
     };
 
     assert_eq!(Some(expected), error.into_user_error());
