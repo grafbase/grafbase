@@ -15,6 +15,10 @@ fn query_bad_request() {
         let (subscriber, handle) = subscriber::mock()
             .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
             .enter(span.clone())
+            .record(
+                span.clone(),
+                expect::field("gql.operation.name").with_value(&"__type_name"),
+            )
             .record(span.clone(), expect::field("gql.operation.type").with_value(&"query"))
             .record(
                 span.clone(),

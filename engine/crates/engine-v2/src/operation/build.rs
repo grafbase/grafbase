@@ -61,7 +61,12 @@ impl Operation {
             .ok()
             .map(|normalized_query| GraphqlOperationMetricsAttributes {
                 normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
-                name: parsed_operation.name.clone(),
+                name: parsed_operation.name.clone().or_else(|| {
+                    engine_parser::find_first_field_name(
+                        &parsed_operation.fragments,
+                        &parsed_operation.definition.selection_set,
+                    )
+                }),
                 ty: parsed_operation.definition.ty.as_str(),
                 normalized_query,
                 // overridden at the end.

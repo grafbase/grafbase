@@ -13,7 +13,10 @@
 #![allow(clippy::use_self)]
 #![forbid(unsafe_code)]
 
-use std::fmt::{self, Display, Formatter};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display, Formatter},
+};
 
 use engine_value::Name;
 pub use parse::{parse_const_value, parse_field, parse_query, parse_schema, parse_selection_set};
@@ -225,4 +228,19 @@ enum ErrorPositionsInner {
     Two(Pos, Pos),
     One(Pos),
     None,
+}
+
+/// Find the first field name in a selection set.
+pub fn find_first_field_name(
+    fragments: &HashMap<Name, Positioned<types::FragmentDefinition>>,
+    selection_set: &Positioned<types::SelectionSet>,
+) -> Option<String> {
+    selection_set.items.iter().find_map(|selection| match &selection.node {
+        types::Selection::Field(field) => Some(field.alias.as_ref().unwrap_or(&field.name).to_string()),
+        types::Selection::InlineFragment(fragment) => find_first_field_name(fragments, &fragment.selection_set),
+        types::Selection::FragmentSpread(spread) => {
+            let fragment = fragments.get(spread.fragment_name.as_str())?;
+            find_first_field_name(fragments, &fragment.node.selection_set)
+        }
+    })
 }

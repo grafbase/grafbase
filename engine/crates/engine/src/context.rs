@@ -34,7 +34,7 @@ use crate::{
     registry::type_kinds::SelectionSetTarget,
     request::IntrospectionState,
     schema::SchemaEnv,
-    GraphqlOperationMetadata, Name, Positioned, Result, ServerError, ServerResult, UploadValue,
+    GraphqlOperationAnalyticsAttributes, Name, Positioned, Result, ServerError, ServerResult, UploadValue,
 };
 pub use ext::TraceId;
 
@@ -104,7 +104,7 @@ pub struct QueryEnvInner {
     pub variables: Variables,
     pub operation_name: Option<String>,
     pub operation: Positioned<OperationDefinition>,
-    pub operation_metadata: GraphqlOperationMetadata,
+    pub operation_analytics_attributes: GraphqlOperationAnalyticsAttributes,
     pub fragments: HashMap<Name, Positioned<FragmentDefinition>>,
     pub uploads: Vec<UploadValue>,
     pub session_data: Arc<Data>,

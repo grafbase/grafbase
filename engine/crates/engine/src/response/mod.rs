@@ -17,7 +17,7 @@ mod streaming;
 
 /// GraphQL operation used in the request.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct GraphqlOperationMetadata {
+pub struct GraphqlOperationAnalyticsAttributes {
     pub name: Option<String>,
     pub r#type: common_types::OperationType,
 }
@@ -46,7 +46,7 @@ pub struct Response {
 
     /// GraphQL operation.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub graphql_operation: Option<GraphqlOperationMetadata>,
+    pub graphql_operation: Option<GraphqlOperationAnalyticsAttributes>,
 }
 
 pub(crate) fn response_operation_for_definition(operation: &OperationDefinition) -> common_types::OperationType {
@@ -90,7 +90,7 @@ impl Response {
         data.shrink_to_fit();
         Self {
             data,
-            graphql_operation: Some(GraphqlOperationMetadata {
+            graphql_operation: Some(GraphqlOperationAnalyticsAttributes {
                 name: operation_name.map(str::to_owned),
                 r#type: operation_type,
             }),
@@ -111,7 +111,10 @@ impl Response {
     }
 
     #[must_use]
-    pub fn bad_request(errors: Vec<ServerError>, graphql_operation: Option<GraphqlOperationMetadata>) -> Self {
+    pub fn bad_request(
+        errors: Vec<ServerError>,
+        graphql_operation: Option<GraphqlOperationAnalyticsAttributes>,
+    ) -> Self {
         Self {
             errors,
             graphql_operation,
@@ -124,7 +127,7 @@ impl Response {
     pub fn from_errors_with_type(errors: Vec<ServerError>, operation_type: OperationType) -> Self {
         Self {
             errors,
-            graphql_operation: Some(GraphqlOperationMetadata {
+            graphql_operation: Some(GraphqlOperationAnalyticsAttributes {
                 name: None,
                 r#type: match operation_type {
                     OperationType::Query => common_types::OperationType::Query {
@@ -139,7 +142,7 @@ impl Response {
     }
 
     #[must_use]
-    pub fn with_graphql_operation(self, graphql_operation: GraphqlOperationMetadata) -> Self {
+    pub fn with_graphql_operation(self, graphql_operation: GraphqlOperationAnalyticsAttributes) -> Self {
         Self {
             graphql_operation: Some(graphql_operation),
             ..self

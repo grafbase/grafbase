@@ -80,7 +80,7 @@ pub use request::{
 #[doc(no_inline)]
 pub use resolver_utils::{ContainerType, LegacyEnumType, LegacyScalarType};
 pub use response::{
-    BatchResponse, GraphQlResponse, GraphqlOperationMetadata, IncrementalPayload, InitialResponse, Response,
+    BatchResponse, GraphQlResponse, GraphqlOperationAnalyticsAttributes, IncrementalPayload, InitialResponse, Response,
     StreamingPayload,
 };
 pub use schema::{Schema, SchemaBuilder, SchemaEnv};

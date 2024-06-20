@@ -21,6 +21,10 @@ async fn query_bad_request() {
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
         .new_span(span.clone())
         .enter(span.clone())
+        .record(
+            span.clone(),
+            expect::field("gql.operation.name").with_value(&"__type_name"),
+        )
         .record(span.clone(), expect::field("gql.operation.type").with_value(&"query"))
         .record(
             span.clone(),
@@ -56,6 +60,7 @@ async fn query() {
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
         .new_span(span.clone())
         .enter(span.clone())
+        .record(span.clone(), expect::field("gql.operation.name").with_value(&"test"))
         .record(span.clone(), expect::field("gql.operation.type").with_value(&"query"))
         .new_span(
             resolver_span
@@ -169,6 +174,7 @@ async fn resolvers_with_error() {
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
         .new_span(span.clone())
         .enter(span.clone())
+        .record(span.clone(), expect::field("gql.operation.name").with_value(&"nope"))
         .record(span.clone(), expect::field("gql.operation.type").with_value(&"query"))
         .new_span(
             resolver_span_error
