@@ -27,8 +27,8 @@ impl Error {
 #[derive(Clone, ComponentType, Lift, Debug, thiserror::Error, PartialEq)]
 #[component(record)]
 pub struct ErrorResponse {
-    /// The HTTP status code, if not set should default to 500.
-    pub status: Option<u16>,
+    /// Additional extensions added to the GraphQL response
+    pub extensions: Vec<(String, String)>,
     /// The error message
     pub message: String,
 }

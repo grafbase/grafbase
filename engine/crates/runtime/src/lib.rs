@@ -10,5 +10,6 @@ pub mod pg;
 pub mod rate_limiting;
 pub mod trusted_documents_client;
 pub mod udf;
+pub mod user_hooks;
 
 pub use context::Context;

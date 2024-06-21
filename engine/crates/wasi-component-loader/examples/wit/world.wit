@@ -13,7 +13,7 @@ interface types {
     }
 
     record error-response {
-        status: option<u16>,
+        extensions: list<tuple<string, string>>,
         message: string,
     }
 }

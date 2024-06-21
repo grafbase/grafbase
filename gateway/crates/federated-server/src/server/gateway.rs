@@ -4,9 +4,9 @@ use ascii::AsciiString;
 use engine_v2::{Engine, EngineEnv};
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::FederatedGraphConfig;
-use runtime::cache::GlobalCacheConfig;
-use runtime_local::{InMemoryCache, InMemoryKvStore};
-use runtime_noop::trusted_documents::NoopTrustedDocuments;
+use runtime::{cache::GlobalCacheConfig, user_hooks::UserHooks};
+use runtime_local::{ComponentLoader, InMemoryCache, InMemoryKvStore, UserHooksWasi, WasiConfig};
+use runtime_noop::{trusted_documents::NoopTrustedDocuments, user_hooks::UserHooksNoop};
 use tokio::sync::watch;
 
 use crate::config::{AuthenticationConfig, HeaderValue, OperationLimitsConfig, SubgraphConfig, TrustedDocumentsConfig};
@@ -28,6 +28,7 @@ pub(crate) struct GatewayConfig {
     pub default_headers: BTreeMap<AsciiString, HeaderValue>,
     pub subgraphs: BTreeMap<String, SubgraphConfig>,
     pub trusted_documents: TrustedDocumentsConfig,
+    pub wasi: Option<WasiConfig>,
 }
 
 /// Creates a new gateway from federated schema.
@@ -43,6 +44,7 @@ pub(super) fn generate(
         default_headers,
         subgraphs,
         trusted_documents,
+        wasi,
     } = config;
 
     let graph =
@@ -114,21 +116,28 @@ pub(super) fn generate(
         runtime::trusted_documents_client::Client::new(NoopTrustedDocuments)
     };
 
+    let user_hooks = match wasi {
+        Some(config) => ComponentLoader::new(config)
+            .map_err(|e| crate::Error::InternalError(e.to_string()))?
+            .map(UserHooksWasi::new)
+            .map(UserHooks::new)
+            .unwrap_or_else(|| UserHooks::new(UserHooksNoop)),
+        None => UserHooks::new(UserHooksNoop),
+    };
+
     let engine_env = EngineEnv {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         cache: cache.clone(),
         kv: InMemoryKvStore::runtime(),
         trusted_documents,
         meter: grafbase_tracing::metrics::meter_from_global_provider(),
+        user_hooks,
     };
 
-    Ok(Engine::new(
-        Arc::new(
-            config
-                .into_latest()
-                .try_into()
-                .map_err(|err| crate::Error::InternalError(format!("Failed to generate engine Schema: {err}")))?,
-        ),
-        engine_env,
-    ))
+    let config = config
+        .into_latest()
+        .try_into()
+        .map_err(|err| crate::Error::InternalError(format!("Failed to generate engine Schema: {err}")))?;
+
+    Ok(Engine::new(Arc::new(config), engine_env))
 }

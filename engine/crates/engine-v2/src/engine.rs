@@ -45,6 +45,7 @@ pub struct EngineEnv {
     pub trusted_documents: runtime::trusted_documents_client::Client,
     pub kv: runtime::kv::KvStore,
     pub meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
+    pub user_hooks: runtime::user_hooks::UserHooks,
 }
 
 impl Engine {
@@ -53,6 +54,7 @@ impl Engine {
             schema.settings.auth_config.clone().unwrap_or_default(),
             env.kv.clone(),
         );
+
         Self {
             schema,
             auth,
@@ -66,6 +68,11 @@ impl Engine {
         headers: http::HeaderMap,
         batch_request: BatchRequest,
     ) -> HttpGraphqlResponse {
+        let headers = match self.env.user_hooks.on_gateway_request(headers).await {
+            Ok(headers) => headers,
+            Err(error) => return Response::execution_error(error).into(),
+        };
+
         if let Some(access_token) = self.auth.authorize(&headers).await {
             self.execute_with_access_token(RequestMetadata::new(headers, access_token), batch_request)
                 .await

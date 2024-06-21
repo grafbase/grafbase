@@ -16,24 +16,49 @@ pub unsafe fn _export_on_gateway_request_cabi<T: Guest>(arg0: i32) -> *mut u8 {
         Err(e) => {
             *ptr1.add(0).cast::<u8>() = (1i32) as u8;
             let component::grafbase::types::ErrorResponse {
-                status: status2,
+                extensions: extensions2,
                 message: message2,
             } = e;
-            match status2 {
-                Some(e) => {
-                    *ptr1.add(4).cast::<u8>() = (1i32) as u8;
-                    *ptr1.add(6).cast::<u16>() = (_rt::as_i32(e)) as u16;
+            let vec6 = extensions2;
+            let len6 = vec6.len();
+            let layout6 = _rt::alloc::Layout::from_size_align_unchecked(vec6.len() * 16, 4);
+            let result6 = if layout6.size() != 0 {
+                let ptr = _rt::alloc::alloc(layout6).cast::<u8>();
+                if ptr.is_null() {
+                    _rt::alloc::handle_alloc_error(layout6);
                 }
-                None => {
-                    *ptr1.add(4).cast::<u8>() = (0i32) as u8;
+                ptr
+            } else {
+                {
+                    ::core::ptr::null_mut()
                 }
             };
-            let vec3 = (message2.into_bytes()).into_boxed_slice();
-            let ptr3 = vec3.as_ptr().cast::<u8>();
-            let len3 = vec3.len();
-            ::core::mem::forget(vec3);
-            *ptr1.add(12).cast::<usize>() = len3;
-            *ptr1.add(8).cast::<*mut u8>() = ptr3.cast_mut();
+            for (i, e) in vec6.into_iter().enumerate() {
+                let base = result6.add(i * 16);
+                {
+                    let (t3_0, t3_1) = e;
+                    let vec4 = (t3_0.into_bytes()).into_boxed_slice();
+                    let ptr4 = vec4.as_ptr().cast::<u8>();
+                    let len4 = vec4.len();
+                    ::core::mem::forget(vec4);
+                    *base.add(4).cast::<usize>() = len4;
+                    *base.add(0).cast::<*mut u8>() = ptr4.cast_mut();
+                    let vec5 = (t3_1.into_bytes()).into_boxed_slice();
+                    let ptr5 = vec5.as_ptr().cast::<u8>();
+                    let len5 = vec5.len();
+                    ::core::mem::forget(vec5);
+                    *base.add(12).cast::<usize>() = len5;
+                    *base.add(8).cast::<*mut u8>() = ptr5.cast_mut();
+                }
+            }
+            *ptr1.add(8).cast::<usize>() = len6;
+            *ptr1.add(4).cast::<*mut u8>() = result6;
+            let vec7 = (message2.into_bytes()).into_boxed_slice();
+            let ptr7 = vec7.as_ptr().cast::<u8>();
+            let len7 = vec7.len();
+            ::core::mem::forget(vec7);
+            *ptr1.add(16).cast::<usize>() = len7;
+            *ptr1.add(12).cast::<*mut u8>() = ptr7.cast_mut();
         }
     };
     ptr1
@@ -45,9 +70,25 @@ pub unsafe fn __post_return_on_gateway_request<T: Guest>(arg0: *mut u8) {
     match l0 {
         0 => (),
         _ => {
-            let l1 = *arg0.add(8).cast::<*mut u8>();
-            let l2 = *arg0.add(12).cast::<usize>();
-            _rt::cabi_dealloc(l1, l2, 1);
+            let l5 = *arg0.add(4).cast::<*mut u8>();
+            let l6 = *arg0.add(8).cast::<usize>();
+            let base7 = l5;
+            let len7 = l6;
+            for i in 0..len7 {
+                let base = base7.add(i * 16);
+                {
+                    let l1 = *base.add(0).cast::<*mut u8>();
+                    let l2 = *base.add(4).cast::<usize>();
+                    _rt::cabi_dealloc(l1, l2, 1);
+                    let l3 = *base.add(8).cast::<*mut u8>();
+                    let l4 = *base.add(12).cast::<usize>();
+                    _rt::cabi_dealloc(l3, l4, 1);
+                }
+            }
+            _rt::cabi_dealloc(base7, len7 * 16, 4);
+            let l8 = *arg0.add(12).cast::<*mut u8>();
+            let l9 = *arg0.add(16).cast::<usize>();
+            _rt::cabi_dealloc(l8, l9, 1);
         }
     }
 }
@@ -72,8 +113,8 @@ macro_rules! __export_world_gateway_cabi{
 #[doc(hidden)]
 pub(crate) use __export_world_gateway_cabi;
 #[repr(align(4))]
-struct _RetArea([::core::mem::MaybeUninit<u8>; 16]);
-static mut _RET_AREA: _RetArea = _RetArea([::core::mem::MaybeUninit::uninit(); 16]);
+struct _RetArea([::core::mem::MaybeUninit<u8>; 20]);
+static mut _RET_AREA: _RetArea = _RetArea([::core::mem::MaybeUninit::uninit(); 20]);
 #[allow(dead_code)]
 pub mod component {
     #[allow(dead_code)]
@@ -184,13 +225,13 @@ pub mod component {
 
             #[derive(Clone)]
             pub struct ErrorResponse {
-                pub status: Option<u16>,
+                pub extensions: _rt::Vec<(_rt::String, _rt::String)>,
                 pub message: _rt::String,
             }
             impl ::core::fmt::Debug for ErrorResponse {
                 fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
                     f.debug_struct("ErrorResponse")
-                        .field("status", &self.status)
+                        .field("extensions", &self.extensions)
                         .field("message", &self.message)
                         .finish()
                 }
@@ -491,76 +532,7 @@ mod _rt {
     pub fn run_ctors_once() {
         wit_bindgen_rt::run_ctors_once();
     }
-
-    pub fn as_i32<T: AsI32>(t: T) -> i32 {
-        t.as_i32()
-    }
-
-    pub trait AsI32 {
-        fn as_i32(self) -> i32;
-    }
-
-    impl<'a, T: Copy + AsI32> AsI32 for &'a T {
-        fn as_i32(self) -> i32 {
-            (*self).as_i32()
-        }
-    }
-
-    impl AsI32 for i32 {
-        #[inline]
-        fn as_i32(self) -> i32 {
-            self as i32
-        }
-    }
-
-    impl AsI32 for u32 {
-        #[inline]
-        fn as_i32(self) -> i32 {
-            self as i32
-        }
-    }
-
-    impl AsI32 for i16 {
-        #[inline]
-        fn as_i32(self) -> i32 {
-            self as i32
-        }
-    }
-
-    impl AsI32 for u16 {
-        #[inline]
-        fn as_i32(self) -> i32 {
-            self as i32
-        }
-    }
-
-    impl AsI32 for i8 {
-        #[inline]
-        fn as_i32(self) -> i32 {
-            self as i32
-        }
-    }
-
-    impl AsI32 for u8 {
-        #[inline]
-        fn as_i32(self) -> i32 {
-            self as i32
-        }
-    }
-
-    impl AsI32 for char {
-        #[inline]
-        fn as_i32(self) -> i32 {
-            self as i32
-        }
-    }
-
-    impl AsI32 for usize {
-        #[inline]
-        fn as_i32(self) -> i32 {
-            self as i32
-        }
-    }
+    pub use alloc_crate::alloc;
     pub unsafe fn cabi_dealloc(ptr: *mut u8, size: usize, align: usize) {
         if size == 0 {
             return;
@@ -569,7 +541,6 @@ mod _rt {
         alloc::dealloc(ptr as *mut u8, layout);
     }
     extern crate alloc as alloc_crate;
-    pub use alloc_crate::alloc;
 }
 
 /// Generates `#[no_mangle]` functions to export the specified type as the
@@ -603,19 +574,19 @@ pub(crate) use __export_gateway_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:gateway:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 554] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xac\x03\x01A\x02\x01\
-A\x0a\x01B\x0f\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
-header-error\x03\0\0\x04\0\x07headers\x03\x01\x01k{\x01r\x02\x06status\x03\x07me\
-ssages\x04\0\x0eerror-response\x03\0\x04\x01h\x02\x01ks\x01j\x01\x07\x01\x01\x01\
-@\x02\x04self\x06\x04names\0\x08\x04\0\x13[method]headers.get\x01\x09\x01j\0\x01\
-\x01\x01@\x03\x04self\x06\x04names\x05values\0\x0a\x04\0\x13[method]headers.set\x01\
-\x0b\x04\0\x16[method]headers.delete\x01\x09\x03\x01\x18component:grafbase/types\
-\x05\0\x02\x03\0\0\x07headers\x03\0\x07headers\x03\0\x01\x02\x03\0\0\x0eerror-re\
-sponse\x03\0\x0eerror-response\x03\0\x03\x01i\x02\x01j\0\x01\x04\x01@\x01\x07hea\
-ders\x05\0\x06\x04\0\x12on-gateway-request\x01\x07\x04\x01\x1acomponent:grafbase\
-/gateway\x04\0\x0b\x0d\x01\0\x07gateway\x03\0\0\0G\x09producers\x01\x0cprocessed\
--by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 563] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xb5\x03\x01A\x02\x01\
+A\x0a\x01B\x10\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
+header-error\x03\0\0\x04\0\x07headers\x03\x01\x01o\x02ss\x01p\x03\x01r\x02\x0aex\
+tensions\x04\x07messages\x04\0\x0eerror-response\x03\0\x05\x01h\x02\x01ks\x01j\x01\
+\x08\x01\x01\x01@\x02\x04self\x07\x04names\0\x09\x04\0\x13[method]headers.get\x01\
+\x0a\x01j\0\x01\x01\x01@\x03\x04self\x07\x04names\x05values\0\x0b\x04\0\x13[meth\
+od]headers.set\x01\x0c\x04\0\x16[method]headers.delete\x01\x0a\x03\x01\x18compon\
+ent:grafbase/types\x05\0\x02\x03\0\0\x07headers\x03\0\x07headers\x03\0\x01\x02\x03\
+\0\0\x0eerror-response\x03\0\x0eerror-response\x03\0\x03\x01i\x02\x01j\0\x01\x04\
+\x01@\x01\x07headers\x05\0\x06\x04\0\x12on-gateway-request\x01\x07\x04\x01\x1aco\
+mponent:grafbase/gateway\x04\0\x0b\x0d\x01\0\x07gateway\x03\0\0\0G\x09producers\x01\
+\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

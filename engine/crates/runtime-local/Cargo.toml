@@ -32,4 +32,5 @@ reqwest = { workspace = true, features = [
   "json",
   "rustls-tls",
 ] }
+wasi-component-loader = { version = "0.75.0", path = "../wasi-component-loader" }
 

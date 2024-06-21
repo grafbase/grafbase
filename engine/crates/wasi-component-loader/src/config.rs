@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use wasmtime_wasi::{DirPerms, FilePerms, WasiCtx, WasiCtxBuilder};
 
 /// GraphQL WASI component configuration.
-#[derive(Default, Debug, serde::Deserialize)]
+#[derive(Clone, Default, Debug, serde::Deserialize)]
 pub struct Config {
     location: PathBuf,
     #[serde(default)]
@@ -19,7 +19,7 @@ pub struct Config {
 }
 
 /// Configuration for allowing access to a certain directory from a WASI guest
-#[derive(Debug, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub struct PreopenedDirectory {
     host_path: PathBuf,
     guest_path: String,

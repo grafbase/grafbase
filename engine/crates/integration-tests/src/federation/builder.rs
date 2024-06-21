@@ -1,5 +1,6 @@
 mod bench;
 mod mock;
+mod user_hooks;
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -9,7 +10,8 @@ pub use bench::*;
 use graphql_mocks::MockGraphQlServer;
 pub use mock::*;
 use parser_sdl::connector_parsers::MockConnectorParsers;
-use runtime::trusted_documents_client;
+use runtime::{trusted_documents_client, user_hooks::UserHooks};
+pub use user_hooks::UserHooksTest;
 
 use super::TestFederationEngine;
 
@@ -18,6 +20,7 @@ pub struct FederationGatewayBuilder {
     schemas: Vec<(String, String, ServiceDocument)>,
     trusted_documents: Option<MockTrustedDocumentsClient>,
     config_sdl: Option<String>,
+    user_hooks: UserHooksTest,
 }
 
 pub trait GatewayV2Ext {
@@ -26,6 +29,7 @@ pub trait GatewayV2Ext {
             trusted_documents: None,
             schemas: vec![],
             config_sdl: None,
+            user_hooks: UserHooksTest::default(),
         }
     }
 }
@@ -58,6 +62,11 @@ impl FederationGatewayBuilder {
             _branch_id: branch_id,
             documents,
         });
+        self
+    }
+
+    pub fn with_user_hooks(mut self, callbacks: UserHooksTest) -> Self {
+        self.user_hooks = callbacks;
         self
     }
 
@@ -100,6 +109,7 @@ impl FederationGatewayBuilder {
                     }),
                 kv: runtime_local::InMemoryKvStore::runtime(),
                 meter: grafbase_tracing::metrics::meter_from_global_provider(),
+                user_hooks: UserHooks::new(self.user_hooks),
             },
         )))
     }

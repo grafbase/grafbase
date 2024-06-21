@@ -6,3 +6,4 @@ mod issues;
 mod subgraphs;
 mod subscriptions;
 mod trusted_documents;
+mod user_hooks;
