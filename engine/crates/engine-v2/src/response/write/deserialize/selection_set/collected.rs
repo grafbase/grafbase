@@ -5,7 +5,7 @@ use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::{
     operation::SelectionSetType,
-    plan::{CollectedField, CollectedSelectionSetId, PlanBoundaryId, RuntimeCollectedSelectionSet},
+    plan::{CollectedField, CollectedSelectionSetId, ExecutionPlanBoundaryId, RuntimeCollectedSelectionSet},
     response::{
         value::{ResponseObjectFields, RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD},
         write::deserialize::{key::Key, FieldSeed, SeedContext},
@@ -17,7 +17,7 @@ use crate::{
 /// or not. There is no field with type conditions anymore.
 pub(crate) struct CollectedSelectionSetSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContext<'ctx>,
-    pub boundary_ids: &'parent [PlanBoundaryId],
+    pub boundary_ids: &'parent [ExecutionPlanBoundaryId],
     pub fields_seed: CollectedFieldsSeed<'ctx, 'parent>,
 }
 

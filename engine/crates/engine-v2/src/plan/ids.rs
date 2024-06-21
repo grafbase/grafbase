@@ -1,11 +1,11 @@
 use std::num::NonZeroU16;
 
-use crate::sources::Plan;
-
-use super::{CollectedField, CollectedSelectionSet, ConditionalField, ConditionalSelectionSet, OperationPlan};
+use super::{
+    CollectedField, CollectedSelectionSet, ConditionalField, ConditionalSelectionSet, ExecutionPlan, OperationPlan,
+};
 
 id_newtypes::NonZeroU16! {
-    OperationPlan.plans[PlanId] => Plan,
+    OperationPlan.execution_plans[ExecutionPlanId] => ExecutionPlan,
     OperationPlan.conditional_fields[ConditionalFieldId] => ConditionalField,
     OperationPlan.conditional_selection_sets[ConditionalSelectionSetId] => ConditionalSelectionSet,
     OperationPlan.collected_selection_sets[CollectedSelectionSetId] => CollectedSelectionSet,
@@ -13,15 +13,15 @@ id_newtypes::NonZeroU16! {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
-pub struct PlanBoundaryId(NonZeroU16);
+pub struct ExecutionPlanBoundaryId(NonZeroU16);
 
-impl From<PlanBoundaryId> for usize {
-    fn from(id: PlanBoundaryId) -> usize {
+impl From<ExecutionPlanBoundaryId> for usize {
+    fn from(id: ExecutionPlanBoundaryId) -> usize {
         (id.0.get() - 1) as usize
     }
 }
 
-impl From<usize> for PlanBoundaryId {
+impl From<usize> for ExecutionPlanBoundaryId {
     fn from(value: usize) -> Self {
         Self(
             u16::try_from(value)

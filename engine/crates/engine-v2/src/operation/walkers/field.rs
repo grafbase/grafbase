@@ -6,7 +6,7 @@ use crate::{
     response::ResponseKey,
 };
 
-pub type FieldWalker<'a> = OperationWalker<'a, FieldId>;
+pub type FieldWalker<'a> = OperationWalker<'a, FieldId, ()>;
 
 impl<'a> FieldWalker<'a> {
     pub fn name(&self) -> &'a str {

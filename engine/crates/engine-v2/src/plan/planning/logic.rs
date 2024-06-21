@@ -1,6 +1,6 @@
 use schema::{FieldDefinitionId, ProvidableFieldSet, ResolverWalker};
 
-use crate::plan::PlanId;
+use crate::operation::PlanId;
 
 /// Defines whether a field can be provided or not for a given resolver.
 #[derive(Debug, Clone)]

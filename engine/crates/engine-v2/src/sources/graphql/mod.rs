@@ -10,7 +10,7 @@ use tracing::Instrument;
 use self::query::PreparedGraphqlOperation;
 use self::variables::SubgraphVariables;
 
-use super::{ExecutionContext, ExecutionResult, Executor, ExecutorInput, Plan};
+use super::{ExecutionContext, ExecutionResult, Executor, ExecutorInput, PreparedExecutor};
 use crate::{
     operation::OperationType,
     plan::{PlanWalker, PlanningResult},
@@ -27,27 +27,27 @@ mod variables;
 pub(crate) use federation::*;
 pub(crate) use subscription::*;
 
-pub(crate) struct GraphqlExecutionPlan {
+pub(crate) struct GraphqlPreparedExecutor {
     subgraph_id: GraphqlEndpointId,
     operation: PreparedGraphqlOperation,
 }
 
-impl GraphqlExecutionPlan {
-    pub fn build(
+impl GraphqlPreparedExecutor {
+    pub fn prepare(
         resolver: RootFieldResolverWalker<'_>,
         operation_type: OperationType,
         plan: PlanWalker<'_>,
-    ) -> PlanningResult<Plan> {
+    ) -> PlanningResult<PreparedExecutor> {
         let subgraph = resolver.endpoint();
         let operation = query::PreparedGraphqlOperation::build(operation_type, plan)
             .map_err(|err| format!("Failed to build query: {err}"))?;
-        Ok(Plan::GraphQL(Self {
+        Ok(PreparedExecutor::GraphQL(Self {
             subgraph_id: subgraph.id(),
             operation,
         }))
     }
 
-    #[tracing::instrument(skip_all, fields(plan_id = %input.plan.id()))]
+    #[tracing::instrument(skip_all)]
     pub fn new_executor<'ctx>(&'ctx self, input: ExecutorInput<'ctx, '_>) -> ExecutionResult<Executor<'ctx>> {
         let ExecutorInput { ctx, plan, .. } = input;
 
@@ -88,7 +88,7 @@ pub(crate) struct GraphqlExecutor<'ctx> {
 }
 
 impl<'ctx> GraphqlExecutor<'ctx> {
-    #[tracing::instrument(skip_all, fields(plan_id = %self.plan.id(), federated_subgraph = %self.subgraph.name()))]
+    #[tracing::instrument(skip_all)]
     pub async fn execute(self, mut response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
         let subgraph_request_span = SubgraphRequestSpan::new(self.subgraph.name())
             .with_url(self.subgraph.url())

@@ -3,9 +3,9 @@ use crate::{execution::ExecutionContext, plan::PlanWalker, response::ResponsePar
 
 mod writer;
 
-pub(crate) struct IntrospectionExecutionPlan;
+pub(crate) struct IntrospectionPreparedExecutor;
 
-impl IntrospectionExecutionPlan {
+impl IntrospectionPreparedExecutor {
     #[allow(clippy::unnecessary_wraps)]
     pub fn new_executor<'ctx>(
         &'ctx self,

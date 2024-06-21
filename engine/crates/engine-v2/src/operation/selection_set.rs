@@ -107,6 +107,8 @@ pub enum Field {
         // sorted by InputValueDefinitionId
         argument_ids: IdRange<FieldArgumentId>,
         petitioner_location: Location,
+        // FIXME: Could probably avoid having those by having those additional extra fields be in a
+        // temporary struct instead.
         /// During the planning we may add more extra fields than necessary. To prevent retrieving
         /// unnecessary data, only those marked as read are part of the operation.
         is_read: bool,

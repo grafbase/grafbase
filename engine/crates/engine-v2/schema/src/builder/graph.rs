@@ -9,11 +9,11 @@ use id_newtypes::IdRange;
 
 use crate::{
     sources::{self, graphql::GraphqlEndpointId, introspection::IntrospectionBuilder, IntrospectionMetadata},
-    CacheControl, CacheControlId, Definition, Enum, EnumId, EnumValue, EnumValueId, FieldDefinition, FieldDefinitionId,
-    FieldProvides, FieldRequires, Graph, InputObject, InputObjectId, InputValueDefinition, Interface, InterfaceId,
-    Object, ObjectId, ProvidableField, ProvidableFieldSet, RequiredScopes, RequiredScopesId, Resolver, ResolverId,
-    RootOperationTypes, Scalar, ScalarId, ScalarType, StringId, Type, TypeSystemDirective, TypeSystemDirectiveId,
-    Union, UnionId,
+    CacheControl, CacheControlId, Definition, EntityId, Enum, EnumId, EnumValue, EnumValueId, FieldDefinition,
+    FieldDefinitionId, FieldProvides, FieldRequires, Graph, InputObject, InputObjectId, InputValueDefinition,
+    Interface, InterfaceId, Object, ObjectId, ProvidableField, ProvidableFieldSet, RequiredScopes, RequiredScopesId,
+    Resolver, ResolverId, RootOperationTypes, Scalar, ScalarId, ScalarType, StringId, Type, TypeSystemDirective,
+    TypeSystemDirectiveId, Union, UnionId,
 };
 
 use super::{
@@ -58,6 +58,7 @@ impl<'a> GraphBuilder<'a> {
                 input_object_definitions: Vec::new(),
                 input_value_definitions: Vec::new(),
                 field_definitions: Vec::new(),
+                field_to_parent_entity: Vec::new(),
                 resolvers: Vec::new(),
                 type_definitions: Vec::new(),
                 type_system_directives: Vec::new(),
@@ -421,6 +422,18 @@ impl<'a> GraphBuilder<'a> {
                     cache_config_target: Some(CacheConfigTarget::Field(federated_id)),
                 },
             );
+            let parent_entity = if let Some(object_id) =
+                object_metadata.field_id_to_maybe_object_id[usize::from(field_id)]
+            {
+                EntityId::Object(object_id)
+            } else if let Some(interface_id) = interface_metadata.field_id_to_maybe_interface_id[usize::from(field_id)]
+            {
+                EntityId::Interface(interface_id)
+            } else {
+                // TODO: better guarantee this never fails.
+                unreachable!()
+            };
+            self.graph.field_to_parent_entity.push(parent_entity);
             self.graph.field_definitions.push(FieldDefinition {
                 name: field.name.into(),
                 description: None,
@@ -444,12 +457,12 @@ impl<'a> GraphBuilder<'a> {
                     .into_iter()
                     .filter(|requires| !requires.fields.is_empty())
                     .map(|federated_graph::FieldRequires { subgraph_id, fields }| {
-                        let parent_object_id = object_metadata.field_id_to_maybe_object_id[usize::from(field_id)];
                         let field_set_id = self.required_field_sets_buffer.push(
                             SchemaLocation::Field {
-                                ty: parent_object_id
-                                    .map(|id| self.graph[id].name)
-                                    .unwrap_or(field.name.into()),
+                                ty: match parent_entity {
+                                    EntityId::Object(id) => self.graph[id].name,
+                                    EntityId::Interface(id) => self.graph[id].name,
+                                },
                                 name: field.name.into(),
                             },
                             fields,

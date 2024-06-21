@@ -1,10 +1,10 @@
 use id_newtypes::IdRange;
-use schema::{ResolverId, Schema};
+use schema::{EntityId, ResolverId, Schema};
 
 use crate::{
-    operation::{Operation, QueryPath, Variables},
+    operation::{Operation, PlanId, Variables},
     response::ReadSelectionSet,
-    sources::Plan,
+    sources::PreparedExecutor,
 };
 
 mod collected;
@@ -26,11 +26,6 @@ pub(crate) struct OperationPlan {
 
     // Association between fields & selection sets and plans. Used when traversing the operation
     // for a plan filtering out other plans fields and to build the collected selection set.
-    //
-    // BoundFieldId -> PlanId
-    field_to_plan_id: Vec<PlanId>,
-    // BoundSelectionSetId -> PlanId
-    selection_to_plan_id: Vec<PlanId>,
     /// BoundSelectionSetId -> Option<CollectedSelectionSetId>
     selection_set_to_collected: Vec<Option<AnyCollectedSelectionSetId>>,
 
@@ -39,15 +34,8 @@ pub(crate) struct OperationPlan {
     // certain query path.
     //
     // Its information is split into multiple Vecs as it's built over several steps.
-    //
-    // PlanId -> PlannedResolver
-    planned_resolvers: Vec<PlannedResolver>,
     // PlanId -> Plan
-    plans: Vec<Plan>,
-    // PlanId -> PlanInput
-    plan_inputs: Vec<Option<PlanInput>>,
-    // PlanId -> PlanOutput
-    plan_outputs: Vec<PlanOutput>,
+    execution_plans: Vec<ExecutionPlan>,
     // sorted by parent plan id
     plan_parent_to_child_edges: Vec<ParentToChildEdge>,
     // PlanId -> u8
@@ -70,6 +58,14 @@ pub(crate) struct OperationPlan {
     collected_selection_sets: Vec<CollectedSelectionSet>,
     // CollectedFieldId -> CollectedField
     collected_fields: Vec<CollectedField>,
+}
+
+pub(crate) struct ExecutionPlan {
+    pub plan_id: PlanId,
+    pub resolver_id: ResolverId,
+    pub input: Option<PlanInput>,
+    pub output: PlanOutput,
+    pub prepared_executor: PreparedExecutor,
 }
 
 impl std::ops::Deref for OperationPlan {
@@ -105,31 +101,29 @@ impl OperationPlan {
         OperationExecutionState::new(self)
     }
 
-    pub fn walker_with<'s>(&'s self, schema: &'s Schema, variables: &'s Variables, plan_id: PlanId) -> PlanWalker<'s> {
-        let plan_id = PlanId::from(usize::from(plan_id));
+    pub fn walker_with<'s>(
+        &'s self,
+        schema: &'s Schema,
+        variables: &'s Variables,
+        execution_plan_id: ExecutionPlanId,
+    ) -> PlanWalker<'s, (), ()> {
         let schema_walker = schema
-            .walk(self.planned_resolvers[usize::from(plan_id)].resolver_id)
+            .walk(self[execution_plan_id].resolver_id)
             .with_own_names()
             .walk(());
         PlanWalker {
             schema_walker,
             operation_plan: self,
             variables,
-            plan_id,
+            execution_plan_id,
             item: (),
         }
     }
 }
 
 #[derive(Debug)]
-pub struct PlannedResolver {
-    pub resolver_id: ResolverId,
-    pub path: QueryPath,
-}
-
-#[derive(Debug)]
 pub struct PlanInput {
-    pub boundary_id: PlanBoundaryId,
+    pub boundary_id: ExecutionPlanBoundaryId,
     /// if the plan `@requires` any data it will be included in the ReadSelectionSet.
     pub selection_set: ReadSelectionSet,
 }
@@ -137,13 +131,13 @@ pub struct PlanInput {
 #[derive(Debug)]
 pub struct PlanOutput {
     pub type_condition: Option<FlatTypeCondition>,
-    pub entity_type: EntityType,
+    pub entity_type: EntityId,
     pub collected_selection_set_id: CollectedSelectionSetId,
-    pub boundary_ids: IdRange<PlanBoundaryId>,
+    pub boundary_ids: IdRange<ExecutionPlanBoundaryId>,
 }
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy, Debug, PartialOrd, Ord)]
 pub struct ParentToChildEdge {
-    pub parent: PlanId,
-    pub child: PlanId,
+    pub parent: ExecutionPlanId,
+    pub child: ExecutionPlanId,
 }

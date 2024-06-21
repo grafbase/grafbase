@@ -65,7 +65,5 @@ pub(super) fn plan_operation(
     variables: &Variables,
     operation: Operation,
 ) -> PlanningResult<OperationPlan> {
-    let mut planner = planner::Planner::new(schema, variables, operation);
-    planner.plan_all_fields()?;
-    planner.finalize_operation()
+    planner::Planner::new(schema, variables, operation).plan()
 }

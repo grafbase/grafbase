@@ -4,9 +4,9 @@ use schema::Schema;
 
 use crate::response::{ResponseBuilder, ResponseObjectRef};
 
-use crate::plan::{OperationPlan, PlanBoundaryId};
+use crate::plan::{ExecutionPlanBoundaryId, OperationPlan};
 
-use super::{FlatTypeCondition, PlanId};
+use super::{ExecutionPlanId, FlatTypeCondition};
 
 /// Holds the current state of the operation execution:
 /// - which plans have been executed
@@ -43,7 +43,7 @@ impl OperationExecutionState {
         }
     }
 
-    pub fn pop_subscription_plan_id(&mut self) -> PlanId {
+    pub fn pop_subscription_plan_id(&mut self) -> ExecutionPlanId {
         let executable = self.get_executable_plans();
         assert!(executable.len() == 1);
         let plan_id = executable[0];
@@ -52,17 +52,23 @@ impl OperationExecutionState {
         plan_id
     }
 
-    pub fn get_executable_plans(&self) -> Vec<PlanId> {
+    pub fn get_executable_plans(&self) -> Vec<ExecutionPlanId> {
         self.plan_dependencies_count
             .iter()
             .enumerate()
-            .filter_map(|(i, &count)| if count == 0 { Some(PlanId::from(i)) } else { None })
+            .filter_map(|(i, &count)| {
+                if count == 0 {
+                    Some(ExecutionPlanId::from(i))
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 
     pub fn push_boundary_response_object_refs(
         &mut self,
-        boundary_id: PlanBoundaryId,
+        boundary_id: ExecutionPlanBoundaryId,
         response_object_refs: Vec<ResponseObjectRef>,
     ) {
         self.boundaries[usize::from(boundary_id)] = Some(BoundaryResponseObjects {
@@ -76,14 +82,14 @@ impl OperationExecutionState {
         schema: &Schema,
         operation: &OperationPlan,
         response: &ResponseBuilder,
-        plan_id: PlanId,
+        plan_id: ExecutionPlanId,
     ) -> Arc<Vec<ResponseObjectRef>> {
         // If there is no root, an error propagated up to it and data will be null. So there's
         // nothing to do anymore.
         let Some(root_boundary_item) = response.root_response_object() else {
             return Arc::new(Vec::new());
         };
-        let Some(input) = &operation.plan_inputs[usize::from(plan_id)] else {
+        let Some(input) = &operation[plan_id].input else {
             return Arc::new(vec![root_boundary_item]);
         };
         let refs = {
@@ -100,7 +106,7 @@ impl OperationExecutionState {
                 boundary.response_object_refs.clone()
             }
         };
-        match &operation.plan_outputs[usize::from(plan_id)].type_condition {
+        match &operation[plan_id].output.type_condition {
             Some(FlatTypeCondition::Interface(id)) => {
                 let possible_types = &schema[*id].possible_types;
                 Arc::new(
@@ -124,7 +130,11 @@ impl OperationExecutionState {
         }
     }
 
-    pub fn get_next_executable_plans(&mut self, operation: &OperationPlan, plan_id: PlanId) -> Vec<PlanId> {
+    pub fn get_next_executable_plans(
+        &mut self,
+        operation: &OperationPlan,
+        plan_id: ExecutionPlanId,
+    ) -> Vec<ExecutionPlanId> {
         let edges = &operation.plan_parent_to_child_edges;
         let mut executable = Vec::new();
         let mut i = edges.partition_point(|edge| edge.parent < plan_id);

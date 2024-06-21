@@ -172,6 +172,7 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
         root_object_id,
         name: unbound.name,
         root_selection_set_id,
+        selection_set_to_plan_id: vec![None; binder.selection_sets.len()],
         selection_sets: binder.selection_sets,
         fragments: {
             let mut fragment_definitions = binder.fragments.into_values().collect::<Vec<_>>();
@@ -180,6 +181,7 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
         },
         field_arguments: binder.field_arguments,
         response_keys: binder.response_keys,
+        field_to_plan_id: vec![None; binder.fields.len()],
         fields: binder.fields,
         variable_definitions: binder.variable_definitions,
         cache_control: None,
@@ -187,6 +189,9 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
         inline_fragments: binder.inline_fragments,
         field_to_parent: binder.field_to_parent,
         query_input_values: binder.input_values,
+        plans: Vec::new(),
+        plan_edges: Vec::new(),
+        field_dependencies: Vec::new(),
     })
 }
 

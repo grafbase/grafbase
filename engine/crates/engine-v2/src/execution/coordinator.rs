@@ -12,7 +12,7 @@ use futures_util::{
 use crate::{
     execution::ExecutionContext,
     operation::{Operation, Variables},
-    plan::{OperationExecutionState, OperationPlan, PlanId, PlanWalker},
+    plan::{ExecutionPlanId, OperationExecutionState, OperationPlan, PlanWalker},
     response::{Response, ResponseBuilder, ResponseObjectRef, ResponsePart},
     sources::{Executor, ExecutorInput, SubscriptionInput},
 };
@@ -43,7 +43,7 @@ impl<'ctx> ExecutionCoordinator<'ctx> {
         &self.operation_plan
     }
 
-    pub fn plan_walker(&self, plan_id: PlanId) -> PlanWalker<'_> {
+    pub fn plan_walker(&self, plan_id: ExecutionPlanId) -> PlanWalker<'_, (), ()> {
         self.operation_plan
             .walker_with(&self.ctx.engine.schema, &self.variables, plan_id)
     }
@@ -107,7 +107,7 @@ impl<'ctx> ExecutionCoordinator<'ctx> {
 
     async fn build_subscription_stream<'s, 'caller>(
         &'s self,
-        plan_id: PlanId,
+        plan_id: ExecutionPlanId,
         new_execution: impl Fn() -> OperationRootPlanExecution<'caller> + Send + 'caller,
     ) -> ExecutionResult<BoxStream<'caller, ExecutionResult<OperationRootPlanExecution<'caller>>>>
     where
@@ -122,7 +122,7 @@ impl<'ctx> ExecutionCoordinator<'ctx> {
 }
 
 struct SubscriptionExecution<'a> {
-    subscription_plan_id: PlanId,
+    subscription_plan_id: ExecutionPlanId,
     stream: BoxStream<'a, ExecutionResult<OperationRootPlanExecution<'a>>>,
 }
 
@@ -270,7 +270,7 @@ impl<'ctx> OperationExecution<'ctx> {
         )
     }
 
-    fn spawn_executor(&mut self, plan_id: PlanId) {
+    fn spawn_executor(&mut self, plan_id: ExecutionPlanId) {
         tracing::trace!(%plan_id, "Starting plan");
         let operation: &'ctx OperationPlan = &self.coordinator.operation_plan;
         let engine = self.coordinator.ctx.engine;
@@ -324,7 +324,7 @@ impl<'a> ExecutorFutureSet<'a> {
 
     fn execute(
         &mut self,
-        plan_id: PlanId,
+        plan_id: ExecutionPlanId,
         root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
         executor: Executor<'a>,
         response_part: ResponsePart,
@@ -349,7 +349,7 @@ impl<'a> ExecutorFutureSet<'a> {
 }
 
 struct ExecutorFutureResult {
-    plan_id: PlanId,
+    plan_id: ExecutionPlanId,
     root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
     result: ExecutionResult<ResponsePart>,
 }
