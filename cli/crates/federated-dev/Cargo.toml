@@ -22,7 +22,7 @@ indoc = "2.0.5"
 log = "0.4.21"
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 runtime.workspace = true
-runtime-local.workspace = true
+runtime-local = { workspace = true, features = ["wasi"] }
 runtime-noop.workspace = true
 serde = "1.0.199"
 serde_json.workspace = true

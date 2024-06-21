@@ -35,7 +35,7 @@ http.workspace = true
 parser-sdl = { version = "0.1.0", path = "../../../engine/crates/parser-sdl" }
 reqwest = { workspace = true, features = ["http2", "json", "rustls-tls"] }
 runtime.workspace = true
-runtime-local.workspace = true
+runtime-local = { workspace = true, features = ["wasi"] }
 runtime-noop.workspace = true
 serde.workspace = true
 thiserror.workspace = true

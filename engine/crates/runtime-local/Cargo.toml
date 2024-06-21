@@ -12,6 +12,9 @@ keywords = ["local", "runtime", "grafbase"]
 [lints]
 workspace = true
 
+[features]
+wasi = ["wasi-component-loader"]
+
 [dependencies]
 async-runtime.workspace = true
 async-trait = "0.1.80"
@@ -32,5 +35,5 @@ reqwest = { workspace = true, features = [
   "json",
   "rustls-tls",
 ] }
-wasi-component-loader = { version = "0.75.0", path = "../wasi-component-loader" }
+wasi-component-loader = { version = "0.75.0", path = "../wasi-component-loader", optional = true }
 
