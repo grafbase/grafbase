@@ -49,18 +49,18 @@ fn build_output_shape(
         .collect::<IndexSet<_>>();
 
     if type_conditions.is_empty() {
-        let field_shapes = field_shapes_for_typename(builder, &selections, subset, None);
+        let field_shapes = field_shapes_for_type_condition(builder, &selections, subset, None);
 
         builder.insert_concrete_object(field_shapes)
     } else {
-        let unknown_typename_fields = field_shapes_for_typename(builder, &selections, subset, None);
+        let unknown_typename_fields = field_shapes_for_type_condition(builder, &selections, subset, None);
 
         let known_typename_fields = type_conditions
             .into_iter()
             .map(|typename| {
                 (
                     typename.to_string(),
-                    field_shapes_for_typename(builder, &selections, subset, Some(typename)),
+                    field_shapes_for_type_condition(builder, &selections, subset, Some(typename)),
                 )
             })
             .collect::<Vec<_>>();
@@ -69,15 +69,15 @@ fn build_output_shape(
     }
 }
 
-fn field_shapes_for_typename(
+fn field_shapes_for_type_condition(
     builder: &mut OutputShapesBuilder,
     selections: &[DeferrableSelection<'_>],
     subset: &QuerySubset,
-    typename: Option<&str>,
+    type_condition: Option<&str>,
 ) -> Vec<FieldRecord> {
     let mut grouped_fields = IndexMap::new();
 
-    collect_fields(&mut grouped_fields, &mut vec![], selections, subset, typename);
+    collect_fields(&mut grouped_fields, &mut vec![], selections, subset, type_condition);
 
     let merged_fields = merge_selection_sets(grouped_fields, subset);
 
@@ -117,7 +117,7 @@ fn collect_fields<'a>(
     defer_stack: &mut Vec<&'a str>,
     selections: &[DeferrableSelection<'a>],
     subset: &'a QuerySubset,
-    typename: Option<&'a str>,
+    type_condition: Option<&'a str>,
 ) {
     for selection in selections {
         match selection.selection {
@@ -132,7 +132,7 @@ fn collect_fields<'a>(
                     .push(CollectedField { field, defer_label });
             }
             Selection::InlineFragment(fragment) => {
-                if fragment.type_condition() != typename {
+                if fragment.type_condition() != type_condition {
                     // TODO: This needs to be smarter.  If there's no type_condition it doesn't matter what typename
                     // is. We also need to handle implements properly, which will require the registry.
                     //
@@ -156,7 +156,7 @@ fn collect_fields<'a>(
                         })
                         .collect::<Vec<_>>(),
                     subset,
-                    typename,
+                    type_condition,
                 );
 
                 if defer.is_some() {
@@ -166,7 +166,7 @@ fn collect_fields<'a>(
             Selection::FragmentSpread(spread) => {
                 let Some(fragment) = spread.fragment() else { continue };
 
-                if typename != Some(fragment.type_condition()) {
+                if type_condition != Some(fragment.type_condition()) {
                     // TODO: This needs to be smarter.  If there's no type_condition it doesn't matter what typename
                     // is. We also need to handle implements properly, which will require the registry.
                     //
@@ -190,7 +190,7 @@ fn collect_fields<'a>(
                         })
                         .collect::<Vec<_>>(),
                     subset,
-                    typename,
+                    type_condition,
                 );
 
                 if defer.is_some() {
@@ -349,12 +349,12 @@ impl OutputShapesBuilder {
 
     fn insert_polymorphic_object(
         &mut self,
-        unknown_typename_fields: Vec<FieldRecord>,
-        typename_fields: Vec<(String, Vec<FieldRecord>)>,
+        fields_when_no_condition_matches: Vec<FieldRecord>,
+        fields_for_typeconditions: Vec<(String, Vec<FieldRecord>)>,
     ) -> ObjectShapeId {
-        let mut types = Vec::with_capacity(typename_fields.len() + 1);
-        types.push((None, self.insert_concrete_object(unknown_typename_fields)));
-        for (typename, fields) in typename_fields {
+        let mut types = Vec::with_capacity(fields_for_typeconditions.len() + 1);
+        types.push((None, self.insert_concrete_object(fields_when_no_condition_matches)));
+        for (typename, fields) in fields_for_typeconditions {
             types.push((Some(typename), self.insert_concrete_object(fields)));
         }
 
