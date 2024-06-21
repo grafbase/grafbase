@@ -3,15 +3,14 @@
 use graph_entities::{CompactValue, QueryResponse, QueryResponseNode, ResponseContainer, ResponseList, ResponseNodeId};
 
 use super::{
-    shapes::ObjectShape,
+    shapes::{ConcreteShape, ObjectShape},
     store::{ValueId, ValueRecord},
-    OutputStore, PartitionShape,
+    OutputStore,
 };
 
 impl OutputStore {
-    pub fn new(response: QueryResponse, shape: PartitionShape<'_>) -> Self {
+    pub fn new(response: QueryResponse, root_object: ConcreteShape<'_>) -> Self {
         let mut output = OutputStore::default();
-        let root_object = shape.root_object();
 
         let Some(root) = response.root else {
             todo!("do something about this");

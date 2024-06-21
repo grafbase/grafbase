@@ -1,4 +1,4 @@
-use cynic_parser::executable::{FieldSelection, Selection};
+use cynic_parser::executable::{FieldSelection, OperationDefinition, Selection};
 use indexmap::{IndexMap, IndexSet};
 
 use crate::{
@@ -11,56 +11,44 @@ use super::{
     fragment_iter::FragmentIter, ConcreteShapeId, FieldRecord, ObjectShapeId, ObjectShapeRecord, OutputShapes,
 };
 
-pub fn build_output_shapes(plan: CachingPlan) -> OutputShapes {
+pub fn build_output_shapes(operation: OperationDefinition<'_>) -> OutputShapes {
     let mut builder = OutputShapesBuilder::default();
-    let mut cache_partition_roots = vec![];
 
-    for (subset, selection_set) in plan.cache_partitions() {
-        let selections = selection_set.map(DeferrableSelection::without_defer).collect();
+    let selections = operation
+        .selection_set()
+        .map(DeferrableSelection::without_defer)
+        .collect();
 
-        let shape_id = build_output_shape(&mut builder, selections, subset);
-        let concrete_id = ConcreteShapeId(shape_id.0);
-
-        cache_partition_roots.push(concrete_id);
-    }
-
-    let nocache_partition_root = {
-        let (subset, selection_set) = plan.nocache_partition();
-        let selections = selection_set.map(DeferrableSelection::without_defer).collect();
-
-        let shape_id = build_output_shape(&mut builder, selections, subset);
-        ConcreteShapeId(shape_id.0)
-    };
+    let root = build_output_shape(&mut builder, selections);
+    let root = ConcreteShapeId(root.0);
 
     OutputShapes {
         objects: builder.objects,
-        cache_partition_roots,
-        nocache_partition_root,
+        root,
     }
 }
 
 fn build_output_shape(
     builder: &mut OutputShapesBuilder,
     selections: Vec<DeferrableSelection<'_>>,
-    subset: &QuerySubset,
 ) -> super::ObjectShapeId {
-    let type_conditions = FragmentIter::new(&selections, subset)
+    let type_conditions = FragmentIter::new(&selections)
         .filter_map(|fragment| fragment.type_condition())
         .collect::<IndexSet<_>>();
 
     if type_conditions.is_empty() {
-        let field_shapes = field_shapes_for_type_condition(builder, &selections, subset, None);
+        let field_shapes = field_shapes_for_type_condition(builder, &selections, None);
 
         builder.insert_concrete_object(field_shapes)
     } else {
-        let unknown_typename_fields = field_shapes_for_type_condition(builder, &selections, subset, None);
+        let unknown_typename_fields = field_shapes_for_type_condition(builder, &selections, None);
 
         let known_typename_fields = type_conditions
             .into_iter()
             .map(|typename| {
                 (
                     typename.to_string(),
-                    field_shapes_for_type_condition(builder, &selections, subset, Some(typename)),
+                    field_shapes_for_type_condition(builder, &selections, Some(typename)),
                 )
             })
             .collect::<Vec<_>>();
@@ -72,21 +60,20 @@ fn build_output_shape(
 fn field_shapes_for_type_condition(
     builder: &mut OutputShapesBuilder,
     selections: &[DeferrableSelection<'_>],
-    subset: &QuerySubset,
     type_condition: Option<&str>,
 ) -> Vec<FieldRecord> {
     let mut grouped_fields = IndexMap::new();
 
-    collect_fields(&mut grouped_fields, &mut vec![], selections, subset, type_condition);
+    collect_fields(&mut grouped_fields, &mut vec![], selections, type_condition);
 
-    let merged_fields = merge_selection_sets(grouped_fields, subset);
+    let merged_fields = merge_selection_sets(grouped_fields);
 
     let mut field_shapes = vec![];
 
     for field in merged_fields {
         let mut subselection_shape = None;
         if !field.merged_selections.is_empty() {
-            subselection_shape = Some(build_output_shape(builder, field.merged_selections, subset));
+            subselection_shape = Some(build_output_shape(builder, field.merged_selections));
         }
         field_shapes.push(FieldRecord {
             response_key: field.response_key.to_string(),
@@ -116,7 +103,6 @@ fn collect_fields<'a>(
     grouped_fields: &mut IndexMap<&'a str, Vec<CollectedField<'a>>>,
     defer_stack: &mut Vec<&'a str>,
     selections: &[DeferrableSelection<'a>],
-    subset: &'a QuerySubset,
     type_condition: Option<&'a str>,
 ) {
     for selection in selections {
@@ -148,14 +134,13 @@ fn collect_fields<'a>(
                 collect_fields(
                     grouped_fields,
                     defer_stack,
-                    &subset
-                        .selection_iter(fragment.selection_set())
+                    &fragment
+                        .selection_set()
                         .map(|nested_selection| DeferrableSelection {
                             selection: nested_selection,
                             parent_defer_label: selection.parent_defer_label,
                         })
                         .collect::<Vec<_>>(),
-                    subset,
                     type_condition,
                 );
 
@@ -164,7 +149,9 @@ fn collect_fields<'a>(
                 }
             }
             Selection::FragmentSpread(spread) => {
-                let Some(fragment) = spread.fragment() else { continue };
+                let Some(fragment) = spread.fragment() else {
+                    continue;
+                };
 
                 if type_condition != Some(fragment.type_condition()) {
                     // TODO: This needs to be smarter.  If there's no type_condition it doesn't matter what typename
@@ -182,14 +169,13 @@ fn collect_fields<'a>(
                 collect_fields(
                     grouped_fields,
                     defer_stack,
-                    &subset
-                        .selection_iter(fragment.selection_set())
+                    &fragment
+                        .selection_set()
                         .map(|nested_selection| DeferrableSelection {
                             selection: nested_selection,
                             parent_defer_label: selection.parent_defer_label,
                         })
                         .collect::<Vec<_>>(),
-                    subset,
                     type_condition,
                 );
 
@@ -272,10 +258,7 @@ impl<'a> DeferrableSelection<'a> {
 /// or not, and this should let us do that.
 ///
 /// http://spec.graphql.org/October2021/#MergeSelectionSets()
-fn merge_selection_sets<'a>(
-    grouped_fields: IndexMap<&'a str, Vec<CollectedField<'a>>>,
-    subset: &'a QuerySubset,
-) -> Vec<MergedField<'a>> {
+fn merge_selection_sets<'a>(grouped_fields: IndexMap<&'a str, Vec<CollectedField<'a>>>) -> Vec<MergedField<'a>> {
     let mut output = Vec::with_capacity(grouped_fields.len());
     for (response_key, fields) in grouped_fields {
         if fields.len() == 1 {
@@ -283,8 +266,9 @@ fn merge_selection_sets<'a>(
             output.push(MergedField {
                 response_key,
                 defer_label: fields[0].defer_label,
-                merged_selections: subset
-                    .selection_iter(fields[0].field.selection_set())
+                merged_selections: fields[0]
+                    .field
+                    .selection_set()
                     .map(DeferrableSelection::without_defer)
                     .collect(),
             });
@@ -317,7 +301,7 @@ fn merge_selection_sets<'a>(
 
         for field in fields {
             merged_field.response_key = field.field.response_key();
-            let selections = subset.selection_iter(field.field.selection_set());
+            let selections = field.field.selection_set();
             if all_defers_match {
                 merged_field.defer_label = field.defer_label;
                 merged_field

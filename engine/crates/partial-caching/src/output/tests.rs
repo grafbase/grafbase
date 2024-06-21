@@ -30,11 +30,14 @@ const QUERY: &str = r#"{ user { name email someConstant nested { someThing } } }
 
 #[test]
 fn test_initial_response_handling() {
-    let registry = build_registry(SCHEMA);
-    let plan = crate::build_plan(QUERY, None, &registry).unwrap().unwrap();
+    // Currently don't need this, but I am assuming I will later so just keeping it around
+    let _registry = build_registry(SCHEMA);
 
-    let shapes = build_output_shapes(plan);
-    let nocache_shape = shapes.nocache_shape();
+    let document = cynic_parser::parse_executable_document(QUERY).unwrap();
+    let operation = document.operations().next().unwrap();
+
+    let shapes = build_output_shapes(operation);
+    let root_shape = shapes.root();
 
     let mut query_response = QueryResponse::default();
     let root_node = query_response.from_serde_value(json!({
@@ -47,7 +50,7 @@ fn test_initial_response_handling() {
     }));
     query_response.set_root_unchecked(root_node);
 
-    let output = OutputStore::new(query_response, nocache_shape);
+    let output = OutputStore::new(query_response, root_shape);
 
     insta::assert_json_snapshot!(output.serialize_all(&shapes, serde_json::value::Serializer).unwrap(), @r###"
     {
