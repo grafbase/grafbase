@@ -80,7 +80,7 @@ pub struct Graph {
     resolvers: Vec<Resolver>,
     required_field_sets: Vec<RequiredFieldSet>,
     // deduplicated
-    required_fields_arguments: Vec<RequiredFieldArguments>,
+    required_fields: Vec<RequiredField>,
     /// Default input values & directive arguments
     input_values: SchemaInputValues,
     cache_control: Vec<CacheControl>,

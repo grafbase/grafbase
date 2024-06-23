@@ -6,8 +6,7 @@ use std::{
 use id_newtypes::IdRange;
 use itertools::Itertools;
 use schema::{
-    FieldDefinitionId, RequiredField, RequiredFieldId, RequiredFieldSet, RequiredFieldSetArgumentsId, ResolverId,
-    ResolverWalker,
+    FieldDefinitionId, RequiredFieldId, RequiredFieldSet, RequiredFieldSetItemWalker, ResolverId, ResolverWalker,
 };
 use tracing::{instrument, Level};
 
@@ -281,7 +280,7 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
                 });
                 ReadField {
                     edge: self.operation[field_id].response_edge(),
-                    name: resolver.walk(required_field.definition_id).name().to_string(),
+                    name: resolver.walk(required_field).name().to_string(),
                     subselection: self.create_input_selection_set(plan_id, resolver, &required_field.subselection),
                 }
             })
@@ -355,7 +354,7 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
         &mut self,
         grouped_fields: &mut GroupedProvidableFields,
         petitioner_field_id: FieldId,
-        requires: &RequiredFieldSet,
+        requires: &'schema RequiredFieldSet,
     ) -> PlanningResult<bool> {
         if requires.is_empty() {
             return Ok(true);
@@ -377,19 +376,16 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
         parent_field_plan_id: PlanId,
         grouped_fields: &mut GroupedProvidableFields,
         petitioner_field_id: FieldId,
-        requires: &RequiredFieldSet,
+        requires: &'schema RequiredFieldSet,
     ) -> PlanningResult<bool> {
         if requires.is_empty() {
             return Ok(true);
         }
         'requires: for required in requires {
-            // if we could already plan this requirement once, no need to do it again.
-            if self.required_field_id_to_field_id.contains_key(&required.id) {
-                continue;
-            }
+            let required_field = &self.schema[required.id];
 
             // -- Existing fields --
-            if let Some(groups) = grouped_fields.get_mut(&required.definition_id) {
+            if let Some(groups) = grouped_fields.get_mut(&required_field.definition_id) {
                 for group in groups.values_mut() {
                     // TODO: we should likely validate explicitly that all fields for the same response key have
                     // the same arguments. The GraphQL spec doesn't mention it, but during
@@ -398,7 +394,7 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
                     let field_id = group.field_ids[0];
 
                     // If argument don't match, trying another group
-                    if !self.walker().walk(field_id).arguments().eq(&required.arguments_id) {
+                    if !self.walker().walk(field_id).eq(required_field) {
                         continue;
                     }
 
@@ -430,6 +426,8 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
                     }
                 }
             }
+
+            let required = self.schema.walk(required);
 
             // -- Plannable by the parent --
             let parent_logic = self
@@ -472,7 +470,7 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
         grouped_fields: &mut GroupedProvidableFields,
         petitioner_field_id: FieldId,
         logic: &PlanningLogic<'schema>,
-        required: &RequiredField,
+        required: RequiredFieldSetItemWalker<'schema>,
     ) -> bool {
         let parent_selection_set_id = self.operation.parent_selection_set_id(petitioner_field_id);
         let Some(field_id) =
@@ -480,9 +478,10 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
         else {
             return false;
         };
-        self.required_field_id_to_field_id.insert(required.id, field_id);
+        self.required_field_id_to_field_id
+            .insert(required.required_field_id(), field_id);
         let field = &self.operation[field_id];
-        grouped_fields.entry(required.definition_id).or_default().insert(
+        grouped_fields.entry(required.definition().id()).or_default().insert(
             field.response_key(),
             GroupedByDefinitionThenResponseKey {
                 plan_id: logic.plan_id(),
@@ -498,26 +497,24 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
         petitioner_field_id: FieldId,
         logic: &PlanningLogic<'schema>,
         parent_selection_set_id: Option<SelectionSetId>,
-        required: &RequiredField,
+        required: RequiredFieldSetItemWalker<'schema>,
     ) -> Option<FieldId> {
-        if !logic.is_providable(required.definition_id) {
+        if !logic.is_providable(required.definition().id()) {
             return None;
         }
-        let field = logic.resolver().walk(required.definition_id);
+        let field = required.definition();
         let selection_set_id = if let Some(ty) = SelectionSetType::maybe_from(field.ty().inner().id()) {
             let logic = logic.child(field.id());
             if required
-                .subselection
-                .iter()
-                .any(|nested| !logic.is_providable(nested.definition_id))
+                .subselection()
+                .any(|nested| !logic.is_providable(nested.definition().id()))
             {
                 return None;
             }
             let selection_set = SelectionSet {
                 ty,
                 items: required
-                    .subselection
-                    .iter()
+                    .subselection()
                     .map(|nested| {
                         self.try_plan_extra_field(petitioner_field_id, &logic, None, nested)
                             .map(Selection::Field)
@@ -530,16 +527,16 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
         };
         tracing::trace!(
             "Adding extra field '{}' provided by {} required by '{}'",
-            self.schema.walker().walk(required.definition_id).name(),
+            self.schema.walker().walk(required.definition().id()).name(),
             logic.plan_id(),
             self.walker().walk(petitioner_field_id).response_key_str()
         );
-        let key = self.generate_response_key_for(required.definition_id);
+        let key = self.generate_response_key_for(required.definition().id());
         let field = Field::Extra {
             edge: UnpackedResponseEdge::ExtraFieldResponseKey(key.into()).pack(),
-            field_definition_id: required.definition_id,
+            field_definition_id: required.definition().id(),
             selection_set_id,
-            argument_ids: self.transform_arguments(&required.arguments_id),
+            argument_ids: self.create_arguments_for(required.required_field_id()),
             petitioner_location: self.operation[petitioner_field_id].location(),
             is_read: true,
         };
@@ -574,15 +571,9 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
         }
     }
 
-    fn transform_arguments(
-        &mut self,
-        required_arguments_id: &Option<RequiredFieldSetArgumentsId>,
-    ) -> IdRange<FieldArgumentId> {
-        let Some(required_args) = required_arguments_id.map(|id| &self.schema[id]) else {
-            return IdRange::empty();
-        };
+    fn create_arguments_for(&mut self, id: RequiredFieldId) -> IdRange<FieldArgumentId> {
         let start = self.operation.field_arguments.len();
-        for &(input_value_definition_id, value_id) in required_args.iter() {
+        for &(input_value_definition_id, value_id) in &self.schema[id].arguments {
             let input_value_id = self
                 .operation
                 .query_input_values

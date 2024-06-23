@@ -4,7 +4,7 @@ mod ser;
 use id_newtypes::IdRange;
 use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValue, SchemaInputValueId};
 
-use crate::operation::{OperationWalker, VariableDefinitionId};
+use crate::operation::{OperationWalker, VariableDefinitionId, VariableValueWalker};
 
 #[derive(Default, Clone)]
 pub struct QueryInputValues {
@@ -86,7 +86,7 @@ pub type QueryInputValueWalker<'a> = OperationWalker<'a, &'a QueryInputValue, ()
 impl<'a> QueryInputValueWalker<'a> {
     pub fn is_undefined(&self) -> bool {
         match self.item {
-            QueryInputValue::Variable(id) => self.walk(*id).is_undefined(),
+            QueryInputValue::Variable(id) => self.walk(*id).as_value().is_undefined(),
             _ => false,
         }
     }
@@ -157,7 +157,7 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
             }
             QueryInputValue::U64(n) => InputValue::U64(*n),
             QueryInputValue::DefaultValue(id) => walker.schema_walker.walk(&walker.schema_walker.as_ref()[*id]).into(),
-            QueryInputValue::Variable(id) => walker.walk(*id).to_input_value().unwrap_or_default(),
+            QueryInputValue::Variable(id) => walker.walk(*id).as_value().to_input_value().unwrap_or_default(),
         }
     }
 }
@@ -174,16 +174,24 @@ impl PartialEq<SchemaInputValue> for QueryInputValueWalker<'_> {
             (QueryInputValue::Float(l), SchemaInputValue::Float(r)) => l == r,
             (QueryInputValue::Boolean(l), SchemaInputValue::Boolean(r)) => l == r,
             (QueryInputValue::InputObject(lids), SchemaInputValue::InputObject(rids)) => {
-                let left = &self.operation[*lids];
-                let right = &self.schema_walker.as_ref()[*rids];
-                if left.len() != right.len() {
+                let op_input_values = &self.operation[*lids];
+                let schema_input_values = &self.schema_walker.as_ref()[*rids];
+
+                if op_input_values.len() < schema_input_values.len() {
                     return false;
                 }
-                for ((lid, left_value), (rid, right_value)) in left.iter().zip(right) {
-                    if lid != rid || !self.walk(left_value).eq(right_value) {
+
+                for (id, input_value) in op_input_values {
+                    let input_value = self.walk(input_value);
+                    if let Ok(i) = schema_input_values.binary_search_by(|probe| probe.0.cmp(id)) {
+                        if !input_value.eq(&schema_input_values[i].1) {
+                            return false;
+                        }
+                    } else if !input_value.is_undefined() {
                         return false;
-                    }
+                    };
                 }
+
                 true
             }
             (QueryInputValue::List(lids), SchemaInputValue::List(rids)) => {
@@ -200,20 +208,44 @@ impl PartialEq<SchemaInputValue> for QueryInputValueWalker<'_> {
                 true
             }
             (QueryInputValue::Map(ids), SchemaInputValue::Map(other_ids)) => {
-                let left = &self.operation[*ids];
-                let right = &self.schema_walker[*other_ids];
-                if left.len() != right.len() {
-                    return false;
-                }
-                for ((lkey, lvalue), (rkey, rvalue)) in left.iter().zip(right) {
-                    let rkey = &self.schema_walker[*rkey];
-                    if lkey != rkey || !self.walk(lvalue).eq(rvalue) {
+                let op_kv = &self.operation[*ids];
+                let schema_kv = &self.schema_walker[*other_ids];
+
+                for (key, value) in op_kv {
+                    let value = self.walk(value);
+                    if let Ok(i) = schema_kv.binary_search_by(|probe| self.schema_walker[probe.0].cmp(key)) {
+                        if !value.eq(&schema_kv[i].1) {
+                            return false;
+                        }
+                    } else if !value.is_undefined() {
                         return false;
-                    }
+                    };
                 }
+
                 true
             }
-            _ => false,
+            (QueryInputValue::DefaultValue(id), value) => self
+                .schema_walker
+                .walk(&self.schema_walker.as_ref()[*id])
+                .eq(&self.schema_walker.walk(value)),
+            (QueryInputValue::Variable(id), other) => match self.walk(*id).as_value() {
+                VariableValueWalker::Unavailable => false,
+                VariableValueWalker::Undefined => false,
+                VariableValueWalker::VariableInputValue(value) => value.eq(other),
+                VariableValueWalker::DefaultValue(value) => value.eq(other),
+            },
+            // A bit tedious, but avoids missing a case
+            (QueryInputValue::Null, _) => false,
+            (QueryInputValue::String(_), _) => false,
+            (QueryInputValue::EnumValue(_), _) => false,
+            (QueryInputValue::Int(_), _) => false,
+            (QueryInputValue::BigInt(_), _) => false,
+            (QueryInputValue::U64(_), _) => false,
+            (QueryInputValue::Float(_), _) => false,
+            (QueryInputValue::Boolean(_), _) => false,
+            (QueryInputValue::InputObject(_), _) => false,
+            (QueryInputValue::List(_), _) => false,
+            (QueryInputValue::Map(_), _) => false,
         }
     }
 }

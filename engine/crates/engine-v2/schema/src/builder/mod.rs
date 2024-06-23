@@ -109,7 +109,7 @@ impl BuildContext {
             enum_value_definitions: Vec::new(),
             resolvers: Vec::new(),
             required_field_sets: Vec::new(),
-            required_fields_arguments: Vec::new(),
+            required_fields: Vec::new(),
             cache_control: Vec::new(),
             input_values: Default::default(),
             required_scopes: Vec::new(),

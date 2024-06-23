@@ -494,7 +494,6 @@ impl<'a> Binder<'a> {
             }
         }
         let end = self.field_arguments.len();
-        self.field_arguments[start..end].sort_unstable_by_key(|arg| arg.input_value_definition_id);
         Ok((start..end).into())
     }
 

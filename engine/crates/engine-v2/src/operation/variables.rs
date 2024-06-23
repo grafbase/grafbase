@@ -19,14 +19,21 @@ pub struct VariableDefinition {
 
 pub struct Variables {
     pub input_values: VariableInputValues,
-    pub definition_to_input_value: Vec<Option<VariableInputValueId>>,
+    pub definition_to_value: Vec<VariableValue>,
+}
+
+#[derive(Clone)]
+pub enum VariableValue {
+    Unavailable,
+    Undefined,
+    InputValue(VariableInputValueId),
 }
 
 impl std::ops::Index<VariableDefinitionId> for Variables {
-    type Output = Option<VariableInputValueId>;
+    type Output = VariableValue;
 
     fn index(&self, index: VariableDefinitionId) -> &Self::Output {
-        &self.definition_to_input_value[usize::from(index)]
+        &self.definition_to_value[usize::from(index)]
     }
 }
 
@@ -50,10 +57,17 @@ impl Variables {
         bind_variables(schema, operation, request_variables)
     }
 
-    pub(super) fn empty_for(operation: &Operation) -> Self {
+    pub(super) fn new_for(operation: &Operation) -> Self {
         Variables {
             input_values: VariableInputValues::default(),
-            definition_to_input_value: vec![None; operation.variable_definitions.len()],
+            definition_to_value: vec![VariableValue::Undefined; operation.variable_definitions.len()],
+        }
+    }
+
+    pub(super) fn create_unavailable_for(operation: &Operation) -> Self {
+        Variables {
+            input_values: VariableInputValues::default(),
+            definition_to_value: vec![VariableValue::Unavailable; operation.variable_definitions.len()],
         }
     }
 }

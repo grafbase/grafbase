@@ -82,7 +82,7 @@ impl VariableInputValues {
     }
 }
 
-pub type VariableInputValueWalker<'a> = OperationWalker<'a, &'a VariableInputValue>;
+pub type VariableInputValueWalker<'a> = OperationWalker<'a, &'a VariableInputValue, ()>;
 
 impl<'a> From<VariableInputValueWalker<'a>> for InputValue<'a> {
     fn from(walker: VariableInputValueWalker<'a>) -> Self {
@@ -120,6 +120,88 @@ impl<'a> From<VariableInputValueWalker<'a>> for InputValue<'a> {
                 let value: &'a SchemaInputValue = &walker.schema_walker.as_ref()[*id];
                 walker.schema_walker.walk(value).into()
             }
+        }
+    }
+}
+
+impl PartialEq<SchemaInputValue> for VariableInputValueWalker<'_> {
+    fn eq(&self, other: &SchemaInputValue) -> bool {
+        match (self.item, other) {
+            (VariableInputValue::Null, SchemaInputValue::Null) => true,
+            (VariableInputValue::String(l), SchemaInputValue::String(r)) => l == &self.schema_walker[*r],
+            (VariableInputValue::EnumValue(l), SchemaInputValue::EnumValue(r)) => l == r,
+            (VariableInputValue::Int(l), SchemaInputValue::Int(r)) => l == r,
+            (VariableInputValue::BigInt(l), SchemaInputValue::BigInt(r)) => l == r,
+            (VariableInputValue::U64(l), SchemaInputValue::U64(r)) => l == r,
+            (VariableInputValue::Float(l), SchemaInputValue::Float(r)) => l == r,
+            (VariableInputValue::Boolean(l), SchemaInputValue::Boolean(r)) => l == r,
+            (VariableInputValue::InputObject(lids), SchemaInputValue::InputObject(rids)) => {
+                let op_input_values = &self.variables[*lids];
+                let schema_input_values = &self.schema_walker.as_ref()[*rids];
+
+                if op_input_values.len() < schema_input_values.len() {
+                    return false;
+                }
+
+                for (id, input_value) in op_input_values {
+                    let input_value = self.walk(input_value);
+                    if let Ok(i) = schema_input_values.binary_search_by(|probe| probe.0.cmp(id)) {
+                        if !input_value.eq(&schema_input_values[i].1) {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    };
+                }
+
+                true
+            }
+            (VariableInputValue::List(lids), SchemaInputValue::List(rids)) => {
+                let left = &self.variables[*lids];
+                let right = &self.schema_walker.as_ref()[*rids];
+                if left.len() != right.len() {
+                    return false;
+                }
+                for (left_value, right_value) in left.iter().zip(right) {
+                    if !self.walk(left_value).eq(right_value) {
+                        return false;
+                    }
+                }
+                true
+            }
+            (VariableInputValue::Map(ids), SchemaInputValue::Map(other_ids)) => {
+                let op_kv = &self.variables[*ids];
+                let schema_kv = &self.schema_walker[*other_ids];
+
+                for (key, value) in op_kv {
+                    let value = self.walk(value);
+                    if let Ok(i) = schema_kv.binary_search_by(|probe| self.schema_walker[probe.0].cmp(key)) {
+                        if !value.eq(&schema_kv[i].1) {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    };
+                }
+
+                true
+            }
+            (VariableInputValue::DefaultValue(id), value) => self
+                .schema_walker
+                .walk(&self.schema_walker.as_ref()[*id])
+                .eq(&self.schema_walker.walk(value)),
+            // A bit tedious, but avoids missing a case
+            (VariableInputValue::Null, _) => false,
+            (VariableInputValue::String(_), _) => false,
+            (VariableInputValue::EnumValue(_), _) => false,
+            (VariableInputValue::Int(_), _) => false,
+            (VariableInputValue::BigInt(_), _) => false,
+            (VariableInputValue::U64(_), _) => false,
+            (VariableInputValue::Float(_), _) => false,
+            (VariableInputValue::Boolean(_), _) => false,
+            (VariableInputValue::InputObject(_), _) => false,
+            (VariableInputValue::List(_), _) => false,
+            (VariableInputValue::Map(_), _) => false,
         }
     }
 }
