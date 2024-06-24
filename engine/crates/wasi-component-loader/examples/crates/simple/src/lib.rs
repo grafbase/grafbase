@@ -1,12 +1,12 @@
 #[allow(warnings)]
 mod bindings;
 
-use bindings::{ErrorResponse, Guest, Headers};
+use bindings::{Context, ErrorResponse, Guest, Headers};
 
 struct Component;
 
 impl Guest for Component {
-    fn on_gateway_request(headers: Headers) -> Result<(), ErrorResponse> {
+    fn on_gateway_request(context: Context, headers: Headers) -> Result<(), ErrorResponse> {
         headers.set("direct", "call").unwrap();
 
         assert_eq!(Ok(Some("call".to_string())), headers.get("direct"));
@@ -14,6 +14,10 @@ impl Guest for Component {
         if let Ok(var) = std::env::var("GRAFBASE_WASI_TEST") {
             headers.set("fromEnv", &var).unwrap();
         }
+
+        assert_eq!(Some("lol".to_string()), context.get("kekw"));
+
+        context.set("call", "direct");
 
         Ok(())
     }

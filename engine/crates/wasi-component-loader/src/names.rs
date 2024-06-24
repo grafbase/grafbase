@@ -5,3 +5,8 @@ pub(crate) static HEADERS_RESOURCE: &str = "headers";
 pub(crate) static HEADERS_SET_METHOD: &str = "[method]headers.set";
 pub(crate) static HEADERS_GET_METHOD: &str = "[method]headers.get";
 pub(crate) static HEADERS_DELETE_METHOD: &str = "[method]headers.delete";
+
+pub(crate) static CONTEXT_RESOURCE: &str = "context";
+pub(crate) static CONTEXT_SET_METHOD: &str = "[method]context.set";
+pub(crate) static CONTEXT_GET_METHOD: &str = "[method]context.get";
+pub(crate) static CONTEXT_DELETE_METHOD: &str = "[method]context.delete";

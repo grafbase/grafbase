@@ -10,6 +10,7 @@
 
 mod callbacks;
 mod config;
+mod context;
 mod error;
 mod headers;
 mod names;
@@ -19,6 +20,7 @@ mod state;
 mod tests;
 
 pub use config::Config;
+pub use context::ContextMap;
 pub use error::{Error, ErrorResponse};
 
 /// The crate result type
@@ -76,6 +78,7 @@ impl ComponentLoader {
 
                 let mut types = linker.instance(COMPONENT_TYPES)?;
                 headers::map(&mut types)?;
+                context::map(&mut types)?;
 
                 Some(Self {
                     engine,
@@ -99,8 +102,8 @@ impl ComponentLoader {
     /// for every request.
     ///
     /// Calls the user-defined callback from the guest, if the function is defined.
-    pub async fn on_gateway_request(&self, headers: HeaderMap) -> Result<HeaderMap> {
-        let callback = GatewayCallbackInstance::new(self, headers).await?;
+    pub async fn on_gateway_request(&self, context: ContextMap, headers: HeaderMap) -> Result<(ContextMap, HeaderMap)> {
+        let callback = GatewayCallbackInstance::new(self, context, headers).await?;
 
         callback.call().await
     }
