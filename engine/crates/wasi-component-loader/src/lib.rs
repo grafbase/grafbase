@@ -26,7 +26,7 @@ pub use error::{Error, ErrorResponse};
 /// The crate result type
 pub type Result<T> = std::result::Result<T, Error>;
 
-use callbacks::gateway::GatewayCallbackInstance;
+use callbacks::{authorization::AuthorizationInstance, gateway::GatewayCallbackInstance};
 use grafbase_tracing::span::GRAFBASE_TARGET;
 use http::HeaderMap;
 use state::WasiState;
@@ -106,6 +106,21 @@ impl ComponentLoader {
         let callback = GatewayCallbackInstance::new(self, context, headers).await?;
 
         callback.call().await
+    }
+
+    /// Initialize a new instance to trigger callbacks per authorization directive. This should be called
+    /// separately for every request to reset the state of the store, enabling the same amount of fuel
+    /// for every request.
+    ///
+    /// Calls the user-defined callback from the guest, if the function is defined.
+    pub async fn on_authorization(
+        &self,
+        context: ContextMap,
+        input: Vec<String>,
+    ) -> Result<(ContextMap, Vec<Option<ErrorResponse>>)> {
+        let callback = AuthorizationInstance::new(self, context).await?;
+
+        callback.call(input).await
     }
 
     pub(crate) fn config(&self) -> &Config {

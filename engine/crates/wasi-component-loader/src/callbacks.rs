@@ -2,6 +2,7 @@ use wasmtime::{Engine, Store};
 
 use crate::{state::WasiState, Config};
 
+pub(crate) mod authorization;
 pub(crate) mod gateway;
 
 /// Generic initialization of WASI components for all callbacks.

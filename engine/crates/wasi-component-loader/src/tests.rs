@@ -244,3 +244,41 @@ async fn guest_error() {
 
     assert_eq!(Some(expected), error.into_user_error());
 }
+
+#[tokio::test]
+async fn authorization() {
+    // the guest code in examples/authorization/src/lib.rs
+
+    let config = indoc! {r#"
+        location = "examples/target/wasm32-wasi/debug/authorization.wasm"
+    "#};
+
+    let config: Config = toml::from_str(config).unwrap();
+    assert!(config.location().exists());
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Authorization", HeaderValue::from_static("kekw"));
+
+    let loader = ComponentLoader::new(config).unwrap().unwrap();
+
+    let (context, _) = loader.on_gateway_request(HashMap::new(), headers).await.unwrap();
+
+    let (_, result) = loader
+        .on_authorization(context, vec!["kekw".to_string(), "lol".to_string()])
+        .await
+        .unwrap();
+
+    let expected = expect![[r#"
+        [
+            None,
+            Some(
+                ErrorResponse {
+                    extensions: [],
+                    message: "not authorized",
+                },
+            ),
+        ]
+    "#]];
+
+    expected.assert_debug_eq(&result);
+}

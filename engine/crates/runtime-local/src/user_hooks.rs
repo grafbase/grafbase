@@ -24,26 +24,43 @@ impl UserHooksImpl for UserHooksWasi {
             .await
             .map_err(to_local_error)?)
     }
+
+    async fn on_authorization(
+        &self,
+        context: Self::Context,
+        input: Vec<String>,
+    ) -> Result<(Self::Context, Vec<Option<UserError>>), UserHookError> {
+        let (context, results) = self.0.on_authorization(context, input).await.map_err(to_local_error)?;
+
+        let results = results
+            .into_iter()
+            .map(|result| result.map(error_response_to_user_error))
+            .collect();
+
+        Ok((context, results))
+    }
 }
 
 fn to_local_error(error: wasi_component_loader::Error) -> UserHookError {
     match error {
         wasi_component_loader::Error::Internal(error) => UserHookError::Internal(error.into()),
-        wasi_component_loader::Error::User(error) => {
-            let extensions = error
-                .extensions
-                .into_iter()
-                .map(|(key, value)| {
-                    let value = serde_json::from_str(&value).unwrap_or(serde_json::Value::String(value));
+        wasi_component_loader::Error::User(error) => UserHookError::User(error_response_to_user_error(error)),
+    }
+}
 
-                    (key, value)
-                })
-                .collect();
+fn error_response_to_user_error(error: wasi_component_loader::ErrorResponse) -> UserError {
+    let extensions = error
+        .extensions
+        .into_iter()
+        .map(|(key, value)| {
+            let value = serde_json::from_str(&value).unwrap_or(serde_json::Value::String(value));
 
-            UserHookError::User(UserError {
-                message: error.message,
-                extensions,
-            })
-        }
+            (key, value)
+        })
+        .collect();
+
+    UserError {
+        message: error.message,
+        extensions,
     }
 }

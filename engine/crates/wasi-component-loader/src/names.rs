@@ -1,5 +1,6 @@
 pub(crate) static COMPONENT_TYPES: &str = "component:grafbase/types";
 pub(crate) static GATEWAY_CALLBACK_FUNCTION: &str = "on-gateway-request";
+pub(crate) static AUTHORIZATION_CALLBACK_FUNCTION: &str = "on-authorization";
 
 pub(crate) static HEADERS_RESOURCE: &str = "headers";
 pub(crate) static HEADERS_SET_METHOD: &str = "[method]headers.set";

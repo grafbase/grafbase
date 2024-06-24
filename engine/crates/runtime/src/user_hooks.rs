@@ -51,4 +51,10 @@ pub trait UserHooksImpl: Send + Sync {
     type Context;
 
     async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), UserHookError>;
+
+    async fn on_authorization(
+        &self,
+        context: Self::Context,
+        input: Vec<String>,
+    ) -> Result<(Self::Context, Vec<Option<UserError>>), UserHookError>;
 }
