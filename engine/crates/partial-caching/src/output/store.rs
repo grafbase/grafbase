@@ -78,6 +78,12 @@ impl OutputStore {
         }
     }
 
+    pub(super) fn root_value(&self) -> Option<ValueId> {
+        self.values.first()?;
+
+        Some(ValueId(0))
+    }
+
     pub(super) fn insert_object(&mut self, object_shape: ConcreteShape<'_>) -> ObjectId {
         let shape = object_shape.id();
         let object_id = ObjectId(self.objects.len());
@@ -110,11 +116,25 @@ impl OutputStore {
         IdRange { start, end }
     }
 
+    /// Looks up the value id of a field in an object
     pub(super) fn field_value_id(&self, object_id: ObjectId, index: FieldIndex) -> ValueId {
         let object = &self.objects[object_id.0];
         assert!((index.0 as usize) < object.fields.len());
 
         ValueId(object.fields.start.0 + (index.0 as usize))
+    }
+
+    /// Looks up the value id of an index in a list, if it exists
+    pub(super) fn index_value_id(&self, value_id: ValueId, index: usize) -> Option<ValueId> {
+        let ValueRecord::List(entries) = self.values[value_id.0] else {
+            return None;
+        };
+
+        if index >= entries.len() {
+            return None;
+        }
+
+        Some(ValueId(entries.start.0 + index))
     }
 
     // TODO: Should this be Value?  Not sure.

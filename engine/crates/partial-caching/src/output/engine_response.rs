@@ -117,7 +117,12 @@ fn copy_list<'a>(
     }
 }
 
-fn copy_leaf_value(response: &QueryResponse, output: &mut InitialOutput<'_>, src_id: ResponseNodeId, dest_id: ValueId) {
+pub fn copy_leaf_value(
+    response: &QueryResponse,
+    output: &mut InitialOutput<'_>,
+    src_id: ResponseNodeId,
+    dest_id: ValueId,
+) {
     match response.get_node(src_id) {
         Some(QueryResponseNode::Primitive(primitive)) => {
             let value = match &primitive.0 {
