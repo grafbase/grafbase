@@ -1,8 +1,9 @@
 use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
 use graph_entities::QueryResponse;
+use query_path::QueryPath;
 use serde::{ser::SerializeMap, Serialize};
 
-use crate::{GraphQlResponse, QueryPath, Response, ServerError};
+use crate::{error::ServerError, GraphQlResponse, Response};
 
 /// If a user makes a streaming request, this is the set of different response payloads
 /// they can received.  The first payload will always be an `InitialResponse` - followed by

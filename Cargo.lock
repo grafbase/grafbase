@@ -2319,6 +2319,7 @@ dependencies = [
  "derivative",
  "engine-derive",
  "engine-parser",
+ "engine-response",
  "engine-scalars",
  "engine-validation",
  "engine-value",
@@ -2334,7 +2335,6 @@ dependencies = [
  "graph-entities",
  "graphql-cursor",
  "http 1.1.0",
- "im",
  "indexmap 2.2.6",
  "indoc",
  "insta",
@@ -2345,6 +2345,7 @@ dependencies = [
  "operation-normalizer",
  "pin-project-lite",
  "postgres-connector-types",
+ "query-path",
  "registry-upgrade",
  "registry-v1",
  "registry-v2",
@@ -2414,6 +2415,25 @@ dependencies = [
  "pest",
  "pest_derive",
  "serde",
+]
+
+[[package]]
+name = "engine-response"
+version = "0.1.0"
+dependencies = [
+ "common-types",
+ "engine-parser",
+ "engine-value",
+ "grafbase-tracing",
+ "graph-entities",
+ "http 1.1.0",
+ "query-path",
+ "runtime",
+ "serde",
+ "serde_json",
+ "strum",
+ "strum_macros",
+ "thiserror",
 ]
 
 [[package]]
@@ -2540,6 +2560,7 @@ version = "0.1.0"
 dependencies = [
  "engine",
  "engine-parser",
+ "engine-response",
  "engine-scalars",
  "engine-value",
  "indexmap 2.2.6",

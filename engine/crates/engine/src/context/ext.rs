@@ -3,10 +3,11 @@ use std::any::{Any, TypeId};
 use engine_value::{ConstValue as Value, Value as InputValue}; // WHY?
 use graph_entities::QueryResponse;
 use postgres_connector_types::database_definition::DatabaseDefinition;
+use query_path::QueryPath;
 
 use crate::{
-    deferred::DeferredWorkloadSender, parser::types::FragmentDefinition, query_path::QueryPath, schema::SchemaEnv,
-    Error, LegacyInputType, Name, Pos, Positioned, QueryEnv, Result, ServerError, ServerResult,
+    deferred::DeferredWorkloadSender, parser::types::FragmentDefinition, schema::SchemaEnv, Error, LegacyInputType,
+    Name, Pos, Positioned, QueryEnv, Result, ServerError, ServerResult,
 };
 
 pub trait Context<'a> {

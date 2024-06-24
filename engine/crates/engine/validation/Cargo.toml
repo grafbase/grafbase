@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 engine-parser.workspace = true
+engine-response.workspace = true
 engine-scalars.path = "../scalars"
 engine-value.workspace = true
 indexmap.workspace = true
