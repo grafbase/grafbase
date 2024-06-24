@@ -5,29 +5,29 @@ use wasmtime::{
     Store,
 };
 
-use crate::{names::GATEWAY_CALLBACK_FUNCTION, state::WasiState, ComponentLoader, ContextMap, ErrorResponse};
+use crate::{names::GATEWAY_HOOK_FUNCTION, state::WasiState, ComponentLoader, ContextMap, ErrorResponse};
 
-/// The callback function takes two parameters: the context and the headers.
+/// The hook function takes two parameters: the context and the headers.
 /// They are wrapped as resources, meaning they are in a shared memory space
 /// accessible from the host and from the guest.
-pub(crate) type CallbackParameters = (Resource<ContextMap>, Resource<HeaderMap>);
+pub(crate) type HookParameters = (Resource<ContextMap>, Resource<HeaderMap>);
 
 /// The guest can read and modify the input headers and request as it wishes. A successful
 /// call returns unit. The user can return an error response, which should be mapped to a
 /// corresponding HTTP status code.
-pub(crate) type CallbackResponse = (Result<(), ErrorResponse>,);
+pub(crate) type HookResponse = (Result<(), ErrorResponse>,);
 
 /// An instance of a function to be called from the Gateway level for the request.
 /// The instance is meant to be separate for every request. The instance shares a memory space
 /// with the guest, and cannot be shared with multiple requests.
-pub struct GatewayCallbackInstance {
+pub struct GatewayHookInstance {
     store: Store<WasiState>,
     headers: Resource<HeaderMap>,
     context: Resource<ContextMap>,
-    callback: Option<TypedFunc<CallbackParameters, CallbackResponse>>,
+    hook: Option<TypedFunc<HookParameters, HookResponse>>,
 }
 
-impl GatewayCallbackInstance {
+impl GatewayHookInstance {
     pub(crate) async fn new(loader: &ComponentLoader, context: ContextMap, headers: HeaderMap) -> crate::Result<Self> {
         let mut store = super::initialize_store(loader.config(), loader.engine())?;
 
@@ -40,15 +40,15 @@ impl GatewayCallbackInstance {
             .instantiate_async(&mut store, loader.component())
             .await?;
 
-        let callback = match instance.get_typed_func(&mut store, GATEWAY_CALLBACK_FUNCTION) {
-            Ok(callback) => {
-                tracing::debug!(target: GRAFBASE_TARGET, "instantized the gateway callback WASM function");
+        let hook = match instance.get_typed_func(&mut store, GATEWAY_HOOK_FUNCTION) {
+            Ok(hook) => {
+                tracing::debug!(target: GRAFBASE_TARGET, "instantized the gateway hook WASM function");
 
-                Some(callback)
+                Some(hook)
             }
-            // the user has not defined the callback function, so we return none and do not try to call this function.
+            // the user has not defined the hook function, so we return none and do not try to call this function.
             Err(e) => {
-                tracing::debug!(target: GRAFBASE_TARGET, "error instantizing the gateway callback WASM function: {e}");
+                tracing::debug!(target: GRAFBASE_TARGET, "error instantizing the gateway hook WASM function: {e}");
 
                 None
             }
@@ -58,7 +58,7 @@ impl GatewayCallbackInstance {
             store,
             headers,
             context,
-            callback,
+            hook,
         })
     }
 
@@ -68,9 +68,8 @@ impl GatewayCallbackInstance {
         let headers_rep = self.headers.rep();
         let context_rep = self.context.rep();
 
-        if let Some(callback) = self.callback {
-            callback
-                .call_async(&mut self.store, (self.context, self.headers))
+        if let Some(hook) = self.hook {
+            hook.call_async(&mut self.store, (self.context, self.headers))
                 .await?
                 .0?;
         };

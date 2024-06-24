@@ -17,11 +17,11 @@ async fn missing_wasm() {
 }
 
 #[tokio::test]
-async fn missing_callback() {
-    // the guest code in examples/missing_callback/src/lib.rs
+async fn missing_hook() {
+    // the guest code in examples/missing_hook/src/lib.rs
 
     let config = indoc! {r#"
-        location = "examples/target/wasm32-wasi/debug/missing_callback.wasm"
+        location = "examples/target/wasm32-wasi/debug/missing_hook.wasm"
         stdout = true
         stderr = true
     "#};

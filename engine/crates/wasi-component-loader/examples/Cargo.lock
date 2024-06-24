@@ -999,7 +999,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "missing_callback"
+name = "missing_hook"
 version = "0.1.0"
 dependencies = [
  "wit-bindgen-rt",

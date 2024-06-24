@@ -5,22 +5,21 @@ use wasmtime::{
     Store,
 };
 
-use crate::{names::AUTHORIZATION_CALLBACK_FUNCTION, state::WasiState, ComponentLoader, ContextMap, ErrorResponse};
+use crate::{names::AUTHORIZATION_HOOK_FUNCTION, state::WasiState, ComponentLoader, ContextMap, ErrorResponse};
 
-pub(crate) type CallbackParameters = (Resource<ContextMap>, Vec<String>);
+pub(crate) type HookParameters = (Resource<ContextMap>, Vec<String>);
 
-pub(crate) type CallbackResponse = (Result<Vec<Option<ErrorResponse>>, ErrorResponse>,);
+pub(crate) type HookResponse = (Result<Vec<Option<ErrorResponse>>, ErrorResponse>,);
 
-pub struct AuthorizationInstance {
+pub struct AuthorizationHookInstance {
     store: Store<WasiState>,
     context: Resource<ContextMap>,
-    callback: Option<TypedFunc<CallbackParameters, CallbackResponse>>,
+    hook: Option<TypedFunc<HookParameters, HookResponse>>,
 }
 
-impl AuthorizationInstance {
+impl AuthorizationHookInstance {
     pub(crate) async fn new(loader: &ComponentLoader, context: ContextMap) -> crate::Result<Self> {
         let mut store = super::initialize_store(loader.config(), loader.engine())?;
-
         let context = store.data_mut().push_resource(context)?;
 
         let instance = loader
@@ -28,31 +27,27 @@ impl AuthorizationInstance {
             .instantiate_async(&mut store, loader.component())
             .await?;
 
-        let callback = match instance.get_typed_func(&mut store, AUTHORIZATION_CALLBACK_FUNCTION) {
-            Ok(callback) => {
-                tracing::debug!(target: GRAFBASE_TARGET, "instantized the authorization callback WASM function");
+        let hook = match instance.get_typed_func(&mut store, AUTHORIZATION_HOOK_FUNCTION) {
+            Ok(hook) => {
+                tracing::debug!(target: GRAFBASE_TARGET, "instantized the authorization hook WASM function");
 
-                Some(callback)
+                Some(hook)
             }
             Err(e) => {
-                tracing::debug!(target: GRAFBASE_TARGET, "error instantizing the authorization callback WASM function: {e}");
+                tracing::debug!(target: GRAFBASE_TARGET, "error instantizing the authorization hook WASM function: {e}");
 
                 None
             }
         };
 
-        Ok(Self {
-            store,
-            context,
-            callback,
-        })
+        Ok(Self { store, context, hook })
     }
 
     pub(crate) async fn call(mut self, input: Vec<String>) -> crate::Result<(ContextMap, Vec<Option<ErrorResponse>>)> {
         let context_rep = self.context.rep();
 
-        let result = match self.callback {
-            Some(callback) => callback.call_async(&mut self.store, (self.context, input)).await?.0?,
+        let result = match self.hook {
+            Some(hook) => hook.call_async(&mut self.store, (self.context, input)).await?.0?,
             None => {
                 return Err(crate::Error::Internal(anyhow!(
                     "on-authorization hook must be defined if using the @authorization directive"
