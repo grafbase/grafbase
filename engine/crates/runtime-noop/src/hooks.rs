@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 
-use runtime::user_hooks::{HeaderMap, UserError, UserHookError, UserHooksImpl};
+use runtime::hooks::{HeaderMap, HookError, HooksImpl, UserError};
 
 #[derive(Clone)]
-pub struct UserHooksNoop;
+pub struct HooksNoop;
 
 #[async_trait::async_trait]
-impl UserHooksImpl for UserHooksNoop {
+impl HooksImpl for HooksNoop {
     type Context = HashMap<String, String>;
 
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), UserHookError> {
+    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), HookError> {
         Ok((HashMap::new(), headers))
     }
 
@@ -17,7 +17,7 @@ impl UserHooksImpl for UserHooksNoop {
         &self,
         _: Self::Context,
         _: Vec<String>,
-    ) -> Result<(Self::Context, Vec<Option<UserError>>), UserHookError> {
+    ) -> Result<(Self::Context, Vec<Option<UserError>>), HookError> {
         unreachable!("@authorization directive not available outside of local context")
     }
 }

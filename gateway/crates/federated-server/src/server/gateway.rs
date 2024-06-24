@@ -4,9 +4,9 @@ use ascii::AsciiString;
 use engine_v2::{Engine, EngineEnv};
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::FederatedGraphConfig;
-use runtime::{cache::GlobalCacheConfig, user_hooks::UserHooks};
-use runtime_local::{ComponentLoader, InMemoryCache, InMemoryKvStore, UserHooksWasi, WasiConfig};
-use runtime_noop::{trusted_documents::NoopTrustedDocuments, user_hooks::UserHooksNoop};
+use runtime::{cache::GlobalCacheConfig, hooks::Hooks};
+use runtime_local::{ComponentLoader, HooksWasi, InMemoryCache, InMemoryKvStore, WasiConfig};
+use runtime_noop::{hooks::HooksNoop, trusted_documents::NoopTrustedDocuments};
 use tokio::sync::watch;
 
 use crate::config::{AuthenticationConfig, HeaderValue, OperationLimitsConfig, SubgraphConfig, TrustedDocumentsConfig};
@@ -119,10 +119,10 @@ pub(super) fn generate(
     let user_hooks = match wasi {
         Some(config) => ComponentLoader::new(config)
             .map_err(|e| crate::Error::InternalError(e.to_string()))?
-            .map(UserHooksWasi::new)
-            .map(UserHooks::new)
-            .unwrap_or_else(|| UserHooks::new(UserHooksNoop)),
-        None => UserHooks::new(UserHooksNoop),
+            .map(HooksWasi::new)
+            .map(Hooks::new)
+            .unwrap_or_else(|| Hooks::new(HooksNoop)),
+        None => Hooks::new(HooksNoop),
     };
 
     let engine_env = EngineEnv {

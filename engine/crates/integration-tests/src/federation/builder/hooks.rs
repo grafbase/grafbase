@@ -1,17 +1,17 @@
 use std::{collections::HashMap, pin::Pin};
 
 use http::HeaderMap;
-use runtime::user_hooks::{UserError, UserHookError, UserHooksImpl};
+use runtime::hooks::{HookError, HooksImpl, UserError};
 
 type GatewayHook =
-    Pin<Box<dyn Fn(HeaderMap) -> Result<(HashMap<String, String>, HeaderMap), UserHookError> + Send + Sync + 'static>>;
+    Pin<Box<dyn Fn(HeaderMap) -> Result<(HashMap<String, String>, HeaderMap), HookError> + Send + Sync + 'static>>;
 
 type AuthorizationHook = Pin<
     Box<
         dyn Fn(
                 HashMap<String, String>,
                 Vec<String>,
-            ) -> Result<(HashMap<String, String>, Vec<Option<UserError>>), UserHookError>
+            ) -> Result<(HashMap<String, String>, Vec<Option<UserError>>), HookError>
             + Send
             + Sync
             + 'static,
@@ -19,15 +19,15 @@ type AuthorizationHook = Pin<
 >;
 
 #[derive(Default)]
-pub struct UserHooksTest {
+pub struct TestHooks {
     on_gateway_request: Option<GatewayHook>,
     on_authorization: Option<AuthorizationHook>,
 }
 
-impl UserHooksTest {
+impl TestHooks {
     pub fn on_gateway_request<F>(mut self, hook: F) -> Self
     where
-        F: Fn(HeaderMap) -> Result<(HashMap<String, String>, HeaderMap), UserHookError> + Send + Sync + 'static,
+        F: Fn(HeaderMap) -> Result<(HashMap<String, String>, HeaderMap), HookError> + Send + Sync + 'static,
     {
         self.on_gateway_request = Some(Box::pin(hook));
         self
@@ -38,7 +38,7 @@ impl UserHooksTest {
         F: Fn(
                 HashMap<String, String>,
                 Vec<String>,
-            ) -> Result<(HashMap<String, String>, Vec<Option<UserError>>), UserHookError>
+            ) -> Result<(HashMap<String, String>, Vec<Option<UserError>>), HookError>
             + Send
             + Sync
             + 'static,
@@ -49,10 +49,10 @@ impl UserHooksTest {
 }
 
 #[async_trait::async_trait]
-impl UserHooksImpl for UserHooksTest {
+impl HooksImpl for TestHooks {
     type Context = HashMap<String, String>;
 
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), UserHookError> {
+    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), HookError> {
         match self.on_gateway_request {
             Some(ref hook) => hook(headers),
             None => Ok((HashMap::new(), headers)),
@@ -63,7 +63,7 @@ impl UserHooksImpl for UserHooksTest {
         &self,
         context: Self::Context,
         input: Vec<String>,
-    ) -> Result<(Self::Context, Vec<Option<UserError>>), UserHookError> {
+    ) -> Result<(Self::Context, Vec<Option<UserError>>), HookError> {
         match self.on_authorization {
             Some(ref hook) => hook(context, input),
             None => todo!("please define the on-authorization hook before testing"),

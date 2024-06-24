@@ -45,7 +45,7 @@ pub struct EngineEnv {
     pub trusted_documents: runtime::trusted_documents_client::Client,
     pub kv: runtime::kv::KvStore,
     pub meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
-    pub user_hooks: runtime::user_hooks::UserHooks,
+    pub user_hooks: runtime::hooks::Hooks,
 }
 
 impl Engine {

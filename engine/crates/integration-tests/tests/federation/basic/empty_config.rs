@@ -1,7 +1,7 @@
 use integration_tests::{federation::TestFederationEngine, runtime};
 use parser_sdl::federation::FederatedGraphConfig;
-use runtime::{trusted_documents_client, user_hooks::UserHooks};
-use runtime_noop::user_hooks::UserHooksNoop;
+use runtime::{hooks::Hooks, trusted_documents_client};
+use runtime_noop::hooks::HooksNoop;
 use std::{future::IntoFuture, sync::Arc};
 
 #[test]
@@ -27,7 +27,7 @@ fn works_with_empty_config() {
             ),
             kv: runtime_local::InMemoryKvStore::runtime(),
             meter: grafbase_tracing::metrics::meter_from_global_provider(),
-            user_hooks: UserHooks::new(UserHooksNoop),
+            user_hooks: Hooks::new(HooksNoop),
         },
     )));
 

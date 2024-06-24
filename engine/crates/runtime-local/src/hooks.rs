@@ -1,21 +1,21 @@
 use std::collections::HashMap;
 
-use runtime::user_hooks::{HeaderMap, UserError, UserHookError, UserHooksImpl};
+use runtime::hooks::{HeaderMap, HookError, HooksImpl, UserError};
 pub use wasi_component_loader::{ComponentLoader, Config as WasiConfig};
 
-pub struct UserHooksWasi(ComponentLoader);
+pub struct HooksWasi(ComponentLoader);
 
-impl UserHooksWasi {
+impl HooksWasi {
     pub fn new(loader: ComponentLoader) -> Self {
         Self(loader)
     }
 }
 
 #[async_trait::async_trait]
-impl UserHooksImpl for UserHooksWasi {
+impl HooksImpl for HooksWasi {
     type Context = HashMap<String, String>;
 
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), UserHookError> {
+    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), HookError> {
         let context = Self::Context::new();
 
         Ok(self
@@ -29,7 +29,7 @@ impl UserHooksImpl for UserHooksWasi {
         &self,
         context: Self::Context,
         input: Vec<String>,
-    ) -> Result<(Self::Context, Vec<Option<UserError>>), UserHookError> {
+    ) -> Result<(Self::Context, Vec<Option<UserError>>), HookError> {
         let (context, results) = self.0.on_authorization(context, input).await.map_err(to_local_error)?;
 
         let results = results
@@ -41,10 +41,10 @@ impl UserHooksImpl for UserHooksWasi {
     }
 }
 
-fn to_local_error(error: wasi_component_loader::Error) -> UserHookError {
+fn to_local_error(error: wasi_component_loader::Error) -> HookError {
     match error {
-        wasi_component_loader::Error::Internal(error) => UserHookError::Internal(error.into()),
-        wasi_component_loader::Error::User(error) => UserHookError::User(error_response_to_user_error(error)),
+        wasi_component_loader::Error::Internal(error) => HookError::Internal(error.into()),
+        wasi_component_loader::Error::User(error) => HookError::User(error_response_to_user_error(error)),
     }
 }
 
