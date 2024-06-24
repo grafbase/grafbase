@@ -48,6 +48,60 @@ fn basic() {
 }
 
 #[test]
+fn generate_operation_name() {
+    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+        let response = gateway
+            .gql::<serde_json::Value>("query { myFavoriteField ignoreMe }")
+            .send()
+            .await;
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "errors": [
+            {
+              "message": "Query does not have a field named 'myFavoriteField'",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 9
+                }
+              ]
+            }
+          ]
+        }
+        "###);
+        tokio::time::sleep(Duration::from_secs(2)).await;
+
+        let row = clickhouse
+            .query(
+                r#"
+                SELECT Count, Attributes
+                FROM otel_metrics_exponential_histogram
+                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                    AND ScopeName = 'grafbase'
+                    AND MetricName = 'gql_operation_latency'
+                "#,
+            )
+            .bind(&service_name)
+            .bind(start_time_unix)
+            .fetch_one::<ExponentialHistogramRow>()
+            .await
+            .unwrap();
+        insta::assert_json_snapshot!(row, @r###"
+        {
+          "Count": 1,
+          "Attributes": {
+            "gql.operation.name": "myFavoriteField",
+            "gql.operation.normalized_query": "query {\n  ignoreMe\n  myFavoriteField\n}\n",
+            "gql.operation.normalized_query_hash": "WDOyTh2uUUEIkab8iqn+MGWh5J3MntAvRkUy3yEpJS8=",
+            "gql.operation.type": "query",
+            "gql.response.status": "REQUEST_ERROR"
+          }
+        }
+        "###);
+    });
+}
+
+#[test]
 fn request_error() {
     with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
         let resp = gateway

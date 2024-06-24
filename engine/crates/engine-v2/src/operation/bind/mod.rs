@@ -147,7 +147,11 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
         location_to_field_arguments: HashMap::default(),
         fields: Vec::new(),
         selection_sets: Vec::new(),
-        unbound_fragments: unbound.fragments,
+        unbound_fragments: unbound
+            .fragments
+            .into_iter()
+            .map(|(name, fragment)| (name.to_string(), fragment))
+            .collect(),
         variable_definitions: Vec::new(),
         next_response_position: 0,
         current_fragments_stack: Vec::new(),

@@ -34,7 +34,8 @@ use crate::{
     QueryEnv, QueryEnvBuilder, QueryPath, Request, Response, ServerError, SubscriptionType, Variables,
 };
 use crate::{
-    new_futures_spawner, registry_operation_type_from_parser, GraphqlOperationMetadata, QuerySpawnedFuturesWaiter,
+    new_futures_spawner, registry_operation_type_from_parser, GraphqlOperationAnalyticsAttributes,
+    QuerySpawnedFuturesWaiter,
 };
 
 /// Schema builder
@@ -240,8 +241,10 @@ impl Schema {
         mut extensions: Extensions,
         request: Request,
         session_data: Arc<Data>,
-    ) -> Result<(QueryEnvBuilder, QuerySpawnedFuturesWaiter), (Option<GraphqlOperationMetadata>, Vec<ServerError>)>
-    {
+    ) -> Result<
+        (QueryEnvBuilder, QuerySpawnedFuturesWaiter),
+        (Option<GraphqlOperationAnalyticsAttributes>, Vec<ServerError>),
+    > {
         let mut request = request;
         let query_data = Arc::new(std::mem::take(&mut request.data));
         extensions.attach_query_data(query_data.clone());
@@ -260,12 +263,22 @@ impl Schema {
                 .map_err(|err| (None, vec![err]))?
         };
 
-        let operation_metadata = if let Some(operation_name) = request.operation_name() {
+        let operation_name = request
+            .operation_name()
+            .map(str::to_string)
+            .or_else(|| match &document.operations {
+                DocumentOperations::Multiple(operations) if operations.len() == 1 => {
+                    operations.iter().next().map(|(name, _)| name.to_string())
+                }
+                _ => None,
+            });
+
+        let operation_analytics_attributes = if let Some(operation_name) = request.operation_name() {
             match &document.operations {
                 DocumentOperations::Multiple(operations) => {
                     operations
                         .get(operation_name)
-                        .map(|operation| GraphqlOperationMetadata {
+                        .map(|operation| GraphqlOperationAnalyticsAttributes {
                             name: Some(operation_name.to_string()),
                             r#type: response_operation_for_definition(&operation.node),
                         })
@@ -274,13 +287,13 @@ impl Schema {
             }
         } else {
             match &document.operations {
-                DocumentOperations::Single(operation) => Some(GraphqlOperationMetadata {
-                    name: None,
+                DocumentOperations::Single(operation) => Some(GraphqlOperationAnalyticsAttributes {
+                    name: engine_parser::find_first_field_name(&document.fragments, &operation.node.selection_set),
                     r#type: response_operation_for_definition(&operation.node),
                 }),
                 DocumentOperations::Multiple(operations) if operations.len() == 1 => {
                     let (operation_name, operation) = operations.iter().next().unwrap();
-                    Some(GraphqlOperationMetadata {
+                    Some(GraphqlOperationAnalyticsAttributes {
                         name: Some(operation_name.to_string()),
                         r#type: response_operation_for_definition(&operation.node),
                     })
@@ -298,7 +311,7 @@ impl Schema {
             futures_util::pin_mut!(validation_fut);
             match extensions.validation(&mut validation_fut).await {
                 Ok(res) => res,
-                Err(errors) => return Err((operation_metadata, errors)),
+                Err(errors) => return Err((operation_analytics_attributes, errors)),
             }
         };
 
@@ -320,7 +333,7 @@ impl Schema {
         if !request.operation_limits_disabled() {
             // Check limits.
             if let Err(message) = self.validate_operation_limits(&validation_result) {
-                return Err((operation_metadata, vec![ServerError::new(message, None)]));
+                return Err((operation_analytics_attributes, vec![ServerError::new(message, None)]));
             }
         }
 
@@ -339,12 +352,12 @@ impl Schema {
 
         let introspection_state = request.introspection_state();
         let (futures_spawner, futures_waiter) = new_futures_spawner();
-        let operation_metadata = operation_metadata.expect("Passed validation, so must be present");
+        let operation_metadata = operation_analytics_attributes.expect("Passed validation, so must be present");
         let env = QueryEnvInner {
             extensions,
             variables: request.variables,
-            operation_name: operation_metadata.name.clone(),
             operation,
+            operation_name,
             fragments: document.fragments,
             uploads: request.uploads,
             session_data,
@@ -358,7 +371,7 @@ impl Schema {
             deferred_workloads: None,
             futures_spawner,
             cache_control: validation_result.cache_control,
-            operation_metadata,
+            operation_analytics_attributes: operation_metadata,
         };
         Ok((QueryEnvBuilder::new(env), futures_waiter))
     }
@@ -446,7 +459,7 @@ impl Schema {
             },
         }
         .http_headers(std::mem::take(&mut *env.response_http_headers.lock().unwrap()))
-        .with_graphql_operation(env.operation_metadata.clone());
+        .with_graphql_operation(env.operation_analytics_attributes.clone());
 
         resp.errors.extend(std::mem::take(&mut *env.errors.lock().unwrap()));
         resp
@@ -465,7 +478,7 @@ impl Schema {
                         let env = env_builder.build();
                         Span::current().record_gql_request(GqlRequestAttributes {
                             operation_type: env.operation.ty.as_str(),
-                            operation_name: env.operation_name.clone(),
+                            operation_name: env.operation_analytics_attributes.name.clone(),
                         });
 
                         let fut = async {
@@ -543,7 +556,7 @@ impl Schema {
                     let env = env_builder.with_deferred_sender(sender).build();
                     Span::current().record_gql_request(GqlRequestAttributes {
                         operation_type: env.operation.ty.as_str(),
-                        operation_name: env.operation_name.clone()
+                        operation_name: env.operation_analytics_attributes.name.clone()
                     });
 
                     let initial_response = schema
@@ -573,7 +586,7 @@ impl Schema {
 
                     Span::current().record_gql_request(GqlRequestAttributes {
                         operation_type: env.operation.ty.as_str(),
-                        operation_name: env.operation_name.clone()
+                        operation_name: env.operation_analytics_attributes.name.clone()
                     });
 
                     let ctx = env.create_context(
@@ -586,7 +599,7 @@ impl Schema {
                     if let Err(err) = collect_subscription_streams(&ctx, &crate::EmptySubscription, &mut streams) {
                         status = GraphqlResponseStatus::RequestError {count: 1};
                         // This hasNext: false is probably not correct, but we dont' support subscriptios atm so whatever
-                        yield Response::bad_request(vec![err], Some(env.operation_metadata.clone())).into_streaming_payload(false);
+                        yield Response::bad_request(vec![err], Some(env.operation_analytics_attributes.clone())).into_streaming_payload(false);
                     }
 
                     let mut stream = stream::select_all(streams);
@@ -603,7 +616,7 @@ impl Schema {
                     schema.env.operation_metrics.record(
                         grafbase_tracing::metrics::GraphqlOperationMetricsAttributes {
                             ty: env.operation.ty.as_str(),
-                            name: env.operation_name.clone(),
+                            name: env.operation_analytics_attributes.name.clone(),
                             normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
                             normalized_query,
                             status,

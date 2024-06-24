@@ -38,7 +38,7 @@ impl From<ParseError> for GraphqlError {
 pub struct ParsedOperation {
     pub name: Option<String>,
     pub definition: OperationDefinition,
-    pub fragments: HashMap<String, Positioned<engine_parser::types::FragmentDefinition>>,
+    pub fragments: HashMap<engine_value::Name, Positioned<engine_parser::types::FragmentDefinition>>,
 }
 
 /// Returns a valid GraphQL operation from the query string before.
@@ -67,10 +67,6 @@ pub fn parse_operation(request: &engine::Request) -> ParseResult<ParsedOperation
     Ok(ParsedOperation {
         name: operation_name,
         definition: operation.node,
-        fragments: document
-            .fragments
-            .into_iter()
-            .map(|(name, fragment)| (name.to_string(), fragment))
-            .collect(),
+        fragments: document.fragments,
     })
 }
