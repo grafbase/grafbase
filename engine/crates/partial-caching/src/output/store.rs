@@ -71,7 +71,7 @@ impl Iterator for IdRange<ValueId> {
 }
 
 impl OutputStore {
-    fn root_object(&self) -> Option<ObjectId> {
+    pub(super) fn root_object(&self) -> Option<ObjectId> {
         match self.values.first()? {
             ValueRecord::Object(id) => Some(*id),
             _ => None,
@@ -134,9 +134,10 @@ impl OutputStore {
         })
     }
 
-    fn read_value<'a>(&'a self, id: ValueId, shapes: &'a OutputShapes) -> Value<'a> {
-        match &self.values[id.0] {
-            ValueRecord::Unset | ValueRecord::Null => Value::Null,
+    fn read_value<'a>(&'a self, id: ValueId, shapes: &'a OutputShapes) -> Option<Value<'a>> {
+        Some(match &self.values[id.0] {
+            ValueRecord::Unset => return None,
+            ValueRecord::Null => Value::Null,
             ValueRecord::Number(number) if number.is_f64() => Value::Float(number.as_f64().unwrap()),
             ValueRecord::Number(number) => Value::Integer(number.as_i64().unwrap()),
             ValueRecord::String(string) => Value::String(string.as_ref()),
@@ -152,7 +153,7 @@ impl OutputStore {
                 store: self,
                 shapes,
             }),
-        }
+        })
     }
 }
 
@@ -180,7 +181,11 @@ impl<'a> Iterator for List<'a> {
     type Item = Value<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.store.read_value(self.ids.next()?, self.shapes))
+        loop {
+            if let Some(value) = self.store.read_value(self.ids.next()?, self.shapes) {
+                return Some(value);
+            }
+        }
     }
 }
 
@@ -205,7 +210,7 @@ impl<'a> Object<'a> {
         shape
             .response_keys()
             .zip(record.fields)
-            .map(move |(key, id)| (key, store.read_value(id, shapes)))
+            .filter_map(move |(key, id)| Some((key, store.read_value(id, shapes)?)))
     }
 
     fn record(&self) -> &'a ObjectRecord {
