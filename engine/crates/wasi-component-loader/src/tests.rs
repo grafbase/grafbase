@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{ComponentLoader, Config, ErrorResponse};
 use expect_test::expect;
 use http::{HeaderMap, HeaderValue};
@@ -27,10 +29,15 @@ async fn missing_callback() {
     let config: Config = toml::from_str(config).unwrap();
     assert!(config.location().exists());
 
-    let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let headers = loader.on_gateway_request(HeaderMap::new()).await.unwrap();
+    let (context, headers) = ComponentLoader::new(config)
+        .unwrap()
+        .unwrap()
+        .on_gateway_request(HashMap::new(), HeaderMap::new())
+        .await
+        .unwrap();
 
     assert_eq!(HeaderMap::new(), headers);
+    assert_eq!(HashMap::new(), context);
 }
 
 #[tokio::test]
@@ -50,10 +57,15 @@ async fn simple_no_io() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let headers = loader.on_gateway_request(HeaderMap::new()).await.unwrap();
+
+    let mut context = HashMap::new();
+    context.insert("kekw".to_string(), "lol".to_string());
+
+    let (context, headers) = loader.on_gateway_request(context, HeaderMap::new()).await.unwrap();
 
     assert_eq!(Some(&HeaderValue::from_static("call")), headers.get("direct"));
     assert_eq!(Some(&HeaderValue::from_static("meow")), headers.get("fromEnv"));
+    assert_eq!(Some("direct"), context.get("call").map(|v| v.as_str()));
 }
 
 #[tokio::test]
@@ -82,7 +94,11 @@ async fn dir_access_read_only() {
     std::fs::write(path.join("contents.txt"), "test string").unwrap();
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let headers = loader.on_gateway_request(HeaderMap::new()).await.unwrap();
+
+    let (_, headers) = loader
+        .on_gateway_request(HashMap::new(), HeaderMap::new())
+        .await
+        .unwrap();
 
     assert_eq!(
         Some(&HeaderValue::from_static("test string")),
@@ -117,8 +133,12 @@ async fn dir_access_write() {
 
     std::fs::write(path.join("contents.txt"), "test string").unwrap();
 
-    let loader = ComponentLoader::new(config).unwrap().unwrap();
-    loader.on_gateway_request(HeaderMap::new()).await.unwrap();
+    ComponentLoader::new(config)
+        .unwrap()
+        .unwrap()
+        .on_gateway_request(HashMap::new(), HeaderMap::new())
+        .await
+        .unwrap();
 
     let path = path.join("guest_write.txt");
 
@@ -154,9 +174,12 @@ async fn networking() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let headers = loader.on_gateway_request(HeaderMap::new()).await.unwrap();
+    let (context, _) = loader
+        .on_gateway_request(HashMap::new(), HeaderMap::new())
+        .await
+        .unwrap();
 
-    assert_eq!(Some(&HeaderValue::from_static("kekw")), headers.get("HTTP_RESPONSE"));
+    assert_eq!(Some("kekw"), context.get("HTTP_RESPONSE").map(|s| s.as_str()));
 }
 
 #[tokio::test]
@@ -185,7 +208,10 @@ async fn networking_no_network() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let error = loader.on_gateway_request(HeaderMap::new()).await.unwrap_err();
+    let error = loader
+        .on_gateway_request(HashMap::new(), HeaderMap::new())
+        .await
+        .unwrap_err();
 
     let expected = expect![
         "component imports instance `wasi:http/types@0.2.0`, but a matching implementation was not found in the linker"
@@ -206,7 +232,10 @@ async fn guest_error() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let error = loader.on_gateway_request(HeaderMap::new()).await.unwrap_err();
+    let error = loader
+        .on_gateway_request(HashMap::new(), HeaderMap::new())
+        .await
+        .unwrap_err();
 
     let expected = ErrorResponse {
         message: String::from("not found"),

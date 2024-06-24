@@ -2,12 +2,16 @@
 // Options used:
 pub type Headers = component::grafbase::types::Headers;
 pub type ErrorResponse = component::grafbase::types::ErrorResponse;
+pub type Context = component::grafbase::types::Context;
 #[doc(hidden)]
 #[allow(non_snake_case)]
-pub unsafe fn _export_on_subgraph_request_cabi<T: Guest>(arg0: i32) -> *mut u8 {
+pub unsafe fn _export_on_subgraph_request_cabi<T: Guest>(arg0: i32, arg1: i32) -> *mut u8 {
     #[cfg(target_arch = "wasm32")]
     _rt::run_ctors_once();
-    let result0 = T::on_subgraph_request(component::grafbase::types::Headers::from_handle(arg0 as u32));
+    let result0 = T::on_subgraph_request(
+        component::grafbase::types::Context::from_handle(arg0 as u32),
+        component::grafbase::types::Headers::from_handle(arg1 as u32),
+    );
     let ptr1 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
     match result0 {
         Ok(_) => {
@@ -52,7 +56,7 @@ pub unsafe fn __post_return_on_subgraph_request<T: Guest>(arg0: *mut u8) {
     }
 }
 pub trait Guest {
-    fn on_subgraph_request(headers: Headers) -> Result<(), ErrorResponse>;
+    fn on_subgraph_request(context: Context, headers: Headers) -> Result<(), ErrorResponse>;
 }
 #[doc(hidden)]
 
@@ -60,8 +64,8 @@ macro_rules! __export_world_gateway_cabi{
   ($ty:ident with_types_in $($path_to_types:tt)*) => (const _: () = {
 
     #[export_name = "on-subgraph-request"]
-    unsafe extern "C" fn export_on_subgraph_request(arg0: i32,) -> *mut u8 {
-      $($path_to_types)*::_export_on_subgraph_request_cabi::<$ty>(arg0)
+    unsafe extern "C" fn export_on_subgraph_request(arg0: i32,arg1: i32,) -> *mut u8 {
+      $($path_to_types)*::_export_on_subgraph_request_cabi::<$ty>(arg0, arg1)
     }
     #[export_name = "cabi_post_on-subgraph-request"]
     unsafe extern "C" fn _post_return_on_subgraph_request(arg0: *mut u8,) {
@@ -140,6 +144,50 @@ pub mod component {
 
             #[derive(Debug)]
             #[repr(transparent)]
+            pub struct Context {
+                handle: _rt::Resource<Context>,
+            }
+
+            impl Context {
+                #[doc(hidden)]
+                pub unsafe fn from_handle(handle: u32) -> Self {
+                    Self {
+                        handle: _rt::Resource::from_handle(handle),
+                    }
+                }
+
+                #[doc(hidden)]
+                pub fn take_handle(&self) -> u32 {
+                    _rt::Resource::take_handle(&self.handle)
+                }
+
+                #[doc(hidden)]
+                pub fn handle(&self) -> u32 {
+                    _rt::Resource::handle(&self.handle)
+                }
+            }
+
+            unsafe impl _rt::WasmResource for Context {
+                #[inline]
+                unsafe fn drop(_handle: u32) {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    unreachable!();
+
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        #[link(wasm_import_module = "component:grafbase/types")]
+                        extern "C" {
+                            #[link_name = "[resource-drop]context"]
+                            fn drop(_: u32);
+                        }
+
+                        drop(_handle);
+                    }
+                }
+            }
+
+            #[derive(Debug)]
+            #[repr(transparent)]
             pub struct Headers {
                 handle: _rt::Resource<Headers>,
             }
@@ -201,6 +249,116 @@ pub mod component {
                 }
             }
             impl std::error::Error for ErrorResponse {}
+            impl Context {
+                #[allow(unused_unsafe, clippy::all)]
+                pub fn get(&self, name: &str) -> Option<_rt::String> {
+                    unsafe {
+                        #[repr(align(4))]
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 12]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 12]);
+                        let vec0 = name;
+                        let ptr0 = vec0.as_ptr().cast::<u8>();
+                        let len0 = vec0.len();
+                        let ptr1 = ret_area.0.as_mut_ptr().cast::<u8>();
+                        #[cfg(target_arch = "wasm32")]
+                        #[link(wasm_import_module = "component:grafbase/types")]
+                        extern "C" {
+                            #[link_name = "[method]context.get"]
+                            fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8);
+                        }
+
+                        #[cfg(not(target_arch = "wasm32"))]
+                        fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8) {
+                            unreachable!()
+                        }
+                        wit_import((self).handle() as i32, ptr0.cast_mut(), len0, ptr1);
+                        let l2 = i32::from(*ptr1.add(0).cast::<u8>());
+                        match l2 {
+                            0 => None,
+                            1 => {
+                                let e = {
+                                    let l3 = *ptr1.add(4).cast::<*mut u8>();
+                                    let l4 = *ptr1.add(8).cast::<usize>();
+                                    let len5 = l4;
+                                    let bytes5 = _rt::Vec::from_raw_parts(l3.cast(), len5, len5);
+
+                                    _rt::string_lift(bytes5)
+                                };
+                                Some(e)
+                            }
+                            _ => _rt::invalid_enum_discriminant(),
+                        }
+                    }
+                }
+            }
+            impl Context {
+                #[allow(unused_unsafe, clippy::all)]
+                pub fn set(&self, name: &str, value: &str) {
+                    unsafe {
+                        let vec0 = name;
+                        let ptr0 = vec0.as_ptr().cast::<u8>();
+                        let len0 = vec0.len();
+                        let vec1 = value;
+                        let ptr1 = vec1.as_ptr().cast::<u8>();
+                        let len1 = vec1.len();
+
+                        #[cfg(target_arch = "wasm32")]
+                        #[link(wasm_import_module = "component:grafbase/types")]
+                        extern "C" {
+                            #[link_name = "[method]context.set"]
+                            fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8, _: usize);
+                        }
+
+                        #[cfg(not(target_arch = "wasm32"))]
+                        fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8, _: usize) {
+                            unreachable!()
+                        }
+                        wit_import((self).handle() as i32, ptr0.cast_mut(), len0, ptr1.cast_mut(), len1);
+                    }
+                }
+            }
+            impl Context {
+                #[allow(unused_unsafe, clippy::all)]
+                pub fn delete(&self, name: &str) -> Option<_rt::String> {
+                    unsafe {
+                        #[repr(align(4))]
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 12]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 12]);
+                        let vec0 = name;
+                        let ptr0 = vec0.as_ptr().cast::<u8>();
+                        let len0 = vec0.len();
+                        let ptr1 = ret_area.0.as_mut_ptr().cast::<u8>();
+                        #[cfg(target_arch = "wasm32")]
+                        #[link(wasm_import_module = "component:grafbase/types")]
+                        extern "C" {
+                            #[link_name = "[method]context.delete"]
+                            fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8);
+                        }
+
+                        #[cfg(not(target_arch = "wasm32"))]
+                        fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8) {
+                            unreachable!()
+                        }
+                        wit_import((self).handle() as i32, ptr0.cast_mut(), len0, ptr1);
+                        let l2 = i32::from(*ptr1.add(0).cast::<u8>());
+                        match l2 {
+                            0 => None,
+                            1 => {
+                                let e = {
+                                    let l3 = *ptr1.add(4).cast::<*mut u8>();
+                                    let l4 = *ptr1.add(8).cast::<usize>();
+                                    let len5 = l4;
+                                    let bytes5 = _rt::Vec::from_raw_parts(l3.cast(), len5, len5);
+
+                                    _rt::string_lift(bytes5)
+                                };
+                                Some(e)
+                            }
+                            _ => _rt::invalid_enum_discriminant(),
+                        }
+                    }
+                }
+            }
             impl Headers {
                 #[allow(unused_unsafe, clippy::all)]
                 pub fn get(&self, name: &str) -> Result<Option<_rt::String>, HeaderError> {
@@ -603,19 +761,23 @@ pub(crate) use __export_gateway_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:gateway:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 555] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xad\x03\x01A\x02\x01\
-A\x0a\x01B\x0f\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
-header-error\x03\0\0\x04\0\x07headers\x03\x01\x01k{\x01r\x02\x06status\x03\x07me\
-ssages\x04\0\x0eerror-response\x03\0\x04\x01h\x02\x01ks\x01j\x01\x07\x01\x01\x01\
-@\x02\x04self\x06\x04names\0\x08\x04\0\x13[method]headers.get\x01\x09\x01j\0\x01\
-\x01\x01@\x03\x04self\x06\x04names\x05values\0\x0a\x04\0\x13[method]headers.set\x01\
-\x0b\x04\0\x16[method]headers.delete\x01\x09\x03\x01\x18component:grafbase/types\
-\x05\0\x02\x03\0\0\x07headers\x03\0\x07headers\x03\0\x01\x02\x03\0\0\x0eerror-re\
-sponse\x03\0\x0eerror-response\x03\0\x03\x01i\x02\x01j\0\x01\x04\x01@\x01\x07hea\
-ders\x05\0\x06\x04\0\x13on-subgraph-request\x01\x07\x04\x01\x1acomponent:grafbas\
-e/gateway\x04\0\x0b\x0d\x01\0\x07gateway\x03\0\0\0G\x09producers\x01\x0cprocesse\
-d-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 723] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xd5\x04\x01A\x02\x01\
+A\x0d\x01B\x16\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
+header-error\x03\0\0\x04\0\x07context\x03\x01\x04\0\x07headers\x03\x01\x01k{\x01\
+r\x02\x06status\x04\x07messages\x04\0\x0eerror-response\x03\0\x05\x01h\x02\x01ks\
+\x01@\x02\x04self\x07\x04names\0\x08\x04\0\x13[method]context.get\x01\x09\x01@\x03\
+\x04self\x07\x04names\x05values\x01\0\x04\0\x13[method]context.set\x01\x0a\x04\0\
+\x16[method]context.delete\x01\x09\x01h\x03\x01j\x01\x08\x01\x01\x01@\x02\x04sel\
+f\x0b\x04names\0\x0c\x04\0\x13[method]headers.get\x01\x0d\x01j\0\x01\x01\x01@\x03\
+\x04self\x0b\x04names\x05values\0\x0e\x04\0\x13[method]headers.set\x01\x0f\x04\0\
+\x16[method]headers.delete\x01\x0d\x03\x01\x18component:grafbase/types\x05\0\x02\
+\x03\0\0\x07headers\x03\0\x07headers\x03\0\x01\x02\x03\0\0\x0eerror-response\x03\
+\0\x0eerror-response\x03\0\x03\x02\x03\0\0\x07context\x03\0\x07context\x03\0\x05\
+\x01i\x06\x01i\x02\x01j\0\x01\x04\x01@\x02\x07context\x07\x07headers\x08\0\x09\x04\
+\0\x13on-subgraph-request\x01\x0a\x04\x01\x1acomponent:grafbase/gateway\x04\0\x0b\
+\x0d\x01\0\x07gateway\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-com\
+ponent\x070.208.1\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use runtime::user_hooks::{HeaderMap, UserError, UserHookError, UserHooksImpl};
 pub use wasi_component_loader::{ComponentLoader, Config as WasiConfig};
 
@@ -11,8 +13,16 @@ impl UserHooksWasi {
 
 #[async_trait::async_trait]
 impl UserHooksImpl for UserHooksWasi {
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<HeaderMap, UserHookError> {
-        Ok(self.0.on_gateway_request(headers).await.map_err(to_local_error)?)
+    type Context = HashMap<String, String>;
+
+    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), UserHookError> {
+        let context = Self::Context::new();
+
+        Ok(self
+            .0
+            .on_gateway_request(context, headers)
+            .await
+            .map_err(to_local_error)?)
     }
 }
 

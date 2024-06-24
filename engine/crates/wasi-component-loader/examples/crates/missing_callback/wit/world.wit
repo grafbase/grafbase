@@ -6,6 +6,12 @@ interface types {
         invalid-header-name,
     }
 
+    resource context {
+        get: func(name: string) -> option<string>;
+        set: func(name: string, value: string);
+        delete: func(name: string) -> option<string>;
+    }
+
     resource headers {
         get: func(name: string) -> result<option<string>, header-error>;
         set: func(name: string, value: string) -> result<_, header-error>;
@@ -19,7 +25,7 @@ interface types {
 }
 
 world gateway {
-    use types.{headers, error-response};
+    use types.{headers, error-response, context};
 
-    export on-subgraph-request: func(headers: headers) -> result<_, error-response>;
+    export on-subgraph-request: func(context: context, headers: headers) -> result<_, error-response>;
 }

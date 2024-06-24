@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use engine_v2::Engine;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
@@ -13,7 +13,7 @@ use serde_json::Value;
 fn a_gateway_request_no_op() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-        let user_hooks = UserHooksTest::default().on_gateway_request(Ok);
+        let user_hooks = UserHooksTest::default().on_gateway_request(|headers| Ok((HashMap::new(), headers)));
 
         let engine = Engine::builder()
             .with_user_hooks(user_hooks)

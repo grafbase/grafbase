@@ -1,10 +1,10 @@
-use std::sync::Arc;
+use std::{borrow::Cow, collections::HashMap, sync::Arc};
 use web_time::Instant;
 
 use async_runtime::stream::StreamExt as _;
 use engine::{BatchRequest, Request};
 use engine_parser::types::OperationType;
-use futures::{channel::mpsc, StreamExt};
+use futures::{channel::mpsc, lock::Mutex, StreamExt};
 use futures_util::{SinkExt, Stream};
 use gateway_core::StreamingFormat;
 use gateway_v2_auth::AuthService;
@@ -68,14 +68,14 @@ impl Engine {
         headers: http::HeaderMap,
         batch_request: BatchRequest,
     ) -> HttpGraphqlResponse {
-        let headers = match self.env.user_hooks.on_gateway_request(headers).await {
-            Ok(headers) => headers,
+        let (context, headers) = match self.env.user_hooks.on_gateway_request(headers).await {
+            Ok(result) => result,
             Err(error) => return Response::execution_error(error).into(),
         };
 
         if let Some(access_token) = self.auth.authorize(&headers).await {
-            self.execute_with_access_token(RequestMetadata::new(headers, access_token), batch_request)
-                .await
+            let metadata = RequestMetadata::new(headers, access_token, context);
+            self.execute_with_access_token(metadata, batch_request).await
         } else if let Some(streaming_format) = headers.typed_get::<StreamingFormat>() {
             HttpGraphqlResponse::stream_request_error(streaming_format, "Unauthorized")
         } else {
@@ -83,11 +83,19 @@ impl Engine {
         }
     }
 
-    pub async fn create_session(self: &Arc<Self>, headers: http::HeaderMap) -> Option<Session> {
-        self.auth.authorize(&headers).await.map(|access_token| Session {
-            engine: Arc::clone(self),
-            metadata: Arc::new(RequestMetadata::new(headers, access_token)),
-        })
+    pub async fn create_session(self: &Arc<Self>, headers: http::HeaderMap) -> Result<Session, Cow<'static, str>> {
+        let (context, headers) = match self.env.user_hooks.on_gateway_request(headers).await {
+            Ok(result) => result,
+            Err(error) => return Err(Cow::from(error.to_string())),
+        };
+
+        match self.auth.authorize(&headers).await {
+            Some(access_token) => Ok(Session {
+                engine: Arc::clone(self),
+                metadata: Arc::new(RequestMetadata::new(headers, access_token, context)),
+            }),
+            None => Err(Cow::from("Forbidden")),
+        }
     }
 
     async fn execute_with_access_token(
@@ -322,15 +330,19 @@ pub(crate) struct RequestMetadata {
     pub headers: http::HeaderMap,
     pub client: Option<Client>,
     pub access_token: AccessToken,
+    #[allow(dead_code)] // TODO: pass this to the user hooks
+    pub context: Mutex<HashMap<String, String>>,
 }
 
 impl RequestMetadata {
-    fn new(headers: http::HeaderMap, access_token: AccessToken) -> Self {
+    fn new(headers: http::HeaderMap, access_token: AccessToken, context: HashMap<String, String>) -> Self {
         let client = Client::extract_from(&headers);
+
         Self {
             headers,
             client,
             access_token,
+            context: Mutex::new(context),
         }
     }
 }

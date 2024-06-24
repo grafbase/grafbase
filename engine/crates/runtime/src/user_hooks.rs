@@ -1,5 +1,8 @@
 use core::fmt;
-use std::{collections::BTreeMap, sync::Arc};
+use std::{
+    collections::{BTreeMap, HashMap},
+    sync::Arc,
+};
 
 pub use http::HeaderMap;
 
@@ -27,16 +30,16 @@ impl fmt::Display for UserError {
 }
 
 #[derive(Clone)]
-pub struct UserHooks(Arc<dyn UserHooksImpl>);
+pub struct UserHooks(Arc<dyn UserHooksImpl<Context = HashMap<String, String>>>);
 
 impl UserHooks {
-    pub fn new(inner: impl UserHooksImpl + 'static) -> Self {
+    pub fn new(inner: impl UserHooksImpl<Context = HashMap<String, String>> + 'static) -> Self {
         Self(Arc::new(inner))
     }
 }
 
 impl std::ops::Deref for UserHooks {
-    type Target = dyn UserHooksImpl;
+    type Target = dyn UserHooksImpl<Context = HashMap<String, String>>;
 
     fn deref(&self) -> &Self::Target {
         self.0.deref()
@@ -45,5 +48,7 @@ impl std::ops::Deref for UserHooks {
 
 #[async_trait::async_trait]
 pub trait UserHooksImpl: Send + Sync {
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<HeaderMap, UserHookError>;
+    type Context;
+
+    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), UserHookError>;
 }

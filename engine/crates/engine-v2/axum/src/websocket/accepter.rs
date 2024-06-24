@@ -167,12 +167,15 @@ async fn accept_websocket(websocket: &mut WebSocket, engine: &EngineWatcher) -> 
                     return None;
                 };
 
-                let Some(session) = engine.create_session(headers).await else {
-                    websocket
-                        .send(Message::close(4403, "Forbidden").to_axum_message().unwrap())
-                        .await
-                        .ok();
-                    return None;
+                let session = match engine.create_session(headers).await {
+                    Ok(session) => session,
+                    Err(e) => {
+                        websocket
+                            .send(Message::close(4403, e).to_axum_message().unwrap())
+                            .await
+                            .ok();
+                        return None;
+                    }
                 };
 
                 websocket
