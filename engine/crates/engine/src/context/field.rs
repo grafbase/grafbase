@@ -5,13 +5,13 @@ use std::{
 };
 
 use engine_value::ConstValue;
+use query_path::QueryPath;
 use serde::de::DeserializeOwned;
 use ulid::Ulid;
 
 use super::ContextExt;
 use crate::{
     parser::types::{Field, SelectionSet},
-    query_path::QueryPath,
     registry::{
         type_kinds::{InputType, OutputType, SelectionSetTarget},
         variables::VariableResolveDefinition,

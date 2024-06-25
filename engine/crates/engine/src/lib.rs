@@ -18,9 +18,7 @@ mod look_ahead;
 #[doc(hidden)]
 pub mod model;
 pub mod names;
-mod query_path;
 mod request;
-mod response;
 mod schema;
 mod subscription;
 
@@ -50,12 +48,16 @@ pub use base::{
 pub use context::ContextSelectionSet;
 pub use context::*;
 pub use engine_parser as parser;
+pub use engine_response::{
+    error::ErrorExtensionValues, BatchResponse, GraphQlResponse, GraphqlOperationAnalyticsAttributes,
+    IncrementalPayload, InitialResponse, Response, StreamingPayload,
+};
 pub use engine_value::{
     from_value, to_value, value, ConstValue as Value, DeserializerError, Name, Number, SerializerError, Variables,
 };
 pub use error::{
-    Error, ErrorCode, ErrorExtensionValues, ErrorExtensions, InputValueError, InputValueResult, ParseRequestError,
-    Result, ResultExt, ServerError, ServerResult,
+    Error, ErrorCode, ErrorExtensions, InputValueError, InputValueResult, ParseRequestError, Result, ResultExt,
+    ServerError, ServerResult,
 };
 pub use extensions::ResolveFut;
 #[doc(hidden)]
@@ -79,10 +81,6 @@ pub use request::{
 };
 #[doc(no_inline)]
 pub use resolver_utils::{ContainerType, LegacyEnumType, LegacyScalarType};
-pub use response::{
-    BatchResponse, GraphQlResponse, GraphqlOperationAnalyticsAttributes, IncrementalPayload, InitialResponse, Response,
-    StreamingPayload,
-};
 pub use schema::{Schema, SchemaBuilder, SchemaEnv};
 #[doc(hidden)]
 pub use static_assertions;

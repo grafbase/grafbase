@@ -1,6 +1,8 @@
 use std::{collections::BTreeMap, time::Duration};
 
-use engine_parser::types::{OperationDefinition, OperationType, Selection};
+use engine_parser::types::OperationType;
+use engine_value::Value;
+use error::ServerError;
 use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
 use graph_entities::QueryResponse;
 use http::{
@@ -9,10 +11,12 @@ use http::{
 };
 use runtime::cache::{CacheMetadata, Cacheable};
 use serde::{ser::SerializeMap, Deserialize, Serialize};
+
+pub use cache_control::CacheControl;
 pub use streaming::*;
+pub mod error;
 
-use crate::{CacheControl, Result, ServerError, Value};
-
+mod cache_control;
 mod streaming;
 
 /// GraphQL operation used in the request.
@@ -47,32 +51,6 @@ pub struct Response {
     /// GraphQL operation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub graphql_operation: Option<GraphqlOperationAnalyticsAttributes>,
-}
-
-pub(crate) fn response_operation_for_definition(operation: &OperationDefinition) -> common_types::OperationType {
-    match operation.ty {
-        OperationType::Query => common_types::OperationType::Query {
-            is_introspection: is_operation_introspection(operation),
-        },
-        OperationType::Mutation => common_types::OperationType::Mutation,
-        OperationType::Subscription => common_types::OperationType::Subscription,
-    }
-}
-
-fn is_operation_introspection(operation: &OperationDefinition) -> bool {
-    operation.ty == OperationType::Query
-        && operation
-            .selection_set
-            .node
-            .items
-            .iter()
-            // If field name starts with `__` it is part of introspection system, see http://spec.graphql.org/October2021/#sec-Names.Reserved-Names
-            .all(|item| {
-                matches!(
-                    &item.node,
-                    Selection::Field(field) if field.node.name.node.starts_with("__") || field.node.name.node == "_service"
-                )
-            })
 }
 
 impl Response {

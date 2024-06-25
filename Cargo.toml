@@ -18,6 +18,7 @@ members = [
   "engine/crates/engine/registry-upgrade",
   "engine/crates/engine/registry-v2",
   "engine/crates/engine/registry-v2-generator",
+  "engine/crates/engine/response",
   "engine/crates/engine/scalars",
   "engine/crates/engine/value",
   "graph-ref",
@@ -172,6 +173,7 @@ engine-config-builder = { path = "engine/crates/engine-config-builder" }
 engine-parser = { path = "engine/crates/engine/parser" }
 engine = { path = "engine/crates/engine" }
 engine-id-newtypes = { path = "engine/crates/engine/id-newtypes" }
+engine-response = { path = "engine/crates/engine/response" }
 engine-v2 = { path = "engine/crates/engine-v2" }
 engine-v2-axum = { path = "engine/crates/engine-v2/axum" }
 engine-validation = { path = "engine/crates/engine/validation" }
@@ -195,12 +197,13 @@ parser-postgres = { path = "engine/crates/parser-postgres" }
 parser-sdl = { path = "engine/crates/parser-sdl" }
 partial-caching = { path = "engine/crates/partial-caching" }
 postgres-connector-types = { path = "engine/crates/postgres-connector-types" }
+query-path = { path = "engine/crates/engine/query-path" }
 registry-for-cache = { path = "engine/crates/engine/registry-for-cache" }
 registry-upgrade = { path = "engine/crates/engine/registry-upgrade" }
 registry-v1 = { path = "engine/crates/engine/registry-v1" }
 registry-v2 = { path = "engine/crates/engine/registry-v2" }
-runtime-local = { path = "engine/crates/runtime-local" }
 runtime = { path = "engine/crates/runtime" }
+runtime-local = { path = "engine/crates/runtime-local" }
 runtime-noop = { path = "engine/crates/runtime-noop" }
 worker-env = { path = "engine/crates/worker-env" }
 wrapping = { path = "engine/crates/wrapping", package = "graphql-wrapping-types" }

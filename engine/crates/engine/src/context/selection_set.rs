@@ -1,11 +1,11 @@
 use std::fmt::{self, Formatter};
 
+use query_path::QueryPath;
 use ulid::Ulid;
 
 use super::ext::Context;
 use crate::{
     parser::types::{Field, SelectionSet},
-    query_path::QueryPath,
     registry::type_kinds::SelectionSetTarget,
     schema::SchemaEnv,
     ContextField, Positioned, QueryEnv,

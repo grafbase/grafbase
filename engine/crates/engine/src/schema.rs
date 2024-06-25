@@ -1,6 +1,8 @@
 use std::any::TypeId;
 use std::{any::Any, ops::Deref, sync::Arc};
 
+use engine_parser::types::OperationDefinition;
+use engine_response::{IncrementalPayload, StreamingPayload};
 use engine_validation::{check_strict_rules, ValidationResult};
 use futures_util::stream::{self, Stream, StreamExt};
 use futures_util::FutureExt;
@@ -13,7 +15,6 @@ use registry_v2::OperationLimits;
 use tracing::{Instrument, Span};
 
 use crate::registry::type_kinds::SelectionSetTarget;
-use crate::response::response_operation_for_definition;
 use crate::{
     context::{Data, QueryEnvInner},
     current_datetime::CurrentDateTime,
@@ -27,7 +28,6 @@ use crate::{
     registry::Registry,
     registry::RegistrySdlExt,
     resolver_utils::{self, resolve_root_container, resolve_root_container_serial},
-    response::{IncrementalPayload, StreamingPayload},
     subscription::collect_subscription_streams,
     types::QueryRoot,
     BatchRequest, BatchResponse, ContextExt, ContextSelectionSet, LegacyInputType, LegacyOutputType, ObjectType,
@@ -484,7 +484,7 @@ impl Schema {
                         let fut = async {
                             self.execute_once(env.clone(), futures_waiter)
                                 .await
-                                .cache_control(env.cache_control.clone())
+                                .cache_control(env.cache_control())
                         };
                         futures_util::pin_mut!(fut);
                         env.extensions
@@ -562,7 +562,7 @@ impl Schema {
                     let initial_response = schema
                         .execute_once(env.clone(), futures_waiter)
                         .await
-                        .cache_control(env.cache_control.clone());
+                        .cache_control(env.cache_control());
                     status = initial_response.status();
 
                     let mut next_workload = receiver.receive();
@@ -724,14 +724,28 @@ fn remove_skipped_selection(selection_set: &mut SelectionSet, variables: &Variab
     }
 }
 
-impl From<engine_validation::RuleError> for ServerError {
-    fn from(e: engine_validation::RuleError) -> Self {
-        Self {
-            message: e.message,
-            source: None,
-            locations: e.locations,
-            path: Vec::new(),
-            extensions: None,
-        }
+fn response_operation_for_definition(operation: &OperationDefinition) -> common_types::OperationType {
+    match operation.ty {
+        OperationType::Query => common_types::OperationType::Query {
+            is_introspection: is_operation_introspection(operation),
+        },
+        OperationType::Mutation => common_types::OperationType::Mutation,
+        OperationType::Subscription => common_types::OperationType::Subscription,
     }
+}
+
+fn is_operation_introspection(operation: &OperationDefinition) -> bool {
+    operation.ty == OperationType::Query
+        && operation
+            .selection_set
+            .node
+            .items
+            .iter()
+            // If field name starts with `__` it is part of introspection system, see http://spec.graphql.org/October2021/#sec-Names.Reserved-Names
+            .all(|item| {
+                matches!(
+                    &item.node,
+                    Selection::Field(field) if field.node.name.node.starts_with("__") || field.node.name.node == "_service"
+                )
+            })
 }

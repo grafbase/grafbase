@@ -16,6 +16,7 @@ use fnv::FnvHashMap;
 use futures::{future::BoxFuture, stream::FuturesUnordered, StreamExt};
 use graph_entities::QueryResponse;
 use http::header::HeaderMap;
+use query_path::QueryPath;
 use registry_v2::CacheControl;
 
 pub use self::selection_set::ContextSelectionSet;
@@ -30,7 +31,6 @@ use crate::{
     deferred::DeferredWorkloadSender,
     extensions::Extensions,
     parser::types::{Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet},
-    query_path::QueryPath,
     registry::type_kinds::SelectionSetTarget,
     request::IntrospectionState,
     schema::SchemaEnv,
@@ -158,6 +158,14 @@ impl QueryEnv {
             item,
             schema_env,
             query_env: self,
+        }
+    }
+
+    pub fn cache_control(&self) -> engine_response::CacheControl {
+        engine_response::CacheControl {
+            public: self.cache_control.public,
+            max_age: self.cache_control.max_age,
+            stale_while_revalidate: self.cache_control.stale_while_revalidate,
         }
     }
 }

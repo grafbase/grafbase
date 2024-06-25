@@ -12,6 +12,7 @@ mod visitors;
 
 use std::collections::HashSet;
 
+use engine_response::error::ServerError;
 use engine_value::Variables;
 use registry_for_cache::PartialCacheRegistry;
 pub use visitor::VisitorContext;
@@ -158,4 +159,16 @@ pub fn check_fast_rules(
         height,
         alias_count,
     })
+}
+
+impl From<RuleError> for ServerError {
+    fn from(e: RuleError) -> Self {
+        Self {
+            message: e.message,
+            source: None,
+            locations: e.locations,
+            path: Vec::new(),
+            extensions: None,
+        }
+    }
 }
