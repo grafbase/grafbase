@@ -1,4 +1,4 @@
-use schema::FieldDefinitionWalker;
+use schema::{FieldDefinitionWalker, RequiredField};
 
 use super::{FieldArgumentsWalker, OperationWalker, SelectionSetWalker};
 use crate::{
@@ -46,6 +46,38 @@ impl<'a> FieldWalker<'a> {
 
     pub fn is_extra(&self) -> bool {
         matches!(self.as_ref(), Field::Extra { .. })
+    }
+}
+
+impl PartialEq<RequiredField> for FieldWalker<'_> {
+    fn eq(&self, other: &RequiredField) -> bool {
+        if self.definition().expect("Cannot required __typename").id() != other.definition_id {
+            return false;
+        }
+
+        let input_values = self
+            .arguments()
+            .into_iter()
+            .map(|arg| (arg.as_ref().input_value_definition_id, arg.value()));
+
+        if input_values.len() < other.arguments.len() {
+            return false;
+        }
+
+        for (definition_id, input_value) in input_values {
+            if let Ok(i) = other.arguments.binary_search_by(|probe| probe.0.cmp(&definition_id)) {
+                if !input_value
+                    .map(|v| v.eq(&self.schema_walker[other.arguments[i].1]))
+                    .unwrap_or_default()
+                {
+                    return false;
+                }
+            } else if input_value.is_some() {
+                return false;
+            }
+        }
+
+        true
     }
 }
 

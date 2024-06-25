@@ -1,30 +1,43 @@
 use std::cmp::Ordering;
 
-use crate::{FieldDefinitionId, InputValueDefinitionId, RequiredFieldSetArgumentsId, SchemaInputValueId};
+use crate::{FieldDefinitionId, InputValueDefinitionId, RequiredFieldId, SchemaInputValueId};
 
 pub(crate) static EMPTY: RequiredFieldSet = RequiredFieldSet(Vec::new());
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct RequiredFieldSet(Vec<RequiredField>);
+#[derive(Default, Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct RequiredFieldSet(Vec<RequiredFieldSetItem>);
 
-impl FromIterator<RequiredField> for RequiredFieldSet {
-    fn from_iter<T: IntoIterator<Item = RequiredField>>(iter: T) -> Self {
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct RequiredFieldSetItem {
+    pub id: RequiredFieldId,
+    pub subselection: RequiredFieldSet,
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+pub struct RequiredField {
+    pub definition_id: FieldDefinitionId,
+    // sorted by InputValueDefinitionId
+    pub arguments: Vec<(InputValueDefinitionId, SchemaInputValueId)>,
+}
+
+impl FromIterator<RequiredFieldSetItem> for RequiredFieldSet {
+    fn from_iter<T: IntoIterator<Item = RequiredFieldSetItem>>(iter: T) -> Self {
         let mut fields = iter.into_iter().collect::<Vec<_>>();
-        fields.sort_unstable();
+        fields.sort_unstable_by_key(|field| field.id);
         Self(fields)
     }
 }
 
 impl std::ops::Deref for RequiredFieldSet {
-    type Target = [RequiredField];
+    type Target = [RequiredFieldSetItem];
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
 impl<'a> IntoIterator for &'a RequiredFieldSet {
-    type Item = &'a RequiredField;
-    type IntoIter = std::slice::Iter<'a, RequiredField>;
+    type Item = &'a RequiredFieldSetItem;
+    type IntoIter = std::slice::Iter<'a, RequiredFieldSetItem>;
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
     }
@@ -51,7 +64,7 @@ impl RequiredFieldSet {
         while l < left_set.len() && r < right_set.len() {
             let left = &left_set[l];
             let right = &right_set[r];
-            match left.cmp(right) {
+            match left.id.cmp(&right.id) {
                 Ordering::Less => {
                     fields.push(left.clone());
                     l += 1;
@@ -61,10 +74,8 @@ impl RequiredFieldSet {
                     r += 1;
                 }
                 Ordering::Equal => {
-                    fields.push(RequiredField {
+                    fields.push(RequiredFieldSetItem {
                         id: left.id,
-                        definition_id: left.definition_id,
-                        arguments_id: left.arguments_id,
                         subselection: left.subselection.union(&right.subselection),
                     });
                     l += 1;
@@ -78,57 +89,5 @@ impl RequiredFieldSet {
             fields.extend_from_slice(&right_set[r..]);
         }
         Self(fields)
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
-pub struct RequiredFieldId(u32);
-
-impl From<u32> for RequiredFieldId {
-    fn from(id: u32) -> Self {
-        Self(id)
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct RequiredField {
-    /// Unique id used during planning to associate a FieldId to a required field.
-    pub id: RequiredFieldId,
-    pub definition_id: FieldDefinitionId,
-    pub arguments_id: Option<RequiredFieldSetArgumentsId>,
-    pub subselection: RequiredFieldSet,
-}
-
-impl Ord for RequiredField {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.definition_id
-            .cmp(&other.definition_id)
-            // Arguments are deduplicated
-            .then_with(|| self.arguments_id.cmp(&other.arguments_id))
-    }
-}
-
-impl PartialEq for RequiredField {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other).is_eq()
-    }
-}
-
-impl Eq for RequiredField {}
-
-impl PartialOrd for RequiredField {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-// sorted by InputValueDefinitionId
-#[derive(Default, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
-pub struct RequiredFieldArguments(pub(crate) Vec<(InputValueDefinitionId, SchemaInputValueId)>);
-
-impl std::ops::Deref for RequiredFieldArguments {
-    type Target = [(InputValueDefinitionId, SchemaInputValueId)];
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }

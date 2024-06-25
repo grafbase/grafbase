@@ -462,7 +462,7 @@ impl<'schema> Planner<'schema> {
 
 // Utilities
 impl<'schema> Planner<'schema> {
-    pub fn walker(&self) -> OperationWalker<'_> {
+    pub fn walker(&self) -> OperationWalker<'_, (), ()> {
         self.operation.walker_with(self.schema.walker(), self.variables)
     }
 

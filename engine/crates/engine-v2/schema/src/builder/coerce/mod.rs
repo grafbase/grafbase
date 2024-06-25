@@ -152,6 +152,7 @@ impl<'a> InputValueCoercer<'a> {
                 path: self.path(),
             });
         }
+        fields_buffer.sort_unstable_by_key(|(id, _)| *id);
         let ids = self.input_values.append_input_object(&mut fields_buffer);
         self.input_fields_buffer_pool.push(fields_buffer);
         Ok(SchemaInputValue::InputObject(ids))
@@ -230,6 +231,12 @@ impl<'a> InputValueCoercer<'a> {
                         for ((name, value), id) in fields.into_vec().into_iter().zip(ids) {
                             self.input_values[id] = (name.into(), self.coerce_scalar(scalar_id, value)?);
                         }
+                        self.input_values[ids].sort_unstable_by(|(left_key, _), (right_key, _)| {
+                            self.ctx
+                                .strings
+                                .get_by_id(*left_key)
+                                .cmp(&self.ctx.strings.get_by_id(*right_key))
+                        });
                         SchemaInputValue::Map(ids)
                     }
                     Value::List(list) => {

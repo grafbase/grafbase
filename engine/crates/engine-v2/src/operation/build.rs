@@ -86,7 +86,7 @@ impl Operation {
         };
 
         // Creating a walker with no variables enabling validation to use them
-        let variables = Variables::empty_for(&operation);
+        let variables = Variables::create_unavailable_for(&operation);
         operation.cache_control = compute_cache_control(operation.walker_with(schema.walker(), &variables), request);
         if let Err(err) =
             super::validation::validate_operation(ctx, operation.walker_with(schema.walker(), &variables), request)

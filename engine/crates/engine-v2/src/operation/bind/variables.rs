@@ -3,7 +3,7 @@ use std::collections::btree_map::Entry;
 use schema::Schema;
 
 use crate::{
-    operation::{Location, Operation, Variables},
+    operation::{Location, Operation, VariableValue, Variables},
     response::GraphqlError,
 };
 
@@ -37,14 +37,14 @@ pub fn bind_variables(
     mut request_variables: engine::Variables,
 ) -> Result<Variables, Vec<VariableError>> {
     let mut errors = Vec::new();
-    let mut variables = Variables::empty_for(operation);
+    let mut variables = Variables::new_for(operation);
 
     for (variable_id, definition) in operation.variable_definitions.iter().enumerate() {
         match request_variables.entry(engine_value::Name::new(&definition.name)) {
             Entry::Occupied(mut entry) => {
                 let value = std::mem::take(entry.get_mut());
                 match coerce_variable(schema, &mut variables.input_values, definition, value) {
-                    Ok(id) => variables.definition_to_input_value[variable_id] = Some(id),
+                    Ok(id) => variables.definition_to_value[variable_id] = VariableValue::InputValue(id),
                     Err(err) => {
                         errors.push(VariableError::InvalidValue {
                             name: definition.name.clone(),

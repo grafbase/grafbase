@@ -1,25 +1,49 @@
 use schema::{InputValue, InputValueSerdeError};
 use serde::{de::Visitor, forward_to_deserialize_any};
 
-use crate::operation::VariableDefinitionId;
+use crate::operation::{QueryInputValueWalker, VariableDefinitionId, VariableInputValueWalker, VariableValue};
 
 use super::OperationWalker;
 
 pub type VariableWalker<'a> = OperationWalker<'a, VariableDefinitionId, ()>;
 
 impl<'a> VariableWalker<'a> {
+    // FIXME: Unnecessary indirection...
+    pub fn as_value(&self) -> VariableValueWalker<'a> {
+        match self.variables[self.item] {
+            VariableValue::Unavailable => VariableValueWalker::Unavailable,
+            VariableValue::Undefined => {
+                if let Some(id) = self.as_ref().default_value {
+                    VariableValueWalker::DefaultValue(self.walk(&self.operation.query_input_values[id]))
+                } else {
+                    VariableValueWalker::Undefined
+                }
+            }
+            VariableValue::InputValue(id) => VariableValueWalker::VariableInputValue(self.walk(&self.variables[id])),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum VariableValueWalker<'a> {
+    Unavailable,
+    Undefined,
+    VariableInputValue(VariableInputValueWalker<'a>),
+    DefaultValue(QueryInputValueWalker<'a>),
+}
+
+impl<'a> VariableValueWalker<'a> {
     pub fn is_undefined(&self) -> bool {
-        self.variables[self.item].is_none() && self.as_ref().default_value.is_none()
+        matches!(self, Self::Undefined)
     }
 
     pub fn to_input_value(self) -> Option<InputValue<'a>> {
-        self.variables[self.item]
-            .map(|id| self.walk(&self.variables[id]).into())
-            .or_else(|| {
-                self.as_ref()
-                    .default_value
-                    .map(|id| self.walk(&self.operation.query_input_values[id]).into())
-            })
+        match self {
+            Self::VariableInputValue(walker) => Some(walker.into()),
+            Self::DefaultValue(walker) => Some(walker.into()),
+            Self::Undefined => None,
+            Self::Unavailable => unreachable!("Variable value cannot be accessed at this stage."),
+        }
     }
 }
 
@@ -28,12 +52,11 @@ impl<'a> serde::Serialize for VariableWalker<'a> {
     where
         S: serde::Serializer,
     {
-        if let Some(id) = self.variables[self.item] {
-            self.walk(&self.variables[id]).serialize(serializer)
-        } else if let Some(id) = self.as_ref().default_value {
-            self.walk(&self.operation.query_input_values[id]).serialize(serializer)
-        } else {
-            serializer.serialize_none()
+        match self.as_value() {
+            VariableValueWalker::Unavailable => unreachable!("Variable value cannot be accessed at this stage."),
+            VariableValueWalker::Undefined => serializer.serialize_none(),
+            VariableValueWalker::VariableInputValue(walker) => walker.serialize(serializer),
+            VariableValueWalker::DefaultValue(walker) => walker.serialize(serializer),
         }
     }
 }
@@ -45,13 +68,11 @@ impl<'de> serde::Deserializer<'de> for VariableWalker<'de> {
     where
         V: Visitor<'de>,
     {
-        if let Some(id) = self.variables[self.item] {
-            self.walk(&self.variables[id]).deserialize_any(visitor)
-        } else if let Some(id) = self.as_ref().default_value {
-            self.walk(&self.operation.query_input_values[id])
-                .deserialize_any(visitor)
-        } else {
-            visitor.visit_none()
+        match self.as_value() {
+            VariableValueWalker::Unavailable => unreachable!("Variable value cannot be accessed at this stage."),
+            VariableValueWalker::Undefined => visitor.visit_none(),
+            VariableValueWalker::VariableInputValue(walker) => walker.deserialize_any(visitor),
+            VariableValueWalker::DefaultValue(walker) => walker.deserialize_any(visitor),
         }
     }
 
@@ -59,13 +80,11 @@ impl<'de> serde::Deserializer<'de> for VariableWalker<'de> {
     where
         V: Visitor<'de>,
     {
-        if let Some(id) = self.variables[self.item] {
-            self.walk(&self.variables[id]).deserialize_option(visitor)
-        } else if let Some(id) = self.as_ref().default_value {
-            self.walk(&self.operation.query_input_values[id])
-                .deserialize_option(visitor)
-        } else {
-            visitor.visit_none()
+        match self.as_value() {
+            VariableValueWalker::Unavailable => unreachable!("Variable value cannot be accessed at this stage."),
+            VariableValueWalker::Undefined => visitor.visit_none(),
+            VariableValueWalker::VariableInputValue(walker) => walker.deserialize_option(visitor),
+            VariableValueWalker::DefaultValue(walker) => walker.deserialize_option(visitor),
         }
     }
 
@@ -85,14 +104,13 @@ impl<'de> serde::Deserializer<'de> for VariableWalker<'de> {
 
 impl std::fmt::Debug for VariableWalker<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(id) = self.variables[self.item] {
-            f.debug_tuple("Variable")
-                .field(&self.walk(&self.variables[id]))
-                .finish()
-        } else if let Some(id) = self.as_ref().default_value {
-            f.debug_tuple("Query").field(&self.walk(&self.operation[id])).finish()
-        } else {
-            f.debug_struct("Undefined").finish()
+        match self.as_value() {
+            VariableValueWalker::Unavailable => f.debug_struct("Unavailable").finish(),
+            VariableValueWalker::Undefined => f.debug_struct("Undefined").finish(),
+            VariableValueWalker::VariableInputValue(walker) => {
+                f.debug_tuple("VariableInputValue").field(&walker).finish()
+            }
+            VariableValueWalker::DefaultValue(walker) => f.debug_tuple("DefaultValue").field(&walker).finish(),
         }
     }
 }

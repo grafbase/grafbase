@@ -1,8 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{
-    Graph, RequiredField, RequiredFieldArguments, RequiredFieldSet, RequiredFieldSetArgumentsId, RequiredFieldSetId,
-};
+use crate::{Graph, RequiredField, RequiredFieldId, RequiredFieldSet, RequiredFieldSetId, RequiredFieldSetItem};
 
 use super::{
     coerce::{InputValueCoercer, InputValueError},
@@ -29,8 +27,7 @@ impl RequiredFieldSetBuffer {
             ctx,
             graph,
             coercer: InputValueCoercer::new(ctx, graph, &mut input_values),
-            arguments: BTreeMap::new(),
-            next_id: 0,
+            deduplicated_fields: BTreeMap::new(),
         };
 
         let mut required_field_sets = Vec::with_capacity(self.0.len());
@@ -45,9 +42,9 @@ impl RequiredFieldSetBuffer {
             required_field_sets.push(set);
         }
 
-        let mut arguments = converter.arguments.into_iter().collect::<Vec<_>>();
+        let mut arguments = converter.deduplicated_fields.into_iter().collect::<Vec<_>>();
         arguments.sort_unstable_by_key(|(_, id)| *id);
-        graph.required_fields_arguments = arguments.into_iter().map(|(args, _)| args).collect();
+        graph.required_fields = arguments.into_iter().map(|(field, _)| field).collect();
         graph.required_field_sets = required_field_sets;
         graph.input_values = input_values;
         Ok(())
@@ -58,8 +55,7 @@ struct Converter<'a> {
     ctx: &'a BuildContext,
     graph: &'a Graph,
     coercer: InputValueCoercer<'a>,
-    arguments: BTreeMap<RequiredFieldArguments, RequiredFieldSetArgumentsId>,
-    next_id: u32,
+    deduplicated_fields: BTreeMap<RequiredField, RequiredFieldId>,
 }
 
 impl<'a> Converter<'a> {
@@ -70,43 +66,38 @@ impl<'a> Converter<'a> {
             .collect::<Result<_, _>>()
     }
 
-    fn convert_item(&mut self, item: federated_graph::FieldSetItem) -> Result<Option<RequiredField>, InputValueError> {
-        let Some(field_id) = self.ctx.idmaps.field.get(item.field) else {
+    fn convert_item(
+        &mut self,
+        item: federated_graph::FieldSetItem,
+    ) -> Result<Option<RequiredFieldSetItem>, InputValueError> {
+        let Some(definition_id) = self.ctx.idmaps.field.get(item.field) else {
             return Ok(None);
         };
 
-        let arguments_id = if item.arguments.is_empty() {
-            None
-        } else {
-            let mut arguments = Vec::with_capacity(item.arguments.len());
-            for (id, value) in item.arguments {
-                let Some(input_value_definition_id) = self.ctx.idmaps.input_value.get(id) else {
-                    continue;
-                };
-                let ty = self.graph[input_value_definition_id].ty;
-                let input_value_id = self.coercer.coerce(ty, value)?;
-                arguments.push((input_value_definition_id, input_value_id));
-            }
+        let mut arguments = Vec::with_capacity(item.arguments.len());
+        for (id, value) in item.arguments {
+            let Some(input_value_definition_id) = self.ctx.idmaps.input_value.get(id) else {
+                continue;
+            };
+            let ty = self.graph[input_value_definition_id].ty;
+            let input_value_id = self.coercer.coerce(ty, value)?;
+            arguments.push((input_value_definition_id, input_value_id));
+        }
 
-            let arguments = RequiredFieldArguments(arguments);
-
-            let n = self.arguments.len();
-            // Deduplicating arguments allows us to cheaply merge field sets at runtime
-            let arguments_id = *self
-                .arguments
-                .entry(arguments)
-                .or_insert_with(|| RequiredFieldSetArgumentsId::from(n));
-            Some(arguments_id)
+        let field = RequiredField {
+            definition_id,
+            arguments,
         };
 
-        Ok(Some(RequiredField {
-            id: {
-                let id = self.next_id;
-                self.next_id += 1;
-                id.into()
-            },
-            definition_id: field_id,
-            arguments_id,
+        let n = self.deduplicated_fields.len();
+        // Deduplicating arguments allows us to cheaply merge field sets at runtime
+        let id = *self
+            .deduplicated_fields
+            .entry(field)
+            .or_insert_with(|| RequiredFieldId::from(n));
+
+        Ok(Some(RequiredFieldSetItem {
+            id,
             subselection: self.convert_set(item.subselection)?,
         }))
     }

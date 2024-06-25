@@ -105,8 +105,8 @@ pub enum SchemaInputValue {
     InputObject(IdRange<SchemaInputObjectFieldValueId>),
     List(IdRange<SchemaInputValueId>),
 
-    /// for JSON
-    // sorted by StringId
+    // for JSON
+    // sorted by the key (actual String, not the StringId)
     Map(IdRange<SchemaInputKeyValueId>),
     U64(u64),
 }

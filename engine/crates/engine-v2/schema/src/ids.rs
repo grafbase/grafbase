@@ -2,8 +2,8 @@
 /// They can only be created by From<usize>
 use crate::{
     CacheControl, Definition, Enum, EnumValue, FieldDefinition, Graph, Header, InputObject, InputValueDefinition,
-    Interface, Object, RequiredFieldArguments, RequiredFieldSet, RequiredScopes, Resolver, Scalar, Schema,
-    TypeSystemDirective, Union,
+    Interface, Object, RequiredField, RequiredFieldSet, RequiredScopes, Resolver, Scalar, Schema, TypeSystemDirective,
+    Union,
 };
 use url::Url;
 
@@ -26,7 +26,7 @@ id_newtypes::NonZeroU32! {
     Graph.union_definitions[UnionId] => Union | max(MAX_ID) | index(Schema.graph),
     Graph.resolvers[ResolverId] => Resolver | max(MAX_ID) | index(Schema.graph),
     Graph.required_field_sets[RequiredFieldSetId] => RequiredFieldSet | max(MAX_ID) | index(Schema.graph),
-    Graph.required_fields_arguments[RequiredFieldSetArgumentsId] => RequiredFieldArguments | max(MAX_ID) | index(Schema.graph),
+    Graph.required_fields[RequiredFieldId] => RequiredField | max(MAX_ID) | index(Schema.graph),
     Graph.cache_control[CacheControlId] => CacheControl | max(MAX_ID) | index(Schema.graph),
     Graph.required_scopes[RequiredScopesId] => RequiredScopes | max(MAX_ID) | index(Schema.graph),
     Schema.headers[HeaderId] => Header | max(MAX_ID),
