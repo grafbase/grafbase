@@ -6,7 +6,7 @@ use crate::{
     operation::{
         FieldId, Operation, OperationWalker, QueryInputValueId, QueryInputValueWalker, SelectionSetType, Variables,
     },
-    plan::{CollectedField, FieldType, RuntimeMergedConditionals},
+    plan::{CollectedField, FieldError, FieldType, RuntimeMergedConditionals},
     response::{ResponseEdge, ResponseKey, ResponseKeys, SafeResponseKey},
 };
 
@@ -146,6 +146,7 @@ impl<'a> PlanWalker<'a, (), ()> {
 
         let mut fields = HashMap::<ResponseKey, GroupForResponseKey>::default();
         let mut typename_fields = HashMap::<ResponseKey, ResponseEdge>::default();
+        let mut field_errors = HashMap::<ResponseKey, FieldError>::new();
 
         for selection_set_id in selection_sets {
             let selection_set = &self.operation_plan[*selection_set_id];
@@ -192,6 +193,17 @@ impl<'a> PlanWalker<'a, (), ()> {
                         },
                     });
             }
+            for (entity_id, field_error) in &selection_set.field_errors {
+                if !does_type_condition_apply(&schema, *entity_id, object_id) {
+                    continue;
+                }
+                field_errors
+                    .entry(field_error.edge.as_response_key().unwrap())
+                    .and_modify(|FieldError { ref mut errors, .. }| {
+                        errors.extend_from_slice(&field_error.errors);
+                    })
+                    .or_insert_with(|| field_error.clone());
+            }
         }
         let mut fields = fields
             .into_values()
@@ -229,6 +241,7 @@ impl<'a> PlanWalker<'a, (), ()> {
                 .collect(),
             fields,
             typename_fields: typename_fields.into_values().collect(),
+            field_errors: field_errors.into_values().collect(),
         }
     }
 

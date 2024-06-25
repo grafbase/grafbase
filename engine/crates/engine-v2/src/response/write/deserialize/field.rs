@@ -1,5 +1,3 @@
-use std::sync::atomic::Ordering;
-
 use schema::{ListWrapping, Wrapping};
 use serde::de::DeserializeSeed;
 
@@ -67,7 +65,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
         };
 
         result.map_err(move |err| {
-            if !self.ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
+            if self.ctx.should_create_new_graphql_error() {
                 self.ctx.writer.push_error(GraphqlError {
                     message: err.to_string(),
                     locations: vec![self.ctx.plan[self.field.id].location()],

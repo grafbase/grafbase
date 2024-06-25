@@ -1,34 +1,37 @@
 use id_newtypes::IdRange;
 use itertools::Itertools;
-use schema::{Definition, RequiredFieldSet, Schema};
+use schema::{Definition, RequiredFieldSet};
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
 };
 
 use crate::{
+    execution::ExecutionContext,
     operation::{
-        EntityLocation, FieldId, Operation, OperationWalker, PlanId, SelectionSetId, SelectionSetType, Variables,
+        Condition, ConditionResult, EntityLocation, FieldId, Operation, OperationWalker, PlanId, SelectionSetId,
+        SelectionSetType, Variables,
     },
     plan::{
         flatten_selection_sets, AnyCollectedSelectionSet, AnyCollectedSelectionSetId, CollectedField, CollectedFieldId,
         CollectedSelectionSet, CollectedSelectionSetId, ConditionalField, ConditionalFieldId, ConditionalSelectionSet,
-        ConditionalSelectionSetId, EntityId, ExecutionPlan, ExecutionPlanId, FieldType, FlatField, OperationPlan,
-        ParentToChildEdge, PlanInput, PlanOutput,
+        ConditionalSelectionSetId, EntityId, ExecutionPlan, ExecutionPlanId, FieldError, FieldType, FlatField,
+        OperationPlan, ParentToChildEdge, PlanInput, PlanOutput,
     },
-    response::{ReadField, ReadSelectionSet},
+    response::{GraphqlError, ReadField, ReadSelectionSet},
     sources::PreparedExecutor,
 };
 
 use super::{PlanningError, PlanningResult};
 
-pub(super) struct OperationPlanBuilder<'a> {
-    schema: &'a Schema,
+pub(crate) struct OperationPlanBuilder<'a> {
+    ctx: ExecutionContext<'a>,
     variables: &'a Variables,
     operation_plan: OperationPlan,
     to_be_planned: Vec<ToBePlanned>,
     plan_parent_to_child_edges: HashSet<UnfinalizedParentToChildEdge>,
     plan_id_to_execution_plan_id: Vec<Option<ExecutionPlanId>>,
+    condition_results: Vec<ConditionResult>,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq)]
@@ -44,18 +47,21 @@ struct ToBePlanned {
 }
 
 impl<'a> OperationPlanBuilder<'a> {
-    pub(super) fn new(
-        schema: &'a Schema,
-        variables: &'a Variables,
-        operation: Operation,
-        entity_locations_count: usize,
-    ) -> Self {
+    pub(crate) fn new(ctx: ExecutionContext<'a>, variables: &'a Variables, operation: Operation) -> Self {
+        let entity_locations_count = operation
+            .field_to_entity_location
+            .iter()
+            .filter_map(|el| el.map(usize::from))
+            .max()
+            .map(|n| n + 1)
+            .unwrap_or_default();
         OperationPlanBuilder {
-            schema,
+            ctx,
             variables,
             to_be_planned: Vec::new(),
             plan_parent_to_child_edges: HashSet::new(),
             plan_id_to_execution_plan_id: vec![None; operation.plans.len()],
+            condition_results: Vec::new(),
             operation_plan: OperationPlan {
                 selection_set_to_collected: vec![None; operation.selection_sets.len()],
                 execution_plans: Vec::new(),
@@ -71,7 +77,54 @@ impl<'a> OperationPlanBuilder<'a> {
         }
     }
 
-    pub(super) fn build(mut self) -> PlanningResult<OperationPlan> {
+    pub(crate) fn build(mut self) -> PlanningResult<OperationPlan> {
+        self.condition_results = self.evaluate_all_conditions()?;
+        self.finalize()
+    }
+
+    fn evaluate_all_conditions(&self) -> PlanningResult<Vec<ConditionResult>> {
+        let mut results = Vec::with_capacity(self.operation_plan.conditions.len());
+
+        let is_anonymous = self.ctx.access_token().is_anonymous();
+        let mut scopes = None;
+
+        for condition in &self.operation_plan.conditions {
+            let result = match condition {
+                Condition::Authenticated => {
+                    if is_anonymous {
+                        ConditionResult::Errors(vec![GraphqlError::new("Unauthenticated")])
+                    } else {
+                        ConditionResult::Include
+                    }
+                }
+                Condition::RequiresScopes(id) => {
+                    let scopes = scopes.get_or_insert_with(|| {
+                        self.ctx
+                            .access_token()
+                            .get_claim("scope")
+                            .as_str()
+                            .map(|scope| scope.split(' ').collect::<Vec<_>>())
+                            .unwrap_or_default()
+                    });
+
+                    if self.ctx.schema.walk(*id).matches(scopes) {
+                        ConditionResult::Include
+                    } else {
+                        ConditionResult::Errors(vec![GraphqlError::new("Not allowed: insufficient scopes")])
+                    }
+                }
+                Condition::All(ids) => ids
+                    .iter()
+                    .map(|id| &results[usize::from(*id)])
+                    .fold(ConditionResult::Include, |current, cond| current & cond),
+            };
+            results.push(result);
+        }
+
+        Ok(results)
+    }
+
+    fn finalize(mut self) -> PlanningResult<OperationPlan> {
         self.generate_root_execution_plans()?;
         let mut operation_plan = self.operation_plan;
         operation_plan.plan_parent_to_child_edges = self
@@ -177,7 +230,12 @@ impl<'a> OperationPlanBuilder<'a> {
         }: ToBePlanned,
     ) -> PlanningResult<()> {
         let execution_plan = ExecutionPlanBuilder::new(self, plan_id).build(entity_location, root_fields)?;
-        let resolver = self.schema.walker().walk(execution_plan.resolver_id).with_own_names();
+        let resolver = self
+            .ctx
+            .schema
+            .walker()
+            .walk(execution_plan.resolver_id)
+            .with_own_names();
 
         self.operation_plan.execution_plans.push(execution_plan);
         let execution_plan_id = ExecutionPlanId::from(self.operation_plan.execution_plans.len() - 1);
@@ -185,7 +243,7 @@ impl<'a> OperationPlanBuilder<'a> {
             resolver,
             self.operation_plan.ty,
             self.operation_plan
-                .walker_with(self.schema, self.variables, execution_plan_id),
+                .walker_with(&self.ctx.schema, self.variables, execution_plan_id),
         )?;
         self.operation_plan.execution_plans[usize::from(execution_plan_id)].prepared_executor = prepared_executor;
         self.plan_id_to_execution_plan_id[usize::from(plan_id)] = Some(execution_plan_id);
@@ -197,7 +255,7 @@ impl<'a> OperationPlanBuilder<'a> {
         // yes looks weird, will be improved
         self.operation_plan
             .operation
-            .walker_with(self.schema.walker(), self.variables)
+            .walker_with(self.ctx.schema.walker(), self.variables)
     }
 }
 
@@ -224,6 +282,7 @@ impl<'parent, 'ctx> std::ops::DerefMut for ExecutionPlanBuilder<'parent, 'ctx> {
 impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
     pub(super) fn new(builder: &'parent mut OperationPlanBuilder<'ctx>, plan_id: PlanId) -> Self {
         let support_aliases = builder
+            .ctx
             .schema
             .walk(builder.operation_plan.operation.plans[usize::from(plan_id)].resolver_id)
             .supports_aliases();
@@ -276,6 +335,8 @@ impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
 
     fn create_plan_input(&mut self, entity_location: EntityLocation, root_fields: &Vec<FieldId>) -> ReadSelectionSet {
         let resolver = self
+            .ctx
+            .engine
             .schema
             .walk(self.operation_plan.operation[self.plan_id].resolver_id)
             .with_own_names();
@@ -319,13 +380,14 @@ impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
                 };
                 self.plan_parent_to_child_edges.insert(edge);
                 let resolver = self
+                    .ctx
                     .schema
                     .walk(self.operation_plan.operation[self.plan_id].resolver_id)
                     .with_own_names();
                 let f = ReadField {
                     edge: self.operation_plan.operation[field_id].response_edge(),
                     name: resolver
-                        .walk(self.schema[required_field.id].definition_id)
+                        .walk(self.ctx.schema[required_field.id].definition_id)
                         .name()
                         .to_string(),
                     subselection: self.create_input_selection_set(entity_location, &required_field.subselection),
@@ -341,7 +403,7 @@ impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
         selection_set_ids: Vec<SelectionSetId>,
         concrete_parent: bool,
     ) -> PlanningResult<AnyCollectedSelectionSet> {
-        let selection_set = flatten_selection_sets(self.schema, &self.operation_plan, selection_set_ids.clone());
+        let selection_set = flatten_selection_sets(&self.ctx.schema, &self.operation_plan, selection_set_ids.clone());
 
         let mut plan_fields = Vec::new();
         let mut children_plan: HashMap<PlanId, Vec<FieldId>> = HashMap::new();
@@ -435,39 +497,56 @@ impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
             .group_by_response_key_sorted_by_query_position(fields)
             .into_values();
 
-        let mut fields = vec![];
-        let mut typename_fields = vec![];
+        let mut fields = Vec::new();
+        let mut typename_fields = Vec::new();
+        let mut field_errors = Vec::new();
         for field_ids in grouped_by_response_key {
             let field_id: FieldId = field_ids[0];
             let field = self.operation_plan[field_id].clone();
-            if let Some(definition_id) = field.definition_id() {
-                let definition = self.schema.walk(definition_id);
-                let expected_key = if self.support_aliases {
-                    self.operation_plan.response_keys.ensure_safety(field.response_key())
-                } else {
-                    self.operation_plan.response_keys.get_or_intern(definition.name())
-                };
-                let ty = match definition.ty().inner().scalar_type() {
-                    Some(scalar_type) => FieldType::Scalar(scalar_type),
-                    None => {
-                        let subselection_set_ids = field_ids
-                            .into_iter()
-                            .filter_map(|id| self.operation_plan[id].selection_set_id())
-                            .collect();
-                        FieldType::SelectionSet(self.collect_selection_set(subselection_set_ids, true)?)
-                    }
-                };
-                fields.push(CollectedField {
-                    expected_key,
-                    edge: field.response_edge(),
-                    id: field_id,
-                    definition_id,
-                    wrapping: definition.ty().wrapping(),
-                    ty,
-                });
-            } else {
+            let Some(definition_id) = field.definition_id() else {
                 typename_fields.push(field.response_edge());
+                continue;
+            };
+            let definition = self.ctx.engine.schema.walk(definition_id);
+
+            tracing::trace!("Collecting field {} with condition: {:#?}", definition.name(), {
+                field.condition().map(|id| &self.condition_results[usize::from(id)])
+            });
+            match field.condition().map(|id| &self.condition_results[usize::from(id)]) {
+                Some(ConditionResult::Errors(errors)) => {
+                    field_errors.push(FieldError {
+                        edge: field.response_edge(),
+                        errors: errors.clone(),
+                        is_required: definition.ty().wrapping().is_required(),
+                    });
+                }
+                Some(ConditionResult::Include) | None => {}
             }
+
+            let expected_key = if self.support_aliases {
+                self.operation_plan.response_keys.ensure_safety(field.response_key())
+            } else {
+                self.operation_plan.response_keys.get_or_intern(definition.name())
+            };
+            let ty = match definition.ty().inner().scalar_type() {
+                Some(scalar_type) => FieldType::Scalar(scalar_type),
+                None => {
+                    let subselection_set_ids = field_ids
+                        .into_iter()
+                        .filter_map(|id| self.operation_plan[id].selection_set_id())
+                        .collect();
+                    FieldType::SelectionSet(self.collect_selection_set(subselection_set_ids, true)?)
+                }
+            };
+
+            fields.push(CollectedField {
+                expected_key,
+                edge: field.response_edge(),
+                id: field_id,
+                definition_id,
+                wrapping: definition.ty().wrapping(),
+                ty,
+            });
         }
 
         // Sorting by expected_key for deserialization
@@ -479,6 +558,7 @@ impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
             maybe_tracked_entity_location,
             field_ids,
             typename_fields,
+            field_errors,
         }))
     }
 
@@ -490,38 +570,52 @@ impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
     ) -> PlanningResult<ConditionalSelectionSetId> {
         let mut typename_fields = Vec::new();
         let mut conditional_fields = Vec::new();
+        let mut field_errors = Vec::new();
         for flat_field in flat_fields {
             let field = self.operation_plan[flat_field.id].clone();
-            if let Some(definition_id) = field.definition_id() {
-                let definition = self.schema.walker().walk(definition_id);
-                let expected_key = if self.support_aliases {
-                    self.operation_plan.response_keys.ensure_safety(field.response_key())
-                } else {
-                    self.operation_plan.response_keys.get_or_intern(definition.name())
-                };
-                let ty = match definition.ty().inner().scalar_type() {
-                    Some(data_type) => FieldType::Scalar(data_type),
-                    None => {
-                        let selection_set_id =
-                            self.collect_selection_set(field.selection_set_id().into_iter().collect(), false)?;
-                        let AnyCollectedSelectionSet::Conditional(selection_set_id) = selection_set_id else {
-                            unreachable!("undetermined selection set cannot produce concrete selecitons");
-                        };
-                        FieldType::SelectionSet(selection_set_id)
-                    }
-                };
-                conditional_fields.push(ConditionalField {
-                    entity_id: definition.parent_entity(),
-                    edge: field.response_edge(),
-                    expected_key,
-                    definition_id,
-                    id: flat_field.id,
-                    ty,
-                });
-            } else {
+            let Some(definition_id) = field.definition_id() else {
                 let type_condition = flat_field.entity_id;
                 typename_fields.push((type_condition, field.response_edge()));
+                continue;
+            };
+            let definition = self.ctx.engine.schema.walk(definition_id);
+
+            match field.condition().map(|id| &self.condition_results[usize::from(id)]) {
+                Some(ConditionResult::Errors(errors)) => {
+                    let field_error = FieldError {
+                        edge: field.response_edge(),
+                        errors: errors.clone(),
+                        is_required: definition.ty().wrapping().is_required(),
+                    };
+                    field_errors.push((definition.parent_entity(), field_error));
+                }
+                Some(ConditionResult::Include) | None => {}
             }
+
+            let expected_key = if self.support_aliases {
+                self.operation_plan.response_keys.ensure_safety(field.response_key())
+            } else {
+                self.operation_plan.response_keys.get_or_intern(definition.name())
+            };
+            let ty = match definition.ty().inner().scalar_type() {
+                Some(data_type) => FieldType::Scalar(data_type),
+                None => {
+                    let selection_set_id =
+                        self.collect_selection_set(field.selection_set_id().into_iter().collect(), false)?;
+                    let AnyCollectedSelectionSet::Conditional(selection_set_id) = selection_set_id else {
+                        unreachable!("undetermined selection set cannot produce concrete selecitons");
+                    };
+                    FieldType::SelectionSet(selection_set_id)
+                }
+            };
+            conditional_fields.push(ConditionalField {
+                entity_id: definition.parent_entity(),
+                edge: field.response_edge(),
+                expected_key,
+                definition_id,
+                id: flat_field.id,
+                ty,
+            });
         }
 
         let field_ids = self.push_conditional_fields(conditional_fields);
@@ -530,6 +624,7 @@ impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
             maybe_tracked_entity_location,
             field_ids,
             typename_fields,
+            field_errors,
         }))
     }
 

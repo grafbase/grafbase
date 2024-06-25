@@ -62,6 +62,7 @@ impl<'a> OperationWalker<'a, (), ()> {
         self.walk(self.operation.root_selection_set_id)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn root_object(&self) -> ObjectWalker<'a> {
         self.schema_walker.walk(self.as_ref().root_object_id)
     }

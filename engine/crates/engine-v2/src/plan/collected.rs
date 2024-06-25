@@ -3,7 +3,7 @@ use schema::{EntityId, FieldDefinitionId, ObjectId, ScalarType, Wrapping};
 
 use crate::{
     operation::{EntityLocation, FieldId, SelectionSetType},
-    response::{ResponseEdge, SafeResponseKey},
+    response::{GraphqlError, ResponseEdge, SafeResponseKey},
 };
 
 use super::{CollectedFieldId, CollectedSelectionSetId, ConditionalFieldId, ConditionalSelectionSetId};
@@ -47,6 +47,7 @@ pub struct ConditionalSelectionSet {
     //     __typename
     // }
     pub typename_fields: Vec<(Option<EntityId>, ResponseEdge)>,
+    pub field_errors: Vec<(EntityId, FieldError)>,
 }
 
 #[derive(Debug)]
@@ -84,6 +85,14 @@ pub struct CollectedSelectionSet {
     //     __typename
     // }
     pub typename_fields: Vec<ResponseEdge>,
+    pub field_errors: Vec<FieldError>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FieldError {
+    pub edge: ResponseEdge,
+    pub errors: Vec<GraphqlError>,
+    pub is_required: bool,
 }
 
 #[derive(Debug)]
@@ -104,6 +113,7 @@ pub struct RuntimeCollectedSelectionSet {
     // sorted by expected key
     pub fields: Vec<CollectedField>,
     pub typename_fields: Vec<ResponseEdge>,
+    pub field_errors: Vec<FieldError>,
 }
 
 #[derive(Debug)]

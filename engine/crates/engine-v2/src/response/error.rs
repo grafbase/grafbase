@@ -5,7 +5,7 @@ use runtime::hooks::HookError;
 
 use super::ResponsePath;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub(crate) struct GraphqlError {
     pub message: String,
     pub locations: Vec<crate::operation::Location>,

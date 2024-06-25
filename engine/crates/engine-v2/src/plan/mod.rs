@@ -1,6 +1,7 @@
 use schema::{EntityId, ResolverId, Schema};
 
 use crate::{
+    execution::ExecutionContext,
     operation::{EntityLocation, Operation, PlanId, Variables},
     response::ReadSelectionSet,
     sources::PreparedExecutor,
@@ -92,8 +93,8 @@ where
 }
 
 impl OperationPlan {
-    pub fn prepare(schema: &Schema, variables: &Variables, operation: Operation) -> PlanningResult<Self> {
-        planning::plan_operation(schema, variables, operation)
+    pub fn build(ctx: ExecutionContext<'_>, variables: &Variables, operation: Operation) -> PlanningResult<Self> {
+        planning::collect::OperationPlanBuilder::new(ctx, variables, operation).build()
     }
 
     pub fn new_execution_state(&self) -> OperationExecutionState {

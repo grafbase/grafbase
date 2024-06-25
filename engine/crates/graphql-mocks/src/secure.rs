@@ -1,4 +1,4 @@
-use async_graphql::{EmptyMutation, EmptySubscription, Object, TypeDirective};
+use async_graphql::{EmptyMutation, EmptySubscription, Object, TypeDirective, Union};
 
 /// A schema that only uses String types.
 ///
@@ -23,8 +23,10 @@ fn requires_scopes(scopes: Vec<Vec<String>>) {}
 #[derive(Default)]
 pub struct Query;
 
+pub struct Check;
+
 #[Object]
-impl Query {
+impl Check {
     async fn anonymous(&self) -> &'static str {
         "Hello anonymous!"
     }
@@ -62,5 +64,43 @@ impl Query {
     )]
     async fn must_have_read_and_write_scope(&self) -> &'static str {
         "You have read and write scopes"
+    }
+}
+
+pub struct User;
+
+#[Object]
+impl User {
+    async fn name(&self) -> &str {
+        "rusty"
+    }
+}
+
+#[derive(Union)]
+enum Entity {
+    User(User),
+    Check(Check),
+}
+
+#[Object]
+impl Query {
+    async fn check(&self) -> Check {
+        Check
+    }
+
+    async fn nullable_check(&self) -> Option<Check> {
+        Some(Check)
+    }
+
+    async fn entity(&self) -> Entity {
+        Entity::Check(Check)
+    }
+
+    async fn entities(&self) -> Vec<Option<Entity>> {
+        vec![Some(Entity::User(User)), Some(Entity::Check(Check))]
+    }
+
+    async fn entities_without_check(&self) -> Vec<Entity> {
+        vec![Entity::User(User)]
     }
 }

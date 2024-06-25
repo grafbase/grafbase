@@ -314,7 +314,7 @@ impl<'ctx> ExecutionContext<'ctx> {
             .map_err(|errors| errors.into_iter().map(Into::into).collect::<Vec<_>>())?;
 
         let operation_plan =
-            Arc::new(OperationPlan::prepare(&self.schema, &variables, operation).map_err(|err| vec![err.into()])?);
+            Arc::new(OperationPlan::build(self, &variables, operation).map_err(|err| vec![err.into()])?);
 
         Ok(ExecutionCoordinator::new(self, operation_plan, variables))
     }

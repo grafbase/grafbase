@@ -2,7 +2,7 @@ use schema::{FieldDefinitionWalker, RequiredField};
 
 use super::{FieldArgumentsWalker, OperationWalker, SelectionSetWalker};
 use crate::{
-    operation::{EntityLocation, Field, FieldId, Location},
+    operation::{EntityLocation, ExtraField, Field, FieldId, Location, QueryField},
     response::ResponseKey,
 };
 
@@ -42,10 +42,6 @@ impl<'a> FieldWalker<'a> {
 
     pub fn selection_set(&self) -> Option<SelectionSetWalker<'a>> {
         self.as_ref().selection_set_id().map(|id| self.walk_with(id, ()))
-    }
-
-    pub fn is_extra(&self) -> bool {
-        matches!(self.as_ref(), Field::Extra { .. })
     }
 
     pub fn entity_location(&self) -> Option<EntityLocation> {
@@ -89,10 +85,10 @@ impl<'a> std::fmt::Debug for FieldWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.as_ref() {
             Field::TypeName { .. } => "__typename".fmt(f),
-            Field::Query {
+            Field::Query(QueryField {
                 field_definition_id: field_id,
                 ..
-            } => {
+            }) => {
                 let mut fmt = f.debug_struct("Field");
                 fmt.field("id", &self.item);
                 let name = self.schema_walker.walk(*field_id).name();
@@ -103,10 +99,10 @@ impl<'a> std::fmt::Debug for FieldWalker<'a> {
                     .field("selection_set", &self.selection_set())
                     .finish()
             }
-            Field::Extra {
+            Field::Extra(ExtraField {
                 field_definition_id: field_id,
                 ..
-            } => {
+            }) => {
                 let mut fmt = f.debug_struct("ExtraField");
                 fmt.field("id", &self.item);
                 let name = self.schema_walker.walk(*field_id).name();

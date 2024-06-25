@@ -1,4 +1,4 @@
-use std::{fmt, sync::atomic::Ordering};
+use std::fmt;
 
 use serde::{
     de::{DeserializeSeed, IgnoredAny, SeqAccess, Visitor},
@@ -65,7 +65,7 @@ where
                     break;
                 }
                 Err(err) => {
-                    if !self.ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
+                    if self.ctx.should_create_new_graphql_error() {
                         let mut path = self.ctx.response_path();
                         path.push(index);
                         self.ctx.writer.push_error(GraphqlError {

@@ -8,11 +8,11 @@ use itertools::Itertools;
 use schema::{FieldDefinitionId, RequiredFieldId, RequiredFieldSet, RequiredFieldSetItemWalker, ResolverId};
 use tracing::{instrument, Level};
 
-use super::{logic::PlanningLogic, planner::Planner, PlanningError, PlanningResult};
+use super::{logic::PlanningLogic, planner::OperationSolver, PlanningError, PlanningResult};
 use crate::{
     operation::{
-        EntityLocation, Field, FieldArgument, FieldArgumentId, FieldId, ParentToChildEdge, PlanId, QueryInputValue,
-        QueryPath, Selection, SelectionSet, SelectionSetId, SelectionSetType,
+        EntityLocation, ExtraField, Field, FieldArgument, FieldArgumentId, FieldId, ParentToChildEdge, PlanId,
+        QueryInputValue, QueryPath, Selection, SelectionSet, SelectionSetId, SelectionSetType,
     },
     plan::{flatten_selection_sets, EntityId, FlatField, FlatSelectionSet},
     response::{ResponseKey, SafeResponseKey, UnpackedResponseEdge},
@@ -22,7 +22,7 @@ use crate::{
 /// plans directly. That's the job of the BoundaryPlanner which will attribute a plan for each
 /// field for a given selection set and satisfy any requirements.
 pub(super) struct BoundarySelectionSetPlanner<'schema, 'a> {
-    planner: &'a mut Planner<'schema>,
+    planner: &'a mut OperationSolver<'schema>,
     query_path: &'a QueryPath,
     maybe_parent: Option<&'a PlanningLogic<'schema>>,
     entity_location: EntityLocation,
@@ -39,7 +39,7 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
                path = %planner.walker().walk(query_path))
     )]
     pub(super) fn plan(
-        planner: &'a mut Planner<'schema>,
+        planner: &'a mut OperationSolver<'schema>,
         query_path: &'a QueryPath,
         entity_location: EntityLocation,
         maybe_parent: Option<&'a PlanningLogic<'schema>>,
@@ -84,7 +84,7 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
             .iter()
             .filter_map(|id| self.operation[*id].selection_set_id())
             .collect();
-        let flat_selection_set = flatten_selection_sets(self.schema, &self.operation, subselection_set_ids);
+        let flat_selection_set = flatten_selection_sets(self.schema, self.operation, subselection_set_ids);
         self.group_fields(flat_selection_set)
     }
 
@@ -128,7 +128,7 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
 }
 
 impl<'schema, 'a> std::ops::Deref for BoundarySelectionSetPlanner<'schema, 'a> {
-    type Target = Planner<'schema>;
+    type Target = OperationSolver<'schema>;
     fn deref(&self) -> &Self::Target {
         self.planner
     }
@@ -585,14 +585,15 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
             self.walker().walk(petitioner_field_id).response_key_str()
         );
         let key = self.generate_response_key_for(required.definition().id());
-        let field = Field::Extra {
+        let field = Field::Extra(ExtraField {
             edge: UnpackedResponseEdge::ExtraFieldResponseKey(key.into()).pack(),
             field_definition_id: required.definition().id(),
             selection_set_id,
             argument_ids: self.create_arguments_for(required.required_field_id()),
             petitioner_location: self.operation[petitioner_field_id].location(),
             is_read: true,
-        };
+            condition: None,
+        });
         Some(self.push_extra_field(logic.plan_id(), parent_selection_set_id, field))
     }
 

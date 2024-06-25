@@ -1,9 +1,8 @@
 use grafbase_tracing::{gql_response_status::GraphqlResponseStatus, metrics::GraphqlOperationMetricsAttributes};
-use schema::CacheControl;
 
 use crate::{execution::ExecutionContext, response::GraphqlError};
 
-use super::{Operation, OperationCacheControl, OperationWalker, SelectionSetWalker, Variables};
+use super::{Operation, Variables};
 
 #[derive(Debug, thiserror::Error)]
 pub enum OperationError {
@@ -19,6 +18,11 @@ pub enum OperationError {
         operation_attributes: Box<Option<GraphqlOperationMetricsAttributes>>,
         err: super::validation::ValidationError,
     },
+    #[error("{err}")]
+    Solve {
+        operation_attributes: Box<Option<GraphqlOperationMetricsAttributes>>,
+        err: crate::plan::PlanningError,
+    },
 }
 
 impl From<OperationError> for GraphqlError {
@@ -27,6 +31,7 @@ impl From<OperationError> for GraphqlError {
             OperationError::Bind { err, .. } => err.into(),
             OperationError::Validation { err, .. } => err.into(),
             OperationError::Parse(err) => err.into(),
+            OperationError::Solve { err, .. } => err.into(),
         }
     }
 }
@@ -38,6 +43,9 @@ impl OperationError {
                 operation_attributes, ..
             } => std::mem::take(operation_attributes),
             OperationError::Validation {
+                operation_attributes, ..
+            } => std::mem::take(operation_attributes),
+            OperationError::Solve {
                 operation_attributes, ..
             } => std::mem::take(operation_attributes),
             _ => None,
@@ -85,9 +93,8 @@ impl Operation {
             }
         };
 
-        // Creating a walker with no variables enabling validation to use them
+        // At this stage we don't take into account variables so we can cache the result.
         let variables = Variables::create_unavailable_for(&operation);
-        operation.cache_control = compute_cache_control(operation.walker_with(schema.walker(), &variables), request);
         if let Err(err) =
             super::validation::validate_operation(ctx, operation.walker_with(schema.walker(), &variables), request)
         {
@@ -97,48 +104,13 @@ impl Operation {
             });
         }
 
+        if let Err(err) = crate::plan::solve(schema, &variables, &mut operation) {
+            return Err(OperationError::Solve {
+                operation_attributes: Box::new(operation_attributes),
+                err,
+            });
+        }
+
         Ok((operation, operation_attributes))
-    }
-}
-
-fn compute_cache_control(operation: OperationWalker<'_>, request: &engine::Request) -> Option<OperationCacheControl> {
-    if operation.is_query() {
-        let root_cache_control = operation.root_object().directives().cache_control();
-        let selection_set = operation.selection_set();
-
-        let selection_set_cache_config = selection_set.computed_cache_control();
-        CacheControl::union_opt(root_cache_control, selection_set_cache_config.as_ref()).map(
-            |CacheControl {
-                 max_age,
-                 stale_while_revalidate,
-             }| OperationCacheControl {
-                max_age,
-                key: request.cache_key(),
-                stale_while_revalidate,
-            },
-        )
-    } else {
-        None
-    }
-}
-
-impl SelectionSetWalker<'_> {
-    // this merely traverses the selection set recursively and merge all cache_control present in the
-    // selected fields
-    fn computed_cache_control(&self) -> Option<CacheControl> {
-        self.fields()
-            .filter_map(|field| {
-                let cache_control = field.definition().and_then(|definition| {
-                    CacheControl::union_opt(
-                        definition.directives().cache_control(),
-                        definition.ty().inner().directives().cache_control(),
-                    )
-                });
-                CacheControl::union_opt(
-                    cache_control.as_ref(),
-                    field.selection_set().and_then(|s| s.computed_cache_control()).as_ref(),
-                )
-            })
-            .reduce(|a, b| a.union(b))
     }
 }
