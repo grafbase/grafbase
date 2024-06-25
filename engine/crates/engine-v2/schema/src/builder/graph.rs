@@ -58,7 +58,6 @@ impl<'a> GraphBuilder<'a> {
                 input_object_definitions: Vec::new(),
                 input_value_definitions: Vec::new(),
                 field_definitions: Vec::new(),
-                field_to_parent_entity: Vec::new(),
                 resolvers: Vec::new(),
                 type_definitions: Vec::new(),
                 type_system_directives: Vec::new(),
@@ -422,7 +421,7 @@ impl<'a> GraphBuilder<'a> {
                     cache_config_target: Some(CacheConfigTarget::Field(federated_id)),
                 },
             );
-            let parent_entity = if let Some(object_id) =
+            let parent_entity_id = if let Some(object_id) =
                 object_metadata.field_id_to_maybe_object_id[usize::from(field_id)]
             {
                 EntityId::Object(object_id)
@@ -433,10 +432,10 @@ impl<'a> GraphBuilder<'a> {
                 // TODO: better guarantee this never fails.
                 unreachable!()
             };
-            self.graph.field_to_parent_entity.push(parent_entity);
             self.graph.field_definitions.push(FieldDefinition {
                 name: field.name.into(),
                 description: None,
+                parent_entity: parent_entity_id,
                 ty: field.r#type.into(),
                 only_resolvable_in: only_resolvable_in
                     .into_iter()
@@ -459,7 +458,7 @@ impl<'a> GraphBuilder<'a> {
                     .map(|federated_graph::FieldRequires { subgraph_id, fields }| {
                         let field_set_id = self.required_field_sets_buffer.push(
                             SchemaLocation::Field {
-                                ty: match parent_entity {
+                                ty: match parent_entity_id {
                                     EntityId::Object(id) => self.graph[id].name,
                                     EntityId::Interface(id) => self.graph[id].name,
                                 },

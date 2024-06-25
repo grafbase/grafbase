@@ -69,7 +69,6 @@ pub struct Graph {
     object_definitions: Vec<Object>,
     interface_definitions: Vec<Interface>,
     field_definitions: Vec<FieldDefinition>,
-    field_to_parent_entity: Vec<EntityId>,
     enum_definitions: Vec<Enum>,
     union_definitions: Vec<Union>,
     scalar_definitions: Vec<Scalar>,
@@ -157,6 +156,7 @@ pub struct Object {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct FieldDefinition {
     pub name: StringId,
+    pub parent_entity: EntityId,
     pub description: Option<StringId>,
     pub ty: Type,
     pub resolvers: Vec<ResolverId>,

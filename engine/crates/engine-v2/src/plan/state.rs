@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use schema::Schema;
+use schema::{EntityId, Schema};
 
 use crate::response::{ResponseBuilder, ResponseObjectRef};
 
 use crate::plan::{ExecutionPlanBoundaryId, OperationPlan};
 
-use super::{ExecutionPlanId, FlatTypeCondition};
+use super::ExecutionPlanId;
 
 /// Holds the current state of the operation execution:
 /// - which plans have been executed
@@ -106,8 +106,10 @@ impl OperationExecutionState {
                 boundary.response_object_refs.clone()
             }
         };
-        match &operation[plan_id].output.type_condition {
-            Some(FlatTypeCondition::Interface(id)) => {
+        // FIXME: it's not always necessary to clone the response_object_refs if it's always the
+        // same entity.
+        match &operation[plan_id].output.entity_id {
+            EntityId::Interface(id) => {
                 let possible_types = &schema[*id].possible_types;
                 Arc::new(
                     refs.iter()
@@ -116,17 +118,7 @@ impl OperationExecutionState {
                         .collect(),
                 )
             }
-            Some(FlatTypeCondition::Objects(ids)) if ids.len() == 1 => {
-                let id = ids[0];
-                Arc::new(refs.iter().filter(|obj| obj.definition_id == id).cloned().collect())
-            }
-            Some(FlatTypeCondition::Objects(ids)) => Arc::new(
-                refs.iter()
-                    .filter(|obj| ids.binary_search(&obj.definition_id).is_ok())
-                    .cloned()
-                    .collect(),
-            ),
-            None => refs,
+            &EntityId::Object(id) => Arc::new(refs.iter().filter(|obj| obj.definition_id == id).cloned().collect()),
         }
     }
 

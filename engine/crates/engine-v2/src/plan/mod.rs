@@ -130,8 +130,7 @@ pub struct PlanInput {
 
 #[derive(Debug)]
 pub struct PlanOutput {
-    pub type_condition: Option<FlatTypeCondition>,
-    pub entity_type: EntityId,
+    pub entity_id: EntityId,
     pub collected_selection_set_id: CollectedSelectionSetId,
     pub boundary_ids: IdRange<ExecutionPlanBoundaryId>,
 }

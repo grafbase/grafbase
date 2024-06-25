@@ -71,6 +71,7 @@ impl BuildContext {
             field_definitions: vec![
                 FieldDefinition {
                     name: ctx.strings.get_or_insert("__type"),
+                    parent_entity: EntityId::Object(0.into()),
                     description: None,
                     // will be replaced by introspection, doesn't matter.
                     ty: Type {
@@ -86,6 +87,7 @@ impl BuildContext {
                 },
                 FieldDefinition {
                     name: ctx.strings.get_or_insert("__schema"),
+                    parent_entity: EntityId::Object(0.into()),
                     description: None,
                     // will be replaced by introspection, doesn't matter.
                     ty: Type {
@@ -100,7 +102,6 @@ impl BuildContext {
                     directives: Default::default(),
                 },
             ],
-            field_to_parent_entity: vec![EntityId::Object(0.into()); 2],
             enum_definitions: Vec::new(),
             union_definitions: Vec::new(),
             scalar_definitions: Vec::new(),

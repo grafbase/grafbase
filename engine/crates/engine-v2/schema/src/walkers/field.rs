@@ -49,7 +49,7 @@ impl<'a> FieldDefinitionWalker<'a> {
     }
 
     pub fn parent_entity(&self) -> EntityId {
-        self.schema.graph.field_to_parent_entity[usize::from(self.item)]
+        self.as_ref().parent_entity
     }
 
     pub fn arguments(self) -> impl ExactSizeIterator<Item = InputValueDefinitionWalker<'a>> + 'a {
