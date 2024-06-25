@@ -88,6 +88,8 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                 composed_directives,
                 overrides: Vec::new(),
                 description: field.description().map(|description| ctx.insert_string(description.id)),
+                // TODO: GB-6968
+                authorized_directives: Vec::new(),
             }
         });
     }
@@ -169,6 +171,8 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                     composed_directives,
                     overrides,
                     description,
+                    // TODO: GB-6968
+                    authorized_directives: Vec::new(),
                 }
             });
         }

@@ -254,7 +254,14 @@ pub(super) fn compose_object_fields<'a>(
         .map(|f| f.id.0)
         .collect();
 
+    let authorized_directives = fields
+        .iter()
+        .filter(|f| f.directives().authorized().is_some())
+        .map(|field| field.id.0)
+        .collect();
+
     let overrides = collect_overrides(fields, ctx);
+
     let description = fields
         .iter()
         .find_map(|f| f.description().map(|d| ctx.insert_string(d.id)));
@@ -276,6 +283,7 @@ pub(super) fn compose_object_fields<'a>(
         composed_directives,
         overrides,
         description,
+        authorized_directives,
     });
 }
 

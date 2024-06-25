@@ -24,6 +24,7 @@ pub(super) struct Directives {
     r#override: BTreeMap<DirectiveSiteId, OverrideDirective>,
     provides: BTreeMap<DirectiveSiteId, Vec<Selection>>,
     requires: BTreeMap<DirectiveSiteId, Vec<Selection>>,
+    authorized: BTreeMap<DirectiveSiteId, AuthorizedDirective>,
 
     requires_scopes: BTreeSet<(DirectiveSiteId, Vec<StringId>)>,
     policies: BTreeSet<(DirectiveSiteId, Vec<StringId>)>,
@@ -47,6 +48,10 @@ pub(super) struct Directives {
 impl Subgraphs {
     pub(crate) fn insert_authenticated(&mut self, id: DirectiveSiteId) {
         self.directives.authenticated.insert(id);
+    }
+
+    pub(crate) fn insert_authorized(&mut self, id: DirectiveSiteId, directive: AuthorizedDirective) {
+        self.directives.authorized.insert(id, directive);
     }
 
     pub(crate) fn insert_composed_directive(&mut self, subgraph_id: SubgraphId, directive_name: &str) {
@@ -130,6 +135,10 @@ pub(crate) type DirectiveSiteWalker<'a> = Walker<'a, DirectiveSiteId>;
 impl<'a> DirectiveSiteWalker<'a> {
     pub(crate) fn authenticated(self) -> bool {
         self.subgraphs.directives.authenticated.contains(&self.id)
+    }
+
+    pub(crate) fn authorized(self) -> Option<&'a AuthorizedDirective> {
+        self.subgraphs.directives.authorized.get(&self.id)
     }
 
     pub(crate) fn deprecated(self) -> Option<DeprecatedWalker<'a>> {
@@ -246,6 +255,15 @@ impl<'a> DirectiveSiteWalker<'a> {
 pub(crate) struct OverrideDirective {
     pub(crate) from: StringId,
     pub(crate) label: Option<StringId>,
+}
+
+#[derive(Debug)]
+pub(crate) struct AuthorizedDirective {
+    pub(crate) rule: StringId,
+    pub(crate) arguments: Option<Vec<Selection>>,
+    pub(crate) fields: Option<Vec<Selection>>,
+    /// We expect JSON here, but since this will be passed as-is, we don't need to parse.
+    pub(crate) metadata: Option<StringId>,
 }
 
 /// Corresponds to an `@deprecated` directive.

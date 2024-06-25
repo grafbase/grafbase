@@ -1,3 +1,4 @@
+mod authorized;
 mod consts;
 
 use self::consts::*;
@@ -9,6 +10,8 @@ pub(super) fn ingest_directives(
     directives_node: &[Positioned<ast::ConstDirective>],
     subgraphs: &mut Subgraphs,
     directive_matcher: &DirectiveMatcher<'_>,
+    subgraph: SubgraphId,
+    location: impl Fn(&mut Subgraphs) -> String,
 ) {
     for directive in directives_node {
         let directive_name = &directive.node.name.node;
@@ -161,6 +164,16 @@ pub(super) fn ingest_directives(
             });
 
             subgraphs.insert_deprecated(directive_site_id, reason);
+        }
+
+        if directive_matcher.is_authorized(directive_name) {
+            if let Err(err) = authorized::ingest(directive_site_id, &directive.node, subgraphs) {
+                let location = location(subgraphs);
+                subgraphs.push_ingestion_diagnostic(
+                    subgraph,
+                    format!("Error validating the @authorized directive at {location}: {err}",),
+                );
+            };
         }
     }
 }
@@ -356,6 +369,10 @@ impl<'a> DirectiveMatcher<'a> {
             shareable: final_name(SHAREABLE),
             tag: final_name(TAG),
         }
+    }
+
+    pub(crate) fn is_authorized(&self, directive_name: &str) -> bool {
+        directive_name == AUTHORIZED
     }
 
     pub(crate) fn is_compose_directive(&self, directive_name: &str) -> bool {

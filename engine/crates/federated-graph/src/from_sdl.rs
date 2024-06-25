@@ -51,6 +51,9 @@ struct State<'a> {
 
     /// The key is the name of the graph in the join__Graph enum.
     graph_sdl_names: HashMap<&'a str, SubgraphId>,
+
+    authorized_directives: Vec<AuthorizedDirective>,
+    field_authorized_directives: Vec<(FieldId, AuthorizedDirectiveId)>,
 }
 
 impl<'a> State<'a> {
@@ -177,6 +180,8 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         strings: state.strings.into_iter().collect(),
         directives: state.directives,
         input_value_definitions: state.input_value_definitions,
+        authorized_directives: state.authorized_directives,
+        field_authorized_directives: state.field_authorized_directives,
     }))
 }
 

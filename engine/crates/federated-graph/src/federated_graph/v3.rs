@@ -41,6 +41,12 @@ pub struct FederatedGraphV3 {
 
     /// All composed directive instances (not definitions) in a federated graph.
     pub directives: Vec<Directive>,
+
+    /// All @authorized directives
+    #[serde(default)]
+    pub authorized_directives: Vec<AuthorizedDirective>,
+    #[serde(default)]
+    pub field_authorized_directives: Vec<(FieldId, AuthorizedDirectiveId)>,
 }
 
 impl std::fmt::Debug for FederatedGraphV3 {
@@ -63,6 +69,14 @@ pub enum Directive {
         name: StringId,
         arguments: Vec<(StringId, Value)>,
     },
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
+pub struct AuthorizedDirective {
+    pub rule: StringId,
+    pub fields: Option<FieldSet>,
+    pub arguments: Option<InputValueDefinitionSet>,
+    pub metadata: Option<StringId>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
@@ -144,6 +158,14 @@ pub struct InputValueDefinition {
     pub r#type: Type,
     pub directives: Directives,
     pub description: Option<StringId>,
+}
+
+pub type InputValueDefinitionSet = Vec<InputValueDefinitionSetItem>;
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, PartialOrd)]
+pub struct InputValueDefinitionSetItem {
+    pub input_value_definition: InputValueDefinitionId,
+    pub subselection: InputValueDefinitionSet,
 }
 
 /// A (start, end) range in FederatedGraph::fields.
@@ -335,6 +357,7 @@ impl From<super::v2::FederatedGraphV2> for FederatedGraphV3 {
                     super::v2::Directive::Other { name, arguments } => Directive::Other { name, arguments },
                 })
                 .collect(),
+            ..Default::default()
         }
     }
 }
@@ -416,7 +439,17 @@ macro_rules! id_newtypes {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub struct AuthorizedDirectiveId(pub usize);
+
+impl From<AuthorizedDirectiveId> for usize {
+    fn from(value: AuthorizedDirectiveId) -> usize {
+        value.0
+    }
+}
+
 id_newtypes! {
+    AuthorizedDirectiveId + authorized_directives + AuthorizedDirective,
     EnumId + enums + Enum,
     FieldId + fields + Field,
     InputValueDefinitionId + input_value_definitions + InputValueDefinition,
@@ -488,6 +521,8 @@ impl Default for FederatedGraphV3 {
                 .map(|string| string.to_owned())
                 .collect(),
             directives: Vec::new(),
+            authorized_directives: Vec::new(),
+            field_authorized_directives: Vec::new(),
         }
     }
 }
