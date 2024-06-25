@@ -45,7 +45,7 @@ pub struct EngineEnv {
     pub trusted_documents: runtime::trusted_documents_client::Client,
     pub kv: runtime::kv::KvStore,
     pub meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
-    pub user_hooks: runtime::hooks::Hooks,
+    pub hooks: runtime::hooks::Hooks,
 }
 
 impl Engine {
@@ -68,7 +68,7 @@ impl Engine {
         headers: http::HeaderMap,
         batch_request: BatchRequest,
     ) -> HttpGraphqlResponse {
-        let (context, headers) = match self.env.user_hooks.on_gateway_request(headers).await {
+        let (context, headers) = match self.env.hooks.on_gateway_request(headers).await {
             Ok(result) => result,
             Err(error) => return Response::execution_error(error).into(),
         };
@@ -84,7 +84,7 @@ impl Engine {
     }
 
     pub async fn create_session(self: &Arc<Self>, headers: http::HeaderMap) -> Result<Session, Cow<'static, str>> {
-        let (context, headers) = match self.env.user_hooks.on_gateway_request(headers).await {
+        let (context, headers) = match self.env.hooks.on_gateway_request(headers).await {
             Ok(result) => result,
             Err(error) => return Err(Cow::from(error.to_string())),
         };

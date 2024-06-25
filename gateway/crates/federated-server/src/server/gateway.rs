@@ -116,7 +116,7 @@ pub(super) fn generate(
         runtime::trusted_documents_client::Client::new(NoopTrustedDocuments)
     };
 
-    let user_hooks = match wasi {
+    let hooks = match wasi {
         Some(config) => ComponentLoader::new(config)
             .map_err(|e| crate::Error::InternalError(e.to_string()))?
             .map(HooksWasi::new)
@@ -131,7 +131,7 @@ pub(super) fn generate(
         kv: InMemoryKvStore::runtime(),
         trusted_documents,
         meter: grafbase_tracing::metrics::meter_from_global_provider(),
-        user_hooks,
+        hooks,
     };
 
     let config = config

@@ -27,7 +27,7 @@ fn works_with_empty_config() {
             ),
             kv: runtime_local::InMemoryKvStore::runtime(),
             meter: grafbase_tracing::metrics::meter_from_global_provider(),
-            user_hooks: Hooks::new(HooksNoop),
+            hooks: Hooks::new(HooksNoop),
         },
     )));
 

@@ -63,7 +63,7 @@ pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraph
         ),
         kv: runtime_local::InMemoryKvStore::runtime(),
         meter: grafbase_tracing::metrics::meter_from_global_provider(),
-        user_hooks: Hooks::new(HooksNoop),
+        hooks: Hooks::new(HooksNoop),
     };
 
     let config = config.into_latest().try_into().ok()?;
