@@ -1,15 +1,19 @@
 #[allow(warnings)]
 mod bindings;
 
-use bindings::{ErrorResponse, Guest, Context, Headers};
+use bindings::{
+    component::grafbase::types::{ErrorResponse, SharedContext},
+    exports::component::grafbase::authorization,
+};
 
 struct Component;
 
-impl Guest for Component {
-    fn on_subgraph_request(_: Context, headers: Headers) -> Result<(), ErrorResponse> {
-        headers.set("direct", "call").unwrap();
-
-        Ok(())
+impl authorization::Guest for Component {
+    fn authorized(_: SharedContext, _: Vec<String>) -> Result<Vec<Option<ErrorResponse>>, ErrorResponse> {
+        Err(ErrorResponse {
+            message: String::from("not implemented"),
+            extensions: Vec::new(),
+        })
     }
 }
 

@@ -1,12 +1,15 @@
 use anyhow::anyhow;
 use grafbase_tracing::span::GRAFBASE_TARGET;
 use wasmtime::{
-    component::{Resource, TypedFunc},
+    component::{Instance, Resource, TypedFunc},
     Store,
 };
 
 use crate::{
-    context::SharedContextMap, names::AUTHORIZATION_HOOK_FUNCTION, state::WasiState, ComponentLoader, ErrorResponse,
+    context::SharedContextMap,
+    names::{AUTHORIZATION_HOOK_FUNCTION, COMPONENT_AUTHORIZATION},
+    state::WasiState,
+    ComponentLoader, ErrorResponse,
 };
 
 /// The hook function takes two parameters: the context and the input.
@@ -39,18 +42,7 @@ impl AuthorizationHookInstance {
             .instantiate_async(&mut store, loader.component())
             .await?;
 
-        let hook = match instance.get_typed_func(&mut store, AUTHORIZATION_HOOK_FUNCTION) {
-            Ok(hook) => {
-                tracing::debug!(target: GRAFBASE_TARGET, "instantized the authorization hook WASM function");
-
-                Some(hook)
-            }
-            Err(e) => {
-                tracing::debug!(target: GRAFBASE_TARGET, "error instantizing the authorization hook WASM function: {e}");
-
-                None
-            }
-        };
+        let hook = get_hook(&mut store, &instance);
 
         Ok(Self { store, context, hook })
     }
@@ -66,5 +58,26 @@ impl AuthorizationHookInstance {
         };
 
         Ok(result)
+    }
+}
+
+fn get_hook(store: &mut Store<WasiState>, instance: &Instance) -> Option<TypedFunc<Parameters, Response>> {
+    let mut exports = instance.exports(store);
+    let mut root = exports.root();
+
+    let Some(mut interface) = root.instance(COMPONENT_AUTHORIZATION) else {
+        tracing::debug!(target: GRAFBASE_TARGET, "could not find export for authorization interface");
+        return None;
+    };
+
+    match interface.typed_func(AUTHORIZATION_HOOK_FUNCTION) {
+        Ok(hook) => {
+            tracing::debug!(target: GRAFBASE_TARGET, "instantized the authorization hook WASM function");
+            Some(hook)
+        }
+        Err(e) => {
+            tracing::debug!(target: GRAFBASE_TARGET, "error instantizing the authorization hook WASM function: {e}");
+            None
+        }
     }
 }

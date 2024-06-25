@@ -1,11 +1,15 @@
 use grafbase_tracing::span::GRAFBASE_TARGET;
 use http::HeaderMap;
 use wasmtime::{
-    component::{Resource, TypedFunc},
+    component::{Instance, Resource, TypedFunc},
     Store,
 };
 
-use crate::{names::GATEWAY_HOOK_FUNCTION, state::WasiState, ComponentLoader, ContextMap, ErrorResponse};
+use crate::{
+    names::{COMPONENT_GATEWAY_REQUEST, GATEWAY_HOOK_FUNCTION},
+    state::WasiState,
+    ComponentLoader, ContextMap, ErrorResponse,
+};
 
 /// The hook function takes two parameters: the context and the headers.
 /// They are wrapped as resources, meaning they are in a shared memory space
@@ -42,19 +46,7 @@ impl GatewayHookInstance {
             .instantiate_async(&mut store, loader.component())
             .await?;
 
-        let hook = match instance.get_typed_func(&mut store, GATEWAY_HOOK_FUNCTION) {
-            Ok(hook) => {
-                tracing::debug!(target: GRAFBASE_TARGET, "instantized the gateway hook WASM function");
-
-                Some(hook)
-            }
-            // the user has not defined the hook function, so we return none and do not try to call this function.
-            Err(e) => {
-                tracing::debug!(target: GRAFBASE_TARGET, "error instantizing the gateway hook WASM function: {e}");
-
-                None
-            }
-        };
+        let hook = get_hook(&mut store, &instance);
 
         Ok(Self {
             store,
@@ -81,5 +73,27 @@ impl GatewayHookInstance {
         let headers = self.store.data_mut().take_resource(headers_rep)?;
 
         Ok((context, headers))
+    }
+}
+
+fn get_hook(store: &mut Store<WasiState>, instance: &Instance) -> Option<TypedFunc<Parameters, Response>> {
+    let mut exports = instance.exports(store);
+    let mut root = exports.root();
+
+    let Some(mut interface) = root.instance(COMPONENT_GATEWAY_REQUEST) else {
+        tracing::debug!(target: GRAFBASE_TARGET, "could not find export for gateway-request interface");
+        return None;
+    };
+
+    match interface.typed_func(GATEWAY_HOOK_FUNCTION) {
+        Ok(hook) => {
+            tracing::debug!(target: GRAFBASE_TARGET, "instantized the gateway hook WASM function");
+            Some(hook)
+        }
+        // the user has not defined the hook function, so we return none and do not try to call this function.
+        Err(e) => {
+            tracing::debug!(target: GRAFBASE_TARGET, "error instantizing the gateway hook WASM function: {e}");
+            None
+        }
     }
 }

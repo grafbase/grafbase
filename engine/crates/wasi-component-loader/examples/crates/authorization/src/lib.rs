@@ -1,11 +1,14 @@
 #[allow(warnings)]
 mod bindings;
 
-use bindings::{Context, ErrorResponse, Guest, Headers, SharedContext};
+use bindings::{
+    component::grafbase::types::{Context, ErrorResponse, Headers, SharedContext},
+    exports::component::grafbase::{authorization, gateway_request},
+};
 
 struct Component;
 
-impl Guest for Component {
+impl gateway_request::Guest for Component {
     fn on_gateway_request(context: Context, headers: Headers) -> Result<(), ErrorResponse> {
         if let Ok(Some(auth_header)) = headers.get("Authorization") {
             context.set("entitlement", &auth_header);
@@ -13,7 +16,9 @@ impl Guest for Component {
 
         Ok(())
     }
+}
 
+impl authorization::Guest for Component {
     fn authorized(context: SharedContext, input: Vec<String>) -> Result<Vec<Option<ErrorResponse>>, ErrorResponse> {
         let auth_header = context.get("entitlement");
         let mut result = Vec::with_capacity(input.len());

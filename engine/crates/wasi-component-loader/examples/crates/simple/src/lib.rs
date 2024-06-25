@@ -1,11 +1,14 @@
 #[allow(warnings)]
 mod bindings;
 
-use bindings::{Context, ErrorResponse, Guest, Headers};
+use bindings::{
+    component::grafbase::types::{Context, ErrorResponse, Headers},
+    exports::component::grafbase::gateway_request,
+};
 
 struct Component;
 
-impl Guest for Component {
+impl gateway_request::Guest for Component {
     fn on_gateway_request(context: Context, headers: Headers) -> Result<(), ErrorResponse> {
         headers.set("direct", "call").unwrap();
 

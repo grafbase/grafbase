@@ -1,11 +1,14 @@
 #[allow(warnings)]
 mod bindings;
 
-use bindings::{ErrorResponse, Guest, Context, Headers};
+use bindings::{
+    component::grafbase::types::{Context, ErrorResponse, Headers},
+    exports::component::grafbase::gateway_request,
+};
 
 struct Component;
 
-impl Guest for Component {
+impl gateway_request::Guest for Component {
     fn on_gateway_request(context: Context, _: Headers) -> Result<(), ErrorResponse> {
         let address = std::env::var("MOCK_SERVER_ADDRESS").unwrap();
         let response = waki::Client::new().get(&address).send().unwrap().body().unwrap();
