@@ -25,19 +25,21 @@ impl HooksImpl for HooksWasi {
             .map_err(to_local_error)?)
     }
 
-    async fn on_authorization(
+    async fn authorized(
         &self,
-        context: Self::Context,
+        context: &mut Self::Context,
         input: Vec<String>,
-    ) -> Result<(Self::Context, Vec<Option<UserError>>), HookError> {
-        let (context, results) = self.0.on_authorization(context, input).await.map_err(to_local_error)?;
-
-        let results = results
+    ) -> Result<Vec<Option<UserError>>, HookError> {
+        let results = self
+            .0
+            .authorized(context, input)
+            .await
+            .map_err(to_local_error)?
             .into_iter()
             .map(|result| result.map(error_response_to_user_error))
             .collect();
 
-        Ok((context, results))
+        Ok(results)
     }
 }
 

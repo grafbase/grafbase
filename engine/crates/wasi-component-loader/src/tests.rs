@@ -261,10 +261,10 @@ async fn authorization() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let (context, _) = loader.on_gateway_request(HashMap::new(), headers).await.unwrap();
+    let (mut context, _) = loader.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
-    let (_, result) = loader
-        .on_authorization(context, vec!["kekw".to_string(), "lol".to_string()])
+    let result = loader
+        .authorized(&mut context, vec!["kekw".to_string(), "lol".to_string()])
         .await
         .unwrap();
 

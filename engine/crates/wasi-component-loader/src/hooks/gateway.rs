@@ -10,13 +10,15 @@ use crate::{names::GATEWAY_HOOK_FUNCTION, state::WasiState, ComponentLoader, Con
 /// The hook function takes two parameters: the context and the headers.
 /// They are wrapped as resources, meaning they are in a shared memory space
 /// accessible from the host and from the guest.
-pub(crate) type HookParameters = (Resource<ContextMap>, Resource<HeaderMap>);
+pub(crate) type Parameters = (Resource<ContextMap>, Resource<HeaderMap>);
 
 /// The guest can read and modify the input headers and request as it wishes. A successful
 /// call returns unit. The user can return an error response, which should be mapped to a
 /// corresponding HTTP status code.
-pub(crate) type HookResponse = (Result<(), ErrorResponse>,);
+pub(crate) type Response = (Result<(), ErrorResponse>,);
 
+/// The gateway hook is called right after authentication.
+///
 /// An instance of a function to be called from the Gateway level for the request.
 /// The instance is meant to be separate for every request. The instance shares a memory space
 /// with the guest, and cannot be shared with multiple requests.
@@ -24,7 +26,7 @@ pub struct GatewayHookInstance {
     store: Store<WasiState>,
     headers: Resource<HeaderMap>,
     context: Resource<ContextMap>,
-    hook: Option<TypedFunc<HookParameters, HookResponse>>,
+    hook: Option<TypedFunc<Parameters, Response>>,
 }
 
 impl GatewayHookInstance {

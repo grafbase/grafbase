@@ -14,7 +14,7 @@ impl Guest for Component {
         Ok(())
     }
 
-    fn on_authorization(context: Context, input: Vec<String>) -> Result<Vec<Option<ErrorResponse>>, ErrorResponse> {
+    fn authorized(context: Context, input: Vec<String>) -> Result<Vec<Option<ErrorResponse>>, ErrorResponse> {
         let auth_header = context.get("entitlement");
         let mut result = Vec::with_capacity(input.len());
 

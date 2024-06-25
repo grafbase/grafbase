@@ -8,10 +8,7 @@ type GatewayHook =
 
 type AuthorizationHook = Pin<
     Box<
-        dyn Fn(
-                HashMap<String, String>,
-                Vec<String>,
-            ) -> Result<(HashMap<String, String>, Vec<Option<UserError>>), HookError>
+        dyn Fn(&mut HashMap<String, String>, Vec<String>) -> Result<Vec<Option<UserError>>, HookError>
             + Send
             + Sync
             + 'static,
@@ -35,10 +32,7 @@ impl TestHooks {
 
     pub fn on_authorization<F>(mut self, hook: F) -> Self
     where
-        F: Fn(
-                HashMap<String, String>,
-                Vec<String>,
-            ) -> Result<(HashMap<String, String>, Vec<Option<UserError>>), HookError>
+        F: Fn(&mut HashMap<String, String>, Vec<String>) -> Result<Vec<Option<UserError>>, HookError>
             + Send
             + Sync
             + 'static,
@@ -59,11 +53,11 @@ impl HooksImpl for TestHooks {
         }
     }
 
-    async fn on_authorization(
+    async fn authorized(
         &self,
-        context: Self::Context,
+        context: &mut Self::Context,
         input: Vec<String>,
-    ) -> Result<(Self::Context, Vec<Option<UserError>>), HookError> {
+    ) -> Result<Vec<Option<UserError>>, HookError> {
         match self.on_authorization {
             Some(ref hook) => hook(context, input),
             None => todo!("please define the on-authorization hook before testing"),

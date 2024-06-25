@@ -7,14 +7,24 @@ use wasmtime::{
 
 use crate::{names::AUTHORIZATION_HOOK_FUNCTION, state::WasiState, ComponentLoader, ContextMap, ErrorResponse};
 
-pub(crate) type HookParameters = (Resource<ContextMap>, Vec<String>);
+/// The hook function takes two parameters: the context and the input.
+/// The context is in shared memory space and the input sent by-value to the guest.
+pub(crate) type Parameters = (Resource<ContextMap>, Vec<String>);
 
-pub(crate) type HookResponse = (Result<Vec<Option<ErrorResponse>>, ErrorResponse>,);
+/// A successful result is a vector mapping the input. If a vector item is not none,
+/// it will not be returned back to the client. If the function returns an error, the
+/// request execution should fail.
+pub(crate) type Response = (Result<Vec<Option<ErrorResponse>>, ErrorResponse>,);
 
+/// The authorization hook is called if the requested type uses the authorization directive.
+///
+/// An instance of a function to be called from the Gateway level for the request.
+/// The instance is meant to be separate for every request. The instance shares a memory space
+/// with the guest, and cannot be shared with multiple requests.
 pub struct AuthorizationHookInstance {
     store: Store<WasiState>,
     context: Resource<ContextMap>,
-    hook: Option<TypedFunc<HookParameters, HookResponse>>,
+    hook: Option<TypedFunc<Parameters, Response>>,
 }
 
 impl AuthorizationHookInstance {

@@ -98,7 +98,7 @@ pub unsafe fn __post_return_on_gateway_request<T: Guest>(arg0: *mut u8) {
 }
 #[doc(hidden)]
 #[allow(non_snake_case)]
-pub unsafe fn _export_on_authorization_cabi<T: Guest>(arg0: i32, arg1: *mut u8, arg2: usize) -> *mut u8 {
+pub unsafe fn _export_authorized_cabi<T: Guest>(arg0: i32, arg1: *mut u8, arg2: usize) -> *mut u8 {
     #[cfg(target_arch = "wasm32")]
     _rt::run_ctors_once();
     let base3 = arg1;
@@ -117,7 +117,7 @@ pub unsafe fn _export_on_authorization_cabi<T: Guest>(arg0: i32, arg1: *mut u8, 
         result3.push(e3);
     }
     _rt::cabi_dealloc(base3, len3 * 8, 4);
-    let result4 = T::on_authorization(component::grafbase::types::Context::from_handle(arg0 as u32), result3);
+    let result4 = T::authorized(component::grafbase::types::Context::from_handle(arg0 as u32), result3);
     let ptr5 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
     match result4 {
         Ok(e) => {
@@ -248,7 +248,7 @@ pub unsafe fn _export_on_authorization_cabi<T: Guest>(arg0: i32, arg1: *mut u8, 
 }
 #[doc(hidden)]
 #[allow(non_snake_case)]
-pub unsafe fn __post_return_on_authorization<T: Guest>(arg0: *mut u8) {
+pub unsafe fn __post_return_authorized<T: Guest>(arg0: *mut u8) {
     let l0 = i32::from(*arg0.add(0).cast::<u8>());
     match l0 {
         0 => {
@@ -313,7 +313,7 @@ pub unsafe fn __post_return_on_authorization<T: Guest>(arg0: *mut u8) {
 }
 pub trait Guest {
     fn on_gateway_request(context: Context, headers: Headers) -> Result<(), ErrorResponse>;
-    fn on_authorization(
+    fn authorized(
         context: Context,
         input: _rt::Vec<_rt::String>,
     ) -> Result<_rt::Vec<Option<ErrorResponse>>, ErrorResponse>;
@@ -331,13 +331,13 @@ macro_rules! __export_world_gateway_cabi{
     unsafe extern "C" fn _post_return_on_gateway_request(arg0: *mut u8,) {
       $($path_to_types)*::__post_return_on_gateway_request::<$ty>(arg0)
     }
-    #[export_name = "on-authorization"]
-    unsafe extern "C" fn export_on_authorization(arg0: i32,arg1: *mut u8,arg2: usize,) -> *mut u8 {
-      $($path_to_types)*::_export_on_authorization_cabi::<$ty>(arg0, arg1, arg2)
+    #[export_name = "authorized"]
+    unsafe extern "C" fn export_authorized(arg0: i32,arg1: *mut u8,arg2: usize,) -> *mut u8 {
+      $($path_to_types)*::_export_authorized_cabi::<$ty>(arg0, arg1, arg2)
     }
-    #[export_name = "cabi_post_on-authorization"]
-    unsafe extern "C" fn _post_return_on_authorization(arg0: *mut u8,) {
-      $($path_to_types)*::__post_return_on_authorization::<$ty>(arg0)
+    #[export_name = "cabi_post_authorized"]
+    unsafe extern "C" fn _post_return_authorized(arg0: *mut u8,) {
+      $($path_to_types)*::__post_return_authorized::<$ty>(arg0)
     }
   };);
 }
@@ -959,8 +959,8 @@ pub(crate) use __export_gateway_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:gateway:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 788] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x96\x05\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 782] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x90\x05\x01A\x02\x01\
 A\x13\x01B\x17\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
 header-error\x03\0\0\x04\0\x07context\x03\x01\x04\0\x07headers\x03\x01\x01o\x02s\
 s\x01p\x04\x01r\x02\x0aextensions\x05\x07messages\x04\0\x0eerror-response\x03\0\x06\
@@ -974,10 +974,10 @@ e/types\x05\0\x02\x03\0\0\x07headers\x03\0\x07headers\x03\0\x01\x02\x03\0\0\x0ee
 rror-response\x03\0\x0eerror-response\x03\0\x03\x02\x03\0\0\x07context\x03\0\x07\
 context\x03\0\x05\x01i\x06\x01i\x02\x01j\0\x01\x04\x01@\x02\x07context\x07\x07he\
 aders\x08\0\x09\x04\0\x12on-gateway-request\x01\x0a\x01ps\x01k\x04\x01p\x0c\x01j\
-\x01\x0d\x01\x04\x01@\x02\x07context\x07\x05input\x0b\0\x0e\x04\0\x10on-authoriz\
-ation\x01\x0f\x04\x01\x1acomponent:grafbase/gateway\x04\0\x0b\x0d\x01\0\x07gatew\
-ay\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10\
-wit-bindgen-rust\x060.25.0";
+\x01\x0d\x01\x04\x01@\x02\x07context\x07\x05input\x0b\0\x0e\x04\0\x0aauthorized\x01\
+\x0f\x04\x01\x1acomponent:grafbase/gateway\x04\0\x0b\x0d\x01\0\x07gateway\x03\0\0\
+\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bind\
+gen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

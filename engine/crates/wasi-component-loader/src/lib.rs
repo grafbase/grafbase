@@ -112,13 +112,16 @@ impl ComponentLoader {
     /// for every request.
     ///
     /// Calls the user-defined hook from the guest, if the function is defined.
-    pub async fn on_authorization(
-        &self,
-        context: ContextMap,
-        input: Vec<String>,
-    ) -> Result<(ContextMap, Vec<Option<ErrorResponse>>)> {
-        let hook = AuthorizationHookInstance::new(self, context).await?;
-        hook.call(input).await
+    pub async fn authorized(&self, context: &mut ContextMap, input: Vec<String>) -> Result<Vec<Option<ErrorResponse>>> {
+        let hook = {
+            let context = std::mem::take(context);
+            AuthorizationHookInstance::new(self, context).await?
+        };
+
+        let (modified_context, result) = hook.call(input).await?;
+        *context = modified_context;
+
+        Ok(result)
     }
 
     pub(crate) fn config(&self) -> &Config {

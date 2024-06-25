@@ -13,11 +13,7 @@ impl HooksImpl for HooksNoop {
         Ok((HashMap::new(), headers))
     }
 
-    async fn on_authorization(
-        &self,
-        _: Self::Context,
-        _: Vec<String>,
-    ) -> Result<(Self::Context, Vec<Option<UserError>>), HookError> {
+    async fn authorized(&self, _: &mut Self::Context, _: Vec<String>) -> Result<Vec<Option<UserError>>, HookError> {
         unreachable!("@authorization directive not available outside of local context")
     }
 }
