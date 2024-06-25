@@ -21,6 +21,7 @@ pub trait Visitor {
 #[derive(Clone, Copy, Debug)]
 pub struct FieldEdge<'a> {
     pub selection: FieldSelection<'a>,
+    #[allow(dead_code)]
     pub container: Option<MetaType<'a>>,
     pub field: Option<MetaField<'a>>,
     pub field_type: Option<MetaType<'a>>,

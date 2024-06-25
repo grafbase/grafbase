@@ -114,7 +114,7 @@ mod tests {
         let key = SafeResponseKey::try_from_usize((MAX_RESPONSE_KEY + 1) as usize);
         assert!(key.is_none());
 
-        let key = SafeResponseKey::try_from_usize(u32::max_value() as usize);
+        let key = SafeResponseKey::try_from_usize(u32::MAX as usize);
         assert!(key.is_none());
     }
 }

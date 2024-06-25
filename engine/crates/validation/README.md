@@ -18,16 +18,14 @@ Scope:
 ```rust
 use graphql_schema_validation::validate;
 
-fn main() {
-  let graphql = "schema { query: MyQueryDoesNotExist }";
+let graphql = "schema { query: MyQueryDoesNotExist }";
 
-  let diagnostics = validate(graphql);
+let diagnostics = validate(graphql);
 
-  assert!(diagnostics.has_errors());
+assert!(diagnostics.has_errors());
 
-  let formatted_diagnostics = diagnostics.iter().map(|err| format!("{}", err)).collect::<Vec<String>>();
-  assert_eq!(formatted_diagnostics, ["Cannot set schema query root to unknown type `MyQueryDoesNotExist`"]);
-}
+let formatted_diagnostics = diagnostics.iter().map(|err| format!("{}", err)).collect::<Vec<String>>();
+assert_eq!(formatted_diagnostics, ["Cannot set schema query root to unknown type `MyQueryDoesNotExist`"]);
 ```
 
 ## Status
