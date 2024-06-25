@@ -1,8 +1,7 @@
-use id_newtypes::IdRange;
 use schema::{EntityId, ResolverId, Schema};
 
 use crate::{
-    operation::{Operation, PlanId, Variables},
+    operation::{EntityLocation, Operation, PlanId, Variables},
     response::ReadSelectionSet,
     sources::PreparedExecutor,
 };
@@ -40,8 +39,8 @@ pub(crate) struct OperationPlan {
     plan_parent_to_child_edges: Vec<ParentToChildEdge>,
     // PlanId -> u8
     plan_dependencies_count: Vec<u8>,
-    // PlanBoundaryId -> u8
-    plan_boundary_consummers_count: Vec<u8>,
+    // EntityLocation -> u8
+    entities_consummers_count: Vec<u8>,
 
     // -- Collected fields & selection sets --
     // Once all fields have been planned, we collect fields to know what to expect from the
@@ -63,7 +62,7 @@ pub(crate) struct OperationPlan {
 pub(crate) struct ExecutionPlan {
     pub plan_id: PlanId,
     pub resolver_id: ResolverId,
-    pub input: Option<PlanInput>,
+    pub input: PlanInput,
     pub output: PlanOutput,
     pub prepared_executor: PreparedExecutor,
 }
@@ -123,7 +122,7 @@ impl OperationPlan {
 
 #[derive(Debug)]
 pub struct PlanInput {
-    pub boundary_id: ExecutionPlanBoundaryId,
+    pub entity_location: EntityLocation,
     /// if the plan `@requires` any data it will be included in the ReadSelectionSet.
     pub selection_set: ReadSelectionSet,
 }
@@ -132,7 +131,7 @@ pub struct PlanInput {
 pub struct PlanOutput {
     pub entity_id: EntityId,
     pub collected_selection_set_id: CollectedSelectionSetId,
-    pub boundary_ids: IdRange<ExecutionPlanBoundaryId>,
+    pub tracked_entity_locations: Vec<EntityLocation>,
 }
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy, Debug, PartialOrd, Ord)]

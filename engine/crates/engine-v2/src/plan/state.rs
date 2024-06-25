@@ -2,9 +2,10 @@ use std::sync::Arc;
 
 use schema::{EntityId, Schema};
 
+use crate::operation::EntityLocation;
 use crate::response::{ResponseBuilder, ResponseObjectRef};
 
-use crate::plan::{ExecutionPlanBoundaryId, OperationPlan};
+use crate::plan::OperationPlan;
 
 use super::ExecutionPlanId;
 
@@ -22,14 +23,14 @@ use super::ExecutionPlanId;
 pub struct OperationExecutionState {
     /// PlanId -> u8
     plan_dependencies_count: Vec<u8>,
-    /// PlanBoundaryId -> u8
-    plan_boundary_consummers_count: Vec<u8>,
-    /// PlanBoundaryId -> Option<BoundaryItems>
-    boundaries: Vec<Option<BoundaryResponseObjects>>,
+    /// EntityLocation -> u8
+    entities_consummers_count: Vec<u8>,
+    /// EntityLocation -> Option<BoundaryItems>
+    entities: Vec<Option<ResponseEntities>>,
 }
 
 #[derive(Clone)]
-struct BoundaryResponseObjects {
+struct ResponseEntities {
     response_object_refs: Arc<Vec<ResponseObjectRef>>,
     consummers_left: u8,
 }
@@ -38,8 +39,8 @@ impl OperationExecutionState {
     pub(super) fn new(operation: &OperationPlan) -> Self {
         Self {
             plan_dependencies_count: operation.plan_dependencies_count.clone(),
-            plan_boundary_consummers_count: operation.plan_boundary_consummers_count.clone(),
-            boundaries: vec![None; operation.plan_boundary_consummers_count.len()],
+            entities_consummers_count: operation.entities_consummers_count.clone(),
+            entities: vec![None; operation.entities_consummers_count.len()],
         }
     }
 
@@ -66,14 +67,10 @@ impl OperationExecutionState {
             .collect()
     }
 
-    pub fn push_boundary_response_object_refs(
-        &mut self,
-        boundary_id: ExecutionPlanBoundaryId,
-        response_object_refs: Vec<ResponseObjectRef>,
-    ) {
-        self.boundaries[usize::from(boundary_id)] = Some(BoundaryResponseObjects {
+    pub fn push_entities(&mut self, entity_location: EntityLocation, response_object_refs: Vec<ResponseObjectRef>) {
+        self.entities[usize::from(entity_location)] = Some(ResponseEntities {
             response_object_refs: Arc::new(response_object_refs),
-            consummers_left: self.plan_boundary_consummers_count[usize::from(boundary_id)],
+            consummers_left: self.entities_consummers_count[usize::from(entity_location)],
         });
     }
 
@@ -86,24 +83,25 @@ impl OperationExecutionState {
     ) -> Arc<Vec<ResponseObjectRef>> {
         // If there is no root, an error propagated up to it and data will be null. So there's
         // nothing to do anymore.
-        let Some(root_boundary_item) = response.root_response_object() else {
+        let Some(root_ref) = response.root_response_object() else {
             return Arc::new(Vec::new());
         };
-        let Some(input) = &operation[plan_id].input else {
-            return Arc::new(vec![root_boundary_item]);
-        };
+        let input = &operation[plan_id].input;
         let refs = {
-            let n = usize::from(input.boundary_id);
-            let Some(ref mut boundary) = self.boundaries[n] else {
-                unreachable!("Missing boundary items");
+            let i = usize::from(input.entity_location);
+            let Some(ref mut entities) = self.entities[i] else {
+                if i == 0 {
+                    return Arc::new(vec![root_ref]);
+                }
+                unreachable!("Missing entities");
             };
-            boundary.consummers_left -= 1;
-            if boundary.consummers_left == 0 {
-                let refs = boundary.response_object_refs.clone();
-                self.boundaries[n] = None;
+            entities.consummers_left -= 1;
+            if entities.consummers_left == 0 {
+                let refs = entities.response_object_refs.clone();
+                self.entities[i] = None;
                 refs
             } else {
-                boundary.response_object_refs.clone()
+                entities.response_object_refs.clone()
             }
         };
         // FIXME: it's not always necessary to clone the response_object_refs if it's always the

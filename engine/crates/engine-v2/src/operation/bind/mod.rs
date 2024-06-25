@@ -186,6 +186,7 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
         field_arguments: binder.field_arguments,
         response_keys: binder.response_keys,
         field_to_plan_id: vec![None; binder.fields.len()],
+        field_to_entity_location: vec![None; binder.fields.len()],
         fields: binder.fields,
         variable_definitions: binder.variable_definitions,
         cache_control: None,

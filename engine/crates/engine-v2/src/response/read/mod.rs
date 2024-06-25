@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::sync::Arc;
 
 use super::ResponseBuilder;
 mod selection_set;
@@ -14,7 +14,7 @@ impl ResponseBuilder {
         &'a self,
         schema: SchemaWalker<'a, ()>,
         refs: Arc<Vec<ResponseObjectRef>>,
-        selection_set: Cow<'a, ReadSelectionSet>,
+        selection_set: &'a ReadSelectionSet,
     ) -> ResponseObjectsView<'a> {
         ResponseObjectsView {
             schema,

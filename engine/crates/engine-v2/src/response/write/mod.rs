@@ -7,7 +7,6 @@ use std::{
     sync::Arc,
 };
 
-use id_newtypes::IdRange;
 pub use ids::*;
 use itertools::Either;
 use schema::{ObjectId, Schema};
@@ -20,7 +19,8 @@ use super::{
 };
 use crate::{
     execution::ExecutionError,
-    plan::{ExecutionPlanBoundaryId, OperationPlan, PlanWalker},
+    operation::EntityLocation,
+    plan::{OperationPlan, PlanWalker},
 };
 
 pub(crate) struct ResponseDataPart {
@@ -73,14 +73,18 @@ impl ResponseBuilder {
     pub fn new_part(
         &mut self,
         root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        plan_boundary_ids: IdRange<ExecutionPlanBoundaryId>,
+        entity_locations_to_track: &[EntityLocation],
     ) -> ResponsePart {
         let id = ResponseDataPartId::from(self.parts.len());
         // reserving the spot until the actual data is written. It's safe as no one can reference
         // any data in this part before it's added. And a part can only be overwritten if it's
         // empty.
         self.parts.push(ResponseDataPart::new(id));
-        ResponsePart::new(ResponseDataPart::new(id), root_response_object_refs, plan_boundary_ids)
+        ResponsePart::new(
+            ResponseDataPart::new(id),
+            root_response_object_refs,
+            entity_locations_to_track,
+        )
     }
 
     pub fn root_response_object(&self) -> Option<ResponseObjectRef> {
@@ -131,7 +135,7 @@ impl ResponseBuilder {
         part: ResponsePart,
         edge: ResponseEdge,
         default_object: Option<Vec<(ResponseEdge, ResponseValue)>>,
-    ) -> Vec<(ExecutionPlanBoundaryId, Vec<ResponseObjectRef>)> {
+    ) -> Vec<(EntityLocation, Vec<ResponseObjectRef>)> {
         let reservation = &mut self.parts[usize::from(part.data.id)];
         assert!(reservation.is_empty(), "Part already has data");
         *reservation = part.data;
@@ -194,7 +198,7 @@ impl ResponseBuilder {
         }
         self.errors.extend(part.errors);
 
-        let mut boundaries = part.plan_boundaries;
+        let mut boundaries = part.entities;
         if !invalidated_paths.is_empty() {
             boundaries = boundaries
                 .into_iter()
@@ -337,23 +341,24 @@ pub(crate) struct ResponsePart {
     root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
     errors: Vec<GraphqlError>,
     updates: Vec<UpdateSlot>,
-    plan_boundary_ids_start: usize,
-    plan_boundaries: Vec<(ExecutionPlanBoundaryId, Vec<ResponseObjectRef>)>,
+    entities: Vec<(EntityLocation, Vec<ResponseObjectRef>)>,
 }
 
 impl ResponsePart {
     fn new(
         data: ResponseDataPart,
         root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        plan_boundary_ids: IdRange<ExecutionPlanBoundaryId>,
+        entity_locations_to_track: &[EntityLocation],
     ) -> Self {
         Self {
             data,
             root_response_object_refs,
             errors: Vec::new(),
             updates: Vec::new(),
-            plan_boundary_ids_start: usize::from(plan_boundary_ids.start),
-            plan_boundaries: plan_boundary_ids.map(|id| (id, Vec::new())).collect(),
+            entities: entity_locations_to_track
+                .iter()
+                .map(|entity_location| (*entity_location, Vec::new()))
+                .collect(),
         }
     }
 
@@ -444,27 +449,17 @@ impl<'resp> ResponseWriter<'resp> {
         self.part().errors.push(error.into());
     }
 
-    pub fn push_boundary_response_object(&self, boundary_ids: &[ExecutionPlanBoundaryId], obj: ResponseObjectRef) {
+    pub fn push_entity(&self, entity_locations: &[EntityLocation], obj: ResponseObjectRef) {
         let mut part = self.part();
-        for boundary_id in boundary_ids {
-            part[*boundary_id].push(obj.clone());
+        // FIXME: Very likely doesn't make sense to have multiple entity locations for a single
+        // object here...
+        for entity_location in entity_locations {
+            for (tracked, refs) in &mut part.entities {
+                if tracked == entity_location {
+                    refs.push(obj.clone())
+                }
+            }
         }
-    }
-}
-
-impl std::ops::Index<ExecutionPlanBoundaryId> for ResponsePart {
-    type Output = Vec<ResponseObjectRef>;
-
-    fn index(&self, id: ExecutionPlanBoundaryId) -> &Self::Output {
-        let n = usize::from(id) - self.plan_boundary_ids_start;
-        &self.plan_boundaries[n].1
-    }
-}
-
-impl std::ops::IndexMut<ExecutionPlanBoundaryId> for ResponsePart {
-    fn index_mut(&mut self, id: ExecutionPlanBoundaryId) -> &mut Self::Output {
-        let n = usize::from(id) - self.plan_boundary_ids_start;
-        &mut self.plan_boundaries[n].1
     }
 }
 

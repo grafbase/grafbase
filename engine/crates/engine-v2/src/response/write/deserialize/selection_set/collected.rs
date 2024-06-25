@@ -4,8 +4,8 @@ use schema::ObjectId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::{
-    operation::SelectionSetType,
-    plan::{CollectedField, CollectedSelectionSetId, ExecutionPlanBoundaryId, RuntimeCollectedSelectionSet},
+    operation::{EntityLocation, SelectionSetType},
+    plan::{CollectedField, CollectedSelectionSetId, RuntimeCollectedSelectionSet},
     response::{
         value::{ResponseObjectFields, RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD},
         write::deserialize::{key::Key, FieldSeed, SeedContext},
@@ -17,7 +17,7 @@ use crate::{
 /// or not. There is no field with type conditions anymore.
 pub(crate) struct CollectedSelectionSetSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContext<'ctx>,
-    pub boundary_ids: &'parent [ExecutionPlanBoundaryId],
+    pub tracked_entity_locations: &'parent [EntityLocation],
     pub fields_seed: CollectedFieldsSeed<'ctx, 'parent>,
 }
 
@@ -33,7 +33,7 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
         let selection_set = &ctx.plan[id];
         Self {
             ctx,
-            boundary_ids: if let Some(ref id) = selection_set.maybe_boundary_id {
+            tracked_entity_locations: if let Some(ref id) = selection_set.maybe_tracked_entity_location {
                 std::array::from_ref(id)
             } else {
                 &[]
@@ -41,7 +41,6 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
             fields_seed: CollectedFieldsSeed {
                 ctx,
                 selection_set_ty: selection_set.ty,
-
                 fields: &ctx.plan[selection_set.field_ids],
                 typename_fields: &selection_set.typename_fields,
             },
@@ -51,7 +50,7 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
     pub fn new(ctx: &'parent SeedContext<'ctx>, selection_set: &'parent RuntimeCollectedSelectionSet) -> Self {
         Self {
             ctx,
-            boundary_ids: &selection_set.boundary_ids,
+            tracked_entity_locations: &selection_set.tracked_entity_locations,
             fields_seed: CollectedFieldsSeed {
                 ctx,
                 selection_set_ty: SelectionSetType::Object(selection_set.object_id),
@@ -88,12 +87,12 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedSelectionSetSeed<'ctx, 'paren
         let (maybe_object_definition_id, fields) = self.fields_seed.visit_map(map)?;
 
         let id = self.ctx.writer.push_object(ResponseObject::new(fields));
-        if !self.boundary_ids.is_empty() {
+        if !self.tracked_entity_locations.is_empty() {
             let Some(definition_id) = maybe_object_definition_id else {
                 return Err(serde::de::Error::custom("Could not determine the __typename"));
             };
-            self.ctx.writer.push_boundary_response_object(
-                self.boundary_ids,
+            self.ctx.writer.push_entity(
+                self.tracked_entity_locations,
                 ResponseObjectRef {
                     id,
                     path: self.ctx.response_path(),

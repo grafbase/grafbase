@@ -73,8 +73,8 @@ impl<'a> PlanWalker<'a, (), ()> {
         &self.operation_plan[self.execution_plan_id].output
     }
 
-    pub fn input(&self) -> Option<&'a PlanInput> {
-        self.operation_plan[self.execution_plan_id].input.as_ref()
+    pub fn input(&self) -> &'a PlanInput {
+        &self.operation_plan[self.execution_plan_id].input
     }
 
     pub fn collected_selection_set(&self) -> PlanWalker<'a, CollectedSelectionSetId, ()> {
@@ -223,9 +223,9 @@ impl<'a> PlanWalker<'a, (), ()> {
         fields.sort_unstable_by(|a, b| keys[a.expected_key].cmp(&keys[b.expected_key]));
         RuntimeCollectedSelectionSet {
             object_id,
-            boundary_ids: selection_sets
+            tracked_entity_locations: selection_sets
                 .iter()
-                .filter_map(|id| self.operation_plan[*id].maybe_boundary_id)
+                .filter_map(|id| self.operation_plan[*id].maybe_tracked_entity_location)
                 .collect(),
             fields,
             typename_fields: typename_fields.into_values().collect(),

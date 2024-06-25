@@ -11,8 +11,6 @@ mod validation;
 mod variables;
 mod walkers;
 
-use std::num::NonZeroU16;
-
 use crate::response::ResponseKeys;
 pub use cache_control::OperationCacheControl;
 pub(crate) use engine_parser::types::OperationType;
@@ -53,35 +51,20 @@ pub(crate) struct Operation {
     pub field_dependencies: Vec<FieldDependency>,
     pub field_to_plan_id: Vec<Option<PlanId>>,
     pub selection_set_to_plan_id: Vec<Option<PlanId>>,
+    pub field_to_entity_location: Vec<Option<EntityLocation>>,
 }
 
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct ParentToChildEdge {
-    // Ordering of the fields matter and is relied upon to find the boundary_id between two plans.
     pub parent: PlanId,
     pub child: PlanId,
-    pub boundary: PlanBoundaryId,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct FieldDependency {
-    pub plan_boundary_id: PlanBoundaryId,
+    pub entity_location: EntityLocation,
     pub required_field_id: RequiredFieldId,
     pub field_id: FieldId,
-}
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct PlanBoundaryId(NonZeroU16);
-
-impl From<usize> for PlanBoundaryId {
-    fn from(value: usize) -> Self {
-        Self(
-            u16::try_from(value)
-                .ok()
-                .and_then(|value| NonZeroU16::new(value + 1))
-                .expect("Too many plan boundaries"),
-        )
-    }
 }
 
 impl Operation {
@@ -107,24 +90,17 @@ impl Operation {
 
     pub fn find_matching_field(
         &self,
-        plan_boundary_id: PlanBoundaryId,
+        entity_location: EntityLocation,
         required_field_id: RequiredFieldId,
     ) -> Option<FieldId> {
         self.field_dependencies
             .binary_search_by(|field_dependency| {
                 field_dependency
-                    .plan_boundary_id
-                    .cmp(&plan_boundary_id)
+                    .entity_location
+                    .cmp(&entity_location)
                     .then(field_dependency.required_field_id.cmp(&required_field_id))
             })
             .ok()
             .map(|index| self.field_dependencies[index].field_id)
-    }
-
-    pub fn find_boundary_between(&self, parent: PlanId, child: PlanId) -> Option<PlanBoundaryId> {
-        self.plan_edges
-            .binary_search_by(|edge| edge.parent.cmp(&parent).then(edge.child.cmp(&child)))
-            .ok()
-            .map(|index| self.plan_edges[index].boundary)
     }
 }

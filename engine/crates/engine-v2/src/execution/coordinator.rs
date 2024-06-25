@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::sync::Arc;
 
 use async_runtime::make_send_on_wasm;
 use engine_parser::types::OperationType;
@@ -72,13 +72,14 @@ impl<'ctx> ExecutionCoordinator<'ctx> {
             let id = state.pop_subscription_plan_id();
             (state, id)
         };
-        let root_plan_boundary_ids = self.plan_walker(subscription_plan_id).output().boundary_ids;
+        let entity_locations_to_track = &self.plan_walker(subscription_plan_id).output().tracked_entity_locations;
+
         let new_execution = || {
             let mut response = ResponseBuilder::new(self.operation_plan.root_object_id);
             OperationRootPlanExecution {
                 root_response_part: response.new_part(
                     Arc::new(response.root_response_object().into_iter().collect()),
-                    root_plan_boundary_ids,
+                    entity_locations_to_track,
                 ),
                 operation_execution: OperationExecution {
                     coordinator: &self,
@@ -241,8 +242,10 @@ impl<'ctx> OperationExecution<'ctx> {
                 Ok(part) => {
                     tracing::trace!(%plan_id, "Succeeded");
 
-                    for (plan_bounday_id, boundary) in self.response.ingest(part, first_edge, default_object) {
-                        self.state.push_boundary_response_object_refs(plan_bounday_id, boundary);
+                    for (entity_location, response_object_refs) in
+                        self.response.ingest(part, first_edge, default_object)
+                    {
+                        self.state.push_entities(entity_location, response_object_refs);
                     }
 
                     for plan_id in self
@@ -285,18 +288,17 @@ impl<'ctx> OperationExecution<'ctx> {
 
         let execution_plan = &operation[plan_id];
         let plan = self.coordinator.plan_walker(plan_id);
-        let response_part = self
-            .response
-            .new_part(root_response_object_refs.clone(), plan.output().boundary_ids);
+        let response_part = self.response.new_part(
+            root_response_object_refs.clone(),
+            &plan.output().tracked_entity_locations,
+        );
         let input = ExecutorInput {
             ctx: self.coordinator.ctx,
             plan,
             root_response_objects: self.response.read(
                 plan.schema(),
                 root_response_object_refs.clone(),
-                plan.input()
-                    .map(|input| Cow::Borrowed(&input.selection_set))
-                    .unwrap_or_default(),
+                &plan.input().selection_set,
             ),
         };
 
