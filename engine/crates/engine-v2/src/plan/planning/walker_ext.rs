@@ -5,9 +5,9 @@ use crate::{
     response::ResponseKey,
 };
 
-impl<'a> OperationWalker<'a> {
+impl<'a> OperationWalker<'a, (), ()> {
     /// Sorting is used to ensure we always pick the BoundFieldId with the lowest query position.
-    pub(super) fn group_by_response_key_sorted_by_query_position(
+    pub(crate) fn group_by_response_key_sorted_by_query_position(
         &self,
         values: impl IntoIterator<Item = FieldId>,
     ) -> HashMap<ResponseKey, Vec<FieldId>> {

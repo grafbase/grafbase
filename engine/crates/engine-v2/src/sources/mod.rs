@@ -48,40 +48,41 @@ use schema::{Resolver, ResolverWalker};
 use crate::{
     execution::{ExecutionContext, ExecutionError, ExecutionResult, OperationRootPlanExecution},
     operation::OperationType,
-    plan::{PlanWalker, PlanningResult},
+    plan::{ExecutionPlan, PlanWalker, PlanningResult},
     response::{ResponseObjectsView, ResponsePart},
 };
 
 use self::{
     graphql::{
-        FederationEntityExecutionPlan, FederationEntityExecutor, GraphqlExecutionPlan, GraphqlExecutor,
+        FederationEntityExecutor, FederationEntityPreparedExecutor, GraphqlExecutor, GraphqlPreparedExecutor,
         GraphqlSubscriptionExecutor,
     },
-    introspection::{IntrospectionExecutionPlan, IntrospectionExecutor},
+    introspection::{IntrospectionExecutor, IntrospectionPreparedExecutor},
 };
 
 mod graphql;
 mod introspection;
 
-pub(crate) enum Plan {
-    GraphQL(GraphqlExecutionPlan),
-    FederationEntity(FederationEntityExecutionPlan),
-    Introspection(IntrospectionExecutionPlan),
+pub(crate) enum PreparedExecutor {
+    Unreachable, // FIXME: replace by an executor which always errors.
+    GraphQL(GraphqlPreparedExecutor),
+    FederationEntity(FederationEntityPreparedExecutor),
+    Introspection(IntrospectionPreparedExecutor),
 }
 
-impl Plan {
-    pub fn build(
+impl PreparedExecutor {
+    pub fn prepare(
         walker: ResolverWalker<'_>,
         operation_type: OperationType,
         plan: PlanWalker<'_>,
     ) -> PlanningResult<Self> {
         match walker.as_ref() {
-            Resolver::Introspection(_) => Ok(Plan::Introspection(IntrospectionExecutionPlan)),
+            Resolver::Introspection(_) => Ok(PreparedExecutor::Introspection(IntrospectionPreparedExecutor)),
             Resolver::GraphqlRootField(resolver) => {
-                GraphqlExecutionPlan::build(walker.walk(resolver), operation_type, plan)
+                GraphqlPreparedExecutor::prepare(walker.walk(resolver), operation_type, plan)
             }
             Resolver::GraphqlFederationEntity(resolver) => {
-                FederationEntityExecutionPlan::build(walker.walk(resolver), plan)
+                FederationEntityPreparedExecutor::prepare(walker.walk(resolver), plan)
             }
         }
     }
@@ -89,7 +90,7 @@ impl Plan {
 
 pub(crate) struct ExecutorInput<'ctx, 'input> {
     pub ctx: ExecutionContext<'ctx>,
-    pub plan: PlanWalker<'ctx>,
+    pub plan: PlanWalker<'ctx, (), ()>,
     pub root_response_objects: ResponseObjectsView<'input>,
 }
 
@@ -98,12 +99,13 @@ pub(crate) struct SubscriptionInput<'ctx> {
     pub plan: PlanWalker<'ctx>,
 }
 
-impl Plan {
+impl ExecutionPlan {
     pub fn new_executor<'ctx>(&'ctx self, input: ExecutorInput<'ctx, '_>) -> Result<Executor<'ctx>, ExecutionError> {
-        match self {
-            Plan::Introspection(execution_plan) => execution_plan.new_executor(input),
-            Plan::GraphQL(execution_plan) => execution_plan.new_executor(input),
-            Plan::FederationEntity(execution_plan) => execution_plan.new_executor(input),
+        match &self.prepared_executor {
+            PreparedExecutor::Unreachable => unreachable!(),
+            PreparedExecutor::Introspection(prepared) => prepared.new_executor(input),
+            PreparedExecutor::GraphQL(prepared) => prepared.new_executor(input),
+            PreparedExecutor::FederationEntity(prepared) => prepared.new_executor(input),
         }
     }
 
@@ -111,12 +113,13 @@ impl Plan {
         &'ctx self,
         input: SubscriptionInput<'ctx>,
     ) -> Result<SubscriptionExecutor<'ctx>, ExecutionError> {
-        match self {
-            Plan::GraphQL(execution_plan) => execution_plan.new_subscription_executor(input),
-            Plan::Introspection(_) => Err(ExecutionError::Internal(
+        match &self.prepared_executor {
+            PreparedExecutor::Unreachable => unreachable!(),
+            PreparedExecutor::GraphQL(prepared) => prepared.new_subscription_executor(input),
+            PreparedExecutor::Introspection(_) => Err(ExecutionError::Internal(
                 "Subscriptions can't contain introspection".into(),
             )),
-            Plan::FederationEntity(_) => Err(ExecutionError::Internal(
+            PreparedExecutor::FederationEntity(_) => Err(ExecutionError::Internal(
                 "Subscriptions can only be at the root of a query so can't contain federated entitites".into(),
             )),
         }

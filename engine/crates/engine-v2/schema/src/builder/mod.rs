@@ -100,6 +100,7 @@ impl BuildContext {
                     directives: Default::default(),
                 },
             ],
+            field_to_parent_entity: vec![EntityId::Object(0.into()); 2],
             enum_definitions: Vec::new(),
             union_definitions: Vec::new(),
             scalar_definitions: Vec::new(),

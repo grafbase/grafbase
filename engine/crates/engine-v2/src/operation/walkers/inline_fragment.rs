@@ -1,7 +1,7 @@
 use super::{OperationWalker, SelectionSetWalker};
 use crate::operation::InlineFragmentId;
 
-pub type InlineFragmentWalker<'a> = OperationWalker<'a, InlineFragmentId>;
+pub type InlineFragmentWalker<'a> = OperationWalker<'a, InlineFragmentId, ()>;
 
 impl<'a> InlineFragmentWalker<'a> {
     pub fn selection_set(&self) -> SelectionSetWalker<'a> {

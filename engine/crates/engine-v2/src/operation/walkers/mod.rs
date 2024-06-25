@@ -54,6 +54,10 @@ impl<'a> OperationWalker<'a, (), ()> {
         matches!(self.as_ref().ty, OperationType::Query)
     }
 
+    pub(crate) fn is_mutation(&self) -> bool {
+        matches!(self.as_ref().ty, OperationType::Mutation)
+    }
+
     pub(crate) fn selection_set(&self) -> SelectionSetWalker<'a> {
         self.walk(self.operation.root_selection_set_id)
     }

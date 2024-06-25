@@ -20,7 +20,7 @@ use super::{
 };
 use crate::{
     execution::ExecutionError,
-    plan::{OperationPlan, PlanBoundaryId, PlanWalker},
+    plan::{ExecutionPlanBoundaryId, OperationPlan, PlanWalker},
 };
 
 pub(crate) struct ResponseDataPart {
@@ -73,7 +73,7 @@ impl ResponseBuilder {
     pub fn new_part(
         &mut self,
         root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        plan_boundary_ids: IdRange<PlanBoundaryId>,
+        plan_boundary_ids: IdRange<ExecutionPlanBoundaryId>,
     ) -> ResponsePart {
         let id = ResponseDataPartId::from(self.parts.len());
         // reserving the spot until the actual data is written. It's safe as no one can reference
@@ -131,7 +131,7 @@ impl ResponseBuilder {
         part: ResponsePart,
         edge: ResponseEdge,
         default_object: Option<Vec<(ResponseEdge, ResponseValue)>>,
-    ) -> Vec<(PlanBoundaryId, Vec<ResponseObjectRef>)> {
+    ) -> Vec<(ExecutionPlanBoundaryId, Vec<ResponseObjectRef>)> {
         let reservation = &mut self.parts[usize::from(part.data.id)];
         assert!(reservation.is_empty(), "Part already has data");
         *reservation = part.data;
@@ -338,14 +338,14 @@ pub(crate) struct ResponsePart {
     errors: Vec<GraphqlError>,
     updates: Vec<UpdateSlot>,
     plan_boundary_ids_start: usize,
-    plan_boundaries: Vec<(PlanBoundaryId, Vec<ResponseObjectRef>)>,
+    plan_boundaries: Vec<(ExecutionPlanBoundaryId, Vec<ResponseObjectRef>)>,
 }
 
 impl ResponsePart {
     fn new(
         data: ResponseDataPart,
         root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        plan_boundary_ids: IdRange<PlanBoundaryId>,
+        plan_boundary_ids: IdRange<ExecutionPlanBoundaryId>,
     ) -> Self {
         Self {
             data,
@@ -444,7 +444,7 @@ impl<'resp> ResponseWriter<'resp> {
         self.part().errors.push(error.into());
     }
 
-    pub fn push_boundary_response_object(&self, boundary_ids: &[PlanBoundaryId], obj: ResponseObjectRef) {
+    pub fn push_boundary_response_object(&self, boundary_ids: &[ExecutionPlanBoundaryId], obj: ResponseObjectRef) {
         let mut part = self.part();
         for boundary_id in boundary_ids {
             part[*boundary_id].push(obj.clone());
@@ -452,17 +452,17 @@ impl<'resp> ResponseWriter<'resp> {
     }
 }
 
-impl std::ops::Index<PlanBoundaryId> for ResponsePart {
+impl std::ops::Index<ExecutionPlanBoundaryId> for ResponsePart {
     type Output = Vec<ResponseObjectRef>;
 
-    fn index(&self, id: PlanBoundaryId) -> &Self::Output {
+    fn index(&self, id: ExecutionPlanBoundaryId) -> &Self::Output {
         let n = usize::from(id) - self.plan_boundary_ids_start;
         &self.plan_boundaries[n].1
     }
 }
 
-impl std::ops::IndexMut<PlanBoundaryId> for ResponsePart {
-    fn index_mut(&mut self, id: PlanBoundaryId) -> &mut Self::Output {
+impl std::ops::IndexMut<ExecutionPlanBoundaryId> for ResponsePart {
+    fn index_mut(&mut self, id: ExecutionPlanBoundaryId) -> &mut Self::Output {
         let n = usize::from(id) - self.plan_boundary_ids_start;
         &mut self.plan_boundaries[n].1
     }

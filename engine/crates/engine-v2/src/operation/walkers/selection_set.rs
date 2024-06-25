@@ -3,7 +3,7 @@ use schema::{Definition, DefinitionWalker};
 use super::{FieldWalker, FragmentSpreadWalker, InlineFragmentWalker, OperationWalker};
 use crate::operation::{Selection, SelectionSetId, SelectionSetType};
 
-pub type SelectionSetWalker<'a> = OperationWalker<'a, SelectionSetId>;
+pub type SelectionSetWalker<'a> = OperationWalker<'a, SelectionSetId, ()>;
 pub type SelectionSetTypeWalker<'a> = OperationWalker<'a, SelectionSetType, Definition>;
 
 impl<'a> SelectionSetWalker<'a> {

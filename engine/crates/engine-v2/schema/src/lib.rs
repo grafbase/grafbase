@@ -69,6 +69,7 @@ pub struct Graph {
     object_definitions: Vec<Object>,
     interface_definitions: Vec<Interface>,
     field_definitions: Vec<FieldDefinition>,
+    field_to_parent_entity: Vec<EntityId>,
     enum_definitions: Vec<Enum>,
     union_definitions: Vec<Union>,
     scalar_definitions: Vec<Scalar>,
@@ -180,6 +181,31 @@ pub struct FieldProvides {
 pub struct FieldRequires {
     subgraph_id: SubgraphId,
     field_set_id: RequiredFieldSetId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+pub enum EntityId {
+    Object(ObjectId),
+    Interface(InterfaceId),
+}
+
+impl From<EntityId> for Definition {
+    fn from(value: EntityId) -> Self {
+        match value {
+            EntityId::Interface(id) => Definition::Interface(id),
+            EntityId::Object(id) => Definition::Object(id),
+        }
+    }
+}
+
+impl EntityId {
+    pub fn maybe_from(definition: Definition) -> Option<EntityId> {
+        match definition {
+            Definition::Object(id) => Some(EntityId::Object(id)),
+            Definition::Interface(id) => Some(EntityId::Interface(id)),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]

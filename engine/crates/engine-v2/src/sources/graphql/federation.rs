@@ -14,23 +14,26 @@ use crate::{
     response::ResponsePart,
     sources::{
         graphql::deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},
-        ExecutionResult, Executor, ExecutorInput, Plan,
+        ExecutionResult, Executor, ExecutorInput, PreparedExecutor,
     },
 };
 
 use super::{deserialize::EntitiesDataSeed, query::PreparedFederationEntityOperation, variables::SubgraphVariables};
 
-pub(crate) struct FederationEntityExecutionPlan {
+pub(crate) struct FederationEntityPreparedExecutor {
     subgraph_id: GraphqlEndpointId,
     operation: PreparedFederationEntityOperation,
 }
 
-impl FederationEntityExecutionPlan {
-    pub fn build(resolver: FederationEntityResolverWalker<'_>, plan: PlanWalker<'_>) -> PlanningResult<Plan> {
+impl FederationEntityPreparedExecutor {
+    pub fn prepare(
+        resolver: FederationEntityResolverWalker<'_>,
+        plan: PlanWalker<'_>,
+    ) -> PlanningResult<PreparedExecutor> {
         let subgraph = resolver.endpoint();
         let operation =
             PreparedFederationEntityOperation::build(plan).map_err(|err| format!("Failed to build query: {err}"))?;
-        Ok(Plan::FederationEntity(Self {
+        Ok(PreparedExecutor::FederationEntity(Self {
             subgraph_id: subgraph.id(),
             operation,
         }))
@@ -92,7 +95,7 @@ pub(crate) struct FederationEntityExecutor<'ctx> {
 }
 
 impl<'ctx> FederationEntityExecutor<'ctx> {
-    #[tracing::instrument(skip_all, fields(plan_id = %self.plan.id(), federated_subgraph = %self.subgraph.name()))]
+    #[tracing::instrument(skip_all)]
     pub async fn execute(self, mut response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
         let subgraph_gql_request_span = SubgraphRequestSpan::new(self.subgraph.name())
             .with_url(self.subgraph.url())

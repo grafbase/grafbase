@@ -2,7 +2,7 @@ use id_newtypes::IdRange;
 use schema::InputValueDefinitionId;
 
 use super::{
-    Field, FieldArgument, Fragment, FragmentSpread, InlineFragment, Operation, QueryInputKeyValueId,
+    Field, FieldArgument, Fragment, FragmentSpread, InlineFragment, Operation, Plan, QueryInputKeyValueId,
     QueryInputObjectFieldValueId, QueryInputValue, QueryInputValueId, SelectionSet, VariableDefinition,
 };
 
@@ -14,6 +14,7 @@ id_newtypes::NonZeroU16! {
     Operation.inline_fragments[InlineFragmentId] => InlineFragment,
     Operation.variable_definitions[VariableDefinitionId] => VariableDefinition,
     Operation.field_arguments[FieldArgumentId] => FieldArgument,
+    Operation.plans[PlanId] => Plan,
 }
 
 impl std::ops::Index<QueryInputValueId> for Operation {

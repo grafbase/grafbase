@@ -17,7 +17,7 @@ impl<'a> PlanSelectionSet<'a> {
     pub fn ty(&self) -> SelectionSetTypeWalker<'a> {
         match self {
             PlanSelectionSet::RootFields(walker) => {
-                let id = walker.operation_plan.plan_outputs[usize::from(walker.plan_id)].collected_selection_set_id;
+                let id = walker.output().collected_selection_set_id;
                 let ty = walker.operation_plan[id].ty;
                 walker.bound_walk_with(ty, Definition::from(ty))
             }
@@ -90,28 +90,28 @@ impl<'a> Iterator for PlanSelectionSetIterator<'a> {
             PlanSelectionSet::SelectionSet(selection_set) => loop {
                 let selection = selection_set.as_ref().items.get(self.next_index)?;
                 self.next_index += 1;
-                let plan_id = selection_set.plan_id;
+                let plan_id = selection_set.operation_plan[selection_set.execution_plan_id].plan_id;
                 let operation = selection_set.operation_plan;
                 return Some(match selection {
                     Selection::Field(id) => {
                         let Some(field_id) = operation[*id].definition_id() else {
                             continue;
                         };
-                        if operation.field_to_plan_id[usize::from(*id)] != plan_id {
+                        if operation.field_to_plan_id[usize::from(*id)] != Some(plan_id) {
                             continue;
                         }
                         PlanSelection::Field(selection_set.walk_with(*id, field_id))
                     }
                     Selection::FragmentSpread(id) => {
                         let spread = &operation[*id];
-                        if operation.selection_to_plan_id[usize::from(spread.selection_set_id)] != plan_id {
+                        if operation.selection_set_to_plan_id[usize::from(spread.selection_set_id)] != Some(plan_id) {
                             continue;
                         }
                         PlanSelection::FragmentSpread(selection_set.walk(*id))
                     }
                     Selection::InlineFragment(id) => {
                         let fragment = &operation[*id];
-                        if operation.selection_to_plan_id[usize::from(fragment.selection_set_id)] != plan_id {
+                        if operation.selection_set_to_plan_id[usize::from(fragment.selection_set_id)] != Some(plan_id) {
                             continue;
                         }
                         PlanSelection::InlineFragment(selection_set.walk(*id))

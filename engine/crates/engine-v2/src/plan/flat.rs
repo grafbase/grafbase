@@ -5,7 +5,7 @@ use std::{
 };
 
 use itertools::Itertools;
-use schema::{Definition, InterfaceId, ObjectId, Schema};
+use schema::{Definition, EntityId, InterfaceId, ObjectId, Schema};
 
 use crate::operation::{FieldId, Operation, Selection, SelectionSetId, SelectionSetType, TypeCondition};
 
@@ -172,45 +172,29 @@ impl FlatField {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub enum EntityType {
-    Interface(InterfaceId),
-    Object(ObjectId),
-}
-
-impl From<EntityType> for Definition {
-    fn from(value: EntityType) -> Self {
+impl From<EntityId> for SelectionSetType {
+    fn from(value: EntityId) -> Self {
         match value {
-            EntityType::Interface(id) => Definition::Interface(id),
-            EntityType::Object(id) => Definition::Object(id),
+            EntityId::Interface(id) => SelectionSetType::Interface(id),
+            EntityId::Object(id) => SelectionSetType::Object(id),
         }
     }
 }
 
-impl From<EntityType> for SelectionSetType {
-    fn from(value: EntityType) -> Self {
+impl From<EntityId> for TypeCondition {
+    fn from(value: EntityId) -> Self {
         match value {
-            EntityType::Interface(id) => SelectionSetType::Interface(id),
-            EntityType::Object(id) => SelectionSetType::Object(id),
+            EntityId::Interface(id) => TypeCondition::Interface(id),
+            EntityId::Object(id) => TypeCondition::Object(id),
         }
     }
 }
 
-impl From<EntityType> for TypeCondition {
-    fn from(value: EntityType) -> Self {
+impl From<EntityId> for FlatTypeCondition {
+    fn from(value: EntityId) -> Self {
         match value {
-            EntityType::Interface(id) => TypeCondition::Interface(id),
-            EntityType::Object(id) => TypeCondition::Object(id),
-        }
-    }
-}
-
-impl EntityType {
-    pub fn maybe_from(definition: Definition) -> Option<EntityType> {
-        match definition {
-            Definition::Object(id) => Some(EntityType::Object(id)),
-            Definition::Interface(id) => Some(EntityType::Interface(id)),
-            _ => None,
+            EntityId::Interface(id) => FlatTypeCondition::Interface(id),
+            EntityId::Object(id) => FlatTypeCondition::Objects(Box::new([id])),
         }
     }
 }

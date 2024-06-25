@@ -11,8 +11,8 @@ use crate::{
 };
 
 use super::{
-    AnyCollectedSelectionSet, CollectedSelectionSetId, ConditionalSelectionSetId, FlatTypeCondition, OperationPlan,
-    PlanId, PlanInput, PlanOutput, RuntimeCollectedSelectionSet,
+    AnyCollectedSelectionSet, CollectedSelectionSetId, ConditionalSelectionSetId, ExecutionPlanId, FlatTypeCondition,
+    OperationPlan, PlanInput, PlanOutput, RuntimeCollectedSelectionSet,
 };
 
 mod collected;
@@ -32,7 +32,7 @@ pub(crate) struct PlanWalker<'a, Item = (), SchemaItem = ()> {
     pub(super) schema_walker: SchemaWalker<'a, SchemaItem>,
     pub(super) operation_plan: &'a OperationPlan,
     pub(super) variables: &'a Variables,
-    pub(super) plan_id: PlanId,
+    pub(super) execution_plan_id: ExecutionPlanId,
     pub(super) item: Item,
 }
 
@@ -56,7 +56,7 @@ where
     }
 }
 
-impl<'a> PlanWalker<'a> {
+impl<'a> PlanWalker<'a, (), ()> {
     pub fn schema(&self) -> SchemaWalker<'a, ()> {
         self.schema_walker
     }
@@ -69,16 +69,12 @@ impl<'a> PlanWalker<'a> {
         PlanSelectionSet::RootFields(self)
     }
 
-    pub fn id(&self) -> PlanId {
-        self.plan_id
-    }
-
     pub fn output(&self) -> &'a PlanOutput {
-        &self.operation_plan.plan_outputs[usize::from(self.plan_id)]
+        &self.operation_plan[self.execution_plan_id].output
     }
 
     pub fn input(&self) -> Option<&'a PlanInput> {
-        self.operation_plan.plan_inputs[usize::from(self.plan_id)].as_ref()
+        self.operation_plan[self.execution_plan_id].input.as_ref()
     }
 
     pub fn collected_selection_set(&self) -> PlanWalker<'a, CollectedSelectionSetId, ()> {
@@ -104,7 +100,7 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
         PlanWalker {
             operation_plan: self.operation_plan,
             variables: self.variables,
-            plan_id: self.plan_id,
+            execution_plan_id: self.execution_plan_id,
             schema_walker: self.schema_walker,
             item,
         }
@@ -114,7 +110,7 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
         PlanWalker {
             operation_plan: self.operation_plan,
             variables: self.variables,
-            plan_id: self.plan_id,
+            execution_plan_id: self.execution_plan_id,
             schema_walker: self.schema_walker.walk(schema_item),
             item,
         }

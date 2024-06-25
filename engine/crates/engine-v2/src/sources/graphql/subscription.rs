@@ -7,7 +7,7 @@ use super::{
     deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
     query::PreparedGraphqlOperation,
     variables::SubgraphVariables,
-    ExecutionContext, GraphqlExecutionPlan,
+    ExecutionContext, GraphqlPreparedExecutor,
 };
 use crate::{
     execution::OperationRootPlanExecution,
@@ -22,7 +22,7 @@ pub(crate) struct GraphqlSubscriptionExecutor<'ctx> {
     plan: PlanWalker<'ctx>,
 }
 
-impl GraphqlExecutionPlan {
+impl GraphqlPreparedExecutor {
     pub fn new_subscription_executor<'ctx>(
         &'ctx self,
         input: SubscriptionInput<'ctx>,
