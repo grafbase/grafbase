@@ -54,7 +54,7 @@ pub trait HooksImpl: Send + Sync {
 
     async fn authorized(
         &self,
-        context: &mut Self::Context,
+        context: Arc<Self::Context>,
         input: Vec<String>,
     ) -> Result<Vec<Option<UserError>>, HookError>;
 }

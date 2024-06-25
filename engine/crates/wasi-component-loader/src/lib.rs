@@ -20,7 +20,7 @@ mod state;
 mod tests;
 
 pub use config::Config;
-pub use context::ContextMap;
+pub use context::{ContextMap, SharedContextMap};
 pub use error::{Error, ErrorResponse};
 
 /// The crate result type
@@ -77,8 +77,10 @@ impl ComponentLoader {
                 }
 
                 let mut types = linker.instance(COMPONENT_TYPES)?;
+
                 headers::map(&mut types)?;
                 context::map(&mut types)?;
+                context::map_shared(&mut types)?;
 
                 Some(Self {
                     engine,
@@ -112,16 +114,13 @@ impl ComponentLoader {
     /// for every request.
     ///
     /// Calls the user-defined hook from the guest, if the function is defined.
-    pub async fn authorized(&self, context: &mut ContextMap, input: Vec<String>) -> Result<Vec<Option<ErrorResponse>>> {
-        let hook = {
-            let context = std::mem::take(context);
-            AuthorizationHookInstance::new(self, context).await?
-        };
-
-        let (modified_context, result) = hook.call(input).await?;
-        *context = modified_context;
-
-        Ok(result)
+    pub async fn authorized(
+        &self,
+        context: SharedContextMap,
+        input: Vec<String>,
+    ) -> Result<Vec<Option<ErrorResponse>>> {
+        let hook = AuthorizationHookInstance::new(self, context).await?;
+        hook.call(input).await
     }
 
     pub(crate) fn config(&self) -> &Config {

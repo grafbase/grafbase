@@ -2,6 +2,7 @@
 // Options used:
 pub type Headers = component::grafbase::types::Headers;
 pub type ErrorResponse = component::grafbase::types::ErrorResponse;
+pub type SharedContext = component::grafbase::types::SharedContext;
 pub type Context = component::grafbase::types::Context;
 #[doc(hidden)]
 #[allow(non_snake_case)]
@@ -117,7 +118,10 @@ pub unsafe fn _export_authorized_cabi<T: Guest>(arg0: i32, arg1: *mut u8, arg2: 
         result3.push(e3);
     }
     _rt::cabi_dealloc(base3, len3 * 8, 4);
-    let result4 = T::authorized(component::grafbase::types::Context::from_handle(arg0 as u32), result3);
+    let result4 = T::authorized(
+        component::grafbase::types::SharedContext::from_handle(arg0 as u32),
+        result3,
+    );
     let ptr5 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
     match result4 {
         Ok(e) => {
@@ -314,7 +318,7 @@ pub unsafe fn __post_return_authorized<T: Guest>(arg0: *mut u8) {
 pub trait Guest {
     fn on_gateway_request(context: Context, headers: Headers) -> Result<(), ErrorResponse>;
     fn authorized(
-        context: Context,
+        context: SharedContext,
         input: _rt::Vec<_rt::String>,
     ) -> Result<_rt::Vec<Option<ErrorResponse>>, ErrorResponse>;
 }
@@ -446,6 +450,50 @@ pub mod component {
                         #[link(wasm_import_module = "component:grafbase/types")]
                         extern "C" {
                             #[link_name = "[resource-drop]context"]
+                            fn drop(_: u32);
+                        }
+
+                        drop(_handle);
+                    }
+                }
+            }
+
+            #[derive(Debug)]
+            #[repr(transparent)]
+            pub struct SharedContext {
+                handle: _rt::Resource<SharedContext>,
+            }
+
+            impl SharedContext {
+                #[doc(hidden)]
+                pub unsafe fn from_handle(handle: u32) -> Self {
+                    Self {
+                        handle: _rt::Resource::from_handle(handle),
+                    }
+                }
+
+                #[doc(hidden)]
+                pub fn take_handle(&self) -> u32 {
+                    _rt::Resource::take_handle(&self.handle)
+                }
+
+                #[doc(hidden)]
+                pub fn handle(&self) -> u32 {
+                    _rt::Resource::handle(&self.handle)
+                }
+            }
+
+            unsafe impl _rt::WasmResource for SharedContext {
+                #[inline]
+                unsafe fn drop(_handle: u32) {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    unreachable!();
+
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        #[link(wasm_import_module = "component:grafbase/types")]
+                        extern "C" {
+                            #[link_name = "[resource-drop]shared-context"]
                             fn drop(_: u32);
                         }
 
@@ -600,6 +648,48 @@ pub mod component {
                         #[link(wasm_import_module = "component:grafbase/types")]
                         extern "C" {
                             #[link_name = "[method]context.delete"]
+                            fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8);
+                        }
+
+                        #[cfg(not(target_arch = "wasm32"))]
+                        fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8) {
+                            unreachable!()
+                        }
+                        wit_import((self).handle() as i32, ptr0.cast_mut(), len0, ptr1);
+                        let l2 = i32::from(*ptr1.add(0).cast::<u8>());
+                        match l2 {
+                            0 => None,
+                            1 => {
+                                let e = {
+                                    let l3 = *ptr1.add(4).cast::<*mut u8>();
+                                    let l4 = *ptr1.add(8).cast::<usize>();
+                                    let len5 = l4;
+                                    let bytes5 = _rt::Vec::from_raw_parts(l3.cast(), len5, len5);
+
+                                    _rt::string_lift(bytes5)
+                                };
+                                Some(e)
+                            }
+                            _ => _rt::invalid_enum_discriminant(),
+                        }
+                    }
+                }
+            }
+            impl SharedContext {
+                #[allow(unused_unsafe, clippy::all)]
+                pub fn get(&self, name: &str) -> Option<_rt::String> {
+                    unsafe {
+                        #[repr(align(4))]
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 12]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 12]);
+                        let vec0 = name;
+                        let ptr0 = vec0.as_ptr().cast::<u8>();
+                        let len0 = vec0.len();
+                        let ptr1 = ret_area.0.as_mut_ptr().cast::<u8>();
+                        #[cfg(target_arch = "wasm32")]
+                        #[link(wasm_import_module = "component:grafbase/types")]
+                        extern "C" {
+                            #[link_name = "[method]shared-context.get"]
                             fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8);
                         }
 
@@ -959,25 +1049,27 @@ pub(crate) use __export_gateway_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:gateway:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 782] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x90\x05\x01A\x02\x01\
-A\x13\x01B\x17\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
-header-error\x03\0\0\x04\0\x07context\x03\x01\x04\0\x07headers\x03\x01\x01o\x02s\
-s\x01p\x04\x01r\x02\x0aextensions\x05\x07messages\x04\0\x0eerror-response\x03\0\x06\
-\x01h\x02\x01ks\x01@\x02\x04self\x08\x04names\0\x09\x04\0\x13[method]context.get\
-\x01\x0a\x01@\x03\x04self\x08\x04names\x05values\x01\0\x04\0\x13[method]context.\
-set\x01\x0b\x04\0\x16[method]context.delete\x01\x0a\x01h\x03\x01j\x01\x09\x01\x01\
-\x01@\x02\x04self\x0c\x04names\0\x0d\x04\0\x13[method]headers.get\x01\x0e\x01j\0\
-\x01\x01\x01@\x03\x04self\x0c\x04names\x05values\0\x0f\x04\0\x13[method]headers.\
-set\x01\x10\x04\0\x16[method]headers.delete\x01\x0e\x03\x01\x18component:grafbas\
-e/types\x05\0\x02\x03\0\0\x07headers\x03\0\x07headers\x03\0\x01\x02\x03\0\0\x0ee\
-rror-response\x03\0\x0eerror-response\x03\0\x03\x02\x03\0\0\x07context\x03\0\x07\
-context\x03\0\x05\x01i\x06\x01i\x02\x01j\0\x01\x04\x01@\x02\x07context\x07\x07he\
-aders\x08\0\x09\x04\0\x12on-gateway-request\x01\x0a\x01ps\x01k\x04\x01p\x0c\x01j\
-\x01\x0d\x01\x04\x01@\x02\x07context\x07\x05input\x0b\0\x0e\x04\0\x0aauthorized\x01\
-\x0f\x04\x01\x1acomponent:grafbase/gateway\x04\0\x0b\x0d\x01\0\x07gateway\x03\0\0\
-\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bind\
-gen-rust\x060.25.0";
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 894] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x80\x06\x01A\x02\x01\
+A\x16\x01B\x1b\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
+header-error\x03\0\0\x04\0\x07context\x03\x01\x04\0\x0eshared-context\x03\x01\x04\
+\0\x07headers\x03\x01\x01o\x02ss\x01p\x05\x01r\x02\x0aextensions\x06\x07messages\
+\x04\0\x0eerror-response\x03\0\x07\x01h\x02\x01ks\x01@\x02\x04self\x09\x04names\0\
+\x0a\x04\0\x13[method]context.get\x01\x0b\x01@\x03\x04self\x09\x04names\x05value\
+s\x01\0\x04\0\x13[method]context.set\x01\x0c\x04\0\x16[method]context.delete\x01\
+\x0b\x01h\x03\x01@\x02\x04self\x0d\x04names\0\x0a\x04\0\x1a[method]shared-contex\
+t.get\x01\x0e\x01h\x04\x01j\x01\x0a\x01\x01\x01@\x02\x04self\x0f\x04names\0\x10\x04\
+\0\x13[method]headers.get\x01\x11\x01j\0\x01\x01\x01@\x03\x04self\x0f\x04names\x05\
+values\0\x12\x04\0\x13[method]headers.set\x01\x13\x04\0\x16[method]headers.delet\
+e\x01\x11\x03\x01\x18component:grafbase/types\x05\0\x02\x03\0\0\x07headers\x03\0\
+\x07headers\x03\0\x01\x02\x03\0\0\x0eerror-response\x03\0\x0eerror-response\x03\0\
+\x03\x02\x03\0\0\x0eshared-context\x03\0\x0eshared-context\x03\0\x05\x02\x03\0\0\
+\x07context\x03\0\x07context\x03\0\x07\x01i\x08\x01i\x02\x01j\0\x01\x04\x01@\x02\
+\x07context\x09\x07headers\x0a\0\x0b\x04\0\x12on-gateway-request\x01\x0c\x01i\x06\
+\x01ps\x01k\x04\x01p\x0f\x01j\x01\x10\x01\x04\x01@\x02\x07context\x0d\x05input\x0e\
+\0\x11\x04\0\x0aauthorized\x01\x12\x04\x01\x1acomponent:grafbase/gateway\x04\0\x0b\
+\x0d\x01\0\x07gateway\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-com\
+ponent\x070.208.1\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

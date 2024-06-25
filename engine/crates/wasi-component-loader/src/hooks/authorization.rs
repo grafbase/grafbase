@@ -5,11 +5,13 @@ use wasmtime::{
     Store,
 };
 
-use crate::{names::AUTHORIZATION_HOOK_FUNCTION, state::WasiState, ComponentLoader, ContextMap, ErrorResponse};
+use crate::{
+    context::SharedContextMap, names::AUTHORIZATION_HOOK_FUNCTION, state::WasiState, ComponentLoader, ErrorResponse,
+};
 
 /// The hook function takes two parameters: the context and the input.
 /// The context is in shared memory space and the input sent by-value to the guest.
-pub(crate) type Parameters = (Resource<ContextMap>, Vec<String>);
+pub(crate) type Parameters = (Resource<SharedContextMap>, Vec<String>);
 
 /// A successful result is a vector mapping the input. If a vector item is not none,
 /// it will not be returned back to the client. If the function returns an error, the
@@ -23,12 +25,12 @@ pub(crate) type Response = (Result<Vec<Option<ErrorResponse>>, ErrorResponse>,);
 /// with the guest, and cannot be shared with multiple requests.
 pub struct AuthorizationHookInstance {
     store: Store<WasiState>,
-    context: Resource<ContextMap>,
+    context: Resource<SharedContextMap>,
     hook: Option<TypedFunc<Parameters, Response>>,
 }
 
 impl AuthorizationHookInstance {
-    pub(crate) async fn new(loader: &ComponentLoader, context: ContextMap) -> crate::Result<Self> {
+    pub(crate) async fn new(loader: &ComponentLoader, context: SharedContextMap) -> crate::Result<Self> {
         let mut store = super::initialize_store(loader.config(), loader.engine())?;
         let context = store.data_mut().push_resource(context)?;
 
@@ -53,20 +55,16 @@ impl AuthorizationHookInstance {
         Ok(Self { store, context, hook })
     }
 
-    pub(crate) async fn call(mut self, input: Vec<String>) -> crate::Result<(ContextMap, Vec<Option<ErrorResponse>>)> {
-        let context_rep = self.context.rep();
-
+    pub(crate) async fn call(mut self, input: Vec<String>) -> crate::Result<Vec<Option<ErrorResponse>>> {
         let result = match self.hook {
             Some(hook) => hook.call_async(&mut self.store, (self.context, input)).await?.0?,
             None => {
                 return Err(crate::Error::Internal(anyhow!(
-                    "on-authorization hook must be defined if using the @authorization directive"
+                    "authorized hook must be defined if using the @authorization directive"
                 )))
             }
         };
 
-        let context = self.store.data_mut().take_resource(context_rep)?;
-
-        Ok((context, result))
+        Ok(result)
     }
 }

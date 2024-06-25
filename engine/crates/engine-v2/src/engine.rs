@@ -4,7 +4,7 @@ use web_time::Instant;
 use async_runtime::stream::StreamExt as _;
 use engine::{BatchRequest, Request};
 use engine_parser::types::OperationType;
-use futures::{channel::mpsc, lock::Mutex, StreamExt};
+use futures::{channel::mpsc, StreamExt};
 use futures_util::{SinkExt, Stream};
 use gateway_core::StreamingFormat;
 use gateway_v2_auth::AuthService;
@@ -331,7 +331,7 @@ pub(crate) struct RequestMetadata {
     pub client: Option<Client>,
     pub access_token: AccessToken,
     #[allow(dead_code)] // TODO: pass this to the user hooks
-    pub context: Mutex<HashMap<String, String>>,
+    pub context: Arc<HashMap<String, String>>,
 }
 
 impl RequestMetadata {
@@ -342,7 +342,7 @@ impl RequestMetadata {
             headers,
             client,
             access_token,
-            context: Mutex::new(context),
+            context: Arc::new(context),
         }
     }
 }

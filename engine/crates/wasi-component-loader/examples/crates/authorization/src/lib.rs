@@ -1,7 +1,7 @@
 #[allow(warnings)]
 mod bindings;
 
-use bindings::{Context, ErrorResponse, Guest, Headers};
+use bindings::{Context, ErrorResponse, Guest, Headers, SharedContext};
 
 struct Component;
 
@@ -14,7 +14,7 @@ impl Guest for Component {
         Ok(())
     }
 
-    fn authorized(context: Context, input: Vec<String>) -> Result<Vec<Option<ErrorResponse>>, ErrorResponse> {
+    fn authorized(context: SharedContext, input: Vec<String>) -> Result<Vec<Option<ErrorResponse>>, ErrorResponse> {
         let auth_header = context.get("entitlement");
         let mut result = Vec::with_capacity(input.len());
 

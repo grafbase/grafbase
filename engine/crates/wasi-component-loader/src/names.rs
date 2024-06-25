@@ -11,3 +11,6 @@ pub(crate) static CONTEXT_RESOURCE: &str = "context";
 pub(crate) static CONTEXT_SET_METHOD: &str = "[method]context.set";
 pub(crate) static CONTEXT_GET_METHOD: &str = "[method]context.get";
 pub(crate) static CONTEXT_DELETE_METHOD: &str = "[method]context.delete";
+
+pub(crate) static SHARED_CONTEXT_RESOURCE: &str = "shared-context";
+pub(crate) static SHARED_CONTEXT_GET_METHOD: &str = "[method]shared-context.get";

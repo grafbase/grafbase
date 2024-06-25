@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{ComponentLoader, Config, ErrorResponse};
 use expect_test::expect;
@@ -261,10 +261,10 @@ async fn authorization() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let (mut context, _) = loader.on_gateway_request(HashMap::new(), headers).await.unwrap();
+    let (context, _) = loader.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
     let result = loader
-        .authorized(&mut context, vec!["kekw".to_string(), "lol".to_string()])
+        .authorized(Arc::new(context), vec!["kekw".to_string(), "lol".to_string()])
         .await
         .unwrap();
 

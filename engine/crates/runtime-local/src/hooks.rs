@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use runtime::hooks::{HeaderMap, HookError, HooksImpl, UserError};
 pub use wasi_component_loader::{ComponentLoader, Config as WasiConfig};
@@ -27,7 +27,7 @@ impl HooksImpl for HooksWasi {
 
     async fn authorized(
         &self,
-        context: &mut Self::Context,
+        context: Arc<Self::Context>,
         input: Vec<String>,
     ) -> Result<Vec<Option<UserError>>, HookError> {
         let results = self

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, pin::Pin};
+use std::{collections::HashMap, pin::Pin, sync::Arc};
 
 use http::HeaderMap;
 use runtime::hooks::{HookError, HooksImpl, UserError};
@@ -8,7 +8,7 @@ type GatewayHook =
 
 type AuthorizationHook = Pin<
     Box<
-        dyn Fn(&mut HashMap<String, String>, Vec<String>) -> Result<Vec<Option<UserError>>, HookError>
+        dyn Fn(Arc<HashMap<String, String>>, Vec<String>) -> Result<Vec<Option<UserError>>, HookError>
             + Send
             + Sync
             + 'static,
@@ -18,7 +18,7 @@ type AuthorizationHook = Pin<
 #[derive(Default)]
 pub struct TestHooks {
     on_gateway_request: Option<GatewayHook>,
-    on_authorization: Option<AuthorizationHook>,
+    authorized: Option<AuthorizationHook>,
 }
 
 impl TestHooks {
@@ -30,14 +30,14 @@ impl TestHooks {
         self
     }
 
-    pub fn on_authorization<F>(mut self, hook: F) -> Self
+    pub fn authorized<F>(mut self, hook: F) -> Self
     where
-        F: Fn(&mut HashMap<String, String>, Vec<String>) -> Result<Vec<Option<UserError>>, HookError>
+        F: Fn(Arc<HashMap<String, String>>, Vec<String>) -> Result<Vec<Option<UserError>>, HookError>
             + Send
             + Sync
             + 'static,
     {
-        self.on_authorization = Some(Box::pin(hook));
+        self.authorized = Some(Box::pin(hook));
         self
     }
 }
@@ -55,10 +55,10 @@ impl HooksImpl for TestHooks {
 
     async fn authorized(
         &self,
-        context: &mut Self::Context,
+        context: Arc<Self::Context>,
         input: Vec<String>,
     ) -> Result<Vec<Option<UserError>>, HookError> {
-        match self.on_authorization {
+        match self.authorized {
             Some(ref hook) => hook(context, input),
             None => todo!("please define the on-authorization hook before testing"),
         }

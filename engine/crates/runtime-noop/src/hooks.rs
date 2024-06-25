@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use runtime::hooks::{HeaderMap, HookError, HooksImpl, UserError};
 
@@ -13,7 +13,7 @@ impl HooksImpl for HooksNoop {
         Ok((HashMap::new(), headers))
     }
 
-    async fn authorized(&self, _: &mut Self::Context, _: Vec<String>) -> Result<Vec<Option<UserError>>, HookError> {
+    async fn authorized(&self, _: Arc<Self::Context>, _: Vec<String>) -> Result<Vec<Option<UserError>>, HookError> {
         unreachable!("@authorization directive not available outside of local context")
     }
 }
