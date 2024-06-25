@@ -1,5 +1,5 @@
 [package]
-name = "missing_callback"
+name = "missing_hook"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -14,7 +14,7 @@ wit-bindgen-rt = { version = "0.26.0", features = ["bitflags"] }
 crate-type = ["cdylib"]
 
 [package.metadata.component]
-package = "component:missing-callback"
+package = "component:missing-hook"
 adapter = "../../wasi_snapshot_preview1.reactor.wasm"
 
 [package.metadata.component.dependencies]

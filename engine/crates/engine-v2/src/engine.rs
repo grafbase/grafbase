@@ -4,7 +4,7 @@ use web_time::Instant;
 use async_runtime::stream::StreamExt as _;
 use engine::{BatchRequest, Request};
 use engine_parser::types::OperationType;
-use futures::{channel::mpsc, lock::Mutex, StreamExt};
+use futures::{channel::mpsc, StreamExt};
 use futures_util::{SinkExt, Stream};
 use gateway_core::StreamingFormat;
 use gateway_v2_auth::AuthService;
@@ -45,7 +45,7 @@ pub struct EngineEnv {
     pub trusted_documents: runtime::trusted_documents_client::Client,
     pub kv: runtime::kv::KvStore,
     pub meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
-    pub user_hooks: runtime::user_hooks::UserHooks,
+    pub hooks: runtime::hooks::Hooks,
 }
 
 impl Engine {
@@ -68,7 +68,7 @@ impl Engine {
         headers: http::HeaderMap,
         batch_request: BatchRequest,
     ) -> HttpGraphqlResponse {
-        let (context, headers) = match self.env.user_hooks.on_gateway_request(headers).await {
+        let (context, headers) = match self.env.hooks.on_gateway_request(headers).await {
             Ok(result) => result,
             Err(error) => return Response::execution_error(error).into(),
         };
@@ -84,7 +84,7 @@ impl Engine {
     }
 
     pub async fn create_session(self: &Arc<Self>, headers: http::HeaderMap) -> Result<Session, Cow<'static, str>> {
-        let (context, headers) = match self.env.user_hooks.on_gateway_request(headers).await {
+        let (context, headers) = match self.env.hooks.on_gateway_request(headers).await {
             Ok(result) => result,
             Err(error) => return Err(Cow::from(error.to_string())),
         };
@@ -331,7 +331,7 @@ pub(crate) struct RequestMetadata {
     pub client: Option<Client>,
     pub access_token: AccessToken,
     #[allow(dead_code)] // TODO: pass this to the user hooks
-    pub context: Mutex<HashMap<String, String>>,
+    pub context: Arc<HashMap<String, String>>,
 }
 
 impl RequestMetadata {
@@ -342,7 +342,7 @@ impl RequestMetadata {
             headers,
             client,
             access_token,
-            context: Mutex::new(context),
+            context: Arc::new(context),
         }
     }
 }

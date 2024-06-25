@@ -1,6 +1,6 @@
 mod bench;
+mod hooks;
 mod mock;
-mod user_hooks;
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -8,10 +8,10 @@ use crate::{mock_trusted_documents::MockTrustedDocumentsClient, TestTrustedDocum
 use async_graphql_parser::types::ServiceDocument;
 pub use bench::*;
 use graphql_mocks::MockGraphQlServer;
+pub use hooks::TestHooks;
 pub use mock::*;
 use parser_sdl::connector_parsers::MockConnectorParsers;
-use runtime::{trusted_documents_client, user_hooks::UserHooks};
-pub use user_hooks::UserHooksTest;
+use runtime::{hooks::Hooks, trusted_documents_client};
 
 use super::TestFederationEngine;
 
@@ -20,7 +20,7 @@ pub struct FederationGatewayBuilder {
     schemas: Vec<(String, String, ServiceDocument)>,
     trusted_documents: Option<MockTrustedDocumentsClient>,
     config_sdl: Option<String>,
-    user_hooks: UserHooksTest,
+    user_hooks: TestHooks,
 }
 
 pub trait GatewayV2Ext {
@@ -29,7 +29,7 @@ pub trait GatewayV2Ext {
             trusted_documents: None,
             schemas: vec![],
             config_sdl: None,
-            user_hooks: UserHooksTest::default(),
+            user_hooks: TestHooks::default(),
         }
     }
 }
@@ -65,7 +65,7 @@ impl FederationGatewayBuilder {
         self
     }
 
-    pub fn with_user_hooks(mut self, callbacks: UserHooksTest) -> Self {
+    pub fn with_user_hooks(mut self, callbacks: TestHooks) -> Self {
         self.user_hooks = callbacks;
         self
     }
@@ -109,7 +109,7 @@ impl FederationGatewayBuilder {
                     }),
                 kv: runtime_local::InMemoryKvStore::runtime(),
                 meter: grafbase_tracing::metrics::meter_from_global_provider(),
-                user_hooks: UserHooks::new(self.user_hooks),
+                hooks: Hooks::new(self.user_hooks),
             },
         )))
     }

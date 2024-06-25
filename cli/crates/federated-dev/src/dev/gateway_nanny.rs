@@ -8,8 +8,8 @@ use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::FederatedGraphConfig;
-use runtime::user_hooks::UserHooks;
-use runtime_noop::user_hooks::UserHooksNoop;
+use runtime::hooks::Hooks;
+use runtime_noop::hooks::HooksNoop;
 use tokio_stream::wrappers::WatchStream;
 
 /// The GatewayNanny looks after the `Gateway` - on updates to the graph or config it'll
@@ -63,7 +63,7 @@ pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraph
         ),
         kv: runtime_local::InMemoryKvStore::runtime(),
         meter: grafbase_tracing::metrics::meter_from_global_provider(),
-        user_hooks: UserHooks::new(UserHooksNoop),
+        hooks: Hooks::new(HooksNoop),
     };
 
     let config = config.into_latest().try_into().ok()?;

@@ -2,9 +2,10 @@ use wasmtime::{Engine, Store};
 
 use crate::{state::WasiState, Config};
 
+pub(crate) mod authorization;
 pub(crate) mod gateway;
 
-/// Generic initialization of WASI components for all callbacks.
+/// Generic initialization of WASI components for all hooks.
 fn initialize_store(config: &Config, engine: &Engine) -> crate::Result<Store<WasiState>> {
     let state = WasiState::new(config.wasi_context());
 

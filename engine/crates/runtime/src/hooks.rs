@@ -7,7 +7,7 @@ use std::{
 pub use http::HeaderMap;
 
 #[derive(Debug, thiserror::Error)]
-pub enum UserHookError {
+pub enum HookError {
     #[error("Kv error: {0}")]
     User(UserError),
     #[error("{0}")]
@@ -30,16 +30,16 @@ impl fmt::Display for UserError {
 }
 
 #[derive(Clone)]
-pub struct UserHooks(Arc<dyn UserHooksImpl<Context = HashMap<String, String>>>);
+pub struct Hooks(Arc<dyn HooksImpl<Context = HashMap<String, String>>>);
 
-impl UserHooks {
-    pub fn new(inner: impl UserHooksImpl<Context = HashMap<String, String>> + 'static) -> Self {
+impl Hooks {
+    pub fn new(inner: impl HooksImpl<Context = HashMap<String, String>> + 'static) -> Self {
         Self(Arc::new(inner))
     }
 }
 
-impl std::ops::Deref for UserHooks {
-    type Target = dyn UserHooksImpl<Context = HashMap<String, String>>;
+impl std::ops::Deref for Hooks {
+    type Target = dyn HooksImpl<Context = HashMap<String, String>>;
 
     fn deref(&self) -> &Self::Target {
         self.0.deref()
@@ -47,8 +47,14 @@ impl std::ops::Deref for UserHooks {
 }
 
 #[async_trait::async_trait]
-pub trait UserHooksImpl: Send + Sync {
+pub trait HooksImpl: Send + Sync {
     type Context;
 
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), UserHookError>;
+    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), HookError>;
+
+    async fn authorized(
+        &self,
+        context: Arc<Self::Context>,
+        input: Vec<String>,
+    ) -> Result<Vec<Option<UserError>>, HookError>;
 }

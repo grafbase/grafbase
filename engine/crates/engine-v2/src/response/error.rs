@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use engine::ErrorCode;
-use runtime::user_hooks::UserHookError;
+use runtime::hooks::HookError;
 
 use super::ResponsePath;
 
@@ -33,11 +33,11 @@ impl GraphqlError {
     }
 }
 
-impl From<UserHookError> for GraphqlError {
-    fn from(error: UserHookError) -> Self {
+impl From<HookError> for GraphqlError {
+    fn from(error: HookError) -> Self {
         let (message, extensions) = match error {
-            UserHookError::User(error) => (error.message, error.extensions),
-            UserHookError::Internal(error) => (error.to_string(), Default::default()),
+            HookError::User(error) => (error.message, error.extensions),
+            HookError::Internal(error) => (error.to_string(), Default::default()),
         };
 
         Self {

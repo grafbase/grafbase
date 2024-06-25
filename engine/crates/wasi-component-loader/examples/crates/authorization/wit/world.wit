@@ -1,0 +1,36 @@
+package component:grafbase;
+
+interface types {
+    enum header-error {
+        invalid-header-value,
+        invalid-header-name,
+    }
+
+    resource context {
+        get: func(name: string) -> option<string>;
+        set: func(name: string, value: string);
+        delete: func(name: string) -> option<string>;
+    }
+
+    resource shared-context {
+        get: func(name: string) -> option<string>;
+    }
+
+    resource headers {
+        get: func(name: string) -> result<option<string>, header-error>;
+        set: func(name: string, value: string) -> result<_, header-error>;
+        delete: func(name: string) -> result<option<string>, header-error>;
+    }
+
+    record error-response {
+        extensions: list<tuple<string, string>>,
+        message: string,
+    }
+}
+
+world gateway {
+    use types.{headers, error-response, shared-context, context};
+
+    export on-gateway-request: func(context: context, headers: headers) -> result<_, error-response>;
+    export authorized: func(context: shared-context, input: list<string>) -> result<list<option<error-response>>, error-response>;
+}

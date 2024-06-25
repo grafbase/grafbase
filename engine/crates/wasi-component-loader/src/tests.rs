@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{ComponentLoader, Config, ErrorResponse};
 use expect_test::expect;
@@ -17,11 +17,11 @@ async fn missing_wasm() {
 }
 
 #[tokio::test]
-async fn missing_callback() {
-    // the guest code in examples/missing_callback/src/lib.rs
+async fn missing_hook() {
+    // the guest code in examples/missing_hook/src/lib.rs
 
     let config = indoc! {r#"
-        location = "examples/target/wasm32-wasi/debug/missing_callback.wasm"
+        location = "examples/target/wasm32-wasi/debug/missing_hook.wasm"
         stdout = true
         stderr = true
     "#};
@@ -243,4 +243,42 @@ async fn guest_error() {
     };
 
     assert_eq!(Some(expected), error.into_user_error());
+}
+
+#[tokio::test]
+async fn authorization() {
+    // the guest code in examples/authorization/src/lib.rs
+
+    let config = indoc! {r#"
+        location = "examples/target/wasm32-wasi/debug/authorization.wasm"
+    "#};
+
+    let config: Config = toml::from_str(config).unwrap();
+    assert!(config.location().exists());
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Authorization", HeaderValue::from_static("kekw"));
+
+    let loader = ComponentLoader::new(config).unwrap().unwrap();
+
+    let (context, _) = loader.on_gateway_request(HashMap::new(), headers).await.unwrap();
+
+    let result = loader
+        .authorized(Arc::new(context), vec!["kekw".to_string(), "lol".to_string()])
+        .await
+        .unwrap();
+
+    let expected = expect![[r#"
+        [
+            None,
+            Some(
+                ErrorResponse {
+                    extensions: [],
+                    message: "not authorized",
+                },
+            ),
+        ]
+    "#]];
+
+    expected.assert_debug_eq(&result);
 }

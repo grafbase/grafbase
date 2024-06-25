@@ -3,17 +3,17 @@ use std::collections::{BTreeMap, HashMap};
 use engine_v2::Engine;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::{
-    federation::{GatewayV2Ext, UserHooksTest},
+    federation::{GatewayV2Ext, TestHooks},
     runtime,
 };
-use runtime::user_hooks::{UserError, UserHookError};
+use runtime::hooks::{HookError, UserError};
 use serde_json::Value;
 
 #[test]
 fn a_gateway_request_no_op() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-        let user_hooks = UserHooksTest::default().on_gateway_request(|headers| Ok((HashMap::new(), headers)));
+        let user_hooks = TestHooks::default().on_gateway_request(|headers| Ok((HashMap::new(), headers)));
 
         let engine = Engine::builder()
             .with_user_hooks(user_hooks)
@@ -39,8 +39,8 @@ fn a_gateway_callback_error() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let user_hooks = UserHooksTest::default().on_gateway_request(|_| {
-            Err(UserHookError::User(UserError {
+        let user_hooks = TestHooks::default().on_gateway_request(|_| {
+            Err(HookError::User(UserError {
                 extensions: BTreeMap::from([(String::from("foo"), Value::String(String::from("bar")))]),
                 message: String::from("impossible error"),
             }))
