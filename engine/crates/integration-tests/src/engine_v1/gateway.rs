@@ -7,9 +7,9 @@ use futures::future::BoxFuture;
 use gateway_core::{AuthService, CacheConfig, ConstructableResponse, ExecutionAuth, RequestContext, StreamingFormat};
 use http::HeaderMap;
 use registry_for_cache::PartialCacheRegistry;
+use registry_v2::rate_limiting::RateLimitConfig;
 use runtime::{kv::KvStore, trusted_documents_client, udf::UdfInvoker};
 use runtime_noop::kv::NoopKvStore;
-use runtime_noop::rate_limiting::NoopRateLimiter;
 
 use crate::{mock_trusted_documents::MockTrustedDocumentsClient, udfs::RustUdfs, TestTrustedDocument};
 
@@ -21,6 +21,8 @@ pub struct GatewayBuilder {
     trusted_documents: Option<MockTrustedDocumentsClient>,
     auth_config: AuthConfig,
     authorizers: Option<RustUdfs>,
+    rate_limiting_config: RateLimitConfig,
+    auth_service: Option<AuthService>,
 }
 
 impl GatewayBuilder {
@@ -31,6 +33,8 @@ impl GatewayBuilder {
             trusted_documents: None,
             auth_config: Default::default(),
             authorizers: None,
+            rate_limiting_config: Default::default(),
+            auth_service: None,
         }
     }
 
@@ -41,11 +45,25 @@ impl GatewayBuilder {
         }
     }
 
+    pub fn with_auth(self, auth_config: AuthConfig) -> Self {
+        Self { auth_config, ..self }
+    }
+
     pub fn with_trusted_documents(mut self, branch_id: String, documents: Vec<TestTrustedDocument>) -> Self {
         self.trusted_documents = Some(MockTrustedDocumentsClient {
             _branch_id: branch_id,
             documents,
         });
+        self
+    }
+
+    pub fn with_rate_limiting_config(mut self, config: RateLimitConfig) -> Self {
+        self.rate_limiting_config = config;
+        self
+    }
+
+    pub fn with_auth_service(mut self, auth_service: AuthService) -> Self {
+        self.auth_service = Some(auth_service);
         self
     }
 
@@ -64,18 +82,20 @@ impl GatewayBuilder {
         };
 
         // This AuthService is used to authenticate "user" requests
-        let auth = AuthService::new_v1(
+        let auth = self.auth_service.unwrap_or(AuthService::new_v1(
             self.auth_config,
             KvStore::new(NoopKvStore),
             UdfInvoker::new(self.authorizers.unwrap_or_default()),
             "my-identity-is-ray".into(),
-        );
+        ));
 
         // This authorizor is used to authorize admin requests.
         // Not to be confused with the authorizors that live inside AuthService above :|
         let authorizer = Box::new(AnythingGoes);
 
         let trusted_documents = trusted_documents_client::Client::new(self.trusted_documents.unwrap_or_default());
+
+        let rate_limiting = runtime_local::InMemoryRateLimiting::new(&self.rate_limiting_config.rules);
 
         GatewayTester {
             inner: Arc::new(gateway_core::Gateway::new(
@@ -86,7 +106,7 @@ impl GatewayBuilder {
                 authorizer,
                 trusted_documents,
                 grafbase_tracing::metrics::meter_from_global_provider(),
-                Box::new(NoopRateLimiter),
+                Box::new(rate_limiting),
             )),
         }
     }

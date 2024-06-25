@@ -20,7 +20,7 @@ use names::{Generator, Name};
 use tokio::runtime::Runtime;
 pub use types::{Error, ResponseData};
 
-pub use crate::engine_v1::{Engine, EngineBuilder, GatewayBuilder};
+pub use crate::engine_v1::{Engine, EngineBuilder, GatewayBuilder, GatewayTester};
 
 thread_local! {
     static NAMES: RefCell<Option<Generator<'static>>> = const { RefCell::new(None) };

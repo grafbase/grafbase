@@ -36,7 +36,13 @@ impl<'a> RateLimiterContext for RatelimitContext<'a> {
             .and_then(|ip| IpAddr::from_str(ip).ok())
     }
 
-    fn jwt_claim(&self, key: &str) -> &Value {
-        self.auth.get_claim(key)
+    fn jwt_claim(&self, key: &str) -> Option<&Value> {
+        let claim = self.auth.get_claim(key);
+
+        if claim.is_null() {
+            return None;
+        }
+
+        Some(claim)
     }
 }

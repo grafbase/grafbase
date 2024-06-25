@@ -33,3 +33,9 @@ pub struct Jwt {
     pub name: String,
     pub value: Option<serde_json::Value>,
 }
+
+#[derive(Debug, Clone, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum AnyOrSpecific<T> {
+    Any,
+    Specific(T)
+}
