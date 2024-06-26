@@ -1,0 +1,101 @@
+package component:grafbase;
+
+interface types {
+    // Error thrown when accessing the headers. Headers names or values
+    // must not contain any special characters.
+    enum header-error {
+        // the given header value is not valid
+        invalid-header-value,
+        // the given header name is not valid
+        invalid-header-name,
+    }
+
+    // A context object is available in all hooks during the whole request
+    // lifecycle. It can be used to store custom data in one hook and make it
+    // available in the hooks executed later in the request.
+    //
+    // This resource provides mutable access to the context and is available only
+    // in the gateway request hook.
+    resource context {
+        // Fetches a context value with the given name, if existing.
+        get: func(name: string) -> option<string>;
+        // Stores a context value with the given name.
+        set: func(name: string, value: string);
+        // Deletes a context value with the given name. Returns the value
+        // if existing.
+        delete: func(name: string) -> option<string>;
+    }
+
+    // The context as a read-only object.
+    resource shared-context {
+        // Fetches a context value with the given name, if existing.
+        get: func(name: string) -> option<string>;
+    }
+
+    // Provides access to the request headers. Available in a mutable form
+    // only in the gateway request hook.
+    resource headers {
+        // Gets a header value with the given name. Returns an error if
+        // the name is not a valid header name. Returns none if the header does not exist.
+        get: func(name: string) -> result<option<string>, header-error>;
+        // Sets the header value with the given name. Returns an error if the given name
+        // is not a valid header name.
+        set: func(name: string, value: string) -> result<_, header-error>;
+        // Deletes a header value with the given name. Returns an error if
+        // the given name is not a valid header name. Returns the value if ixisting.
+        delete: func(name: string) -> result<option<string>, header-error>;
+    }
+
+    // An error response can be used to inject an error to the GraphQL response.
+    record error-response {
+        // Adds the given extensions to the response extensions. The first item in
+        // the tuple is the extension key, and the second item is the extension value.
+        // The extension value can be string-encoded JSON, which will be converted as
+        // JSON in the response. It can also be just a string, which will be converted as
+        // a JSON string in the response.
+        extensions: list<tuple<string, string>>,
+        // The error message.
+        message: string,
+    }
+}
+
+interface gateway-request {
+    use types.{headers, error-response, context};
+
+    // The hook is called in the federated gateway just before authentication. It can be used
+    // to read and modify the request headers. The context object is provided in a mutable form,
+    // allowing storage for the subsequent hooks to read.
+    //
+    // If returning an error from the hook, the request processing is stopped and the given error
+    // returned to the client.
+    on-gateway-request: func(context: context, headers: headers) -> result<_, error-response>;
+}
+
+interface authorization {
+    use types.{error-response, shared-context};
+
+    // The hook is called in the request cycle if the schema defines an authorization directive.
+    // The context is read only, and provides data written in the gateway request hook.
+    //
+    // The rule parameter is taken from the directive's rule argument.
+    //
+    // The input is combined from the directive arguments and fields, taking the data from the 
+    // provided arguments and the field values as defined in the directive.
+    //
+    // The result, if an error, will stop the request execution and return an error back to the user.
+    //
+    // A successful result is a list of optional error responses. The list length must match with the
+    // length of the input list. If the list item is none, the field is returned to the user. If the
+    // value is an error, the error is added to the response and null value returned to the user for
+    // that field.
+    authorized: func(context: shared-context, rule: string, input: list<string>) -> result<list<option<error-response>>, error-response>;
+}
+
+// Export here all the hooks the guest wants to implement. If a hook interface is not exported in the world,
+// the execution in the engine will be a no-op.
+//
+// The guest must implement all exported hooks defined in the world.
+world hooks {
+    export gateway-request;
+    export authorization;
+}
