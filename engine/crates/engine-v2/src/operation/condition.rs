@@ -1,15 +1,19 @@
 use std::ops::BitAnd;
 
-use schema::RequiredScopesId;
+use schema::{AuthorizedDirectiveId, RequiredScopesId};
 
 use crate::response::GraphqlError;
 
-use super::ConditionId;
+use super::{ConditionId, FieldId};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum Condition {
     Authenticated,
     RequiresScopes(RequiredScopesId),
+    Authorized {
+        directive_id: AuthorizedDirectiveId,
+        field_id: FieldId,
+    },
     All(Vec<ConditionId>),
 }
 

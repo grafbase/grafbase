@@ -93,8 +93,10 @@ where
 }
 
 impl OperationPlan {
-    pub fn build(ctx: ExecutionContext<'_>, variables: &Variables, operation: Operation) -> PlanningResult<Self> {
-        planning::collect::OperationPlanBuilder::new(ctx, variables, operation).build()
+    pub async fn build(ctx: ExecutionContext<'_>, variables: &Variables, operation: Operation) -> PlanningResult<Self> {
+        planning::collect::OperationPlanBuilder::new(ctx, variables, operation)
+            .build()
+            .await
     }
 
     pub fn new_execution_state(&self) -> OperationExecutionState {

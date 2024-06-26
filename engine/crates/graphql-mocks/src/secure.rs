@@ -20,6 +20,14 @@ fn authenticated() {}
 )]
 fn requires_scopes(scopes: Vec<Vec<String>>) {}
 
+#[TypeDirective(
+    name = "authorized",
+    location = "FieldDefinition",
+    location = "Object",
+    composable = "https://custom.spec.dev/extension/v1.0"
+)]
+fn authorized(rule: String) {}
+
 #[derive(Default)]
 pub struct Query;
 
@@ -64,6 +72,13 @@ impl Check {
     )]
     async fn must_have_read_and_write_scope(&self) -> &'static str {
         "You have read and write scopes"
+    }
+
+    #[graphql(
+        directive = authorized::apply("x-grafbase-client-name-header-is-defined".into())
+    )]
+    async fn grafbase_client_is_defined(&self) -> &'static str {
+        "You have properly set the x-grafbase-client-name header"
     }
 }
 

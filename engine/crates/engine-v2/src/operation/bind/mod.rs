@@ -406,17 +406,6 @@ impl<'a> Binder<'a> {
             location: name_location,
         })?;
 
-        let conditions = definition
-            .directives()
-            .as_ref()
-            .iter()
-            .filter_map(|directive| match directive {
-                TypeSystemDirective::Authenticated => Some(self.push_condition(Condition::Authenticated)),
-                TypeSystemDirective::RequiresScopes(id) => Some(self.push_condition(Condition::RequiresScopes(*id))),
-                _ => None,
-            })
-            .collect();
-        let condition = self.merge_conditions(conditions);
         let field_id = self.push_field(
             parent,
             Field::Query(QueryField {
@@ -425,10 +414,24 @@ impl<'a> Binder<'a> {
                 field_definition_id: definition.id(),
                 argument_ids: Default::default(),
                 selection_set_id: Default::default(),
-                condition,
+                condition: None,
             }),
         );
 
+        let conditions = definition
+            .directives()
+            .as_ref()
+            .iter()
+            .filter_map(|directive| match directive {
+                TypeSystemDirective::Authenticated => Some(self.push_condition(Condition::Authenticated)),
+                TypeSystemDirective::RequiresScopes(id) => Some(self.push_condition(Condition::RequiresScopes(*id))),
+                &TypeSystemDirective::Authorized(directive_id) => {
+                    Some(self.push_condition(Condition::Authorized { directive_id, field_id }))
+                }
+                _ => None,
+            })
+            .collect();
+        let condition = self.merge_conditions(conditions);
         let argument_ids = self.bind_field_arguments(definition, field_id, name_location, &mut field.arguments)?;
         let selection_set_id = if field.selection_set.node.items.is_empty() {
             if !matches!(
@@ -459,6 +462,7 @@ impl<'a> Binder<'a> {
         };
         field.argument_ids = argument_ids;
         field.selection_set_id = selection_set_id;
+        field.condition = condition;
 
         Ok(Selection::Field(field_id))
     }
