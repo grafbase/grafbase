@@ -58,7 +58,7 @@ impl StreamingExecutionPhase {
         let cache_entries = self.execution_phase.cache_entries.iter_mut();
         let cache_keys = std::mem::take(&mut self.execution_phase.cache_keys);
 
-        for (index, (entry, key)) in cache_entries.into_iter().zip(cache_keys).enumerate() {
+        for (index, (entry, key)) in cache_entries.zip(cache_keys).enumerate() {
             match entry {
                 Entry::Hit(hit, max_age) => {
                     store.merge_cache_entry(hit, &self.shapes, Some(&active_defers));
@@ -108,7 +108,19 @@ impl StreamingExecutionPhase {
         };
 
         if !self.execution_phase.cache_entries.is_empty() {
-            // If we still have cache entries, we should merge them into the
+            // If we still have cache entries, we should merge the rest of them into
+            // the store before handling this incremental response
+            let cache_values = std::mem::take(&mut self.execution_phase.cache_entries)
+                .into_iter()
+                .filter_map(|entry| match entry {
+                    Entry::Hit(value, _) => Some(value),
+                    Entry::Stale(stale) => Some(stale.value),
+                    _ => None,
+                });
+
+            for mut value in cache_values {
+                output.merge_cache_entry(&mut value, &self.shapes, None);
+            }
         }
 
         if errors {
