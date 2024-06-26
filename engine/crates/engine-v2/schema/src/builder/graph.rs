@@ -9,11 +9,11 @@ use id_newtypes::IdRange;
 
 use crate::{
     sources::{self, graphql::GraphqlEndpointId, introspection::IntrospectionBuilder, IntrospectionMetadata},
-    CacheControl, CacheControlId, Definition, EntityId, Enum, EnumId, EnumValue, EnumValueId, FieldDefinition,
-    FieldDefinitionId, FieldProvides, FieldRequires, Graph, InputObject, InputObjectId, InputValueDefinition,
-    Interface, InterfaceId, Object, ObjectId, ProvidableField, ProvidableFieldSet, RequiredScopes, RequiredScopesId,
-    Resolver, ResolverId, RootOperationTypes, Scalar, ScalarId, ScalarType, StringId, Type, TypeSystemDirective,
-    TypeSystemDirectiveId, Union, UnionId,
+    AuthorizedDirective, CacheControl, CacheControlId, Definition, EntityId, Enum, EnumId, EnumValue, EnumValueId,
+    FieldDefinition, FieldDefinitionId, FieldProvides, FieldRequires, Graph, InputObject, InputObjectId,
+    InputValueDefinition, InputValueSet, InputValueSetItem, Interface, InterfaceId, Object, ObjectId, ProvidableField,
+    ProvidableFieldSet, RequiredScopes, RequiredScopesId, Resolver, ResolverId, RootOperationTypes, Scalar, ScalarId,
+    ScalarType, StringId, Type, TypeSystemDirective, TypeSystemDirectiveId, Union, UnionId,
 };
 
 use super::{
@@ -66,6 +66,7 @@ impl<'a> GraphBuilder<'a> {
                 cache_control: Vec::new(),
                 input_values: Default::default(),
                 required_scopes: Vec::new(),
+                authorized_directives: Vec::new(),
             },
         };
         builder.ingest_config(config);
@@ -80,6 +81,12 @@ impl<'a> GraphBuilder<'a> {
         self.ingest_scalars(config);
         let object_metadata = self.ingest_objects(config);
         let interface_metadata = self.ingest_interfaces_after_objects(config);
+        // Not guaranteed to be sorted and rely on binary search to find the directives for a
+        // field.
+        config
+            .graph
+            .field_authorized_directives
+            .sort_unstable_by_key(|(id, _)| *id);
         self.ingest_fields(config, object_metadata, interface_metadata);
     }
 
@@ -98,7 +105,7 @@ impl<'a> GraphBuilder<'a> {
                             config,
                             Directives {
                                 federated: definition.directives,
-                                cache_config_target: None,
+                                ..Default::default()
                             },
                         ),
                     })
@@ -123,7 +130,7 @@ impl<'a> GraphBuilder<'a> {
                             config,
                             Directives {
                                 federated: definition.composed_directives,
-                                cache_config_target: None,
+                                ..Default::default()
                             },
                         ),
                     })
@@ -150,7 +157,7 @@ impl<'a> GraphBuilder<'a> {
                     config,
                     Directives {
                         federated: union.composed_directives,
-                        cache_config_target: None,
+                        ..Default::default()
                     },
                 ),
             })
@@ -174,7 +181,7 @@ impl<'a> GraphBuilder<'a> {
                             config,
                             Directives {
                                 federated: enum_value.composed_directives,
-                                cache_config_target: None,
+                                ..Default::default()
                             },
                         ),
                     })
@@ -198,7 +205,7 @@ impl<'a> GraphBuilder<'a> {
                     config,
                     Directives {
                         federated: federated_enum.composed_directives,
-                        cache_config_target: None,
+                        ..Default::default()
                     },
                 ),
             })
@@ -219,7 +226,7 @@ impl<'a> GraphBuilder<'a> {
                         config,
                         Directives {
                             federated: scalar.composed_directives,
-                            cache_config_target: None,
+                            ..Default::default()
                         },
                     ),
                 }
@@ -254,6 +261,7 @@ impl<'a> GraphBuilder<'a> {
                 Directives {
                     federated: object.composed_directives,
                     cache_config_target: Some(CacheConfigTarget::Object(federated_id)),
+                    ..Default::default()
                 },
             );
             self.graph.object_definitions.push(Object {
@@ -298,7 +306,7 @@ impl<'a> GraphBuilder<'a> {
                 config,
                 Directives {
                     federated: interface.composed_directives,
-                    cache_config_target: None,
+                    ..Default::default()
                 },
             );
             self.graph.interface_definitions.push(Interface {
@@ -414,13 +422,6 @@ impl<'a> GraphBuilder<'a> {
                     }
                 }
             }
-            let directives = self.push_directives(
-                config,
-                Directives {
-                    federated: field.composed_directives,
-                    cache_config_target: Some(CacheConfigTarget::Field(federated_id)),
-                },
-            );
             let parent_entity_id = if let Some(object_id) =
                 object_metadata.field_id_to_maybe_object_id[usize::from(field_id)]
             {
@@ -432,6 +433,32 @@ impl<'a> GraphBuilder<'a> {
                 // TODO: better guarantee this never fails.
                 unreachable!()
             };
+            let schema_location = SchemaLocation::Field {
+                ty: match parent_entity_id {
+                    EntityId::Object(id) => self.graph[id].name,
+                    EntityId::Interface(id) => self.graph[id].name,
+                },
+                name: field.name.into(),
+            };
+
+            let directives = self.push_directives(
+                config,
+                Directives {
+                    federated: field.composed_directives,
+                    cache_config_target: Some(CacheConfigTarget::Field(federated_id)),
+                    authorized_directives: {
+                        let mapping = &config.graph.field_authorized_directives;
+                        let mut i = mapping.partition_point(|(id, _)| *id < federated_id);
+                        let mut ids = Vec::new();
+                        while i < mapping.len() && mapping[i].0 == federated_id {
+                            ids.push(mapping[i].1);
+                            i += 1
+                        }
+                        Some((schema_location, ids))
+                    },
+                },
+            );
+
             self.graph.field_definitions.push(FieldDefinition {
                 name: field.name.into(),
                 description: None,
@@ -456,16 +483,7 @@ impl<'a> GraphBuilder<'a> {
                     .into_iter()
                     .filter(|requires| !requires.fields.is_empty())
                     .map(|federated_graph::FieldRequires { subgraph_id, fields }| {
-                        let field_set_id = self.required_field_sets_buffer.push(
-                            SchemaLocation::Field {
-                                ty: match parent_entity_id {
-                                    EntityId::Object(id) => self.graph[id].name,
-                                    EntityId::Interface(id) => self.graph[id].name,
-                                },
-                                name: field.name.into(),
-                            },
-                            fields,
-                        );
+                        let field_set_id = self.required_field_sets_buffer.push(schema_location, fields);
                         FieldRequires {
                             subgraph_id: self.sources.graphql[GraphqlEndpointId::from(subgraph_id)].subgraph_id,
                             field_set_id,
@@ -590,6 +608,7 @@ impl<'a> GraphBuilder<'a> {
 
     fn push_directives(&mut self, config: &Config, directives: Directives) -> IdRange<TypeSystemDirectiveId> {
         let start = self.graph.type_system_directives.len();
+
         for directive in &config.graph[directives.federated] {
             let directive = match directive {
                 federated_graph::Directive::Authenticated => TypeSystemDirective::Authenticated,
@@ -613,6 +632,7 @@ impl<'a> GraphBuilder<'a> {
             };
             self.graph.type_system_directives.push(directive);
         }
+
         if let Some(config) = directives
             .cache_config_target
             .and_then(|target| config.cache.rule(target))
@@ -625,14 +645,56 @@ impl<'a> GraphBuilder<'a> {
                 .type_system_directives
                 .push(TypeSystemDirective::CacheControl(cache_control_id));
         }
+
+        if let Some((schema_location, directives)) = directives.authorized_directives {
+            for id in directives {
+                let directive = &config.graph[id];
+
+                let authorized_id = self.graph.authorized_directives.len().into();
+                self.graph.authorized_directives.push(AuthorizedDirective {
+                    rule: directive.rule.into(),
+                    arguments: directive
+                        .arguments
+                        .as_ref()
+                        .map(|args| self.convert_input_value_set(args))
+                        .unwrap_or_default(),
+                    fields: directive
+                        .fields
+                        .as_ref()
+                        .map(|fields| self.required_field_sets_buffer.push(schema_location, fields.clone())),
+                    metadata: (),
+                });
+                self.graph
+                    .type_system_directives
+                    .push(TypeSystemDirective::Authorized(authorized_id));
+            }
+        }
+
         let end = self.graph.type_system_directives.len();
         (start..end).into()
+    }
+
+    fn convert_input_value_set(&self, input_value_set: &federated_graph::InputValueDefinitionSet) -> InputValueSet {
+        input_value_set
+            .iter()
+            .filter_map(|item| {
+                self.ctx
+                    .idmaps
+                    .input_value
+                    .get(item.input_value_definition)
+                    .map(|id| InputValueSetItem {
+                        id,
+                        subselection: self.convert_input_value_set(&item.subselection),
+                    })
+            })
+            .collect()
     }
 }
 
 struct Directives {
     federated: federated_graph::Directives,
     cache_config_target: Option<CacheConfigTarget>,
+    authorized_directives: Option<(SchemaLocation, Vec<federated_graph::AuthorizedDirectiveId>)>,
 }
 
 impl Default for Directives {
@@ -640,6 +702,7 @@ impl Default for Directives {
         Self {
             federated: (federated_graph::DirectiveId(0), 0),
             cache_config_target: None,
+            authorized_directives: None,
         }
     }
 }
