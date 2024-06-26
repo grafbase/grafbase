@@ -1,4 +1,7 @@
 pub(crate) static COMPONENT_TYPES: &str = "component:grafbase/types";
+pub(crate) static COMPONENT_GATEWAY_REQUEST: &str = "component:grafbase/gateway-request";
+pub(crate) static COMPONENT_AUTHORIZATION: &str = "component:grafbase/authorization";
+
 pub(crate) static GATEWAY_HOOK_FUNCTION: &str = "on-gateway-request";
 pub(crate) static AUTHORIZATION_HOOK_FUNCTION: &str = "authorized";
 

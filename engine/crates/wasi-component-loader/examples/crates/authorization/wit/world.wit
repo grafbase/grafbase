@@ -28,9 +28,19 @@ interface types {
     }
 }
 
-world gateway {
-    use types.{headers, error-response, shared-context, context};
+interface gateway-request {
+    use types.{headers, error-response, context};
 
-    export on-gateway-request: func(context: context, headers: headers) -> result<_, error-response>;
-    export authorized: func(context: shared-context, input: list<string>) -> result<list<option<error-response>>, error-response>;
+    on-gateway-request: func(context: context, headers: headers) -> result<_, error-response>;
+}
+
+interface authorization {
+    use types.{error-response, shared-context};
+
+    authorized: func(context: shared-context, input: list<string>) -> result<list<option<error-response>>, error-response>;
+}
+ 
+world hooks {
+    export gateway-request;
+    export authorization;
 }

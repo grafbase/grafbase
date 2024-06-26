@@ -12,6 +12,10 @@ interface types {
         delete: func(name: string) -> option<string>;
     }
 
+    resource shared-context {
+        get: func(name: string) -> option<string>;
+    }
+
     resource headers {
         get: func(name: string) -> result<option<string>, header-error>;
         set: func(name: string, value: string) -> result<_, header-error>;
@@ -19,13 +23,23 @@ interface types {
     }
 
     record error-response {
-        status: option<u16>,
         message: string,
+        extensions: list<tuple<string,string>>,
     }
 }
 
-world gateway {
+interface gateway-request {
     use types.{headers, error-response, context};
 
-    export on-subgraph-request: func(context: context, headers: headers) -> result<_, error-response>;
+    on-gateway-request: func(context: context, headers: headers) -> result<_, error-response>;
+}
+
+interface authorization {
+    use types.{error-response, shared-context};
+
+    authorized: func(context: shared-context, input: list<string>) -> result<list<option<error-response>>, error-response>;
+}
+
+world hooks {
+    export authorization;
 }
