@@ -61,14 +61,14 @@ impl StreamingExecutionPhase {
         for (index, (entry, key)) in cache_entries.zip(cache_keys).enumerate() {
             match entry {
                 Entry::Hit(hit, max_age) => {
-                    store.merge_cache_entry(hit, &self.shapes, Some(&active_defers));
+                    store.merge_cache_entry(hit, &self.shapes, &active_defers);
 
                     response_max_age.merge(*max_age);
                 }
                 Entry::Stale(stale) => {
                     // TODO: Also want to issue an update instruction here, but going to do that
                     // in GB-6804
-                    store.merge_cache_entry(&mut stale.value, &self.shapes, Some(&active_defers));
+                    store.merge_cache_entry(&mut stale.value, &self.shapes, &active_defers);
 
                     // This entry was stale so clear the current maxAge until we have revalidated
                     response_max_age.set_none();
@@ -99,6 +99,7 @@ impl StreamingExecutionPhase {
 
     pub fn record_incremental_response(
         &mut self,
+        defer_label: &str,
         path: &[&QueryPathSegment],
         data: QueryResponse,
         errors: bool,
@@ -119,7 +120,7 @@ impl StreamingExecutionPhase {
                 });
 
             for mut value in cache_values {
-                output.merge_cache_entry(&mut value, &self.shapes, None);
+                output.merge_specific_defer_from_cache_entry(&mut value, &self.shapes, defer_label);
             }
         }
 

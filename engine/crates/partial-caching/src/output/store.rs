@@ -232,7 +232,7 @@ pub struct Object<'a> {
 }
 
 impl<'a> Object<'a> {
-    #[cfg(test)]
+    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.record().fields.len()
     }

@@ -1,6 +1,8 @@
 mod building;
 mod fragment_iter;
 
+use std::fmt;
+
 pub use building::build_output_shapes;
 use cynic_parser::executable::OperationDefinition;
 
@@ -131,7 +133,19 @@ pub struct Field<'a> {
     field_index: FieldIndex,
 }
 
+impl fmt::Debug for Field<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Field")
+            .field("response_key", &self.response_key())
+            .finish_non_exhaustive()
+    }
+}
+
 impl<'a> Field<'a> {
+    pub fn response_key(&self) -> &'a str {
+        &self.record().response_key
+    }
+
     pub fn index(&self) -> FieldIndex {
         self.field_index
     }
