@@ -37,7 +37,7 @@ interface gateway-request {
 interface authorization {
     use types.{error-response, shared-context};
 
-    authorized: func(context: shared-context, input: list<string>) -> result<list<option<error-response>>, error-response>;
+    authorized: func(context: shared-context, rule: string, input: list<string>) -> result<list<option<error-response>>, error-response>;
 }
 
 world hooks {
