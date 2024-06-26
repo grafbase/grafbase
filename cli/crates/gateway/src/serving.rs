@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{
     extract::{Query, State},
     response::IntoResponse,
@@ -6,12 +8,12 @@ use axum::{
 };
 use bytes::Bytes;
 use futures_util::future::{join_all, BoxFuture};
-use gateway_core::StreamingFormat;
+use gateway_core::{encode_stream_response, StreamingFormat};
 use http::{HeaderMap, StatusCode};
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tower_http::cors::CorsLayer;
 
-use crate::{Gateway, Response};
+use crate::{Context, Gateway, Response};
 
 pub(super) fn router(gateway: Gateway) -> Router {
     Router::new()
@@ -44,7 +46,7 @@ async fn post_graphql(State(gateway): State<Gateway>, headers: HeaderMap, body: 
     match request {
         engine::BatchRequest::Single(request) => {
             let result = match streaming_format {
-                Some(format) => gateway.execute_stream(&ctx, request, format).await,
+                Some(format) => execute_stream(gateway, &ctx, request, format).await,
                 None => gateway
                     .execute(&ctx, request)
                     .await
@@ -116,6 +118,26 @@ async fn get_graphql(
 #[allow(clippy::unused_async)]
 async fn options_any() -> impl IntoResponse {
     ""
+}
+
+async fn execute_stream(
+    gateway: Gateway,
+    ctx: &Arc<Context>,
+    request: engine::Request,
+    format: StreamingFormat,
+) -> Result<Response, crate::Error> {
+    let payload_stream = gateway.execute_stream_v2(ctx, request).await?;
+
+    let (headers, byte_stream) = encode_stream_response(payload_stream, format);
+
+    let mut response_builder = axum::http::Response::builder()
+        .status(200)
+        .body(axum::body::Body::from_stream(byte_stream))
+        .map_err(|e| crate::Error::Internal(e.to_string()))?;
+
+    response_builder.headers_mut().extend(headers);
+
+    Ok(response_builder.into_response().into())
 }
 
 async fn wait(mut receiver: UnboundedReceiver<BoxFuture<'static, ()>>) {
