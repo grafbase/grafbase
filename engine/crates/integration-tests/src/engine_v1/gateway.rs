@@ -2,14 +2,20 @@
 
 use std::{collections::HashMap, future::IntoFuture, str::FromStr, sync::Arc};
 
-use engine::{AuthConfig, Variables};
-use futures::{future::BoxFuture, stream::BoxStream};
+use async_runtime::stream::StreamExt as _;
+use engine::{AuthConfig, RequestHeaders, StreamingPayload, Variables};
+use futures::{
+    future::{join_all, BoxFuture},
+    stream::BoxStream,
+    Future, Stream, StreamExt,
+};
 use gateway_core::{AuthService, CacheConfig, ConstructableResponse, ExecutionAuth, RequestContext, StreamingFormat};
 use http::HeaderMap;
 use registry_for_cache::PartialCacheRegistry;
 use registry_v2::rate_limiting::RateLimitConfig;
 use runtime::{kv::KvStore, trusted_documents_client, udf::UdfInvoker};
 use runtime_noop::kv::NoopKvStore;
+use tokio::sync::mpsc;
 
 use crate::{mock_trusted_documents::MockTrustedDocumentsClient, udfs::RustUdfs, TestTrustedDocument};
 
@@ -130,6 +136,40 @@ impl gateway_core::Authorizer for AnythingGoes {
 
 pub struct GatewayTesterRequestContext {
     headers: http::HeaderMap,
+    wait_until_sender: mpsc::UnboundedSender<BoxFuture<'static, ()>>,
+}
+
+impl GatewayTesterRequestContext {
+    pub fn new(headers: HashMap<String, String>) -> (Arc<Self>, impl Future<Output = ()>) {
+        let headers = headers
+            .into_iter()
+            .map(|(k, v)| {
+                (
+                    http::HeaderName::from_str(&k).expect("valid header name"),
+                    http::HeaderValue::from_str(&v).expect("valid header value"),
+                )
+            })
+            .collect();
+
+        let (wait_until_sender, mut wait_until_receiver) = mpsc::unbounded_channel();
+
+        let wait_until_future = async move {
+            // Wait simultaneously on everything immediately accessible
+            join_all(std::iter::from_fn(|| wait_until_receiver.try_recv().ok())).await;
+            // Wait sequentially on the rest
+            while let Some(fut) = wait_until_receiver.recv().await {
+                fut.await;
+            }
+        };
+
+        (
+            Arc::new(GatewayTesterRequestContext {
+                headers,
+                wait_until_sender,
+            }),
+            wait_until_future,
+        )
+    }
 }
 
 #[async_trait::async_trait]
@@ -138,8 +178,8 @@ impl RequestContext for GatewayTesterRequestContext {
         "what-do-you-mean-im-not-a-ray-id-how-very-dare-you"
     }
 
-    async fn wait_until(&self, _fut: BoxFuture<'static, ()>) {
-        todo!("probably want to implement this")
+    async fn wait_until(&self, fut: BoxFuture<'static, ()>) {
+        self.wait_until_sender.send(fut).unwrap();
     }
 
     fn headers(&self) -> &http::HeaderMap {
@@ -192,29 +232,49 @@ impl IntoFuture for GatewayTesterExecutionRequest {
 
     fn into_future(self) -> Self::IntoFuture {
         Box::pin(async move {
-            let request = self.graphql.into_engine_request();
-            // .data(RequestHeaders::from(&self.headers));
+            let request = self
+                .graphql
+                .into_engine_request()
+                .data(RequestHeaders::from(&self.headers));
 
-            // TODO: Do something with headers...
-            self.gateway
-                .execute(
-                    &Arc::new(GatewayTesterRequestContext {
-                        headers: self
-                            .headers
-                            .into_iter()
-                            .map(|(k, v)| {
-                                (
-                                    http::HeaderName::from_str(&k).expect("valid header name"),
-                                    http::HeaderValue::from_str(&v).expect("valid header value"),
-                                )
-                            })
-                            .collect(),
-                    }),
-                    request,
-                )
-                .await
-            // TODO: Probably want to do any wait_untils here as well...
+            let (request_context, wait_until_future) = GatewayTesterRequestContext::new(self.headers);
+
+            let result = self.gateway.execute(&request_context, request).await;
+
+            // Need to drop request_context to drop the wait_until_sender - otherwise we just hang forever
+            // in wait_until_future
+            drop(request_context);
+
+            wait_until_future.await;
+
+            result
         })
+    }
+}
+
+impl GatewayTesterExecutionRequest {
+    /// Runs a streaming request and returns a stream of the responses
+    pub async fn into_stream(self) -> impl Stream<Item = StreamingPayload> {
+        let request = self
+            .graphql
+            .into_engine_request()
+            .data(RequestHeaders::from(&self.headers));
+
+        let (request_context, wait_until_future) = GatewayTesterRequestContext::new(self.headers);
+
+        let stream = self.gateway.execute_stream_v2(&request_context, request).await.unwrap();
+
+        stream.join(wait_until_future)
+    }
+
+    // Runs a streaming request and collects responses into a vec
+    pub async fn collect(self) -> Vec<StreamingPayload> {
+        self.into_stream().await.collect().await
+    }
+
+    /// Runs a streaming request, returning an iterator over the responses
+    pub async fn into_iter(self) -> impl Iterator<Item = StreamingPayload> {
+        self.collect().await.into_iter()
     }
 }
 

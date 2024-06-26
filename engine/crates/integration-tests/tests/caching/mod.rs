@@ -1,3 +1,5 @@
+mod partial_caching_defer;
+
 use integration_tests::udfs::RustUdfs;
 use integration_tests::{runtime, EngineBuilder};
 use runtime::cache::Cacheable;

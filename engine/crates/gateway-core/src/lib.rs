@@ -290,7 +290,7 @@ where
         &self,
         ctx: &Arc<Executor::Context>,
         mut request: engine::Request,
-    ) -> Result<BoxStream<'_, engine::StreamingPayload>, Executor::Error>
+    ) -> Result<BoxStream<'static, engine::StreamingPayload>, Executor::Error>
     where
         Executor::Error: From<runtime::rate_limiting::Error>,
     {

@@ -21,7 +21,7 @@ graphql-mocks.workspace = true
 engine-config-builder = { path = "../engine-config-builder" }
 expect-test = "1.5"
 futures = "0.3.30"
-gateway-core.workspace = true
+gateway-core = { workspace = true, features = ["partial-caching"] }
 grafbase-graphql-introspection.workspace = true
 graphql-composition.workspace = true
 graphql-parser = "0.4.0"
