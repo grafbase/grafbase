@@ -8,7 +8,7 @@ type GatewayHook =
 
 type AuthorizationHook = Pin<
     Box<
-        dyn Fn(Arc<HashMap<String, String>>, Vec<String>) -> Result<Vec<Option<UserError>>, HookError>
+        dyn Fn(Arc<HashMap<String, String>>, String, Vec<String>) -> Result<Vec<Option<UserError>>, HookError>
             + Send
             + Sync
             + 'static,
@@ -32,7 +32,7 @@ impl TestHooks {
 
     pub fn authorized<F>(mut self, hook: F) -> Self
     where
-        F: Fn(Arc<HashMap<String, String>>, Vec<String>) -> Result<Vec<Option<UserError>>, HookError>
+        F: Fn(Arc<HashMap<String, String>>, String, Vec<String>) -> Result<Vec<Option<UserError>>, HookError>
             + Send
             + Sync
             + 'static,
@@ -56,10 +56,11 @@ impl HooksImpl for TestHooks {
     async fn authorized(
         &self,
         context: Arc<Self::Context>,
+        rule: String,
         input: Vec<String>,
     ) -> Result<Vec<Option<UserError>>, HookError> {
         match self.authorized {
-            Some(ref hook) => hook(context, input),
+            Some(ref hook) => hook(context, rule, input),
             None => todo!("please define the on-authorization hook before testing"),
         }
     }

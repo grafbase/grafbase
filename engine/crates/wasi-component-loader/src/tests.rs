@@ -264,7 +264,11 @@ async fn authorization() {
     let (context, _) = loader.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
     let result = loader
-        .authorized(Arc::new(context), vec!["kekw".to_string(), "lol".to_string()])
+        .authorized(
+            Arc::new(context),
+            String::from("rule"),
+            vec!["kekw".to_string(), "lol".to_string()],
+        )
         .await
         .unwrap();
 

@@ -14,7 +14,7 @@ use crate::{
 
 /// The hook function takes two parameters: the context and the input.
 /// The context is in shared memory space and the input sent by-value to the guest.
-pub(crate) type Parameters = (Resource<SharedContextMap>, Vec<String>);
+pub(crate) type Parameters = (Resource<SharedContextMap>, String, Vec<String>);
 
 /// A successful result is a vector mapping the input. If a vector item is not none,
 /// it will not be returned back to the client. If the function returns an error, the
@@ -47,9 +47,9 @@ impl AuthorizationHookInstance {
         Ok(Self { store, context, hook })
     }
 
-    pub(crate) async fn call(mut self, input: Vec<String>) -> crate::Result<Vec<Option<ErrorResponse>>> {
+    pub(crate) async fn call(mut self, rule: String, input: Vec<String>) -> crate::Result<Vec<Option<ErrorResponse>>> {
         let result = match self.hook {
-            Some(hook) => hook.call_async(&mut self.store, (self.context, input)).await?.0?,
+            Some(hook) => hook.call_async(&mut self.store, (self.context, rule, input)).await?.0?,
             None => {
                 return Err(crate::Error::Internal(anyhow!(
                     "authorized hook must be defined if using the @authorization directive"
