@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Support the experimental @authorized directive
+
 ## 0.4.0 - 2024-06-11
 
 - Ignore federation mandated fields (_entities, _service) and types (https://github.com/grafbase/grafbase/pull/1743)

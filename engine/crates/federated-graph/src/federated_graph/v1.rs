@@ -96,7 +96,7 @@ fn default_true() -> bool {
 
 pub type FieldSet = Vec<FieldSetItem>;
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, PartialOrd)]
 pub struct FieldSetItem {
     pub field: FieldId,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

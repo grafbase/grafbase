@@ -1,0 +1,68 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    BANK_ACCOUNT @join__graph(name: "bank-account", url: "http://example.com/bank-account")
+}
+
+type User {
+    accounts: [Account!]! @join__field(graph: BANK_ACCOUNT) @authorized(rule: "must-be-same-user", fields: "userId name", metadata: "{\"stuff\": true}")
+    email: String! @join__field(graph: BANK_ACCOUNT)
+    name: String! @join__field(graph: BANK_ACCOUNT)
+    userId: ID! @join__field(graph: BANK_ACCOUNT)
+}
+
+type Account {
+    balance: Float! @join__field(graph: BANK_ACCOUNT) @authorized(rule: "balance", fields: "id")
+    id: ID! @join__field(graph: BANK_ACCOUNT)
+    transactions: [Transaction!]! @join__field(graph: BANK_ACCOUNT)
+    type: AccountType! @join__field(graph: BANK_ACCOUNT)
+    user: User! @join__field(graph: BANK_ACCOUNT)
+}
+
+type Transaction {
+    account: Account! @join__field(graph: BANK_ACCOUNT)
+    amount: Float! @join__field(graph: BANK_ACCOUNT)
+    date: String! @join__field(graph: BANK_ACCOUNT)
+    description: String @join__field(graph: BANK_ACCOUNT)
+    id: ID! @join__field(graph: BANK_ACCOUNT)
+}
+
+type Query {
+    account(id: ID!): Account @join__field(graph: BANK_ACCOUNT)
+    accounts: [Account!]! @join__field(graph: BANK_ACCOUNT)
+    transaction(id: ID!): Transaction @join__field(graph: BANK_ACCOUNT)
+    transactions: [Transaction!]! @join__field(graph: BANK_ACCOUNT)
+    user(id: ID!): User @join__field(graph: BANK_ACCOUNT)
+    users: [User!]! @join__field(graph: BANK_ACCOUNT)
+}
+
+type Mutation {
+    createAccount(userId: ID!, type: AccountType!, initialBalance: Float!): Account! @join__field(graph: BANK_ACCOUNT)
+    createTransaction(amount: Float!, description: String, accountId: ID!): Transaction! @join__field(graph: BANK_ACCOUNT)
+    createUser(name: String!, email: String!): User! @join__field(graph: BANK_ACCOUNT)
+    deleteAccount(id: ID!): Account! @join__field(graph: BANK_ACCOUNT)
+    deleteTransaction(id: ID!): Transaction! @join__field(graph: BANK_ACCOUNT)
+    deleteUser(id: ID!, soft: Boolean): User! @join__field(graph: BANK_ACCOUNT) @authorized(rule: "userAdmin", arguments: "id")
+    updateUser(name: String, email: String, id: ID!): User! @join__field(graph: BANK_ACCOUNT)
+}
+
+enum AccountType {
+    SAVINGS
+    CHECKING
+}

@@ -7,6 +7,15 @@ use std::{
 pub(super) const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
 pub(super) const INDENT: &str = "    ";
 
+/// Quoted and escaped GraphQL string literal.
+pub(super) struct QuotedString<'a>(pub &'a str);
+
+impl fmt::Display for QuotedString<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write_quoted(f, self.0)
+    }
+}
+
 // Copy-pasted from async-graphql-value
 pub(super) fn write_quoted(sdl: &mut impl Write, s: &str) -> fmt::Result {
     sdl.write_char('"')?;
@@ -77,7 +86,7 @@ impl fmt::Display for ValueDisplay<'_> {
 
                 for value in values.as_ref() {
                     ValueDisplay(value, graph).fmt(f)?;
-                    f.write_char(',')?;
+                    f.write_str(", ")?;
                 }
 
                 f.write_char(']')
@@ -171,6 +180,46 @@ impl Display for BareFieldSetDisplay<'_> {
     }
 }
 
+/// Displays a input value definition set inside quotes
+pub(super) struct InputValueDefinitionSetDisplay<'a>(pub &'a crate::InputValueDefinitionSet, pub &'a FederatedGraphV3);
+
+impl Display for InputValueDefinitionSetDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let out = format!("{}", BareInputValueDefinitionSetDisplay(self.0, self.1));
+        write_quoted(f, &out)
+    }
+}
+
+pub(super) struct BareInputValueDefinitionSetDisplay<'a>(
+    pub &'a crate::InputValueDefinitionSet,
+    pub &'a FederatedGraphV3,
+);
+
+impl Display for BareInputValueDefinitionSetDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let BareInputValueDefinitionSetDisplay(selection_set, graph) = self;
+        let mut selection = selection_set.iter().peekable();
+
+        while let Some(field) = selection.next() {
+            let name = &graph[graph[field.input_value_definition].name];
+
+            f.write_str(name)?;
+
+            if !field.subselection.is_empty() {
+                f.write_str(" { ")?;
+                BareInputValueDefinitionSetDisplay(&field.subselection, graph).fmt(f)?;
+                f.write_str(" }")?;
+            }
+
+            if selection.peek().is_some() {
+                f.write_char(' ')?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
 pub(super) fn write_description(
     f: &mut fmt::Formatter<'_>,
     description: Option<StringId>,
@@ -179,6 +228,15 @@ pub(super) fn write_description(
 ) -> fmt::Result {
     let Some(description) = description else { return Ok(()) };
     Display::fmt(&Description(&graph[description], indent), f)
+}
+
+pub(crate) struct DirectiveDisplay<'a>(pub &'a Directive, pub &'a FederatedGraphV3);
+
+impl Display for DirectiveDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let DirectiveDisplay(directive, graph) = self;
+        write_composed_directive(f, directive, graph)
+    }
 }
 
 pub(crate) fn write_composed_directive(
@@ -197,7 +255,7 @@ pub(crate) fn write_composed_directive(
         ),
         Directive::Policy(policies) => write_directive(
             f,
-            "policies",
+            "policy",
             std::iter::once((
                 "policies",
                 Value::List(

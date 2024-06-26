@@ -1,0 +1,3 @@
+# [bank-account]: Error validating the @authorized directive at Mutation.createUser:  --> 1:6\n  |\n1 | { not-a-selection }\n  |      ^---\n  |\n  = expected selection_set, selection, directive, or arguments
+# Error in @authorized at Account.balance: the userId field does not exist on Account
+# Error in @authorized: the userId argument does not exist on Mutation.deleteUser. Did you use the `arguments` argument instead of `fields`?

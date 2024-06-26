@@ -58,6 +58,9 @@ pub(crate) struct FieldIr {
     /// Subgraph fields corresponding to this federated graph field that have an `@requires`.
     pub(crate) requires: Vec<subgraphs::FieldId>,
 
+    /// Subgraph fields corresponding to this federated graph field that have an `@authorized`.
+    pub(crate) authorized_directives: Vec<subgraphs::FieldId>,
+
     // @join__field(graph: ..., override: ...)
     pub(crate) overrides: Vec<federated::Override>,
 

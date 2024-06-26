@@ -54,6 +54,8 @@ pub(super) fn merge_interface_definitions<'a>(
             overrides: Vec::new(),
             composed_directives,
             description,
+            // TODO: GB-6968
+            authorized_directives: Vec::new(),
         });
     }
 

@@ -33,7 +33,8 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
 
         let mut fields = graph[object.fields.clone()]
             .iter()
-            .filter(|field| !graph[field.name].starts_with("__"))
+            .enumerate()
+            .filter(|(_idx, field)| !graph[field.name].starts_with("__"))
             .peekable();
 
         if fields.peek().is_none() {
@@ -86,9 +87,12 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
             sdl.push(' ');
         }
         sdl.push_str("{\n");
-        for field in fields {
-            write_field(field, graph, &mut sdl)?;
+
+        for (idx, field) in fields {
+            let field_id = FieldId(object.fields.start.0 + idx);
+            write_field(field_id, field, graph, &mut sdl)?;
         }
+
         writeln!(sdl, "}}\n")?;
     }
 
@@ -137,8 +141,9 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
             sdl.push_str("{\n");
         }
 
-        for field in &graph[interface.fields.clone()] {
-            write_field(field, graph, &mut sdl)?;
+        for (idx, field) in graph[interface.fields.clone()].iter().enumerate() {
+            let field_id = FieldId(interface.fields.start.0 + idx);
+            write_field(field_id, field, graph, &mut sdl)?;
         }
 
         writeln!(sdl, "}}\n")?;
@@ -289,7 +294,7 @@ fn write_input_field(field: &InputValueDefinition, graph: &FederatedGraphV3, sdl
     Ok(())
 }
 
-fn write_field(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
+fn write_field(field_id: FieldId, field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
     let field_name = &graph[field.name];
     let field_type = render_field_type(&field.r#type, graph);
     let args = render_field_arguments(&graph[field.arguments], graph);
@@ -308,6 +313,7 @@ fn write_field(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt
     write_requires(field, graph, sdl)?;
     write_composed_directives(field.composed_directives, graph, sdl)?;
     write_overrides(field, graph, sdl)?;
+    write_authorized(field_id, graph, sdl)?;
 
     sdl.push('\n');
     Ok(())
@@ -315,47 +321,7 @@ fn write_field(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt
 
 fn write_composed_directives(directives: Directives, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
     for directive in &graph[directives] {
-        match directive {
-            Directive::Inaccessible => write!(sdl, " @inaccessible")?,
-            Directive::Deprecated { reason: Some(reason) } => {
-                write!(sdl, " @deprecated(reason: ",)?;
-                write_quoted(sdl, &graph[*reason])?;
-                write!(sdl, ")")?;
-            }
-            Directive::RequiresScopes(scopes) => {
-                write!(sdl, " @requiresScopes(scopes: [")?;
-                for scope in scopes {
-                    write!(sdl, "[")?;
-                    for scope in scope {
-                        write_quoted(sdl, &graph[*scope])?;
-                        write!(sdl, ", ")?;
-                    }
-                    write!(sdl, "], ")?;
-                }
-                write!(sdl, "])")?;
-            }
-            Directive::Policy(policies) => {
-                write!(sdl, " @policy(policies: [")?;
-                for policy in policies {
-                    write!(sdl, "[")?;
-                    for policy in policy {
-                        write_quoted(sdl, &graph[*policy])?;
-                        write!(sdl, ", ")?;
-                    }
-                    write!(sdl, "], ")?;
-                }
-                write!(sdl, "])")?;
-            }
-            Directive::Authenticated => {
-                write!(sdl, " @authenticated")?;
-            }
-            Directive::Deprecated { reason: None } => write!(sdl, r#" @deprecated"#)?,
-            Directive::Other { name, arguments } => {
-                let directive_name = &graph[*name];
-                let arguments = DirectiveArguments(arguments, graph);
-                write!(sdl, " @{directive_name}{arguments}")?;
-            }
-        }
+        write!(sdl, "{}", DirectiveDisplay(directive, graph))?;
     }
 
     Ok(())
@@ -432,6 +398,44 @@ fn write_requires(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> 
         let subgraph_name = GraphEnumVariantName(&graph[graph[requires.subgraph_id].name]);
         let fields = FieldSetDisplay(&requires.fields, graph);
         write!(sdl, " @join__field(graph: {subgraph_name}, requires: {fields}")?;
+    }
+
+    Ok(())
+}
+
+fn write_authorized(field_id: FieldId, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
+    let start = graph
+        .field_authorized_directives
+        .partition_point(|(other_field_id, _)| *other_field_id < field_id);
+
+    let directives = graph.field_authorized_directives[start..]
+        .iter()
+        .take_while(|(other_field_id, _)| *other_field_id == field_id)
+        .map(|(_, authorized_directive_id)| &graph[*authorized_directive_id]);
+
+    for directive in directives {
+        let rule = QuotedString(&graph[directive.rule]);
+        let fields = directive.fields.as_ref().map(|fields| FieldSetDisplay(fields, graph));
+        let arguments = directive
+            .arguments
+            .as_ref()
+            .map(|arguments| InputValueDefinitionSetDisplay(arguments, graph));
+
+        write!(sdl, " @authorized(rule: {rule}")?;
+
+        if let Some(fields) = fields {
+            write!(sdl, ", fields: {}", fields)?;
+        }
+
+        if let Some(arguments) = arguments {
+            write!(sdl, ", arguments: {arguments}")?;
+        }
+
+        if let Some(metadata) = directive.metadata {
+            write!(sdl, ", metadata: {}", ValueDisplay(&Value::String(metadata), graph))?;
+        }
+
+        sdl.push(')');
     }
 
     Ok(())

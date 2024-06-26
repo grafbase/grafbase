@@ -1,0 +1,46 @@
+enum AccountType {
+    SAVINGS
+    CHECKING
+}
+
+type User {
+    accounts: [Account!]!
+    email: String!
+    name: String!
+    userId: ID!
+}
+
+type Account {
+    balance: Float!
+    id: ID!
+    transactions: [Transaction!]!
+    type: AccountType!
+    user: User!
+}
+
+type Transaction {
+    account: Account!
+    amount: Float!
+    date: String!
+    description: String
+    id: ID!
+}
+
+type Query {
+    account: Account
+    accounts: [Account!]!
+    transaction: Transaction
+    transactions: [Transaction!]!
+    user: User
+    users: [User!]!
+}
+
+type Mutation {
+    createAccount: Account!
+    createTransaction: Transaction!
+    createUser: User!
+    deleteAccount: Account!
+    deleteTransaction: Transaction!
+    deleteUser: User!
+    updateUser: User!
+}

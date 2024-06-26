@@ -5,6 +5,7 @@ pub(super) fn ingest_enum(
     enum_type: &ast::EnumType,
     subgraphs: &mut Subgraphs,
     federation_directives_matcher: &DirectiveMatcher<'_>,
+    subgraph: SubgraphId,
 ) {
     for value in &enum_type.values {
         let value_name = subgraphs.strings.intern(value.node.value.node.as_str());
@@ -17,6 +18,8 @@ pub(super) fn ingest_enum(
             &value.node.directives,
             subgraphs,
             federation_directives_matcher,
+            subgraph,
+            |subgraphs| subgraphs.walk(definition_id).name().as_str().to_owned(),
         );
     }
 }
