@@ -52,7 +52,7 @@ enum MergeMode<'a> {
     All { active_defers: &'a HashSet<&'a str> },
 
     /// This mode should be used when we receive a deferred payload,
-    /// passing in the
+    /// passing in the name of the defer we are merging
     ///
     /// In this mode we'll only merge in fields that are specifically
     /// part of the named defer, and not any other fields.
