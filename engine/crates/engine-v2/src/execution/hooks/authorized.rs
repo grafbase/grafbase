@@ -1,40 +1,29 @@
-use std::sync::Arc;
+use futures::FutureExt;
+use runtime::hooks::{EdgeDefinition, Hooks};
+use schema::FieldDefinitionWalker;
 
-use tracing::instrument;
+use crate::{operation::FieldArgumentsView, response::GraphqlError, Runtime};
 
-use crate::{operation::FieldArgumentsView, response::GraphqlError};
-
-#[derive(serde::Serialize)]
-pub(crate) struct Input<'a> {
-    pub arguments: FieldArgumentsView<'a>,
-}
-
-impl<'ctx> super::RequestHooks<'ctx> {
-    #[instrument(skip_all)]
-    pub async fn authorized(&self, input: Input<'_>) -> Option<GraphqlError> {
-        let results = self
-            .0
-            .engine
-            .env
-            .hooks
-            .authorized(
-                Arc::clone(&self.0.request_metadata.context),
-                vec![serde_json::to_string(&input).unwrap()],
-            )
-            .await;
-        tracing::debug!("Authorized results: {results:#?}");
-        match results {
-            Ok(authorization_errors) => authorization_errors
-                .into_iter()
-                .next()
-                .map(|maybe_error| maybe_error.map(Into::into))
-                .unwrap_or_else(|| Some(GraphqlError::internal_server_error())),
-            Err(err) => {
-                if !err.is_user_error() {
-                    tracing::error!("Hook error: {err:?}");
-                }
-                Some(err.into())
-            }
-        }
+impl<'ctx, R: Runtime> super::RequestHooks<'ctx, R> {
+    pub async fn authorize_edge_pre_execution(
+        &self,
+        definition: FieldDefinitionWalker<'_>,
+        arguments: FieldArgumentsView<'_>,
+    ) -> Result<(), GraphqlError> {
+        let future = self.0.engine.runtime.hooks().authorize_edge_pre_execution(
+            &self.0.request_context.hooks_context,
+            EdgeDefinition {
+                parent_type_name: definition.parent_entity().name(),
+                field_name: definition.name(),
+            },
+            arguments,
+            serde_json::Value::Null,
+        );
+        // FIXME: Unfortunately, boxing seems to be the only solution for the bug explained here:
+        //        https://github.com/rust-lang/rust/issues/110338#issuecomment-1513761297
+        //        Otherwise is not correctly evaluated to be Send due to the impl IntoIterator
+        let result = future.boxed().await;
+        tracing::debug!("Authorized results: {result:#?}");
+        result.map_err(Into::into)
     }
 }

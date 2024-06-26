@@ -48,7 +48,7 @@ pub fn flatten_selection_sets(
                 flat_selection_set.fields.push(FlatField {
                     entity_id: operation[field_id]
                         .definition_id()
-                        .map(|id| schema.walk(id).parent_entity())
+                        .map(|id| schema.walk(id).parent_entity().id())
                         .or_else(|| {
                             // Without a definition the field is a __typename, so we just use the
                             // last type condition if there was any.

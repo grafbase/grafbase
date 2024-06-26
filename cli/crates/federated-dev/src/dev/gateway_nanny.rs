@@ -3,12 +3,11 @@ use std::sync::Arc;
 use crate::ConfigWatcher;
 
 use super::bus::{EngineSender, GraphWatcher};
-use engine_v2::{Engine, EngineEnv};
+use engine_v2::Engine;
 use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::FederatedGraphConfig;
-use runtime::hooks::Hooks;
 use runtime_noop::hooks::HooksNoop;
 use tokio_stream::wrappers::WatchStream;
 
@@ -46,7 +45,10 @@ impl EngineNanny {
     }
 }
 
-pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraphConfig) -> Option<Arc<Engine>> {
+pub(super) fn new_gateway(
+    graph: Option<FederatedGraph>,
+    config: &FederatedGraphConfig,
+) -> Option<Arc<Engine<CliRuntime>>> {
     let config = engine_config_builder::build_config(config, graph?);
 
     let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
@@ -55,7 +57,7 @@ pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraph
         subdomain: "localhost".to_string(),
     });
 
-    let engine_env = EngineEnv {
+    let runtime = CliRuntime {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         cache: cache.clone(),
         trusted_documents: runtime::trusted_documents_client::Client::new(
@@ -63,13 +65,45 @@ pub(super) fn new_gateway(graph: Option<FederatedGraph>, config: &FederatedGraph
         ),
         kv: runtime_local::InMemoryKvStore::runtime(),
         meter: grafbase_tracing::metrics::meter_from_global_provider(),
-        hooks: Hooks::new(HooksNoop),
+        hooks: HooksNoop,
     };
 
     let config = config.into_latest().try_into().ok()?;
-    let engine = Engine::new(Arc::new(config), engine_env);
+    let engine = Engine::new(Arc::new(config), runtime);
 
     Some(Arc::new(engine))
+}
+
+pub struct CliRuntime {
+    fetcher: runtime::fetch::Fetcher,
+    cache: runtime::cache::Cache,
+    trusted_documents: runtime::trusted_documents_client::Client,
+    kv: runtime::kv::KvStore,
+    meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
+    hooks: HooksNoop,
+}
+
+impl engine_v2::Runtime for CliRuntime {
+    type Hooks = HooksNoop;
+
+    fn fetcher(&self) -> &runtime::fetch::Fetcher {
+        &self.fetcher
+    }
+    fn cache(&self) -> &runtime::cache::Cache {
+        &self.cache
+    }
+    fn trusted_documents(&self) -> &runtime::trusted_documents_client::Client {
+        &self.trusted_documents
+    }
+    fn kv(&self) -> &runtime::kv::KvStore {
+        &self.kv
+    }
+    fn meter(&self) -> &grafbase_tracing::otel::opentelemetry::metrics::Meter {
+        &self.meter
+    }
+    fn hooks(&self) -> &HooksNoop {
+        &self.hooks
+    }
 }
 
 #[derive(Debug)]

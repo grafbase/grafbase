@@ -1,6 +1,6 @@
 use super::{resolver::ResolverWalker, SchemaWalker};
 use crate::{
-    EntityId, FieldDefinitionId, InputValueDefinitionWalker, ProvidableFieldSet, RequiredFieldSet, SubgraphId,
+    EntityWalker, FieldDefinitionId, InputValueDefinitionWalker, ProvidableFieldSet, RequiredFieldSet, SubgraphId,
     TypeSystemDirectivesWalker, TypeWalker,
 };
 
@@ -48,8 +48,8 @@ impl<'a> FieldDefinitionWalker<'a> {
             .unwrap_or(&crate::requires::EMPTY)
     }
 
-    pub fn parent_entity(&self) -> EntityId {
-        self.as_ref().parent_entity
+    pub fn parent_entity(&self) -> EntityWalker<'a> {
+        self.walk(self.as_ref().parent_entity)
     }
 
     pub fn arguments(self) -> impl ExactSizeIterator<Item = InputValueDefinitionWalker<'a>> + 'a {

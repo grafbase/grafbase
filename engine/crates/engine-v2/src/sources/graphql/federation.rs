@@ -16,6 +16,7 @@ use crate::{
         graphql::deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},
         ExecutionResult, Executor, ExecutorInput, PreparedExecutor,
     },
+    Runtime,
 };
 
 use super::{deserialize::EntitiesDataSeed, query::PreparedFederationEntityOperation, variables::SubgraphVariables};
@@ -39,7 +40,10 @@ impl FederationEntityPreparedExecutor {
         }))
     }
 
-    pub fn new_executor<'ctx>(&'ctx self, input: ExecutorInput<'ctx, '_>) -> ExecutionResult<Executor<'ctx>> {
+    pub fn new_executor<'ctx, R: Runtime>(
+        &'ctx self,
+        input: ExecutorInput<'ctx, '_, R>,
+    ) -> ExecutionResult<Executor<'ctx, R>> {
         let ExecutorInput {
             ctx,
             plan,
@@ -86,15 +90,15 @@ impl FederationEntityPreparedExecutor {
     }
 }
 
-pub(crate) struct FederationEntityExecutor<'ctx> {
-    ctx: ExecutionContext<'ctx>,
+pub(crate) struct FederationEntityExecutor<'ctx, R: Runtime> {
+    ctx: ExecutionContext<'ctx, R>,
     subgraph: GraphqlEndpointWalker<'ctx>,
     operation: &'ctx PreparedFederationEntityOperation,
     json_body: String,
     plan: PlanWalker<'ctx>,
 }
 
-impl<'ctx> FederationEntityExecutor<'ctx> {
+impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
     #[tracing::instrument(skip_all)]
     pub async fn execute(self, mut response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
         let subgraph_gql_request_span = SubgraphRequestSpan::new(self.subgraph.name())
@@ -108,8 +112,8 @@ impl<'ctx> FederationEntityExecutor<'ctx> {
             let bytes = self
                 .ctx
                 .engine
-                .env
-                .fetcher
+                .runtime
+                .fetcher()
                 .post(FetchRequest {
                     url: self.subgraph.url(),
                     json_body: self.json_body,

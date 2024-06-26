@@ -1,90 +1,56 @@
-use core::fmt;
-use std::{
-    collections::{BTreeMap, HashMap},
-    sync::Arc,
-};
+#[cfg(feature = "test-utils")]
+mod test_utils;
+
+#[cfg(feature = "test-utils")]
+pub use test_utils::*;
+
+use std::future::Future;
 
 pub use http::HeaderMap;
 
-#[derive(Debug, thiserror::Error)]
-pub enum HookError {
-    #[error("Kv error: {0}")]
-    User(UserError),
-    #[error("{0}")]
-    Internal(Box<dyn std::error::Error>),
+use crate::error::GraphqlError;
+
+pub struct NodeDefinition<'a> {
+    pub type_name: &'a str,
 }
 
-impl From<&'static str> for HookError {
-    fn from(err: &'static str) -> Self {
-        HookError::Internal(err.into())
+impl std::fmt::Display for NodeDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.type_name)
     }
 }
 
-impl HookError {
-    pub fn is_user_error(&self) -> bool {
-        matches!(self, HookError::User(_))
+pub struct EdgeDefinition<'a> {
+    pub parent_type_name: &'a str,
+    pub field_name: &'a str,
+}
+
+impl std::fmt::Display for EdgeDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}", self.parent_type_name, self.field_name)
     }
 }
 
-/// An error type available for the user to throw from the guest.
-#[derive(Clone, Debug, thiserror::Error, PartialEq)]
-pub struct UserError {
-    /// Optional extensions added to the response
-    pub extensions: BTreeMap<String, serde_json::Value>,
-    /// The error message
-    pub message: String,
-}
+pub trait Hooks: Send + Sync + 'static {
+    type Context: Send + Sync + 'static;
 
-impl From<String> for UserError {
-    fn from(message: String) -> Self {
-        UserError {
-            extensions: BTreeMap::new(),
-            message,
-        }
-    }
-}
-
-impl From<&'static str> for UserError {
-    fn from(message: &'static str) -> Self {
-        UserError {
-            extensions: BTreeMap::new(),
-            message: message.to_string(),
-        }
-    }
-}
-
-impl fmt::Display for UserError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.message.fmt(f)
-    }
-}
-
-#[derive(Clone)]
-pub struct Hooks(Arc<dyn HooksImpl<Context = HashMap<String, String>>>);
-
-impl Hooks {
-    pub fn new(inner: impl HooksImpl<Context = HashMap<String, String>> + 'static) -> Self {
-        Self(Arc::new(inner))
-    }
-}
-
-impl std::ops::Deref for Hooks {
-    type Target = dyn HooksImpl<Context = HashMap<String, String>>;
-
-    fn deref(&self) -> &Self::Target {
-        self.0.deref()
-    }
-}
-
-#[async_trait::async_trait]
-pub trait HooksImpl: Send + Sync {
-    type Context;
-
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), HookError>;
-
-    async fn authorized(
+    fn on_gateway_request(
         &self,
-        context: Arc<Self::Context>,
-        input: Vec<String>,
-    ) -> Result<Vec<Option<UserError>>, HookError>;
+        headers: HeaderMap,
+    ) -> impl Future<Output = Result<(Self::Context, HeaderMap), GraphqlError>> + Send;
+
+    fn authorize_edge_pre_execution<'a>(
+        &self,
+        context: &Self::Context,
+        definition: EdgeDefinition<'a>,
+        arguments: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+        metadata: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+    ) -> impl Future<Output = Result<(), GraphqlError>> + Send;
+
+    fn authorize_node_pre_execution<'a>(
+        &self,
+        context: &Self::Context,
+        definition: NodeDefinition<'a>,
+        metadata: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+    ) -> impl Future<Output = Result<(), GraphqlError>> + Send;
 }

@@ -1,6 +1,7 @@
-use std::{borrow::Cow, collections::HashMap, sync::Arc};
+use std::{borrow::Cow, sync::Arc};
 use web_time::Instant;
 
+use ::runtime::{auth::AccessToken, hooks::Hooks};
 use async_runtime::stream::StreamExt as _;
 use engine::{BatchRequest, Request};
 use engine_parser::types::OperationType;
@@ -15,7 +16,6 @@ use grafbase_tracing::{
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes},
 };
 use headers::HeaderMapExt;
-use runtime::auth::AccessToken;
 use schema::Schema;
 use tracing::Instrument;
 
@@ -28,38 +28,32 @@ use crate::{
     websocket,
 };
 
+mod runtime;
 mod trusted_documents;
 
-pub struct Engine {
+pub use runtime::Runtime;
+
+pub struct Engine<R> {
     // We use an Arc for the schema to have a self-contained response which may still
     // needs access to the schema strings
     pub(crate) schema: Arc<Schema>,
-    pub(crate) env: EngineEnv,
+    pub(crate) runtime: R,
     operation_metrics: GraphqlOperationMetrics,
     auth: AuthService,
 }
 
-pub struct EngineEnv {
-    pub fetcher: runtime::fetch::Fetcher,
-    pub cache: runtime::cache::Cache,
-    pub trusted_documents: runtime::trusted_documents_client::Client,
-    pub kv: runtime::kv::KvStore,
-    pub meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
-    pub hooks: runtime::hooks::Hooks,
-}
-
-impl Engine {
-    pub fn new(schema: Arc<Schema>, env: EngineEnv) -> Self {
+impl<R: Runtime> Engine<R> {
+    pub fn new(schema: Arc<Schema>, runtime: R) -> Self {
         let auth = gateway_v2_auth::AuthService::new_v2(
             schema.settings.auth_config.clone().unwrap_or_default(),
-            env.kv.clone(),
+            runtime.kv().clone(),
         );
 
         Self {
             schema,
             auth,
-            operation_metrics: GraphqlOperationMetrics::build(&env.meter),
-            env,
+            operation_metrics: GraphqlOperationMetrics::build(runtime.meter()),
+            runtime,
         }
     }
 
@@ -68,14 +62,14 @@ impl Engine {
         headers: http::HeaderMap,
         batch_request: BatchRequest,
     ) -> HttpGraphqlResponse {
-        let (context, headers) = match self.env.hooks.on_gateway_request(headers).await {
+        let (hooks_context, headers) = match self.runtime.hooks().on_gateway_request(headers).await {
             Ok(result) => result,
             Err(error) => return Response::execution_error(error).into(),
         };
 
         if let Some(access_token) = self.auth.authorize(&headers).await {
-            let metadata = RequestMetadata::new(headers, access_token, context);
-            self.execute_with_access_token(metadata, batch_request).await
+            let context = RequestContext::new(headers, access_token, hooks_context);
+            self.execute_with_access_token(context, batch_request).await
         } else if let Some(streaming_format) = headers.typed_get::<StreamingFormat>() {
             HttpGraphqlResponse::stream_request_error(streaming_format, "Unauthorized")
         } else {
@@ -83,8 +77,8 @@ impl Engine {
         }
     }
 
-    pub async fn create_session(self: &Arc<Self>, headers: http::HeaderMap) -> Result<Session, Cow<'static, str>> {
-        let (context, headers) = match self.env.hooks.on_gateway_request(headers).await {
+    pub async fn create_session(self: &Arc<Self>, headers: http::HeaderMap) -> Result<Session<R>, Cow<'static, str>> {
+        let (hooks_context, headers) = match self.runtime.hooks().on_gateway_request(headers).await {
             Ok(result) => result,
             Err(error) => return Err(Cow::from(error.to_string())),
         };
@@ -92,7 +86,7 @@ impl Engine {
         match self.auth.authorize(&headers).await {
             Some(access_token) => Ok(Session {
                 engine: Arc::clone(self),
-                metadata: Arc::new(RequestMetadata::new(headers, access_token, context)),
+                request_context: Arc::new(RequestContext::new(headers, access_token, hooks_context)),
             }),
             None => Err(Cow::from("Forbidden")),
         }
@@ -100,20 +94,20 @@ impl Engine {
 
     async fn execute_with_access_token(
         self: &Arc<Self>,
-        request_metadata: RequestMetadata,
+        request_context: RequestContext<<R::Hooks as Hooks>::Context>,
         batch_request: BatchRequest,
     ) -> HttpGraphqlResponse {
-        let streaming_format = request_metadata.headers.typed_get::<StreamingFormat>();
+        let streaming_format = request_context.headers.typed_get::<StreamingFormat>();
         match batch_request {
             BatchRequest::Single(request) => {
                 if let Some(streaming_format) = streaming_format {
                     convert_stream_to_http_response(
                         streaming_format,
-                        self.execute_stream(Arc::new(request_metadata), request),
+                        self.execute_stream(Arc::new(request_context), request),
                     )
                     .await
                 } else {
-                    self.execute_single(&request_metadata, request).await
+                    self.execute_single(&request_context, request).await
                 }
             }
             BatchRequest::Batch(requests) => {
@@ -124,7 +118,7 @@ impl Engine {
                 }
                 HttpGraphqlResponse::batch_response(
                     futures_util::stream::iter(requests.into_iter())
-                        .then(|request| self.execute_single(&request_metadata, request))
+                        .then(|request| self.execute_single(&request_context, request))
                         .collect::<Vec<_>>()
                         .await,
                 )
@@ -132,13 +126,17 @@ impl Engine {
         }
     }
 
-    async fn execute_single(&self, request_metadata: &RequestMetadata, request: Request) -> HttpGraphqlResponse {
+    async fn execute_single(
+        &self,
+        request_context: &RequestContext<<R::Hooks as Hooks>::Context>,
+        request: Request,
+    ) -> HttpGraphqlResponse {
         let start = Instant::now();
         let span = GqlRequestSpan::new().into_span();
         async {
             let ctx = ExecutionContext {
                 engine: self,
-                request_metadata,
+                request_context,
             };
             let (operation_attributes, response) = ctx.execute_single(request).await;
             let status = response.status();
@@ -166,7 +164,7 @@ impl Engine {
 
     fn execute_stream(
         self: &Arc<Self>,
-        request_metadata: Arc<RequestMetadata>,
+        request_context: Arc<RequestContext<<R::Hooks as Hooks>::Context>>,
         request: Request,
     ) -> impl Stream<Item = Response> + Send + 'static {
         let start = Instant::now();
@@ -179,7 +177,7 @@ impl Engine {
             async move {
                 let ctx = ExecutionContext {
                     engine: &engine,
-                    request_metadata: &request_metadata,
+                    request_context: &request_context,
                 };
                 let (operation_attributes, status) = ctx.execute_stream(request, sender).await;
                 if let Some(mut attrs) = operation_attributes {
@@ -214,12 +212,12 @@ async fn convert_stream_to_http_response(
     )
 }
 
-impl<'ctx> ExecutionContext<'ctx> {
+impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     async fn execute_single(self, mut request: Request) -> (Option<GraphqlOperationMetricsAttributes>, Response) {
         if let Err(err) = self.handle_persisted_query(&mut request).await {
             return (None, Response::bad_request(err));
         }
-        let (operation, operation_attributes) = match Operation::build(self, &request) {
+        let (operation, operation_attributes) = match Operation::build(&self.schema, self.request_context, &request) {
             Ok(res) => res,
             Err(mut err) => {
                 return (err.take_operation_attributes(), Response::bad_request(err));
@@ -251,7 +249,7 @@ impl<'ctx> ExecutionContext<'ctx> {
             sender.send(response).await.ok();
             return (None, status);
         }
-        let (operation, operation_attributes) = match Operation::build(self, &request) {
+        let (operation, operation_attributes) = match Operation::build(&self.schema, self.request_context, &request) {
             Ok(res) => res,
             Err(mut err) => {
                 let attrs = err.take_operation_attributes();
@@ -309,7 +307,7 @@ impl<'ctx> ExecutionContext<'ctx> {
         self,
         operation: Operation,
         variables: engine::Variables,
-    ) -> Result<ExecutionCoordinator<'ctx>, Vec<GraphqlError>> {
+    ) -> Result<ExecutionCoordinator<'ctx, R>, Vec<GraphqlError>> {
         let variables = Variables::build(self.schema.as_ref(), &operation, variables)
             .map_err(|errors| errors.into_iter().map(Into::into).collect::<Vec<_>>())?;
 
@@ -323,37 +321,44 @@ impl<'ctx> ExecutionContext<'ctx> {
     }
 }
 
-#[derive(Clone)]
-pub struct Session {
-    engine: Arc<Engine>,
-    metadata: Arc<RequestMetadata>,
+pub struct Session<R: Runtime> {
+    engine: Arc<Engine<R>>,
+    request_context: Arc<RequestContext<<R::Hooks as Hooks>::Context>>,
 }
 
-pub(crate) struct RequestMetadata {
+impl<R: Runtime> Clone for Session<R> {
+    fn clone(&self) -> Self {
+        Self {
+            engine: Arc::clone(&self.engine),
+            request_context: Arc::clone(&self.request_context),
+        }
+    }
+}
+
+pub(crate) struct RequestContext<C> {
     pub headers: http::HeaderMap,
     pub client: Option<Client>,
     pub access_token: AccessToken,
-    #[allow(dead_code)] // TODO: pass this to the user hooks
-    pub context: Arc<HashMap<String, String>>,
+    pub hooks_context: C,
 }
 
-impl RequestMetadata {
-    fn new(headers: http::HeaderMap, access_token: AccessToken, context: HashMap<String, String>) -> Self {
+impl<C> RequestContext<C> {
+    fn new(headers: http::HeaderMap, access_token: AccessToken, hooks_context: C) -> Self {
         let client = Client::extract_from(&headers);
 
         Self {
             headers,
             client,
             access_token,
-            context: Arc::new(context),
+            hooks_context,
         }
     }
 }
 
-impl Session {
+impl<R: Runtime> Session<R> {
     pub fn execute_websocket(&self, id: String, request: Request) -> impl Stream<Item = websocket::Message> {
         self.engine
-            .execute_stream(self.metadata.clone(), request)
+            .execute_stream(self.request_context.clone(), request)
             .map(move |response| match response {
                 Response::BadRequest(_) => websocket::Message::Error {
                     id: id.clone(),

@@ -1,9 +1,9 @@
 mod apq;
 mod auth;
 mod basic;
+mod hooks;
 mod introspection;
 mod issues;
 mod subgraphs;
 mod subscriptions;
 mod trusted_documents;
-mod user_hooks;

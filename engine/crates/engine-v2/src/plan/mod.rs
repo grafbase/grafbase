@@ -5,6 +5,7 @@ use crate::{
     operation::{EntityLocation, Operation, PlanId, Variables},
     response::ReadSelectionSet,
     sources::PreparedExecutor,
+    Runtime,
 };
 
 mod collected;
@@ -93,7 +94,11 @@ where
 }
 
 impl OperationPlan {
-    pub async fn build(ctx: ExecutionContext<'_>, variables: &Variables, operation: Operation) -> PlanningResult<Self> {
+    pub async fn build<R: Runtime>(
+        ctx: ExecutionContext<'_, R>,
+        variables: &Variables,
+        operation: Operation,
+    ) -> PlanningResult<Self> {
         planning::collect::OperationPlanBuilder::new(ctx, variables, operation)
             .build()
             .await

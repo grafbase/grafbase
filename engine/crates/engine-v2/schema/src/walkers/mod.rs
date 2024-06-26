@@ -2,6 +2,7 @@ use crate::{sources::IntrospectionMetadata, Names, Schema, StringId};
 
 mod definition;
 mod directives;
+mod entity;
 mod r#enum;
 mod field;
 mod field_set;
@@ -18,6 +19,7 @@ mod union;
 
 pub use definition::*;
 pub use directives::*;
+pub use entity::*;
 pub use field::*;
 pub use field_set::*;
 pub use header::*;

@@ -1,4 +1,4 @@
-use super::gateway;
+use super::gateway::{self, GatewayRuntime};
 use crate::server::gateway::GatewayConfig;
 use crate::OtelReload;
 use engine_v2::Engine;
@@ -33,7 +33,7 @@ impl GraphFetchMethod {
         self,
         config: GatewayConfig,
         otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
-        sender: watch::Sender<Option<Arc<Engine>>>,
+        sender: watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>,
     ) -> crate::Result<()> {
         match self {
             GraphFetchMethod::FromApi {

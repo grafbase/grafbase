@@ -31,3 +31,13 @@ impl GraphqlError {
         GraphqlError::new("Internal server error").with_error_code(ErrorCode::InternalServerError)
     }
 }
+
+impl From<runtime::error::GraphqlError> for GraphqlError {
+    fn from(err: runtime::error::GraphqlError) -> Self {
+        GraphqlError {
+            message: err.message.into_owned(),
+            extensions: err.extensions.into_iter().map(|(k, v)| (k.to_string(), v)).collect(),
+            ..Default::default()
+        }
+    }
+}

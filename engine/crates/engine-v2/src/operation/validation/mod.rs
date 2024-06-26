@@ -2,12 +2,12 @@ mod introspection;
 mod operation_limits;
 
 use crate::{
-    execution::ExecutionContext,
     operation::{Location, OperationWalker},
     response::GraphqlError,
 };
 use introspection::*;
 use operation_limits::*;
+use schema::Schema;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum ValidationError {
@@ -32,12 +32,12 @@ impl From<ValidationError> for GraphqlError {
 }
 
 pub(super) fn validate_operation(
-    ctx: ExecutionContext<'_>,
+    schema: &Schema,
     operation: OperationWalker<'_>,
     request: &engine::Request,
 ) -> Result<(), ValidationError> {
-    enforce_operation_limits(&ctx.engine.schema, operation, request)?;
-    ensure_introspection_is_accepted(&ctx.engine.schema, operation, request)?;
+    enforce_operation_limits(schema, operation, request)?;
+    ensure_introspection_is_accepted(schema, operation, request)?;
 
     Ok(())
 }

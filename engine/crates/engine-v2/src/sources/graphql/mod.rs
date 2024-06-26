@@ -16,6 +16,7 @@ use crate::{
     plan::{PlanWalker, PlanningResult},
     response::ResponsePart,
     sources::graphql::deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
+    Runtime,
 };
 
 mod deserialize;
@@ -48,7 +49,10 @@ impl GraphqlPreparedExecutor {
     }
 
     #[tracing::instrument(skip_all)]
-    pub fn new_executor<'ctx>(&'ctx self, input: ExecutorInput<'ctx, '_>) -> ExecutionResult<Executor<'ctx>> {
+    pub fn new_executor<'ctx, R: Runtime>(
+        &'ctx self,
+        input: ExecutorInput<'ctx, '_, R>,
+    ) -> ExecutionResult<Executor<'ctx, R>> {
         let ExecutorInput { ctx, plan, .. } = input;
 
         let subgraph = plan.schema().walk(self.subgraph_id);
@@ -79,15 +83,15 @@ impl GraphqlPreparedExecutor {
     }
 }
 
-pub(crate) struct GraphqlExecutor<'ctx> {
-    ctx: ExecutionContext<'ctx>,
+pub(crate) struct GraphqlExecutor<'ctx, R: Runtime> {
+    ctx: ExecutionContext<'ctx, R>,
     subgraph: GraphqlEndpointWalker<'ctx>,
     operation: &'ctx PreparedGraphqlOperation,
     json_body: String,
     plan: PlanWalker<'ctx>,
 }
 
-impl<'ctx> GraphqlExecutor<'ctx> {
+impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
     #[tracing::instrument(skip_all)]
     pub async fn execute(self, mut response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
         let subgraph_request_span = SubgraphRequestSpan::new(self.subgraph.name())
@@ -101,8 +105,8 @@ impl<'ctx> GraphqlExecutor<'ctx> {
             let bytes = self
                 .ctx
                 .engine
-                .env
-                .fetcher
+                .runtime
+                .fetcher()
                 .post(FetchRequest {
                     url: self.subgraph.url(),
                     json_body: self.json_body,

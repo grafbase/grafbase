@@ -13,20 +13,21 @@ use crate::{
     execution::OperationRootPlanExecution,
     plan::PlanWalker,
     sources::{ExecutionError, ExecutionResult, SubscriptionExecutor, SubscriptionInput},
+    Runtime,
 };
 
-pub(crate) struct GraphqlSubscriptionExecutor<'ctx> {
-    ctx: ExecutionContext<'ctx>,
+pub(crate) struct GraphqlSubscriptionExecutor<'ctx, R: Runtime> {
+    ctx: ExecutionContext<'ctx, R>,
     subgraph: GraphqlEndpointWalker<'ctx>,
     operation: &'ctx PreparedGraphqlOperation,
     plan: PlanWalker<'ctx>,
 }
 
 impl GraphqlPreparedExecutor {
-    pub fn new_subscription_executor<'ctx>(
+    pub fn new_subscription_executor<'ctx, R: Runtime>(
         &'ctx self,
-        input: SubscriptionInput<'ctx>,
-    ) -> ExecutionResult<SubscriptionExecutor<'ctx>> {
+        input: SubscriptionInput<'ctx, R>,
+    ) -> ExecutionResult<SubscriptionExecutor<'ctx, R>> {
         let SubscriptionInput { ctx, plan } = input;
         let subgraph = plan.schema().walk(self.subgraph_id);
         Ok(SubscriptionExecutor::Graphql(GraphqlSubscriptionExecutor {
@@ -38,11 +39,11 @@ impl GraphqlPreparedExecutor {
     }
 }
 
-impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
+impl<'ctx, R: Runtime> GraphqlSubscriptionExecutor<'ctx, R> {
     pub async fn execute(
         self,
-        new_execution: impl Fn() -> OperationRootPlanExecution<'ctx> + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<OperationRootPlanExecution<'ctx>>>> {
+        new_execution: impl Fn() -> OperationRootPlanExecution<'ctx, R> + Send + 'ctx,
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<OperationRootPlanExecution<'ctx, R>>>> {
         let Self {
             ctx,
             subgraph,
@@ -64,8 +65,8 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
 
         let stream = ctx
             .engine
-            .env
-            .fetcher
+            .runtime
+            .fetcher()
             .stream(GraphqlRequest {
                 url: &url,
                 query: &operation.query,
@@ -98,8 +99,8 @@ impl<'ctx> GraphqlSubscriptionExecutor<'ctx> {
     }
 }
 
-fn ingest_response(
-    execution: &mut OperationRootPlanExecution<'_>,
+fn ingest_response<R: Runtime>(
+    execution: &mut OperationRootPlanExecution<'_, R>,
     plan: PlanWalker<'_>,
     subgraph_response: serde_json::Value,
 ) -> ExecutionResult<()> {
