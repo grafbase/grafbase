@@ -8,7 +8,7 @@ use engine::{Registry, StreamingPayload};
 use grafbase_tracing::span::gql::GRAPHQL_SPAN_NAME;
 use grafbase_tracing::span::resolver::RESOLVER_SPAN_NAME;
 use integration_tests::udfs::RustUdfs;
-use integration_tests::{Engine, EngineBuilder, GatewayBuilder};
+use integration_tests::EngineBuilder;
 use runtime::udf::UdfResponse;
 
 #[tokio::test(flavor = "current_thread")]
@@ -34,15 +34,20 @@ async fn query_bad_request() {
 
     let _default = tracing::subscriber::set_default(subscriber);
 
-    let mut registry = Registry::new();
-    registry.add_builtins_to_registry();
-    let registry = Arc::new(registry_upgrade::convert_v1_to_v2(registry).unwrap());
+    let schema = r#"
+        extend type Query {
+            test: String! @resolver(name: "test")
+        }
+    "#;
+    let gateway = EngineBuilder::new(schema)
+        .with_custom_resolvers(RustUdfs::new().resolver("test", UdfResponse::Success(json!("hello"))))
+        .gateway_builder()
+        .await
+        .build();
 
     // act
     //
 
-    let schema = engine::Schema::new(registry);
-    let gateway = GatewayBuilder::new(Engine::from_schema(schema)).build();
     let _ = gateway.execute("{ __type_name }").await;
 
     // assert
@@ -77,11 +82,11 @@ async fn query() {
                 test: String! @resolver(name: "test")
             }
         "#;
-    let engine = EngineBuilder::new(schema)
+    let gateway = EngineBuilder::new(schema)
         .with_custom_resolvers(RustUdfs::new().resolver("test", UdfResponse::Success(json!("hello"))))
-        .build()
-        .await;
-    let gateway = GatewayBuilder::new(engine).build();
+        .gateway_builder()
+        .await
+        .build();
 
     // act
     let _ = gateway.execute(query).await;
@@ -124,11 +129,11 @@ async fn query_named() {
                 test: String! @resolver(name: "test")
             }
         "#;
-    let engine = EngineBuilder::new(schema)
+    let gateway = EngineBuilder::new(schema)
         .with_custom_resolvers(RustUdfs::new().resolver("test", UdfResponse::Success(json!("hello"))))
-        .build()
-        .await;
-    let gateway = GatewayBuilder::new(engine).build();
+        .gateway_builder()
+        .await
+        .build();
 
     // act
     let _ = gateway.execute(query).await;
@@ -202,11 +207,11 @@ async fn resolvers_with_error() {
                 nope: String! @resolver(name: "error")
             }
         "#;
-    let engine = EngineBuilder::new(schema)
+    let gateway = EngineBuilder::new(schema)
         .with_custom_resolvers(RustUdfs::new().resolver("error", UdfResponse::Error("nope".to_string())))
-        .build()
-        .await;
-    let gateway = GatewayBuilder::new(engine).build();
+        .gateway_builder()
+        .await
+        .build();
 
     // act
     let _ = gateway.execute(query).await;

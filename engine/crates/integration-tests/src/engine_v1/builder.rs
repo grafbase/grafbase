@@ -9,7 +9,7 @@ use runtime::udf::{CustomResolverInvoker, CustomResolverRequestPayload, UdfInvok
 use runtime_local::LazyPgConnectionsPool;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-use crate::Engine;
+use crate::{Engine, GatewayBuilder};
 
 #[must_use]
 pub struct EngineBuilder {
@@ -119,20 +119,35 @@ impl EngineBuilder {
         }
     }
 
+    pub async fn gateway_builder(self) -> GatewayBuilder {
+        let registry = self.run_parser().await;
+        let partial_cache_registry = registry_upgrade::convert_v1_to_partial_cache_registry(registry.clone()).unwrap();
+        let engine = self.into_engine(registry).await;
+
+        GatewayBuilder::new(engine, partial_cache_registry)
+    }
+
     pub async fn build(self) -> Engine {
+        let registry = self.run_parser().await;
+        self.into_engine(registry).await
+    }
+
+    async fn run_parser(&self) -> Registry {
         let ParseResult {
             mut registry,
             global_cache_rules,
             ..
-        } = parser_sdl::parse(&self.schema, &self.environment_variables, &self)
+        } = parser_sdl::parse(&self.schema, &self.environment_variables, self)
             .await
             .unwrap();
 
         global_cache_rules.apply(&mut registry).unwrap();
 
-        // TODO: Can almost certainly get rid of/move this serde roudntrip
-        let registry: Registry = serde_json::from_value(serde_json::to_value(registry).unwrap()).unwrap();
+        // We run a serde roundtrip just to make sure the regsitry is serializable
+        serde_json::from_value(serde_json::to_value(registry).unwrap()).unwrap()
+    }
 
+    async fn into_engine(self, registry: Registry) -> Engine {
         let registry = registry_upgrade::convert_v1_to_v2(registry).unwrap();
 
         let postgres = {
