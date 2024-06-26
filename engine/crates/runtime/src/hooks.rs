@@ -35,6 +35,15 @@ pub struct UserError {
     pub message: String,
 }
 
+impl From<String> for UserError {
+    fn from(message: String) -> Self {
+        UserError {
+            extensions: BTreeMap::new(),
+            message,
+        }
+    }
+}
+
 impl From<&'static str> for UserError {
     fn from(message: &'static str) -> Self {
         UserError {

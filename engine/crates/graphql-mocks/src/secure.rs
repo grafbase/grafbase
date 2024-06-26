@@ -26,7 +26,7 @@ fn requires_scopes(scopes: Vec<Vec<String>>) {}
     location = "Object",
     composable = "https://custom.spec.dev/extension/v1.0"
 )]
-fn authorized(rule: String) {}
+fn authorized(rule: String, arguments: Option<String>) {}
 
 #[derive(Default)]
 pub struct Query;
@@ -75,10 +75,18 @@ impl Check {
     }
 
     #[graphql(
-        directive = authorized::apply("x-grafbase-client-name-header-is-defined".into())
+        directive = authorized::apply("x-grafbase-client-name-header-is-defined".into(), None)
     )]
     async fn grafbase_client_is_defined(&self) -> &'static str {
         "You have properly set the x-grafbase-client-name header"
+    }
+
+    #[graphql(
+        directive = authorized::apply("sensitive-input-id".into(), Some("id".into()))
+    )]
+    async fn sensitive_id(&self, id: i64) -> &'static str {
+        let _ = id;
+        "You have access to the sensistive data"
     }
 }
 
