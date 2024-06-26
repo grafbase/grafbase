@@ -24,15 +24,16 @@ pub struct GatewayBuilder {
 }
 
 impl GatewayBuilder {
-    pub fn new(engine: super::Engine) -> Self {
+    pub(super) fn new(engine: super::Engine, partial_cache_registry: PartialCacheRegistry) -> Self {
         Self {
             engine: Arc::new(engine),
-            partial_cache_registry: unsafe { PartialCacheRegistry::empty() },
+            partial_cache_registry,
             trusted_documents: None,
             auth_config: Default::default(),
             authorizers: None,
         }
     }
+
     pub fn with_authorizers(self, authorizers: RustUdfs) -> Self {
         Self {
             authorizers: Some(authorizers),
