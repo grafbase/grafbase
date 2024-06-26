@@ -89,6 +89,103 @@ fn smoke_test() {
     });
 }
 
+#[test]
+fn test_defer_with_uncached_field() {
+    const SCHEMA: &str = r#"
+    extend schema @experimental(partialCaching: true)
+
+    type Query {
+        user: User @resolver(name: "user")
+    }
+
+    type User {
+        name: String @cache(maxAge: 140)
+        email: String @cache(maxAge: 130)
+        someConstant: String @cache(maxAge: 120)
+        uncached: String
+    }
+    "#;
+
+    runtime().block_on(async {
+        let gateway = EngineBuilder::new(SCHEMA)
+            .with_custom_resolvers(RustUdfs::new().resolver("user", UserResolver::default()))
+            .gateway_builder()
+            .await
+            .build();
+
+        const QUERY: &str = r#"
+            query {
+                user {
+                    name
+                    ... @defer(label: "woo") {
+                        email
+                        someConstant
+                        uncached
+                    }
+                }
+            }
+        "#;
+
+        let responses = gateway.execute(QUERY).collect().await;
+
+        insta::assert_json_snapshot!(responses, @r###"
+        [
+          {
+            "data": {
+              "user": {
+                "name": "Jo 1"
+              }
+            },
+            "hasNext": true
+          },
+          {
+            "data": {
+              "name": "Jo 1",
+              "email": "1@example.com",
+              "someConstant": "blah 1",
+              "uncached": "dont cache me bro 1"
+            },
+            "path": [
+              "user"
+            ],
+            "hasNext": false,
+            "label": "woo"
+          }
+        ]
+        "###);
+
+        // Call it again and see what has been cached/not
+        // I expect all the fields except uncached to still have 1 in their contents
+        let responses = gateway.execute(QUERY).collect().await;
+
+        insta::assert_json_snapshot!(responses, @r###"
+        [
+          {
+            "data": {
+              "user": {
+                "name": "Jo 1"
+              }
+            },
+            "hasNext": true
+          },
+          {
+            "data": {
+              "name": "Jo 1",
+              "email": "1@example.com",
+              "someConstant": "blah 1",
+              "uncached": "dont cache me bro 2"
+            },
+            "path": [
+              "user"
+            ],
+            "hasNext": false,
+            "label": "woo"
+          }
+        ]
+        "###);
+    });
+}
+
 #[derive(Default)]
 pub struct UserResolver {
     call_count: usize,

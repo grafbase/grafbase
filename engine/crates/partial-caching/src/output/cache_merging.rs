@@ -198,7 +198,7 @@ impl<'a> CacheMerge<'a> {
                     let new_defer_label = field_shape.defer_label().or(current_defer_label);
 
                     if self.should_skip_field(field_shape, new_defer_label) {
-                        return;
+                        continue;
                     }
 
                     let field_id = self.store.field_value_id(dest_object_id, field_shape.index());
