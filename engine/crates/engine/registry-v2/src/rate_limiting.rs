@@ -42,5 +42,5 @@ pub enum AnyOr<T> {
     #[serde(rename = "*")]
     Any,
     #[serde(untagged)]
-    Value(T)
+    Value(T),
 }

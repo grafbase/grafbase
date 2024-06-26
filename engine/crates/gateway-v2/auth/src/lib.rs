@@ -18,9 +18,7 @@ pub struct AuthService {
 
 impl AuthService {
     pub fn new(authorizers: Vec<Box<dyn Authorizer>>) -> Self {
-        Self {
-            authorizers
-        }
+        Self { authorizers }
     }
 
     pub fn new_v1(config: config::v1::AuthConfig, kv: KvStore, udf_invoker: AuthorizerInvoker, ray_id: String) -> Self {

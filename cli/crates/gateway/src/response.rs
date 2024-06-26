@@ -1,10 +1,10 @@
 use crate::error::Error;
 use axum::response::IntoResponse;
+use engine::parser::types::OperationType;
 use gateway_core::ConstructableResponse;
 use http::{header, status::StatusCode, HeaderValue};
 use runtime::rate_limiting;
 use std::sync::Arc;
-use engine::parser::types::OperationType;
 
 pub struct Response {
     inner: axum::response::Response,
@@ -32,15 +32,14 @@ impl From<crate::Error> for Response {
             Cache(err) => Response::error(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string()),
             Serialization(msg) | Internal(msg) => Response::error(StatusCode::INTERNAL_SERVER_ERROR, &msg),
             Error::Ratelimit(err) => match err {
-                rate_limiting::Error::ExceededCapacity => {
-                    Response::engine(
-                        Arc::new(engine::Response::from_errors_with_type(
-                            vec![engine::ServerError::new("Too many requests", None)],
-                            OperationType::Query,
-                        )),
-                        Default::default(),
-                    ).unwrap()
-                }
+                rate_limiting::Error::ExceededCapacity => Response::engine(
+                    Arc::new(engine::Response::from_errors_with_type(
+                        vec![engine::ServerError::new("Too many requests", None)],
+                        OperationType::Query,
+                    )),
+                    Default::default(),
+                )
+                .unwrap(),
                 rate_limiting::Error::Internal(err) => {
                     Response::error(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string())
                 }
