@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::net::IpAddr;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -14,12 +14,12 @@ use gateway_core::ExecutionAuth;
 use gateway_v2_auth::AuthService;
 use integration_tests::engine_v1::{Error, GraphQlRequest};
 use integration_tests::udfs::RustUdfs;
-use integration_tests::{Engine, EngineBuilder, GatewayBuilder};
-use registry_v2::rate_limiting::{Header, Jwt, RateLimitConfig, RateLimitRule, RateLimitRuleCondition};
+use integration_tests::{EngineBuilder, GatewayBuilder};
+use registry_v2::rate_limiting::{AnyOr, Header, Jwt, RateLimitConfig, RateLimitRule, RateLimitRuleCondition};
 use runtime::auth::AccessToken;
 use runtime::udf::UdfResponse;
 
-async fn build_engine() -> Engine {
+async fn gateway_builder() -> GatewayBuilder {
     let schema = r#"
             extend type Query {
                 test: String! @resolver(name: "test")
@@ -27,7 +27,7 @@ async fn build_engine() -> Engine {
         "#;
     EngineBuilder::new(schema)
         .with_custom_resolvers(RustUdfs::new().resolver("test", UdfResponse::Success(json!("hello"))))
-        .build()
+        .gateway_builder()
         .await
 }
 
@@ -53,17 +53,30 @@ where
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn specific_operations() {
+async fn operations() {
     // prepare
     let query = "query Named { test }";
     let operation_name = "Named".to_string();
-    let engine = build_engine().await;
-
-    let gateway = GatewayBuilder::new(engine)
+    let specific_header_gateway = gateway_builder()
+        .await
         .with_rate_limiting_config(RateLimitConfig {
             rules: vec![RateLimitRule {
                 name: "test".to_string(),
-                condition: RateLimitRuleCondition::GraphqlOperation(vec![operation_name.clone()]),
+                condition: RateLimitRuleCondition::GraphqlOperation(AnyOr::Value(HashSet::from_iter([
+                    operation_name.clone()
+                ]))),
+                limit: 10,
+                duration: Duration::from_secs(10),
+            }],
+        })
+        .build();
+
+    let any_header_gateway = gateway_builder()
+        .await
+        .with_rate_limiting_config(RateLimitConfig {
+            rules: vec![RateLimitRule {
+                name: "test".to_string(),
+                condition: RateLimitRuleCondition::GraphqlOperation(AnyOr::Any),
                 limit: 10,
                 duration: Duration::from_secs(10),
             }],
@@ -71,7 +84,7 @@ async fn specific_operations() {
         .build();
 
     // act && assert
-    let requester = || {
+    expect_rate_limiting(|| {
         async {
             let gql_request = GraphQlRequest {
                 query: query.to_string(),
@@ -80,27 +93,56 @@ async fn specific_operations() {
                 extensions: None,
                 doc_id: None,
             };
-            gateway.execute(gql_request).await
+            specific_header_gateway.execute(gql_request).await
         }
         .boxed()
-    };
-    expect_rate_limiting(requester).await
+    })
+    .await;
+
+    expect_rate_limiting(|| {
+        async {
+            let gql_request = GraphQlRequest {
+                query: query.to_string(),
+                operation_name: Some(operation_name.clone()),
+                variables: None,
+                extensions: None,
+                doc_id: None,
+            };
+            any_header_gateway.execute(gql_request).await
+        }
+        .boxed()
+    })
+    .await;
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn specific_headers() {
+async fn headers() {
     // prepare
     let query = "query Named { test }";
     let header = ("test-header".to_string(), "test".to_string());
-    let engine = build_engine().await;
-
-    let gateway = GatewayBuilder::new(engine)
+    let specific_header_gateway = gateway_builder()
+        .await
         .with_rate_limiting_config(RateLimitConfig {
             rules: vec![RateLimitRule {
                 name: "test".to_string(),
                 condition: RateLimitRuleCondition::Header(vec![Header {
                     name: header.0.clone(),
-                    value: Some(header.1.clone()),
+                    value: AnyOr::Value(HashSet::from_iter([header.1.clone()])),
+                }]),
+                limit: 10,
+                duration: Duration::from_secs(10),
+            }],
+        })
+        .build();
+
+    let any_header_value_gateway = gateway_builder()
+        .await
+        .with_rate_limiting_config(RateLimitConfig {
+            rules: vec![RateLimitRule {
+                name: "test".to_string(),
+                condition: RateLimitRuleCondition::Header(vec![Header {
+                    name: header.0.clone(),
+                    value: AnyOr::Value(HashSet::from_iter([header.1.clone()])),
                 }]),
                 limit: 10,
                 duration: Duration::from_secs(10),
@@ -109,8 +151,26 @@ async fn specific_headers() {
         .build();
 
     // act && assert
-    let requester = || async { gateway.execute(query).header(header.0.clone(), header.1.clone()).await }.boxed();
-    expect_rate_limiting(requester).await
+    expect_rate_limiting(|| {
+        async {
+            specific_header_gateway
+                .execute(query)
+                .header(header.0.clone(), header.1.clone())
+                .await
+        }
+        .boxed()
+    })
+    .await;
+    expect_rate_limiting(|| {
+        async {
+            any_header_value_gateway
+                .execute(query)
+                .header(header.0.clone(), header.1.clone())
+                .await
+        }
+        .boxed()
+    })
+    .await;
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -118,13 +178,26 @@ async fn specific_ips() {
     // prepare
     let query = "query Named { test }";
     let ip = "1.1.1.1";
-    let engine = build_engine().await;
-
-    let gateway = GatewayBuilder::new(engine)
+    let specific_ip_gateway = gateway_builder()
+        .await
         .with_rate_limiting_config(RateLimitConfig {
             rules: vec![RateLimitRule {
                 name: "test".to_string(),
-                condition: RateLimitRuleCondition::Ip(vec![IpAddr::from_str(ip).unwrap()]),
+                condition: RateLimitRuleCondition::Ip(AnyOr::Value(HashSet::from_iter(
+                    [IpAddr::from_str(ip).unwrap()],
+                ))),
+                limit: 10,
+                duration: Duration::from_secs(10),
+            }],
+        })
+        .build();
+
+    let any_ip_gateway = gateway_builder()
+        .await
+        .with_rate_limiting_config(RateLimitConfig {
+            rules: vec![RateLimitRule {
+                name: "test".to_string(),
+                condition: RateLimitRuleCondition::Ip(AnyOr::Any),
                 limit: 10,
                 duration: Duration::from_secs(10),
             }],
@@ -132,8 +205,9 @@ async fn specific_ips() {
         .build();
 
     // act && assert
-    let requester = || async { gateway.execute(query).header("x-forwarded-for", ip).await }.boxed();
-    expect_rate_limiting(requester).await
+    expect_rate_limiting(|| async { specific_ip_gateway.execute(query).header("x-forwarded-for", ip).await }.boxed())
+        .await;
+    expect_rate_limiting(|| async { any_ip_gateway.execute(query).header("x-forwarded-for", ip).await }.boxed()).await;
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -141,7 +215,6 @@ async fn specific_jwt_claim() {
     // prepare
     let query = "query Named { test }";
     let jwt_claim = ("my_claim", "test");
-    let engine = build_engine().await;
     struct TestAuthorizer;
     impl gateway_v2_auth::Authorizer for TestAuthorizer {
         fn get_access_token<'a>(&'a self, _headers: &'a HeaderMap) -> BoxFuture<'a, Option<AccessToken>> {
@@ -157,14 +230,31 @@ async fn specific_jwt_claim() {
         }
     }
 
-    let gateway = GatewayBuilder::new(engine)
+    let specific_jwt_claim_gateway = gateway_builder()
+        .await
         .with_auth_service(AuthService::new(vec![Box::new(TestAuthorizer)]))
         .with_rate_limiting_config(RateLimitConfig {
             rules: vec![RateLimitRule {
                 name: "test".to_string(),
                 condition: RateLimitRuleCondition::JwtClaim(vec![Jwt {
                     name: jwt_claim.0.to_string(),
-                    value: Some(serde_json::Value::String(jwt_claim.1.to_string())),
+                    value: AnyOr::Value(serde_json::Value::String(jwt_claim.1.to_string())),
+                }]),
+                limit: 10,
+                duration: Duration::from_secs(10),
+            }],
+        })
+        .build();
+
+    let any_jwt_claim_gateway = gateway_builder()
+        .await
+        .with_auth_service(AuthService::new(vec![Box::new(TestAuthorizer)]))
+        .with_rate_limiting_config(RateLimitConfig {
+            rules: vec![RateLimitRule {
+                name: "test".to_string(),
+                condition: RateLimitRuleCondition::JwtClaim(vec![Jwt {
+                    name: jwt_claim.0.to_string(),
+                    value: AnyOr::Value(serde_json::Value::String(jwt_claim.1.to_string())),
                 }]),
                 limit: 10,
                 duration: Duration::from_secs(10),
@@ -173,6 +263,6 @@ async fn specific_jwt_claim() {
         .build();
 
     // act && assert
-    let requester = || async { gateway.execute(query).await }.boxed();
-    expect_rate_limiting(requester).await
+    expect_rate_limiting(|| async { specific_jwt_claim_gateway.execute(query).await }.boxed()).await;
+    expect_rate_limiting(|| async { any_jwt_claim_gateway.execute(query).await }.boxed()).await;
 }

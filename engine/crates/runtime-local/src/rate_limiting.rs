@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::net::IpAddr;
 use std::num::NonZeroU32;
 use std::str::FromStr;
@@ -7,7 +8,7 @@ use futures_util::FutureExt;
 use governor::{DefaultKeyedRateLimiter, Quota};
 use tungstenite::http;
 
-use registry_v2::rate_limiting::{Header, Jwt, RateLimitRule, RateLimitRuleCondition};
+use registry_v2::rate_limiting::{AnyOr, Header, Jwt, RateLimitRule, RateLimitRuleCondition};
 use runtime::rate_limiting::{Error, RateLimiter, RateLimiterContext};
 
 pub struct InMemoryRateLimiting {
@@ -43,28 +44,28 @@ impl InMemoryRateLimiting {
         rate_limiter: &DefaultKeyedRateLimiter<String>,
     ) -> Result<(), Error> {
         for configured_header in configured_headers {
-            match context
-                .header(
-                    http::HeaderName::from_str(&configured_header.name)
-                        .map_err(|err| Error::Internal(err.to_string()))?,
-                )
-                .zip(
-                    configured_header
-                        .value
-                        .as_ref()
-                        .and_then(|config_header_value| http::HeaderValue::from_str(config_header_value).ok()),
-                ) {
-                Some((request_header_value, configured_header_value))
-                    if request_header_value.eq(&configured_header_value) =>
-                {
-                    // check the rate limiter
-                    if let Ok(request_header_value) = request_header_value.to_str() {
-                        if rate_limiter.check_key(&request_header_value.to_string()).is_err() {
+            if let Some(request_header_value) = context.header(
+                http::HeaderName::from_str(&configured_header.name).map_err(|err| Error::Internal(err.to_string()))?,
+            ) {
+                let request_header_value = request_header_value
+                    .to_str()
+                    .map_err(|e| Error::Internal(e.to_string()))?
+                    .to_string();
+
+                match &configured_header.value {
+                    AnyOr::Any => {
+                        if rate_limiter.check_key(&request_header_value).is_err() {
+                            return Err(Error::ExceededCapacity);
+                        }
+                    }
+                    AnyOr::Value(specific_values) => {
+                        if specific_values.contains(&request_header_value)
+                            && rate_limiter.check_key(&request_header_value.to_string()).is_err()
+                        {
                             return Err(Error::ExceededCapacity);
                         }
                     }
                 }
-                _ => {}
             }
         }
 
@@ -74,15 +75,22 @@ impl InMemoryRateLimiting {
     fn check_operations<'a>(
         &'a self,
         context: &(dyn RateLimiterContext + 'a),
-        configured_operations: &[String],
+        configured_operations: &AnyOr<HashSet<String>>,
         rate_limiter: &DefaultKeyedRateLimiter<String>,
     ) -> Result<(), Error> {
-        for configured_operation in configured_operations {
-            if let Some(request_operation) = context.graphql_operation_name() {
-                if request_operation == configured_operation
-                    && rate_limiter.check_key(&request_operation.to_string()).is_err()
-                {
-                    return Err(Error::ExceededCapacity);
+        if let Some(request_operation) = context.graphql_operation_name() {
+            match configured_operations {
+                AnyOr::Any => {
+                    if rate_limiter.check_key(&request_operation.to_string()).is_err() {
+                        return Err(Error::ExceededCapacity);
+                    }
+                }
+                AnyOr::Value(configured_operations) => {
+                    if configured_operations.contains(request_operation)
+                        && rate_limiter.check_key(&request_operation.to_string()).is_err()
+                    {
+                        return Err(Error::ExceededCapacity);
+                    }
                 }
             }
         }
@@ -93,13 +101,21 @@ impl InMemoryRateLimiting {
     fn check_ips<'a>(
         &'a self,
         context: &(dyn RateLimiterContext + 'a),
-        configured_ips: &[IpAddr],
+        configured_ips: &AnyOr<HashSet<IpAddr>>,
         rate_limiter: &DefaultKeyedRateLimiter<String>,
     ) -> Result<(), Error> {
-        for configured_ip in configured_ips {
-            if let Some(request_ip) = context.ip() {
-                if request_ip.eq(configured_ip) && rate_limiter.check_key(&configured_ip.to_string()).is_err() {
-                    return Err(Error::ExceededCapacity);
+        if let Some(request_ip) = context.ip() {
+            match configured_ips {
+                AnyOr::Any => {
+                    if rate_limiter.check_key(&request_ip.to_string()).is_err() {
+                        return Err(Error::ExceededCapacity);
+                    }
+                }
+                AnyOr::Value(configured_ips) => {
+                    if configured_ips.contains(&request_ip) && rate_limiter.check_key(&request_ip.to_string()).is_err()
+                    {
+                        return Err(Error::ExceededCapacity);
+                    }
                 }
             }
         }
@@ -115,11 +131,18 @@ impl InMemoryRateLimiting {
     ) -> Result<(), Error> {
         for configured_jwt_claim in configured_jwt_claims {
             if let Some(request_jwt_claim) = context.jwt_claim(&configured_jwt_claim.name) {
-                if let Some(configured_jwt_claim) = &configured_jwt_claim.value {
-                    if request_jwt_claim.eq(configured_jwt_claim)
-                        && rate_limiter.check_key(&request_jwt_claim.to_string()).is_err()
-                    {
-                        return Err(Error::ExceededCapacity);
+                match &configured_jwt_claim.value {
+                    AnyOr::Any => {
+                        if rate_limiter.check_key(&request_jwt_claim.to_string()).is_err() {
+                            return Err(Error::ExceededCapacity);
+                        }
+                    }
+                    AnyOr::Value(claim) => {
+                        if claim.eq(request_jwt_claim)
+                            && rate_limiter.check_key(&request_jwt_claim.to_string()).is_err()
+                        {
+                            return Err(Error::ExceededCapacity);
+                        }
                     }
                 }
             }

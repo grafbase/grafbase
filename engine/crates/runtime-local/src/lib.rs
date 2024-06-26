@@ -1,13 +1,13 @@
 mod bridge;
 mod cache;
 mod fetch;
+#[cfg(feature = "wasi")]
+mod hooks;
 mod kv;
 mod log;
 mod pg;
 mod rate_limiting;
 mod ufd_invoker;
-#[cfg(feature = "wasi")]
-mod hooks;
 
 pub use bridge::Bridge;
 pub use cache::InMemoryCache;

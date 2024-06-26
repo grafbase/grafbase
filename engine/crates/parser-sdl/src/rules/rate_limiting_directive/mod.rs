@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::net::IpAddr;
 use std::time::Duration;
 
@@ -5,7 +6,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Deserializer};
 
 use engine_parser::{types::SchemaDefinition, Positioned};
-use registry_v2::rate_limiting::{Header, Jwt, RateLimitConfig};
+use registry_v2::rate_limiting::{AnyOr, Header, Jwt, RateLimitConfig};
 
 use crate::directive_de::parse_directive;
 
@@ -42,8 +43,8 @@ where
 #[serde(rename_all = "camelCase", untagged)]
 pub enum RateLimitRuleCondition {
     Header { headers: Vec<Header> },
-    GraphqlOperation { operations: Vec<String> },
-    Ip { ips: Vec<IpAddr> },
+    GraphqlOperation { operations: AnyOr<HashSet<String>> },
+    Ip { ips: AnyOr<HashSet<IpAddr>> },
     JwtClaim { jwt_claims: Vec<Jwt> },
 }
 
@@ -98,13 +99,14 @@ impl<'a> Visitor<'a> for RateLimitingVisitor {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
     use std::net::IpAddr;
     use std::str::FromStr;
     use std::time::Duration;
 
     use indoc::indoc;
 
-    use registry_v2::rate_limiting::{Header, Jwt, RateLimitConfig, RateLimitRule, RateLimitRuleCondition};
+    use registry_v2::rate_limiting::{AnyOr, Header, Jwt, RateLimitConfig, RateLimitRule, RateLimitRuleCondition};
 
     #[test]
     fn empty_rules() {
@@ -132,8 +134,8 @@ mod tests {
                   name: "header",
                   condition: {
                     headers: [
-                      { name: "my_header" },
-                      { name: "my_header2", value: "not_used" }
+                      { name: "my_header", value: "*" },
+                      { name: "my_header2", value: ["not_used"] }
                     ]
                   },
                   limit: 1000,
@@ -148,10 +150,18 @@ mod tests {
                   duration: 10
                 },
                 {
+                  name: "any_ip",
+                  condition: {
+                    ips: "*"
+                  },
+                  limit: 1000,
+                  duration: 10
+                },
+                {
                   name: "jwt",
                   condition: {
                     jwt_claims: [
-                      { name: "my_claim" },
+                      { name: "my_claim", value: "*" },
                       { name: "my_claim2", value: "string" },
                       { name: "my_claim3", value: ["array"] },
                       { name: "my_claim4", value: {} }
@@ -168,6 +178,14 @@ mod tests {
                   limit: 1000,
                   duration: 10
                 },
+                {
+                  name: "any_operation",
+                  condition: {
+                      operations: "*"
+                  },
+                  limit: 1000,
+                  duration: 10
+                },
               ]
             )
         "#};
@@ -180,11 +198,11 @@ mod tests {
                     condition: RateLimitRuleCondition::Header(vec![
                         Header {
                             name: "my_header".to_string(),
-                            value: None,
+                            value: AnyOr::Any,
                         },
                         Header {
                             name: "my_header2".to_string(),
-                            value: Some("not_used".to_string()),
+                            value: AnyOr::Value(HashSet::from_iter(["not_used".to_string()])),
                         },
                     ]),
                     name: "header".to_string(),
@@ -192,8 +210,17 @@ mod tests {
                     duration: Duration::from_secs(10),
                 },
                 RateLimitRule {
-                    condition: RateLimitRuleCondition::Ip(vec![IpAddr::from_str("0.0.0.0").unwrap()]),
+                    condition: RateLimitRuleCondition::Ip(AnyOr::Value(HashSet::from_iter([IpAddr::from_str(
+                        "0.0.0.0",
+                    )
+                    .unwrap()]))),
                     name: "ip".to_string(),
+                    limit: 1000,
+                    duration: Duration::from_secs(10),
+                },
+                RateLimitRule {
+                    condition: RateLimitRuleCondition::Ip(AnyOr::Any),
+                    name: "any_ip".to_string(),
                     limit: 1000,
                     duration: Duration::from_secs(10),
                 },
@@ -201,21 +228,21 @@ mod tests {
                     condition: RateLimitRuleCondition::JwtClaim(vec![
                         Jwt {
                             name: "my_claim".to_string(),
-                            value: None,
+                            value: AnyOr::Any,
                         },
                         Jwt {
                             name: "my_claim2".to_string(),
-                            value: Some(serde_json::Value::String("string".to_string())),
+                            value: AnyOr::Value(serde_json::Value::String("string".to_string())),
                         },
                         Jwt {
                             name: "my_claim3".to_string(),
-                            value: Some(serde_json::Value::Array(vec![serde_json::Value::String(
+                            value: AnyOr::Value(serde_json::Value::Array(vec![serde_json::Value::String(
                                 "array".to_string(),
                             )])),
                         },
                         Jwt {
                             name: "my_claim4".to_string(),
-                            value: Some(serde_json::Value::Object(serde_json::Map::new())),
+                            value: AnyOr::Value(serde_json::Value::Object(serde_json::Map::new())),
                         },
                     ]),
                     name: "jwt".to_string(),
@@ -223,12 +250,18 @@ mod tests {
                     duration: Duration::from_secs(10),
                 },
                 RateLimitRule {
-                    condition: RateLimitRuleCondition::GraphqlOperation(vec![
+                    condition: RateLimitRuleCondition::GraphqlOperation(AnyOr::Value(HashSet::from_iter([
                         "x".to_string(),
                         "y".to_string(),
                         "z".to_string(),
-                    ]),
+                    ]))),
                     name: "operations".to_string(),
+                    limit: 1000,
+                    duration: Duration::from_secs(10),
+                },
+                RateLimitRule {
+                    condition: RateLimitRuleCondition::GraphqlOperation(AnyOr::Any),
+                    name: "any_operation".to_string(),
                     limit: 1000,
                     duration: Duration::from_secs(10),
                 },
