@@ -48,6 +48,7 @@ struct State<'a> {
 
     definition_names: HashMap<&'a str, Definition>,
     selection_map: HashMap<(Definition, &'a str), FieldId>,
+    input_values_map: HashMap<(InputObjectId, &'a str), InputValueDefinitionId>,
 
     /// The key is the name of the graph in the join__Graph enum.
     graph_sdl_names: HashMap<&'a str, SubgraphId>,
@@ -306,7 +307,7 @@ fn ingest_object_interfaces(
 }
 
 fn ingest_selection_sets(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> Result<(), DomainError> {
-    ingest_provides_requires(parsed, state)?;
+    ingest_field_directives_after_graph(parsed, state)?;
     ingest_entity_keys(parsed, state)
 }
 
@@ -339,7 +340,7 @@ fn ingest_entity_keys(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> R
                     _ => None,
                 })
                 .map(|fields| {
-                    parse_selection_set(fields).and_then(|fields| attach_selection(&fields, definition, state))
+                    parse_selection_set(fields).and_then(|fields| attach_field_set(&fields, definition, state))
                 })
                 .transpose()?
                 .unwrap_or_default();
@@ -383,7 +384,10 @@ fn ingest_entity_keys(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> R
     Ok(())
 }
 
-fn ingest_provides_requires(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> Result<(), DomainError> {
+fn ingest_field_directives_after_graph(
+    parsed: &ast::ServiceDocument,
+    state: &mut State<'_>,
+) -> Result<(), DomainError> {
     let all_fields = parsed.definitions.iter().filter_map(|definition| match definition {
         ast::TypeSystemDefinition::Type(typedef) => {
             let type_name = typedef.node.name.node.as_str();
@@ -399,55 +403,98 @@ fn ingest_provides_requires(parsed: &ast::ServiceDocument, state: &mut State<'_>
     for (parent_name, field) in
         all_fields.flat_map(|(parent_name, fields)| fields.iter().map(move |field| (parent_name, &field.node)))
     {
-        let Some(join_field_directive) = field
-            .directives
-            .iter()
-            .find(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
-        else {
-            continue;
-        };
-
         let parent_id = state.definition_names[parent_name];
         let field_id = state.selection_map[&(parent_id, field.name.node.as_str())];
         let field_type = state.fields[field_id.0].r#type.clone();
+        let maybe_subgraph_id = state.fields[field_id.0].resolvable_in.first().copied();
 
-        let Some(subgraph_id) = state.fields[field_id.0].resolvable_in.first().copied() else {
-            continue;
-        };
+        if let Some((join_field_directive, subgraph_id)) = field
+            .directives
+            .iter()
+            .find(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
+            .zip(maybe_subgraph_id)
+        {
+            let provides = join_field_directive
+                .node
+                .get_argument("provides")
+                .and_then(|arg| match &arg.node {
+                    async_graphql_value::ConstValue::String(s) => Some(s),
+                    _ => None,
+                })
+                .map(|provides| {
+                    parse_selection_set(provides)
+                        .and_then(|provides| attach_field_set(&provides, field_type.definition, state))
+                        .map(|fields| vec![FieldProvides { subgraph_id, fields }])
+                })
+                .transpose()?
+                .unwrap_or_default();
 
-        let provides = join_field_directive
-            .node
-            .get_argument("provides")
-            .and_then(|arg| match &arg.node {
-                async_graphql_value::ConstValue::String(s) => Some(s),
-                _ => None,
-            })
-            .map(|provides| {
-                parse_selection_set(provides)
-                    .and_then(|provides| attach_selection(&provides, field_type.definition, state))
-                    .map(|fields| vec![FieldProvides { subgraph_id, fields }])
-            })
-            .transpose()?
-            .unwrap_or_default();
+            let requires = join_field_directive
+                .node
+                .get_argument("requires")
+                .and_then(|arg| match &arg.node {
+                    async_graphql_value::ConstValue::String(s) => Some(s),
+                    _ => None,
+                })
+                .map(|requires| {
+                    parse_selection_set(requires)
+                        .and_then(|requires| attach_field_set(&requires, parent_id, state))
+                        .map(|fields| vec![FieldRequires { subgraph_id, fields }])
+                })
+                .transpose()?
+                .unwrap_or_default();
 
-        let requires = join_field_directive
-            .node
-            .get_argument("requires")
-            .and_then(|arg| match &arg.node {
-                async_graphql_value::ConstValue::String(s) => Some(s),
-                _ => None,
-            })
-            .map(|provides| {
-                parse_selection_set(provides)
-                    .and_then(|provides| attach_selection(&provides, parent_id, state))
-                    .map(|fields| vec![FieldRequires { subgraph_id, fields }])
-            })
-            .transpose()?
-            .unwrap_or_default();
+            let field = &mut state.fields[field_id.0];
+            field.provides = provides;
+            field.requires = requires;
+        }
 
-        let field = &mut state.fields[field_id.0];
-        field.provides = provides;
-        field.requires = requires;
+        for directive in &field.directives {
+            if let "authorized" = directive.node.name.node.as_str() {
+                let authorized_directive = AuthorizedDirective {
+                    rule: state.insert_string(
+                        directive
+                            .node
+                            .get_argument("rule")
+                            .and_then(|rule| match &rule.node {
+                                async_graphql_value::ConstValue::String(s) => Some(s.as_str()),
+                                _ => None,
+                            })
+                            .unwrap_or_default(),
+                    ),
+                    arguments: directive
+                        .node
+                        .get_argument("arguments")
+                        .and_then(|arg| match &arg.node {
+                            async_graphql_value::ConstValue::String(s) => Some(s),
+                            _ => None,
+                        })
+                        .map(|arguments| {
+                            parse_selection_set(arguments)
+                                .and_then(|fields| attach_input_value_set_to_field_arguments(&fields, field_id, state))
+                        })
+                        .transpose()?,
+                    fields: directive
+                        .node
+                        .get_argument("fields")
+                        .and_then(|arg| match &arg.node {
+                            async_graphql_value::ConstValue::String(s) => Some(s),
+                            _ => None,
+                        })
+                        .map(|fields| {
+                            parse_selection_set(fields).and_then(|fields| attach_field_set(&fields, parent_id, state))
+                        })
+                        .transpose()?,
+                    metadata: directive
+                        .node
+                        .get_argument("metadata")
+                        .map(|metadata| state.insert_value(&metadata.node)),
+                };
+                state.authorized_directives.push(authorized_directive);
+                let id = AuthorizedDirectiveId(state.authorized_directives.len() - 1);
+                state.field_authorized_directives.push((field_id, id));
+            }
+        }
     }
 
     Ok(())
@@ -760,6 +807,10 @@ fn ingest_input_object<'a>(
 ) -> Result<(), DomainError> {
     let start = state.input_value_definitions.len();
     for field in &input_object.fields {
+        state.input_values_map.insert(
+            (input_object_id, field.node.name.node.as_str()),
+            InputValueDefinitionId(state.input_value_definitions.len()),
+        );
         let name = state.insert_string(field.node.name.node.as_str());
         let r#type = state.field_type(&field.node.ty.node)?;
         let composed_directives = collect_composed_directives(&field.node.directives, state);
@@ -853,7 +904,7 @@ fn parse_selection_set(fields: &str) -> Result<Vec<Positioned<ast::Selection>>, 
 
 /// Attach a selection set defined in strings to a FederatedGraph, transforming the strings into
 /// field ids.
-fn attach_selection(
+fn attach_field_set(
     selection_set: &[Positioned<ast::Selection>],
     parent_id: Definition,
     state: &mut State<'_>,
@@ -887,7 +938,88 @@ fn attach_selection(
             Ok(FieldSetItem {
                 field,
                 arguments,
-                subselection: attach_selection(subselection, field_ty, state)?,
+                subselection: attach_field_set(subselection, field_ty, state)?,
+            })
+        })
+        .collect()
+}
+
+fn attach_input_value_set_to_field_arguments(
+    selection_set: &[Positioned<ast::Selection>],
+    field_id: FieldId,
+    state: &mut State<'_>,
+) -> Result<InputValueDefinitionSet, DomainError> {
+    let (start, len) = state.fields[field_id.0].arguments;
+    selection_set
+        .iter()
+        .map(|selection| {
+            let ast::Selection::Field(ast_arg) = &selection.node else {
+                return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
+            };
+
+            let arguments = &state.input_value_definitions[start.0..start.0 + len];
+            let Some((i, arg)) = arguments
+                .iter()
+                .enumerate()
+                .find(|(_, arg)| state.strings.get_index(arg.name.0).unwrap() == ast_arg.node.name.node.as_str())
+            else {
+                return Err(DomainError(format!(
+                    "Unknown argument {} for field {}",
+                    ast_arg.node.name.node,
+                    state.strings.get_index(state.fields[field_id.0].name.0).unwrap()
+                )));
+            };
+
+            let ast_subselection = &ast_arg.node.selection_set.node.items;
+            let subselection = if let Definition::InputObject(input_object_id) = arg.r#type.definition {
+                if ast_subselection.is_empty() {
+                    return Err(DomainError("InputObject must have a subselection".to_owned()));
+                }
+                attach_input_value_set(ast_subselection, input_object_id, state)?
+            } else if !ast_subselection.is_empty() {
+                return Err(DomainError("Only InputObject can have a subselection".to_owned()));
+            } else {
+                InputValueDefinitionSet::default()
+            };
+
+            Ok(InputValueDefinitionSetItem {
+                input_value_definition: InputValueDefinitionId(start.0 + i),
+                subselection,
+            })
+        })
+        .collect()
+}
+
+fn attach_input_value_set(
+    selection_set: &[Positioned<ast::Selection>],
+    input_object_id: InputObjectId,
+    state: &mut State<'_>,
+) -> Result<InputValueDefinitionSet, DomainError> {
+    selection_set
+        .iter()
+        .map(|selection| {
+            let ast::Selection::Field(ast_field) = &selection.node else {
+                return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
+            };
+            let id = state.input_values_map[&(input_object_id, ast_field.node.name.node.as_str())];
+
+            let ast_subselection = &ast_field.node.selection_set.node.items;
+            let subselection = if let Definition::InputObject(input_object_id) =
+                state.input_value_definitions[id.0].r#type.definition
+            {
+                if ast_subselection.is_empty() {
+                    return Err(DomainError("InputObject must have a subselection".to_owned()));
+                }
+                attach_input_value_set(ast_subselection, input_object_id, state)?
+            } else if !ast_subselection.is_empty() {
+                return Err(DomainError("Only InputObject can have a subselection".to_owned()));
+            } else {
+                InputValueDefinitionSet::default()
+            };
+
+            Ok(InputValueDefinitionSetItem {
+                input_value_definition: id,
+                subselection,
             })
         })
         .collect()
@@ -1012,6 +1144,8 @@ fn collect_composed_directives(directives: &[Positioned<ast::ConstDirective>], s
                     state.directives.push(Directive::Policy(transformed));
                 }
             }
+            // Added later after ingesting the graph.
+            "authorized" => {}
             other => {
                 let name = state.insert_string(other);
                 let arguments = directive
