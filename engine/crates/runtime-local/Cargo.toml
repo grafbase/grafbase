@@ -21,13 +21,14 @@ async-trait = "0.1.80"
 async-tungstenite = { version = "0.26.0", features = ["tokio-runtime", "tokio-rustls-webpki-roots"] }
 futures-util.workspace = true
 graphql-ws-client = { version = "0.10.0", features = ["tungstenite"] }
+governor.workspace = true
 ulid.workspace = true
 serde.workspace = true
 serde_json.workspace  = true
 tracing.workspace = true
 tungstenite = { workspace = true, features = ["url"] }
 tokio = { workspace = true, features = ["macros", "sync"] }
-
+registry-v2.workspace = true
 runtime.workspace = true
 postgres-connector-types = { path = "../postgres-connector-types" }
 
@@ -36,4 +37,3 @@ reqwest = { workspace = true, features = [
   "rustls-tls",
 ] }
 wasi-component-loader = { version = "0.75.0", path = "../wasi-component-loader", optional = true }
-
