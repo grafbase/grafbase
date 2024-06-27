@@ -52,7 +52,7 @@ impl runtime::udf::UdfInvokerInner<CustomResolverRequestPayload> for RustUdfs {
         self.custom_resolvers
             .lock()
             .unwrap()
-            .get(name)
+            .get_mut(name)
             .unwrap_or_else(|| panic!("Resolver named {name} doesn't exist"))
             .invoke(request.payload)
     }
@@ -87,26 +87,26 @@ impl runtime::udf::UdfInvokerInner<AuthorizerRequestPayload> for RustUdfs {
 /// - UdfResponse if you just want to hard code a response
 /// - serde_json::Value if you just want to hardcode a successful response
 pub trait RustResolver: Send + Sync {
-    fn invoke(&self, payload: CustomResolverRequestPayload) -> Result<UdfResponse, UdfError>;
+    fn invoke(&mut self, payload: CustomResolverRequestPayload) -> Result<UdfResponse, UdfError>;
 }
 
 impl<F> RustResolver for F
 where
     F: Fn(CustomResolverRequestPayload) -> Result<UdfResponse, UdfError> + Send + Sync,
 {
-    fn invoke(&self, payload: CustomResolverRequestPayload) -> Result<UdfResponse, UdfError> {
+    fn invoke(&mut self, payload: CustomResolverRequestPayload) -> Result<UdfResponse, UdfError> {
         self(payload)
     }
 }
 
 impl RustResolver for UdfResponse {
-    fn invoke(&self, _: CustomResolverRequestPayload) -> Result<UdfResponse, UdfError> {
+    fn invoke(&mut self, _: CustomResolverRequestPayload) -> Result<UdfResponse, UdfError> {
         Ok(self.clone())
     }
 }
 
 impl RustResolver for serde_json::Value {
-    fn invoke(&self, _: CustomResolverRequestPayload) -> Result<UdfResponse, UdfError> {
+    fn invoke(&mut self, _: CustomResolverRequestPayload) -> Result<UdfResponse, UdfError> {
         Ok(UdfResponse::Success(self.clone()))
     }
 }

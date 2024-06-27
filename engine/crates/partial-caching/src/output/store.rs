@@ -17,13 +17,13 @@ struct ObjectRecord {
     fields: IdRange<ValueId>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ValueId(usize);
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ObjectId(usize);
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ValueRecord {
     Unset,
     Null,
@@ -39,7 +39,7 @@ pub enum ValueRecord {
     InlineValue(Box<CompactValue>),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct IdRange<T: Copy> {
     start: T,
     end: T,
