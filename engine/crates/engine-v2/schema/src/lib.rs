@@ -221,6 +221,12 @@ pub enum Definition {
     InputObject(InputObjectId),
 }
 
+impl Definition {
+    pub fn is_input_object(&self) -> bool {
+        matches!(self, Definition::InputObject(_))
+    }
+}
+
 impl From<ScalarId> for Definition {
     fn from(id: ScalarId) -> Self {
         Self::Scalar(id)

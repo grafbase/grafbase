@@ -87,7 +87,7 @@ impl<'a> GraphBuilder<'a> {
             .graph
             .field_authorized_directives
             .sort_unstable_by_key(|(id, _)| *id);
-        self.ingest_fields(config, object_metadata, interface_metadata);
+        self.ingest_fields_after_input_values(config, object_metadata, interface_metadata);
     }
 
     fn ingest_input_values(&mut self, config: &mut Config) {
@@ -338,7 +338,7 @@ impl<'a> GraphBuilder<'a> {
         entities_metadata
     }
 
-    fn ingest_fields(
+    fn ingest_fields_after_input_values(
         &mut self,
         config: &mut Config,
         object_metadata: ObjectMetadata,

@@ -1,10 +1,14 @@
 use id_newtypes::IdRange;
-use schema::{InputValueDefinitionId, InputValueDefinitionWalker, InputValueSerdeError};
+use schema::{InputValueDefinitionId, InputValueDefinitionWalker, InputValueSerdeError, InputValueSet};
 use serde::{de::value::MapDeserializer, forward_to_deserialize_any};
 
 use crate::operation::{FieldArgumentId, QueryInputValueWalker};
 
 use super::OperationWalker;
+
+mod view;
+
+pub(crate) use view::*;
 
 pub type FieldArgumentWalker<'a> = OperationWalker<'a, FieldArgumentId, InputValueDefinitionId>;
 
@@ -41,6 +45,13 @@ pub type FieldArgumentsWalker<'a> = OperationWalker<'a, IdRange<FieldArgumentId>
 impl<'a> FieldArgumentsWalker<'a> {
     pub fn is_empty(&self) -> bool {
         self.item.is_empty()
+    }
+
+    pub fn with_selection_set(self, selection_set: &'a InputValueSet) -> FieldArgumentsView<'a> {
+        FieldArgumentsView {
+            inner: self,
+            selection_set,
+        }
     }
 }
 

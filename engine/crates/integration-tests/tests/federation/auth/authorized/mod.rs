@@ -6,6 +6,7 @@ use integration_tests::{
     runtime,
 };
 
+mod arguments;
 mod rule;
 
 fn with_prepared_engine<F, O>(hooks: TestHooks, f: impl FnOnce(TestFederationEngine) -> F) -> O

@@ -16,3 +16,10 @@ impl FromIterator<InputValueSetItem> for InputValueSet {
         Self(fields)
     }
 }
+
+impl std::ops::Deref for InputValueSet {
+    type Target = [InputValueSetItem];
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
