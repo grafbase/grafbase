@@ -66,7 +66,7 @@ pub async fn serve(
             subgraphs: config.subgraphs,
             default_headers: config.headers,
             trusted_documents: config.trusted_documents,
-            wasi: config.wasi,
+            wasi: config.hooks,
         },
         otel_reload,
         sender,

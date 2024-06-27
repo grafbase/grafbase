@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use runtime::hooks::{HeaderMap, HookError, HooksImpl, UserError};
-pub use wasi_component_loader::{ComponentLoader, Config as WasiConfig};
+pub use wasi_component_loader::{ComponentLoader, Config as HooksConfig};
 
 pub struct HooksWasi(ComponentLoader);
 
