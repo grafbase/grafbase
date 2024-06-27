@@ -2,7 +2,6 @@ use engine_parser::types::OperationType;
 use im::HashSet;
 use itertools::Itertools;
 use schema::{ResolverId, Schema};
-use std::num::NonZeroU16;
 
 use super::{
     boundary::BoundarySelectionSetPlanner, collect::OperationPlanBuilder, logic::PlanningLogic, PlanningError,
@@ -10,7 +9,7 @@ use super::{
 };
 use crate::{
     operation::{
-        Field, FieldId, Operation, OperationWalker, ParentToChildEdge, Plan, PlanBoundaryId, PlanId, QueryPath,
+        EntityLocation, Field, FieldId, Operation, OperationWalker, ParentToChildEdge, Plan, PlanId, QueryPath,
         Selection, SelectionSet, SelectionSetId, Variables,
     },
     plan::{flatten_selection_sets, EntityId, FlatField, FlatSelectionSet, OperationPlan},
@@ -43,22 +42,7 @@ pub(super) struct Planner<'a> {
     pub(super) variables: &'a Variables,
     pub(super) operation: Operation,
     plan_edges: HashSet<ParentToChildEdge>,
-    next_plan_boundary_id: usize,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct TemporaryPlanBoundaryId(NonZeroU16);
-
-impl From<usize> for TemporaryPlanBoundaryId {
-    fn from(value: usize) -> Self {
-        Self(NonZeroU16::new(value as u16 + 1).unwrap())
-    }
-}
-
-impl From<TemporaryPlanBoundaryId> for usize {
-    fn from(value: TemporaryPlanBoundaryId) -> Self {
-        value.0.get() as usize - 1
-    }
+    entity_locations_count: usize,
 }
 
 impl<'a> Planner<'a> {
@@ -68,7 +52,7 @@ impl<'a> Planner<'a> {
             variables,
             operation,
             plan_edges: HashSet::new(),
-            next_plan_boundary_id: 0,
+            entity_locations_count: 0,
         }
     }
 
@@ -77,11 +61,13 @@ impl<'a> Planner<'a> {
         self.operation.field_dependencies.sort_unstable();
         self.operation.plan_edges = self.plan_edges.into_iter().collect();
         self.operation.plan_edges.sort_unstable();
-        OperationPlanBuilder::new(self.schema, self.variables, self.operation).build()
+        OperationPlanBuilder::new(self.schema, self.variables, self.operation, self.entity_locations_count).build()
     }
 
     /// Step 1 of the planning, attributed all fields to a plan and satisfying their requirements.
     fn plan_all_fields(&mut self) -> PlanningResult<()> {
+        let entity_location = self.next_entity_location();
+
         // The root plan is always introspection which also lets us handle operations like:
         // query { __typename }
         let introspection = self.schema.walker().introspection_metadata();
@@ -104,26 +90,28 @@ impl<'a> Planner<'a> {
                 QueryPath::default(),
                 introspection.resolver_id,
                 EntityId::Object(self.operation.root_object_id),
+                entity_location,
                 &introspection_selection_set,
             )?;
         }
 
         if matches!(self.operation.ty, OperationType::Mutation) {
-            self.plan_mutation(selection_set)?;
+            self.plan_mutation(entity_location, selection_set)?;
         } else {
             // Subscription are considered to be Queries for planning, they just happen to have
             // only one root field.
-            self.plan_query(selection_set)?;
+            self.plan_query(entity_location, selection_set)?;
         }
 
         Ok(())
     }
 
     /// A query is simply treated as a plan boundary with no parent.
-    fn plan_query(&mut self, selection_set: FlatSelectionSet) -> PlanningResult<()> {
+    fn plan_query(&mut self, entity_location: EntityLocation, selection_set: FlatSelectionSet) -> PlanningResult<()> {
         BoundarySelectionSetPlanner::plan(
             self,
             &QueryPath::default(),
+            entity_location,
             None,
             FlatSelectionSet::empty(selection_set.ty),
             selection_set,
@@ -133,8 +121,12 @@ impl<'a> Planner<'a> {
     /// Mutation is a special case because root fields need to execute in order. So planning each
     /// field individually and setting up plan dependencies between them to ensures proper
     /// execution order.
-    fn plan_mutation(&mut self, mut selection_set: FlatSelectionSet) -> PlanningResult<()> {
-        let entity_type = EntityId::Object(self.operation.root_object_id);
+    fn plan_mutation(
+        &mut self,
+        entity_location: EntityLocation,
+        mut selection_set: FlatSelectionSet,
+    ) -> PlanningResult<()> {
+        let entity_id = EntityId::Object(self.operation.root_object_id);
 
         let fields = std::mem::take(&mut selection_set.fields);
         let mut groups = self
@@ -146,7 +138,6 @@ impl<'a> Planner<'a> {
         groups.sort_unstable_by_key(|field_ids| self.operation[field_ids[0]].query_position());
 
         let mut maybe_previous_plan_id: Option<PlanId> = None;
-        let boundary_id = self.next_plan_boundary_id();
 
         // FIXME: generates one plan per field, should be aggregated if consecutive fields can be
         // planned by a single resolver.
@@ -170,7 +161,8 @@ impl<'a> Planner<'a> {
             let plan_id = self.push_plan(
                 QueryPath::default(),
                 resolver.id(),
-                entity_type,
+                entity_id,
+                entity_location,
                 &selection_set.clone_with_fields(
                     field_ids
                         .into_iter()
@@ -184,11 +176,7 @@ impl<'a> Planner<'a> {
             )?;
 
             if let Some(parent) = maybe_previous_plan_id {
-                self.push_plan_dependency(ParentToChildEdge {
-                    parent,
-                    child: plan_id,
-                    boundary: boundary_id,
-                });
+                self.push_plan_dependency(ParentToChildEdge { parent, child: plan_id });
             }
             maybe_previous_plan_id = Some(plan_id);
         }
@@ -200,11 +188,12 @@ impl<'a> Planner<'a> {
     pub(super) fn plan_obviously_providable_subselections(
         &mut self,
         path: &QueryPath,
+        entity_location: EntityLocation,
         logic: &PlanningLogic<'a>,
         providable: &FlatSelectionSet,
     ) -> PlanningResult<()> {
         let plan_id = logic.plan_id();
-        self.attribute_selection_set(providable, plan_id);
+        self.attribute_selection_set(providable, entity_location, plan_id);
         let grouped = self
             .walker()
             .group_by_response_key_sorted_by_query_position(providable.fields.iter().map(|field| field.id));
@@ -218,8 +207,16 @@ impl<'a> Planner<'a> {
                     .definition_id()
                     .expect("wouldn't have a subselection");
                 let flat_selection_set = flatten_selection_sets(self.schema, &self.operation, subselection_set_ids);
+                let entity_location = self.next_entity_location();
+                // The current plan will necessarily has at least one field in it, otherwise we
+                // would be able to plan anything else without nested fields.
                 self.attribute_selection_sets(&flat_selection_set.root_selection_set_ids, plan_id);
-                self.plan_selection_set(&path.child(key), &logic.child(definition_id), flat_selection_set)?;
+                self.plan_selection_set(
+                    &path.child(key),
+                    entity_location,
+                    &logic.child(definition_id),
+                    flat_selection_set,
+                )?;
             }
         }
 
@@ -236,6 +233,7 @@ impl<'a> Planner<'a> {
     fn plan_selection_set(
         &mut self,
         path: &QueryPath,
+        entity_location: EntityLocation,
         logic: &PlanningLogic<'a>,
         selection_set: FlatSelectionSet,
     ) -> PlanningResult<()> {
@@ -252,10 +250,10 @@ impl<'a> Planner<'a> {
             })
         };
 
-        self.plan_obviously_providable_subselections(path, logic, &obviously_providable)?;
+        self.plan_obviously_providable_subselections(path, entity_location, logic, &obviously_providable)?;
 
         if !missing.is_empty() {
-            self.plan_boundary_selection_set(path, logic, obviously_providable, missing)?;
+            self.plan_boundary_selection_set(path, entity_location, logic, obviously_providable, missing)?;
         }
         Ok(())
     }
@@ -263,11 +261,12 @@ impl<'a> Planner<'a> {
     fn plan_boundary_selection_set(
         &mut self,
         query_path: &QueryPath,
+        entity_location: EntityLocation,
         logic: &PlanningLogic<'a>,
         providable: FlatSelectionSet,
         missing: FlatSelectionSet,
     ) -> PlanningResult<()> {
-        BoundarySelectionSetPlanner::plan(self, query_path, Some(logic), providable, missing)
+        BoundarySelectionSetPlanner::plan(self, query_path, entity_location, Some(logic), providable, missing)
     }
 
     pub fn walker(&self) -> OperationWalker<'_, (), ()> {
@@ -305,16 +304,17 @@ impl<'a> Planner<'a> {
 
     pub fn push_plan(
         &mut self,
-        path: QueryPath,
+        query_path: QueryPath,
         resolver_id: ResolverId,
-        entity_type: EntityId,
+        entity_id: EntityId,
+        entity_location: EntityLocation,
         providable: &FlatSelectionSet,
     ) -> PlanningResult<PlanId> {
         let plan_id = PlanId::from(self.operation.plans.len());
         tracing::trace!(
             "Creating {plan_id} ({}) for entity '{}': {}",
             self.schema.walk(resolver_id).name(),
-            self.schema.walk(schema::Definition::from(entity_type)).name(),
+            self.schema.walk(schema::Definition::from(entity_id)).name(),
             providable.fields.iter().format_with(", ", |field, f| f(&format_args!(
                 "{}",
                 self.walker().walk(field.id).response_key_str()
@@ -322,14 +322,14 @@ impl<'a> Planner<'a> {
         );
         self.operation.plans.push(Plan { resolver_id });
         let logic = PlanningLogic::new(plan_id, self.schema.walk(resolver_id));
-        self.plan_obviously_providable_subselections(&path, &logic, providable)?;
+        self.plan_obviously_providable_subselections(&query_path, entity_location, &logic, providable)?;
         Ok(plan_id)
     }
 
-    pub fn next_plan_boundary_id(&mut self) -> PlanBoundaryId {
-        let id = self.next_plan_boundary_id;
-        self.next_plan_boundary_id += 1;
-        PlanBoundaryId::from(id)
+    pub fn next_entity_location(&mut self) -> EntityLocation {
+        let id = self.entity_locations_count;
+        self.entity_locations_count += 1;
+        EntityLocation::from(id)
     }
 
     pub fn push_plan_dependency(&mut self, edge: ParentToChildEdge) {
@@ -342,9 +342,15 @@ impl<'a> Planner<'a> {
         self.operation.field_to_plan_id[usize::from(id)]
     }
 
-    pub fn attribute_selection_set(&mut self, selection_set: &FlatSelectionSet, plan_id: PlanId) {
+    pub fn attribute_selection_set(
+        &mut self,
+        selection_set: &FlatSelectionSet,
+        entity_location: EntityLocation,
+        plan_id: PlanId,
+    ) {
         for field in selection_set {
             self.operation.field_to_plan_id[usize::from(field.id)] = Some(plan_id);
+            self.operation.field_to_entity_location[usize::from(field.id)] = Some(entity_location);
             self.attribute_selection_sets(&field.selection_set_path, plan_id)
         }
     }

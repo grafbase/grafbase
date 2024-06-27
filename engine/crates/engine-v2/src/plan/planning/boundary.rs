@@ -11,7 +11,7 @@ use tracing::{instrument, Level};
 use super::{logic::PlanningLogic, planner::Planner, PlanningError, PlanningResult};
 use crate::{
     operation::{
-        Field, FieldArgument, FieldArgumentId, FieldId, ParentToChildEdge, PlanBoundaryId, PlanId, QueryInputValue,
+        EntityLocation, Field, FieldArgument, FieldArgumentId, FieldId, ParentToChildEdge, PlanId, QueryInputValue,
         QueryPath, Selection, SelectionSet, SelectionSetId, SelectionSetType,
     },
     plan::{flatten_selection_sets, EntityId, FlatField, FlatSelectionSet},
@@ -25,7 +25,7 @@ pub(super) struct BoundarySelectionSetPlanner<'schema, 'a> {
     planner: &'a mut Planner<'schema>,
     query_path: &'a QueryPath,
     maybe_parent: Option<&'a PlanningLogic<'schema>>,
-    plan_boundary_id: PlanBoundaryId,
+    entity_location: EntityLocation,
     required_field_id_to_field_id: HashMap<RequiredFieldId, FieldId>,
     children: Vec<PlanId>,
     extra_response_key_suffix: usize,
@@ -41,12 +41,13 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
     pub(super) fn plan(
         planner: &'a mut Planner<'schema>,
         query_path: &'a QueryPath,
+        entity_location: EntityLocation,
         maybe_parent: Option<&'a PlanningLogic<'schema>>,
         providable: FlatSelectionSet,
         unplanned: FlatSelectionSet,
     ) -> PlanningResult<()> {
         let mut boundary_planner = Self {
-            plan_boundary_id: planner.next_plan_boundary_id(),
+            entity_location,
             planner,
             query_path,
             maybe_parent,
@@ -60,7 +61,7 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
         let Self {
             planner,
             required_field_id_to_field_id,
-            plan_boundary_id,
+            entity_location,
             ..
         } = boundary_planner;
         planner
@@ -70,7 +71,7 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
                 required_field_id_to_field_id
                     .into_iter()
                     .map(|(required_field_id, field_id)| crate::operation::FieldDependency {
-                        plan_boundary_id,
+                        entity_location,
                         required_field_id,
                         field_id,
                     }),
@@ -240,6 +241,7 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
 
             self.planner.plan_obviously_providable_subselections(
                 self.query_path,
+                self.entity_location,
                 parent_logic,
                 &unplanned_selection_set.clone_with_fields(fields),
             )?;
@@ -303,7 +305,13 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
         grouped_fields: &mut GroupedProvidableFields,
     ) -> PlanningResult<()> {
         let path = self.query_path.clone();
-        let plan_id = self.push_plan(path, candidate.resolver_id, candidate.entity_type, &providable)?;
+        let plan_id = self.planner.push_plan(
+            path,
+            candidate.resolver_id,
+            candidate.entity_type,
+            self.entity_location,
+            &providable,
+        )?;
         self.push_plan_requires_dependencies(plan_id, &requires);
         for (definition_id, groups) in self.group_fields(providable) {
             grouped_fields.insert(definition_id, groups);
@@ -324,12 +332,10 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
             // satisfy requirements. But only those marked as read will be retrieved.
             self.operation[field_id].mark_as_read();
             let parent_plan_id = self.get_field_plan(field_id).expect("field should be planned");
-            let edge = ParentToChildEdge {
+            self.planner.push_plan_dependency(ParentToChildEdge {
                 parent: parent_plan_id,
                 child: plan_id,
-                boundary: self.plan_boundary_id,
-            };
-            self.push_plan_dependency(edge);
+            });
             self.push_plan_requires_dependencies(plan_id, &required_field.subselection)
         }
     }

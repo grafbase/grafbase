@@ -2,7 +2,7 @@ use schema::{FieldDefinitionWalker, RequiredField};
 
 use super::{FieldArgumentsWalker, OperationWalker, SelectionSetWalker};
 use crate::{
-    operation::{Field, FieldId, Location},
+    operation::{EntityLocation, Field, FieldId, Location},
     response::ResponseKey,
 };
 
@@ -46,6 +46,10 @@ impl<'a> FieldWalker<'a> {
 
     pub fn is_extra(&self) -> bool {
         matches!(self.as_ref(), Field::Extra { .. })
+    }
+
+    pub fn entity_location(&self) -> Option<EntityLocation> {
+        self.operation.field_to_entity_location[usize::from(self.item)]
     }
 }
 

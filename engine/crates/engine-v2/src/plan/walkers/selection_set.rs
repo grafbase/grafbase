@@ -49,7 +49,7 @@ impl<'a> PlanSelectionSet<'a> {
                 // fields, we need to have it
                 let collected = &walker.operation_plan[id];
                 collected.ty.as_object_id().is_none()
-                    && (!collected.typename_fields.is_empty() || collected.maybe_boundary_id.is_some())
+                    && (!collected.typename_fields.is_empty() || collected.maybe_tracked_entity_location.is_some())
             }
         }
     }

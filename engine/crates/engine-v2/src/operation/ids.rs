@@ -1,5 +1,6 @@
 use id_newtypes::IdRange;
 use schema::InputValueDefinitionId;
+use std::num::NonZeroU16;
 
 use super::{
     Field, FieldArgument, Fragment, FragmentSpread, InlineFragment, Operation, Plan, QueryInputKeyValueId,
@@ -15,6 +16,26 @@ id_newtypes::NonZeroU16! {
     Operation.variable_definitions[VariableDefinitionId] => VariableDefinition,
     Operation.field_arguments[FieldArgumentId] => FieldArgument,
     Operation.plans[PlanId] => Plan,
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct EntityLocation(NonZeroU16);
+
+impl From<usize> for EntityLocation {
+    fn from(value: usize) -> Self {
+        Self(
+            u16::try_from(value)
+                .ok()
+                .and_then(|value| NonZeroU16::new(value + 1))
+                .expect("Too many entity locations"),
+        )
+    }
+}
+
+impl From<EntityLocation> for usize {
+    fn from(value: EntityLocation) -> Self {
+        usize::from(value.0.get()) - 1
+    }
 }
 
 impl std::ops::Index<QueryInputValueId> for Operation {

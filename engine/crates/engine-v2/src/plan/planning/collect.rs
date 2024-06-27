@@ -8,13 +8,13 @@ use std::{
 
 use crate::{
     operation::{
-        FieldId, Operation, OperationWalker, PlanBoundaryId, PlanId, SelectionSetId, SelectionSetType, Variables,
+        EntityLocation, FieldId, Operation, OperationWalker, PlanId, SelectionSetId, SelectionSetType, Variables,
     },
     plan::{
         flatten_selection_sets, AnyCollectedSelectionSet, AnyCollectedSelectionSetId, CollectedField, CollectedFieldId,
         CollectedSelectionSet, CollectedSelectionSetId, ConditionalField, ConditionalFieldId, ConditionalSelectionSet,
-        ConditionalSelectionSetId, EntityId, ExecutionPlan, ExecutionPlanBoundaryId, ExecutionPlanId, FieldType,
-        FlatField, OperationPlan, ParentToChildEdge, PlanInput, PlanOutput,
+        ConditionalSelectionSetId, EntityId, ExecutionPlan, ExecutionPlanId, FieldType, FlatField, OperationPlan,
+        ParentToChildEdge, PlanInput, PlanOutput,
     },
     response::{ReadField, ReadSelectionSet},
     sources::PreparedExecutor,
@@ -38,14 +38,18 @@ struct UnfinalizedParentToChildEdge {
 }
 
 struct ToBePlanned {
-    maybe_boundary_id: Option<ExecutionPlanBoundaryId>,
-    plan_boundary_id: PlanBoundaryId,
+    entity_location: EntityLocation,
     plan_id: PlanId,
-    fields: Vec<FieldId>,
+    root_fields: Vec<FieldId>,
 }
 
 impl<'a> OperationPlanBuilder<'a> {
-    pub(super) fn new(schema: &'a Schema, variables: &'a Variables, operation: Operation) -> Self {
+    pub(super) fn new(
+        schema: &'a Schema,
+        variables: &'a Variables,
+        operation: Operation,
+        entity_locations_count: usize,
+    ) -> Self {
         OperationPlanBuilder {
             schema,
             variables,
@@ -57,11 +61,11 @@ impl<'a> OperationPlanBuilder<'a> {
                 execution_plans: Vec::new(),
                 plan_parent_to_child_edges: Vec::new(),
                 plan_dependencies_count: Vec::new(),
-                plan_boundary_consummers_count: Vec::new(),
                 conditional_selection_sets: Vec::new(),
                 conditional_fields: Vec::new(),
                 collected_selection_sets: Vec::new(),
                 collected_fields: Vec::new(),
+                entities_consummers_count: vec![0; entity_locations_count],
                 operation,
             },
         }
@@ -120,6 +124,7 @@ impl<'a> OperationPlanBuilder<'a> {
                     acc.entry(plan_id).or_default().push(field.id());
                     acc
                 });
+
         if walker.is_mutation() {
             let mut maybe_previous_plan_id: Option<PlanId> = None;
             let mut plan_ids = root_plans
@@ -145,123 +150,35 @@ impl<'a> OperationPlanBuilder<'a> {
 
         self.to_be_planned = root_plans
             .into_iter()
-            .map(|(plan_id, fields)| ToBePlanned {
-                plan_boundary_id: PlanBoundaryId::from(0),
-                maybe_boundary_id: None,
+            .map(|(plan_id, root_fields)| ToBePlanned {
+                entity_location: self
+                    .walker()
+                    .walk(root_fields[0])
+                    .entity_location()
+                    .expect("Should exist"),
                 plan_id,
-                fields,
+                root_fields,
             })
             .collect();
 
-        while let Some(ToBePlanned {
-            maybe_boundary_id,
-            plan_boundary_id,
-            plan_id,
-            fields,
-        }) = self.to_be_planned.pop()
-        {
-            ExecutionPlanBuildContext::new(self, plan_boundary_id, plan_id).create_plan(maybe_boundary_id, fields)?;
+        while let Some(to_be_planned) = self.to_be_planned.pop() {
+            self.generate_plan(to_be_planned)?;
         }
 
         Ok(())
     }
 
-    fn walker(&self) -> OperationWalker<'_, (), ()> {
-        // yes looks weird, will be improved
-        self.operation_plan
-            .operation
-            .walker_with(self.schema.walker(), self.variables)
-    }
-
-    fn new_boundary(&mut self) -> ExecutionPlanBoundaryId {
-        let id = ExecutionPlanBoundaryId::from(self.operation_plan.plan_boundary_consummers_count.len());
-        self.operation_plan.plan_boundary_consummers_count.push(0);
-        id
-    }
-}
-
-pub(super) struct ExecutionPlanBuildContext<'parent, 'ctx> {
-    builder: &'parent mut OperationPlanBuilder<'ctx>,
-    plan_boundary_id: PlanBoundaryId,
-    plan_id: PlanId,
-    support_aliases: bool,
-}
-
-impl<'parent, 'ctx> std::ops::Deref for ExecutionPlanBuildContext<'parent, 'ctx> {
-    type Target = OperationPlanBuilder<'ctx>;
-    fn deref(&self) -> &Self::Target {
-        self.builder
-    }
-}
-
-impl<'parent, 'ctx> std::ops::DerefMut for ExecutionPlanBuildContext<'parent, 'ctx> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.builder
-    }
-}
-
-impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
-    pub(super) fn new(
-        builder: &'parent mut OperationPlanBuilder<'ctx>,
-        plan_boundary_id: PlanBoundaryId,
-        plan_id: PlanId,
-    ) -> Self {
-        let support_aliases = builder
-            .schema
-            .walk(builder.operation_plan.operation.plans[usize::from(plan_id)].resolver_id)
-            .supports_aliases();
-        ExecutionPlanBuildContext {
-            builder,
-            plan_boundary_id,
-            plan_id,
-            support_aliases,
-        }
-    }
-
-    fn create_plan(
+    fn generate_plan(
         &mut self,
-        maybe_boundary_id: Option<ExecutionPlanBoundaryId>,
-        fields: Vec<FieldId>,
-    ) -> PlanningResult<()> {
-        self.operation_plan.plan_dependencies_count.push(0);
-
-        let input = if let Some(boundary_id) = maybe_boundary_id {
-            self.operation_plan.plan_boundary_consummers_count[usize::from(boundary_id)] += 1;
-            let selection_set = self.create_plan_input(&fields);
-            Some(PlanInput {
-                boundary_id,
-                selection_set,
-            })
-        } else {
-            None
-        };
-
-        // Currently a resolver is tied to only one entity (object/interface), so retrieving the
-        // parent entity of any field is enough for this part.
-        let selection_set_id = self.operation_plan.operation.parent_selection_set_id(fields[0]);
-        let entity_id =
-            EntityId::maybe_from(Definition::from(self.operation_plan.operation[selection_set_id].ty)).unwrap();
-
-        let boundaries_start = self.operation_plan.plan_boundary_consummers_count.len();
-        let collected_selection_set_id = self.collect_fields(entity_id.into(), fields, maybe_boundary_id)?;
-        let boundaries_end = self.operation_plan.plan_boundary_consummers_count.len();
-        let output = PlanOutput {
-            entity_id,
-            collected_selection_set_id,
-            boundary_ids: IdRange::from(boundaries_start..boundaries_end),
-        };
-
-        let resolver_id = self.operation_plan.operation[self.plan_id].resolver_id;
-        let resolver = self.schema.walker().walk(resolver_id).with_own_names();
-
-        let plan_id = self.plan_id;
-        let execution_plan = ExecutionPlan {
+        ToBePlanned {
+            entity_location,
             plan_id,
-            resolver_id,
-            input,
-            output,
-            prepared_executor: PreparedExecutor::Unreachable,
-        };
+            root_fields,
+        }: ToBePlanned,
+    ) -> PlanningResult<()> {
+        let execution_plan = ExecutionPlanBuilder::new(self, plan_id).build(entity_location, root_fields)?;
+        let resolver = self.schema.walker().walk(execution_plan.resolver_id).with_own_names();
+
         self.operation_plan.execution_plans.push(execution_plan);
         let execution_plan_id = ExecutionPlanId::from(self.operation_plan.execution_plans.len() - 1);
         let prepared_executor = PreparedExecutor::prepare(
@@ -276,7 +193,88 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
         Ok(())
     }
 
-    fn create_plan_input(&mut self, root_fields: &Vec<FieldId>) -> ReadSelectionSet {
+    fn walker(&self) -> OperationWalker<'_, (), ()> {
+        // yes looks weird, will be improved
+        self.operation_plan
+            .operation
+            .walker_with(self.schema.walker(), self.variables)
+    }
+}
+
+pub(super) struct ExecutionPlanBuilder<'parent, 'ctx> {
+    builder: &'parent mut OperationPlanBuilder<'ctx>,
+    plan_id: PlanId,
+    support_aliases: bool,
+    tracked_entity_locations: Vec<EntityLocation>,
+}
+
+impl<'parent, 'ctx> std::ops::Deref for ExecutionPlanBuilder<'parent, 'ctx> {
+    type Target = OperationPlanBuilder<'ctx>;
+    fn deref(&self) -> &Self::Target {
+        self.builder
+    }
+}
+
+impl<'parent, 'ctx> std::ops::DerefMut for ExecutionPlanBuilder<'parent, 'ctx> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.builder
+    }
+}
+
+impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
+    pub(super) fn new(builder: &'parent mut OperationPlanBuilder<'ctx>, plan_id: PlanId) -> Self {
+        let support_aliases = builder
+            .schema
+            .walk(builder.operation_plan.operation.plans[usize::from(plan_id)].resolver_id)
+            .supports_aliases();
+        ExecutionPlanBuilder {
+            builder,
+            plan_id,
+            support_aliases,
+            tracked_entity_locations: Vec::new(),
+        }
+    }
+
+    fn build(mut self, entity_location: EntityLocation, root_fields: Vec<FieldId>) -> PlanningResult<ExecutionPlan> {
+        self.operation_plan.plan_dependencies_count.push(0);
+        self.operation_plan.entities_consummers_count[usize::from(entity_location)] += 1;
+
+        let input = PlanInput {
+            entity_location,
+            selection_set: self.create_plan_input(entity_location, &root_fields),
+        };
+
+        // Currently a resolver is tied to only one entity (object/interface), so retrieving the
+        // parent entity of any field is enough for this part.
+        let selection_set_id = self.operation_plan.operation.parent_selection_set_id(root_fields[0]);
+        let entity_id =
+            EntityId::maybe_from(Definition::from(self.operation_plan.operation[selection_set_id].ty)).unwrap();
+
+        let collected_selection_set_id = self.collect_fields(entity_id.into(), None, root_fields)?;
+        let Self {
+            builder,
+            plan_id,
+            tracked_entity_locations,
+            ..
+        } = self;
+
+        let output = PlanOutput {
+            entity_id,
+            collected_selection_set_id,
+            tracked_entity_locations,
+        };
+        let resolver_id = builder.operation_plan.operation[self.plan_id].resolver_id;
+
+        Ok(ExecutionPlan {
+            plan_id,
+            resolver_id,
+            input,
+            output,
+            prepared_executor: PreparedExecutor::Unreachable,
+        })
+    }
+
+    fn create_plan_input(&mut self, entity_location: EntityLocation, root_fields: &Vec<FieldId>) -> ReadSelectionSet {
         let resolver = self
             .schema
             .walk(self.operation_plan.operation[self.plan_id].resolver_id)
@@ -290,14 +288,18 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
                 }
             }
         }
-        self.create_input_selection_set(&requires)
+        self.create_input_selection_set(entity_location, &requires)
     }
 
     /// Create the input selection set of a Plan given its resolver and requirements.
     /// We iterate over the requirements and find the matching fields inside the boundary fields,
     /// which contains all providable & extra fields. During the iteration we track all the dependency
     /// plans.
-    fn create_input_selection_set(&mut self, requires: &RequiredFieldSet) -> ReadSelectionSet {
+    fn create_input_selection_set(
+        &mut self,
+        entity_location: EntityLocation,
+        requires: &RequiredFieldSet,
+    ) -> ReadSelectionSet {
         if requires.is_empty() {
             return ReadSelectionSet::default();
         }
@@ -307,7 +309,7 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
                 let field_id = self
                     .operation_plan
                     .operation
-                    .find_matching_field(self.plan_boundary_id, required_field.id)
+                    .find_matching_field(entity_location, required_field.id)
                     .expect("Should be planned");
                 let parent_plan_id = self.operation_plan.operation.field_to_plan_id[usize::from(field_id)]
                     .expect("field should be planned");
@@ -326,7 +328,7 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
                         .walk(self.schema[required_field.id].definition_id)
                         .name()
                         .to_string(),
-                    subselection: self.create_input_selection_set(&required_field.subselection),
+                    subselection: self.create_input_selection_set(entity_location, &required_field.subselection),
                 };
                 tracing::info!("Plan {} depends on {} for {}", self.plan_id, parent_plan_id, f.name);
                 f
@@ -343,7 +345,6 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
 
         let mut plan_fields = Vec::new();
         let mut children_plan: HashMap<PlanId, Vec<FieldId>> = HashMap::new();
-        let mut maybe_plan_boundary_id = None;
         for field in selection_set.fields {
             if !self.operation_plan[field.id].is_read() {
                 continue;
@@ -354,35 +355,27 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
             if field_plan_id == self.plan_id {
                 plan_fields.push(field);
             } else {
-                if let Some(plan_boundary_id) = self
-                    .operation_plan
-                    .operation
-                    .find_boundary_between(self.plan_id, field_plan_id)
-                {
-                    maybe_plan_boundary_id = Some(plan_boundary_id);
-                }
-
                 children_plan.entry(field_plan_id).or_default().push(field.id);
             }
         }
-        let maybe_boundary_id = if children_plan.is_empty() {
+        let maybe_tracked_entity_location = if children_plan.is_empty() {
             None
         } else {
-            let maybe_boundary_id = Some(self.new_boundary());
-            // Not all plans at this boundary necessarily have the current plan as a parent,
-            // intermediate plans may also exist. But at least one of them will be a child.
-            let plan_boundary_id = maybe_plan_boundary_id.expect("At least one plan must be a child");
+            let entity_location = {
+                let field_id = children_plan.values().flatten().next().unwrap();
+                self.walker().walk(*field_id).entity_location().expect("Should exist")
+            };
+            self.tracked_entity_locations.push(entity_location);
             let to_be_planned = children_plan
                 .into_iter()
                 .map(|(plan_id, fields)| ToBePlanned {
-                    maybe_boundary_id,
-                    plan_boundary_id,
+                    entity_location,
                     plan_id,
-                    fields,
+                    root_fields: fields,
                 })
                 .collect::<Vec<_>>();
             self.to_be_planned.extend(to_be_planned);
-            maybe_boundary_id
+            Some(entity_location)
         };
 
         let is_union = selection_set_ids
@@ -411,12 +404,12 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
         let id = if concrete_parent && unique_entity {
             self.collect_fields(
                 selection_set.ty,
+                maybe_tracked_entity_location,
                 plan_fields.into_iter().map(|field| field.id).collect(),
-                maybe_boundary_id,
             )
             .map(AnyCollectedSelectionSetId::Collected)?
         } else {
-            self.collected_conditional_fields(selection_set.ty, plan_fields, maybe_boundary_id)
+            self.collected_conditional_fields(selection_set.ty, maybe_tracked_entity_location, plan_fields)
                 .map(AnyCollectedSelectionSetId::Conditional)?
         };
 
@@ -434,8 +427,8 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
     fn collect_fields(
         &mut self,
         ty: SelectionSetType,
+        maybe_tracked_entity_location: Option<EntityLocation>,
         fields: Vec<FieldId>,
-        maybe_boundary_id: Option<ExecutionPlanBoundaryId>,
     ) -> PlanningResult<CollectedSelectionSetId> {
         let grouped_by_response_key = self
             .walker()
@@ -483,7 +476,7 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
         let field_ids = self.push_collecteded_fields(fields);
         Ok(self.push_collected_selection_set(CollectedSelectionSet {
             ty,
-            maybe_boundary_id,
+            maybe_tracked_entity_location,
             field_ids,
             typename_fields,
         }))
@@ -492,8 +485,8 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
     fn collected_conditional_fields(
         &mut self,
         ty: SelectionSetType,
+        maybe_tracked_entity_location: Option<EntityLocation>,
         flat_fields: Vec<FlatField>,
-        maybe_boundary_id: Option<ExecutionPlanBoundaryId>,
     ) -> PlanningResult<ConditionalSelectionSetId> {
         let mut typename_fields = Vec::new();
         let mut conditional_fields = Vec::new();
@@ -534,7 +527,7 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
         let field_ids = self.push_conditional_fields(conditional_fields);
         Ok(self.push_conditional_selection_set(ConditionalSelectionSet {
             ty,
-            maybe_boundary_id,
+            maybe_tracked_entity_location,
             field_ids,
             typename_fields,
         }))

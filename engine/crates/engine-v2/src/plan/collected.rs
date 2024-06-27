@@ -2,13 +2,11 @@ use id_newtypes::IdRange;
 use schema::{EntityId, FieldDefinitionId, ObjectId, ScalarType, Wrapping};
 
 use crate::{
-    operation::{FieldId, SelectionSetType},
+    operation::{EntityLocation, FieldId, SelectionSetType},
     response::{ResponseEdge, SafeResponseKey},
 };
 
-use super::{
-    CollectedFieldId, CollectedSelectionSetId, ConditionalFieldId, ConditionalSelectionSetId, ExecutionPlanBoundaryId,
-};
+use super::{CollectedFieldId, CollectedSelectionSetId, ConditionalFieldId, ConditionalSelectionSetId};
 
 // TODO: The two AnyCollectedSelectionSet aren't great, need to split better the ones which are computed
 // during planning and the others.
@@ -38,7 +36,7 @@ pub struct ConditionalSelectionSet {
     pub ty: SelectionSetType,
     // Plan boundary associated with this selection set. If present we need to push the a
     // ResponseObjectBoundaryItem into the ResponsePart everytime for children plans.
-    pub maybe_boundary_id: Option<ExecutionPlanBoundaryId>,
+    pub maybe_tracked_entity_location: Option<EntityLocation>,
     pub field_ids: IdRange<ConditionalFieldId>,
     // Selection sets can have multiple __typename fields and eventually type conditions.
     // {
@@ -77,7 +75,7 @@ pub struct CollectedSelectionSet {
     pub ty: SelectionSetType,
     // Plan boundary associated with this selection set. If present we need to push the a
     // ResponseObjectBoundaryItem into the ResponsePart everytime for children plans.
-    pub maybe_boundary_id: Option<ExecutionPlanBoundaryId>,
+    pub maybe_tracked_entity_location: Option<EntityLocation>,
     // the fields we point to are sorted by their expected_key
     pub field_ids: IdRange<CollectedFieldId>,
     // Selection sets can have multiple __typename fields.
@@ -102,7 +100,7 @@ pub struct CollectedField {
 #[derive(Debug)]
 pub struct RuntimeCollectedSelectionSet {
     pub object_id: ObjectId,
-    pub boundary_ids: Vec<ExecutionPlanBoundaryId>,
+    pub tracked_entity_locations: Vec<EntityLocation>,
     // sorted by expected key
     pub fields: Vec<CollectedField>,
     pub typename_fields: Vec<ResponseEdge>,
