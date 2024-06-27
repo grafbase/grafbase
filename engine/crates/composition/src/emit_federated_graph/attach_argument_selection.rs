@@ -20,8 +20,8 @@ pub(super) fn attach_argument_selection(
             );
 
             let subselection: federated::InputValueDefinitionSet =
-                if let federated::Definition::InputObject(_) = ctx.out[argument_id].r#type.definition {
-                    todo!("Nested selections not implement yet for arguments in @authorized: GB-6965")
+                if let federated::Definition::InputObject(input_object_id) = ctx.out[argument_id].r#type.definition {
+                    attach_selection_on_input_object(&selection.subselection, input_object_id, ctx)
                 } else {
                     Vec::new()
                 };
@@ -30,6 +30,36 @@ pub(super) fn attach_argument_selection(
                 input_value_definition: argument_id,
                 subselection,
             }
+        })
+        .collect()
+}
+
+fn attach_selection_on_input_object(
+    selection_set: &[subgraphs::Selection],
+    input_object_id: federated::InputObjectId,
+    ctx: &mut Context<'_>,
+) -> federated::InputValueDefinitionSet {
+    selection_set
+        .iter()
+        .filter_map(|selection| {
+            let field_name = ctx.insert_string(ctx.subgraphs.walk(selection.field));
+            let input_object = &ctx.out[input_object_id];
+            let fields = &ctx.out[input_object.fields];
+
+            let field_idx = fields.iter().position(|field| field.name == field_name)?;
+            let field_id = federated::InputValueDefinitionId(input_object.fields.0 .0 + field_idx);
+
+            let subselection: federated::InputValueDefinitionSet =
+                if let federated::Definition::InputObject(input_object_id) = ctx.out[field_id].r#type.definition {
+                    attach_selection_on_input_object(&selection.subselection, input_object_id, ctx)
+                } else {
+                    Vec::new()
+                };
+
+            Some(federated::InputValueDefinitionSetItem {
+                input_value_definition: field_id,
+                subselection,
+            })
         })
         .collect()
 }

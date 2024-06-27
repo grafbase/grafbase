@@ -101,8 +101,15 @@ impl<'a> State<'a> {
             async_graphql_value::ConstValue::Boolean(b) => Value::Boolean(*b),
             async_graphql_value::ConstValue::Enum(enm) => Value::EnumValue(self.insert_string(enm)),
             async_graphql_value::ConstValue::Binary(_) => unreachable!(),
-            async_graphql_value::ConstValue::List(_) => todo!(),
-            async_graphql_value::ConstValue::Object(_) => todo!(),
+            async_graphql_value::ConstValue::List(list) => {
+                Value::List(list.iter().map(|value| self.insert_value(value)).collect())
+            }
+            async_graphql_value::ConstValue::Object(obj) => Value::Object(
+                obj.into_iter()
+                    .map(|(k, v)| (self.insert_string(k), self.insert_value(v)))
+                    .collect::<Vec<_>>()
+                    .into_boxed_slice(),
+            ),
         }
     }
 
