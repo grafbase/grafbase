@@ -39,6 +39,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         strings: vec![],
         authorized_directives: vec![],
         field_authorized_directives: vec![],
+        object_authorized_directives: vec![],
     };
 
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
@@ -55,10 +56,36 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     );
     emit_union_members(&ir.union_members, &mut ctx);
     emit_keys(&ir.keys, &mut ctx);
+    emit_authorized_directives(&ir, &mut ctx);
 
     drop(ctx);
 
     federated::FederatedGraph::V3(out)
+}
+
+fn emit_authorized_directives(ir: &CompositionIr, ctx: &mut Context<'_>) {
+    for (object_id, authorized) in &ir.object_authorized_directives {
+        let fields = todo!();
+
+        let arguments = todo!();
+
+        let rule = ctx.insert_string(ctx.subgraphs.walk(authorized.rule));
+        let metadata = authorized.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
+
+        let authorized_directive_id = ctx
+            .out
+            .authorized_directives
+            .push_return_idx(federated::AuthorizedDirective {
+                rule,
+                fields,
+                arguments,
+                metadata,
+            });
+
+        ctx.out
+            .object_authorized_directives
+            .push((object_id, authorized_directive_id));
+    }
 }
 
 fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionIr], ctx: &mut Context<'_>) {

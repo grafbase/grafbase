@@ -47,6 +47,8 @@ pub struct FederatedGraphV3 {
     pub authorized_directives: Vec<AuthorizedDirective>,
     #[serde(default)]
     pub field_authorized_directives: Vec<(FieldId, AuthorizedDirectiveId)>,
+    #[serde(default)]
+    pub object_authorized_directives: Vec<(ObjectId, AuthorizedDirectiveId)>,
 }
 
 impl std::fmt::Debug for FederatedGraphV3 {
@@ -523,6 +525,7 @@ impl Default for FederatedGraphV3 {
             directives: Vec::new(),
             authorized_directives: Vec::new(),
             field_authorized_directives: Vec::new(),
+            object_authorized_directives: Vec::new(),
         }
     }
 }

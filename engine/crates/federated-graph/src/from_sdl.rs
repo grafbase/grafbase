@@ -54,6 +54,7 @@ struct State<'a> {
 
     authorized_directives: Vec<AuthorizedDirective>,
     field_authorized_directives: Vec<(FieldId, AuthorizedDirectiveId)>,
+    object_authorized_directives: Vec<(ObjectId, AuthorizedDirectiveId)>,
 }
 
 impl<'a> State<'a> {
@@ -182,6 +183,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         input_value_definitions: state.input_value_definitions,
         authorized_directives: state.authorized_directives,
         field_authorized_directives: state.field_authorized_directives,
+        object_authorized_directives: state.object_authorized_directives,
     }))
 }
 
