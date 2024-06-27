@@ -82,12 +82,14 @@ impl GatewayBuilder {
         };
 
         // This AuthService is used to authenticate "user" requests
-        let auth = self.auth_service.unwrap_or_else(|| AuthService::new_v1(
-            self.auth_config,
-            KvStore::new(NoopKvStore),
-            UdfInvoker::new(self.authorizers.unwrap_or_default()),
-            "my-identity-is-ray".into(),
-        ));
+        let auth = self.auth_service.unwrap_or_else(|| {
+            AuthService::new_v1(
+                self.auth_config,
+                KvStore::new(NoopKvStore),
+                UdfInvoker::new(self.authorizers.unwrap_or_default()),
+                "my-identity-is-ray".into(),
+            )
+        });
 
         // This authorizor is used to authorize admin requests.
         // Not to be confused with the authorizors that live inside AuthService above :|
