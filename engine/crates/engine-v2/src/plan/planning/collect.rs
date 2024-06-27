@@ -77,12 +77,12 @@ impl<'a> OperationPlanBuilder<'a> {
         }
     }
 
-    pub(crate) fn build(mut self) -> PlanningResult<OperationPlan> {
-        self.condition_results = self.evaluate_all_conditions()?;
+    pub(crate) async fn build(mut self) -> PlanningResult<OperationPlan> {
+        self.condition_results = self.evaluate_all_conditions().await?;
         self.finalize()
     }
 
-    fn evaluate_all_conditions(&self) -> PlanningResult<Vec<ConditionResult>> {
+    async fn evaluate_all_conditions(&self) -> PlanningResult<Vec<ConditionResult>> {
         let mut results = Vec::with_capacity(self.operation_plan.conditions.len());
 
         let is_anonymous = self.ctx.access_token().is_anonymous();
@@ -90,6 +90,10 @@ impl<'a> OperationPlanBuilder<'a> {
 
         for condition in &self.operation_plan.conditions {
             let result = match condition {
+                Condition::All(ids) => ids
+                    .iter()
+                    .map(|id| &results[usize::from(*id)])
+                    .fold(ConditionResult::Include, |current, cond| current & cond),
                 Condition::Authenticated => {
                     if is_anonymous {
                         ConditionResult::Errors(vec![GraphqlError::new("Unauthenticated")])
@@ -113,10 +117,17 @@ impl<'a> OperationPlanBuilder<'a> {
                         ConditionResult::Errors(vec![GraphqlError::new("Not allowed: insufficient scopes")])
                     }
                 }
-                Condition::All(ids) => ids
-                    .iter()
-                    .map(|id| &results[usize::from(*id)])
-                    .fold(ConditionResult::Include, |current, cond| current & cond),
+                Condition::Authorized {
+                    directive_id,
+                    field_id: _,
+                } => {
+                    let directive = &self.ctx.schema[*directive_id];
+                    if let Some(err) = self.ctx.hooks().authorized(directive.rule.to_string()).await {
+                        ConditionResult::Errors(vec![err])
+                    } else {
+                        ConditionResult::Include
+                    }
+                }
             };
             results.push(result);
         }
@@ -186,11 +197,6 @@ impl<'a> OperationPlanBuilder<'a> {
                 .collect::<Vec<_>>();
             plan_ids.sort_unstable();
             for (_, &plan_id) in plan_ids {
-                tracing::info!(
-                    "Planning {} for {}",
-                    plan_id,
-                    self.walker().walk((&root_plans[&plan_id])[0]).response_key_str(),
-                );
                 if let Some(previous_plan_id) = maybe_previous_plan_id {
                     self.plan_parent_to_child_edges.insert(UnfinalizedParentToChildEdge {
                         parent: previous_plan_id,
@@ -384,16 +390,14 @@ impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
                     .schema
                     .walk(self.operation_plan.operation[self.plan_id].resolver_id)
                     .with_own_names();
-                let f = ReadField {
+                ReadField {
                     edge: self.operation_plan.operation[field_id].response_edge(),
                     name: resolver
                         .walk(self.ctx.schema[required_field.id].definition_id)
                         .name()
                         .to_string(),
                     subselection: self.create_input_selection_set(entity_location, &required_field.subselection),
-                };
-                tracing::info!("Plan {} depends on {} for {}", self.plan_id, parent_plan_id, f.name);
-                f
+                }
             })
             .collect()
     }

@@ -115,6 +115,7 @@ impl BuildContext {
             cache_control: Vec::new(),
             input_values: Default::default(),
             required_scopes: Vec::new(),
+            authorized_directives: Vec::new(),
         };
         let out = build(&mut ctx, &mut graph);
         let introspection =

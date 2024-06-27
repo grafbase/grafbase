@@ -65,7 +65,7 @@ impl FederationGatewayBuilder {
         self
     }
 
-    pub fn with_user_hooks(mut self, callbacks: TestHooks) -> Self {
+    pub fn with_hooks(mut self, callbacks: TestHooks) -> Self {
         self.user_hooks = callbacks;
         self
     }

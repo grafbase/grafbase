@@ -14,6 +14,18 @@ pub enum HookError {
     Internal(Box<dyn std::error::Error>),
 }
 
+impl From<&'static str> for HookError {
+    fn from(err: &'static str) -> Self {
+        HookError::Internal(err.into())
+    }
+}
+
+impl HookError {
+    pub fn is_user_error(&self) -> bool {
+        matches!(self, HookError::User(_))
+    }
+}
+
 /// An error type available for the user to throw from the guest.
 #[derive(Clone, Debug, thiserror::Error, PartialEq)]
 pub struct UserError {
@@ -21,6 +33,15 @@ pub struct UserError {
     pub extensions: BTreeMap<String, serde_json::Value>,
     /// The error message
     pub message: String,
+}
+
+impl From<&'static str> for UserError {
+    fn from(message: &'static str) -> Self {
+        UserError {
+            extensions: BTreeMap::new(),
+            message: message.to_string(),
+        }
+    }
 }
 
 impl fmt::Display for UserError {

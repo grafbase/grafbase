@@ -4,6 +4,7 @@ mod builder;
 mod directives;
 mod ids;
 mod input_value;
+mod input_value_set;
 mod names;
 mod provides;
 mod requires;
@@ -15,6 +16,7 @@ pub use directives::*;
 use id_newtypes::IdRange;
 pub use ids::*;
 pub use input_value::*;
+pub use input_value_set::*;
 pub use names::Names;
 pub use provides::*;
 pub use requires::*;
@@ -85,6 +87,7 @@ pub struct Graph {
     input_values: SchemaInputValues,
     cache_control: Vec<CacheControl>,
     required_scopes: Vec<RequiredScopes>,
+    authorized_directives: Vec<AuthorizedDirective>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

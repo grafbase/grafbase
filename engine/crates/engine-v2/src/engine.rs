@@ -231,7 +231,7 @@ impl<'ctx> ExecutionContext<'ctx> {
                 "Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets",
             ))
         } else {
-            match self.prepare_coordinator(operation, request.variables) {
+            match self.prepare_coordinator(operation, request.variables).await {
                 Ok(coordinator) => coordinator.execute().await,
                 Err(errors) => Response::bad_request_from_errors(errors),
             }
@@ -262,7 +262,7 @@ impl<'ctx> ExecutionContext<'ctx> {
             }
         };
 
-        let coordinator = match self.prepare_coordinator(operation, request.variables) {
+        let coordinator = match self.prepare_coordinator(operation, request.variables).await {
             Ok(coordinator) => coordinator,
             Err(errors) => {
                 let response = Response::bad_request_from_errors(errors);
@@ -305,7 +305,7 @@ impl<'ctx> ExecutionContext<'ctx> {
         (operation_attributes, status)
     }
 
-    fn prepare_coordinator(
+    async fn prepare_coordinator(
         self,
         operation: Operation,
         variables: engine::Variables,
@@ -313,8 +313,11 @@ impl<'ctx> ExecutionContext<'ctx> {
         let variables = Variables::build(self.schema.as_ref(), &operation, variables)
             .map_err(|errors| errors.into_iter().map(Into::into).collect::<Vec<_>>())?;
 
-        let operation_plan =
-            Arc::new(OperationPlan::build(self, &variables, operation).map_err(|err| vec![err.into()])?);
+        let operation_plan = Arc::new(
+            OperationPlan::build(self, &variables, operation)
+                .await
+                .map_err(|err| vec![err.into()])?,
+        );
 
         Ok(ExecutionCoordinator::new(self, operation_plan, variables))
     }

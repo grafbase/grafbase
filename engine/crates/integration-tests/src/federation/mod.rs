@@ -39,6 +39,11 @@ pub struct ExecutionRequest {
 }
 
 impl ExecutionRequest {
+    pub fn by_client(self, name: &'static str, version: &'static str) -> Self {
+        self.header("x-grafbase-client-name", name)
+            .header("x-grafbase-client-version", version)
+    }
+
     /// Adds a header into the request
     pub fn header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.headers.insert(name.into(), value.into());
