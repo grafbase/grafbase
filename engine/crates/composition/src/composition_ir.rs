@@ -43,7 +43,7 @@ pub(crate) struct CompositionIr {
     pub(crate) object_fields_from_entity_interfaces: BTreeSet<(federated::StringId, federated::FieldId)>,
 
     /// @authorized directives on objects
-    pub(crate) object_authorized_directives: Vec<(federated::ObjectId, subgraphs::AuthorizedDirective)>,
+    pub(crate) object_authorized_directives: Vec<(federated::ObjectId, subgraphs::DirectiveSiteId)>,
 }
 
 #[derive(Clone)]

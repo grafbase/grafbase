@@ -65,12 +65,13 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
 
 fn emit_authorized_directives(ir: &CompositionIr, ctx: &mut Context<'_>) {
     for (object_id, authorized) in &ir.object_authorized_directives {
-        let fields = todo!();
-
-        let arguments = todo!();
-
+        let authorized = ctx.subgraphs.walk(*authorized).authorized().unwrap();
         let rule = ctx.insert_string(ctx.subgraphs.walk(authorized.rule));
         let metadata = authorized.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
+        let fields = authorized
+            .fields
+            .as_ref()
+            .map(|fields| attach_selection(fields, federated::Definition::Object(*object_id), ctx));
 
         let authorized_directive_id = ctx
             .out
@@ -78,13 +79,15 @@ fn emit_authorized_directives(ir: &CompositionIr, ctx: &mut Context<'_>) {
             .push_return_idx(federated::AuthorizedDirective {
                 rule,
                 fields,
-                arguments,
+                arguments: None,
                 metadata,
             });
 
+        let authorized_directive_id = federated::AuthorizedDirectiveId(authorized_directive_id);
+
         ctx.out
             .object_authorized_directives
-            .push((object_id, authorized_directive_id));
+            .push((*object_id, authorized_directive_id));
     }
 }
 

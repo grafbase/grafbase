@@ -28,7 +28,7 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
         sdl.push('\n');
     }
 
-    for object in &graph.objects {
+    for (object_id, object) in graph.iter_objects() {
         let object_name = &graph[object.name];
 
         let mut fields = graph[object.fields.clone()]
@@ -64,6 +64,10 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
 
         write_composed_directives(object.composed_directives, graph, &mut sdl)?;
 
+        for authorized_directive in graph.object_authorized_directives(object_id) {
+            write!(sdl, "{}", AuthorizedDirectiveDisplay(authorized_directive, graph))?;
+        }
+
         if !object.keys.is_empty() {
             sdl.push('\n');
             for key in &object.keys {
@@ -81,11 +85,10 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
                     )?;
                 }
             }
-        }
-
-        if object.keys.is_empty() {
+        } else {
             sdl.push(' ');
         }
+
         sdl.push_str("{\n");
 
         for (idx, field) in fields {
@@ -414,28 +417,7 @@ fn write_authorized(field_id: FieldId, graph: &FederatedGraphV3, sdl: &mut Strin
         .map(|(_, authorized_directive_id)| &graph[*authorized_directive_id]);
 
     for directive in directives {
-        let rule = QuotedString(&graph[directive.rule]);
-        let fields = directive.fields.as_ref().map(|fields| FieldSetDisplay(fields, graph));
-        let arguments = directive
-            .arguments
-            .as_ref()
-            .map(|arguments| InputValueDefinitionSetDisplay(arguments, graph));
-
-        write!(sdl, " @authorized(rule: {rule}")?;
-
-        if let Some(fields) = fields {
-            write!(sdl, ", fields: {}", fields)?;
-        }
-
-        if let Some(arguments) = arguments {
-            write!(sdl, ", arguments: {arguments}")?;
-        }
-
-        if let Some(metadata) = directive.metadata.as_ref() {
-            write!(sdl, ", metadata: {}", ValueDisplay(metadata, graph))?;
-        }
-
-        sdl.push(')');
+        write!(sdl, "{}", AuthorizedDirectiveDisplay(directive, graph))?;
     }
 
     Ok(())

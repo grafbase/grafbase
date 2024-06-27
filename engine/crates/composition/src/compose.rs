@@ -97,6 +97,14 @@ fn merge_object_definitions<'a>(
         ctx.insert_key(object_id, key);
     }
 
+    for authorized in definitions
+        .iter()
+        .map(|def| def.directives())
+        .filter(|directives| directives.authorized().is_some())
+    {
+        ctx.insert_object_authorized(object_id, authorized.id);
+    }
+
     if is_shareable {
         object::validate_shareable_object_fields_match(definitions, ctx);
     }
