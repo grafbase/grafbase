@@ -262,8 +262,7 @@ pub(crate) struct AuthorizedDirective {
     pub(crate) rule: StringId,
     pub(crate) arguments: Option<Vec<Selection>>,
     pub(crate) fields: Option<Vec<Selection>>,
-    /// We expect JSON here, but since this will be passed as-is, we don't need to parse.
-    pub(crate) metadata: Option<StringId>,
+    pub(crate) metadata: Option<Value>,
 }
 
 /// Corresponds to an `@deprecated` directive.
