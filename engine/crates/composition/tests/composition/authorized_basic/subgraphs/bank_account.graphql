@@ -10,7 +10,7 @@ type User {
   accounts: [Account!]! @authorized(rule: "must-be-same-user", fields: "userId name", metadata: "{\"stuff\": true}")
 }
 
-type Account {
+type Account @authorized(rule: "user-to-account", fields: "user { userId }") {
   id: ID!
   type: AccountType!
   # Simple fields

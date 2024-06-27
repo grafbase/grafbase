@@ -47,6 +47,28 @@ pub struct FederatedGraphV3 {
     pub authorized_directives: Vec<AuthorizedDirective>,
     #[serde(default)]
     pub field_authorized_directives: Vec<(FieldId, AuthorizedDirectiveId)>,
+    #[serde(default)]
+    pub object_authorized_directives: Vec<(ObjectId, AuthorizedDirectiveId)>,
+}
+
+impl FederatedGraphV3 {
+    pub fn iter_objects(&self) -> impl ExactSizeIterator<Item = (ObjectId, &Object)> {
+        self.objects
+            .iter()
+            .enumerate()
+            .map(|(idx, object)| (ObjectId(idx), object))
+    }
+
+    pub fn object_authorized_directives(&self, object_id: ObjectId) -> impl Iterator<Item = &AuthorizedDirective> {
+        let start = self
+            .object_authorized_directives
+            .partition_point(|(needle, _)| *needle < object_id);
+
+        self.object_authorized_directives[start..]
+            .iter()
+            .take_while(move |(needle, _)| *needle == object_id)
+            .map(move |(_, authorized_directive_id)| &self[*authorized_directive_id])
+    }
 }
 
 impl std::fmt::Debug for FederatedGraphV3 {
@@ -523,6 +545,7 @@ impl Default for FederatedGraphV3 {
             directives: Vec::new(),
             authorized_directives: Vec::new(),
             field_authorized_directives: Vec::new(),
+            object_authorized_directives: Vec::new(),
         }
     }
 }

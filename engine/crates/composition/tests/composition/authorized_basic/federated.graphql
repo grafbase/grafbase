@@ -27,7 +27,7 @@ type User {
     userId: ID! @join__field(graph: BANK_ACCOUNT)
 }
 
-type Account {
+type Account @authorized(rule: "user-to-account", fields: "user { userId }") {
     balance: Float! @join__field(graph: BANK_ACCOUNT) @authorized(rule: "balance", fields: "id")
     id: ID! @join__field(graph: BANK_ACCOUNT)
     transactions: [Transaction!]! @join__field(graph: BANK_ACCOUNT)
