@@ -49,10 +49,6 @@ impl IdRange<ValueId> {
     pub fn len(&self) -> usize {
         self.end.0.saturating_sub(self.start.0)
     }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
 }
 
 impl Iterator for IdRange<ValueId> {
@@ -137,16 +133,11 @@ impl OutputStore {
         Some(ValueId(entries.start.0 + index))
     }
 
-    // TODO: Should this be Value?  Not sure.
     pub(super) fn value(&self, id: ValueId) -> &ValueRecord {
         &self.values[id.0]
     }
 
-    pub(super) fn object(&self, id: ValueId) -> &ValueRecord {
-        &self.values[id.0]
-    }
-
-    pub(super) fn reader<'a>(&'a self, shapes: &'a OutputShapes) -> Option<Object<'a>> {
+    pub fn reader<'a>(&'a self, shapes: &'a OutputShapes) -> Option<Object<'a>> {
         Some(Object {
             id: self.root_object()?,
             shapes,
@@ -197,7 +188,31 @@ pub struct List<'a> {
     shapes: &'a OutputShapes,
 }
 
-impl<'a> Iterator for List<'a> {
+impl<'a> List<'a> {
+    pub fn get_index(&self, index: usize) -> Option<Value<'a>> {
+        if index >= self.ids.len() {
+            return None;
+        }
+        self.store.read_value(ValueId(self.ids.start.0 + index), self.shapes)
+    }
+
+    pub fn iter(&self) -> ListIter<'a> {
+        ListIter {
+            ids: self.ids,
+            store: self.store,
+            shapes: self.shapes,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct ListIter<'a> {
+    ids: IdRange<ValueId>,
+    store: &'a OutputStore,
+    shapes: &'a OutputShapes,
+}
+
+impl<'a> Iterator for ListIter<'a> {
     type Item = Value<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -217,8 +232,20 @@ pub struct Object<'a> {
 }
 
 impl<'a> Object<'a> {
+    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.record().fields.len()
+    }
+
+    pub fn field(&self, name: &str) -> Option<Value<'a>> {
+        let record = self.record();
+        let shapes = self.shapes;
+        let shape = shapes.concrete_object(record.shape);
+        let field = shape.field(name)?;
+
+        let value_id = self.store.field_value_id(self.id, field.index());
+
+        self.store.read_value(value_id, self.shapes)
     }
 
     pub fn fields(&self) -> impl Iterator<Item = (&'a str, Value<'a>)> + 'a {

@@ -47,6 +47,15 @@ pub struct InitialResponse {
     pub has_next: bool,
 }
 
+impl InitialResponse {
+    pub fn error(response: Response) -> Self {
+        InitialResponse {
+            response,
+            has_next: false,
+        }
+    }
+}
+
 impl serde::Serialize for StreamingPayload {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

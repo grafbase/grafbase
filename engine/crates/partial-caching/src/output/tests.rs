@@ -92,7 +92,7 @@ fn test_cache_merging() {
             }
         }),
         &shapes,
-        Some(active_defers),
+        &active_defers,
     );
 
     insta::assert_json_snapshot!(store.serialize_all(&shapes, serde_json::value::Serializer).unwrap(), @r###"
@@ -160,7 +160,7 @@ fn test_cache_merging_with_defer() {
             }
         }),
         &shapes,
-        Some(active_defers),
+        &active_defers,
     );
 
     // Everything in the cache was part of the defer so we should only
@@ -224,7 +224,7 @@ fn test_cache_merging_when_defer_ignored() {
             }
         }),
         &shapes,
-        Some(active_defers),
+        &active_defers,
     );
 
     // Everything in the cache was part of the defer so we should only
@@ -259,7 +259,7 @@ fn test_incremental_response_merging() {
                 nonCached
                 nested {
                     nonCached
-                    cacheThing
+                    nestedCacheThing
                 }
             }
         }
@@ -278,21 +278,24 @@ fn test_incremental_response_merging() {
         }
     });
 
-    let InitialOutput { mut store, .. } = InitialOutput::new(query_response, root_shape);
+    let InitialOutput {
+        mut store,
+        active_defers,
+    } = InitialOutput::new(query_response, root_shape);
 
-    store.merge_cache_entry(
-        &mut json!({
-            "user": {
-                "cacheThing": "I come from the cache",
-                "nested": [
-                    {"cacheThing": "I also come from the cache"},
-                    {"cacheThing": "you better believe I am cached"}
-                ]
-            }
-        }),
-        &shapes,
-        None,
-    );
+    let mut cache_entry = json!({
+        "user": {
+            "cacheThing": "I come from the cache",
+            "nested": [
+                {"nestedCacheThing": "I also come from the cache"},
+                {"nestedCacheThing": "you better believe I am cached"}
+            ]
+        }
+    });
+
+    store.merge_cache_entry(&mut cache_entry, &shapes, &active_defers);
+
+    store.merge_specific_defer_from_cache_entry(&mut cache_entry, &shapes, "foo");
 
     store.merge_incremental_payload(
         &[&QueryPathSegment::Field(ArcIntern::new("user".into()))],
@@ -318,20 +321,16 @@ fn test_incremental_response_merging() {
         "nested": [
           {
             "nonCached": "nor was I",
-            "cacheThing": "I also come from the cache"
+            "nestedCacheThing": "I also come from the cache"
           },
           {
             "nonCached": "nor I",
-            "cacheThing": "you better believe I am cached"
+            "nestedCacheThing": "you better believe I am cached"
           }
         ]
       }
     }
     "###);
-}
-
-fn build_registry(schema: &str) -> registry_for_cache::PartialCacheRegistry {
-    registry_upgrade::convert_v1_to_partial_cache_registry(parser_sdl::parse_registry(schema).unwrap()).unwrap()
 }
 
 fn query_response(json: serde_json::Value) -> QueryResponse {

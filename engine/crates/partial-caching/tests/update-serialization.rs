@@ -53,7 +53,7 @@ fn test_serializing_all_updates() {
     }));
     executor_response.set_root_unchecked(root_node);
 
-    let (actual_response, update_phase) = execution.handle_response(executor_response.clone(), false);
+    let (actual_response, update_phase) = execution.handle_full_response(executor_response.clone(), false);
 
     assert_eq!(
         actual_response.body.to_json_value().unwrap(),
@@ -114,7 +114,7 @@ fn no_updates_if_errors() {
     let root_node = executor_response.from_serde_value(json!({"user": {"name": "Jane"}}));
     executor_response.set_root_unchecked(root_node);
 
-    let (actual_response, update_phase) = execution.handle_response(executor_response.clone(), true);
+    let (actual_response, update_phase) = execution.handle_full_response(executor_response.clone(), true);
 
     assert_eq!(
         actual_response.body.to_json_value().unwrap(),
@@ -144,7 +144,7 @@ fn no_updates_if_no_store_header_provided() {
     let root_node = executor_response.from_serde_value(json!({"user": {"name": "Jane"}}));
     executor_response.set_root_unchecked(root_node);
 
-    let (_, update_phase) = execution.handle_response(executor_response.clone(), true);
+    let (_, update_phase) = execution.handle_full_response(executor_response.clone(), true);
 
     assert!(update_phase.is_none())
 }

@@ -113,14 +113,22 @@ fn merge_list(
     output: &mut OutputStore,
     subselection_shape: ObjectShape<'_>,
 ) {
-    let ValueRecord::List(dest_ids) = output.value(dest_value_id) else {
-        todo!("GB-6966")
+    let dest_ids = match output.value(dest_value_id) {
+        ValueRecord::List(dest_ids) if dest_ids.len() == entry_src_ids.len() => *dest_ids,
+        ValueRecord::List(_) => {
+            todo!("GB-6966")
+        }
+        ValueRecord::Unset => {
+            let ids = output.new_list(entry_src_ids.len());
+            output.write_value(dest_value_id, ValueRecord::List(ids));
+            ids
+        }
+        _ => {
+            todo!("GB-6966")
+        }
     };
-    if dest_ids.len() != entry_src_ids.len() {
-        todo!("GB-6966")
-    }
 
-    for (src_id, dest_id) in entry_src_ids.iter().zip(*dest_ids) {
+    for (src_id, dest_id) in entry_src_ids.iter().zip(dest_ids) {
         merge_node(*src_id, dest_id, source, output, subselection_shape)
     }
 }

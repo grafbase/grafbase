@@ -1,12 +1,20 @@
-use serde::{ser::SerializeMap, Serialize};
+use graph_entities::{CompactValue, QueryResponse, ResponseContainer, ResponseList, ResponseNodeId};
+use internment::ArcIntern;
+use serde_json::Number;
 
-use super::{shapes::OutputShapes, store::Value, OutputStore};
+use super::{
+    store::{Object, Value},
+    OutputStore,
+};
 
 impl OutputStore {
-    pub fn serialize_all<S>(&self, shapes: &OutputShapes, serializer: S) -> Result<S::Ok, S::Error>
+    #[cfg(test)] // This might be used for real at some point, but for now it's just needed for tests
+    pub fn serialize_all<S>(&self, shapes: &super::shapes::OutputShapes, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
+        use serde::ser::SerializeMap;
+
         let Some(object) = self.reader(shapes) else {
             return serializer.serialize_none();
         };
@@ -19,22 +27,26 @@ impl OutputStore {
     }
 }
 
+#[cfg(test)]
 struct ValueSerializer<'a> {
     reader: Value<'a>,
 }
 
-impl Serialize for ValueSerializer<'_> {
+#[cfg(test)]
+impl serde::Serialize for ValueSerializer<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
+        use serde::ser::SerializeMap;
+
         match self.reader {
             Value::Null => serializer.serialize_none(),
             Value::Integer(inner) => inner.serialize(serializer),
             Value::Float(inner) => inner.serialize(serializer),
             Value::String(inner) => inner.serialize(serializer),
             Value::Boolean(inner) => inner.serialize(serializer),
-            Value::List(items) => serializer.collect_seq(items.map(|reader| ValueSerializer { reader })),
+            Value::List(items) => serializer.collect_seq(items.iter().map(|reader| ValueSerializer { reader })),
             Value::Object(object) => {
                 let mut map = serializer.serialize_map(Some(object.len()))?;
                 for (name, reader) in object.fields() {
@@ -44,5 +56,41 @@ impl Serialize for ValueSerializer<'_> {
             }
             Value::Inline(value) => value.serialize(serializer),
         }
+    }
+}
+
+impl Object<'_> {
+    /// Converts an object into a QueryResponse.
+    ///
+    /// This isn't especially efficient, but it's the easiest thing to do at the moment.
+    /// GB-9672 will (hopefully) handle doing something more efficient.
+    pub fn into_query_response(self) -> QueryResponse {
+        let mut response = QueryResponse::default();
+        let root = write_value(Value::Object(self), &mut response);
+        response.set_root_unchecked(root);
+        response
+    }
+}
+
+fn write_value(value: Value<'_>, response: &mut QueryResponse) -> ResponseNodeId {
+    match value {
+        Value::Null => response.insert_node(CompactValue::Null),
+        Value::Float(float) => response.insert_node(CompactValue::Number(Number::from_f64(float).unwrap())),
+        Value::Integer(integer) => response.insert_node(CompactValue::Number(integer.into())),
+        Value::String(s) => response.insert_node(CompactValue::String(s.into())),
+        Value::Boolean(inner) => response.insert_node(CompactValue::Boolean(inner)),
+        Value::List(list) => {
+            let list = ResponseList::with_children(list.iter().map(|value| write_value(value, response)).collect());
+            response.insert_node(list)
+        }
+        Value::Object(object) => {
+            let container = ResponseContainer::with_children(
+                object
+                    .fields()
+                    .map(|(name, value)| (ArcIntern::from_ref(name), write_value(value, response))),
+            );
+            response.insert_node(container)
+        }
+        Value::Inline(inner) => response.insert_node(inner.clone()),
     }
 }

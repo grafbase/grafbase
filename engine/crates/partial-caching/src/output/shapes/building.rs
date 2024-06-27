@@ -1,11 +1,7 @@
 use cynic_parser::executable::{FieldSelection, OperationDefinition, Selection};
 use indexmap::{IndexMap, IndexSet};
 
-use crate::{
-    parser_extensions::{DeferExt, FieldExt},
-    query_subset::FilteredSelectionSet,
-    CachingPlan, QuerySubset,
-};
+use crate::parser_extensions::{DeferExt, FieldExt};
 
 use super::{
     fragment_iter::FragmentIter, ConcreteShapeId, FieldRecord, ObjectShapeId, ObjectShapeRecord, OutputShapes,
@@ -349,22 +345,5 @@ impl OutputShapesBuilder {
         let id = ObjectShapeId(u16::try_from(self.objects.len()).expect("too many objects, what the hell"));
         self.objects.push(record);
         id
-    }
-}
-
-impl CachingPlan {
-    fn cache_partitions(&self) -> impl Iterator<Item = (&QuerySubset, FilteredSelectionSet<'_, '_>)> + '_ {
-        self.cache_partitions.iter().map(|(_, subset)| {
-            let operation = self.document.read(subset.operation);
-            (subset, subset.selection_iter(operation.selection_set()))
-        })
-    }
-
-    fn nocache_partition(&self) -> (&QuerySubset, FilteredSelectionSet<'_, '_>) {
-        let operation = self.document.read(self.nocache_partition.operation);
-        (
-            &self.nocache_partition,
-            self.nocache_partition.selection_iter(operation.selection_set()),
-        )
     }
 }

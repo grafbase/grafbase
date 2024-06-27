@@ -1,8 +1,10 @@
 mod building;
 mod fragment_iter;
 
-#[cfg(test)]
+use std::fmt;
+
 pub use building::build_output_shapes;
+use cynic_parser::executable::OperationDefinition;
 
 /// Contains the schemas of all the objects we could see in our output,
 /// based on the shape of the query
@@ -13,6 +15,10 @@ pub struct OutputShapes {
 }
 
 impl OutputShapes {
+    pub(crate) fn new(operation: OperationDefinition<'_>) -> Self {
+        build_output_shapes(operation)
+    }
+
     pub fn root(&self) -> ConcreteShape<'_> {
         ConcreteShape {
             shapes: self,
@@ -46,15 +52,6 @@ pub enum ObjectShape<'a> {
     Polymorphic(PolymorphicShape<'a>),
 }
 
-impl<'a> ObjectShape<'a> {
-    pub fn id(&self) -> ObjectShapeId {
-        match self {
-            ObjectShape::Concrete(shape) => ObjectShapeId(shape.id.0),
-            ObjectShape::Polymorphic(shape) => shape.id,
-        }
-    }
-}
-
 #[derive(Clone, Copy)]
 pub struct FieldIndex(pub(super) u16);
 
@@ -69,6 +66,7 @@ enum ObjectShapeRecord {
         fields: Vec<FieldRecord>,
     },
     Polymorphic {
+        #[allow(dead_code)] // Will be using this after GB-6949
         types: Vec<(Option<String>, ObjectShapeId)>,
     },
 }
@@ -122,6 +120,7 @@ impl<'a> ConcreteShape<'a> {
 }
 
 #[derive(Clone, Copy)]
+#[allow(dead_code)] // Will be using this after GB-6949
 pub struct PolymorphicShape<'a> {
     shapes: &'a OutputShapes,
     id: ObjectShapeId,
@@ -132,6 +131,14 @@ pub struct Field<'a> {
     shapes: &'a OutputShapes,
     object_id: ConcreteShapeId,
     field_index: FieldIndex,
+}
+
+impl fmt::Debug for Field<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Field")
+            .field("response_key", &self.response_key())
+            .finish_non_exhaustive()
+    }
 }
 
 impl<'a> Field<'a> {
