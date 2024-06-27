@@ -286,9 +286,7 @@ fn emit_fields<'a>(
             .fields
             .as_ref()
             .map(|fields| attach_selection(fields, definition, ctx));
-        let metadata = authorized
-            .metadata
-            .map(|metadata| ctx.insert_string(ctx.subgraphs.walk(metadata)));
+        let metadata = authorized.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
 
         let arguments = authorized
             .arguments

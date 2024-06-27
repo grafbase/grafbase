@@ -431,8 +431,8 @@ fn write_authorized(field_id: FieldId, graph: &FederatedGraphV3, sdl: &mut Strin
             write!(sdl, ", arguments: {arguments}")?;
         }
 
-        if let Some(metadata) = directive.metadata {
-            write!(sdl, ", metadata: {}", ValueDisplay(&Value::String(metadata), graph))?;
+        if let Some(metadata) = directive.metadata.as_ref() {
+            write!(sdl, ", metadata: {}", ValueDisplay(metadata, graph))?;
         }
 
         sdl.push(')');

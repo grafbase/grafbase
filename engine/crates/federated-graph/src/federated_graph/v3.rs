@@ -76,7 +76,7 @@ pub struct AuthorizedDirective {
     pub rule: StringId,
     pub fields: Option<FieldSet>,
     pub arguments: Option<InputValueDefinitionSet>,
-    pub metadata: Option<StringId>,
+    pub metadata: Option<Value>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]

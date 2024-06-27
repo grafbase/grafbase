@@ -30,10 +30,9 @@ pub(super) fn ingest(
         .map(|fields| subgraphs.selection_set_from_str(fields))
         .transpose()?;
 
-    let metadata = directive.get_argument("metadata").and_then(|arg| match &arg.node {
-        ConstValue::String(value) => Some(subgraphs.strings.intern(value.as_str())),
-        _ => None,
-    });
+    let metadata = directive
+        .get_argument("metadata")
+        .map(|value| ast_value_to_subgraph_value(&value.node, subgraphs));
 
     subgraphs.insert_authorized(
         directive_site_id,
