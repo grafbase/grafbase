@@ -1,12 +1,15 @@
 #[derive(Default, Clone, PartialEq, Eq, Debug, serde::Deserialize, serde::Serialize)]
 pub struct CacheControl {
     /// Scope is public, default is false.
+    #[serde(default)]
     pub public: bool,
 
     /// Cache max age, default is 0.
+    #[serde(default)]
     pub max_age: usize,
 
     /// Cache stale_while_revalidate, default is 0.
+    #[serde(default)]
     pub stale_while_revalidate: usize,
 }
 
