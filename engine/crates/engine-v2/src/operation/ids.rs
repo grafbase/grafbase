@@ -3,7 +3,7 @@ use schema::InputValueDefinitionId;
 use std::num::NonZeroU16;
 
 use super::{
-    Field, FieldArgument, Fragment, FragmentSpread, InlineFragment, Operation, Plan, QueryInputKeyValueId,
+    Condition, Field, FieldArgument, Fragment, FragmentSpread, InlineFragment, Operation, Plan, QueryInputKeyValueId,
     QueryInputObjectFieldValueId, QueryInputValue, QueryInputValueId, SelectionSet, VariableDefinition,
 };
 
@@ -16,6 +16,7 @@ id_newtypes::NonZeroU16! {
     Operation.variable_definitions[VariableDefinitionId] => VariableDefinition,
     Operation.field_arguments[FieldArgumentId] => FieldArgument,
     Operation.plans[PlanId] => Plan,
+    Operation.conditions[ConditionId] => Condition,
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]

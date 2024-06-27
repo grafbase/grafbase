@@ -1,10 +1,13 @@
 mod de;
 mod ser;
+mod view;
 
 use id_newtypes::IdRange;
-use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValue, SchemaInputValueId};
+use schema::{EnumValueId, InputValue, InputValueDefinitionId, InputValueSet, SchemaInputValue, SchemaInputValueId};
 
 use crate::operation::{OperationWalker, VariableDefinitionId, VariableValueWalker};
+
+pub(crate) use view::*;
 
 #[derive(Default, Clone)]
 pub struct QueryInputValues {
@@ -116,6 +119,13 @@ impl<'a> QueryInputValueWalker<'a> {
             },
             _ => return None,
         })
+    }
+
+    pub fn with_selection_set(self, selection_set: &'a InputValueSet) -> QueryInputValueView<'a> {
+        QueryInputValueView {
+            inner: self,
+            selection_set,
+        }
     }
 }
 

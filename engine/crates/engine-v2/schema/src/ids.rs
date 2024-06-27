@@ -1,9 +1,9 @@
 /// Isolating ids from the rest to prevent misuse of the NonZeroU32.
 /// They can only be created by From<usize>
 use crate::{
-    CacheControl, Definition, Enum, EnumValue, FieldDefinition, Graph, Header, InputObject, InputValueDefinition,
-    Interface, Object, RequiredField, RequiredFieldSet, RequiredScopes, Resolver, Scalar, Schema, TypeSystemDirective,
-    Union,
+    AuthorizedDirective, CacheControl, Definition, Enum, EnumValue, FieldDefinition, Graph, Header, InputObject,
+    InputValueDefinition, Interface, Object, RequiredField, RequiredFieldSet, RequiredScopes, Resolver, Scalar, Schema,
+    TypeSystemDirective, Union,
 };
 use url::Url;
 
@@ -29,6 +29,7 @@ id_newtypes::NonZeroU32! {
     Graph.required_fields[RequiredFieldId] => RequiredField | max(MAX_ID) | index(Schema.graph),
     Graph.cache_control[CacheControlId] => CacheControl | max(MAX_ID) | index(Schema.graph),
     Graph.required_scopes[RequiredScopesId] => RequiredScopes | max(MAX_ID) | index(Schema.graph),
+    Graph.authorized_directives[AuthorizedDirectiveId] => AuthorizedDirective | max(MAX_ID) | index(Schema.graph),
     Schema.headers[HeaderId] => Header | max(MAX_ID),
     Schema.urls[UrlId] => Url | max(MAX_ID),
     Schema.strings[StringId] => String | max(MAX_ID),

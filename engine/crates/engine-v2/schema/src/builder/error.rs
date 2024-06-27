@@ -19,6 +19,6 @@ impl SchemaLocation {
 
 #[derive(thiserror::Error, Debug)]
 pub enum BuildError {
-    #[error("At {location}, a required field argument is invalid. {err}")]
+    #[error("At {location}, a required field argument is invalid: {err}")]
     RequiredFieldArgumentCoercionError { location: String, err: InputValueError },
 }

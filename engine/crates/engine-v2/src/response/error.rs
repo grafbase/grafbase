@@ -1,11 +1,10 @@
 use std::collections::BTreeMap;
 
 use engine::ErrorCode;
-use runtime::hooks::HookError;
 
 use super::ResponsePath;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub(crate) struct GraphqlError {
     pub message: String,
     pub locations: Vec<crate::operation::Location>,
@@ -30,20 +29,5 @@ impl GraphqlError {
 
     pub fn internal_server_error() -> Self {
         GraphqlError::new("Internal server error").with_error_code(ErrorCode::InternalServerError)
-    }
-}
-
-impl From<HookError> for GraphqlError {
-    fn from(error: HookError) -> Self {
-        let (message, extensions) = match error {
-            HookError::User(error) => (error.message, error.extensions),
-            HookError::Internal(error) => (error.to_string(), Default::default()),
-        };
-
-        Self {
-            message,
-            extensions,
-            ..Default::default()
-        }
     }
 }

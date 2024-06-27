@@ -6,11 +6,11 @@ use schema::{Definition, EntityId, FieldDefinitionId, InputValueDefinitionId, In
 use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
 use super::{
-    FieldArgumentId, FieldId, FragmentId, FragmentSpreadId, InlineFragmentId, Location, QueryInputValueId,
+    ConditionId, FieldArgumentId, FieldId, FragmentId, FragmentSpreadId, InlineFragmentId, Location, QueryInputValueId,
     SelectionSetId,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) struct SelectionSet {
     pub ty: SelectionSetType,
     // Ordering matters and must be respected in the response.
@@ -86,7 +86,7 @@ impl SelectionSetType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) enum Selection {
     Field(FieldId),
     FragmentSpread(FragmentSpreadId),
@@ -95,46 +95,55 @@ pub(crate) enum Selection {
 
 /// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
 /// A BoundField is a field in the query *after* spreading all the named fragments.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum Field {
     // Keeping attributes inside the enum to allow Rust to optimize the size of BoundField. We rarely
     // use the variants directly.
     /// __typename field
-    TypeName {
-        bound_response_key: BoundResponseKey,
-        location: Location,
-    },
+    TypeName(TypeNameField),
     /// Corresponds to an actual field within the operation that has a field definition
-    Query {
-        bound_response_key: BoundResponseKey,
-        location: Location,
-        field_definition_id: FieldDefinitionId,
-        // sorted by InputValueDefinitionId
-        argument_ids: IdRange<FieldArgumentId>,
-        selection_set_id: Option<SelectionSetId>,
-    },
+    Query(QueryField),
     /// Extra field added during planning to satisfy resolver/field requirements
-    Extra {
-        edge: ResponseEdge,
-        field_definition_id: FieldDefinitionId,
-        selection_set_id: Option<SelectionSetId>,
-        // sorted by InputValueDefinitionId
-        argument_ids: IdRange<FieldArgumentId>,
-        petitioner_location: Location,
-        // FIXME: Could probably avoid having those by having those additional extra fields be in a
-        // temporary struct instead.
-        /// During the planning we may add more extra fields than necessary. To prevent retrieving
-        /// unnecessary data, only those marked as read are part of the operation.
-        is_read: bool,
-    },
+    Extra(ExtraField),
+}
+
+#[derive(Debug, Clone)]
+pub struct TypeNameField {
+    pub bound_response_key: BoundResponseKey,
+    pub location: Location,
+}
+
+#[derive(Debug, Clone)]
+pub struct QueryField {
+    pub bound_response_key: BoundResponseKey,
+    pub location: Location,
+    pub field_definition_id: FieldDefinitionId,
+    pub argument_ids: IdRange<FieldArgumentId>,
+    pub selection_set_id: Option<SelectionSetId>,
+    pub condition: Option<ConditionId>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExtraField {
+    pub edge: ResponseEdge,
+    pub field_definition_id: FieldDefinitionId,
+    pub selection_set_id: Option<SelectionSetId>,
+    pub argument_ids: IdRange<FieldArgumentId>,
+    pub petitioner_location: Location,
+    // FIXME: Could probably avoid having those by having those additional extra fields be in a
+    // temporary struct instead.
+    /// During the planning we may add more extra fields than necessary. To prevent retrieving
+    /// unnecessary data, only those marked as read are part of the operation.
+    pub is_read: bool,
+    pub condition: Option<ConditionId>,
 }
 
 impl Field {
     pub fn query_position(&self) -> usize {
         match self {
-            Field::TypeName { bound_response_key, .. } => bound_response_key.position(),
-            Field::Query { bound_response_key, .. } => bound_response_key.position(),
-            Field::Extra { .. } => usize::MAX,
+            Field::TypeName(TypeNameField { bound_response_key, .. }) => bound_response_key.position(),
+            Field::Query(QueryField { bound_response_key, .. }) => bound_response_key.position(),
+            Field::Extra(ExtraField { .. }) => usize::MAX,
         }
     }
 
@@ -146,63 +155,71 @@ impl Field {
 
     pub fn response_edge(&self) -> ResponseEdge {
         match self {
-            Field::TypeName { bound_response_key, .. } => (*bound_response_key).into(),
-            Field::Query { bound_response_key, .. } => (*bound_response_key).into(),
-            Field::Extra { edge, .. } => *edge,
+            Field::TypeName(TypeNameField { bound_response_key, .. }) => (*bound_response_key).into(),
+            Field::Query(QueryField { bound_response_key, .. }) => (*bound_response_key).into(),
+            Field::Extra(ExtraField { edge, .. }) => *edge,
         }
     }
 
     pub fn location(&self) -> Location {
         match self {
-            Field::TypeName { location, .. } => *location,
-            Field::Query { location, .. } => *location,
-            Field::Extra {
+            Field::TypeName(TypeNameField { location, .. }) => *location,
+            Field::Query(QueryField { location, .. }) => *location,
+            Field::Extra(ExtraField {
                 petitioner_location, ..
-            } => *petitioner_location,
+            }) => *petitioner_location,
         }
     }
 
     pub fn selection_set_id(&self) -> Option<SelectionSetId> {
         match self {
-            Field::TypeName { .. } => None,
-            Field::Query { selection_set_id, .. } => *selection_set_id,
-            Field::Extra { selection_set_id, .. } => *selection_set_id,
+            Field::TypeName(TypeNameField { .. }) => None,
+            Field::Query(QueryField { selection_set_id, .. }) => *selection_set_id,
+            Field::Extra(ExtraField { selection_set_id, .. }) => *selection_set_id,
         }
     }
 
     pub fn definition_id(&self) -> Option<FieldDefinitionId> {
         match self {
-            Field::TypeName { .. } => None,
-            Field::Query {
+            Field::TypeName(TypeNameField { .. }) => None,
+            Field::Query(QueryField {
                 field_definition_id, ..
-            } => Some(*field_definition_id),
-            Field::Extra {
+            }) => Some(*field_definition_id),
+            Field::Extra(ExtraField {
                 field_definition_id, ..
-            } => Some(*field_definition_id),
+            }) => Some(*field_definition_id),
         }
     }
 
     pub fn mark_as_read(&mut self) {
         match self {
-            Field::TypeName { .. } => {}
-            Field::Query { .. } => {}
-            Field::Extra { is_read, .. } => *is_read = true,
+            Field::TypeName(TypeNameField { .. }) => (),
+            Field::Query(QueryField { .. }) => (),
+            Field::Extra(ExtraField { is_read, .. }) => *is_read = true,
         }
     }
 
     pub fn is_read(&self) -> bool {
         match self {
-            Field::TypeName { .. } => true,
-            Field::Query { .. } => true,
-            Field::Extra { is_read, .. } => *is_read,
+            Field::TypeName(TypeNameField { .. }) => true,
+            Field::Query(QueryField { .. }) => true,
+            Field::Extra(ExtraField { is_read, .. }) => *is_read,
         }
     }
 
     pub fn argument_ids(&self) -> IdRange<FieldArgumentId> {
         match self {
-            Field::TypeName { .. } => IdRange::empty(),
-            Field::Query { argument_ids, .. } => *argument_ids,
-            Field::Extra { argument_ids, .. } => *argument_ids,
+            Field::TypeName(TypeNameField { .. }) => IdRange::empty(),
+            Field::Query(QueryField { argument_ids, .. }) => *argument_ids,
+            Field::Extra(ExtraField { argument_ids, .. }) => *argument_ids,
+        }
+    }
+
+    pub fn condition(&self) -> Option<ConditionId> {
+        match self {
+            Field::TypeName(TypeNameField { .. }) => None,
+            Field::Query(QueryField { condition, .. }) => *condition,
+            Field::Extra(ExtraField { condition, .. }) => *condition,
         }
     }
 }

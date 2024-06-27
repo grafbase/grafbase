@@ -1,7 +1,6 @@
 use std::{
-    cell::RefCell,
+    cell::{Cell, RefCell},
     fmt,
-    sync::atomic::{AtomicBool, Ordering},
 };
 
 use serde::{
@@ -30,7 +29,7 @@ use selection_set::*;
 pub struct SeedContext<'ctx> {
     plan: PlanWalker<'ctx>,
     writer: ResponseWriter<'ctx>,
-    propagating_error: AtomicBool, // using an atomic bool for convenience of fetch_or & fetch_and
+    propagating_error: Cell<bool>,
     path: RefCell<Vec<ResponseEdge>>,
 }
 
@@ -40,7 +39,7 @@ impl<'ctx> SeedContext<'ctx> {
         Self {
             plan,
             writer,
-            propagating_error: AtomicBool::new(false),
+            propagating_error: Cell::new(false),
             path,
         }
     }
@@ -75,6 +74,23 @@ impl<'ctx> SeedContext<'ctx> {
     fn response_path(&self) -> ResponsePath {
         ResponsePath::from(self.path.borrow().clone())
     }
+
+    fn should_create_new_graphql_error(&self) -> bool {
+        let is_propagating = self.propagating_error.get();
+        self.propagating_error.set(true);
+        !is_propagating
+    }
+
+    fn stop_propagating_and_should_create_new_graphql_error(&self) -> bool {
+        let is_propagating = self.propagating_error.get();
+        self.propagating_error.set(false);
+        !is_propagating
+    }
+
+    fn propagate_error<V, E: serde::de::Error>(&self) -> Result<V, E> {
+        self.propagating_error.set(true);
+        Err(serde::de::Error::custom(""))
+    }
 }
 
 pub(crate) struct UpdateSeed<'ctx> {
@@ -98,7 +114,6 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
     {
         let UpdateSeed { ctx } = self;
         let selection_set_id = ctx.plan.collected_selection_set().id();
-        tracing::info!("{:#?}", ctx.plan.collected_selection_set());
         let result = deserializer.deserialize_option(NullableVisitor(
             CollectedSelectionSetSeed::new_from_id(&ctx, selection_set_id).fields_seed,
         ));
@@ -111,7 +126,7 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
             // just skip it here.
             Ok(None) => {}
             Err(err) => {
-                if !ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
+                if ctx.should_create_new_graphql_error() {
                     ctx.writer.propagate_error(GraphqlError {
                         message: err.to_string(),
                         path: Some(ctx.response_path()),

@@ -8,12 +8,10 @@ use crate::{
 };
 
 mod boundary;
-mod collect;
+pub(crate) mod collect;
 mod logic;
 mod planner;
 mod walker_ext;
-
-use super::OperationPlan;
 
 pub type PlanningResult<T> = Result<T, PlanningError>;
 
@@ -60,10 +58,6 @@ impl From<&str> for PlanningError {
     }
 }
 
-pub(super) fn plan_operation(
-    schema: &Schema,
-    variables: &Variables,
-    operation: Operation,
-) -> PlanningResult<OperationPlan> {
-    planner::Planner::new(schema, variables, operation).plan()
+pub(crate) fn solve(schema: &Schema, variables: &Variables, operation: &mut Operation) -> PlanningResult<()> {
+    planner::OperationSolver::new(schema, variables, operation).solve()
 }

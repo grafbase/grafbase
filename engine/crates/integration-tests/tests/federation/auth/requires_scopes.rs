@@ -4,17 +4,16 @@ use integration_tests::openid::{CoreClientExt, OryHydraOpenIDProvider, READ_SCOP
 #[test]
 fn anonymous_does_not_any_scope() {
     with_secure_schema(|engine| async move {
-        let response = engine.execute("query { mustHaveReadScope }").await;
+        let response = engine.execute("query { check { mustHaveReadScope } }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
+          "data": null,
           "errors": [
             {
-              "message": "Not allowed",
-              "locations": [
-                {
-                  "line": 1,
-                  "column": 9
-                }
+              "message": "Not allowed: insufficient scopes",
+              "path": [
+                "check",
+                "mustHaveReadScope"
               ]
             }
           ]
@@ -33,19 +32,18 @@ fn no_scope() {
             .await;
 
         let response = engine
-            .execute("query { mustHaveReadScope }")
+            .execute("query { check { mustHaveReadScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
+          "data": null,
           "errors": [
             {
-              "message": "Not allowed",
-              "locations": [
-                {
-                  "line": 1,
-                  "column": 9
-                }
+              "message": "Not allowed: insufficient scopes",
+              "path": [
+                "check",
+                "mustHaveReadScope"
               ]
             }
           ]
@@ -64,31 +62,32 @@ fn has_read_scope() {
             .await;
 
         let response = engine
-            .execute("query { mustHaveReadScope }")
+            .execute("query { check { mustHaveReadScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "mustHaveReadScope": "You have read scope"
+            "check": {
+              "mustHaveReadScope": "You have read scope"
+            }
           }
         }
         "###);
 
         let response = engine
-            .execute("query { mustHaveWriteScope }")
+            .execute("query { check { mustHaveWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
+          "data": null,
           "errors": [
             {
-              "message": "Not allowed",
-              "locations": [
-                {
-                  "line": 1,
-                  "column": 9
-                }
+              "message": "Not allowed: insufficient scopes",
+              "path": [
+                "check",
+                "mustHaveWriteScope"
               ]
             }
           ]
@@ -96,31 +95,32 @@ fn has_read_scope() {
         "###);
 
         let response = engine
-            .execute("query { mustHaveReadOrWriteScope }")
+            .execute("query { check { mustHaveReadOrWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "mustHaveReadOrWriteScope": "You have either read or write scope"
+            "check": {
+              "mustHaveReadOrWriteScope": "You have either read or write scope"
+            }
           }
         }
         "###);
 
         let response = engine
-            .execute("query { mustHaveReadAndWriteScope }")
+            .execute("query { check { mustHaveReadAndWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
+          "data": null,
           "errors": [
             {
-              "message": "Not allowed",
-              "locations": [
-                {
-                  "line": 1,
-                  "column": 9
-                }
+              "message": "Not allowed: insufficient scopes",
+              "path": [
+                "check",
+                "mustHaveReadAndWriteScope"
               ]
             }
           ]
@@ -139,19 +139,18 @@ fn has_write_scope() {
             .await;
 
         let response = engine
-            .execute("query { mustHaveReadScope }")
+            .execute("query { check { mustHaveReadScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
+          "data": null,
           "errors": [
             {
-              "message": "Not allowed",
-              "locations": [
-                {
-                  "line": 1,
-                  "column": 9
-                }
+              "message": "Not allowed: insufficient scopes",
+              "path": [
+                "check",
+                "mustHaveReadScope"
               ]
             }
           ]
@@ -159,43 +158,46 @@ fn has_write_scope() {
         "###);
 
         let response = engine
-            .execute("query { mustHaveWriteScope }")
+            .execute("query { check { mustHaveWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "mustHaveWriteScope": "You have write scope"
+            "check": {
+              "mustHaveWriteScope": "You have write scope"
+            }
           }
         }
         "###);
 
         let response = engine
-            .execute("query { mustHaveReadOrWriteScope }")
+            .execute("query { check { mustHaveReadOrWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "mustHaveReadOrWriteScope": "You have either read or write scope"
+            "check": {
+              "mustHaveReadOrWriteScope": "You have either read or write scope"
+            }
           }
         }
         "###);
 
         let response = engine
-            .execute("query { mustHaveReadAndWriteScope }")
+            .execute("query { check { mustHaveReadAndWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
+          "data": null,
           "errors": [
             {
-              "message": "Not allowed",
-              "locations": [
-                {
-                  "line": 1,
-                  "column": 9
-                }
+              "message": "Not allowed: insufficient scopes",
+              "path": [
+                "check",
+                "mustHaveReadAndWriteScope"
               ]
             }
           ]
@@ -214,49 +216,57 @@ fn has_read_and_write_scope() {
             .await;
 
         let response = engine
-            .execute("query { mustHaveReadScope }")
+            .execute("query { check { mustHaveReadScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "mustHaveReadScope": "You have read scope"
+            "check": {
+              "mustHaveReadScope": "You have read scope"
+            }
           }
         }
         "###);
 
         let response = engine
-            .execute("query { mustHaveWriteScope }")
+            .execute("query { check { mustHaveWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "mustHaveWriteScope": "You have write scope"
+            "check": {
+              "mustHaveWriteScope": "You have write scope"
+            }
           }
         }
         "###);
 
         let response = engine
-            .execute("query { mustHaveReadOrWriteScope }")
+            .execute("query { check { mustHaveReadOrWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "mustHaveReadOrWriteScope": "You have either read or write scope"
+            "check": {
+              "mustHaveReadOrWriteScope": "You have either read or write scope"
+            }
           }
         }
         "###);
 
         let response = engine
-            .execute("query { mustHaveReadAndWriteScope }")
+            .execute("query { check { mustHaveReadAndWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "mustHaveReadAndWriteScope": "You have read and write scopes"
+            "check": {
+              "mustHaveReadAndWriteScope": "You have read and write scopes"
+            }
           }
         }
         "###);

@@ -16,7 +16,7 @@ fn a_gateway_request_no_op() {
         let user_hooks = TestHooks::default().on_gateway_request(|headers| Ok((HashMap::new(), headers)));
 
         let engine = Engine::builder()
-            .with_user_hooks(user_hooks)
+            .with_hooks(user_hooks)
             .with_schema("schema", &github_mock)
             .await
             .finish()
@@ -47,7 +47,7 @@ fn a_gateway_callback_error() {
         });
 
         let engine = Engine::builder()
-            .with_user_hooks(user_hooks)
+            .with_hooks(user_hooks)
             .with_schema("schema", &github_mock)
             .await
             .finish()

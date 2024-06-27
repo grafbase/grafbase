@@ -1,6 +1,6 @@
 mod bind;
 mod build;
-mod cache_control;
+mod condition;
 pub mod ids;
 mod input_value;
 mod location;
@@ -12,7 +12,7 @@ mod variables;
 mod walkers;
 
 use crate::response::ResponseKeys;
-pub use cache_control::OperationCacheControl;
+pub(crate) use condition::*;
 pub(crate) use engine_parser::types::OperationType;
 pub(crate) use ids::*;
 pub(crate) use input_value::*;
@@ -41,12 +41,13 @@ pub(crate) struct Operation {
     pub fragment_spreads: Vec<FragmentSpread>,
     pub inline_fragments: Vec<InlineFragment>,
     pub variable_definitions: Vec<VariableDefinition>,
-    pub cache_control: Option<OperationCacheControl>,
     pub field_arguments: Vec<FieldArgument>,
     pub query_input_values: QueryInputValues,
+    // deduplicated
+    pub conditions: Vec<Condition>,
     // -- Added during planning --
     pub plans: Vec<Plan>,
-    /// Sorted
+    // Sorted
     pub plan_edges: Vec<ParentToChildEdge>,
     pub field_dependencies: Vec<FieldDependency>,
     pub field_to_plan_id: Vec<Option<PlanId>>,

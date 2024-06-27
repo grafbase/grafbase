@@ -1,4 +1,4 @@
-use std::{fmt, sync::atomic::Ordering};
+use std::fmt;
 
 use serde::{
     de::{DeserializeSeed, Visitor},
@@ -62,7 +62,7 @@ where
         match self.seed.deserialize(deserializer) {
             Ok(value) => Ok(value.into_nullable()),
             Err(err) => {
-                if !self.ctx.propagating_error.fetch_and(false, Ordering::Relaxed) {
+                if self.ctx.stop_propagating_and_should_create_new_graphql_error() {
                     self.ctx.writer.push_error(GraphqlError {
                         message: err.to_string(),
                         locations: vec![self.ctx.plan[self.field_id].location()],

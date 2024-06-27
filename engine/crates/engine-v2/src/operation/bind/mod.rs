@@ -1,16 +1,21 @@
 mod coercion;
 mod variables;
 
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    usize,
+};
 
 pub use engine_parser::types::OperationType;
 use engine_parser::Positioned;
 use engine_value::Name;
 use id_newtypes::IdRange;
 use itertools::Itertools;
-use schema::{Definition, FieldDefinitionWalker, Schema};
+use schema::{Definition, FieldDefinitionWalker, Schema, TypeSystemDirective};
 
-use super::{parse::ParsedOperation, QueryInputValue, QueryInputValues};
+use super::{
+    parse::ParsedOperation, Condition, ConditionId, QueryField, QueryInputValue, QueryInputValues, TypeNameField,
+};
 use crate::{
     operation::{
         Field, FieldArgument, FieldArgumentId, FieldId, Fragment, FragmentId, FragmentSpread, FragmentSpreadId,
@@ -158,6 +163,7 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
         fragment_spreads: Vec::new(),
         inline_fragments: Vec::new(),
         field_to_parent: Vec::new(),
+        conditions: Default::default(),
         input_values: QueryInputValues::default(),
     };
 
@@ -189,11 +195,15 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
         field_to_entity_location: vec![None; binder.fields.len()],
         fields: binder.fields,
         variable_definitions: binder.variable_definitions,
-        cache_control: None,
         fragment_spreads: binder.fragment_spreads,
         inline_fragments: binder.inline_fragments,
         field_to_parent: binder.field_to_parent,
         query_input_values: binder.input_values,
+        conditions: {
+            let mut cond = binder.conditions.into_iter().collect::<Vec<_>>();
+            cond.sort_unstable_by_key(|(_, id)| usize::from(*id));
+            cond.into_iter().map(|(cond, _)| cond).collect()
+        },
         plans: Vec::new(),
         plan_edges: Vec::new(),
         field_dependencies: Vec::new(),
@@ -215,6 +225,7 @@ pub struct Binder<'a> {
     selection_sets: Vec<SelectionSet>,
     variable_definitions: Vec<VariableDefinition>,
     input_values: QueryInputValues,
+    conditions: HashMap<Condition, ConditionId>,
     // We keep track of the position of fields within the response object that will be
     // returned. With type conditions it's not obvious to know which field will be present or
     // not, but we can order all bound fields. This needs to be done at the request binding
@@ -367,88 +378,110 @@ impl<'a> Binder<'a> {
                 })?;
         self.next_response_position += 1;
 
-        let field_id = match name {
-            "__typename" => self.push_field(
+        if name == "__typename" {
+            return Ok(Selection::Field(self.push_field(
                 parent,
-                Field::TypeName {
+                Field::TypeName(TypeNameField {
                     bound_response_key,
                     location: name_location,
-                },
-            ),
-            name => {
-                let definition: FieldDefinitionWalker<'_> = match root {
-                    SelectionSetType::Object(object_id) => self.schema.object_field_by_name(object_id, name),
-                    SelectionSetType::Interface(interface_id) => {
-                        self.schema.interface_field_by_name(interface_id, name)
-                    }
-                    SelectionSetType::Union(union_id) => {
-                        return Err(BindError::UnionHaveNoFields {
-                            name: name.to_string(),
-                            ty: walker.walk(union_id).name().to_string(),
-                            location: name_location,
-                        });
-                    }
-                }
-                .map(|definition_id| walker.walk(definition_id))
-                .ok_or_else(|| BindError::UnknownField {
-                    container: walker.walk(Definition::from(root)).name().to_string(),
+                }),
+            )));
+        }
+
+        let definition: FieldDefinitionWalker<'_> = match root {
+            SelectionSetType::Object(object_id) => self.schema.object_field_by_name(object_id, name),
+            SelectionSetType::Interface(interface_id) => self.schema.interface_field_by_name(interface_id, name),
+            SelectionSetType::Union(union_id) => {
+                return Err(BindError::UnionHaveNoFields {
                     name: name.to_string(),
+                    ty: walker.walk(union_id).name().to_string(),
                     location: name_location,
-                })?;
-
-                let field_id = self.push_field(
-                    parent,
-                    Field::Query {
-                        bound_response_key,
-                        location: name_location,
-                        field_definition_id: definition.id(),
-                        argument_ids: Default::default(),
-                        selection_set_id: Default::default(),
-                    },
-                );
-
-                let argument_ids =
-                    self.bind_field_arguments(definition, field_id, name_location, &mut field.arguments)?;
-
-                let selection_set_id = if field.selection_set.node.items.is_empty() {
-                    if !matches!(
-                        definition.ty().inner().id(),
-                        Definition::Scalar(_) | Definition::Enum(_)
-                    ) {
-                        return Err(BindError::LeafMustBeAScalarOrEnum {
-                            name: name.to_string(),
-                            ty: definition.ty().inner().name().to_string(),
-                            location: name_location,
-                        });
-                    }
-                    None
-                } else {
-                    Some(
-                        SelectionSetType::maybe_from(definition.ty().inner().id())
-                            .ok_or_else(|| BindError::CannotHaveSelectionSet {
-                                name: name.to_string(),
-                                ty: definition.ty().to_string(),
-                                location: name_location,
-                            })
-                            .and_then(|ty| self.bind_selection_set(ty, &mut field.selection_set))?,
-                    )
-                };
-
-                // Ugly, yes.
-                let Field::Query {
-                    argument_ids: ref mut field_argument_ids,
-                    selection_set_id: ref mut field_selection_set_id,
-                    ..
-                } = &mut self.fields[usize::from(field_id)]
-                else {
-                    unreachable!()
-                };
-                *field_argument_ids = argument_ids;
-                *field_selection_set_id = selection_set_id;
-                field_id
+                });
             }
+        }
+        .map(|definition_id| walker.walk(definition_id))
+        .ok_or_else(|| BindError::UnknownField {
+            container: walker.walk(Definition::from(root)).name().to_string(),
+            name: name.to_string(),
+            location: name_location,
+        })?;
+
+        let field_id = self.push_field(
+            parent,
+            Field::Query(QueryField {
+                bound_response_key,
+                location: name_location,
+                field_definition_id: definition.id(),
+                argument_ids: Default::default(),
+                selection_set_id: Default::default(),
+                condition: None,
+            }),
+        );
+
+        let conditions = definition
+            .directives()
+            .as_ref()
+            .iter()
+            .filter_map(|directive| match directive {
+                TypeSystemDirective::Authenticated => Some(self.push_condition(Condition::Authenticated)),
+                TypeSystemDirective::RequiresScopes(id) => Some(self.push_condition(Condition::RequiresScopes(*id))),
+                &TypeSystemDirective::Authorized(directive_id) => {
+                    Some(self.push_condition(Condition::Authorized { directive_id, field_id }))
+                }
+                _ => None,
+            })
+            .collect();
+        let condition = self.merge_conditions(conditions);
+        let argument_ids = self.bind_field_arguments(definition, field_id, name_location, &mut field.arguments)?;
+        let selection_set_id = if field.selection_set.node.items.is_empty() {
+            if !matches!(
+                definition.ty().inner().id(),
+                Definition::Scalar(_) | Definition::Enum(_)
+            ) {
+                return Err(BindError::LeafMustBeAScalarOrEnum {
+                    name: name.to_string(),
+                    ty: definition.ty().inner().name().to_string(),
+                    location: name_location,
+                });
+            }
+            None
+        } else {
+            let selection_set_id = SelectionSetType::maybe_from(definition.ty().inner().id())
+                .ok_or_else(|| BindError::CannotHaveSelectionSet {
+                    name: name.to_string(),
+                    ty: definition.ty().to_string(),
+                    location: name_location,
+                })
+                .and_then(|ty| self.bind_selection_set(ty, &mut field.selection_set))?;
+            Some(selection_set_id)
         };
+
+        // Ugly, yes.
+        let Field::Query(ref mut field) = &mut self.fields[usize::from(field_id)] else {
+            unreachable!()
+        };
+        field.argument_ids = argument_ids;
+        field.selection_set_id = selection_set_id;
+        field.condition = condition;
+
         Ok(Selection::Field(field_id))
+    }
+
+    fn merge_conditions(&mut self, conditions: HashSet<ConditionId>) -> Option<ConditionId> {
+        match conditions.len() {
+            0 => None,
+            1 => Some(*conditions.iter().next().unwrap()),
+            _ => {
+                let mut conditions = conditions.into_iter().collect::<Vec<_>>();
+                conditions.sort_unstable();
+                Some(self.push_condition(Condition::All(conditions)))
+            }
+        }
+    }
+
+    fn push_condition(&mut self, condition: Condition) -> ConditionId {
+        let n = self.conditions.len();
+        *self.conditions.entry(condition).or_insert(n.into())
     }
 
     fn push_field(&mut self, parent: SelectionSetId, field: Field) -> FieldId {

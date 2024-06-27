@@ -3,16 +3,13 @@ use im::HashSet;
 use itertools::Itertools;
 use schema::{ResolverId, Schema};
 
-use super::{
-    boundary::BoundarySelectionSetPlanner, collect::OperationPlanBuilder, logic::PlanningLogic, PlanningError,
-    PlanningResult,
-};
+use super::{boundary::BoundarySelectionSetPlanner, logic::PlanningLogic, PlanningError, PlanningResult};
 use crate::{
     operation::{
         EntityLocation, Field, FieldId, Operation, OperationWalker, ParentToChildEdge, Plan, PlanId, QueryPath,
         Selection, SelectionSet, SelectionSetId, Variables,
     },
-    plan::{flatten_selection_sets, EntityId, FlatField, FlatSelectionSet, OperationPlan},
+    plan::{flatten_selection_sets, EntityId, FlatField, FlatSelectionSet},
 };
 
 /// The planner is responsible to attribute a plan id for every field & selection set in the
@@ -37,16 +34,16 @@ use crate::{
 ///    During execution, those Plans create Executors with the actual response objects that do the
 ///    real work.
 ///
-pub(super) struct Planner<'a> {
+pub(super) struct OperationSolver<'a> {
     pub(super) schema: &'a Schema,
     pub(super) variables: &'a Variables,
-    pub(super) operation: Operation,
+    pub(super) operation: &'a mut Operation,
     plan_edges: HashSet<ParentToChildEdge>,
     entity_locations_count: usize,
 }
 
-impl<'a> Planner<'a> {
-    pub(super) fn new(schema: &'a Schema, variables: &'a Variables, operation: Operation) -> Self {
+impl<'a> OperationSolver<'a> {
+    pub(super) fn new(schema: &'a Schema, variables: &'a Variables, operation: &'a mut Operation) -> Self {
         Self {
             schema,
             variables,
@@ -56,12 +53,15 @@ impl<'a> Planner<'a> {
         }
     }
 
-    pub(super) fn plan(mut self) -> PlanningResult<OperationPlan> {
+    pub(super) fn solve(mut self) -> PlanningResult<()> {
         self.plan_all_fields()?;
-        self.operation.field_dependencies.sort_unstable();
-        self.operation.plan_edges = self.plan_edges.into_iter().collect();
-        self.operation.plan_edges.sort_unstable();
-        OperationPlanBuilder::new(self.schema, self.variables, self.operation, self.entity_locations_count).build()
+        let Self {
+            operation, plan_edges, ..
+        } = self;
+        operation.field_dependencies.sort_unstable();
+        operation.plan_edges = plan_edges.into_iter().collect();
+        operation.plan_edges.sort_unstable();
+        Ok(())
     }
 
     /// Step 1 of the planning, attributed all fields to a plan and satisfying their requirements.
@@ -72,7 +72,7 @@ impl<'a> Planner<'a> {
         // query { __typename }
         let introspection = self.schema.walker().introspection_metadata();
         let (introspection_selection_set, selection_set) =
-            flatten_selection_sets(self.schema, &self.operation, vec![self.operation.root_selection_set_id])
+            flatten_selection_sets(self.schema, self.operation, vec![self.operation.root_selection_set_id])
                 .partition_fields(|flat_field| {
                     let field = &self.operation[flat_field.id];
                     if let Some(definition_id) = field.definition_id() {
@@ -206,7 +206,7 @@ impl<'a> Planner<'a> {
                 let definition_id = self.operation[field_ids[0]]
                     .definition_id()
                     .expect("wouldn't have a subselection");
-                let flat_selection_set = flatten_selection_sets(self.schema, &self.operation, subselection_set_ids);
+                let flat_selection_set = flatten_selection_sets(self.schema, self.operation, subselection_set_ids);
                 let entity_location = self.next_entity_location();
                 // The current plan will necessarily has at least one field in it, otherwise we
                 // would be able to plan anything else without nested fields.
