@@ -1,11 +1,12 @@
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
 
-use graph_entities::QueryResponse;
+use graph_entities::{QueryResponse, QueryResponseNode};
 use query_path::QueryPathSegment;
 use runtime::cache::Entry;
 
 use crate::{
-    output::{self, InitialOutput, OutputShapes, OutputStore},
+    output::{self, InitialOutput, Object, ObjectShape, OutputShapes, OutputStore, Value},
+    planning::defers::DeferId,
     response::MaxAge,
     updating::PartitionIndex,
     CacheUpdatePhase,
@@ -23,7 +24,7 @@ pub struct StreamingExecutionPhase {
 
 impl StreamingExecutionPhase {
     pub(super) fn new(execution_phase: ExecutionPhase) -> StreamingExecutionPhase {
-        let shapes = OutputShapes::new(execution_phase.operation());
+        let shapes = OutputShapes::new(&execution_phase.plan);
 
         StreamingExecutionPhase {
             execution_phase,
@@ -50,7 +51,7 @@ impl StreamingExecutionPhase {
 
         let mut response_max_age = MaxAge::default();
 
-        if self.execution_phase.has_nocache_partition {
+        if self.execution_phase.has_nocache_partition() {
             // If any portion of our response can't be cached we set the maxAge to none
             response_max_age.set_none();
         }
@@ -75,13 +76,13 @@ impl StreamingExecutionPhase {
                 }
                 Entry::Miss if key.is_some() => {
                     response_max_age.merge(Duration::from_secs(
-                        self.execution_phase.cache_partitions[index].0.max_age as u64,
+                        self.execution_phase.plan.cache_partitions[index].0.max_age as u64,
                     ));
                     self.keys_to_write.push((key.unwrap(), PartitionIndex(index)));
                 }
                 Entry::Miss => {
                     response_max_age.merge(Duration::from_secs(
-                        self.execution_phase.cache_partitions[index].0.max_age as u64,
+                        self.execution_phase.plan.cache_partitions[index].0.max_age as u64,
                     ));
                 }
             }
@@ -99,14 +100,22 @@ impl StreamingExecutionPhase {
 
     pub fn record_incremental_response(
         &mut self,
-        defer_label: &str,
+        label: Option<&str>,
         path: &[&QueryPathSegment],
         data: QueryResponse,
         errors: bool,
     ) -> QueryResponse {
-        let Some(output) = &mut self.output else {
+        if self.output.is_none() {
+            todo!("GB-6966");
+        }
+        let Some(destination_object) = self.object_at_path(path) else {
             todo!("GB-6966");
         };
+        let Some(defer) = self.lookup_defer(label, destination_object, &data) else {
+            todo!("GB-6966");
+        };
+        let destination_object_id = destination_object.id;
+        let output = self.output.as_mut().unwrap();
 
         if !self.execution_phase.cache_entries.is_empty() {
             // If we still have cache entries, we should merge the rest of them into
@@ -120,7 +129,7 @@ impl StreamingExecutionPhase {
                 });
 
             for mut value in cache_values {
-                output.merge_specific_defer_from_cache_entry(&mut value, &self.shapes, defer_label);
+                output.merge_specific_defer_from_cache_entry(&mut value, &self.shapes, defer);
             }
         }
 
@@ -128,38 +137,11 @@ impl StreamingExecutionPhase {
             self.seen_errors = true;
         }
 
-        output.merge_incremental_payload(path, data, &self.shapes);
+        output.merge_incremental_payload(destination_object_id, data, &self.shapes);
 
-        let Some(object) = output.reader(&self.shapes) else {
-            todo!("GB-6966");
-        };
-
-        let mut value = crate::output::Value::Object(object);
-
-        for segment in path {
-            match (segment, value) {
-                (_, output::Value::Null) => return QueryResponse::default(),
-                (QueryPathSegment::Index(index), output::Value::List(list)) => {
-                    let Some(item) = list.get_index(*index) else {
-                        todo!("GB-6966")
-                    };
-                    value = item;
-                }
-                (QueryPathSegment::Field(field_name), output::Value::Object(object)) => {
-                    let Some(field) = object.field(field_name.as_str()) else {
-                        todo!("GB-6966")
-                    };
-                    value = field;
-                }
-                _ => todo!("GB-6966"),
-            }
-        }
-
-        let output::Value::Object(object) = value else {
-            todo!("GB-6966")
-        };
-
-        object.into_query_response()
+        output
+            .read_object(&self.shapes, destination_object_id)
+            .into_query_response()
     }
 
     pub fn finish(mut self) -> Option<CacheUpdatePhase> {
@@ -173,8 +155,8 @@ impl StreamingExecutionPhase {
             if let Some(output) = self.output.take() {
                 if let Some(root) = output.reader(&self.shapes) {
                     update_phase = Some(CacheUpdatePhase::new(
-                        self.execution_phase.document,
-                        self.execution_phase.cache_partitions,
+                        self.execution_phase.plan.document,
+                        self.execution_phase.plan.cache_partitions,
                         self.keys_to_write,
                         root.into_query_response(),
                     ));
@@ -183,5 +165,83 @@ impl StreamingExecutionPhase {
         }
 
         update_phase
+    }
+
+    fn lookup_defer(
+        &self,
+        label: Option<&str>,
+        destination_object: Object<'_>,
+        data: &QueryResponse,
+    ) -> Option<DeferId> {
+        if let Some(label) = label {
+            return Some(
+                self.execution_phase
+                    .plan
+                    .defers()
+                    .find(|defer| defer.label() == Some(label))?
+                    .id,
+            );
+        }
+        let mut possible_defers = self.shapes.defers_for_object(destination_object.shape().id);
+        if possible_defers.len() <= 1 {
+            // The easy case
+            return possible_defers.next();
+        }
+
+        // If there's no label and multiple possible defers in this object we'll have to examine
+        // the output to figure out what defer this is.  Urgh.
+        let possible_defers = possible_defers.collect::<HashSet<_>>();
+        let mut field_stack = vec![(data.root?, ObjectShape::Concrete(destination_object.shape()))];
+
+        while let Some((id, object_shape)) = field_stack.pop() {
+            match data.get_node(id)? {
+                QueryResponseNode::Container(container) => {
+                    let concrete_shape = match object_shape {
+                        ObjectShape::Concrete(shape) => shape,
+                        ObjectShape::Polymorphic(_) => todo!("GB-6949"),
+                    };
+
+                    for (name, src_id) in container.iter() {
+                        let Some(field_shape) = concrete_shape.field(name.as_str()) else {
+                            continue;
+                        };
+                        if let Some(id) = field_shape.defer_id() {
+                            if possible_defers.contains(&id) {
+                                return Some(id);
+                            }
+                        }
+                        if let Some(subselection_shape) = field_shape.subselection_shape() {
+                            field_stack.push((*src_id, subselection_shape))
+                        }
+                    }
+                }
+                QueryResponseNode::List(list) => {
+                    field_stack.extend(list.iter().map(|id| (id, object_shape)));
+                }
+                QueryResponseNode::Primitive(_) => {}
+            }
+        }
+
+        None
+    }
+
+    fn object_at_path<'a>(&'a self, path: &[&QueryPathSegment]) -> Option<Object<'a>> {
+        let mut value = Value::Object(self.output.as_ref()?.reader(&self.shapes)?);
+
+        for segment in path {
+            match (segment, value) {
+                (_, output::Value::Null) => return None,
+                (QueryPathSegment::Index(index), output::Value::List(list)) => value = list.get_index(*index)?,
+                (QueryPathSegment::Field(field_name), output::Value::Object(object)) => {
+                    value = object.field(field_name.as_str())?;
+                }
+                _ => return None,
+            }
+        }
+
+        match value {
+            Value::Object(object) => Some(object),
+            _ => None,
+        }
     }
 }

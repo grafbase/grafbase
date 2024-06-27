@@ -4,6 +4,8 @@ use std::collections::HashSet;
 
 use graph_entities::{CompactValue, QueryResponse, QueryResponseNode, ResponseContainer, ResponseList, ResponseNodeId};
 
+use crate::planning::defers::DeferId;
+
 use super::{
     shapes::{ConcreteShape, ObjectShape},
     store::{ValueId, ValueRecord},
@@ -11,13 +13,13 @@ use super::{
 };
 
 #[derive(Default)]
-pub struct InitialOutput<'a> {
+pub struct InitialOutput {
     pub store: OutputStore,
-    pub active_defers: HashSet<&'a str>,
+    pub active_defers: HashSet<DeferId>,
 }
 
-impl<'a> InitialOutput<'a> {
-    pub fn new(response: QueryResponse, root_object: ConcreteShape<'a>) -> Self {
+impl InitialOutput {
+    pub fn new(response: QueryResponse, root_object: ConcreteShape<'_>) -> Self {
         let mut output = InitialOutput::default();
 
         let Some(root) = response.root else {
@@ -41,12 +43,12 @@ impl<'a> InitialOutput<'a> {
     }
 }
 
-fn copy_container<'a>(
+fn copy_container(
     container: &ResponseContainer,
     response: &QueryResponse,
-    output: &mut InitialOutput<'a>,
+    output: &mut InitialOutput,
     dest_value_id: ValueId,
-    object_shape: ObjectShape<'a>,
+    object_shape: ObjectShape<'_>,
 ) {
     let concrete_shape = match object_shape {
         ObjectShape::Concrete(concrete) => concrete,
@@ -66,8 +68,8 @@ fn copy_container<'a>(
             continue;
         };
 
-        if let Some(label) = field_shape.defer_label() {
-            output.active_defers.insert(label);
+        if let Some(defer) = field_shape.defer_id() {
+            output.active_defers.insert(defer);
         }
 
         let Some(subselection_shape) = field_shape.subselection_shape() else {
@@ -83,12 +85,12 @@ fn copy_container<'a>(
     }
 }
 
-fn copy_node<'a>(
+fn copy_node(
     src_id: ResponseNodeId,
     dest_id: ValueId,
     response: &QueryResponse,
-    output: &mut InitialOutput<'a>,
-    subselection_shape: ObjectShape<'a>,
+    output: &mut InitialOutput,
+    subselection_shape: ObjectShape<'_>,
 ) {
     match response.get_node(src_id) {
         Some(QueryResponseNode::Container(container)) => {
@@ -102,12 +104,12 @@ fn copy_node<'a>(
     }
 }
 
-fn copy_list<'a>(
+fn copy_list(
     list: &ResponseList,
     response: &QueryResponse,
-    output: &mut InitialOutput<'a>,
+    output: &mut InitialOutput,
     dest_value_id: ValueId,
-    subselection_shape: ObjectShape<'a>,
+    subselection_shape: ObjectShape<'_>,
 ) {
     let dest_ids = output.store.new_list(list.len());
     output.store.write_value(dest_value_id, ValueRecord::List(dest_ids));
@@ -117,12 +119,7 @@ fn copy_list<'a>(
     }
 }
 
-pub fn copy_leaf_value(
-    response: &QueryResponse,
-    output: &mut InitialOutput<'_>,
-    src_id: ResponseNodeId,
-    dest_id: ValueId,
-) {
+pub fn copy_leaf_value(response: &QueryResponse, output: &mut InitialOutput, src_id: ResponseNodeId, dest_id: ValueId) {
     match response.get_node(src_id) {
         Some(QueryResponseNode::Primitive(primitive)) => {
             let value = match &primitive.0 {

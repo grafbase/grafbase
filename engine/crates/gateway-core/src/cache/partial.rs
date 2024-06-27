@@ -156,14 +156,15 @@ async fn run_execution_phase_stream(
         let StreamingPayload::Incremental(mut payload) = next_chunk else {
             todo!("GB-6966");
         };
-        let Some(label) = payload.label.as_deref() else {
-            todo!("GB-6981");
-        };
 
         let path = payload.path.iter().collect::<Vec<_>>();
 
-        payload.data =
-            execution_phase.record_incremental_response(label, &path, payload.data, !payload.errors.is_empty());
+        payload.data = execution_phase.record_incremental_response(
+            payload.label.as_deref(),
+            &path,
+            payload.data,
+            !payload.errors.is_empty(),
+        );
 
         if response_sender
             .send(StreamingPayload::Incremental(payload))

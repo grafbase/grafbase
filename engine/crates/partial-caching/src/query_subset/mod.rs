@@ -19,13 +19,14 @@ pub use self::{display::QuerySubsetDisplay, field_iter::FieldIter};
 /// This is a group of fields with the same cache settings, and all the
 /// ancestors, variables & fragments required for those fields to make a
 /// valid query
+#[derive(Clone)]
 pub struct QuerySubset {
     pub(crate) operation: OperationDefinitionId,
     partition: Partition,
     variables: IndexSet<VariableDefinitionId>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub(crate) struct Partition {
     pub selections: IndexSet<SelectionId>,
     pub fragments: IndexSet<FragmentDefinitionId>,

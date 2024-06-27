@@ -1,9 +1,11 @@
+pub(crate) mod defers;
 mod fragments;
 mod query_partitioner;
 mod variables;
 mod visitor;
 
 use cynic_parser::common::OperationType;
+use defers::DeferVisitor;
 use fragments::FragmentKey;
 use indexmap::{IndexMap, IndexSet};
 use query_partitioner::PlanningPartition;
@@ -47,13 +49,16 @@ pub fn build_plan(
     let mut partitioner = QueryPartitioner::new(root_cache_control);
     let mut fragment_tracker = FragmentTracker::new(root_cache_control);
 
+    let mut defer_visitor = DeferVisitor::new();
+
     visit_query(
         operation,
         registry,
-        &mut VisitorContext::new(&mut [&mut partitioner, &mut fragment_tracker]),
+        &mut VisitorContext::new(&mut [&mut partitioner, &mut fragment_tracker, &mut defer_visitor]),
     );
 
-    let (cache_groups, uncached_group) = visit_fragments(&document, registry, fragment_tracker, partitioner)?;
+    let (cache_groups, uncached_group) =
+        visit_fragments(&document, registry, fragment_tracker, partitioner, &mut defer_visitor)?;
 
     let nocache_variables = variables_required(&uncached_group, &document, operation);
 
@@ -68,6 +73,7 @@ pub fn build_plan(
         nocache_partition: QuerySubset::new(operation.id(), uncached_group, nocache_variables),
         operation_id: operation.id(),
         document,
+        defers: defer_visitor.defers,
     }))
 }
 
@@ -76,6 +82,7 @@ fn visit_fragments(
     registry: &PartialCacheRegistry,
     fragment_tracker: FragmentTracker,
     mut partitioner: QueryPartitioner,
+    defer_visitor: &mut DeferVisitor,
 ) -> anyhow::Result<(
     IndexMap<registry_for_cache::CacheControl, crate::query_subset::Partition>,
     crate::query_subset::Partition,
@@ -97,7 +104,7 @@ fn visit_fragments(
         visit_fragment(
             fragment,
             registry,
-            &mut VisitorContext::new(&mut [&mut partitioner, &mut fragment_tracker]),
+            &mut VisitorContext::new(&mut [&mut partitioner, &mut fragment_tracker, defer_visitor]),
         );
 
         let spreads = fragment_tracker.into_spreads()?;
