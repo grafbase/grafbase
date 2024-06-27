@@ -5,7 +5,7 @@ use query_path::QueryPathSegment;
 use runtime::cache::Entry;
 
 use crate::{
-    output::{self, InitialOutput, Object, ObjectShape, OutputShapes, OutputStore, Value},
+    output::{self, handle_initial_response, Object, ObjectShape, OutputShapes, OutputStore, Value},
     planning::defers::DeferId,
     response::MaxAge,
     updating::PartitionIndex,
@@ -44,10 +44,7 @@ impl StreamingExecutionPhase {
 
         let root_shape = self.shapes.root();
 
-        let InitialOutput {
-            mut store,
-            active_defers,
-        } = InitialOutput::new(response, root_shape);
+        let (mut store, active_defers) = handle_initial_response(response, root_shape);
 
         let mut response_max_age = MaxAge::default();
 
@@ -117,6 +114,12 @@ impl StreamingExecutionPhase {
         let destination_object_id = destination_object.id;
         let output = self.output.as_mut().unwrap();
 
+        if errors {
+            self.seen_errors = true;
+        }
+
+        let active_nested_defers = output.merge_incremental_payload(destination_object_id, data, &self.shapes);
+
         if !self.execution_phase.cache_entries.is_empty() {
             // If we still have cache entries, we should merge the rest of them into
             // the store before handling this incremental response
@@ -129,15 +132,9 @@ impl StreamingExecutionPhase {
                 });
 
             for mut value in cache_values {
-                output.merge_specific_defer_from_cache_entry(&mut value, &self.shapes, defer);
+                output.merge_specific_defer_from_cache_entry(&mut value, &self.shapes, defer, &active_nested_defers);
             }
         }
-
-        if errors {
-            self.seen_errors = true;
-        }
-
-        output.merge_incremental_payload(destination_object_id, data, &self.shapes);
 
         output
             .read_object(&self.shapes, destination_object_id)

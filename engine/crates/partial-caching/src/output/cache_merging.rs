@@ -30,11 +30,15 @@ impl OutputStore {
         json: &mut serde_json::Value,
         shapes: &'a OutputShapes,
         defer: DeferId,
+        active_nested_defers: &HashSet<DeferId>,
     ) {
         CacheMerge {
             store: self,
             shapes,
-            mode: MergeMode::SpecificDefer(defer),
+            mode: MergeMode::SpecificDefer {
+                defer,
+                active_nested_defers,
+            },
         }
         .merge_cache_entry(json);
     }
@@ -56,9 +60,12 @@ enum MergeMode<'a> {
     /// This mode should be used when we receive a deferred payload,
     /// passing in the name of the defer we are merging
     ///
-    /// In this mode we'll only merge in fields that are specifically
-    /// part of the named defer, and not any other fields.
-    SpecificDefer(DeferId),
+    /// In this mode we'll only merge in fields that are part of the given defer,
+    /// or are part of one of the active nested defers
+    SpecificDefer {
+        defer: DeferId,
+        active_nested_defers: &'a HashSet<DeferId>,
+    },
 }
 
 impl<'a> CacheMerge<'a> {
@@ -145,9 +152,9 @@ impl<'a> CacheMerge<'a> {
                 // TODO: Going to deal with this in GB-6782
                 todo!("probably need to invalidate cache if this happens");
             }
-            (_, _) => {
+            (x, y) => {
                 // TODO: Going to deal with this in GB-6782
-                todo!("probably need to invalidate cache if this happens");
+                todo!("probably need to invalidate cache if this happens: {x:?}, {y:?}");
             }
         };
     }
@@ -220,9 +227,20 @@ impl<'a> CacheMerge<'a> {
                 };
                 !active_defers.contains(&defer)
             }
-            MergeMode::SpecificDefer(defer) => {
+            MergeMode::SpecificDefer {
+                defer,
+                active_nested_defers,
+            } => {
+                if let Some(field_defer_id) = field.defer_id() {
+                    // If this field is unique to a defer, it needs to be one of the defers
+                    // we care about
+                    return field_defer_id != defer && !active_nested_defers.contains(&field_defer_id);
+                }
                 if field.is_leaf() {
-                    current_defer != Some(defer)
+                    let Some(current_defer) = current_defer else {
+                        return true;
+                    };
+                    current_defer != defer && !active_nested_defers.contains(&current_defer)
                 } else {
                     false
                 }

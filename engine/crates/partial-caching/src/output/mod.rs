@@ -1,16 +1,14 @@
 mod cache_merging;
-mod engine_response;
+mod response_merging;
 mod ser;
 mod shapes;
 mod store;
-
-mod incremental_merging;
 
 #[cfg(test)]
 mod tests;
 
 pub(crate) use self::{
-    engine_response::InitialOutput,
+    response_merging::handle_initial_response,
     shapes::{ObjectShape, OutputShapes},
     store::{Object, OutputStore, Value},
 };
