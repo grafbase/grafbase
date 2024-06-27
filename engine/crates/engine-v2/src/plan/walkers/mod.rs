@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use schema::{FieldDefinitionId, ObjectId, Schema, SchemaWalker};
+use schema::{EntityId, FieldDefinitionId, ObjectId, Schema, SchemaWalker};
 
 use crate::{
     operation::{
@@ -11,8 +11,8 @@ use crate::{
 };
 
 use super::{
-    AnyCollectedSelectionSet, CollectedSelectionSetId, ConditionalSelectionSetId, ExecutionPlanId, FlatTypeCondition,
-    OperationPlan, PlanInput, PlanOutput, RuntimeCollectedSelectionSet,
+    AnyCollectedSelectionSet, CollectedSelectionSetId, ConditionalSelectionSetId, ExecutionPlanId, OperationPlan,
+    PlanInput, PlanOutput, RuntimeCollectedSelectionSet,
 };
 
 mod collected;
@@ -124,7 +124,7 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
     }
 }
 
-impl<'a> PlanWalker<'a> {
+impl<'a> PlanWalker<'a, (), ()> {
     pub fn walk_input_value(&self, input_value_id: QueryInputValueId) -> QueryInputValueWalker<'a> {
         self.bound_walk_with(&self.operation_plan[input_value_id], ())
     }
@@ -148,15 +148,18 @@ impl<'a> PlanWalker<'a> {
         let mut typename_fields = HashMap::<ResponseKey, ResponseEdge>::default();
 
         for selection_set_id in selection_sets {
-            let selection_set = &self[*selection_set_id];
+            let selection_set = &self.operation_plan[*selection_set_id];
             for (type_condition, edge) in &selection_set.typename_fields {
-                if !does_type_condition_apply(&schema, type_condition, object_id) {
+                if type_condition
+                    .map(|entity_id| !does_type_condition_apply(&schema, entity_id, object_id))
+                    .unwrap_or_default()
+                {
                     continue;
                 }
                 typename_fields.entry(edge.as_response_key().unwrap()).or_insert(*edge);
             }
-            for field in &self[selection_set.field_ids] {
-                if !does_type_condition_apply(&schema, &field.type_condition, object_id) {
+            for field in &self.operation_plan[selection_set.field_ids] {
+                if !does_type_condition_apply(&schema, field.entity_id, object_id) {
                     continue;
                 }
                 fields
@@ -222,7 +225,7 @@ impl<'a> PlanWalker<'a> {
             object_id,
             boundary_ids: selection_sets
                 .iter()
-                .filter_map(|id| self[*id].maybe_boundary_id)
+                .filter_map(|id| self.operation_plan[*id].maybe_boundary_id)
                 .collect(),
             fields,
             typename_fields: typename_fields.into_values().collect(),
@@ -240,9 +243,9 @@ impl<'a> PlanWalker<'a> {
     }
 }
 
-fn does_type_condition_apply(schema: &Schema, type_condition: &Option<FlatTypeCondition>, object_id: ObjectId) -> bool {
-    type_condition
-        .as_ref()
-        .map(|cond| cond.matches(schema, object_id))
-        .unwrap_or(true)
+fn does_type_condition_apply(schema: &Schema, type_condition: EntityId, object_id: ObjectId) -> bool {
+    match type_condition {
+        EntityId::Object(id) => id == object_id,
+        EntityId::Interface(id) => schema[id].possible_types.contains(&object_id),
+    }
 }

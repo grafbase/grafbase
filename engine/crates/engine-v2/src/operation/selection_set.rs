@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use id_newtypes::IdRange;
-use schema::{Definition, FieldDefinitionId, InputValueDefinitionId, InterfaceId, ObjectId, Schema, UnionId};
+use schema::{Definition, EntityId, FieldDefinitionId, InputValueDefinitionId, InterfaceId, ObjectId, Schema, UnionId};
 
 use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
@@ -22,6 +22,12 @@ pub enum SelectionSetType {
     Object(ObjectId),
     Interface(InterfaceId),
     Union(UnionId),
+}
+
+impl SelectionSetType {
+    pub fn is_union(&self) -> bool {
+        matches!(self, Self::Union(_))
+    }
 }
 
 impl From<SelectionSetType> for TypeCondition {
@@ -68,6 +74,14 @@ impl SelectionSetType {
         match self {
             SelectionSetType::Object(id) => Some(*id),
             _ => None,
+        }
+    }
+
+    pub fn as_entity_id(&self) -> Option<EntityId> {
+        match self {
+            SelectionSetType::Object(id) => Some(EntityId::Object(*id)),
+            SelectionSetType::Interface(id) => Some(EntityId::Interface(*id)),
+            SelectionSetType::Union(_) => None,
         }
     }
 }

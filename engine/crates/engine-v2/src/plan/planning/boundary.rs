@@ -206,6 +206,50 @@ impl<'schema, 'a> BoundarySelectionSetPlanner<'schema, 'a> {
         let mut id_to_unplanned_fields: HashMap<FieldId, UnplannedField> =
             self.build_unplanned_fields(std::mem::take(&mut unplanned_selection_set.fields));
 
+        // unplanned_field may be still be provided by the parent plan, but at this stage it
+        // means they had requirements which weren't sure whether we could provide them.
+        if let Some(parent_logic) = self.maybe_parent {
+            let mut planned = Vec::new();
+            for unplanned_field in id_to_unplanned_fields.values() {
+                let definition = self.schema.walk(unplanned_field.definition_id);
+
+                // If the parent plan can provide the field, we don't need to plan it.
+                if parent_logic.is_providable(unplanned_field.definition_id)
+                    && self.could_plan_requirements(
+                        grouped_fields,
+                        unplanned_field.id,
+                        definition.requires(parent_logic.resolver().subgraph_id()),
+                    )?
+                {
+                    planned.push(unplanned_field.id);
+                    continue;
+                }
+            }
+
+            let mut requires = RequiredFieldSet::default();
+            let mut fields = vec![];
+            for id in planned {
+                let unplanned_field = id_to_unplanned_fields.remove(&id).unwrap();
+                requires = requires.union(
+                    self.schema
+                        .walk(unplanned_field.definition_id)
+                        .requires(parent_logic.resolver().subgraph_id()),
+                );
+                fields.push(FlatField::from(unplanned_field));
+            }
+
+            self.planner.plan_obviously_providable_subselections(
+                self.query_path,
+                parent_logic,
+                &unplanned_selection_set.clone_with_fields(fields),
+            )?;
+            self.push_plan_requires_dependencies(parent_logic.plan_id(), &requires);
+        }
+
+        if id_to_unplanned_fields.is_empty() {
+            return Ok(());
+        }
+
         // Actual planning, we plan one child plan at a time.
         let mut candidates: HashMap<ResolverId, ChildPlanCandidate<'schema>> = HashMap::default();
         while !id_to_unplanned_fields.is_empty() {

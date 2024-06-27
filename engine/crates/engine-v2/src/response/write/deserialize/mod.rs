@@ -98,6 +98,7 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
     {
         let UpdateSeed { ctx } = self;
         let selection_set_id = ctx.plan.collected_selection_set().id();
+        tracing::info!("{:#?}", ctx.plan.collected_selection_set());
         let result = deserializer.deserialize_option(NullableVisitor(
             CollectedSelectionSetSeed::new_from_id(&ctx, selection_set_id).fields_seed,
         ));

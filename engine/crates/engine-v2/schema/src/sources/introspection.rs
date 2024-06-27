@@ -1,8 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
-    builder::BuildContext, Definition, EnumId, EnumValue, EnumValueId, FieldDefinition, FieldDefinitionId, Graph,
-    IdRange, InputValueDefinition, InputValueDefinitionId, ObjectId, ResolverId, ScalarId, ScalarType,
+    builder::BuildContext, Definition, EntityId, EnumId, EnumValue, EnumValueId, FieldDefinition, FieldDefinitionId,
+    Graph, IdRange, InputValueDefinition, InputValueDefinitionId, ObjectId, ResolverId, ScalarId, ScalarType,
     SchemaInputValue, SchemaInputValueId, SchemaWalker, StringId, SubgraphId, Type, Wrapping,
 };
 use strum::EnumCount;
@@ -693,6 +693,7 @@ impl<'a> IntrospectionBuilder<'a> {
             self.field_definitions.push(FieldDefinition {
                 name,
                 ty: r#type,
+                parent_entity: EntityId::Object(object_id),
                 only_resolvable_in: vec![subgraph_id],
                 requires: Vec::new(),
                 provides: Vec::new(),

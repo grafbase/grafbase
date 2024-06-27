@@ -1,5 +1,5 @@
 use id_newtypes::IdRange;
-use schema::{FieldDefinitionId, ObjectId, ScalarType, Wrapping};
+use schema::{EntityId, FieldDefinitionId, ObjectId, ScalarType, Wrapping};
 
 use crate::{
     operation::{FieldId, SelectionSetType},
@@ -8,7 +8,6 @@ use crate::{
 
 use super::{
     CollectedFieldId, CollectedSelectionSetId, ConditionalFieldId, ConditionalSelectionSetId, ExecutionPlanBoundaryId,
-    FlatTypeCondition,
 };
 
 // TODO: The two AnyCollectedSelectionSet aren't great, need to split better the ones which are computed
@@ -49,13 +48,13 @@ pub struct ConditionalSelectionSet {
     //     myalias: __typename
     //     __typename
     // }
-    pub typename_fields: Vec<(Option<FlatTypeCondition>, ResponseEdge)>,
+    pub typename_fields: Vec<(Option<EntityId>, ResponseEdge)>,
 }
 
 #[derive(Debug)]
 pub struct ConditionalField {
     pub edge: ResponseEdge,
-    pub type_condition: Option<FlatTypeCondition>,
+    pub entity_id: EntityId,
     /// Expected key from the upstream response when deserializing
     pub expected_key: SafeResponseKey,
     pub id: FieldId,

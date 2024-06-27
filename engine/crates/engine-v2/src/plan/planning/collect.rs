@@ -14,7 +14,7 @@ use crate::{
         flatten_selection_sets, AnyCollectedSelectionSet, AnyCollectedSelectionSetId, CollectedField, CollectedFieldId,
         CollectedSelectionSet, CollectedSelectionSetId, ConditionalField, ConditionalFieldId, ConditionalSelectionSet,
         ConditionalSelectionSetId, EntityId, ExecutionPlan, ExecutionPlanBoundaryId, ExecutionPlanId, FieldType,
-        FlatField, FlatTypeCondition, OperationPlan, ParentToChildEdge, PlanInput, PlanOutput,
+        FlatField, OperationPlan, ParentToChildEdge, PlanInput, PlanOutput,
     },
     response::{ReadField, ReadSelectionSet},
     sources::PreparedExecutor,
@@ -246,8 +246,7 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
         let collected_selection_set_id = self.collect_fields(entity_id.into(), fields, maybe_boundary_id)?;
         let boundaries_end = self.operation_plan.plan_boundary_consummers_count.len();
         let output = PlanOutput {
-            type_condition: Some(entity_id.into()),
-            entity_type: entity_id,
+            entity_id,
             collected_selection_set_id,
             boundary_ids: IdRange::from(boundaries_start..boundaries_end),
         };
@@ -340,7 +339,7 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
         selection_set_ids: Vec<SelectionSetId>,
         concrete_parent: bool,
     ) -> PlanningResult<AnyCollectedSelectionSet> {
-        let selection_set = flatten_selection_sets(self.schema, &self.operation_plan, selection_set_ids);
+        let selection_set = flatten_selection_sets(self.schema, &self.operation_plan, selection_set_ids.clone());
 
         let mut plan_fields = Vec::new();
         let mut children_plan: HashMap<PlanId, Vec<FieldId>> = HashMap::new();
@@ -386,27 +385,21 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
             maybe_boundary_id
         };
 
-        let mut conditions = HashSet::<Option<EntityId>>::default();
-        let mut too_complex = false;
-        for field in &plan_fields {
-            match &field.type_condition {
-                Some(type_condition) => match type_condition {
-                    FlatTypeCondition::Interface(id) => {
-                        conditions.insert(Some(EntityId::Interface(*id)));
-                    }
-                    FlatTypeCondition::Objects(ids) => {
-                        if ids.len() == 1 {
-                            conditions.insert(Some(EntityId::Object(ids[0])));
-                        } else {
-                            too_complex = true;
-                        }
-                    }
-                },
-                None => {
-                    conditions.insert(None);
-                }
-            }
-        }
+        let is_union = selection_set_ids
+            .iter()
+            .any(|id| self.operation_plan[*id].ty.is_union());
+        let unique_entity = !is_union && {
+            let entities = plan_fields
+                .iter()
+                .flat_map(|field| field.entity_id)
+                .chain(
+                    selection_set_ids
+                        .iter()
+                        .flat_map(|id| self.operation_plan[*id].ty.as_entity_id()),
+                )
+                .collect::<HashSet<_>>();
+            entities.len() == 1
+        };
 
         // Trying to simplify the attributed selection to a concrete one.
         // - if the parent is not concrete, there might be other selection sets that need to be merged
@@ -415,7 +408,7 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
         //   If a single condition is left, we can only work with None. A selection set like
         //   `animal { ... on Dog { name } }` would have a single condition, but we may still see
         //   cat objects. A ConcreteSelectionSet would require `name`.
-        let id = if concrete_parent && !too_complex && conditions.len() == 1 && conditions.contains(&None) {
+        let id = if concrete_parent && unique_entity {
             self.collect_fields(
                 selection_set.ty,
                 plan_fields.into_iter().map(|field| field.id).collect(),
@@ -525,7 +518,7 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
                     }
                 };
                 conditional_fields.push(ConditionalField {
-                    type_condition: flat_field.type_condition,
+                    entity_id: definition.parent_entity(),
                     edge: field.response_edge(),
                     expected_key,
                     definition_id,
@@ -533,7 +526,7 @@ impl<'parent, 'ctx> ExecutionPlanBuildContext<'parent, 'ctx> {
                     ty,
                 });
             } else {
-                let type_condition = flat_field.type_condition;
+                let type_condition = flat_field.entity_id;
                 typename_fields.push((type_condition, field.response_edge()));
             }
         }

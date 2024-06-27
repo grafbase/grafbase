@@ -176,7 +176,7 @@ impl<'a> Planner<'a> {
                         .into_iter()
                         .map(|id| FlatField {
                             id,
-                            type_condition: None,
+                            entity_id: None,
                             selection_set_path: vec![selection_set.root_selection_set_ids[0]],
                         })
                         .collect(),
@@ -195,8 +195,9 @@ impl<'a> Planner<'a> {
         Ok(())
     }
 
-    /// After planning the individual fields, we plan their selection sets if any.
-    fn plan_providable_subselections(
+    /// Obviously providable fields have no requirements and can be provided by the current
+    /// resolver.
+    pub(super) fn plan_obviously_providable_subselections(
         &mut self,
         path: &QueryPath,
         logic: &PlanningLogic<'a>,
@@ -251,7 +252,7 @@ impl<'a> Planner<'a> {
             })
         };
 
-        self.plan_providable_subselections(path, logic, &obviously_providable)?;
+        self.plan_obviously_providable_subselections(path, logic, &obviously_providable)?;
 
         if !missing.is_empty() {
             self.plan_boundary_selection_set(path, logic, obviously_providable, missing)?;
@@ -321,7 +322,7 @@ impl<'a> Planner<'a> {
         );
         self.operation.plans.push(Plan { resolver_id });
         let logic = PlanningLogic::new(plan_id, self.schema.walk(resolver_id));
-        self.plan_providable_subselections(&path, &logic, providable)?;
+        self.plan_obviously_providable_subselections(&path, &logic, providable)?;
         Ok(plan_id)
     }
 
@@ -332,7 +333,9 @@ impl<'a> Planner<'a> {
     }
 
     pub fn push_plan_dependency(&mut self, edge: ParentToChildEdge) {
-        self.plan_edges.insert(edge);
+        if edge.parent != edge.child {
+            self.plan_edges.insert(edge);
+        }
     }
 
     pub fn get_field_plan(&self, id: FieldId) -> Option<PlanId> {
