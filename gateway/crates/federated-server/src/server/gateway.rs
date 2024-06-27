@@ -5,7 +5,7 @@ use engine_v2::{Engine, EngineEnv};
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::FederatedGraphConfig;
 use runtime::{cache::GlobalCacheConfig, hooks::Hooks};
-use runtime_local::{ComponentLoader, HooksWasi, InMemoryCache, InMemoryKvStore, WasiConfig};
+use runtime_local::{ComponentLoader, HooksConfig, HooksWasi, InMemoryCache, InMemoryKvStore};
 use runtime_noop::{hooks::HooksNoop, trusted_documents::NoopTrustedDocuments};
 use tokio::sync::watch;
 
@@ -28,7 +28,7 @@ pub(crate) struct GatewayConfig {
     pub default_headers: BTreeMap<AsciiString, HeaderValue>,
     pub subgraphs: BTreeMap<String, SubgraphConfig>,
     pub trusted_documents: TrustedDocumentsConfig,
-    pub wasi: Option<WasiConfig>,
+    pub wasi: Option<HooksConfig>,
 }
 
 /// Creates a new gateway from federated schema.
