@@ -6,6 +6,7 @@ mod ser;
 mod shapes;
 mod store;
 
+mod incremental_merging;
 #[cfg(test)]
 mod tests;
 

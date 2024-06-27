@@ -1,24 +1,52 @@
 //! Handles merging cache responses into the OutputStore
 
+use std::collections::HashSet;
+
 use super::{
-    engine_response::InitialOutput,
     shapes::{ConcreteShape, Field, ObjectShape, OutputShapes},
     store::{ObjectId, ValueId, ValueRecord},
+    OutputStore,
 };
 
-impl<'a> InitialOutput<'a> {
-    pub fn merge_cache_entry(&mut self, json: serde_json::Value, shapes: &'a OutputShapes) {
+impl OutputStore {
+    pub fn merge_cache_entry<'a>(
+        &'a mut self,
+        json: &mut serde_json::Value,
+        shapes: &'a OutputShapes,
+        active_defers: Option<HashSet<&'a str>>,
+    ) {
+        CacheMerge {
+            store: self,
+            shapes,
+            active_defers,
+        }
+        .merge_cache_entry(json)
+    }
+}
+
+struct CacheMerge<'a> {
+    store: &'a mut OutputStore,
+    shapes: &'a OutputShapes,
+
+    /// The defers to limit the merge to, if any.
+    ///
+    /// If this is None we merge all defers
+    active_defers: Option<HashSet<&'a str>>,
+}
+
+impl<'a> CacheMerge<'a> {
+    fn merge_cache_entry(&mut self, json: &mut serde_json::Value) {
         let Some(root_object_id) = self.store.root_object() else {
             // Presumably an error bubbled up to the root, so not much we can do here.
             return;
         };
 
-        let root_object_shape = shapes.root();
-        let serde_json::Value::Object(mut object) = json else {
+        let root_object_shape = self.shapes.root();
+        let serde_json::Value::Object(object) = json else {
             todo!("something");
         };
 
-        self.merge_cache_object(&mut object, root_object_id, root_object_shape);
+        self.merge_cache_object(object, root_object_id, root_object_shape);
     }
 
     fn merge_cache_object(
@@ -141,11 +169,14 @@ impl<'a> InitialOutput<'a> {
     }
 
     fn field_is_deferred(&self, field: Field<'a>) -> bool {
+        let Some(active_defers) = &self.active_defers else {
+            return false;
+        };
         let Some(defer_label) = field.defer_label() else {
             return false;
         };
 
-        !self.active_defers.contains(&defer_label)
+        !active_defers.contains(&defer_label)
     }
 }
 
