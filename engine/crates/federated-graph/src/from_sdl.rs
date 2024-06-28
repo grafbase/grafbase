@@ -315,7 +315,68 @@ fn ingest_object_interfaces(
 
 fn ingest_selection_sets(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> Result<(), DomainError> {
     ingest_field_directives_after_graph(parsed, state)?;
+    ingest_authorized_directives(parsed, state)?;
     ingest_entity_keys(parsed, state)
+}
+
+fn ingest_authorized_directives(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> Result<(), DomainError> {
+    for typedef in parsed.definitions.iter().filter_map(|def| match def {
+        ast::TypeSystemDefinition::Type(ty) => Some(&ty.node),
+        _ => None,
+    }) {
+        let Some(authorized) = typedef
+            .directives
+            .iter()
+            .find(|directive| directive.node.name.node == "authorized")
+        else {
+            continue;
+        };
+
+        let Some(definition) = state.definition_names.get(typedef.name.node.as_str()).copied() else {
+            continue;
+        };
+
+        let fields = authorized
+            .node
+            .get_argument("fields")
+            .and_then(|arg| match &arg.node {
+                async_graphql_value::ConstValue::String(s) => Some(s),
+                _ => None,
+            })
+            .map(|fields| parse_selection_set(fields).and_then(|fields| attach_field_set(&fields, definition, state)))
+            .transpose()?;
+
+        let rule = state.insert_string(
+            authorized
+                .node
+                .get_argument("rule")
+                .and_then(|rule| match &rule.node {
+                    async_graphql_value::ConstValue::String(s) => Some(s.as_str()),
+                    _ => None,
+                })
+                .unwrap_or_default(),
+        );
+
+        let metadata = authorized
+            .node
+            .get_argument("metadata")
+            .map(|metadata| state.insert_value(&metadata.node));
+
+        let idx = state.authorized_directives.push_return_idx(AuthorizedDirective {
+            rule,
+            fields,
+            arguments: None,
+            metadata,
+        });
+
+        if let Definition::Object(object_id) = definition {
+            state
+                .object_authorized_directives
+                .push((object_id, AuthorizedDirectiveId(idx)));
+        }
+    }
+
+    Ok(())
 }
 
 fn ingest_entity_keys(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> Result<(), DomainError> {
