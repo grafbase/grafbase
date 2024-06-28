@@ -9,7 +9,7 @@ pub(super) fn ingest(
         ConstValue::String(rule) => Some(subgraphs.strings.intern(rule.as_str())),
         _ => None,
     }) else {
-        return Ok(());
+        return Err(String::from("Missing `rule` argument in @authorized"));
     };
 
     let arguments = directive

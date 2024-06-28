@@ -53,7 +53,7 @@ type Query {
 }
 
 type Mutation {
-    createAccount(userId: ID!, type: AccountType!, initialBalance: Float!): Account! @join__field(graph: BANK_ACCOUNT)
+    createAccount(userId: ID!, type: AccountType!, initialBalance: Float!, input: CreateAccountInput, included: Boolean, notIncluded: String): Account @join__field(graph: BANK_ACCOUNT) @authorized(rule: "the nested input one", arguments: "input { userId nested { name } } included", metadata: ["a", "b", "c", ])
     createTransaction(amount: Float!, description: String, accountId: ID!): Transaction! @join__field(graph: BANK_ACCOUNT)
     createUser(name: String!, email: String!): User! @join__field(graph: BANK_ACCOUNT)
     deleteAccount(id: ID!): Account! @join__field(graph: BANK_ACCOUNT)
@@ -65,4 +65,14 @@ type Mutation {
 enum AccountType {
     SAVINGS
     CHECKING
+}
+
+input CreateAccountInput {
+    userId: ID!
+    nested: NestedThing
+    accountType: AccountType
+}
+
+input NestedThing {
+    name: String!
 }

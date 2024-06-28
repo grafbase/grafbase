@@ -36,11 +36,21 @@ type Query {
 }
 
 type Mutation {
-    createAccount: Account!
+    createAccount: Account
     createTransaction: Transaction!
     createUser: User!
     deleteAccount: Account!
     deleteTransaction: Transaction!
     deleteUser: User!
     updateUser: User!
+}
+
+input CreateAccountInput {
+    userId: ID!
+    nested: NestedThing
+    accountType: AccountType
+}
+
+input NestedThing {
+    name: String!
 }

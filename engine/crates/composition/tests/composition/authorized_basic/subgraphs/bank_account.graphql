@@ -45,4 +45,15 @@ type Mutation {
   deleteUser(id: ID!, soft: Boolean): User! @authorized(rule: "userAdmin", arguments: "id")
   deleteAccount(id: ID!): Account!
   deleteTransaction(id: ID!): Transaction!
+  createAccount(input: CreateAccountInput, included: Boolean, notIncluded: String): Account @authorized(rule: "the nested input one", arguments: "input { userId nested { name } } included", metadata: ["a", "b", "c"])
+}
+
+input CreateAccountInput {
+  userId: ID!
+  accountType: AccountType
+  nested: NestedThing
+}
+
+input NestedThing {
+  name: String!
 }
