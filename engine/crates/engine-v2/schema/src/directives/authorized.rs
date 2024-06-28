@@ -1,8 +1,7 @@
-use crate::{InputValueSet, RequiredFieldSetId, StringId};
+use crate::{InputValueSet, RequiredFieldSetId};
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct AuthorizedDirective {
-    pub rule: StringId,
     pub arguments: InputValueSet,
     pub fields: Option<RequiredFieldSetId>,
     pub metadata: (),

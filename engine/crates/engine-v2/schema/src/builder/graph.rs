@@ -652,7 +652,6 @@ impl<'a> GraphBuilder<'a> {
 
                 let authorized_id = self.graph.authorized_directives.len().into();
                 self.graph.authorized_directives.push(AuthorizedDirective {
-                    rule: directive.rule.into(),
                     arguments: directive
                         .arguments
                         .as_ref()

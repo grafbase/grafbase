@@ -346,24 +346,12 @@ fn ingest_authorized_directives(parsed: &ast::ServiceDocument, state: &mut State
             .map(|fields| parse_selection_set(fields).and_then(|fields| attach_field_set(&fields, definition, state)))
             .transpose()?;
 
-        let rule = state.insert_string(
-            authorized
-                .node
-                .get_argument("rule")
-                .and_then(|rule| match &rule.node {
-                    async_graphql_value::ConstValue::String(s) => Some(s.as_str()),
-                    _ => None,
-                })
-                .unwrap_or_default(),
-        );
-
         let metadata = authorized
             .node
             .get_argument("metadata")
             .map(|metadata| state.insert_value(&metadata.node));
 
         let idx = state.authorized_directives.push_return_idx(AuthorizedDirective {
-            rule,
             fields,
             arguments: None,
             metadata,
@@ -520,16 +508,6 @@ fn ingest_field_directives_after_graph(
         for directive in &field.directives {
             if let "authorized" = directive.node.name.node.as_str() {
                 let authorized_directive = AuthorizedDirective {
-                    rule: state.insert_string(
-                        directive
-                            .node
-                            .get_argument("rule")
-                            .and_then(|rule| match &rule.node {
-                                async_graphql_value::ConstValue::String(s) => Some(s.as_str()),
-                                _ => None,
-                            })
-                            .unwrap_or_default(),
-                    ),
                     arguments: directive
                         .node
                         .get_argument("arguments")

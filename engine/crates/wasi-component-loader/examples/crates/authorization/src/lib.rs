@@ -19,11 +19,7 @@ impl gateway_request::Guest for Component {
 }
 
 impl authorization::Guest for Component {
-    fn authorized(
-        context: SharedContext,
-        _rule: String,
-        input: Vec<String>,
-    ) -> Result<Vec<Option<ErrorResponse>>, ErrorResponse> {
+    fn authorized(context: SharedContext, input: Vec<String>) -> Result<Vec<Option<ErrorResponse>>, ErrorResponse> {
         let auth_header = context.get("entitlement");
         let mut result = Vec::with_capacity(input.len());
 

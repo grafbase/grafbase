@@ -119,14 +119,13 @@ impl<'a> OperationPlanBuilder<'a> {
                 }
                 Condition::Authorized { directive_id, field_id } => {
                     let directive = &self.ctx.schema[*directive_id];
-                    let rule = &self.ctx.schema[directive.rule];
                     let arguments = self
                         .walker()
                         .walk(*field_id)
                         .arguments()
                         .with_selection_set(&directive.arguments);
                     let input = crate::execution::hooks::authorized::Input { arguments };
-                    if let Some(err) = self.ctx.hooks().authorized(rule, input).await {
+                    if let Some(err) = self.ctx.hooks().authorized(input).await {
                         ConditionResult::Errors(vec![err])
                     } else {
                         ConditionResult::Include

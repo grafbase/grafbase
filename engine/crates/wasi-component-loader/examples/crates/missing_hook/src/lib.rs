@@ -9,7 +9,7 @@ use bindings::{
 struct Component;
 
 impl authorization::Guest for Component {
-    fn authorized(_: SharedContext, _: String, _: Vec<String>) -> Result<Vec<Option<ErrorResponse>>, ErrorResponse> {
+    fn authorized(_: SharedContext, _: Vec<String>) -> Result<Vec<Option<ErrorResponse>>, ErrorResponse> {
         Err(ErrorResponse {
             message: String::from("not implemented"),
             extensions: Vec::new(),

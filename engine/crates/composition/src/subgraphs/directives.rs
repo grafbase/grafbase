@@ -259,7 +259,6 @@ pub(crate) struct OverrideDirective {
 
 #[derive(Debug)]
 pub(crate) struct AuthorizedDirective {
-    pub(crate) rule: StringId,
     pub(crate) arguments: Option<Vec<Selection>>,
     pub(crate) fields: Option<Vec<Selection>>,
     pub(crate) metadata: Option<Value>,

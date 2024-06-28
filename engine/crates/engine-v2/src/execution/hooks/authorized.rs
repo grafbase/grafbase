@@ -11,7 +11,7 @@ pub(crate) struct Input<'a> {
 
 impl<'ctx> super::RequestHooks<'ctx> {
     #[instrument(skip_all)]
-    pub async fn authorized(&self, rule: &str, input: Input<'_>) -> Option<GraphqlError> {
+    pub async fn authorized(&self, input: Input<'_>) -> Option<GraphqlError> {
         let results = self
             .0
             .engine
@@ -19,7 +19,6 @@ impl<'ctx> super::RequestHooks<'ctx> {
             .hooks
             .authorized(
                 Arc::clone(&self.0.request_metadata.context),
-                rule.to_string(),
                 vec![serde_json::to_string(&input).unwrap()],
             )
             .await;

@@ -28,12 +28,11 @@ impl HooksImpl for HooksWasi {
     async fn authorized(
         &self,
         context: Arc<Self::Context>,
-        rule: String,
         input: Vec<String>,
     ) -> Result<Vec<Option<UserError>>, HookError> {
         let results = self
             .0
-            .authorized(context, rule, input)
+            .authorized(context, input)
             .await
             .map_err(to_local_error)?
             .into_iter()

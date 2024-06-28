@@ -559,49 +559,40 @@ pub mod exports {
                 pub type SharedContext = super::super::super::super::component::grafbase::types::SharedContext;
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                pub unsafe fn _export_authorized_cabi<T: Guest>(
-                    arg0: i32,
-                    arg1: *mut u8,
-                    arg2: usize,
-                    arg3: *mut u8,
-                    arg4: usize,
-                ) -> *mut u8 {
+                pub unsafe fn _export_authorized_cabi<T: Guest>(arg0: i32, arg1: *mut u8, arg2: usize) -> *mut u8 {
                     #[cfg(target_arch = "wasm32")]
                     _rt::run_ctors_once();
-                    let len0 = arg2;
-                    let bytes0 = _rt::Vec::from_raw_parts(arg1.cast(), len0, len0);
-                    let base4 = arg3;
-                    let len4 = arg4;
-                    let mut result4 = _rt::Vec::with_capacity(len4);
-                    for i in 0..len4 {
-                        let base = base4.add(i * 8);
-                        let e4 = {
-                            let l1 = *base.add(0).cast::<*mut u8>();
-                            let l2 = *base.add(4).cast::<usize>();
-                            let len3 = l2;
-                            let bytes3 = _rt::Vec::from_raw_parts(l1.cast(), len3, len3);
+                    let base3 = arg1;
+                    let len3 = arg2;
+                    let mut result3 = _rt::Vec::with_capacity(len3);
+                    for i in 0..len3 {
+                        let base = base3.add(i * 8);
+                        let e3 = {
+                            let l0 = *base.add(0).cast::<*mut u8>();
+                            let l1 = *base.add(4).cast::<usize>();
+                            let len2 = l1;
+                            let bytes2 = _rt::Vec::from_raw_parts(l0.cast(), len2, len2);
 
-                            _rt::string_lift(bytes3)
+                            _rt::string_lift(bytes2)
                         };
-                        result4.push(e4);
+                        result3.push(e3);
                     }
-                    _rt::cabi_dealloc(base4, len4 * 8, 4);
-                    let result5 = T::authorized(
+                    _rt::cabi_dealloc(base3, len3 * 8, 4);
+                    let result4 = T::authorized(
                         super::super::super::super::component::grafbase::types::SharedContext::from_handle(arg0 as u32),
-                        _rt::string_lift(bytes0),
-                        result4,
+                        result3,
                     );
-                    let ptr6 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
-                    match result5 {
+                    let ptr5 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
+                    match result4 {
                         Ok(e) => {
-                            *ptr6.add(0).cast::<u8>() = (0i32) as u8;
-                            let vec13 = e;
-                            let len13 = vec13.len();
-                            let layout13 = _rt::alloc::Layout::from_size_align_unchecked(vec13.len() * 20, 4);
-                            let result13 = if layout13.size() != 0 {
-                                let ptr = _rt::alloc::alloc(layout13).cast::<u8>();
+                            *ptr5.add(0).cast::<u8>() = (0i32) as u8;
+                            let vec12 = e;
+                            let len12 = vec12.len();
+                            let layout12 = _rt::alloc::Layout::from_size_align_unchecked(vec12.len() * 20, 4);
+                            let result12 = if layout12.size() != 0 {
+                                let ptr = _rt::alloc::alloc(layout12).cast::<u8>();
                                 if ptr.is_null() {
-                                    _rt::alloc::handle_alloc_error(layout13);
+                                    _rt::alloc::handle_alloc_error(layout12);
                                 }
                                 ptr
                             } else {
@@ -609,30 +600,30 @@ pub mod exports {
                                     ::core::ptr::null_mut()
                                 }
                             };
-                            for (i, e) in vec13.into_iter().enumerate() {
-                                let base = result13.add(i * 20);
+                            for (i, e) in vec12.into_iter().enumerate() {
+                                let base = result12.add(i * 20);
                                 {
                                     match e {
                                         Some(e) => {
                                             *base.add(0).cast::<u8>() = (1i32) as u8;
                                             let super::super::super::super::component::grafbase::types::ErrorResponse {
-                                                message: message7,
-                                                extensions: extensions7,
+                                                message: message6,
+                                                extensions: extensions6,
                                             } = e;
-                                            let vec8 = (message7.into_bytes()).into_boxed_slice();
-                                            let ptr8 = vec8.as_ptr().cast::<u8>();
-                                            let len8 = vec8.len();
-                                            ::core::mem::forget(vec8);
-                                            *base.add(8).cast::<usize>() = len8;
-                                            *base.add(4).cast::<*mut u8>() = ptr8.cast_mut();
-                                            let vec12 = extensions7;
-                                            let len12 = vec12.len();
-                                            let layout12 =
-                                                _rt::alloc::Layout::from_size_align_unchecked(vec12.len() * 16, 4);
-                                            let result12 = if layout12.size() != 0 {
-                                                let ptr = _rt::alloc::alloc(layout12).cast::<u8>();
+                                            let vec7 = (message6.into_bytes()).into_boxed_slice();
+                                            let ptr7 = vec7.as_ptr().cast::<u8>();
+                                            let len7 = vec7.len();
+                                            ::core::mem::forget(vec7);
+                                            *base.add(8).cast::<usize>() = len7;
+                                            *base.add(4).cast::<*mut u8>() = ptr7.cast_mut();
+                                            let vec11 = extensions6;
+                                            let len11 = vec11.len();
+                                            let layout11 =
+                                                _rt::alloc::Layout::from_size_align_unchecked(vec11.len() * 16, 4);
+                                            let result11 = if layout11.size() != 0 {
+                                                let ptr = _rt::alloc::alloc(layout11).cast::<u8>();
                                                 if ptr.is_null() {
-                                                    _rt::alloc::handle_alloc_error(layout12);
+                                                    _rt::alloc::handle_alloc_error(layout11);
                                                 }
                                                 ptr
                                             } else {
@@ -640,26 +631,26 @@ pub mod exports {
                                                     ::core::ptr::null_mut()
                                                 }
                                             };
-                                            for (i, e) in vec12.into_iter().enumerate() {
-                                                let base = result12.add(i * 16);
+                                            for (i, e) in vec11.into_iter().enumerate() {
+                                                let base = result11.add(i * 16);
                                                 {
-                                                    let (t9_0, t9_1) = e;
-                                                    let vec10 = (t9_0.into_bytes()).into_boxed_slice();
+                                                    let (t8_0, t8_1) = e;
+                                                    let vec9 = (t8_0.into_bytes()).into_boxed_slice();
+                                                    let ptr9 = vec9.as_ptr().cast::<u8>();
+                                                    let len9 = vec9.len();
+                                                    ::core::mem::forget(vec9);
+                                                    *base.add(4).cast::<usize>() = len9;
+                                                    *base.add(0).cast::<*mut u8>() = ptr9.cast_mut();
+                                                    let vec10 = (t8_1.into_bytes()).into_boxed_slice();
                                                     let ptr10 = vec10.as_ptr().cast::<u8>();
                                                     let len10 = vec10.len();
                                                     ::core::mem::forget(vec10);
-                                                    *base.add(4).cast::<usize>() = len10;
-                                                    *base.add(0).cast::<*mut u8>() = ptr10.cast_mut();
-                                                    let vec11 = (t9_1.into_bytes()).into_boxed_slice();
-                                                    let ptr11 = vec11.as_ptr().cast::<u8>();
-                                                    let len11 = vec11.len();
-                                                    ::core::mem::forget(vec11);
-                                                    *base.add(12).cast::<usize>() = len11;
-                                                    *base.add(8).cast::<*mut u8>() = ptr11.cast_mut();
+                                                    *base.add(12).cast::<usize>() = len10;
+                                                    *base.add(8).cast::<*mut u8>() = ptr10.cast_mut();
                                                 }
                                             }
-                                            *base.add(16).cast::<usize>() = len12;
-                                            *base.add(12).cast::<*mut u8>() = result12;
+                                            *base.add(16).cast::<usize>() = len11;
+                                            *base.add(12).cast::<*mut u8>() = result11;
                                         }
                                         None => {
                                             *base.add(0).cast::<u8>() = (0i32) as u8;
@@ -667,28 +658,28 @@ pub mod exports {
                                     };
                                 }
                             }
-                            *ptr6.add(8).cast::<usize>() = len13;
-                            *ptr6.add(4).cast::<*mut u8>() = result13;
+                            *ptr5.add(8).cast::<usize>() = len12;
+                            *ptr5.add(4).cast::<*mut u8>() = result12;
                         }
                         Err(e) => {
-                            *ptr6.add(0).cast::<u8>() = (1i32) as u8;
+                            *ptr5.add(0).cast::<u8>() = (1i32) as u8;
                             let super::super::super::super::component::grafbase::types::ErrorResponse {
-                                message: message14,
-                                extensions: extensions14,
+                                message: message13,
+                                extensions: extensions13,
                             } = e;
-                            let vec15 = (message14.into_bytes()).into_boxed_slice();
-                            let ptr15 = vec15.as_ptr().cast::<u8>();
-                            let len15 = vec15.len();
-                            ::core::mem::forget(vec15);
-                            *ptr6.add(8).cast::<usize>() = len15;
-                            *ptr6.add(4).cast::<*mut u8>() = ptr15.cast_mut();
-                            let vec19 = extensions14;
-                            let len19 = vec19.len();
-                            let layout19 = _rt::alloc::Layout::from_size_align_unchecked(vec19.len() * 16, 4);
-                            let result19 = if layout19.size() != 0 {
-                                let ptr = _rt::alloc::alloc(layout19).cast::<u8>();
+                            let vec14 = (message13.into_bytes()).into_boxed_slice();
+                            let ptr14 = vec14.as_ptr().cast::<u8>();
+                            let len14 = vec14.len();
+                            ::core::mem::forget(vec14);
+                            *ptr5.add(8).cast::<usize>() = len14;
+                            *ptr5.add(4).cast::<*mut u8>() = ptr14.cast_mut();
+                            let vec18 = extensions13;
+                            let len18 = vec18.len();
+                            let layout18 = _rt::alloc::Layout::from_size_align_unchecked(vec18.len() * 16, 4);
+                            let result18 = if layout18.size() != 0 {
+                                let ptr = _rt::alloc::alloc(layout18).cast::<u8>();
                                 if ptr.is_null() {
-                                    _rt::alloc::handle_alloc_error(layout19);
+                                    _rt::alloc::handle_alloc_error(layout18);
                                 }
                                 ptr
                             } else {
@@ -696,29 +687,29 @@ pub mod exports {
                                     ::core::ptr::null_mut()
                                 }
                             };
-                            for (i, e) in vec19.into_iter().enumerate() {
-                                let base = result19.add(i * 16);
+                            for (i, e) in vec18.into_iter().enumerate() {
+                                let base = result18.add(i * 16);
                                 {
-                                    let (t16_0, t16_1) = e;
-                                    let vec17 = (t16_0.into_bytes()).into_boxed_slice();
+                                    let (t15_0, t15_1) = e;
+                                    let vec16 = (t15_0.into_bytes()).into_boxed_slice();
+                                    let ptr16 = vec16.as_ptr().cast::<u8>();
+                                    let len16 = vec16.len();
+                                    ::core::mem::forget(vec16);
+                                    *base.add(4).cast::<usize>() = len16;
+                                    *base.add(0).cast::<*mut u8>() = ptr16.cast_mut();
+                                    let vec17 = (t15_1.into_bytes()).into_boxed_slice();
                                     let ptr17 = vec17.as_ptr().cast::<u8>();
                                     let len17 = vec17.len();
                                     ::core::mem::forget(vec17);
-                                    *base.add(4).cast::<usize>() = len17;
-                                    *base.add(0).cast::<*mut u8>() = ptr17.cast_mut();
-                                    let vec18 = (t16_1.into_bytes()).into_boxed_slice();
-                                    let ptr18 = vec18.as_ptr().cast::<u8>();
-                                    let len18 = vec18.len();
-                                    ::core::mem::forget(vec18);
-                                    *base.add(12).cast::<usize>() = len18;
-                                    *base.add(8).cast::<*mut u8>() = ptr18.cast_mut();
+                                    *base.add(12).cast::<usize>() = len17;
+                                    *base.add(8).cast::<*mut u8>() = ptr17.cast_mut();
                                 }
                             }
-                            *ptr6.add(16).cast::<usize>() = len19;
-                            *ptr6.add(12).cast::<*mut u8>() = result19;
+                            *ptr5.add(16).cast::<usize>() = len18;
+                            *ptr5.add(12).cast::<*mut u8>() = result18;
                         }
                     };
-                    ptr6
+                    ptr5
                 }
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
@@ -788,7 +779,6 @@ pub mod exports {
                 pub trait Guest {
                     fn authorized(
                         context: SharedContext,
-                        rule: _rt::String,
                         input: _rt::Vec<_rt::String>,
                     ) -> Result<_rt::Vec<Option<ErrorResponse>>, ErrorResponse>;
                 }
@@ -798,8 +788,8 @@ pub mod exports {
           ($ty:ident with_types_in $($path_to_types:tt)*) => (const _: () = {
 
             #[export_name = "component:grafbase/authorization#authorized"]
-            unsafe extern "C" fn export_authorized(arg0: i32,arg1: *mut u8,arg2: usize,arg3: *mut u8,arg4: usize,) -> *mut u8 {
-              $($path_to_types)*::_export_authorized_cabi::<$ty>(arg0, arg1, arg2, arg3, arg4)
+            unsafe extern "C" fn export_authorized(arg0: i32,arg1: *mut u8,arg2: usize,) -> *mut u8 {
+              $($path_to_types)*::_export_authorized_cabi::<$ty>(arg0, arg1, arg2)
             }
             #[export_name = "cabi_post_component:grafbase/authorization#authorized"]
             unsafe extern "C" fn _post_return_authorized(arg0: *mut u8,) {
@@ -973,8 +963,8 @@ pub(crate) use __export_hooks_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:hooks:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 839] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xcb\x05\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 833] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xc5\x05\x01A\x02\x01\
 A\x06\x01B\x1b\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
 header-error\x03\0\0\x04\0\x07context\x03\x01\x04\0\x0eshared-context\x03\x01\x04\
 \0\x07headers\x03\x01\x01o\x02ss\x01p\x05\x01r\x02\x07messages\x0aextensions\x06\
@@ -988,11 +978,11 @@ values\0\x12\x04\0\x13[method]headers.set\x01\x13\x04\0\x16[method]headers.delet
 e\x01\x11\x03\x01\x18component:grafbase/types\x05\0\x02\x03\0\0\x0eerror-respons\
 e\x02\x03\0\0\x0eshared-context\x01B\x0b\x02\x03\x02\x01\x01\x04\0\x0eerror-resp\
 onse\x03\0\0\x02\x03\x02\x01\x02\x04\0\x0eshared-context\x03\0\x02\x01i\x03\x01p\
-s\x01k\x01\x01p\x06\x01j\x01\x07\x01\x01\x01@\x03\x07context\x04\x04rules\x05inp\
-ut\x05\0\x08\x04\0\x0aauthorized\x01\x09\x04\x01\x20component:grafbase/authoriza\
-tion\x05\x03\x04\x01\x18component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05hooks\x03\
-\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-\
-bindgen-rust\x060.25.0";
+s\x01k\x01\x01p\x06\x01j\x01\x07\x01\x01\x01@\x02\x07context\x04\x05input\x05\0\x08\
+\x04\0\x0aauthorized\x01\x09\x04\x01\x20component:grafbase/authorization\x05\x03\
+\x04\x01\x18component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05hooks\x03\0\0\0G\x09\
+producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rus\
+t\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

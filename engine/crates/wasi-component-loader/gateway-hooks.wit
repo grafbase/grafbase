@@ -77,8 +77,6 @@ interface authorization {
     // The hook is called in the request cycle if the schema defines an authorization directive.
     // The context is read only, and provides data written in the gateway request hook.
     //
-    // The rule parameter is taken from the directive's rule argument.
-    //
     // The input is combined from the directive arguments and fields, taking the data from the 
     // provided arguments and the field values as defined in the directive.
     //
@@ -88,7 +86,7 @@ interface authorization {
     // length of the input list. If the list item is none, the field is returned to the user. If the
     // value is an error, the error is added to the response and null value returned to the user for
     // that field.
-    authorized: func(context: shared-context, rule: string, input: list<string>) -> result<list<option<error-response>>, error-response>;
+    authorized: func(context: shared-context, input: list<string>) -> result<list<option<error-response>>, error-response>;
 }
 
 // Export here all the hooks the guest wants to implement. If a hook interface is not exported in the world,

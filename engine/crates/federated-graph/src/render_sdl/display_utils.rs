@@ -7,15 +7,6 @@ use std::{
 pub(super) const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
 pub(super) const INDENT: &str = "    ";
 
-/// Quoted and escaped GraphQL string literal.
-pub(super) struct QuotedString<'a>(pub &'a str);
-
-impl fmt::Display for QuotedString<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write_quoted(f, self.0)
-    }
-}
-
 // Copy-pasted from async-graphql-value
 pub(super) fn write_quoted(sdl: &mut impl Write, s: &str) -> fmt::Result {
     sdl.write_char('"')?;
@@ -294,7 +285,6 @@ pub(crate) fn write_composed_directive(
 
 enum DisplayableArgument<'a> {
     Value(Value),
-    QuotedString(QuotedString<'a>),
     FieldSet(FieldSetDisplay<'a>),
     InputValueDefinitionSet(InputValueDefinitionSetDisplay<'a>),
 }
@@ -322,10 +312,6 @@ pub(super) struct AuthorizedDirectiveDisplay<'a>(pub &'a AuthorizedDirective, pu
 impl Display for AuthorizedDirectiveDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let AuthorizedDirectiveDisplay(directive, graph) = self;
-        let rule = Some((
-            "rule",
-            DisplayableArgument::QuotedString(QuotedString(&graph[directive.rule])),
-        ));
 
         let fields = directive
             .fields
@@ -344,7 +330,7 @@ impl Display for AuthorizedDirectiveDisplay<'_> {
             .as_ref()
             .map(|metadata| ("metadata", DisplayableArgument::Value(metadata.clone())));
 
-        let arguments = [rule, fields, arguments, metadata];
+        let arguments = [fields, arguments, metadata];
 
         write_directive(f, "authorized", arguments.into_iter().flatten(), graph)
     }
@@ -382,9 +368,6 @@ fn write_directive_arguments<'a>(
         f.write_str(": ")?;
 
         match value {
-            DisplayableArgument::QuotedString(v) => {
-                v.fmt(f)?;
-            }
             DisplayableArgument::Value(v) => {
                 ValueDisplay(&v, graph).fmt(f)?;
             }
