@@ -13,10 +13,10 @@ type User {
 type Account {
   id: ID!
   type: AccountType!
-  # Simple requires, not part of the parent type.
+  # Simple authorized, not part of the parent type.
   balance: Float! @authorized(rule: "balance", fields: "userId")
   user: User!
-  transactions: [Transaction!]!
+  transactions: [Transaction!]! @authorized(rule: "other-account-types", fields: "user { accounts { accountLevel } }")
 }
 
 type Transaction {
