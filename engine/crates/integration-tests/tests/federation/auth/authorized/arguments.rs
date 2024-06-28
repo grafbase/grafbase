@@ -5,7 +5,7 @@ use super::with_prepared_engine;
 
 #[test]
 fn arguments_are_provided() {
-    let hooks = TestHooks::default().authorized(|_, _, inputs| {
+    let hooks = TestHooks::default().authorized(|_, inputs| {
         #[derive(serde::Deserialize)]
         struct Arguments {
             id: i64,

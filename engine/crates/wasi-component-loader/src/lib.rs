@@ -117,11 +117,10 @@ impl ComponentLoader {
     pub async fn authorized(
         &self,
         context: SharedContextMap,
-        rule: String,
         input: Vec<String>,
     ) -> Result<Vec<Option<ErrorResponse>>> {
         let hook = AuthorizationHookInstance::new(self, context).await?;
-        hook.call(rule, input).await
+        hook.call(input).await
     }
 
     pub(crate) fn config(&self) -> &Config {

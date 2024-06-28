@@ -95,7 +95,6 @@ pub enum Directive {
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
 pub struct AuthorizedDirective {
-    pub rule: StringId,
     pub fields: Option<FieldSet>,
     pub arguments: Option<InputValueDefinitionSet>,
     pub metadata: Option<Value>,

@@ -5,13 +5,6 @@ pub(super) fn ingest(
     directive: &ast::ConstDirective,
     subgraphs: &mut Subgraphs,
 ) -> Result<(), String> {
-    let Some(rule) = directive.get_argument("rule").and_then(|arg| match &arg.node {
-        ConstValue::String(rule) => Some(subgraphs.strings.intern(rule.as_str())),
-        _ => None,
-    }) else {
-        return Err(String::from("Missing `rule` argument in @authorized"));
-    };
-
     let arguments = directive
         .get_argument("arguments")
         .and_then(|arg| match &arg.node {
@@ -37,7 +30,6 @@ pub(super) fn ingest(
     subgraphs.insert_authorized(
         directive_site_id,
         subgraphs::AuthorizedDirective {
-            rule,
             arguments,
             fields,
             metadata,

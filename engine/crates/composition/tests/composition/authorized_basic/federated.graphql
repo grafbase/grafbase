@@ -21,14 +21,14 @@ enum join__Graph {
 }
 
 type User {
-    accounts: [Account!]! @join__field(graph: BANK_ACCOUNT) @authorized(rule: "must-be-same-user", fields: "userId name", metadata: "{\"stuff\": true}")
+    accounts: [Account!]! @join__field(graph: BANK_ACCOUNT) @authorized(fields: "userId name", metadata: "{\"stuff\": true}")
     email: String! @join__field(graph: BANK_ACCOUNT)
     name: String! @join__field(graph: BANK_ACCOUNT)
     userId: ID! @join__field(graph: BANK_ACCOUNT)
 }
 
-type Account @authorized(rule: "user-to-account", fields: "user { userId }") {
-    balance: Float! @join__field(graph: BANK_ACCOUNT) @authorized(rule: "balance", fields: "id")
+type Account @authorized(fields: "user { userId }") {
+    balance: Float! @join__field(graph: BANK_ACCOUNT) @authorized(fields: "id")
     id: ID! @join__field(graph: BANK_ACCOUNT)
     transactions: [Transaction!]! @join__field(graph: BANK_ACCOUNT)
     type: AccountType! @join__field(graph: BANK_ACCOUNT)
@@ -53,12 +53,12 @@ type Query {
 }
 
 type Mutation {
-    createAccount(userId: ID!, type: AccountType!, initialBalance: Float!, input: CreateAccountInput, included: Boolean, notIncluded: String): Account @join__field(graph: BANK_ACCOUNT) @authorized(rule: "the nested input one", arguments: "input { userId nested { name } } included", metadata: ["a", "b", "c", ])
+    createAccount(userId: ID!, type: AccountType!, initialBalance: Float!, input: CreateAccountInput, included: Boolean, notIncluded: String): Account @join__field(graph: BANK_ACCOUNT) @authorized(arguments: "input { userId nested { name } } included", metadata: ["a", "b", "c", ])
     createTransaction(amount: Float!, description: String, accountId: ID!): Transaction! @join__field(graph: BANK_ACCOUNT)
     createUser(name: String!, email: String!): User! @join__field(graph: BANK_ACCOUNT)
     deleteAccount(id: ID!): Account! @join__field(graph: BANK_ACCOUNT)
     deleteTransaction(id: ID!): Transaction! @join__field(graph: BANK_ACCOUNT)
-    deleteUser(id: ID!, soft: Boolean): User! @join__field(graph: BANK_ACCOUNT) @authorized(rule: "userAdmin", arguments: "id")
+    deleteUser(id: ID!, soft: Boolean): User! @join__field(graph: BANK_ACCOUNT) @authorized(arguments: "id")
     updateUser(name: String, email: String, id: ID!): User! @join__field(graph: BANK_ACCOUNT)
 }
 

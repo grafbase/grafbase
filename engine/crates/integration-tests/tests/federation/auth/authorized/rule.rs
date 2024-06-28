@@ -17,7 +17,7 @@ fn authorized_hook_is_called() {
             }
             Ok((ctx, headers))
         })
-        .authorized(|ctx, _, inputs| {
+        .authorized(|ctx, inputs| {
             let maybe_error = if ctx.contains_key("client") {
                 None
             } else {
