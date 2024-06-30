@@ -236,7 +236,9 @@ impl<'ctx> OperationExecution<'ctx> {
                 .fields()
                 .map(|field| field.as_ref().edge)
                 .min()
-                .unwrap_or_else(|| selection_set.as_ref().typename_fields.first().copied().unwrap());
+                .or_else(|| selection_set.as_ref().field_errors.first().map(|f| f.edge))
+                .or_else(|| selection_set.as_ref().typename_fields.first().copied())
+                .expect("Selection set without any fields?");
             let default_object = selection_set.maybe_default_object();
             match result {
                 Ok(part) => {

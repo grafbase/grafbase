@@ -526,6 +526,7 @@ impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
                         errors: errors.clone(),
                         is_required: definition.ty().wrapping().is_required(),
                     });
+                    continue;
                 }
                 Some(ConditionResult::Include) | None => {}
             }
@@ -595,6 +596,7 @@ impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
                         is_required: definition.ty().wrapping().is_required(),
                     };
                     field_errors.push((definition.parent_entity(), field_error));
+                    continue;
                 }
                 Some(ConditionResult::Include) | None => {}
             }
