@@ -1190,6 +1190,7 @@ fn collect_composed_directives(directives: &[Positioned<ast::ConstDirective>], s
                     state.directives.push(Directive::Policy(transformed));
                 }
             }
+            "authenticated" => state.directives.push(Directive::Authenticated),
             // Added later after ingesting the graph.
             "authorized" => {}
             other => {
