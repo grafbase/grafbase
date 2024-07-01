@@ -281,6 +281,11 @@ jobs:
       - name: Prepare Grafbase assets
         uses: ./.github/actions/cli_assets
 
+      - name: Install musl
+        run: |
+          sudo apt update
+          sudo apt install musl
+
       - name: Build grafbase release
         run: |
           cd cli
