@@ -76,7 +76,7 @@ describe('RateLimiting generator', () => {
                 },
                 {
                   name: 'my-claim-3',
-                  value: JSON.parse('{"key": "value"}')
+                  value: { key: 'value' }
                 },
                 {
                   name: 'my-claim-4',

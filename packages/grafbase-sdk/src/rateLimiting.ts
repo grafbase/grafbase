@@ -23,7 +23,7 @@ export interface JwtCondition {
 
 export interface JwtConditionSpec {
   name: string
-  value: never | RateLimitingAllowAny
+  value: any | RateLimitingAllowAny
 }
 
 export interface RateLimitingRule {
