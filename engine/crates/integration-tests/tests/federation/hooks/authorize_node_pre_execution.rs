@@ -1,69 +1,10 @@
 use http::HeaderMap;
 use runtime::{
     error::GraphqlError,
-    hooks::{DynHookContext, DynHooks, EdgeDefinition},
+    hooks::{DynHookContext, DynHooks, NodeDefinition},
 };
 
 use super::with_engine_for_auth;
-
-#[test]
-fn arguments_are_provided() {
-    struct TestHooks;
-
-    #[async_trait::async_trait]
-    impl DynHooks for TestHooks {
-        async fn authorize_edge_pre_execution(
-            &self,
-            _context: &DynHookContext,
-            _definition: EdgeDefinition<'_>,
-            arguments: serde_json::Value,
-            _metadata: Option<serde_json::Value>,
-        ) -> Result<(), GraphqlError> {
-            #[derive(serde::Deserialize)]
-            struct Arguments {
-                id: i64,
-            }
-            let Arguments { id } = serde_json::from_value(arguments).unwrap();
-            if id < 100 {
-                Err(format!("Unauthorized ID: {id}").into())
-            } else {
-                Ok(())
-            }
-        }
-    }
-
-    with_engine_for_auth(TestHooks, |engine| async move {
-        let response = engine
-            .execute("query { check { authorizedWithId(id: 791) } }")
-            .by_client("hi", "")
-            .await;
-        insta::assert_json_snapshot!(response, @r###"
-        {
-          "data": {
-            "check": {
-              "authorizedWithId": "You have access to the sensistive data"
-            }
-          }
-        }
-        "###);
-
-        let response = engine.execute("query { check { authorizedWithId(id: 0) } }").await;
-        insta::assert_json_snapshot!(response, @r###"
-        {
-          "data": null,
-          "errors": [
-            {
-              "message": "Unauthorized ID: 0",
-              "path": [
-                "check",
-                "authorizedWithId"
-              ]
-            }
-          ]
-        }
-        "###);
-    });
-}
 
 #[test]
 fn metadata_is_provided() {
@@ -83,11 +24,10 @@ fn metadata_is_provided() {
 
     #[async_trait::async_trait]
     impl DynHooks for TestHooks {
-        async fn authorize_edge_pre_execution(
+        async fn authorize_node_pre_execution(
             &self,
             _context: &DynHookContext,
-            _definition: EdgeDefinition<'_>,
-            _arguments: serde_json::Value,
+            _definition: NodeDefinition<'_>,
             metadata: Option<serde_json::Value>,
         ) -> Result<(), GraphqlError> {
             if extract_role(metadata.as_ref()) == Some("admin") {
@@ -103,11 +43,13 @@ fn metadata_is_provided() {
             .execute(
                 r#"
                 query {
-                    ok: nullableCheck {
-                        authorizedWithMetadata
-                    }
-                    noMetadata: nullableCheck {
-                        authorized
+                    node {
+                        ok: nullableAuthorizedWithMetadata {
+                            id
+                        }
+                        noMetadata: nullableAuthorized {
+                            id
+                        }
                     }
                 }
                 "#,
@@ -116,17 +58,19 @@ fn metadata_is_provided() {
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "ok": {
-              "authorizedWithMetadata": "You have access"
-            },
-            "noMetadata": null
+            "node": {
+              "ok": {
+                "id": "2b"
+              },
+              "noMetadata": null
+            }
           },
           "errors": [
             {
               "message": "Unauthorized role",
               "path": [
-                "noMetadata",
-                "authorized"
+                "node",
+                "noMetadata"
               ]
             }
           ]
@@ -141,14 +85,13 @@ fn definition_is_provided() {
 
     #[async_trait::async_trait]
     impl DynHooks for TestHooks {
-        async fn authorize_edge_pre_execution(
+        async fn authorize_node_pre_execution(
             &self,
             _context: &DynHookContext,
-            definition: EdgeDefinition<'_>,
-            _arguments: serde_json::Value,
+            definition: NodeDefinition<'_>,
             _metadata: Option<serde_json::Value>,
         ) -> Result<(), GraphqlError> {
-            if definition.parent_type_name == "Check" && definition.field_name == "authorized" {
+            if definition.type_name == "AuthorizedNode" {
                 Ok(())
             } else {
                 Err("Wrong definition".into())
@@ -161,14 +104,13 @@ fn definition_is_provided() {
             .execute(
                 r#"
                 query {
-                    ok: nullableCheck {
-                        authorized
-                    }
-                    wrongField: nullableCheck {
-                        authorizedWithMetadata
-                    }
-                    wrongType: nullableOtherCheck {
-                        authorized
+                    node {
+                        ok: nullableAuthorized {
+                            id
+                        }
+                        wrongType: nullableAuthorizedWithMetadata {
+                            id
+                        }
                     }
                 }
                 "#,
@@ -177,25 +119,19 @@ fn definition_is_provided() {
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "ok": {
-              "authorized": "You have access"
-            },
-            "wrongField": null,
-            "wrongType": null
+            "node": {
+              "ok": {
+                "id": "1b"
+              },
+              "wrongType": null
+            }
           },
           "errors": [
             {
               "message": "Wrong definition",
               "path": [
-                "wrongField",
-                "authorizedWithMetadata"
-              ]
-            },
-            {
-              "message": "Wrong definition",
-              "path": [
-                "wrongType",
-                "authorized"
+                "node",
+                "wrongType"
               ]
             }
           ]
@@ -224,11 +160,10 @@ fn context_is_propagated() {
             Ok(headers)
         }
 
-        async fn authorize_edge_pre_execution(
+        async fn authorize_node_pre_execution(
             &self,
             context: &DynHookContext,
-            _definition: EdgeDefinition<'_>,
-            _arguments: serde_json::Value,
+            _definition: NodeDefinition<'_>,
             _metadata: Option<serde_json::Value>,
         ) -> Result<(), GraphqlError> {
             if context.get("client").is_some() {
@@ -241,20 +176,22 @@ fn context_is_propagated() {
 
     with_engine_for_auth(TestHooks, |engine| async move {
         let response = engine
-            .execute("query { check { authorized } }")
+            .execute("query { node { authorized { id } } }")
             .by_client("hi", "")
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "check": {
-              "authorized": "You have access"
+            "node": {
+              "authorized": {
+                "id": "1a"
+              }
             }
           }
         }
         "###);
 
-        let response = engine.execute("query { check { authorized } }").await;
+        let response = engine.execute("query { node { authorized { id } } }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": null,
@@ -262,7 +199,7 @@ fn context_is_propagated() {
             {
               "message": "Missing client",
               "path": [
-                "check",
+                "node",
                 "authorized"
               ]
             }
@@ -278,11 +215,10 @@ fn error_propagation() {
 
     #[async_trait::async_trait]
     impl DynHooks for TestHooks {
-        async fn authorize_edge_pre_execution(
+        async fn authorize_node_pre_execution(
             &self,
             _context: &DynHookContext,
-            _definition: EdgeDefinition<'_>,
-            _arguments: serde_json::Value,
+            _definition: NodeDefinition<'_>,
             _metadata: Option<serde_json::Value>,
         ) -> Result<(), GraphqlError> {
             Err("Broken".into())
@@ -294,8 +230,10 @@ fn error_propagation() {
             .execute(
                 r#"
                 query {
-                    check {
-                        authorized
+                    node {
+                        authorized {
+                            id
+                        }
                     }
                 }
                 "#,
@@ -308,7 +246,7 @@ fn error_propagation() {
             {
               "message": "Broken",
               "path": [
-                "check",
+                "node",
                 "authorized"
               ]
             }

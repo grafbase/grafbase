@@ -21,7 +21,7 @@ impl Hooks for HooksNoop {
         _: &Self::Context,
         _: runtime::hooks::EdgeDefinition<'a>,
         _: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
-        _: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+        _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
     ) -> Result<(), runtime::error::GraphqlError> {
         Err(GraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
@@ -32,7 +32,7 @@ impl Hooks for HooksNoop {
         &self,
         _: &Self::Context,
         _: runtime::hooks::NodeDefinition<'a>,
-        _: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+        _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
     ) -> Result<(), runtime::error::GraphqlError> {
         Err(GraphqlError::new(
             "@authorized directive cannot be used, so access was denied",

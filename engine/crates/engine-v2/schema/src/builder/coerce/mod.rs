@@ -218,37 +218,7 @@ impl<'a> InputValueCoercer<'a> {
                 _ => None,
             }
             .map(SchemaInputValue::Boolean),
-            ScalarType::JSON => {
-                return Ok(match value {
-                    Value::Null => SchemaInputValue::Null,
-                    Value::String(id) => SchemaInputValue::String(id.into()),
-                    Value::Int(n) => SchemaInputValue::BigInt(n),
-                    Value::Float(f) => SchemaInputValue::Float(f),
-                    Value::Boolean(b) => SchemaInputValue::Boolean(b),
-                    Value::EnumValue(id) => SchemaInputValue::String(id.into()),
-                    Value::Object(fields) => {
-                        let ids = self.input_values.reserve_map(fields.len());
-                        for ((name, value), id) in fields.into_vec().into_iter().zip(ids) {
-                            self.input_values[id] = (name.into(), self.coerce_scalar(scalar_id, value)?);
-                        }
-                        self.input_values[ids].sort_unstable_by(|(left_key, _), (right_key, _)| {
-                            self.ctx
-                                .strings
-                                .get_by_id(*left_key)
-                                .cmp(&self.ctx.strings.get_by_id(*right_key))
-                        });
-                        SchemaInputValue::Map(ids)
-                    }
-                    Value::List(list) => {
-                        let ids = self.input_values.reserve_list(list.len());
-                        for (value, id) in list.into_vec().into_iter().zip(ids) {
-                            let value = self.coerce_scalar(scalar_id, value)?;
-                            self.input_values[id] = value;
-                        }
-                        SchemaInputValue::List(ids)
-                    }
-                })
-            }
+            ScalarType::JSON => return Ok(self.input_values.ingest_arbitrary_federated_value(self.ctx, value)),
         }
         .ok_or_else(|| InputValueError::IncorrectScalarType {
             actual: value.into(),

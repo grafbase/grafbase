@@ -79,6 +79,12 @@ impl<'a> GraphBuilder<'a> {
         self.ingest_unions(config);
         self.ingest_enums(config);
         self.ingest_scalars(config);
+        // Not guaranteed to be sorted and rely on binary search to find the directives for a
+        // field.
+        config
+            .graph
+            .object_authorized_directives
+            .sort_unstable_by_key(|(id, _)| *id);
         let object_metadata = self.ingest_objects(config);
         let interface_metadata = self.ingest_interfaces_after_objects(config);
         // Not guaranteed to be sorted and rely on binary search to find the directives for a
@@ -256,12 +262,24 @@ impl<'a> GraphBuilder<'a> {
                 entities_metadata.field_id_to_maybe_object_id[usize::from(field_id)] = Some(object_id);
             }
 
+            let schema_location = SchemaLocation::Type {
+                name: object.name.into(),
+            };
             let directives = self.push_directives(
                 config,
                 Directives {
                     federated: object.composed_directives,
                     cache_config_target: Some(CacheConfigTarget::Object(federated_id)),
-                    ..Default::default()
+                    authorized_directives: {
+                        let mapping = &config.graph.object_authorized_directives;
+                        let mut i = mapping.partition_point(|(id, _)| *id < federated_id);
+                        let mut ids = Vec::new();
+                        while i < mapping.len() && mapping[i].0 == federated_id {
+                            ids.push(mapping[i].1);
+                            i += 1
+                        }
+                        Some((schema_location, ids))
+                    },
                 },
             );
             self.graph.object_definitions.push(Object {
@@ -272,12 +290,7 @@ impl<'a> GraphBuilder<'a> {
                 fields,
             });
 
-            if let Some(entity) = self.generate_federation_entity_from_keys(
-                SchemaLocation::Type {
-                    name: object.name.into(),
-                },
-                object.keys,
-            ) {
+            if let Some(entity) = self.generate_federation_entity_from_keys(schema_location, object.keys) {
                 entities_metadata.entities.insert(object_id, entity);
             }
         }
@@ -648,21 +661,30 @@ impl<'a> GraphBuilder<'a> {
 
         if let Some((schema_location, directives)) = directives.authorized_directives {
             for id in directives {
-                let directive = &config.graph[id];
+                let federated_graph::AuthorizedDirective {
+                    fields,
+                    arguments,
+                    metadata,
+                } = &config.graph[id];
 
-                let authorized_id = self.graph.authorized_directives.len().into();
                 self.graph.authorized_directives.push(AuthorizedDirective {
-                    arguments: directive
-                        .arguments
+                    arguments: arguments
                         .as_ref()
                         .map(|args| self.convert_input_value_set(args))
                         .unwrap_or_default(),
-                    fields: directive
-                        .fields
+                    fields: fields
                         .as_ref()
                         .map(|fields| self.required_field_sets_buffer.push(schema_location, fields.clone())),
-                    metadata: (),
+                    metadata: metadata.clone().map(|value| {
+                        let value = self
+                            .graph
+                            .input_values
+                            .ingest_arbitrary_federated_value(self.ctx, value);
+                        self.graph.input_values.push_value(value)
+                    }),
                 });
+
+                let authorized_id = (self.graph.authorized_directives.len() - 1).into();
                 self.graph
                     .type_system_directives
                     .push(TypeSystemDirective::Authorized(authorized_id));

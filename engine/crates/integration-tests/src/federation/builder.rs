@@ -78,6 +78,7 @@ impl FederationGatewayBuilder {
         let graph = graphql_composition::compose(&subgraphs)
             .into_result()
             .expect("schemas to compose succesfully");
+
         let federated_graph_config = match self.config_sdl {
             Some(sdl) => {
                 parser_sdl::parse(&sdl, &HashMap::new(), &MockConnectorParsers::default())

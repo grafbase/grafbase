@@ -1,4 +1,4 @@
-use async_graphql::{EmptyMutation, EmptySubscription, Object, TypeDirective, Union};
+use async_graphql::{EmptyMutation, EmptySubscription, Object, SimpleObject, TypeDirective, Union};
 
 /// A schema that only uses String types.
 ///
@@ -26,15 +26,57 @@ fn requires_scopes(scopes: Vec<Vec<String>>) {}
     location = "Object",
     composable = "https://custom.spec.dev/extension/v1.0"
 )]
-fn authorized(rule: String, arguments: Option<String>) {}
+fn authorized(arguments: Option<String>, metadata: Option<Vec<Vec<String>>>) {}
 
 #[derive(Default)]
 pub struct Query;
+
+#[derive(Default, SimpleObject)]
+#[graphql(
+    directive = authorized::apply(None, None)
+)]
+pub struct AuthorizedNode {
+    pub id: String,
+}
+
+#[derive(Default, SimpleObject)]
+#[graphql(
+    directive = authorized::apply(None, Some(vec![vec!["admin".into()]]))
+)]
+pub struct AuthorizedWithMetdataNode {
+    pub id: String,
+}
+
+struct Node;
+
+#[Object]
+impl Node {
+    async fn authorized(&self) -> AuthorizedNode {
+        AuthorizedNode { id: "1a".to_string() }
+    }
+
+    async fn authorized_with_metadata(&self) -> AuthorizedWithMetdataNode {
+        AuthorizedWithMetdataNode { id: "2a".to_string() }
+    }
+
+    async fn nullable_authorized(&self) -> Option<AuthorizedNode> {
+        Some(AuthorizedNode { id: "1b".to_string() })
+    }
+
+    async fn nullable_authorized_with_metadata(&self) -> Option<AuthorizedWithMetdataNode> {
+        Some(AuthorizedWithMetdataNode { id: "2b".to_string() })
+    }
+
+    async fn always_happy(&self) -> &'static str {
+        "A dog"
+    }
+}
 
 pub struct Check;
 
 #[Object]
 impl Check {
+    // -- @authenticated -- //
     async fn anonymous(&self) -> &'static str {
         "Hello anonymous!"
     }
@@ -53,6 +95,7 @@ impl Check {
         "You are authenticated"
     }
 
+    // -- @requiresScopes -- //
     #[graphql(
         directive = requires_scopes::apply(vec![vec!["read".into()]])
     )]
@@ -81,19 +124,46 @@ impl Check {
         "You have read and write scopes"
     }
 
+    // -- @authorized -- //
     #[graphql(
-        directive = authorized::apply("x-grafbase-client-name-header-is-defined".into(), None)
+        directive = authorized::apply(None, None)
     )]
-    async fn grafbase_client_is_defined(&self) -> &'static str {
-        "You have properly set the x-grafbase-client-name header"
+    async fn authorized(&self) -> &'static str {
+        "You have access"
     }
 
     #[graphql(
-        directive = authorized::apply("sensitive-input-id".into(), Some("id".into()))
+        directive = authorized::apply(None, Some(vec![vec!["admin".into()]]))
     )]
-    async fn sensitive_id(&self, id: i64) -> &'static str {
+    async fn authorized_with_metadata(&self) -> &'static str {
+        "You have access"
+    }
+
+    #[graphql(
+        directive = authorized::apply(Some("id".into()), None)
+    )]
+    async fn authorized_with_id(&self, id: i64) -> &'static str {
         let _ = id;
         "You have access to the sensistive data"
+    }
+}
+
+pub struct OtherCheck;
+
+#[Object]
+impl OtherCheck {
+    #[graphql(
+        directive = authorized::apply(None, None)
+    )]
+    async fn authorized(&self) -> &'static str {
+        "Other: You have access"
+    }
+
+    #[graphql(
+        directive = authorized::apply(None, Some(vec![vec!["admin".into()]]))
+    )]
+    async fn authorized_with_metadata(&self) -> &'static str {
+        "You have access"
     }
 }
 
@@ -114,6 +184,22 @@ enum Entity {
 
 #[Object]
 impl Query {
+    async fn node(&self) -> Node {
+        Node
+    }
+
+    async fn nullable_node(&self) -> Option<Node> {
+        Some(Node)
+    }
+
+    async fn other_check(&self) -> OtherCheck {
+        OtherCheck
+    }
+
+    async fn nullable_other_check(&self) -> Option<OtherCheck> {
+        Some(OtherCheck)
+    }
+
     async fn check(&self) -> Check {
         Check
     }

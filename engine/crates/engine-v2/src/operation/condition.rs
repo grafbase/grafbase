@@ -1,6 +1,6 @@
 use std::ops::BitAnd;
 
-use schema::{AuthorizedDirectiveId, RequiredScopesId};
+use schema::{AuthorizedDirectiveId, EntityId, RequiredScopesId};
 
 use crate::response::GraphqlError;
 
@@ -10,9 +10,13 @@ use super::{ConditionId, FieldId};
 pub(crate) enum Condition {
     Authenticated,
     RequiresScopes(RequiredScopesId),
-    Authorized {
+    AuthorizedEdge {
         directive_id: AuthorizedDirectiveId,
         field_id: FieldId,
+    },
+    AuthorizedNode {
+        directive_id: AuthorizedDirectiveId,
+        entity_id: EntityId,
     },
     All(Vec<ConditionId>),
 }

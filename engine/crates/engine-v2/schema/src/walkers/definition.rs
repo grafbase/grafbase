@@ -1,7 +1,7 @@
 use super::{field::FieldDefinitionWalker, SchemaWalker};
 use crate::{
-    Definition, EnumWalker, InputObjectWalker, InterfaceWalker, ObjectWalker, ScalarType, ScalarWalker, StringId,
-    TypeSystemDirectivesWalker,
+    Definition, EntityId, EntityWalker, EnumWalker, InputObjectWalker, InterfaceWalker, ObjectWalker, ScalarType,
+    ScalarWalker, StringId, TypeSystemDirectivesWalker,
 };
 
 pub type DefinitionWalker<'a> = SchemaWalker<'a, Definition>;
@@ -92,6 +92,14 @@ impl<'a> DefinitionWalker<'a> {
     pub fn as_object(&self) -> Option<ObjectWalker<'a>> {
         match self.item {
             Definition::Object(s) => Some(self.walk(s)),
+            _ => None,
+        }
+    }
+
+    pub fn as_entity(&self) -> Option<EntityWalker<'a>> {
+        match self.item {
+            Definition::Object(id) => Some(self.walk(EntityId::Object(id))),
+            Definition::Interface(s) => Some(self.walk(EntityId::Interface(s))),
             _ => None,
         }
     }

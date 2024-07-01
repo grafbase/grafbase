@@ -3,6 +3,7 @@ mod error;
 mod external_sources;
 mod graph;
 mod ids;
+mod input_values;
 mod interner;
 mod requires;
 

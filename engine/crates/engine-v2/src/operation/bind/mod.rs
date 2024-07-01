@@ -418,20 +418,7 @@ impl<'a> Binder<'a> {
             }),
         );
 
-        let conditions = definition
-            .directives()
-            .as_ref()
-            .iter()
-            .filter_map(|directive| match directive {
-                TypeSystemDirective::Authenticated => Some(self.push_condition(Condition::Authenticated)),
-                TypeSystemDirective::RequiresScopes(id) => Some(self.push_condition(Condition::RequiresScopes(*id))),
-                &TypeSystemDirective::Authorized(directive_id) => {
-                    Some(self.push_condition(Condition::Authorized { directive_id, field_id }))
-                }
-                _ => None,
-            })
-            .collect();
-        let condition = self.merge_conditions(conditions);
+        let condition = self.generate_condition(field_id, definition);
         let argument_ids = self.bind_field_arguments(definition, field_id, name_location, &mut field.arguments)?;
         let selection_set_id = if field.selection_set.node.items.is_empty() {
             if !matches!(
@@ -467,7 +454,40 @@ impl<'a> Binder<'a> {
         Ok(Selection::Field(field_id))
     }
 
-    fn merge_conditions(&mut self, conditions: HashSet<ConditionId>) -> Option<ConditionId> {
+    fn generate_condition(&mut self, field_id: FieldId, definition: FieldDefinitionWalker<'_>) -> Option<ConditionId> {
+        let mut conditions: HashSet<_> = definition
+            .directives()
+            .as_ref()
+            .iter()
+            .filter_map(|directive| match directive {
+                TypeSystemDirective::Authenticated => Some(self.push_condition(Condition::Authenticated)),
+                TypeSystemDirective::RequiresScopes(id) => Some(self.push_condition(Condition::RequiresScopes(*id))),
+                &TypeSystemDirective::Authorized(directive_id) => {
+                    Some(self.push_condition(Condition::AuthorizedEdge { directive_id, field_id }))
+                }
+                _ => None,
+            })
+            .collect();
+
+        // FIXME: doesn't take into account objects behind interfaces/unions
+        if let Some(entity) = definition.ty().inner().as_entity() {
+            conditions.extend(
+                entity
+                    .directives()
+                    .as_ref()
+                    .iter()
+                    .filter_map(|directive| match directive {
+                        &TypeSystemDirective::Authorized(directive_id) => {
+                            Some(self.push_condition(Condition::AuthorizedNode {
+                                directive_id,
+                                entity_id: entity.id(),
+                            }))
+                        }
+                        _ => None,
+                    }),
+            );
+        }
+
         match conditions.len() {
             0 => None,
             1 => Some(*conditions.iter().next().unwrap()),
