@@ -83,7 +83,7 @@ impl From<ZipError> for BunError {
     }
 }
 
-const BUN_VERSION: &str = "1.1.13";
+const BUN_VERSION: &str = "1.1.17";
 
 #[cfg(target_arch = "aarch64")]
 const ARCH: &str = "aarch64";
