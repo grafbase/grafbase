@@ -102,6 +102,34 @@ fn not_authenticated() {
 }
 
 #[test]
+fn faillible_authenticated() {
+    with_secure_schema(|engine| async move {
+        let response = engine
+            .execute("query { check { anonymous faillibleMustBeAuthenticated } }")
+            .await;
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "check": {
+              "anonymous": "Hello anonymous!",
+              "faillibleMustBeAuthenticated": null
+            }
+          },
+          "errors": [
+            {
+              "message": "Unauthenticated",
+              "path": [
+                "check",
+                "faillibleMustBeAuthenticated"
+              ]
+            }
+          ]
+        }
+        "###);
+    });
+}
+
+#[test]
 fn authenticated_on_nullable_field() {
     with_secure_schema(|engine| async move {
         let response = engine.execute("query { nullableCheck { mustBeAuthenticated } }").await;
@@ -128,7 +156,20 @@ fn authenticated_on_nullable_field() {
 fn authenticated_on_union() {
     with_secure_schema(|engine| async move {
         let response = engine
-            .execute("query { entity { ... on Check { mustBeAuthenticated } } }")
+            .execute("query { entity(check: false) { __typename ... on Check { mustBeAuthenticated } } }")
+            .await;
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "entity": {
+              "__typename": "User"
+            }
+          }
+        }
+        "###);
+
+        let response = engine
+            .execute("query { entity(check: true) { __typename ... on Check { mustBeAuthenticated } } }")
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -144,6 +185,29 @@ fn authenticated_on_union() {
           ]
         }
         "###);
+
+        let response = engine
+            .execute("query { entity(check: true) { __typename ... on Check { faillibleMustBeAuthenticated } } }")
+            .await;
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "entity": {
+              "__typename": "Check",
+              "faillibleMustBeAuthenticated": null
+            }
+          },
+          "errors": [
+            {
+              "message": "Unauthenticated",
+              "path": [
+                "entity",
+                "faillibleMustBeAuthenticated"
+              ]
+            }
+          ]
+        }
+        "###);
     });
 }
 
@@ -154,7 +218,8 @@ fn authenticated_on_list_with_nullable_items() {
             .execute(
                 r###"
                 query {
-                    entities {
+                    entitiesNullable(check: false) {
+                        __typename
                         ... on Check { mustBeAuthenticated }
                         ... on User { name }
                     }
@@ -165,8 +230,35 @@ fn authenticated_on_list_with_nullable_items() {
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "entities": [
+            "entitiesNullable": [
               {
+                "__typename": "User",
+                "name": "rusty"
+              }
+            ]
+          }
+        }
+        "###);
+
+        let response = engine
+            .execute(
+                r###"
+                query {
+                    entitiesNullable(check: true) {
+                        __typename
+                        ... on Check { mustBeAuthenticated }
+                        ... on User { name }
+                    }
+                }
+                "###,
+            )
+            .await;
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "entitiesNullable": [
+              {
+                "__typename": "User",
                 "name": "rusty"
               },
               null
@@ -176,9 +268,49 @@ fn authenticated_on_list_with_nullable_items() {
             {
               "message": "Unauthenticated",
               "path": [
-                "entities",
+                "entitiesNullable",
                 1,
                 "mustBeAuthenticated"
+              ]
+            }
+          ]
+        }
+        "###);
+
+        let response = engine
+            .execute(
+                r###"
+                query {
+                    entitiesNullable(check: true) {
+                        __typename
+                        ... on Check { faillibleMustBeAuthenticated }
+                        ... on User { name }
+                    }
+                }
+                "###,
+            )
+            .await;
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "entitiesNullable": [
+              {
+                "__typename": "User",
+                "name": "rusty"
+              },
+              {
+                "__typename": "Check",
+                "faillibleMustBeAuthenticated": null
+              }
+            ]
+          },
+          "errors": [
+            {
+              "message": "Unauthenticated",
+              "path": [
+                "entitiesNullable",
+                1,
+                "faillibleMustBeAuthenticated"
               ]
             }
           ]
@@ -194,7 +326,8 @@ fn authenticated_on_list_with_required_items() {
             .execute(
                 r###"
                 query {
-                    entitiesWithoutCheck {
+                    entities(check: false) {
+                        __typename
                         ... on Check { mustBeAuthenticated }
                         ... on User { name }
                     }
@@ -205,12 +338,82 @@ fn authenticated_on_list_with_required_items() {
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "entitiesWithoutCheck": [
+            "entities": [
               {
+                "__typename": "User",
                 "name": "rusty"
               }
             ]
           }
+        }
+        "###);
+
+        let response = engine
+            .execute(
+                r###"
+                query {
+                    entities(check: true) {
+                        __typename
+                        ... on Check { mustBeAuthenticated }
+                        ... on User { name }
+                    }
+                }
+                "###,
+            )
+            .await;
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": null,
+          "errors": [
+            {
+              "message": "Unauthenticated",
+              "path": [
+                "entities",
+                1,
+                "mustBeAuthenticated"
+              ]
+            }
+          ]
+        }
+        "###);
+
+        let response = engine
+            .execute(
+                r###"
+                query {
+                    entities(check: true) {
+                        __typename
+                        ... on Check { faillibleMustBeAuthenticated }
+                        ... on User { name }
+                    }
+                }
+                "###,
+            )
+            .await;
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "entities": [
+              {
+                "__typename": "User",
+                "name": "rusty"
+              },
+              {
+                "__typename": "Check",
+                "faillibleMustBeAuthenticated": null
+              }
+            ]
+          },
+          "errors": [
+            {
+              "message": "Unauthenticated",
+              "path": [
+                "entities",
+                1,
+                "faillibleMustBeAuthenticated"
+              ]
+            }
+          ]
         }
         "###);
     });

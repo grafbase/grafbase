@@ -42,6 +42,13 @@ impl Check {
     #[graphql(
         directive = authenticated::apply()
     )]
+    async fn faillible_must_be_authenticated(&self) -> Option<&'static str> {
+        Some("You are authenticated")
+    }
+
+    #[graphql(
+        directive = authenticated::apply()
+    )]
     async fn must_be_authenticated(&self) -> &'static str {
         "You are authenticated"
     }
@@ -115,15 +122,27 @@ impl Query {
         Some(Check)
     }
 
-    async fn entity(&self) -> Entity {
-        Entity::Check(Check)
+    async fn entity(&self, check: bool) -> Entity {
+        if check {
+            Entity::Check(Check)
+        } else {
+            Entity::User(User)
+        }
     }
 
-    async fn entities(&self) -> Vec<Option<Entity>> {
-        vec![Some(Entity::User(User)), Some(Entity::Check(Check))]
+    async fn entities_nullable(&self, check: bool) -> Vec<Option<Entity>> {
+        let mut out = vec![Some(Entity::User(User))];
+        if check {
+            out.push(Some(Entity::Check(Check)));
+        }
+        out
     }
 
-    async fn entities_without_check(&self) -> Vec<Entity> {
-        vec![Entity::User(User)]
+    async fn entities(&self, check: bool) -> Vec<Entity> {
+        let mut out = vec![Entity::User(User)];
+        if check {
+            out.push(Entity::Check(Check));
+        }
+        out
     }
 }
