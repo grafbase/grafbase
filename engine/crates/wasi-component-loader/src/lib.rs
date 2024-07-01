@@ -22,13 +22,12 @@ mod tests;
 pub use config::Config;
 pub use context::{ContextMap, SharedContextMap};
 pub use error::{Error, ErrorResponse};
+pub use hooks::{authorization::AuthorizationHookInstance, gateway::GatewayHookInstance};
 
 /// The crate result type
 pub type Result<T> = std::result::Result<T, Error>;
 
 use grafbase_tracing::span::GRAFBASE_TARGET;
-use hooks::{authorization::AuthorizationHookInstance, gateway::GatewayHookInstance};
-use http::HeaderMap;
 use state::WasiState;
 use wasmtime::{
     component::{Component, Linker},
@@ -97,30 +96,6 @@ impl ComponentLoader {
         };
 
         Ok(this)
-    }
-
-    /// Initialize a new instance to trigger hooks from the gateway level. This should be called
-    /// separately for every request to reset the state of the store, enabling the same amount of fuel
-    /// for every request.
-    ///
-    /// Calls the user-defined hook from the guest, if the function is defined.
-    pub async fn on_gateway_request(&self, context: ContextMap, headers: HeaderMap) -> Result<(ContextMap, HeaderMap)> {
-        let hook = GatewayHookInstance::new(self, context, headers).await?;
-        hook.call().await
-    }
-
-    /// Initialize a new instance to trigger hooks per authorization directive. This should be called
-    /// separately for every request to reset the state of the store, enabling the same amount of fuel
-    /// for every request.
-    ///
-    /// Calls the user-defined hook from the guest, if the function is defined.
-    pub async fn authorized(
-        &self,
-        context: SharedContextMap,
-        input: Vec<String>,
-    ) -> Result<Vec<Option<ErrorResponse>>> {
-        let hook = AuthorizationHookInstance::new(self, context).await?;
-        hook.call(input).await
     }
 
     pub(crate) fn config(&self) -> &Config {

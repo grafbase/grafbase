@@ -1,5 +1,8 @@
+mod pool;
+
 use std::{collections::HashMap, sync::Arc};
 
+use deadpool::managed::Pool;
 use runtime::{
     error::GraphqlError,
     hooks::{EdgeDefinition, HeaderMap, Hooks, NodeDefinition},
@@ -7,11 +10,37 @@ use runtime::{
 use tracing::instrument;
 pub use wasi_component_loader::{ComponentLoader, Config as HooksConfig};
 
-pub struct HooksWasi(Option<ComponentLoader>);
+use self::pool::{AuthorizationHookManager, GatewayHookManager};
+
+pub struct HooksWasi(Option<HooksWasiInner>);
+
+struct HooksWasiInner {
+    gateway_hooks: Pool<GatewayHookManager>,
+    authorization_hooks: Pool<AuthorizationHookManager>,
+}
 
 impl HooksWasi {
     pub fn new(loader: Option<ComponentLoader>) -> Self {
-        Self(loader)
+        match loader.map(Arc::new) {
+            Some(loader) => {
+                let gateway_mgr = GatewayHookManager::new(loader.clone());
+                let authorization_mgr = AuthorizationHookManager::new(loader);
+
+                let gateway_hooks = Pool::builder(gateway_mgr)
+                    .build()
+                    .expect("only fails if not in a runtime");
+
+                let authorization_hooks = Pool::builder(authorization_mgr)
+                    .build()
+                    .expect("only fails if not in a runtime");
+
+                Self(Some(HooksWasiInner {
+                    gateway_hooks,
+                    authorization_hooks,
+                }))
+            }
+            None => Self(None),
+        }
     }
 }
 
@@ -20,13 +49,13 @@ impl Hooks for HooksWasi {
 
     #[instrument(skip_all)]
     async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), GraphqlError> {
-        let Some(ref loader) = self.0 else {
+        let Some(ref inner) = self.0 else {
             return Ok((Arc::new(HashMap::new()), headers));
         };
-        let context = HashMap::new();
 
-        loader
-            .on_gateway_request(context, headers)
+        let mut hook = inner.gateway_hooks.get().await.expect("no io, should not fail");
+
+        hook.call(HashMap::new(), headers)
             .await
             .map(|(ctx, headers)| (Arc::new(ctx), headers))
             .map_err(|err| match err {
@@ -46,7 +75,7 @@ impl Hooks for HooksWasi {
         arguments: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
         _metadata: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
     ) -> Result<(), GraphqlError> {
-        let Some(ref loader) = self.0 else {
+        let Some(ref inner) = self.0 else {
             return Err(GraphqlError::new(
                 "@authorized directive cannot be used, so access was denied",
             ));
@@ -56,8 +85,11 @@ impl Hooks for HooksWasi {
             tracing::error!("authorize_edge_pre_execution error at {definition}: failed to serialize arguemtns");
             return Err(GraphqlError::internal_server_error());
         };
-        let mut results = loader
-            .authorized(Arc::clone(context), vec![arguments])
+
+        let mut hook = inner.authorization_hooks.get().await.expect("no io, should not fail");
+
+        let mut results = hook
+            .call(Arc::clone(context), vec![arguments])
             .await
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {

@@ -122,6 +122,7 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
                     let directive = &self.ctx.schema[*directive_id];
                     let field = self.walker().walk(*field_id);
                     let arguments = field.arguments().with_selection_set(&directive.arguments);
+
                     let result = self
                         .ctx
                         .hooks()
@@ -130,6 +131,7 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
                             arguments,
                         )
                         .await;
+
                     if let Err(err) = result {
                         ConditionResult::Errors(vec![err])
                     } else {
