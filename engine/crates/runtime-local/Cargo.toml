@@ -13,7 +13,7 @@ keywords = ["local", "runtime", "grafbase"]
 workspace = true
 
 [features]
-wasi = ["wasi-component-loader"]
+wasi = ["wasi-component-loader", "deadpool"]
 
 [dependencies]
 async-runtime.workspace = true
@@ -37,4 +37,4 @@ reqwest = { workspace = true, features = [
   "rustls-tls",
 ] }
 wasi-component-loader = { version = "0.75.0", path = "../wasi-component-loader", optional = true }
-deadpool = "0.12.1"
+deadpool = { version = "0.12.1", optional = true }

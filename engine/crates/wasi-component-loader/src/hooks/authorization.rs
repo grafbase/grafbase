@@ -1,25 +1,45 @@
 use anyhow::anyhow;
 use grafbase_tracing::span::GRAFBASE_TARGET;
 use wasmtime::{
-    component::{ComponentNamedList, Instance, Lift, Lower, Resource, TypedFunc},
+    component::{ComponentNamedList, ComponentType, Instance, Lift, Lower, Resource, TypedFunc},
     Store,
 };
 
 use crate::{
     context::SharedContextMap,
-    names::{AUTHORIZATION_HOOK_FUNCTION, COMPONENT_AUTHORIZATION},
+    names::{
+        AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION, AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION, COMPONENT_AUTHORIZATION,
+    },
     state::WasiState,
     ComponentLoader, ErrorResponse,
 };
 
-/// The hook function takes two parameters: the context and the input.
-/// The context is in shared memory space and the input sent by-value to the guest.
-pub(crate) type Parameters = (Resource<SharedContextMap>, Vec<String>);
+/// Defines an edge in an authorization hook.
+#[derive(Lower, ComponentType)]
+#[component(record)]
+pub struct EdgeDefinition {
+    /// The name of the type this edge is part of
+    #[component(name = "parent-type-name")]
+    pub parent_type_name: String,
+    /// The name of the field of this edge
+    #[component(name = "field-name")]
+    pub field_name: String,
+}
 
-/// A successful result is a vector mapping the input. If a vector item is not none,
-/// it will not be returned back to the client. If the function returns an error, the
-/// request execution should fail.
-pub(crate) type Response = (Result<Vec<Option<ErrorResponse>>, ErrorResponse>,);
+/// Defines a node in an authorization hook.
+#[derive(Lower, ComponentType)]
+#[component(record)]
+pub struct NodeDefinition {
+    /// The name of the type of this node
+    #[component(name = "type-name")]
+    pub type_name: String,
+}
+
+pub(crate) type EdgePreParameters = (Resource<SharedContextMap>, EdgeDefinition, String, String);
+pub(crate) type EdgePreResponse = (Result<(), ErrorResponse>,);
+
+pub(crate) type NodePreParameters = (Resource<SharedContextMap>, NodeDefinition, String);
+pub(crate) type NodePreResponse = (Result<(), ErrorResponse>,);
 
 /// The authorization hook is called if the requested type uses the authorization directive.
 ///
@@ -49,42 +69,87 @@ impl AuthorizationHookInstance {
         })
     }
 
-    /// Calls the authorization hook
-    pub async fn call(
+    /// Calls the pre authorize hook for an edge
+    pub async fn authorize_edge_pre_execution(
         &mut self,
         context: SharedContextMap,
-        input: Vec<String>,
-    ) -> crate::Result<Vec<Option<ErrorResponse>>> {
-        match self.get_hook::<Parameters, Response>(AUTHORIZATION_HOOK_FUNCTION) {
-            Some(hook) => {
-                let context = self.store.data_mut().push_resource(context)?;
-                let context_rep = context.rep();
+        definition: EdgeDefinition,
+        arguments: String,
+        metadata: String,
+    ) -> crate::Result<()> {
+        let Some(hook) =
+            self.get_hook::<EdgePreParameters, EdgePreResponse>(AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION)
+        else {
+            return Err(crate::Error::Internal(anyhow!(
+                "authorize-edge-pre-execution hook must be defined if using the @authorization directive"
+            )));
+        };
 
-                let result = hook.call_async(&mut self.store, (context, input)).await;
+        let context = self.store.data_mut().push_resource(context)?;
+        let context_rep = context.rep();
 
-                // We check if the hook call trapped, and if so we mark the instance poisoned.
-                //
-                // If no traps, we mark this hook so it can be called again.
-                if result.is_err() {
-                    self.poisoned = true;
-                } else {
-                    hook.post_return_async(&mut self.store).await?;
-                }
+        let result = hook
+            .call_async(&mut self.store, (context, definition, arguments, metadata))
+            .await;
 
-                let result = result?.0;
-
-                // This is a bit ugly because we don't need it, but we need to clean the shared
-                // resources before exiting or this will leak RAM.
-                let _: SharedContextMap = self.store.data_mut().take_resource(context_rep)?;
-
-                let result = result?;
-
-                Ok(result)
-            }
-            None => Err(crate::Error::Internal(anyhow!(
-                "authorized hook must be defined if using the @authorization directive"
-            ))),
+        // We check if the hook call trapped, and if so we mark the instance poisoned.
+        //
+        // If no traps, we mark this hook so it can be called again.
+        if result.is_err() {
+            self.poisoned = true;
+        } else {
+            hook.post_return_async(&mut self.store).await?;
         }
+
+        let result = result?.0;
+
+        // This is a bit ugly because we don't need it, but we need to clean the shared
+        // resources before exiting or this will leak RAM.
+        let _: SharedContextMap = self.store.data_mut().take_resource(context_rep)?;
+
+        result?;
+
+        Ok(())
+    }
+
+    /// Calls the pre authorize hook for a node
+    pub async fn authorize_node_pre_execution(
+        &mut self,
+        context: SharedContextMap,
+        definition: NodeDefinition,
+        metadata: String,
+    ) -> crate::Result<()> {
+        let Some(hook) =
+            self.get_hook::<NodePreParameters, NodePreResponse>(AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION)
+        else {
+            return Err(crate::Error::Internal(anyhow!(
+                "authorize-node-pre-execution hook must be defined if using the @authorization directive"
+            )));
+        };
+
+        let context = self.store.data_mut().push_resource(context)?;
+        let context_rep = context.rep();
+
+        let result = hook.call_async(&mut self.store, (context, definition, metadata)).await;
+
+        // We check if the hook call trapped, and if so we mark the instance poisoned.
+        //
+        // If no traps, we mark this hook so it can be called again.
+        if result.is_err() {
+            self.poisoned = true;
+        } else {
+            hook.post_return_async(&mut self.store).await?;
+        }
+
+        let result = result?.0;
+
+        // This is a bit ugly because we don't need it, but we need to clean the shared
+        // resources before exiting or this will leak RAM.
+        let _: SharedContextMap = self.store.data_mut().take_resource(context_rep)?;
+
+        result?;
+
+        Ok(())
     }
 
     /// Resets the store to the original state. This must be called if wanting to reuse this instance.

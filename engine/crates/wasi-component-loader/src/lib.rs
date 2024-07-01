@@ -22,7 +22,10 @@ mod tests;
 pub use config::Config;
 pub use context::{ContextMap, SharedContextMap};
 pub use error::{Error, ErrorResponse};
-pub use hooks::{authorization::AuthorizationHookInstance, gateway::GatewayHookInstance};
+pub use hooks::{
+    authorization::{AuthorizationHookInstance, EdgeDefinition, NodeDefinition},
+    gateway::GatewayHookInstance,
+};
 
 /// The crate result type
 pub type Result<T> = std::result::Result<T, Error>;

@@ -22,6 +22,15 @@ interface types {
         delete: func(name: string) -> result<option<string>, header-error>;
     }
 
+    record edge-definition {
+        parent-type-name: string,
+        field-name: string,
+    }
+
+    record node-definition {
+        type-name: string,
+    }
+
     record error-response {
         extensions: list<tuple<string, string>>,
         message: string,
@@ -35,9 +44,20 @@ interface gateway-request {
 }
 
 interface authorization {
-    use types.{error-response, shared-context};
+    use types.{error-response, shared-context, edge-definition, node-definition};
 
-    authorized: func(context: shared-context, input: list<string>) -> result<list<option<error-response>>, error-response>;
+    authorize-edge-pre-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        arguments: string,
+        metadata: string
+    ) -> result<_, error-response>;
+
+    authorize-node-pre-execution: func(
+        context: shared-context,
+        definition: node-definition,
+        metadata: string
+    ) -> result<_, error-response>;
 }
  
 world hooks {
