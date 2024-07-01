@@ -142,7 +142,7 @@ impl GraphQlRequest {
         if let Some(extensions) = self.extensions {
             request.extensions = extensions;
         }
-        request.operation_plan_cache_key.document_id = self.doc_id;
+        request.document_id = self.doc_id;
         request
     }
 }

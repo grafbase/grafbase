@@ -33,8 +33,8 @@ impl<'de> serde::Deserialize<'de> for QueryParamRequest {
         // behavior.
         let mut request: Request = serde_json::from_str(&query_params.variables_and_extensions_as_json_string())
             .map_err(|err| serde::de::Error::custom(err.to_string()))?;
-        request.operation_plan_cache_key.query = query_params.query;
-        request.operation_plan_cache_key.operation_name = query_params.operation_name;
+        request.query = query_params.query;
+        request.operation_name = query_params.operation_name;
         Ok(QueryParamRequest { request })
     }
 }

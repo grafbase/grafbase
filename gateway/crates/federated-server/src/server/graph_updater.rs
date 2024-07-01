@@ -183,7 +183,9 @@ impl GraphUpdater {
                 &response.sdl,
                 Some(response.branch_id),
                 self.gateway_config.clone(),
-            ) {
+            )
+            .await
+            {
                 Ok(gateway) => gateway,
                 Err(e) => {
                     tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error parsing graph", error = e.to_string());

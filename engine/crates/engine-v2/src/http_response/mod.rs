@@ -13,11 +13,11 @@ pub struct HttpGraphqlResponse {
     // TODO: Used to propagate this metadata to headers for our current analytics on Cloudflare.
     //       It should not be relied upon otherwise, doesn't work well for batch requests and will
     //       be removed once we also use otel for the managed version.
-    pub metadata: OperationMetadata,
+    pub metadata: HttpGraphqlResponseExtraMetadata,
 }
 
 #[derive(Default)]
-pub struct OperationMetadata {
+pub struct HttpGraphqlResponseExtraMetadata {
     pub operation_name: Option<String>,
     pub operation_type: Option<&'static str>,
     pub has_errors: bool,
@@ -51,7 +51,7 @@ impl HttpGraphqlResponse {
         )
     }
 
-    pub(crate) fn with_metadata(mut self, metadata: OperationMetadata) -> Self {
+    pub(crate) fn with_metadata(mut self, metadata: HttpGraphqlResponseExtraMetadata) -> Self {
         self.metadata = metadata;
         self
     }
@@ -116,7 +116,7 @@ impl HttpGraphqlResponse {
         headers.typed_insert(headers::ContentLength(bytes.len() as u64));
         HttpGraphqlResponse {
             headers,
-            metadata: OperationMetadata::default(),
+            metadata: HttpGraphqlResponseExtraMetadata::default(),
             body: HttpGraphqlResponseBody::Bytes(bytes),
         }
     }
@@ -147,7 +147,7 @@ impl HttpGraphqlResponse {
         headers.typed_insert(status);
         Self {
             headers,
-            metadata: OperationMetadata::default(),
+            metadata: HttpGraphqlResponseExtraMetadata::default(),
             body: HttpGraphqlResponseBody::Stream(stream.map_ok(|bytes| bytes.into()).boxed()),
         }
     }

@@ -34,7 +34,7 @@ where
 
     match run_fetch_phase(plan, &request, &auth, ctx, cache).await {
         partial_caching::FetchPhaseResult::PartialHit(execution_phase) => {
-            request.operation_plan_cache_key.query = execution_phase.query();
+            request.query = execution_phase.query();
 
             let mut executor_response = Arc::clone(executor)
                 .execute(Arc::clone(ctx), auth, request)
@@ -89,7 +89,7 @@ where
     match run_fetch_phase(plan, &request, &auth, ctx, cache).await {
         FetchPhaseResult::PartialHit(execution_phase) => {
             let deferred_execution_phase = execution_phase.streaming();
-            request.operation_plan_cache_key.query = deferred_execution_phase.query();
+            request.query = deferred_execution_phase.query();
 
             let engine_stream = Arc::clone(executor)
                 .execute_stream_v2(Arc::clone(ctx), auth, request)

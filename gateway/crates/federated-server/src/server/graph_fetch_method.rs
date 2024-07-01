@@ -29,7 +29,7 @@ impl GraphFetchMethod {
     /// if a graph ref and access token is provided, the function returns immediately, and
     /// the gateway will be available eventually when the GDN responds with a working graph.
     #[cfg_attr(feature = "lambda", allow(unused_variables))]
-    pub(crate) fn start(
+    pub(crate) async fn start(
         self,
         config: GatewayConfig,
         otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
@@ -60,7 +60,7 @@ impl GraphFetchMethod {
                 });
             }
             GraphFetchMethod::FromLocal { federated_schema } => {
-                let gateway = gateway::generate(&federated_schema, None, config)?;
+                let gateway = gateway::generate(&federated_schema, None, config).await?;
 
                 sender.send(Some(Arc::new(gateway)))?;
             }

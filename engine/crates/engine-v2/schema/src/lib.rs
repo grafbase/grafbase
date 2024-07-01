@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{str::FromStr, sync::OnceLock};
 
 mod builder;
 mod directives;
@@ -30,8 +30,11 @@ mod built_info {
 }
 
 impl Schema {
-    pub fn commit_sha() -> Vec<u8> {
-        hex::decode(built_info::GIT_COMMIT_HASH.expect("No git commit hash found")).expect("Expect hex format")
+    pub fn commit_sha() -> &'static [u8] {
+        static SHA: OnceLock<Vec<u8>> = OnceLock::new();
+        SHA.get_or_init(|| {
+            hex::decode(built_info::GIT_COMMIT_HASH.expect("No git commit hash found")).expect("Expect hex format")
+        })
     }
 }
 

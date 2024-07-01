@@ -23,16 +23,27 @@ pub(crate) use selection_set::*;
 pub(crate) use variables::*;
 pub(crate) use walkers::*;
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct Plan {
     pub resolver_id: ResolverId,
 }
 
-pub(crate) struct Operation {
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct OperationMetadata {
     pub ty: OperationType,
+    /// This is a *processed* operation name, it does not strictly reflect the GraphQL operation
+    /// name. Currently, if the latter doesn't exist we take the first field's name as the
+    /// operation name.
+    pub name: Option<String>,
+    pub normalized_query: String,
+    pub normalized_query_hash: [u8; 32],
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(crate) struct Operation {
+    pub metadata: OperationMetadata,
     pub root_object_id: ObjectId,
     pub root_condition_id: Option<ConditionId>,
-    #[allow(dead_code)]
-    pub name: Option<String>,
     pub response_keys: ResponseKeys,
     pub root_selection_set_id: SelectionSetId,
     pub selection_sets: Vec<SelectionSet>,
@@ -56,13 +67,13 @@ pub(crate) struct Operation {
     pub field_to_entity_location: Vec<Option<EntityLocation>>,
 }
 
-#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ParentToChildEdge {
     pub parent: PlanId,
     pub child: PlanId,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FieldDependency {
     pub entity_location: EntityLocation,
     pub required_field_id: RequiredFieldId,
@@ -70,6 +81,10 @@ pub(crate) struct FieldDependency {
 }
 
 impl Operation {
+    pub fn ty(&self) -> OperationType {
+        self.metadata.ty
+    }
+
     pub fn parent_selection_set_id(&self, id: FieldId) -> SelectionSetId {
         self.field_to_parent[usize::from(id)]
     }

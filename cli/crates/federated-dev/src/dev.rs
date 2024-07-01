@@ -50,7 +50,10 @@ pub(super) async fn run(
 ) -> Result<(), crate::Error> {
     log::trace!("starting the federated dev server");
 
-    let (gateway_sender, gateway) = watch::channel(gateway_nanny::new_gateway(graph, &config.borrow()));
+    let (gateway_sender, gateway) = watch::channel(
+        gateway_nanny::new_gateway(graph.map(|graph| engine_config_builder::build_config(&config.borrow(), graph)))
+            .await,
+    );
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
 
     let websocket_accepter = WebsocketAccepter::new(websocket_receiver, gateway.clone());

@@ -9,7 +9,7 @@ use crate::operation::{OperationWalker, VariableDefinitionId, VariableValueWalke
 
 pub(crate) use view::*;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct QueryInputValues {
     /// Individual input values and list values
     values: Vec<QueryInputValue>,
@@ -25,7 +25,7 @@ id_newtypes::NonZeroU32! {
     QueryInputValues.key_values[QueryInputKeyValueId] => (String, QueryInputValue),
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub enum QueryInputValue {
     #[default]
     Null,

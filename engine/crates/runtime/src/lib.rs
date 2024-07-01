@@ -8,6 +8,7 @@ pub mod cursor;
 pub mod error;
 pub mod fetch;
 pub mod hooks;
+pub mod hot_cache;
 pub mod kv;
 pub mod log;
 pub mod pg;

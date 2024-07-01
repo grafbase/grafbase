@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use schema::{EntityId, ResolverId, Schema};
 
 use crate::{
@@ -23,7 +25,8 @@ pub(crate) use walkers::*;
 
 /// All the necessary information for the operation to be executed that can be prepared & cached.
 pub(crate) struct OperationPlan {
-    operation: Operation,
+    pub(crate) operation: Arc<Operation>,
+    variables: Variables,
     pub(crate) root_errors: Vec<GraphqlError>,
 
     // Association between fields & selection sets and plans. Used when traversing the operation
@@ -78,12 +81,6 @@ impl std::ops::Deref for OperationPlan {
     }
 }
 
-impl std::ops::DerefMut for OperationPlan {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.operation
-    }
-}
-
 impl<I> std::ops::Index<I> for OperationPlan
 where
     Operation: std::ops::Index<I>,
@@ -95,12 +92,12 @@ where
 }
 
 impl OperationPlan {
-    pub async fn build<R: Runtime>(
-        ctx: ExecutionContext<'_, R>,
-        variables: &Variables,
-        operation: Operation,
+    pub async fn build<'a, R: Runtime>(
+        ctx: &ExecutionContext<'_, R>,
+        operation: Arc<Operation>,
+        variables: Variables,
     ) -> PlanningResult<Self> {
-        planning::collect::OperationPlanBuilder::new(ctx, variables, operation)
+        planning::collect::OperationPlanBuilder::new(ctx, operation, variables)
             .build()
             .await
     }
@@ -109,12 +106,7 @@ impl OperationPlan {
         OperationExecutionState::new(self)
     }
 
-    pub fn walker_with<'s>(
-        &'s self,
-        schema: &'s Schema,
-        variables: &'s Variables,
-        execution_plan_id: ExecutionPlanId,
-    ) -> PlanWalker<'s, (), ()> {
+    pub fn walker_with<'s>(&'s self, schema: &'s Schema, execution_plan_id: ExecutionPlanId) -> PlanWalker<'s, (), ()> {
         let schema_walker = schema
             .walk(self[execution_plan_id].resolver_id)
             .with_own_names()
@@ -122,7 +114,6 @@ impl OperationPlan {
         PlanWalker {
             schema_walker,
             operation_plan: self,
-            variables,
             execution_plan_id,
             item: (),
         }

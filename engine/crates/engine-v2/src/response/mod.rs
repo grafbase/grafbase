@@ -9,7 +9,7 @@ use schema::Schema;
 pub use value::{ResponseObject, ResponseValue};
 pub use write::*;
 
-use crate::{http_response::HttpGraphqlResponse, plan::OperationPlan};
+use crate::{http_response::HttpGraphqlResponse, operation::Operation};
 
 mod error;
 mod key;
@@ -35,7 +35,7 @@ pub(crate) struct InitialResponse {
 
 struct ResponseData {
     schema: Arc<Schema>,
-    operation: Arc<OperationPlan>,
+    operation: Arc<Operation>,
     root: Option<ResponseObjectId>,
     parts: Vec<ResponseDataPart>,
 }

@@ -6,7 +6,7 @@ use crate::response::GraphqlError;
 
 use super::{ConditionId, FieldId};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub(crate) enum Condition {
     Authenticated,
     RequiresScopes(RequiredScopesId),

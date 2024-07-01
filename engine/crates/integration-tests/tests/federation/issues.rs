@@ -38,7 +38,7 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
         "###;
 
     runtime().block_on(async move {
-        let mut engine = MockFederationEngine::new(SDL);
+        let mut engine = MockFederationEngine::new(SDL).await;
 
         engine.mock("a", vec![json!({"data": {"doStuff": "Hi!"}})]);
         let response = engine

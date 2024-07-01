@@ -1,9 +1,8 @@
-use grafbase_tracing::{gql_response_status::GraphqlResponseStatus, metrics::GraphqlOperationMetricsAttributes};
 use schema::Schema;
 
-use crate::{engine::RequestContext, response::GraphqlError};
+use crate::response::GraphqlError;
 
-use super::{Operation, Variables};
+use super::{parse::ParsedOperation, Operation, OperationMetadata, Variables};
 
 #[derive(Debug, thiserror::Error)]
 pub enum OperationError {
@@ -11,19 +10,21 @@ pub enum OperationError {
     Parse(#[from] super::parse::ParseError),
     #[error("{err}")]
     Bind {
-        operation_attributes: Box<Option<GraphqlOperationMetricsAttributes>>,
+        operation_metadata: Box<Option<OperationMetadata>>,
         err: super::bind::BindError,
     },
     #[error("{err}")]
     Validation {
-        operation_attributes: Box<Option<GraphqlOperationMetricsAttributes>>,
+        operation_metadata: Box<Option<OperationMetadata>>,
         err: super::validation::ValidationError,
     },
     #[error("{err}")]
     Solve {
-        operation_attributes: Box<Option<GraphqlOperationMetricsAttributes>>,
+        operation_metadata: Box<Option<OperationMetadata>>,
         err: crate::plan::PlanningError,
     },
+    #[error("Failed to normalize query")]
+    NormalizationError,
 }
 
 impl From<OperationError> for GraphqlError {
@@ -33,22 +34,20 @@ impl From<OperationError> for GraphqlError {
             OperationError::Validation { err, .. } => err.into(),
             OperationError::Parse(err) => err.into(),
             OperationError::Solve { err, .. } => err.into(),
+            OperationError::NormalizationError => GraphqlError {
+                message: err.to_string(),
+                ..Default::default()
+            },
         }
     }
 }
 
 impl OperationError {
-    pub fn take_operation_attributes(&mut self) -> Option<GraphqlOperationMetricsAttributes> {
+    pub fn take_operation_metadata(&mut self) -> Option<OperationMetadata> {
         match self {
-            OperationError::Bind {
-                operation_attributes, ..
-            } => std::mem::take(operation_attributes),
-            OperationError::Validation {
-                operation_attributes, ..
-            } => std::mem::take(operation_attributes),
-            OperationError::Solve {
-                operation_attributes, ..
-            } => std::mem::take(operation_attributes),
+            OperationError::Bind { operation_metadata, .. } => std::mem::take(operation_metadata),
+            OperationError::Validation { operation_metadata, .. } => std::mem::take(operation_metadata),
+            OperationError::Solve { operation_metadata, .. } => std::mem::take(operation_metadata),
             _ => None,
         }
     }
@@ -60,36 +59,15 @@ impl Operation {
     ///
     /// All field names are mapped to their actual field id in the schema and respective configuration.
     /// At this stage the operation might not be resolvable but it should make sense given the schema types.
-    pub fn build<C>(
-        schema: &Schema,
-        // FIXME: build shouldn't depend on it.
-        request_context: &RequestContext<C>,
-        request: &engine::Request,
-    ) -> Result<(Self, Option<GraphqlOperationMetricsAttributes>), OperationError> {
+    pub fn build(schema: &Schema, request: &engine::Request) -> Result<Self, OperationError> {
         let parsed_operation = super::parse::parse_operation(request)?;
-        let operation_attributes = operation_normalizer::normalize(request.query(), request.operation_name())
-            .ok()
-            .map(|normalized_query| GraphqlOperationMetricsAttributes {
-                normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
-                name: parsed_operation.name.clone().or_else(|| {
-                    engine_parser::find_first_field_name(
-                        &parsed_operation.fragments,
-                        &parsed_operation.definition.selection_set,
-                    )
-                }),
-                ty: parsed_operation.definition.ty.as_str(),
-                normalized_query,
-                // overridden at the end.
-                status: GraphqlResponseStatus::Success,
-                cache_status: None,
-                client: request_context.client.clone(),
-            });
+        let operation_metadata = prepare_metadata(&parsed_operation, request);
 
         let mut operation = match super::bind::bind(schema, parsed_operation) {
             Ok(operation) => operation,
             Err(err) => {
                 return Err(OperationError::Bind {
-                    operation_attributes: Box::new(operation_attributes),
+                    operation_metadata: Box::new(operation_metadata),
                     err,
                 })
             }
@@ -101,18 +79,33 @@ impl Operation {
             super::validation::validate_operation(schema, operation.walker_with(schema.walker(), &variables), request)
         {
             return Err(OperationError::Validation {
-                operation_attributes: Box::new(operation_attributes),
+                operation_metadata: Box::new(operation_metadata),
                 err,
             });
         }
 
         if let Err(err) = crate::plan::solve(schema, &variables, &mut operation) {
             return Err(OperationError::Solve {
-                operation_attributes: Box::new(operation_attributes),
+                operation_metadata: Box::new(operation_metadata),
                 err,
             });
         }
 
-        Ok((operation, operation_attributes))
+        operation.metadata = operation_metadata.ok_or(OperationError::NormalizationError)?;
+
+        Ok(operation)
     }
+}
+
+fn prepare_metadata(operation: &ParsedOperation, request: &engine::Request) -> Option<OperationMetadata> {
+    operation_normalizer::normalize(request.query(), request.operation_name())
+        .ok()
+        .map(|normalized_query| OperationMetadata {
+            ty: operation.definition.ty,
+            name: operation.name.clone().or_else(|| {
+                engine_parser::find_first_field_name(&operation.fragments, &operation.definition.selection_set)
+            }),
+            normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
+            normalized_query,
+        })
 }
