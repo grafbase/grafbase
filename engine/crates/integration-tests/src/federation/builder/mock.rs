@@ -7,15 +7,16 @@ use futures::stream::BoxStream;
 use graphql_composition::FederatedGraph;
 use runtime::{
     fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, GraphqlRequest},
-    hooks::Hooks,
+    hooks::DynamicHooks,
 };
-use runtime_noop::hooks::HooksNoop;
 use tokio::sync::mpsc;
 
 use crate::{engine_v1::GraphQlRequest, federation::ExecutionRequest};
 
+use super::TestRuntime;
+
 pub struct MockFederationEngine {
-    engine: Arc<engine_v2::Engine>,
+    engine: Arc<engine_v2::Engine<TestRuntime>>,
     receiver: mpsc::UnboundedReceiver<String>,
     responses: Arc<Mutex<HashMap<String, VecDeque<Vec<u8>>>>>,
 }
@@ -39,7 +40,7 @@ impl MockFederationEngine {
 
         let engine = engine_v2::Engine::new(
             Arc::new(config.try_into().unwrap()),
-            engine_v2::EngineEnv {
+            TestRuntime {
                 fetcher: runtime::fetch::Fetcher::new(fetcher),
                 cache: cache.clone(),
                 trusted_documents: runtime::trusted_documents_client::Client::new(
@@ -47,7 +48,7 @@ impl MockFederationEngine {
                 ),
                 kv: runtime_local::InMemoryKvStore::runtime(),
                 meter: grafbase_tracing::metrics::meter_from_global_provider(),
-                hooks: Hooks::new(HooksNoop),
+                hooks: DynamicHooks::default(),
             },
         );
         Self {

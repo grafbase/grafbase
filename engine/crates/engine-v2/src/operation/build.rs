@@ -1,6 +1,7 @@
 use grafbase_tracing::{gql_response_status::GraphqlResponseStatus, metrics::GraphqlOperationMetricsAttributes};
+use schema::Schema;
 
-use crate::{execution::ExecutionContext, response::GraphqlError};
+use crate::{engine::RequestContext, response::GraphqlError};
 
 use super::{Operation, Variables};
 
@@ -59,11 +60,12 @@ impl Operation {
     ///
     /// All field names are mapped to their actual field id in the schema and respective configuration.
     /// At this stage the operation might not be resolvable but it should make sense given the schema types.
-    pub fn build(
-        ctx: ExecutionContext<'_>,
+    pub fn build<C>(
+        schema: &Schema,
+        // FIXME: build shouldn't depend on it.
+        request_context: &RequestContext<C>,
         request: &engine::Request,
     ) -> Result<(Self, Option<GraphqlOperationMetricsAttributes>), OperationError> {
-        let schema = &ctx.engine.schema;
         let parsed_operation = super::parse::parse_operation(request)?;
         let operation_attributes = operation_normalizer::normalize(request.query(), request.operation_name())
             .ok()
@@ -80,7 +82,7 @@ impl Operation {
                 // overridden at the end.
                 status: GraphqlResponseStatus::Success,
                 cache_status: None,
-                client: ctx.request_metadata.client.clone(),
+                client: request_context.client.clone(),
             });
 
         let mut operation = match super::bind::bind(schema, parsed_operation) {
@@ -96,7 +98,7 @@ impl Operation {
         // At this stage we don't take into account variables so we can cache the result.
         let variables = Variables::create_unavailable_for(&operation);
         if let Err(err) =
-            super::validation::validate_operation(ctx, operation.walker_with(schema.walker(), &variables), request)
+            super::validation::validate_operation(schema, operation.walker_with(schema.walker(), &variables), request)
         {
             return Err(OperationError::Validation {
                 operation_attributes: Box::new(operation_attributes),

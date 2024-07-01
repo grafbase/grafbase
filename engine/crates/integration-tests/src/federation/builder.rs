@@ -1,6 +1,6 @@
 mod bench;
-mod hooks;
 mod mock;
+mod test_runtime;
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -8,10 +8,10 @@ use crate::{mock_trusted_documents::MockTrustedDocumentsClient, TestTrustedDocum
 use async_graphql_parser::types::ServiceDocument;
 pub use bench::*;
 use graphql_mocks::MockGraphQlServer;
-pub use hooks::TestHooks;
 pub use mock::*;
 use parser_sdl::connector_parsers::MockConnectorParsers;
-use runtime::{hooks::Hooks, trusted_documents_client};
+use runtime::{hooks::DynamicHooks, trusted_documents_client};
+pub use test_runtime::*;
 
 use super::TestFederationEngine;
 
@@ -20,7 +20,7 @@ pub struct FederationGatewayBuilder {
     schemas: Vec<(String, String, ServiceDocument)>,
     trusted_documents: Option<MockTrustedDocumentsClient>,
     config_sdl: Option<String>,
-    user_hooks: TestHooks,
+    hooks: DynamicHooks,
 }
 
 pub trait GatewayV2Ext {
@@ -29,12 +29,12 @@ pub trait GatewayV2Ext {
             trusted_documents: None,
             schemas: vec![],
             config_sdl: None,
-            user_hooks: TestHooks::default(),
+            hooks: DynamicHooks::default(),
         }
     }
 }
 
-impl GatewayV2Ext for engine_v2::Engine {}
+impl GatewayV2Ext for engine_v2::Engine<TestRuntime> {}
 
 #[async_trait::async_trait]
 pub trait SchemaSource {
@@ -65,8 +65,8 @@ impl FederationGatewayBuilder {
         self
     }
 
-    pub fn with_hooks(mut self, callbacks: TestHooks) -> Self {
-        self.user_hooks = callbacks;
+    pub fn with_hooks(mut self, hooks: impl Into<DynamicHooks>) -> Self {
+        self.hooks = hooks.into();
         self
     }
 
@@ -91,14 +91,14 @@ impl FederationGatewayBuilder {
 
         let config = engine_config_builder::build_config(&federated_graph_config, graph).into_latest();
 
-        let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
+        let cache = runtime_local::InMemoryCache::runtime(::runtime::cache::GlobalCacheConfig {
             enabled: true,
             ..Default::default()
         });
 
         TestFederationEngine::new(Arc::new(engine_v2::Engine::new(
             Arc::new(config.try_into().unwrap()),
-            engine_v2::EngineEnv {
+            TestRuntime {
                 fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
                 cache: cache.clone(),
                 trusted_documents: self
@@ -109,7 +109,7 @@ impl FederationGatewayBuilder {
                     }),
                 kv: runtime_local::InMemoryKvStore::runtime(),
                 meter: grafbase_tracing::metrics::meter_from_global_provider(),
-                hooks: Hooks::new(self.user_hooks),
+                hooks: self.hooks,
             },
         )))
     }

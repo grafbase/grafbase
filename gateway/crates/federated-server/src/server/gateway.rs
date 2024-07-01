@@ -1,24 +1,24 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use ascii::AsciiString;
-use engine_v2::{Engine, EngineEnv};
+use engine_v2::Engine;
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::FederatedGraphConfig;
-use runtime::{cache::GlobalCacheConfig, hooks::Hooks};
+use runtime::cache::GlobalCacheConfig;
 use runtime_local::{ComponentLoader, HooksConfig, HooksWasi, InMemoryCache, InMemoryKvStore};
-use runtime_noop::{hooks::HooksNoop, trusted_documents::NoopTrustedDocuments};
+use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;
 
 use crate::config::{AuthenticationConfig, HeaderValue, OperationLimitsConfig, SubgraphConfig, TrustedDocumentsConfig};
 
 /// Send half of the gateway watch channel
 #[cfg(not(feature = "lambda"))]
-pub(crate) type GatewaySender = watch::Sender<Option<Arc<Engine>>>;
+pub(crate) type GatewaySender = watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>;
 
 /// Receive half of the gateway watch channel.
 ///
 /// Anything part of the system that needs access to the gateway can use this
-pub(crate) type EngineWatcher = watch::Receiver<Option<Arc<Engine>>>;
+pub(crate) type EngineWatcher = watch::Receiver<Option<Arc<Engine<GatewayRuntime>>>>;
 
 #[derive(Debug, Clone)]
 pub(crate) struct GatewayConfig {
@@ -36,7 +36,7 @@ pub(super) fn generate(
     federated_schema: &str,
     branch_id: Option<ulid::Ulid>,
     config: GatewayConfig,
-) -> crate::Result<Engine> {
+) -> crate::Result<Engine<GatewayRuntime>> {
     let GatewayConfig {
         enable_introspection,
         operation_limits,
@@ -116,22 +116,18 @@ pub(super) fn generate(
         runtime::trusted_documents_client::Client::new(NoopTrustedDocuments)
     };
 
-    let hooks = match wasi {
-        Some(config) => ComponentLoader::new(config)
-            .map_err(|e| crate::Error::InternalError(e.to_string()))?
-            .map(HooksWasi::new)
-            .map(Hooks::new)
-            .unwrap_or_else(|| Hooks::new(HooksNoop)),
-        None => Hooks::new(HooksNoop),
-    };
-
-    let engine_env = EngineEnv {
+    let runtime = GatewayRuntime {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         cache: cache.clone(),
         kv: InMemoryKvStore::runtime(),
         trusted_documents,
         meter: grafbase_tracing::metrics::meter_from_global_provider(),
-        hooks,
+        hooks: HooksWasi::new(
+            wasi.map(ComponentLoader::new)
+                .transpose()
+                .map_err(|e| crate::Error::InternalError(e.to_string()))?
+                .flatten(),
+        ),
     };
 
     let config = config
@@ -139,5 +135,37 @@ pub(super) fn generate(
         .try_into()
         .map_err(|err| crate::Error::InternalError(format!("Failed to generate engine Schema: {err}")))?;
 
-    Ok(Engine::new(Arc::new(config), engine_env))
+    Ok(Engine::new(Arc::new(config), runtime))
+}
+
+pub struct GatewayRuntime {
+    fetcher: runtime::fetch::Fetcher,
+    cache: runtime::cache::Cache,
+    trusted_documents: runtime::trusted_documents_client::Client,
+    kv: runtime::kv::KvStore,
+    meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
+    hooks: HooksWasi,
+}
+
+impl engine_v2::Runtime for GatewayRuntime {
+    type Hooks = HooksWasi;
+
+    fn fetcher(&self) -> &runtime::fetch::Fetcher {
+        &self.fetcher
+    }
+    fn cache(&self) -> &runtime::cache::Cache {
+        &self.cache
+    }
+    fn trusted_documents(&self) -> &runtime::trusted_documents_client::Client {
+        &self.trusted_documents
+    }
+    fn kv(&self) -> &runtime::kv::KvStore {
+        &self.kv
+    }
+    fn meter(&self) -> &grafbase_tracing::otel::opentelemetry::metrics::Meter {
+        &self.meter
+    }
+    fn hooks(&self) -> &HooksWasi {
+        &self.hooks
+    }
 }

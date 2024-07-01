@@ -1,6 +1,6 @@
 //! Handling of trusted documents and Automatic Persisted Queries (APQ).
 
-use crate::{execution::ExecutionContext, response::GraphqlError};
+use crate::{execution::ExecutionContext, response::GraphqlError, Runtime};
 use engine::{AutomaticPersistedQuery, ErrorCode, PersistedQueryRequestExtension};
 use grafbase_tracing::grafbase_client::X_GRAFBASE_CLIENT_NAME;
 use runtime::trusted_documents_client::TrustedDocumentsError;
@@ -8,19 +8,19 @@ use std::mem;
 
 const CACHE_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
 
-impl ExecutionContext<'_> {
+impl<R: Runtime> ExecutionContext<'_, R> {
     /// Handle a request making use of APQ or trusted documents.
     pub(super) async fn handle_persisted_query(&self, request: &mut engine::Request) -> Result<(), GraphqlError> {
-        let client_name = self.request_metadata.client.as_ref().map(|c| c.name.as_ref());
-        let trusted_documents_enabled = self.env.trusted_documents.is_enabled();
+        let client_name = self.request_context.client.as_ref().map(|c| c.name.as_ref());
+        let trusted_documents_enabled = self.runtime.trusted_documents().is_enabled();
         let persisted_query_extension = mem::take(&mut request.extensions.persisted_query);
         let document_id = mem::take(&mut request.operation_plan_cache_key.document_id);
 
         match (trusted_documents_enabled, persisted_query_extension, document_id) {
             (true, None, None) => {
                 if self
-                    .env
-                    .trusted_documents
+                    .runtime
+                    .trusted_documents()
                     .bypass_header()
                     .map(|(name, value)| self.headers().get(name).and_then(|v| v.to_str().ok()) == Some(value))
                     .unwrap_or_default()
@@ -80,7 +80,7 @@ impl ExecutionContext<'_> {
             )));
         };
 
-        let cache = &self.env.cache;
+        let cache = &self.runtime.cache();
         let cache_key = cache.build_key(&format!("trusted_documents/{client_name}/{document_id}"));
 
         // First try fetching the document from cache.
@@ -95,7 +95,7 @@ impl ExecutionContext<'_> {
             return Ok(());
         }
 
-        match self.env.trusted_documents.fetch(client_name, document_id).await {
+        match self.runtime.trusted_documents().fetch(client_name, document_id).await {
             Err(TrustedDocumentsError::RetrievalError(err)) => Err(GraphqlError::new(format!(
                 "Internal server error while fetching trusted document: {err}"
             ))),
@@ -138,7 +138,7 @@ impl ExecutionContext<'_> {
             return Err(GraphqlError::new("Persisted query version not supported"));
         }
 
-        let cache = &self.env.cache;
+        let cache = &self.runtime.cache();
         let key = cache.build_key(&format!("apq/sha256_{}", hex::encode(sha256_hash)));
         if !request.query().is_empty() {
             use sha2::{Digest, Sha256};

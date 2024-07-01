@@ -50,6 +50,7 @@ use crate::{
     operation::OperationType,
     plan::{ExecutionPlan, PlanWalker, PlanningResult},
     response::{ResponseObjectsView, ResponsePart},
+    Runtime,
 };
 
 use self::{
@@ -88,19 +89,22 @@ impl PreparedExecutor {
     }
 }
 
-pub(crate) struct ExecutorInput<'ctx, 'input> {
-    pub ctx: ExecutionContext<'ctx>,
+pub(crate) struct ExecutorInput<'ctx, 'input, R: Runtime> {
+    pub ctx: ExecutionContext<'ctx, R>,
     pub plan: PlanWalker<'ctx, (), ()>,
     pub root_response_objects: ResponseObjectsView<'input>,
 }
 
-pub(crate) struct SubscriptionInput<'ctx> {
-    pub ctx: ExecutionContext<'ctx>,
+pub(crate) struct SubscriptionInput<'ctx, R: Runtime> {
+    pub ctx: ExecutionContext<'ctx, R>,
     pub plan: PlanWalker<'ctx>,
 }
 
 impl ExecutionPlan {
-    pub fn new_executor<'ctx>(&'ctx self, input: ExecutorInput<'ctx, '_>) -> Result<Executor<'ctx>, ExecutionError> {
+    pub fn new_executor<'ctx, R: Runtime>(
+        &'ctx self,
+        input: ExecutorInput<'ctx, '_, R>,
+    ) -> Result<Executor<'ctx, R>, ExecutionError> {
         match &self.prepared_executor {
             PreparedExecutor::Unreachable => unreachable!(),
             PreparedExecutor::Introspection(prepared) => prepared.new_executor(input),
@@ -109,10 +113,10 @@ impl ExecutionPlan {
         }
     }
 
-    pub fn new_subscription_executor<'ctx>(
+    pub fn new_subscription_executor<'ctx, R: Runtime>(
         &'ctx self,
-        input: SubscriptionInput<'ctx>,
-    ) -> Result<SubscriptionExecutor<'ctx>, ExecutionError> {
+        input: SubscriptionInput<'ctx, R>,
+    ) -> Result<SubscriptionExecutor<'ctx, R>, ExecutionError> {
         match &self.prepared_executor {
             PreparedExecutor::Unreachable => unreachable!(),
             PreparedExecutor::GraphQL(prepared) => prepared.new_subscription_executor(input),
@@ -126,13 +130,13 @@ impl ExecutionPlan {
     }
 }
 
-pub(crate) enum Executor<'ctx> {
-    GraphQL(GraphqlExecutor<'ctx>),
-    Introspection(IntrospectionExecutor<'ctx>),
-    FederationEntity(FederationEntityExecutor<'ctx>),
+pub(crate) enum Executor<'ctx, R: Runtime> {
+    GraphQL(GraphqlExecutor<'ctx, R>),
+    Introspection(IntrospectionExecutor<'ctx, R>),
+    FederationEntity(FederationEntityExecutor<'ctx, R>),
 }
 
-impl<'ctx> Executor<'ctx> {
+impl<'ctx, R: Runtime> Executor<'ctx, R> {
     pub async fn execute(self, response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
         match self {
             Executor::GraphQL(executor) => executor.execute(response_part).await,
@@ -142,15 +146,15 @@ impl<'ctx> Executor<'ctx> {
     }
 }
 
-pub(crate) enum SubscriptionExecutor<'ctx> {
-    Graphql(GraphqlSubscriptionExecutor<'ctx>),
+pub(crate) enum SubscriptionExecutor<'ctx, R: Runtime> {
+    Graphql(GraphqlSubscriptionExecutor<'ctx, R>),
 }
 
-impl<'ctx> SubscriptionExecutor<'ctx> {
+impl<'ctx, R: Runtime> SubscriptionExecutor<'ctx, R> {
     pub async fn execute(
         self,
-        new_execution: impl Fn() -> OperationRootPlanExecution<'ctx> + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<OperationRootPlanExecution<'ctx>>>> {
+        new_execution: impl Fn() -> OperationRootPlanExecution<'ctx, R> + Send + 'ctx,
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<OperationRootPlanExecution<'ctx, R>>>> {
         match self {
             SubscriptionExecutor::Graphql(executor) => executor.execute(new_execution).await,
         }

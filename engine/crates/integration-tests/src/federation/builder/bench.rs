@@ -9,15 +9,16 @@ use futures::stream::BoxStream;
 use graphql_composition::FederatedGraph;
 use runtime::{
     fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, GraphqlRequest},
-    hooks::Hooks,
+    hooks::DynamicHooks,
 };
-use runtime_noop::hooks::HooksNoop;
 
 use crate::federation::GraphqlResponse;
 
+use super::TestRuntime;
+
 #[derive(Clone)]
 pub struct FederationGatewayWithoutIO<'a> {
-    engine: Arc<engine_v2::Engine>,
+    engine: Arc<engine_v2::Engine<TestRuntime>>,
     query: &'a str,
     dummy_responses_index: Arc<AtomicUsize>,
 }
@@ -48,7 +49,7 @@ impl<'a> FederationGatewayWithoutIO<'a> {
 
         let engine = engine_v2::Engine::new(
             Arc::new(config.try_into().unwrap()),
-            engine_v2::EngineEnv {
+            TestRuntime {
                 fetcher,
                 cache: cache.clone(),
                 trusted_documents: runtime::trusted_documents_client::Client::new(
@@ -56,7 +57,7 @@ impl<'a> FederationGatewayWithoutIO<'a> {
                 ),
                 kv: runtime_local::InMemoryKvStore::runtime(),
                 meter: grafbase_tracing::metrics::meter_from_global_provider(),
-                hooks: Hooks::new(HooksNoop),
+                hooks: DynamicHooks::default(),
             },
         );
         Self {

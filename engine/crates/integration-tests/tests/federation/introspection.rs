@@ -263,7 +263,7 @@ fn can_run_2021_introspection_query() {
 #[test]
 fn echo_subgraph_introspection() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(EchoSchema::default()).await;
+        let github_mock = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
             .with_schema("schema", &github_mock)
@@ -301,6 +301,7 @@ fn echo_subgraph_introspection() {
     type Query {
       fancyBool(input: FancyBool!): FancyBool!
       float(input: Float!): Float!
+      header(name: String!): String
       id(input: ID!): ID!
       inputObject(input: InputObj!): JSON!
       int(input: Int!): Int!
@@ -377,7 +378,7 @@ fn introspection_output_matches_source() {
 fn raw_introspetion_output() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-        let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
+        let echo_mock = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
             .with_schema("github", &github_mock)
@@ -398,7 +399,7 @@ fn raw_introspetion_output() {
 fn can_introsect_when_multiple_subgraphs() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-        let echo_mock = MockGraphQlServer::new(EchoSchema::default()).await;
+        let echo_mock = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
             .with_schema("github", &github_mock)
@@ -474,6 +475,7 @@ fn can_introsect_when_multiple_subgraphs() {
       fancyBool(input: FancyBool!): FancyBool!
       favoriteRepository: CustomRepoId!
       float(input: Float!): Float!
+      header(name: String!): String
       headers: [Header!]!
       id(input: ID!): ID!
       inputObject(input: InputObj!): JSON!

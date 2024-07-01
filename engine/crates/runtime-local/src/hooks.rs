@@ -1,68 +1,104 @@
 use std::{collections::HashMap, sync::Arc};
 
-use runtime::hooks::{HeaderMap, HookError, HooksImpl, UserError};
+use runtime::{
+    error::GraphqlError,
+    hooks::{EdgeDefinition, HeaderMap, Hooks, NodeDefinition},
+};
+use tracing::instrument;
 pub use wasi_component_loader::{ComponentLoader, Config as HooksConfig};
 
-pub struct HooksWasi(ComponentLoader);
+pub struct HooksWasi(Option<ComponentLoader>);
 
 impl HooksWasi {
-    pub fn new(loader: ComponentLoader) -> Self {
+    pub fn new(loader: Option<ComponentLoader>) -> Self {
         Self(loader)
     }
 }
 
-#[async_trait::async_trait]
-impl HooksImpl for HooksWasi {
-    type Context = HashMap<String, String>;
+impl Hooks for HooksWasi {
+    type Context = Arc<HashMap<String, String>>;
 
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), HookError> {
-        let context = Self::Context::new();
+    #[instrument(skip_all)]
+    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), GraphqlError> {
+        let Some(ref loader) = self.0 else {
+            return Ok((Arc::new(HashMap::new()), headers));
+        };
+        let context = HashMap::new();
 
-        Ok(self
-            .0
+        loader
             .on_gateway_request(context, headers)
             .await
-            .map_err(to_local_error)?)
+            .map(|(ctx, headers)| (Arc::new(ctx), headers))
+            .map_err(|err| match err {
+                wasi_component_loader::Error::Internal(err) => {
+                    tracing::error!("on_gateway_request error: {err}");
+                    GraphqlError::internal_server_error()
+                }
+                wasi_component_loader::Error::User(err) => error_response_to_user_error(err),
+            })
     }
 
-    async fn authorized(
+    #[instrument(skip_all)]
+    async fn authorize_edge_pre_execution<'a>(
         &self,
-        context: Arc<Self::Context>,
-        input: Vec<String>,
-    ) -> Result<Vec<Option<UserError>>, HookError> {
-        let results = self
-            .0
-            .authorized(context, input)
+        context: &Self::Context,
+        definition: EdgeDefinition<'a>,
+        arguments: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+        _metadata: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+    ) -> Result<(), GraphqlError> {
+        let Some(ref loader) = self.0 else {
+            return Err(GraphqlError::new(
+                "@authorized directive cannot be used, so access was denied",
+            ));
+        };
+
+        let Ok(arguments) = serde_json::to_string(&arguments) else {
+            tracing::error!("authorize_edge_pre_execution error at {definition}: failed to serialize arguemtns");
+            return Err(GraphqlError::internal_server_error());
+        };
+        let mut results = loader
+            .authorized(Arc::clone(context), vec![arguments])
             .await
-            .map_err(to_local_error)?
+            .map_err(|err| match err {
+                wasi_component_loader::Error::Internal(error) => {
+                    tracing::error!("authorize_edge_pre_execution error at {definition}: {error}");
+                    GraphqlError::internal_server_error()
+                }
+                wasi_component_loader::Error::User(error) => error_response_to_user_error(error),
+            })?
             .into_iter()
-            .map(|result| result.map(error_response_to_user_error))
-            .collect();
+            .map(|result| result.map(error_response_to_user_error));
 
-        Ok(results)
+        match results.next() {
+            None => Err(GraphqlError::internal_server_error()),
+            Some(None) => Ok(()),
+            Some(Some(error)) => Err(error),
+        }
+    }
+
+    async fn authorize_node_pre_execution<'a>(
+        &self,
+        _context: &Self::Context,
+        _definition: NodeDefinition<'a>,
+        _metadata: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+    ) -> Result<(), GraphqlError> {
+        todo!()
     }
 }
 
-fn to_local_error(error: wasi_component_loader::Error) -> HookError {
-    match error {
-        wasi_component_loader::Error::Internal(error) => HookError::Internal(error.into()),
-        wasi_component_loader::Error::User(error) => HookError::User(error_response_to_user_error(error)),
-    }
-}
-
-fn error_response_to_user_error(error: wasi_component_loader::ErrorResponse) -> UserError {
+fn error_response_to_user_error(error: wasi_component_loader::ErrorResponse) -> GraphqlError {
     let extensions = error
         .extensions
         .into_iter()
         .map(|(key, value)| {
             let value = serde_json::from_str(&value).unwrap_or(serde_json::Value::String(value));
 
-            (key, value)
+            (key.into(), value)
         })
         .collect();
 
-    UserError {
-        message: error.message,
+    GraphqlError {
+        message: error.message.into(),
         extensions,
     }
 }

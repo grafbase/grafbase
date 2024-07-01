@@ -53,7 +53,7 @@ registry-v2.workspace = true
 rustls = { workspace = true, features = ["ring"] }
 tracing.workspace = true
 tracing-mock.workspace = true
-runtime = { path = "../runtime" }
+runtime = { workspace = true, features = ["test-utils"]}
 
 [dependencies.tokio]
 version = "1.37"

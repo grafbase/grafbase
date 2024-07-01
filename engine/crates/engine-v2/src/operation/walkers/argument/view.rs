@@ -1,5 +1,9 @@
 use schema::{InputValueSerdeError, InputValueSet};
-use serde::{de::value::MapDeserializer, forward_to_deserialize_any, ser::SerializeMap};
+use serde::{
+    de::{value::MapDeserializer, IntoDeserializer},
+    forward_to_deserialize_any,
+    ser::SerializeMap,
+};
 
 use super::FieldArgumentsWalker;
 
@@ -55,5 +59,12 @@ impl<'de> serde::Deserializer<'de> for FieldArgumentsView<'de> {
         bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
         bytes byte_buf unit unit_struct newtype_struct seq tuple
         tuple_struct map struct enum identifier option ignored_any
+    }
+}
+
+impl<'de> IntoDeserializer<'de, InputValueSerdeError> for FieldArgumentsView<'de> {
+    type Deserializer = Self;
+    fn into_deserializer(self) -> Self::Deserializer {
+        self
     }
 }

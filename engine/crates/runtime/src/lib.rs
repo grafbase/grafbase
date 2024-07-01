@@ -1,8 +1,11 @@
+#![deny(clippy::future_not_send)]
+
 pub mod auth;
 pub mod bytes;
 pub mod cache;
 pub mod context;
 pub mod cursor;
+pub mod error;
 pub mod fetch;
 pub mod hooks;
 pub mod kv;

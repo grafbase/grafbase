@@ -20,12 +20,13 @@ use crate::{
     },
     response::{GraphqlError, ReadField, ReadSelectionSet},
     sources::PreparedExecutor,
+    Runtime,
 };
 
 use super::{PlanningError, PlanningResult};
 
-pub(crate) struct OperationPlanBuilder<'a> {
-    ctx: ExecutionContext<'a>,
+pub(crate) struct OperationPlanBuilder<'a, R: Runtime> {
+    ctx: ExecutionContext<'a, R>,
     variables: &'a Variables,
     operation_plan: OperationPlan,
     to_be_planned: Vec<ToBePlanned>,
@@ -46,8 +47,8 @@ struct ToBePlanned {
     root_fields: Vec<FieldId>,
 }
 
-impl<'a> OperationPlanBuilder<'a> {
-    pub(crate) fn new(ctx: ExecutionContext<'a>, variables: &'a Variables, operation: Operation) -> Self {
+impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
+    pub(crate) fn new(ctx: ExecutionContext<'a, R>, variables: &'a Variables, operation: Operation) -> Self {
         let entity_locations_count = operation
             .field_to_entity_location
             .iter()
@@ -119,13 +120,17 @@ impl<'a> OperationPlanBuilder<'a> {
                 }
                 Condition::Authorized { directive_id, field_id } => {
                     let directive = &self.ctx.schema[*directive_id];
-                    let arguments = self
-                        .walker()
-                        .walk(*field_id)
-                        .arguments()
-                        .with_selection_set(&directive.arguments);
-                    let input = crate::execution::hooks::authorized::Input { arguments };
-                    if let Some(err) = self.ctx.hooks().authorized(input).await {
+                    let field = self.walker().walk(*field_id);
+                    let arguments = field.arguments().with_selection_set(&directive.arguments);
+                    let result = self
+                        .ctx
+                        .hooks()
+                        .authorize_edge_pre_execution(
+                            field.definition().expect("@authorized cannot be applied on __typename"),
+                            arguments,
+                        )
+                        .await;
+                    if let Err(err) = result {
                         ConditionResult::Errors(vec![err])
                     } else {
                         ConditionResult::Include
@@ -268,28 +273,28 @@ impl<'a> OperationPlanBuilder<'a> {
     }
 }
 
-pub(super) struct ExecutionPlanBuilder<'parent, 'ctx> {
-    builder: &'parent mut OperationPlanBuilder<'ctx>,
+pub(super) struct ExecutionPlanBuilder<'parent, 'ctx, R: Runtime> {
+    builder: &'parent mut OperationPlanBuilder<'ctx, R>,
     plan_id: PlanId,
     support_aliases: bool,
     tracked_entity_locations: Vec<EntityLocation>,
 }
 
-impl<'parent, 'ctx> std::ops::Deref for ExecutionPlanBuilder<'parent, 'ctx> {
-    type Target = OperationPlanBuilder<'ctx>;
+impl<'parent, 'ctx, R: Runtime> std::ops::Deref for ExecutionPlanBuilder<'parent, 'ctx, R> {
+    type Target = OperationPlanBuilder<'ctx, R>;
     fn deref(&self) -> &Self::Target {
         self.builder
     }
 }
 
-impl<'parent, 'ctx> std::ops::DerefMut for ExecutionPlanBuilder<'parent, 'ctx> {
+impl<'parent, 'ctx, R: Runtime> std::ops::DerefMut for ExecutionPlanBuilder<'parent, 'ctx, R> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.builder
     }
 }
 
-impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
-    pub(super) fn new(builder: &'parent mut OperationPlanBuilder<'ctx>, plan_id: PlanId) -> Self {
+impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
+    pub(super) fn new(builder: &'parent mut OperationPlanBuilder<'ctx, R>, plan_id: PlanId) -> Self {
         let support_aliases = builder
             .ctx
             .schema
@@ -595,7 +600,7 @@ impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
                         errors: errors.clone(),
                         is_required: definition.ty().wrapping().is_required(),
                     };
-                    field_errors.push((definition.parent_entity(), field_error));
+                    field_errors.push((definition.parent_entity().id(), field_error));
                     continue;
                 }
                 Some(ConditionResult::Include) | None => {}
@@ -618,7 +623,7 @@ impl<'parent, 'ctx> ExecutionPlanBuilder<'parent, 'ctx> {
                 }
             };
             conditional_fields.push(ConditionalField {
-                entity_id: definition.parent_entity(),
+                entity_id: definition.parent_entity().id(),
                 edge: field.response_edge(),
                 expected_key,
                 definition_id,
