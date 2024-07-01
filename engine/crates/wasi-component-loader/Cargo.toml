@@ -14,9 +14,9 @@ http.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
-wasmtime = "21.0.1"
-wasmtime-wasi = { version = "21.0.1", default-features = false }
-wasmtime-wasi-http = "21.0.1"
+wasmtime = "22.0.0"
+wasmtime-wasi = { version = "22.0.0", default-features = false }
+wasmtime-wasi-http = "22.0.0"
 
 [lints]
 workspace = true
