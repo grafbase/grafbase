@@ -164,7 +164,16 @@ pub(crate) async fn install_bun() -> Result<(), BunError> {
         return Ok(());
     }
 
-    if common::environment::is_nixos() || common::environment::is_in_docker_image() {
+    if common::environment::is_nixos() {
+        if let Err(which::Error::CannotFindBinaryPath) = which::which("bun") {
+            return Err(BunError::BunNotFound(common::errors::BunNotFound));
+        }
+
+        BUN_INSTALLED_FOR_SESSION.store(true, Ordering::Relaxed);
+        return Ok(());
+    }
+
+    if common::environment::is_in_docker_image() {
         BUN_INSTALLED_FOR_SESSION.store(true, Ordering::Relaxed);
         return Ok(());
     }
