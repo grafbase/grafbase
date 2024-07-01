@@ -65,7 +65,7 @@ describe('RateLimiting generator', () => {
             limit: 10,
             duration: 10,
             condition: {
-              jwt_claims: [
+              jwtClaims: [
                 {
                   name: 'my-claim',
                   value: '*'

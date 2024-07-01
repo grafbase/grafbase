@@ -18,7 +18,7 @@ export interface IpCondition {
 }
 
 export interface JwtCondition {
-  jwt_claims: JwtConditionSpec[]
+  jwtClaims: JwtConditionSpec[]
 }
 
 export interface JwtConditionSpec {
@@ -109,11 +109,11 @@ function renderHeaderCondition(condition: HeaderCondition): string {
 function isJwtCondition(
   condition: RateLimitingRuleCondition
 ): condition is JwtCondition {
-  return (condition as JwtCondition).jwt_claims !== undefined
+  return (condition as JwtCondition).jwtClaims !== undefined
 }
 
 function renderJwtCondition(condition: JwtCondition): string {
-  const conditions = condition.jwt_claims
+  const conditions = condition.jwtClaims
     .map((condition) => {
       let value = '"*"'
       if (condition.value !== '*') {
