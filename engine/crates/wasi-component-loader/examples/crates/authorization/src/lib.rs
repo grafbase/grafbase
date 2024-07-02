@@ -2,14 +2,14 @@
 mod bindings;
 
 use bindings::{
-    component::grafbase::types::{Context, EdgeDefinition, ErrorResponse, Headers, NodeDefinition, SharedContext},
+    component::grafbase::types::{Context, EdgeDefinition, Error, Headers, NodeDefinition, SharedContext},
     exports::component::grafbase::{authorization, gateway_request},
 };
 
 struct Component;
 
 impl gateway_request::Guest for Component {
-    fn on_gateway_request(context: Context, headers: Headers) -> Result<(), ErrorResponse> {
+    fn on_gateway_request(context: Context, headers: Headers) -> Result<(), Error> {
         if let Ok(Some(auth_header)) = headers.get("Authorization") {
             context.set("entitlement", &auth_header);
         }
@@ -24,11 +24,11 @@ impl authorization::Guest for Component {
         _: EdgeDefinition,
         arguments: String,
         _: String,
-    ) -> Result<(), ErrorResponse> {
+    ) -> Result<(), Error> {
         let auth_header = context.get("entitlement");
 
         if Some(arguments) != auth_header {
-            return Err(ErrorResponse {
+            return Err(Error {
                 message: String::from("not authorized"),
                 extensions: Vec::new(),
             });
@@ -37,15 +37,11 @@ impl authorization::Guest for Component {
         Ok(())
     }
 
-    fn authorize_node_pre_execution(
-        context: SharedContext,
-        _: NodeDefinition,
-        metadata: String,
-    ) -> Result<(), ErrorResponse> {
+    fn authorize_node_pre_execution(context: SharedContext, _: NodeDefinition, metadata: String) -> Result<(), Error> {
         let auth_header = context.get("entitlement");
 
         if Some(metadata) != auth_header {
-            return Err(ErrorResponse {
+            return Err(Error {
                 message: String::from("not authorized"),
                 extensions: Vec::new(),
             });

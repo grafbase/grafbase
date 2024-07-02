@@ -2,23 +2,18 @@
 mod bindings;
 
 use bindings::{
-    component::grafbase::types::{EdgeDefinition, ErrorResponse, NodeDefinition, SharedContext},
+    component::grafbase::types::{EdgeDefinition, Error, NodeDefinition, SharedContext},
     exports::component::grafbase::authorization,
 };
 
 struct Component;
 
 impl authorization::Guest for Component {
-    fn authorize_edge_pre_execution(
-        _: SharedContext,
-        _: EdgeDefinition,
-        _: String,
-        _: String,
-    ) -> Result<(), ErrorResponse> {
+    fn authorize_edge_pre_execution(_: SharedContext, _: EdgeDefinition, _: String, _: String) -> Result<(), Error> {
         Ok(())
     }
 
-    fn authorize_node_pre_execution(_: SharedContext, _: NodeDefinition, _: String) -> Result<(), ErrorResponse> {
+    fn authorize_node_pre_execution(_: SharedContext, _: NodeDefinition, _: String) -> Result<(), Error> {
         Ok(())
     }
 }

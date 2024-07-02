@@ -31,33 +31,33 @@ interface types {
         type-name: string,
     }
 
-    record error-response {
+    record error {
         message: string,
         extensions: list<tuple<string,string>>,
     }
 }
 
 interface gateway-request {
-    use types.{headers, error-response, context};
+    use types.{headers, error, context};
 
-    on-gateway-request: func(context: context, headers: headers) -> result<_, error-response>;
+    on-gateway-request: func(context: context, headers: headers) -> result<_, error>;
 }
 
 interface authorization {
-    use types.{error-response, shared-context, edge-definition, node-definition};
+    use types.{error, shared-context, edge-definition, node-definition};
 
     authorize-edge-pre-execution: func(
         context: shared-context,
         definition: edge-definition,
         arguments: string,
         metadata: string
-    ) -> result<_, error-response>;
+    ) -> result<_, error>;
 
     authorize-node-pre-execution: func(
         context: shared-context,
         definition: node-definition,
         metadata: string
-    ) -> result<_, error-response>;
+    ) -> result<_, error>;
 }
 
 world hooks {

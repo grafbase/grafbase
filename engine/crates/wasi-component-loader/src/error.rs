@@ -1,6 +1,4 @@
-use core::fmt;
-
-use wasmtime::component::{ComponentType, Lift};
+pub mod guest;
 
 /// The error type from a WASI call
 #[derive(Debug, thiserror::Error)]
@@ -10,31 +8,15 @@ pub enum Error {
     Internal(#[from] anyhow::Error),
     /// User-thrown error of the WASI guest
     #[error("{0}")]
-    User(#[from] ErrorResponse),
+    User(#[from] guest::Error),
 }
 
 impl Error {
     /// Converts into user error response, if one.
-    pub fn into_user_error(self) -> Option<ErrorResponse> {
+    pub fn into_user_error(self) -> Option<guest::Error> {
         match self {
             Error::Internal(_) => None,
             Error::User(error) => Some(error),
         }
-    }
-}
-
-/// An error type available for the user to throw from the guest.
-#[derive(Clone, ComponentType, Lift, Debug, thiserror::Error, PartialEq)]
-#[component(record)]
-pub struct ErrorResponse {
-    /// Additional extensions added to the GraphQL response
-    pub extensions: Vec<(String, String)>,
-    /// The error message
-    pub message: String,
-}
-
-impl fmt::Display for ErrorResponse {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.message.fmt(f)
     }
 }

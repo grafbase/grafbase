@@ -21,7 +21,7 @@ mod tests;
 
 pub use config::Config;
 pub use context::{ContextMap, SharedContextMap};
-pub use error::{Error, ErrorResponse};
+pub use error::{guest::Error as ErrorResponse, Error};
 pub use hooks::{
     authorization::{AuthorizationHookInstance, EdgeDefinition, NodeDefinition},
     gateway::GatewayHookInstance,
