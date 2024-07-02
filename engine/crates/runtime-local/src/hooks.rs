@@ -73,7 +73,7 @@ impl Hooks for HooksWasi {
         context: &Self::Context,
         definition: EdgeDefinition<'a>,
         arguments: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
-        metadata: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
     ) -> Result<(), GraphqlError> {
         let Some(ref inner) = self.0 else {
             return Err(GraphqlError::new(
@@ -86,7 +86,7 @@ impl Hooks for HooksWasi {
             return Err(GraphqlError::internal_server_error());
         };
 
-        let Ok(metadata) = serde_json::to_string(&metadata) else {
+        let Ok(metadata) = metadata.as_ref().map(serde_json::to_string).transpose() else {
             tracing::error!("authorize_edge_pre_execution error at {definition}: failed to serialize metadata");
             return Err(GraphqlError::internal_server_error());
         };
@@ -99,7 +99,7 @@ impl Hooks for HooksWasi {
         };
 
         instance
-            .authorize_edge_pre_execution(Arc::clone(context), definition, arguments, metadata)
+            .authorize_edge_pre_execution(Arc::clone(context), definition, arguments, metadata.unwrap_or_default())
             .await
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
@@ -116,7 +116,7 @@ impl Hooks for HooksWasi {
         &self,
         context: &Self::Context,
         definition: NodeDefinition<'a>,
-        metadata: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
     ) -> Result<(), GraphqlError> {
         let Some(ref inner) = self.0 else {
             return Err(GraphqlError::new(
@@ -124,7 +124,7 @@ impl Hooks for HooksWasi {
             ));
         };
 
-        let Ok(metadata) = serde_json::to_string(&metadata) else {
+        let Ok(metadata) = metadata.as_ref().map(serde_json::to_string).transpose() else {
             tracing::error!("authorize_edge_pre_execution error at {definition}: failed to serialize metadata");
             return Err(GraphqlError::internal_server_error());
         };
@@ -136,7 +136,7 @@ impl Hooks for HooksWasi {
         let mut instance = inner.authorization_hooks.get().await.expect("no io, should not fail");
 
         instance
-            .authorize_node_pre_execution(Arc::clone(context), definition, metadata)
+            .authorize_node_pre_execution(Arc::clone(context), definition, metadata.unwrap_or_default())
             .await
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {

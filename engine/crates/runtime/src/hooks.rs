@@ -44,13 +44,13 @@ pub trait Hooks: Send + Sync + 'static {
         context: &Self::Context,
         definition: EdgeDefinition<'a>,
         arguments: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
-        metadata: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
     ) -> impl Future<Output = Result<(), GraphqlError>> + Send;
 
     fn authorize_node_pre_execution<'a>(
         &self,
         context: &Self::Context,
         definition: NodeDefinition<'a>,
-        metadata: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
     ) -> impl Future<Output = Result<(), GraphqlError>> + Send;
 }

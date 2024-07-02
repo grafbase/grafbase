@@ -7,6 +7,7 @@ use std::{collections::HashMap, sync::Arc};
 use crate::{mock_trusted_documents::MockTrustedDocumentsClient, TestTrustedDocument};
 use async_graphql_parser::types::ServiceDocument;
 pub use bench::*;
+use graphql_composition::FederatedGraph;
 use graphql_mocks::MockGraphQlServer;
 pub use mock::*;
 use parser_sdl::connector_parsers::MockConnectorParsers;
@@ -78,6 +79,14 @@ impl FederationGatewayBuilder {
         let graph = graphql_composition::compose(&subgraphs)
             .into_result()
             .expect("schemas to compose succesfully");
+
+        let sdl = graph.into_sdl().unwrap();
+        println!("{}", sdl);
+
+        // Ensure SDL/JSON serialization work as a expected
+        let graph = FederatedGraph::from_sdl(&sdl).unwrap();
+        let graph = serde_json::from_value(serde_json::to_value(&graph).unwrap()).unwrap();
+
         let federated_graph_config = match self.config_sdl {
             Some(sdl) => {
                 parser_sdl::parse(&sdl, &HashMap::new(), &MockConnectorParsers::default())

@@ -26,7 +26,7 @@ pub trait DynHooks: Send + Sync + 'static {
         context: &DynHookContext,
         definition: EdgeDefinition<'_>,
         arguments: serde_json::Value,
-        metadata: serde_json::Value,
+        metadata: Option<serde_json::Value>,
     ) -> Result<(), GraphqlError> {
         Err("authorize_edge_pre_execution is not implemented".into())
     }
@@ -35,7 +35,7 @@ pub trait DynHooks: Send + Sync + 'static {
         &self,
         context: &DynHookContext,
         definition: NodeDefinition<'_>,
-        metadata: serde_json::Value,
+        metadata: Option<serde_json::Value>,
     ) -> Result<(), GraphqlError> {
         Err("authorize_node_pre_execution is not implemented".into())
     }
@@ -109,14 +109,14 @@ impl Hooks for DynamicHooks {
         context: &Self::Context,
         definition: EdgeDefinition<'a>,
         arguments: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
-        metadata: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
     ) -> Result<(), GraphqlError> {
         self.0
             .authorize_edge_pre_execution(
                 context,
                 definition,
                 serde_json::to_value(&arguments).unwrap(),
-                serde_json::to_value(&metadata).unwrap(),
+                metadata.map(|m| serde_json::to_value(&m).unwrap()),
             )
             .await
     }
@@ -125,10 +125,10 @@ impl Hooks for DynamicHooks {
         &self,
         context: &Self::Context,
         definition: NodeDefinition<'a>,
-        metadata: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
     ) -> Result<(), GraphqlError> {
         self.0
-            .authorize_node_pre_execution(context, definition, serde_json::to_value(&metadata).unwrap())
+            .authorize_node_pre_execution(context, definition, metadata.map(|m| serde_json::to_value(&m).unwrap()))
             .await
     }
 }

@@ -118,7 +118,7 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
                         ConditionResult::Errors(vec![GraphqlError::new("Not allowed: insufficient scopes")])
                     }
                 }
-                Condition::Authorized { directive_id, field_id } => {
+                Condition::AuthorizedEdge { directive_id, field_id } => {
                     let directive = &self.ctx.schema[*directive_id];
                     let field = self.walker().walk(*field_id);
                     let arguments = field.arguments().with_selection_set(&directive.arguments);
@@ -129,6 +129,26 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
                         .authorize_edge_pre_execution(
                             field.definition().expect("@authorized cannot be applied on __typename"),
                             arguments,
+                            directive.metadata.map(|id| self.ctx.schema.walk(&self.ctx.schema[id])),
+                        )
+                        .await;
+                    if let Err(err) = result {
+                        ConditionResult::Errors(vec![err])
+                    } else {
+                        ConditionResult::Include
+                    }
+                }
+                Condition::AuthorizedNode {
+                    directive_id,
+                    entity_id,
+                } => {
+                    let directive = &self.ctx.schema[*directive_id];
+                    let result = self
+                        .ctx
+                        .hooks()
+                        .authorize_node_pre_execution(
+                            self.ctx.schema.walk(*entity_id),
+                            directive.metadata.map(|id| self.ctx.schema.walk(&self.ctx.schema[id])),
                         )
                         .await;
 

@@ -130,7 +130,7 @@ impl SchemaInputValue {
 }
 
 impl SchemaInputValues {
-    pub fn push_value(&mut self, value: SchemaInputValue) -> SchemaInputValueId {
+    pub(crate) fn push_value(&mut self, value: SchemaInputValue) -> SchemaInputValueId {
         let id = SchemaInputValueId::from(self.values.len());
         self.values.push(value);
         id
@@ -158,7 +158,7 @@ impl SchemaInputValues {
         (start..self.key_values.len()).into()
     }
 
-    pub fn append_input_object(
+    pub(crate) fn append_input_object(
         &mut self,
         fields: &mut Vec<(InputValueDefinitionId, SchemaInputValue)>,
     ) -> IdRange<SchemaInputObjectFieldValueId> {
