@@ -65,6 +65,8 @@
             nodePackages.semver
             sd
 
+            musl
+
             # Node.js
             nodejs
             nodePackages.prettier
