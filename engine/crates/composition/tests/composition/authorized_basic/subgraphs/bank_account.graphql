@@ -7,14 +7,14 @@ type User {
   userId: ID!
   name: String!
   email: String!
-  accounts: [Account!]! @authorized(rule: "must-be-same-user", fields: "userId name", metadata: "{\"stuff\": true}")
+  accounts: [Account!]! @authorized(fields: "userId name", metadata: "{\"stuff\": true}")
 }
 
-type Account @authorized(rule: "user-to-account", fields: "user { userId }") {
+type Account @authorized(fields: "user { userId }") {
   id: ID!
   type: AccountType!
   # Simple fields
-  balance: Float! @authorized(rule: "balance", fields: "id")
+  balance: Float! @authorized(fields: "id")
   user: User!
   transactions: [Transaction!]!
 }
@@ -42,10 +42,10 @@ type Mutation {
   createTransaction(accountId: ID!, amount: Float!, description: String): Transaction!
   updateUser(id: ID!, name: String, email: String): User!
   # Simple input path
-  deleteUser(id: ID!, soft: Boolean): User! @authorized(rule: "userAdmin", arguments: "id")
+  deleteUser(id: ID!, soft: Boolean): User! @authorized(arguments: "id")
   deleteAccount(id: ID!): Account!
   deleteTransaction(id: ID!): Transaction!
-  createAccount(input: CreateAccountInput, included: Boolean, notIncluded: String): Account @authorized(rule: "the nested input one", arguments: "input { userId nested { name } } included", metadata: ["a", "b", "c"])
+  createAccount(input: CreateAccountInput, included: Boolean, notIncluded: String): Account @authorized(arguments: "input { userId nested { name } } included", metadata: ["a", "b", "c"])
 }
 
 input CreateAccountInput {

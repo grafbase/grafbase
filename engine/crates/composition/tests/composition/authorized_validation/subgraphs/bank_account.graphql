@@ -14,9 +14,9 @@ type Account {
   id: ID!
   type: AccountType!
   # Simple authorized, not part of the parent type.
-  balance: Float! @authorized(rule: "balance", fields: "userId")
+  balance: Float! @authorized(fields: "userId")
   user: User!
-  transactions: [Transaction!]! @authorized(rule: "other-account-types", fields: "user { accounts { accountLevel } }")
+  transactions: [Transaction!]! @authorized(fields: "user { accounts { accountLevel } }")
 }
 
 type Transaction {
@@ -38,12 +38,12 @@ type Query {
 
 # Define the Mutation type
 type Mutation {
-  createUser( name: String!, email: String!): User! @authorized(rule: "userEmail", arguments: "not-a-selection")
+  createUser( name: String!, email: String!): User! @authorized(arguments: "not-a-selection")
   createAccount(userId: ID!, type: AccountType!, initialBalance: Float!): Account!
   createTransaction(accountId: ID!, amount: Float!, description: String): Transaction!
   updateUser(id: ID!, name: String, email: String): User!
   # Simple input path
-  deleteUser(id: ID!): User! @authorized(rule: "userAdmin", arguments: "userId")
+  deleteUser(id: ID!): User! @authorized(arguments: "userId")
   deleteAccount(id: ID!): Account!
   deleteTransaction(id: ID!): Transaction!
 }
