@@ -1,7 +1,7 @@
 #
 # === Build image ===
 #
-FROM rust:1.78-alpine3.20 AS chef
+FROM rust:1.79-alpine3.20 AS chef
 COPY rust-toolchain.toml rust-toolchain.toml
 RUN apk add --no-cache musl-dev && cargo install cargo-chef
 WORKDIR /grafbase
