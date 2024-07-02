@@ -152,11 +152,11 @@ tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 tracing-futures = "0.2.5"
 tracing-mock = "0.1"
-tracing-opentelemetry = "0.23"
-opentelemetry = "0.22"
-opentelemetry_sdk = "0.22.0"
-opentelemetry-stdout = "0.3"
-opentelemetry-otlp = "0.15"
+tracing-opentelemetry = "0.24"
+opentelemetry = "0.23"
+opentelemetry_sdk = "0.23.0"
+opentelemetry-stdout = "0.4"
+opentelemetry-otlp = "0.16"
 
 # Common
 graph-ref = { path = "graph-ref" }
