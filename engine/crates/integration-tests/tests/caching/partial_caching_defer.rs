@@ -301,6 +301,85 @@ fn test_multiple_unnamed_defers() {
     });
 }
 
+#[test]
+fn test_nested_defers() {
+    runtime().block_on(async {
+        let gateway = EngineBuilder::new(SCHEMA)
+            .with_custom_resolvers(RustUdfs::new().resolver("user", UserResolver::default()))
+            .gateway_builder()
+            .await
+            .build();
+
+        const QUERY: &str = r#"
+            query {
+                user {
+                    name
+                    ... @defer {
+                        email
+                        ... @defer {
+                            someConstant
+                            ... @defer {
+                                uncached
+                            }
+                        }
+                    }
+                }
+            }
+        "#;
+
+        let responses = gateway.execute(QUERY).collect().await;
+
+        // Note: technically this is wrong - since each defer chunk ends up containing
+        // the fields of all the defers that happened before.  But I'll revisit that
+        // in GB-6982
+        insta::assert_json_snapshot!(responses, @r###"
+        [
+          {
+            "data": {
+              "user": {
+                "name": "Jo 1"
+              }
+            },
+            "hasNext": true
+          },
+          {
+            "data": {
+              "name": "Jo 1",
+              "email": "1@example.com"
+            },
+            "path": [
+              "user"
+            ],
+            "hasNext": true
+          },
+          {
+            "data": {
+              "name": "Jo 1",
+              "email": "1@example.com",
+              "someConstant": "blah 1"
+            },
+            "path": [
+              "user"
+            ],
+            "hasNext": true
+          },
+          {
+            "data": {
+              "name": "Jo 1",
+              "email": "1@example.com",
+              "someConstant": "blah 1",
+              "uncached": "dont cache me bro 1"
+            },
+            "path": [
+              "user"
+            ],
+            "hasNext": false
+          }
+        ]
+        "###);
+    });
+}
+
 #[derive(Default)]
 pub struct UserResolver {
     call_count: usize,
