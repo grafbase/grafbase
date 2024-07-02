@@ -46,6 +46,20 @@ interface types {
         delete: func(name: string) -> result<option<string>, header-error>;
     }
 
+    // Defines an edge in a type
+    record edge-definition {
+        // The name of the type the edge is part of
+        parent-type-name: string,
+        // The name of the field of this edge
+        field-name: string,
+    }
+
+    // Defines a node
+    record node-definition {
+        // The name of the type of this node
+        type-name: string,
+    }
+
     // An error response can be used to inject an error to the GraphQL response.
     record error-response {
         // Adds the given extensions to the response extensions. The first item in
@@ -72,21 +86,35 @@ interface gateway-request {
 }
 
 interface authorization {
-    use types.{error-response, shared-context};
+    use types.{error-response, shared-context, edge-definition, node-definition};
 
-    // The hook is called in the request cycle if the schema defines an authorization directive.
-    // The context is read only, and provides data written in the gateway request hook.
+    // The hook is called in the request cycle if the schema defines an authorization directive on
+    // an edge, providing the arguments of the edge selected in the directive, the definition of the esge
+    // and the metadata of the directive to the hook.
     //
-    // The input is combined from the directive arguments and fields, taking the data from the 
-    // provided arguments and the field values as defined in the directive.
+    // The hook is run before fetching any data.
     //
     // The result, if an error, will stop the request execution and return an error back to the user.
+    // Result of the edge will be null for an error response.
+    authorize-edge-pre-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        arguments: string,
+        metadata: string
+    ) -> result<_, error-response>;
+
+    // The hook is called in the request cycle if the schema defines an authorization directive to
+    // a node, providing the definition of the node and the metadata of the directive to the hook.
     //
-    // A successful result is a list of optional error responses. The list length must match with the
-    // length of the input list. If the list item is none, the field is returned to the user. If the
-    // value is an error, the error is added to the response and null value returned to the user for
-    // that field.
-    authorized: func(context: shared-context, input: list<string>) -> result<list<option<error-response>>, error-response>;
+    // The hook is run before fetching any data.
+    //
+    // The result, if an error, will stop the request execution and return an error back to the user.
+    // Result of the edge will be null for an error response.
+    authorize-node-pre-execution: func(
+        context: shared-context,
+        definition: node-definition,
+        metadata: string
+    ) -> result<_, error-response>;
 }
 
 // Export here all the hooks the guest wants to implement. If a hook interface is not exported in the world,

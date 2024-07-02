@@ -7590,6 +7590,7 @@ dependencies = [
  "async-runtime",
  "async-trait",
  "async-tungstenite",
+ "deadpool 0.12.1",
  "futures-util",
  "governor",
  "graphql-ws-client",

@@ -1,3 +1,6 @@
+use core::fmt;
+
+use anyhow::anyhow;
 use grafbase_tracing::span::GRAFBASE_TARGET;
 use http::HeaderMap;
 use wasmtime::{
@@ -28,18 +31,20 @@ pub(crate) type Response = (Result<(), ErrorResponse>,);
 /// with the guest, and cannot be shared with multiple requests.
 pub struct GatewayHookInstance {
     store: Store<WasiState>,
-    headers: Resource<HeaderMap>,
-    context: Resource<ContextMap>,
     hook: Option<TypedFunc<Parameters, Response>>,
+    poisoned: bool,
+}
+
+impl fmt::Debug for GatewayHookInstance {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        "GatewayHookInstance { ... }".fmt(f)
+    }
 }
 
 impl GatewayHookInstance {
-    pub(crate) async fn new(loader: &ComponentLoader, context: ContextMap, headers: HeaderMap) -> crate::Result<Self> {
+    /// Creates a new instance for the gateway hook.
+    pub async fn new(loader: &ComponentLoader) -> crate::Result<Self> {
         let mut store = super::initialize_store(loader.config(), loader.engine())?;
-
-        // adds the data to the shared memory
-        let context = store.data_mut().push_resource(context)?;
-        let headers = store.data_mut().push_resource(headers)?;
 
         let instance = loader
             .linker()
@@ -50,29 +55,55 @@ impl GatewayHookInstance {
 
         Ok(Self {
             store,
-            headers,
-            context,
             hook,
+            poisoned: false,
         })
     }
 
-    pub(crate) async fn call(mut self) -> crate::Result<(ContextMap, HeaderMap)> {
-        // we need to take the pointers now, because a resource is not Copy and we need
-        // the pointers to get the data back from the shared memory.
-        let headers_rep = self.headers.rep();
-        let context_rep = self.context.rep();
+    /// Calls the hook with the given parameters.
+    pub async fn call(&mut self, context: ContextMap, headers: HeaderMap) -> crate::Result<(ContextMap, HeaderMap)> {
+        match self.hook {
+            Some(ref hook) => {
+                // adds the data to the shared memory
+                let context = self.store.data_mut().push_resource(context)?;
+                let headers = self.store.data_mut().push_resource(headers)?;
 
-        if let Some(hook) = self.hook {
-            hook.call_async(&mut self.store, (self.context, self.headers))
-                .await?
-                .0?;
-        };
+                // we need to take the pointers now, because a resource is not Copy and we need
+                // the pointers to get the data back from the shared memory.
+                let headers_rep = headers.rep();
+                let context_rep = context.rep();
 
-        // take the data back from the shared memory
-        let context = self.store.data_mut().take_resource(context_rep)?;
-        let headers = self.store.data_mut().take_resource(headers_rep)?;
+                let result = hook.call_async(&mut self.store, (context, headers)).await;
 
-        Ok((context, headers))
+                if result.is_err() {
+                    self.poisoned = true;
+                } else {
+                    hook.post_return_async(&mut self.store).await?;
+                }
+
+                result?.0?;
+
+                // take the data back from the shared memory
+                let context = self.store.data_mut().take_resource(context_rep)?;
+                let headers = self.store.data_mut().take_resource(headers_rep)?;
+
+                Ok((context, headers))
+            }
+            None => Ok((context, headers)),
+        }
+    }
+
+    /// Resets the store to the original state. This must be called if wanting to reuse this instance.
+    ///
+    /// If the cleanup fails, the instance is gone and must be dropped.
+    pub fn cleanup(&mut self) -> crate::Result<()> {
+        if self.poisoned {
+            return Err(anyhow!("this instance is poisoned").into());
+        }
+
+        self.store.set_fuel(u64::MAX)?;
+
+        Ok(())
     }
 }
 
