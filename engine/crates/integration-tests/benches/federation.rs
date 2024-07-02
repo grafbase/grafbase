@@ -1,14 +1,14 @@
 #![allow(unused_crate_dependencies)]
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use integration_tests::federation::FederationGatewayWithoutIO;
+use integration_tests::federation::DeterministicEngine;
 use serde_json::json;
 
 const SCHEMA: &str = include_str!("../data/federated-graph-schema.graphql");
 const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../data/introspection.graphql");
 
 pub fn introspection(c: &mut Criterion) {
-    let bench = FederationGatewayWithoutIO::new(SCHEMA, PATHFINDER_INTROSPECTION_QUERY, &[json!({"data": null})]);
+    let bench = DeterministicEngine::new(SCHEMA, PATHFINDER_INTROSPECTION_QUERY, &[json!({"data": null})]);
     let response = integration_tests::runtime().block_on(bench.execute());
 
     // Sanity check it works.
@@ -28,7 +28,7 @@ pub fn introspection(c: &mut Criterion) {
 }
 
 pub fn basic_federation(c: &mut Criterion) {
-    let bench = FederationGatewayWithoutIO::new(
+    let bench = DeterministicEngine::new(
         SCHEMA,
         r#"
         query ExampleQuery {

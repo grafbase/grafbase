@@ -1,10 +1,265 @@
+use futures::StreamExt;
 use http::HeaderMap;
+use integration_tests::federation::DeterministicEngine;
 use runtime::{
     error::GraphqlError,
     hooks::{DynHookContext, DynHooks, NodeDefinition},
 };
+use serde_json::json;
 
 use super::with_engine_for_auth;
+
+#[test]
+fn query_root_type() {
+    struct TestHooks;
+
+    #[async_trait::async_trait]
+    impl DynHooks for TestHooks {
+        async fn authorize_node_pre_execution(
+            &self,
+            _context: &DynHookContext,
+            definition: NodeDefinition<'_>,
+            _metadata: Option<serde_json::Value>,
+        ) -> Result<(), GraphqlError> {
+            if definition.type_name == "Query" {
+                Err("Query is not allowed!".into())
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    const SCHEMA: &str = r#"
+        enum join__Graph {
+          ACCOUNTS @join__graph(name: "accounts", url: "http://127.0.0.1:46697")
+        }
+
+        type Query @authorized {
+            me: String @join__field(graph: ACCOUNTS)
+        }
+
+        type Mutation {
+            doStuff: String @join__field(graph: ACCOUNTS)
+        }
+        "#;
+
+    let response = integration_tests::runtime().block_on(
+        DeterministicEngine::builder(
+            SCHEMA,
+            r#"
+        query {
+            me
+        }
+        "#,
+        )
+        .with_hooks(TestHooks)
+        .with_subgraph_response(json!({"data": {"me": "Rusty"} }))
+        .build()
+        .execute(),
+    );
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": null,
+      "errors": [
+        {
+          "message": "Query is not allowed!"
+        }
+      ]
+    }
+    "###);
+
+    let response = integration_tests::runtime().block_on(
+        DeterministicEngine::builder(
+            SCHEMA,
+            r#"
+        mutation {
+            doStuff
+        }
+        "#,
+        )
+        .with_hooks(TestHooks)
+        .with_subgraph_response(json!({"data": {"doStuff": "done"} }))
+        .build()
+        .execute(),
+    );
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "doStuff": "done"
+      }
+    }
+    "###);
+}
+
+#[test]
+fn mutation_root_type() {
+    struct TestHooks;
+
+    #[async_trait::async_trait]
+    impl DynHooks for TestHooks {
+        async fn authorize_node_pre_execution(
+            &self,
+            _context: &DynHookContext,
+            definition: NodeDefinition<'_>,
+            _metadata: Option<serde_json::Value>,
+        ) -> Result<(), GraphqlError> {
+            if definition.type_name == "Mutation" {
+                Err("Mutation is not allowed!".into())
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    const SCHEMA: &str = r#"
+        enum join__Graph {
+          ACCOUNTS @join__graph(name: "accounts", url: "http://127.0.0.1:46697")
+        }
+
+        type Query {
+            me: String @join__field(graph: ACCOUNTS)
+        }
+
+        type Mutation @authorized {
+            doStuff: String @join__field(graph: ACCOUNTS)
+        }
+        "#;
+
+    let response = integration_tests::runtime().block_on(
+        DeterministicEngine::builder(
+            SCHEMA,
+            r#"
+        query {
+            me
+        }
+        "#,
+        )
+        .with_hooks(TestHooks)
+        .with_subgraph_response(json!({"data": {"me": "Rusty"} }))
+        .build()
+        .execute(),
+    );
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "me": "Rusty"
+      }
+    }
+    "###);
+
+    let response = integration_tests::runtime().block_on(
+        DeterministicEngine::builder(
+            SCHEMA,
+            r#"
+        mutation {
+            doStuff
+        }
+        "#,
+        )
+        .with_hooks(TestHooks)
+        .with_subgraph_response(json!({"data": {"doStuff": "done"} }))
+        .build()
+        .execute(),
+    );
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": null,
+      "errors": [
+        {
+          "message": "Mutation is not allowed!"
+        }
+      ]
+    }
+    "###);
+}
+
+#[test]
+fn subscription_root_type() {
+    struct TestHooks;
+
+    #[async_trait::async_trait]
+    impl DynHooks for TestHooks {
+        async fn authorize_node_pre_execution(
+            &self,
+            _context: &DynHookContext,
+            definition: NodeDefinition<'_>,
+            _metadata: Option<serde_json::Value>,
+        ) -> Result<(), GraphqlError> {
+            if definition.type_name == "Subscription" {
+                Err("Subscription is not allowed!".into())
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    const SCHEMA: &str = r#"
+        enum join__Graph {
+          ACCOUNTS @join__graph(name: "accounts", url: "http://127.0.0.1:46697")
+        }
+
+        type Query {
+            me: String @join__field(graph: ACCOUNTS)
+        }
+
+        type Subscription @authorized {
+            doStuff: String @join__field(graph: ACCOUNTS)
+        }
+        "#;
+
+    let response = integration_tests::runtime().block_on(
+        DeterministicEngine::builder(
+            SCHEMA,
+            r#"
+        query {
+            me
+        }
+        "#,
+        )
+        .with_hooks(TestHooks)
+        .with_subgraph_response(json!({"data": {"me": "Rusty"} }))
+        .build()
+        .execute(),
+    );
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "me": "Rusty"
+      }
+    }
+    "###);
+
+    let response = integration_tests::runtime().block_on(async {
+        DeterministicEngine::builder(
+            SCHEMA,
+            r#"
+        subscription {
+            doStuff
+        }
+        "#,
+        )
+        .with_hooks(TestHooks)
+        .with_subgraph_response(json!({"data": {"doStuff": "done"} }))
+        .build()
+        .execute_stream()
+        .await
+        .stream
+        .collect::<Vec<_>>()
+        .await
+    });
+    insta::assert_json_snapshot!(response, @r###"
+    [
+      {
+        "data": null,
+        "errors": [
+          {
+            "message": "Subscription is not allowed!"
+          }
+        ]
+      }
+    ]
+    "###);
+}
 
 #[test]
 fn metadata_is_provided() {

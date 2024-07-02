@@ -3,7 +3,7 @@ use schema::{EntityId, ResolverId, Schema};
 use crate::{
     execution::ExecutionContext,
     operation::{EntityLocation, Operation, PlanId, Variables},
-    response::ReadSelectionSet,
+    response::{GraphqlError, ReadSelectionSet},
     sources::PreparedExecutor,
     Runtime,
 };
@@ -24,6 +24,7 @@ pub(crate) use walkers::*;
 /// All the necessary information for the operation to be executed that can be prepared & cached.
 pub(crate) struct OperationPlan {
     operation: Operation,
+    pub(crate) root_errors: Vec<GraphqlError>,
 
     // Association between fields & selection sets and plans. Used when traversing the operation
     // for a plan filtering out other plans fields and to build the collected selection set.

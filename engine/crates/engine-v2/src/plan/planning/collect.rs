@@ -64,6 +64,7 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
             plan_id_to_execution_plan_id: vec![None; operation.plans.len()],
             condition_results: Vec::new(),
             operation_plan: OperationPlan {
+                root_errors: Vec::new(),
                 selection_set_to_collected: vec![None; operation.selection_sets.len()],
                 execution_plans: Vec::new(),
                 plan_parent_to_child_edges: Vec::new(),
@@ -166,6 +167,16 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
     }
 
     fn finalize(mut self) -> PlanningResult<OperationPlan> {
+        if let Some(id) = self.operation_plan.root_condition_id {
+            match &self.condition_results[usize::from(id)] {
+                ConditionResult::Include => (),
+                ConditionResult::Errors(errors) => {
+                    self.operation_plan.root_errors.extend_from_slice(errors);
+                    return Ok(self.operation_plan);
+                }
+            }
+        }
+
         self.generate_root_execution_plans()?;
         let mut operation_plan = self.operation_plan;
         operation_plan.plan_parent_to_child_edges = self

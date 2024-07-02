@@ -70,6 +70,11 @@ impl ResponseBuilder {
         }
     }
 
+    pub fn push_root_errors(&mut self, errors: &[GraphqlError]) {
+        self.errors.extend_from_slice(errors);
+        self.root = None;
+    }
+
     pub fn new_part(
         &mut self,
         root_response_object_refs: Arc<Vec<ResponseObjectRef>>,

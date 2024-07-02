@@ -1,11 +1,11 @@
-use integration_tests::federation::FederationGatewayWithoutIO;
+use integration_tests::federation::DeterministicEngine;
 use serde_json::json;
 
 const SCHEMA: &str = include_str!("../../../data/federated-graph-schema.graphql");
 
 #[test]
 fn subgraph_no_response() {
-    let engine = FederationGatewayWithoutIO::new(
+    let engine = DeterministicEngine::new(
         SCHEMA,
         r#"
         query ExampleQuery {
@@ -31,7 +31,7 @@ fn subgraph_no_response() {
     }
     "###);
 
-    let engine = FederationGatewayWithoutIO::new(
+    let engine = DeterministicEngine::new(
         SCHEMA,
         r#"
         query ExampleQuery {
@@ -60,7 +60,7 @@ fn subgraph_no_response() {
 
 #[test]
 fn request_error() {
-    let engine = FederationGatewayWithoutIO::new(
+    let engine = DeterministicEngine::new(
         SCHEMA,
         r#"
         query ExampleQuery {
@@ -89,7 +89,7 @@ fn request_error() {
 
 #[test]
 fn sugraph_request_error() {
-    let engine = FederationGatewayWithoutIO::new(
+    let engine = DeterministicEngine::new(
         SCHEMA,
         r#"
         query ExampleQuery {
@@ -115,7 +115,7 @@ fn sugraph_request_error() {
 
 #[test]
 fn invalid_response_for_nullable_field() {
-    let engine = FederationGatewayWithoutIO::new(
+    let engine = DeterministicEngine::new(
         SCHEMA,
         r#"
         query ExampleQuery {
@@ -144,7 +144,7 @@ fn invalid_response_for_nullable_field() {
 
 #[test]
 fn subgraph_field_error() {
-    let engine = FederationGatewayWithoutIO::new(
+    let engine = DeterministicEngine::new(
         SCHEMA,
         r#"
         query ExampleQuery {
@@ -174,7 +174,7 @@ fn subgraph_field_error() {
 
 #[test]
 fn simple_error() {
-    let engine = FederationGatewayWithoutIO::new(
+    let engine = DeterministicEngine::new(
         SCHEMA,
         r#"
         query ExampleQuery {
@@ -270,7 +270,7 @@ fn simple_error() {
 
 #[test]
 fn null_entity_with_error() {
-    let engine = FederationGatewayWithoutIO::new(
+    let engine = DeterministicEngine::new(
         SCHEMA,
         r#"
         query ExampleQuery {
