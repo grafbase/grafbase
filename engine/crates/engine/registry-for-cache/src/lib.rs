@@ -3,9 +3,9 @@
 //! We don't use the full registry for this because it's large and caching
 //! needs to be fast.
 
-use std::{cmp::Ordering, fmt};
+use std::{cmp::Ordering, collections::BTreeMap, fmt};
 
-use ids::{MetaTypeId, StringId};
+use ids::{MetaTypeId, StringId, SubtypeTargetId};
 use indexmap::IndexSet;
 
 mod common;
@@ -41,6 +41,14 @@ pub struct PartialCacheRegistry {
     query_type: MetaTypeId,
     mutation_type: Option<MetaTypeId>,
     subscription_type: Option<MetaTypeId>,
+
+    /// HashMap from the name of a type to the interfaces that it implements
+    /// & unions it is a member of
+    #[serde(default)]
+    subtype_types: BTreeMap<StringId, IdRange<SubtypeTargetId>>,
+    #[serde(default)]
+    // TODO: Better names for these, these names are a load of shit
+    subtype_targets: Vec<StringId>,
 
     pub enable_caching: bool,
     #[serde(default)]
@@ -102,6 +110,8 @@ impl PartialCacheRegistry {
             query_type: MetaTypeId::new(0),
             mutation_type: Default::default(),
             subscription_type: Default::default(),
+            subtype_types: Default::default(),
+            subtype_targets: Default::default(),
             enable_caching: Default::default(),
             enable_partial_caching: false,
         }

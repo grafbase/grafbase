@@ -25,13 +25,13 @@ impl<'a> Visitor<'a> for Interface {
         ctx: &mut VisitorContext<'a>,
         type_definition: &'a engine::Positioned<engine_parser::types::TypeDefinition>,
     ) {
-        let TypeKind::Interface(object) = &type_definition.node.kind else {
+        let TypeKind::Interface(interface) = &type_definition.node.kind else {
             return;
         };
 
         let type_name = type_definition.node.name.node.to_string();
 
-        let fields = object
+        let fields = interface
             .fields
             .iter()
             .map(|field| {
@@ -92,7 +92,7 @@ impl<'a> Visitor<'a> for Interface {
             .implements
             .entry(type_name)
             .or_default()
-            .extend(object.implements.iter().map(|name| name.to_string()));
+            .extend(interface.implements.iter().map(|name| name.to_string()));
     }
 }
 

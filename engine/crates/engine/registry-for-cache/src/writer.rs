@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use anyhow::anyhow;
 use indexmap::IndexSet;
 
@@ -28,6 +30,9 @@ pub struct RegistryWriter {
     pub query_type: Option<MetaTypeId>,
     pub mutation_type: Option<MetaTypeId>,
     pub subscription_type: Option<MetaTypeId>,
+
+    subtype_types: BTreeMap<StringId, IdRange<SubtypeTargetId>>,
+    subtype_targets: Vec<StringId>,
 
     pub enable_caching: bool,
     pub enable_partial_caching: bool,
@@ -86,6 +91,24 @@ impl RegistryWriter {
         MetaTypeRecord::Other(id)
     }
 
+    pub fn insert_subtypes(&mut self, typename: String, subtypes: IdRange<SubtypeTargetId>) {
+        let typename = self.intern_string(typename);
+        self.subtype_types.insert(typename, subtypes);
+    }
+
+    #[must_use]
+    pub fn insert_subtype_targets(&mut self, targets: Vec<String>) -> IdRange<SubtypeTargetId> {
+        let starting_id = SubtypeTargetId::new(self.subtype_targets.len());
+
+        self.subtype_targets.reserve(targets.len());
+        for target in targets {
+            let id = self.intern_string(target);
+            self.subtype_targets.push(id);
+        }
+
+        IdRange::new(starting_id, SubtypeTargetId::new(self.subtype_targets.len()))
+    }
+
     #[must_use]
     pub fn intern_str(&mut self, string: &str) -> StringId {
         let (id, _) = self.strings.insert_full(string.into());
@@ -104,13 +127,15 @@ impl RegistryWriter {
             types,
             objects,
             object_fields,
+            interfaces,
+            others,
             query_type,
             mutation_type,
             subscription_type,
-            interfaces,
+            subtype_types,
+            subtype_targets,
             enable_caching,
             enable_partial_caching,
-            others,
         } = self;
 
         let types = types
@@ -125,12 +150,14 @@ impl RegistryWriter {
             types,
             objects,
             object_fields,
+            interfaces,
+            others,
             query_type,
             mutation_type,
             subscription_type,
-            interfaces,
+            subtype_types,
+            subtype_targets,
             enable_caching,
-            others,
             enable_partial_caching,
         })
     }

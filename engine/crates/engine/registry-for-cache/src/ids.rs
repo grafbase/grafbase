@@ -13,4 +13,6 @@ make_id!(InterfaceTypeId, InterfaceTypeRecord, interfaces, PartialCacheRegistry)
 
 make_id!(OtherTypeId, OtherTypeRecord, others, PartialCacheRegistry);
 
+make_id!(SubtypeTargetId, StringId, subtype_targets, PartialCacheRegistry);
+
 make_id!(StringId, str, strings, PartialCacheRegistry);
