@@ -75,11 +75,7 @@ impl QuerySubset {
     }
 
     fn selection_set_display<'a>(&'a self, selections: Iter<'a, Selection<'a>>) -> SelectionSetDisplay<'a> {
-        SelectionSetDisplay {
-            visible_selections: &self.partition.selections,
-            selections: self.selection_iter(selections),
-            indent_level: 0,
-        }
+        SelectionSetDisplay::new(&self.partition.selections, selections, 0)
     }
 
     pub(crate) fn selection_iter<'doc, 'subset>(
@@ -87,7 +83,7 @@ impl QuerySubset {
         selection_set: Iter<'doc, Selection<'doc>>,
     ) -> FilteredSelectionSet<'doc, 'subset> {
         FilteredSelectionSet {
-            visible_ids: &self.partition.selections,
+            visible_selections: &self.partition.selections,
             selections: selection_set.with_ids(),
         }
     }
@@ -95,8 +91,31 @@ impl QuerySubset {
 
 #[derive(Clone, Copy)]
 pub(crate) struct FilteredSelectionSet<'doc, 'subset> {
-    visible_ids: &'subset IndexSet<SelectionId>,
+    visible_selections: &'subset IndexSet<SelectionId>,
     selections: IdIter<'doc, Selection<'doc>>,
+}
+
+impl FilteredSelectionSet<'_, '_> {
+    pub fn requires_synthetic_typename(self) -> bool {
+        let mut result = false;
+        for selection in self {
+            match selection {
+                Selection::Field(field) if field.name() == "__typename" && field.alias().is_none() => {
+                    // If we already have a typename there's no point in adding another
+                    return false;
+                }
+                Selection::FragmentSpread(_) | Selection::InlineFragment(_) => {
+                    // Technically an inline fragment doesn't always need a typename, but its easier to
+                    // just assume that it does.  In particular a `@defer` without a condition but with
+                    // conditions inside needs a typename at this level, and this assumption saves
+                    // us from bothering to recurse
+                    result = true;
+                }
+                _ => {}
+            }
+        }
+        result
+    }
 }
 
 impl<'doc, 'subset> Iterator for FilteredSelectionSet<'doc, 'subset> {
@@ -104,7 +123,7 @@ impl<'doc, 'subset> Iterator for FilteredSelectionSet<'doc, 'subset> {
 
     fn next(&mut self) -> Option<Self::Item> {
         for (id, selection) in self.selections.by_ref() {
-            if self.visible_ids.contains(&id) {
+            if self.visible_selections.contains(&id) {
                 return Some(selection);
             }
         }

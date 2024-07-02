@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use crate::planning::defers::DeferId;
+use crate::{planning::defers::DeferId, TypeRelationships};
 
 use super::{
     shapes::{ConcreteShape, Field, ObjectShape, OutputShapes},
@@ -16,10 +16,12 @@ impl OutputStore {
         json: &mut serde_json::Value,
         shapes: &'a OutputShapes,
         active_defers: &HashSet<DeferId>,
+        type_relationships: &'a dyn TypeRelationships,
     ) {
         CacheMerge {
             store: self,
             shapes,
+            type_relationships,
             mode: MergeMode::All { active_defers },
         }
         .merge_cache_entry(json);
@@ -31,10 +33,12 @@ impl OutputStore {
         shapes: &'a OutputShapes,
         defer: DeferId,
         active_nested_defers: &HashSet<DeferId>,
+        type_relationships: &'a dyn TypeRelationships,
     ) {
         CacheMerge {
             store: self,
             shapes,
+            type_relationships,
             mode: MergeMode::SpecificDefer {
                 defer,
                 active_nested_defers,
@@ -47,6 +51,8 @@ impl OutputStore {
 struct CacheMerge<'a> {
     store: &'a mut OutputStore,
     shapes: &'a OutputShapes,
+
+    type_relationships: &'a dyn TypeRelationships,
 
     mode: MergeMode<'a>,
 }
@@ -138,15 +144,10 @@ impl<'a> CacheMerge<'a> {
             }
             (ValueRecord::List(_), _) => todo!("this is a problem"),
             (ValueRecord::Object(dest_object_id), serde_json::Value::Object(source_object)) => {
-                match current_field_shape.subselection_shape() {
-                    Some(ObjectShape::Concrete(shape)) => {
-                        self.merge_cache_object(source_object, *dest_object_id, shape, current_defer)
-                    }
-                    Some(ObjectShape::Polymorphic(_)) => {
-                        todo!("deal with polymorphic shapes");
-                    }
-                    None => todo!("errors innit"),
-                }
+                let shape_id = self.store.read_object(self.shapes, *dest_object_id).shape_id();
+                let dest_object_shape = self.shapes.concrete_object(shape_id);
+
+                self.merge_cache_object(source_object, *dest_object_id, dest_object_shape, current_defer)
             }
             (ValueRecord::Object(_), _) => {
                 // TODO: Going to deal with this in GB-6782
@@ -193,8 +194,13 @@ impl<'a> CacheMerge<'a> {
             serde_json::Value::Object(source_object) => {
                 let dest_object_shape = match field_shape.subselection_shape() {
                     Some(ObjectShape::Concrete(shape)) => shape,
-                    Some(ObjectShape::Polymorphic(_)) => todo!("GB-6949"),
-                    None => todo!(),
+                    Some(ObjectShape::Polymorphic(shape)) => {
+                        let Some(typename) = source_object.get("__typename").and_then(|value| value.as_str()) else {
+                            todo!("GB-6966")
+                        };
+                        shape.concrete_shape_for_typename(typename, self.type_relationships)
+                    }
+                    None => todo!("GB-6966"),
                 };
                 let dest_object_id = self.store.insert_object(dest_object_shape);
 

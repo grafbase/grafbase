@@ -124,24 +124,34 @@ fn merge_container_into_value(
     context: &mut MergeContext<'_>,
     object_shape: ObjectShape<'_>,
 ) {
-    let concrete_shape = match object_shape {
-        ObjectShape::Concrete(concrete) => concrete,
-        ObjectShape::Polymorphic(_) => {
-            // This requires typeinfo from the caching registry, which is missing just now.
-            // Will revisit in GB-6949
-            todo!("figure out which branch matches based on the __typename")
-        }
-    };
-
-    let object_id = match context.output.value(dest_value_id) {
+    let (object_id, concrete_shape) = match context.output.value(dest_value_id) {
         ValueRecord::Unset => {
+            let concrete_shape = match object_shape {
+                ObjectShape::Concrete(concrete) => concrete,
+                ObjectShape::Polymorphic(shape) => {
+                    let typename = context.source.get_node(container_id).and_then(|node| {
+                        context
+                            .source
+                            .get_node(node.as_container()?.child("__typename")?)?
+                            .as_str()
+                    });
+
+                    let Some(typename) = typename else { todo!("GB-6966") };
+                    shape.concrete_shape_for_typename(typename, context.type_relationships)
+                }
+            };
+
             let object_id = context.output.insert_object(concrete_shape);
             context
                 .output
                 .write_value(dest_value_id, ValueRecord::Object(object_id));
-            object_id
+
+            (object_id, concrete_shape)
         }
-        ValueRecord::Object(object_id) => *object_id,
+        ValueRecord::Object(object_id) => {
+            let shape_id = context.output.concrete_shape_of_object(*object_id);
+            (*object_id, context.shapes.concrete_object(shape_id))
+        }
         _ => todo!("GB-6966"),
     };
 

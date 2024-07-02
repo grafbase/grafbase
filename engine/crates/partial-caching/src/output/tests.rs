@@ -95,6 +95,7 @@ fn test_cache_merging() {
         }),
         &shapes,
         &active_defers,
+        &NoSubtypes,
     );
 
     insta::assert_json_snapshot!(store.serialize_all(&shapes, serde_json::value::Serializer).unwrap(), @r###"
@@ -159,6 +160,7 @@ fn test_cache_merging_with_defer() {
         }),
         &shapes,
         &active_defers,
+        &NoSubtypes,
     );
 
     insta::assert_json_snapshot!(store.serialize_all(&shapes, serde_json::value::Serializer).unwrap(), @r###"
@@ -218,6 +220,7 @@ fn test_cache_merging_when_defer_ignored() {
         }),
         &shapes,
         &active_defers,
+        &NoSubtypes,
     );
 
     insta::assert_json_snapshot!(store.serialize_all(&shapes, serde_json::value::Serializer).unwrap(), @r###"
@@ -281,9 +284,9 @@ fn test_incremental_response_merging() {
         }
     });
 
-    store.merge_cache_entry(&mut cache_entry, &shapes, &active_defers);
+    store.merge_cache_entry(&mut cache_entry, &shapes, &active_defers, &NoSubtypes);
 
-    store.merge_specific_defer_from_cache_entry(&mut cache_entry, &shapes, defer_id, &HashSet::new());
+    store.merge_specific_defer_from_cache_entry(&mut cache_entry, &shapes, defer_id, &HashSet::new(), &NoSubtypes);
 
     let crate::output::Value::Object(object) = store.reader(&shapes).unwrap().field("user").unwrap() else {
         unreachable!()
@@ -371,7 +374,7 @@ fn test_nested_defers() {
         }
     });
 
-    store.merge_cache_entry(&mut cache_entry, &shapes, &active_defers);
+    store.merge_cache_entry(&mut cache_entry, &shapes, &active_defers, &NoSubtypes);
 
     let crate::output::Value::Object(object) = store.reader(&shapes).unwrap().field("user").unwrap() else {
         unreachable!()
@@ -384,7 +387,7 @@ fn test_nested_defers() {
         &shapes,
         &NoSubtypes,
     );
-    store.merge_specific_defer_from_cache_entry(&mut cache_entry, &shapes, first_defer_id, &active_defers);
+    store.merge_specific_defer_from_cache_entry(&mut cache_entry, &shapes, first_defer_id, &active_defers, &NoSubtypes);
 
     insta::assert_json_snapshot!(store.serialize_all(&shapes, serde_json::value::Serializer).unwrap(), @r###"
     {
@@ -409,7 +412,13 @@ fn test_nested_defers() {
         &NoSubtypes,
     );
 
-    store.merge_specific_defer_from_cache_entry(&mut cache_entry, &shapes, second_defer_id, &active_defers);
+    store.merge_specific_defer_from_cache_entry(
+        &mut cache_entry,
+        &shapes,
+        second_defer_id,
+        &active_defers,
+        &NoSubtypes,
+    );
 
     insta::assert_json_snapshot!(store.serialize_all(&shapes, serde_json::value::Serializer).unwrap(), @r###"
     {
@@ -478,7 +487,7 @@ fn test_nested_defers_when_defer_ignored() {
         }
     });
 
-    store.merge_cache_entry(&mut cache_entry, &shapes, &active_defers);
+    store.merge_cache_entry(&mut cache_entry, &shapes, &active_defers, &NoSubtypes);
 
     let crate::output::Value::Object(object) = store.reader(&shapes).unwrap().field("user").unwrap() else {
         unreachable!()
@@ -497,7 +506,7 @@ fn test_nested_defers_when_defer_ignored() {
         &shapes,
         &NoSubtypes,
     );
-    store.merge_specific_defer_from_cache_entry(&mut cache_entry, &shapes, first_defer_id, &active_defers);
+    store.merge_specific_defer_from_cache_entry(&mut cache_entry, &shapes, first_defer_id, &active_defers, &NoSubtypes);
 
     insta::assert_json_snapshot!(store.serialize_all(&shapes, serde_json::value::Serializer).unwrap(), @r###"
     {

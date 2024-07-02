@@ -1,4 +1,4 @@
-use std::{collections::HashSet, time::Duration};
+use std::{collections::BTreeSet, time::Duration};
 
 use graph_entities::{QueryResponse, QueryResponseNode};
 use query_path::QueryPathSegment;
@@ -61,17 +61,19 @@ impl StreamingExecutionPhase {
         let cache_entries = self.execution_phase.cache_entries.iter_mut();
         let cache_keys = std::mem::take(&mut self.execution_phase.cache_keys);
 
+        let type_relationships = self.execution_phase.type_relationships.as_ref();
+
         for (index, (entry, key)) in cache_entries.zip(cache_keys).enumerate() {
             match entry {
                 Entry::Hit(hit, max_age) => {
-                    store.merge_cache_entry(hit, &self.shapes, &active_defers);
+                    store.merge_cache_entry(hit, &self.shapes, &active_defers, type_relationships);
 
                     response_max_age.merge(*max_age);
                 }
                 Entry::Stale(stale) => {
                     // TODO: Also want to issue an update instruction here, but going to do that
                     // in GB-6804
-                    store.merge_cache_entry(&mut stale.value, &self.shapes, &active_defers);
+                    store.merge_cache_entry(&mut stale.value, &self.shapes, &active_defers, type_relationships);
 
                     // This entry was stale so clear the current maxAge until we have revalidated
                     response_max_age.set_none();
@@ -141,8 +143,16 @@ impl StreamingExecutionPhase {
                     _ => None,
                 });
 
+            let type_relationships = self.execution_phase.type_relationships.as_ref();
+
             for mut value in cache_values {
-                output.merge_specific_defer_from_cache_entry(&mut value, &self.shapes, defer, &active_nested_defers);
+                output.merge_specific_defer_from_cache_entry(
+                    &mut value,
+                    &self.shapes,
+                    defer,
+                    &active_nested_defers,
+                    type_relationships,
+                );
             }
         }
 
@@ -197,7 +207,7 @@ impl StreamingExecutionPhase {
 
         // If there's no label and multiple possible defers in this object we'll have to examine
         // the output to figure out what defer this is.  Urgh.
-        let possible_defers = possible_defers.collect::<HashSet<_>>();
+        let possible_defers = possible_defers.collect::<BTreeSet<_>>();
         let mut field_stack = vec![(data.root?, ObjectShape::Concrete(destination_object.shape()))];
 
         while let Some((id, object_shape)) = field_stack.pop() {
@@ -205,7 +215,15 @@ impl StreamingExecutionPhase {
                 QueryResponseNode::Container(container) => {
                     let concrete_shape = match object_shape {
                         ObjectShape::Concrete(shape) => shape,
-                        ObjectShape::Polymorphic(_) => todo!("GB-6949"),
+                        ObjectShape::Polymorphic(shape) => {
+                            let Some(typename) =
+                                container.child("__typename").and_then(|id| data.get_node(id)?.as_str())
+                            else {
+                                todo!("GB-6966")
+                            };
+                            shape
+                                .concrete_shape_for_typename(typename, self.execution_phase.type_relationships.as_ref())
+                        }
                     };
 
                     for (name, src_id) in container.iter() {
@@ -229,10 +247,17 @@ impl StreamingExecutionPhase {
             }
         }
 
-        None
+        // Ok, so we can have defers with no unique fields where users do
+        // something weird like nest defers immediately inside other defers.
+        //
+        // It's quite difficult to determine the defer in those cases.
+        //
+        // But given that the alternative is to error out, lets just guess
+        // that it's the first one we encountered.
+        possible_defers.first().copied()
     }
 
-    fn object_at_path<'a>(&'a self, path: &[&QueryPathSegment]) -> Option<Object<'a>> {
+    fn object_at_path<'b>(&'b self, path: &[&QueryPathSegment]) -> Option<Object<'b>> {
         let mut value = Value::Object(self.output.as_ref()?.reader(&self.shapes)?);
 
         for segment in path {

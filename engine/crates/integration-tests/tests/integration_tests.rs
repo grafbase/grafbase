@@ -9,6 +9,7 @@ mod federation;
 mod graphql_connector;
 mod mongodb;
 mod openapi;
+mod partial_caching;
 mod postgres;
 mod rate_limiting;
 mod subgraph;

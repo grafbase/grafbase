@@ -20,7 +20,7 @@ pub(crate) struct DeferRecord {
     spread_id: SelectionId,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub struct DeferId(u16);
 
 pub struct Defer<'a> {

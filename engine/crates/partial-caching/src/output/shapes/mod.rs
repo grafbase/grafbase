@@ -13,7 +13,6 @@ use crate::{planning::defers::DeferId, CachingPlan, TypeRelationships};
 pub struct OutputShapes {
     objects: Vec<ObjectShapeRecord>,
 
-    #[allow(dead_code)] // Will be using this after GB-6949
     type_conditions: Vec<TypeConditionNode>,
 
     root: ConcreteShapeId,
@@ -91,7 +90,6 @@ enum ObjectShapeRecord {
     Concrete {
         fields: Vec<FieldRecord>,
     },
-    #[allow(dead_code)] // Will be using this after GB-6949
     Polymorphic {
         type_conditions: Box<[TypeConditionId]>,
         fallback: ConcreteShapeId,
@@ -104,7 +102,6 @@ pub struct FieldRecord {
     subselection_shape: Option<ObjectShapeId>,
 }
 
-#[allow(dead_code)] // Will be using this after GB-6949
 pub struct TypeConditionNode {
     type_condition: String,
     concrete_shape: ConcreteShapeId,
@@ -154,10 +151,59 @@ impl<'a> ConcreteShape<'a> {
 }
 
 #[derive(Clone, Copy)]
-#[allow(dead_code)] // Will be using this after GB-6949
 pub struct PolymorphicShape<'a> {
     shapes: &'a OutputShapes,
     id: ObjectShapeId,
+}
+
+impl<'a> PolymorphicShape<'a> {
+    pub(crate) fn concrete_shape_for_typename(
+        &self,
+        typename: &str,
+        type_relationships: &dyn TypeRelationships,
+    ) -> ConcreteShape<'a> {
+        let ObjectShapeRecord::Polymorphic {
+            type_conditions,
+            fallback,
+        } = &self.shapes.objects[self.id.0 as usize]
+        else {
+            unreachable!()
+        };
+
+        fn search(
+            typename: &str,
+            conditions: &[TypeConditionId],
+            fallback: ConcreteShapeId,
+            shapes: &OutputShapes,
+            type_relationships: &dyn TypeRelationships,
+        ) -> ConcreteShapeId {
+            let condition_match = conditions.iter().find(|id| {
+                type_relationships
+                    .type_condition_matches(shapes.type_conditions[id.0 as usize].type_condition.as_str(), typename)
+            });
+
+            match condition_match {
+                Some(id) => {
+                    let node = &shapes.type_conditions[id.0 as usize];
+                    search(
+                        typename,
+                        &node.subtypes,
+                        node.concrete_shape,
+                        shapes,
+                        type_relationships,
+                    )
+                }
+                None => fallback,
+            }
+        }
+
+        let id = search(typename, type_conditions, *fallback, self.shapes, type_relationships);
+
+        ConcreteShape {
+            shapes: self.shapes,
+            id,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
