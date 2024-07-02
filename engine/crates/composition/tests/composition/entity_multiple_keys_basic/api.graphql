@@ -19,6 +19,6 @@ type Post {
 }
 
 type Query {
-    getUser: User
-    getUserComments: User
+    getUser(id: ID!): User
+    getUserComments(name: String!, email: String!): User
 }

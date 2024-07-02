@@ -173,12 +173,14 @@ pub struct Interface {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq)]
 pub struct InputValueDefinition {
     pub name: StringId,
     pub r#type: Type,
     pub directives: Directives,
     pub description: Option<StringId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<Value>,
 }
 
 pub type InputValueDefinitionSet = Vec<InputValueDefinitionSetItem>;
@@ -223,6 +225,7 @@ impl From<super::v2::FederatedGraphV2> for FederatedGraphV3 {
                 r#type: (&value[input_value.type_id]).into(),
                 directives: input_value.directives,
                 description: input_value.description,
+                default: None,
             })
             .collect();
 

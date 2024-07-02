@@ -35,8 +35,8 @@ type WasteTypeBreakdown {
 }
 
 type Query {
-    hazardousWasteData: HazardousWasteStats
-    recyclingCenters: [RecyclingCenter]
-    wasteCollectionPoints: [CollectionPoint]
-    wasteStatistics: WasteStats
+    hazardousWasteData(city: String!): HazardousWasteStats
+    recyclingCenters(city: String!): [RecyclingCenter]
+    wasteCollectionPoints(city: String!): [CollectionPoint]
+    wasteStatistics(city: String!): WasteStats
 }

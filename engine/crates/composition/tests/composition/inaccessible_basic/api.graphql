@@ -41,12 +41,12 @@ type Cubic {
 }
 
 type Query {
-    getBook: Book
-    getNew: New
-    getUngulate: Ungulate
+    getBook(id: ID!): Book
+    getNew(name: String!): New
+    getUngulate(id: ID!): Ungulate
 }
 
 type Mutation {
-    addBook: Book
-    updateBook: Book
+    addBook(input: BookInput!): Book
+    updateBook(id: ID!, input: BookInput!): Book
 }

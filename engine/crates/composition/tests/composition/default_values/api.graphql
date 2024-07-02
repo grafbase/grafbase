@@ -1,0 +1,20 @@
+type Book {
+    author: String!
+    id: ID!
+    title: String!
+    yearPublished: Int
+}
+
+type Query {
+    books(limit: Int = 10): [Book!]!
+}
+
+type Mutation {
+    addBook(input: AddBookInput!): Book
+}
+
+input AddBookInput {
+    title: String!
+    author: String!
+    yearPublished: Int = 2023
+}

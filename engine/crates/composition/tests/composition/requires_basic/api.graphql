@@ -15,7 +15,7 @@ type ChiliVariety {
 
 type Query {
     chiliVarieties: [ChiliVariety]
-    chiliVariety: ChiliVariety
-    farm: Farm
+    chiliVariety(id: ID!): ChiliVariety
+    farm(id: ID!): Farm
     farms: [Farm]
 }

@@ -34,10 +34,10 @@ type BirdSighting @deprecated(reason: "we haven't seen any birds in a while :(")
 }
 
 type Query {
-    bird: Bird
-    birdObservation: BirdObservation
-    birdObservations: [BirdObservation]
-    birdSighting: BirdSighting
+    bird(id: ID!): Bird
+    birdObservation(observationID: ID!): BirdObservation
+    birdObservations(filters: BirdObservationFilters): [BirdObservation]
+    birdSighting(sightingID: ID!, private: Boolean @deprecated): BirdSighting
     birdSightings: [BirdSighting]
     birds: [Bird]
 }

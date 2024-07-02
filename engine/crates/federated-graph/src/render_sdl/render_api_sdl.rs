@@ -89,6 +89,7 @@ impl fmt::Display for Renderer<'_> {
                     write_description(f, field.description, INDENT, graph)?;
                     f.write_str(INDENT)?;
                     f.write_str(field_name)?;
+                    write_field_arguments(f, &graph[field.arguments], graph)?;
                     f.write_str(": ")?;
                     f.write_str(&render_field_type(&field.r#type, graph))?;
                     write_public_directives(f, field.composed_directives, graph)?;
@@ -126,6 +127,7 @@ impl fmt::Display for Renderer<'_> {
                     f.write_str(field_name)?;
                     f.write_str(": ")?;
                     f.write_str(&render_field_type(&field.r#type, graph))?;
+                    write_field_arguments(f, &graph[field.arguments], graph)?;
                     write_public_directives(f, field.composed_directives, graph)?;
                     f.write_char('\n')?;
                 }
@@ -162,6 +164,11 @@ impl fmt::Display for Renderer<'_> {
                     f.write_str(field_name)?;
                     f.write_str(": ")?;
                     f.write_str(&render_field_type(&field.r#type, graph))?;
+
+                    if let Some(default) = &field.default {
+                        write!(f, " = {}", ValueDisplay(default, graph))?;
+                    }
+
                     write_public_directives(f, field.directives, graph)?;
                     f.write_char('\n')?;
                 }
@@ -252,6 +259,47 @@ fn write_enum_variant(f: &mut fmt::Formatter<'_>, enum_variant: &EnumValue, grap
     f.write_str(&graph[enum_variant.value])?;
     write_public_directives(f, enum_variant.composed_directives, graph)?;
     f.write_char('\n')
+}
+
+fn write_field_arguments(
+    f: &mut fmt::Formatter<'_>,
+    args: &[InputValueDefinition],
+    graph: &FederatedGraphV3,
+) -> fmt::Result {
+    if args.is_empty() {
+        return Ok(());
+    }
+
+    let mut inner = args
+        .iter()
+        .map(|arg| {
+            let name = &graph[arg.name];
+            let r#type = render_field_type(&arg.r#type, graph);
+            let directives = arg.directives;
+            let default = arg.default.as_ref();
+            (name, r#type, directives, default)
+        })
+        .peekable();
+
+    f.write_str("(")?;
+
+    while let Some((name, ty, directives, default)) = inner.next() {
+        f.write_str(name)?;
+        f.write_str(": ")?;
+        f.write_str(&ty)?;
+
+        if let Some(default) = default {
+            write!(f, " = {}", ValueDisplay(default, graph))?;
+        }
+
+        write_public_directives(f, directives, graph)?;
+
+        if inner.peek().is_some() {
+            f.write_str(", ")?;
+        }
+    }
+
+    f.write_str(")")
 }
 
 #[cfg(test)]

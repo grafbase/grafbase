@@ -23,15 +23,15 @@ type Rice {
 }
 
 type Query {
-    lentil: Lentil
+    lentil(id: ID!): Lentil
     lentils: [Lentil]
-    rice: Rice
+    rice(id: ID!): Rice
     rices: [Rice]
 }
 
 type Mutation {
-    addLentil: Lentil
-    deleteLentil: Lentil
+    addLentil(input: AddLentilInput!): Lentil
+    deleteLentil(id: ID!): Lentil
 }
 
 input AddLentilInput {

@@ -228,6 +228,7 @@ fn translate_arguments(
             r#type: arg.r#type().id,
             directives,
             description: None,
+            default: arg.default().cloned(),
         });
 
         if let Some((_start, len)) = &mut ids {
