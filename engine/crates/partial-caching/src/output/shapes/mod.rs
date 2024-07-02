@@ -4,7 +4,8 @@ mod fragment_iter;
 use std::fmt;
 
 pub use building::build_output_shapes;
-use cynic_parser::executable::OperationDefinition;
+
+use crate::{planning::defers::DeferId, CachingPlan};
 
 /// Contains the schemas of all the objects we could see in our output,
 /// based on the shape of the query
@@ -12,11 +13,19 @@ pub struct OutputShapes {
     objects: Vec<ObjectShapeRecord>,
 
     root: ConcreteShapeId,
+
+    /// Defers that are rooted in a given ConcreteShapeId
+    ///
+    /// There may be multiple defers for a given shape and multiple shapes that
+    /// contain a defer.  Fun
+    ///
+    /// This should be sorted by ConcreteShapeId to allow a binary search
+    defer_roots: Vec<(ConcreteShapeId, DeferId)>,
 }
 
 impl OutputShapes {
-    pub(crate) fn new(operation: OperationDefinition<'_>) -> Self {
-        build_output_shapes(operation)
+    pub(crate) fn new(plan: &CachingPlan) -> Self {
+        build_output_shapes(plan)
     }
 
     pub fn root(&self) -> ConcreteShape<'_> {
@@ -39,6 +48,15 @@ impl OutputShapes {
             ObjectShapeRecord::Polymorphic { .. } => ObjectShape::Polymorphic(PolymorphicShape { shapes: self, id }),
         }
     }
+
+    pub fn defers_for_object(&self, target_id: ConcreteShapeId) -> impl ExactSizeIterator<Item = DeferId> + '_ {
+        let start_range = self.defer_roots.partition_point(|(shape_id, _)| *shape_id < target_id);
+        let end_range = self.defer_roots[start_range..].partition_point(|(shape_id, _)| *shape_id == target_id);
+
+        self.defer_roots[start_range..end_range]
+            .iter()
+            .map(|(_, defer_id)| *defer_id)
+    }
 }
 
 /// The shape an object in the response can have
@@ -58,7 +76,7 @@ pub struct FieldIndex(pub(super) u16);
 #[derive(Clone, Copy)]
 pub struct ObjectShapeId(u16);
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub struct ConcreteShapeId(u16);
 
 enum ObjectShapeRecord {
@@ -73,14 +91,14 @@ enum ObjectShapeRecord {
 
 pub struct FieldRecord {
     response_key: String,
-    defer_label: Option<String>,
+    defer: Option<DeferId>,
     subselection_shape: Option<ObjectShapeId>,
 }
 
 #[derive(Clone, Copy)]
 pub struct ConcreteShape<'a> {
     shapes: &'a OutputShapes,
-    id: ConcreteShapeId,
+    pub id: ConcreteShapeId,
 }
 
 impl<'a> ConcreteShape<'a> {
@@ -154,8 +172,8 @@ impl<'a> Field<'a> {
         self.record().subselection_shape.is_none()
     }
 
-    pub fn defer_label(&self) -> Option<&'a str> {
-        self.record().defer_label.as_deref()
+    pub fn defer_id(&self) -> Option<DeferId> {
+        self.record().defer
     }
 
     pub fn subselection_shape(&self) -> Option<ObjectShape<'a>> {

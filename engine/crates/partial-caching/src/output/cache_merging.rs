@@ -2,6 +2,8 @@
 
 use std::collections::HashSet;
 
+use crate::planning::defers::DeferId;
+
 use super::{
     shapes::{ConcreteShape, Field, ObjectShape, OutputShapes},
     store::{ObjectId, ValueId, ValueRecord},
@@ -13,7 +15,7 @@ impl OutputStore {
         &'a mut self,
         json: &mut serde_json::Value,
         shapes: &'a OutputShapes,
-        active_defers: &HashSet<&'a str>,
+        active_defers: &HashSet<DeferId>,
     ) {
         CacheMerge {
             store: self,
@@ -27,7 +29,7 @@ impl OutputStore {
         &'a mut self,
         json: &mut serde_json::Value,
         shapes: &'a OutputShapes,
-        defer: &'a str,
+        defer: DeferId,
     ) {
         CacheMerge {
             store: self,
@@ -49,14 +51,14 @@ enum MergeMode<'a> {
     /// This mode should be used when merging into the initial
     /// response.  We take all the un-deferred fields and
     /// any deferred fields that are in active_defers
-    All { active_defers: &'a HashSet<&'a str> },
+    All { active_defers: &'a HashSet<DeferId> },
 
     /// This mode should be used when we receive a deferred payload,
     /// passing in the name of the defer we are merging
     ///
     /// In this mode we'll only merge in fields that are specifically
     /// part of the named defer, and not any other fields.
-    SpecificDefer(&'a str),
+    SpecificDefer(DeferId),
 }
 
 impl<'a> CacheMerge<'a> {
@@ -79,16 +81,16 @@ impl<'a> CacheMerge<'a> {
         source_object: &mut serde_json::Map<String, serde_json::Value>,
         dest_object_id: ObjectId,
         object_shape: ConcreteShape<'a>,
-        current_defer_label: Option<&str>,
+        current_defer: Option<DeferId>,
     ) {
         for (name, value) in source_object {
             let Some(field_shape) = object_shape.field(name) else {
                 continue;
             };
 
-            let new_defer_label = field_shape.defer_label().or(current_defer_label);
+            let new_defer = field_shape.defer_id().or(current_defer);
 
-            if self.should_skip_field(field_shape, new_defer_label) {
+            if self.should_skip_field(field_shape, new_defer) {
                 // If this field is deferred we leave it in the `serde_json::Value`
                 // for later.
                 continue;
@@ -96,7 +98,7 @@ impl<'a> CacheMerge<'a> {
 
             let field_id = self.store.field_value_id(dest_object_id, field_shape.index());
 
-            self.merge_value(value, field_id, field_shape, new_defer_label);
+            self.merge_value(value, field_id, field_shape, new_defer);
         }
     }
 
@@ -105,12 +107,12 @@ impl<'a> CacheMerge<'a> {
         value: &mut serde_json::Value,
         dest_id: ValueId,
         current_field_shape: Field<'a>,
-        current_defer_label: Option<&str>,
+        current_defer: Option<DeferId>,
     ) {
         let existing_value = self.store.value(dest_id);
         match (existing_value, value) {
             (ValueRecord::Unset, value) => {
-                self.insert_value(value, dest_id, current_field_shape, current_defer_label);
+                self.insert_value(value, dest_id, current_field_shape, current_defer);
             }
             (ValueRecord::Null, _) => {
                 // An explicit null means an error has bubbled up to this field
@@ -120,7 +122,7 @@ impl<'a> CacheMerge<'a> {
                 if dest_ids.len() == src_values.len() =>
             {
                 for (src, dest_id) in src_values.iter_mut().zip(*dest_ids) {
-                    self.merge_value(src, dest_id, current_field_shape, current_defer_label);
+                    self.merge_value(src, dest_id, current_field_shape, current_defer);
                 }
             }
             (ValueRecord::List(_dest_list), serde_json::Value::Array(_src_list)) => {
@@ -131,7 +133,7 @@ impl<'a> CacheMerge<'a> {
             (ValueRecord::Object(dest_object_id), serde_json::Value::Object(source_object)) => {
                 match current_field_shape.subselection_shape() {
                     Some(ObjectShape::Concrete(shape)) => {
-                        self.merge_cache_object(source_object, *dest_object_id, shape, current_defer_label)
+                        self.merge_cache_object(source_object, *dest_object_id, shape, current_defer)
                     }
                     Some(ObjectShape::Polymorphic(_)) => {
                         todo!("deal with polymorphic shapes");
@@ -156,7 +158,7 @@ impl<'a> CacheMerge<'a> {
         value: &mut serde_json::Value,
         dest_id: ValueId,
         field_shape: Field<'_>,
-        current_defer_label: Option<&str>,
+        current_defer: Option<DeferId>,
     ) {
         if field_shape.is_leaf() {
             match std::mem::take(value) {
@@ -178,7 +180,7 @@ impl<'a> CacheMerge<'a> {
                 self.store.write_value(dest_id, ValueRecord::List(dest_ids));
 
                 for (value, dest_id) in list.iter_mut().zip(dest_ids) {
-                    self.insert_value(value, dest_id, field_shape, current_defer_label)
+                    self.insert_value(value, dest_id, field_shape, current_defer)
                 }
             }
             serde_json::Value::Object(source_object) => {
@@ -195,7 +197,7 @@ impl<'a> CacheMerge<'a> {
                     let Some(field_shape) = dest_object_shape.field(name) else {
                         continue;
                     };
-                    let new_defer_label = field_shape.defer_label().or(current_defer_label);
+                    let new_defer_label = field_shape.defer_id().or(current_defer);
 
                     if self.should_skip_field(field_shape, new_defer_label) {
                         continue;
@@ -210,17 +212,17 @@ impl<'a> CacheMerge<'a> {
         }
     }
 
-    fn should_skip_field(&self, field: Field<'a>, current_defer_label: Option<&str>) -> bool {
+    fn should_skip_field(&self, field: Field<'a>, current_defer: Option<DeferId>) -> bool {
         match self.mode {
             MergeMode::All { active_defers } => {
-                let Some(defer_label) = field.defer_label() else {
+                let Some(defer) = field.defer_id() else {
                     return false;
                 };
-                !active_defers.contains(&defer_label)
+                !active_defers.contains(&defer)
             }
             MergeMode::SpecificDefer(defer) => {
                 if field.is_leaf() {
-                    current_defer_label != Some(defer)
+                    current_defer != Some(defer)
                 } else {
                     false
                 }

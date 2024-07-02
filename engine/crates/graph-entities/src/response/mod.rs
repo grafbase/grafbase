@@ -453,6 +453,15 @@ pub enum QueryResponseNode {
     Primitive(Box<ResponsePrimitive>),
 }
 
+impl QueryResponseNode {
+    pub fn as_container(&self) -> Option<&ResponseContainer> {
+        match self {
+            QueryResponseNode::Container(container) => Some(container.as_ref()),
+            _ => None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use internment::ArcIntern;

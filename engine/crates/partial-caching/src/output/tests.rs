@@ -4,11 +4,9 @@
 //! this module isn't hooked up at all just now so they're kinda useful
 
 use graph_entities::QueryResponse;
-use internment::ArcIntern;
-use query_path::QueryPathSegment;
 use serde_json::json;
 
-use crate::output::engine_response::InitialOutput;
+use crate::{build_plan, output::engine_response::InitialOutput};
 
 use super::shapes::build_output_shapes;
 
@@ -22,10 +20,9 @@ macro_rules! query_response {
 fn test_initial_response_handling() {
     const QUERY: &str = r#"{ user { name email someConstant nested { someThing } } }"#;
 
-    let document = cynic_parser::parse_executable_document(QUERY).unwrap();
-    let operation = document.operations().next().unwrap();
+    let plan = build_plan(QUERY, None, &registry()).unwrap().unwrap();
 
-    let shapes = build_output_shapes(operation);
+    let shapes = build_output_shapes(&plan);
     let root_shape = shapes.root();
 
     let query_response = query_response!({
@@ -58,14 +55,20 @@ fn test_initial_response_handling() {
     "###);
 }
 
+fn registry() -> registry_for_cache::PartialCacheRegistry {
+    registry_upgrade::convert_v1_to_partial_cache_registry(
+        parser_sdl::parse_registry("type Query { field: String @resolver(name: \"whateves\") }").unwrap(),
+    )
+    .unwrap()
+}
+
 #[test]
 fn test_cache_merging() {
     const QUERY: &str = r#"{ user { name email cacheThing nested { someThing cacheThing } } }"#;
 
-    let document = cynic_parser::parse_executable_document(QUERY).unwrap();
-    let operation = document.operations().next().unwrap();
+    let plan = build_plan(QUERY, None, &registry()).unwrap().unwrap();
 
-    let shapes = build_output_shapes(operation);
+    let shapes = build_output_shapes(&plan);
     let root_shape = shapes.root();
 
     let query_response = query_response!({
@@ -131,10 +134,9 @@ fn test_cache_merging_with_defer() {
         }
     }"#;
 
-    let document = cynic_parser::parse_executable_document(QUERY).unwrap();
-    let operation = document.operations().next().unwrap();
+    let plan = build_plan(QUERY, None, &registry()).unwrap().unwrap();
 
-    let shapes = build_output_shapes(operation);
+    let shapes = build_output_shapes(&plan);
     let root_shape = shapes.root();
 
     let query_response = query_response!({
@@ -193,10 +195,10 @@ fn test_cache_merging_when_defer_ignored() {
         }
     }"#;
 
-    let document = cynic_parser::parse_executable_document(QUERY).unwrap();
-    let operation = document.operations().next().unwrap();
+    let plan = build_plan(QUERY, None, &registry()).unwrap().unwrap();
+    let defer_id = plan.defers().next().unwrap().id;
 
-    let shapes = build_output_shapes(operation);
+    let shapes = build_output_shapes(&plan);
     let root_shape = shapes.root();
 
     let query_response = query_response!({
@@ -211,7 +213,7 @@ fn test_cache_merging_when_defer_ignored() {
         active_defers,
     } = InitialOutput::new(query_response, root_shape);
 
-    assert!(active_defers.contains("foo"));
+    assert!(active_defers.contains(&defer_id));
 
     store.merge_cache_entry(
         &mut json!({
@@ -265,10 +267,10 @@ fn test_incremental_response_merging() {
         }
     }"#;
 
-    let document = cynic_parser::parse_executable_document(QUERY).unwrap();
-    let operation = document.operations().next().unwrap();
+    let plan = build_plan(QUERY, None, &registry()).unwrap().unwrap();
+    let defer_id = plan.defers().next().unwrap().id;
 
-    let shapes = build_output_shapes(operation);
+    let shapes = build_output_shapes(&plan);
     let root_shape = shapes.root();
 
     let query_response = query_response!({
@@ -295,10 +297,15 @@ fn test_incremental_response_merging() {
 
     store.merge_cache_entry(&mut cache_entry, &shapes, &active_defers);
 
-    store.merge_specific_defer_from_cache_entry(&mut cache_entry, &shapes, "foo");
+    store.merge_specific_defer_from_cache_entry(&mut cache_entry, &shapes, defer_id);
+
+    let crate::output::Value::Object(object) = store.reader(&shapes).unwrap().field("user").unwrap() else {
+        unreachable!()
+    };
+    let user_object_id = object.id;
 
     store.merge_incremental_payload(
-        &[&QueryPathSegment::Field(ArcIntern::new("user".into()))],
+        user_object_id,
         query_response!({
             "nonCached": "I was not cached",
             "nested": [

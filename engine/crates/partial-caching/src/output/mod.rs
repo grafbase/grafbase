@@ -11,6 +11,6 @@ mod tests;
 
 pub(crate) use self::{
     engine_response::InitialOutput,
-    shapes::OutputShapes,
-    store::{OutputStore, Value},
+    shapes::{ObjectShape, OutputShapes},
+    store::{Object, OutputStore, Value},
 };

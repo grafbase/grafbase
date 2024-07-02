@@ -14,7 +14,10 @@
 
 use std::fmt;
 
-use cynic_parser::{executable::ids::OperationDefinitionId, ExecutableDocument};
+use cynic_parser::{
+    executable::{ids::OperationDefinitionId, OperationDefinition},
+    ExecutableDocument,
+};
 use registry_for_cache::CacheControl;
 
 mod execution;
@@ -41,7 +44,14 @@ pub struct CachingPlan {
     pub document: ExecutableDocument,
     pub cache_partitions: Vec<(CacheControl, QuerySubset)>,
     pub nocache_partition: QuerySubset,
-    pub operation_id: OperationDefinitionId,
+    operation_id: OperationDefinitionId,
+    defers: Vec<planning::defers::DeferRecord>,
+}
+
+impl CachingPlan {
+    fn operation(&self) -> OperationDefinition<'_> {
+        self.document.read(self.operation_id)
+    }
 }
 
 impl fmt::Debug for CachingPlan {

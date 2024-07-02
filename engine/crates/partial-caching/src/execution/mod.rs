@@ -7,16 +7,12 @@ mod defer;
 
 use std::time::Duration;
 
-use cynic_parser::{
-    executable::{ids::OperationDefinitionId, OperationDefinition},
-    ExecutableDocument,
-};
 use graph_entities::{QueryResponse, ResponseNodeId};
-use registry_for_cache::CacheControl;
 use runtime::cache::Entry;
 
 use crate::{
-    headers::RequestCacheControl, response::MaxAge, updating::PartitionIndex, CacheUpdatePhase, QuerySubset, Response,
+    headers::RequestCacheControl, response::MaxAge, updating::PartitionIndex, CacheUpdatePhase, CachingPlan,
+    QuerySubset, Response,
 };
 
 use super::fetching::CacheFetchPhase;
@@ -24,15 +20,12 @@ use super::fetching::CacheFetchPhase;
 pub use defer::StreamingExecutionPhase;
 
 pub struct ExecutionPhase {
-    document: ExecutableDocument,
-    operation_id: OperationDefinitionId,
-    cache_partitions: Vec<(CacheControl, QuerySubset)>,
+    plan: CachingPlan,
     cache_entries: Vec<Entry<serde_json::Value>>,
     cache_keys: Vec<Option<String>>,
     executor_subset: QuerySubset,
     cache_miss_count: usize,
     is_partial_hit: bool,
-    has_nocache_partition: bool,
 
     request_cache_control: RequestCacheControl,
 }
@@ -40,11 +33,10 @@ pub struct ExecutionPhase {
 impl ExecutionPhase {
     pub(crate) fn new(fetch_phase: CacheFetchPhase) -> Self {
         let plan = fetch_phase.plan;
-        let has_nocache_partition = !plan.nocache_partition.is_empty();
 
         let mut is_partial_hit = false;
         let mut cache_miss_count = 0;
-        let mut executor_subset = plan.nocache_partition;
+        let mut executor_subset = plan.nocache_partition.clone();
         for (entry, (_, partition_subset)) in fetch_phase.cache_entries.iter().zip(plan.cache_partitions.iter()) {
             if entry.is_miss() {
                 cache_miss_count += 1;
@@ -55,22 +47,19 @@ impl ExecutionPhase {
         }
 
         Self {
-            document: plan.document,
-            operation_id: plan.operation_id,
-            cache_partitions: plan.cache_partitions,
+            plan,
             cache_keys: fetch_phase.cache_keys,
             cache_entries: fetch_phase.cache_entries,
             executor_subset,
             cache_miss_count,
             is_partial_hit,
-            has_nocache_partition,
             request_cache_control: fetch_phase.request_cache_control,
         }
     }
 
     pub fn query(&self) -> String {
         self.executor_subset
-            .as_display(&self.document)
+            .as_display(&self.plan.document)
             .include_query_name()
             .to_string()
     }
@@ -93,7 +82,7 @@ impl ExecutionPhase {
 
         let mut response_max_age = MaxAge::default();
 
-        if self.has_nocache_partition {
+        if self.has_nocache_partition() {
             // If any portion of our response can't be cached we set the maxAge to none
             response_max_age.set_none();
         }
@@ -114,11 +103,11 @@ impl ExecutionPhase {
                     response_max_age.set_none();
                 }
                 Entry::Miss if key.is_some() => {
-                    response_max_age.merge(Duration::from_secs(self.cache_partitions[index].0.max_age as u64));
+                    response_max_age.merge(Duration::from_secs(self.plan.cache_partitions[index].0.max_age as u64));
                     keys_to_write.push((key.unwrap(), PartitionIndex(index)));
                 }
                 Entry::Miss => {
-                    response_max_age.merge(Duration::from_secs(self.cache_partitions[index].0.max_age as u64));
+                    response_max_age.merge(Duration::from_secs(self.plan.cache_partitions[index].0.max_age as u64));
                 }
             }
         }
@@ -128,8 +117,8 @@ impl ExecutionPhase {
             // If there are errors we _do not_ want to write to the cache,
 
             update_phase = Some(CacheUpdatePhase::new(
-                self.document,
-                self.cache_partitions,
+                self.plan.document,
+                self.plan.cache_partitions,
                 keys_to_write,
                 update_respones,
             ));
@@ -144,8 +133,8 @@ impl ExecutionPhase {
         (response, update_phase)
     }
 
-    fn operation(&self) -> OperationDefinition<'_> {
-        self.document.read(self.operation_id)
+    fn has_nocache_partition(&self) -> bool {
+        !self.plan.nocache_partition.is_empty()
     }
 }
 

@@ -1,36 +1,72 @@
 //! Handles merging incremental responses into the OutputStore
 
 use graph_entities::{CompactValue, QueryResponse, QueryResponseNode, ResponseNodeId};
-use query_path::QueryPathSegment;
 
 use super::{
     shapes::{ConcreteShape, ObjectShape, OutputShapes},
-    store::{ValueId, ValueRecord},
+    store::{ObjectId, ValueId, ValueRecord},
     OutputStore,
 };
 
 impl OutputStore {
     pub fn merge_incremental_payload(
         &mut self,
-        path: &[&QueryPathSegment],
+        defer_root_object: ObjectId,
         mut source: QueryResponse,
         shapes: &OutputShapes,
     ) {
-        let (defer_root_shape, dest_value_id) = find_defer_root(self, shapes, path);
         let Some(root_container_id) = source.root else {
             todo!("GB-6966");
         };
-        merge_container(
+        let defer_root_shape = shapes.concrete_object(self.read_object(shapes, defer_root_object).shape_id());
+
+        merge_container_into_object(
             root_container_id,
-            dest_value_id,
+            defer_root_object,
             &mut source,
             self,
-            ObjectShape::Concrete(defer_root_shape),
+            defer_root_shape,
         )
     }
 }
 
-fn merge_container(
+fn merge_container_into_object(
+    container_id: ResponseNodeId,
+    dest_object_id: ObjectId,
+    source: &mut QueryResponse,
+    output: &mut OutputStore,
+    shape: ConcreteShape<'_>,
+) {
+    let Some(QueryResponseNode::Container(container)) = source.get_node(container_id) else {
+        todo!("GB-6966");
+    };
+
+    let fields = container
+        .iter()
+        .map(|(name, src_id)| {
+            let Some(field_shape) = shape.field(name.as_str()) else {
+                todo!("GB-6966");
+            };
+
+            (field_shape, *src_id)
+        })
+        .collect::<Vec<_>>();
+
+    for (field_shape, src_id) in fields {
+        let Some(subselection_shape) = field_shape.subselection_shape() else {
+            // This must be a leaf field, process it as such
+            let field_dest_id = output.field_value_id(dest_object_id, field_shape.index());
+            take_leaf_value(source, output, src_id, field_dest_id);
+            continue;
+        };
+
+        let dest_id = output.field_value_id(dest_object_id, field_shape.index());
+
+        merge_node(src_id, dest_id, source, output, subselection_shape);
+    }
+}
+
+fn merge_container_into_value(
     container_id: ResponseNodeId,
     dest_value_id: ValueId,
     source: &mut QueryResponse,
@@ -56,33 +92,7 @@ fn merge_container(
         _ => todo!("GB-6966"),
     };
 
-    let Some(QueryResponseNode::Container(container)) = source.get_node(container_id) else {
-        todo!("GB-6966");
-    };
-
-    let fields = container
-        .iter()
-        .map(|(name, src_id)| {
-            let Some(field_shape) = concrete_shape.field(name.as_str()) else {
-                todo!("GB-6966");
-            };
-
-            (field_shape, *src_id)
-        })
-        .collect::<Vec<_>>();
-
-    for (field_shape, src_id) in fields {
-        let Some(subselection_shape) = field_shape.subselection_shape() else {
-            // This must be a leaf field, process it as such
-            let field_dest_id = output.field_value_id(object_id, field_shape.index());
-            take_leaf_value(source, output, src_id, field_dest_id);
-            continue;
-        };
-
-        let dest_id = output.field_value_id(object_id, field_shape.index());
-
-        merge_node(src_id, dest_id, source, output, subselection_shape);
-    }
+    merge_container_into_object(container_id, object_id, source, output, concrete_shape)
 }
 
 fn merge_node(
@@ -94,7 +104,7 @@ fn merge_node(
 ) {
     match source.get_node(src_id) {
         Some(QueryResponseNode::Container(_)) => {
-            merge_container(src_id, dest_id, source, output, subselection_shape);
+            merge_container_into_value(src_id, dest_id, source, output, subselection_shape);
         }
         Some(QueryResponseNode::List(list)) => {
             merge_list(list.iter().collect(), dest_id, source, output, subselection_shape)
@@ -151,50 +161,4 @@ pub fn take_leaf_value(source: &mut QueryResponse, output: &mut OutputStore, src
             todo!("GB-6966");
         }
     }
-}
-
-fn find_defer_root<'a>(
-    store: &OutputStore,
-    shapes: &'a OutputShapes,
-    path: &[&QueryPathSegment],
-) -> (ConcreteShape<'a>, ValueId) {
-    let mut current_shape = shapes.root();
-    let Some(mut current_value) = store.root_value() else {
-        todo!("GB-6966")
-    };
-
-    for segment in path {
-        match segment {
-            QueryPathSegment::Index(index) => {
-                let Some(next_value) = store.index_value_id(current_value, *index) else {
-                    todo!("GB-6966")
-                };
-                current_value = next_value;
-            }
-            QueryPathSegment::Field(field) => {
-                let Some(field) = current_shape.field(field.as_ref()) else {
-                    todo!("GB-6966")
-                };
-                let Some(next_shape) = field.subselection_shape() else {
-                    todo!("GB-6966")
-                };
-                let ValueRecord::Object(object_id) = store.value(current_value) else {
-                    todo!("GB-6966")
-                };
-                current_value = store.field_value_id(*object_id, field.index());
-                match next_shape {
-                    super::shapes::ObjectShape::Concrete(next_shape) => {
-                        current_shape = next_shape;
-                    }
-                    super::shapes::ObjectShape::Polymorphic(_) => todo!("GB-6949"),
-                }
-            }
-        }
-    }
-
-    let ValueRecord::Object(_) = store.value(current_value) else {
-        todo!("GB-6966")
-    };
-
-    (current_shape, current_value)
 }

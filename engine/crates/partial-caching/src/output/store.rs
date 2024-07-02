@@ -74,12 +74,6 @@ impl OutputStore {
         }
     }
 
-    pub(super) fn root_value(&self) -> Option<ValueId> {
-        self.values.first()?;
-
-        Some(ValueId(0))
-    }
-
     pub(super) fn insert_object(&mut self, object_shape: ConcreteShape<'_>) -> ObjectId {
         let shape = object_shape.id();
         let object_id = ObjectId(self.objects.len());
@@ -121,6 +115,7 @@ impl OutputStore {
     }
 
     /// Looks up the value id of an index in a list, if it exists
+    #[allow(dead_code)]
     pub(super) fn index_value_id(&self, value_id: ValueId, index: usize) -> Option<ValueId> {
         let ValueRecord::List(entries) = self.values[value_id.0] else {
             return None;
@@ -143,6 +138,14 @@ impl OutputStore {
             shapes,
             store: self,
         })
+    }
+
+    pub fn read_object<'a>(&'a self, shapes: &'a OutputShapes, id: ObjectId) -> Object<'a> {
+        Object {
+            id,
+            shapes,
+            store: self,
+        }
     }
 
     fn read_value<'a>(&'a self, id: ValueId, shapes: &'a OutputShapes) -> Option<Value<'a>> {
@@ -226,7 +229,7 @@ impl<'a> Iterator for ListIter<'a> {
 
 #[derive(Clone, Copy)]
 pub struct Object<'a> {
-    id: ObjectId,
+    pub id: ObjectId,
     store: &'a OutputStore,
     shapes: &'a OutputShapes,
 }
@@ -258,6 +261,14 @@ impl<'a> Object<'a> {
             .response_keys()
             .zip(record.fields)
             .filter_map(move |(key, id)| Some((key, store.read_value(id, shapes)?)))
+    }
+
+    pub fn shape(&self) -> ConcreteShape<'a> {
+        self.shapes.concrete_object(self.record().shape)
+    }
+
+    pub fn shape_id(&self) -> ConcreteShapeId {
+        self.record().shape
     }
 
     fn record(&self) -> &'a ObjectRecord {
