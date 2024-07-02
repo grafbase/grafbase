@@ -61,7 +61,7 @@ interface types {
     }
 
     // An error response can be used to inject an error to the GraphQL response.
-    record error-response {
+    record error {
         // Adds the given extensions to the response extensions. The first item in
         // the tuple is the extension key, and the second item is the extension value.
         // The extension value can be string-encoded JSON, which will be converted as
@@ -74,7 +74,7 @@ interface types {
 }
 
 interface gateway-request {
-    use types.{headers, error-response, context};
+    use types.{headers, error, context};
 
     // The hook is called in the federated gateway just before authentication. It can be used
     // to read and modify the request headers. The context object is provided in a mutable form,
@@ -82,11 +82,11 @@ interface gateway-request {
     //
     // If returning an error from the hook, the request processing is stopped and the given error
     // returned to the client.
-    on-gateway-request: func(context: context, headers: headers) -> result<_, error-response>;
+    on-gateway-request: func(context: context, headers: headers) -> result<_, error>;
 }
 
 interface authorization {
-    use types.{error-response, shared-context, edge-definition, node-definition};
+    use types.{error, shared-context, edge-definition, node-definition};
 
     // The hook is called in the request cycle if the schema defines an authorization directive on
     // an edge, providing the arguments of the edge selected in the directive, the definition of the esge
@@ -101,7 +101,7 @@ interface authorization {
         definition: edge-definition,
         arguments: string,
         metadata: string
-    ) -> result<_, error-response>;
+    ) -> result<_, error>;
 
     // The hook is called in the request cycle if the schema defines an authorization directive to
     // a node, providing the definition of the node and the metadata of the directive to the hook.
@@ -114,7 +114,7 @@ interface authorization {
         context: shared-context,
         definition: node-definition,
         metadata: string
-    ) -> result<_, error-response>;
+    ) -> result<_, error>;
 }
 
 // Export here all the hooks the guest wants to implement. If a hook interface is not exported in the world,
