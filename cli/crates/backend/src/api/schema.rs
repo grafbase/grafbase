@@ -1,5 +1,8 @@
 use crate::api::graphql::queries::{
-    fetch_federated_graph_schema::{FetchFederatedGraphSchemaArguments, FetchFederatedGraphSchemaQuery},
+    fetch_federated_graph_schema::{
+        FetchFederatedGraphSchemaArguments, FetchFederatedGraphSchemaProductionBranchArguments,
+        FetchFederatedGraphSchemaProductionBranchQuery, FetchFederatedGraphSchemaQuery,
+    },
     fetch_subgraph_schema::{FetchSubgraphSchemaArguments, FetchSubgraphSchemaQuery},
 };
 
@@ -15,11 +18,6 @@ pub async fn schema(
     if let Some(subgraph_name) = subgraph_name {
         subgraph_schema(account, project, branch, subgraph_name).await.map(Some)
     } else {
-        let Some(branch) = branch else {
-            return Err(ApiError::SubgraphsError(
-                "A branch must be specified when fetching a federated graph schema".to_owned(),
-            ));
-        };
         federated_graph_schema(account, project, branch).await
     }
 }
@@ -47,16 +45,35 @@ async fn subgraph_schema(
         .ok_or_else(|| ApiError::SubgraphsError(format!("{response:#?}")))
 }
 
-async fn federated_graph_schema(account: &str, graph: &str, branch: &str) -> Result<Option<String>, ApiError> {
+async fn federated_graph_schema(account: &str, graph: &str, branch: Option<&str>) -> Result<Option<String>, ApiError> {
     let client = create_client().await?;
-    let operation =
-        FetchFederatedGraphSchemaQuery::build(FetchFederatedGraphSchemaArguments { account, graph, branch });
-    let response = client.post(api_url()).run_graphql(operation).await?;
 
-    response
-        .data
-        .as_ref()
-        .and_then(|data| data.branch.as_ref())
-        .ok_or_else(|| ApiError::SubgraphsError(format!("{response:#?}")))
-        .map(|branch| branch.schema.clone())
+    if let Some(branch) = branch {
+        let operation =
+            FetchFederatedGraphSchemaQuery::build(FetchFederatedGraphSchemaArguments { account, graph, branch });
+
+        let response = client.post(api_url()).run_graphql(operation).await?;
+
+        response
+            .data
+            .as_ref()
+            .and_then(|data| data.branch.as_ref())
+            .ok_or_else(|| ApiError::SubgraphsError(format!("{response:#?}")))
+            .map(|branch| branch.federated_schema.clone())
+    } else {
+        let operation =
+            FetchFederatedGraphSchemaProductionBranchQuery::build(FetchFederatedGraphSchemaProductionBranchArguments {
+                account,
+                graph,
+            });
+
+        let response = client.post(api_url()).run_graphql(operation).await?;
+
+        response
+            .data
+            .as_ref()
+            .and_then(|data| data.graph_by_account_slug.as_ref())
+            .map(|graph| graph.production_branch.federated_schema.clone())
+            .ok_or_else(|| ApiError::SubgraphsError(format!("{response:#?}")))
+    }
 }
