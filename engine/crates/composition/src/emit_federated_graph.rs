@@ -98,11 +98,13 @@ fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionI
                  r#type,
                  directives,
                  description,
+                 default,
              }| federated::InputValueDefinition {
                 name: *name,
                 r#type: ctx.insert_field_type(ctx.subgraphs.walk(*r#type)),
                 directives: *directives,
                 description: *description,
+                default: default.as_ref().map(|default| ctx.insert_value(default)),
             },
         )
         .collect()

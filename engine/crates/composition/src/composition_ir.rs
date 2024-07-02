@@ -78,6 +78,7 @@ pub(crate) struct InputValueDefinitionIr {
     pub(crate) r#type: subgraphs::FieldTypeId,
     pub(crate) directives: federated::Directives,
     pub(crate) description: Option<federated::StringId>,
+    pub(crate) default: Option<subgraphs::Value>,
 }
 
 #[derive(Default)]

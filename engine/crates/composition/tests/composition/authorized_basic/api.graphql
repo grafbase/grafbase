@@ -27,22 +27,22 @@ type Transaction {
 }
 
 type Query {
-    account: Account
+    account(id: ID!): Account
     accounts: [Account!]!
-    transaction: Transaction
+    transaction(id: ID!): Transaction
     transactions: [Transaction!]!
-    user: User
+    user(id: ID!): User
     users: [User!]!
 }
 
 type Mutation {
-    createAccount: Account
-    createTransaction: Transaction!
-    createUser: User!
-    deleteAccount: Account!
-    deleteTransaction: Transaction!
-    deleteUser: User!
-    updateUser: User!
+    createAccount(userId: ID!, type: AccountType!, initialBalance: Float!, input: CreateAccountInput, included: Boolean, notIncluded: String): Account
+    createTransaction(amount: Float!, description: String, accountId: ID!): Transaction!
+    createUser(name: String!, email: String!): User!
+    deleteAccount(id: ID!): Account!
+    deleteTransaction(id: ID!): Transaction!
+    deleteUser(id: ID!, soft: Boolean): User!
+    updateUser(name: String, email: String, id: ID!): User!
 }
 
 input CreateAccountInput {

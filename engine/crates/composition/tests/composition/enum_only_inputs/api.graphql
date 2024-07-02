@@ -4,7 +4,7 @@ enum FilterName {
 }
 
 type Query {
-    searchFood: [String!]
-    searchProduct: [String!]
-    searchUser: [String!]
+    searchFood(filterName: FilterName, filterValue: String): [String!]
+    searchProduct(filterName: FilterName, filterValue: String): [String!]
+    searchUser(filterName: FilterName, filterValue: String): [String!]
 }

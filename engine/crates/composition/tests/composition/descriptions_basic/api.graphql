@@ -26,7 +26,7 @@ type Tofu {
     """
     List of recipes that include this tofu.
     """
-    recipes: [Recipe]
+    recipes(filter: RecipeFilter): [Recipe]
     """
     The texture profile of the tofu, expressed through a custom scalar.
     """

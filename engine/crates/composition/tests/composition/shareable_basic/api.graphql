@@ -9,5 +9,5 @@ type Customer {
 }
 
 type Query {
-    customer: Customer
+    customer(id: ID!): Customer
 }

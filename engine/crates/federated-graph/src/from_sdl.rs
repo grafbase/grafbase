@@ -97,7 +97,15 @@ impl<'a> State<'a> {
     fn insert_value(&mut self, node: &async_graphql_value::ConstValue) -> Value {
         match node {
             async_graphql_value::ConstValue::Null => Value::String(self.insert_string("null")),
-            async_graphql_value::ConstValue::Number(number) => Value::String(self.insert_string(&number.to_string())),
+            async_graphql_value::ConstValue::Number(number) => {
+                if let Some(number) = number.as_i64() {
+                    Value::Int(number)
+                } else if let Some(number) = number.as_f64() {
+                    Value::Float(number)
+                } else {
+                    unreachable!()
+                }
+            }
             async_graphql_value::ConstValue::String(s) => Value::String(self.insert_string(s)),
             async_graphql_value::ConstValue::Boolean(b) => Value::Boolean(*b),
             async_graphql_value::ConstValue::Enum(enm) => Value::EnumValue(self.insert_string(enm)),
@@ -716,12 +724,18 @@ fn ingest_field<'a>(
         let composed_directives = collect_composed_directives(&arg.node.directives, state);
         let name = state.insert_string(arg.node.name.node.as_str());
         let r#type = state.field_type(&arg.node.ty.node)?;
+        let default = arg
+            .node
+            .default_value
+            .as_ref()
+            .map(|default| state.insert_value(&default.node));
 
         state.input_value_definitions.push(InputValueDefinition {
             name,
             r#type,
             directives: composed_directives,
             description,
+            default,
         });
     }
 
@@ -865,11 +879,18 @@ fn ingest_input_object<'a>(
             .description
             .as_ref()
             .map(|description| state.insert_string(description.node.as_str()));
+        let default = field
+            .node
+            .default_value
+            .as_ref()
+            .map(|default| state.insert_value(&default.node));
+
         state.input_value_definitions.push(InputValueDefinition {
             name,
             r#type,
             directives: composed_directives,
             description,
+            default,
         });
     }
     let end = state.input_value_definitions.len();

@@ -33,7 +33,7 @@ type Omelet {
 }
 
 type Query {
-    pizza: Pizza
+    pizza(id: ID!): Pizza
 }
 
 union Topping = Onion | Cheese | Pineapple | Salmon | Omelet

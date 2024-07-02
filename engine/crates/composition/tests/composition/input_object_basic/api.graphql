@@ -8,8 +8,8 @@ type Person {
 }
 
 type Query {
-    getPersonInfo: Person
-    searchPerson: [Person]
+    getPersonInfo(input: InputPerson!): Person
+    searchPerson(input: InputPerson!): [Person]
 }
 
 input InputPerson {

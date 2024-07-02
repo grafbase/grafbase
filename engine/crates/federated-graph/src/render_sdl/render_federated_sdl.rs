@@ -291,6 +291,10 @@ fn write_input_field(field: &InputValueDefinition, graph: &FederatedGraphV3, sdl
 
     write!(sdl, "{INDENT}{field_name}: {field_type}")?;
 
+    if let Some(default) = &field.default {
+        write!(sdl, " = {}", ValueDisplay(default, graph))?;
+    }
+
     write_composed_directives(field.directives, graph, sdl)?;
 
     sdl.push('\n');
@@ -433,15 +437,21 @@ fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraphV
                 let name = &graph[arg.name];
                 let r#type = render_field_type(&arg.r#type, graph);
                 let directives = arg.directives;
-                (name, r#type, directives)
+                let default = arg.default.as_ref();
+                (name, r#type, directives, default)
             })
             .peekable();
         let mut out = String::from('(');
 
-        while let Some((name, ty, directives)) = inner.next() {
+        while let Some((name, ty, directives, default)) = inner.next() {
             out.push_str(name);
             out.push_str(": ");
             out.push_str(&ty);
+
+            if let Some(default) = default {
+                out.push_str(" = ");
+                write!(out, "{}", ValueDisplay(default, graph)).unwrap();
+            }
 
             write_composed_directives(directives, graph, &mut out).unwrap();
 

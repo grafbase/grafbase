@@ -5,7 +5,7 @@ pub(crate) struct DirectiveSiteId(usize);
 
 type Arguments = Vec<(StringId, Value)>;
 
-#[derive(Debug, PartialEq, PartialOrd)]
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub(crate) enum Value {
     String(StringId),
     Int(i64),

@@ -1,0 +1,43 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    OTHER_SCHEMA @join__graph(name: "other-schema", url: "http://example.com/other-schema")
+    SCHEMA @join__graph(name: "schema", url: "http://example.com/schema")
+}
+
+type Book {
+    author: String! @join__field(graph: SCHEMA)
+    id: ID! @join__field(graph: SCHEMA)
+    title: String! @join__field(graph: SCHEMA)
+    yearPublished: Int @join__field(graph: SCHEMA)
+}
+
+type Query {
+    books(limit: Int = 10): [Book!]! @join__field(graph: OTHER_SCHEMA) @join__field(graph: SCHEMA)
+}
+
+type Mutation {
+    addBook(input: AddBookInput!): Book @join__field(graph: SCHEMA)
+}
+
+input AddBookInput {
+    title: String!
+    author: String!
+    yearPublished: Int = 2023
+}

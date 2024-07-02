@@ -34,12 +34,19 @@ pub(super) fn ingest_input_fields(
             .as_ref()
             .map(|description| subgraphs.strings.intern(description.node.as_str()));
 
+        let default = field
+            .node
+            .default_value
+            .as_ref()
+            .map(|default| crate::ast_value_to_subgraph_value(&default.node, subgraphs));
+
         subgraphs.push_field(subgraphs::FieldIngest {
             parent_definition_id,
             field_name,
             field_type,
             directives,
             description,
+            default,
         });
     }
 }
@@ -121,6 +128,7 @@ pub(super) fn ingest_fields(
             field_type,
             description,
             directives,
+            default: None,
         });
 
         directives::ingest_directives(

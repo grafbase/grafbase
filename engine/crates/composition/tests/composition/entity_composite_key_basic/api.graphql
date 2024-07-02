@@ -27,9 +27,9 @@ type Student {
 }
 
 type Query {
-    course: Course
-    courseRating: [CourseRating]
+    course(id: ID!): Course
+    courseRating(courseId: ID!): [CourseRating]
     courses: [Course]
-    student: Student
+    student(id: ID!): Student
     students: [Student]
 }

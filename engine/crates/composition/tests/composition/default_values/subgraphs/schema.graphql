@@ -1,0 +1,20 @@
+type Mutation {
+  addBook(input: AddBookInput!): Book
+}
+
+type Book {
+  id: ID!
+  title: String!
+  author: String!
+  yearPublished: Int
+}
+
+input AddBookInput {
+  title: String!
+  author: String!
+  yearPublished: Int = 2023
+}
+
+type Query {
+  books(limit: Int = 10): [Book!]! @shareable
+}

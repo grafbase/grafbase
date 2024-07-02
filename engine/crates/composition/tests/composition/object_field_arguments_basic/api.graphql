@@ -13,5 +13,5 @@ type HistoricalData {
 }
 
 type Query {
-    getRollerCoaster: RollerCoaster
+    getRollerCoaster(id: ID!): RollerCoaster
 }

@@ -13,6 +13,7 @@ pub(crate) struct Fields {
     field_arguments: BTreeMap<ArgumentId, FieldTuple>,
 
     field_argument_defaults: HashMap<ArgumentId, Value>,
+    input_field_default_values: HashMap<FieldId, Value>,
 
     /// Fields of objects, interfaces and input objects.
     definition_fields: BTreeMap<FieldId, FieldTuple>,
@@ -45,6 +46,7 @@ impl Subgraphs {
             field_type,
             directives,
             description,
+            default,
         }: FieldIngest<'_>,
     ) -> FieldId {
         let name = self.strings.intern(field_name);
@@ -58,7 +60,13 @@ impl Subgraphs {
             },
         );
 
-        FieldId(parent_definition_id, name)
+        let field_id = FieldId(parent_definition_id, name);
+
+        if let Some(default) = default {
+            self.fields.input_field_default_values.insert(field_id, default);
+        }
+
+        field_id
     }
 
     pub(crate) fn insert_field_argument(
@@ -110,6 +118,7 @@ pub(crate) struct FieldIngest<'a> {
     pub(crate) field_type: FieldTypeId,
     pub(crate) description: Option<StringId>,
     pub(crate) directives: DirectiveSiteId,
+    pub(crate) default: Option<Value>,
 }
 
 pub(crate) type FieldWalker<'a> = Walker<'a, (FieldId, FieldTuple)>;
@@ -147,6 +156,11 @@ impl<'a> FieldWalker<'a> {
                 id: (argument_id, *tuple),
                 subgraphs: self.subgraphs,
             })
+    }
+
+    /// For input fields only, the default value.
+    pub(crate) fn default_value(self) -> Option<&'a Value> {
+        self.subgraphs.fields.input_field_default_values.get(&self.id.0)
     }
 
     pub(crate) fn description(self) -> Option<StringWalker<'a>> {
@@ -246,7 +260,7 @@ impl<'a> FieldArgumentWalker<'a> {
         self.walk(tuple.directives)
     }
 
-    pub(crate) fn default(&self) -> Option<&Value> {
+    pub(crate) fn default(&self) -> Option<&'a Value> {
         self.subgraphs.fields.field_argument_defaults.get(&self.id.0)
     }
 }
