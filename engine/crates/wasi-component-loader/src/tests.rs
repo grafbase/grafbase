@@ -266,16 +266,12 @@ async fn authorize_edge_pre_execution_error() {
         .await
         .unwrap_err();
 
-    let expected = expect![[r#"
-        User(
-            ErrorResponse {
-                extensions: [],
-                message: "not authorized",
-            },
-        )
-    "#]];
+    let expected = ErrorResponse {
+        message: String::from("not authorized"),
+        extensions: vec![],
+    };
 
-    expected.assert_debug_eq(&error);
+    assert_eq!(Some(expected), error.into_user_error());
 }
 
 #[tokio::test]
@@ -339,16 +335,12 @@ async fn authorize_node_pre_execution_error() {
         .await
         .unwrap_err();
 
-    let expected = expect![[r#"
-        User(
-            ErrorResponse {
-                extensions: [],
-                message: "not authorized",
-            },
-        )
-    "#]];
+    let expected = ErrorResponse {
+        message: String::from("not authorized"),
+        extensions: vec![],
+    };
 
-    expected.assert_debug_eq(&error);
+    assert_eq!(Some(expected), error.into_user_error());
 }
 
 #[tokio::test]

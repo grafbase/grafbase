@@ -221,24 +221,24 @@ pub mod component {
                 }
             }
             #[derive(Clone)]
-            pub struct ErrorResponse {
+            pub struct Error {
                 pub message: _rt::String,
                 pub extensions: _rt::Vec<(_rt::String, _rt::String)>,
             }
-            impl ::core::fmt::Debug for ErrorResponse {
+            impl ::core::fmt::Debug for Error {
                 fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                    f.debug_struct("ErrorResponse")
+                    f.debug_struct("Error")
                         .field("message", &self.message)
                         .field("extensions", &self.extensions)
                         .finish()
                 }
             }
-            impl ::core::fmt::Display for ErrorResponse {
+            impl ::core::fmt::Display for Error {
                 fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
                     write!(f, "{:?}", self)
                 }
             }
-            impl std::error::Error for ErrorResponse {}
+            impl std::error::Error for Error {}
             impl Context {
                 #[allow(unused_unsafe, clippy::all)]
                 pub fn get(&self, name: &str) -> Option<_rt::String> {
@@ -579,7 +579,7 @@ pub mod exports {
                 #[cfg(target_arch = "wasm32")]
                 static __FORCE_SECTION_REF: fn() = super::super::super::super::__link_custom_section_describing_imports;
                 use super::super::super::super::_rt;
-                pub type ErrorResponse = super::super::super::super::component::grafbase::types::ErrorResponse;
+                pub type Error = super::super::super::super::component::grafbase::types::Error;
                 pub type SharedContext = super::super::super::super::component::grafbase::types::SharedContext;
                 pub type EdgeDefinition = super::super::super::super::component::grafbase::types::EdgeDefinition;
                 pub type NodeDefinition = super::super::super::super::component::grafbase::types::NodeDefinition;
@@ -622,7 +622,7 @@ pub mod exports {
                         }
                         Err(e) => {
                             *ptr5.add(0).cast::<u8>() = (1i32) as u8;
-                            let super::super::super::super::component::grafbase::types::ErrorResponse {
+                            let super::super::super::super::component::grafbase::types::Error {
                                 message: message6,
                                 extensions: extensions6,
                             } = e;
@@ -728,7 +728,7 @@ pub mod exports {
                         }
                         Err(e) => {
                             *ptr3.add(0).cast::<u8>() = (1i32) as u8;
-                            let super::super::super::super::component::grafbase::types::ErrorResponse {
+                            let super::super::super::super::component::grafbase::types::Error {
                                 message: message4,
                                 extensions: extensions4,
                             } = e;
@@ -811,12 +811,12 @@ pub mod exports {
                         definition: EdgeDefinition,
                         arguments: _rt::String,
                         metadata: _rt::String,
-                    ) -> Result<(), ErrorResponse>;
+                    ) -> Result<(), Error>;
                     fn authorize_node_pre_execution(
                         context: SharedContext,
                         definition: NodeDefinition,
                         metadata: _rt::String,
-                    ) -> Result<(), ErrorResponse>;
+                    ) -> Result<(), Error>;
                 }
                 #[doc(hidden)]
 
@@ -1007,31 +1007,31 @@ pub(crate) use __export_hooks_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:hooks:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1117] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xe1\x07\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1090] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xc6\x07\x01A\x02\x01\
 A\x08\x01B\x1f\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
 header-error\x03\0\0\x04\0\x07context\x03\x01\x04\0\x0eshared-context\x03\x01\x04\
 \0\x07headers\x03\x01\x01r\x02\x10parent-type-names\x0afield-names\x04\0\x0fedge\
 -definition\x03\0\x05\x01r\x01\x09type-names\x04\0\x0fnode-definition\x03\0\x07\x01\
-o\x02ss\x01p\x09\x01r\x02\x07messages\x0aextensions\x0a\x04\0\x0eerror-response\x03\
-\0\x0b\x01h\x02\x01ks\x01@\x02\x04self\x0d\x04names\0\x0e\x04\0\x13[method]conte\
-xt.get\x01\x0f\x01@\x03\x04self\x0d\x04names\x05values\x01\0\x04\0\x13[method]co\
-ntext.set\x01\x10\x04\0\x16[method]context.delete\x01\x0f\x01h\x03\x01@\x02\x04s\
-elf\x11\x04names\0\x0e\x04\0\x1a[method]shared-context.get\x01\x12\x01h\x04\x01j\
-\x01\x0e\x01\x01\x01@\x02\x04self\x13\x04names\0\x14\x04\0\x13[method]headers.ge\
-t\x01\x15\x01j\0\x01\x01\x01@\x03\x04self\x13\x04names\x05values\0\x16\x04\0\x13\
-[method]headers.set\x01\x17\x04\0\x16[method]headers.delete\x01\x15\x03\x01\x18c\
-omponent:grafbase/types\x05\0\x02\x03\0\0\x0eerror-response\x02\x03\0\0\x0eshare\
-d-context\x02\x03\0\0\x0fedge-definition\x02\x03\0\0\x0fnode-definition\x01B\x0e\
-\x02\x03\x02\x01\x01\x04\0\x0eerror-response\x03\0\0\x02\x03\x02\x01\x02\x04\0\x0e\
-shared-context\x03\0\x02\x02\x03\x02\x01\x03\x04\0\x0fedge-definition\x03\0\x04\x02\
-\x03\x02\x01\x04\x04\0\x0fnode-definition\x03\0\x06\x01i\x03\x01j\0\x01\x01\x01@\
-\x04\x07context\x08\x0adefinition\x05\x09argumentss\x08metadatas\0\x09\x04\0\x1c\
-authorize-edge-pre-execution\x01\x0a\x01@\x03\x07context\x08\x0adefinition\x07\x08\
-metadatas\0\x09\x04\0\x1cauthorize-node-pre-execution\x01\x0b\x04\x01\x20compone\
-nt:grafbase/authorization\x05\x05\x04\x01\x18component:grafbase/hooks\x04\0\x0b\x0b\
-\x01\0\x05hooks\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\
-\x070.208.1\x10wit-bindgen-rust\x060.25.0";
+o\x02ss\x01p\x09\x01r\x02\x07messages\x0aextensions\x0a\x04\0\x05error\x03\0\x0b\
+\x01h\x02\x01ks\x01@\x02\x04self\x0d\x04names\0\x0e\x04\0\x13[method]context.get\
+\x01\x0f\x01@\x03\x04self\x0d\x04names\x05values\x01\0\x04\0\x13[method]context.\
+set\x01\x10\x04\0\x16[method]context.delete\x01\x0f\x01h\x03\x01@\x02\x04self\x11\
+\x04names\0\x0e\x04\0\x1a[method]shared-context.get\x01\x12\x01h\x04\x01j\x01\x0e\
+\x01\x01\x01@\x02\x04self\x13\x04names\0\x14\x04\0\x13[method]headers.get\x01\x15\
+\x01j\0\x01\x01\x01@\x03\x04self\x13\x04names\x05values\0\x16\x04\0\x13[method]h\
+eaders.set\x01\x17\x04\0\x16[method]headers.delete\x01\x15\x03\x01\x18component:\
+grafbase/types\x05\0\x02\x03\0\0\x05error\x02\x03\0\0\x0eshared-context\x02\x03\0\
+\0\x0fedge-definition\x02\x03\0\0\x0fnode-definition\x01B\x0e\x02\x03\x02\x01\x01\
+\x04\0\x05error\x03\0\0\x02\x03\x02\x01\x02\x04\0\x0eshared-context\x03\0\x02\x02\
+\x03\x02\x01\x03\x04\0\x0fedge-definition\x03\0\x04\x02\x03\x02\x01\x04\x04\0\x0f\
+node-definition\x03\0\x06\x01i\x03\x01j\0\x01\x01\x01@\x04\x07context\x08\x0adef\
+inition\x05\x09argumentss\x08metadatas\0\x09\x04\0\x1cauthorize-edge-pre-executi\
+on\x01\x0a\x01@\x03\x07context\x08\x0adefinition\x07\x08metadatas\0\x09\x04\0\x1c\
+authorize-node-pre-execution\x01\x0b\x04\x01\x20component:grafbase/authorization\
+\x05\x05\x04\x01\x18component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05hooks\x03\0\0\
+\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bind\
+gen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]
