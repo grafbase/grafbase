@@ -139,7 +139,7 @@ impl GraphUpdater {
             if let Err(e) = response.error_for_status_ref() {
                 match e.status() {
                     Some(StatusCode::NOT_FOUND) => {
-                        tracing::warn!(target: GRAFBASE_TARGET, "no subgraphs registered, publish at least one subgraph");
+                        tracing::warn!(target: GRAFBASE_TARGET, "Federated schema not found. Is your graph configured as self-hosted? Did you publish at least one subgraph?");
                     }
                     _ => {
                         tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
