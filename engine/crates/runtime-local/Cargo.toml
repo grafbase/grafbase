@@ -36,5 +36,5 @@ reqwest = { workspace = true, features = [
   "json",
   "rustls-tls",
 ] }
-wasi-component-loader = { version = "0.75.0", path = "../wasi-component-loader", optional = true }
+wasi-component-loader = { version = "0.76.0", path = "../wasi-component-loader", optional = true }
 deadpool = { version = "0.12.1", optional = true }
