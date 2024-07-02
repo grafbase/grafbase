@@ -31,7 +31,7 @@ pub struct RegistryWriter {
     pub mutation_type: Option<MetaTypeId>,
     pub subscription_type: Option<MetaTypeId>,
 
-    subtype_types: BTreeMap<StringId, IdRange<SubtypeTargetId>>,
+    subtype_types: BTreeMap<StringId, IdRange<SupertypeId>>,
     subtype_targets: Vec<StringId>,
 
     pub enable_caching: bool,
@@ -91,22 +91,28 @@ impl RegistryWriter {
         MetaTypeRecord::Other(id)
     }
 
-    pub fn insert_subtypes(&mut self, typename: String, subtypes: IdRange<SubtypeTargetId>) {
+    pub fn insert_subtypes(&mut self, typename: String, subtypes: IdRange<SupertypeId>) {
         let typename = self.intern_string(typename);
         self.subtype_types.insert(typename, subtypes);
     }
 
     #[must_use]
-    pub fn insert_subtype_targets(&mut self, targets: Vec<String>) -> IdRange<SubtypeTargetId> {
-        let starting_id = SubtypeTargetId::new(self.subtype_targets.len());
+    pub fn insert_subtype_targets(&mut self, targets: Vec<String>) -> IdRange<SupertypeId> {
+        let starting_index = self.subtype_targets.len();
 
         self.subtype_targets.reserve(targets.len());
         for target in targets {
             let id = self.intern_string(target);
             self.subtype_targets.push(id);
         }
+        let ending_index = self.subtype_targets.len();
 
-        IdRange::new(starting_id, SubtypeTargetId::new(self.subtype_targets.len()))
+        // TODO: This sort order is good for quick lookups, but a topsort order
+        // could make what I want to do easier?  Figure it out.
+        self.subtype_targets[starting_index..ending_index].sort();
+
+        SupertypeId::new(starting_index);
+        IdRange::new(SupertypeId::new(starting_index), SupertypeId::new(ending_index))
     }
 
     #[must_use]
@@ -155,8 +161,8 @@ impl RegistryWriter {
             query_type,
             mutation_type,
             subscription_type,
-            subtype_types,
-            subtype_targets,
+            type_relations: subtype_types,
+            supertypes: subtype_targets,
             enable_caching,
             enable_partial_caching,
         })
