@@ -5,12 +5,15 @@ use std::fmt;
 
 pub use building::build_output_shapes;
 
-use crate::{planning::defers::DeferId, CachingPlan};
+use crate::{planning::defers::DeferId, CachingPlan, TypeRelationships};
 
 /// Contains the schemas of all the objects we could see in our output,
 /// based on the shape of the query
 pub struct OutputShapes {
     objects: Vec<ObjectShapeRecord>,
+
+    #[allow(dead_code)] // Will be using this after GB-6949
+    type_tree_nodes: Vec<TypeTreeNode>,
 
     root: ConcreteShapeId,
 
@@ -24,8 +27,8 @@ pub struct OutputShapes {
 }
 
 impl OutputShapes {
-    pub(crate) fn new(plan: &CachingPlan) -> Self {
-        build_output_shapes(plan)
+    pub(crate) fn new(plan: &CachingPlan, subtypes: &dyn TypeRelationships) -> Self {
+        build_output_shapes(plan, subtypes)
     }
 
     pub fn root(&self) -> ConcreteShape<'_> {
@@ -51,7 +54,8 @@ impl OutputShapes {
 
     pub fn defers_for_object(&self, target_id: ConcreteShapeId) -> impl ExactSizeIterator<Item = DeferId> + '_ {
         let start_range = self.defer_roots.partition_point(|(shape_id, _)| *shape_id < target_id);
-        let end_range = self.defer_roots[start_range..].partition_point(|(shape_id, _)| *shape_id == target_id);
+        let end_range =
+            start_range + self.defer_roots[start_range..].partition_point(|(shape_id, _)| *shape_id == target_id);
 
         self.defer_roots[start_range..end_range]
             .iter()
@@ -76,16 +80,20 @@ pub struct FieldIndex(pub(super) u16);
 #[derive(Clone, Copy)]
 pub struct ObjectShapeId(u16);
 
-#[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Debug)]
 pub struct ConcreteShapeId(u16);
+
+#[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
+pub struct TypeTreeNodeId(u16);
 
 enum ObjectShapeRecord {
     Concrete {
         fields: Vec<FieldRecord>,
     },
+    #[allow(dead_code)] // Will be using this after GB-6949
     Polymorphic {
-        #[allow(dead_code)] // Will be using this after GB-6949
-        types: Vec<(Option<String>, ObjectShapeId)>,
+        type_conditions: Box<[TypeTreeNodeId]>,
+        fallback: ConcreteShapeId,
     },
 }
 
@@ -93,6 +101,13 @@ pub struct FieldRecord {
     response_key: String,
     defer: Option<DeferId>,
     subselection_shape: Option<ObjectShapeId>,
+}
+
+#[allow(dead_code)] // Will be using this after GB-6949
+pub struct TypeTreeNode {
+    type_condition: String,
+    concrete_shape: ConcreteShapeId,
+    subtypes: Box<[TypeTreeNodeId]>,
 }
 
 #[derive(Clone, Copy)]

@@ -365,8 +365,16 @@ where
                 .await;
         };
 
-        let stream =
-            cache::partial::partial_caching_stream(cache_plan, &self.cache, auth, request, &self.executor, ctx).await?;
+        let stream = cache::partial::partial_caching_stream(
+            cache_plan,
+            &self.cache,
+            auth,
+            request,
+            &self.executor,
+            ctx,
+            &self.cache_config.partial_registry,
+        )
+        .await?;
 
         Ok(stream)
     }
@@ -402,6 +410,7 @@ where
                         request,
                         &self.executor,
                         ctx,
+                        &self.cache_config.partial_registry,
                     )
                     .await?;
 

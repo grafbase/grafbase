@@ -24,7 +24,7 @@ pub struct StreamingExecutionPhase {
 
 impl StreamingExecutionPhase {
     pub(super) fn new(execution_phase: ExecutionPhase) -> StreamingExecutionPhase {
-        let shapes = OutputShapes::new(&execution_phase.plan);
+        let shapes = OutputShapes::new(&execution_phase.plan, execution_phase.type_relationships.as_ref());
 
         StreamingExecutionPhase {
             execution_phase,
@@ -44,7 +44,12 @@ impl StreamingExecutionPhase {
 
         let root_shape = self.shapes.root();
 
-        let (mut store, active_defers) = handle_initial_response(response, root_shape);
+        let (mut store, active_defers) = handle_initial_response(
+            response,
+            &self.shapes,
+            root_shape,
+            self.execution_phase.type_relationships.as_ref(),
+        );
 
         let mut response_max_age = MaxAge::default();
 
@@ -118,7 +123,12 @@ impl StreamingExecutionPhase {
             self.seen_errors = true;
         }
 
-        let active_nested_defers = output.merge_incremental_payload(destination_object_id, data, &self.shapes);
+        let active_nested_defers = output.merge_incremental_payload(
+            destination_object_id,
+            data,
+            &self.shapes,
+            self.execution_phase.type_relationships.as_ref(),
+        );
 
         if !self.execution_phase.cache_entries.is_empty() {
             // If we still have cache entries, we should merge the rest of them into

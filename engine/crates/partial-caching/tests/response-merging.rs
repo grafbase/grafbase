@@ -7,7 +7,7 @@ use graph_entities::QueryResponse;
 use headers::HeaderMapExt;
 use http::{HeaderMap, HeaderValue};
 use insta::assert_json_snapshot;
-use partial_caching::FetchPhaseResult;
+use partial_caching::{type_relationships::no_subtypes, FetchPhaseResult};
 use runtime::cache::Entry;
 use serde::Deserialize;
 use serde_json::json;
@@ -45,7 +45,7 @@ fn test_simple_response_merging() {
         hit(json!({"user": {"nested": {"someThing": "hello"}}}), 10),
     );
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -84,7 +84,7 @@ fn test_handles_nulls_gracefull() {
         hit(json!({"user": {"nested": {"someThing": "hello"}}}), 10),
     );
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -116,7 +116,7 @@ fn test_complete_hit() {
         hit(json!({"user": {"nested": {"someThing": "hello"}}}), 10),
     );
 
-    let FetchPhaseResult::CompleteHit(hit) = fetch_phase.finish() else {
+    let FetchPhaseResult::CompleteHit(hit) = fetch_phase.finish(no_subtypes()) else {
         panic!("We hit everything so this should always be a complete hit");
     };
 
@@ -153,7 +153,7 @@ fn test_partial_hit_when_lowest_max_age_is_hit() {
     let cache_keys = fetch_phase.cache_keys();
     fetch_phase.record_cache_entry(&cache_keys[0], hit(json!({"user": {"name": "Jane"}}), 10));
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -187,7 +187,7 @@ fn test_partial_hit_when_lowest_max_age_is_miss() {
     let cache_keys = fetch_phase.cache_keys();
     fetch_phase.record_cache_entry(&cache_keys[2], hit(json!({"user": {"someConstant": "123"}}), 5000));
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -218,7 +218,7 @@ fn test_miss_headers() {
     let plan = partial_caching::build_plan(QUERY, None, &registry).unwrap().unwrap();
     let fetch_phase = plan.start_fetch_phase(&auth(), &headers(), &variables());
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -252,7 +252,7 @@ fn test_query_that_hits_uncacheable_fields_should_have_no_cache_control_header()
         .unwrap();
     let fetch_phase = plan.start_fetch_phase(&auth(), &headers(), &variables());
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 

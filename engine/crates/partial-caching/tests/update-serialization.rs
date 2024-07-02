@@ -4,7 +4,7 @@ use common_types::auth::ExecutionAuth;
 use graph_entities::QueryResponse;
 use headers::HeaderMapExt;
 use http::HeaderMap;
-use partial_caching::FetchPhaseResult;
+use partial_caching::{type_relationships::no_subtypes, FetchPhaseResult};
 use serde::Deserialize;
 use serde_json::json;
 
@@ -34,7 +34,7 @@ fn test_serializing_all_updates() {
     let plan = partial_caching::build_plan(QUERY, None, &registry).unwrap().unwrap();
     let fetch_phase = plan.start_fetch_phase(&auth(), &headers(), &variables());
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -106,7 +106,7 @@ fn no_updates_if_errors() {
         .unwrap();
     let fetch_phase = plan.start_fetch_phase(&auth(), &headers(), &variables());
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -136,7 +136,7 @@ fn no_updates_if_no_store_header_provided() {
 
     let fetch_phase = plan.start_fetch_phase(&auth(), &headers, &variables());
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 

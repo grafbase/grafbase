@@ -6,7 +6,7 @@ use common_types::auth::ExecutionAuth;
 use headers::HeaderMapExt;
 use http::HeaderMap;
 use insta::{assert_json_snapshot, assert_snapshot};
-use partial_caching::FetchPhaseResult;
+use partial_caching::{type_relationships::no_subtypes, FetchPhaseResult};
 use runtime::cache::Entry;
 use serde::Deserialize;
 use serde_json::json;
@@ -57,7 +57,7 @@ fn correct_query_when_some_miss_some_hits() {
     fetch_phase.record_cache_entry(&cache_keys[0], hit(json!({"user": {"name": "Jane"}})));
     fetch_phase.record_cache_entry(&cache_keys[1], Entry::Miss);
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -83,7 +83,7 @@ fn nocache_fields_are_always_in_query() {
         fetch_phase.record_cache_entry(key, hit(json!("whatever")));
     }
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We have no cache fields hit everything so this should always be a partial");
     };
 
@@ -108,7 +108,7 @@ fn test_complete_cache_hits() {
     assert_eq!(cache_keys.len(), 1);
     fetch_phase.record_cache_entry(&cache_keys[0], hit(json!("whatever")));
 
-    let FetchPhaseResult::CompleteHit(_) = fetch_phase.finish() else {
+    let FetchPhaseResult::CompleteHit(_) = fetch_phase.finish(no_subtypes()) else {
         panic!("We hit all the cached fields so should have a complete hit");
     };
 }

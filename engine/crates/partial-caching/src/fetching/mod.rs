@@ -3,7 +3,7 @@
 
 mod keys;
 
-use std::fmt;
+use std::{fmt, sync::Arc};
 
 use common_types::auth::ExecutionAuth;
 use engine_value::Variables;
@@ -12,7 +12,9 @@ use runtime::cache::Entry;
 
 use self::keys::build_cache_keys;
 use super::CachingPlan;
-use crate::{execution::ExecutionPhase, headers::RequestCacheControl, hit::CompleteHit, FetchPhaseResult};
+use crate::{
+    execution::ExecutionPhase, headers::RequestCacheControl, hit::CompleteHit, FetchPhaseResult, TypeRelationships,
+};
 
 impl CachingPlan {
     pub fn start_fetch_phase(
@@ -90,9 +92,9 @@ impl CacheFetchPhase {
         self.cache_entries[key.index] = entry;
     }
 
-    pub fn finish(self) -> FetchPhaseResult {
+    pub fn finish(self, subtypes: Arc<dyn TypeRelationships>) -> FetchPhaseResult {
         if self.cache_entries.iter().any(|entry| entry.is_miss()) || !self.plan.nocache_partition.is_empty() {
-            FetchPhaseResult::PartialHit(ExecutionPhase::new(self))
+            FetchPhaseResult::PartialHit(ExecutionPhase::new(self, subtypes))
         } else {
             FetchPhaseResult::CompleteHit(CompleteHit::new(self.cache_entries))
         }
