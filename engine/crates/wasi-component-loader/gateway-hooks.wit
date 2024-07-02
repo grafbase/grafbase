@@ -89,7 +89,10 @@ interface authorization {
     use types.{error-response, shared-context, edge-definition, node-definition};
 
     // The hook is called in the request cycle if the schema defines an authorization directive on
-    // an edge, providing the arguments of the edge and the metadata of the directive to the hook.
+    // an edge, providing the arguments of the edge selected in the directive, the definition of the esge
+    // and the metadata of the directive to the hook.
+    //
+    // The hook is run before fetching any data.
     //
     // The result, if an error, will stop the request execution and return an error back to the user.
     // Result of the edge will be null for an error response.
@@ -101,7 +104,9 @@ interface authorization {
     ) -> result<_, error-response>;
 
     // The hook is called in the request cycle if the schema defines an authorization directive to
-    // a node, providing the the metadata of the directive to the hook.
+    // a node, providing the definition of the node and the metadata of the directive to the hook.
+    //
+    // The hook is run before fetching any data.
     //
     // The result, if an error, will stop the request execution and return an error back to the user.
     // Result of the edge will be null for an error response.
