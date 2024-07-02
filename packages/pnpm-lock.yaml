@@ -21,8 +21,8 @@ importers:
   cli-app:
     dependencies:
       '@pathfinder-ide/react':
-        specifier: 0.7.4
-        version: 0.7.4(@types/react@18.3.3)(graphql@16.8.2)(prettier@3.3.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 0.7.5
+        version: 0.7.5(@types/react@18.3.3)(graphql@16.8.2)(prettier@3.3.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       graphql:
         specifier: ^16.8.1
         version: 16.8.2
@@ -75,13 +75,13 @@ importers:
     dependencies:
       '@apollo/client':
         specifier: 3.10.4
-        version: 3.10.4(@types/react@18.3.3)(graphql@16.8.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 3.10.4(@types/react@18.3.3)(graphql@16.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@n1ru4l/graphql-live-query':
         specifier: 0.10.0
-        version: 0.10.0(graphql@16.8.2)
+        version: 0.10.0(graphql@16.8.1)
       '@n1ru4l/graphql-live-query-patch-json-patch':
         specifier: 0.7.0
-        version: 0.7.0(graphql@16.8.2)
+        version: 0.7.0(graphql@16.8.1)
       '@n1ru4l/push-pull-async-iterable-iterator':
         specifier: 3.2.0
         version: 3.2.0
@@ -90,7 +90,7 @@ importers:
         version: 3.0.6
       graphql:
         specifier: 16.8.1
-        version: 16.8.2
+        version: 16.8.1
       reconnecting-eventsource:
         specifier: 1.6.2
         version: 1.6.2
@@ -238,10 +238,10 @@ importers:
     dependencies:
       '@n1ru4l/graphql-live-query':
         specifier: 0.10.0
-        version: 0.10.0(graphql@16.8.2)
+        version: 0.10.0(graphql@16.8.1)
       '@n1ru4l/graphql-live-query-patch-json-patch':
         specifier: 0.7.0
-        version: 0.7.0(graphql@16.8.2)
+        version: 0.7.0(graphql@16.8.1)
       '@n1ru4l/push-pull-async-iterable-iterator':
         specifier: 3.2.0
         version: 3.2.0
@@ -250,10 +250,10 @@ importers:
         version: 3.0.6
       '@urql/core':
         specifier: 5.0.4
-        version: 5.0.4(graphql@16.8.2)
+        version: 5.0.4(graphql@16.8.1)
       graphql:
         specifier: 16.8.1
-        version: 16.8.2
+        version: 16.8.1
       reconnecting-eventsource:
         specifier: 1.6.2
         version: 1.6.2
@@ -909,12 +909,12 @@ packages:
     resolution: {integrity: sha512-oA/VGxGmaSDym1glOHrltw43qZsFwLLjBwvh57B79UKX/vo3+UQcRgOyE44c5RP7DCYjkrC2tuArZmb6jCzysw==}
     engines: {node: '>=16.0.0'}
 
-  '@headlessui/react@1.7.18':
-    resolution: {integrity: sha512-4i5DOrzwN4qSgNsL4Si61VMkUcWbcSKueUV7sFhpHzQcSShdlHENE5+QBntMSRvHt8NyoFO2AGG8si9lq+w4zQ==}
+  '@headlessui/react@1.7.19':
+    resolution: {integrity: sha512-Ll+8q3OlMJfJbAKM/+/Y2q6PPYbryqNTXDbryx7SXLIDamkF6iQFbriYHga0dY44PvDhvvBWCx1Xj4U5+G4hOw==}
     engines: {node: '>=10'}
     peerDependencies:
-      react: ^16 || ^17 || ^18
-      react-dom: ^16 || ^17 || ^18
+      react: 18.3.0-canary-a9cc32511-20240215
+      react-dom: 18.3.0-canary-a9cc32511-20240215
 
   '@humanwhocodes/config-array@0.11.14':
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}
@@ -1142,12 +1142,12 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
-  '@pathfinder-ide/react@0.7.4':
-    resolution: {integrity: sha512-dAAa5AHHwlP/3mmGy7mkbsJwqVDTjRADpxzwJLtjZNKMZFWN4YprLyTfIHhiEqqCuKU3aU0581LKtLS9qdhbrg==}
+  '@pathfinder-ide/react@0.7.5':
+    resolution: {integrity: sha512-z4pKFmmf5zyCzgBK+usVedcg0eIGIQifGQvLqHSYxeWjH3ql3yjhX4EDbb/3Px3VMmSXUoXeLFsFpmMTPK3sOQ==}
     peerDependencies:
       graphql: '>=16.0.0'
-      react: ^18.2.0
-      react-dom: ^18.2.0
+      react: 18.3.0-canary-a9cc32511-20240215
+      react-dom: 18.3.0-canary-a9cc32511-20240215
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -2395,6 +2395,10 @@ packages:
   graphql@15.8.0:
     resolution: {integrity: sha512-5gghUc24tP9HRznNpV2+FIoq3xKkj5dTQqf4v0CpdPbFVwFkWoxOM+o+2OC9ZSvjEMTjfmG9QT+gcvggTwW1zw==}
     engines: {node: '>= 10.x'}
+
+  graphql@16.8.1:
+    resolution: {integrity: sha512-59LZHPdGZVh695Ud9lRzPBVTtlX9ZCV150Er2W43ro37wVof0ctenSaskPPjN7lVTIN8mSZt8PHUNKZuNQUuxw==}
+    engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
 
   graphql@16.8.2:
     resolution: {integrity: sha512-cvVIBILwuoSyD54U4cF/UXDh5yAobhNV/tPygI4lZhgOIJQE/WLWC4waBRb4I6bDVYb3OVx3lfHbaQOEoUD5sg==}
@@ -4153,9 +4157,9 @@ packages:
 
 snapshots:
 
-  '@0no-co/graphql.web@1.0.6(graphql@16.8.2)':
+  '@0no-co/graphql.web@1.0.6(graphql@16.8.1)':
     optionalDependencies:
-      graphql: 16.8.2
+      graphql: 16.8.1
 
   '@aashutoshrathi/word-wrap@1.2.6': {}
 
@@ -4164,14 +4168,14 @@ snapshots:
       '@jridgewell/gen-mapping': 0.3.5
       '@jridgewell/trace-mapping': 0.3.25
 
-  '@apollo/client@3.10.4(@types/react@18.3.3)(graphql@16.8.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@apollo/client@3.10.4(@types/react@18.3.3)(graphql@16.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@graphql-typed-document-node/core': 3.2.0(graphql@16.8.2)
+      '@graphql-typed-document-node/core': 3.2.0(graphql@16.8.1)
       '@wry/caches': 1.0.1
       '@wry/equality': 0.5.7
       '@wry/trie': 0.5.0
-      graphql: 16.8.2
-      graphql-tag: 2.12.6(graphql@16.8.2)
+      graphql: 16.8.1
+      graphql-tag: 2.12.6(graphql@16.8.1)
       hoist-non-react-statics: 3.3.2
       optimism: 0.18.0
       prop-types: 15.8.1
@@ -4772,9 +4776,9 @@ snapshots:
     dependencies:
       graphql: 15.8.0
 
-  '@graphql-typed-document-node/core@3.2.0(graphql@16.8.2)':
+  '@graphql-typed-document-node/core@3.2.0(graphql@16.8.1)':
     dependencies:
-      graphql: 16.8.2
+      graphql: 16.8.1
 
   '@graphql-yoga/logger@1.0.0':
     dependencies:
@@ -4792,7 +4796,7 @@ snapshots:
       '@repeaterjs/repeater': 3.0.6
       tslib: 2.6.2
 
-  '@headlessui/react@1.7.18(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@headlessui/react@1.7.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@tanstack/react-virtual': 3.0.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       client-only: 0.0.1
@@ -5034,20 +5038,20 @@ snapshots:
     dependencies:
       esm-env: 1.0.0
 
-  '@n1ru4l/graphql-live-query-patch-json-patch@0.7.0(graphql@16.8.2)':
+  '@n1ru4l/graphql-live-query-patch-json-patch@0.7.0(graphql@16.8.1)':
     dependencies:
-      '@n1ru4l/graphql-live-query-patch': 0.7.0(graphql@16.8.2)
+      '@n1ru4l/graphql-live-query-patch': 0.7.0(graphql@16.8.1)
       fast-json-patch: 3.1.1
-      graphql: 16.8.2
+      graphql: 16.8.1
 
-  '@n1ru4l/graphql-live-query-patch@0.7.0(graphql@16.8.2)':
+  '@n1ru4l/graphql-live-query-patch@0.7.0(graphql@16.8.1)':
     dependencies:
       '@repeaterjs/repeater': 3.0.6
-      graphql: 16.8.2
+      graphql: 16.8.1
 
-  '@n1ru4l/graphql-live-query@0.10.0(graphql@16.8.2)':
+  '@n1ru4l/graphql-live-query@0.10.0(graphql@16.8.1)':
     dependencies:
-      graphql: 16.8.2
+      graphql: 16.8.1
 
   '@n1ru4l/json-patch-plus@0.2.0': {}
 
@@ -5098,9 +5102,9 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.17.1
 
-  '@pathfinder-ide/react@0.7.4(@types/react@18.3.3)(graphql@16.8.2)(prettier@3.3.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@pathfinder-ide/react@0.7.5(@types/react@18.3.3)(graphql@16.8.2)(prettier@3.3.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@headlessui/react': 1.7.18(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@headlessui/react': 1.7.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       graphql: 16.8.2
       idb-keyval: 6.2.1
       lodash: 4.17.21
@@ -5424,9 +5428,9 @@ snapshots:
 
   '@ungap/structured-clone@1.2.0': {}
 
-  '@urql/core@5.0.4(graphql@16.8.2)':
+  '@urql/core@5.0.4(graphql@16.8.1)':
     dependencies:
-      '@0no-co/graphql.web': 1.0.6(graphql@16.8.2)
+      '@0no-co/graphql.web': 1.0.6(graphql@16.8.1)
       wonka: 6.3.4
     transitivePeerDependencies:
       - graphql
@@ -6708,9 +6712,9 @@ snapshots:
       nullthrows: 1.1.1
       vscode-languageserver-types: 3.17.3
 
-  graphql-tag@2.12.6(graphql@16.8.2):
+  graphql-tag@2.12.6(graphql@16.8.1):
     dependencies:
-      graphql: 16.8.2
+      graphql: 16.8.1
       tslib: 2.6.2
 
   graphql-yoga@4.0.5(graphql@15.8.0):
@@ -6729,6 +6733,8 @@ snapshots:
       tslib: 2.6.2
 
   graphql@15.8.0: {}
+
+  graphql@16.8.1: {}
 
   graphql@16.8.2: {}
 
