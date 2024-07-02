@@ -30,6 +30,7 @@ pub(crate) struct Plan {
 pub(crate) struct Operation {
     pub ty: OperationType,
     pub root_object_id: ObjectId,
+    pub root_condition_id: Option<ConditionId>,
     #[allow(dead_code)]
     pub name: Option<String>,
     pub response_keys: ResponseKeys,

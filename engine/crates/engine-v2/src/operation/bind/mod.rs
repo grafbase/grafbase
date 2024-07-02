@@ -11,7 +11,7 @@ use engine_parser::Positioned;
 use engine_value::Name;
 use id_newtypes::IdRange;
 use itertools::Itertools;
-use schema::{Definition, FieldDefinitionWalker, Schema, TypeSystemDirective};
+use schema::{Definition, EntityWalker, FieldDefinitionWalker, Schema, TypeSystemDirective};
 
 use super::{
     parse::ParsedOperation, Condition, ConditionId, QueryField, QueryInputValue, QueryInputValues, TypeNameField,
@@ -170,6 +170,10 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
     // Must be executed before binding selection sets
     binder.variable_definitions = binder.bind_variables(unbound.definition.variable_definitions)?;
 
+    let root_condition_id = {
+        let conditions = binder.generate_entity_conditions(schema.walk(schema::EntityId::Object(root_object_id)));
+        binder.push_conditions(conditions)
+    };
     let root_selection_set_id = binder.bind_selection_set(
         SelectionSetType::Object(root_object_id),
         &mut unbound.definition.selection_set,
@@ -180,6 +184,7 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
     Ok(Operation {
         ty: unbound.definition.ty,
         root_object_id,
+        root_condition_id,
         name: unbound.name,
         root_selection_set_id,
         selection_set_to_plan_id: vec![None; binder.selection_sets.len()],
@@ -418,7 +423,7 @@ impl<'a> Binder<'a> {
             }),
         );
 
-        let condition = self.generate_condition(field_id, definition);
+        let condition = self.generate_field_condition(field_id, definition);
         let argument_ids = self.bind_field_arguments(definition, field_id, name_location, &mut field.arguments)?;
         let selection_set_id = if field.selection_set.node.items.is_empty() {
             if !matches!(
@@ -454,7 +459,11 @@ impl<'a> Binder<'a> {
         Ok(Selection::Field(field_id))
     }
 
-    fn generate_condition(&mut self, field_id: FieldId, definition: FieldDefinitionWalker<'_>) -> Option<ConditionId> {
+    fn generate_field_condition(
+        &mut self,
+        field_id: FieldId,
+        definition: FieldDefinitionWalker<'_>,
+    ) -> Option<ConditionId> {
         let mut conditions: HashSet<_> = definition
             .directives()
             .as_ref()
@@ -471,23 +480,30 @@ impl<'a> Binder<'a> {
 
         // FIXME: doesn't take into account objects behind interfaces/unions
         if let Some(entity) = definition.ty().inner().as_entity() {
-            conditions.extend(
-                entity
-                    .directives()
-                    .as_ref()
-                    .iter()
-                    .filter_map(|directive| match directive {
-                        &TypeSystemDirective::Authorized(directive_id) => {
-                            Some(self.push_condition(Condition::AuthorizedNode {
-                                directive_id,
-                                entity_id: entity.id(),
-                            }))
-                        }
-                        _ => None,
-                    }),
-            );
+            conditions.extend(self.generate_entity_conditions(entity));
         }
 
+        self.push_conditions(conditions)
+    }
+
+    fn generate_entity_conditions(&mut self, entity: EntityWalker<'_>) -> HashSet<ConditionId> {
+        entity
+            .directives()
+            .as_ref()
+            .iter()
+            .filter_map(|directive| match directive {
+                &TypeSystemDirective::Authorized(directive_id) => {
+                    Some(self.push_condition(Condition::AuthorizedNode {
+                        directive_id,
+                        entity_id: entity.id(),
+                    }))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    fn push_conditions(&mut self, conditions: HashSet<ConditionId>) -> Option<ConditionId> {
         match conditions.len() {
             0 => None,
             1 => Some(*conditions.iter().next().unwrap()),

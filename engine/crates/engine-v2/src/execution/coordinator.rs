@@ -65,8 +65,17 @@ impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
         .await
     }
 
-    pub async fn execute_subscription(self, responses: impl ResponseSender + Send) {
+    pub async fn execute_subscription(self, mut responses: impl ResponseSender + Send) {
         assert!(matches!(self.operation_plan.ty, OperationType::Subscription));
+
+        if !self.operation_plan.root_errors.is_empty() {
+            let mut response = ResponseBuilder::new(self.operation_plan.root_object_id);
+            response.push_root_errors(&self.operation_plan.root_errors);
+            let _ = responses
+                .send(response.build(self.ctx.engine.schema.clone(), self.operation_plan.clone()))
+                .await;
+            return;
+        }
 
         let (state, subscription_plan_id) = {
             let mut state = self.operation_plan.new_execution_state();
@@ -220,6 +229,14 @@ pub struct OperationExecution<'ctx, R: Runtime> {
 impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
     /// Runs a single execution to completion, returning its response
     async fn execute(mut self) -> Response {
+        if !self.coordinator.operation_plan.root_errors.is_empty() {
+            self.response
+                .push_root_errors(&self.coordinator.operation_plan.root_errors);
+            return self.response.build(
+                self.coordinator.ctx.engine.schema.clone(),
+                self.coordinator.operation_plan.clone(),
+            );
+        }
         for plan_id in self.state.get_executable_plans() {
             self.spawn_executor(plan_id);
         }
