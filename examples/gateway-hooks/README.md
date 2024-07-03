@@ -40,7 +40,7 @@ cd authorized-subgraph
 cargo run --release
 ```
 
-Then, compile the WebAssembly hook functions into a wasm component in another terminal:
+Then, compile the WebAssembly hook functions into a Wasm component in another terminal:
 
 ```bash
 cd demo-hooks
@@ -59,7 +59,7 @@ grafbase-gateway --schema federated-schema.graphql --config grafbase.toml
 A successful start of the gateway will give the following output:
 
 ```
-2024-07-02T17:33:17.242780Z  INFO Grafbase Gateway 0.3.2
+2024-07-02T17:33:17.242780Z  INFO Grafbase Gateway 0.4.0
 2024-07-02T17:33:17.259341Z  INFO loaded the provided WASM component successfully
 2024-07-02T17:33:17.260585Z  INFO Waiting for engine to be ready...
 2024-07-02T17:33:17.260601Z  INFO error waiting for otel reload
