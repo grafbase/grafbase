@@ -53,6 +53,7 @@ in {
     pname = "grafbase-gateway";
     version = builtins.readFile version;
     stdenv = pkgs.clangStdenv;
+    description = "The Grafbase self-hosted federated gateway";
 
     cargoBuildFlags = "-p grafbase-gateway";
     cargoExtraArgs = "-p grafbase-gateway";

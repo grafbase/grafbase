@@ -1,10 +1,10 @@
-{ pkgs
-, crane
-, lib
-, config
-, ...
-}:
-let
+{
+  pkgs,
+  crane,
+  lib,
+  config,
+  ...
+}: let
   rustToolchain = pkgs.rust-bin.stable.latest.default;
   craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
   workspaceRoot = builtins.path {
@@ -42,19 +42,18 @@ let
     !/packages/grafbase-sdk/package.json
   '';
 
-  src = pkgs.nix-gitignore.gitignoreSource [ extraIgnores ] (lib.cleanSourceWith {
+  src = pkgs.nix-gitignore.gitignoreSource [extraIgnores] (lib.cleanSourceWith {
     filter = lib.cleanSourceFilter;
     src = workspaceRoot;
   });
 
-  version = pkgs.runCommand "getVersion" { } ''
+  version = pkgs.runCommand "getVersion" {} ''
     ${pkgs.dasel}/bin/dasel \
       --file ${../../Cargo.toml} \
       --selector workspace.package.version\
       --write - | tr -d "\n" > $out
   '';
-in
-{
+in {
   imports = [
     ./wrappers.nix
   ];
@@ -64,6 +63,7 @@ in
     pname = "grafbase";
     version = builtins.readFile version;
     stdenv = pkgs.clangStdenv;
+    description = "The Grafbase command line interface";
 
     cargoBuildFlags = "-p grafbase";
 
