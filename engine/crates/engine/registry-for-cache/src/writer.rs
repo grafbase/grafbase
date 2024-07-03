@@ -91,17 +91,17 @@ impl RegistryWriter {
         MetaTypeRecord::Other(id)
     }
 
-    pub fn insert_subtypes(&mut self, typename: String, subtypes: IdRange<SupertypeId>) {
+    pub fn insert_supertypes_for_type(&mut self, typename: String, subtypes: IdRange<SupertypeId>) {
         let typename = self.intern_string(typename);
         self.typename_to_supertypes.insert(typename, subtypes);
     }
 
     #[must_use]
-    pub fn insert_subtype_targets(&mut self, targets: Vec<String>) -> IdRange<SupertypeId> {
+    pub fn insert_supertypes(&mut self, supertype_names: Vec<String>) -> IdRange<SupertypeId> {
         let starting_index = self.supertypes.len();
 
-        self.supertypes.reserve(targets.len());
-        for target in targets {
+        self.supertypes.reserve(supertype_names.len());
+        for target in supertype_names {
             let id = self.intern_string(target);
             self.supertypes.push(id);
         }

@@ -46,7 +46,7 @@ pub fn convert_v1_to_partial_cache_registry(
     };
 
     add_unions_to_implements(&types, &mut implements);
-    insert_subtype_info(&mut writer, implements);
+    insert_supertype_info(&mut writer, implements);
 
     // Build a map of type name -> the ID it'll have when we insert it.
     let preallocated_ids = writer.preallocate_type_ids(types.len()).collect::<Vec<_>>();
@@ -248,7 +248,7 @@ fn wrappers_from_string(str: &str) -> Wrapping {
     rv
 }
 
-fn insert_subtype_info(writer: &mut RegistryWriter, implements: HashMap<String, HashSet<String>>) {
+fn insert_supertype_info(writer: &mut RegistryWriter, implements: HashMap<String, HashSet<String>>) {
     let mut groups = HashMap::<Vec<String>, Vec<String>>::with_capacity(implements.len());
     for (implementer, implemented) in implements {
         let mut implemented = implemented.into_iter().collect::<Vec<_>>();
@@ -256,10 +256,10 @@ fn insert_subtype_info(writer: &mut RegistryWriter, implements: HashMap<String, 
         groups.entry(implemented).or_default().push(implementer)
     }
 
-    for (targets, parents) in groups {
-        let target_ids = writer.insert_subtype_targets(targets);
-        for ty in parents {
-            writer.insert_subtypes(ty, target_ids)
+    for (supertypes, subtypes) in groups {
+        let target_ids = writer.insert_supertypes(supertypes);
+        for ty in subtypes {
+            writer.insert_supertypes_for_type(ty, target_ids)
         }
     }
 }
