@@ -31,8 +31,8 @@ pub struct RegistryWriter {
     pub mutation_type: Option<MetaTypeId>,
     pub subscription_type: Option<MetaTypeId>,
 
-    subtype_types: BTreeMap<StringId, IdRange<SupertypeId>>,
-    subtype_targets: Vec<StringId>,
+    typename_to_supertypes: BTreeMap<StringId, IdRange<SupertypeId>>,
+    supertypes: Vec<StringId>,
 
     pub enable_caching: bool,
     pub enable_partial_caching: bool,
@@ -93,23 +93,21 @@ impl RegistryWriter {
 
     pub fn insert_subtypes(&mut self, typename: String, subtypes: IdRange<SupertypeId>) {
         let typename = self.intern_string(typename);
-        self.subtype_types.insert(typename, subtypes);
+        self.typename_to_supertypes.insert(typename, subtypes);
     }
 
     #[must_use]
     pub fn insert_subtype_targets(&mut self, targets: Vec<String>) -> IdRange<SupertypeId> {
-        let starting_index = self.subtype_targets.len();
+        let starting_index = self.supertypes.len();
 
-        self.subtype_targets.reserve(targets.len());
+        self.supertypes.reserve(targets.len());
         for target in targets {
             let id = self.intern_string(target);
-            self.subtype_targets.push(id);
+            self.supertypes.push(id);
         }
-        let ending_index = self.subtype_targets.len();
+        let ending_index = self.supertypes.len();
 
-        // TODO: This sort order is good for quick lookups, but a topsort order
-        // could make what I want to do easier?  Figure it out.
-        self.subtype_targets[starting_index..ending_index].sort();
+        self.supertypes[starting_index..ending_index].sort();
 
         SupertypeId::new(starting_index);
         IdRange::new(SupertypeId::new(starting_index), SupertypeId::new(ending_index))
@@ -138,8 +136,8 @@ impl RegistryWriter {
             query_type,
             mutation_type,
             subscription_type,
-            subtype_types,
-            subtype_targets,
+            typename_to_supertypes: subtype_types,
+            supertypes: subtype_targets,
             enable_caching,
             enable_partial_caching,
         } = self;
@@ -161,7 +159,7 @@ impl RegistryWriter {
             query_type,
             mutation_type,
             subscription_type,
-            type_relations: subtype_types,
+            typename_to_supertypes: subtype_types,
             supertypes: subtype_targets,
             enable_caching,
             enable_partial_caching,

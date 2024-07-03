@@ -27,7 +27,7 @@ impl super::PartialCacheRegistry {
         self.strings
             .get_index_of(typename)
             .map(StringId::new)
-            .and_then(|string_id| self.type_relations.get(&string_id))
+            .and_then(|string_id| self.typename_to_supertypes.get(&string_id))
             .copied()
             .unwrap_or_default()
     }

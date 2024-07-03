@@ -45,13 +45,16 @@ pub struct PartialCacheRegistry {
 
     /// Map from the name of a type to the interfaces that it
     /// implements & unions it is a member of
-    #[serde(default)]
-    type_relations: BTreeMap<StringId, IdRange<SupertypeId>>,
-
-    /// The supertypes for type_relations.
     ///
-    /// Each distinct IdRange<SupertypeId> within this vec should be sorted by
+    /// The IdRange<SupertypeId> within supertypes should be sorted by
     /// StringId, allowing for binary searches on those subslices
+    #[serde(default)]
+    typename_to_supertypes: BTreeMap<StringId, IdRange<SupertypeId>>,
+
+    /// The names of supertypes
+    ///
+    /// Subslices of this that correspond to an IdRange in typename_to_supertypes
+    /// should be sorted by StringId
     #[serde(default)]
     supertypes: Vec<StringId>,
 
@@ -115,7 +118,7 @@ impl PartialCacheRegistry {
             query_type: MetaTypeId::new(0),
             mutation_type: Default::default(),
             subscription_type: Default::default(),
-            type_relations: Default::default(),
+            typename_to_supertypes: Default::default(),
             supertypes: Default::default(),
             enable_caching: Default::default(),
             enable_partial_caching: false,
