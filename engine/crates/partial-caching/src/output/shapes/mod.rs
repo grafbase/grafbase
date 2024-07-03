@@ -172,6 +172,8 @@ impl<'a> Field<'a> {
         self.record().subselection_shape.is_none()
     }
 
+    /// If this field and its subselections are unique to a particulary defer
+    /// this will be set.
     pub fn defer_id(&self) -> Option<DeferId> {
         self.record().defer
     }

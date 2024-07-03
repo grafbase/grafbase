@@ -1,6 +1,10 @@
 //! Handles merging incremental responses into the OutputStore
 
+use std::collections::HashSet;
+
 use graph_entities::{CompactValue, QueryResponse, QueryResponseNode, ResponseNodeId};
+
+use crate::planning::defers::DeferId;
 
 use super::{
     shapes::{ConcreteShape, ObjectShape, OutputShapes},
@@ -8,36 +12,69 @@ use super::{
     OutputStore,
 };
 
+/// Handles the initial response from the engine
+pub fn handle_initial_response(
+    mut response: QueryResponse,
+    root_object: ConcreteShape<'_>,
+) -> (OutputStore, HashSet<DeferId>) {
+    let mut output = OutputStore::default();
+
+    let Some(src_root) = response.root else {
+        todo!("GB-6966");
+    };
+
+    let dest_root = output.new_value();
+
+    let mut context = MergeContext {
+        source: &mut response,
+        output: &mut output,
+        active_defers: HashSet::new(),
+    };
+
+    merge_container_into_value(src_root, dest_root, &mut context, ObjectShape::Concrete(root_object));
+
+    let active_defers = context.active_defers;
+
+    (output, active_defers)
+}
+
 impl OutputStore {
     pub fn merge_incremental_payload(
         &mut self,
         defer_root_object: ObjectId,
         mut source: QueryResponse,
         shapes: &OutputShapes,
-    ) {
+    ) -> HashSet<DeferId> {
         let Some(root_container_id) = source.root else {
             todo!("GB-6966");
         };
         let defer_root_shape = shapes.concrete_object(self.read_object(shapes, defer_root_object).shape_id());
 
-        merge_container_into_object(
-            root_container_id,
-            defer_root_object,
-            &mut source,
-            self,
-            defer_root_shape,
-        )
+        let mut context = MergeContext {
+            source: &mut source,
+            output: self,
+            active_defers: HashSet::new(),
+        };
+
+        merge_container_into_object(root_container_id, defer_root_object, &mut context, defer_root_shape);
+
+        context.active_defers
     }
+}
+
+struct MergeContext<'a> {
+    source: &'a mut QueryResponse,
+    output: &'a mut OutputStore,
+    active_defers: HashSet<DeferId>,
 }
 
 fn merge_container_into_object(
     container_id: ResponseNodeId,
     dest_object_id: ObjectId,
-    source: &mut QueryResponse,
-    output: &mut OutputStore,
+    context: &mut MergeContext<'_>,
     shape: ConcreteShape<'_>,
 ) {
-    let Some(QueryResponseNode::Container(container)) = source.get_node(container_id) else {
+    let Some(QueryResponseNode::Container(container)) = context.source.get_node(container_id) else {
         todo!("GB-6966");
     };
 
@@ -53,24 +90,27 @@ fn merge_container_into_object(
         .collect::<Vec<_>>();
 
     for (field_shape, src_id) in fields {
+        if let Some(defer) = field_shape.defer_id() {
+            context.active_defers.insert(defer);
+        }
+
         let Some(subselection_shape) = field_shape.subselection_shape() else {
             // This must be a leaf field, process it as such
-            let field_dest_id = output.field_value_id(dest_object_id, field_shape.index());
-            take_leaf_value(source, output, src_id, field_dest_id);
+            let field_dest_id = context.output.field_value_id(dest_object_id, field_shape.index());
+            take_leaf_value(context, src_id, field_dest_id);
             continue;
         };
 
-        let dest_id = output.field_value_id(dest_object_id, field_shape.index());
+        let dest_id = context.output.field_value_id(dest_object_id, field_shape.index());
 
-        merge_node(src_id, dest_id, source, output, subselection_shape);
+        merge_node(src_id, dest_id, context, subselection_shape);
     }
 }
 
 fn merge_container_into_value(
     container_id: ResponseNodeId,
     dest_value_id: ValueId,
-    source: &mut QueryResponse,
-    output: &mut OutputStore,
+    context: &mut MergeContext<'_>,
     object_shape: ObjectShape<'_>,
 ) {
     let concrete_shape = match object_shape {
@@ -82,33 +122,32 @@ fn merge_container_into_value(
         }
     };
 
-    let object_id = match output.value(dest_value_id) {
+    let object_id = match context.output.value(dest_value_id) {
         ValueRecord::Unset => {
-            let object_id = output.insert_object(concrete_shape);
-            output.write_value(dest_value_id, ValueRecord::Object(object_id));
+            let object_id = context.output.insert_object(concrete_shape);
+            context
+                .output
+                .write_value(dest_value_id, ValueRecord::Object(object_id));
             object_id
         }
         ValueRecord::Object(object_id) => *object_id,
         _ => todo!("GB-6966"),
     };
 
-    merge_container_into_object(container_id, object_id, source, output, concrete_shape)
+    merge_container_into_object(container_id, object_id, context, concrete_shape)
 }
 
 fn merge_node(
     src_id: ResponseNodeId,
     dest_id: ValueId,
-    source: &mut QueryResponse,
-    output: &mut OutputStore,
+    context: &mut MergeContext<'_>,
     subselection_shape: ObjectShape<'_>,
 ) {
-    match source.get_node(src_id) {
+    match context.source.get_node(src_id) {
         Some(QueryResponseNode::Container(_)) => {
-            merge_container_into_value(src_id, dest_id, source, output, subselection_shape);
+            merge_container_into_value(src_id, dest_id, context, subselection_shape);
         }
-        Some(QueryResponseNode::List(list)) => {
-            merge_list(list.iter().collect(), dest_id, source, output, subselection_shape)
-        }
+        Some(QueryResponseNode::List(list)) => merge_list(list.iter().collect(), dest_id, context, subselection_shape),
         Some(QueryResponseNode::Primitive(_)) => {
             todo!("GB-6966")
         }
@@ -119,18 +158,17 @@ fn merge_node(
 fn merge_list(
     entry_src_ids: Vec<ResponseNodeId>,
     dest_value_id: ValueId,
-    source: &mut QueryResponse,
-    output: &mut OutputStore,
+    context: &mut MergeContext<'_>,
     subselection_shape: ObjectShape<'_>,
 ) {
-    let dest_ids = match output.value(dest_value_id) {
+    let dest_ids = match context.output.value(dest_value_id) {
         ValueRecord::List(dest_ids) if dest_ids.len() == entry_src_ids.len() => *dest_ids,
         ValueRecord::List(_) => {
             todo!("GB-6966")
         }
         ValueRecord::Unset => {
-            let ids = output.new_list(entry_src_ids.len());
-            output.write_value(dest_value_id, ValueRecord::List(ids));
+            let ids = context.output.new_list(entry_src_ids.len());
+            context.output.write_value(dest_value_id, ValueRecord::List(ids));
             ids
         }
         _ => {
@@ -139,12 +177,12 @@ fn merge_list(
     };
 
     for (src_id, dest_id) in entry_src_ids.iter().zip(dest_ids) {
-        merge_node(*src_id, dest_id, source, output, subselection_shape)
+        merge_node(*src_id, dest_id, context, subselection_shape)
     }
 }
 
-pub fn take_leaf_value(source: &mut QueryResponse, output: &mut OutputStore, src_id: ResponseNodeId, dest_id: ValueId) {
-    match source.get_node_mut(src_id) {
+fn take_leaf_value(context: &mut MergeContext<'_>, src_id: ResponseNodeId, dest_id: ValueId) {
+    match context.source.get_node_mut(src_id) {
         Some(QueryResponseNode::Primitive(primitive)) => {
             let value = match std::mem::take(&mut primitive.0) {
                 CompactValue::Null => ValueRecord::Null,
@@ -155,7 +193,7 @@ pub fn take_leaf_value(source: &mut QueryResponse, output: &mut OutputStore, src
                 CompactValue::Enum(inner) => ValueRecord::String(inner.as_str().into()),
                 value @ (CompactValue::List(_) | CompactValue::Object(_)) => ValueRecord::InlineValue(Box::new(value)),
             };
-            output.write_value(dest_id, value);
+            context.output.write_value(dest_id, value);
         }
         _ => {
             todo!("GB-6966");
