@@ -19,11 +19,11 @@ type Account @authorized(fields: "user { userId }") {
   transactions: [Transaction!]!
 }
 
-type Transaction {
+interface Transaction @authorized(fields: "id amount date account { id }") {
   id: ID!
   amount: Float!
   date: String!
-  description: String
+  description: String @authorized(fields: "account { id }")
   account: Account!
 }
 

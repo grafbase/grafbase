@@ -44,6 +44,8 @@ pub(crate) struct CompositionIr {
 
     /// @authorized directives on objects
     pub(crate) object_authorized_directives: Vec<(federated::ObjectId, subgraphs::DirectiveSiteId)>,
+    /// @authorized directives on interfaces
+    pub(crate) interface_authorized_directives: Vec<(federated::InterfaceId, subgraphs::DirectiveSiteId)>,
 }
 
 #[derive(Clone)]
