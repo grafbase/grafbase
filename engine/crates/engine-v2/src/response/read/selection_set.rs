@@ -26,6 +26,41 @@ impl ReadSelectionSet {
     pub fn is_empty(&self) -> bool {
         self.items.is_empty()
     }
+
+    pub fn union(self, other: ReadSelectionSet) -> ReadSelectionSet {
+        let mut left = self.items;
+        let mut right = other.items;
+
+        // We're reading fields from a single entity, so field names will unique.
+        left.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+        right.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+
+        let mut items = Vec::with_capacity(left.len() + right.len());
+        let mut left = left.into_iter().peekable();
+        let mut right = right.into_iter().peekable();
+
+        while let (Some(l), Some(r)) = (left.peek(), right.peek()) {
+            match l.name.cmp(&r.name) {
+                std::cmp::Ordering::Less => {
+                    items.push(left.next().unwrap());
+                }
+                std::cmp::Ordering::Equal => {
+                    let left_field = left.next().unwrap();
+                    let right_field = right.next().unwrap();
+                    items.push(ReadField {
+                        edge: left_field.edge,
+                        name: left_field.name,
+                        subselection: left_field.subselection.union(right_field.subselection),
+                    });
+                }
+                std::cmp::Ordering::Greater => {
+                    items.push(right.next().unwrap());
+                }
+            }
+        }
+
+        ReadSelectionSet { items }
+    }
 }
 
 impl<'a> IntoIterator for &'a ReadSelectionSet {

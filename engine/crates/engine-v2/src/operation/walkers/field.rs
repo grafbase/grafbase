@@ -2,7 +2,7 @@ use schema::{FieldDefinitionWalker, RequiredField};
 
 use super::{FieldArgumentsWalker, OperationWalker, SelectionSetWalker};
 use crate::{
-    operation::{EntityLocation, ExtraField, Field, FieldId, Location, QueryField},
+    operation::{ExtraField, Field, FieldId, Location, QueryField, SelectionSetType},
     response::ResponseKey,
 };
 
@@ -14,6 +14,24 @@ impl<'a> FieldWalker<'a> {
             .definition_id()
             .map(|id| self.schema_walker.walk(id).name())
             .unwrap_or("__typename")
+    }
+
+    pub fn type_condition(&self) -> SelectionSetType {
+        match self.as_ref() {
+            Field::TypeName(f) => f.type_condition,
+            Field::Query(f) => self
+                .schema_walker
+                .walk(f.field_definition_id)
+                .parent_entity()
+                .id()
+                .into(),
+            Field::Extra(f) => self
+                .schema_walker
+                .walk(f.field_definition_id)
+                .parent_entity()
+                .id()
+                .into(),
+        }
     }
 
     pub fn definition(&self) -> Option<FieldDefinitionWalker<'a>> {
@@ -40,8 +58,8 @@ impl<'a> FieldWalker<'a> {
         self.as_ref().selection_set_id().map(|id| self.walk_with(id, ()))
     }
 
-    pub fn entity_location(&self) -> Option<EntityLocation> {
-        self.operation.field_to_entity_location[usize::from(self.item)]
+    pub fn parent_selection_set(&self) -> SelectionSetWalker<'a> {
+        self.walk_with(self.as_ref().parent_selection_set_id(), ())
     }
 }
 

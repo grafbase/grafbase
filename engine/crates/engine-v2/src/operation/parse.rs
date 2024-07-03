@@ -35,6 +35,12 @@ pub struct ParsedOperation {
     pub fragments: HashMap<engine_value::Name, Positioned<engine_parser::types::FragmentDefinition>>,
 }
 
+impl ParsedOperation {
+    pub fn get_fragment(&self, name: &str) -> Option<&Positioned<engine_parser::types::FragmentDefinition>> {
+        self.fragments.get(name)
+    }
+}
+
 /// Returns a valid GraphQL operation from the query string before.
 pub fn parse_operation(request: &engine::Request) -> ParseResult<ParsedOperation> {
     let document = engine_parser::parse_query(request.query())?;

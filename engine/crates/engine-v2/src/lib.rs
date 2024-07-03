@@ -1,4 +1,5 @@
 #![deny(clippy::future_not_send)]
+#![allow(dead_code)]
 
 mod engine;
 mod execution;

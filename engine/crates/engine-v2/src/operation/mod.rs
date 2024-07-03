@@ -44,14 +44,10 @@ pub(crate) struct Operation {
     pub metadata: OperationMetadata,
     pub root_object_id: ObjectId,
     pub root_condition_id: Option<ConditionId>,
-    pub response_keys: ResponseKeys,
     pub root_selection_set_id: SelectionSetId,
+    pub response_keys: ResponseKeys,
     pub selection_sets: Vec<SelectionSet>,
     pub fields: Vec<Field>,
-    pub field_to_parent: Vec<SelectionSetId>,
-    pub fragments: Vec<Fragment>,
-    pub fragment_spreads: Vec<FragmentSpread>,
-    pub inline_fragments: Vec<InlineFragment>,
     pub variable_definitions: Vec<VariableDefinition>,
     pub field_arguments: Vec<FieldArgument>,
     pub query_input_values: QueryInputValues,
@@ -59,12 +55,10 @@ pub(crate) struct Operation {
     pub conditions: Vec<Condition>,
     // -- Added during planning --
     pub plans: Vec<Plan>,
+    pub field_to_plan_id: Vec<PlanId>,
     // Sorted
     pub plan_edges: Vec<ParentToChildEdge>,
-    pub field_dependencies: Vec<FieldDependency>,
-    pub field_to_plan_id: Vec<Option<PlanId>>,
-    pub selection_set_to_plan_id: Vec<Option<PlanId>>,
-    pub field_to_entity_location: Vec<Option<EntityLocation>>,
+    pub solved_requirements: Vec<(SelectionSetId, SolvedRequiredFieldSet)>,
 }
 
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
@@ -73,20 +67,29 @@ pub(crate) struct ParentToChildEdge {
     pub child: PlanId,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
-pub(crate) struct FieldDependency {
-    pub entity_location: EntityLocation,
-    pub required_field_id: RequiredFieldId,
+pub(crate) type SolvedRequiredFieldSet = Vec<SolvedRequiredField>;
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(crate) struct SolvedRequiredField {
+    pub id: RequiredFieldId,
     pub field_id: FieldId,
+    pub subselection: SolvedRequiredFieldSet,
 }
 
 impl Operation {
-    pub fn ty(&self) -> OperationType {
-        self.metadata.ty
+    pub fn plan_id_for(&self, id: FieldId) -> PlanId {
+        self.field_to_plan_id[usize::from(id)]
     }
 
-    pub fn parent_selection_set_id(&self, id: FieldId) -> SelectionSetId {
-        self.field_to_parent[usize::from(id)]
+    pub fn solved_requirements_for(&self, id: SelectionSetId) -> Option<&SolvedRequiredFieldSet> {
+        self.solved_requirements
+            .binary_search_by(|probe| probe.0.cmp(&id))
+            .map(|ix| &self.solved_requirements[ix].1)
+            .ok()
+    }
+
+    pub fn ty(&self) -> OperationType {
+        self.metadata.ty
     }
 
     pub fn walker_with<'op, 'schema, SI>(
@@ -103,21 +106,5 @@ impl Operation {
             schema_walker,
             item: (),
         }
-    }
-
-    pub fn find_matching_field(
-        &self,
-        entity_location: EntityLocation,
-        required_field_id: RequiredFieldId,
-    ) -> Option<FieldId> {
-        self.field_dependencies
-            .binary_search_by(|field_dependency| {
-                field_dependency
-                    .entity_location
-                    .cmp(&entity_location)
-                    .then(field_dependency.required_field_id.cmp(&required_field_id))
-            })
-            .ok()
-            .map(|index| self.field_dependencies[index].field_id)
     }
 }

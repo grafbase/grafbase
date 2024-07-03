@@ -19,8 +19,8 @@ use super::{
 };
 use crate::{
     execution::ExecutionError,
-    operation::{EntityLocation, Operation},
-    plan::PlanWalker,
+    operation::Operation,
+    plan::{PlanWalker, ResponseObjectSetId},
 };
 
 pub(crate) struct ResponseDataPart {
@@ -78,7 +78,7 @@ impl ResponseBuilder {
     pub fn new_part(
         &mut self,
         root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        entity_locations_to_track: &[EntityLocation],
+        response_object_set_ids: &[ResponseObjectSetId],
     ) -> ResponsePart {
         let id = ResponseDataPartId::from(self.parts.len());
         // reserving the spot until the actual data is written. It's safe as no one can reference
@@ -88,7 +88,7 @@ impl ResponseBuilder {
         ResponsePart::new(
             ResponseDataPart::new(id),
             root_response_object_refs,
-            entity_locations_to_track,
+            response_object_set_ids,
         )
     }
 
@@ -133,7 +133,7 @@ impl ResponseBuilder {
         part: ResponsePart,
         edge: ResponseEdge,
         default_object: Option<Vec<(ResponseEdge, ResponseValue)>>,
-    ) -> Vec<(EntityLocation, Vec<ResponseObjectRef>)> {
+    ) -> Vec<(ResponseObjectSetId, Vec<ResponseObjectRef>)> {
         let reservation = &mut self.parts[usize::from(part.data.id)];
         assert!(reservation.is_empty(), "Part already has data");
         *reservation = part.data;
@@ -200,7 +200,7 @@ impl ResponseBuilder {
         }
         self.errors.extend(part.errors);
 
-        let mut boundaries = part.entities;
+        let mut boundaries = part.response_object_sets;
         if !invalidated_paths.is_empty() {
             boundaries = boundaries
                 .into_iter()
@@ -343,24 +343,21 @@ pub(crate) struct ResponsePart {
     root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
     errors: Vec<GraphqlError>,
     updates: Vec<UpdateSlot>,
-    entities: Vec<(EntityLocation, Vec<ResponseObjectRef>)>,
+    response_object_sets: Vec<(ResponseObjectSetId, Vec<ResponseObjectRef>)>,
 }
 
 impl ResponsePart {
     fn new(
         data: ResponseDataPart,
         root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        entity_locations_to_track: &[EntityLocation],
+        response_object_set_ids: &[ResponseObjectSetId],
     ) -> Self {
         Self {
             data,
             root_response_object_refs,
             errors: Vec::new(),
             updates: Vec::new(),
-            entities: entity_locations_to_track
-                .iter()
-                .map(|entity_location| (*entity_location, Vec::new()))
-                .collect(),
+            response_object_sets: response_object_set_ids.iter().map(|id| (*id, Vec::new())).collect(),
         }
     }
 
@@ -451,13 +448,13 @@ impl<'resp> ResponseWriter<'resp> {
         self.part().errors.push(error.into());
     }
 
-    pub fn push_entity(&self, entity_locations: &[EntityLocation], obj: ResponseObjectRef) {
+    pub fn push_response_object(&self, set_ids: &[ResponseObjectSetId], obj: ResponseObjectRef) {
         let mut part = self.part();
         // FIXME: Very likely doesn't make sense to have multiple entity locations for a single
         // object here...
-        for entity_location in entity_locations {
-            for (tracked, refs) in &mut part.entities {
-                if tracked == entity_location {
+        for set_id in set_ids {
+            for (tracked, refs) in &mut part.response_object_sets {
+                if tracked == set_id {
                     refs.push(obj.clone())
                 }
             }

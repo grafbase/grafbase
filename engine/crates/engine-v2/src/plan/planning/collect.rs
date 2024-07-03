@@ -1,6 +1,6 @@
 use id_newtypes::IdRange;
 use itertools::Itertools;
-use schema::{Definition, RequiredFieldSet};
+use schema::RequiredFieldSet;
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
@@ -10,14 +10,14 @@ use std::{
 use crate::{
     execution::ExecutionContext,
     operation::{
-        Condition, ConditionResult, EntityLocation, FieldId, Operation, OperationWalker, PlanId, SelectionSetId,
-        SelectionSetType, Variables,
+        Condition, ConditionResult, FieldId, Operation, OperationWalker, PlanId, SelectionSetId, SelectionSetType,
+        Variables,
     },
     plan::{
-        flatten_selection_sets, AnyCollectedSelectionSet, AnyCollectedSelectionSetId, CollectedField, CollectedFieldId,
-        CollectedSelectionSet, CollectedSelectionSetId, ConditionalField, ConditionalFieldId, ConditionalSelectionSet,
-        ConditionalSelectionSetId, EntityId, ExecutionPlan, ExecutionPlanId, FieldError, FieldType, FlatField,
-        OperationPlan, ParentToChildEdge, PlanInput, PlanOutput,
+        AnyCollectedSelectionSet, AnyCollectedSelectionSetId, CollectedField, CollectedFieldId, CollectedSelectionSet,
+        CollectedSelectionSetId, ConditionalField, ConditionalFieldId, ConditionalSelectionSet,
+        ConditionalSelectionSetId, ExecutionPlan, ExecutionPlanId, FieldError, FieldType, OperationPlan,
+        ParentToChildEdge, PlanInput, PlanOutput, ResponseObjectSetId,
     },
     response::{ErrorCode, GraphqlError, ReadField, ReadSelectionSet},
     sources::PreparedExecutor,
@@ -42,20 +42,14 @@ struct UnfinalizedParentToChildEdge {
 }
 
 struct ToBePlanned {
-    entity_location: EntityLocation,
     plan_id: PlanId,
+    input_id: ResponseObjectSetId,
+    selection_set_ty: SelectionSetType,
     root_fields: Vec<FieldId>,
 }
 
 impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
     pub(crate) fn new(ctx: &'a ExecutionContext<'a, R>, operation: Arc<Operation>, variables: Variables) -> Self {
-        let entity_locations_count = operation
-            .field_to_entity_location
-            .iter()
-            .filter_map(|el| el.map(usize::from))
-            .max()
-            .map(|n| n + 1)
-            .unwrap_or_default();
         OperationPlanBuilder {
             ctx,
             to_be_planned: Vec::new(),
@@ -73,7 +67,7 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
                 conditional_fields: Vec::new(),
                 collected_selection_sets: Vec::new(),
                 collected_fields: Vec::new(),
-                entities_consummers_count: vec![0; entity_locations_count],
+                response_object_set_consummers_count: Vec::new(),
                 operation,
             },
         }
@@ -227,8 +221,7 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
                 .selection_set()
                 .fields()
                 .fold(HashMap::<PlanId, Vec<FieldId>>::default(), |mut acc, field| {
-                    let plan_id = self.operation_plan.operation.field_to_plan_id[usize::from(field.id())]
-                        .expect("Should be planned");
+                    let plan_id = self.operation_plan.plan_id_for(field.id());
                     acc.entry(plan_id).or_default().push(field.id());
                     acc
                 });
@@ -251,14 +244,12 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
             }
         }
 
+        let response_location = self.next_response_object_set_id();
         self.to_be_planned = root_plans
             .into_iter()
             .map(|(plan_id, root_fields)| ToBePlanned {
-                entity_location: self
-                    .walker()
-                    .walk(root_fields[0])
-                    .entity_location()
-                    .expect("Should exist"),
+                input_id: response_location,
+                selection_set_ty: SelectionSetType::Object(self.walker().as_ref().root_object_id),
                 plan_id,
                 root_fields,
             })
@@ -274,12 +265,13 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
     fn generate_plan(
         &mut self,
         ToBePlanned {
-            entity_location,
+            input_id,
+            selection_set_ty,
             plan_id,
             root_fields,
         }: ToBePlanned,
     ) -> PlanningResult<()> {
-        let execution_plan = ExecutionPlanBuilder::new(self, plan_id).build(entity_location, root_fields)?;
+        let execution_plan = ExecutionPlanBuilder::new(self, input_id, plan_id).build(selection_set_ty, root_fields)?;
         let resolver = self
             .ctx
             .schema
@@ -300,6 +292,12 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
         Ok(())
     }
 
+    fn next_response_object_set_id(&mut self) -> ResponseObjectSetId {
+        let id = ResponseObjectSetId::from(self.operation_plan.response_object_set_consummers_count.len());
+        self.operation_plan.response_object_set_consummers_count.push(0);
+        id
+    }
+
     fn walker(&self) -> OperationWalker<'_, (), ()> {
         // yes looks weird, will be improved
         self.operation_plan
@@ -310,9 +308,10 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
 
 pub(super) struct ExecutionPlanBuilder<'parent, 'ctx, R: Runtime> {
     builder: &'parent mut OperationPlanBuilder<'ctx, R>,
+    input_id: ResponseObjectSetId,
     plan_id: PlanId,
     support_aliases: bool,
-    tracked_entity_locations: Vec<EntityLocation>,
+    tracked_locations: Vec<ResponseObjectSetId>,
 }
 
 impl<'parent, 'ctx, R: Runtime> std::ops::Deref for ExecutionPlanBuilder<'parent, 'ctx, R> {
@@ -329,7 +328,11 @@ impl<'parent, 'ctx, R: Runtime> std::ops::DerefMut for ExecutionPlanBuilder<'par
 }
 
 impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
-    pub(super) fn new(builder: &'parent mut OperationPlanBuilder<'ctx, R>, plan_id: PlanId) -> Self {
+    pub(super) fn new(
+        builder: &'parent mut OperationPlanBuilder<'ctx, R>,
+        input_id: ResponseObjectSetId,
+        plan_id: PlanId,
+    ) -> Self {
         let support_aliases = builder
             .ctx
             .schema
@@ -337,39 +340,39 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
             .supports_aliases();
         ExecutionPlanBuilder {
             builder,
+            input_id,
             plan_id,
             support_aliases,
-            tracked_entity_locations: Vec::new(),
+            tracked_locations: Vec::new(),
         }
     }
 
-    fn build(mut self, entity_location: EntityLocation, root_fields: Vec<FieldId>) -> PlanningResult<ExecutionPlan> {
+    fn build(mut self, selection_set_ty: SelectionSetType, root_fields: Vec<FieldId>) -> PlanningResult<ExecutionPlan> {
         self.operation_plan.plan_dependencies_count.push(0);
-        self.operation_plan.entities_consummers_count[usize::from(entity_location)] += 1;
+        let n = usize::from(self.input_id);
+        self.operation_plan.response_object_set_consummers_count[n] += 1;
 
         let input = PlanInput {
-            entity_location,
-            selection_set: self.create_plan_input(entity_location, &root_fields),
+            response_object_set_id: self.input_id,
+            entity_id: root_fields
+                .iter()
+                .find_map(|id| self.walker().walk(*id).definition().map(|def| def.parent_entity().id()))
+                .or_else(|| selection_set_ty.as_entity_id())
+                .expect("Should have at least one non __typename field at the root for nested plans, root ones execute on root objects"),
+            selection_set: self.create_read_selection_set(&root_fields),
         };
 
-        // Currently a resolver is tied to only one entity (object/interface), so retrieving the
-        // parent entity of any field is enough for this part.
-        let selection_set_id = self.operation_plan.operation.parent_selection_set_id(root_fields[0]);
-        let entity_id =
-            EntityId::maybe_from(Definition::from(self.operation_plan.operation[selection_set_id].ty)).unwrap();
-
-        let collected_selection_set_id = self.collect_fields(entity_id.into(), None, root_fields)?;
+        let collected_selection_set_id = self.collect_fields(selection_set_ty, None, root_fields)?;
         let Self {
             builder,
             plan_id,
-            tracked_entity_locations,
+            tracked_locations: tracked_entity_locations,
             ..
         } = self;
 
         let output = PlanOutput {
-            entity_id,
             collected_selection_set_id,
-            tracked_entity_locations,
+            tracked_locations: tracked_entity_locations,
         };
         let resolver_id = builder.operation_plan.operation[self.plan_id].resolver_id;
 
@@ -382,32 +385,63 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
         })
     }
 
-    fn create_plan_input(&mut self, entity_location: EntityLocation, root_fields: &Vec<FieldId>) -> ReadSelectionSet {
+    fn create_read_selection_set(&mut self, field_ids: &Vec<FieldId>) -> ReadSelectionSet {
         let resolver = self
             .ctx
             .engine
             .schema
             .walk(self.operation_plan.operation[self.plan_id].resolver_id)
             .with_own_names();
-        let mut requires = Cow::Borrowed(resolver.requires());
-        for field_id in root_fields {
-            if let Some(definition) = self.walker().walk(*field_id).definition() {
-                let field_requires = definition.requires(resolver.subgraph_id());
-                if !field_requires.is_empty() {
-                    requires = Cow::Owned(requires.union(field_requires));
+        let mut field_ids_by_selection_set_id = HashMap::<_, Vec<_>>::new();
+        for field_id in field_ids {
+            field_ids_by_selection_set_id
+                .entry(self.operation_plan[*field_id].parent_selection_set_id())
+                .or_default()
+                .push(field_id);
+        }
+
+        let mut field_ids_by_selection_set_id = field_ids_by_selection_set_id.into_iter();
+
+        let mut read_selection_set = {
+            let (selection_set_id, field_ids) = field_ids_by_selection_set_id
+                .next()
+                .expect("At least one field is planned");
+            let mut requires = Cow::Borrowed(resolver.requires());
+            for field_id in field_ids {
+                if let Some(definition) = self.walker().walk(*field_id).definition() {
+                    let field_requires = definition.requires(resolver.subgraph_id());
+                    if !field_requires.is_empty() {
+                        requires = Cow::Owned(requires.union(field_requires));
+                    }
                 }
             }
+            self.create_read_selection_set_for_requirements(selection_set_id, &requires)
+        };
+
+        for (selection_set_id, field_ids) in field_ids_by_selection_set_id {
+            let mut requires = RequiredFieldSet::default();
+            for field_id in field_ids {
+                if let Some(definition) = self.walker().walk(*field_id).definition() {
+                    let field_requires = definition.requires(resolver.subgraph_id());
+                    if !field_requires.is_empty() {
+                        requires = requires.union(field_requires);
+                    }
+                }
+            }
+            read_selection_set =
+                read_selection_set.union(self.create_read_selection_set_for_requirements(selection_set_id, &requires));
         }
-        self.create_input_selection_set(entity_location, &requires)
+
+        read_selection_set
     }
 
     /// Create the input selection set of a Plan given its resolver and requirements.
     /// We iterate over the requirements and find the matching fields inside the boundary fields,
     /// which contains all providable & extra fields. During the iteration we track all the dependency
     /// plans.
-    fn create_input_selection_set(
+    fn create_read_selection_set_for_requirements(
         &mut self,
-        entity_location: EntityLocation,
+        id: SelectionSetId,
         requires: &RequiredFieldSet,
     ) -> ReadSelectionSet {
         if requires.is_empty() {
@@ -416,13 +450,16 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
         requires
             .iter()
             .map(|required_field| {
-                let field_id = self
+                let solved_requirements = &self
                     .operation_plan
-                    .operation
-                    .find_matching_field(entity_location, required_field.id)
+                    .solved_requirements_for(id)
                     .expect("Should be planned");
-                let parent_plan_id = self.operation_plan.operation.field_to_plan_id[usize::from(field_id)]
-                    .expect("field should be planned");
+                let solved = solved_requirements
+                    .iter()
+                    .find(|req| req.id == required_field.id)
+                    .expect("Solver did its job");
+                let field_id = solved.field_id;
+                let parent_plan_id = self.operation_plan.plan_id_for(field_id);
                 let edge = UnfinalizedParentToChildEdge {
                     parent: parent_plan_id,
                     child: self.plan_id,
@@ -431,15 +468,24 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
                 let resolver = self
                     .ctx
                     .schema
-                    .walk(self.operation_plan.operation[self.plan_id].resolver_id)
+                    .walk(self.operation_plan[self.plan_id].resolver_id)
                     .with_own_names();
                 ReadField {
-                    edge: self.operation_plan.operation[field_id].response_edge(),
+                    edge: self.operation_plan[field_id].response_edge(),
                     name: resolver
                         .walk(self.ctx.schema[required_field.id].definition_id)
                         .name()
                         .to_string(),
-                    subselection: self.create_input_selection_set(entity_location, &required_field.subselection),
+                    subselection: if !required_field.subselection.is_empty() {
+                        self.create_read_selection_set_for_requirements(
+                            self.operation_plan[field_id]
+                                .selection_set_id()
+                                .expect("Could not have requirements"),
+                            &required_field.subselection,
+                        )
+                    } else {
+                        ReadSelectionSet::default()
+                    },
                 }
             })
             .collect()
@@ -447,60 +493,48 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
 
     fn collect_selection_set(
         &mut self,
+        ty: SelectionSetType,
         selection_set_ids: Vec<SelectionSetId>,
         concrete_parent: bool,
     ) -> PlanningResult<AnyCollectedSelectionSet> {
-        let selection_set = flatten_selection_sets(&self.ctx.schema, &self.operation_plan, selection_set_ids.clone());
-
-        let mut plan_fields = Vec::new();
+        let mut plan_fields: Vec<FieldId> = Vec::new();
         let mut children_plan: HashMap<PlanId, Vec<FieldId>> = HashMap::new();
-        for field in selection_set.fields {
-            if !self.operation_plan[field.id].is_read() {
-                continue;
-            }
-
-            let field_plan_id =
-                self.operation_plan.operation.field_to_plan_id[usize::from(field.id)].expect("Should be planned");
-            if field_plan_id == self.plan_id {
-                plan_fields.push(field);
-            } else {
-                children_plan.entry(field_plan_id).or_default().push(field.id);
+        for selection_set_id in &selection_set_ids {
+            for field in self.walker().walk(*selection_set_id).fields() {
+                let plan_id = self.operation_plan.plan_id_for(field.id());
+                if plan_id == self.plan_id {
+                    plan_fields.push(field.id());
+                } else {
+                    children_plan.entry(plan_id).or_default().push(field.id());
+                }
             }
         }
-        let maybe_tracked_entity_location = if children_plan.is_empty() {
+        let maybe_response_object_set_id = if children_plan.is_empty() {
             None
         } else {
-            let entity_location = {
-                let field_id = children_plan.values().flatten().next().unwrap();
-                self.walker().walk(*field_id).entity_location().expect("Should exist")
-            };
-            self.tracked_entity_locations.push(entity_location);
+            let id = self.next_response_object_set_id();
+            self.tracked_locations.push(id);
             let to_be_planned = children_plan
                 .into_iter()
                 .map(|(plan_id, fields)| ToBePlanned {
-                    entity_location,
+                    selection_set_ty: ty,
+                    input_id: id,
                     plan_id,
                     root_fields: fields,
                 })
                 .collect::<Vec<_>>();
             self.to_be_planned.extend(to_be_planned);
-            Some(entity_location)
+            Some(id)
         };
 
-        let is_union = selection_set_ids
-            .iter()
-            .any(|id| self.operation_plan[*id].ty.is_union());
-        let unique_entity = !is_union && {
-            let entities = plan_fields
+        let is_union = ty.is_union();
+        let unique_type_condition = !is_union && {
+            let type_conditions: HashSet<SelectionSetType> = plan_fields
                 .iter()
-                .flat_map(|field| field.entity_id)
-                .chain(
-                    selection_set_ids
-                        .iter()
-                        .flat_map(|id| self.operation_plan[*id].ty.as_entity_id()),
-                )
-                .collect::<HashSet<_>>();
-            entities.len() == 1
+                .map(|id| self.walker().walk(*id).type_condition())
+                .chain(Some(ty))
+                .collect();
+            type_conditions.len() == 1
         };
 
         // Trying to simplify the attributed selection to a concrete one.
@@ -510,21 +544,17 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
         //   If a single condition is left, we can only work with None. A selection set like
         //   `animal { ... on Dog { name } }` would have a single condition, but we may still see
         //   cat objects. A ConcreteSelectionSet would require `name`.
-        let id = if concrete_parent && unique_entity {
-            self.collect_fields(
-                selection_set.ty,
-                maybe_tracked_entity_location,
-                plan_fields.into_iter().map(|field| field.id).collect(),
-            )
-            .map(AnyCollectedSelectionSetId::Collected)?
+        let id = if concrete_parent && unique_type_condition {
+            self.collect_fields(ty, maybe_response_object_set_id, plan_fields)
+                .map(AnyCollectedSelectionSetId::Collected)?
         } else {
-            self.collected_conditional_fields(selection_set.ty, maybe_tracked_entity_location, plan_fields)
+            self.collected_conditional_fields(ty, maybe_response_object_set_id, plan_fields)
                 .map(AnyCollectedSelectionSetId::Conditional)?
         };
 
         // We keep track of which collected selection set matches which bound selection sets.
         // This allows us to know whether `__typename` is necessary in the generated subgraph query.
-        for root_id in selection_set.root_selection_set_ids {
+        for root_id in selection_set_ids {
             self.operation_plan.selection_set_to_collected[usize::from(root_id)] = Some(id);
         }
         Ok(match id {
@@ -536,12 +566,12 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
     fn collect_fields(
         &mut self,
         ty: SelectionSetType,
-        maybe_tracked_entity_location: Option<EntityLocation>,
-        fields: Vec<FieldId>,
+        maybe_response_object_set_id: Option<ResponseObjectSetId>,
+        field_ids: Vec<FieldId>,
     ) -> PlanningResult<CollectedSelectionSetId> {
         let grouped_by_response_key = self
             .walker()
-            .group_by_response_key_sorted_by_query_position(fields)
+            .group_by_response_key_sorted_by_query_position(field_ids)
             .into_values();
 
         let mut fields = Vec::new();
@@ -583,7 +613,11 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
                         .into_iter()
                         .filter_map(|id| self.operation_plan[id].selection_set_id())
                         .collect();
-                    FieldType::SelectionSet(self.collect_selection_set(subselection_set_ids, true)?)
+                    FieldType::SelectionSet(self.collect_selection_set(
+                        SelectionSetType::maybe_from(definition.ty().inner().id()).unwrap(),
+                        subselection_set_ids,
+                        true,
+                    )?)
                 }
             };
 
@@ -603,7 +637,7 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
         let field_ids = self.push_collecteded_fields(fields);
         Ok(self.push_collected_selection_set(CollectedSelectionSet {
             ty,
-            maybe_tracked_entity_location,
+            maybe_response_object_set_id,
             field_ids,
             typename_fields,
             field_errors,
@@ -613,25 +647,27 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
     fn collected_conditional_fields(
         &mut self,
         ty: SelectionSetType,
-        maybe_tracked_entity_location: Option<EntityLocation>,
-        flat_fields: Vec<FlatField>,
+        maybe_response_object_set_id: Option<ResponseObjectSetId>,
+        field_ids: Vec<FieldId>,
     ) -> PlanningResult<ConditionalSelectionSetId> {
         let mut typename_fields = Vec::new();
         let mut conditional_fields = Vec::new();
         let mut field_errors = Vec::new();
-        for flat_field in flat_fields {
-            let field = self.operation_plan[flat_field.id].clone();
-            let Some(definition_id) = field.definition_id() else {
-                let type_condition = flat_field.entity_id;
-                typename_fields.push((type_condition, field.response_edge()));
+        for field_id in field_ids {
+            let field = self.walker().walk(field_id);
+            let Some(definition) = field.definition() else {
+                typename_fields.push((field.type_condition(), field.as_ref().response_edge()));
                 continue;
             };
-            let definition = self.ctx.engine.schema.walk(definition_id);
 
-            match field.condition().map(|id| &self.condition_results[usize::from(id)]) {
+            match field
+                .as_ref()
+                .condition()
+                .map(|id| &self.condition_results[usize::from(id)])
+            {
                 Some(ConditionResult::Errors(errors)) => {
                     let field_error = FieldError {
-                        edge: field.response_edge(),
+                        edge: field.as_ref().response_edge(),
                         errors: errors.clone(),
                         is_required: definition.ty().wrapping().is_required(),
                     };
@@ -646,11 +682,17 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
             } else {
                 unimplemented!("No support for resolvers that don't have alias support...");
             };
+            let entity_id = definition.parent_entity().id();
+            let edge = field.as_ref().response_edge();
+            let definition_id = definition.id();
             let ty = match definition.ty().inner().scalar_type() {
                 Some(data_type) => FieldType::Scalar(data_type),
                 None => {
-                    let selection_set_id =
-                        self.collect_selection_set(field.selection_set_id().into_iter().collect(), false)?;
+                    let selection_set_id = self.collect_selection_set(
+                        SelectionSetType::maybe_from(definition.ty().inner().id()).unwrap(),
+                        field.as_ref().selection_set_id().into_iter().collect(),
+                        false,
+                    )?;
                     let AnyCollectedSelectionSet::Conditional(selection_set_id) = selection_set_id else {
                         unreachable!("undetermined selection set cannot produce concrete selecitons");
                     };
@@ -658,11 +700,11 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
                 }
             };
             conditional_fields.push(ConditionalField {
-                entity_id: definition.parent_entity().id(),
-                edge: field.response_edge(),
+                entity_id,
+                edge,
                 expected_key,
                 definition_id,
-                id: flat_field.id,
+                id: field_id,
                 ty,
             });
         }
@@ -670,7 +712,7 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
         let field_ids = self.push_conditional_fields(conditional_fields);
         Ok(self.push_conditional_selection_set(ConditionalSelectionSet {
             ty,
-            maybe_tracked_entity_location,
+            maybe_response_object_set_id,
             field_ids,
             typename_fields,
             field_errors,

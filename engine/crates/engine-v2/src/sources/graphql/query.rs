@@ -5,10 +5,11 @@ use std::{
 
 use engine_parser::types::OperationType;
 use itertools::Itertools;
+use schema::EntityId;
 
 use crate::{
-    operation::{FieldArgumentsWalker, QueryInputValueId, SelectionSetTypeWalker},
-    plan::{PlanField, PlanFragmentSpread, PlanInlineFragment, PlanSelection, PlanSelectionSet, PlanWalker},
+    operation::{FieldArgumentsWalker, QueryInputValueId},
+    plan::{PlanField, PlanSelectionSet, PlanWalker},
 };
 
 const VARIABLE_PREFIX: &str = "var";
@@ -35,7 +36,12 @@ impl PreparedGraphqlOperation {
         // Generating the selection set first as this will define all the operation arguments
         let selection_set = {
             let mut buffer = Buffer::default();
-            ctx.write_selection_set(&mut buffer, plan.selection_set())?;
+            let entity_id = EntityId::Object(match operation_type {
+                OperationType::Query => plan.schema().as_ref().graph.root_operation_types.query,
+                OperationType::Mutation => plan.schema().as_ref().graph.root_operation_types.mutation.unwrap(),
+                OperationType::Subscription => plan.schema().as_ref().graph.root_operation_types.subscription.unwrap(),
+            });
+            ctx.write_selection_set(Some(entity_id), &mut buffer, plan.selection_set())?;
             buffer.into_string()
         };
 
@@ -76,8 +82,8 @@ impl PreparedFederationEntityOperation {
         // Generating the selection set first as this will define all the operation arguments
         let selection_set = {
             let mut buffer = Buffer::default();
-            buffer.indent += 2;
-            ctx.write_selection_set(&mut buffer, plan.selection_set())?;
+            buffer.indent += 1;
+            ctx.write_selection_set(None, &mut buffer, plan.selection_set())?;
             buffer.into_string()
         };
 
@@ -90,12 +96,11 @@ impl PreparedFederationEntityOperation {
             ctx.write_operation_arguments_without_parenthesis(&mut query)?;
         }
         query.push(')');
-        let type_name = plan.selection_set().ty().name();
-        query.push_str(" {");
-        write!(query, "\n  _entities(representations: ${entities_variable_name}) {{")?;
-        query.push_str("\n    __typename");
-        write!(query, "\n    ... on {type_name} {selection_set}  }}",)?;
-        query.push_str("\n}\n");
+
+        write!(
+            query,
+            " {{\n  _entities(representations: ${entities_variable_name}){selection_set}}}"
+        )?;
 
         Ok(PreparedFederationEntityOperation {
             query,
@@ -155,7 +160,12 @@ impl QueryBuilderContext {
         )
     }
 
-    fn write_selection_set(&mut self, buffer: &mut Buffer, selection_set: PlanSelectionSet<'_>) -> Result<(), Error> {
+    fn write_selection_set(
+        &mut self,
+        maybe_entity_id: Option<EntityId>,
+        buffer: &mut Buffer,
+        selection_set: PlanSelectionSet<'_>,
+    ) -> Result<(), Error> {
         buffer.write_str(" {\n")?;
         buffer.indent += 1;
         let n = buffer.len();
@@ -163,7 +173,7 @@ impl QueryBuilderContext {
             // We always need to know the concrete object.
             indent_write!(buffer, "__typename\n")?;
         }
-        self.write_selection_set_fields(buffer, selection_set)?;
+        self.write_selection_set_fields(maybe_entity_id, buffer, selection_set)?;
         // If nothing was written it means only meta fields (__typename) are present and during
         // deserialization we'll expect an object. So adding `__typename` to ensure a non empty
         // selection set.
@@ -176,58 +186,36 @@ impl QueryBuilderContext {
 
     fn write_selection_set_fields(
         &mut self,
+        maybe_entity_id: Option<EntityId>,
         buffer: &mut Buffer,
         selection_set: PlanSelectionSet<'_>,
     ) -> Result<(), Error> {
-        let ty = selection_set.ty();
-        for selection in selection_set {
-            match selection {
-                PlanSelection::Field(field) => self.write_field(buffer, field)?,
-                PlanSelection::FragmentSpread(spread) => self.write_fragment_spread(buffer, ty, spread)?,
-                PlanSelection::InlineFragment(fragment) => self.write_inline_fragment(buffer, ty, fragment)?,
-            };
-        }
-        Ok(())
-    }
-
-    fn write_fragment_spread(
-        &mut self,
-        buffer: &mut Buffer,
-        parent_ty: SelectionSetTypeWalker<'_>,
-        spread: PlanFragmentSpread<'_>,
-    ) -> Result<(), Error> {
-        // We're writing a named fragment directly into the query as an inline one. The query might
-        // end up being a bit larger, but trying to keep fragments is not that efficient as their
-        // fields might have been planned differently at different locations. The other concern are
-        // named fragment only directives, but that's something we'll see if we ever need to.
-        let selection_set = spread.selection_set();
-        let ty = selection_set.ty();
-        // We don't create a nested selection set if the type condition is equivalent to the parent
-        // type
-        if parent_ty == ty {
-            self.write_selection_set_fields(buffer, selection_set)?;
-        } else {
-            indent_write!(buffer, "... on {}", ty.name())?;
-            self.write_selection_set(buffer, selection_set)?;
-        }
-        Ok(())
-    }
-
-    fn write_inline_fragment(
-        &mut self,
-        buffer: &mut Buffer,
-        parent_ty: SelectionSetTypeWalker<'_>,
-        fragment: PlanInlineFragment<'_>,
-    ) -> Result<(), Error> {
-        let selection_set = fragment.selection_set();
-        let ty = selection_set.ty();
-        // We don't create a nested selection set if the type condition is equivalent to the parent
-        // type
-        if parent_ty == ty {
-            self.write_selection_set_fields(buffer, selection_set)?;
-        } else {
-            indent_write!(buffer, "... on {}", ty.name())?;
-            self.write_selection_set(buffer, selection_set)?;
+        let entity_to_fields =
+            selection_set
+                .fields()
+                .into_iter()
+                .fold(HashMap::<_, Vec<_>>::new(), |mut acc, field| {
+                    acc.entry(field.parent_entity().id()).or_default().push(field);
+                    acc
+                });
+        for (entity_id, fields) in entity_to_fields {
+            if maybe_entity_id != Some(entity_id) {
+                indent_write!(
+                    buffer,
+                    "... on {} {{\n",
+                    selection_set.walker().schema().walk(entity_id).name()
+                )?;
+                buffer.indent += 1;
+                // not sure if really needed
+                indent_write!(buffer, "__typename\n")?;
+            }
+            for field in fields {
+                self.write_field(buffer, field)?;
+            }
+            if maybe_entity_id != Some(entity_id) {
+                buffer.indent -= 1;
+                indent_write!(buffer, "}}\n")?;
+            }
         }
         Ok(())
     }
@@ -242,7 +230,7 @@ impl QueryBuilderContext {
         }
         self.write_arguments(buffer, field.arguments())?;
         if let Some(selection_set) = field.selection_set() {
-            self.write_selection_set(buffer, selection_set)?;
+            self.write_selection_set(EntityId::maybe_from(field.ty().inner().id()), buffer, selection_set)?;
         } else {
             buffer.push('\n');
         }

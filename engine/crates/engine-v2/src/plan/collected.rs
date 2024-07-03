@@ -2,11 +2,13 @@ use id_newtypes::IdRange;
 use schema::{EntityId, FieldDefinitionId, ObjectId, ScalarType, Wrapping};
 
 use crate::{
-    operation::{EntityLocation, FieldId, SelectionSetType},
+    operation::{FieldId, SelectionSetType},
     response::{GraphqlError, ResponseEdge, SafeResponseKey},
 };
 
-use super::{CollectedFieldId, CollectedSelectionSetId, ConditionalFieldId, ConditionalSelectionSetId};
+use super::{
+    CollectedFieldId, CollectedSelectionSetId, ConditionalFieldId, ConditionalSelectionSetId, ResponseObjectSetId,
+};
 
 // TODO: The two AnyCollectedSelectionSet aren't great, need to split better the ones which are computed
 // during planning and the others.
@@ -36,7 +38,7 @@ pub struct ConditionalSelectionSet {
     pub ty: SelectionSetType,
     // Plan boundary associated with this selection set. If present we need to push the a
     // ResponseObjectBoundaryItem into the ResponsePart everytime for children plans.
-    pub maybe_tracked_entity_location: Option<EntityLocation>,
+    pub maybe_response_object_set_id: Option<ResponseObjectSetId>,
     pub field_ids: IdRange<ConditionalFieldId>,
     // Selection sets can have multiple __typename fields and eventually type conditions.
     // {
@@ -46,7 +48,7 @@ pub struct ConditionalSelectionSet {
     //     myalias: __typename
     //     __typename
     // }
-    pub typename_fields: Vec<(Option<EntityId>, ResponseEdge)>,
+    pub typename_fields: Vec<(SelectionSetType, ResponseEdge)>,
     pub field_errors: Vec<(EntityId, FieldError)>,
 }
 
@@ -76,7 +78,7 @@ pub struct CollectedSelectionSet {
     pub ty: SelectionSetType,
     // Plan boundary associated with this selection set. If present we need to push the a
     // ResponseObjectBoundaryItem into the ResponsePart everytime for children plans.
-    pub maybe_tracked_entity_location: Option<EntityLocation>,
+    pub maybe_response_object_set_id: Option<ResponseObjectSetId>,
     // the fields we point to are sorted by their expected_key
     pub field_ids: IdRange<CollectedFieldId>,
     // Selection sets can have multiple __typename fields.
@@ -109,7 +111,7 @@ pub struct CollectedField {
 #[derive(Debug)]
 pub struct RuntimeCollectedSelectionSet {
     pub object_id: ObjectId,
-    pub tracked_entity_locations: Vec<EntityLocation>,
+    pub response_object_set_ids: Vec<ResponseObjectSetId>,
     // sorted by expected key
     pub fields: Vec<CollectedField>,
     pub typename_fields: Vec<ResponseEdge>,

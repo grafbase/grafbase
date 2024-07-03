@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use schema::{EntityId, FieldDefinitionId, ObjectId, Schema, SchemaWalker};
+use schema::{FieldDefinitionId, ObjectId, Schema, SchemaWalker};
 
 use crate::{
     operation::{FieldId, Operation, OperationWalker, QueryInputValueId, QueryInputValueWalker, SelectionSetType},
@@ -15,14 +15,10 @@ use super::{
 
 mod collected;
 mod field;
-mod fragment_spread;
-mod inline_fragment;
 mod selection_set;
 
 pub use collected::*;
 pub use field::*;
-pub use fragment_spread::*;
-pub use inline_fragment::*;
 pub use selection_set::*;
 
 #[derive(Clone, Copy)]
@@ -146,16 +142,13 @@ impl<'a> PlanWalker<'a, (), ()> {
         for selection_set_id in selection_sets {
             let selection_set = &self.operation_plan[*selection_set_id];
             for (type_condition, edge) in &selection_set.typename_fields {
-                if type_condition
-                    .map(|entity_id| !does_type_condition_apply(&schema, entity_id, object_id))
-                    .unwrap_or_default()
-                {
+                if !does_type_condition_apply(&schema, *type_condition, object_id) {
                     continue;
                 }
                 typename_fields.entry(edge.as_response_key().unwrap()).or_insert(*edge);
             }
             for field in &self.operation_plan[selection_set.field_ids] {
-                if !does_type_condition_apply(&schema, field.entity_id, object_id) {
+                if !does_type_condition_apply(&schema, field.entity_id.into(), object_id) {
                     continue;
                 }
                 fields
@@ -189,7 +182,7 @@ impl<'a> PlanWalker<'a, (), ()> {
                     });
             }
             for (entity_id, field_error) in &selection_set.field_errors {
-                if !does_type_condition_apply(&schema, *entity_id, object_id) {
+                if !does_type_condition_apply(&schema, (*entity_id).into(), object_id) {
                     continue;
                 }
                 field_errors
@@ -230,9 +223,9 @@ impl<'a> PlanWalker<'a, (), ()> {
         fields.sort_unstable_by(|a, b| keys[a.expected_key].cmp(&keys[b.expected_key]));
         RuntimeCollectedSelectionSet {
             object_id,
-            tracked_entity_locations: selection_sets
+            response_object_set_ids: selection_sets
                 .iter()
-                .filter_map(|id| self.operation_plan[*id].maybe_tracked_entity_location)
+                .filter_map(|id| self.operation_plan[*id].maybe_response_object_set_id)
                 .collect(),
             fields,
             typename_fields: typename_fields.into_values().collect(),
@@ -251,9 +244,10 @@ impl<'a> PlanWalker<'a, (), ()> {
     }
 }
 
-fn does_type_condition_apply(schema: &Schema, type_condition: EntityId, object_id: ObjectId) -> bool {
+fn does_type_condition_apply(schema: &Schema, type_condition: SelectionSetType, object_id: ObjectId) -> bool {
     match type_condition {
-        EntityId::Object(id) => id == object_id,
-        EntityId::Interface(id) => schema[id].possible_types.contains(&object_id),
+        SelectionSetType::Object(id) => id == object_id,
+        SelectionSetType::Interface(id) => schema[id].possible_types.contains(&object_id),
+        SelectionSetType::Union(id) => schema[id].possible_types.contains(&object_id),
     }
 }

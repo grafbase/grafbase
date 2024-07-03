@@ -1,5 +1,5 @@
 use super::SchemaWalker;
-use crate::{EntityId, TypeSystemDirectivesWalker};
+use crate::{EntityId, StringId, TypeSystemDirectivesWalker};
 
 pub type EntityWalker<'a> = SchemaWalker<'a, EntityId>;
 
@@ -12,6 +12,13 @@ impl<'a> EntityWalker<'a> {
         match self.item {
             EntityId::Object(id) => self.walk(id).name(),
             EntityId::Interface(id) => self.walk(id).name(),
+        }
+    }
+
+    pub fn schema_name_id(&self) -> StringId {
+        match self.item {
+            EntityId::Object(id) => self.walk(id).as_ref().name,
+            EntityId::Interface(id) => self.walk(id).as_ref().name,
         }
     }
 

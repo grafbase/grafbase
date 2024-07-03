@@ -57,13 +57,6 @@ impl Variables {
         bind_variables(schema, operation, request_variables)
     }
 
-    pub(super) fn new_for(operation: &Operation) -> Self {
-        Variables {
-            input_values: VariableInputValues::default(),
-            definition_to_value: vec![VariableValue::Undefined; operation.variable_definitions.len()],
-        }
-    }
-
     pub(super) fn create_unavailable_for(operation: &Operation) -> Self {
         Variables {
             input_values: VariableInputValues::default(),
