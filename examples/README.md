@@ -63,3 +63,4 @@ See how easy it is to use features of Grafbase by browsing the examples below.
 - [Resolvers + PlanetScale](/examples/resolvers-planetscale)
 - [Resolvers + Fauna](/examples/resolvers-fauna)
 - [Resolvers + Couchbase](/examples/resolvers-couchbase)
+- [Gateway + WASI Hooks](/examples/gateway-hooks)
