@@ -64,7 +64,7 @@ impl OutputShapesBuilder {
 
         // Top sort our subtypes so we build dependencies first, and so we can order
         // subtypes by specificity
-        let sorted_indexes = topsort(&subtypes).expect("TODO: GB-6966");
+        let sorted_indexes = topological_sort(&subtypes).expect("TODO: GB-6966");
         let mut sort_order = vec![0; sorted_indexes.len()];
         for (sort_position, index) in sorted_indexes.iter().enumerate() {
             sort_order[*index] = sort_position
@@ -117,7 +117,7 @@ impl OutputShapesBuilder {
     }
 }
 
-fn topsort(adjacency_list: &Vec<Vec<usize>>) -> Result<Vec<usize>, ()> {
+fn topological_sort(adjacency_list: &Vec<Vec<usize>>) -> Result<Vec<usize>, ()> {
     fn visit(
         adjacency_list: &Vec<Vec<usize>>,
         node: usize,
