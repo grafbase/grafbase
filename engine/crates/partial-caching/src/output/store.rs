@@ -148,6 +148,10 @@ impl OutputStore {
         }
     }
 
+    pub(super) fn concrete_shape_of_object(&self, id: ObjectId) -> ConcreteShapeId {
+        self.objects[id.0].shape
+    }
+
     fn read_value<'a>(&'a self, id: ValueId, shapes: &'a OutputShapes) -> Option<Value<'a>> {
         Some(match &self.values[id.0] {
             ValueRecord::Unset => return None,

@@ -24,9 +24,32 @@ impl QuerySubsetDisplay<'_> {
 }
 
 pub(super) struct SelectionSetDisplay<'a> {
-    pub(super) selections: FilteredSelectionSet<'a, 'a>,
-    pub(super) visible_selections: &'a IndexSet<SelectionId>,
-    pub(super) indent_level: usize,
+    selections: FilteredSelectionSet<'a, 'a>,
+    visible_selections: &'a IndexSet<SelectionId>,
+    indent_level: usize,
+    insert_typename: bool,
+}
+
+impl<'a> SelectionSetDisplay<'a> {
+    pub(super) fn new(
+        visible_selections: &'a IndexSet<SelectionId>,
+        selections: Iter<'a, Selection<'a>>,
+        indent_level: usize,
+    ) -> Self {
+        let selections = FilteredSelectionSet {
+            visible_selections,
+            selections: selections.with_ids(),
+        };
+
+        let insert_typename = selections.requires_synthetic_typename();
+
+        SelectionSetDisplay {
+            visible_selections,
+            selections,
+            indent_level,
+            insert_typename,
+        }
+    }
 }
 
 struct SelectionDisplay<'a> {
@@ -37,14 +60,7 @@ struct SelectionDisplay<'a> {
 
 impl<'a> SelectionDisplay<'a> {
     fn wrap_set(&self, selections: Iter<'a, Selection<'a>>) -> SelectionSetDisplay<'a> {
-        SelectionSetDisplay {
-            visible_selections: self.visible_selections,
-            selections: FilteredSelectionSet {
-                visible_ids: self.visible_selections,
-                selections: selections.with_ids(),
-            },
-            indent_level: self.indent_level,
-        }
+        SelectionSetDisplay::new(self.visible_selections, selections, self.indent_level)
     }
 }
 
@@ -110,6 +126,10 @@ impl fmt::Display for SelectionSetDisplay<'_> {
             return Ok(());
         }
         writeln!(f, "{{")?;
+        if self.insert_typename {
+            write_indent!(f, self.indent_level + 1)?;
+            writeln!(f, "__typename")?;
+        }
         for selection in selections {
             writeln!(
                 f,

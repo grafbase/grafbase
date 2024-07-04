@@ -460,6 +460,13 @@ impl QueryResponseNode {
             _ => None,
         }
     }
+
+    pub fn as_str(&self) -> Option<&str> {
+        let QueryResponseNode::Primitive(primitive) = self else {
+            return None;
+        };
+        primitive.as_str()
+    }
 }
 
 #[cfg(test)]
