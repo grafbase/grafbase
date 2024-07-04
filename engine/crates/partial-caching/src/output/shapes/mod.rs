@@ -1,5 +1,6 @@
 mod building;
 mod fragment_iter;
+mod shape_builder;
 
 use std::fmt;
 
@@ -13,7 +14,7 @@ pub struct OutputShapes {
     objects: Vec<ObjectShapeRecord>,
 
     #[allow(dead_code)] // Will be using this after GB-6949
-    type_tree_nodes: Vec<TypeTreeNode>,
+    type_conditions: Vec<TypeConditionNode>,
 
     root: ConcreteShapeId,
 
@@ -84,7 +85,7 @@ pub struct ObjectShapeId(u16);
 pub struct ConcreteShapeId(u16);
 
 #[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
-pub struct TypeTreeNodeId(u16);
+pub struct TypeConditionId(u16);
 
 enum ObjectShapeRecord {
     Concrete {
@@ -92,7 +93,7 @@ enum ObjectShapeRecord {
     },
     #[allow(dead_code)] // Will be using this after GB-6949
     Polymorphic {
-        type_conditions: Box<[TypeTreeNodeId]>,
+        type_conditions: Box<[TypeConditionId]>,
         fallback: ConcreteShapeId,
     },
 }
@@ -104,10 +105,10 @@ pub struct FieldRecord {
 }
 
 #[allow(dead_code)] // Will be using this after GB-6949
-pub struct TypeTreeNode {
+pub struct TypeConditionNode {
     type_condition: String,
     concrete_shape: ConcreteShapeId,
-    subtypes: Box<[TypeTreeNodeId]>,
+    subtypes: Box<[TypeConditionId]>,
 }
 
 #[derive(Clone, Copy)]

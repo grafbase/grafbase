@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use cynic_parser::executable::{ids::SelectionId, FieldSelection, Selection};
 use indexmap::{IndexMap, IndexSet};
@@ -6,8 +6,8 @@ use indexmap::{IndexMap, IndexSet};
 use crate::{parser_extensions::FieldExt, planning::defers::DeferId, CachingPlan, TypeRelationships};
 
 use super::{
-    fragment_iter::FragmentIter, ConcreteShapeId, FieldRecord, ObjectShapeId, ObjectShapeRecord, OutputShapes,
-    TypeTreeNode, TypeTreeNodeId,
+    fragment_iter::FragmentIter, shape_builder::OutputShapesBuilder, ConcreteShapeId, FieldRecord, ObjectShapeId,
+    OutputShapes,
 };
 
 type DeferMap = HashMap<SelectionId, DeferId>;
@@ -32,7 +32,7 @@ pub fn build_output_shapes(plan: &CachingPlan, type_relationships: &dyn TypeRela
 
     OutputShapes {
         objects: builder.objects,
-        type_tree_nodes: builder.type_tree,
+        type_conditions: builder.type_conditions,
         root,
         defer_roots,
     }
@@ -441,161 +441,4 @@ fn defers_for_type_condition(
 
 fn build_defer_map(plan: &CachingPlan) -> DeferMap {
     plan.defers().map(|defer| (defer.spread_id(), defer.id)).collect()
-}
-
-#[derive(Default)]
-struct OutputShapesBuilder {
-    objects: Vec<ObjectShapeRecord>,
-    type_tree: Vec<TypeTreeNode>,
-    defer_roots: Vec<(ConcreteShapeId, DeferId)>,
-}
-
-impl OutputShapesBuilder {
-    fn insert_concrete_object(&mut self, fields: Vec<FieldRecord>, defers: Vec<DeferId>) -> ConcreteShapeId {
-        let object_id = self.insert_record(ObjectShapeRecord::Concrete { fields });
-        let concrete_shape_id = ConcreteShapeId(object_id.0);
-
-        self.defer_roots
-            .extend(defers.into_iter().map(|defer_id| (concrete_shape_id, defer_id)));
-
-        concrete_shape_id
-    }
-
-    fn insert_polymorphic_object(
-        &mut self,
-        fallback_fields: Vec<FieldRecord>,
-        fallback_defers: Vec<DeferId>,
-        fields_for_typeconditions: Vec<(String, Vec<FieldRecord>, Vec<DeferId>)>,
-        type_relationships: &dyn TypeRelationships,
-    ) -> ObjectShapeId {
-        let fallback = self.insert_concrete_object(fallback_fields, fallback_defers);
-
-        let types = fields_for_typeconditions
-            .into_iter()
-            .map(|(typename, fields, defers)| (typename, self.insert_concrete_object(fields, defers)))
-            .collect::<Vec<_>>();
-
-        let name_indices = types
-            .iter()
-            .enumerate()
-            .map(|(index, (name, _))| (name.as_str(), index))
-            .collect::<HashMap<_, _>>();
-
-        // Build an adjacency list of subtype relationships
-        let mut roots = vec![];
-        let mut subtypes = vec![vec![]; types.len()];
-        for (name, subtype_index) in &name_indices {
-            let mut supertype_indices = type_relationships
-                .supertypes(name)
-                .filter_map(|supertype| name_indices.get(supertype))
-                .peekable();
-
-            if supertype_indices.peek().is_none() {
-                roots.push(subtype_index)
-            }
-
-            for supertype_index in supertype_indices {
-                subtypes[*supertype_index].push(*subtype_index)
-            }
-        }
-
-        let mut ids = vec![None; types.len()];
-
-        // Top sort our subtypes so we build dependencies first
-        for index in topsort(&subtypes).expect("TODO: GB-6966") {
-            let (type_condition, concrete_shape) = &types[index];
-            let subtypes = self.unwrap_and_box_nodes(subtypes[index].iter().map(|index| ids[*index]));
-
-            ids[index] = Some(self.insert_type_tree_node(TypeTreeNode {
-                type_condition: type_condition.to_string(),
-                concrete_shape: *concrete_shape,
-                subtypes,
-            }));
-        }
-
-        let type_conditions = self.unwrap_and_box_nodes(roots.into_iter().map(|id| ids[*id]));
-
-        self.insert_record(ObjectShapeRecord::Polymorphic {
-            type_conditions,
-            fallback,
-        })
-    }
-
-    fn insert_record(&mut self, record: ObjectShapeRecord) -> ObjectShapeId {
-        let id = ObjectShapeId(u16::try_from(self.objects.len()).expect("too many objects, what the hell"));
-        self.objects.push(record);
-        id
-    }
-
-    fn insert_type_tree_node(&mut self, node: TypeTreeNode) -> TypeTreeNodeId {
-        let id =
-            TypeTreeNodeId(u16::try_from(self.type_tree.len()).expect("too many type tree nodes, what is happening"));
-        self.type_tree.push(node);
-        id
-    }
-
-    fn unwrap_and_box_nodes(&self, nodes: impl Iterator<Item = Option<TypeTreeNodeId>>) -> Box<[TypeTreeNodeId]> {
-        nodes
-            .map(|option| option.expect("the node to be present because we did a topsort"))
-            .collect::<Vec<_>>()
-            .into_boxed_slice()
-    }
-}
-
-fn topsort(adjacency_list: &Vec<Vec<usize>>) -> Result<Vec<usize>, ()> {
-    fn visit(
-        adjacency_list: &Vec<Vec<usize>>,
-        node: usize,
-        fresh_nodes: &mut HashSet<usize>,
-        nodes_visited_this_traversal: &mut HashSet<usize>,
-        output: &mut Vec<usize>,
-    ) -> Result<(), ()> {
-        if !fresh_nodes.contains(&node) {
-            return Ok(());
-        }
-        if nodes_visited_this_traversal.contains(&node) {
-            // This indicates a cycle, which shouldn't be able to happen in a well formed GraphQL schema
-            return Err(());
-        }
-
-        nodes_visited_this_traversal.insert(node);
-
-        for neighbour in &adjacency_list[node] {
-            visit(
-                adjacency_list,
-                *neighbour,
-                fresh_nodes,
-                nodes_visited_this_traversal,
-                output,
-            )?;
-        }
-
-        nodes_visited_this_traversal.remove(&node);
-        fresh_nodes.remove(&node);
-        output.push(node);
-
-        Ok(())
-    }
-
-    let mut still_to_visit = adjacency_list
-        .iter()
-        .enumerate()
-        .map(|(i, _)| i)
-        .collect::<HashSet<_>>();
-    let mut nodes_visited_this_traversal = HashSet::new();
-    let mut output = Vec::with_capacity(adjacency_list.len());
-
-    while let Some(node) = still_to_visit.iter().next() {
-        visit(
-            adjacency_list,
-            *node,
-            &mut still_to_visit,
-            &mut nodes_visited_this_traversal,
-            &mut output,
-        )?;
-    }
-
-    // TODO: reverse output if it needs it.
-
-    Ok(output)
 }

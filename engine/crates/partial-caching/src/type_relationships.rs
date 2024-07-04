@@ -14,14 +14,11 @@ pub trait TypeRelationships: Send + Sync {
     fn supertypes<'b>(&'b self, typename: &str) -> Box<dyn Iterator<Item = &str> + 'b>;
 }
 
-// TODO: Possibly rename this...
-
 impl TypeRelationships for PartialCacheRegistry {
     fn type_condition_matches(&self, type_condition: &str, typename: &str) -> bool {
         if type_condition == typename {
             return true;
         }
-        // TODO: Are these arguments the right way round...?
         self.is_supertype(type_condition, typename)
     }
 
