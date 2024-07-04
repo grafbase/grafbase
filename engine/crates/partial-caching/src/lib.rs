@@ -29,6 +29,7 @@ mod parser_extensions;
 mod planning;
 mod query_subset;
 mod response;
+pub mod type_relationships;
 mod updating;
 
 pub use self::{
@@ -37,6 +38,7 @@ pub use self::{
     planning::build_plan,
     query_subset::QuerySubset,
     response::Response,
+    type_relationships::TypeRelationships,
     updating::CacheUpdatePhase,
 };
 

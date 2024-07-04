@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 use graph_entities::{CompactValue, QueryResponse, QueryResponseNode, ResponseNodeId};
 
-use crate::planning::defers::DeferId;
+use crate::{planning::defers::DeferId, TypeRelationships};
 
 use super::{
     shapes::{ConcreteShape, ObjectShape, OutputShapes},
@@ -15,7 +15,9 @@ use super::{
 /// Handles the initial response from the engine
 pub fn handle_initial_response(
     mut response: QueryResponse,
+    shapes: &OutputShapes,
     root_object: ConcreteShape<'_>,
+    type_relationships: &dyn TypeRelationships,
 ) -> (OutputStore, HashSet<DeferId>) {
     let mut output = OutputStore::default();
 
@@ -29,6 +31,8 @@ pub fn handle_initial_response(
         source: &mut response,
         output: &mut output,
         active_defers: HashSet::new(),
+        type_relationships,
+        shapes,
     };
 
     merge_container_into_value(src_root, dest_root, &mut context, ObjectShape::Concrete(root_object));
@@ -44,6 +48,7 @@ impl OutputStore {
         defer_root_object: ObjectId,
         mut source: QueryResponse,
         shapes: &OutputShapes,
+        type_relationships: &dyn TypeRelationships,
     ) -> HashSet<DeferId> {
         let Some(root_container_id) = source.root else {
             todo!("GB-6966");
@@ -54,6 +59,8 @@ impl OutputStore {
             source: &mut source,
             output: self,
             active_defers: HashSet::new(),
+            type_relationships,
+            shapes,
         };
 
         merge_container_into_object(root_container_id, defer_root_object, &mut context, defer_root_shape);
@@ -66,6 +73,10 @@ struct MergeContext<'a> {
     source: &'a mut QueryResponse,
     output: &'a mut OutputStore,
     active_defers: HashSet<DeferId>,
+    #[allow(dead_code)] // Will be using this after GB-6949
+    type_relationships: &'a dyn TypeRelationships,
+    #[allow(dead_code)] // Will be using this after GB-6949
+    shapes: &'a OutputShapes,
 }
 
 fn merge_container_into_object(
@@ -80,12 +91,12 @@ fn merge_container_into_object(
 
     let fields = container
         .iter()
-        .map(|(name, src_id)| {
-            let Some(field_shape) = shape.field(name.as_str()) else {
-                todo!("GB-6966");
-            };
+        .filter_map(|(name, src_id)| {
+            // If the field is missing from the shape we ignore it.
+            // This _could_ be a bug, but it also could just be an implied __typename
+            let field_shape = shape.field(name.as_str())?;
 
-            (field_shape, *src_id)
+            Some((field_shape, *src_id))
         })
         .collect::<Vec<_>>();
 

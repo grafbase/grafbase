@@ -3,15 +3,16 @@ use std::collections::HashMap;
 use cynic_parser::executable::{ids::SelectionId, FieldSelection, Selection};
 use indexmap::{IndexMap, IndexSet};
 
-use crate::{parser_extensions::FieldExt, planning::defers::DeferId, CachingPlan};
+use crate::{parser_extensions::FieldExt, planning::defers::DeferId, CachingPlan, TypeRelationships};
 
 use super::{
-    fragment_iter::FragmentIter, ConcreteShapeId, FieldRecord, ObjectShapeId, ObjectShapeRecord, OutputShapes,
+    fragment_iter::FragmentIter, shape_builder::OutputShapesBuilder, ConcreteShapeId, FieldRecord, ObjectShapeId,
+    OutputShapes,
 };
 
 type DeferMap = HashMap<SelectionId, DeferId>;
 
-pub fn build_output_shapes(plan: &CachingPlan) -> OutputShapes {
+pub fn build_output_shapes(plan: &CachingPlan, type_relationships: &dyn TypeRelationships) -> OutputShapes {
     let defer_map = build_defer_map(plan);
 
     let mut builder = OutputShapesBuilder::default();
@@ -23,7 +24,7 @@ pub fn build_output_shapes(plan: &CachingPlan) -> OutputShapes {
         .map(DeferrableSelection::without_defer)
         .collect();
 
-    let root = build_output_shape(&mut builder, selections, &defer_map);
+    let root = build_output_shape(&mut builder, selections, &defer_map, type_relationships);
     let root = ConcreteShapeId(root.0);
 
     let mut defer_roots = builder.defer_roots;
@@ -31,6 +32,7 @@ pub fn build_output_shapes(plan: &CachingPlan) -> OutputShapes {
 
     OutputShapes {
         objects: builder.objects,
+        type_conditions: builder.type_conditions,
         root,
         defer_roots,
     }
@@ -40,33 +42,46 @@ fn build_output_shape(
     builder: &mut OutputShapesBuilder,
     selections: Vec<DeferrableSelection<'_>>,
     defer_map: &DeferMap,
+    type_relationships: &dyn TypeRelationships,
 ) -> super::ObjectShapeId {
     let type_conditions = FragmentIter::new(&selections)
         .filter_map(|fragment| fragment.type_condition())
         .collect::<IndexSet<_>>();
 
     if type_conditions.is_empty() {
-        let field_shapes = field_shapes_for_type_condition(builder, &selections, None, defer_map);
-        let defers = defers_for_type_condition(&selections, None, defer_map);
+        let field_shapes = field_shapes_for_type_condition(builder, &selections, None, defer_map, type_relationships);
+        let defers = defers_for_type_condition(&selections, None, defer_map, type_relationships);
 
-        builder.insert_concrete_object(field_shapes, defers)
+        ObjectShapeId(builder.insert_concrete_object(field_shapes, defers).0)
     } else {
-        let unknown_typename_fields = field_shapes_for_type_condition(builder, &selections, None, defer_map);
+        let unknown_typename_fields =
+            field_shapes_for_type_condition(builder, &selections, None, defer_map, type_relationships);
 
-        let unknown_defers = defers_for_type_condition(&selections, None, defer_map);
+        let unknown_defers = defers_for_type_condition(&selections, None, defer_map, type_relationships);
 
         let known_typename_fields = type_conditions
             .into_iter()
             .map(|type_condition| {
                 (
                     type_condition.to_string(),
-                    field_shapes_for_type_condition(builder, &selections, Some(type_condition), defer_map),
-                    defers_for_type_condition(&selections, Some(type_condition), defer_map),
+                    field_shapes_for_type_condition(
+                        builder,
+                        &selections,
+                        Some(type_condition),
+                        defer_map,
+                        type_relationships,
+                    ),
+                    defers_for_type_condition(&selections, Some(type_condition), defer_map, type_relationships),
                 )
             })
             .collect::<Vec<_>>();
 
-        builder.insert_polymorphic_object(unknown_typename_fields, unknown_defers, known_typename_fields)
+        builder.insert_polymorphic_object(
+            unknown_typename_fields,
+            unknown_defers,
+            known_typename_fields,
+            type_relationships,
+        )
     }
 }
 
@@ -75,10 +90,18 @@ fn field_shapes_for_type_condition(
     selections: &[DeferrableSelection<'_>],
     type_condition: Option<&str>,
     defer_map: &DeferMap,
+    type_relationships: &dyn TypeRelationships,
 ) -> Vec<FieldRecord> {
     let mut grouped_fields = IndexMap::new();
 
-    collect_fields(&mut grouped_fields, &mut vec![], selections, type_condition, defer_map);
+    collect_fields(
+        &mut grouped_fields,
+        &mut vec![],
+        selections,
+        type_condition,
+        defer_map,
+        type_relationships,
+    );
 
     let merged_fields = merge_selection_sets(grouped_fields);
 
@@ -87,7 +110,12 @@ fn field_shapes_for_type_condition(
     for field in merged_fields {
         let mut subselection_shape = None;
         if !field.merged_selections.is_empty() {
-            subselection_shape = Some(build_output_shape(builder, field.merged_selections, defer_map));
+            subselection_shape = Some(build_output_shape(
+                builder,
+                field.merged_selections,
+                defer_map,
+                type_relationships,
+            ));
         }
         field_shapes.push(FieldRecord {
             response_key: field.response_key.to_string(),
@@ -119,6 +147,7 @@ fn collect_fields<'a>(
     selections: &[DeferrableSelection<'a>],
     type_condition: Option<&'a str>,
     defer_map: &DeferMap,
+    type_relationships: &dyn TypeRelationships,
 ) {
     for selection in selections {
         match selection.selection {
@@ -133,12 +162,10 @@ fn collect_fields<'a>(
                     .push(CollectedField { field, defer });
             }
             Selection::InlineFragment(fragment) => {
-                if fragment.type_condition() != type_condition {
-                    // TODO: This needs to be smarter.  If there's no type_condition it doesn't matter what typename
-                    // is. We also need to handle implements properly, which will require the registry.
-                    //
-                    // Will revisit later though...
-                    continue;
+                if let Some((required_condition, current_condition)) = fragment.type_condition().zip(type_condition) {
+                    if !type_relationships.type_condition_matches(required_condition, current_condition) {
+                        continue;
+                    }
                 }
 
                 let defer = defer_map.get(&selection.id).copied();
@@ -158,6 +185,7 @@ fn collect_fields<'a>(
                         .collect::<Vec<_>>(),
                     type_condition,
                     defer_map,
+                    type_relationships,
                 );
 
                 if defer.is_some() {
@@ -169,11 +197,12 @@ fn collect_fields<'a>(
                     continue;
                 };
 
-                if type_condition != Some(fragment.type_condition()) {
-                    // TODO: This needs to be smarter.  If there's no type_condition it doesn't matter what typename
-                    // is. We also need to handle implements properly, which will require the registry.
-                    //
-                    // Will revisit later though...
+                let Some(current_condition) = type_condition else {
+                    // Fragment spreads don't apply if we're evaluating the non-match case.
+                    continue;
+                };
+
+                if !type_relationships.type_condition_matches(fragment.type_condition(), current_condition) {
                     continue;
                 }
 
@@ -194,6 +223,7 @@ fn collect_fields<'a>(
                         .collect::<Vec<_>>(),
                     type_condition,
                     defer_map,
+                    type_relationships,
                 );
 
                 if defer.is_some() {
@@ -350,15 +380,17 @@ fn defers_for_type_condition(
     selections: &[DeferrableSelection<'_>],
     type_condition: Option<&str>,
     defer_map: &DeferMap,
+    type_relationships: &dyn TypeRelationships,
 ) -> Vec<DeferId> {
     let mut output = vec![];
     for selection in selections {
         match selection.selection {
             Selection::Field(_) => {}
             Selection::InlineFragment(fragment) => {
-                if fragment.type_condition() != type_condition {
-                    // TODO: This needs to be smarter.  Revisiting in GB-6949
-                    continue;
+                if let Some((required_condition, current_condition)) = fragment.type_condition().zip(type_condition) {
+                    if !type_relationships.type_condition_matches(required_condition, current_condition) {
+                        continue;
+                    }
                 }
 
                 output.extend(defer_map.get(&selection.id).copied());
@@ -367,24 +399,39 @@ fn defers_for_type_condition(
                     .with_ids()
                     .map(DeferrableSelection::without_defer)
                     .collect::<Vec<_>>();
-                output.extend(defers_for_type_condition(&nested_selections, type_condition, defer_map));
+                output.extend(defers_for_type_condition(
+                    &nested_selections,
+                    type_condition,
+                    defer_map,
+                    type_relationships,
+                ));
             }
             Selection::FragmentSpread(spread) => {
                 let Some(fragment) = spread.fragment() else {
                     continue;
                 };
 
-                if type_condition != Some(fragment.type_condition()) {
-                    // TODO: This needs to be smarter.  Revisiting in GB-6949
+                let Some(current_condition) = type_condition else {
+                    // Fragment spreads don't apply if we're evaluating the non-match case.
+                    continue;
+                };
+
+                if !type_relationships.type_condition_matches(fragment.type_condition(), current_condition) {
                     continue;
                 }
+
                 output.extend(defer_map.get(&selection.id).copied());
                 let nested_selections = fragment
                     .selection_set()
                     .with_ids()
                     .map(DeferrableSelection::without_defer)
                     .collect::<Vec<_>>();
-                output.extend(defers_for_type_condition(&nested_selections, type_condition, defer_map));
+                output.extend(defers_for_type_condition(
+                    &nested_selections,
+                    type_condition,
+                    defer_map,
+                    type_relationships,
+                ));
             }
         }
     }
@@ -394,46 +441,4 @@ fn defers_for_type_condition(
 
 fn build_defer_map(plan: &CachingPlan) -> DeferMap {
     plan.defers().map(|defer| (defer.spread_id(), defer.id)).collect()
-}
-
-#[derive(Default)]
-struct OutputShapesBuilder {
-    objects: Vec<ObjectShapeRecord>,
-    defer_roots: Vec<(ConcreteShapeId, DeferId)>,
-}
-
-impl OutputShapesBuilder {
-    fn insert_concrete_object(&mut self, fields: Vec<FieldRecord>, defers: Vec<DeferId>) -> ObjectShapeId {
-        let object_id = self.insert_record(ObjectShapeRecord::Concrete { fields });
-        let concrete_shape_id = ConcreteShapeId(object_id.0);
-
-        self.defer_roots
-            .extend(defers.into_iter().map(|defer_id| (concrete_shape_id, defer_id)));
-
-        object_id
-    }
-
-    fn insert_polymorphic_object(
-        &mut self,
-        fields_when_no_condition_matches: Vec<FieldRecord>,
-        defers_when_no_condition_matches: Vec<DeferId>,
-        fields_for_typeconditions: Vec<(String, Vec<FieldRecord>, Vec<DeferId>)>,
-    ) -> ObjectShapeId {
-        let mut types = Vec::with_capacity(fields_for_typeconditions.len() + 1);
-        types.push((
-            None,
-            self.insert_concrete_object(fields_when_no_condition_matches, defers_when_no_condition_matches),
-        ));
-        for (typename, fields, defers) in fields_for_typeconditions {
-            types.push((Some(typename), self.insert_concrete_object(fields, defers)));
-        }
-
-        self.insert_record(ObjectShapeRecord::Polymorphic { types })
-    }
-
-    fn insert_record(&mut self, record: ObjectShapeRecord) -> ObjectShapeId {
-        let id = ObjectShapeId(u16::try_from(self.objects.len()).expect("too many objects, what the hell"));
-        self.objects.push(record);
-        id
-    }
 }

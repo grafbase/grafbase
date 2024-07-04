@@ -9,7 +9,8 @@ use futures_util::{
     stream::{self, BoxStream, StreamExt},
     FutureExt, SinkExt,
 };
-use partial_caching::{CacheUpdatePhase, CachingPlan, FetchPhaseResult, StreamingExecutionPhase};
+use partial_caching::{CacheUpdatePhase, CachingPlan, FetchPhaseResult, StreamingExecutionPhase, TypeRelationships};
+use registry_for_cache::PartialCacheRegistry;
 use runtime::{
     cache::{Cache, CacheMetadata, EntryState},
     context::RequestContext,
@@ -25,6 +26,7 @@ pub async fn partial_caching_execution<Exec, Ctx>(
     mut request: engine::Request,
     executor: &Arc<Exec>,
     ctx: &Arc<Ctx>,
+    registry: &Arc<PartialCacheRegistry>,
 ) -> Result<Arc<engine::Response>, Exec::Error>
 where
     Exec: Executor<Context = Ctx>,
@@ -32,7 +34,7 @@ where
 {
     let operation_type = operation_type(&plan.document, request.operation_name());
 
-    match run_fetch_phase(plan, &request, &auth, ctx, cache).await {
+    match run_fetch_phase(plan, &request, &auth, ctx, cache, registry).await {
         partial_caching::FetchPhaseResult::PartialHit(execution_phase) => {
             request.query = execution_phase.query();
 
@@ -79,6 +81,7 @@ pub async fn partial_caching_stream<Exec, Ctx>(
     mut request: engine::Request,
     executor: &Arc<Exec>,
     ctx: &Arc<Ctx>,
+    registry: &Arc<PartialCacheRegistry>,
 ) -> Result<BoxStream<'static, engine::StreamingPayload>, Exec::Error>
 where
     Exec: Executor<Context = Ctx>,
@@ -86,7 +89,7 @@ where
 {
     let operation_type = operation_type(&plan.document, request.operation_name());
 
-    match run_fetch_phase(plan, &request, &auth, ctx, cache).await {
+    match run_fetch_phase(plan, &request, &auth, ctx, cache, registry).await {
         FetchPhaseResult::PartialHit(execution_phase) => {
             let deferred_execution_phase = execution_phase.streaming();
             request.query = deferred_execution_phase.query();
@@ -186,6 +189,7 @@ async fn run_fetch_phase<Ctx>(
     auth: &ExecutionAuth,
     ctx: &Arc<Ctx>,
     cache: &Cache,
+    registry: &Arc<PartialCacheRegistry>,
 ) -> FetchPhaseResult
 where
     Ctx: RequestContext,
@@ -208,7 +212,7 @@ where
         }
     }
 
-    fetch_phase.finish()
+    fetch_phase.finish(Arc::clone(registry) as Arc<dyn TypeRelationships>)
 }
 
 async fn run_update_phase(update_phase: CacheUpdatePhase, cache: Cache) {

@@ -210,7 +210,23 @@ fn test_arguments_and_directives_preserved() {
 
     let result = plan.nocache_partition.as_display(&plan.document).to_string();
 
-    insta::assert_snapshot!(result)
+    insta::assert_snapshot!(result, @r###"
+    query @whatever {
+      user(id: 1) @whatever {
+        ... @defer(if: $hello) {
+          hello
+        }
+        ... Whatever @whatever
+        ... on User @defer(if: $hello) {
+          hello
+        }
+      }
+    }
+
+    fragment Whatever on User @whatever {
+      hello
+    }
+    "###)
 }
 
 #[test]

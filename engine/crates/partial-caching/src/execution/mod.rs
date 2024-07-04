@@ -5,14 +5,14 @@
 
 mod defer;
 
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use graph_entities::{QueryResponse, ResponseNodeId};
 use runtime::cache::Entry;
 
 use crate::{
     headers::RequestCacheControl, response::MaxAge, updating::PartitionIndex, CacheUpdatePhase, CachingPlan,
-    QuerySubset, Response,
+    QuerySubset, Response, TypeRelationships,
 };
 
 use super::fetching::CacheFetchPhase;
@@ -27,11 +27,13 @@ pub struct ExecutionPhase {
     cache_miss_count: usize,
     is_partial_hit: bool,
 
+    type_relationships: Arc<dyn TypeRelationships>,
+
     request_cache_control: RequestCacheControl,
 }
 
 impl ExecutionPhase {
-    pub(crate) fn new(fetch_phase: CacheFetchPhase) -> Self {
+    pub(crate) fn new(fetch_phase: CacheFetchPhase, type_relationships: Arc<dyn TypeRelationships>) -> Self {
         let plan = fetch_phase.plan;
 
         let mut is_partial_hit = false;
@@ -53,6 +55,7 @@ impl ExecutionPhase {
             executor_subset,
             cache_miss_count,
             is_partial_hit,
+            type_relationships,
             request_cache_control: fetch_phase.request_cache_control,
         }
     }
