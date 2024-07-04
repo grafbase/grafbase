@@ -54,3 +54,37 @@ pub trait Hooks: Send + Sync + 'static {
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
     ) -> impl Future<Output = Result<(), GraphqlError>> + Send;
 }
+
+// ---------------------------//
+// -- No-op implementation -- //
+// ---------------------------//
+impl Hooks for () {
+    type Context = ();
+
+    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), GraphqlError> {
+        Ok(((), headers))
+    }
+
+    async fn authorize_edge_pre_execution<'a>(
+        &self,
+        _: &Self::Context,
+        _: EdgeDefinition<'a>,
+        _: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
+        _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
+    ) -> Result<(), GraphqlError> {
+        Err(GraphqlError::new(
+            "@authorized directive cannot be used, so access was denied",
+        ))
+    }
+
+    async fn authorize_node_pre_execution<'a>(
+        &self,
+        _: &Self::Context,
+        _: NodeDefinition<'a>,
+        _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
+    ) -> Result<(), GraphqlError> {
+        Err(GraphqlError::new(
+            "@authorized directive cannot be used, so access was denied",
+        ))
+    }
+}

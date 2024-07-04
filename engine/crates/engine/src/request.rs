@@ -2,7 +2,6 @@ use std::{
     any::Any,
     collections::HashMap,
     fmt::{self, Debug, Formatter},
-    hash::{DefaultHasher, Hash, Hasher},
 };
 
 use serde::{Deserialize, Deserializer, Serialize};
@@ -28,8 +27,26 @@ pub enum IntrospectionState {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Request {
-    #[serde(flatten)]
-    pub operation_plan_cache_key: OperationPlanCacheKey,
+    /// The query source of the request.
+    #[serde(default)]
+    pub query: String,
+
+    /// The operation name of the request.
+    #[serde(default)]
+    pub operation_name: Option<String>,
+
+    /// Used by [relay-style persisted queries](https://relay.dev/docs/guides/persisted-queries/).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(alias = "doc_id")]
+    pub document_id: Option<String>,
+
+    /// Force enable introspection queries for this request.
+    #[serde(skip)]
+    pub introspection_state: IntrospectionState,
+
+    /// Disable validating operation limits.
+    #[serde(skip)]
+    pub disable_operation_limits: bool,
 
     /// The variables of the request.
     #[serde(default)]
@@ -63,7 +80,7 @@ pub struct RequestExtensions {
 }
 
 #[serde_with::serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedQueryRequestExtension {
     pub version: u32,
@@ -71,47 +88,15 @@ pub struct PersistedQueryRequestExtension {
     pub sha256_hash: Vec<u8>,
 }
 
-/// Contains everything that should be used in the key when caching the OperationPlan,
-/// defining what will be executed by the engine.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OperationPlanCacheKey {
-    /// The query source of the request.
-    #[serde(default)]
-    pub query: String,
-
-    /// The operation name of the request.
-    #[serde(default)]
-    pub operation_name: Option<String>,
-
-    /// Used by [relay-style persisted queries](https://relay.dev/docs/guides/persisted-queries/).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[serde(alias = "doc_id")]
-    pub document_id: Option<String>,
-
-    /// Force enable introspection queries for this request.
-    #[serde(skip)]
-    pub introspection_state: IntrospectionState,
-
-    /// Disable validating operation limits.
-    #[serde(skip)]
-    pub disable_operation_limits: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct RequestCacheKey(pub u64);
-
 impl Request {
     /// Create a request object with query source.
     pub fn new(query: impl Into<String>) -> Self {
         Self {
-            operation_plan_cache_key: OperationPlanCacheKey {
-                query: query.into(),
-                operation_name: None,
-                introspection_state: IntrospectionState::UserPreference,
-                disable_operation_limits: false,
-                document_id: None,
-            },
+            query: query.into(),
+            operation_name: None,
+            introspection_state: IntrospectionState::UserPreference,
+            disable_operation_limits: false,
+            document_id: None,
             ray_id: String::new(),
             variables: Variables::default(),
             uploads: Vec::default(),
@@ -120,25 +105,11 @@ impl Request {
         }
     }
 
-    /// Cache key used by engine-v2
-    pub fn cache_key(&self) -> RequestCacheKey {
-        // FIXME: There is no guarantee of this being stable nor being cryptographic which we
-        // definitely want for caching. Will replace it later with blake3. Just don't want to make
-        // an even bigger PR. For now it's not great.
-        let mut hasher = DefaultHasher::new();
-        self.operation_plan_cache_key.hash(&mut hasher);
-        self.variables.hash(&mut hasher);
-        RequestCacheKey(hasher.finish())
-    }
-
     /// Specify the operation name of the request.
     #[must_use]
     pub fn with_operation_name<T: Into<String>>(self, name: T) -> Self {
         Self {
-            operation_plan_cache_key: OperationPlanCacheKey {
-                operation_name: Some(name.into()),
-                ..self.operation_plan_cache_key
-            },
+            operation_name: Some(name.into()),
             ..self
         }
     }
@@ -159,7 +130,7 @@ impl Request {
     /// Set the introspection state for this request.
     #[must_use]
     pub fn set_introspection_state(mut self, state: IntrospectionState) -> Self {
-        self.operation_plan_cache_key.introspection_state = state;
+        self.introspection_state = state;
         self
     }
 
@@ -195,19 +166,19 @@ impl Request {
     }
 
     pub fn query(&self) -> &str {
-        &self.operation_plan_cache_key.query
+        &self.query
     }
 
     pub fn operation_name(&self) -> Option<&str> {
-        self.operation_plan_cache_key.operation_name.as_deref()
+        self.operation_name.as_deref()
     }
 
     pub fn introspection_state(&self) -> IntrospectionState {
-        self.operation_plan_cache_key.introspection_state
+        self.introspection_state
     }
 
     pub fn operation_limits_disabled(&self) -> bool {
-        self.operation_plan_cache_key.disable_operation_limits
+        self.disable_operation_limits
     }
 }
 
@@ -224,7 +195,7 @@ impl Debug for Request {
             .field("operation_name", &self.operation_name())
             .field("variables", &self.variables)
             .field("extensions", &self.extensions)
-            .field("document_id", &self.operation_plan_cache_key.document_id)
+            .field("document_id", &self.document_id)
             .finish_non_exhaustive()
     }
 }
@@ -297,7 +268,7 @@ impl BatchRequest {
     #[must_use]
     pub fn set_introspection_state(mut self, state: IntrospectionState) -> Self {
         for request in self.iter_mut() {
-            request.operation_plan_cache_key.introspection_state = state;
+            request.introspection_state = state;
         }
         self
     }

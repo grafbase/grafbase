@@ -182,10 +182,15 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
     binder.validate_all_variables_used()?;
 
     Ok(Operation {
-        ty: unbound.definition.ty,
+        // Replaced later
+        metadata: super::OperationMetadata {
+            ty: unbound.definition.ty,
+            name: unbound.name,
+            normalized_query: String::new(),
+            normalized_query_hash: [0; 32],
+        },
         root_object_id,
         root_condition_id,
-        name: unbound.name,
         root_selection_set_id,
         selection_set_to_plan_id: vec![None; binder.selection_sets.len()],
         selection_sets: binder.selection_sets,

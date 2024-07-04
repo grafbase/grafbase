@@ -3,9 +3,7 @@ use std::collections::HashMap;
 use schema::{EntityId, FieldDefinitionId, ObjectId, Schema, SchemaWalker};
 
 use crate::{
-    operation::{
-        FieldId, Operation, OperationWalker, QueryInputValueId, QueryInputValueWalker, SelectionSetType, Variables,
-    },
+    operation::{FieldId, Operation, OperationWalker, QueryInputValueId, QueryInputValueWalker, SelectionSetType},
     plan::{CollectedField, FieldError, FieldType, RuntimeMergedConditionals},
     response::{ResponseEdge, ResponseKey, ResponseKeys, SafeResponseKey},
 };
@@ -31,7 +29,6 @@ pub use selection_set::*;
 pub(crate) struct PlanWalker<'a, Item = (), SchemaItem = ()> {
     pub(super) schema_walker: SchemaWalker<'a, SchemaItem>,
     pub(super) operation_plan: &'a OperationPlan,
-    pub(super) variables: &'a Variables,
     pub(super) execution_plan_id: ExecutionPlanId,
     pub(super) item: Item,
 }
@@ -99,7 +96,6 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
     {
         PlanWalker {
             operation_plan: self.operation_plan,
-            variables: self.variables,
             execution_plan_id: self.execution_plan_id,
             schema_walker: self.schema_walker,
             item,
@@ -109,7 +105,6 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
     fn walk_with<I2, SI2>(&self, item: I2, schema_item: SI2) -> PlanWalker<'a, I2, SI2> {
         PlanWalker {
             operation_plan: self.operation_plan,
-            variables: self.variables,
             execution_plan_id: self.execution_plan_id,
             schema_walker: self.schema_walker.walk(schema_item),
             item,
@@ -119,7 +114,7 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
     fn bound_walk_with<I2, SI2: Copy>(&self, item: I2, schema_item: SI2) -> OperationWalker<'a, I2, SI2> {
         self.operation_plan
             .operation
-            .walker_with(self.schema_walker.walk(schema_item), self.variables)
+            .walker_with(self.schema_walker.walk(schema_item), &self.operation_plan.variables)
             .walk(item)
     }
 }

@@ -75,10 +75,7 @@ pub use look_ahead::Lookahead;
 pub use parser::{Pos, Positioned};
 pub use query_path::{QueryPath, QueryPathSegment};
 pub use registry::{CacheControl, Registry};
-pub use request::{
-    BatchRequest, OperationPlanCacheKey, PersistedQueryRequestExtension, QueryParamRequest, Request, RequestCacheKey,
-    RequestExtensions,
-};
+pub use request::{BatchRequest, PersistedQueryRequestExtension, QueryParamRequest, Request, RequestExtensions};
 #[doc(no_inline)]
 pub use resolver_utils::{ContainerType, LegacyEnumType, LegacyScalarType};
 pub use schema::{Schema, SchemaBuilder, SchemaEnv};

@@ -68,16 +68,16 @@ pub use private::*;
 /// It's the primary abstraction for the ResponsePath, and used at different places for simplicity.
 /// Like BounResponseKey, it keeps the ordering of the fields. Indices and extra fields are put at
 /// the back.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ResponseEdge(u32);
 
 /// A ResponseKey associated with a position within the query, guaranteeing the right order of
 /// fields in the output as we BTreeMaps to store them in the response.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct BoundResponseKey(u32);
 
 /// Id of an interned string within ResponseKeys.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ResponseKey(u32);
 
 impl SafeResponseKey {

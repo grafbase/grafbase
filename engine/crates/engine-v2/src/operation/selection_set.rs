@@ -10,14 +10,14 @@ use super::{
     SelectionSetId,
 };
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SelectionSet {
     pub ty: SelectionSetType,
     // Ordering matters and must be respected in the response.
     pub items: Vec<Selection>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum SelectionSetType {
     Object(ObjectId),
     Interface(InterfaceId),
@@ -86,7 +86,7 @@ impl SelectionSetType {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) enum Selection {
     Field(FieldId),
     FragmentSpread(FragmentSpreadId),
@@ -95,7 +95,7 @@ pub(crate) enum Selection {
 
 /// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
 /// A BoundField is a field in the query *after* spreading all the named fragments.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Field {
     // Keeping attributes inside the enum to allow Rust to optimize the size of BoundField. We rarely
     // use the variants directly.
@@ -107,13 +107,13 @@ pub enum Field {
     Extra(ExtraField),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TypeNameField {
     pub bound_response_key: BoundResponseKey,
     pub location: Location,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct QueryField {
     pub bound_response_key: BoundResponseKey,
     pub location: Location,
@@ -123,7 +123,7 @@ pub struct QueryField {
     pub condition: Option<ConditionId>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ExtraField {
     pub edge: ResponseEdge,
     pub field_definition_id: FieldDefinitionId,
@@ -224,7 +224,7 @@ impl Field {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FragmentSpread {
     pub location: Location,
     pub fragment_id: FragmentId,
@@ -232,21 +232,21 @@ pub struct FragmentSpread {
     pub selection_set_id: SelectionSetId,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct InlineFragment {
     pub location: Location,
     pub type_condition: Option<TypeCondition>,
     pub selection_set_id: SelectionSetId,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Fragment {
     pub name: String,
     pub name_location: Location,
     pub type_condition: TypeCondition,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum TypeCondition {
     Interface(InterfaceId),
     Object(ObjectId),
@@ -274,7 +274,7 @@ impl From<TypeCondition> for Definition {
 }
 
 /// Represents arguments that were specified in the query with a value
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FieldArgument {
     pub name_location: Option<Location>,
     pub value_location: Option<Location>,

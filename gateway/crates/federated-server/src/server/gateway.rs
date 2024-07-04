@@ -4,8 +4,7 @@ use ascii::AsciiString;
 use engine_v2::Engine;
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::FederatedGraphConfig;
-use runtime::cache::GlobalCacheConfig;
-use runtime_local::{ComponentLoader, HooksConfig, HooksWasi, InMemoryCache, InMemoryKvStore};
+use runtime_local::{ComponentLoader, HooksConfig, HooksWasi, InMemoryKvStore};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;
 
@@ -32,7 +31,7 @@ pub(crate) struct GatewayConfig {
 }
 
 /// Creates a new gateway from federated schema.
-pub(super) fn generate(
+pub(super) async fn generate(
     federated_schema: &str,
     branch_id: Option<ulid::Ulid>,
     config: GatewayConfig,
@@ -47,6 +46,7 @@ pub(super) fn generate(
         wasi,
     } = config;
 
+    let schema_version = blake3::hash(federated_schema.as_bytes());
     let graph =
         FederatedGraph::from_sdl(federated_schema).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
 
@@ -89,12 +89,6 @@ pub(super) fn generate(
 
     let config = engine_config_builder::build_config(&graph_config, graph);
 
-    let cache = InMemoryCache::runtime(GlobalCacheConfig {
-        common_cache_tags: Vec::new(),
-        enabled: true,
-        subdomain: "localhost".to_string(),
-    });
-
     // TODO: https://linear.app/grafbase/issue/GB-6168/support-trusted-documents-in-air-gapped-mode
     let trusted_documents = if trusted_documents.enabled {
         let Some(branch_id) = branch_id else {
@@ -118,7 +112,6 @@ pub(super) fn generate(
 
     let runtime = GatewayRuntime {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
-        cache: cache.clone(),
         kv: InMemoryKvStore::runtime(),
         trusted_documents,
         meter: grafbase_tracing::metrics::meter_from_global_provider(),
@@ -135,12 +128,11 @@ pub(super) fn generate(
         .try_into()
         .map_err(|err| crate::Error::InternalError(format!("Failed to generate engine Schema: {err}")))?;
 
-    Ok(Engine::new(Arc::new(config), runtime))
+    Ok(Engine::new(Arc::new(config), Some(schema_version.as_bytes()), runtime).await)
 }
 
 pub struct GatewayRuntime {
     fetcher: runtime::fetch::Fetcher,
-    cache: runtime::cache::Cache,
     trusted_documents: runtime::trusted_documents_client::Client,
     kv: runtime::kv::KvStore,
     meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
@@ -149,12 +141,10 @@ pub struct GatewayRuntime {
 
 impl engine_v2::Runtime for GatewayRuntime {
     type Hooks = HooksWasi;
+    type CacheFactory = ();
 
     fn fetcher(&self) -> &runtime::fetch::Fetcher {
         &self.fetcher
-    }
-    fn cache(&self) -> &runtime::cache::Cache {
-        &self.cache
     }
     fn trusted_documents(&self) -> &runtime::trusted_documents_client::Client {
         &self.trusted_documents
@@ -167,5 +157,8 @@ impl engine_v2::Runtime for GatewayRuntime {
     }
     fn hooks(&self) -> &HooksWasi {
         &self.hooks
+    }
+    fn cache_factory(&self) -> &Self::CacheFactory {
+        &()
     }
 }

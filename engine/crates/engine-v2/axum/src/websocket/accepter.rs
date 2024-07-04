@@ -15,7 +15,7 @@ pub type WebsocketReceiver = tokio::sync::mpsc::Receiver<WebSocket>;
 const CONNECTION_INIT_WAIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
 
 /// An actor that manages websocket connections for federated dev
-pub struct WebsocketAccepter<R> {
+pub struct WebsocketAccepter<R: Runtime> {
     sockets: WebsocketReceiver,
     engine: EngineWatcher<R>,
 }

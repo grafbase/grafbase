@@ -51,11 +51,11 @@ impl<'a> OperationWalker<'a, (), ()> {
     }
 
     pub(crate) fn is_query(&self) -> bool {
-        matches!(self.as_ref().ty, OperationType::Query)
+        matches!(self.as_ref().ty(), OperationType::Query)
     }
 
     pub(crate) fn is_mutation(&self) -> bool {
-        matches!(self.as_ref().ty, OperationType::Mutation)
+        matches!(self.as_ref().ty(), OperationType::Mutation)
     }
 
     pub(crate) fn selection_set(&self) -> SelectionSetWalker<'a> {

@@ -19,7 +19,7 @@ id_newtypes::NonZeroU16! {
     Operation.conditions[ConditionId] => Condition,
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub struct EntityLocation(NonZeroU16);
 
 impl From<usize> for EntityLocation {

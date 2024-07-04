@@ -3,6 +3,7 @@ mod cache;
 mod fetch;
 #[cfg(feature = "wasi")]
 mod hooks;
+mod hot_cache;
 mod kv;
 mod log;
 mod pg;
@@ -12,6 +13,7 @@ mod ufd_invoker;
 pub use bridge::Bridge;
 pub use cache::InMemoryCache;
 pub use fetch::NativeFetcher;
+pub use hot_cache::{InMemoryHotCache, InMemoryHotCacheFactory};
 pub use kv::*;
 pub use pg::{LazyPgConnectionsPool, LocalPgTransportFactory};
 pub use rate_limiting::InMemoryRateLimiting;

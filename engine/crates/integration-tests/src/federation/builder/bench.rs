@@ -46,7 +46,7 @@ impl<'a> DeterministicEngineBuilder<'a> {
         self
     }
 
-    pub fn build(self) -> DeterministicEngine<'a> {
+    pub async fn build(self) -> DeterministicEngine<'a> {
         let dummy_responses_index = Arc::new(AtomicUsize::new(0));
         let fetcher = DummyFetcher::create(
             self.subgraphs_json_responses
@@ -61,16 +61,11 @@ impl<'a> DeterministicEngineBuilder<'a> {
         let config =
             engine_v2::VersionedConfig::V4(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
 
-        let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
-            enabled: true,
-            ..Default::default()
-        });
-
         let engine = engine_v2::Engine::new(
             Arc::new(config.try_into().unwrap()),
+            None,
             TestRuntime {
                 fetcher,
-                cache: cache.clone(),
                 trusted_documents: runtime::trusted_documents_client::Client::new(
                     runtime_noop::trusted_documents::NoopTrustedDocuments,
                 ),
@@ -78,7 +73,8 @@ impl<'a> DeterministicEngineBuilder<'a> {
                 meter: grafbase_tracing::metrics::meter_from_global_provider(),
                 hooks: self.hooks,
             },
-        );
+        )
+        .await;
         DeterministicEngine {
             engine: Arc::new(engine),
             query: self.query,
@@ -97,7 +93,7 @@ impl<'a> DeterministicEngine<'a> {
         }
     }
 
-    pub fn new<T: serde::Serialize, I>(schema: &'a str, query: &'a str, subgraphs_responses: I) -> Self
+    pub async fn new<T: serde::Serialize, I>(schema: &'a str, query: &'a str, subgraphs_responses: I) -> Self
     where
         I: IntoIterator<Item = T>,
     {
@@ -105,7 +101,7 @@ impl<'a> DeterministicEngine<'a> {
         for resp in subgraphs_responses {
             builder = builder.with_subgraph_response(resp);
         }
-        builder.build()
+        builder.build().await
     }
 
     pub async fn raw_execute(&self) -> HttpGraphqlResponse {

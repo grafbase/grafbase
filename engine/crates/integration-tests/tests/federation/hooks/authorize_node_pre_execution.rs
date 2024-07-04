@@ -43,7 +43,7 @@ fn query_root_type() {
         }
         "#;
 
-    let response = integration_tests::runtime().block_on(
+    let response = integration_tests::runtime().block_on(async {
         DeterministicEngine::builder(
             SCHEMA,
             r#"
@@ -55,8 +55,10 @@ fn query_root_type() {
         .with_hooks(TestHooks)
         .with_subgraph_response(json!({"data": {"me": "Rusty"} }))
         .build()
-        .execute(),
-    );
+        .await
+        .execute()
+        .await
+    });
     insta::assert_json_snapshot!(response, @r###"
     {
       "data": null,
@@ -68,7 +70,7 @@ fn query_root_type() {
     }
     "###);
 
-    let response = integration_tests::runtime().block_on(
+    let response = integration_tests::runtime().block_on(async {
         DeterministicEngine::builder(
             SCHEMA,
             r#"
@@ -80,8 +82,10 @@ fn query_root_type() {
         .with_hooks(TestHooks)
         .with_subgraph_response(json!({"data": {"doStuff": "done"} }))
         .build()
-        .execute(),
-    );
+        .await
+        .execute()
+        .await
+    });
     insta::assert_json_snapshot!(response, @r###"
     {
       "data": {
@@ -125,7 +129,7 @@ fn mutation_root_type() {
         }
         "#;
 
-    let response = integration_tests::runtime().block_on(
+    let response = integration_tests::runtime().block_on(async {
         DeterministicEngine::builder(
             SCHEMA,
             r#"
@@ -137,8 +141,10 @@ fn mutation_root_type() {
         .with_hooks(TestHooks)
         .with_subgraph_response(json!({"data": {"me": "Rusty"} }))
         .build()
-        .execute(),
-    );
+        .await
+        .execute()
+        .await
+    });
     insta::assert_json_snapshot!(response, @r###"
     {
       "data": {
@@ -147,7 +153,7 @@ fn mutation_root_type() {
     }
     "###);
 
-    let response = integration_tests::runtime().block_on(
+    let response = integration_tests::runtime().block_on(async {
         DeterministicEngine::builder(
             SCHEMA,
             r#"
@@ -159,8 +165,10 @@ fn mutation_root_type() {
         .with_hooks(TestHooks)
         .with_subgraph_response(json!({"data": {"doStuff": "done"} }))
         .build()
-        .execute(),
-    );
+        .await
+        .execute()
+        .await
+    });
     insta::assert_json_snapshot!(response, @r###"
     {
       "data": null,
@@ -207,7 +215,7 @@ fn subscription_root_type() {
         }
         "#;
 
-    let response = integration_tests::runtime().block_on(
+    let response = integration_tests::runtime().block_on(async {
         DeterministicEngine::builder(
             SCHEMA,
             r#"
@@ -219,8 +227,10 @@ fn subscription_root_type() {
         .with_hooks(TestHooks)
         .with_subgraph_response(json!({"data": {"me": "Rusty"} }))
         .build()
-        .execute(),
-    );
+        .await
+        .execute()
+        .await
+    });
     insta::assert_json_snapshot!(response, @r###"
     {
       "data": {
@@ -241,6 +251,7 @@ fn subscription_root_type() {
         .with_hooks(TestHooks)
         .with_subgraph_response(json!({"data": {"doStuff": "done"} }))
         .build()
+        .await
         .execute_stream()
         .await
         .stream

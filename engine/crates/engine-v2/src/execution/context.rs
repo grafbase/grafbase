@@ -1,9 +1,40 @@
 use ::runtime::hooks::Hooks;
+use futures::future::BoxFuture;
 use runtime::auth::AccessToken;
 
 use crate::{engine::RequestContext, Engine, Runtime};
 
 use super::RequestHooks;
+
+/// Context before starting to operation plan execution.
+/// Background futures will be started in parallel to avoid delaying the plan.
+pub(crate) struct PreExecutionContext<'ctx, R: Runtime> {
+    pub(super) inner: ExecutionContext<'ctx, R>,
+    pub(super) background_futures: crossbeam_queue::SegQueue<BoxFuture<'ctx, ()>>,
+}
+
+impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
+    pub fn new(engine: &'ctx Engine<R>, request_context: &'ctx RequestContext<<R::Hooks as Hooks>::Context>) -> Self {
+        Self {
+            inner: ExecutionContext {
+                engine,
+                request_context,
+            },
+            background_futures: Default::default(),
+        }
+    }
+
+    pub fn push_background_future(&mut self, future: BoxFuture<'ctx, ()>) {
+        self.background_futures.push(future)
+    }
+}
+
+impl<'ctx, R: Runtime> std::ops::Deref for PreExecutionContext<'ctx, R> {
+    type Target = ExecutionContext<'ctx, R>;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
 
 /// Data available during the executor life during its build & execution phases.
 pub(crate) struct ExecutionContext<'ctx, R: Runtime> {

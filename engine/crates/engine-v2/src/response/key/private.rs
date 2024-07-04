@@ -10,8 +10,8 @@ use super::{ResponseKey, MAX_RESPONSE_KEY};
 pub struct SafeResponseKey(u32);
 
 /// Interns all of the response keys strings.
-#[derive(Debug, Clone)]
-pub struct ResponseKeys(lasso::Rodeo<SafeResponseKey>);
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ResponseKeys(lasso2::Rodeo<SafeResponseKey>);
 
 impl From<SafeResponseKey> for u32 {
     fn from(key: SafeResponseKey) -> u32 {
@@ -27,7 +27,7 @@ impl From<SafeResponseKey> for ResponseKey {
 
 impl Default for ResponseKeys {
     fn default() -> Self {
-        Self(lasso::Rodeo::new())
+        Self(lasso2::Rodeo::new())
     }
 }
 
@@ -80,7 +80,7 @@ impl std::ops::Index<SafeResponseKey> for ResponseKeys {
     }
 }
 
-unsafe impl lasso::Key for SafeResponseKey {
+unsafe impl lasso2::Key for SafeResponseKey {
     fn into_usize(self) -> usize {
         self.0 as usize
     }
@@ -98,7 +98,7 @@ unsafe impl lasso::Key for SafeResponseKey {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lasso::Key;
+    use lasso2::Key;
 
     #[test]
     fn field_name_value_in_range() {

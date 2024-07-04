@@ -23,7 +23,7 @@ where
     ) -> Result<(), PersistedQueryError> {
         let trusted_documents_enabled = self.trusted_documents.is_enabled();
         let persisted_query_extension = mem::take(&mut request.extensions.persisted_query);
-        let doc_id = mem::take(&mut request.operation_plan_cache_key.document_id);
+        let doc_id = mem::take(&mut request.document_id);
 
         match (trusted_documents_enabled, persisted_query_extension, doc_id) {
             (true, None, None) => {
@@ -95,7 +95,7 @@ where
             .and_then(|entry| entry.into_value())
             .and_then(|bytes| String::from_utf8(bytes).ok())
         {
-            request.operation_plan_cache_key.query = document_text;
+            request.query = document_text;
             return Ok(());
         }
 
@@ -127,7 +127,7 @@ where
                         PersistedQueryError::InternalServerError
                     })?;
 
-                request.operation_plan_cache_key.query = document_text;
+                request.query = document_text;
                 Ok(())
             }
         }
@@ -178,7 +178,7 @@ where
         match cache.get_json::<AutomaticPersistedQuery>(&key).await {
             Ok(entry) => {
                 if let Some(AutomaticPersistedQuery::V1 { query }) = entry.into_value() {
-                    request.operation_plan_cache_key.query = query;
+                    request.query = query;
                     Ok(())
                 } else {
                     Err(PersistedQueryError::NotFound)

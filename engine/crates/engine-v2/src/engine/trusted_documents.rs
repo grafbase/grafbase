@@ -1,20 +1,37 @@
 //! Handling of trusted documents and Automatic Persisted Queries (APQ).
 
-use crate::{execution::ExecutionContext, response::GraphqlError, Runtime};
-use engine::{AutomaticPersistedQuery, ErrorCode, PersistedQueryRequestExtension};
+use crate::{execution::PreExecutionContext, response::GraphqlError, Runtime};
+use engine::{ErrorCode, PersistedQueryRequestExtension, Request};
+use futures::{future::BoxFuture, FutureExt};
 use grafbase_tracing::grafbase_client::X_GRAFBASE_CLIENT_NAME;
-use runtime::trusted_documents_client::TrustedDocumentsError;
-use std::mem;
+use runtime::{hot_cache::HotCache, trusted_documents_client::TrustedDocumentsError};
+use std::borrow::Cow;
 
-const CACHE_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
+use super::cache::{Document, Key};
 
-impl<R: Runtime> ExecutionContext<'_, R> {
+type PersistedQueryFuture<'a> = BoxFuture<'a, Result<String, GraphqlError>>;
+
+pub(crate) struct PreparedOperationDocument<'a> {
+    pub cache_key: String,
+    pub document_fut: Option<PersistedQueryFuture<'a>>,
+}
+
+impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     /// Handle a request making use of APQ or trusted documents.
-    pub(super) async fn handle_persisted_query(&self, request: &mut engine::Request) -> Result<(), GraphqlError> {
+    pub(super) fn prepare_operation_document<'r, 'f>(
+        &mut self,
+        request: &'r Request,
+    ) -> Result<PreparedOperationDocument<'f>, GraphqlError>
+    where
+        'ctx: 'f,
+        'r: 'f,
+    {
         let client_name = self.request_context.client.as_ref().map(|c| c.name.as_ref());
         let trusted_documents_enabled = self.runtime.trusted_documents().is_enabled();
-        let persisted_query_extension = mem::take(&mut request.extensions.persisted_query);
-        let document_id = mem::take(&mut request.operation_plan_cache_key.document_id);
+        let persisted_query_extension = request.extensions.persisted_query.as_ref();
+        let document_id = request.document_id.as_ref();
+        let name = request.operation_name();
+        let schema_version = &self.engine.schema_version;
 
         match (trusted_documents_enabled, persisted_query_extension, document_id) {
             (true, None, None) => {
@@ -25,32 +42,69 @@ impl<R: Runtime> ExecutionContext<'_, R> {
                     .map(|(name, value)| self.headers().get(name).and_then(|v| v.to_str().ok()) == Some(value))
                     .unwrap_or_default()
                 {
-                    Ok(())
+                    Ok(PreparedOperationDocument {
+                        cache_key: Key::Operation {
+                            name,
+                            schema_version,
+                            document: Document::Text(request.query()),
+                        }
+                        .to_string(),
+                        document_fut: None,
+                    })
                 } else {
                     Err(GraphqlError::new(
                         "Cannot execute a trusted document query: missing documentId, doc_id or the persistedQuery extension.",
                     ))
                 }
             }
-            (true, Some(ext), _) => {
-                self.handle_apollo_client_style_trusted_document_query(request, ext, client_name)
-                    .await
-            }
-            (true, _, Some(document_id)) => {
-                self.handle_trusted_document_query(request, &document_id, client_name)
-                    .await
-            }
-            (false, None, _) => Ok(()),
-            (false, Some(ext), _) => self.handle_apq(request, &ext).await,
+            (true, Some(ext), _) => Ok(PreparedOperationDocument {
+                cache_key: Key::Operation {
+                    name,
+                    schema_version,
+                    document: Document::PersistedQueryExt(ext),
+                }
+                .to_string(),
+                document_fut: Some(self.handle_apollo_client_style_trusted_document_query(ext, client_name)?),
+            }),
+            (true, _, Some(document_id)) => Ok(PreparedOperationDocument {
+                cache_key: Key::Operation {
+                    name,
+                    schema_version,
+                    document: Document::Id(document_id),
+                }
+                .to_string(),
+                document_fut: Some(self.handle_trusted_document_query(document_id.into(), client_name)?),
+            }),
+            (false, None, _) => Ok(PreparedOperationDocument {
+                cache_key: Key::Operation {
+                    name,
+                    schema_version,
+                    document: Document::Text(request.query()),
+                }
+                .to_string(),
+                document_fut: None,
+            }),
+            (false, Some(ext), _) => Ok(PreparedOperationDocument {
+                cache_key: Key::Operation {
+                    name,
+                    schema_version,
+                    document: Document::PersistedQueryExt(ext),
+                }
+                .to_string(),
+                document_fut: self.handle_apq(request, ext)?,
+            }),
         }
     }
 
-    async fn handle_apollo_client_style_trusted_document_query(
+    fn handle_apollo_client_style_trusted_document_query<'r, 'f>(
         &self,
-        request: &mut engine::Request,
-        ext: PersistedQueryRequestExtension,
-        client_name: Option<&str>,
-    ) -> Result<(), GraphqlError> {
+        ext: &'r PersistedQueryRequestExtension,
+        client_name: Option<&'ctx str>,
+    ) -> Result<PersistedQueryFuture<'f>, GraphqlError>
+    where
+        'r: 'f,
+        'ctx: 'f,
+    {
         use std::fmt::Write;
 
         let document_id = {
@@ -63,16 +117,18 @@ impl<R: Runtime> ExecutionContext<'_, R> {
             id
         };
 
-        self.handle_trusted_document_query(request, &document_id, client_name)
-            .await
+        self.handle_trusted_document_query(document_id.into(), client_name)
     }
 
-    async fn handle_trusted_document_query(
+    fn handle_trusted_document_query<'r, 'f>(
         &self,
-        request: &mut engine::Request,
-        document_id: &str,
-        client_name: Option<&str>,
-    ) -> Result<(), GraphqlError> {
+        document_id: Cow<'r, str>,
+        client_name: Option<&'ctx str>,
+    ) -> Result<PersistedQueryFuture<'f>, GraphqlError>
+    where
+        'r: 'f,
+        'ctx: 'f,
+    {
         let Some(client_name) = client_name else {
             return Err(GraphqlError::new(format!(
                 "Trusted document queries must include the {} header",
@@ -80,109 +136,82 @@ impl<R: Runtime> ExecutionContext<'_, R> {
             )));
         };
 
-        let cache = &self.runtime.cache();
-        let cache_key = cache.build_key(&format!("trusted_documents/{client_name}/{document_id}"));
-
-        // First try fetching the document from cache.
-        if let Some(document_text) = cache
-            .get(&cache_key)
-            .await
-            .ok()
-            .and_then(|entry| entry.into_value())
-            .and_then(|bytes| String::from_utf8(bytes).ok())
-        {
-            request.operation_plan_cache_key.query = document_text;
-            return Ok(());
-        }
-
-        match self.runtime.trusted_documents().fetch(client_name, document_id).await {
-            Err(TrustedDocumentsError::RetrievalError(err)) => Err(GraphqlError::new(format!(
-                "Internal server error while fetching trusted document: {err}"
-            ))),
-            Err(TrustedDocumentsError::DocumentNotFound) => {
-                Err(GraphqlError::new(format!("Unknown document id: '{document_id}'")))
+        let engine = self.engine;
+        let fut = async move {
+            let key = Key::TrustedDocument {
+                client_name,
+                document_id: &document_id,
             }
-            Ok(document_text) => {
-                cache
-                    .put(
-                        &cache_key,
-                        runtime::cache::EntryState::Fresh,
-                        document_text.clone().into_bytes(),
-                        runtime::cache::CacheMetadata {
-                            max_age: CACHE_MAX_AGE,
-                            stale_while_revalidate: std::time::Duration::ZERO,
-                            tags: Vec::new(),
-                            should_purge_related: false,
-                            should_cache: true,
-                        },
-                    )
-                    .await
-                    .map_err(|err| {
-                        tracing::error!("Cache error: {}", err);
-                        GraphqlError::internal_server_error()
-                    })?;
+            .to_string();
 
-                request.operation_plan_cache_key.query = document_text;
-                Ok(())
+            // First try fetching the document from cache.
+            if let Some(document_text) = engine.trusted_documents_cache.get(&key).await {
+                return Ok(document_text);
+            }
+
+            match engine
+                .runtime
+                .trusted_documents()
+                .fetch(client_name, &document_id)
+                .await
+            {
+                Err(TrustedDocumentsError::RetrievalError(err)) => Err(GraphqlError::new(format!(
+                    "Internal server error while fetching trusted document: {err}"
+                ))),
+                Err(TrustedDocumentsError::DocumentNotFound) => {
+                    Err(GraphqlError::new(format!("Unknown document id: '{document_id}'")))
+                }
+                Ok(document_text) => {
+                    engine.trusted_documents_cache.insert(key, document_text.clone()).await;
+                    Ok(document_text)
+                }
             }
         }
+        .boxed();
+        Ok(fut)
     }
 
     /// Handle a request using Automatic Persisted Queries.
-    async fn handle_apq(
-        &self,
-        request: &mut engine::Request,
-        PersistedQueryRequestExtension { version, sha256_hash }: &PersistedQueryRequestExtension,
-    ) -> Result<(), GraphqlError> {
-        if *version != 1 {
+    fn handle_apq<'r, 'f>(
+        &mut self,
+        request: &'r Request,
+        ext: &'r PersistedQueryRequestExtension,
+    ) -> Result<Option<PersistedQueryFuture<'f>>, GraphqlError>
+    where
+        'r: 'f,
+        'ctx: 'f,
+    {
+        if ext.version != 1 {
             return Err(GraphqlError::new("Persisted query version not supported"));
         }
 
-        let cache = &self.runtime.cache();
-        let key = cache.build_key(&format!("apq/sha256_{}", hex::encode(sha256_hash)));
+        let key = Key::Apq { ext }.to_string();
+
         if !request.query().is_empty() {
             use sha2::{Digest, Sha256};
             let digest = <Sha256 as Digest>::digest(request.query().as_bytes()).to_vec();
-            if &digest != sha256_hash {
+            if digest != ext.sha256_hash {
                 return Err(GraphqlError::new("Invalid persisted query sha256Hash"));
             }
-            cache
-                .put_json(
-                    &key,
-                    runtime::cache::EntryState::Fresh,
-                    &AutomaticPersistedQuery::V1 {
-                        query: request.query().to_string(),
-                    },
-                    runtime::cache::CacheMetadata {
-                        max_age: CACHE_MAX_AGE,
-                        stale_while_revalidate: std::time::Duration::ZERO,
-                        tags: Vec::new(),
-                        should_purge_related: false,
-                        should_cache: true,
-                    },
-                )
-                .await
-                .map_err(|err| {
-                    tracing::error!("Cache error: {}", err);
-                    GraphqlError::internal_server_error()
-                })?;
-            return Ok(());
+            self.push_background_future(
+                self.engine
+                    .trusted_documents_cache
+                    .insert(key, request.query().to_string())
+                    .boxed(),
+            );
+            return Ok(None);
         }
 
-        match cache.get_json::<AutomaticPersistedQuery>(&key).await {
-            Ok(entry) => {
-                if let Some(AutomaticPersistedQuery::V1 { query }) = entry.into_value() {
-                    request.operation_plan_cache_key.query = query;
-                    Ok(())
-                } else {
-                    Err(GraphqlError::new("Persisted query not found")
-                        .with_error_code(ErrorCode::PersistedQueryNotFound))
-                }
-            }
-            Err(err) => {
-                tracing::error!("Cache error: {}", err);
-                Err(GraphqlError::internal_server_error())
+        let engine = self.engine;
+        let fut = async move {
+            if let Some(query) = engine.trusted_documents_cache.get(&key).await {
+                Ok(query)
+            } else {
+                Err(GraphqlError::new("Persisted query not found").with_error_code(ErrorCode::PersistedQueryNotFound))
             }
         }
+        .boxed();
+
+        Ok(Some(fut))
     }
 }

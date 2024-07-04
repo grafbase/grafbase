@@ -13,10 +13,11 @@ fn works_with_empty_config() {
     let federated_graph_config = FederatedGraphConfig::default();
 
     let config = engine_config_builder::build_config(&federated_graph_config, federated_graph);
-    let gateway = TestFederationEngine::new(Arc::new(engine_v2::Engine::new(
+    let gateway = TestFederationEngine::new(Arc::new(runtime().block_on(engine_v2::Engine::new(
         Arc::new(config.into_latest().try_into().unwrap()),
+        None,
         TestRuntime::default(),
-    )));
+    ))));
 
     let request = r#"{ __typename }"#;
 

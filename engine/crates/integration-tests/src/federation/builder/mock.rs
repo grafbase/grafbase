@@ -22,15 +22,11 @@ pub struct MockFederationEngine {
 }
 
 impl MockFederationEngine {
-    pub fn new(schema: &str) -> Self {
+    pub async fn new(schema: &str) -> Self {
         let federated_graph = FederatedGraph::from_sdl(schema).unwrap().into_latest();
         let config =
             engine_v2::VersionedConfig::V4(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
 
-        let cache = runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
-            enabled: true,
-            ..Default::default()
-        });
         let (sender, receiver) = mpsc::unbounded_channel();
         let responses = Arc::new(Mutex::new(HashMap::new()));
         let fetcher = FetcherMock {
@@ -40,9 +36,9 @@ impl MockFederationEngine {
 
         let engine = engine_v2::Engine::new(
             Arc::new(config.try_into().unwrap()),
+            None,
             TestRuntime {
                 fetcher: runtime::fetch::Fetcher::new(fetcher),
-                cache: cache.clone(),
                 trusted_documents: runtime::trusted_documents_client::Client::new(
                     runtime_noop::trusted_documents::NoopTrustedDocuments,
                 ),
@@ -50,7 +46,8 @@ impl MockFederationEngine {
                 meter: grafbase_tracing::metrics::meter_from_global_provider(),
                 hooks: DynamicHooks::default(),
             },
-        );
+        )
+        .await;
         Self {
             engine: Arc::new(engine),
             receiver,

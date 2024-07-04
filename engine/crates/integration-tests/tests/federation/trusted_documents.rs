@@ -185,6 +185,7 @@ fn bypass_header() {
         }
         "###);
 
+        // Should never be available even if it's cached by the engine.
         let response = engine
             .execute("query { pullRequestsAndIssues(filter: { search: \"1\" }) { __typename } }")
             .await;

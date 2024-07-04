@@ -19,8 +19,8 @@ use super::{
 };
 use crate::{
     execution::ExecutionError,
-    operation::EntityLocation,
-    plan::{OperationPlan, PlanWalker},
+    operation::{EntityLocation, Operation},
+    plan::PlanWalker,
 };
 
 pub(crate) struct ResponseDataPart {
@@ -219,7 +219,7 @@ impl ResponseBuilder {
         boundaries
     }
 
-    pub fn build(self, schema: Arc<Schema>, operation: Arc<OperationPlan>) -> Response {
+    pub fn build(self, schema: Arc<Schema>, operation: Arc<Operation>) -> Response {
         Response::Initial(InitialResponse {
             data: ResponseData {
                 schema,

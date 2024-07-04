@@ -58,19 +58,21 @@ pub async fn serve(
     let (sender, mut gateway) = watch::channel(None);
     gateway.mark_unchanged();
 
-    fetch_method.start(
-        GatewayConfig {
-            enable_introspection: config.graph.introspection,
-            operation_limits: config.operation_limits,
-            authentication: config.authentication,
-            subgraphs: config.subgraphs,
-            default_headers: config.headers,
-            trusted_documents: config.trusted_documents,
-            wasi: config.hooks,
-        },
-        otel_reload,
-        sender,
-    )?;
+    fetch_method
+        .start(
+            GatewayConfig {
+                enable_introspection: config.graph.introspection,
+                operation_limits: config.operation_limits,
+                authentication: config.authentication,
+                subgraphs: config.subgraphs,
+                default_headers: config.headers,
+                trusted_documents: config.trusted_documents,
+                wasi: config.hooks,
+            },
+            otel_reload,
+            sender,
+        )
+        .await?;
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
     let websocket_accepter = WebsocketAccepter::new(websocket_receiver, gateway.clone());

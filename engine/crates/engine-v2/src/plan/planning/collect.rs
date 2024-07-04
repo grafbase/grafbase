@@ -4,6 +4,7 @@ use schema::{Definition, RequiredFieldSet};
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
+    sync::Arc,
 };
 
 use crate::{
@@ -26,8 +27,7 @@ use crate::{
 use super::{PlanningError, PlanningResult};
 
 pub(crate) struct OperationPlanBuilder<'a, R: Runtime> {
-    ctx: ExecutionContext<'a, R>,
-    variables: &'a Variables,
+    ctx: &'a ExecutionContext<'a, R>,
     operation_plan: OperationPlan,
     to_be_planned: Vec<ToBePlanned>,
     plan_parent_to_child_edges: HashSet<UnfinalizedParentToChildEdge>,
@@ -48,7 +48,7 @@ struct ToBePlanned {
 }
 
 impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
-    pub(crate) fn new(ctx: ExecutionContext<'a, R>, variables: &'a Variables, operation: Operation) -> Self {
+    pub(crate) fn new(ctx: &'a ExecutionContext<'a, R>, operation: Arc<Operation>, variables: Variables) -> Self {
         let entity_locations_count = operation
             .field_to_entity_location
             .iter()
@@ -58,13 +58,13 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
             .unwrap_or_default();
         OperationPlanBuilder {
             ctx,
-            variables,
             to_be_planned: Vec::new(),
             plan_parent_to_child_edges: HashSet::new(),
             plan_id_to_execution_plan_id: vec![None; operation.plans.len()],
             condition_results: Vec::new(),
             operation_plan: OperationPlan {
                 root_errors: Vec::new(),
+                variables,
                 selection_set_to_collected: vec![None; operation.selection_sets.len()],
                 execution_plans: Vec::new(),
                 plan_parent_to_child_edges: Vec::new(),
@@ -288,9 +288,8 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
         let execution_plan_id = ExecutionPlanId::from(self.operation_plan.execution_plans.len() - 1);
         let prepared_executor = PreparedExecutor::prepare(
             resolver,
-            self.operation_plan.ty,
-            self.operation_plan
-                .walker_with(&self.ctx.schema, self.variables, execution_plan_id),
+            self.operation_plan.ty(),
+            self.operation_plan.walker_with(&self.ctx.schema, execution_plan_id),
         )?;
         self.operation_plan.execution_plans[usize::from(execution_plan_id)].prepared_executor = prepared_executor;
         self.plan_id_to_execution_plan_id[usize::from(plan_id)] = Some(execution_plan_id);
@@ -302,7 +301,7 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
         // yes looks weird, will be improved
         self.operation_plan
             .operation
-            .walker_with(self.ctx.schema.walker(), self.variables)
+            .walker_with(self.ctx.schema.walker(), &self.operation_plan.variables)
     }
 }
 
@@ -572,7 +571,7 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
             let expected_key = if self.support_aliases {
                 self.operation_plan.response_keys.ensure_safety(field.response_key())
             } else {
-                self.operation_plan.response_keys.get_or_intern(definition.name())
+                unimplemented!("No support for resolvers that don't have alias support...");
             };
             let ty = match definition.ty().inner().scalar_type() {
                 Some(scalar_type) => FieldType::Scalar(scalar_type),
@@ -642,7 +641,7 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
             let expected_key = if self.support_aliases {
                 self.operation_plan.response_keys.ensure_safety(field.response_key())
             } else {
-                self.operation_plan.response_keys.get_or_intern(definition.name())
+                unimplemented!("No support for resolvers that don't have alias support...");
             };
             let ty = match definition.ty().inner().scalar_type() {
                 Some(data_type) => FieldType::Scalar(data_type),

@@ -1,8 +1,8 @@
 use runtime::hooks::DynamicHooks;
+use runtime_local::InMemoryHotCacheFactory;
 
 pub struct TestRuntime {
     pub fetcher: runtime::fetch::Fetcher,
-    pub cache: runtime::cache::Cache,
     pub trusted_documents: runtime::trusted_documents_client::Client,
     pub kv: runtime::kv::KvStore,
     pub meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
@@ -13,10 +13,6 @@ impl Default for TestRuntime {
     fn default() -> Self {
         Self {
             fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
-            cache: runtime_local::InMemoryCache::runtime(runtime::cache::GlobalCacheConfig {
-                enabled: true,
-                ..Default::default()
-            }),
             trusted_documents: runtime::trusted_documents_client::Client::new(
                 runtime_noop::trusted_documents::NoopTrustedDocuments,
             ),
@@ -29,13 +25,10 @@ impl Default for TestRuntime {
 
 impl engine_v2::Runtime for TestRuntime {
     type Hooks = DynamicHooks;
+    type CacheFactory = InMemoryHotCacheFactory;
 
     fn fetcher(&self) -> &runtime::fetch::Fetcher {
         &self.fetcher
-    }
-
-    fn cache(&self) -> &runtime::cache::Cache {
-        &self.cache
     }
 
     fn kv(&self) -> &runtime::kv::KvStore {
@@ -52,5 +45,9 @@ impl engine_v2::Runtime for TestRuntime {
 
     fn hooks(&self) -> &Self::Hooks {
         &self.hooks
+    }
+
+    fn cache_factory(&self) -> &Self::CacheFactory {
+        &InMemoryHotCacheFactory
     }
 }

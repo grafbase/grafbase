@@ -27,6 +27,7 @@ impl GraphqlError {
         self
     }
 
+    #[allow(dead_code)]
     pub fn internal_server_error() -> Self {
         GraphqlError::new("Internal server error").with_error_code(ErrorCode::InternalServerError)
     }

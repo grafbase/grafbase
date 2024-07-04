@@ -95,7 +95,7 @@ impl<'a> OperationSolver<'a> {
             )?;
         }
 
-        if matches!(self.operation.ty, OperationType::Mutation) {
+        if matches!(self.operation.ty(), OperationType::Mutation) {
             self.plan_mutation(entity_location, selection_set)?;
         } else {
             // Subscription are considered to be Queries for planning, they just happen to have
