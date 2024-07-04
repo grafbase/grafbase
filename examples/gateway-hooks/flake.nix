@@ -4,7 +4,7 @@
   inputs.nixpkgs.url = "github:nixos/nixpkgs/master";
   inputs.devshell.url = "github:numtide/devshell";
   inputs.flake-parts.url = "github:hercules-ci/flake-parts";
-  inputs.grafbase.url = "github:grafbase/grafbase/gateway-0.4.0";
+  inputs.grafbase.url = "github:grafbase/grafbase/gateway-0.4.1";
 
   outputs = inputs @ {
     self,
