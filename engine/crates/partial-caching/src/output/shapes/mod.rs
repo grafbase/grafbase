@@ -170,7 +170,7 @@ impl<'a> PolymorphicShape<'a> {
             unreachable!()
         };
 
-        fn search(
+        fn check_conditions(
             typename: &str,
             conditions: &[TypeConditionId],
             fallback: ConcreteShapeId,
@@ -185,7 +185,7 @@ impl<'a> PolymorphicShape<'a> {
             match condition_match {
                 Some(id) => {
                     let node = &shapes.type_conditions[id.0 as usize];
-                    search(
+                    check_conditions(
                         typename,
                         &node.subtypes,
                         node.concrete_shape,
@@ -197,7 +197,7 @@ impl<'a> PolymorphicShape<'a> {
             }
         }
 
-        let id = search(typename, type_conditions, *fallback, self.shapes, type_relationships);
+        let id = check_conditions(typename, type_conditions, *fallback, self.shapes, type_relationships);
 
         ConcreteShape {
             shapes: self.shapes,

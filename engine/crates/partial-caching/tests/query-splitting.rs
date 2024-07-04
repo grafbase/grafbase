@@ -221,6 +221,7 @@ fn test_arguments_and_directives_preserved() {
     insta::assert_snapshot!(result, @r###"
     query @whatever {
       user(id: 1) @whatever {
+        __typename
         ... @defer(if: $hello) {
           hello
         }

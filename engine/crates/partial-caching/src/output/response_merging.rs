@@ -73,9 +73,7 @@ struct MergeContext<'a> {
     source: &'a mut QueryResponse,
     output: &'a mut OutputStore,
     active_defers: HashSet<DeferId>,
-    #[allow(dead_code)] // Will be using this after GB-6949
     type_relationships: &'a dyn TypeRelationships,
-    #[allow(dead_code)] // Will be using this after GB-6949
     shapes: &'a OutputShapes,
 }
 
