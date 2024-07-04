@@ -59,10 +59,9 @@ grafbase-gateway --schema federated-schema.graphql --config grafbase.toml
 A successful start of the gateway will give the following output:
 
 ```
-2024-07-02T17:33:17.242780Z  INFO Grafbase Gateway 0.4.0
+2024-07-02T17:33:17.242780Z  INFO Grafbase Gateway 0.4.1
 2024-07-02T17:33:17.259341Z  INFO loaded the provided WASM component successfully
 2024-07-02T17:33:17.260585Z  INFO Waiting for engine to be ready...
-2024-07-02T17:33:17.260601Z  INFO error waiting for otel reload
 2024-07-02T17:33:17.260633Z  INFO GraphQL endpoint exposed at http://127.0.0.1:5000/graphql
 ```
 
