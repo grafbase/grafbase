@@ -3,9 +3,9 @@
 //! We don't use the full registry for this because it's large and caching
 //! needs to be fast.
 
-use std::{cmp::Ordering, fmt};
+use std::{cmp::Ordering, collections::BTreeMap, fmt};
 
-use ids::{MetaTypeId, StringId};
+use ids::{MetaTypeId, StringId, SupertypeId};
 use indexmap::IndexSet;
 
 mod common;
@@ -14,6 +14,7 @@ mod generated;
 
 mod extensions;
 pub mod ids;
+mod type_relations;
 pub mod writer;
 
 pub use self::{
@@ -41,6 +42,21 @@ pub struct PartialCacheRegistry {
     query_type: MetaTypeId,
     mutation_type: Option<MetaTypeId>,
     subscription_type: Option<MetaTypeId>,
+
+    /// Map from the name of a type to the interfaces that it
+    /// implements & unions it is a member of
+    ///
+    /// The IdRange<SupertypeId> within supertypes should be sorted by
+    /// StringId, allowing for binary searches on those subslices
+    #[serde(default)]
+    typename_to_supertypes: BTreeMap<StringId, IdRange<SupertypeId>>,
+
+    /// The names of supertypes
+    ///
+    /// Subslices of this that correspond to an IdRange in typename_to_supertypes
+    /// should be sorted by StringId
+    #[serde(default)]
+    supertypes: Vec<StringId>,
 
     pub enable_caching: bool,
     #[serde(default)]
@@ -102,6 +118,8 @@ impl PartialCacheRegistry {
             query_type: MetaTypeId::new(0),
             mutation_type: Default::default(),
             subscription_type: Default::default(),
+            typename_to_supertypes: Default::default(),
+            supertypes: Default::default(),
             enable_caching: Default::default(),
             enable_partial_caching: false,
         }
