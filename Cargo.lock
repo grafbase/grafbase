@@ -1470,8 +1470,7 @@ dependencies = [
 [[package]]
 name = "cranelift-bforest"
 version = "0.109.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b6b33d7e757a887989eb18b35712b2a67d96171ec3149d1bfb657b29b7b367c"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "cranelift-entity",
 ]
@@ -1479,8 +1478,7 @@ dependencies = [
 [[package]]
 name = "cranelift-codegen"
 version = "0.109.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9acf15cb22be42d07c3b57d7856329cb228b7315d385346149df2566ad5e4aa"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "bumpalo",
  "cranelift-bforest",
@@ -1501,8 +1499,7 @@ dependencies = [
 [[package]]
 name = "cranelift-codegen-meta"
 version = "0.109.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e934d301392b73b3f8b0540391fb82465a0f179a3cee7c726482ac4727efcc97"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "cranelift-codegen-shared",
 ]
@@ -1510,14 +1507,12 @@ dependencies = [
 [[package]]
 name = "cranelift-codegen-shared"
 version = "0.109.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8afb2a2566b3d54b854dfb288b3b187f6d3d17d6f762c92898207eba302931da"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 
 [[package]]
 name = "cranelift-control"
 version = "0.109.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0100f33b704cdacd01ad66ff41f8c5030d57cbff078e2a4e49ab1822591299fa"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "arbitrary",
 ]
@@ -1525,8 +1520,7 @@ dependencies = [
 [[package]]
 name = "cranelift-entity"
 version = "0.109.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8cfdc315e5d18997093e040a8d234bea1ac1e118a716d3e30f40d449e78207b"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "serde",
  "serde_derive",
@@ -1535,8 +1529,7 @@ dependencies = [
 [[package]]
 name = "cranelift-frontend"
 version = "0.109.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f74b84f16af2e982b0c0c72233503d9d55cbfe3865dbe807ca28dc6642a28b5"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "cranelift-codegen",
  "log",
@@ -1547,14 +1540,12 @@ dependencies = [
 [[package]]
 name = "cranelift-isle"
 version = "0.109.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adf306d3dde705fb94bd48082f01d38c4ededc74293a4c007805f610bf08bc6e"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 
 [[package]]
 name = "cranelift-native"
 version = "0.109.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ea0ebdef7aff4a79bcbc8b6495f31315f16b3bf311152f472eaa8d679352581"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "cranelift-codegen",
  "libc",
@@ -1564,8 +1555,7 @@ dependencies = [
 [[package]]
 name = "cranelift-wasm"
 version = "0.109.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d549108a1942065cdbac3bb96c2952afa0e1b9a3beff4b08c4308ac72257576d"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "cranelift-codegen",
  "cranelift-entity",
@@ -6910,7 +6900,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.66",
@@ -9791,9 +9781,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-encoder"
-version = "0.210.0"
+version = "0.212.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7e3764d9d6edabd8c9e16195e177be0d20f6ab942ad18af52860f12f82bc59a"
+checksum = "501940df4418b8929eb6d52f1aade1fdd15a5b86c92453cb696e3c906bd3fc33"
 dependencies = [
  "leb128",
 ]
@@ -9838,8 +9828,7 @@ dependencies = [
 [[package]]
 name = "wasmtime"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "786d8b5e7a4d54917c5ebe555b9667337e5f93383f49bddaaeec2eba68093b45"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "addr2line 0.21.0",
  "anyhow",
@@ -9894,8 +9883,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-asm-macros"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d697d99c341d4a9ffb72f3af7a02124d233eeb59aee010f36d88e97cca553d5e"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "cfg-if",
 ]
@@ -9903,8 +9891,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-cache"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "916610f9ae9a6c22deb25bba2e6247ba9f00b093d30620875203b91328a1adfa"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "anyhow",
  "base64 0.21.7",
@@ -9923,8 +9910,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-component-macro"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b29b462b068e73b5b27fae092a27f47e5937cabf6b26be2779c978698a52feca"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "anyhow",
  "proc-macro2",
@@ -9938,14 +9924,12 @@ dependencies = [
 [[package]]
 name = "wasmtime-component-util"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9d2912c53d9054984b380dfbd7579f9c3681b2a73b903a56bd71a1c4f175f1e"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 
 [[package]]
 name = "wasmtime-cranelift"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3975deafea000457ba84355c7c0fce0372937204f77026510b7b454f28a3a65"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "anyhow",
  "cfg-if",
@@ -9968,8 +9952,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-environ"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f444e900e848b884d8a8a2949b6f5b92af642a3e663ff8fbe78731143a55be61"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "anyhow",
  "cpp_demangle",
@@ -9993,8 +9976,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-fiber"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ded58eb2d1bf0dcd2182d0ccd7055c4b10b50d711514f1d73f61515d0fa829d"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "anyhow",
  "cc",
@@ -10008,8 +9990,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-jit-debug"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bc54198c6720f098210a85efb3ba8c078d1de4d373cdb6778850a66ae088d11"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "object",
  "once_cell",
@@ -10020,8 +10001,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-jit-icache-coherence"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5afe2f0499542f9a4bcfa1b55bfdda803b6ade4e7c93c6b99e0f39dba44b0a91"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "anyhow",
  "cfg-if",
@@ -10032,14 +10012,12 @@ dependencies = [
 [[package]]
 name = "wasmtime-slab"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a7de1f2bec5bbb35d532e61c85c049dc84ae671df60492f90b954ecf21169e7"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 
 [[package]]
 name = "wasmtime-types"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "412463e9000e14cf6856be48628d2213c20c153e29ffc22b036980c892ea6964"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "cranelift-entity",
  "serde",
@@ -10051,8 +10029,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-versioned-export-macros"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de5a9bc4f44ceeb168e9e8e3be4e0b4beb9095b468479663a9e24c667e36826f"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -10062,8 +10039,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-wasi"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8abb1301089ed8e0b4840f539cba316a73ac382090f1b25d22d8c8eed8df49c7"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -10092,8 +10068,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-wasi-http"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "315cadc284b808cfbd6be9295da4009144c106723f09b421ce6c6d89275cfdb7"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -10115,8 +10090,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-winch"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed4db238a0241df2d15f79ad17b3a37a27f2ea6cb885894d81b42ae107544466"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "anyhow",
  "cranelift-codegen",
@@ -10132,8 +10106,7 @@ dependencies = [
 [[package]]
 name = "wasmtime-wit-bindgen"
 version = "22.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70dc077306b38288262e5ba01d4b21532a6987416cdc0aedf04bb06c22a68fdc"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "anyhow",
  "heck 0.4.1",
@@ -10143,22 +10116,22 @@ dependencies = [
 
 [[package]]
 name = "wast"
-version = "210.0.0"
+version = "212.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa835c59bd615e00f16be65705d85517d40b44b3c831d724e450244685176c3c"
+checksum = "4606a05fb0aae5d11dd7d8280a640d88a63ee019360ba9be552da3d294b8d1f5"
 dependencies = [
  "bumpalo",
  "leb128",
  "memchr",
  "unicode-width",
- "wasm-encoder 0.210.0",
+ "wasm-encoder 0.212.0",
 ]
 
 [[package]]
 name = "wat"
-version = "1.210.0"
+version = "1.212.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67faece8487996430c6812be7f8776dc563ca0efcd3db77f8839070480c0d1a6"
+checksum = "c74ca7f93f11a5d6eed8499f2a8daaad6e225cab0151bc25a091fff3b987532f"
 dependencies = [
  "wast",
 ]
@@ -10267,8 +10240,7 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 [[package]]
 name = "winch-codegen"
 version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85c6915884e731b2db0d8cf08cb64474cb69221a161675fd3c135f91febc3daa"
+source = "git+https://github.com/grafbase/wasmtime?branch=fix-linking-issues-with-musl#e55186fe62b56ceb5a168a79ecd773dea6bdcca6"
 dependencies = [
  "anyhow",
  "cranelift-codegen",
