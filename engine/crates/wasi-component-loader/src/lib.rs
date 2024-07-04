@@ -62,6 +62,9 @@ impl ComponentLoader {
         wasm_config.async_support(true);
         wasm_config.consume_fuel(true);
 
+        // https://github.com/bytecodealliance/wasmtime/issues/8897
+        wasm_config.native_unwind_info(false);
+
         let engine = Engine::new(&wasm_config)?;
 
         let this = match Component::from_file(&engine, config.location()) {
