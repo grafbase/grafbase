@@ -1,3 +1,5 @@
+use std::iter;
+
 use graph_entities::{CompactValue, QueryResponse, ResponseContainer, ResponseList, ResponseNodeId};
 use internment::ArcIntern;
 use serde_json::Number;
@@ -64,15 +66,15 @@ impl Object<'_> {
     ///
     /// This isn't especially efficient, but it's the easiest thing to do at the moment.
     /// GB-9672 will (hopefully) handle doing something more efficient.
-    pub fn into_query_response(self) -> QueryResponse {
+    pub fn into_query_response(self, include_synthetic_typenames: bool) -> QueryResponse {
         let mut response = QueryResponse::default();
-        let root = write_value(Value::Object(self), &mut response);
+        let root = write_value(Value::Object(self), &mut response, include_synthetic_typenames);
         response.set_root_unchecked(root);
         response
     }
 }
 
-fn write_value(value: Value<'_>, response: &mut QueryResponse) -> ResponseNodeId {
+fn write_value(value: Value<'_>, response: &mut QueryResponse, include_synthetic_typenames: bool) -> ResponseNodeId {
     match value {
         Value::Null => response.insert_node(CompactValue::Null),
         Value::Float(float) => response.insert_node(CompactValue::Number(Number::from_f64(float).unwrap())),
@@ -80,15 +82,34 @@ fn write_value(value: Value<'_>, response: &mut QueryResponse) -> ResponseNodeId
         Value::String(s) => response.insert_node(CompactValue::String(s.into())),
         Value::Boolean(inner) => response.insert_node(CompactValue::Boolean(inner)),
         Value::List(list) => {
-            let list = ResponseList::with_children(list.iter().map(|value| write_value(value, response)).collect());
+            let list = ResponseList::with_children(
+                list.iter()
+                    .map(|value| write_value(value, response, include_synthetic_typenames))
+                    .collect(),
+            );
             response.insert_node(list)
         }
         Value::Object(object) => {
-            let container = ResponseContainer::with_children(
-                object
-                    .fields()
-                    .map(|(name, value)| (ArcIntern::from_ref(name), write_value(value, response))),
-            );
+            let typename_node = include_synthetic_typenames
+                .then_some(())
+                .and_then(|_| object.synthetic_typename())
+                .map(|typename| write_value(Value::String(typename), response, false));
+
+            let fields = object.fields().map(|(name, value)| {
+                (
+                    ArcIntern::from_ref(name),
+                    write_value(value, response, include_synthetic_typenames),
+                )
+            });
+
+            let container = match typename_node {
+                Some(typename_node) => {
+                    let typename_iter = iter::once((ArcIntern::from_ref("__typename"), typename_node));
+                    ResponseContainer::with_children(typename_iter.chain(fields))
+                }
+                None => ResponseContainer::with_children(fields),
+            };
+
             response.insert_node(container)
         }
         Value::Inline(inner) => response.insert_node(inner.clone()),

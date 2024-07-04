@@ -124,8 +124,12 @@ fn merge_container_into_value(
 ) {
     let (object_id, concrete_shape) = match context.output.value(dest_value_id) {
         ValueRecord::Unset => {
-            let concrete_shape = match object_shape {
-                ObjectShape::Concrete(concrete) => concrete,
+            let (concrete_shape, object_id) = match object_shape {
+                ObjectShape::Concrete(concrete_shape) => {
+                    let object_id = context.output.insert_object(concrete_shape);
+
+                    (concrete_shape, object_id)
+                }
                 ObjectShape::Polymorphic(shape) => {
                     let typename = context.source.get_node(container_id).and_then(|node| {
                         context
@@ -135,11 +139,14 @@ fn merge_container_into_value(
                     });
 
                     let Some(typename) = typename else { todo!("GB-6966") };
-                    shape.concrete_shape_for_typename(typename, context.type_relationships)
+                    let concrete_shape = shape.concrete_shape_for_typename(typename, context.type_relationships);
+
+                    let object_id = context.output.insert_polymorphic_object(concrete_shape, typename);
+
+                    (concrete_shape, object_id)
                 }
             };
 
-            let object_id = context.output.insert_object(concrete_shape);
             context
                 .output
                 .write_value(dest_value_id, ValueRecord::Object(object_id));

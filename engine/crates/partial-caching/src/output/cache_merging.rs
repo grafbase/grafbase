@@ -192,17 +192,24 @@ impl<'a> CacheMerge<'a> {
                 }
             }
             serde_json::Value::Object(source_object) => {
-                let dest_object_shape = match field_shape.subselection_shape() {
-                    Some(ObjectShape::Concrete(shape)) => shape,
+                let (dest_object_shape, dest_object_id) = match field_shape.subselection_shape() {
+                    Some(ObjectShape::Concrete(shape)) => {
+                        let object_id = self.store.insert_object(shape);
+
+                        (shape, object_id)
+                    }
                     Some(ObjectShape::Polymorphic(shape)) => {
                         let Some(typename) = source_object.get("__typename").and_then(|value| value.as_str()) else {
                             todo!("GB-6966")
                         };
-                        shape.concrete_shape_for_typename(typename, self.type_relationships)
+                        let shape = shape.concrete_shape_for_typename(typename, self.type_relationships);
+
+                        let object_id = self.store.insert_polymorphic_object(shape, typename);
+
+                        (shape, object_id)
                     }
                     None => todo!("GB-6966"),
                 };
-                let dest_object_id = self.store.insert_object(dest_object_shape);
 
                 self.store.write_value(dest_id, ValueRecord::Object(dest_object_id));
 

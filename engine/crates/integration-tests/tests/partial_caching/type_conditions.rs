@@ -2,7 +2,11 @@ use integration_tests::{runtime, udfs::RustUdfs, EngineBuilder, GatewayTester, R
 use serde_json::{json, Value};
 
 const SCHEMA: &str = r#"
-    extend schema @experimental(partialCaching: true)
+    extend schema
+      @experimental(partialCaching: true)
+      @cache(rules: [
+        {maxAge: 10, types: ["Query"]}
+      ])
 
     type Query {
         usersAndAccounts: [UserOrAccount!]! @resolver(name: "usersAndAccounts")
@@ -23,15 +27,15 @@ const SCHEMA: &str = r#"
 
     type User implements NamedNode & Node {
         id: ID!
-        name: String! @cache(maxAge: 140)
-        email: String! @cache(maxAge: 130)
-        someConstant: String! @cache(maxAge: 120)
+        name: String!
+        email: String!
+        someConstant: String!
         uncached: String!
     }
 
     type Account implements Node {
         id: ID!
-        email: String! @cache(maxAge: 130)
+        email: String!
     }
 
     type Other implements NamedNode & Node {
@@ -81,6 +85,9 @@ fn union_inline_fragments() {
           ]
         }
         "###);
+
+        let cached_response = gateway.execute(QUERY).await.unwrap();
+        assert_cache_hit(&cached_response);
     });
 }
 
@@ -129,6 +136,9 @@ fn union_fragments() {
           ]
         }
         "###);
+
+        let cached_response = gateway.execute(QUERY).await.unwrap();
+        assert_cache_hit(&cached_response);
     });
 }
 
@@ -203,6 +213,9 @@ fn interface_inline_fragments() {
           ]
         }
         "###);
+
+        let cached_response = gateway.execute(QUERY).await.unwrap();
+        assert_cache_hit(&cached_response);
     });
 }
 
@@ -285,6 +298,9 @@ fn interface_fragments() {
           ]
         }
         "###);
+
+        let cached_response = gateway.execute(QUERY).await.unwrap();
+        assert_cache_hit(&cached_response);
     });
 }
 
@@ -403,6 +419,31 @@ fn union_inline_fragments_with_defer() {
           }
         ]
         "###);
+
+        let response_from_cache = gateway.execute(QUERY).collect().await;
+
+        insta::assert_json_snapshot!(response_from_cache, @r###"
+        [
+          {
+            "data": {
+              "usersAndAccounts": [
+                {
+                  "name": "User one",
+                  "uncached": "dont cache me bro one"
+                },
+                {
+                  "name": "User two",
+                  "uncached": "dont cache me bro two"
+                },
+                {
+                  "email": "account-one@example.com"
+                }
+              ]
+            },
+            "hasNext": false
+          }
+        ]
+        "###);
     });
 }
 
@@ -473,6 +514,31 @@ fn union_fragments_with_defer() {
               "usersAndAccounts",
               2
             ],
+            "hasNext": false
+          }
+        ]
+        "###);
+
+        let response_from_cache = gateway.execute(QUERY).collect().await;
+
+        insta::assert_json_snapshot!(response_from_cache, @r###"
+        [
+          {
+            "data": {
+              "usersAndAccounts": [
+                {
+                  "name": "User one",
+                  "uncached": "dont cache me bro one"
+                },
+                {
+                  "name": "User two",
+                  "uncached": "dont cache me bro two"
+                },
+                {
+                  "email": "account-one@example.com"
+                }
+              ]
+            },
             "hasNext": false
           }
         ]
@@ -598,6 +664,47 @@ fn interface_inline_fragments_with_defer() {
               "namedNodes",
               2
             ],
+            "hasNext": false
+          }
+        ]
+        "###);
+
+        let response_from_cache = gateway.execute(QUERY).collect().await;
+
+        insta::assert_json_snapshot!(response_from_cache, @r###"
+        [
+          {
+            "data": {
+              "nodes": [
+                {
+                  "id": "one",
+                  "name": "User one",
+                  "uncached": "dont cache me bro one"
+                },
+                {
+                  "id": "two",
+                  "name": "User two",
+                  "uncached": "dont cache me bro two"
+                },
+                {
+                  "id": "one",
+                  "email": "account-one@example.com"
+                }
+              ],
+              "namedNodes": [
+                {
+                  "id": "one",
+                  "email": "user-one@example.com"
+                },
+                {
+                  "id": "two",
+                  "email": "user-two@example.com"
+                },
+                {
+                  "id": "bloop"
+                }
+              ]
+            },
             "hasNext": false
           }
         ]
@@ -737,6 +844,49 @@ fn interface_fragments_with_defer() {
           }
         ]
         "###);
+
+        let response_from_cache = gateway.execute(QUERY).collect().await;
+
+        insta::assert_json_snapshot!(response_from_cache, @r###"
+        [
+          {
+            "data": {
+              "nodes": [
+                {
+                  "id": "one",
+                  "name": "User one",
+                  "uncached": "dont cache me bro one"
+                },
+                {
+                  "id": "two",
+                  "name": "User two",
+                  "uncached": "dont cache me bro two"
+                },
+                {
+                  "id": "one",
+                  "email": "account-one@example.com"
+                }
+              ],
+              "namedNodes": [
+                {
+                  "id": "one",
+                  "name": "User one",
+                  "uncached": "dont cache me bro one"
+                },
+                {
+                  "id": "two",
+                  "name": "User two",
+                  "uncached": "dont cache me bro two"
+                },
+                {
+                  "id": "bloop"
+                }
+              ]
+            },
+            "hasNext": false
+          }
+        ]
+        "###);
     });
 }
 
@@ -787,4 +937,15 @@ fn other(id: &str) -> serde_json::Value {
         "id": id,
         "name": name,
     })
+}
+
+fn assert_cache_hit((response, _): &(std::sync::Arc<engine::Response>, http::HeaderMap)) {
+    let cache_value = response
+        .http_headers
+        .get("x-grafbase-cache")
+        .expect("a grafbase cache header")
+        .to_str()
+        .unwrap();
+
+    assert_eq!(cache_value, "HIT");
 }
