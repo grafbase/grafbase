@@ -1,19 +1,20 @@
 use schema::{FieldDefinitionId, ProvidableFieldSet, ResolverWalker};
 
-use crate::operation::PlanId;
+use crate::operation::LogicalPlanId;
 
-/// Defines whether a field can be provided or not for a given resolver.
+/// Defines whether a field can be provided or not for a given resolver and
+/// thus be added to the solved field set.
 #[derive(Debug, Clone)]
 pub(super) enum PlanningLogic<'schema> {
     /// Having a resolver in the same group or having no resolver at all.
     SameSubgrah {
-        plan_id: PlanId,
+        id: LogicalPlanId,
         resolver: ResolverWalker<'schema>,
         providable: ProvidableFieldSet,
     },
-    /// Only an explicitly providable (@provide) field can be attributed.
+    /// Only an explicitly providable (@provide) field can be provided.
     OnlyProvidable {
-        plan_id: PlanId,
+        id: LogicalPlanId,
         resolver: ResolverWalker<'schema>,
         providable: ProvidableFieldSet,
     },
@@ -21,14 +22,14 @@ pub(super) enum PlanningLogic<'schema> {
 
 impl std::fmt::Display for PlanningLogic<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "PlanningLogic#{}", usize::from(self.plan_id()))
+        write!(f, "PlanningLogic#{}", usize::from(self.id()))
     }
 }
 
 impl<'schema> PlanningLogic<'schema> {
-    pub(super) fn new(plan_id: PlanId, resolver: ResolverWalker<'schema>) -> Self {
+    pub(super) fn new(id: LogicalPlanId, resolver: ResolverWalker<'schema>) -> Self {
         PlanningLogic::SameSubgrah {
-            plan_id,
+            id,
             resolver,
             providable: Default::default(),
         }
@@ -46,7 +47,7 @@ impl<'schema> PlanningLogic<'schema> {
     pub(super) fn child(&self, field_id: FieldDefinitionId) -> Self {
         match self {
             PlanningLogic::SameSubgrah {
-                plan_id,
+                id,
                 resolver,
                 providable,
             } => {
@@ -57,13 +58,13 @@ impl<'schema> PlanningLogic<'schema> {
                 );
                 if resolver.can_provide(field_id) {
                     PlanningLogic::SameSubgrah {
-                        plan_id: *plan_id,
+                        id: *id,
                         resolver: *resolver,
                         providable,
                     }
                 } else {
                     PlanningLogic::OnlyProvidable {
-                        plan_id: *plan_id,
+                        id: *id,
                         resolver: *resolver,
                         providable,
                     }
@@ -72,9 +73,9 @@ impl<'schema> PlanningLogic<'schema> {
             PlanningLogic::OnlyProvidable {
                 resolver,
                 providable,
-                plan_id,
+                id,
             } => PlanningLogic::OnlyProvidable {
-                plan_id: *plan_id,
+                id: *id,
                 resolver: *resolver,
                 providable: providable
                     .get(field_id)
@@ -91,10 +92,10 @@ impl<'schema> PlanningLogic<'schema> {
         }
     }
 
-    pub(super) fn plan_id(&self) -> PlanId {
+    pub(super) fn id(&self) -> LogicalPlanId {
         match self {
-            PlanningLogic::SameSubgrah { plan_id, .. } => *plan_id,
-            PlanningLogic::OnlyProvidable { plan_id, .. } => *plan_id,
+            PlanningLogic::SameSubgrah { id, .. } => *id,
+            PlanningLogic::OnlyProvidable { id, .. } => *id,
         }
     }
 }
