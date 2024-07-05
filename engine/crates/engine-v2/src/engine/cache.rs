@@ -44,8 +44,8 @@ impl std::fmt::Display for Key<'_> {
                 document,
             } => {
                 let mut hasher = blake3::Hasher::new();
-                hasher.update(&Schema::commit_sha().len().to_ne_bytes());
-                hasher.update(Schema::commit_sha());
+                hasher.update(&Schema::build_identifier().len().to_ne_bytes());
+                hasher.update(Schema::build_identifier());
                 hasher.update(&schema_version.len().to_ne_bytes());
                 hasher.update(schema_version);
 

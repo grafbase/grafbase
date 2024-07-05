@@ -30,10 +30,15 @@ mod built_info {
 }
 
 impl Schema {
-    pub fn commit_sha() -> &'static [u8] {
+    /// A unique identifier of this build of the engine to version cache keys.
+    /// If built in a git repository, the cache version is taken from the git commit id.
+    /// For builds outside of a git repository, the build time is used.
+    pub fn build_identifier() -> &'static [u8] {
         static SHA: OnceLock<Vec<u8>> = OnceLock::new();
-        SHA.get_or_init(|| {
-            hex::decode(built_info::GIT_COMMIT_HASH.expect("No git commit hash found")).expect("Expect hex format")
+
+        SHA.get_or_init(|| match built_info::GIT_COMMIT_HASH {
+            Some(hash) => hex::decode(hash).expect("Expect hex format"),
+            None => built_info::BUILT_TIME_UTC.as_bytes().to_vec(),
         })
     }
 }
