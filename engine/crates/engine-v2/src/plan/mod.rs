@@ -4,7 +4,7 @@ use schema::{EntityId, ResolverId, Schema};
 
 use crate::{
     execution::ExecutionContext,
-    operation::{Operation, PlanId, Variables},
+    operation::{LogicalPlanId, Operation, Variables},
     response::{GraphqlError, ReadSelectionSet},
     sources::PreparedExecutor,
     Runtime,
@@ -64,7 +64,7 @@ pub(crate) struct OperationPlan {
 }
 
 pub(crate) struct ExecutionPlan {
-    pub plan_id: PlanId,
+    pub plan_id: LogicalPlanId,
     pub resolver_id: ResolverId,
     pub input: PlanInput,
     pub output: PlanOutput,

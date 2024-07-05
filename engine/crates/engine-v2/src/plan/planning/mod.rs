@@ -1,25 +1,12 @@
-use schema::Schema;
+use crate::response::{ErrorCode, GraphqlError};
 
-use crate::{
-    operation::{Operation, Variables},
-    response::{ErrorCode, GraphqlError},
-};
-
-mod boundary;
 pub(crate) mod collect;
-mod logic;
-mod planner;
 mod walker_ext;
 
 pub type PlanningResult<T> = Result<T, PlanningError>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PlanningError {
-    #[error("Could not plan fields: {}", .missing.join(", "))]
-    CouldNotPlanAnyField {
-        missing: Vec<String>,
-        query_path: Vec<String>,
-    },
     #[error("Internal error: {0}")]
     InternalError(String),
 }
@@ -27,16 +14,7 @@ pub enum PlanningError {
 impl From<PlanningError> for GraphqlError {
     fn from(error: PlanningError) -> Self {
         let message = error.to_string();
-        let query_path = match error {
-            PlanningError::CouldNotPlanAnyField { query_path, .. } => query_path
-                .into_iter()
-                .map(serde_json::Value::String)
-                .collect::<Vec<_>>(),
-            PlanningError::InternalError { .. } => vec![],
-        };
-
         GraphqlError::new(message, ErrorCode::OperationPlanningError)
-            .with_extension("queryPath", serde_json::Value::Array(query_path))
     }
 }
 
@@ -50,8 +28,4 @@ impl From<&str> for PlanningError {
     fn from(error: &str) -> Self {
         PlanningError::InternalError(error.to_string())
     }
-}
-
-pub(crate) fn solve(schema: &Schema, variables: &Variables, operation: &mut Operation) -> PlanningResult<()> {
-    planner::OperationSolver::new(schema, variables, operation).solve()
 }

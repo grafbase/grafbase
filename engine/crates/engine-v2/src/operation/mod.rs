@@ -4,6 +4,7 @@ mod condition;
 pub mod ids;
 mod input_value;
 mod location;
+mod logical_planner;
 mod parse;
 mod path;
 mod selection_set;
@@ -24,7 +25,7 @@ pub(crate) use variables::*;
 pub(crate) use walkers::*;
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub(crate) struct Plan {
+pub(crate) struct LogicalPlan {
     pub resolver_id: ResolverId,
 }
 
@@ -53,9 +54,9 @@ pub(crate) struct Operation {
     pub query_input_values: QueryInputValues,
     // deduplicated
     pub conditions: Vec<Condition>,
-    // -- Added during planning --
-    pub plans: Vec<Plan>,
-    pub field_to_plan_id: Vec<PlanId>,
+    // -- Added during the solving step --
+    pub logical_plans: Vec<LogicalPlan>,
+    pub field_to_logical_plan_id: Vec<LogicalPlanId>,
     // Sorted
     pub plan_edges: Vec<ParentToChildEdge>,
     pub solved_requirements: Vec<(SelectionSetId, SolvedRequiredFieldSet)>,
@@ -63,8 +64,8 @@ pub(crate) struct Operation {
 
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ParentToChildEdge {
-    pub parent: PlanId,
-    pub child: PlanId,
+    pub parent: LogicalPlanId,
+    pub child: LogicalPlanId,
 }
 
 pub(crate) type SolvedRequiredFieldSet = Vec<SolvedRequiredField>;
@@ -77,8 +78,8 @@ pub(crate) struct SolvedRequiredField {
 }
 
 impl Operation {
-    pub fn plan_id_for(&self, id: FieldId) -> PlanId {
-        self.field_to_plan_id[usize::from(id)]
+    pub fn plan_id_for(&self, id: FieldId) -> LogicalPlanId {
+        self.field_to_logical_plan_id[usize::from(id)]
     }
 
     pub fn solved_requirements_for(&self, id: SelectionSetId) -> Option<&SolvedRequiredFieldSet> {

@@ -156,7 +156,7 @@ id_newtypes::index! {
     Binder<'s, 'p>.selection_sets[SelectionSetId] => SelectionSet,
 }
 
-pub fn bind(schema: &Schema, mut parsed_operation: ParsedOperation) -> BindResult<Operation> {
+pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) -> BindResult<Operation> {
     validate_parsed_operation(&parsed_operation, &schema.settings.operation_limits)?;
 
     let root_object_id = match parsed_operation.definition.ty {
@@ -220,8 +220,8 @@ pub fn bind(schema: &Schema, mut parsed_operation: ParsedOperation) -> BindResul
             cond.sort_unstable_by_key(|(_, id)| usize::from(*id));
             cond.into_iter().map(|(cond, _)| cond).collect()
         },
-        plans: Vec::new(),
-        field_to_plan_id: Vec::new(),
+        logical_plans: Vec::new(),
+        field_to_logical_plan_id: Vec::new(),
         plan_edges: Vec::new(),
         solved_requirements: Vec::new(),
     })
