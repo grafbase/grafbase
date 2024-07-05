@@ -58,6 +58,27 @@ interface authorization {
         definition: node-definition,
         metadata: string
     ) -> result<_, error>;
+
+    authorize-parent-edge-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        parents: list<string>,
+        metadata: string
+    ) -> list<result<_, error>>;
+
+    authorize-edge-node-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        nodes: list<string>,
+        metadata: string
+    ) -> list<result<_, error>>;
+
+    authorize-edge-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        edges: list<tuple<string, list<string>>>,
+        metadata: string
+    ) -> list<result<_, error>>;
 }
 
 world hooks {

@@ -115,6 +115,82 @@ interface authorization {
         definition: node-definition,
         metadata: string
     ) -> result<_, error>;
+
+    // The hook is called in the request cycle if the schema defines an authorization directive on
+    // an edge with the fields argument, providing fields from the parent node. The hook gets the
+    // parent type information, and a list of data with the defined fields of the parent for every
+    // child loaded by the parent query.
+    //
+    // The hook is run after fetching the data.
+    //
+    // The result can be one of the following:
+    //
+    // - A list of one item, which dictates the result for every child loaded from the edge
+    // - A list of many items, each one defining if the child should be shown or not
+    //
+    // Providing any other response will lead to the whole authorization hook failing and data not
+    // returned to the user.
+    //
+    // The list item can either be an empty Ok, which returns the edge data to the client. Or the
+    // item can be an error and the edge access is denied. The error data will be propagated to the
+    // response errors.
+    authorize-parent-edge-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        parents: list<string>,
+        metadata: string
+    ) -> list<result<_, error>>;
+
+    // The hook is called in the request cycle if the schema defines an authorization directive on
+    // an edge with the node argument, providing fields from the child node. The hook gets the parent type information,
+    // and a list of data with the defined fields for every child loaded by the parent query.
+    //
+    // The hook is run after fetching the data.
+    //
+    // The result can be one of the following:
+    //
+    // - A list of one item, which dictates the result for every child loaded from the edge
+    // - A list of many items, each one defining if the child should be shown or not
+    //
+    // Providing any other response will lead to the whole authorization hook failing and data not
+    // returned to the user.
+    //
+    // The list item can either be an empty Ok, which returns the edge data to the client. Or the
+    // item can be an error and the edge access is denied. The error data will be propagated to the
+    // response errors.
+    authorize-edge-node-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        nodes: list<string>,
+        metadata: string
+    ) -> list<result<_, error>>;
+
+    // The hook is called in the request cycle if the schema defines an authorization directive on
+    // an edge with the node and fields arguments, providing fields from the child node. The hook gets
+    // the parent type information, and a list of data with tuples of the parent data and a list of child data.
+    //
+    // The first part of the tuple is defined by the directive's fields argument and the second part by
+    // the node argument.
+    //
+    // The hook is run after fetching the data.
+    //
+    // The result can be one of the following:
+    //
+    // - A list of one item, which dictates the result for every child loaded from the edge
+    // - A list of many items, each one defining if the child should be shown or not
+    //
+    // Providing any other response will lead to the whole authorization hook failing and data not
+    // returned to the user.
+    //
+    // The list item can either be an empty Ok, which returns the edge data to the client. Or the
+    // item can be an error and the edge access is denied. The error data will be propagated to the
+    // response errors.
+    authorize-edge-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        edges: list<tuple<string, list<string>>>,
+        metadata: string
+    ) -> list<result<_, error>>;
 }
 
 // Export here all the hooks the guest wants to implement. If a hook interface is not exported in the world,
