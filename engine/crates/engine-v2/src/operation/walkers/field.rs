@@ -36,10 +36,6 @@ impl<'a> FieldWalker<'a> {
         self.as_ref().location()
     }
 
-    pub fn alias(&self) -> Option<&'a str> {
-        Some(self.response_key_str()).filter(|key| key != &self.name())
-    }
-
     pub fn selection_set(&self) -> Option<SelectionSetWalker<'a>> {
         self.as_ref().selection_set_id().map(|id| self.walk_with(id, ()))
     }

@@ -1,4 +1,5 @@
 mod coercion;
+mod validation;
 mod variables;
 
 use std::collections::{HashMap, HashSet};
@@ -95,6 +96,14 @@ pub enum BindError {
         name: String,
         location: Location,
     },
+    #[error("Query is too complex.")]
+    QueryTooComplex { complexity: usize, location: Location },
+    #[error("Query is nested too deep.")]
+    QueryTooDeep { depth: usize, location: Location },
+    #[error("Query contains too many root fields.")]
+    QueryContainsTooManyRootFields { count: usize, location: Location },
+    #[error("Query contains too many aliases.")]
+    QueryContainsTooManyAliases { count: usize, location: Location },
 }
 
 impl From<BindError> for GraphqlError {
@@ -113,7 +122,11 @@ impl From<BindError> for GraphqlError {
             | BindError::DuplicateVariable { location, .. }
             | BindError::FragmentCycle { location, .. }
             | BindError::MissingArgument { location, .. }
-            | BindError::UnusedVariable { location, .. } => vec![location],
+            | BindError::UnusedVariable { location, .. }
+            | BindError::QueryTooComplex { location, .. }
+            | BindError::QueryTooDeep { location, .. }
+            | BindError::QueryContainsTooManyAliases { location, .. }
+            | BindError::QueryContainsTooManyRootFields { location, .. } => vec![location],
             BindError::InvalidInputValue(ref err) => vec![err.location()],
             BindError::NoMutationDefined | BindError::NoSubscriptionDefined | BindError::QueryTooBig { .. } => {
                 vec![]
@@ -125,8 +138,10 @@ impl From<BindError> for GraphqlError {
 
 pub type BindResult<T> = Result<T, BindError>;
 
-pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operation> {
-    let root_object_id = match unbound.definition.ty {
+pub fn bind(schema: &Schema, mut operation: ParsedOperation) -> BindResult<Operation> {
+    validation::validate_parsed_operation(&operation, &schema.settings.operation_limits)?;
+
+    let root_object_id = match operation.definition.ty {
         OperationType::Query => schema.walker().query().id(),
         OperationType::Mutation => schema.walker().mutation().ok_or(BindError::NoMutationDefined)?.id(),
         OperationType::Subscription => schema
@@ -138,21 +153,20 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
 
     let mut binder = Binder {
         schema,
-        operation_name: ErrorOperationName(unbound.name.clone()),
+        operation_name: ErrorOperationName(operation.name.clone()),
         response_keys: ResponseKeys::default(),
         fragments: HashMap::default(),
         field_arguments: Vec::new(),
         location_to_field_arguments: HashMap::default(),
         fields: Vec::new(),
         selection_sets: Vec::new(),
-        unbound_fragments: unbound
+        unbound_fragments: operation
             .fragments
             .into_iter()
             .map(|(name, fragment)| (name.to_string(), fragment))
             .collect(),
         variable_definitions: Vec::new(),
         next_response_position: 0,
-        current_fragments_stack: Vec::new(),
         fragment_spreads: Vec::new(),
         inline_fragments: Vec::new(),
         field_to_parent: Vec::new(),
@@ -161,7 +175,7 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
     };
 
     // Must be executed before binding selection sets
-    binder.variable_definitions = binder.bind_variables(unbound.definition.variable_definitions)?;
+    binder.variable_definitions = binder.bind_variables(operation.definition.variable_definitions)?;
 
     let root_condition_id = {
         let conditions = binder.generate_entity_conditions(schema.walk(schema::EntityId::Object(root_object_id)));
@@ -169,7 +183,7 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
     };
     let root_selection_set_id = binder.bind_selection_set(
         SelectionSetType::Object(root_object_id),
-        &mut unbound.definition.selection_set,
+        &mut operation.definition.selection_set,
     )?;
 
     binder.validate_all_variables_used()?;
@@ -177,8 +191,8 @@ pub fn bind(schema: &Schema, mut unbound: ParsedOperation) -> BindResult<Operati
     Ok(Operation {
         // Replaced later
         metadata: super::OperationMetadata {
-            ty: unbound.definition.ty,
-            name: unbound.name,
+            ty: operation.definition.ty,
+            name: operation.name,
             normalized_query: String::new(),
             normalized_query_hash: [0; 32],
         },
@@ -237,7 +251,6 @@ pub struct Binder<'a> {
     // We also need to use the global request position so that merged selection sets are still
     // in the right order.
     next_response_position: usize,
-    current_fragments_stack: Vec<String>,
 }
 
 impl<'a> Binder<'a> {
@@ -583,13 +596,6 @@ impl<'a> Binder<'a> {
         // We always create a new selection set from a named fragment. It may not be split in the
         // same way and we need to validate the type condition each time.
         let name = spread.fragment_name.node.to_string();
-        if self.current_fragments_stack.contains(&name) {
-            self.current_fragments_stack.push(name);
-            return Err(BindError::FragmentCycle {
-                cycle: std::mem::take(&mut self.current_fragments_stack),
-                location,
-            });
-        }
 
         // To please the borrow checker we remove the fragment temporarily from the hashmap and put
         // it back later. Not super efficient, but well, keeps things simple for now.
@@ -600,7 +606,6 @@ impl<'a> Binder<'a> {
                     name: name.to_string(),
                     location,
                 })?;
-        self.current_fragments_stack.push(name.clone());
 
         let type_condition = self.bind_type_condition(root, &fragment.node.type_condition)?;
         let selection_set_id = self.bind_selection_set(type_condition.into(), &mut fragment.node.selection_set)?;
@@ -622,7 +627,6 @@ impl<'a> Binder<'a> {
                 .0
         };
 
-        self.current_fragments_stack.pop();
         self.unbound_fragments.insert(fragment_name, fragment);
 
         let fragment_spread_id = FragmentSpreadId::from(self.fragment_spreads.len());
