@@ -121,17 +121,17 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1720107011,
-        "narHash": "sha256-5NSoOzDv0Cw2q+FzkuSR6paQQ8v/mFdMQ2I4rtOq03o=",
+        "lastModified": 1720161497,
+        "narHash": "sha256-d7Rvg2EC2DVVzI+gKQJ0cc741VZCTxMznwb9HsFHd7A=",
         "owner": "grafbase",
         "repo": "grafbase",
-        "rev": "54a215bf2b9acfcb60ffa312411134436cf5c489",
+        "rev": "eb14b9bd633ba0079dabb658aa52c49d71d6a2d5",
         "type": "github"
       },
       "original": {
         "owner": "grafbase",
-        "ref": "gateway-0.4.1",
         "repo": "grafbase",
+        "rev": "eb14b9bd633ba0079dabb658aa52c49d71d6a2d5",
         "type": "github"
       }
     },
