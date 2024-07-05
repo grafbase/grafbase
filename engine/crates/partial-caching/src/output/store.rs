@@ -1,4 +1,7 @@
+use std::num::NonZeroU16;
+
 use graph_entities::CompactValue;
+use indexmap::IndexSet;
 use serde_json::Number;
 
 use super::shapes::{ConcreteShape, ConcreteShapeId, FieldIndex, OutputShapes};
@@ -8,13 +11,14 @@ use super::shapes::{ConcreteShape, ConcreteShapeId, FieldIndex, OutputShapes};
 pub struct OutputStore {
     values: Vec<ValueRecord>,
     objects: Vec<ObjectRecord>,
+    typenames: IndexSet<Box<str>>,
 }
 
 struct ObjectRecord {
     /// The shape of the object.
     shape: ConcreteShapeId,
-
     fields: IdRange<ValueId>,
+    typename: Option<TypenameId>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -22,6 +26,23 @@ pub struct ValueId(usize);
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ObjectId(usize);
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct TypenameId(NonZeroU16);
+
+impl TypenameId {
+    fn new(index: usize) -> Self {
+        let inner = u16::try_from(index + 1)
+            .ok()
+            .and_then(NonZeroU16::new)
+            .expect("too many typenames presumably");
+        TypenameId(inner)
+    }
+
+    fn as_index(&self) -> usize {
+        (self.0.get() - 1) as usize
+    }
+}
 
 #[derive(Clone, Debug)]
 pub enum ValueRecord {
@@ -79,9 +100,22 @@ impl OutputStore {
         let object_id = ObjectId(self.objects.len());
 
         let fields = self.insert_empty_fields(object_shape.field_count());
-        self.objects.push(ObjectRecord { shape, fields });
+        self.objects.push(ObjectRecord {
+            shape,
+            fields,
+            typename: None,
+        });
 
         object_id
+    }
+
+    pub(super) fn insert_polymorphic_object(&mut self, object_shape: ConcreteShape<'_>, typename: &str) -> ObjectId {
+        let id = self.insert_object(object_shape);
+        if object_shape.field("__typename").is_none() {
+            self.objects[id.0].typename = Some(self.intern_typename(typename));
+        }
+
+        id
     }
 
     pub(super) fn new_value(&mut self) -> ValueId {
@@ -172,6 +206,11 @@ impl OutputStore {
                 shapes,
             }),
         })
+    }
+
+    fn intern_typename(&mut self, typename: &str) -> TypenameId {
+        let (id, _) = self.typenames.insert_full(typename.into());
+        TypenameId::new(id)
     }
 }
 
@@ -265,6 +304,17 @@ impl<'a> Object<'a> {
             .response_keys()
             .zip(record.fields)
             .filter_map(move |(key, id)| Some((key, store.read_value(id, shapes)?)))
+    }
+
+    /// This returns the typename of this object if it was created from a polymorphic shape
+    /// and `__typename` isn't one of the user requested fields of this type
+    ///
+    /// I'm borrowing the name from the idea that we put a synthetic __typename field into
+    /// queries to populate this.  Although I'm open to better suggestions, it's not the
+    /// clearest.
+    pub fn synthetic_typename(&self) -> Option<&'a str> {
+        let index = self.record().typename?.as_index();
+        Some(self.store.typenames[index].as_ref())
     }
 
     pub fn shape(&self) -> ConcreteShape<'a> {

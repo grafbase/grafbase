@@ -94,7 +94,7 @@ impl StreamingExecutionPhase {
 
         let return_value = store
             .reader(&self.shapes)
-            .map(|object| object.into_query_response())
+            .map(|object| object.into_query_response(false))
             .unwrap_or_default();
 
         self.output = Some(store);
@@ -158,7 +158,7 @@ impl StreamingExecutionPhase {
 
         output
             .read_object(&self.shapes, destination_object_id)
-            .into_query_response()
+            .into_query_response(false)
     }
 
     pub fn finish(mut self) -> Option<CacheUpdatePhase> {
@@ -175,7 +175,7 @@ impl StreamingExecutionPhase {
                         self.execution_phase.plan.document,
                         self.execution_phase.plan.cache_partitions,
                         self.keys_to_write,
-                        root.into_query_response(),
+                        root.into_query_response(true),
                     ));
                 }
             }
