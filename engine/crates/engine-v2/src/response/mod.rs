@@ -6,6 +6,7 @@ pub use key::*;
 pub use path::*;
 pub use read::*;
 use schema::Schema;
+pub use shape::*;
 pub use value::{ResponseObject, ResponseValue};
 pub use write::*;
 
@@ -15,6 +16,7 @@ mod error;
 mod key;
 mod path;
 mod read;
+mod shape;
 mod value;
 mod write;
 

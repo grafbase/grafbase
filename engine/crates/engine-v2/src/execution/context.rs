@@ -30,7 +30,6 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         self.background_futures.push(future)
     }
 
-    #[allow(dead_code)]
     pub fn schema(&self) -> &'ctx Schema {
         &self.engine.schema
     }

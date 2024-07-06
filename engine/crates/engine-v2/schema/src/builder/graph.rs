@@ -159,6 +159,8 @@ impl<'a> GraphBuilder<'a> {
                     .filter(|object_id| !is_inaccessible(&config.graph, config.graph[*object_id].composed_directives))
                     .map(Into::into)
                     .collect(),
+                // Added at the end.
+                possible_types_ordered_by_typename: Vec::new(),
                 directives: self.push_directives(
                     config,
                     Directives {
@@ -327,6 +329,8 @@ impl<'a> GraphBuilder<'a> {
                 description: None,
                 interfaces: interface.implements_interfaces.into_iter().map(Into::into).collect(),
                 possible_types: Vec::new(),
+                // Added at the end.
+                possible_types_ordered_by_typename: Vec::new(),
                 directives,
                 fields,
             });
@@ -554,12 +558,29 @@ impl<'a> GraphBuilder<'a> {
         });
         graph.type_definitions = definitions;
 
-        for interface in &mut graph.interface_definitions {
+        let mut interface_definitions = std::mem::take(&mut graph.interface_definitions);
+        for interface in &mut interface_definitions {
             interface.possible_types.sort_unstable();
+            interface
+                .possible_types_ordered_by_typename
+                .clone_from(&interface.possible_types);
+            interface
+                .possible_types_ordered_by_typename
+                .sort_unstable_by_key(|id| &ctx.strings[graph[*id].name]);
         }
-        for union in &mut graph.union_definitions {
+        graph.interface_definitions = interface_definitions;
+
+        let mut union_definitions = std::mem::take(&mut graph.union_definitions);
+        for union in &mut union_definitions {
             union.possible_types.sort_unstable();
+            union
+                .possible_types_ordered_by_typename
+                .clone_from(&union.possible_types);
+            union
+                .possible_types_ordered_by_typename
+                .sort_unstable_by_key(|id| &ctx.strings[graph[*id].name]);
         }
+        graph.union_definitions = union_definitions;
 
         Ok((graph, introspection))
     }

@@ -2,8 +2,8 @@ use schema::{FieldDefinitionWalker, RequiredField};
 
 use super::{FieldArgumentsWalker, OperationWalker, SelectionSetWalker};
 use crate::{
-    operation::{ExtraField, Field, FieldId, Location, QueryField, SelectionSetType},
-    response::ResponseKey,
+    operation::{ExtraField, Field, FieldId, Location, QueryField},
+    response::{ResponseEdge, ResponseKey},
 };
 
 pub type FieldWalker<'a> = OperationWalker<'a, FieldId, ()>;
@@ -16,16 +16,12 @@ impl<'a> FieldWalker<'a> {
             .unwrap_or("__typename")
     }
 
-    pub fn type_condition(&self) -> SelectionSetType {
-        match self.as_ref() {
-            Field::TypeName(f) => f.type_condition,
-            Field::Query(f) => self.schema_walker.walk(f.definition_id).parent_entity().id().into(),
-            Field::Extra(f) => self.schema_walker.walk(f.definition_id).parent_entity().id().into(),
-        }
-    }
-
     pub fn definition(&self) -> Option<FieldDefinitionWalker<'a>> {
         self.as_ref().definition_id().map(|id| self.schema_walker.walk(id))
+    }
+
+    pub fn response_edge(&self) -> ResponseEdge {
+        self.as_ref().response_edge()
     }
 
     pub fn response_key(&self) -> ResponseKey {

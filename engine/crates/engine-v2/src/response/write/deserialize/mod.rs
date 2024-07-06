@@ -3,6 +3,7 @@ use std::{
     fmt,
 };
 
+use object::ConcreteObjectSeed;
 use serde::{
     de::{DeserializeSeed, Visitor},
     Deserializer,
@@ -10,8 +11,7 @@ use serde::{
 
 use crate::{
     execution::PlanWalker,
-    plan::CollectedField,
-    response::{ErrorCode, GraphqlError, ResponseEdge, ResponsePath, ResponseWriter},
+    response::{ErrorCode, FieldShape, GraphqlError, ResponseEdge, ResponsePath, ResponseWriter, Shapes},
 };
 
 mod field;
@@ -21,14 +21,13 @@ mod nullable;
 mod object;
 mod scalar;
 
-use field::FieldSeed;
 use list::ListSeed;
 use nullable::NullableSeed;
-use object::*;
 use scalar::*;
 
 pub struct SeedContext<'ctx> {
-    plan: PlanWalker<'ctx>,
+    plan: PlanWalker<'ctx, (), ()>,
+    shapes: &'ctx Shapes,
     writer: ResponseWriter<'ctx>,
     propagating_error: Cell<bool>,
     path: RefCell<Vec<ResponseEdge>>,
@@ -38,6 +37,7 @@ impl<'ctx> SeedContext<'ctx> {
     pub fn new(plan: PlanWalker<'ctx>, writer: ResponseWriter<'ctx>) -> Self {
         let path = RefCell::new(writer.root_path().iter().copied().collect());
         Self {
+            shapes: plan.shapes(),
             plan,
             writer,
             propagating_error: Cell::new(false),
@@ -47,19 +47,19 @@ impl<'ctx> SeedContext<'ctx> {
 }
 
 impl<'ctx> SeedContext<'ctx> {
-    fn missing_field_error_message(&self, collected_field: &CollectedField) -> String {
-        let field = &self.plan[collected_field.id];
+    fn missing_field_error_message(&self, shape: &FieldShape) -> String {
+        let field = &self.plan.walk_with(shape.id, shape.definition_id);
         let response_keys = self.plan.response_keys();
-        if field.response_key() == collected_field.expected_key.into() {
+        if field.response_key() == shape.expected_key.into() {
             format!(
                 "Error decoding response from upstream: Missing required field named '{}'",
-                &response_keys[collected_field.expected_key]
+                &response_keys[shape.expected_key]
             )
         } else {
             format!(
                 "Error decoding response from upstream: Missing required field named '{}' (expected: '{}')",
                 &response_keys[field.response_key()],
-                &response_keys[collected_field.expected_key]
+                &response_keys[shape.expected_key]
             )
         }
     }
@@ -114,9 +114,8 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
         D: serde::Deserializer<'de>,
     {
         let UpdateSeed { ctx } = self;
-        let selection_set_id = ctx.plan.collected_selection_set().id();
         let result = deserializer.deserialize_option(NullableVisitor(
-            CollectedSelectionSetSeed::new_from_id(&ctx, selection_set_id).fields_seed,
+            ConcreteObjectSeed::new(&ctx, ctx.plan.as_ref().output.shape_id).into_fields_seed(),
         ));
 
         match result {

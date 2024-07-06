@@ -1,6 +1,10 @@
 use super::{ResponseBuilder, ResponseDataPart};
 use crate::response::{ResponseData, ResponseObject, ResponseValue};
 
+id_newtypes::NonZeroU16! {
+    ResponseObjectSetId,
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct ResponseDataPartId(u16);
 

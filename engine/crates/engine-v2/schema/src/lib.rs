@@ -220,6 +220,10 @@ impl EntityId {
             _ => None,
         }
     }
+
+    pub fn is_object(&self) -> bool {
+        matches!(self, EntityId::Object(_))
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
@@ -306,6 +310,7 @@ pub struct Interface {
 
     /// sorted by ObjectId
     pub possible_types: Vec<ObjectId>,
+    pub possible_types_ordered_by_typename: Vec<ObjectId>,
     pub directives: IdRange<TypeSystemDirectiveId>,
     pub fields: IdRange<FieldDefinitionId>,
 }
@@ -332,6 +337,7 @@ pub struct Union {
     pub description: Option<StringId>,
     /// sorted by ObjectId
     pub possible_types: Vec<ObjectId>,
+    pub possible_types_ordered_by_typename: Vec<ObjectId>,
     pub directives: IdRange<TypeSystemDirectiveId>,
 }
 

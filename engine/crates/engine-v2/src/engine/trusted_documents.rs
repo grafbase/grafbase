@@ -10,6 +10,7 @@ use futures::{future::BoxFuture, FutureExt};
 use grafbase_tracing::grafbase_client::X_GRAFBASE_CLIENT_NAME;
 use runtime::{hot_cache::HotCache, trusted_documents_client::TrustedDocumentsError};
 use std::borrow::Cow;
+use tracing::instrument;
 
 use super::cache::{Document, Key};
 
@@ -22,6 +23,7 @@ pub(crate) struct PreparedOperationDocument<'a> {
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     /// Handle a request making use of APQ or trusted documents.
+    #[instrument(skip_all)]
     pub(super) fn prepare_operation_document<'r, 'f>(
         &mut self,
         request: &'r Request,

@@ -46,9 +46,10 @@ use futures_util::stream::BoxStream;
 use schema::{Resolver, ResolverWalker};
 
 use crate::{
-    execution::{ExecutionContext, ExecutionError, ExecutionResult, OperationRootPlanExecution, PlanWalker},
+    execution::{
+        ExecutionContext, ExecutionError, ExecutionResult, OperationRootPlanExecution, PlanWalker, PlanningResult,
+    },
     operation::OperationType,
-    plan::{ExecutionPlan, PlanningResult},
     response::{ResponseObjectsView, ResponsePart},
     Runtime,
 };
@@ -65,7 +66,6 @@ mod graphql;
 mod introspection;
 
 pub(crate) enum PreparedExecutor {
-    Unreachable, // FIXME: replace by an executor which always errors.
     GraphQL(GraphqlPreparedExecutor),
     FederationEntity(FederationEntityPreparedExecutor),
     Introspection(IntrospectionPreparedExecutor),
@@ -100,13 +100,12 @@ pub(crate) struct SubscriptionInput<'ctx, R: Runtime> {
     pub plan: PlanWalker<'ctx>,
 }
 
-impl ExecutionPlan {
+impl PreparedExecutor {
     pub fn new_executor<'ctx, R: Runtime>(
         &'ctx self,
         input: ExecutorInput<'ctx, '_, R>,
     ) -> Result<Executor<'ctx, R>, ExecutionError> {
-        match &self.prepared_executor {
-            PreparedExecutor::Unreachable => unreachable!(),
+        match self {
             PreparedExecutor::Introspection(prepared) => prepared.new_executor(input),
             PreparedExecutor::GraphQL(prepared) => prepared.new_executor(input),
             PreparedExecutor::FederationEntity(prepared) => prepared.new_executor(input),
@@ -117,8 +116,7 @@ impl ExecutionPlan {
         &'ctx self,
         input: SubscriptionInput<'ctx, R>,
     ) -> Result<SubscriptionExecutor<'ctx, R>, ExecutionError> {
-        match &self.prepared_executor {
-            PreparedExecutor::Unreachable => unreachable!(),
+        match self {
             PreparedExecutor::GraphQL(prepared) => prepared.new_subscription_executor(input),
             PreparedExecutor::Introspection(_) => Err(ExecutionError::Internal(
                 "Subscriptions can't contain introspection".into(),

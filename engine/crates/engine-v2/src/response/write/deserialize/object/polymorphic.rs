@@ -1,26 +1,31 @@
-use std::{borrow::Cow, collections::VecDeque, fmt};
+use std::{collections::VecDeque, fmt};
 
 use schema::ObjectId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
-use crate::{
-    operation::SelectionSetType,
-    plan::ConditionalSelectionSetId,
-    response::{
-        write::deserialize::{key::Key, SeedContext},
-        ResponseValue,
-    },
+use crate::response::{
+    write::deserialize::{key::Key, SeedContext},
+    ConcreteObjectShapeId, PolymorphicObjectShapeId, ResponseObject, ResponseValue,
 };
 
-use super::{CollectedSelectionSetSeed, ObjectIdentifier};
+use super::concrete::ConcreteObjectSeed;
 
-pub(crate) struct ConditionalSelectionSetSeed<'ctx, 'parent> {
-    pub ctx: &'parent SeedContext<'ctx>,
-    pub selection_set_ty: SelectionSetType,
-    pub selection_set_ids: Cow<'parent, [ConditionalSelectionSetId]>,
+pub(crate) struct PolymorphicObjectSeed<'ctx, 'seed> {
+    ctx: &'seed SeedContext<'ctx>,
+    shapes: &'ctx [(ObjectId, ConcreteObjectShapeId)],
 }
 
-impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for ConditionalSelectionSetSeed<'ctx, 'parent> {
+impl<'ctx, 'seed> PolymorphicObjectSeed<'ctx, 'seed> {
+    pub fn new(ctx: &'seed SeedContext<'ctx>, shape_id: PolymorphicObjectShapeId) -> Self {
+        let shape = &ctx.shapes[shape_id];
+        Self {
+            ctx,
+            shapes: &shape.shapes,
+        }
+    }
+}
+
+impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for PolymorphicObjectSeed<'ctx, 'parent> {
     type Value = ResponseValue;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -31,7 +36,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for ConditionalSelectionSetSeed<'c
     }
 }
 
-impl<'de, 'ctx, 'parent> Visitor<'de> for ConditionalSelectionSetSeed<'ctx, 'parent> {
+impl<'de, 'ctx, 'parent> Visitor<'de> for PolymorphicObjectSeed<'ctx, 'parent> {
     type Value = ResponseValue;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -43,46 +48,42 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for ConditionalSelectionSetSeed<'ctx, 'par
     where
         A: MapAccess<'de>,
     {
-        // Ideally we should never have an ProvisionalSelectionSet with a known object id, it
-        // means we could have collected fields earlier. But it can happen when a parent had
-        // complex type conditions for which we couldn't collect fields.
-        if let SelectionSetType::Object(object_id) = self.selection_set_ty {
-            return self.deserialize_concrete_object(object_id, map);
-        }
-        let mut identifier = ObjectIdentifier::new(self.ctx, self.selection_set_ty);
+        let schema = self.ctx.plan.schema();
         let mut content = VecDeque::<(_, serde_value::Value)>::new();
         while let Some(key) = map.next_key::<Key<'de>>()? {
-            if identifier.discriminant_key_matches(key.as_ref()) {
-                return match identifier.determine_object_id_from_discriminant(map.next_value()?) {
-                    Some(object_id) => self.deserialize_concrete_object(
-                        object_id,
+            if key.as_ref() == "__typename" {
+                let value = map.next_value::<Key<'_>>()?;
+                let typename = value.as_ref();
+                if let Ok(i) = self
+                    .shapes
+                    .binary_search_by(|(id, _)| schema[schema[*id].name].as_str().cmp(typename))
+                {
+                    let (object_id, shape_id) = self.shapes[i];
+                    return ConcreteObjectSeed::new_with_object_id(self.ctx, shape_id, object_id).visit_map(
                         ChainedMapAcces {
                             before: content,
                             next_value: None,
                             after: map,
                         },
-                    ),
-                    _ => {
-                        // Discarding the rest of the data.
-                        while map.next_entry::<IgnoredAny, IgnoredAny>().unwrap_or_default().is_some() {}
-                        return Err(serde::de::Error::custom("Couldn't determine the object type"));
-                    }
-                };
+                    );
+                }
+
+                // Discarding the rest of the data if it does not match any concrete shape
+                while map.next_entry::<IgnoredAny, IgnoredAny>()?.is_some() {}
+
+                // Adding empty object instead
+                return Ok(self
+                    .ctx
+                    .writer
+                    .push_object(ResponseObject::new(Default::default()))
+                    .into());
             }
-            // keeping the fields until we find the actual type discriminant.
+            // keeping the fields until we find the actual __typename.
             content.push_back((key, map.next_value()?));
         }
-        Err(serde::de::Error::custom("Couldn't determine the object type"))
-    }
-}
-
-impl<'ctx, 'parent> ConditionalSelectionSetSeed<'ctx, 'parent> {
-    fn deserialize_concrete_object<'de, A>(self, object_id: ObjectId, map: A) -> Result<ResponseValue, A::Error>
-    where
-        A: MapAccess<'de>,
-    {
-        let selection_set = self.ctx.plan.collect_fields(object_id, &self.selection_set_ids);
-        CollectedSelectionSetSeed::new(self.ctx, &selection_set).visit_map(map)
+        Err(serde::de::Error::custom(
+            "Missing __typename. Couldn't determine the object type",
+        ))
     }
 }
 

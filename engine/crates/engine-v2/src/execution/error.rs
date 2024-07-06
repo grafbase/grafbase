@@ -2,6 +2,32 @@ use std::borrow::Cow;
 
 use crate::response::{ErrorCode, GraphqlError};
 
+pub(crate) type PlanningResult<T> = Result<T, PlanningError>;
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum PlanningError {
+    #[error("Internal error: {0}")]
+    InternalError(String),
+}
+
+impl From<PlanningError> for GraphqlError {
+    fn from(error: PlanningError) -> Self {
+        GraphqlError::new(error.to_string(), ErrorCode::OperationPlanningError)
+    }
+}
+
+impl From<String> for PlanningError {
+    fn from(error: String) -> Self {
+        PlanningError::InternalError(error)
+    }
+}
+
+impl From<&str> for PlanningError {
+    fn from(error: &str) -> Self {
+        PlanningError::InternalError(error.to_string())
+    }
+}
+
 #[derive(thiserror::Error, Debug)]
 pub enum ExecutionError {
     #[error("Internal error: {0}")]
