@@ -53,6 +53,30 @@ pub trait Hooks: Send + Sync + 'static {
         definition: NodeDefinition<'a>,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
     ) -> impl Future<Output = Result<(), GraphqlError>> + Send;
+
+    fn authorize_parent_edge_post_execution<'a>(
+        &self,
+        context: &Self::Context,
+        definition: EdgeDefinition<'a>,
+        parents: Vec<String>,
+        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
+    ) -> impl Future<Output = Result<Vec<Result<(), GraphqlError>>, GraphqlError>> + Send;
+
+    fn authorize_edge_node_post_execution<'a>(
+        &self,
+        context: &Self::Context,
+        definition: EdgeDefinition<'a>,
+        nodes: Vec<String>,
+        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
+    ) -> impl Future<Output = Result<Vec<Result<(), GraphqlError>>, GraphqlError>> + Send;
+
+    fn authorize_edge_post_execution<'a>(
+        &self,
+        context: &Self::Context,
+        definition: EdgeDefinition<'a>,
+        edges: Vec<(String, Vec<String>)>,
+        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
+    ) -> impl Future<Output = Result<Vec<Result<(), GraphqlError>>, GraphqlError>> + Send;
 }
 
 // ---------------------------//
@@ -83,6 +107,42 @@ impl Hooks for () {
         _: NodeDefinition<'a>,
         _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
     ) -> Result<(), GraphqlError> {
+        Err(GraphqlError::new(
+            "@authorized directive cannot be used, so access was denied",
+        ))
+    }
+
+    async fn authorize_parent_edge_post_execution<'a>(
+        &self,
+        _: &Self::Context,
+        _: EdgeDefinition<'a>,
+        _: Vec<String>,
+        _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
+    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
+        Err(GraphqlError::new(
+            "@authorized directive cannot be used, so access was denied",
+        ))
+    }
+
+    async fn authorize_edge_node_post_execution<'a>(
+        &self,
+        _: &Self::Context,
+        _: EdgeDefinition<'a>,
+        _: Vec<String>,
+        _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
+    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
+        Err(GraphqlError::new(
+            "@authorized directive cannot be used, so access was denied",
+        ))
+    }
+
+    async fn authorize_edge_post_execution<'a>(
+        &self,
+        _: &Self::Context,
+        _: EdgeDefinition<'a>,
+        _: Vec<(String, Vec<String>)>,
+        _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
+    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
         Err(GraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
         ))

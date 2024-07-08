@@ -8,7 +8,9 @@ use wasmtime::{
 use crate::{
     context::SharedContextMap,
     names::{
-        AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION, AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION, COMPONENT_AUTHORIZATION,
+        AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION, AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION,
+        AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION, AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION,
+        AUTHORIZE_PARENT_EDGE_POST_EXECUTION_HOOK_FUNCTION, COMPONENT_AUTHORIZATION,
     },
     state::WasiState,
     ComponentLoader, ErrorResponse,
@@ -40,6 +42,20 @@ pub(crate) type EdgePreResponse = (Result<(), ErrorResponse>,);
 
 pub(crate) type NodePreParameters = (Resource<SharedContextMap>, NodeDefinition, String);
 pub(crate) type NodePreResponse = (Result<(), ErrorResponse>,);
+
+pub(crate) type ParentEdgePostParameters = (Resource<SharedContextMap>, EdgeDefinition, Vec<String>, String);
+pub(crate) type ParentEdgePostResponse = (Vec<Result<(), ErrorResponse>>,);
+
+pub(crate) type ParentEdgeNodePostParameters = (Resource<SharedContextMap>, EdgeDefinition, Vec<String>, String);
+pub(crate) type ParentEdgeNodePostResponse = (Vec<Result<(), ErrorResponse>>,);
+
+pub(crate) type EdgePostParameters = (
+    Resource<SharedContextMap>,
+    EdgeDefinition,
+    Vec<(String, Vec<String>)>,
+    String,
+);
+pub(crate) type EdgePostResponse = (Vec<Result<(), ErrorResponse>>,);
 
 /// The authorization hook is called if the requested type uses the authorization directive.
 ///
@@ -152,6 +168,129 @@ impl AuthorizationHookInstance {
         Ok(())
     }
 
+    /// Calls the post authorize hook for parent edge
+    pub async fn authorize_parent_edge_post_execution(
+        &mut self,
+        context: SharedContextMap,
+        definition: EdgeDefinition,
+        parents: Vec<String>,
+        metadata: String,
+    ) -> crate::Result<Vec<Result<(), crate::ErrorResponse>>> {
+        let Some(hook) = self.get_hook::<ParentEdgePostParameters, ParentEdgePostResponse>(
+            AUTHORIZE_PARENT_EDGE_POST_EXECUTION_HOOK_FUNCTION,
+        ) else {
+            return Err(crate::Error::Internal(anyhow!(
+                "authorize-parent-edge-pre-execution hook must be defined if using the @authorization directive"
+            )));
+        };
+
+        let context = self.store.data_mut().push_resource(context)?;
+        let context_rep = context.rep();
+
+        let result = hook
+            .call_async(&mut self.store, (context, definition, parents, metadata))
+            .await;
+
+        // We check if the hook call trapped, and if so we mark the instance poisoned.
+        //
+        // If no traps, we mark this hook so it can be called again.
+        if result.is_err() {
+            self.poisoned = true;
+        } else {
+            hook.post_return_async(&mut self.store).await?;
+        }
+
+        let result = result?.0;
+
+        // This is a bit ugly because we don't need it, but we need to clean the shared
+        // resources before exiting or this will leak RAM.
+        let _: SharedContextMap = self.store.data_mut().take_resource(context_rep)?;
+
+        Ok(result)
+    }
+
+    /// Calls the post authorize hook for parent edge
+    pub async fn authorize_edge_node_post_execution(
+        &mut self,
+        context: SharedContextMap,
+        definition: EdgeDefinition,
+        nodes: Vec<String>,
+        metadata: String,
+    ) -> crate::Result<Vec<Result<(), crate::ErrorResponse>>> {
+        let Some(hook) = self.get_hook::<ParentEdgeNodePostParameters, ParentEdgeNodePostResponse>(
+            AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION,
+        ) else {
+            return Err(crate::Error::Internal(anyhow!(
+                "authorize-parent-edge-node-pre-execution hook must be defined if using the @authorization directive"
+            )));
+        };
+
+        let context = self.store.data_mut().push_resource(context)?;
+        let context_rep = context.rep();
+
+        let result = hook
+            .call_async(&mut self.store, (context, definition, nodes, metadata))
+            .await;
+
+        // We check if the hook call trapped, and if so we mark the instance poisoned.
+        //
+        // If no traps, we mark this hook so it can be called again.
+        if result.is_err() {
+            self.poisoned = true;
+        } else {
+            hook.post_return_async(&mut self.store).await?;
+        }
+
+        let result = result?.0;
+
+        // This is a bit ugly because we don't need it, but we need to clean the shared
+        // resources before exiting or this will leak RAM.
+        let _: SharedContextMap = self.store.data_mut().take_resource(context_rep)?;
+
+        Ok(result)
+    }
+
+    /// Calls the post authorize hook for parent edge
+    pub async fn authorize_edge_post_execution(
+        &mut self,
+        context: SharedContextMap,
+        definition: EdgeDefinition,
+        edges: Vec<(String, Vec<String>)>,
+        metadata: String,
+    ) -> crate::Result<Vec<Result<(), crate::ErrorResponse>>> {
+        let Some(hook) =
+            self.get_hook::<EdgePostParameters, EdgePostResponse>(AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION)
+        else {
+            return Err(crate::Error::Internal(anyhow!(
+                "authorize-edge-post-execution hook must be defined if using the @authorization directive"
+            )));
+        };
+
+        let context = self.store.data_mut().push_resource(context)?;
+        let context_rep = context.rep();
+
+        let result = hook
+            .call_async(&mut self.store, (context, definition, edges, metadata))
+            .await;
+
+        // We check if the hook call trapped, and if so we mark the instance poisoned.
+        //
+        // If no traps, we mark this hook so it can be called again.
+        if result.is_err() {
+            self.poisoned = true;
+        } else {
+            hook.post_return_async(&mut self.store).await?;
+        }
+
+        let result = result?.0;
+
+        // This is a bit ugly because we don't need it, but we need to clean the shared
+        // resources before exiting or this will leak RAM.
+        let _: SharedContextMap = self.store.data_mut().take_resource(context_rep)?;
+
+        Ok(result)
+    }
+
     /// Resets the store to the original state. This must be called if wanting to reuse this instance.
     ///
     /// If the cleanup fails, the instance is gone and must be dropped.
@@ -185,6 +324,7 @@ impl AuthorizationHookInstance {
                 Some(hook)
             }
             Err(e) => {
+                dbg!(&e);
                 tracing::debug!(target: GRAFBASE_TARGET, "error instantizing the authorization hook WASM function: {e}");
                 None
             }

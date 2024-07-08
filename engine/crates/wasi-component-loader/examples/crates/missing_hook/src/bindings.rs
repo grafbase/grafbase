@@ -805,6 +805,507 @@ pub mod exports {
                         }
                     }
                 }
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn _export_authorize_parent_edge_post_execution_cabi<T: Guest>(
+                    arg0: i32,
+                    arg1: *mut u8,
+                    arg2: usize,
+                    arg3: *mut u8,
+                    arg4: usize,
+                    arg5: *mut u8,
+                    arg6: usize,
+                    arg7: *mut u8,
+                    arg8: usize,
+                ) -> *mut u8 {
+                    #[cfg(target_arch = "wasm32")]
+                    _rt::run_ctors_once();
+                    let len0 = arg2;
+                    let bytes0 = _rt::Vec::from_raw_parts(arg1.cast(), len0, len0);
+                    let len1 = arg4;
+                    let bytes1 = _rt::Vec::from_raw_parts(arg3.cast(), len1, len1);
+                    let base5 = arg5;
+                    let len5 = arg6;
+                    let mut result5 = _rt::Vec::with_capacity(len5);
+                    for i in 0..len5 {
+                        let base = base5.add(i * 8);
+                        let e5 = {
+                            let l2 = *base.add(0).cast::<*mut u8>();
+                            let l3 = *base.add(4).cast::<usize>();
+                            let len4 = l3;
+                            let bytes4 = _rt::Vec::from_raw_parts(l2.cast(), len4, len4);
+
+                            _rt::string_lift(bytes4)
+                        };
+                        result5.push(e5);
+                    }
+                    _rt::cabi_dealloc(base5, len5 * 8, 4);
+                    let len6 = arg8;
+                    let bytes6 = _rt::Vec::from_raw_parts(arg7.cast(), len6, len6);
+                    let result7 = T::authorize_parent_edge_post_execution(
+                        super::super::super::super::component::grafbase::types::SharedContext::from_handle(arg0 as u32),
+                        super::super::super::super::component::grafbase::types::EdgeDefinition {
+                            parent_type_name: _rt::string_lift(bytes0),
+                            field_name: _rt::string_lift(bytes1),
+                        },
+                        result5,
+                        _rt::string_lift(bytes6),
+                    );
+                    let ptr8 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
+                    let vec15 = result7;
+                    let len15 = vec15.len();
+                    let layout15 = _rt::alloc::Layout::from_size_align_unchecked(vec15.len() * 20, 4);
+                    let result15 = if layout15.size() != 0 {
+                        let ptr = _rt::alloc::alloc(layout15).cast::<u8>();
+                        if ptr.is_null() {
+                            _rt::alloc::handle_alloc_error(layout15);
+                        }
+                        ptr
+                    } else {
+                        {
+                            ::core::ptr::null_mut()
+                        }
+                    };
+                    for (i, e) in vec15.into_iter().enumerate() {
+                        let base = result15.add(i * 20);
+                        {
+                            match e {
+                                Ok(_) => {
+                                    *base.add(0).cast::<u8>() = (0i32) as u8;
+                                }
+                                Err(e) => {
+                                    *base.add(0).cast::<u8>() = (1i32) as u8;
+                                    let super::super::super::super::component::grafbase::types::Error {
+                                        message: message9,
+                                        extensions: extensions9,
+                                    } = e;
+                                    let vec10 = (message9.into_bytes()).into_boxed_slice();
+                                    let ptr10 = vec10.as_ptr().cast::<u8>();
+                                    let len10 = vec10.len();
+                                    ::core::mem::forget(vec10);
+                                    *base.add(8).cast::<usize>() = len10;
+                                    *base.add(4).cast::<*mut u8>() = ptr10.cast_mut();
+                                    let vec14 = extensions9;
+                                    let len14 = vec14.len();
+                                    let layout14 = _rt::alloc::Layout::from_size_align_unchecked(vec14.len() * 16, 4);
+                                    let result14 = if layout14.size() != 0 {
+                                        let ptr = _rt::alloc::alloc(layout14).cast::<u8>();
+                                        if ptr.is_null() {
+                                            _rt::alloc::handle_alloc_error(layout14);
+                                        }
+                                        ptr
+                                    } else {
+                                        {
+                                            ::core::ptr::null_mut()
+                                        }
+                                    };
+                                    for (i, e) in vec14.into_iter().enumerate() {
+                                        let base = result14.add(i * 16);
+                                        {
+                                            let (t11_0, t11_1) = e;
+                                            let vec12 = (t11_0.into_bytes()).into_boxed_slice();
+                                            let ptr12 = vec12.as_ptr().cast::<u8>();
+                                            let len12 = vec12.len();
+                                            ::core::mem::forget(vec12);
+                                            *base.add(4).cast::<usize>() = len12;
+                                            *base.add(0).cast::<*mut u8>() = ptr12.cast_mut();
+                                            let vec13 = (t11_1.into_bytes()).into_boxed_slice();
+                                            let ptr13 = vec13.as_ptr().cast::<u8>();
+                                            let len13 = vec13.len();
+                                            ::core::mem::forget(vec13);
+                                            *base.add(12).cast::<usize>() = len13;
+                                            *base.add(8).cast::<*mut u8>() = ptr13.cast_mut();
+                                        }
+                                    }
+                                    *base.add(16).cast::<usize>() = len14;
+                                    *base.add(12).cast::<*mut u8>() = result14;
+                                }
+                            };
+                        }
+                    }
+                    *ptr8.add(4).cast::<usize>() = len15;
+                    *ptr8.add(0).cast::<*mut u8>() = result15;
+                    ptr8
+                }
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn __post_return_authorize_parent_edge_post_execution<T: Guest>(arg0: *mut u8) {
+                    let l10 = *arg0.add(0).cast::<*mut u8>();
+                    let l11 = *arg0.add(4).cast::<usize>();
+                    let base12 = l10;
+                    let len12 = l11;
+                    for i in 0..len12 {
+                        let base = base12.add(i * 20);
+                        {
+                            let l0 = i32::from(*base.add(0).cast::<u8>());
+                            match l0 {
+                                0 => (),
+                                _ => {
+                                    let l1 = *base.add(4).cast::<*mut u8>();
+                                    let l2 = *base.add(8).cast::<usize>();
+                                    _rt::cabi_dealloc(l1, l2, 1);
+                                    let l7 = *base.add(12).cast::<*mut u8>();
+                                    let l8 = *base.add(16).cast::<usize>();
+                                    let base9 = l7;
+                                    let len9 = l8;
+                                    for i in 0..len9 {
+                                        let base = base9.add(i * 16);
+                                        {
+                                            let l3 = *base.add(0).cast::<*mut u8>();
+                                            let l4 = *base.add(4).cast::<usize>();
+                                            _rt::cabi_dealloc(l3, l4, 1);
+                                            let l5 = *base.add(8).cast::<*mut u8>();
+                                            let l6 = *base.add(12).cast::<usize>();
+                                            _rt::cabi_dealloc(l5, l6, 1);
+                                        }
+                                    }
+                                    _rt::cabi_dealloc(base9, len9 * 16, 4);
+                                }
+                            }
+                        }
+                    }
+                    _rt::cabi_dealloc(base12, len12 * 20, 4);
+                }
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn _export_authorize_edge_node_post_execution_cabi<T: Guest>(
+                    arg0: i32,
+                    arg1: *mut u8,
+                    arg2: usize,
+                    arg3: *mut u8,
+                    arg4: usize,
+                    arg5: *mut u8,
+                    arg6: usize,
+                    arg7: *mut u8,
+                    arg8: usize,
+                ) -> *mut u8 {
+                    #[cfg(target_arch = "wasm32")]
+                    _rt::run_ctors_once();
+                    let len0 = arg2;
+                    let bytes0 = _rt::Vec::from_raw_parts(arg1.cast(), len0, len0);
+                    let len1 = arg4;
+                    let bytes1 = _rt::Vec::from_raw_parts(arg3.cast(), len1, len1);
+                    let base5 = arg5;
+                    let len5 = arg6;
+                    let mut result5 = _rt::Vec::with_capacity(len5);
+                    for i in 0..len5 {
+                        let base = base5.add(i * 8);
+                        let e5 = {
+                            let l2 = *base.add(0).cast::<*mut u8>();
+                            let l3 = *base.add(4).cast::<usize>();
+                            let len4 = l3;
+                            let bytes4 = _rt::Vec::from_raw_parts(l2.cast(), len4, len4);
+
+                            _rt::string_lift(bytes4)
+                        };
+                        result5.push(e5);
+                    }
+                    _rt::cabi_dealloc(base5, len5 * 8, 4);
+                    let len6 = arg8;
+                    let bytes6 = _rt::Vec::from_raw_parts(arg7.cast(), len6, len6);
+                    let result7 = T::authorize_edge_node_post_execution(
+                        super::super::super::super::component::grafbase::types::SharedContext::from_handle(arg0 as u32),
+                        super::super::super::super::component::grafbase::types::EdgeDefinition {
+                            parent_type_name: _rt::string_lift(bytes0),
+                            field_name: _rt::string_lift(bytes1),
+                        },
+                        result5,
+                        _rt::string_lift(bytes6),
+                    );
+                    let ptr8 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
+                    let vec15 = result7;
+                    let len15 = vec15.len();
+                    let layout15 = _rt::alloc::Layout::from_size_align_unchecked(vec15.len() * 20, 4);
+                    let result15 = if layout15.size() != 0 {
+                        let ptr = _rt::alloc::alloc(layout15).cast::<u8>();
+                        if ptr.is_null() {
+                            _rt::alloc::handle_alloc_error(layout15);
+                        }
+                        ptr
+                    } else {
+                        {
+                            ::core::ptr::null_mut()
+                        }
+                    };
+                    for (i, e) in vec15.into_iter().enumerate() {
+                        let base = result15.add(i * 20);
+                        {
+                            match e {
+                                Ok(_) => {
+                                    *base.add(0).cast::<u8>() = (0i32) as u8;
+                                }
+                                Err(e) => {
+                                    *base.add(0).cast::<u8>() = (1i32) as u8;
+                                    let super::super::super::super::component::grafbase::types::Error {
+                                        message: message9,
+                                        extensions: extensions9,
+                                    } = e;
+                                    let vec10 = (message9.into_bytes()).into_boxed_slice();
+                                    let ptr10 = vec10.as_ptr().cast::<u8>();
+                                    let len10 = vec10.len();
+                                    ::core::mem::forget(vec10);
+                                    *base.add(8).cast::<usize>() = len10;
+                                    *base.add(4).cast::<*mut u8>() = ptr10.cast_mut();
+                                    let vec14 = extensions9;
+                                    let len14 = vec14.len();
+                                    let layout14 = _rt::alloc::Layout::from_size_align_unchecked(vec14.len() * 16, 4);
+                                    let result14 = if layout14.size() != 0 {
+                                        let ptr = _rt::alloc::alloc(layout14).cast::<u8>();
+                                        if ptr.is_null() {
+                                            _rt::alloc::handle_alloc_error(layout14);
+                                        }
+                                        ptr
+                                    } else {
+                                        {
+                                            ::core::ptr::null_mut()
+                                        }
+                                    };
+                                    for (i, e) in vec14.into_iter().enumerate() {
+                                        let base = result14.add(i * 16);
+                                        {
+                                            let (t11_0, t11_1) = e;
+                                            let vec12 = (t11_0.into_bytes()).into_boxed_slice();
+                                            let ptr12 = vec12.as_ptr().cast::<u8>();
+                                            let len12 = vec12.len();
+                                            ::core::mem::forget(vec12);
+                                            *base.add(4).cast::<usize>() = len12;
+                                            *base.add(0).cast::<*mut u8>() = ptr12.cast_mut();
+                                            let vec13 = (t11_1.into_bytes()).into_boxed_slice();
+                                            let ptr13 = vec13.as_ptr().cast::<u8>();
+                                            let len13 = vec13.len();
+                                            ::core::mem::forget(vec13);
+                                            *base.add(12).cast::<usize>() = len13;
+                                            *base.add(8).cast::<*mut u8>() = ptr13.cast_mut();
+                                        }
+                                    }
+                                    *base.add(16).cast::<usize>() = len14;
+                                    *base.add(12).cast::<*mut u8>() = result14;
+                                }
+                            };
+                        }
+                    }
+                    *ptr8.add(4).cast::<usize>() = len15;
+                    *ptr8.add(0).cast::<*mut u8>() = result15;
+                    ptr8
+                }
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn __post_return_authorize_edge_node_post_execution<T: Guest>(arg0: *mut u8) {
+                    let l10 = *arg0.add(0).cast::<*mut u8>();
+                    let l11 = *arg0.add(4).cast::<usize>();
+                    let base12 = l10;
+                    let len12 = l11;
+                    for i in 0..len12 {
+                        let base = base12.add(i * 20);
+                        {
+                            let l0 = i32::from(*base.add(0).cast::<u8>());
+                            match l0 {
+                                0 => (),
+                                _ => {
+                                    let l1 = *base.add(4).cast::<*mut u8>();
+                                    let l2 = *base.add(8).cast::<usize>();
+                                    _rt::cabi_dealloc(l1, l2, 1);
+                                    let l7 = *base.add(12).cast::<*mut u8>();
+                                    let l8 = *base.add(16).cast::<usize>();
+                                    let base9 = l7;
+                                    let len9 = l8;
+                                    for i in 0..len9 {
+                                        let base = base9.add(i * 16);
+                                        {
+                                            let l3 = *base.add(0).cast::<*mut u8>();
+                                            let l4 = *base.add(4).cast::<usize>();
+                                            _rt::cabi_dealloc(l3, l4, 1);
+                                            let l5 = *base.add(8).cast::<*mut u8>();
+                                            let l6 = *base.add(12).cast::<usize>();
+                                            _rt::cabi_dealloc(l5, l6, 1);
+                                        }
+                                    }
+                                    _rt::cabi_dealloc(base9, len9 * 16, 4);
+                                }
+                            }
+                        }
+                    }
+                    _rt::cabi_dealloc(base12, len12 * 20, 4);
+                }
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn _export_authorize_edge_post_execution_cabi<T: Guest>(
+                    arg0: i32,
+                    arg1: *mut u8,
+                    arg2: usize,
+                    arg3: *mut u8,
+                    arg4: usize,
+                    arg5: *mut u8,
+                    arg6: usize,
+                    arg7: *mut u8,
+                    arg8: usize,
+                ) -> *mut u8 {
+                    #[cfg(target_arch = "wasm32")]
+                    _rt::run_ctors_once();
+                    let len0 = arg2;
+                    let bytes0 = _rt::Vec::from_raw_parts(arg1.cast(), len0, len0);
+                    let len1 = arg4;
+                    let bytes1 = _rt::Vec::from_raw_parts(arg3.cast(), len1, len1);
+                    let base11 = arg5;
+                    let len11 = arg6;
+                    let mut result11 = _rt::Vec::with_capacity(len11);
+                    for i in 0..len11 {
+                        let base = base11.add(i * 16);
+                        let e11 = {
+                            let l2 = *base.add(0).cast::<*mut u8>();
+                            let l3 = *base.add(4).cast::<usize>();
+                            let len4 = l3;
+                            let bytes4 = _rt::Vec::from_raw_parts(l2.cast(), len4, len4);
+                            let l5 = *base.add(8).cast::<*mut u8>();
+                            let l6 = *base.add(12).cast::<usize>();
+                            let base10 = l5;
+                            let len10 = l6;
+                            let mut result10 = _rt::Vec::with_capacity(len10);
+                            for i in 0..len10 {
+                                let base = base10.add(i * 8);
+                                let e10 = {
+                                    let l7 = *base.add(0).cast::<*mut u8>();
+                                    let l8 = *base.add(4).cast::<usize>();
+                                    let len9 = l8;
+                                    let bytes9 = _rt::Vec::from_raw_parts(l7.cast(), len9, len9);
+
+                                    _rt::string_lift(bytes9)
+                                };
+                                result10.push(e10);
+                            }
+                            _rt::cabi_dealloc(base10, len10 * 8, 4);
+
+                            (_rt::string_lift(bytes4), result10)
+                        };
+                        result11.push(e11);
+                    }
+                    _rt::cabi_dealloc(base11, len11 * 16, 4);
+                    let len12 = arg8;
+                    let bytes12 = _rt::Vec::from_raw_parts(arg7.cast(), len12, len12);
+                    let result13 = T::authorize_edge_post_execution(
+                        super::super::super::super::component::grafbase::types::SharedContext::from_handle(arg0 as u32),
+                        super::super::super::super::component::grafbase::types::EdgeDefinition {
+                            parent_type_name: _rt::string_lift(bytes0),
+                            field_name: _rt::string_lift(bytes1),
+                        },
+                        result11,
+                        _rt::string_lift(bytes12),
+                    );
+                    let ptr14 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
+                    let vec21 = result13;
+                    let len21 = vec21.len();
+                    let layout21 = _rt::alloc::Layout::from_size_align_unchecked(vec21.len() * 20, 4);
+                    let result21 = if layout21.size() != 0 {
+                        let ptr = _rt::alloc::alloc(layout21).cast::<u8>();
+                        if ptr.is_null() {
+                            _rt::alloc::handle_alloc_error(layout21);
+                        }
+                        ptr
+                    } else {
+                        {
+                            ::core::ptr::null_mut()
+                        }
+                    };
+                    for (i, e) in vec21.into_iter().enumerate() {
+                        let base = result21.add(i * 20);
+                        {
+                            match e {
+                                Ok(_) => {
+                                    *base.add(0).cast::<u8>() = (0i32) as u8;
+                                }
+                                Err(e) => {
+                                    *base.add(0).cast::<u8>() = (1i32) as u8;
+                                    let super::super::super::super::component::grafbase::types::Error {
+                                        message: message15,
+                                        extensions: extensions15,
+                                    } = e;
+                                    let vec16 = (message15.into_bytes()).into_boxed_slice();
+                                    let ptr16 = vec16.as_ptr().cast::<u8>();
+                                    let len16 = vec16.len();
+                                    ::core::mem::forget(vec16);
+                                    *base.add(8).cast::<usize>() = len16;
+                                    *base.add(4).cast::<*mut u8>() = ptr16.cast_mut();
+                                    let vec20 = extensions15;
+                                    let len20 = vec20.len();
+                                    let layout20 = _rt::alloc::Layout::from_size_align_unchecked(vec20.len() * 16, 4);
+                                    let result20 = if layout20.size() != 0 {
+                                        let ptr = _rt::alloc::alloc(layout20).cast::<u8>();
+                                        if ptr.is_null() {
+                                            _rt::alloc::handle_alloc_error(layout20);
+                                        }
+                                        ptr
+                                    } else {
+                                        {
+                                            ::core::ptr::null_mut()
+                                        }
+                                    };
+                                    for (i, e) in vec20.into_iter().enumerate() {
+                                        let base = result20.add(i * 16);
+                                        {
+                                            let (t17_0, t17_1) = e;
+                                            let vec18 = (t17_0.into_bytes()).into_boxed_slice();
+                                            let ptr18 = vec18.as_ptr().cast::<u8>();
+                                            let len18 = vec18.len();
+                                            ::core::mem::forget(vec18);
+                                            *base.add(4).cast::<usize>() = len18;
+                                            *base.add(0).cast::<*mut u8>() = ptr18.cast_mut();
+                                            let vec19 = (t17_1.into_bytes()).into_boxed_slice();
+                                            let ptr19 = vec19.as_ptr().cast::<u8>();
+                                            let len19 = vec19.len();
+                                            ::core::mem::forget(vec19);
+                                            *base.add(12).cast::<usize>() = len19;
+                                            *base.add(8).cast::<*mut u8>() = ptr19.cast_mut();
+                                        }
+                                    }
+                                    *base.add(16).cast::<usize>() = len20;
+                                    *base.add(12).cast::<*mut u8>() = result20;
+                                }
+                            };
+                        }
+                    }
+                    *ptr14.add(4).cast::<usize>() = len21;
+                    *ptr14.add(0).cast::<*mut u8>() = result21;
+                    ptr14
+                }
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn __post_return_authorize_edge_post_execution<T: Guest>(arg0: *mut u8) {
+                    let l10 = *arg0.add(0).cast::<*mut u8>();
+                    let l11 = *arg0.add(4).cast::<usize>();
+                    let base12 = l10;
+                    let len12 = l11;
+                    for i in 0..len12 {
+                        let base = base12.add(i * 20);
+                        {
+                            let l0 = i32::from(*base.add(0).cast::<u8>());
+                            match l0 {
+                                0 => (),
+                                _ => {
+                                    let l1 = *base.add(4).cast::<*mut u8>();
+                                    let l2 = *base.add(8).cast::<usize>();
+                                    _rt::cabi_dealloc(l1, l2, 1);
+                                    let l7 = *base.add(12).cast::<*mut u8>();
+                                    let l8 = *base.add(16).cast::<usize>();
+                                    let base9 = l7;
+                                    let len9 = l8;
+                                    for i in 0..len9 {
+                                        let base = base9.add(i * 16);
+                                        {
+                                            let l3 = *base.add(0).cast::<*mut u8>();
+                                            let l4 = *base.add(4).cast::<usize>();
+                                            _rt::cabi_dealloc(l3, l4, 1);
+                                            let l5 = *base.add(8).cast::<*mut u8>();
+                                            let l6 = *base.add(12).cast::<usize>();
+                                            _rt::cabi_dealloc(l5, l6, 1);
+                                        }
+                                    }
+                                    _rt::cabi_dealloc(base9, len9 * 16, 4);
+                                }
+                            }
+                        }
+                    }
+                    _rt::cabi_dealloc(base12, len12 * 20, 4);
+                }
                 pub trait Guest {
                     fn authorize_edge_pre_execution(
                         context: SharedContext,
@@ -817,6 +1318,24 @@ pub mod exports {
                         definition: NodeDefinition,
                         metadata: _rt::String,
                     ) -> Result<(), Error>;
+                    fn authorize_parent_edge_post_execution(
+                        context: SharedContext,
+                        definition: EdgeDefinition,
+                        parents: _rt::Vec<_rt::String>,
+                        metadata: _rt::String,
+                    ) -> _rt::Vec<Result<(), Error>>;
+                    fn authorize_edge_node_post_execution(
+                        context: SharedContext,
+                        definition: EdgeDefinition,
+                        nodes: _rt::Vec<_rt::String>,
+                        metadata: _rt::String,
+                    ) -> _rt::Vec<Result<(), Error>>;
+                    fn authorize_edge_post_execution(
+                        context: SharedContext,
+                        definition: EdgeDefinition,
+                        edges: _rt::Vec<(_rt::String, _rt::Vec<_rt::String>)>,
+                        metadata: _rt::String,
+                    ) -> _rt::Vec<Result<(), Error>>;
                 }
                 #[doc(hidden)]
 
@@ -838,6 +1357,30 @@ pub mod exports {
         #[export_name = "cabi_post_component:grafbase/authorization#authorize-node-pre-execution"]
         unsafe extern "C" fn _post_return_authorize_node_pre_execution(arg0: *mut u8,) {
           $($path_to_types)*::__post_return_authorize_node_pre_execution::<$ty>(arg0)
+        }
+        #[export_name = "component:grafbase/authorization#authorize-parent-edge-post-execution"]
+        unsafe extern "C" fn export_authorize_parent_edge_post_execution(arg0: i32,arg1: *mut u8,arg2: usize,arg3: *mut u8,arg4: usize,arg5: *mut u8,arg6: usize,arg7: *mut u8,arg8: usize,) -> *mut u8 {
+          $($path_to_types)*::_export_authorize_parent_edge_post_execution_cabi::<$ty>(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+        }
+        #[export_name = "cabi_post_component:grafbase/authorization#authorize-parent-edge-post-execution"]
+        unsafe extern "C" fn _post_return_authorize_parent_edge_post_execution(arg0: *mut u8,) {
+          $($path_to_types)*::__post_return_authorize_parent_edge_post_execution::<$ty>(arg0)
+        }
+        #[export_name = "component:grafbase/authorization#authorize-edge-node-post-execution"]
+        unsafe extern "C" fn export_authorize_edge_node_post_execution(arg0: i32,arg1: *mut u8,arg2: usize,arg3: *mut u8,arg4: usize,arg5: *mut u8,arg6: usize,arg7: *mut u8,arg8: usize,) -> *mut u8 {
+          $($path_to_types)*::_export_authorize_edge_node_post_execution_cabi::<$ty>(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+        }
+        #[export_name = "cabi_post_component:grafbase/authorization#authorize-edge-node-post-execution"]
+        unsafe extern "C" fn _post_return_authorize_edge_node_post_execution(arg0: *mut u8,) {
+          $($path_to_types)*::__post_return_authorize_edge_node_post_execution::<$ty>(arg0)
+        }
+        #[export_name = "component:grafbase/authorization#authorize-edge-post-execution"]
+        unsafe extern "C" fn export_authorize_edge_post_execution(arg0: i32,arg1: *mut u8,arg2: usize,arg3: *mut u8,arg4: usize,arg5: *mut u8,arg6: usize,arg7: *mut u8,arg8: usize,) -> *mut u8 {
+          $($path_to_types)*::_export_authorize_edge_post_execution_cabi::<$ty>(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+        }
+        #[export_name = "cabi_post_component:grafbase/authorization#authorize-edge-post-execution"]
+        unsafe extern "C" fn _post_return_authorize_edge_post_execution(arg0: *mut u8,) {
+          $($path_to_types)*::__post_return_authorize_edge_post_execution::<$ty>(arg0)
         }
       };);
     }
@@ -1007,8 +1550,8 @@ pub(crate) use __export_hooks_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:hooks:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1090] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xc6\x07\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1349] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xc9\x09\x01A\x02\x01\
 A\x08\x01B\x1f\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
 header-error\x03\0\0\x04\0\x07context\x03\x01\x04\0\x0eshared-context\x03\x01\x04\
 \0\x07headers\x03\x01\x01r\x02\x10parent-type-names\x0afield-names\x04\0\x0fedge\
@@ -1022,16 +1565,21 @@ set\x01\x10\x04\0\x16[method]context.delete\x01\x0f\x01h\x03\x01@\x02\x04self\x1
 \x01j\0\x01\x01\x01@\x03\x04self\x13\x04names\x05values\0\x16\x04\0\x13[method]h\
 eaders.set\x01\x17\x04\0\x16[method]headers.delete\x01\x15\x03\x01\x18component:\
 grafbase/types\x05\0\x02\x03\0\0\x05error\x02\x03\0\0\x0eshared-context\x02\x03\0\
-\0\x0fedge-definition\x02\x03\0\0\x0fnode-definition\x01B\x0e\x02\x03\x02\x01\x01\
+\0\x0fedge-definition\x02\x03\0\0\x0fnode-definition\x01B\x18\x02\x03\x02\x01\x01\
 \x04\0\x05error\x03\0\0\x02\x03\x02\x01\x02\x04\0\x0eshared-context\x03\0\x02\x02\
 \x03\x02\x01\x03\x04\0\x0fedge-definition\x03\0\x04\x02\x03\x02\x01\x04\x04\0\x0f\
 node-definition\x03\0\x06\x01i\x03\x01j\0\x01\x01\x01@\x04\x07context\x08\x0adef\
 inition\x05\x09argumentss\x08metadatas\0\x09\x04\0\x1cauthorize-edge-pre-executi\
 on\x01\x0a\x01@\x03\x07context\x08\x0adefinition\x07\x08metadatas\0\x09\x04\0\x1c\
-authorize-node-pre-execution\x01\x0b\x04\x01\x20component:grafbase/authorization\
-\x05\x05\x04\x01\x18component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05hooks\x03\0\0\
-\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bind\
-gen-rust\x060.25.0";
+authorize-node-pre-execution\x01\x0b\x01ps\x01p\x09\x01@\x04\x07context\x08\x0ad\
+efinition\x05\x07parents\x0c\x08metadatas\0\x0d\x04\0$authorize-parent-edge-post\
+-execution\x01\x0e\x01@\x04\x07context\x08\x0adefinition\x05\x05nodes\x0c\x08met\
+adatas\0\x0d\x04\0\"authorize-edge-node-post-execution\x01\x0f\x01o\x02s\x0c\x01\
+p\x10\x01@\x04\x07context\x08\x0adefinition\x05\x05edges\x11\x08metadatas\0\x0d\x04\
+\0\x1dauthorize-edge-post-execution\x01\x12\x04\x01\x20component:grafbase/author\
+ization\x05\x05\x04\x01\x18component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05hooks\
+\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10\
+wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

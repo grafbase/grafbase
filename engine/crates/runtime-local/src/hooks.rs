@@ -112,6 +112,7 @@ impl Hooks for HooksWasi {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     async fn authorize_node_pre_execution<'a>(
         &self,
         context: &Self::Context,
@@ -147,6 +148,149 @@ impl Hooks for HooksWasi {
             })?;
 
         Ok(())
+    }
+
+    #[instrument(skip_all)]
+    async fn authorize_parent_edge_post_execution<'a>(
+        &self,
+        context: &Self::Context,
+        definition: EdgeDefinition<'a>,
+        parents: Vec<String>,
+        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
+    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
+        let Some(ref inner) = self.0 else {
+            return Err(GraphqlError::new(
+                "@authorized directive cannot be used, so access was denied",
+            ));
+        };
+
+        let Ok(metadata) = metadata.as_ref().map(serde_json::to_string).transpose() else {
+            tracing::error!("authorize_edge_pre_execution error at {definition}: failed to serialize metadata");
+            return Err(GraphqlError::internal_server_error());
+        };
+
+        let definition = wasi_component_loader::EdgeDefinition {
+            parent_type_name: definition.parent_type_name.to_string(),
+            field_name: definition.field_name.to_string(),
+        };
+
+        let mut instance = inner.authorization_hooks.get().await.expect("no io, should not fail");
+
+        let results = instance
+            .authorize_parent_edge_post_execution(
+                Arc::clone(context),
+                definition,
+                parents,
+                metadata.unwrap_or_default(),
+            )
+            .await
+            .map_err(|err| match err {
+                wasi_component_loader::Error::Internal(error) => {
+                    tracing::error!("authorize_node_pre_execution error at: {error}");
+                    GraphqlError::internal_server_error()
+                }
+                wasi_component_loader::Error::User(error) => error_response_to_user_error(error),
+            })?
+            .into_iter()
+            .map(|result| match result {
+                Ok(()) => Ok(()),
+                Err(error) => Err(error_response_to_user_error(error)),
+            })
+            .collect();
+
+        Ok(results)
+    }
+
+    #[instrument(skip_all)]
+    async fn authorize_edge_node_post_execution<'a>(
+        &self,
+        context: &Self::Context,
+        definition: EdgeDefinition<'a>,
+        nodes: Vec<String>,
+        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
+    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
+        let Some(ref inner) = self.0 else {
+            return Err(GraphqlError::new(
+                "@authorized directive cannot be used, so access was denied",
+            ));
+        };
+
+        let Ok(metadata) = metadata.as_ref().map(serde_json::to_string).transpose() else {
+            tracing::error!("authorize_edge_pre_execution error at {definition}: failed to serialize metadata");
+            return Err(GraphqlError::internal_server_error());
+        };
+
+        let definition = wasi_component_loader::EdgeDefinition {
+            parent_type_name: definition.parent_type_name.to_string(),
+            field_name: definition.field_name.to_string(),
+        };
+
+        let mut instance = inner.authorization_hooks.get().await.expect("no io, should not fail");
+
+        let result = instance
+            .authorize_edge_node_post_execution(Arc::clone(context), definition, nodes, metadata.unwrap_or_default())
+            .await
+            .map_err(|err| match err {
+                wasi_component_loader::Error::Internal(error) => {
+                    tracing::error!("authorize_node_pre_execution error at: {error}");
+                    GraphqlError::internal_server_error()
+                }
+                wasi_component_loader::Error::User(error) => error_response_to_user_error(error),
+            })?
+            .into_iter()
+            .map(|result| match result {
+                Ok(()) => Ok(()),
+                Err(error) => Err(error_response_to_user_error(error)),
+            })
+            .collect();
+
+        Ok(result)
+    }
+
+    #[instrument(skip_all)]
+    async fn authorize_edge_post_execution<'a>(
+        &self,
+        context: &Self::Context,
+        definition: EdgeDefinition<'a>,
+        edges: Vec<(String, Vec<String>)>,
+        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
+    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
+        let Some(ref inner) = self.0 else {
+            return Err(GraphqlError::new(
+                "@authorized directive cannot be used, so access was denied",
+            ));
+        };
+
+        let Ok(metadata) = metadata.as_ref().map(serde_json::to_string).transpose() else {
+            tracing::error!("authorize_edge_pre_execution error at {definition}: failed to serialize metadata");
+            return Err(GraphqlError::internal_server_error());
+        };
+
+        let definition = wasi_component_loader::EdgeDefinition {
+            parent_type_name: definition.parent_type_name.to_string(),
+            field_name: definition.field_name.to_string(),
+        };
+
+        let mut instance = inner.authorization_hooks.get().await.expect("no io, should not fail");
+
+        let result = instance
+            .authorize_edge_post_execution(Arc::clone(context), definition, edges, metadata.unwrap_or_default())
+            .await
+            .map_err(|err| match err {
+                wasi_component_loader::Error::Internal(error) => {
+                    tracing::error!("authorize_node_pre_execution error at: {error}");
+                    GraphqlError::internal_server_error()
+                }
+                wasi_component_loader::Error::User(error) => error_response_to_user_error(error),
+            })?
+            .into_iter()
+            .map(|result| match result {
+                Ok(()) => Ok(()),
+                Err(error) => Err(error_response_to_user_error(error)),
+            })
+            .collect();
+
+        Ok(result)
     }
 }
 

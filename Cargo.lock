@@ -9688,6 +9688,7 @@ dependencies = [
  "http 1.1.0",
  "indoc",
  "serde",
+ "serde_json",
  "tempdir",
  "thiserror",
  "tokio",
