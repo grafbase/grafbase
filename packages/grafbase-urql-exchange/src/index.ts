@@ -11,6 +11,7 @@ import {
   Operation,
   subscriptionExchange
 } from '@urql/core'
+import { DocumentNode } from 'graphql'
 import ReconnectingEventSource from 'reconnecting-eventsource'
 import { filter, merge, pipe, share } from 'wonka'
 
@@ -65,9 +66,11 @@ const subscription = subscriptionExchange({
 })
 
 const isLiveOperation = (operation: Operation) =>
-  operation.query.definitions.some((definition) =>
-    // @ts-ignore types mismatch
-    isLiveQueryOperationDefinitionNode(definition, operation.variables)
+  (operation.query as DocumentNode).definitions.some((definition) =>
+    isLiveQueryOperationDefinitionNode(
+      definition,
+      operation.variables as { [key: string]: unknown }
+    )
   )
 
 export const sseExchange: Exchange = (input) => {
