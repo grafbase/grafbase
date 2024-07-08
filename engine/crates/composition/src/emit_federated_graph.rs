@@ -40,6 +40,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         authorized_directives: vec![],
         field_authorized_directives: vec![],
         object_authorized_directives: vec![],
+        interface_authorized_directives: vec![],
     };
 
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
@@ -86,6 +87,30 @@ fn emit_authorized_directives(ir: &CompositionIr, ctx: &mut Context<'_>) {
         ctx.out
             .object_authorized_directives
             .push((*object_id, authorized_directive_id));
+    }
+
+    for (interface_id, authorized) in &ir.interface_authorized_directives {
+        let authorized = ctx.subgraphs.walk(*authorized).authorized().unwrap();
+        let metadata = authorized.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
+        let fields = authorized
+            .fields
+            .as_ref()
+            .map(|fields| attach_selection(fields, federated::Definition::Interface(*interface_id), ctx));
+
+        let authorized_directive_id = ctx
+            .out
+            .authorized_directives
+            .push_return_idx(federated::AuthorizedDirective {
+                fields,
+                arguments: None,
+                metadata,
+            });
+
+        let authorized_directive_id = federated::AuthorizedDirectiveId(authorized_directive_id);
+
+        ctx.out
+            .interface_authorized_directives
+            .push((*interface_id, authorized_directive_id));
     }
 }
 

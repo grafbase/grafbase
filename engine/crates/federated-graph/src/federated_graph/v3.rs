@@ -49,9 +49,18 @@ pub struct FederatedGraphV3 {
     pub field_authorized_directives: Vec<(FieldId, AuthorizedDirectiveId)>,
     #[serde(default)]
     pub object_authorized_directives: Vec<(ObjectId, AuthorizedDirectiveId)>,
+    #[serde(default)]
+    pub interface_authorized_directives: Vec<(InterfaceId, AuthorizedDirectiveId)>,
 }
 
 impl FederatedGraphV3 {
+    pub fn iter_interfaces(&self) -> impl ExactSizeIterator<Item = (InterfaceId, &Interface)> {
+        self.interfaces
+            .iter()
+            .enumerate()
+            .map(|(idx, interface)| (InterfaceId(idx), interface))
+    }
+
     pub fn iter_objects(&self) -> impl ExactSizeIterator<Item = (ObjectId, &Object)> {
         self.objects
             .iter()
@@ -67,6 +76,20 @@ impl FederatedGraphV3 {
         self.object_authorized_directives[start..]
             .iter()
             .take_while(move |(needle, _)| *needle == object_id)
+            .map(move |(_, authorized_directive_id)| &self[*authorized_directive_id])
+    }
+
+    pub fn interface_authorized_directives(
+        &self,
+        interface_id: InterfaceId,
+    ) -> impl Iterator<Item = &AuthorizedDirective> {
+        let start = self
+            .interface_authorized_directives
+            .partition_point(|(needle, _)| *needle < interface_id);
+
+        self.interface_authorized_directives[start..]
+            .iter()
+            .take_while(move |(needle, _)| *needle == interface_id)
             .map(move |(_, authorized_directive_id)| &self[*authorized_directive_id])
     }
 }
@@ -548,6 +571,7 @@ impl Default for FederatedGraphV3 {
             authorized_directives: Vec::new(),
             field_authorized_directives: Vec::new(),
             object_authorized_directives: Vec::new(),
+            interface_authorized_directives: Vec::new(),
         }
     }
 }

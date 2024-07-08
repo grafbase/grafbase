@@ -56,6 +56,7 @@ struct State<'a> {
     authorized_directives: Vec<AuthorizedDirective>,
     field_authorized_directives: Vec<(FieldId, AuthorizedDirectiveId)>,
     object_authorized_directives: Vec<(ObjectId, AuthorizedDirectiveId)>,
+    interface_authorized_directives: Vec<(InterfaceId, AuthorizedDirectiveId)>,
 }
 
 impl<'a> State<'a> {
@@ -200,6 +201,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         authorized_directives: state.authorized_directives,
         field_authorized_directives: state.field_authorized_directives,
         object_authorized_directives: state.object_authorized_directives,
+        interface_authorized_directives: state.interface_authorized_directives,
     }))
 }
 
@@ -365,10 +367,18 @@ fn ingest_authorized_directives(parsed: &ast::ServiceDocument, state: &mut State
             metadata,
         });
 
-        if let Definition::Object(object_id) = definition {
-            state
-                .object_authorized_directives
-                .push((object_id, AuthorizedDirectiveId(idx)));
+        match definition {
+            Definition::Object(object_id) => {
+                state
+                    .object_authorized_directives
+                    .push((object_id, AuthorizedDirectiveId(idx)));
+            }
+            Definition::Interface(interface_id) => {
+                state
+                    .interface_authorized_directives
+                    .push((interface_id, AuthorizedDirectiveId(idx)));
+            }
+            _ => (),
         }
     }
 

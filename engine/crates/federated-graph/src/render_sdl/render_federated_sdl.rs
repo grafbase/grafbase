@@ -99,7 +99,7 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
         writeln!(sdl, "}}\n")?;
     }
 
-    for interface in &graph.interfaces {
+    for (interface_id, interface) in graph.iter_interfaces() {
         let interface_name = &graph[interface.name];
 
         if let Some(description) = interface.description {
@@ -119,6 +119,10 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
                     sdl.push_str(" & ");
                 }
             }
+        }
+
+        for authorized_directive in graph.interface_authorized_directives(interface_id) {
+            write!(sdl, "{}", AuthorizedDirectiveDisplay(authorized_directive, graph))?;
         }
 
         write_composed_directives(interface.composed_directives, graph, &mut sdl)?;

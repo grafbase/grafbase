@@ -18,14 +18,6 @@ type Account {
     user: User!
 }
 
-type Transaction {
-    account: Account!
-    amount: Float!
-    date: String!
-    description: String
-    id: ID!
-}
-
 type Query {
     account(id: ID!): Account
     accounts: [Account!]!
@@ -42,7 +34,15 @@ type Mutation {
     deleteAccount(id: ID!): Account!
     deleteTransaction(id: ID!): Transaction!
     deleteUser(id: ID!, soft: Boolean): User!
-    updateUser(name: String, email: String, id: ID!): User!
+    updateUser(id: ID!, name: String, email: String): User!
+}
+
+interface Transaction {
+    account: Account!
+    amount: Float!
+    date: String!
+    description: String
+    id: ID!
 }
 
 input CreateAccountInput {

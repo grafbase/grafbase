@@ -236,6 +236,16 @@ impl<'a> Context<'a> {
             .push((object_id, authorized_directive));
     }
 
+    pub(crate) fn insert_interface_authorized(
+        &mut self,
+        interface_id: federated::InterfaceId,
+        authorized_directive: subgraphs::DirectiveSiteId,
+    ) {
+        self.ir
+            .interface_authorized_directives
+            .push((interface_id, authorized_directive));
+    }
+
     pub(crate) fn insert_string(&mut self, string_id: subgraphs::StringId) -> federated::StringId {
         self.ir.strings.insert(self.subgraphs.walk(string_id).as_str())
     }

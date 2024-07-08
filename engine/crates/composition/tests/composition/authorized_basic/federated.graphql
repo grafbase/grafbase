@@ -35,14 +35,6 @@ type Account @authorized(fields: "user { userId }") {
     user: User! @join__field(graph: BANK_ACCOUNT)
 }
 
-type Transaction {
-    account: Account! @join__field(graph: BANK_ACCOUNT)
-    amount: Float! @join__field(graph: BANK_ACCOUNT)
-    date: String! @join__field(graph: BANK_ACCOUNT)
-    description: String @join__field(graph: BANK_ACCOUNT)
-    id: ID! @join__field(graph: BANK_ACCOUNT)
-}
-
 type Query {
     account(id: ID!): Account @join__field(graph: BANK_ACCOUNT)
     accounts: [Account!]! @join__field(graph: BANK_ACCOUNT)
@@ -59,7 +51,15 @@ type Mutation {
     deleteAccount(id: ID!): Account! @join__field(graph: BANK_ACCOUNT)
     deleteTransaction(id: ID!): Transaction! @join__field(graph: BANK_ACCOUNT)
     deleteUser(id: ID!, soft: Boolean): User! @join__field(graph: BANK_ACCOUNT) @authorized(arguments: "id")
-    updateUser(name: String, email: String, id: ID!): User! @join__field(graph: BANK_ACCOUNT)
+    updateUser(id: ID!, name: String, email: String): User! @join__field(graph: BANK_ACCOUNT)
+}
+
+interface Transaction @authorized(fields: "id amount date account { id }") {
+    account: Account!
+    amount: Float!
+    date: String!
+    description: String @authorized(fields: "account { id }")
+    id: ID!
 }
 
 enum AccountType {
