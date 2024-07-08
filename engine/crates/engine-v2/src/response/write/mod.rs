@@ -14,7 +14,7 @@ use schema::{ObjectId, Schema};
 use self::deserialize::UpdateSeed;
 
 use super::{
-    GraphqlError, InitialResponse, Response, ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef,
+    ErrorCode, GraphqlError, InitialResponse, Response, ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef,
     ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
 use crate::{
@@ -107,27 +107,20 @@ impl ResponseBuilder {
         error: ExecutionError,
         default_object: Option<Vec<(ResponseEdge, ResponseValue)>>,
     ) {
+        let error = GraphqlError::from(error);
         if let Some(fields) = default_object {
             for obj_ref in root_response_object_refs {
                 self[obj_ref.id].extend(fields.clone());
                 // Definitely not ideal (for the client) to have a new error each time in the response.
                 // Not exactly sure how we should best deal with it.
-                self.errors.push(GraphqlError {
-                    message: error.to_string(),
-                    path: Some(obj_ref.path.child(edge)),
-                    ..Default::default()
-                });
+                self.errors.push(error.clone().with_path(obj_ref.path.child(edge)));
             }
         } else {
             let mut invalidated_paths = Vec::<&[ResponseEdge]>::new();
             for obj_ref in root_response_object_refs {
                 if !invalidated_paths.iter().any(|path| obj_ref.path.starts_with(path)) {
                     if let Some(invalidated_path) = self.propagate_error(&obj_ref.path) {
-                        self.errors.push(GraphqlError {
-                            message: error.to_string(),
-                            path: Some(obj_ref.path.child(edge)),
-                            ..Default::default()
-                        });
+                        self.errors.push(error.clone().with_path(obj_ref.path.child(edge)));
                         invalidated_paths.push(invalidated_path);
                     }
                 }
@@ -161,11 +154,13 @@ impl ResponseBuilder {
                                 .map(|p| p.starts_with(&obj_ref.path))
                                 .unwrap_or(true)
                         }) {
-                            self.errors.push(GraphqlError {
-                                message: "Missing data from subgraph".to_string(),
-                                path: Some(obj_ref.path.child(edge)),
-                                ..Default::default()
-                            });
+                            self.errors.push(
+                                GraphqlError::new(
+                                    "Missing data from subgraph",
+                                    ErrorCode::SubgraphInvalidResponseError,
+                                )
+                                .with_path(obj_ref.path.child(edge)),
+                            )
                         }
                     } else if !invalidated_paths.iter().any(|path| obj_ref.path.starts_with(path)) {
                         if let Some(invalidated_path) = self.propagate_error(&obj_ref.path) {
@@ -179,11 +174,13 @@ impl ResponseBuilder {
                                     .map(|p| p.starts_with(&obj_ref.path))
                                     .unwrap_or(true)
                             }) {
-                                self.errors.push(GraphqlError {
-                                    message: "Missing data from subgraph".to_string(),
-                                    path: Some(obj_ref.path.child(edge)),
-                                    ..Default::default()
-                                });
+                                self.errors.push(
+                                    GraphqlError::new(
+                                        "Missing data from subgraph",
+                                        ErrorCode::SubgraphInvalidResponseError,
+                                    )
+                                    .with_path(obj_ref.path.child(edge)),
+                                );
                             }
                             invalidated_paths.push(invalidated_path);
                         }

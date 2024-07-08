@@ -19,7 +19,7 @@ use crate::{
         InlineFragment, InlineFragmentId, Location, Operation, Selection, SelectionSet, SelectionSetId,
         SelectionSetType, TypeCondition, VariableDefinition,
     },
-    response::{GraphqlError, ResponseKeys},
+    response::{ErrorCode, GraphqlError, ResponseKeys},
 };
 pub use variables::*;
 
@@ -119,11 +119,7 @@ impl From<BindError> for GraphqlError {
                 vec![]
             }
         };
-        GraphqlError {
-            message: err.to_string(),
-            locations,
-            ..Default::default()
-        }
+        GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError).with_locations(locations)
     }
 }
 

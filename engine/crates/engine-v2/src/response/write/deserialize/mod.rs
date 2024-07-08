@@ -10,7 +10,7 @@ use serde::{
 
 use crate::{
     plan::{CollectedField, PlanWalker},
-    response::{GraphqlError, ResponseEdge, ResponsePath, ResponseWriter},
+    response::{ErrorCode, GraphqlError, ResponseEdge, ResponsePath, ResponseWriter},
 };
 
 mod field;
@@ -127,11 +127,10 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
             Ok(None) => {}
             Err(err) => {
                 if ctx.should_create_new_graphql_error() {
-                    ctx.writer.propagate_error(GraphqlError {
-                        message: err.to_string(),
-                        path: Some(ctx.response_path()),
-                        ..Default::default()
-                    });
+                    ctx.writer.propagate_error(
+                        GraphqlError::new(err.to_string(), ErrorCode::SubgraphInvalidResponseError)
+                            .with_path(ctx.response_path()),
+                    );
                 } else {
                     ctx.writer.continue_error_propagation();
                 }

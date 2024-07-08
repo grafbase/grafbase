@@ -1,6 +1,6 @@
 use schema::Schema;
 
-use crate::response::GraphqlError;
+use crate::response::{ErrorCode, GraphqlError};
 
 use super::{parse::ParsedOperation, Operation, OperationMetadata, Variables};
 
@@ -34,10 +34,7 @@ impl From<OperationError> for GraphqlError {
             OperationError::Validation { err, .. } => err.into(),
             OperationError::Parse(err) => err.into(),
             OperationError::Solve { err, .. } => err.into(),
-            OperationError::NormalizationError => GraphqlError {
-                message: err.to_string(),
-                ..Default::default()
-            },
+            OperationError::NormalizationError => GraphqlError::new(err.to_string(), ErrorCode::InternalServerError),
         }
     }
 }

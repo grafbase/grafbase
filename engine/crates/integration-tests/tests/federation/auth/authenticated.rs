@@ -93,7 +93,10 @@ fn not_authenticated() {
               "path": [
                 "check",
                 "mustBeAuthenticated"
-              ]
+              ],
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
@@ -121,7 +124,10 @@ fn faillible_authenticated() {
               "path": [
                 "check",
                 "faillibleMustBeAuthenticated"
-              ]
+              ],
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
@@ -144,7 +150,10 @@ fn authenticated_on_nullable_field() {
               "path": [
                 "nullableCheck",
                 "mustBeAuthenticated"
-              ]
+              ],
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
@@ -180,7 +189,10 @@ fn authenticated_on_union() {
               "path": [
                 "entity",
                 "mustBeAuthenticated"
-              ]
+              ],
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
@@ -203,7 +215,10 @@ fn authenticated_on_union() {
               "path": [
                 "entity",
                 "faillibleMustBeAuthenticated"
-              ]
+              ],
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
@@ -271,7 +286,10 @@ fn authenticated_on_list_with_nullable_items() {
                 "entitiesNullable",
                 1,
                 "mustBeAuthenticated"
-              ]
+              ],
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
@@ -311,7 +329,10 @@ fn authenticated_on_list_with_nullable_items() {
                 "entitiesNullable",
                 1,
                 "faillibleMustBeAuthenticated"
-              ]
+              ],
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
@@ -371,7 +392,10 @@ fn authenticated_on_list_with_required_items() {
                 "entities",
                 1,
                 "mustBeAuthenticated"
-              ]
+              ],
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
@@ -411,7 +435,10 @@ fn authenticated_on_list_with_required_items() {
                 "entities",
                 1,
                 "faillibleMustBeAuthenticated"
-              ]
+              ],
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }

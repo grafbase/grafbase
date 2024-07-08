@@ -28,7 +28,7 @@ use crate::{
     http_response::{HttpGraphqlResponse, HttpGraphqlResponseExtraMetadata},
     operation::{Operation, OperationMetadata, Variables},
     plan::OperationPlan,
-    response::{GraphqlError, Response},
+    response::{ErrorCode, GraphqlError, Response},
     websocket,
 };
 
@@ -100,7 +100,7 @@ impl<R: Runtime> Engine<R> {
     ) -> HttpGraphqlResponse {
         let (hooks_context, headers) = match self.runtime.hooks().on_gateway_request(headers).await {
             Ok(result) => result,
-            Err(error) => return Response::execution_error(error).into(),
+            Err(error) => return Response::pre_execution_error(error).into(),
         };
 
         if let Some(access_token) = self.auth.authorize(&headers).await {
@@ -283,13 +283,14 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
         let metadata = Some(operation.metadata.clone());
         let response = if matches!(operation.ty(), OperationType::Subscription) {
-            Response::bad_request(GraphqlError::new(
+            Response::pre_execution_error(GraphqlError::new(
                 "Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets",
+                ErrorCode::BadRequest,
             ))
         } else {
             match self.finalize_operation(operation, request.variables).await {
                 Ok(operation_plan) => self.execute_query_or_mutation(operation_plan).await,
-                Err(errors) => Response::bad_request_from_errors(errors),
+                Err(errors) => Response::pre_execution_errors(errors),
             }
         };
 
@@ -315,7 +316,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         let operation_plan = match self.finalize_operation(operation, request.variables).await {
             Ok(operation_plan) => operation_plan,
             Err(errors) => {
-                let response = Response::bad_request_from_errors(errors);
+                let response = Response::pre_execution_errors(errors);
                 let status = response.status();
                 sender.send(response).await.ok();
                 return (metadata, status);
@@ -364,7 +365,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 document_fut,
             } = match self.prepare_operation_document(request) {
                 Ok(pq) => pq,
-                Err(err) => return Err((None, Response::bad_request(err))),
+                Err(err) => return Err((None, Response::pre_execution_error(err))),
             };
             if let Some(operation) = self.operation_cache.get(&cache_key).await {
                 return Ok(operation);
@@ -372,7 +373,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             if let Some(persisted_query) = document_fut {
                 match persisted_query.await {
                     Ok(query) => (cache_key, Some(query)),
-                    Err(err) => return Err((None, Response::bad_request(err))),
+                    Err(err) => return Err((None, Response::pre_execution_error(err))),
                 }
             } else {
                 (cache_key, None)
@@ -384,7 +385,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
         let operation = Operation::build(&self.schema, request)
             .map(Arc::new)
-            .map_err(|mut err| (err.take_operation_metadata(), Response::bad_request(err)))?;
+            .map_err(|mut err| (err.take_operation_metadata(), Response::pre_execution_error(err)))?;
 
         self.push_background_future(self.engine.operation_cache.insert(cache_key, operation.clone()).boxed());
 
@@ -444,7 +445,7 @@ impl<R: Runtime> Session<R> {
         self.engine
             .execute_stream(self.request_context.clone(), request)
             .map(move |response| match response {
-                Response::BadRequest(_) => websocket::Message::Error {
+                Response::PreExecutionError(_) => websocket::Message::Error {
                     id: id.clone(),
                     payload: websocket::Payload(response),
                 },

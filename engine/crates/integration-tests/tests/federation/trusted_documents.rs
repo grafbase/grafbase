@@ -110,7 +110,10 @@ fn regular_non_persisted_queries_are_rejected() {
         {
           "errors": [
             {
-              "message": "Cannot execute a trusted document query: missing documentId, doc_id or the persistedQuery extension."
+              "message": "Cannot execute a trusted document query: missing documentId, doc_id or the persistedQuery extension.",
+              "extensions": {
+                "code": "TRUSTED_DOCUMENT_ERROR"
+              }
             }
           ]
         }
@@ -130,7 +133,10 @@ fn trusted_document_queries_without_client_name_header_are_rejected() {
         {
           "errors": [
             {
-              "message": "Trusted document queries must include the x-grafbase-client-name header"
+              "message": "Trusted document queries must include the x-grafbase-client-name header",
+              "extensions": {
+                "code": "TRUSTED_DOCUMENT_ERROR"
+              }
             }
           ]
         }
@@ -151,7 +157,10 @@ fn wrong_client_name() {
         {
           "errors": [
             {
-              "message": "Unknown document id: 'df40d7fae090cfec1c7e96d78ffb4087f0421798d96c4c90df3556c7de585dc9'"
+              "message": "Unknown document id: 'df40d7fae090cfec1c7e96d78ffb4087f0421798d96c4c90df3556c7de585dc9'",
+              "extensions": {
+                "code": "TRUSTED_DOCUMENT_ERROR"
+              }
             }
           ]
         }
@@ -194,7 +203,10 @@ fn bypass_header() {
         {
           "errors": [
             {
-              "message": "Cannot execute a trusted document query: missing documentId, doc_id or the persistedQuery extension."
+              "message": "Cannot execute a trusted document query: missing documentId, doc_id or the persistedQuery extension.",
+              "extensions": {
+                "code": "TRUSTED_DOCUMENT_ERROR"
+              }
             }
           ]
         }

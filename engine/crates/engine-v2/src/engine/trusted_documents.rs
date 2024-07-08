@@ -1,7 +1,11 @@
 //! Handling of trusted documents and Automatic Persisted Queries (APQ).
 
-use crate::{execution::PreExecutionContext, response::GraphqlError, Runtime};
-use engine::{ErrorCode, PersistedQueryRequestExtension, Request};
+use crate::{
+    execution::PreExecutionContext,
+    response::{ErrorCode, GraphqlError},
+    Runtime,
+};
+use engine::{PersistedQueryRequestExtension, Request};
 use futures::{future::BoxFuture, FutureExt};
 use grafbase_tracing::grafbase_client::X_GRAFBASE_CLIENT_NAME;
 use runtime::{hot_cache::HotCache, trusted_documents_client::TrustedDocumentsError};
@@ -52,9 +56,11 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                         document_fut: None,
                     })
                 } else {
-                    Err(GraphqlError::new(
+                    let graphql_error = GraphqlError::new(
                         "Cannot execute a trusted document query: missing documentId, doc_id or the persistedQuery extension.",
-                    ))
+                        ErrorCode::TrustedDocumentError
+                    );
+                    Err(graphql_error)
                 }
             }
             (true, Some(ext), _) => Ok(PreparedOperationDocument {
@@ -130,10 +136,13 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         'ctx: 'f,
     {
         let Some(client_name) = client_name else {
-            return Err(GraphqlError::new(format!(
-                "Trusted document queries must include the {} header",
-                X_GRAFBASE_CLIENT_NAME.as_str()
-            )));
+            return Err(GraphqlError::new(
+                format!(
+                    "Trusted document queries must include the {} header",
+                    X_GRAFBASE_CLIENT_NAME.as_str()
+                ),
+                ErrorCode::TrustedDocumentError,
+            ));
         };
 
         let engine = self.engine;
@@ -155,12 +164,14 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 .fetch(client_name, &document_id)
                 .await
             {
-                Err(TrustedDocumentsError::RetrievalError(err)) => Err(GraphqlError::new(format!(
-                    "Internal server error while fetching trusted document: {err}"
-                ))),
-                Err(TrustedDocumentsError::DocumentNotFound) => {
-                    Err(GraphqlError::new(format!("Unknown document id: '{document_id}'")))
-                }
+                Err(TrustedDocumentsError::RetrievalError(err)) => Err(GraphqlError::new(
+                    format!("Internal server error while fetching trusted document: {err}"),
+                    ErrorCode::TrustedDocumentError,
+                )),
+                Err(TrustedDocumentsError::DocumentNotFound) => Err(GraphqlError::new(
+                    format!("Unknown document id: '{document_id}'"),
+                    ErrorCode::TrustedDocumentError,
+                )),
                 Ok(document_text) => {
                     engine.trusted_documents_cache.insert(key, document_text.clone()).await;
                     Ok(document_text)
@@ -182,7 +193,10 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         'ctx: 'f,
     {
         if ext.version != 1 {
-            return Err(GraphqlError::new("Persisted query version not supported"));
+            return Err(GraphqlError::new(
+                "Persisted query version not supported",
+                ErrorCode::PersistedQueryError,
+            ));
         }
 
         let key = Key::Apq { ext }.to_string();
@@ -191,7 +205,10 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             use sha2::{Digest, Sha256};
             let digest = <Sha256 as Digest>::digest(request.query().as_bytes()).to_vec();
             if digest != ext.sha256_hash {
-                return Err(GraphqlError::new("Invalid persisted query sha256Hash"));
+                return Err(GraphqlError::new(
+                    "Invalid persisted query sha256Hash",
+                    ErrorCode::PersistedQueryError,
+                ));
             }
             self.push_background_future(
                 self.engine
@@ -207,7 +224,10 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             if let Some(query) = engine.trusted_documents_cache.get(&key).await {
                 Ok(query)
             } else {
-                Err(GraphqlError::new("Persisted query not found").with_error_code(ErrorCode::PersistedQueryNotFound))
+                Err(GraphqlError::new(
+                    "Persisted query not found",
+                    ErrorCode::PersistedQueryNotFound,
+                ))
             }
         }
         .boxed();

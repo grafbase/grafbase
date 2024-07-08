@@ -100,10 +100,13 @@ fn mutation_failure_should_stop_later_executions_if_required() {
           },
           "errors": [
             {
-              "message": "Upstream error: This mutation always fails",
+              "message": "This mutation always fails",
               "path": [
                 "faillible"
-              ]
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_ERROR"
+              }
             }
           ]
         }
@@ -137,10 +140,13 @@ fn mutation_failure_should_stop_later_executions_if_required() {
           "data": null,
           "errors": [
             {
-              "message": "Upstream error: This mutation always fails",
+              "message": "This mutation always fails",
               "path": [
                 "fail"
-              ]
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_ERROR"
+              }
             }
           ]
         }

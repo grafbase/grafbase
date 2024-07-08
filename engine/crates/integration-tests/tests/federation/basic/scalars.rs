@@ -55,7 +55,10 @@ fn supports_unused_builtin_scalars() {
               "line": 1,
               "column": 38
             }
-          ]
+          ],
+          "extensions": {
+            "code": "OPERATION_VALIDATION_ERROR"
+          }
         }
       ]
     }

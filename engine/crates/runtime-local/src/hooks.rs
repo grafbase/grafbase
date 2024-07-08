@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use deadpool::managed::Pool;
 use runtime::{
-    error::GraphqlError,
+    error::{PartialErrorCode, PartialGraphqlError},
     hooks::{EdgeDefinition, HeaderMap, Hooks, NodeDefinition},
 };
 use tracing::instrument;
@@ -48,7 +48,7 @@ impl Hooks for HooksWasi {
     type Context = Arc<HashMap<String, String>>;
 
     #[instrument(skip_all)]
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), GraphqlError> {
+    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok((Arc::new(HashMap::new()), headers));
         };
@@ -61,9 +61,11 @@ impl Hooks for HooksWasi {
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(err) => {
                     tracing::error!("on_gateway_request error: {err}");
-                    GraphqlError::internal_server_error()
+                    PartialGraphqlError::internal_hook_error()
                 }
-                wasi_component_loader::Error::User(err) => error_response_to_user_error(err),
+                wasi_component_loader::Error::User(err) => {
+                    error_response_to_user_error(err, PartialErrorCode::BadRequest)
+                }
             })
     }
 
@@ -74,21 +76,22 @@ impl Hooks for HooksWasi {
         definition: EdgeDefinition<'a>,
         arguments: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<(), GraphqlError> {
+    ) -> Result<(), PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
-            return Err(GraphqlError::new(
+            return Err(PartialGraphqlError::new(
                 "@authorized directive cannot be used, so access was denied",
+                PartialErrorCode::Unauthorized,
             ));
         };
 
         let Ok(arguments) = serde_json::to_string(&arguments) else {
             tracing::error!("authorize_edge_pre_execution error at {definition}: failed to serialize arguments");
-            return Err(GraphqlError::internal_server_error());
+            return Err(PartialGraphqlError::internal_server_error());
         };
 
         let Ok(metadata) = metadata.as_ref().map(serde_json::to_string).transpose() else {
             tracing::error!("authorize_edge_pre_execution error at {definition}: failed to serialize metadata");
-            return Err(GraphqlError::internal_server_error());
+            return Err(PartialGraphqlError::internal_server_error());
         };
 
         let mut instance = inner.authorization_hooks.get().await.expect("no io, should not fail");
@@ -104,9 +107,11 @@ impl Hooks for HooksWasi {
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
                     tracing::error!("authorize_edge_pre_execution error at: {error}");
-                    GraphqlError::internal_server_error()
+                    PartialGraphqlError::internal_hook_error()
                 }
-                wasi_component_loader::Error::User(error) => error_response_to_user_error(error),
+                wasi_component_loader::Error::User(error) => {
+                    error_response_to_user_error(error, PartialErrorCode::Unauthorized)
+                }
             })?;
 
         Ok(())
@@ -118,16 +123,17 @@ impl Hooks for HooksWasi {
         context: &Self::Context,
         definition: NodeDefinition<'a>,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<(), GraphqlError> {
+    ) -> Result<(), PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
-            return Err(GraphqlError::new(
+            return Err(PartialGraphqlError::new(
                 "@authorized directive cannot be used, so access was denied",
+                PartialErrorCode::Unauthorized,
             ));
         };
 
         let Ok(metadata) = metadata.as_ref().map(serde_json::to_string).transpose() else {
             tracing::error!("authorize_edge_pre_execution error at {definition}: failed to serialize metadata");
-            return Err(GraphqlError::internal_server_error());
+            return Err(PartialGraphqlError::internal_server_error());
         };
 
         let definition = wasi_component_loader::NodeDefinition {
@@ -142,9 +148,11 @@ impl Hooks for HooksWasi {
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
                     tracing::error!("authorize_node_pre_execution error at: {error}");
-                    GraphqlError::internal_server_error()
+                    PartialGraphqlError::internal_hook_error()
                 }
-                wasi_component_loader::Error::User(error) => error_response_to_user_error(error),
+                wasi_component_loader::Error::User(error) => {
+                    error_response_to_user_error(error, PartialErrorCode::Unauthorized)
+                }
             })?;
 
         Ok(())
@@ -157,16 +165,17 @@ impl Hooks for HooksWasi {
         definition: EdgeDefinition<'a>,
         parents: Vec<String>,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
+    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
-            return Err(GraphqlError::new(
+            return Err(PartialGraphqlError::new(
                 "@authorized directive cannot be used, so access was denied",
+                PartialErrorCode::Unauthorized,
             ));
         };
 
         let Ok(metadata) = metadata.as_ref().map(serde_json::to_string).transpose() else {
             tracing::error!("authorize_edge_pre_execution error at {definition}: failed to serialize metadata");
-            return Err(GraphqlError::internal_server_error());
+            return Err(PartialGraphqlError::internal_server_error());
         };
 
         let definition = wasi_component_loader::EdgeDefinition {
@@ -187,14 +196,16 @@ impl Hooks for HooksWasi {
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
                     tracing::error!("authorize_node_pre_execution error at: {error}");
-                    GraphqlError::internal_server_error()
+                    PartialGraphqlError::internal_server_error()
                 }
-                wasi_component_loader::Error::User(error) => error_response_to_user_error(error),
+                wasi_component_loader::Error::User(error) => {
+                    error_response_to_user_error(error, PartialErrorCode::Unauthorized)
+                }
             })?
             .into_iter()
             .map(|result| match result {
                 Ok(()) => Ok(()),
-                Err(error) => Err(error_response_to_user_error(error)),
+                Err(error) => Err(error_response_to_user_error(error, PartialErrorCode::Unauthorized)),
             })
             .collect();
 
@@ -208,16 +219,17 @@ impl Hooks for HooksWasi {
         definition: EdgeDefinition<'a>,
         nodes: Vec<String>,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
+    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
-            return Err(GraphqlError::new(
+            return Err(PartialGraphqlError::new(
                 "@authorized directive cannot be used, so access was denied",
+                PartialErrorCode::Unauthorized,
             ));
         };
 
         let Ok(metadata) = metadata.as_ref().map(serde_json::to_string).transpose() else {
             tracing::error!("authorize_edge_pre_execution error at {definition}: failed to serialize metadata");
-            return Err(GraphqlError::internal_server_error());
+            return Err(PartialGraphqlError::internal_server_error());
         };
 
         let definition = wasi_component_loader::EdgeDefinition {
@@ -233,14 +245,16 @@ impl Hooks for HooksWasi {
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
                     tracing::error!("authorize_node_pre_execution error at: {error}");
-                    GraphqlError::internal_server_error()
+                    PartialGraphqlError::internal_server_error()
                 }
-                wasi_component_loader::Error::User(error) => error_response_to_user_error(error),
+                wasi_component_loader::Error::User(error) => {
+                    error_response_to_user_error(error, PartialErrorCode::Unauthorized)
+                }
             })?
             .into_iter()
             .map(|result| match result {
                 Ok(()) => Ok(()),
-                Err(error) => Err(error_response_to_user_error(error)),
+                Err(error) => Err(error_response_to_user_error(error, PartialErrorCode::Unauthorized)),
             })
             .collect();
 
@@ -254,16 +268,17 @@ impl Hooks for HooksWasi {
         definition: EdgeDefinition<'a>,
         edges: Vec<(String, Vec<String>)>,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
+    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
-            return Err(GraphqlError::new(
+            return Err(PartialGraphqlError::new(
                 "@authorized directive cannot be used, so access was denied",
+                PartialErrorCode::Unauthorized,
             ));
         };
 
         let Ok(metadata) = metadata.as_ref().map(serde_json::to_string).transpose() else {
             tracing::error!("authorize_edge_pre_execution error at {definition}: failed to serialize metadata");
-            return Err(GraphqlError::internal_server_error());
+            return Err(PartialGraphqlError::internal_server_error());
         };
 
         let definition = wasi_component_loader::EdgeDefinition {
@@ -279,14 +294,16 @@ impl Hooks for HooksWasi {
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
                     tracing::error!("authorize_node_pre_execution error at: {error}");
-                    GraphqlError::internal_server_error()
+                    PartialGraphqlError::internal_server_error()
                 }
-                wasi_component_loader::Error::User(error) => error_response_to_user_error(error),
+                wasi_component_loader::Error::User(error) => {
+                    error_response_to_user_error(error, PartialErrorCode::Unauthorized)
+                }
             })?
             .into_iter()
             .map(|result| match result {
                 Ok(()) => Ok(()),
-                Err(error) => Err(error_response_to_user_error(error)),
+                Err(error) => Err(error_response_to_user_error(error, PartialErrorCode::Unauthorized)),
             })
             .collect();
 
@@ -294,7 +311,10 @@ impl Hooks for HooksWasi {
     }
 }
 
-fn error_response_to_user_error(error: wasi_component_loader::ErrorResponse) -> GraphqlError {
+fn error_response_to_user_error(
+    error: wasi_component_loader::ErrorResponse,
+    code: PartialErrorCode,
+) -> PartialGraphqlError {
     let extensions = error
         .extensions
         .into_iter()
@@ -305,8 +325,9 @@ fn error_response_to_user_error(error: wasi_component_loader::ErrorResponse) -> 
         })
         .collect();
 
-    GraphqlError {
+    PartialGraphqlError {
         message: error.message.into(),
+        code,
         extensions,
     }
 }

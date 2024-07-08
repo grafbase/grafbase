@@ -434,7 +434,10 @@ fn static_schema() {
               "message": "error sending request for url (http://127.0.0.1:46697/)",
               "path": [
                 "me"
-              ]
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
             }
           ]
         }
@@ -553,7 +556,10 @@ fn custom_path() {
               "message": "error sending request for url (http://127.0.0.1:46697/)",
               "path": [
                 "me"
-              ]
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
             }
           ]
         }
@@ -615,7 +621,10 @@ fn csrf_with_header() {
               "message": "error sending request for url (http://127.0.0.1:46697/)",
               "path": [
                 "me"
-              ]
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
             }
           ]
         }
@@ -647,7 +656,10 @@ fn hybrid_graph() {
               "message": "error sending request for url (http://127.0.0.1:46697/)",
               "path": [
                 "me"
-              ]
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
             }
           ]
         }

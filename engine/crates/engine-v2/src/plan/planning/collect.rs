@@ -19,7 +19,7 @@ use crate::{
         ConditionalSelectionSetId, EntityId, ExecutionPlan, ExecutionPlanId, FieldError, FieldType, FlatField,
         OperationPlan, ParentToChildEdge, PlanInput, PlanOutput,
     },
-    response::{GraphqlError, ReadField, ReadSelectionSet},
+    response::{ErrorCode, GraphqlError, ReadField, ReadSelectionSet},
     sources::PreparedExecutor,
     Runtime,
 };
@@ -98,7 +98,7 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
                     .fold(ConditionResult::Include, |current, cond| current & cond),
                 Condition::Authenticated => {
                     if is_anonymous {
-                        ConditionResult::Errors(vec![GraphqlError::new("Unauthenticated")])
+                        ConditionResult::Errors(vec![GraphqlError::new("Unauthenticated", ErrorCode::Unauthenticated)])
                     } else {
                         ConditionResult::Include
                     }
@@ -116,7 +116,10 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
                     if self.ctx.schema.walk(*id).matches(scopes) {
                         ConditionResult::Include
                     } else {
-                        ConditionResult::Errors(vec![GraphqlError::new("Not allowed: insufficient scopes")])
+                        ConditionResult::Errors(vec![GraphqlError::new(
+                            "Not allowed: insufficient scopes",
+                            ErrorCode::Unauthenticated,
+                        )])
                     }
                 }
                 Condition::AuthorizedEdge { directive_id, field_id } => {

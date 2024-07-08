@@ -839,7 +839,10 @@ fn rejects_bogus_introspection_queries() {
               "line": 5,
               "column": 33
             }
-          ]
+          ],
+          "extensions": {
+            "code": "OPERATION_VALIDATION_ERROR"
+          }
         }
       ]
     }

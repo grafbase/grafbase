@@ -26,10 +26,13 @@ fn subgraph_no_response() {
       "data": null,
       "errors": [
         {
-          "message": "Deserialization error: invalid type: null, expected a valid GraphQL response at line 1 column 4",
+          "message": "invalid type: null, expected a valid GraphQL response at line 1 column 4",
           "path": [
             "me"
-          ]
+          ],
+          "extensions": {
+            "code": "SUBGRAPH_INVALID_RESPONSE_ERROR"
+          }
         }
       ]
     }
@@ -59,7 +62,10 @@ fn subgraph_no_response() {
           "message": "Missing data from subgraph",
           "path": [
             "me"
-          ]
+          ],
+          "extensions": {
+            "code": "SUBGRAPH_INVALID_RESPONSE_ERROR"
+          }
         }
       ]
     }
@@ -92,7 +98,10 @@ fn request_error() {
               "line": 3,
               "column": 13
             }
-          ]
+          ],
+          "extensions": {
+            "code": "OPERATION_VALIDATION_ERROR"
+          }
         }
       ]
     }
@@ -122,7 +131,10 @@ fn sugraph_request_error() {
       "data": null,
       "errors": [
         {
-          "message": "Upstream error: failed!"
+          "message": "failed!",
+          "extensions": {
+            "code": "SUBGRAPH_ERROR"
+          }
         }
       ]
     }
@@ -155,7 +167,10 @@ fn invalid_response_for_nullable_field() {
           "message": "Missing data from subgraph",
           "path": [
             "name"
-          ]
+          ],
+          "extensions": {
+            "code": "SUBGRAPH_INVALID_RESPONSE_ERROR"
+          }
         }
       ]
     }
@@ -185,11 +200,14 @@ fn subgraph_field_error() {
       "data": null,
       "errors": [
         {
-          "message": "Upstream error: failed!",
+          "message": "failed!",
           "path": [
             "me",
             "id"
-          ]
+          ],
+          "extensions": {
+            "code": "SUBGRAPH_ERROR"
+          }
         }
       ]
     }
@@ -285,7 +303,10 @@ fn simple_error() {
             "reviews",
             0,
             "author"
-          ]
+          ],
+          "extensions": {
+            "code": "SUBGRAPH_INVALID_RESPONSE_ERROR"
+          }
         }
       ]
     }
@@ -318,13 +339,16 @@ fn null_entity_with_error() {
       "data": null,
       "errors": [
         {
-          "message": "Upstream error: I'm broken!",
+          "message": "I'm broken!",
           "path": [
             "me",
             "reviews",
             0,
             "body"
-          ]
+          ],
+          "extensions": {
+            "code": "SUBGRAPH_ERROR"
+          }
         }
       ]
     }

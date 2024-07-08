@@ -2,7 +2,7 @@ use futures::StreamExt;
 use http::HeaderMap;
 use integration_tests::federation::DeterministicEngine;
 use runtime::{
-    error::GraphqlError,
+    error::{PartialErrorCode, PartialGraphqlError},
     hooks::{DynHookContext, DynHooks, NodeDefinition},
 };
 use serde_json::json;
@@ -20,9 +20,12 @@ fn query_root_type() {
             _context: &DynHookContext,
             definition: NodeDefinition<'_>,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<(), GraphqlError> {
+        ) -> Result<(), PartialGraphqlError> {
             if definition.type_name == "Query" {
-                Err("Query is not allowed!".into())
+                Err(PartialGraphqlError::new(
+                    "Query is not allowed!",
+                    PartialErrorCode::Unauthorized,
+                ))
             } else {
                 Ok(())
             }
@@ -64,7 +67,10 @@ fn query_root_type() {
       "data": null,
       "errors": [
         {
-          "message": "Query is not allowed!"
+          "message": "Query is not allowed!",
+          "extensions": {
+            "code": "UNAUTHORIZED"
+          }
         }
       ]
     }
@@ -106,9 +112,12 @@ fn mutation_root_type() {
             _context: &DynHookContext,
             definition: NodeDefinition<'_>,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<(), GraphqlError> {
+        ) -> Result<(), PartialGraphqlError> {
             if definition.type_name == "Mutation" {
-                Err("Mutation is not allowed!".into())
+                Err(PartialGraphqlError::new(
+                    "Mutation is not allowed!",
+                    PartialErrorCode::Unauthorized,
+                ))
             } else {
                 Ok(())
             }
@@ -174,7 +183,10 @@ fn mutation_root_type() {
       "data": null,
       "errors": [
         {
-          "message": "Mutation is not allowed!"
+          "message": "Mutation is not allowed!",
+          "extensions": {
+            "code": "UNAUTHORIZED"
+          }
         }
       ]
     }
@@ -192,9 +204,12 @@ fn subscription_root_type() {
             _context: &DynHookContext,
             definition: NodeDefinition<'_>,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<(), GraphqlError> {
+        ) -> Result<(), PartialGraphqlError> {
             if definition.type_name == "Subscription" {
-                Err("Subscription is not allowed!".into())
+                Err(PartialGraphqlError::new(
+                    "Subscription is not allowed!",
+                    PartialErrorCode::Unauthorized,
+                ))
             } else {
                 Ok(())
             }
@@ -264,7 +279,10 @@ fn subscription_root_type() {
         "data": null,
         "errors": [
           {
-            "message": "Subscription is not allowed!"
+            "message": "Subscription is not allowed!",
+            "extensions": {
+              "code": "UNAUTHORIZED"
+            }
           }
         ]
       }
@@ -295,11 +313,14 @@ fn metadata_is_provided() {
             _context: &DynHookContext,
             _definition: NodeDefinition<'_>,
             metadata: Option<serde_json::Value>,
-        ) -> Result<(), GraphqlError> {
+        ) -> Result<(), PartialGraphqlError> {
             if extract_role(metadata.as_ref()) == Some("admin") {
                 Ok(())
             } else {
-                Err("Unauthorized role".into())
+                Err(PartialGraphqlError::new(
+                    "Unauthorized role",
+                    PartialErrorCode::Unauthorized,
+                ))
             }
         }
     }
@@ -337,7 +358,10 @@ fn metadata_is_provided() {
               "path": [
                 "node",
                 "noMetadata"
-              ]
+              ],
+              "extensions": {
+                "code": "UNAUTHORIZED"
+              }
             }
           ]
         }
@@ -356,11 +380,14 @@ fn definition_is_provided() {
             _context: &DynHookContext,
             definition: NodeDefinition<'_>,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<(), GraphqlError> {
+        ) -> Result<(), PartialGraphqlError> {
             if definition.type_name == "AuthorizedNode" {
                 Ok(())
             } else {
-                Err("Wrong definition".into())
+                Err(PartialGraphqlError::new(
+                    "Wrong definition",
+                    PartialErrorCode::Unauthorized,
+                ))
             }
         }
     }
@@ -398,7 +425,10 @@ fn definition_is_provided() {
               "path": [
                 "node",
                 "wrongType"
-              ]
+              ],
+              "extensions": {
+                "code": "UNAUTHORIZED"
+              }
             }
           ]
         }
@@ -416,7 +446,7 @@ fn context_is_propagated() {
             &self,
             context: &mut DynHookContext,
             headers: HeaderMap,
-        ) -> Result<HeaderMap, GraphqlError> {
+        ) -> Result<HeaderMap, PartialGraphqlError> {
             if let Some(client) = headers
                 .get("x-grafbase-client-name")
                 .and_then(|value| value.to_str().ok())
@@ -431,11 +461,14 @@ fn context_is_propagated() {
             context: &DynHookContext,
             _definition: NodeDefinition<'_>,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<(), GraphqlError> {
+        ) -> Result<(), PartialGraphqlError> {
             if context.get("client").is_some() {
                 Ok(())
             } else {
-                Err("Missing client".into())
+                Err(PartialGraphqlError::new(
+                    "Missing client",
+                    PartialErrorCode::Unauthorized,
+                ))
             }
         }
     }
@@ -467,7 +500,10 @@ fn context_is_propagated() {
               "path": [
                 "node",
                 "authorized"
-              ]
+              ],
+              "extensions": {
+                "code": "UNAUTHORIZED"
+              }
             }
           ]
         }
@@ -486,8 +522,8 @@ fn error_propagation() {
             _context: &DynHookContext,
             _definition: NodeDefinition<'_>,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<(), GraphqlError> {
-            Err("Broken".into())
+        ) -> Result<(), PartialGraphqlError> {
+            Err(PartialGraphqlError::new("Broken", PartialErrorCode::HookError))
         }
     }
 
@@ -514,7 +550,10 @@ fn error_propagation() {
               "path": [
                 "node",
                 "authorized"
-              ]
+              ],
+              "extensions": {
+                "code": "HOOK_ERROR"
+              }
             }
           ]
         }

@@ -56,7 +56,10 @@ fn request_error() {
                   "line": 1,
                   "column": 2
                 }
-              ]
+              ],
+              "extensions": {
+                "code": "OPERATION_PARSING_ERROR"
+              }
             }
           ]
         }
@@ -105,7 +108,10 @@ fn field_error() {
               "message": "error sending request for url (http://127.0.0.1:46697/)",
               "path": [
                 "me"
-              ]
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
             }
           ]
         }
@@ -151,7 +157,10 @@ fn field_error_data_null() {
               "message": "error sending request for url (http://127.0.0.1:46697/)",
               "path": [
                 "me"
-              ]
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
             }
           ]
         }

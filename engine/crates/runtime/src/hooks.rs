@@ -8,7 +8,7 @@ use std::future::Future;
 
 pub use http::HeaderMap;
 
-use crate::error::GraphqlError;
+use crate::error::{PartialErrorCode, PartialGraphqlError};
 
 pub struct NodeDefinition<'a> {
     pub type_name: &'a str,
@@ -37,7 +37,7 @@ pub trait Hooks: Send + Sync + 'static {
     fn on_gateway_request(
         &self,
         headers: HeaderMap,
-    ) -> impl Future<Output = Result<(Self::Context, HeaderMap), GraphqlError>> + Send;
+    ) -> impl Future<Output = Result<(Self::Context, HeaderMap), PartialGraphqlError>> + Send;
 
     fn authorize_edge_pre_execution<'a>(
         &self,
@@ -45,14 +45,14 @@ pub trait Hooks: Send + Sync + 'static {
         definition: EdgeDefinition<'a>,
         arguments: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> impl Future<Output = Result<(), GraphqlError>> + Send;
+    ) -> impl Future<Output = Result<(), PartialGraphqlError>> + Send;
 
     fn authorize_node_pre_execution<'a>(
         &self,
         context: &Self::Context,
         definition: NodeDefinition<'a>,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> impl Future<Output = Result<(), GraphqlError>> + Send;
+    ) -> impl Future<Output = Result<(), PartialGraphqlError>> + Send;
 
     fn authorize_parent_edge_post_execution<'a>(
         &self,
@@ -60,7 +60,7 @@ pub trait Hooks: Send + Sync + 'static {
         definition: EdgeDefinition<'a>,
         parents: Vec<String>,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> impl Future<Output = Result<Vec<Result<(), GraphqlError>>, GraphqlError>> + Send;
+    ) -> impl Future<Output = Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError>> + Send;
 
     fn authorize_edge_node_post_execution<'a>(
         &self,
@@ -68,7 +68,7 @@ pub trait Hooks: Send + Sync + 'static {
         definition: EdgeDefinition<'a>,
         nodes: Vec<String>,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> impl Future<Output = Result<Vec<Result<(), GraphqlError>>, GraphqlError>> + Send;
+    ) -> impl Future<Output = Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError>> + Send;
 
     fn authorize_edge_post_execution<'a>(
         &self,
@@ -76,7 +76,7 @@ pub trait Hooks: Send + Sync + 'static {
         definition: EdgeDefinition<'a>,
         edges: Vec<(String, Vec<String>)>,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> impl Future<Output = Result<Vec<Result<(), GraphqlError>>, GraphqlError>> + Send;
+    ) -> impl Future<Output = Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError>> + Send;
 }
 
 // ---------------------------//
@@ -85,7 +85,7 @@ pub trait Hooks: Send + Sync + 'static {
 impl Hooks for () {
     type Context = ();
 
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), GraphqlError> {
+    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), PartialGraphqlError> {
         Ok(((), headers))
     }
 
@@ -95,9 +95,10 @@ impl Hooks for () {
         _: EdgeDefinition<'a>,
         _: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
         _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<(), GraphqlError> {
-        Err(GraphqlError::new(
+    ) -> Result<(), PartialGraphqlError> {
+        Err(PartialGraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
+            PartialErrorCode::Unauthorized,
         ))
     }
 
@@ -106,9 +107,10 @@ impl Hooks for () {
         _: &Self::Context,
         _: NodeDefinition<'a>,
         _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<(), GraphqlError> {
-        Err(GraphqlError::new(
+    ) -> Result<(), PartialGraphqlError> {
+        Err(PartialGraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
+            PartialErrorCode::Unauthorized,
         ))
     }
 
@@ -118,9 +120,10 @@ impl Hooks for () {
         _: EdgeDefinition<'a>,
         _: Vec<String>,
         _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
-        Err(GraphqlError::new(
+    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        Err(PartialGraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
+            PartialErrorCode::Unauthorized,
         ))
     }
 
@@ -130,9 +133,10 @@ impl Hooks for () {
         _: EdgeDefinition<'a>,
         _: Vec<String>,
         _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
-        Err(GraphqlError::new(
+    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        Err(PartialGraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
+            PartialErrorCode::Unauthorized,
         ))
     }
 
@@ -142,9 +146,10 @@ impl Hooks for () {
         _: EdgeDefinition<'a>,
         _: Vec<(String, Vec<String>)>,
         _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
-        Err(GraphqlError::new(
+    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        Err(PartialGraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
+            PartialErrorCode::Unauthorized,
         ))
     }
 }
