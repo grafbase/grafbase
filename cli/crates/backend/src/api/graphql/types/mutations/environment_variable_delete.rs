@@ -47,10 +47,6 @@ pub struct EnvironmentVariableDeleteByValuesSuccess {
 
 #[derive(cynic::InlineFragments, Debug)]
 pub enum EnvironmentVariableDeleteByValuesPayload {
-    #[allow(dead_code)]
-    EnvironmentVariableDeleteByValuesSuccess(EnvironmentVariableDeleteByValuesSuccess),
-    #[allow(dead_code)]
-    EnvironmentVariableDoesNotExistError(EnvironmentVariableDoesNotExistError),
     #[cynic(fallback)]
     Unknown(String),
 }
