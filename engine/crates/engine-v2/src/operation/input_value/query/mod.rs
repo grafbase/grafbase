@@ -5,7 +5,7 @@ mod view;
 use id_newtypes::IdRange;
 use schema::{EnumValueId, InputValue, InputValueDefinitionId, InputValueSet, SchemaInputValue, SchemaInputValueId};
 
-use crate::operation::{OperationWalker, VariableDefinitionId, VariableValueWalker};
+use crate::operation::{Operation, OperationWalker, VariableDefinitionId, VariableValueWalker};
 
 pub(crate) use view::*;
 
@@ -20,9 +20,9 @@ pub struct QueryInputValues {
 }
 
 id_newtypes::NonZeroU32! {
-    QueryInputValues.values[QueryInputValueId] => QueryInputValue,
-    QueryInputValues.input_fields[QueryInputObjectFieldValueId] => (InputValueDefinitionId, QueryInputValue),
-    QueryInputValues.key_values[QueryInputKeyValueId] => (String, QueryInputValue),
+    QueryInputValues.values[QueryInputValueId] => QueryInputValue | proxy(Operation.query_input_values),
+    QueryInputValues.input_fields[QueryInputObjectFieldValueId] => (InputValueDefinitionId, QueryInputValue) | proxy(Operation.query_input_values),
+    QueryInputValues.key_values[QueryInputKeyValueId] => (String, QueryInputValue) | proxy(Operation.query_input_values),
 }
 
 #[derive(Default, Clone, serde::Serialize, serde::Deserialize)]

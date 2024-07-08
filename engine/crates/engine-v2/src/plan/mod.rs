@@ -4,20 +4,18 @@ use schema::{EntityId, ResolverId, Schema};
 
 use crate::{
     execution::ExecutionContext,
-    operation::{EntityLocation, Operation, PlanId, Variables},
+    operation::{Operation, PlanId, Variables},
     response::{GraphqlError, ReadSelectionSet},
     sources::PreparedExecutor,
     Runtime,
 };
 
 mod collected;
-mod flat;
 mod ids;
 mod planning;
 mod state;
 mod walkers;
 pub(crate) use collected::*;
-pub(crate) use flat::*;
 pub(crate) use ids::*;
 pub(crate) use planning::*;
 pub(crate) use state::*;
@@ -45,8 +43,8 @@ pub(crate) struct OperationPlan {
     plan_parent_to_child_edges: Vec<ParentToChildEdge>,
     // PlanId -> u8
     plan_dependencies_count: Vec<u8>,
-    // EntityLocation -> u8
-    entities_consummers_count: Vec<u8>,
+    // ResponseObjectSetId -> u8
+    response_object_set_consummers_count: Vec<u8>,
 
     // -- Collected fields & selection sets --
     // Once all fields have been planned, we collect fields to know what to expect from the
@@ -120,18 +118,16 @@ impl OperationPlan {
     }
 }
 
-#[derive(Debug)]
 pub struct PlanInput {
-    pub entity_location: EntityLocation,
+    pub response_object_set_id: ResponseObjectSetId,
+    pub entity_id: EntityId,
     /// if the plan `@requires` any data it will be included in the ReadSelectionSet.
     pub selection_set: ReadSelectionSet,
 }
 
-#[derive(Debug)]
 pub struct PlanOutput {
-    pub entity_id: EntityId,
     pub collected_selection_set_id: CollectedSelectionSetId,
-    pub tracked_entity_locations: Vec<EntityLocation>,
+    pub tracked_locations: Vec<ResponseObjectSetId>,
 }
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy, Debug, PartialOrd, Ord)]

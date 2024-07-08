@@ -93,7 +93,7 @@ impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
             let id = state.pop_subscription_plan_id();
             (state, id)
         };
-        let entity_locations_to_track = &self.plan_walker(subscription_plan_id).output().tracked_entity_locations;
+        let entity_locations_to_track = &self.plan_walker(subscription_plan_id).output().tracked_locations;
 
         let new_execution = || {
             let mut response = ResponseBuilder::new(self.operation_plan.root_object_id);
@@ -281,7 +281,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
                     for (entity_location, response_object_refs) in
                         self.response.ingest(part, first_edge, default_object)
                     {
-                        self.state.push_entities(entity_location, response_object_refs);
+                        self.state.push_response_objects(entity_location, response_object_refs);
                     }
 
                     for plan_id in self
@@ -324,10 +324,9 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
 
         let execution_plan = &operation[plan_id];
         let plan = self.coordinator.plan_walker(plan_id);
-        let response_part = self.response.new_part(
-            root_response_object_refs.clone(),
-            &plan.output().tracked_entity_locations,
-        );
+        let response_part = self
+            .response
+            .new_part(root_response_object_refs.clone(), &plan.output().tracked_locations);
         let input = ExecutorInput {
             ctx: self.coordinator.ctx,
             plan,

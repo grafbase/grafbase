@@ -64,6 +64,8 @@ const INDEX_MASK: u32 = !INDEX_FLAG;
 mod private;
 pub use private::*;
 
+use crate::operation::QueryPosition;
+
 /// A ResponseEdge correspond to any edge within the response graph, so a field or an index.
 /// It's the primary abstraction for the ResponsePath, and used at different places for simplicity.
 /// Like BounResponseKey, it keeps the ordering of the fields. Indices and extra fields are put at
@@ -81,8 +83,8 @@ pub struct BoundResponseKey(u32);
 pub struct ResponseKey(u32);
 
 impl SafeResponseKey {
-    pub fn with_position(self, position: usize) -> Option<BoundResponseKey> {
-        u32::try_from(position).ok().and_then(|position| {
+    pub fn with_position(self, position: QueryPosition) -> Option<BoundResponseKey> {
+        u32::try_from(usize::from(position)).ok().and_then(|position| {
             if position <= MAX_POSITION {
                 Some(BoundResponseKey(u32::from(self) | (position << POSITION_BIT_SHIFT)))
             } else {

@@ -9,3 +9,7 @@ id_newtypes::NonZeroU16! {
     OperationPlan.collected_selection_sets[CollectedSelectionSetId] => CollectedSelectionSet,
     OperationPlan.collected_fields[CollectedFieldId] => CollectedField,
 }
+
+id_newtypes::NonZeroU16! {
+    ResponseObjectSetId,
+}

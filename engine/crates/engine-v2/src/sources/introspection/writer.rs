@@ -47,7 +47,7 @@ impl<'a> IntrospectionWriter<'a> {
             };
         }
         if !selection_set.as_ref().typename_fields.is_empty() {
-            let name = selection_set.ty().schema_name_id();
+            let name = self.schema.walk(self.plan.input().entity_id).schema_name_id();
             for edge in &selection_set.as_ref().typename_fields {
                 fields.push((*edge, name.into()));
             }
@@ -70,7 +70,7 @@ impl<'a> IntrospectionWriter<'a> {
             fields.push((edge, build(field, object[definition_id])));
         }
         if !selection_set.as_ref().typename_fields.is_empty() {
-            let name = selection_set.ty().schema_name_id();
+            let name = self.schema.walk(object.id).as_ref().name;
             for edge in &selection_set.as_ref().typename_fields {
                 fields.push((*edge, name.into()));
             }

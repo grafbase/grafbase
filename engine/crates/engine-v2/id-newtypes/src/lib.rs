@@ -2,79 +2,99 @@ mod range;
 pub use range::IdRange;
 
 #[macro_export]
-macro_rules! id_newtype {
-    ($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(|index($ty2:ident$(.$field2:ident)+))?) => {
+macro_rules! debug_display {
+    ($name:ident) => {
         impl std::fmt::Display for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 let name = stringify!($name);
-                write!(f, "{}#{}", name.strip_suffix("Id").unwrap_or(name), usize::from(*self))
+                write!(
+                    f,
+                    "{}#{}",
+                    name.strip_suffix("Id").unwrap_or(name),
+                    usize::from(*self)
+                )
             }
         }
-
         impl std::fmt::Debug for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 let name = stringify!($name);
-                write!(f, "{}#{}", name.strip_suffix("Id").unwrap_or(name), usize::from(*self))
+                write!(
+                    f,
+                    "{}#{}",
+                    name.strip_suffix("Id").unwrap_or(name),
+                    usize::from(*self)
+                )
             }
         }
+    };
+}
 
-        impl$(<$($lt),+>)? std::ops::Index<$name> for $ty$(<$($lt),+>)? {
-            type Output = $output;
-
-            fn index(&self, index: $name) -> &Self::Output {
-                &self.$field[usize::from(index)]
-            }
-        }
-
-        impl$(<$($lt),+>)? std::ops::IndexMut<$name> for $ty$(<$($lt),+>)? {
-            fn index_mut(&mut self, index: $name) -> &mut Self::Output {
-                &mut self.$field[usize::from(index)]
-            }
-        }
-
-        impl$(<$($lt),+>)? std::ops::Index<$crate::IdRange<$name>> for $ty$(<$($lt),+>)? {
-            type Output = [$output];
-
-            fn index(&self, range: $crate::IdRange<$name>) -> &Self::Output {
-                let $crate::IdRange { start, end } = range;
-                let start = usize::from(start);
-                let end = usize::from(end);
-                &self.$field[start..end]
-            }
-        }
-
-        impl$(<$($lt),+>)? std::ops::IndexMut<$crate::IdRange<$name>> for $ty$(<$($lt),+>)? {
-            fn index_mut(&mut self, range: $crate::IdRange<$name>) -> &mut Self::Output {
-                let $crate::IdRange { start, end } = range;
-                let start = usize::from(start);
-                let end = usize::from(end);
-                &mut self.$field[start..end]
-            }
-        }
-
+#[macro_export]
+macro_rules! index {
+    ($($ty:ident$(<$( $lt:lifetime ),+>)?$(.$field:ident)+[$name:ident] => $output:ty $(|proxy($ty2:ident$(.$field2:ident)+))*,)*) => {
         $(
-            impl std::ops::Index<$name> for $ty2 {
+            impl$(<$($lt),+>)? std::ops::Index<$name> for $ty$(<$($lt),+>)? {
                 type Output = $output;
 
                 fn index(&self, index: $name) -> &Self::Output {
-                    &self$(.$field2)+[index]
+                    &self$(.$field)+[usize::from(index)]
                 }
             }
-            impl std::ops::Index<$crate::IdRange<$name>> for $ty2 {
+
+            impl$(<$($lt),+>)? std::ops::IndexMut<$name> for $ty$(<$($lt),+>)? {
+                fn index_mut(&mut self, index: $name) -> &mut Self::Output {
+                    &mut self$(.$field)+[usize::from(index)]
+                }
+            }
+
+            impl$(<$($lt),+>)? std::ops::Index<$crate::IdRange<$name>> for $ty$(<$($lt),+>)? {
                 type Output = [$output];
 
                 fn index(&self, range: $crate::IdRange<$name>) -> &Self::Output {
-                    &self$(.$field2)+[range]
+                let $crate::IdRange { start, end } = range;
+                let start = usize::from(start);
+                let end = usize::from(end);
+                &self$(.$field)+[start..end]
                 }
             }
 
-        )?
+            impl$(<$($lt),+>)? std::ops::IndexMut<$crate::IdRange<$name>> for $ty$(<$($lt),+>)? {
+                fn index_mut(&mut self, range: $crate::IdRange<$name>) -> &mut Self::Output {
+                    let $crate::IdRange { start, end } = range;
+                    let start = usize::from(start);
+                    let end = usize::from(end);
+                    &mut self$(.$field)+[start..end]
+                }
+            }
+            $(
+                impl std::ops::Index<$name> for $ty2 {
+                    type Output = $output;
+
+                    fn index(&self, index: $name) -> &Self::Output {
+                        &self$(.$field2)+[index]
+                    }
+                }
+                impl std::ops::Index<$crate::IdRange<$name>> for $ty2 {
+                    type Output = [$output];
+
+                    fn index(&self, range: $crate::IdRange<$name>) -> &Self::Output {
+                        &self$(.$field2)+[range]
+                    }
+                }
+            )*
+        )*
     };
 }
 
 #[macro_export]
 macro_rules! NonZeroU32 {
-    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(|max($max:expr))? $(|index($ty2:ident$(.$field2:ident)+))? ,)*) => {
+    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(|max($max:expr))? $(|proxy($ty2:ident$(.$field2:ident)+))* ,)*) => {
+        $(
+            $crate::NonZeroU32! { $name $(|max($max))?, }
+            $crate::index!{ $ty$(<$($lt),+>)?.$field[$name] => $output $(|proxy($ty2$(.$field2)+))*, }
+        )*
+    };
+    ($($name:ident $(|max($max:expr))?,)*) => {
         $(
             #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize)]
             pub struct $name(std::num::NonZeroU32);
@@ -103,14 +123,20 @@ macro_rules! NonZeroU32 {
                 }
             }
 
-            $crate::id_newtype!{ $ty$(<$($lt),+>)?.$field[$name] => $output $(|index($ty2$(.$field2)+))? }
+            $crate::debug_display! { $name }
         )*
     }
 }
 
 #[macro_export]
 macro_rules! NonZeroU16 {
-    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max($max:expr))?)?,)*) => {
+    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max($max:expr))?)? $(|proxy($ty2:ident$(.$field2:ident)+))*,)*) => {
+        $(
+            $crate::NonZeroU16! { $name $(|max($max))?, }
+            $crate::index!{ $ty$(<$($lt),+>)?.$field[$name] => $output $(|proxy($ty2$(.$field2)+))*, }
+        )*
+    };
+    ($($name:ident $(|max($max:expr))?,)*) => {
         $(
             #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize)]
             pub struct $name(std::num::NonZeroU16);
@@ -139,14 +165,20 @@ macro_rules! NonZeroU16 {
                 }
             }
 
-            $crate::id_newtype!{ $ty$(<$($lt),+>)?.$field[$name] => $output }
+            $crate::debug_display! { $name }
         )*
     }
 }
 
 #[macro_export]
 macro_rules! U8 {
-    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max($max:expr))?)?,)*) => {
+    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max($max:expr))?)? $(|proxy($ty2:ident$(.$field2:ident)+))*,)*) => {
+        $(
+            $crate::NonZeroU16! { $name $(|max($max))?, }
+            $crate::index!{ $ty$(<$($lt),+>)?.$field[$name] => $output $(|proxy($ty2$(.$field2)+))*, }
+        )*
+    };
+    ($($name:ident $(|max($max:expr))?,)*) => {
         $(
             #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize)]
             pub struct $name(u8);
@@ -174,7 +206,7 @@ macro_rules! U8 {
                 }
             }
 
-            $crate::id_newtype!{ $ty$(<$($lt),+>)?.$field[$name] => $output }
+            $crate::debug_display! { $name }
         )*
     }
 }

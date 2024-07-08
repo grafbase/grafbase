@@ -1,20 +1,14 @@
-use std::borrow::Cow;
-
 use id_newtypes::IdRange;
-use schema::{Definition, EntityId, FieldDefinitionId, InputValueDefinitionId, InterfaceId, ObjectId, Schema, UnionId};
+use schema::{Definition, EntityId, FieldDefinitionId, InputValueDefinitionId, InterfaceId, ObjectId, UnionId};
 
 use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
-use super::{
-    ConditionId, FieldArgumentId, FieldId, FragmentId, FragmentSpreadId, InlineFragmentId, Location, QueryInputValueId,
-    SelectionSetId,
-};
+use super::{ConditionId, FieldArgumentId, FieldId, Location, QueryInputValueId, SelectionSetId};
 
-#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SelectionSet {
-    pub ty: SelectionSetType,
-    // Ordering matters and must be respected in the response.
-    pub items: Vec<Selection>,
+    /// (ResponseKey, Option<FieldDefinitionId>) is guaranteed to be unique
+    pub field_ids: Vec<FieldId>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -30,22 +24,11 @@ impl SelectionSetType {
     }
 }
 
-impl From<SelectionSetType> for TypeCondition {
-    fn from(parent: SelectionSetType) -> Self {
-        match parent {
-            SelectionSetType::Interface(id) => Self::Interface(id),
-            SelectionSetType::Object(id) => Self::Object(id),
-            SelectionSetType::Union(id) => Self::Union(id),
-        }
-    }
-}
-
-impl From<TypeCondition> for SelectionSetType {
-    fn from(cond: TypeCondition) -> Self {
-        match cond {
-            TypeCondition::Interface(id) => Self::Interface(id),
-            TypeCondition::Object(id) => Self::Object(id),
-            TypeCondition::Union(id) => Self::Union(id),
+impl From<EntityId> for SelectionSetType {
+    fn from(value: EntityId) -> Self {
+        match value {
+            EntityId::Object(id) => Self::Object(id),
+            EntityId::Interface(id) => Self::Interface(id),
         }
     }
 }
@@ -86,11 +69,8 @@ impl SelectionSetType {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub(crate) enum Selection {
-    Field(FieldId),
-    FragmentSpread(FragmentSpreadId),
-    InlineFragment(InlineFragmentId),
+id_newtypes::NonZeroU16! {
+    QueryPosition,
 }
 
 /// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
@@ -109,8 +89,10 @@ pub enum Field {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TypeNameField {
+    pub type_condition: SelectionSetType,
     pub bound_response_key: BoundResponseKey,
     pub location: Location,
+    pub parent_selection_set_id: SelectionSetId,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -121,6 +103,7 @@ pub struct QueryField {
     pub argument_ids: IdRange<FieldArgumentId>,
     pub selection_set_id: Option<SelectionSetId>,
     pub condition: Option<ConditionId>,
+    pub parent_selection_set_id: SelectionSetId,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -130,12 +113,8 @@ pub struct ExtraField {
     pub selection_set_id: Option<SelectionSetId>,
     pub argument_ids: IdRange<FieldArgumentId>,
     pub petitioner_location: Location,
-    // FIXME: Could probably avoid having those by having those additional extra fields be in a
-    // temporary struct instead.
-    /// During the planning we may add more extra fields than necessary. To prevent retrieving
-    /// unnecessary data, only those marked as read are part of the operation.
-    pub is_read: bool,
     pub condition: Option<ConditionId>,
+    pub parent_selection_set_id: SelectionSetId,
 }
 
 impl Field {
@@ -191,22 +170,6 @@ impl Field {
         }
     }
 
-    pub fn mark_as_read(&mut self) {
-        match self {
-            Field::TypeName(TypeNameField { .. }) => (),
-            Field::Query(QueryField { .. }) => (),
-            Field::Extra(ExtraField { is_read, .. }) => *is_read = true,
-        }
-    }
-
-    pub fn is_read(&self) -> bool {
-        match self {
-            Field::TypeName(TypeNameField { .. }) => true,
-            Field::Query(QueryField { .. }) => true,
-            Field::Extra(ExtraField { is_read, .. }) => *is_read,
-        }
-    }
-
     pub fn argument_ids(&self) -> IdRange<FieldArgumentId> {
         match self {
             Field::TypeName(TypeNameField { .. }) => IdRange::empty(),
@@ -222,54 +185,21 @@ impl Field {
             Field::Extra(ExtraField { condition, .. }) => *condition,
         }
     }
-}
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct FragmentSpread {
-    pub location: Location,
-    pub fragment_id: FragmentId,
-    // This selection set is bound to its actual position in the query.
-    pub selection_set_id: SelectionSetId,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct InlineFragment {
-    pub location: Location,
-    pub type_condition: Option<TypeCondition>,
-    pub selection_set_id: SelectionSetId,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Fragment {
-    pub name: String,
-    #[allow(dead_code)]
-    pub name_location: Location,
-    pub type_condition: TypeCondition,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub enum TypeCondition {
-    Interface(InterfaceId),
-    Object(ObjectId),
-    Union(UnionId),
-}
-
-impl TypeCondition {
-    pub fn resolve(self, schema: &Schema) -> Cow<'_, Vec<ObjectId>> {
+    pub fn parent_selection_set_id(&self) -> SelectionSetId {
         match self {
-            TypeCondition::Interface(interface_id) => Cow::Borrowed(&schema[interface_id].possible_types),
-            TypeCondition::Object(object_id) => Cow::Owned(vec![object_id]),
-            TypeCondition::Union(union_id) => Cow::Borrowed(&schema[union_id].possible_types),
-        }
-    }
-}
-
-impl From<TypeCondition> for Definition {
-    fn from(value: TypeCondition) -> Self {
-        match value {
-            TypeCondition::Interface(id) => Definition::Interface(id),
-            TypeCondition::Object(id) => Definition::Object(id),
-            TypeCondition::Union(id) => Definition::Union(id),
+            Field::TypeName(TypeNameField {
+                parent_selection_set_id,
+                ..
+            }) => *parent_selection_set_id,
+            Field::Query(QueryField {
+                parent_selection_set_id,
+                ..
+            }) => *parent_selection_set_id,
+            Field::Extra(ExtraField {
+                parent_selection_set_id,
+                ..
+            }) => *parent_selection_set_id,
         }
     }
 }
@@ -283,24 +213,4 @@ pub struct FieldArgument {
     pub value_location: Option<Location>,
     pub input_value_definition_id: InputValueDefinitionId,
     pub input_value_id: QueryInputValueId,
-}
-
-impl IntoIterator for SelectionSet {
-    type Item = Selection;
-
-    type IntoIter = <Vec<Selection> as IntoIterator>::IntoIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.items.into_iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a SelectionSet {
-    type Item = &'a Selection;
-
-    type IntoIter = <&'a Vec<Selection> as IntoIterator>::IntoIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.items.iter()
-    }
 }

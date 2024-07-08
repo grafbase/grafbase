@@ -56,7 +56,7 @@ impl Operation {
     ///
     /// All field names are mapped to their actual field id in the schema and respective configuration.
     /// At this stage the operation might not be resolvable but it should make sense given the schema types.
-    pub fn build(schema: &Schema, request: &engine::Request) -> Result<Self, OperationError> {
+    pub fn build(schema: &Schema, request: &engine::Request) -> Result<Operation, OperationError> {
         let parsed_operation = super::parse::parse_operation(request)?;
         let operation_metadata = prepare_metadata(&parsed_operation, request);
 
@@ -89,7 +89,6 @@ impl Operation {
         }
 
         operation.metadata = operation_metadata.ok_or(OperationError::NormalizationError)?;
-
         Ok(operation)
     }
 }

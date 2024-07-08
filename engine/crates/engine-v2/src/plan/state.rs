@@ -2,12 +2,11 @@ use std::sync::Arc;
 
 use schema::{EntityId, Schema};
 
-use crate::operation::EntityLocation;
 use crate::response::{ResponseBuilder, ResponseObjectRef};
 
 use crate::plan::OperationPlan;
 
-use super::ExecutionPlanId;
+use super::{ExecutionPlanId, ResponseObjectSetId};
 
 /// Holds the current state of the operation execution:
 /// - which plans have been executed
@@ -24,13 +23,13 @@ pub struct OperationExecutionState {
     /// PlanId -> u8
     plan_dependencies_count: Vec<u8>,
     /// EntityLocation -> u8
-    entities_consummers_count: Vec<u8>,
+    set_consummers_count: Vec<u8>,
     /// EntityLocation -> Option<BoundaryItems>
-    entities: Vec<Option<ResponseEntities>>,
+    sets: Vec<Option<ResponseObjectSet>>,
 }
 
 #[derive(Clone)]
-struct ResponseEntities {
+struct ResponseObjectSet {
     response_object_refs: Arc<Vec<ResponseObjectRef>>,
     consummers_left: u8,
 }
@@ -39,8 +38,8 @@ impl OperationExecutionState {
     pub(super) fn new(operation: &OperationPlan) -> Self {
         Self {
             plan_dependencies_count: operation.plan_dependencies_count.clone(),
-            entities_consummers_count: operation.entities_consummers_count.clone(),
-            entities: vec![None; operation.entities_consummers_count.len()],
+            set_consummers_count: operation.response_object_set_consummers_count.clone(),
+            sets: vec![None; operation.response_object_set_consummers_count.len()],
         }
     }
 
@@ -67,10 +66,10 @@ impl OperationExecutionState {
             .collect()
     }
 
-    pub fn push_entities(&mut self, entity_location: EntityLocation, response_object_refs: Vec<ResponseObjectRef>) {
-        self.entities[usize::from(entity_location)] = Some(ResponseEntities {
+    pub fn push_response_objects(&mut self, set_id: ResponseObjectSetId, response_object_refs: Vec<ResponseObjectRef>) {
+        self.sets[usize::from(set_id)] = Some(ResponseObjectSet {
             response_object_refs: Arc::new(response_object_refs),
-            consummers_left: self.entities_consummers_count[usize::from(entity_location)],
+            consummers_left: self.set_consummers_count[usize::from(set_id)],
         });
     }
 
@@ -88,8 +87,8 @@ impl OperationExecutionState {
         };
         let input = &operation[plan_id].input;
         let refs = {
-            let i = usize::from(input.entity_location);
-            let Some(ref mut entities) = self.entities[i] else {
+            let i = usize::from(input.response_object_set_id);
+            let Some(ref mut entities) = self.sets[i] else {
                 if i == 0 {
                     return Arc::new(vec![root_ref]);
                 }
@@ -98,7 +97,7 @@ impl OperationExecutionState {
             entities.consummers_left -= 1;
             if entities.consummers_left == 0 {
                 let refs = entities.response_object_refs.clone();
-                self.entities[i] = None;
+                self.sets[i] = None;
                 refs
             } else {
                 entities.response_object_refs.clone()
@@ -106,7 +105,7 @@ impl OperationExecutionState {
         };
         // FIXME: it's not always necessary to clone the response_object_refs if it's always the
         // same entity.
-        match &operation[plan_id].output.entity_id {
+        match &input.entity_id {
             EntityId::Interface(id) => {
                 let possible_types = &schema[*id].possible_types;
                 Arc::new(

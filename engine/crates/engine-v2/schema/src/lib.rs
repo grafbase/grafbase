@@ -49,7 +49,7 @@ impl Schema {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Schema {
     data_sources: DataSources,
-    graph: Graph,
+    pub graph: Graph,
 
     /// All strings deduplicated.
     strings: Vec<String>,

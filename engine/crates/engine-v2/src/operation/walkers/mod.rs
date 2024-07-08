@@ -1,7 +1,5 @@
 mod argument;
 mod field;
-mod fragment;
-mod inline_fragment;
 mod query_path;
 mod selection_set;
 mod variable;
@@ -9,8 +7,6 @@ mod variable;
 pub use argument::*;
 use engine_parser::types::OperationType;
 pub use field::*;
-pub use fragment::*;
-pub use inline_fragment::*;
 use schema::{ObjectWalker, SchemaWalker};
 pub use selection_set::*;
 #[allow(unused_imports)]

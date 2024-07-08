@@ -4,8 +4,8 @@ use schema::ObjectId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::{
-    operation::{EntityLocation, SelectionSetType},
-    plan::{CollectedField, CollectedSelectionSetId, FieldError, RuntimeCollectedSelectionSet},
+    operation::SelectionSetType,
+    plan::{CollectedField, CollectedSelectionSetId, FieldError, ResponseObjectSetId, RuntimeCollectedSelectionSet},
     response::{
         value::{ResponseObjectFields, RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD},
         write::deserialize::{key::Key, FieldSeed, SeedContext},
@@ -17,7 +17,7 @@ use crate::{
 /// or not. There is no field with type conditions anymore.
 pub(crate) struct CollectedSelectionSetSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContext<'ctx>,
-    pub tracked_entity_locations: &'parent [EntityLocation],
+    pub response_object_set_ids: &'parent [ResponseObjectSetId],
     pub fields_seed: CollectedFieldsSeed<'ctx, 'parent>,
 }
 
@@ -34,7 +34,7 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
         let selection_set = &ctx.plan[id];
         Self {
             ctx,
-            tracked_entity_locations: if let Some(ref id) = selection_set.maybe_tracked_entity_location {
+            response_object_set_ids: if let Some(ref id) = selection_set.maybe_response_object_set_id {
                 std::array::from_ref(id)
             } else {
                 &[]
@@ -52,7 +52,7 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
     pub fn new(ctx: &'parent SeedContext<'ctx>, selection_set: &'parent RuntimeCollectedSelectionSet) -> Self {
         Self {
             ctx,
-            tracked_entity_locations: &selection_set.tracked_entity_locations,
+            response_object_set_ids: &selection_set.response_object_set_ids,
             fields_seed: CollectedFieldsSeed {
                 ctx,
                 selection_set_ty: SelectionSetType::Object(selection_set.object_id),
@@ -90,12 +90,12 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedSelectionSetSeed<'ctx, 'paren
         let (maybe_object_definition_id, fields) = self.fields_seed.visit_map(map)?;
 
         let id = self.ctx.writer.push_object(ResponseObject::new(fields));
-        if !self.tracked_entity_locations.is_empty() {
+        if !self.response_object_set_ids.is_empty() {
             let Some(definition_id) = maybe_object_definition_id else {
                 return Err(serde::de::Error::custom("Could not determine the __typename"));
             };
-            self.ctx.writer.push_entity(
-                self.tracked_entity_locations,
+            self.ctx.writer.push_response_object(
+                self.response_object_set_ids,
                 ResponseObjectRef {
                     id,
                     path: self.ctx.response_path(),

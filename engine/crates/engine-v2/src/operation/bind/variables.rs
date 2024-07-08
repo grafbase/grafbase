@@ -1,13 +1,17 @@
-use std::collections::btree_map::Entry;
+use std::collections::{btree_map::Entry, HashSet};
 
-use schema::Schema;
+use engine::Positioned;
+use schema::{Definition, Schema};
 
 use crate::{
-    operation::{Location, Operation, VariableValue, Variables},
+    operation::{Location, Operation, VariableDefinition, VariableInputValues, VariableValue, Variables},
     response::{ErrorCode, GraphqlError},
 };
 
-use super::coercion::{coerce_variable, InputValueError};
+use super::{
+    coercion::{coerce_variable, coerce_variable_default_value, InputValueError},
+    BindError, BindResult, Binder,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum VariableError {
@@ -33,7 +37,10 @@ pub fn bind_variables(
     mut request_variables: engine::Variables,
 ) -> Result<Variables, Vec<VariableError>> {
     let mut errors = Vec::new();
-    let mut variables = Variables::new_for(operation);
+    let mut variables = Variables {
+        input_values: VariableInputValues::default(),
+        definition_to_value: vec![VariableValue::Undefined; operation.variable_definitions.len()],
+    };
 
     for (variable_id, definition) in operation.variable_definitions.iter().enumerate() {
         match request_variables.entry(engine_value::Name::new(&definition.name)) {
@@ -65,4 +72,100 @@ pub fn bind_variables(
     }
 
     Ok(variables)
+}
+
+impl<'schema, 'p> Binder<'schema, 'p> {
+    pub(super) fn bind_variable_definitions(
+        &mut self,
+        variables: Vec<Positioned<engine_parser::types::VariableDefinition>>,
+    ) -> BindResult<Vec<VariableDefinition>> {
+        let mut seen_names = HashSet::new();
+        let mut bound_variables = Vec::new();
+
+        for Positioned { node, .. } in variables {
+            let name = node.name.node.to_string();
+            let name_location = node.name.pos.try_into()?;
+
+            if seen_names.contains(&name) {
+                return Err(BindError::DuplicateVariable {
+                    name,
+                    location: name_location,
+                });
+            }
+            seen_names.insert(name.clone());
+
+            let ty = self.convert_type(&name, node.var_type.pos.try_into()?, node.var_type.node)?;
+            let default_value = node
+                .default_value
+                .map(|Positioned { pos: _, node: value }| coerce_variable_default_value(self, name_location, ty, value))
+                .transpose()?;
+
+            bound_variables.push(VariableDefinition {
+                name,
+                name_location,
+                default_value,
+                ty,
+                used_by: Vec::new(),
+            });
+        }
+
+        Ok(bound_variables)
+    }
+
+    pub(super) fn validate_all_variables_used(&self) -> BindResult<()> {
+        for variable in &self.variable_definitions {
+            if variable.used_by.is_empty() {
+                return Err(BindError::UnusedVariable {
+                    name: variable.name.clone(),
+                    operation: self.operation_name.clone(),
+                    location: variable.name_location,
+                });
+            }
+        }
+
+        Ok(())
+    }
+
+    fn convert_type(
+        &self,
+        variable_name: &str,
+        location: Location,
+        ty: engine_parser::types::Type,
+    ) -> BindResult<schema::Type> {
+        match ty.base {
+            engine_parser::types::BaseType::Named(type_name) => {
+                let definition =
+                    self.schema
+                        .definition_by_name(type_name.as_str())
+                        .ok_or_else(|| BindError::UnknownType {
+                            name: type_name.to_string(),
+                            location,
+                        })?;
+                if !matches!(
+                    definition,
+                    Definition::Enum(_) | Definition::Scalar(_) | Definition::InputObject(_)
+                ) {
+                    return Err(BindError::InvalidVariableType {
+                        name: variable_name.to_string(),
+                        ty: self.schema.walker().walk(definition).name().to_string(),
+                        location,
+                    });
+                }
+                Ok(schema::Type {
+                    inner: definition,
+                    wrapping: schema::Wrapping::new(!ty.nullable),
+                })
+            }
+            engine_parser::types::BaseType::List(nested) => {
+                self.convert_type(variable_name, location, *nested).map(|mut r#type| {
+                    if ty.nullable {
+                        r#type.wrapping = r#type.wrapping.wrapped_by_nullable_list();
+                    } else {
+                        r#type.wrapping = r#type.wrapping.wrapped_by_required_list();
+                    }
+                    r#type
+                })
+            }
+        }
+    }
 }
