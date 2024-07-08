@@ -73,6 +73,78 @@ fn subgraph_no_response() {
 }
 
 #[test]
+fn leaf_must_scalar_or_enum() {
+    let response = integration_tests::runtime().block_on(async {
+        DeterministicEngine::new(
+            SCHEMA,
+            r#"
+        query ExampleQuery {
+            me
+        }
+        "#,
+            &[json!({})],
+        )
+        .await
+        .execute()
+        .await
+    });
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "errors": [
+        {
+          "message": "Leaf field 'me' must be a scalar or an enum, but is a User.",
+          "locations": [
+            {
+              "line": 3,
+              "column": 13
+            }
+          ],
+          "extensions": {
+            "code": "OPERATION_VALIDATION_ERROR"
+          }
+        }
+      ]
+    }
+    "###);
+}
+
+#[test]
+fn cannot_have_selection_set() {
+    let response = integration_tests::runtime().block_on(async {
+        DeterministicEngine::new(
+            SCHEMA,
+            r#"
+        query ExampleQuery {
+            name { x }
+        }
+        "#,
+            &[json!({})],
+        )
+        .await
+        .execute()
+        .await
+    });
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "errors": [
+        {
+          "message": "Field 'name' cannot have a selection set, it's a String. Only interfaces, unions and objects can.",
+          "locations": [
+            {
+              "line": 3,
+              "column": 13
+            }
+          ],
+          "extensions": {
+            "code": "OPERATION_VALIDATION_ERROR"
+          }
+        }
+      ]
+    }
+    "###);
+}
+
+#[test]
 fn request_error() {
     let response = integration_tests::runtime().block_on(async {
         DeterministicEngine::new(
