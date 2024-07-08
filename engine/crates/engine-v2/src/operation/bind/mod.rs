@@ -1,10 +1,7 @@
 mod coercion;
 mod variables;
 
-use std::{
-    collections::{HashMap, HashSet},
-    usize,
-};
+use std::collections::{HashMap, HashSet};
 
 pub use engine_parser::types::OperationType;
 use engine_parser::Positioned;

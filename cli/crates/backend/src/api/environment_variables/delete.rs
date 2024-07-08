@@ -46,7 +46,7 @@ pub(super) async fn with_slugs(
     let cynic::GraphQlResponse { errors, data } = client.post(api_url()).run_graphql(operation).await?;
     let result = data.map(|v| v.environment_variable_delete_with_values_by_slug);
 
-    handle_result(name, result, errors)
+    handle_result(result, errors)
 }
 
 pub(super) async fn with_linked(
@@ -78,19 +78,14 @@ pub(super) async fn with_linked(
     let cynic::GraphQlResponse { errors, data } = client.post(api_url()).run_graphql(operation).await?;
     let result = data.map(|v| v.environment_variable_delete_with_values);
 
-    handle_result(name, result, errors)
+    handle_result(result, errors)
 }
 
 fn handle_result(
-    name: &str,
     results: Option<EnvironmentVariableDeleteByValuesPayload>,
     errors: Option<Vec<GraphQlError>>,
 ) -> Result<(), ApiError> {
     match results {
-        Some(EnvironmentVariableDeleteByValuesPayload::EnvironmentVariableDeleteByValuesSuccess(_)) => Ok(()),
-        Some(EnvironmentVariableDeleteByValuesPayload::EnvironmentVariableDoesNotExistError(_)) => {
-            Err(EnvironmentVariableError::NotFound(name.to_string()).into())
-        }
         Some(EnvironmentVariableDeleteByValuesPayload::Unknown(error)) => {
             Err(EnvironmentVariableError::Unknown(error).into())
         }

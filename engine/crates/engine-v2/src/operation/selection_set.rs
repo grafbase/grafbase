@@ -242,6 +242,7 @@ pub struct InlineFragment {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Fragment {
     pub name: String,
+    #[allow(dead_code)]
     pub name_location: Location,
     pub type_condition: TypeCondition,
 }
@@ -276,7 +277,9 @@ impl From<TypeCondition> for Definition {
 /// Represents arguments that were specified in the query with a value
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FieldArgument {
+    #[allow(dead_code)]
     pub name_location: Option<Location>,
+    #[allow(dead_code)]
     pub value_location: Option<Location>,
     pub input_value_definition_id: InputValueDefinitionId,
     pub input_value_id: QueryInputValueId,
