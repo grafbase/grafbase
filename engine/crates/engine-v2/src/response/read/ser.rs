@@ -1,8 +1,11 @@
+use std::borrow::Cow;
+
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use crate::response::{
-    BadRequestResponse, ExecutionFailureResponse, GraphqlError, InitialResponse, Response, ResponseData, ResponseKeys,
-    ResponseListId, ResponseObject, ResponseObjectId, ResponsePath, ResponseValue, UnpackedResponseEdge,
+    ErrorCode, ExecutionFailureResponse, GraphqlError, InitialResponse, PreExecutionErrorResponse, Response,
+    ResponseData, ResponseKeys, ResponseListId, ResponseObject, ResponseObjectId, ResponsePath, ResponseValue,
+    UnpackedResponseEdge,
 };
 
 impl serde::Serialize for Response {
@@ -25,7 +28,7 @@ impl serde::Serialize for Response {
                 }
                 map.end()
             }
-            Response::BadRequest(BadRequestResponse { errors, .. }) => {
+            Response::PreExecutionError(PreExecutionErrorResponse { errors, .. }) => {
                 let mut map = serializer.serialize_map(Some(1))?;
                 // Shouldn't happen, but better safe than sorry.
                 if !errors.is_empty() {
@@ -105,8 +108,34 @@ impl<'a> serde::Serialize for SerializableError<'a> {
         if let Some(ref path) = self.error.path {
             map.serialize_entry("path", &SerializableResponsePath { keys: self.keys, path })?;
         }
-        if !self.error.extensions.is_empty() {
-            map.serialize_entry("extensions", &self.error.extensions)?;
+        map.serialize_entry(
+            "extensions",
+            &SerializableExtension {
+                code: self.error.code,
+                extensions: &self.error.extensions,
+            },
+        )?;
+        map.end()
+    }
+}
+
+struct SerializableExtension<'a> {
+    code: ErrorCode,
+    extensions: &'a [(Cow<'static, str>, serde_json::Value)],
+}
+
+impl<'a> serde::Serialize for SerializableExtension<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let has_code = self.extensions.iter().any(|(key, _)| key == "code");
+        let mut map = serializer.serialize_map(Some(self.extensions.len() + (!has_code as usize)))?;
+        for (key, value) in self.extensions {
+            map.serialize_entry(key, value)?;
+        }
+        if !has_code {
+            map.serialize_entry("code", &self.code)?;
         }
         map.end()
     }

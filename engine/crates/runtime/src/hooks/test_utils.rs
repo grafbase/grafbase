@@ -17,7 +17,7 @@ pub trait DynHooks: Send + Sync + 'static {
         &self,
         context: &mut DynHookContext,
         headers: HeaderMap,
-    ) -> Result<HeaderMap, GraphqlError> {
+    ) -> Result<HeaderMap, PartialGraphqlError> {
         Ok(headers)
     }
 
@@ -27,8 +27,11 @@ pub trait DynHooks: Send + Sync + 'static {
         definition: EdgeDefinition<'_>,
         arguments: serde_json::Value,
         metadata: Option<serde_json::Value>,
-    ) -> Result<(), GraphqlError> {
-        Err("authorize_edge_pre_execution is not implemented".into())
+    ) -> Result<(), PartialGraphqlError> {
+        Err(PartialGraphqlError::new(
+            "authorize_edge_pre_execution is not implemented",
+            PartialErrorCode::Unauthorized,
+        ))
     }
 
     async fn authorize_node_pre_execution(
@@ -36,8 +39,11 @@ pub trait DynHooks: Send + Sync + 'static {
         context: &DynHookContext,
         definition: NodeDefinition<'_>,
         metadata: Option<serde_json::Value>,
-    ) -> Result<(), GraphqlError> {
-        Err("authorize_node_pre_execution is not implemented".into())
+    ) -> Result<(), PartialGraphqlError> {
+        Err(PartialGraphqlError::new(
+            "authorize_node_pre_execution is not implemented",
+            PartialErrorCode::Unauthorized,
+        ))
     }
 
     async fn authorize_parent_edge_post_execution<'a>(
@@ -46,8 +52,11 @@ pub trait DynHooks: Send + Sync + 'static {
         definition: EdgeDefinition<'a>,
         parents: Vec<String>,
         metadata: Option<serde_json::Value>,
-    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
-        Err("authorize_parent_edge_post_execution is not implemented".into())
+    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        Err(PartialGraphqlError::new(
+            "authorize_parent_edge_post_execution is not implemented",
+            PartialErrorCode::Unauthorized,
+        ))
     }
 
     async fn authorize_edge_node_post_execution<'a>(
@@ -56,8 +65,11 @@ pub trait DynHooks: Send + Sync + 'static {
         definition: EdgeDefinition<'a>,
         nodes: Vec<String>,
         metadata: Option<serde_json::Value>,
-    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
-        Err("authorize_edge_node_post_execution is not implemented".into())
+    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        Err(PartialGraphqlError::new(
+            "authorize_edge_node_post_execution is not implemented",
+            PartialErrorCode::Unauthorized,
+        ))
     }
 
     async fn authorize_edge_post_execution<'a>(
@@ -66,8 +78,11 @@ pub trait DynHooks: Send + Sync + 'static {
         definition: EdgeDefinition<'a>,
         edges: Vec<(String, Vec<String>)>,
         metadata: Option<serde_json::Value>,
-    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
-        Err("authorize_edge_post_execution is not implemented".into())
+    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        Err(PartialGraphqlError::new(
+            "authorize_edge_post_execution is not implemented",
+            PartialErrorCode::Unauthorized,
+        ))
     }
 }
 
@@ -128,7 +143,7 @@ impl DynamicHooks {
 impl Hooks for DynamicHooks {
     type Context = DynHookContext;
 
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), GraphqlError> {
+    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), PartialGraphqlError> {
         let mut context = DynHookContext::default();
         let headers = self.0.on_gateway_request(&mut context, headers).await?;
         Ok((context, headers))
@@ -140,7 +155,7 @@ impl Hooks for DynamicHooks {
         definition: EdgeDefinition<'a>,
         arguments: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<(), GraphqlError> {
+    ) -> Result<(), PartialGraphqlError> {
         self.0
             .authorize_edge_pre_execution(
                 context,
@@ -156,7 +171,7 @@ impl Hooks for DynamicHooks {
         context: &Self::Context,
         definition: NodeDefinition<'a>,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<(), GraphqlError> {
+    ) -> Result<(), PartialGraphqlError> {
         self.0
             .authorize_node_pre_execution(context, definition, metadata.map(|m| serde_json::to_value(&m).unwrap()))
             .await
@@ -168,7 +183,7 @@ impl Hooks for DynamicHooks {
         definition: EdgeDefinition<'a>,
         parents: Vec<String>,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
+    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
         self.0
             .authorize_parent_edge_post_execution(
                 context,
@@ -185,7 +200,7 @@ impl Hooks for DynamicHooks {
         definition: EdgeDefinition<'a>,
         nodes: Vec<String>,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
+    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
         self.0
             .authorize_parent_edge_post_execution(
                 context,
@@ -202,7 +217,7 @@ impl Hooks for DynamicHooks {
         definition: EdgeDefinition<'a>,
         edges: Vec<(String, Vec<String>)>,
         metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
+    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
         self.0
             .authorize_edge_post_execution(
                 context,

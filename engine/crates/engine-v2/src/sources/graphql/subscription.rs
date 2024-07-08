@@ -12,7 +12,7 @@ use super::{
 use crate::{
     execution::OperationRootPlanExecution,
     plan::PlanWalker,
-    sources::{ExecutionError, ExecutionResult, SubscriptionExecutor, SubscriptionInput},
+    sources::{ExecutionResult, SubscriptionExecutor, SubscriptionInput},
     Runtime,
 };
 
@@ -75,7 +75,7 @@ impl<'ctx, R: Runtime> GraphqlSubscriptionExecutor<'ctx, R> {
                     variables: &operation.variables,
                     inputs: Vec::new(),
                 })
-                .map_err(|error| ExecutionError::Internal(error.to_string()))?,
+                .map_err(|error| error.to_string())?,
                 headers: subgraph
                     .headers()
                     .filter_map(|header| {

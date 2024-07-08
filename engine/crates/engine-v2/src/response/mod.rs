@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-pub(crate) use error::GraphqlError;
+pub(crate) use error::*;
 use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
 pub use key::*;
 pub use path::*;
@@ -24,7 +24,7 @@ pub(crate) enum Response {
     /// Meaning `data` field is present, but null.
     ExecutionFailure(ExecutionFailureResponse),
     /// Invalid request
-    BadRequest(BadRequestResponse),
+    PreExecutionError(PreExecutionErrorResponse),
 }
 
 pub(crate) struct InitialResponse {
@@ -40,7 +40,7 @@ struct ResponseData {
     parts: Vec<ResponseDataPart>,
 }
 
-pub(crate) struct BadRequestResponse {
+pub(crate) struct PreExecutionErrorResponse {
     errors: Vec<GraphqlError>,
 }
 
@@ -49,17 +49,17 @@ pub(crate) struct ExecutionFailureResponse {
 }
 
 impl Response {
-    pub(crate) fn bad_request(error: impl Into<GraphqlError>) -> Self {
-        Self::BadRequest(BadRequestResponse {
+    pub(crate) fn pre_execution_error(error: impl Into<GraphqlError>) -> Self {
+        Self::PreExecutionError(PreExecutionErrorResponse {
             errors: vec![error.into()],
         })
     }
 
-    pub(crate) fn bad_request_from_errors<E>(errors: impl IntoIterator<Item = E>) -> Self
+    pub(crate) fn pre_execution_errors<E>(errors: impl IntoIterator<Item = E>) -> Self
     where
         E: Into<GraphqlError>,
     {
-        Self::BadRequest(BadRequestResponse {
+        Self::PreExecutionError(PreExecutionErrorResponse {
             errors: errors.into_iter().map(Into::into).collect(),
         })
     }
@@ -86,7 +86,7 @@ impl Response {
                 count: resp.errors.len() as u64,
                 data_is_null: true,
             },
-            Self::BadRequest(resp) => GraphqlResponseStatus::RequestError {
+            Self::PreExecutionError(resp) => GraphqlResponseStatus::RequestError {
                 count: resp.errors.len() as u64,
             },
         }

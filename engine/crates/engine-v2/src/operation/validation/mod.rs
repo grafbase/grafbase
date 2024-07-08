@@ -3,7 +3,7 @@ mod operation_limits;
 
 use crate::{
     operation::{Location, OperationWalker},
-    response::GraphqlError,
+    response::{ErrorCode, GraphqlError},
 };
 use introspection::*;
 use operation_limits::*;
@@ -23,11 +23,7 @@ impl From<ValidationError> for GraphqlError {
             ValidationError::IntrospectionWhenDisabled { location } => vec![*location],
             ValidationError::OperationLimitExceeded { .. } => Vec::new(),
         };
-        GraphqlError {
-            message: err.to_string(),
-            locations,
-            ..Default::default()
-        }
+        GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError).with_locations(locations)
     }
 }
 

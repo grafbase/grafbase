@@ -1,8 +1,6 @@
-use std::collections::BTreeMap;
-
 use serde::{de::DeserializeSeed, Deserializer};
 
-use crate::response::{GraphqlError, ResponseKeys, ResponsePartMut, ResponsePath, UnpackedResponseEdge};
+use crate::response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePartMut, ResponsePath, UnpackedResponseEdge};
 
 pub(super) trait GraphqlErrorsSeed<'a> {
     fn response_part(&self) -> &ResponsePartMut<'a>;
@@ -68,21 +66,17 @@ where
         let errors_count = errors.len();
         let errors = errors
             .into_iter()
-            .map(|error| {
-                let mut extensions = BTreeMap::new();
-                let path = self.0.convert_path(&error.path);
-                if path.is_none() && !error.path.is_null() {
-                    extensions.insert("upstream_path".to_string(), error.path);
+            .map(|subgraph_error| {
+                let mut error = GraphqlError::new(subgraph_error.message, ErrorCode::SubgraphError);
+                if let Some(path) = self.0.convert_path(&subgraph_error.path) {
+                    error = error.with_path(path);
+                } else if !subgraph_error.path.is_null() {
+                    error = error.with_extension("upstream_path", subgraph_error.path);
                 }
-                if !error.extensions.is_null() {
-                    extensions.insert("upstream_extensions".to_string(), error.extensions);
+                if !subgraph_error.extensions.is_null() {
+                    error = error.with_extension("upstream_extensions", subgraph_error.extensions);
                 }
-                GraphqlError {
-                    message: format!("Upstream error: {}", error.message),
-                    path,
-                    extensions,
-                    ..Default::default()
-                }
+                error
             })
             .collect();
         self.0.response_part().push_errors(errors);

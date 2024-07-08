@@ -4,7 +4,7 @@ use schema::Schema;
 
 use crate::{
     operation::{Location, Operation, VariableValue, Variables},
-    response::GraphqlError,
+    response::{ErrorCode, GraphqlError},
 };
 
 use super::coercion::{coerce_variable, InputValueError};
@@ -23,11 +23,7 @@ impl From<VariableError> for GraphqlError {
             VariableError::MissingVariable { location, .. } => vec![location],
             VariableError::InvalidValue { ref err, .. } => vec![err.location()],
         };
-        GraphqlError {
-            message: err.to_string(),
-            locations,
-            ..Default::default()
-        }
+        GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError).with_locations(locations)
     }
 }
 

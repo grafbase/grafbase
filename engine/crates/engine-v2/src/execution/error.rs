@@ -1,9 +1,11 @@
-use crate::response::GraphqlError;
+use std::borrow::Cow;
+
+use crate::response::{ErrorCode, GraphqlError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ExecutionError {
     #[error("Internal error: {0}")]
-    Internal(String),
+    Internal(Cow<'static, str>),
     #[error("Deserialization error: {0}")]
     DeserializationError(String),
     #[error(transparent)]
@@ -14,22 +16,25 @@ pub type ExecutionResult<T> = Result<T, ExecutionError>;
 
 impl From<ExecutionError> for GraphqlError {
     fn from(err: ExecutionError) -> Self {
-        GraphqlError {
-            message: err.to_string(),
-            ..Default::default()
+        match err {
+            ExecutionError::Internal(message) => GraphqlError::new(message, ErrorCode::InternalServerError),
+            ExecutionError::DeserializationError(message) => {
+                GraphqlError::new(message, ErrorCode::SubgraphInvalidResponseError)
+            }
+            ExecutionError::Fetch(err) => GraphqlError::new(err.to_string(), ErrorCode::SubgraphRequestError),
         }
     }
 }
 
-impl From<&str> for ExecutionError {
-    fn from(message: &str) -> Self {
-        Self::Internal(message.to_string())
+impl From<&'static str> for ExecutionError {
+    fn from(message: &'static str) -> Self {
+        Self::Internal(message.into())
     }
 }
 
 impl From<String> for ExecutionError {
     fn from(message: String) -> Self {
-        Self::Internal(message)
+        Self::Internal(message.into())
     }
 }
 

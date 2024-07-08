@@ -68,7 +68,10 @@ fn single_field_from_single_server() {
         {
           "errors": [
             {
-              "message": "Invalid persisted query sha256Hash"
+              "message": "Invalid persisted query sha256Hash",
+              "extensions": {
+                "code": "PERSISTED_QUERY_ERROR"
+              }
             }
           ]
         }
@@ -85,7 +88,10 @@ fn single_field_from_single_server() {
         {
           "errors": [
             {
-              "message": "Persisted query version not supported"
+              "message": "Persisted query version not supported",
+              "extensions": {
+                "code": "PERSISTED_QUERY_ERROR"
+              }
             }
           ]
         }

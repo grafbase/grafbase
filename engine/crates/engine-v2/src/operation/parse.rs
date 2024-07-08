@@ -5,7 +5,7 @@ use engine_parser::{
     Positioned,
 };
 
-use crate::response::GraphqlError;
+use crate::response::{ErrorCode, GraphqlError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ParseError {
@@ -22,15 +22,9 @@ pub type ParseResult<T> = Result<T, ParseError>;
 impl From<ParseError> for GraphqlError {
     fn from(err: ParseError) -> Self {
         match err {
-            ParseError::ParserError(err) => GraphqlError {
-                message: err.to_string(),
-                locations: err.positions().filter_map(|pos| pos.try_into().ok()).collect(),
-                ..Default::default()
-            },
-            err => GraphqlError {
-                message: err.to_string(),
-                ..Default::default()
-            },
+            ParseError::ParserError(err) => GraphqlError::new(err.to_string(), ErrorCode::OperationParsingError)
+                .with_locations(err.positions().filter_map(|pos| pos.try_into().ok())),
+            err => GraphqlError::new(err.to_string(), ErrorCode::OperationParsingError),
         }
     }
 }

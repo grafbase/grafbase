@@ -1,10 +1,8 @@
-use std::collections::BTreeMap;
-
 use schema::Schema;
 
 use crate::{
     operation::{Operation, Variables},
-    response::GraphqlError,
+    response::{ErrorCode, GraphqlError},
 };
 
 mod boundary;
@@ -37,12 +35,8 @@ impl From<PlanningError> for GraphqlError {
             PlanningError::InternalError { .. } => vec![],
         };
 
-        GraphqlError {
-            message,
-            locations: vec![],
-            path: None,
-            extensions: BTreeMap::from([("queryPath".into(), serde_json::Value::Array(query_path))]),
-        }
+        GraphqlError::new(message, ErrorCode::OperationPlanningError)
+            .with_extension("queryPath", serde_json::Value::Array(query_path))
     }
 }
 

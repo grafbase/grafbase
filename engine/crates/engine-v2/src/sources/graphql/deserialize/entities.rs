@@ -7,8 +7,7 @@ use serde::{
 
 use crate::{
     plan::PlanWalker,
-    response::{ResponseKeys, ResponsePartMut, ResponsePath, UnpackedResponseEdge},
-    sources::ExecutionError,
+    response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePartMut, ResponsePath, UnpackedResponseEdge},
 };
 
 use super::errors::GraphqlErrorsSeed;
@@ -104,8 +103,9 @@ impl<'de, 'a> Visitor<'de> for EntitiesSeed<'a> {
             }
         }
         if seq.next_element::<IgnoredAny>()?.is_some() {
-            self.response_part.push_error(ExecutionError::Internal(
-                "Received more entities than expected".to_string(),
+            self.response_part.push_error(GraphqlError::new(
+                "Received more entities than expected",
+                ErrorCode::SubgraphInvalidResponseError,
             ));
             while seq.next_element::<IgnoredAny>()?.is_some() {}
         }
