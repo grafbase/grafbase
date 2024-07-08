@@ -5,6 +5,7 @@ mod gateway;
 mod graph_fetch_method;
 #[cfg(not(feature = "lambda"))]
 mod graph_updater;
+mod health;
 mod otel;
 mod state;
 mod trusted_documents_client;
@@ -92,6 +93,7 @@ pub async fn serve(
     gateway.changed().await.ok();
     let mut router = Router::new()
         .route(path, get(engine::get).post(engine::post))
+        .route("/health", get(health::health))
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .layer(grafbase_tracing::tower::layer(
             grafbase_tracing::metrics::meter_from_global_provider(),

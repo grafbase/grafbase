@@ -167,6 +167,18 @@ impl Client {
             bearer: None,
         }
     }
+
+    pub async fn get<Response>(&self, path: &str) -> (http::StatusCode, Response)
+    where
+        Response: for<'de> serde::de::Deserialize<'de>,
+    {
+        let mut url: reqwest::Url = self.endpoint.parse().unwrap();
+        url.set_path(path);
+
+        let response = self.client.get(url).headers(self.headers.clone()).send().await.unwrap();
+
+        (response.status(), response.json().await.unwrap())
+    }
 }
 
 #[derive(Clone)]
@@ -662,6 +674,22 @@ fn hybrid_graph() {
               }
             }
           ]
+        }
+        "###);
+    });
+}
+
+#[test]
+fn health() {
+    let config = "";
+    let schema = load_schema("big");
+
+    with_static_server(config, &schema, None, None, |client| async move {
+        let (_, result): (_, serde_json::Value) = client.get("/health").await;
+
+        insta::assert_json_snapshot!(&result, @r###"
+        {
+          "status": "healthy"
         }
         "###);
     });
