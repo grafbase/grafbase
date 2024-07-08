@@ -1,7 +1,7 @@
 use engine_parser::Positioned;
 use engine_value::Name;
 use id_newtypes::IdRange;
-use schema::{FieldDefinitionId, FieldDefinitionWalker};
+use schema::{Definition, FieldDefinitionId, FieldDefinitionWalker};
 
 use super::{coercion::coerce_query_value, BindError, BindResult, Binder};
 use crate::{
@@ -38,6 +38,27 @@ impl<'schema, 'p> Binder<'schema, 'p> {
     ) -> BindResult<FieldId> {
         let location: Location = (*pos).try_into()?;
         let definition: FieldDefinitionWalker<'_> = self.schema.walk(definition_id);
+
+        // We don't bother processing the selection set if it's not a union/interface/object, so we
+        // need to rely on the parsed data rather than selection_set_id.
+        let has_selection_set = !field.selection_set.node.items.is_empty();
+        match definition.ty().inner().id() {
+            Definition::Scalar(_) | Definition::Enum(_) if has_selection_set => {
+                return Err(BindError::CannotHaveSelectionSet {
+                    name: definition.name().to_string(),
+                    ty: definition.ty().to_string(),
+                    location,
+                })
+            }
+            Definition::Object(_) | Definition::Interface(_) | Definition::Union(_) if !has_selection_set => {
+                return Err(BindError::LeafMustBeAScalarOrEnum {
+                    name: definition.name().to_string(),
+                    ty: definition.ty().inner().name().to_string(),
+                    location,
+                });
+            }
+            _ => {}
+        };
 
         let field_id = FieldId::from(self.fields.len());
         let condition = self.generate_field_condition(field_id, definition);

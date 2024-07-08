@@ -19,9 +19,6 @@ use crate::{
     response::{SafeResponseKey, UnpackedResponseEdge},
 };
 
-/// The Planner traverses the selection sets to plan all the fields, but it doesn't define the
-/// plans directly. That's the job of the BoundaryPlanner which will attribute a plan for each
-/// field for a given selection set and satisfy any requirements.
 pub(super) struct SelectionSetLogicalPlanner<'schema, 'a> {
     planner: &'a mut LogicalPlanner<'schema>,
     query_path: &'a QueryPath,
