@@ -1,6 +1,6 @@
 use async_graphql_value as _;
 use indexmap as _;
-use itertools as _;
+use itertools::{self as _, Itertools as _};
 use std::{fs, path::Path, sync::OnceLock};
 
 fn update_expect() -> bool {
@@ -59,7 +59,7 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
                 "{}\n",
                 diagnostics
                     .iter_messages()
-                    .map(|msg| format!("# {msg}"))
+                    .map(|msg| format!("# {}", msg.lines().join("\\n")))
                     .collect::<Vec<_>>()
                     .join("\n"),
             ),

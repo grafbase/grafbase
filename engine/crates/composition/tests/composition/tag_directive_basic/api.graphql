@@ -17,7 +17,7 @@ type Orange {
 }
 
 type Query {
-    tags: [String]
+    tags(filter: String): [String]
 }
 
 interface HasId {

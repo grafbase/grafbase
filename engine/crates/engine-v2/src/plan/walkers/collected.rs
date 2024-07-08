@@ -1,7 +1,5 @@
-use schema::Definition;
-
 use crate::{
-    operation::{SelectionSetType, SelectionSetTypeWalker},
+    operation::SelectionSetType,
     plan::{
         AnyCollectedSelectionSet, CollectedField, CollectedFieldId, CollectedSelectionSet, CollectedSelectionSetId,
         ConditionalField, ConditionalFieldId, ConditionalSelectionSet, ConditionalSelectionSetId, FieldType,
@@ -28,11 +26,6 @@ impl<'a> PlanCollectedSelectionSet<'a> {
 
     pub fn id(&self) -> CollectedSelectionSetId {
         self.item
-    }
-
-    pub fn ty(&self) -> SelectionSetTypeWalker<'a> {
-        let ty = self.as_ref().ty;
-        self.bound_walk_with(ty, Definition::from(ty))
     }
 
     pub fn fields(self) -> impl ExactSizeIterator<Item = PlanCollectedField<'a>> + 'a {

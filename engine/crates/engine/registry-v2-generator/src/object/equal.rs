@@ -3,6 +3,7 @@ use quote::{quote, ToTokens, TokenStreamExt};
 
 use super::FieldEdge;
 
+#[allow(dead_code)]
 pub struct ObjectEqual<'a>(pub &'a Ident, pub &'a [FieldEdge<'a>]);
 
 impl ToTokens for ObjectEqual<'_> {

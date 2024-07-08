@@ -9,5 +9,5 @@ type Post {
 }
 
 type Query {
-    getUser: User
+    getUser(id: ID!): User
 }

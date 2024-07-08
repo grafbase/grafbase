@@ -1,27 +1,27 @@
 use std::{collections::HashMap, sync::Arc};
 
 use ::axum::extract::ws::{self, WebSocket};
-use engine_v2::{websocket::InitPayload, Engine, Session};
+use engine_v2::{websocket::InitPayload, Engine, Runtime, Session};
 use futures_util::{pin_mut, stream::SplitStream, SinkExt, Stream, StreamExt};
 use tokio::sync::{mpsc, watch};
 
 use super::service::MessageConvert;
 use engine_v2::websocket::{Event, Message};
 
-pub type EngineWatcher = watch::Receiver<Option<Arc<Engine>>>;
+pub type EngineWatcher<R> = watch::Receiver<Option<Arc<Engine<R>>>>;
 pub type WebsocketSender = tokio::sync::mpsc::Sender<WebSocket>;
 pub type WebsocketReceiver = tokio::sync::mpsc::Receiver<WebSocket>;
 
 const CONNECTION_INIT_WAIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
 
 /// An actor that manages websocket connections for federated dev
-pub struct WebsocketAccepter {
+pub struct WebsocketAccepter<R: Runtime> {
     sockets: WebsocketReceiver,
-    engine: EngineWatcher,
+    engine: EngineWatcher<R>,
 }
 
-impl WebsocketAccepter {
-    pub fn new(sockets: WebsocketReceiver, engine: EngineWatcher) -> Self {
+impl<R: Runtime> WebsocketAccepter<R> {
+    pub fn new(sockets: WebsocketReceiver, engine: EngineWatcher<R>) -> Self {
         Self { sockets, engine }
     }
 
@@ -56,7 +56,7 @@ impl WebsocketAccepter {
 }
 
 /// Message handling loop for a single websocket connection
-async fn websocket_loop(socket: WebSocket, session: Session) {
+async fn websocket_loop<R: Runtime>(socket: WebSocket, session: Session<R>) {
     let (sender, mut receiver) = {
         let (mut socket_sender, socket_receiver) = socket.split();
 
@@ -102,9 +102,9 @@ async fn websocket_loop(socket: WebSocket, session: Session) {
     }
 }
 
-async fn handle_incoming_event(
+async fn handle_incoming_event<R: Runtime>(
     text: String,
-    session: &Session,
+    session: &Session<R>,
     sender: &tokio::sync::mpsc::Sender<Message>,
     tasks: &mut tokio::task::JoinSet<()>,
     subscriptions: &mut HashMap<String, tokio::task::AbortHandle>,
@@ -148,7 +148,7 @@ async fn subscription_loop(stream: impl Stream<Item = Message>, id: String, send
     sender.send(Message::Complete { id }).await.ok();
 }
 
-async fn accept_websocket(websocket: &mut WebSocket, engine: &EngineWatcher) -> Option<Session> {
+async fn accept_websocket<R: Runtime>(websocket: &mut WebSocket, engine: &EngineWatcher<R>) -> Option<Session<R>> {
     while let Some(text) = websocket.recv_message().await {
         let event: Event = serde_json::from_str(&text).ok()?;
         match event {
@@ -167,15 +167,12 @@ async fn accept_websocket(websocket: &mut WebSocket, engine: &EngineWatcher) -> 
                     return None;
                 };
 
-                let session = match engine.create_session(headers).await {
-                    Ok(session) => session,
-                    Err(e) => {
-                        websocket
-                            .send(Message::close(4403, e).to_axum_message().unwrap())
-                            .await
-                            .ok();
-                        return None;
-                    }
+                let Ok(session) = engine.create_session(headers).await else {
+                    websocket
+                        .send(Message::close(4403, "Forbidden").to_axum_message().unwrap())
+                        .await
+                        .ok();
+                    return None;
                 };
 
                 websocket

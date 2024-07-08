@@ -2,19 +2,16 @@ use std::{
     borrow::Cow,
     cell::RefCell,
     collections::{hash_map::Entry, HashMap, HashSet},
-    sync::RwLock,
 };
 
 use common_types::UdfKind;
 use engine::{
     model::{__Schema, __Type},
-    registry::{ConnectorIdGenerator, MetaField, MetaInputValue, SchemaID, SchemaIDGenerator},
+    registry::{MetaField, MetaInputValue},
     AuthorizerProvider, LegacyOutputType, Registry, Schema,
 };
 use engine_parser::{
-    types::{
-        DirectiveDefinition, SchemaDefinition, ServiceDocument, Type, TypeDefinition, TypeKind, TypeSystemDefinition,
-    },
+    types::{DirectiveDefinition, ServiceDocument, Type, TypeDefinition, TypeKind, TypeSystemDefinition},
     Pos, Positioned,
 };
 use engine_value::Name;
@@ -38,28 +35,15 @@ use crate::{
 pub struct VisitorContext<'a> {
     pub(crate) directives: HashMap<String, &'a Positioned<DirectiveDefinition>>,
     pub(crate) types: HashMap<String, Cow<'a, Positioned<TypeDefinition>>>,
-    #[allow(dead_code)]
-    pub(crate) schema: Vec<&'a Positioned<SchemaDefinition>>,
     pub(crate) errors: Vec<RuleError>,
     pub(crate) warnings: Warnings,
     pub(crate) type_stack: TypeStackType<'a>,
     pub(crate) queries: Vec<MetaField>,
     pub(crate) mutations: Vec<MetaField>,
-    pub schema_id_generator: SchemaIDGenerator,
 
-    /// A generator used to generate unique identifiers for each connector present in the schema.
-    ///
-    /// This identifier is stable for the duration of the schema, but does not persist beyond
-    /// schema generation. It can be used to pass along when referencing data stored within the
-    /// schema (such as global headers), but *MUST NOT* be used for anything that requires a stable
-    /// identifier across schema generations.
-    pub connector_id_generator: ConnectorIdGenerator,
-
-    /// Each schema to build should contains a SchemaID -> MetaType String to be
-    /// able to construct the whole SchemaRegistry at the end of the parsing.
-    pub schema_to_build: RwLock<HashMap<SchemaID, String>>,
     pub registry: RefCell<Registry>,
     pub variables: &'a HashMap<String, String>,
+
     pub(crate) required_resolvers: HashSet<String>,
     pub(crate) openapi_directives: Vec<(OpenApiDirective, Pos)>,
     pub(crate) graphql_directives: Vec<(GraphqlDirective, Pos)>,
@@ -86,7 +70,6 @@ impl<'a> VisitorContext<'a> {
     }
 
     pub(crate) fn new(document: &'a ServiceDocument, variables: &'a HashMap<String, String>) -> Self {
-        let mut schema = Vec::new();
         let mut types = HashMap::new();
         let mut directives = HashMap::new();
 
@@ -95,9 +78,7 @@ impl<'a> VisitorContext<'a> {
                 TypeSystemDefinition::Type(ty) => {
                     types.insert(ty.node.name.node.to_string(), Cow::Borrowed(ty));
                 }
-                TypeSystemDefinition::Schema(schema_ty) => {
-                    schema.push(schema_ty);
-                }
+                TypeSystemDefinition::Schema(_) => (),
                 TypeSystemDefinition::Directive(directive) => {
                     directives.insert(directive.node.name.node.to_string(), directive);
                 }
@@ -114,16 +95,12 @@ impl<'a> VisitorContext<'a> {
         Self {
             directives,
             types,
-            schema,
             errors: Default::default(),
             warnings: Default::default(),
             type_stack: Default::default(),
             registry: RefCell::new(Schema::create_registry()),
             mutations: Default::default(),
             queries: Default::default(),
-            schema_to_build: Default::default(),
-            connector_id_generator: Default::default(),
-            schema_id_generator: Default::default(),
             variables,
             required_resolvers: Default::default(),
             openapi_directives: Vec::new(),

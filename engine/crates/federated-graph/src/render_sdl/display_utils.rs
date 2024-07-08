@@ -77,7 +77,7 @@ impl fmt::Display for ValueDisplay<'_> {
 
                 for value in values.as_ref() {
                     ValueDisplay(value, graph).fmt(f)?;
-                    f.write_char(',')?;
+                    f.write_str(", ")?;
                 }
 
                 f.write_char(']')
@@ -171,6 +171,46 @@ impl Display for BareFieldSetDisplay<'_> {
     }
 }
 
+/// Displays a input value definition set inside quotes
+pub(super) struct InputValueDefinitionSetDisplay<'a>(pub &'a crate::InputValueDefinitionSet, pub &'a FederatedGraphV3);
+
+impl Display for InputValueDefinitionSetDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let out = format!("{}", BareInputValueDefinitionSetDisplay(self.0, self.1));
+        write_quoted(f, &out)
+    }
+}
+
+pub(super) struct BareInputValueDefinitionSetDisplay<'a>(
+    pub &'a crate::InputValueDefinitionSet,
+    pub &'a FederatedGraphV3,
+);
+
+impl Display for BareInputValueDefinitionSetDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let BareInputValueDefinitionSetDisplay(selection_set, graph) = self;
+        let mut selection = selection_set.iter().peekable();
+
+        while let Some(field) = selection.next() {
+            let name = &graph[graph[field.input_value_definition].name];
+
+            f.write_str(name)?;
+
+            if !field.subselection.is_empty() {
+                f.write_str(" { ")?;
+                BareInputValueDefinitionSetDisplay(&field.subselection, graph).fmt(f)?;
+                f.write_str(" }")?;
+            }
+
+            if selection.peek().is_some() {
+                f.write_char(' ')?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
 pub(super) fn write_description(
     f: &mut fmt::Formatter<'_>,
     description: Option<StringId>,
@@ -181,14 +221,23 @@ pub(super) fn write_description(
     Display::fmt(&Description(&graph[description], indent), f)
 }
 
+pub(crate) struct DirectiveDisplay<'a>(pub &'a Directive, pub &'a FederatedGraphV3);
+
+impl Display for DirectiveDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let DirectiveDisplay(directive, graph) = self;
+        write_composed_directive(f, directive, graph)
+    }
+}
+
 pub(crate) fn write_composed_directive(
     f: &mut fmt::Formatter<'_>,
     directive: &Directive,
     graph: &FederatedGraphV3,
 ) -> fmt::Result {
     match directive {
-        Directive::Authenticated => write_directive(f, "authenticated", iter::empty(), graph),
-        Directive::Inaccessible => write_directive(f, "inaccessible", iter::empty(), graph),
+        Directive::Authenticated => write_directive(f, "authenticated", iter::empty::<(&str, Value)>(), graph),
+        Directive::Inaccessible => write_directive(f, "inaccessible", iter::empty::<(&str, Value)>(), graph),
         Directive::Deprecated { reason } => write_directive(
             f,
             "deprecated",
@@ -197,7 +246,7 @@ pub(crate) fn write_composed_directive(
         ),
         Directive::Policy(policies) => write_directive(
             f,
-            "policies",
+            "policy",
             std::iter::once((
                 "policies",
                 Value::List(
@@ -234,20 +283,76 @@ pub(crate) fn write_composed_directive(
     }
 }
 
-fn write_directive<'a>(
+enum DisplayableArgument<'a> {
+    Value(Value),
+    FieldSet(FieldSetDisplay<'a>),
+    InputValueDefinitionSet(InputValueDefinitionSetDisplay<'a>),
+}
+
+impl From<Value> for DisplayableArgument<'_> {
+    fn from(value: Value) -> Self {
+        DisplayableArgument::Value(value)
+    }
+}
+
+impl<'a> From<FieldSetDisplay<'a>> for DisplayableArgument<'a> {
+    fn from(value: FieldSetDisplay<'a>) -> Self {
+        DisplayableArgument::FieldSet(value)
+    }
+}
+
+impl<'a> From<InputValueDefinitionSetDisplay<'a>> for DisplayableArgument<'a> {
+    fn from(value: InputValueDefinitionSetDisplay<'a>) -> Self {
+        DisplayableArgument::InputValueDefinitionSet(value)
+    }
+}
+
+pub(super) struct AuthorizedDirectiveDisplay<'a>(pub &'a AuthorizedDirective, pub &'a FederatedGraphV3);
+
+impl Display for AuthorizedDirectiveDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let AuthorizedDirectiveDisplay(directive, graph) = self;
+
+        let fields = directive
+            .fields
+            .as_ref()
+            .map(|fields| ("fields", DisplayableArgument::from(FieldSetDisplay(fields, graph))));
+
+        let arguments = directive.arguments.as_ref().map(|arguments| {
+            (
+                "arguments",
+                DisplayableArgument::from(InputValueDefinitionSetDisplay(arguments, graph)),
+            )
+        });
+
+        let metadata = directive
+            .metadata
+            .as_ref()
+            .map(|metadata| ("metadata", DisplayableArgument::Value(metadata.clone())));
+
+        let arguments = [fields, arguments, metadata];
+
+        write_directive(f, "authorized", arguments.into_iter().flatten(), graph)
+    }
+}
+
+fn write_directive<'a, A>(
     f: &mut fmt::Formatter<'_>,
     directive_name: &str,
-    arguments: impl Iterator<Item = (&'a str, Value)>,
+    arguments: impl Iterator<Item = (&'a str, A)>,
     graph: &FederatedGraphV3,
-) -> fmt::Result {
+) -> fmt::Result
+where
+    A: Into<DisplayableArgument<'a>>,
+{
     f.write_str(" @")?;
     f.write_str(directive_name)?;
-    write_directive_arguments(f, arguments, graph)
+    write_directive_arguments(f, arguments.map(|(name, value)| (name, value.into())), graph)
 }
 
 fn write_directive_arguments<'a>(
     f: &mut fmt::Formatter<'_>,
-    arguments: impl Iterator<Item = (&'a str, Value)>,
+    arguments: impl Iterator<Item = (&'a str, DisplayableArgument<'a>)>,
     graph: &FederatedGraphV3,
 ) -> fmt::Result {
     let mut arguments = arguments.peekable();
@@ -259,8 +364,20 @@ fn write_directive_arguments<'a>(
     f.write_str("(")?;
 
     while let Some((name, value)) = arguments.next() {
-        let value = ValueDisplay(&value, graph);
-        write!(f, "{name}: {value}")?;
+        f.write_str(name)?;
+        f.write_str(": ")?;
+
+        match value {
+            DisplayableArgument::Value(v) => {
+                ValueDisplay(&v, graph).fmt(f)?;
+            }
+            DisplayableArgument::FieldSet(v) => {
+                v.fmt(f)?;
+            }
+            DisplayableArgument::InputValueDefinitionSet(v) => {
+                v.fmt(f)?;
+            }
+        }
 
         if arguments.peek().is_some() {
             f.write_str(", ")?;

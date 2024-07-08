@@ -10,48 +10,47 @@ An implementation of [GraphQL federated schema composition](https://www.apollogr
 ```rust
 use graphql_composition::{Subgraphs, compose};
 
-fn main() {
-  let user_subgraph = r#"
-    extend schema
-      @link(url: "https://specs.apollo.dev/federation/v2.3",
-            import: ["@key"])
+let user_subgraph = r#"
+  extend schema
+    @link(url: "https://specs.apollo.dev/federation/v2.3",
+          import: ["@key"])
 
-    type Query {
-      findUserByEmail(email: String!): User
-    }
+  type Query {
+    findUserByEmail(email: String!): User
+  }
 
-    type User @key(fields: "id") {
-      id: ID!
-      name: String!
-    }
-  "#;
+  type User @key(fields: "id") {
+    id: ID!
+    name: String!
+  }
+"#;
 
-  let cart_subgraph = r#"
-    extend schema
-      @link(url: "https://specs.apollo.dev/federation/v2.3",
-            import: ["@key", "@shareable"])
+let cart_subgraph = r#"
+  extend schema
+    @link(url: "https://specs.apollo.dev/federation/v2.3",
+          import: ["@key", "@shareable"])
 
-    type User @key(fields: "id") {
-      id: ID!
-      cart: Cart
-    }
+  type User @key(fields: "id") {
+    id: ID!
+    cart: Cart
+  }
 
-    type Cart @shareable {
-      items: [String!]!
-    }
-  "#;
+  type Cart @shareable {
+    items: [String!]!
+  }
+"#;
 
-  let [user_subgraph, cart_subgraph] = [user_subgraph, cart_subgraph]
-    .map(|sdl| async_graphql_parser::parse_schema(&sdl).unwrap());
+let [user_subgraph, cart_subgraph] = [user_subgraph, cart_subgraph]
+  .map(|sdl| async_graphql_parser::parse_schema(&sdl).unwrap());
 
-  let mut subgraphs = Subgraphs::default();
+let mut subgraphs = Subgraphs::default();
 
-  subgraphs.ingest(&user_subgraph, "users-service", "http://users.example.com");
-  subgraphs.ingest(&cart_subgraph, "carts-service", "http://carts.example.com");
+subgraphs.ingest(&user_subgraph, "users-service", "http://users.example.com");
+subgraphs.ingest(&cart_subgraph, "carts-service", "http://carts.example.com");
 
-  let composed = compose(&subgraphs).into_result().unwrap().to_sdl().unwrap();
+let composed = compose(&subgraphs).into_result().unwrap().to_sdl().unwrap();
 
-  let expected = r#"
+let expected = r#"
 directive @core(feature: String!) repeatable on SCHEMA
 
 directive @join__owner(graph: join__Graph!) on OBJECT
@@ -93,8 +92,7 @@ type Query {
 }
   "#;
 
-  assert_eq!(expected.trim(), composed.trim());
-}
+assert_eq!(expected.trim(), composed.trim());
 
 ```
 

@@ -13,11 +13,11 @@ use serde::de::Error;
 use crate::engine_v1::GraphQlRequest;
 
 pub struct TestFederationEngine {
-    engine: Arc<engine_v2::Engine>,
+    engine: Arc<engine_v2::Engine<TestRuntime>>,
 }
 
 impl TestFederationEngine {
-    pub fn new(engine: Arc<engine_v2::Engine>) -> Self {
+    pub fn new(engine: Arc<engine_v2::Engine<TestRuntime>>) -> Self {
         TestFederationEngine { engine }
     }
 
@@ -35,10 +35,15 @@ pub struct ExecutionRequest {
     request: GraphQlRequest,
     #[allow(dead_code)]
     headers: HashMap<String, String>,
-    engine: Arc<engine_v2::Engine>,
+    engine: Arc<engine_v2::Engine<TestRuntime>>,
 }
 
 impl ExecutionRequest {
+    pub fn by_client(self, name: &'static str, version: &'static str) -> Self {
+        self.header("x-grafbase-client-name", name)
+            .header("x-grafbase-client-version", version)
+    }
+
     /// Adds a header into the request
     pub fn header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.headers.insert(name.into(), value.into());

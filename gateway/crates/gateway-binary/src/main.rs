@@ -128,7 +128,7 @@ fn otel_layer_reload<S>(
         tracing::debug!("Reloading OTEL layers.");
 
         let Ok(reload_data) = result else {
-            tracing::info!("error waiting for otel reload");
+            tracing::debug!("OTEL did not reload");
             reload_ack_sender.send(()).ok();
             return;
         };

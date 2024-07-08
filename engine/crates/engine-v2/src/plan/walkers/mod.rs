@@ -3,35 +3,28 @@ use std::collections::HashMap;
 use schema::{FieldDefinitionId, ObjectId, Schema, SchemaWalker};
 
 use crate::{
-    operation::{
-        FieldId, Operation, OperationWalker, QueryInputValueId, QueryInputValueWalker, SelectionSetType, Variables,
-    },
-    plan::{CollectedField, FieldType, RuntimeMergedConditionals},
+    operation::{FieldId, Operation, OperationWalker, QueryInputValueId, QueryInputValueWalker, SelectionSetType},
+    plan::{CollectedField, FieldError, FieldType, RuntimeMergedConditionals},
     response::{ResponseEdge, ResponseKey, ResponseKeys, SafeResponseKey},
 };
 
 use super::{
-    AnyCollectedSelectionSet, CollectedSelectionSetId, ConditionalSelectionSetId, ExecutionPlanId, FlatTypeCondition,
-    OperationPlan, PlanInput, PlanOutput, RuntimeCollectedSelectionSet,
+    AnyCollectedSelectionSet, CollectedSelectionSetId, ConditionalSelectionSetId, ExecutionPlanId, OperationPlan,
+    PlanInput, PlanOutput, RuntimeCollectedSelectionSet,
 };
 
 mod collected;
 mod field;
-mod fragment_spread;
-mod inline_fragment;
 mod selection_set;
 
 pub use collected::*;
 pub use field::*;
-pub use fragment_spread::*;
-pub use inline_fragment::*;
 pub use selection_set::*;
 
 #[derive(Clone, Copy)]
 pub(crate) struct PlanWalker<'a, Item = (), SchemaItem = ()> {
     pub(super) schema_walker: SchemaWalker<'a, SchemaItem>,
     pub(super) operation_plan: &'a OperationPlan,
-    pub(super) variables: &'a Variables,
     pub(super) execution_plan_id: ExecutionPlanId,
     pub(super) item: Item,
 }
@@ -73,8 +66,8 @@ impl<'a> PlanWalker<'a, (), ()> {
         &self.operation_plan[self.execution_plan_id].output
     }
 
-    pub fn input(&self) -> Option<&'a PlanInput> {
-        self.operation_plan[self.execution_plan_id].input.as_ref()
+    pub fn input(&self) -> &'a PlanInput {
+        &self.operation_plan[self.execution_plan_id].input
     }
 
     pub fn collected_selection_set(&self) -> PlanWalker<'a, CollectedSelectionSetId, ()> {
@@ -99,7 +92,6 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
     {
         PlanWalker {
             operation_plan: self.operation_plan,
-            variables: self.variables,
             execution_plan_id: self.execution_plan_id,
             schema_walker: self.schema_walker,
             item,
@@ -109,7 +101,6 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
     fn walk_with<I2, SI2>(&self, item: I2, schema_item: SI2) -> PlanWalker<'a, I2, SI2> {
         PlanWalker {
             operation_plan: self.operation_plan,
-            variables: self.variables,
             execution_plan_id: self.execution_plan_id,
             schema_walker: self.schema_walker.walk(schema_item),
             item,
@@ -119,12 +110,12 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
     fn bound_walk_with<I2, SI2: Copy>(&self, item: I2, schema_item: SI2) -> OperationWalker<'a, I2, SI2> {
         self.operation_plan
             .operation
-            .walker_with(self.schema_walker.walk(schema_item), self.variables)
+            .walker_with(self.schema_walker.walk(schema_item), &self.operation_plan.variables)
             .walk(item)
     }
 }
 
-impl<'a> PlanWalker<'a> {
+impl<'a> PlanWalker<'a, (), ()> {
     pub fn walk_input_value(&self, input_value_id: QueryInputValueId) -> QueryInputValueWalker<'a> {
         self.bound_walk_with(&self.operation_plan[input_value_id], ())
     }
@@ -146,17 +137,18 @@ impl<'a> PlanWalker<'a> {
 
         let mut fields = HashMap::<ResponseKey, GroupForResponseKey>::default();
         let mut typename_fields = HashMap::<ResponseKey, ResponseEdge>::default();
+        let mut field_errors = HashMap::<ResponseKey, FieldError>::new();
 
         for selection_set_id in selection_sets {
-            let selection_set = &self[*selection_set_id];
+            let selection_set = &self.operation_plan[*selection_set_id];
             for (type_condition, edge) in &selection_set.typename_fields {
-                if !does_type_condition_apply(&schema, type_condition, object_id) {
+                if !does_type_condition_apply(&schema, *type_condition, object_id) {
                     continue;
                 }
                 typename_fields.entry(edge.as_response_key().unwrap()).or_insert(*edge);
             }
-            for field in &self[selection_set.field_ids] {
-                if !does_type_condition_apply(&schema, &field.type_condition, object_id) {
+            for field in &self.operation_plan[selection_set.field_ids] {
+                if !does_type_condition_apply(&schema, field.entity_id.into(), object_id) {
                     continue;
                 }
                 fields
@@ -189,6 +181,17 @@ impl<'a> PlanWalker<'a> {
                         },
                     });
             }
+            for (entity_id, field_error) in &selection_set.field_errors {
+                if !does_type_condition_apply(&schema, (*entity_id).into(), object_id) {
+                    continue;
+                }
+                field_errors
+                    .entry(field_error.edge.as_response_key().unwrap())
+                    .and_modify(|FieldError { ref mut errors, .. }| {
+                        errors.extend_from_slice(&field_error.errors);
+                    })
+                    .or_insert_with(|| field_error.clone());
+            }
         }
         let mut fields = fields
             .into_values()
@@ -220,12 +223,13 @@ impl<'a> PlanWalker<'a> {
         fields.sort_unstable_by(|a, b| keys[a.expected_key].cmp(&keys[b.expected_key]));
         RuntimeCollectedSelectionSet {
             object_id,
-            boundary_ids: selection_sets
+            response_object_set_ids: selection_sets
                 .iter()
-                .filter_map(|id| self[*id].maybe_boundary_id)
+                .filter_map(|id| self.operation_plan[*id].maybe_response_object_set_id)
                 .collect(),
             fields,
             typename_fields: typename_fields.into_values().collect(),
+            field_errors: field_errors.into_values().collect(),
         }
     }
 
@@ -240,9 +244,10 @@ impl<'a> PlanWalker<'a> {
     }
 }
 
-fn does_type_condition_apply(schema: &Schema, type_condition: &Option<FlatTypeCondition>, object_id: ObjectId) -> bool {
-    type_condition
-        .as_ref()
-        .map(|cond| cond.matches(schema, object_id))
-        .unwrap_or(true)
+fn does_type_condition_apply(schema: &Schema, type_condition: SelectionSetType, object_id: ObjectId) -> bool {
+    match type_condition {
+        SelectionSetType::Object(id) => id == object_id,
+        SelectionSetType::Interface(id) => schema[id].possible_types.contains(&object_id),
+        SelectionSetType::Union(id) => schema[id].possible_types.contains(&object_id),
+    }
 }

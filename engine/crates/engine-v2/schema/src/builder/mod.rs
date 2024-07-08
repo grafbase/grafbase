@@ -3,6 +3,7 @@ mod error;
 mod external_sources;
 mod graph;
 mod ids;
+mod input_values;
 mod interner;
 mod requires;
 
@@ -71,6 +72,7 @@ impl BuildContext {
             field_definitions: vec![
                 FieldDefinition {
                     name: ctx.strings.get_or_insert("__type"),
+                    parent_entity: EntityId::Object(0.into()),
                     description: None,
                     // will be replaced by introspection, doesn't matter.
                     ty: Type {
@@ -86,6 +88,7 @@ impl BuildContext {
                 },
                 FieldDefinition {
                     name: ctx.strings.get_or_insert("__schema"),
+                    parent_entity: EntityId::Object(0.into()),
                     description: None,
                     // will be replaced by introspection, doesn't matter.
                     ty: Type {
@@ -100,7 +103,6 @@ impl BuildContext {
                     directives: Default::default(),
                 },
             ],
-            field_to_parent_entity: vec![EntityId::Object(0.into()); 2],
             enum_definitions: Vec::new(),
             union_definitions: Vec::new(),
             scalar_definitions: Vec::new(),
@@ -114,6 +116,7 @@ impl BuildContext {
             cache_control: Vec::new(),
             input_values: Default::default(),
             required_scopes: Vec::new(),
+            authorized_directives: Vec::new(),
         };
         let out = build(&mut ctx, &mut graph);
         let introspection =

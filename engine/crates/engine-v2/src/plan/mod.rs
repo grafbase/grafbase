@@ -1,20 +1,21 @@
-use id_newtypes::IdRange;
+use std::sync::Arc;
+
 use schema::{EntityId, ResolverId, Schema};
 
 use crate::{
+    execution::ExecutionContext,
     operation::{Operation, PlanId, Variables},
-    response::ReadSelectionSet,
+    response::{GraphqlError, ReadSelectionSet},
     sources::PreparedExecutor,
+    Runtime,
 };
 
 mod collected;
-mod flat;
 mod ids;
 mod planning;
 mod state;
 mod walkers;
 pub(crate) use collected::*;
-pub(crate) use flat::*;
 pub(crate) use ids::*;
 pub(crate) use planning::*;
 pub(crate) use state::*;
@@ -22,7 +23,9 @@ pub(crate) use walkers::*;
 
 /// All the necessary information for the operation to be executed that can be prepared & cached.
 pub(crate) struct OperationPlan {
-    operation: Operation,
+    pub(crate) operation: Arc<Operation>,
+    variables: Variables,
+    pub(crate) root_errors: Vec<GraphqlError>,
 
     // Association between fields & selection sets and plans. Used when traversing the operation
     // for a plan filtering out other plans fields and to build the collected selection set.
@@ -40,8 +43,8 @@ pub(crate) struct OperationPlan {
     plan_parent_to_child_edges: Vec<ParentToChildEdge>,
     // PlanId -> u8
     plan_dependencies_count: Vec<u8>,
-    // PlanBoundaryId -> u8
-    plan_boundary_consummers_count: Vec<u8>,
+    // ResponseObjectSetId -> u8
+    response_object_set_consummers_count: Vec<u8>,
 
     // -- Collected fields & selection sets --
     // Once all fields have been planned, we collect fields to know what to expect from the
@@ -63,7 +66,7 @@ pub(crate) struct OperationPlan {
 pub(crate) struct ExecutionPlan {
     pub plan_id: PlanId,
     pub resolver_id: ResolverId,
-    pub input: Option<PlanInput>,
+    pub input: PlanInput,
     pub output: PlanOutput,
     pub prepared_executor: PreparedExecutor,
 }
@@ -73,12 +76,6 @@ impl std::ops::Deref for OperationPlan {
 
     fn deref(&self) -> &Self::Target {
         &self.operation
-    }
-}
-
-impl std::ops::DerefMut for OperationPlan {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.operation
     }
 }
 
@@ -93,20 +90,21 @@ where
 }
 
 impl OperationPlan {
-    pub fn prepare(schema: &Schema, variables: &Variables, operation: Operation) -> PlanningResult<Self> {
-        planning::plan_operation(schema, variables, operation)
+    pub async fn build<'a, R: Runtime>(
+        ctx: &ExecutionContext<'_, R>,
+        operation: Arc<Operation>,
+        variables: Variables,
+    ) -> PlanningResult<Self> {
+        planning::collect::OperationPlanBuilder::new(ctx, operation, variables)
+            .build()
+            .await
     }
 
     pub fn new_execution_state(&self) -> OperationExecutionState {
         OperationExecutionState::new(self)
     }
 
-    pub fn walker_with<'s>(
-        &'s self,
-        schema: &'s Schema,
-        variables: &'s Variables,
-        execution_plan_id: ExecutionPlanId,
-    ) -> PlanWalker<'s, (), ()> {
+    pub fn walker_with<'s>(&'s self, schema: &'s Schema, execution_plan_id: ExecutionPlanId) -> PlanWalker<'s, (), ()> {
         let schema_walker = schema
             .walk(self[execution_plan_id].resolver_id)
             .with_own_names()
@@ -114,26 +112,22 @@ impl OperationPlan {
         PlanWalker {
             schema_walker,
             operation_plan: self,
-            variables,
             execution_plan_id,
             item: (),
         }
     }
 }
 
-#[derive(Debug)]
 pub struct PlanInput {
-    pub boundary_id: ExecutionPlanBoundaryId,
+    pub response_object_set_id: ResponseObjectSetId,
+    pub entity_id: EntityId,
     /// if the plan `@requires` any data it will be included in the ReadSelectionSet.
     pub selection_set: ReadSelectionSet,
 }
 
-#[derive(Debug)]
 pub struct PlanOutput {
-    pub type_condition: Option<FlatTypeCondition>,
-    pub entity_type: EntityId,
     pub collected_selection_set_id: CollectedSelectionSetId,
-    pub boundary_ids: IdRange<ExecutionPlanBoundaryId>,
+    pub tracked_locations: Vec<ResponseObjectSetId>,
 }
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy, Debug, PartialOrd, Ord)]

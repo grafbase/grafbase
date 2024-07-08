@@ -7,7 +7,7 @@ use graph_entities::QueryResponse;
 use headers::HeaderMapExt;
 use http::{HeaderMap, HeaderValue};
 use insta::assert_json_snapshot;
-use partial_caching::FetchPhaseResult;
+use partial_caching::{type_relationships::no_subtypes, FetchPhaseResult};
 use runtime::cache::Entry;
 use serde::Deserialize;
 use serde_json::json;
@@ -45,7 +45,7 @@ fn test_simple_response_merging() {
         hit(json!({"user": {"nested": {"someThing": "hello"}}}), 10),
     );
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -53,7 +53,7 @@ fn test_simple_response_merging() {
     let root_node = query_response.from_serde_value(json!({"user": {"email": "whatever", "someConstant": "123"}}));
     query_response.set_root_unchecked(root_node);
 
-    let (response, _updates) = execution.handle_response(query_response, false);
+    let (response, _updates) = execution.handle_full_response(query_response, false);
 
     // Note: This is technically wrong because the order of the fields doesn't match the query.
     // Have raised GB-6813 to look into this (or not, we'll see)
@@ -84,7 +84,7 @@ fn test_handles_nulls_gracefull() {
         hit(json!({"user": {"nested": {"someThing": "hello"}}}), 10),
     );
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -92,7 +92,7 @@ fn test_handles_nulls_gracefull() {
     let root_node = query_response.from_serde_value(json!({"user": null}));
     query_response.set_root_unchecked(root_node);
 
-    let (response, _updates) = execution.handle_response(query_response, false);
+    let (response, _updates) = execution.handle_full_response(query_response, false);
 
     assert_json_snapshot!(response.body.as_graphql_data(), @r###"
     {
@@ -116,7 +116,7 @@ fn test_complete_hit() {
         hit(json!({"user": {"nested": {"someThing": "hello"}}}), 10),
     );
 
-    let FetchPhaseResult::CompleteHit(hit) = fetch_phase.finish() else {
+    let FetchPhaseResult::CompleteHit(hit) = fetch_phase.finish(no_subtypes()) else {
         panic!("We hit everything so this should always be a complete hit");
     };
 
@@ -153,7 +153,7 @@ fn test_partial_hit_when_lowest_max_age_is_hit() {
     let cache_keys = fetch_phase.cache_keys();
     fetch_phase.record_cache_entry(&cache_keys[0], hit(json!({"user": {"name": "Jane"}}), 10));
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -167,7 +167,7 @@ fn test_partial_hit_when_lowest_max_age_is_hit() {
     }));
     query_response.set_root_unchecked(root_node);
 
-    let (response, _updates) = execution.handle_response(query_response, false);
+    let (response, _updates) = execution.handle_full_response(query_response, false);
 
     assert_eq!(
         response.headers.get("x-grafbase-cache"),
@@ -187,7 +187,7 @@ fn test_partial_hit_when_lowest_max_age_is_miss() {
     let cache_keys = fetch_phase.cache_keys();
     fetch_phase.record_cache_entry(&cache_keys[2], hit(json!({"user": {"someConstant": "123"}}), 5000));
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -201,7 +201,7 @@ fn test_partial_hit_when_lowest_max_age_is_miss() {
     }));
     query_response.set_root_unchecked(root_node);
 
-    let (response, _updates) = execution.handle_response(query_response, false);
+    let (response, _updates) = execution.handle_full_response(query_response, false);
 
     assert_eq!(
         response.headers.get("x-grafbase-cache"),
@@ -218,7 +218,7 @@ fn test_miss_headers() {
     let plan = partial_caching::build_plan(QUERY, None, &registry).unwrap().unwrap();
     let fetch_phase = plan.start_fetch_phase(&auth(), &headers(), &variables());
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -233,7 +233,7 @@ fn test_miss_headers() {
     }));
     query_response.set_root_unchecked(root_node);
 
-    let (response, _updates) = execution.handle_response(query_response, false);
+    let (response, _updates) = execution.handle_full_response(query_response, false);
 
     assert_eq!(
         response.headers.get("x-grafbase-cache"),
@@ -252,7 +252,7 @@ fn test_query_that_hits_uncacheable_fields_should_have_no_cache_control_header()
         .unwrap();
     let fetch_phase = plan.start_fetch_phase(&auth(), &headers(), &variables());
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -265,7 +265,7 @@ fn test_query_that_hits_uncacheable_fields_should_have_no_cache_control_header()
     }));
     query_response.set_root_unchecked(root_node);
 
-    let (response, _updates) = execution.handle_response(query_response, false);
+    let (response, _updates) = execution.handle_full_response(query_response, false);
 
     assert_eq!(
         response.headers.get("x-grafbase-cache"),

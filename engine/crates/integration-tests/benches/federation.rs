@@ -1,15 +1,19 @@
 #![allow(unused_crate_dependencies)]
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use integration_tests::federation::FederationGatewayWithoutIO;
+use integration_tests::{federation::DeterministicEngine, runtime};
 use serde_json::json;
 
 const SCHEMA: &str = include_str!("../data/federated-graph-schema.graphql");
 const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../data/introspection.graphql");
 
 pub fn introspection(c: &mut Criterion) {
-    let bench = FederationGatewayWithoutIO::new(SCHEMA, PATHFINDER_INTROSPECTION_QUERY, &[json!({"data": null})]);
-    let response = integration_tests::runtime().block_on(bench.execute());
+    let bench = runtime().block_on(DeterministicEngine::new(
+        SCHEMA,
+        PATHFINDER_INTROSPECTION_QUERY,
+        &[json!({"data": null})],
+    ));
+    let response = runtime().block_on(bench.execute());
 
     // Sanity check it works.
     insta::assert_json_snapshot!(response);
@@ -28,7 +32,7 @@ pub fn introspection(c: &mut Criterion) {
 }
 
 pub fn basic_federation(c: &mut Criterion) {
-    let bench = FederationGatewayWithoutIO::new(
+    let bench = runtime().block_on(DeterministicEngine::new(
         SCHEMA,
         r#"
         query ExampleQuery {
@@ -55,8 +59,8 @@ pub fn basic_federation(c: &mut Criterion) {
             json!({"data":{"_entities":[{"__typename":"User","reviews":[{"body":"A highly effective form of birth control.","product":{"reviews":[{"author":{"id":"1234"},"body":"A highly effective form of birth control."}]}},{"body":"Fedoras are one of the most fashionable hats around and can look great with a variety of outfits.","product":{"reviews":[{"author":{"id":"1234"},"body":"Fedoras are one of the most fashionable hats around and can look great with a variety of outfits."}]}}]}]}}),
             json!({"data":{"_entities":[{"__typename":"User","username":"Me"},{"__typename":"User","username":"Me"}]}}),
         ],
-    );
-    let response = integration_tests::runtime().block_on(bench.execute());
+    ));
+    let response = runtime().block_on(bench.execute());
 
     // Sanity check it works.
     insta::assert_json_snapshot!(response);

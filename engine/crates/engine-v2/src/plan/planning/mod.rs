@@ -1,19 +1,15 @@
-use std::collections::BTreeMap;
-
 use schema::Schema;
 
 use crate::{
     operation::{Operation, Variables},
-    response::GraphqlError,
+    response::{ErrorCode, GraphqlError},
 };
 
 mod boundary;
-mod collect;
+pub(crate) mod collect;
 mod logic;
 mod planner;
 mod walker_ext;
-
-use super::OperationPlan;
 
 pub type PlanningResult<T> = Result<T, PlanningError>;
 
@@ -39,12 +35,8 @@ impl From<PlanningError> for GraphqlError {
             PlanningError::InternalError { .. } => vec![],
         };
 
-        GraphqlError {
-            message,
-            locations: vec![],
-            path: None,
-            extensions: BTreeMap::from([("queryPath".into(), serde_json::Value::Array(query_path))]),
-        }
+        GraphqlError::new(message, ErrorCode::OperationPlanningError)
+            .with_extension("queryPath", serde_json::Value::Array(query_path))
     }
 }
 
@@ -60,10 +52,6 @@ impl From<&str> for PlanningError {
     }
 }
 
-pub(super) fn plan_operation(
-    schema: &Schema,
-    variables: &Variables,
-    operation: Operation,
-) -> PlanningResult<OperationPlan> {
-    planner::Planner::new(schema, variables, operation).plan()
+pub(crate) fn solve(schema: &Schema, variables: &Variables, operation: &mut Operation) -> PlanningResult<()> {
+    planner::OperationSolver::new(schema, variables, operation).solve()
 }

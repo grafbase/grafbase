@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added composition for default values of output field arguments and input fields. They are now reflected in the federated graph.
+- Support the experimental @authorized directive
+- Fixed the ingestion of numeric literals when creating a federated graph from a string.
+
 ## 0.4.0 - 2024-06-11
 
 - Ignore federation mandated fields (_entities, _service) and types (https://github.com/grafbase/grafbase/pull/1743)

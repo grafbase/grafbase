@@ -86,9 +86,9 @@ pub struct SchemaInputValues {
 }
 
 id_newtypes::NonZeroU32! {
-    SchemaInputValues.values[SchemaInputValueId] => SchemaInputValue | index(Schema.graph.input_values),
-    SchemaInputValues.input_fields[SchemaInputObjectFieldValueId] => (InputValueDefinitionId, SchemaInputValue) | index(Schema.graph.input_values),
-    SchemaInputValues.key_values[SchemaInputKeyValueId] => (StringId, SchemaInputValue) | index(Schema.graph.input_values),
+    SchemaInputValues.values[SchemaInputValueId] => SchemaInputValue | proxy(Schema.graph.input_values),
+    SchemaInputValues.input_fields[SchemaInputObjectFieldValueId] => (InputValueDefinitionId, SchemaInputValue) | proxy(Schema.graph.input_values),
+    SchemaInputValues.key_values[SchemaInputKeyValueId] => (StringId, SchemaInputValue) | proxy(Schema.graph.input_values),
 }
 
 /// Represents a default input value and @requires arguments.
@@ -130,7 +130,7 @@ impl SchemaInputValue {
 }
 
 impl SchemaInputValues {
-    pub fn push_value(&mut self, value: SchemaInputValue) -> SchemaInputValueId {
+    pub(crate) fn push_value(&mut self, value: SchemaInputValue) -> SchemaInputValueId {
         let id = SchemaInputValueId::from(self.values.len());
         self.values.push(value);
         id
@@ -158,7 +158,7 @@ impl SchemaInputValues {
         (start..self.key_values.len()).into()
     }
 
-    pub fn append_input_object(
+    pub(crate) fn append_input_object(
         &mut self,
         fields: &mut Vec<(InputValueDefinitionId, SchemaInputValue)>,
     ) -> IdRange<SchemaInputObjectFieldValueId> {

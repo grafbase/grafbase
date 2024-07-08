@@ -1,3 +1,4 @@
+mod attach_argument_selection;
 mod context;
 mod emit_fields;
 mod field_types_map;
@@ -26,15 +27,20 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         scalars: mem::take(&mut ir.scalars),
         input_objects: mem::take(&mut ir.input_objects),
         directives: mem::take(&mut ir.directives),
-        input_value_definitions: vec![],
-        strings: Vec::new(),
-        subgraphs: vec![],
         root_operation_types: RootOperationTypes {
             query: ir.query_type.unwrap(),
             mutation: ir.mutation_type,
             subscription: ir.subscription_type,
         },
+
+        subgraphs: vec![],
         fields: vec![],
+        input_value_definitions: vec![],
+        strings: vec![],
+        authorized_directives: vec![],
+        field_authorized_directives: vec![],
+        object_authorized_directives: vec![],
+        interface_authorized_directives: vec![],
     };
 
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
@@ -51,10 +57,61 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     );
     emit_union_members(&ir.union_members, &mut ctx);
     emit_keys(&ir.keys, &mut ctx);
+    emit_authorized_directives(&ir, &mut ctx);
 
     drop(ctx);
 
     federated::FederatedGraph::V3(out)
+}
+
+fn emit_authorized_directives(ir: &CompositionIr, ctx: &mut Context<'_>) {
+    for (object_id, authorized) in &ir.object_authorized_directives {
+        let authorized = ctx.subgraphs.walk(*authorized).authorized().unwrap();
+        let metadata = authorized.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
+        let fields = authorized
+            .fields
+            .as_ref()
+            .map(|fields| attach_selection(fields, federated::Definition::Object(*object_id), ctx));
+
+        let authorized_directive_id = ctx
+            .out
+            .authorized_directives
+            .push_return_idx(federated::AuthorizedDirective {
+                fields,
+                arguments: None,
+                metadata,
+            });
+
+        let authorized_directive_id = federated::AuthorizedDirectiveId(authorized_directive_id);
+
+        ctx.out
+            .object_authorized_directives
+            .push((*object_id, authorized_directive_id));
+    }
+
+    for (interface_id, authorized) in &ir.interface_authorized_directives {
+        let authorized = ctx.subgraphs.walk(*authorized).authorized().unwrap();
+        let metadata = authorized.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
+        let fields = authorized
+            .fields
+            .as_ref()
+            .map(|fields| attach_selection(fields, federated::Definition::Interface(*interface_id), ctx));
+
+        let authorized_directive_id = ctx
+            .out
+            .authorized_directives
+            .push_return_idx(federated::AuthorizedDirective {
+                fields,
+                arguments: None,
+                metadata,
+            });
+
+        let authorized_directive_id = federated::AuthorizedDirectiveId(authorized_directive_id);
+
+        ctx.out
+            .interface_authorized_directives
+            .push((*interface_id, authorized_directive_id));
+    }
 }
 
 fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionIr], ctx: &mut Context<'_>) {
@@ -66,11 +123,13 @@ fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionI
                  r#type,
                  directives,
                  description,
+                 default,
              }| federated::InputValueDefinition {
                 name: *name,
                 r#type: ctx.insert_field_type(ctx.subgraphs.walk(*r#type)),
                 directives: *directives,
                 description: *description,
+                default: default.as_ref().map(|default| ctx.insert_value(default)),
             },
         )
         .collect()
@@ -106,7 +165,7 @@ fn emit_fields<'a>(
     __type: federated::StringId,
     ctx: &mut Context<'a>,
 ) {
-    // We have to accumulate the `@provides` and `@requires` and delay emitting them because
+    // We have to accumulate the `@provides`, `@requires` and `@authorized` and delay emitting them because
     // attach_selection() depends on all fields having been populated first.
     let mut field_provides: Vec<(
         federated::FieldId,
@@ -119,6 +178,11 @@ fn emit_fields<'a>(
         federated::SubgraphId,
         federated::Definition,
         &'a [subgraphs::Selection],
+    )> = Vec::new();
+    let mut field_authorized: Vec<(
+        federated::FieldId,
+        federated::Definition,
+        &subgraphs::AuthorizedDirective,
     )> = Vec::new();
 
     emit_fields::for_each_field_group(&ir_fields, |definition, fields| {
@@ -153,6 +217,7 @@ fn emit_fields<'a>(
             composed_directives,
             overrides,
             description,
+            authorized_directives,
         } in fields.drain(..)
         {
             let r#type = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
@@ -192,14 +257,21 @@ fn emit_fields<'a>(
 
             for (subgraph_id, requires) in requires.iter().filter_map(|field_id| {
                 let field = ctx.subgraphs.walk_field(*field_id);
-                field.directives().requires().map(|provides| {
+                field.directives().requires().map(|requires| {
                     (
                         federated::SubgraphId(field.parent_definition().subgraph_id().idx()),
-                        provides,
+                        requires,
                     )
                 })
             }) {
                 field_requires.push((field_id, subgraph_id, definition, requires));
+            }
+
+            for authorized in authorized_directives
+                .iter()
+                .filter_map(|field_id| ctx.subgraphs.walk_field(*field_id).directives().authorized())
+            {
+                field_authorized.push((field_id, definition, authorized));
             }
 
             let selection_map_key = (definition, field_name);
@@ -262,6 +334,32 @@ fn emit_fields<'a>(
         ctx.out.fields[field_id.0]
             .requires
             .push(federated::FieldRequires { subgraph_id, fields });
+    }
+
+    for (field_id, definition, authorized) in field_authorized {
+        let fields = authorized
+            .fields
+            .as_ref()
+            .map(|fields| attach_selection(fields, definition, ctx));
+        let metadata = authorized.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
+
+        let arguments = authorized
+            .arguments
+            .as_ref()
+            .map(|args| attach_argument_selection::attach_argument_selection(args, field_id, ctx));
+
+        let idx = ctx
+            .out
+            .authorized_directives
+            .push_return_idx(federated::AuthorizedDirective {
+                fields,
+                arguments,
+                metadata,
+            });
+
+        ctx.out
+            .field_authorized_directives
+            .push((field_id, federated::AuthorizedDirectiveId(idx)));
     }
 }
 

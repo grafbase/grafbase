@@ -1,9 +1,13 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{ComponentLoader, Config, ErrorResponse};
+use crate::{
+    AuthorizationHookInstance, ComponentLoader, Config, EdgeDefinition, ErrorResponse, GatewayHookInstance,
+    NodeDefinition,
+};
 use expect_test::expect;
 use http::{HeaderMap, HeaderValue};
 use indoc::{formatdoc, indoc};
+use serde_json::json;
 use tempdir::TempDir;
 use wiremock::{matchers::method, ResponseTemplate};
 
@@ -29,12 +33,10 @@ async fn missing_hook() {
     let config: Config = toml::from_str(config).unwrap();
     assert!(config.location().exists());
 
-    let (context, headers) = ComponentLoader::new(config)
-        .unwrap()
-        .unwrap()
-        .on_gateway_request(HashMap::new(), HeaderMap::new())
-        .await
-        .unwrap();
+    let loader = ComponentLoader::new(config).unwrap().unwrap();
+    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+
+    let (context, headers) = hook.call(HashMap::new(), HeaderMap::new()).await.unwrap();
 
     assert_eq!(HeaderMap::new(), headers);
     assert_eq!(HashMap::new(), context);
@@ -61,7 +63,8 @@ async fn simple_no_io() {
     let mut context = HashMap::new();
     context.insert("kekw".to_string(), "lol".to_string());
 
-    let (context, headers) = loader.on_gateway_request(context, HeaderMap::new()).await.unwrap();
+    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+    let (context, headers) = hook.call(context, HeaderMap::new()).await.unwrap();
 
     assert_eq!(Some(&HeaderValue::from_static("call")), headers.get("direct"));
     assert_eq!(Some(&HeaderValue::from_static("meow")), headers.get("fromEnv"));
@@ -95,10 +98,8 @@ async fn dir_access_read_only() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let (_, headers) = loader
-        .on_gateway_request(HashMap::new(), HeaderMap::new())
-        .await
-        .unwrap();
+    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+    let (_, headers) = hook.call(HashMap::new(), HeaderMap::new()).await.unwrap();
 
     assert_eq!(
         Some(&HeaderValue::from_static("test string")),
@@ -133,12 +134,9 @@ async fn dir_access_write() {
 
     std::fs::write(path.join("contents.txt"), "test string").unwrap();
 
-    ComponentLoader::new(config)
-        .unwrap()
-        .unwrap()
-        .on_gateway_request(HashMap::new(), HeaderMap::new())
-        .await
-        .unwrap();
+    let loader = ComponentLoader::new(config).unwrap().unwrap();
+    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+    hook.call(HashMap::new(), HeaderMap::new()).await.unwrap();
 
     let path = path.join("guest_write.txt");
 
@@ -174,10 +172,8 @@ async fn networking() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let (context, _) = loader
-        .on_gateway_request(HashMap::new(), HeaderMap::new())
-        .await
-        .unwrap();
+    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.call(HashMap::new(), HeaderMap::new()).await.unwrap();
 
     assert_eq!(Some("kekw"), context.get("HTTP_RESPONSE").map(|s| s.as_str()));
 }
@@ -208,10 +204,7 @@ async fn networking_no_network() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let error = loader
-        .on_gateway_request(HashMap::new(), HeaderMap::new())
-        .await
-        .unwrap_err();
+    let error = GatewayHookInstance::new(&loader).await.unwrap_err();
 
     let expected = expect![
         "component imports instance `wasi:http/types@0.2.0`, but a matching implementation was not found in the linker"
@@ -232,10 +225,8 @@ async fn guest_error() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let error = loader
-        .on_gateway_request(HashMap::new(), HeaderMap::new())
-        .await
-        .unwrap_err();
+    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+    let error = hook.call(HashMap::new(), HeaderMap::new()).await.unwrap_err();
 
     let expected = ErrorResponse {
         message: String::from("not found"),
@@ -246,7 +237,7 @@ async fn guest_error() {
 }
 
 #[tokio::test]
-async fn authorization() {
+async fn authorize_edge_pre_execution_error() {
     // the guest code in examples/authorization/src/lib.rs
 
     let config = indoc! {r#"
@@ -261,22 +252,296 @@ async fn authorization() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let (context, _) = loader.on_gateway_request(HashMap::new(), headers).await.unwrap();
+    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.call(HashMap::new(), headers).await.unwrap();
 
-    let result = loader
-        .authorized(
+    let mut hook = AuthorizationHookInstance::new(&loader).await.unwrap();
+
+    let definition = EdgeDefinition {
+        parent_type_name: String::new(),
+        field_name: String::new(),
+    };
+
+    let error = hook
+        .authorize_edge_pre_execution(Arc::new(context), definition, String::new(), String::new())
+        .await
+        .unwrap_err();
+
+    let expected = ErrorResponse {
+        message: String::from("not authorized"),
+        extensions: vec![],
+    };
+
+    assert_eq!(Some(expected), error.into_user_error());
+}
+
+#[tokio::test]
+async fn authorize_edge_pre_execution_success() {
+    // the guest code in examples/authorization/src/lib.rs
+
+    let config = indoc! {r#"
+        location = "examples/target/wasm32-wasi/debug/authorization.wasm"
+    "#};
+
+    let config: Config = toml::from_str(config).unwrap();
+    assert!(config.location().exists());
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Authorization", HeaderValue::from_static("kekw"));
+
+    let loader = ComponentLoader::new(config).unwrap().unwrap();
+
+    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.call(HashMap::new(), headers).await.unwrap();
+
+    let mut hook = AuthorizationHookInstance::new(&loader).await.unwrap();
+
+    let definition = EdgeDefinition {
+        parent_type_name: String::new(),
+        field_name: String::new(),
+    };
+
+    hook.authorize_edge_pre_execution(Arc::new(context), definition, String::from("kekw"), String::new())
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn authorize_node_pre_execution_error() {
+    // the guest code in examples/authorization/src/lib.rs
+
+    let config = indoc! {r#"
+        location = "examples/target/wasm32-wasi/debug/authorization.wasm"
+    "#};
+
+    let config: Config = toml::from_str(config).unwrap();
+    assert!(config.location().exists());
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Authorization", HeaderValue::from_static("kekw"));
+
+    let loader = ComponentLoader::new(config).unwrap().unwrap();
+
+    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.call(HashMap::new(), headers).await.unwrap();
+
+    let mut hook = AuthorizationHookInstance::new(&loader).await.unwrap();
+
+    let definition = NodeDefinition {
+        type_name: String::new(),
+    };
+
+    let error = hook
+        .authorize_node_pre_execution(Arc::new(context), definition, String::new())
+        .await
+        .unwrap_err();
+
+    let expected = ErrorResponse {
+        message: String::from("not authorized"),
+        extensions: vec![],
+    };
+
+    assert_eq!(Some(expected), error.into_user_error());
+}
+
+#[tokio::test]
+async fn authorize_node_pre_execution_success() {
+    // the guest code in examples/authorization/src/lib.rs
+
+    let config = indoc! {r#"
+        location = "examples/target/wasm32-wasi/debug/authorization.wasm"
+    "#};
+
+    let config: Config = toml::from_str(config).unwrap();
+    assert!(config.location().exists());
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Authorization", HeaderValue::from_static("kekw"));
+
+    let loader = ComponentLoader::new(config).unwrap().unwrap();
+
+    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.call(HashMap::new(), headers).await.unwrap();
+
+    let mut hook = AuthorizationHookInstance::new(&loader).await.unwrap();
+
+    let definition = NodeDefinition {
+        type_name: String::new(),
+    };
+
+    hook.authorize_node_pre_execution(Arc::new(context), definition, String::from("kekw"))
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn authorize_parent_edge_post_execution() {
+    // the guest code in examples/authorization/src/lib.rs
+
+    let config = indoc! {r#"
+        location = "examples/target/wasm32-wasi/debug/authorization.wasm"
+    "#};
+
+    let config: Config = toml::from_str(config).unwrap();
+    assert!(config.location().exists());
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Authorization", HeaderValue::from_static("kekw"));
+
+    let loader = ComponentLoader::new(config).unwrap().unwrap();
+
+    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.call(HashMap::new(), headers).await.unwrap();
+
+    let mut hook = AuthorizationHookInstance::new(&loader).await.unwrap();
+
+    let definition = EdgeDefinition {
+        parent_type_name: String::new(),
+        field_name: String::new(),
+    };
+
+    let parents = vec![
+        serde_json::to_string(&json!({ "value": "kekw" })).unwrap(),
+        serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
+    ];
+
+    let result = hook
+        .authorize_parent_edge_post_execution(Arc::new(context), definition, parents, String::new())
+        .await
+        .unwrap();
+
+    let expected = expect![[r#"
+        [
+            Ok(
+                (),
+            ),
+            Err(
+                Error {
+                    extensions: [],
+                    message: "not authorized",
+                },
+            ),
+        ]
+    "#]];
+
+    expected.assert_debug_eq(&result);
+}
+
+#[tokio::test]
+async fn authorize_edge_node_post_execution() {
+    // the guest code in examples/authorization/src/lib.rs
+
+    let config = indoc! {r#"
+        location = "examples/target/wasm32-wasi/debug/authorization.wasm"
+    "#};
+
+    let config: Config = toml::from_str(config).unwrap();
+    assert!(config.location().exists());
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Authorization", HeaderValue::from_static("kekw"));
+
+    let loader = ComponentLoader::new(config).unwrap().unwrap();
+
+    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.call(HashMap::new(), headers).await.unwrap();
+
+    let mut hook = AuthorizationHookInstance::new(&loader).await.unwrap();
+
+    let definition = EdgeDefinition {
+        parent_type_name: String::new(),
+        field_name: String::new(),
+    };
+
+    let nodes = vec![
+        serde_json::to_string(&json!({ "value": "kekw" })).unwrap(),
+        serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
+    ];
+
+    let result = hook
+        .authorize_edge_node_post_execution(Arc::new(context), definition, nodes, String::new())
+        .await
+        .unwrap();
+
+    let expected = expect![[r#"
+        [
+            Ok(
+                (),
+            ),
+            Err(
+                Error {
+                    extensions: [],
+                    message: "not authorized",
+                },
+            ),
+        ]
+    "#]];
+
+    expected.assert_debug_eq(&result);
+}
+
+#[tokio::test]
+async fn authorize_edge_post_execution() {
+    // the guest code in examples/authorization/src/lib.rs
+
+    let config = indoc! {r#"
+        location = "examples/target/wasm32-wasi/debug/authorization.wasm"
+    "#};
+
+    let config: Config = toml::from_str(config).unwrap();
+    assert!(config.location().exists());
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Authorization", HeaderValue::from_static("kekw"));
+
+    let loader = ComponentLoader::new(config).unwrap().unwrap();
+
+    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.call(HashMap::new(), headers).await.unwrap();
+
+    let mut hook = AuthorizationHookInstance::new(&loader).await.unwrap();
+
+    let definition = EdgeDefinition {
+        parent_type_name: String::new(),
+        field_name: String::new(),
+    };
+
+    let nodes1 = vec![
+        serde_json::to_string(&json!({ "value": "kekw" })).unwrap(),
+        serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
+    ];
+
+    let nodes2 = vec![
+        serde_json::to_string(&json!({ "value": "kekw" })).unwrap(),
+        serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
+    ];
+
+    let result = hook
+        .authorize_edge_post_execution(
             Arc::new(context),
-            String::from("rule"),
-            vec!["kekw".to_string(), "lol".to_string()],
+            definition,
+            vec![(String::new(), nodes1), (String::new(), nodes2)],
+            String::new(),
         )
         .await
         .unwrap();
 
     let expected = expect![[r#"
         [
-            None,
-            Some(
-                ErrorResponse {
+            Ok(
+                (),
+            ),
+            Err(
+                Error {
+                    extensions: [],
+                    message: "not authorized",
+                },
+            ),
+            Ok(
+                (),
+            ),
+            Err(
+                Error {
                     extensions: [],
                     message: "not authorized",
                 },

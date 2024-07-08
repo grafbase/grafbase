@@ -35,7 +35,7 @@ pub(super) fn merge_field_arguments<'a>(
 
         start = end;
 
-        compose_field_argument_defaults(arguments, ctx);
+        let default = compose_field_argument_defaults(arguments, ctx).cloned();
 
         if !intersection.contains(&argument_name) {
             if let Some((_, required)) = arguments.iter().find(|(_name, arg)| arg.r#type().is_required()) {
@@ -87,6 +87,7 @@ pub(super) fn merge_field_arguments<'a>(
             r#type: argument_type,
             directives: composed_directives,
             description: None,
+            default,
         });
 
         if let Some((_start, len)) = &mut ids {
@@ -107,10 +108,10 @@ pub(super) fn merge_field_arguments<'a>(
 /// on the same fileld, the default must be the same. Other subgraphs can have the
 /// same argument without default, that is valid, but everywhere a default value is
 /// specified, it has to be the same.
-fn compose_field_argument_defaults(
-    arguments: &[(StringId, subgraphs::FieldArgumentWalker<'_>)],
-    ctx: &mut Context<'_>,
-) {
+fn compose_field_argument_defaults<'a>(
+    arguments: &[(StringId, subgraphs::FieldArgumentWalker<'a>)],
+    ctx: &mut Context<'a>,
+) -> Option<&'a subgraphs::Value> {
     let mut default: Option<(&subgraphs::Value, subgraphs::FieldArgumentWalker<'_>)> = None;
 
     for (_, argument) in arguments {
@@ -131,6 +132,8 @@ fn compose_field_argument_defaults(
             )),
         }
     }
+
+    default.map(|(default, _)| default)
 }
 
 fn required_argument_not_in_intersection_error(
@@ -254,7 +257,14 @@ pub(super) fn compose_object_fields<'a>(
         .map(|f| f.id.0)
         .collect();
 
+    let authorized_directives = fields
+        .iter()
+        .filter(|f| f.directives().authorized().is_some())
+        .map(|field| field.id.0)
+        .collect();
+
     let overrides = collect_overrides(fields, ctx);
+
     let description = fields
         .iter()
         .find_map(|f| f.description().map(|d| ctx.insert_string(d.id)));
@@ -276,6 +286,7 @@ pub(super) fn compose_object_fields<'a>(
         composed_directives,
         overrides,
         description,
+        authorized_directives,
     });
 }
 

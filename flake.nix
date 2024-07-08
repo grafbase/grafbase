@@ -129,7 +129,7 @@
           };
         };
 
-        imports = [./cli/nix/cli.nix ./nix/cli-app.nix];
+        imports = [./cli/nix/cli.nix ./nix/cli-app.nix ./gateway/nix/grafbase-gateway.nix];
       };
     };
 }

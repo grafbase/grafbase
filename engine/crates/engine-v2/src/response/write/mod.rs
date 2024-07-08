@@ -7,7 +7,6 @@ use std::{
     sync::Arc,
 };
 
-use id_newtypes::IdRange;
 pub use ids::*;
 use itertools::Either;
 use schema::{ObjectId, Schema};
@@ -15,12 +14,13 @@ use schema::{ObjectId, Schema};
 use self::deserialize::UpdateSeed;
 
 use super::{
-    GraphqlError, InitialResponse, Response, ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef,
+    ErrorCode, GraphqlError, InitialResponse, Response, ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef,
     ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
 use crate::{
     execution::ExecutionError,
-    plan::{ExecutionPlanBoundaryId, OperationPlan, PlanWalker},
+    operation::Operation,
+    plan::{PlanWalker, ResponseObjectSetId},
 };
 
 pub(crate) struct ResponseDataPart {
@@ -70,17 +70,26 @@ impl ResponseBuilder {
         }
     }
 
+    pub fn push_root_errors(&mut self, errors: &[GraphqlError]) {
+        self.errors.extend_from_slice(errors);
+        self.root = None;
+    }
+
     pub fn new_part(
         &mut self,
         root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        plan_boundary_ids: IdRange<ExecutionPlanBoundaryId>,
+        response_object_set_ids: &[ResponseObjectSetId],
     ) -> ResponsePart {
         let id = ResponseDataPartId::from(self.parts.len());
         // reserving the spot until the actual data is written. It's safe as no one can reference
         // any data in this part before it's added. And a part can only be overwritten if it's
         // empty.
         self.parts.push(ResponseDataPart::new(id));
-        ResponsePart::new(ResponseDataPart::new(id), root_response_object_refs, plan_boundary_ids)
+        ResponsePart::new(
+            ResponseDataPart::new(id),
+            root_response_object_refs,
+            response_object_set_ids,
+        )
     }
 
     pub fn root_response_object(&self) -> Option<ResponseObjectRef> {
@@ -98,27 +107,20 @@ impl ResponseBuilder {
         error: ExecutionError,
         default_object: Option<Vec<(ResponseEdge, ResponseValue)>>,
     ) {
+        let error = GraphqlError::from(error);
         if let Some(fields) = default_object {
             for obj_ref in root_response_object_refs {
                 self[obj_ref.id].extend(fields.clone());
                 // Definitely not ideal (for the client) to have a new error each time in the response.
                 // Not exactly sure how we should best deal with it.
-                self.errors.push(GraphqlError {
-                    message: error.to_string(),
-                    path: Some(obj_ref.path.child(edge)),
-                    ..Default::default()
-                });
+                self.errors.push(error.clone().with_path(obj_ref.path.child(edge)));
             }
         } else {
             let mut invalidated_paths = Vec::<&[ResponseEdge]>::new();
             for obj_ref in root_response_object_refs {
                 if !invalidated_paths.iter().any(|path| obj_ref.path.starts_with(path)) {
                     if let Some(invalidated_path) = self.propagate_error(&obj_ref.path) {
-                        self.errors.push(GraphqlError {
-                            message: error.to_string(),
-                            path: Some(obj_ref.path.child(edge)),
-                            ..Default::default()
-                        });
+                        self.errors.push(error.clone().with_path(obj_ref.path.child(edge)));
                         invalidated_paths.push(invalidated_path);
                     }
                 }
@@ -131,7 +133,7 @@ impl ResponseBuilder {
         part: ResponsePart,
         edge: ResponseEdge,
         default_object: Option<Vec<(ResponseEdge, ResponseValue)>>,
-    ) -> Vec<(ExecutionPlanBoundaryId, Vec<ResponseObjectRef>)> {
+    ) -> Vec<(ResponseObjectSetId, Vec<ResponseObjectRef>)> {
         let reservation = &mut self.parts[usize::from(part.data.id)];
         assert!(reservation.is_empty(), "Part already has data");
         *reservation = part.data;
@@ -152,11 +154,13 @@ impl ResponseBuilder {
                                 .map(|p| p.starts_with(&obj_ref.path))
                                 .unwrap_or(true)
                         }) {
-                            self.errors.push(GraphqlError {
-                                message: "Missing data from subgraph".to_string(),
-                                path: Some(obj_ref.path.child(edge)),
-                                ..Default::default()
-                            });
+                            self.errors.push(
+                                GraphqlError::new(
+                                    "Missing data from subgraph",
+                                    ErrorCode::SubgraphInvalidResponseError,
+                                )
+                                .with_path(obj_ref.path.child(edge)),
+                            )
                         }
                     } else if !invalidated_paths.iter().any(|path| obj_ref.path.starts_with(path)) {
                         if let Some(invalidated_path) = self.propagate_error(&obj_ref.path) {
@@ -170,11 +174,13 @@ impl ResponseBuilder {
                                     .map(|p| p.starts_with(&obj_ref.path))
                                     .unwrap_or(true)
                             }) {
-                                self.errors.push(GraphqlError {
-                                    message: "Missing data from subgraph".to_string(),
-                                    path: Some(obj_ref.path.child(edge)),
-                                    ..Default::default()
-                                });
+                                self.errors.push(
+                                    GraphqlError::new(
+                                        "Missing data from subgraph",
+                                        ErrorCode::SubgraphInvalidResponseError,
+                                    )
+                                    .with_path(obj_ref.path.child(edge)),
+                                );
                             }
                             invalidated_paths.push(invalidated_path);
                         }
@@ -194,7 +200,7 @@ impl ResponseBuilder {
         }
         self.errors.extend(part.errors);
 
-        let mut boundaries = part.plan_boundaries;
+        let mut boundaries = part.response_object_sets;
         if !invalidated_paths.is_empty() {
             boundaries = boundaries
                 .into_iter()
@@ -210,7 +216,7 @@ impl ResponseBuilder {
         boundaries
     }
 
-    pub fn build(self, schema: Arc<Schema>, operation: Arc<OperationPlan>) -> Response {
+    pub fn build(self, schema: Arc<Schema>, operation: Arc<Operation>) -> Response {
         Response::Initial(InitialResponse {
             data: ResponseData {
                 schema,
@@ -337,23 +343,21 @@ pub(crate) struct ResponsePart {
     root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
     errors: Vec<GraphqlError>,
     updates: Vec<UpdateSlot>,
-    plan_boundary_ids_start: usize,
-    plan_boundaries: Vec<(ExecutionPlanBoundaryId, Vec<ResponseObjectRef>)>,
+    response_object_sets: Vec<(ResponseObjectSetId, Vec<ResponseObjectRef>)>,
 }
 
 impl ResponsePart {
     fn new(
         data: ResponseDataPart,
         root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        plan_boundary_ids: IdRange<ExecutionPlanBoundaryId>,
+        response_object_set_ids: &[ResponseObjectSetId],
     ) -> Self {
         Self {
             data,
             root_response_object_refs,
             errors: Vec::new(),
             updates: Vec::new(),
-            plan_boundary_ids_start: usize::from(plan_boundary_ids.start),
-            plan_boundaries: plan_boundary_ids.map(|id| (id, Vec::new())).collect(),
+            response_object_sets: response_object_set_ids.iter().map(|id| (*id, Vec::new())).collect(),
         }
     }
 
@@ -444,27 +448,17 @@ impl<'resp> ResponseWriter<'resp> {
         self.part().errors.push(error.into());
     }
 
-    pub fn push_boundary_response_object(&self, boundary_ids: &[ExecutionPlanBoundaryId], obj: ResponseObjectRef) {
+    pub fn push_response_object(&self, set_ids: &[ResponseObjectSetId], obj: ResponseObjectRef) {
         let mut part = self.part();
-        for boundary_id in boundary_ids {
-            part[*boundary_id].push(obj.clone());
+        // FIXME: Very likely doesn't make sense to have multiple entity locations for a single
+        // object here...
+        for set_id in set_ids {
+            for (tracked, refs) in &mut part.response_object_sets {
+                if tracked == set_id {
+                    refs.push(obj.clone())
+                }
+            }
         }
-    }
-}
-
-impl std::ops::Index<ExecutionPlanBoundaryId> for ResponsePart {
-    type Output = Vec<ResponseObjectRef>;
-
-    fn index(&self, id: ExecutionPlanBoundaryId) -> &Self::Output {
-        let n = usize::from(id) - self.plan_boundary_ids_start;
-        &self.plan_boundaries[n].1
-    }
-}
-
-impl std::ops::IndexMut<ExecutionPlanBoundaryId> for ResponsePart {
-    fn index_mut(&mut self, id: ExecutionPlanBoundaryId) -> &mut Self::Output {
-        let n = usize::from(id) - self.plan_boundary_ids_start;
-        &mut self.plan_boundaries[n].1
     }
 }
 

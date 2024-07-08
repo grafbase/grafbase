@@ -19,7 +19,7 @@ use graphql_composition::FederatedGraph;
 use tokio::sync::{mpsc, oneshot, watch};
 use url::Url;
 
-use super::{admin::Header, refresher::RefreshMessage};
+use super::{admin::Header, gateway_nanny::CliRuntime, refresher::RefreshMessage};
 
 /// A channel to send composed federated graph, typically to a router.
 pub(crate) type GraphSender = watch::Sender<Option<FederatedGraph>>;
@@ -40,12 +40,12 @@ pub(crate) type ComposeSender = mpsc::Sender<ComposeMessage>;
 pub(crate) type ComposeReceiver = mpsc::Receiver<ComposeMessage>;
 
 /// Send half of the gateway watch channel
-pub(crate) type EngineSender = watch::Sender<Option<Arc<Engine>>>;
+pub(crate) type EngineSender = watch::Sender<Option<Arc<Engine<CliRuntime>>>>;
 
 /// Receive half of the gateway watch channel.
 ///
 /// Anything part of the system that needs access to the gateway can use this
-pub(crate) type EngineWatcher = watch::Receiver<Option<Arc<Engine>>>;
+pub(crate) type EngineWatcher = watch::Receiver<Option<Arc<Engine<CliRuntime>>>>;
 
 async fn compose_graph(
     sender: &ComposeSender,

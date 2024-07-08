@@ -61,12 +61,15 @@ pub(super) fn merge_input_object_definitions(
             continue;
         };
 
+        let default = fields.iter().find_map(|(_, field)| field.default_value()).cloned();
+
         let name = ctx.insert_string(field_name);
         let id = ctx.insert_input_value_definition(ir::InputValueDefinitionIr {
             name,
             r#type: field_type,
             directives: composed_directives,
             description,
+            default,
         });
 
         if let Some((_start, len)) = &mut fields_range {

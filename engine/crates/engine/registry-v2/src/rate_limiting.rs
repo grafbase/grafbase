@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::net::IpAddr;
 use std::time::Duration;
 
@@ -18,18 +19,28 @@ pub struct RateLimitRule {
 #[serde(rename_all = "camelCase")]
 pub enum RateLimitRuleCondition {
     Header(Vec<Header>),
-    GraphqlOperation(Vec<String>),
-    Ip(Vec<IpAddr>),
+    GraphqlOperation(AnyOr<HashSet<String>>),
+    Ip(AnyOr<HashSet<IpAddr>>),
     JwtClaim(Vec<Jwt>),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Header {
     pub name: String,
-    pub value: Option<String>,
+    pub value: AnyOr<HashSet<String>>,
 }
 #[derive(Debug, Clone, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Jwt {
     pub name: String,
-    pub value: Option<serde_json::Value>,
+    pub value: AnyOr<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[serde(expecting = "expecting string \"*\", or an array of valid values")]
+pub enum AnyOr<T> {
+    #[serde(rename = "*")]
+    Any,
+    #[serde(untagged)]
+    Value(T),
 }

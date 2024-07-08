@@ -71,8 +71,11 @@ pub async fn project_branch_reference_to_account_project_slug(
 
 pub enum LogEventType {
     Request {
+        #[allow(dead_code)]
         http_method: String,
+        #[allow(dead_code)]
         path: String,
+        #[allow(dead_code)]
         http_status: u16,
         duration: std::time::Duration,
     },

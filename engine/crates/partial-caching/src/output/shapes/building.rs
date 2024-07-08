@@ -1,59 +1,87 @@
-use cynic_parser::executable::{FieldSelection, OperationDefinition, Selection};
+use std::collections::HashMap;
+
+use cynic_parser::executable::{ids::SelectionId, FieldSelection, Selection};
 use indexmap::{IndexMap, IndexSet};
 
-use crate::{
-    parser_extensions::{DeferExt, FieldExt},
-    query_subset::FilteredSelectionSet,
-    CachingPlan, QuerySubset,
-};
+use crate::{parser_extensions::FieldExt, planning::defers::DeferId, CachingPlan, TypeRelationships};
 
 use super::{
-    fragment_iter::FragmentIter, ConcreteShapeId, FieldRecord, ObjectShapeId, ObjectShapeRecord, OutputShapes,
+    fragment_iter::FragmentIter, shape_builder::OutputShapesBuilder, ConcreteShapeId, FieldRecord, ObjectShapeId,
+    OutputShapes,
 };
 
-pub fn build_output_shapes(operation: OperationDefinition<'_>) -> OutputShapes {
+type DeferMap = HashMap<SelectionId, DeferId>;
+
+pub fn build_output_shapes(plan: &CachingPlan, type_relationships: &dyn TypeRelationships) -> OutputShapes {
+    let defer_map = build_defer_map(plan);
+
     let mut builder = OutputShapesBuilder::default();
 
-    let selections = operation
+    let selections = plan
+        .operation()
         .selection_set()
+        .with_ids()
         .map(DeferrableSelection::without_defer)
         .collect();
 
-    let root = build_output_shape(&mut builder, selections);
+    let root = build_output_shape(&mut builder, selections, &defer_map, type_relationships);
     let root = ConcreteShapeId(root.0);
+
+    let mut defer_roots = builder.defer_roots;
+    defer_roots.sort_by_key(|(shape_id, _)| *shape_id);
 
     OutputShapes {
         objects: builder.objects,
+        type_conditions: builder.type_conditions,
         root,
+        defer_roots,
     }
 }
 
 fn build_output_shape(
     builder: &mut OutputShapesBuilder,
     selections: Vec<DeferrableSelection<'_>>,
+    defer_map: &DeferMap,
+    type_relationships: &dyn TypeRelationships,
 ) -> super::ObjectShapeId {
     let type_conditions = FragmentIter::new(&selections)
         .filter_map(|fragment| fragment.type_condition())
         .collect::<IndexSet<_>>();
 
     if type_conditions.is_empty() {
-        let field_shapes = field_shapes_for_type_condition(builder, &selections, None);
+        let field_shapes = field_shapes_for_type_condition(builder, &selections, None, defer_map, type_relationships);
+        let defers = defers_for_type_condition(&selections, None, defer_map, type_relationships);
 
-        builder.insert_concrete_object(field_shapes)
+        ObjectShapeId(builder.insert_concrete_object(field_shapes, defers).0)
     } else {
-        let unknown_typename_fields = field_shapes_for_type_condition(builder, &selections, None);
+        let unknown_typename_fields =
+            field_shapes_for_type_condition(builder, &selections, None, defer_map, type_relationships);
+
+        let unknown_defers = defers_for_type_condition(&selections, None, defer_map, type_relationships);
 
         let known_typename_fields = type_conditions
             .into_iter()
-            .map(|typename| {
+            .map(|type_condition| {
                 (
-                    typename.to_string(),
-                    field_shapes_for_type_condition(builder, &selections, Some(typename)),
+                    type_condition.to_string(),
+                    field_shapes_for_type_condition(
+                        builder,
+                        &selections,
+                        Some(type_condition),
+                        defer_map,
+                        type_relationships,
+                    ),
+                    defers_for_type_condition(&selections, Some(type_condition), defer_map, type_relationships),
                 )
             })
             .collect::<Vec<_>>();
 
-        builder.insert_polymorphic_object(unknown_typename_fields, known_typename_fields)
+        builder.insert_polymorphic_object(
+            unknown_typename_fields,
+            unknown_defers,
+            known_typename_fields,
+            type_relationships,
+        )
     }
 }
 
@@ -61,10 +89,19 @@ fn field_shapes_for_type_condition(
     builder: &mut OutputShapesBuilder,
     selections: &[DeferrableSelection<'_>],
     type_condition: Option<&str>,
+    defer_map: &DeferMap,
+    type_relationships: &dyn TypeRelationships,
 ) -> Vec<FieldRecord> {
     let mut grouped_fields = IndexMap::new();
 
-    collect_fields(&mut grouped_fields, &mut vec![], selections, type_condition);
+    collect_fields(
+        &mut grouped_fields,
+        &mut vec![],
+        selections,
+        type_condition,
+        defer_map,
+        type_relationships,
+    );
 
     let merged_fields = merge_selection_sets(grouped_fields);
 
@@ -73,11 +110,16 @@ fn field_shapes_for_type_condition(
     for field in merged_fields {
         let mut subselection_shape = None;
         if !field.merged_selections.is_empty() {
-            subselection_shape = Some(build_output_shape(builder, field.merged_selections));
+            subselection_shape = Some(build_output_shape(
+                builder,
+                field.merged_selections,
+                defer_map,
+                type_relationships,
+            ));
         }
         field_shapes.push(FieldRecord {
             response_key: field.response_key.to_string(),
-            defer_label: field.defer_label.map(ToString::to_string),
+            defer: field.defer,
             subselection_shape,
         });
     }
@@ -88,8 +130,8 @@ fn field_shapes_for_type_condition(
 struct CollectedField<'a> {
     field: FieldSelection<'a>,
 
-    /// The label of the defer this selection is in if any
-    defer_label: Option<&'a str>,
+    /// If this field is anywhere inside a defer, this will be set
+    defer: Option<DeferId>,
 }
 
 /// A defer aware implementation of CollectFields from the GraphQL spec:
@@ -101,34 +143,34 @@ struct CollectedField<'a> {
 /// http://spec.graphql.org/October2021/#CollectFields()
 fn collect_fields<'a>(
     grouped_fields: &mut IndexMap<&'a str, Vec<CollectedField<'a>>>,
-    defer_stack: &mut Vec<&'a str>,
+    defer_stack: &mut Vec<DeferId>,
     selections: &[DeferrableSelection<'a>],
     type_condition: Option<&'a str>,
+    defer_map: &DeferMap,
+    type_relationships: &dyn TypeRelationships,
 ) {
     for selection in selections {
         match selection.selection {
             Selection::Field(field) => {
                 // If the current selection has applied a defer we take that, otherwise we take the propagated
                 // defer label (if present)
-                let defer_label = defer_stack.last().copied().or(selection.parent_defer_label);
+                let defer = defer_stack.last().copied().or(selection.parent_defer);
 
                 grouped_fields
                     .entry(field.response_key())
                     .or_default()
-                    .push(CollectedField { field, defer_label });
+                    .push(CollectedField { field, defer });
             }
             Selection::InlineFragment(fragment) => {
-                if fragment.type_condition() != type_condition {
-                    // TODO: This needs to be smarter.  If there's no type_condition it doesn't matter what typename
-                    // is. We also need to handle implements properly, which will require the registry.
-                    //
-                    // Will revisit later though...
-                    continue;
+                if let Some((required_condition, current_condition)) = fragment.type_condition().zip(type_condition) {
+                    if !type_relationships.type_condition_matches(required_condition, current_condition) {
+                        continue;
+                    }
                 }
 
-                let defer = fragment.defer_directive();
-                if let Some(defer) = &defer {
-                    defer_stack.push(defer.label);
+                let defer = defer_map.get(&selection.id).copied();
+                if let Some(defer) = defer {
+                    defer_stack.push(defer);
                 }
 
                 collect_fields(
@@ -136,12 +178,14 @@ fn collect_fields<'a>(
                     defer_stack,
                     &fragment
                         .selection_set()
-                        .map(|nested_selection| DeferrableSelection {
-                            selection: nested_selection,
-                            parent_defer_label: selection.parent_defer_label,
+                        .with_ids()
+                        .map(|nested_selection| {
+                            DeferrableSelection::with_defer(nested_selection, selection.parent_defer)
                         })
                         .collect::<Vec<_>>(),
                     type_condition,
+                    defer_map,
+                    type_relationships,
                 );
 
                 if defer.is_some() {
@@ -153,17 +197,18 @@ fn collect_fields<'a>(
                     continue;
                 };
 
-                if type_condition != Some(fragment.type_condition()) {
-                    // TODO: This needs to be smarter.  If there's no type_condition it doesn't matter what typename
-                    // is. We also need to handle implements properly, which will require the registry.
-                    //
-                    // Will revisit later though...
+                let Some(current_condition) = type_condition else {
+                    // Fragment spreads don't apply if we're evaluating the non-match case.
+                    continue;
+                };
+
+                if !type_relationships.type_condition_matches(fragment.type_condition(), current_condition) {
                     continue;
                 }
 
-                let defer = spread.defer_directive();
-                if let Some(defer) = &defer {
-                    defer_stack.push(defer.label);
+                let defer = defer_map.get(&selection.id).copied();
+                if let Some(defer) = defer {
+                    defer_stack.push(defer);
                 }
 
                 collect_fields(
@@ -171,12 +216,14 @@ fn collect_fields<'a>(
                     defer_stack,
                     &fragment
                         .selection_set()
-                        .map(|nested_selection| DeferrableSelection {
-                            selection: nested_selection,
-                            parent_defer_label: selection.parent_defer_label,
+                        .with_ids()
+                        .map(|nested_selection| {
+                            DeferrableSelection::with_defer(nested_selection, selection.parent_defer)
                         })
                         .collect::<Vec<_>>(),
                     type_condition,
+                    defer_map,
+                    type_relationships,
                 );
 
                 if defer.is_some() {
@@ -198,7 +245,7 @@ struct MergedField<'a> {
     /// The label of the defer for this selection.
     ///
     /// This should only be set if none of the parent fields have the same defer_label
-    defer_label: Option<&'a str>,
+    defer: Option<DeferId>,
 
     merged_selections: Vec<DeferrableSelection<'a>>,
 }
@@ -206,16 +253,26 @@ struct MergedField<'a> {
 /// Wrapper around a Selection that allows defer labels to be propagated where
 /// neccesary
 pub(super) struct DeferrableSelection<'a> {
+    id: SelectionId,
     pub(super) selection: Selection<'a>,
 
-    parent_defer_label: Option<&'a str>,
+    parent_defer: Option<DeferId>,
 }
 
 impl<'a> DeferrableSelection<'a> {
-    pub fn without_defer(selection: Selection<'a>) -> Self {
+    pub fn without_defer((id, selection): (SelectionId, Selection<'a>)) -> Self {
         DeferrableSelection {
+            id,
             selection,
-            parent_defer_label: None,
+            parent_defer: None,
+        }
+    }
+
+    pub fn with_defer((id, selection): (SelectionId, Selection<'a>), parent_defer: Option<DeferId>) -> Self {
+        DeferrableSelection {
+            id,
+            selection,
+            parent_defer,
         }
     }
 }
@@ -265,10 +322,11 @@ fn merge_selection_sets<'a>(grouped_fields: IndexMap<&'a str, Vec<CollectedField
             // Hooray, the easy case
             output.push(MergedField {
                 response_key,
-                defer_label: fields[0].defer_label,
+                defer: fields[0].defer,
                 merged_selections: fields[0]
                     .field
                     .selection_set()
+                    .with_ids()
                     .map(DeferrableSelection::without_defer)
                     .collect(),
             });
@@ -280,7 +338,7 @@ fn merge_selection_sets<'a>(grouped_fields: IndexMap<&'a str, Vec<CollectedField
             // Lets just pick the properties of the first field
             output.push(MergedField {
                 response_key,
-                defer_label: fields[0].defer_label,
+                defer: fields[0].defer,
                 merged_selections: vec![],
             });
             continue;
@@ -289,31 +347,28 @@ fn merge_selection_sets<'a>(grouped_fields: IndexMap<&'a str, Vec<CollectedField
         // If there's any mismatch on defer labels we want to propagate them to child fields instead
         // of putting them on this level of the heirarchy.
         let all_defers_match = match fields.as_slice() {
-            [head, tail @ ..] => tail.iter().all(|x| x.defer_label == head.defer_label),
+            [head, tail @ ..] => tail.iter().all(|x| x.defer == head.defer),
             [] => unreachable!(),
         };
 
         let mut merged_field = MergedField {
             response_key: "",
-            defer_label: None,
+            defer: None,
             merged_selections: vec![],
         };
 
         for field in fields {
             merged_field.response_key = field.field.response_key();
-            let selections = field.field.selection_set();
+            let selections = field.field.selection_set().with_ids();
             if all_defers_match {
-                merged_field.defer_label = field.defer_label;
+                merged_field.defer = field.defer;
                 merged_field
                     .merged_selections
                     .extend(selections.map(DeferrableSelection::without_defer));
             } else {
                 merged_field
                     .merged_selections
-                    .extend(selections.map(|selection| DeferrableSelection {
-                        selection,
-                        parent_defer_label: merged_field.defer_label,
-                    }));
+                    .extend(selections.map(|selection| DeferrableSelection::with_defer(selection, merged_field.defer)));
             }
         }
     }
@@ -321,50 +376,69 @@ fn merge_selection_sets<'a>(grouped_fields: IndexMap<&'a str, Vec<CollectedField
     output
 }
 
-#[derive(Default)]
-struct OutputShapesBuilder {
-    objects: Vec<ObjectShapeRecord>,
-}
+fn defers_for_type_condition(
+    selections: &[DeferrableSelection<'_>],
+    type_condition: Option<&str>,
+    defer_map: &DeferMap,
+    type_relationships: &dyn TypeRelationships,
+) -> Vec<DeferId> {
+    let mut output = vec![];
+    for selection in selections {
+        match selection.selection {
+            Selection::Field(_) => {}
+            Selection::InlineFragment(fragment) => {
+                if let Some((required_condition, current_condition)) = fragment.type_condition().zip(type_condition) {
+                    if !type_relationships.type_condition_matches(required_condition, current_condition) {
+                        continue;
+                    }
+                }
 
-impl OutputShapesBuilder {
-    fn insert_concrete_object(&mut self, fields: Vec<FieldRecord>) -> ObjectShapeId {
-        self.insert_record(ObjectShapeRecord::Concrete { fields })
-    }
+                output.extend(defer_map.get(&selection.id).copied());
+                let nested_selections = fragment
+                    .selection_set()
+                    .with_ids()
+                    .map(DeferrableSelection::without_defer)
+                    .collect::<Vec<_>>();
+                output.extend(defers_for_type_condition(
+                    &nested_selections,
+                    type_condition,
+                    defer_map,
+                    type_relationships,
+                ));
+            }
+            Selection::FragmentSpread(spread) => {
+                let Some(fragment) = spread.fragment() else {
+                    continue;
+                };
 
-    fn insert_polymorphic_object(
-        &mut self,
-        fields_when_no_condition_matches: Vec<FieldRecord>,
-        fields_for_typeconditions: Vec<(String, Vec<FieldRecord>)>,
-    ) -> ObjectShapeId {
-        let mut types = Vec::with_capacity(fields_for_typeconditions.len() + 1);
-        types.push((None, self.insert_concrete_object(fields_when_no_condition_matches)));
-        for (typename, fields) in fields_for_typeconditions {
-            types.push((Some(typename), self.insert_concrete_object(fields)));
+                let Some(current_condition) = type_condition else {
+                    // Fragment spreads don't apply if we're evaluating the non-match case.
+                    continue;
+                };
+
+                if !type_relationships.type_condition_matches(fragment.type_condition(), current_condition) {
+                    continue;
+                }
+
+                output.extend(defer_map.get(&selection.id).copied());
+                let nested_selections = fragment
+                    .selection_set()
+                    .with_ids()
+                    .map(DeferrableSelection::without_defer)
+                    .collect::<Vec<_>>();
+                output.extend(defers_for_type_condition(
+                    &nested_selections,
+                    type_condition,
+                    defer_map,
+                    type_relationships,
+                ));
+            }
         }
-
-        self.insert_record(ObjectShapeRecord::Polymorphic { types })
     }
 
-    fn insert_record(&mut self, record: ObjectShapeRecord) -> ObjectShapeId {
-        let id = ObjectShapeId(u16::try_from(self.objects.len()).expect("too many objects, what the hell"));
-        self.objects.push(record);
-        id
-    }
+    output
 }
 
-impl CachingPlan {
-    fn cache_partitions(&self) -> impl Iterator<Item = (&QuerySubset, FilteredSelectionSet<'_, '_>)> + '_ {
-        self.cache_partitions.iter().map(|(_, subset)| {
-            let operation = self.document.read(subset.operation);
-            (subset, subset.selection_iter(operation.selection_set()))
-        })
-    }
-
-    fn nocache_partition(&self) -> (&QuerySubset, FilteredSelectionSet<'_, '_>) {
-        let operation = self.document.read(self.nocache_partition.operation);
-        (
-            &self.nocache_partition,
-            self.nocache_partition.selection_iter(operation.selection_set()),
-        )
-    }
+fn build_defer_map(plan: &CachingPlan) -> DeferMap {
+    plan.defers().map(|defer| (defer.spread_id(), defer.id)).collect()
 }

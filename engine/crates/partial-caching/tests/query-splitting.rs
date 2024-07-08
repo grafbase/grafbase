@@ -109,6 +109,7 @@ fn test_split_with_absurd_fragments() {
     // This one should have all the references to user
     insta::assert_snapshot!(result[0], @r###"
     query {
+      __typename
       ... UserFragment
       user {
         name
@@ -117,6 +118,7 @@ fn test_split_with_absurd_fragments() {
 
     fragment UserFragment on Query {
       user {
+        __typename
         name
         ... NameAndEmailFragment
       }
@@ -130,6 +132,7 @@ fn test_split_with_absurd_fragments() {
     // This one should have all the references to email
     insta::assert_snapshot!(result[1], @r###"
     query {
+      __typename
       ... UserFragment
       user {
         email
@@ -141,11 +144,13 @@ fn test_split_with_absurd_fragments() {
     }
 
     fragment NameAndEmailFragment on User {
+      __typename
       ... EmailFragment
     }
 
     fragment UserFragment on Query {
       user {
+        __typename
         ... NameAndEmailFragment
         ... EmailFragment
       }
@@ -155,8 +160,10 @@ fn test_split_with_absurd_fragments() {
     // This one should have all the references to someConstant
     insta::assert_snapshot!(result[2], @r###"
     query {
+      __typename
       ... UserFragment
       user {
+        __typename
         ... ConstantFragment
       }
     }
@@ -167,6 +174,7 @@ fn test_split_with_absurd_fragments() {
 
     fragment UserFragment on Query {
       user {
+        __typename
         ... ConstantFragment
       }
     }
@@ -210,7 +218,24 @@ fn test_arguments_and_directives_preserved() {
 
     let result = plan.nocache_partition.as_display(&plan.document).to_string();
 
-    insta::assert_snapshot!(result)
+    insta::assert_snapshot!(result, @r###"
+    query @whatever {
+      user(id: 1) @whatever {
+        __typename
+        ... @defer(if: $hello) {
+          hello
+        }
+        ... Whatever @whatever
+        ... on User @defer(if: $hello) {
+          hello
+        }
+      }
+    }
+
+    fragment Whatever on User @whatever {
+      hello
+    }
+    "###)
 }
 
 #[test]
@@ -460,6 +485,7 @@ fn test_cache_control_propagation_across_fragments() {
     insta::assert_snapshot!(plan.cache_partitions[0].1.as_display(&plan.document), @r###"
     query {
       nested {
+        __typename
         ... NestedFragment
       }
     }
@@ -473,6 +499,7 @@ fn test_cache_control_propagation_across_fragments() {
     insta::assert_snapshot!(plan.cache_partitions[1].1.as_display(&plan.document), @r###"
     query {
       user {
+        __typename
         ... UserFragment
       }
     }
@@ -486,6 +513,7 @@ fn test_cache_control_propagation_across_fragments() {
     insta::assert_snapshot!(plan.cache_partitions[2].1.as_display(&plan.document), @r###"
     query {
       user {
+        __typename
         ... UserFragment
       }
     }
@@ -496,6 +524,7 @@ fn test_cache_control_propagation_across_fragments() {
 
     fragment UserFragment on User {
       nested {
+        __typename
         ... NestedFragment
       }
     }

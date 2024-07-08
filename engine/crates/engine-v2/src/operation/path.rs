@@ -28,9 +28,9 @@ impl QueryPath {
         Self::default()
     }
 
-    pub fn child(&self, id: ResponseKey) -> Self {
+    pub fn child(&self, key: ResponseKey) -> Self {
         let mut child = self.clone();
-        child.0.push_back(id);
+        child.0.push_back(key);
         child
     }
 }

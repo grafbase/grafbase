@@ -10,6 +10,14 @@ pub(super) fn merge_interface_definitions<'a>(
     let interface_name = ctx.insert_string(first.name().id);
     let interface_id = ctx.insert_interface(interface_name, interface_description, composed_directives);
 
+    for authorized in definitions
+        .iter()
+        .map(|def| def.directives())
+        .filter(|directives| directives.authorized().is_some())
+    {
+        ctx.insert_interface_authorized(interface_id, authorized.id);
+    }
+
     let mut all_fields: Vec<(StringId, _)> = definitions
         .iter()
         .flat_map(|def| def.fields().map(|field| (field.name().id, field)))
@@ -43,6 +51,12 @@ pub(super) fn merge_interface_definitions<'a>(
             continue;
         };
 
+        let authorized_directives = fields
+            .iter()
+            .filter(|(_, f)| f.directives().authorized().is_some())
+            .map(|(_, field)| field.id.0)
+            .collect();
+
         ctx.insert_field(ir::FieldIr {
             parent_definition: federated::Definition::Interface(interface_id),
             field_name: field.name().id,
@@ -54,6 +68,7 @@ pub(super) fn merge_interface_definitions<'a>(
             overrides: Vec::new(),
             composed_directives,
             description,
+            authorized_directives,
         });
     }
 

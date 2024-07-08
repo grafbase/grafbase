@@ -6,13 +6,27 @@ pub(super) fn ingest_input_fields(
     fields: &[Positioned<ast::InputValueDefinition>],
     matcher: &DirectiveMatcher<'_>,
     subgraphs: &mut Subgraphs,
+    subgraph_id: SubgraphId,
 ) {
     for field in fields {
         let field_type = subgraphs.intern_field_type(&field.node.ty.node);
         let directives = subgraphs.new_directive_site();
         let field_name = field.node.name.node.as_str();
 
-        directives::ingest_directives(directives, &field.node.directives, subgraphs, matcher);
+        directives::ingest_directives(
+            directives,
+            &field.node.directives,
+            subgraphs,
+            matcher,
+            subgraph_id,
+            |subgraphs| {
+                format!(
+                    "{}.{}",
+                    subgraphs.walk(parent_definition_id).name().as_str(),
+                    field.node.name.node.as_str()
+                )
+            },
+        );
 
         let description = field
             .node
@@ -20,12 +34,19 @@ pub(super) fn ingest_input_fields(
             .as_ref()
             .map(|description| subgraphs.strings.intern(description.node.as_str()));
 
+        let default = field
+            .node
+            .default_value
+            .as_ref()
+            .map(|default| crate::ast_value_to_subgraph_value(&default.node, subgraphs));
+
         subgraphs.push_field(subgraphs::FieldIngest {
             parent_definition_id,
             field_name,
             field_type,
             directives,
             description,
+            default,
         });
     }
 }
@@ -34,6 +55,7 @@ fn ingest_field_arguments(
     field_id: FieldId,
     arguments: &[Positioned<ast::InputValueDefinition>],
     matcher: &DirectiveMatcher<'_>,
+    subgraph_id: SubgraphId,
     subgraphs: &mut Subgraphs,
 ) {
     for argument in arguments {
@@ -42,7 +64,22 @@ fn ingest_field_arguments(
 
         let argument_directives = subgraphs.new_directive_site();
 
-        ingest_directives(argument_directives, &argument.node.directives, subgraphs, matcher);
+        ingest_directives(
+            argument_directives,
+            &argument.node.directives,
+            subgraphs,
+            matcher,
+            subgraph_id,
+            |subgraphs| {
+                let field = subgraphs.walk_field(field_id);
+                format!(
+                    "{}.{}({}:)",
+                    field.parent_definition().name().as_str(),
+                    field.name().as_str(),
+                    argument.node.name.node
+                )
+            },
+        );
 
         let description = argument
             .node
@@ -65,6 +102,7 @@ pub(super) fn ingest_fields(
     fields: &[Positioned<ast::FieldDefinition>],
     directive_matcher: &DirectiveMatcher<'_>,
     parent_is_query_root_type: bool,
+    subgraph_id: SubgraphId,
     subgraphs: &mut Subgraphs,
 ) {
     for field in fields {
@@ -83,7 +121,6 @@ pub(super) fn ingest_fields(
 
         let field_type = subgraphs.intern_field_type(&field.ty.node);
         let directives = subgraphs.new_directive_site();
-        directives::ingest_directives(directives, &field.directives, subgraphs, directive_matcher);
 
         let field_id = subgraphs.push_field(crate::subgraphs::FieldIngest {
             parent_definition_id: definition_id,
@@ -91,8 +128,18 @@ pub(super) fn ingest_fields(
             field_type,
             description,
             directives,
+            default: None,
         });
 
-        ingest_field_arguments(field_id, &field.arguments, directive_matcher, subgraphs);
+        directives::ingest_directives(
+            directives,
+            &field.directives,
+            subgraphs,
+            directive_matcher,
+            subgraph_id,
+            |subgraphs| format!("{}.{}", subgraphs.walk(definition_id).name().as_str(), field_name),
+        );
+
+        ingest_field_arguments(field_id, &field.arguments, directive_matcher, subgraph_id, subgraphs);
     }
 }

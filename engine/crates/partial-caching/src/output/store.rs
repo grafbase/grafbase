@@ -1,4 +1,7 @@
+use std::num::NonZeroU16;
+
 use graph_entities::CompactValue;
+use indexmap::IndexSet;
 use serde_json::Number;
 
 use super::shapes::{ConcreteShape, ConcreteShapeId, FieldIndex, OutputShapes};
@@ -8,22 +11,40 @@ use super::shapes::{ConcreteShape, ConcreteShapeId, FieldIndex, OutputShapes};
 pub struct OutputStore {
     values: Vec<ValueRecord>,
     objects: Vec<ObjectRecord>,
+    typenames: IndexSet<Box<str>>,
 }
 
 struct ObjectRecord {
     /// The shape of the object.
     shape: ConcreteShapeId,
-
     fields: IdRange<ValueId>,
+    typename: Option<TypenameId>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ValueId(usize);
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ObjectId(usize);
 
-#[derive(Clone)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct TypenameId(NonZeroU16);
+
+impl TypenameId {
+    fn new(index: usize) -> Self {
+        let inner = u16::try_from(index + 1)
+            .ok()
+            .and_then(NonZeroU16::new)
+            .expect("too many typenames presumably");
+        TypenameId(inner)
+    }
+
+    fn as_index(&self) -> usize {
+        (self.0.get() - 1) as usize
+    }
+}
+
+#[derive(Clone, Debug)]
 pub enum ValueRecord {
     Unset,
     Null,
@@ -39,7 +60,7 @@ pub enum ValueRecord {
     InlineValue(Box<CompactValue>),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct IdRange<T: Copy> {
     start: T,
     end: T,
@@ -48,10 +69,6 @@ pub struct IdRange<T: Copy> {
 impl IdRange<ValueId> {
     pub fn len(&self) -> usize {
         self.end.0.saturating_sub(self.start.0)
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
     }
 }
 
@@ -83,9 +100,22 @@ impl OutputStore {
         let object_id = ObjectId(self.objects.len());
 
         let fields = self.insert_empty_fields(object_shape.field_count());
-        self.objects.push(ObjectRecord { shape, fields });
+        self.objects.push(ObjectRecord {
+            shape,
+            fields,
+            typename: None,
+        });
 
         object_id
+    }
+
+    pub(super) fn insert_polymorphic_object(&mut self, object_shape: ConcreteShape<'_>, typename: &str) -> ObjectId {
+        let id = self.insert_object(object_shape);
+        if object_shape.field("__typename").is_none() {
+            self.objects[id.0].typename = Some(self.intern_typename(typename));
+        }
+
+        id
     }
 
     pub(super) fn new_value(&mut self) -> ValueId {
@@ -110,6 +140,7 @@ impl OutputStore {
         IdRange { start, end }
     }
 
+    /// Looks up the value id of a field in an object
     pub(super) fn field_value_id(&self, object_id: ObjectId, index: FieldIndex) -> ValueId {
         let object = &self.objects[object_id.0];
         assert!((index.0 as usize) < object.fields.len());
@@ -117,21 +148,42 @@ impl OutputStore {
         ValueId(object.fields.start.0 + (index.0 as usize))
     }
 
-    // TODO: Should this be Value?  Not sure.
+    /// Looks up the value id of an index in a list, if it exists
+    #[allow(dead_code)]
+    pub(super) fn index_value_id(&self, value_id: ValueId, index: usize) -> Option<ValueId> {
+        let ValueRecord::List(entries) = self.values[value_id.0] else {
+            return None;
+        };
+
+        if index >= entries.len() {
+            return None;
+        }
+
+        Some(ValueId(entries.start.0 + index))
+    }
+
     pub(super) fn value(&self, id: ValueId) -> &ValueRecord {
         &self.values[id.0]
     }
 
-    pub(super) fn object(&self, id: ValueId) -> &ValueRecord {
-        &self.values[id.0]
-    }
-
-    pub(super) fn reader<'a>(&'a self, shapes: &'a OutputShapes) -> Option<Object<'a>> {
+    pub fn reader<'a>(&'a self, shapes: &'a OutputShapes) -> Option<Object<'a>> {
         Some(Object {
             id: self.root_object()?,
             shapes,
             store: self,
         })
+    }
+
+    pub fn read_object<'a>(&'a self, shapes: &'a OutputShapes, id: ObjectId) -> Object<'a> {
+        Object {
+            id,
+            shapes,
+            store: self,
+        }
+    }
+
+    pub(super) fn concrete_shape_of_object(&self, id: ObjectId) -> ConcreteShapeId {
+        self.objects[id.0].shape
     }
 
     fn read_value<'a>(&'a self, id: ValueId, shapes: &'a OutputShapes) -> Option<Value<'a>> {
@@ -155,6 +207,11 @@ impl OutputStore {
             }),
         })
     }
+
+    fn intern_typename(&mut self, typename: &str) -> TypenameId {
+        let (id, _) = self.typenames.insert_full(typename.into());
+        TypenameId::new(id)
+    }
 }
 
 /// Reader for Values
@@ -177,7 +234,31 @@ pub struct List<'a> {
     shapes: &'a OutputShapes,
 }
 
-impl<'a> Iterator for List<'a> {
+impl<'a> List<'a> {
+    pub fn get_index(&self, index: usize) -> Option<Value<'a>> {
+        if index >= self.ids.len() {
+            return None;
+        }
+        self.store.read_value(ValueId(self.ids.start.0 + index), self.shapes)
+    }
+
+    pub fn iter(&self) -> ListIter<'a> {
+        ListIter {
+            ids: self.ids,
+            store: self.store,
+            shapes: self.shapes,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct ListIter<'a> {
+    ids: IdRange<ValueId>,
+    store: &'a OutputStore,
+    shapes: &'a OutputShapes,
+}
+
+impl<'a> Iterator for ListIter<'a> {
     type Item = Value<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -191,14 +272,26 @@ impl<'a> Iterator for List<'a> {
 
 #[derive(Clone, Copy)]
 pub struct Object<'a> {
-    id: ObjectId,
+    pub id: ObjectId,
     store: &'a OutputStore,
     shapes: &'a OutputShapes,
 }
 
 impl<'a> Object<'a> {
+    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.record().fields.len()
+    }
+
+    pub fn field(&self, name: &str) -> Option<Value<'a>> {
+        let record = self.record();
+        let shapes = self.shapes;
+        let shape = shapes.concrete_object(record.shape);
+        let field = shape.field(name)?;
+
+        let value_id = self.store.field_value_id(self.id, field.index());
+
+        self.store.read_value(value_id, self.shapes)
     }
 
     pub fn fields(&self) -> impl Iterator<Item = (&'a str, Value<'a>)> + 'a {
@@ -211,6 +304,25 @@ impl<'a> Object<'a> {
             .response_keys()
             .zip(record.fields)
             .filter_map(move |(key, id)| Some((key, store.read_value(id, shapes)?)))
+    }
+
+    /// This returns the typename of this object if it was created from a polymorphic shape
+    /// and `__typename` isn't one of the user requested fields of this type
+    ///
+    /// I'm borrowing the name from the idea that we put a synthetic __typename field into
+    /// queries to populate this.  Although I'm open to better suggestions, it's not the
+    /// clearest.
+    pub fn synthetic_typename(&self) -> Option<&'a str> {
+        let index = self.record().typename?.as_index();
+        Some(self.store.typenames[index].as_ref())
+    }
+
+    pub fn shape(&self) -> ConcreteShape<'a> {
+        self.shapes.concrete_object(self.record().shape)
+    }
+
+    pub fn shape_id(&self) -> ConcreteShapeId {
+        self.record().shape
     }
 
     fn record(&self) -> &'a ObjectRecord {

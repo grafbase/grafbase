@@ -12,7 +12,7 @@ keywords = ["graphql", "gateway", "grafbase"]
 
 [features]
 default = []
-partial-caching = ["dep:partial-caching", "dep:cynic-parser"]
+partial-caching = ["dep:partial-caching", "dep:cynic-parser", "dep:futures-channel"]
 
 [lints]
 workspace = true
@@ -30,6 +30,7 @@ engine-parser.workspace = true
 engine-validation.workspace = true
 engine-value.workspace = true
 engine.workspace = true
+futures-channel = { workspace = true, optional = true }
 futures-util.workspace = true
 grafbase-tracing.workspace = true
 headers.workspace = true

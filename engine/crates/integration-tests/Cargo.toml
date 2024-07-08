@@ -21,7 +21,7 @@ graphql-mocks.workspace = true
 engine-config-builder = { path = "../engine-config-builder" }
 expect-test = "1.5"
 futures = "0.3.30"
-gateway-core.workspace = true
+gateway-core = { workspace = true, features = ["partial-caching"] }
 grafbase-graphql-introspection.workspace = true
 graphql-composition.workspace = true
 graphql-parser = "0.4.0"
@@ -49,10 +49,11 @@ tracing-subscriber = { version = "0.3.18", default-features = false, features = 
   "ansi",
 ] }
 ctor.workspace = true
+registry-v2.workspace = true
 rustls = { workspace = true, features = ["ring"] }
 tracing.workspace = true
 tracing-mock.workspace = true
-runtime = { path = "../runtime" }
+runtime = { workspace = true, features = ["test-utils"]}
 
 [dependencies.tokio]
 version = "1.37"
@@ -101,6 +102,8 @@ sha2.workspace = true
 hex.workspace = true
 serde.workspace = true
 secrecy.workspace = true
+gateway-v2-auth.workspace = true
+common-types.workspace = true
 
 [[bench]]
 name = "federation"

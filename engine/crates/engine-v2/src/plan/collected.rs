@@ -1,14 +1,13 @@
 use id_newtypes::IdRange;
-use schema::{FieldDefinitionId, ObjectId, ScalarType, Wrapping};
+use schema::{EntityId, FieldDefinitionId, ObjectId, ScalarType, Wrapping};
 
 use crate::{
     operation::{FieldId, SelectionSetType},
-    response::{ResponseEdge, SafeResponseKey},
+    response::{GraphqlError, ResponseEdge, SafeResponseKey},
 };
 
 use super::{
-    CollectedFieldId, CollectedSelectionSetId, ConditionalFieldId, ConditionalSelectionSetId, ExecutionPlanBoundaryId,
-    FlatTypeCondition,
+    CollectedFieldId, CollectedSelectionSetId, ConditionalFieldId, ConditionalSelectionSetId, ResponseObjectSetId,
 };
 
 // TODO: The two AnyCollectedSelectionSet aren't great, need to split better the ones which are computed
@@ -39,7 +38,7 @@ pub struct ConditionalSelectionSet {
     pub ty: SelectionSetType,
     // Plan boundary associated with this selection set. If present we need to push the a
     // ResponseObjectBoundaryItem into the ResponsePart everytime for children plans.
-    pub maybe_boundary_id: Option<ExecutionPlanBoundaryId>,
+    pub maybe_response_object_set_id: Option<ResponseObjectSetId>,
     pub field_ids: IdRange<ConditionalFieldId>,
     // Selection sets can have multiple __typename fields and eventually type conditions.
     // {
@@ -49,13 +48,14 @@ pub struct ConditionalSelectionSet {
     //     myalias: __typename
     //     __typename
     // }
-    pub typename_fields: Vec<(Option<FlatTypeCondition>, ResponseEdge)>,
+    pub typename_fields: Vec<(SelectionSetType, ResponseEdge)>,
+    pub field_errors: Vec<(EntityId, FieldError)>,
 }
 
 #[derive(Debug)]
 pub struct ConditionalField {
     pub edge: ResponseEdge,
-    pub type_condition: Option<FlatTypeCondition>,
+    pub entity_id: EntityId,
     /// Expected key from the upstream response when deserializing
     pub expected_key: SafeResponseKey,
     pub id: FieldId,
@@ -78,7 +78,7 @@ pub struct CollectedSelectionSet {
     pub ty: SelectionSetType,
     // Plan boundary associated with this selection set. If present we need to push the a
     // ResponseObjectBoundaryItem into the ResponsePart everytime for children plans.
-    pub maybe_boundary_id: Option<ExecutionPlanBoundaryId>,
+    pub maybe_response_object_set_id: Option<ResponseObjectSetId>,
     // the fields we point to are sorted by their expected_key
     pub field_ids: IdRange<CollectedFieldId>,
     // Selection sets can have multiple __typename fields.
@@ -87,6 +87,14 @@ pub struct CollectedSelectionSet {
     //     __typename
     // }
     pub typename_fields: Vec<ResponseEdge>,
+    pub field_errors: Vec<FieldError>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FieldError {
+    pub edge: ResponseEdge,
+    pub errors: Vec<GraphqlError>,
+    pub is_required: bool,
 }
 
 #[derive(Debug)]
@@ -103,10 +111,11 @@ pub struct CollectedField {
 #[derive(Debug)]
 pub struct RuntimeCollectedSelectionSet {
     pub object_id: ObjectId,
-    pub boundary_ids: Vec<ExecutionPlanBoundaryId>,
+    pub response_object_set_ids: Vec<ResponseObjectSetId>,
     // sorted by expected key
     pub fields: Vec<CollectedField>,
     pub typename_fields: Vec<ResponseEdge>,
+    pub field_errors: Vec<FieldError>,
 }
 
 #[derive(Debug)]

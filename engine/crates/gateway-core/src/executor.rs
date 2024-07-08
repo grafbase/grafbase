@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use common_types::auth::ExecutionAuth;
+use futures_util::stream::BoxStream;
 
 #[async_trait::async_trait]
 pub trait Executor: Send + Sync {
@@ -30,4 +31,11 @@ pub trait Executor: Send + Sync {
         request: engine::Request,
         streaming_format: crate::StreamingFormat,
     ) -> Result<Self::StreamingResponse, Self::Error>;
+
+    async fn execute_stream_v2(
+        self: Arc<Self>,
+        ctx: Arc<Self::Context>,
+        auth: ExecutionAuth,
+        request: engine::Request,
+    ) -> Result<BoxStream<'static, engine::StreamingPayload>, Self::Error>;
 }

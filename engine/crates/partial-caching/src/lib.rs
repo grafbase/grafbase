@@ -14,7 +14,10 @@
 
 use std::fmt;
 
-use cynic_parser::ExecutableDocument;
+use cynic_parser::{
+    executable::{ids::OperationDefinitionId, OperationDefinition},
+    ExecutableDocument,
+};
 use registry_for_cache::CacheControl;
 
 mod execution;
@@ -26,10 +29,16 @@ mod parser_extensions;
 mod planning;
 mod query_subset;
 mod response;
+pub mod type_relationships;
 mod updating;
 
 pub use self::{
-    execution::ExecutionPhase, planning::build_plan, query_subset::QuerySubset, response::Response,
+    execution::{ExecutionPhase, StreamingExecutionPhase},
+    fetching::CacheFetchPhase,
+    planning::build_plan,
+    query_subset::QuerySubset,
+    response::Response,
+    type_relationships::TypeRelationships,
     updating::CacheUpdatePhase,
 };
 
@@ -37,6 +46,14 @@ pub struct CachingPlan {
     pub document: ExecutableDocument,
     pub cache_partitions: Vec<(CacheControl, QuerySubset)>,
     pub nocache_partition: QuerySubset,
+    operation_id: OperationDefinitionId,
+    defers: Vec<planning::defers::DeferRecord>,
+}
+
+impl CachingPlan {
+    fn operation(&self) -> OperationDefinition<'_> {
+        self.document.read(self.operation_id)
+    }
 }
 
 impl fmt::Debug for CachingPlan {

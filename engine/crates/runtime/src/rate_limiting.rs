@@ -13,7 +13,7 @@ pub trait RateLimiterContext {
     fn header(&self, name: http::HeaderName) -> Option<&http::HeaderValue>;
     fn graphql_operation_name(&self) -> Option<&str>;
     fn ip(&self) -> Option<IpAddr>;
-    fn jwt_claim(&self, key: &str) -> &serde_json::Value;
+    fn jwt_claim(&self, key: &str) -> Option<&serde_json::Value>;
 }
 
 pub trait RateLimiter: Send + Sync {

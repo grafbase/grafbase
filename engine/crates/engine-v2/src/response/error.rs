@@ -1,49 +1,103 @@
-use std::collections::BTreeMap;
+use std::borrow::Cow;
 
-use engine::ErrorCode;
-use runtime::hooks::HookError;
+use runtime::error::PartialErrorCode;
+
+use crate::operation::Location;
 
 use super::ResponsePath;
 
-#[derive(Debug, Default)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize, strum::Display)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub(crate) enum ErrorCode {
+    BadRequest,
+    InternalServerError,
+    TrustedDocumentError,
+    // Used for APQ
+    PersistedQueryError,
+    PersistedQueryNotFound,
+    // Subgraph errors
+    SubgraphError,
+    SubgraphInvalidResponseError,
+    SubgraphRequestError,
+    // Auth
+    Unauthenticated,
+    Unauthorized,
+    // Operation preparation phases
+    OperationParsingError,
+    OperationValidationError,
+    OperationPlanningError,
+    // Runtime
+    HookError,
+}
+
+impl From<PartialErrorCode> for ErrorCode {
+    fn from(code: PartialErrorCode) -> Self {
+        match code {
+            PartialErrorCode::InternalServerError => Self::InternalServerError,
+            PartialErrorCode::HookError => Self::HookError,
+            PartialErrorCode::Unauthorized => Self::Unauthorized,
+            PartialErrorCode::BadRequest => Self::BadRequest,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct GraphqlError {
-    pub message: String,
-    pub locations: Vec<crate::operation::Location>,
+    pub message: Cow<'static, str>,
+    pub code: ErrorCode,
+    pub locations: Vec<Location>,
     pub path: Option<ResponsePath>,
-    // ensures consistent ordering for tests
-    pub extensions: BTreeMap<String, serde_json::Value>,
+    // Serialized as a map, but kept as a Vec for efficiency.
+    pub extensions: Vec<(Cow<'static, str>, serde_json::Value)>,
 }
 
 impl GraphqlError {
-    pub fn new(message: impl Into<String>) -> Self {
+    pub fn new(message: impl Into<Cow<'static, str>>, code: ErrorCode) -> Self {
         GraphqlError {
             message: message.into(),
-            ..Default::default()
+            code,
+            locations: Vec::new(),
+            path: None,
+            extensions: Vec::new(),
         }
     }
 
-    pub fn with_error_code(mut self, code: ErrorCode) -> Self {
-        self.extensions
-            .insert("code".to_string(), serde_json::Value::String(code.to_string()));
+    #[must_use]
+    pub fn with_location(mut self, location: Location) -> Self {
+        self.locations.push(location);
         self
     }
 
-    pub fn internal_server_error() -> Self {
-        GraphqlError::new("Internal server error").with_error_code(ErrorCode::InternalServerError)
+    #[must_use]
+    pub fn with_locations(mut self, locations: impl IntoIterator<Item = Location>) -> Self {
+        self.locations.extend(locations);
+        self
+    }
+
+    #[must_use]
+    pub fn with_path(mut self, path: ResponsePath) -> Self {
+        self.path = Some(path);
+        self
+    }
+
+    #[must_use]
+    pub fn with_extension(mut self, key: impl Into<Cow<'static, str>>, value: impl Into<serde_json::Value>) -> Self {
+        let key = key.into();
+        debug_assert!(key != "code");
+        self.extensions.push((key, value.into()));
+        self
     }
 }
 
-impl From<HookError> for GraphqlError {
-    fn from(error: HookError) -> Self {
-        let (message, extensions) = match error {
-            HookError::User(error) => (error.message, error.extensions),
-            HookError::Internal(error) => (error.to_string(), Default::default()),
-        };
-
-        Self {
-            message,
-            extensions,
-            ..Default::default()
+impl From<runtime::error::PartialGraphqlError> for GraphqlError {
+    fn from(err: runtime::error::PartialGraphqlError) -> Self {
+        GraphqlError {
+            message: err.message,
+            code: err.code.into(),
+            extensions: err.extensions,
+            locations: Vec::new(),
+            path: None,
         }
     }
 }

@@ -1,7 +1,7 @@
 use schema::{FieldDefinitionId, FieldDefinitionWalker};
 
 use crate::{
-    operation::{FieldArgumentsWalker, FieldId, QueryInputValueWalker},
+    operation::{FieldArgumentsWalker, FieldId, PlanId, QueryInputValueWalker},
     response::ResponseKey,
 };
 
@@ -14,6 +14,10 @@ impl<'a> PlanField<'a> {
         self.as_ref()
             .selection_set_id()
             .map(|id| PlanSelectionSet::SelectionSet(self.walk_with(id, ())))
+    }
+
+    pub fn plan_id(&self) -> PlanId {
+        self.operation_plan.plan_id_for(self.item)
     }
 
     pub fn response_key(&self) -> ResponseKey {

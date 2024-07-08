@@ -14,9 +14,19 @@ http.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
-wasmtime = "21.0.1"
-wasmtime-wasi = { version = "21.0.1", default-features = false }
-wasmtime-wasi-http = "21.0.1"
+
+[dependencies.wasmtime]
+git = "https://github.com/grafbase/wasmtime"
+branch = "fix-linking-issues-with-musl"
+
+[dependencies.wasmtime-wasi]
+git = "https://github.com/grafbase/wasmtime"
+branch = "fix-linking-issues-with-musl"
+default-features = false
+
+[dependencies.wasmtime-wasi-http]
+git = "https://github.com/grafbase/wasmtime"
+branch = "fix-linking-issues-with-musl"
 
 [lints]
 workspace = true
@@ -24,6 +34,7 @@ workspace = true
 [dev-dependencies]
 expect-test = "1.5.0"
 indoc = "2.0.5"
+serde_json.workspace = true
 tempdir = "0.3.7"
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 toml = "0.8.14"

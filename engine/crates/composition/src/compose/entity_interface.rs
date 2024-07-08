@@ -65,6 +65,14 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
     let interface_name = ctx.insert_string(interface_name.id);
     let interface_id = ctx.insert_interface(interface_name, description, composed_directives);
 
+    for authorized in definitions
+        .iter()
+        .map(|def| def.directives())
+        .filter(|directives| directives.authorized().is_some())
+    {
+        ctx.insert_interface_authorized(interface_id, authorized.id);
+    }
+
     let mut fields = BTreeMap::new();
 
     for field in interface_def.fields() {
@@ -76,6 +84,11 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                 vec![federated::SubgraphId(interface_def.subgraph_id().idx())]
             };
             let composed_directives = collect_composed_directives(std::iter::once(field.directives()), ctx);
+            let authorized_directives = if field.directives().authorized().is_some() {
+                vec![field.id.0]
+            } else {
+                vec![]
+            };
 
             ir::FieldIr {
                 parent_definition: federated::Definition::Interface(interface_id),
@@ -88,6 +101,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                 composed_directives,
                 overrides: Vec::new(),
                 description: field.description().map(|description| ctx.insert_string(description.id)),
+                authorized_directives,
             }
         });
     }
@@ -157,6 +171,11 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                 let composed_directives = collect_composed_directives(std::iter::once(field.directives()), ctx);
 
                 let description = field.description().map(|description| ctx.insert_string(description.id));
+                let authorized_directives = if field.directives().authorized().is_some() {
+                    vec![field.id.0]
+                } else {
+                    vec![]
+                };
 
                 ir::FieldIr {
                     parent_definition: federated::Definition::Interface(interface_id),
@@ -169,6 +188,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                     composed_directives,
                     overrides,
                     description,
+                    authorized_directives,
                 }
             });
         }
@@ -224,6 +244,7 @@ fn translate_arguments(
             r#type: arg.r#type().id,
             directives,
             description: None,
+            default: arg.default().cloned(),
         });
 
         if let Some((_start, len)) = &mut ids {

@@ -41,6 +41,57 @@ pub struct FederatedGraphV3 {
 
     /// All composed directive instances (not definitions) in a federated graph.
     pub directives: Vec<Directive>,
+
+    /// All @authorized directives
+    #[serde(default)]
+    pub authorized_directives: Vec<AuthorizedDirective>,
+    #[serde(default)]
+    pub field_authorized_directives: Vec<(FieldId, AuthorizedDirectiveId)>,
+    #[serde(default)]
+    pub object_authorized_directives: Vec<(ObjectId, AuthorizedDirectiveId)>,
+    #[serde(default)]
+    pub interface_authorized_directives: Vec<(InterfaceId, AuthorizedDirectiveId)>,
+}
+
+impl FederatedGraphV3 {
+    pub fn iter_interfaces(&self) -> impl ExactSizeIterator<Item = (InterfaceId, &Interface)> {
+        self.interfaces
+            .iter()
+            .enumerate()
+            .map(|(idx, interface)| (InterfaceId(idx), interface))
+    }
+
+    pub fn iter_objects(&self) -> impl ExactSizeIterator<Item = (ObjectId, &Object)> {
+        self.objects
+            .iter()
+            .enumerate()
+            .map(|(idx, object)| (ObjectId(idx), object))
+    }
+
+    pub fn object_authorized_directives(&self, object_id: ObjectId) -> impl Iterator<Item = &AuthorizedDirective> {
+        let start = self
+            .object_authorized_directives
+            .partition_point(|(needle, _)| *needle < object_id);
+
+        self.object_authorized_directives[start..]
+            .iter()
+            .take_while(move |(needle, _)| *needle == object_id)
+            .map(move |(_, authorized_directive_id)| &self[*authorized_directive_id])
+    }
+
+    pub fn interface_authorized_directives(
+        &self,
+        interface_id: InterfaceId,
+    ) -> impl Iterator<Item = &AuthorizedDirective> {
+        let start = self
+            .interface_authorized_directives
+            .partition_point(|(needle, _)| *needle < interface_id);
+
+        self.interface_authorized_directives[start..]
+            .iter()
+            .take_while(move |(needle, _)| *needle == interface_id)
+            .map(move |(_, authorized_directive_id)| &self[*authorized_directive_id])
+    }
 }
 
 impl std::fmt::Debug for FederatedGraphV3 {
@@ -63,6 +114,13 @@ pub enum Directive {
         name: StringId,
         arguments: Vec<(StringId, Value)>,
     },
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
+pub struct AuthorizedDirective {
+    pub fields: Option<FieldSet>,
+    pub arguments: Option<InputValueDefinitionSet>,
+    pub metadata: Option<Value>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
@@ -138,12 +196,22 @@ pub struct Interface {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq)]
 pub struct InputValueDefinition {
     pub name: StringId,
     pub r#type: Type,
     pub directives: Directives,
     pub description: Option<StringId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<Value>,
+}
+
+pub type InputValueDefinitionSet = Vec<InputValueDefinitionSetItem>;
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, PartialOrd)]
+pub struct InputValueDefinitionSetItem {
+    pub input_value_definition: InputValueDefinitionId,
+    pub subselection: InputValueDefinitionSet,
 }
 
 /// A (start, end) range in FederatedGraph::fields.
@@ -180,6 +248,7 @@ impl From<super::v2::FederatedGraphV2> for FederatedGraphV3 {
                 r#type: (&value[input_value.type_id]).into(),
                 directives: input_value.directives,
                 description: input_value.description,
+                default: None,
             })
             .collect();
 
@@ -335,6 +404,7 @@ impl From<super::v2::FederatedGraphV2> for FederatedGraphV3 {
                     super::v2::Directive::Other { name, arguments } => Directive::Other { name, arguments },
                 })
                 .collect(),
+            ..Default::default()
         }
     }
 }
@@ -416,7 +486,17 @@ macro_rules! id_newtypes {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub struct AuthorizedDirectiveId(pub usize);
+
+impl From<AuthorizedDirectiveId> for usize {
+    fn from(value: AuthorizedDirectiveId) -> usize {
+        value.0
+    }
+}
+
 id_newtypes! {
+    AuthorizedDirectiveId + authorized_directives + AuthorizedDirective,
     EnumId + enums + Enum,
     FieldId + fields + Field,
     InputValueDefinitionId + input_value_definitions + InputValueDefinition,
@@ -488,6 +568,10 @@ impl Default for FederatedGraphV3 {
                 .map(|string| string.to_owned())
                 .collect(),
             directives: Vec::new(),
+            authorized_directives: Vec::new(),
+            field_authorized_directives: Vec::new(),
+            object_authorized_directives: Vec::new(),
+            interface_authorized_directives: Vec::new(),
         }
     }
 }

@@ -35,7 +35,7 @@ type Episode {
 }
 
 type Query {
-    getActivity: Activity
-    getEpisode: Episode
-    getTeletubby: Teletubby
+    getActivity(name: String!): Activity
+    getEpisode(title: String!): Episode
+    getTeletubby(name: String!): Teletubby
 }

@@ -1,7 +1,5 @@
 mod argument;
 mod field;
-mod fragment;
-mod inline_fragment;
 mod query_path;
 mod selection_set;
 mod variable;
@@ -9,8 +7,6 @@ mod variable;
 pub use argument::*;
 use engine_parser::types::OperationType;
 pub use field::*;
-pub use fragment::*;
-pub use inline_fragment::*;
 use schema::{ObjectWalker, SchemaWalker};
 pub use selection_set::*;
 #[allow(unused_imports)]
@@ -51,17 +47,18 @@ impl<'a> OperationWalker<'a, (), ()> {
     }
 
     pub(crate) fn is_query(&self) -> bool {
-        matches!(self.as_ref().ty, OperationType::Query)
+        matches!(self.as_ref().ty(), OperationType::Query)
     }
 
     pub(crate) fn is_mutation(&self) -> bool {
-        matches!(self.as_ref().ty, OperationType::Mutation)
+        matches!(self.as_ref().ty(), OperationType::Mutation)
     }
 
     pub(crate) fn selection_set(&self) -> SelectionSetWalker<'a> {
         self.walk(self.operation.root_selection_set_id)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn root_object(&self) -> ObjectWalker<'a> {
         self.schema_walker.walk(self.as_ref().root_object_id)
     }

@@ -1,12 +1,15 @@
 mod de;
 mod ser;
+mod view;
 
 use id_newtypes::IdRange;
-use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValue, SchemaInputValueId};
+use schema::{EnumValueId, InputValue, InputValueDefinitionId, InputValueSet, SchemaInputValue, SchemaInputValueId};
 
-use crate::operation::{OperationWalker, VariableDefinitionId, VariableValueWalker};
+use crate::operation::{Operation, OperationWalker, VariableDefinitionId, VariableValueWalker};
 
-#[derive(Default, Clone)]
+pub(crate) use view::*;
+
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct QueryInputValues {
     /// Individual input values and list values
     values: Vec<QueryInputValue>,
@@ -17,12 +20,12 @@ pub struct QueryInputValues {
 }
 
 id_newtypes::NonZeroU32! {
-    QueryInputValues.values[QueryInputValueId] => QueryInputValue,
-    QueryInputValues.input_fields[QueryInputObjectFieldValueId] => (InputValueDefinitionId, QueryInputValue),
-    QueryInputValues.key_values[QueryInputKeyValueId] => (String, QueryInputValue),
+    QueryInputValues.values[QueryInputValueId] => QueryInputValue | proxy(Operation.query_input_values),
+    QueryInputValues.input_fields[QueryInputObjectFieldValueId] => (InputValueDefinitionId, QueryInputValue) | proxy(Operation.query_input_values),
+    QueryInputValues.key_values[QueryInputKeyValueId] => (String, QueryInputValue) | proxy(Operation.query_input_values),
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub enum QueryInputValue {
     #[default]
     Null,
@@ -116,6 +119,13 @@ impl<'a> QueryInputValueWalker<'a> {
             },
             _ => return None,
         })
+    }
+
+    pub fn with_selection_set(self, selection_set: &'a InputValueSet) -> QueryInputValueView<'a> {
+        QueryInputValueView {
+            inner: self,
+            selection_set,
+        }
     }
 }
 

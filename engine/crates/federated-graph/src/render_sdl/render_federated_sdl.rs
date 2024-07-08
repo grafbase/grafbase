@@ -28,12 +28,13 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
         sdl.push('\n');
     }
 
-    for object in &graph.objects {
+    for (object_id, object) in graph.iter_objects() {
         let object_name = &graph[object.name];
 
         let mut fields = graph[object.fields.clone()]
             .iter()
-            .filter(|field| !graph[field.name].starts_with("__"))
+            .enumerate()
+            .filter(|(_idx, field)| !graph[field.name].starts_with("__"))
             .peekable();
 
         if fields.peek().is_none() {
@@ -63,6 +64,10 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
 
         write_composed_directives(object.composed_directives, graph, &mut sdl)?;
 
+        for authorized_directive in graph.object_authorized_directives(object_id) {
+            write!(sdl, "{}", AuthorizedDirectiveDisplay(authorized_directive, graph))?;
+        }
+
         if !object.keys.is_empty() {
             sdl.push('\n');
             for key in &object.keys {
@@ -80,19 +85,21 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
                     )?;
                 }
             }
-        }
-
-        if object.keys.is_empty() {
+        } else {
             sdl.push(' ');
         }
+
         sdl.push_str("{\n");
-        for field in fields {
-            write_field(field, graph, &mut sdl)?;
+
+        for (idx, field) in fields {
+            let field_id = FieldId(object.fields.start.0 + idx);
+            write_field(field_id, field, graph, &mut sdl)?;
         }
+
         writeln!(sdl, "}}\n")?;
     }
 
-    for interface in &graph.interfaces {
+    for (interface_id, interface) in graph.iter_interfaces() {
         let interface_name = &graph[interface.name];
 
         if let Some(description) = interface.description {
@@ -112,6 +119,10 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
                     sdl.push_str(" & ");
                 }
             }
+        }
+
+        for authorized_directive in graph.interface_authorized_directives(interface_id) {
+            write!(sdl, "{}", AuthorizedDirectiveDisplay(authorized_directive, graph))?;
         }
 
         write_composed_directives(interface.composed_directives, graph, &mut sdl)?;
@@ -137,8 +148,9 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
             sdl.push_str("{\n");
         }
 
-        for field in &graph[interface.fields.clone()] {
-            write_field(field, graph, &mut sdl)?;
+        for (idx, field) in graph[interface.fields.clone()].iter().enumerate() {
+            let field_id = FieldId(interface.fields.start.0 + idx);
+            write_field(field_id, field, graph, &mut sdl)?;
         }
 
         writeln!(sdl, "}}\n")?;
@@ -283,13 +295,17 @@ fn write_input_field(field: &InputValueDefinition, graph: &FederatedGraphV3, sdl
 
     write!(sdl, "{INDENT}{field_name}: {field_type}")?;
 
+    if let Some(default) = &field.default {
+        write!(sdl, " = {}", ValueDisplay(default, graph))?;
+    }
+
     write_composed_directives(field.directives, graph, sdl)?;
 
     sdl.push('\n');
     Ok(())
 }
 
-fn write_field(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
+fn write_field(field_id: FieldId, field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
     let field_name = &graph[field.name];
     let field_type = render_field_type(&field.r#type, graph);
     let args = render_field_arguments(&graph[field.arguments], graph);
@@ -308,6 +324,7 @@ fn write_field(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt
     write_requires(field, graph, sdl)?;
     write_composed_directives(field.composed_directives, graph, sdl)?;
     write_overrides(field, graph, sdl)?;
+    write_authorized(field_id, graph, sdl)?;
 
     sdl.push('\n');
     Ok(())
@@ -315,47 +332,7 @@ fn write_field(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt
 
 fn write_composed_directives(directives: Directives, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
     for directive in &graph[directives] {
-        match directive {
-            Directive::Inaccessible => write!(sdl, " @inaccessible")?,
-            Directive::Deprecated { reason: Some(reason) } => {
-                write!(sdl, " @deprecated(reason: ",)?;
-                write_quoted(sdl, &graph[*reason])?;
-                write!(sdl, ")")?;
-            }
-            Directive::RequiresScopes(scopes) => {
-                write!(sdl, " @requiresScopes(scopes: [")?;
-                for scope in scopes {
-                    write!(sdl, "[")?;
-                    for scope in scope {
-                        write_quoted(sdl, &graph[*scope])?;
-                        write!(sdl, ", ")?;
-                    }
-                    write!(sdl, "], ")?;
-                }
-                write!(sdl, "])")?;
-            }
-            Directive::Policy(policies) => {
-                write!(sdl, " @policy(policies: [")?;
-                for policy in policies {
-                    write!(sdl, "[")?;
-                    for policy in policy {
-                        write_quoted(sdl, &graph[*policy])?;
-                        write!(sdl, ", ")?;
-                    }
-                    write!(sdl, "], ")?;
-                }
-                write!(sdl, "])")?;
-            }
-            Directive::Authenticated => {
-                write!(sdl, " @authenticated")?;
-            }
-            Directive::Deprecated { reason: None } => write!(sdl, r#" @deprecated"#)?,
-            Directive::Other { name, arguments } => {
-                let directive_name = &graph[*name];
-                let arguments = DirectiveArguments(arguments, graph);
-                write!(sdl, " @{directive_name}{arguments}")?;
-            }
-        }
+        write!(sdl, "{}", DirectiveDisplay(directive, graph))?;
     }
 
     Ok(())
@@ -437,6 +414,23 @@ fn write_requires(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> 
     Ok(())
 }
 
+fn write_authorized(field_id: FieldId, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
+    let start = graph
+        .field_authorized_directives
+        .partition_point(|(other_field_id, _)| *other_field_id < field_id);
+
+    let directives = graph.field_authorized_directives[start..]
+        .iter()
+        .take_while(|(other_field_id, _)| *other_field_id == field_id)
+        .map(|(_, authorized_directive_id)| &graph[*authorized_directive_id]);
+
+    for directive in directives {
+        write!(sdl, "{}", AuthorizedDirectiveDisplay(directive, graph))?;
+    }
+
+    Ok(())
+}
+
 fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraphV3) -> String {
     if args.is_empty() {
         String::new()
@@ -447,15 +441,21 @@ fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraphV
                 let name = &graph[arg.name];
                 let r#type = render_field_type(&arg.r#type, graph);
                 let directives = arg.directives;
-                (name, r#type, directives)
+                let default = arg.default.as_ref();
+                (name, r#type, directives, default)
             })
             .peekable();
         let mut out = String::from('(');
 
-        while let Some((name, ty, directives)) = inner.next() {
+        while let Some((name, ty, directives, default)) = inner.next() {
             out.push_str(name);
             out.push_str(": ");
             out.push_str(&ty);
+
+            if let Some(default) = default {
+                out.push_str(" = ");
+                write!(out, "{}", ValueDisplay(default, graph)).unwrap();
+            }
 
             write_composed_directives(directives, graph, &mut out).unwrap();
 

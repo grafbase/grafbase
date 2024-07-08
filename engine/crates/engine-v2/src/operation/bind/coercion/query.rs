@@ -13,7 +13,7 @@ use super::{
 use crate::operation::{FieldId, Location, QueryInputValue, QueryInputValueId};
 
 pub fn coerce_variable_default_value(
-    binder: &mut Binder<'_>,
+    binder: &mut Binder<'_, '_>,
     location: Location,
     ty: Type,
     value: ConstValue,
@@ -30,7 +30,7 @@ pub fn coerce_variable_default_value(
 }
 
 pub fn coerce_query_value(
-    binder: &mut Binder<'_>,
+    binder: &mut Binder<'_, '_>,
     field_id: FieldId,
     location: Location,
     ty: Type,
@@ -47,29 +47,29 @@ pub fn coerce_query_value(
     Ok(ctx.input_values.push_value(value))
 }
 
-struct QueryValueCoercionContext<'a, 'b> {
-    binder: &'a mut Binder<'b>,
+struct QueryValueCoercionContext<'binder, 'schema, 'parsed> {
+    binder: &'binder mut Binder<'schema, 'parsed>,
     field_id: Option<FieldId>,
     location: Location,
     value_path: Vec<ValuePathSegment>,
     input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, QueryInputValue)>>,
 }
 
-impl<'a, 'b> std::ops::Deref for QueryValueCoercionContext<'a, 'b> {
-    type Target = Binder<'b>;
+impl<'binder, 'schema, 'parsed> std::ops::Deref for QueryValueCoercionContext<'binder, 'schema, 'parsed> {
+    type Target = Binder<'schema, 'parsed>;
 
     fn deref(&self) -> &Self::Target {
         self.binder
     }
 }
 
-impl<'a, 'b> std::ops::DerefMut for QueryValueCoercionContext<'a, 'b> {
+impl<'binder, 'schema, 'parsed> std::ops::DerefMut for QueryValueCoercionContext<'binder, 'schema, 'parsed> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.binder
     }
 }
 
-impl<'a, 'b> QueryValueCoercionContext<'a, 'b> {
+impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'parsed> {
     fn variable_ref(&mut self, name: Name, ty: Type) -> Result<QueryInputValue, InputValueError> {
         // field_id is not provided for variable default values.
         let Some(field_id) = self.field_id else {

@@ -4,7 +4,7 @@ use common_types::auth::ExecutionAuth;
 use graph_entities::QueryResponse;
 use headers::HeaderMapExt;
 use http::HeaderMap;
-use partial_caching::FetchPhaseResult;
+use partial_caching::{type_relationships::no_subtypes, FetchPhaseResult};
 use serde::Deserialize;
 use serde_json::json;
 
@@ -34,7 +34,7 @@ fn test_serializing_all_updates() {
     let plan = partial_caching::build_plan(QUERY, None, &registry).unwrap().unwrap();
     let fetch_phase = plan.start_fetch_phase(&auth(), &headers(), &variables());
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -53,7 +53,7 @@ fn test_serializing_all_updates() {
     }));
     executor_response.set_root_unchecked(root_node);
 
-    let (actual_response, update_phase) = execution.handle_response(executor_response.clone(), false);
+    let (actual_response, update_phase) = execution.handle_full_response(executor_response.clone(), false);
 
     assert_eq!(
         actual_response.body.to_json_value().unwrap(),
@@ -106,7 +106,7 @@ fn no_updates_if_errors() {
         .unwrap();
     let fetch_phase = plan.start_fetch_phase(&auth(), &headers(), &variables());
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -114,7 +114,7 @@ fn no_updates_if_errors() {
     let root_node = executor_response.from_serde_value(json!({"user": {"name": "Jane"}}));
     executor_response.set_root_unchecked(root_node);
 
-    let (actual_response, update_phase) = execution.handle_response(executor_response.clone(), true);
+    let (actual_response, update_phase) = execution.handle_full_response(executor_response.clone(), true);
 
     assert_eq!(
         actual_response.body.to_json_value().unwrap(),
@@ -136,7 +136,7 @@ fn no_updates_if_no_store_header_provided() {
 
     let fetch_phase = plan.start_fetch_phase(&auth(), &headers, &variables());
 
-    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish() else {
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
         panic!("We didn't hit everything so this should always be a partial");
     };
 
@@ -144,7 +144,7 @@ fn no_updates_if_no_store_header_provided() {
     let root_node = executor_response.from_serde_value(json!({"user": {"name": "Jane"}}));
     executor_response.set_root_unchecked(root_node);
 
-    let (_, update_phase) = execution.handle_response(executor_response.clone(), true);
+    let (_, update_phase) = execution.handle_full_response(executor_response.clone(), true);
 
     assert!(update_phase.is_none())
 }

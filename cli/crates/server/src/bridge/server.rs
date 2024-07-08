@@ -16,7 +16,9 @@ use tower_http::trace::TraceLayer;
 pub struct HandlerState {
     pub message_sender: MessageSender,
     pub udf_runtime: UdfRuntime,
+    #[allow(dead_code)]
     pub tracing: bool,
+    #[allow(dead_code)]
     pub registry: Arc<registry_v2::Registry>,
 }
 

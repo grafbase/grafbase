@@ -22,22 +22,63 @@ interface types {
         delete: func(name: string) -> result<option<string>, header-error>;
     }
 
-    record error-response {
+    record edge-definition {
+        parent-type-name: string,
+        field-name: string,
+    }
+
+    record node-definition {
+        type-name: string,
+    }
+
+    record error {
         extensions: list<tuple<string, string>>,
         message: string,
     }
 }
 
 interface gateway-request {
-    use types.{headers, error-response, context};
+    use types.{headers, error, context};
 
-    on-gateway-request: func(context: context, headers: headers) -> result<_, error-response>;
+    on-gateway-request: func(context: context, headers: headers) -> result<_, error>;
 }
 
 interface authorization {
-    use types.{error-response, shared-context};
+    use types.{error, shared-context, edge-definition, node-definition};
 
-    authorized: func(context: shared-context, rule: string, input: list<string>) -> result<list<option<error-response>>, error-response>;
+    authorize-edge-pre-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        arguments: string,
+        metadata: string
+    ) -> result<_, error>;
+
+    authorize-node-pre-execution: func(
+        context: shared-context,
+        definition: node-definition,
+        metadata: string
+    ) -> result<_, error>;
+
+    authorize-parent-edge-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        parents: list<string>,
+        metadata: string
+    ) -> list<result<_, error>>;
+
+    authorize-edge-node-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        nodes: list<string>,
+        metadata: string
+    ) -> list<result<_, error>>;
+
+    authorize-edge-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        edges: list<tuple<string, list<string>>>,
+        metadata: string
+    ) -> list<result<_, error>>;
 }
  
 world hooks {

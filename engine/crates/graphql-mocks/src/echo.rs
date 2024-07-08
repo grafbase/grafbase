@@ -3,10 +3,55 @@ use async_graphql::{EmptyMutation, EmptySubscription, Enum, InputObject, Json, M
 /// A schema that just echoes stuff back at you.
 ///
 /// Useful for testing inputs & outputs
-pub type EchoSchema = async_graphql::Schema<Query, EmptyMutation, EmptySubscription>;
+pub struct EchoSchema;
 
-#[derive(Default)]
-pub struct Query;
+#[async_trait::async_trait]
+impl super::Schema for EchoSchema {
+    async fn execute(
+        &self,
+        headers: Vec<(String, String)>,
+        request: async_graphql::Request,
+    ) -> async_graphql::Response {
+        async_graphql::Schema::build(Query { headers }, EmptyMutation, EmptySubscription)
+            .finish()
+            .execute(request)
+            .await
+    }
+
+    fn execute_stream(
+        &self,
+        request: async_graphql::Request,
+    ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
+        Box::pin(
+            async_graphql::Schema::build(
+                Query {
+                    headers: Default::default(),
+                },
+                EmptyMutation,
+                EmptySubscription,
+            )
+            .finish()
+            .execute_stream(request),
+        )
+    }
+
+    fn sdl(&self) -> String {
+        let schema = async_graphql::Schema::build(
+            Query {
+                headers: Default::default(),
+            },
+            EmptyMutation,
+            EmptySubscription,
+        )
+        .finish();
+
+        schema.sdl_with_options(async_graphql::SDLExportOptions::new())
+    }
+}
+
+pub struct Query {
+    headers: Vec<(String, String)>,
+}
 
 #[Object]
 impl Query {
@@ -51,6 +96,13 @@ impl Query {
 
     async fn fancy_bool(&self, input: FancyBool) -> FancyBool {
         input
+    }
+
+    async fn header(&self, name: String) -> Option<String> {
+        self.headers
+            .iter()
+            .find(|(key, _)| key == &name)
+            .map(|(_, value)| value.clone())
     }
 }
 

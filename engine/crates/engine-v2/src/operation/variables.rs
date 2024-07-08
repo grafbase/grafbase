@@ -5,7 +5,7 @@ use super::{
     FieldId, Location, Operation, QueryInputValueId, VariableDefinitionId, VariableInputValueId, VariableInputValues,
 };
 
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct VariableDefinition {
     pub name: String,
     pub name_location: Location,
@@ -55,13 +55,6 @@ impl Variables {
         request_variables: engine::Variables,
     ) -> Result<Self, Vec<VariableError>> {
         bind_variables(schema, operation, request_variables)
-    }
-
-    pub(super) fn new_for(operation: &Operation) -> Self {
-        Variables {
-            input_values: VariableInputValues::default(),
-            definition_to_value: vec![VariableValue::Undefined; operation.variable_definitions.len()],
-        }
     }
 
     pub(super) fn create_unavailable_for(operation: &Operation) -> Self {

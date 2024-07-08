@@ -1,0 +1,78 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    BANK_ACCOUNT @join__graph(name: "bank-account", url: "http://example.com/bank-account")
+}
+
+type User {
+    accounts: [Account!]! @join__field(graph: BANK_ACCOUNT) @authorized(fields: "userId name", metadata: "{\"stuff\": true}")
+    email: String! @join__field(graph: BANK_ACCOUNT)
+    name: String! @join__field(graph: BANK_ACCOUNT)
+    userId: ID! @join__field(graph: BANK_ACCOUNT)
+}
+
+type Account @authorized(fields: "user { userId }") {
+    balance: Float! @join__field(graph: BANK_ACCOUNT) @authorized(fields: "id")
+    id: ID! @join__field(graph: BANK_ACCOUNT)
+    transactions: [Transaction!]! @join__field(graph: BANK_ACCOUNT)
+    type: AccountType! @join__field(graph: BANK_ACCOUNT)
+    user: User! @join__field(graph: BANK_ACCOUNT)
+}
+
+type Query {
+    account(id: ID!): Account @join__field(graph: BANK_ACCOUNT)
+    accounts: [Account!]! @join__field(graph: BANK_ACCOUNT)
+    transaction(id: ID!): Transaction @join__field(graph: BANK_ACCOUNT)
+    transactions: [Transaction!]! @join__field(graph: BANK_ACCOUNT)
+    user(id: ID!): User @join__field(graph: BANK_ACCOUNT)
+    users: [User!]! @join__field(graph: BANK_ACCOUNT)
+}
+
+type Mutation {
+    createAccount(userId: ID!, type: AccountType!, initialBalance: Float!, input: CreateAccountInput, included: Boolean, notIncluded: String): Account @join__field(graph: BANK_ACCOUNT) @authorized(arguments: "input { userId nested { name } } included", metadata: ["a", "b", "c", ])
+    createTransaction(amount: Float!, description: String, accountId: ID!): Transaction! @join__field(graph: BANK_ACCOUNT)
+    createUser(name: String!, email: String!): User! @join__field(graph: BANK_ACCOUNT)
+    deleteAccount(id: ID!): Account! @join__field(graph: BANK_ACCOUNT)
+    deleteTransaction(id: ID!): Transaction! @join__field(graph: BANK_ACCOUNT)
+    deleteUser(id: ID!, soft: Boolean): User! @join__field(graph: BANK_ACCOUNT) @authorized(arguments: "id")
+    updateUser(id: ID!, name: String, email: String): User! @join__field(graph: BANK_ACCOUNT)
+}
+
+interface Transaction @authorized(fields: "id amount date account { id }") {
+    account: Account!
+    amount: Float!
+    date: String!
+    description: String @authorized(fields: "account { id }")
+    id: ID!
+}
+
+enum AccountType {
+    SAVINGS
+    CHECKING
+}
+
+input CreateAccountInput {
+    userId: ID!
+    nested: NestedThing
+    accountType: AccountType
+}
+
+input NestedThing {
+    name: String!
+}

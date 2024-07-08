@@ -9,7 +9,7 @@ type WasabiPlant {
     cultivationArea: String
     harvestTime: String
     id: ID!
-    name: String!
+    name(language: String!): String!
     variety: String!
 }
 
@@ -23,5 +23,5 @@ type WasabiProduct {
 
 type Query {
     wasabiPlants: [WasabiPlant]
-    wasabiProduct: WasabiProduct
+    wasabiProduct(id: ID!): WasabiProduct
 }

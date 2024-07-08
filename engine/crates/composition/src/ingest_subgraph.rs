@@ -128,7 +128,7 @@ fn ingest_top_level_definitions(
                             description,
                             directives,
                         );
-                        enums::ingest_enum(definition_id, enum_type, subgraphs, directive_matcher);
+                        enums::ingest_enum(definition_id, enum_type, subgraphs, directive_matcher, subgraph_id);
                         definition_id
                     }
                 };
@@ -138,6 +138,8 @@ fn ingest_top_level_definitions(
                     &type_definition.node.directives,
                     subgraphs,
                     directive_matcher,
+                    subgraph_id,
+                    |_| type_name.as_str().to_owned(),
                 );
 
                 directives::ingest_keys(
@@ -182,6 +184,7 @@ fn ingest_definition_bodies(
                     &input_object.fields,
                     federation_directives_matcher,
                     subgraphs,
+                    subgraph_id,
                 );
             }
             ast::TypeKind::Interface(interface) => {
@@ -200,6 +203,7 @@ fn ingest_definition_bodies(
                     &interface.fields,
                     federation_directives_matcher,
                     is_query_root_type,
+                    subgraph_id,
                     subgraphs,
                 );
             }
@@ -220,6 +224,7 @@ fn ingest_definition_bodies(
                     &object_type.fields,
                     federation_directives_matcher,
                     is_query_root_type,
+                    subgraph_id,
                     subgraphs,
                 );
             }

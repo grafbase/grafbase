@@ -15,8 +15,8 @@ type PatientRecord {
 }
 
 type Query {
-    patient: Patient
-    patientRecord: PatientRecord
+    patient(id: ID!): Patient
+    patientRecord(recordId: ID!, patientId: ID!): PatientRecord
     patientRecords: [PatientRecord]
     patients: [Patient]
 }

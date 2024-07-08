@@ -1,4 +1,4 @@
-use std::{fmt, sync::atomic::Ordering};
+use std::fmt;
 
 use serde::{
     de::{DeserializeSeed, Visitor},
@@ -8,7 +8,7 @@ use serde::{
 use super::SeedContext;
 use crate::{
     operation::FieldId,
-    response::{GraphqlError, ResponseValue},
+    response::{ErrorCode, GraphqlError, ResponseValue},
 };
 
 pub(super) struct NullableSeed<'ctx, 'parent, Seed> {
@@ -62,13 +62,12 @@ where
         match self.seed.deserialize(deserializer) {
             Ok(value) => Ok(value.into_nullable()),
             Err(err) => {
-                if !self.ctx.propagating_error.fetch_and(false, Ordering::Relaxed) {
-                    self.ctx.writer.push_error(GraphqlError {
-                        message: err.to_string(),
-                        locations: vec![self.ctx.plan[self.field_id].location()],
-                        path: Some(self.ctx.response_path()),
-                        ..Default::default()
-                    });
+                if self.ctx.stop_propagating_and_should_create_new_graphql_error() {
+                    self.ctx.writer.push_error(
+                        GraphqlError::new(err.to_string(), ErrorCode::SubgraphInvalidResponseError)
+                            .with_location(self.ctx.plan[self.field_id].location())
+                            .with_path(self.ctx.response_path()),
+                    );
                 }
                 Ok(ResponseValue::Null)
             }

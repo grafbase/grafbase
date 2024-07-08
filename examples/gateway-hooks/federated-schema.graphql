@@ -1,0 +1,43 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    USERS @join__graph(name: "users", url: "http://localhost:4000/graphql")
+}
+
+type Address {
+    street: String! @join__field(graph: USERS)
+}
+
+type Secret @authorized {
+    id: Int! @join__field(graph: USERS)
+    socialSecurityNumber: String! @join__field(graph: USERS)
+}
+
+type User {
+    address: Address! @join__field(graph: USERS)
+    id: Int! @join__field(graph: USERS)
+    name: String! @join__field(graph: USERS)
+    secret: Secret @join__field(graph: USERS)
+}
+
+type Query {
+    getSecret(id: Int!): Secret @join__field(graph: USERS)
+    getUser(id: Int!): User @join__field(graph: USERS) @authorized(arguments: "id")
+}
+

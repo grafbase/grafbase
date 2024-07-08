@@ -1,8 +1,11 @@
+use futures_util::{
+    stream::{self, BoxStream, StreamExt},
+    FutureExt,
+};
 use std::sync::Arc;
 
 use crate::rate_limit::RatelimitContext;
-use engine::parser::types::OperationType;
-use futures_util::FutureExt;
+use engine::{parser::types::OperationType, InitialResponse, StreamingPayload};
 use grafbase_tracing::{
     grafbase_client::Client,
     metrics::GraphqlOperationMetrics,
@@ -282,6 +285,100 @@ where
             .await
     }
 
+    #[cfg(feature = "partial-caching")]
+    pub async fn execute_stream_v2(
+        &self,
+        ctx: &Arc<Executor::Context>,
+        mut request: engine::Request,
+    ) -> Result<BoxStream<'static, engine::StreamingPayload>, Executor::Error>
+    where
+        Executor::Error: From<runtime::rate_limiting::Error>,
+    {
+        let headers = ctx.headers();
+        if let Err(err) = self
+            .handle_persisted_query(
+                &mut request,
+                headers
+                    .get(CLIENT_NAME_HEADER_NAME)
+                    .and_then(|value| value.to_str().ok()),
+                headers,
+            )
+            .await
+        {
+            return Ok(error_stream(engine::Response {
+                errors: vec![err.into()],
+                ..Default::default()
+            }));
+        }
+
+        let auth = match self
+            .auth
+            .authorize(ctx.headers())
+            .instrument(info_span!("authorize_request"))
+            .await
+        {
+            Some(auth) if matches!(auth, AccessToken::V1(_)) => auth,
+            _ => {
+                return Ok(error_stream(engine::Response::from_errors_with_type(
+                    vec![engine::ServerError::new("Unauthorized", None)],
+                    // doesn't really matter, this is not client facing
+                    OperationType::Query,
+                )));
+            }
+        };
+
+        self.rate_limiter
+            .limit(Box::new(RatelimitContext::new(&request, &auth, ctx.headers())))
+            .await?;
+
+        let AccessToken::V1(auth) = auth else {
+            unreachable!("auth must be AccessToken::V1 at this point");
+        };
+
+        let mut cache_plan = None;
+        if self.cache_config.partial_registry.enable_partial_caching {
+            let planning_result = partial_caching::build_plan(
+                request.query(),
+                request.operation_name(),
+                &self.cache_config.partial_registry,
+            );
+            match planning_result {
+                Ok(Some(plan)) => {
+                    cache_plan = Some(plan);
+                }
+                Ok(None) => {
+                    // None means we should proceed with a normal execution.
+                }
+                Err(error) => {
+                    // This probably indicates a malformed query, but the cache planning doesn't have
+                    // especially thorough error reporting in it. So for now I want to pass this to
+                    // the actual execution where it'll get a better error message.
+                    tracing::warn!("error when building cache plan: {error:?}");
+                }
+            }
+        }
+
+        let Some(cache_plan) = cache_plan else {
+            return Arc::clone(&self.executor)
+                .execute_stream_v2(Arc::clone(ctx), auth, request)
+                .instrument(info_span!("execute_stream"))
+                .await;
+        };
+
+        let stream = cache::partial::partial_caching_stream(
+            cache_plan,
+            &self.cache,
+            auth,
+            request,
+            &self.executor,
+            ctx,
+            &self.cache_config.partial_registry,
+        )
+        .await?;
+
+        Ok(stream)
+    }
+
     async fn execute_with_auth(
         &self,
         ctx: &Arc<Executor::Context>,
@@ -313,6 +410,7 @@ where
                         request,
                         &self.executor,
                         ctx,
+                        &self.cache_config.partial_registry,
                     )
                     .await?;
 
@@ -358,4 +456,8 @@ where
             }
         }
     }
+}
+
+fn error_stream(response: engine::Response) -> BoxStream<'static, engine::StreamingPayload> {
+    stream::once(async move { StreamingPayload::InitialResponse(InitialResponse::error(response)) }).boxed()
 }

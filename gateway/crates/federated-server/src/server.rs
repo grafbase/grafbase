@@ -58,19 +58,21 @@ pub async fn serve(
     let (sender, mut gateway) = watch::channel(None);
     gateway.mark_unchanged();
 
-    fetch_method.start(
-        GatewayConfig {
-            enable_introspection: config.graph.introspection,
-            operation_limits: config.operation_limits,
-            authentication: config.authentication,
-            subgraphs: config.subgraphs,
-            default_headers: config.headers,
-            trusted_documents: config.trusted_documents,
-            wasi: config.wasi,
-        },
-        otel_reload,
-        sender,
-    )?;
+    fetch_method
+        .start(
+            GatewayConfig {
+                enable_introspection: config.graph.introspection,
+                operation_limits: config.operation_limits,
+                authentication: config.authentication,
+                subgraphs: config.subgraphs,
+                default_headers: config.headers,
+                trusted_documents: config.trusted_documents,
+                wasi: config.hooks,
+            },
+            otel_reload,
+            sender,
+        )
+        .await?;
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
     let websocket_accepter = WebsocketAccepter::new(websocket_receiver, gateway.clone());
@@ -86,7 +88,7 @@ pub async fn serve(
 
     // HACK: Wait for the engine to be ready. This ensures we did reload OTEL providers if necessary
     // as we need all resources attributes to be present before creating the tracing layer.
-    tracing::event!(target: GRAFBASE_TARGET, Level::INFO, "Waiting for engine to be ready...");
+    tracing::event!(target: GRAFBASE_TARGET, Level::DEBUG, "Waiting for engine to be ready...");
     gateway.changed().await.ok();
     let mut router = Router::new()
         .route(path, get(engine::get).post(engine::post))

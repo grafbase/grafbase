@@ -8,7 +8,7 @@ use futures::{future::BoxFuture, Stream, StreamExt};
 use serde::Deserialize;
 
 pub use self::builder::{EngineBuilder, RequestContext};
-pub use self::gateway::GatewayBuilder;
+pub use self::gateway::{Error, GatewayBuilder, GatewayTester};
 
 /// An instance of the grafbase-engine code that can be used for testing.
 #[derive(Clone)]
@@ -142,7 +142,7 @@ impl GraphQlRequest {
         if let Some(extensions) = self.extensions {
             request.extensions = extensions;
         }
-        request.operation_plan_cache_key.document_id = self.doc_id;
+        request.document_id = self.doc_id;
         request
     }
 }

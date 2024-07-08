@@ -113,7 +113,10 @@ fn named_fragment_cycle() {
               "line": 19,
               "column": 29
             }
-          ]
+          ],
+          "extensions": {
+            "code": "OPERATION_VALIDATION_ERROR"
+          }
         }
       ]
     }

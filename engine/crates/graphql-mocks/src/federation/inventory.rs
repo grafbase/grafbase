@@ -1,3 +1,5 @@
+#![allow(clippy::duplicated_attributes)] // graphql false positive
+
 use async_graphql::{
     ComplexObject, Context, EmptyMutation, EmptySubscription, Interface, Object, Schema, SimpleObject,
 };

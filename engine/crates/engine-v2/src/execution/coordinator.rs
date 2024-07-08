@@ -1,8 +1,8 @@
-use std::{borrow::Cow, sync::Arc};
+use std::sync::Arc;
 
 use async_runtime::make_send_on_wasm;
 use engine_parser::types::OperationType;
-use futures::stream::FuturesOrdered;
+use futures::{stream::FuturesOrdered, Future, Stream};
 use futures_util::{
     future::BoxFuture,
     stream::{BoxStream, FuturesUnordered},
@@ -10,47 +10,59 @@ use futures_util::{
 };
 
 use crate::{
-    execution::ExecutionContext,
-    operation::{Operation, Variables},
+    execution::{coordinator, ExecutionContext},
     plan::{ExecutionPlanId, OperationExecutionState, OperationPlan, PlanWalker},
     response::{Response, ResponseBuilder, ResponseObjectRef, ResponsePart},
     sources::{Executor, ExecutorInput, SubscriptionInput},
+    Runtime,
 };
 
-use super::ExecutionResult;
+use super::{ExecutionResult, PreExecutionContext};
 
 pub(crate) trait ResponseSender {
     type Error;
-    async fn send(&mut self, response: Response) -> Result<(), Self::Error>;
+    fn send(&mut self, response: Response) -> impl Future<Output = Result<(), Self::Error>> + Send;
 }
 
-pub(crate) struct ExecutionCoordinator<'ctx> {
-    ctx: ExecutionContext<'ctx>,
-    operation_plan: Arc<OperationPlan>,
-    variables: Variables,
+impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
+    pub async fn execute_query_or_mutation(self, operation_plan: OperationPlan) -> Response {
+        let background_futures: FuturesUnordered<_> = self.background_futures.into_iter().collect();
+        let background_fut = background_futures.collect::<Vec<_>>();
+
+        let coordinator = coordinator::ExecutionCoordinator::new(self.inner, operation_plan);
+        let response_fut = coordinator.execute();
+
+        let (response, _) = futures_util::join!(response_fut, background_fut);
+        response
+    }
+
+    pub async fn execute_subscription(self, operation_plan: OperationPlan, responses: impl ResponseSender + Send) {
+        let background_futures: FuturesUnordered<_> = self.background_futures.into_iter().collect();
+        let background_fut = background_futures.collect::<Vec<_>>();
+
+        let coordinator = coordinator::ExecutionCoordinator::new(self.inner, operation_plan);
+        let subscription_fut = coordinator.execute_subscription(responses);
+        futures_util::join!(subscription_fut, background_fut);
+    }
 }
 
-impl<'ctx> ExecutionCoordinator<'ctx> {
-    pub fn new(ctx: ExecutionContext<'ctx>, operation_plan: Arc<OperationPlan>, variables: Variables) -> Self {
-        Self {
-            ctx,
-            operation_plan,
-            variables,
-        }
+pub(crate) struct ExecutionCoordinator<'ctx, R: Runtime> {
+    ctx: ExecutionContext<'ctx, R>,
+    operation_plan: OperationPlan,
+}
+
+impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
+    pub fn new(ctx: ExecutionContext<'ctx, R>, operation_plan: OperationPlan) -> Self {
+        Self { ctx, operation_plan }
     }
 
-    pub fn operation(&self) -> &Operation {
-        &self.operation_plan
-    }
-
-    pub fn plan_walker(&self, plan_id: ExecutionPlanId) -> PlanWalker<'_, (), ()> {
-        self.operation_plan
-            .walker_with(&self.ctx.engine.schema, &self.variables, plan_id)
+    fn plan_walker(&self, plan_id: ExecutionPlanId) -> PlanWalker<'_, (), ()> {
+        self.operation_plan.walker_with(&self.ctx.engine.schema, plan_id)
     }
 
     pub async fn execute(self) -> Response {
         assert!(
-            !matches!(self.operation_plan.ty, OperationType::Subscription),
+            !matches!(self.operation_plan.ty(), OperationType::Subscription),
             "execute shouldn't be called for subscriptions"
         );
 
@@ -64,21 +76,31 @@ impl<'ctx> ExecutionCoordinator<'ctx> {
         .await
     }
 
-    pub async fn execute_subscription(self, responses: impl ResponseSender) {
-        assert!(matches!(self.operation_plan.ty, OperationType::Subscription));
+    pub async fn execute_subscription(self, mut responses: impl ResponseSender + Send) {
+        assert!(matches!(self.operation_plan.ty(), OperationType::Subscription));
+
+        if !self.operation_plan.root_errors.is_empty() {
+            let mut response = ResponseBuilder::new(self.operation_plan.root_object_id);
+            response.push_root_errors(&self.operation_plan.root_errors);
+            let _ = responses
+                .send(response.build(self.ctx.engine.schema.clone(), self.operation_plan.operation.clone()))
+                .await;
+            return;
+        }
 
         let (state, subscription_plan_id) = {
             let mut state = self.operation_plan.new_execution_state();
             let id = state.pop_subscription_plan_id();
             (state, id)
         };
-        let root_plan_boundary_ids = self.plan_walker(subscription_plan_id).output().boundary_ids;
+        let entity_locations_to_track = &self.plan_walker(subscription_plan_id).output().tracked_locations;
+
         let new_execution = || {
             let mut response = ResponseBuilder::new(self.operation_plan.root_object_id);
             OperationRootPlanExecution {
                 root_response_part: response.new_part(
                     Arc::new(response.root_response_object().into_iter().collect()),
-                    root_plan_boundary_ids,
+                    entity_locations_to_track,
                 ),
                 operation_execution: OperationExecution {
                     coordinator: &self,
@@ -108,8 +130,8 @@ impl<'ctx> ExecutionCoordinator<'ctx> {
     async fn build_subscription_stream<'s, 'caller>(
         &'s self,
         plan_id: ExecutionPlanId,
-        new_execution: impl Fn() -> OperationRootPlanExecution<'caller> + Send + 'caller,
-    ) -> ExecutionResult<BoxStream<'caller, ExecutionResult<OperationRootPlanExecution<'caller>>>>
+        new_execution: impl Fn() -> OperationRootPlanExecution<'caller, R> + Send + 'caller,
+    ) -> ExecutionResult<BoxStream<'caller, ExecutionResult<OperationRootPlanExecution<'caller, R>>>>
     where
         's: 'caller,
     {
@@ -121,14 +143,19 @@ impl<'ctx> ExecutionCoordinator<'ctx> {
     }
 }
 
-struct SubscriptionExecution<'a> {
+struct SubscriptionExecution<S> {
     subscription_plan_id: ExecutionPlanId,
-    stream: BoxStream<'a, ExecutionResult<OperationRootPlanExecution<'a>>>,
+    stream: S,
 }
 
-impl SubscriptionExecution<'_> {
-    async fn execute(self, mut responses: impl ResponseSender) {
-        let mut subscription_stream = self.stream.fuse();
+impl<'a, R: Runtime, S> SubscriptionExecution<S>
+where
+    S: Stream<Item = ExecutionResult<OperationRootPlanExecution<'a, R>>> + Send,
+{
+    async fn execute(self, mut responses: impl ResponseSender + Send) {
+        let subscription_stream = self.stream.fuse();
+        futures_util::pin_mut!(subscription_stream);
+
         let mut response_futures = FuturesOrdered::new();
         loop {
             let next_task = if response_futures.is_empty() {
@@ -197,27 +224,35 @@ impl SubscriptionExecution<'_> {
     }
 }
 
-pub struct OperationRootPlanExecution<'ctx> {
-    operation_execution: OperationExecution<'ctx>,
+pub struct OperationRootPlanExecution<'ctx, R: Runtime> {
+    operation_execution: OperationExecution<'ctx, R>,
     root_response_part: ResponsePart,
 }
 
-impl OperationRootPlanExecution<'_> {
+impl<R: Runtime> OperationRootPlanExecution<'_, R> {
     pub fn root_response_part(&mut self) -> &mut ResponsePart {
         &mut self.root_response_part
     }
 }
 
-pub struct OperationExecution<'ctx> {
-    coordinator: &'ctx ExecutionCoordinator<'ctx>,
+pub struct OperationExecution<'ctx, R: Runtime> {
+    coordinator: &'ctx ExecutionCoordinator<'ctx, R>,
     futures: ExecutorFutureSet<'ctx>,
     state: OperationExecutionState,
     response: ResponseBuilder,
 }
 
-impl<'ctx> OperationExecution<'ctx> {
+impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
     /// Runs a single execution to completion, returning its response
     async fn execute(mut self) -> Response {
+        if !self.coordinator.operation_plan.root_errors.is_empty() {
+            self.response
+                .push_root_errors(&self.coordinator.operation_plan.root_errors);
+            return self.response.build(
+                self.coordinator.ctx.engine.schema.clone(),
+                self.coordinator.operation_plan.operation.clone(),
+            );
+        }
         for plan_id in self.state.get_executable_plans() {
             self.spawn_executor(plan_id);
         }
@@ -235,14 +270,18 @@ impl<'ctx> OperationExecution<'ctx> {
                 .fields()
                 .map(|field| field.as_ref().edge)
                 .min()
-                .unwrap_or_else(|| selection_set.as_ref().typename_fields.first().copied().unwrap());
+                .or_else(|| selection_set.as_ref().field_errors.first().map(|f| f.edge))
+                .or_else(|| selection_set.as_ref().typename_fields.first().copied())
+                .expect("Selection set without any fields?");
             let default_object = selection_set.maybe_default_object();
             match result {
                 Ok(part) => {
                     tracing::trace!(%plan_id, "Succeeded");
 
-                    for (plan_bounday_id, boundary) in self.response.ingest(part, first_edge, default_object) {
-                        self.state.push_boundary_response_object_refs(plan_bounday_id, boundary);
+                    for (entity_location, response_object_refs) in
+                        self.response.ingest(part, first_edge, default_object)
+                    {
+                        self.state.push_response_objects(entity_location, response_object_refs);
                     }
 
                     for plan_id in self
@@ -266,7 +305,7 @@ impl<'ctx> OperationExecution<'ctx> {
 
         self.response.build(
             self.coordinator.ctx.engine.schema.clone(),
-            self.coordinator.operation_plan.clone(),
+            self.coordinator.operation_plan.operation.clone(),
         )
     }
 
@@ -287,16 +326,14 @@ impl<'ctx> OperationExecution<'ctx> {
         let plan = self.coordinator.plan_walker(plan_id);
         let response_part = self
             .response
-            .new_part(root_response_object_refs.clone(), plan.output().boundary_ids);
+            .new_part(root_response_object_refs.clone(), &plan.output().tracked_locations);
         let input = ExecutorInput {
             ctx: self.coordinator.ctx,
             plan,
             root_response_objects: self.response.read(
                 plan.schema(),
                 root_response_object_refs.clone(),
-                plan.input()
-                    .map(|input| Cow::Borrowed(&input.selection_set))
-                    .unwrap_or_default(),
+                &plan.input().selection_set,
             ),
         };
 
@@ -322,11 +359,11 @@ impl<'a> ExecutorFutureSet<'a> {
         ExecutorFutureSet(FuturesUnordered::new())
     }
 
-    fn execute(
+    fn execute<R: Runtime>(
         &mut self,
         plan_id: ExecutionPlanId,
         root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        executor: Executor<'a>,
+        executor: Executor<'a, R>,
         response_part: ResponsePart,
     ) {
         self.0.push(Box::pin(make_send_on_wasm(async move {

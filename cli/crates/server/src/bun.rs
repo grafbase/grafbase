@@ -83,7 +83,7 @@ impl From<ZipError> for BunError {
     }
 }
 
-const BUN_VERSION: &str = "1.1.13";
+const BUN_VERSION: &str = "1.1.17";
 
 #[cfg(target_arch = "aarch64")]
 const ARCH: &str = "aarch64";
@@ -164,7 +164,16 @@ pub(crate) async fn install_bun() -> Result<(), BunError> {
         return Ok(());
     }
 
-    if common::environment::is_nixos() || common::environment::is_in_docker_image() {
+    if common::environment::is_nixos() {
+        if let Err(which::Error::CannotFindBinaryPath) = which::which("bun") {
+            return Err(BunError::BunNotFound(common::errors::BunNotFound));
+        }
+
+        BUN_INSTALLED_FOR_SESSION.store(true, Ordering::Relaxed);
+        return Ok(());
+    }
+
+    if common::environment::is_in_docker_image() {
         BUN_INSTALLED_FOR_SESSION.store(true, Ordering::Relaxed);
         return Ok(());
     }

@@ -1,4 +1,4 @@
-use super::gateway;
+use super::gateway::{self, GatewayRuntime};
 use crate::server::gateway::GatewayConfig;
 use crate::OtelReload;
 use engine_v2::Engine;
@@ -29,11 +29,11 @@ impl GraphFetchMethod {
     /// if a graph ref and access token is provided, the function returns immediately, and
     /// the gateway will be available eventually when the GDN responds with a working graph.
     #[cfg_attr(feature = "lambda", allow(unused_variables))]
-    pub(crate) fn start(
+    pub(crate) async fn start(
         self,
         config: GatewayConfig,
         otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
-        sender: watch::Sender<Option<Arc<Engine>>>,
+        sender: watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>,
     ) -> crate::Result<()> {
         match self {
             GraphFetchMethod::FromApi {
@@ -60,7 +60,7 @@ impl GraphFetchMethod {
                 });
             }
             GraphFetchMethod::FromLocal { federated_schema } => {
-                let gateway = gateway::generate(&federated_schema, None, config)?;
+                let gateway = gateway::generate(&federated_schema, None, config).await?;
 
                 sender.send(Some(Arc::new(gateway)))?;
             }

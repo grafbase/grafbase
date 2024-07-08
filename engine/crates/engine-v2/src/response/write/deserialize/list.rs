@@ -1,4 +1,4 @@
-use std::{fmt, sync::atomic::Ordering};
+use std::fmt;
 
 use serde::{
     de::{DeserializeSeed, IgnoredAny, SeqAccess, Visitor},
@@ -8,7 +8,7 @@ use serde::{
 use super::SeedContext;
 use crate::{
     operation::FieldId,
-    response::{GraphqlError, ResponseValue},
+    response::{ErrorCode, GraphqlError, ResponseValue},
 };
 
 pub(super) struct ListSeed<'ctx, 'parent, Seed> {
@@ -65,15 +65,14 @@ where
                     break;
                 }
                 Err(err) => {
-                    if !self.ctx.propagating_error.fetch_or(true, Ordering::Relaxed) {
+                    if self.ctx.should_create_new_graphql_error() {
                         let mut path = self.ctx.response_path();
                         path.push(index);
-                        self.ctx.writer.push_error(GraphqlError {
-                            message: err.to_string(),
-                            locations: vec![self.ctx.plan[self.field_id].location()],
-                            path: Some(path),
-                            ..Default::default()
-                        });
+                        self.ctx.writer.push_error(
+                            GraphqlError::new(err.to_string(), ErrorCode::SubgraphInvalidResponseError)
+                                .with_location(self.ctx.plan[self.field_id].location())
+                                .with_path(path),
+                        );
                     }
                     // Discarding the rest of the sequence.
                     while seq.next_element::<IgnoredAny>().unwrap_or_default().is_some() {}

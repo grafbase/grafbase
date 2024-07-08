@@ -318,5 +318,5 @@ fn serde_roundtrip(#[case] sdl: &str) {
 
 #[test]
 fn non_empty_version() {
-    assert!(!Schema::commit_sha().is_empty());
+    assert!(!Schema::build_identifier().is_empty());
 }

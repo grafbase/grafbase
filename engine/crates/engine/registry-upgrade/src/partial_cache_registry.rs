@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use indexmap::IndexMap;
 use registry_for_cache::{ids::*, storage::*, writer::RegistryWriter, IdRange};
@@ -12,7 +12,7 @@ pub fn convert_v1_to_partial_cache_registry(
     let registry_v1::Registry {
         types,
         directives: _,
-        implements: _,
+        mut implements,
         query_type,
         mutation_type,
         subscription_type,
@@ -44,6 +44,9 @@ pub fn convert_v1_to_partial_cache_registry(
         types.sort_by(|lhs, rhs| lhs.name().cmp(rhs.name()));
         types
     };
+
+    add_unions_to_implements(&types, &mut implements);
+    insert_supertype_info(&mut writer, implements);
 
     // Build a map of type name -> the ID it'll have when we insert it.
     let preallocated_ids = writer.preallocate_type_ids(types.len()).collect::<Vec<_>>();
@@ -243,6 +246,35 @@ fn wrappers_from_string(str: &str) -> Wrapping {
     }
 
     rv
+}
+
+fn insert_supertype_info(writer: &mut RegistryWriter, implements: HashMap<String, HashSet<String>>) {
+    let mut groups = HashMap::<Vec<String>, Vec<String>>::with_capacity(implements.len());
+    for (implementer, implemented) in implements {
+        let mut implemented = implemented.into_iter().collect::<Vec<_>>();
+        implemented.sort();
+        groups.entry(implemented).or_default().push(implementer)
+    }
+
+    for (supertypes, subtypes) in groups {
+        let target_ids = writer.insert_supertypes(supertypes);
+        for ty in subtypes {
+            writer.insert_supertypes_for_type(ty, target_ids)
+        }
+    }
+}
+
+/// Implements in the v1 registry doesn't contain any union membership details
+///
+/// This adds that in, ready for conversion to subtype info in the caching registry
+fn add_unions_to_implements(types: &[registry_v1::MetaType], implements: &mut HashMap<String, HashSet<String>>) {
+    for ty in types {
+        if let registry_v1::MetaType::Union(union) = ty {
+            for member in &union.possible_types {
+                implements.entry(member.clone()).or_default().insert(union.name.clone());
+            }
+        }
+    }
 }
 
 #[cfg(test)]

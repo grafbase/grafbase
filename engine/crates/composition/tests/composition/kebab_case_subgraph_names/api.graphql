@@ -27,12 +27,12 @@ type Schaschlik {
 }
 
 type Query {
-    brochette: Brochette
+    brochette(id: ID!): Brochette
     brochettes: [Brochette]
-    kebab: Kebab
+    kebab(id: ID!): Kebab
     kebabs: [Kebab]
-    kushi: Kushi
+    kushi(id: ID!): Kushi
     kushis: [Kushi]
-    schaschlik: Schaschlik
+    schaschlik(id: ID!): Schaschlik
     schaschliks: [Schaschlik]
 }

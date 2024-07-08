@@ -11,7 +11,7 @@ type Manufacturer {
 }
 
 type Query {
-    fidgetSpinners: [FidgetSpinner]
+    fidgetSpinners(filter: SpinnerFilter!): [FidgetSpinner]
 }
 
 interface Spinner {

@@ -41,6 +41,11 @@ pub(crate) struct CompositionIr {
     /// Fields of an interface entity that are contributed by other subgraphs and must be added to
     /// the interface's implementers in the federated schema
     pub(crate) object_fields_from_entity_interfaces: BTreeSet<(federated::StringId, federated::FieldId)>,
+
+    /// @authorized directives on objects
+    pub(crate) object_authorized_directives: Vec<(federated::ObjectId, subgraphs::DirectiveSiteId)>,
+    /// @authorized directives on interfaces
+    pub(crate) interface_authorized_directives: Vec<(federated::InterfaceId, subgraphs::DirectiveSiteId)>,
 }
 
 #[derive(Clone)]
@@ -58,6 +63,9 @@ pub(crate) struct FieldIr {
     /// Subgraph fields corresponding to this federated graph field that have an `@requires`.
     pub(crate) requires: Vec<subgraphs::FieldId>,
 
+    /// Subgraph fields corresponding to this federated graph field that have an `@authorized`.
+    pub(crate) authorized_directives: Vec<subgraphs::FieldId>,
+
     // @join__field(graph: ..., override: ...)
     pub(crate) overrides: Vec<federated::Override>,
 
@@ -72,6 +80,7 @@ pub(crate) struct InputValueDefinitionIr {
     pub(crate) r#type: subgraphs::FieldTypeId,
     pub(crate) directives: federated::Directives,
     pub(crate) description: Option<federated::StringId>,
+    pub(crate) default: Option<subgraphs::Value>,
 }
 
 #[derive(Default)]

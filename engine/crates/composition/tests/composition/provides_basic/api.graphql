@@ -17,6 +17,6 @@ type User {
 }
 
 type Query {
-    product: Product
-    user: User
+    product(id: ID!): Product
+    user(id: ID!): User
 }

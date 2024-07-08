@@ -3,7 +3,11 @@ pub(crate) static COMPONENT_GATEWAY_REQUEST: &str = "component:grafbase/gateway-
 pub(crate) static COMPONENT_AUTHORIZATION: &str = "component:grafbase/authorization";
 
 pub(crate) static GATEWAY_HOOK_FUNCTION: &str = "on-gateway-request";
-pub(crate) static AUTHORIZATION_HOOK_FUNCTION: &str = "authorized";
+pub(crate) static AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION: &str = "authorize-edge-pre-execution";
+pub(crate) static AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION: &str = "authorize-node-pre-execution";
+pub(crate) static AUTHORIZE_PARENT_EDGE_POST_EXECUTION_HOOK_FUNCTION: &str = "authorize-parent-edge-post-execution";
+pub(crate) static AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION: &str = "authorize-edge-node-post-execution";
+pub(crate) static AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION: &str = "authorize-edge-post-execution";
 
 pub(crate) static HEADERS_RESOURCE: &str = "headers";
 pub(crate) static HEADERS_SET_METHOD: &str = "[method]headers.set";

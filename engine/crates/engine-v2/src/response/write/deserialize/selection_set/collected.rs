@@ -5,11 +5,11 @@ use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::{
     operation::SelectionSetType,
-    plan::{CollectedField, CollectedSelectionSetId, ExecutionPlanBoundaryId, RuntimeCollectedSelectionSet},
+    plan::{CollectedField, CollectedSelectionSetId, FieldError, ResponseObjectSetId, RuntimeCollectedSelectionSet},
     response::{
         value::{ResponseObjectFields, RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD},
         write::deserialize::{key::Key, FieldSeed, SeedContext},
-        ResponseEdge, ResponseObject, ResponseObjectRef, ResponseValue,
+        GraphqlError, ResponseEdge, ResponseObject, ResponseObjectRef, ResponseValue,
     },
 };
 
@@ -17,7 +17,7 @@ use crate::{
 /// or not. There is no field with type conditions anymore.
 pub(crate) struct CollectedSelectionSetSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContext<'ctx>,
-    pub boundary_ids: &'parent [ExecutionPlanBoundaryId],
+    pub response_object_set_ids: &'parent [ResponseObjectSetId],
     pub fields_seed: CollectedFieldsSeed<'ctx, 'parent>,
 }
 
@@ -26,6 +26,7 @@ pub(crate) struct CollectedFieldsSeed<'ctx, 'parent> {
     pub selection_set_ty: SelectionSetType,
     pub fields: &'parent [CollectedField],
     pub typename_fields: &'parent [ResponseEdge],
+    pub field_errors: &'parent [FieldError],
 }
 
 impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
@@ -33,7 +34,7 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
         let selection_set = &ctx.plan[id];
         Self {
             ctx,
-            boundary_ids: if let Some(ref id) = selection_set.maybe_boundary_id {
+            response_object_set_ids: if let Some(ref id) = selection_set.maybe_response_object_set_id {
                 std::array::from_ref(id)
             } else {
                 &[]
@@ -41,9 +42,9 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
             fields_seed: CollectedFieldsSeed {
                 ctx,
                 selection_set_ty: selection_set.ty,
-
                 fields: &ctx.plan[selection_set.field_ids],
                 typename_fields: &selection_set.typename_fields,
+                field_errors: &selection_set.field_errors,
             },
         }
     }
@@ -51,12 +52,13 @@ impl<'ctx, 'parent> CollectedSelectionSetSeed<'ctx, 'parent> {
     pub fn new(ctx: &'parent SeedContext<'ctx>, selection_set: &'parent RuntimeCollectedSelectionSet) -> Self {
         Self {
             ctx,
-            boundary_ids: &selection_set.boundary_ids,
+            response_object_set_ids: &selection_set.response_object_set_ids,
             fields_seed: CollectedFieldsSeed {
                 ctx,
                 selection_set_ty: SelectionSetType::Object(selection_set.object_id),
                 fields: &selection_set.fields,
                 typename_fields: &selection_set.typename_fields,
+                field_errors: &selection_set.field_errors,
             },
         }
     }
@@ -88,12 +90,12 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedSelectionSetSeed<'ctx, 'paren
         let (maybe_object_definition_id, fields) = self.fields_seed.visit_map(map)?;
 
         let id = self.ctx.writer.push_object(ResponseObject::new(fields));
-        if !self.boundary_ids.is_empty() {
+        if !self.response_object_set_ids.is_empty() {
             let Some(definition_id) = maybe_object_definition_id else {
                 return Err(serde::de::Error::custom("Could not determine the __typename"));
             };
-            self.ctx.writer.push_boundary_response_object(
-                self.boundary_ids,
+            self.ctx.writer.push_response_object(
+                self.response_object_set_ids,
                 ResponseObjectRef {
                     id,
                     path: self.ctx.response_path(),
@@ -132,6 +134,31 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for CollectedFieldsSeed<'ctx, 'parent> {
         let plan = self.ctx.plan;
         let keys = plan.response_keys();
         let mut response_fields = ResponseObjectFields::with_capacity(self.fields.len() + self.typename_fields.len());
+
+        let mut required_field_error = false;
+        for field_error in self.field_errors {
+            let mut path = self.ctx.response_path();
+            path.push(field_error.edge);
+
+            for error in &field_error.errors {
+                self.ctx.writer.push_error(GraphqlError {
+                    path: Some(path.clone()),
+                    ..error.clone()
+                });
+            }
+
+            if field_error.is_required {
+                required_field_error = true;
+            } else {
+                response_fields.push((field_error.edge, ResponseValue::Null));
+            }
+        }
+        if required_field_error {
+            // Skipping the rest of the fields
+            while map.next_entry::<IgnoredAny, IgnoredAny>()?.is_some() {}
+            return self.ctx.propagate_error();
+        }
+
         let mut maybe_object_id = None;
         if let SelectionSetType::Object(object_id) = self.selection_set_ty {
             maybe_object_id = Some(object_id);

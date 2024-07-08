@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::sync::Arc;
 
 use schema::{ObjectId, SchemaWalker};
 use serde::ser::{SerializeMap, SerializeSeq};
@@ -10,7 +10,7 @@ pub struct ResponseObjectsView<'a> {
     pub(super) schema: SchemaWalker<'a, ()>,
     pub(super) response: &'a ResponseBuilder,
     pub(super) refs: Arc<Vec<ResponseObjectRef>>,
-    pub(super) selection_set: Cow<'a, ReadSelectionSet>,
+    pub(super) selection_set: &'a ReadSelectionSet,
     pub(super) extra_constant_fields: Vec<(String, serde_json::Value)>,
 }
 
@@ -42,7 +42,7 @@ impl<'a> serde::Serialize for ResponseObjectsView<'a> {
                 schema: self.schema,
                 response: self.response,
                 response_object: &self.response[item.id],
-                selection_set: &self.selection_set,
+                selection_set: self.selection_set,
                 extra_constant_fields: &self.extra_constant_fields,
             })?;
         }

@@ -11,7 +11,7 @@ impl<'a> FieldExt<'a> for FieldSelection<'a> {
 }
 
 pub struct DeferDirective<'a> {
-    pub label: &'a str,
+    pub label: Option<&'a str>,
 }
 
 pub trait DeferExt<'a> {
@@ -33,10 +33,16 @@ impl<'a> DeferExt<'a> for InlineFragment<'a> {
 fn find_defer<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<DeferDirective<'a>> {
     directives
         .find(|directive| directive.name() == "defer")
-        .and_then(|directive| {
-            let value = directive.arguments().find(|arg| arg.name() == "label")?.value();
-            let Value::String(label) = value else { return None };
+        .map(|directive| {
+            let label = directive
+                .arguments()
+                .find(|arg| arg.name() == "label")
+                .and_then(|argument| {
+                    let value = argument.value();
+                    let Value::String(label) = value else { return None };
+                    Some(label)
+                });
 
-            Some(DeferDirective { label })
+            DeferDirective { label }
         })
 }

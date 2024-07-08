@@ -1,4 +1,7 @@
+use std::sync::Arc;
+
 use engine::{InitialResponse, Response, StreamingPayload};
+use http::HeaderMap;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
@@ -115,5 +118,16 @@ impl ResponseExt for StreamingPayload {
 
     fn into_value(self) -> Value {
         serde_json::to_value(self).expect("streaming payload to be serializable")
+    }
+}
+
+impl ResponseExt for (Arc<engine::Response>, HeaderMap) {
+    fn assert_success(self) -> Self {
+        assert_eq!(self.0.errors, vec![]);
+        self
+    }
+
+    fn into_value(self) -> Value {
+        serde_json::to_value(self.0.to_graphql_response()).expect("response to be serializable")
     }
 }

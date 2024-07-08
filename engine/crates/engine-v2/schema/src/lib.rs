@@ -1,9 +1,10 @@
-use std::str::FromStr;
+use std::{str::FromStr, sync::OnceLock};
 
 mod builder;
 mod directives;
 mod ids;
 mod input_value;
+mod input_value_set;
 mod names;
 mod provides;
 mod requires;
@@ -15,6 +16,7 @@ pub use directives::*;
 use id_newtypes::IdRange;
 pub use ids::*;
 pub use input_value::*;
+pub use input_value_set::*;
 pub use names::Names;
 pub use provides::*;
 pub use requires::*;
@@ -28,8 +30,16 @@ mod built_info {
 }
 
 impl Schema {
-    pub fn commit_sha() -> Vec<u8> {
-        hex::decode(built_info::GIT_COMMIT_HASH.expect("No git commit hash found")).expect("Expect hex format")
+    /// A unique identifier of this build of the engine to version cache keys.
+    /// If built in a git repository, the cache version is taken from the git commit id.
+    /// For builds outside of a git repository, the build time is used.
+    pub fn build_identifier() -> &'static [u8] {
+        static SHA: OnceLock<Vec<u8>> = OnceLock::new();
+
+        SHA.get_or_init(|| match built_info::GIT_COMMIT_HASH {
+            Some(hash) => hex::decode(hash).expect("Expect hex format"),
+            None => built_info::BUILT_TIME_UTC.as_bytes().to_vec(),
+        })
     }
 }
 
@@ -39,7 +49,7 @@ impl Schema {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Schema {
     data_sources: DataSources,
-    graph: Graph,
+    pub graph: Graph,
 
     /// All strings deduplicated.
     strings: Vec<String>,
@@ -69,7 +79,6 @@ pub struct Graph {
     object_definitions: Vec<Object>,
     interface_definitions: Vec<Interface>,
     field_definitions: Vec<FieldDefinition>,
-    field_to_parent_entity: Vec<EntityId>,
     enum_definitions: Vec<Enum>,
     union_definitions: Vec<Union>,
     scalar_definitions: Vec<Scalar>,
@@ -86,6 +95,7 @@ pub struct Graph {
     input_values: SchemaInputValues,
     cache_control: Vec<CacheControl>,
     required_scopes: Vec<RequiredScopes>,
+    authorized_directives: Vec<AuthorizedDirective>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -157,6 +167,7 @@ pub struct Object {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct FieldDefinition {
     pub name: StringId,
+    pub parent_entity: EntityId,
     pub description: Option<StringId>,
     pub ty: Type,
     pub resolvers: Vec<ResolverId>,
@@ -216,6 +227,12 @@ pub enum Definition {
     Union(UnionId),
     Enum(EnumId),
     InputObject(InputObjectId),
+}
+
+impl Definition {
+    pub fn is_input_object(&self) -> bool {
+        matches!(self, Definition::InputObject(_))
+    }
 }
 
 impl From<ScalarId> for Definition {

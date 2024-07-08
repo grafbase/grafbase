@@ -12,6 +12,7 @@ import { Experimental, ExperimentalParams } from './experimental'
 import { Introspection } from './introspection'
 import { TrustedDocuments, TrustedDocumentsParams } from './trusted-documents'
 import { Codegen, CodegenParams } from './codegen'
+import { RateLimiting, RateLimitingParams } from './rateLimiting'
 
 /**
  * An interface to create the complete config definition.
@@ -20,6 +21,7 @@ export interface GraphConfigInput {
   graph: Graph
   auth?: AuthParams
   cache?: CacheParams
+  rateLimiting?: RateLimitingParams
   cors?: CorsParams
   codegen?: CodegenParams
   operationLimits?: OperationLimitsParams
@@ -43,6 +45,7 @@ export interface DeprecatedGraphConfigInput {
   experimental?: ExperimentalParams
   introspection?: boolean
   trustedDocuments?: TrustedDocumentsParams
+  rateLimiting?: RateLimitingParams
 }
 
 /**
@@ -68,6 +71,7 @@ export class GraphConfig {
   private readonly experimental?: Experimental
   private readonly introspection?: Introspection
   private readonly trustedDocuments?: TrustedDocuments
+  private readonly rateLimiting?: RateLimiting
 
   /** @deprecated use `graph` instead of `schema` */
   constructor(input: GraphConfigInput | DeprecatedGraphConfigInput) {
@@ -104,6 +108,10 @@ export class GraphConfig {
     if (input.cors) {
       this.cors = new Cors(input.cors)
     }
+
+    if (input.rateLimiting) {
+      this.rateLimiting = new RateLimiting(input.rateLimiting)
+    }
   }
 
   public toString(): string {
@@ -129,8 +137,9 @@ export class GraphConfig {
 
     const codegen = this.codegen ? this.codegen.toString() : ''
     const cors = this.cors ? this.cors.toString() : ''
+    const rateLimiting = this.rateLimiting ? this.rateLimiting.toString() : ''
 
-    return `${experimental}${auth}${operationLimits}${trustedDocuments}${cache}${codegen}${cors}${introspection}${graph}`
+    return `${experimental}${auth}${operationLimits}${trustedDocuments}${cache}${codegen}${cors}${introspection}${graph}${rateLimiting}`
   }
 }
 

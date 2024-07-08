@@ -39,7 +39,7 @@ impl KvStore {
             .map_err(Into::into)
     }
 
-    pub async fn put_json<T: serde::Serialize>(
+    pub async fn put_json<T: serde::Serialize + Sync>(
         &self,
         name: &str,
         value: &T,
