@@ -13,6 +13,6 @@ publish = false
 [features]
 
 [dependencies]
-im = "15"
+im = { version = "15", features = ["serde"] }
 internment.workspace = true
 serde.workspace = true

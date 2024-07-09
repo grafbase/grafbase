@@ -122,7 +122,8 @@ where
 
             Ok(stream::once(async move {
                 engine::StreamingPayload::InitialResponse(InitialResponse {
-                    response,
+                    data: response.data.into_compact_value().expect("TODO: handle me"),
+                    errors: response.errors,
                     has_next: false,
                 })
             })
@@ -131,6 +132,7 @@ where
     }
 }
 
+#[allow(clippy::diverging_sub_expression)] // TODO: Remove me
 async fn run_execution_phase_stream(
     mut execution_phase: StreamingExecutionPhase,
     mut engine_stream: BoxStream<'static, engine::StreamingPayload>,
@@ -141,11 +143,9 @@ async fn run_execution_phase_stream(
         todo!("GB-6966");
     };
 
-    let mut response = payload.response;
+    payload.data = todo!("execution_phase.record_initial_response(payload.data, !payload.errors.is_empty());");
 
-    response.data = execution_phase.record_initial_response(response.data, !response.errors.is_empty());
-
-    payload.response = response;
+    // payload.response = response;
 
     if response_sender
         .send(StreamingPayload::InitialResponse(payload))
@@ -162,11 +162,13 @@ async fn run_execution_phase_stream(
 
         let path = payload.path.iter().collect::<Vec<_>>();
 
-        payload.data = execution_phase.record_incremental_response(
+        payload.data = todo!(
+            "execution_phase.record_incremental_response(
             payload.label.as_deref(),
             &path,
             payload.data,
             !payload.errors.is_empty(),
+        )"
         );
 
         if response_sender

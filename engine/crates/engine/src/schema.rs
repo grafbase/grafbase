@@ -668,7 +668,9 @@ async fn process_deferred_workload(
 
     IncrementalPayload {
         label: workload.label,
-        data,
+        data: data
+            .into_compact_value()
+            .expect("handle this, also possibly use CompactValue"),
         path: workload.path,
         has_next: false, // We hardcode this to false here, the function calling us should override
         errors,

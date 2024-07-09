@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 /// At one point this was just a reverse linked-list of references, but that was a
 /// real pain to integrate with defer & stream as the lifetimes wouldn't last long
 /// enough.
-#[derive(Default, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct QueryPath(im::Vector<QueryPathSegment>);
 
 impl QueryPath {
@@ -35,6 +35,14 @@ impl QueryPath {
 
     pub fn iter(&self) -> impl DoubleEndedIterator<Item = &QueryPathSegment> {
         self.0.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }
 

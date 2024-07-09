@@ -1,9 +1,8 @@
 use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
-use graph_entities::QueryResponse;
+use graph_entities::CompactValue;
 use query_path::QueryPath;
-use serde::{ser::SerializeMap, Serialize};
 
-use crate::{error::ServerError, GraphQlResponse, Response};
+use crate::{error::ServerError, Response};
 
 /// If a user makes a streaming request, this is the set of different response payloads
 /// they can received.  The first payload will always be an `InitialResponse` - followed by
@@ -11,37 +10,44 @@ use crate::{error::ServerError, GraphQlResponse, Response};
 ///
 /// At some point we might add support for subscriptions in which case a user will probably
 /// see multiple Response entries.
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
 pub enum StreamingPayload {
-    InitialResponse(InitialResponse),
     Incremental(IncrementalPayload),
+    InitialResponse(InitialResponse),
 }
 
 impl StreamingPayload {
     pub fn status(&self) -> GraphqlResponseStatus {
-        match self {
-            StreamingPayload::InitialResponse(InitialResponse { response, .. }) => response.status(),
-            StreamingPayload::Incremental(IncrementalPayload { errors, .. }) => {
-                if errors.is_empty() {
-                    GraphqlResponseStatus::Success
-                } else {
-                    GraphqlResponseStatus::FieldError {
-                        count: errors.len() as u64,
-                        // Couldn't have an incremental response otherwise.
-                        data_is_null: false,
-                    }
-                }
-            }
-        }
+        todo!("fix me")
+        // match self {
+        //     StreamingPayload::InitialResponse(InitialResponse { response, .. }) => response.status(),
+        //     StreamingPayload::Incremental(IncrementalPayload { errors, .. }) => {
+        //         if errors.is_empty() {
+        //             GraphqlResponseStatus::Success
+        //         } else {
+        //             GraphqlResponseStatus::FieldError {
+        //                 count: errors.len() as u64,
+        //                 // Couldn't have an incremental response otherwise.
+        //                 data_is_null: false,
+        //             }
+        //         }
+        //     }
+        // }
     }
 }
 
 /// The initial streaming response is _almost_ identical to a standard response, but with the
 /// `hasNext` key in it.
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InitialResponse {
     /// The standard GraphQL response data
-    pub response: Response,
+    // pub response: Response,
+    pub data: CompactValue,
+
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub errors: Vec<ServerError>,
 
     /// Whether the client should expect more data or not.
     pub has_next: bool,
@@ -50,12 +56,14 @@ pub struct InitialResponse {
 impl InitialResponse {
     pub fn error(response: Response) -> Self {
         InitialResponse {
-            response,
+            data: response.data.into_compact_value().expect("todo"),
+            errors: response.errors,
             has_next: false,
         }
     }
 }
 
+#[cfg(nope)]
 impl serde::Serialize for StreamingPayload {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -88,19 +96,24 @@ impl serde::Serialize for StreamingPayload {
 /// `label`, `path` & `has_next`.
 ///
 /// [1]: https://github.com/graphql/graphql-wg/blob/main/rfcs/DeferStream.md#payload-format
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IncrementalPayload {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
-    pub data: QueryResponse,
+    pub data: CompactValue,
     pub path: QueryPath,
     pub has_next: bool,
+
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub errors: Vec<ServerError>,
 }
 
 impl Response {
     pub fn into_streaming_payload(self, has_next: bool) -> StreamingPayload {
         StreamingPayload::InitialResponse(InitialResponse {
-            response: self,
+            data: self.data.into_compact_value().expect("todo"),
+            errors: self.errors,
             has_next,
         })
     }
@@ -109,36 +122,5 @@ impl Response {
 impl From<IncrementalPayload> for StreamingPayload {
     fn from(val: IncrementalPayload) -> Self {
         StreamingPayload::Incremental(val)
-    }
-}
-
-impl IncrementalPayload {
-    pub fn to_graphql_response(&self) -> GraphqlIncrementalPayload<'_> {
-        GraphqlIncrementalPayload(self)
-    }
-}
-
-/// A wrapper around IncrementalPayload that Serialises in GraphQL format
-pub struct GraphqlIncrementalPayload<'a>(&'a IncrementalPayload);
-
-impl serde::Serialize for GraphqlIncrementalPayload<'_> {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        // This is almost exactly what a derive could generate but:
-        // 1. It's for the structure nested inside.
-        // 2. It calls `self.0.data.as_graphql_data()`
-        let mut map = serializer.serialize_map(Some(5))?;
-        map.serialize_entry("data", &self.0.data.as_graphql_data())?;
-        map.serialize_entry("path", &self.0.path.iter().collect::<Vec<_>>())?;
-        map.serialize_entry("hasNext", &self.0.has_next)?;
-        if let Some(label) = &self.0.label {
-            map.serialize_entry("label", &label)?;
-        }
-        if !self.0.errors.is_empty() {
-            map.serialize_entry("errors", &self.0.errors)?;
-        }
-        map.end()
     }
 }
