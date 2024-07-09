@@ -167,6 +167,10 @@ impl Client {
             bearer: None,
         }
     }
+
+    pub fn client(&self) -> &reqwest::Client {
+        &self.client
+    }
 }
 
 #[derive(Clone)]
@@ -662,6 +666,121 @@ fn hybrid_graph() {
               }
             }
           ]
+        }
+        "###);
+    });
+}
+
+#[test]
+fn health_default_config() {
+    let config = "";
+    let schema = load_schema("big");
+
+    with_static_server(config, &schema, None, None, |client| async move {
+        let mut url: reqwest::Url = client.endpoint().parse().unwrap();
+        url.set_path("/health");
+
+        let response = client.client().get(url).send().await.unwrap();
+
+        assert_eq!(response.status(), 200);
+
+        let body: serde_json::Value = response.json().await.unwrap();
+
+        insta::assert_json_snapshot!(&body, @r###"
+        {
+          "status": "healthy"
+        }
+        "###);
+    });
+}
+
+#[test]
+fn health_custom_path() {
+    let config = r#"
+        [health]
+        path = "/gezondheid"
+    "#;
+
+    let schema = load_schema("big");
+
+    with_static_server(config, &schema, None, None, |client| async move {
+        let mut url: reqwest::Url = client.endpoint().parse().unwrap();
+        url.set_path("/health");
+
+        let response = client.client().get(url.clone()).send().await.unwrap();
+
+        assert_eq!(response.status(), 404);
+        assert_eq!(response.text().await.unwrap(), "");
+
+        // Now with the configured path
+        url.set_path("/gezondheid");
+
+        let response = client.client().get(url).send().await.unwrap();
+
+        assert_eq!(response.status(), 200);
+
+        let body: serde_json::Value = response.json().await.unwrap();
+
+        insta::assert_json_snapshot!(&body, @r###"
+        {
+          "status": "healthy"
+        }
+        "###);
+    });
+}
+
+#[test]
+fn health_disabled() {
+    let config = r#"
+        [health]
+        enabled = false
+    "#;
+
+    let schema = load_schema("big");
+
+    with_static_server(config, &schema, None, None, |client| async move {
+        let mut url: reqwest::Url = client.endpoint().parse().unwrap();
+        url.set_path("/health");
+
+        let response = client.client().get(url).send().await.unwrap();
+
+        assert_eq!(response.status(), 404);
+        assert_eq!(response.text().await.unwrap(), "");
+    });
+}
+
+#[test]
+fn health_custom_listener() {
+    let config = r#"
+        [health]
+        path = "/gezondheid"
+        listen = "0.0.0.0:9668"
+    "#;
+
+    let schema = load_schema("big");
+
+    with_static_server(config, &schema, None, None, |client| async move {
+        // First check that the health endpoint on the regular socket is not on.
+        let mut url: reqwest::Url = client.endpoint().parse().unwrap();
+        url.set_path("/health");
+
+        let response = client.client().get(url).send().await.unwrap();
+
+        assert_eq!(response.status(), 404);
+        assert_eq!(response.text().await.unwrap(), "");
+
+        // Then check at the configured port.
+
+        let url: reqwest::Url = "http://127.0.0.1:9668/gezondheid".parse().unwrap();
+        let response = client.client().get(url).send().await.unwrap();
+
+        assert_eq!(response.status(), 200);
+
+        let body: serde_json::Value = response.json().await.unwrap();
+
+        insta::assert_json_snapshot!(&body, @r###"
+        {
+          "status": "healthy"
         }
         "###);
     });

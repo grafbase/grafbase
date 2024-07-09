@@ -1,10 +1,12 @@
 mod authentication;
 mod cors;
 mod dynamic_string;
+mod health;
 mod telemetry;
 
 use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf};
 
+pub use self::health::HealthConfig;
 use ascii::AsciiString;
 pub use authentication::AuthenticationConfig;
 pub use cors::CorsConfig;
@@ -51,6 +53,9 @@ pub struct Config {
     /// Hooks configuration
     #[serde(default)]
     pub hooks: Option<HooksConfig>,
+    /// Health check endpoint configuration
+    #[serde(default)]
+    pub health: HealthConfig,
 }
 
 #[derive(Debug, serde::Deserialize, Clone)]
@@ -104,7 +109,7 @@ pub struct NetworkConfig {
     pub listen_address: Option<SocketAddr>,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct TlsConfig {
     pub certificate: PathBuf,
