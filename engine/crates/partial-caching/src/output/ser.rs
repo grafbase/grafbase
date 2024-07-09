@@ -72,6 +72,12 @@ impl Object<'_> {
         response.set_root_unchecked(root);
         response
     }
+
+    pub fn into_compact_value(self, include_synthetic_typenames: bool) -> CompactValue {
+        let mut response = QueryResponse::default();
+        let root = write_value(Value::Object(self), &mut response, include_synthetic_typenames);
+        response.take_node_into_compact_value(root).expect("node to exist")
+    }
 }
 
 fn write_value(value: Value<'_>, response: &mut QueryResponse, include_synthetic_typenames: bool) -> ResponseNodeId {

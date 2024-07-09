@@ -19,21 +19,33 @@ pub enum StreamingPayload {
 
 impl StreamingPayload {
     pub fn status(&self) -> GraphqlResponseStatus {
-        todo!("fix me")
-        // match self {
-        //     StreamingPayload::InitialResponse(InitialResponse { response, .. }) => response.status(),
-        //     StreamingPayload::Incremental(IncrementalPayload { errors, .. }) => {
-        //         if errors.is_empty() {
-        //             GraphqlResponseStatus::Success
-        //         } else {
-        //             GraphqlResponseStatus::FieldError {
-        //                 count: errors.len() as u64,
-        //                 // Couldn't have an incremental response otherwise.
-        //                 data_is_null: false,
-        //             }
-        //         }
-        //     }
-        // }
+        match self {
+            StreamingPayload::InitialResponse(InitialResponse { data, errors, .. }) => {
+                if errors.is_empty() {
+                    GraphqlResponseStatus::Success
+                } else if data.is_none() {
+                    GraphqlResponseStatus::RequestError {
+                        count: errors.len() as u64,
+                    }
+                } else {
+                    GraphqlResponseStatus::FieldError {
+                        count: errors.len() as u64,
+                        data_is_null: data.as_ref().unwrap().is_null(),
+                    }
+                }
+            }
+            StreamingPayload::Incremental(IncrementalPayload { errors, .. }) => {
+                if errors.is_empty() {
+                    GraphqlResponseStatus::Success
+                } else {
+                    GraphqlResponseStatus::FieldError {
+                        count: errors.len() as u64,
+                        // Couldn't have an incremental response otherwise.
+                        data_is_null: false,
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -43,8 +55,8 @@ impl StreamingPayload {
 #[serde(rename_all = "camelCase")]
 pub struct InitialResponse {
     /// The standard GraphQL response data
-    // pub response: Response,
-    pub data: CompactValue,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data: Option<CompactValue>,
 
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub errors: Vec<ServerError>,
@@ -56,36 +68,9 @@ pub struct InitialResponse {
 impl InitialResponse {
     pub fn error(response: Response) -> Self {
         InitialResponse {
-            data: response.data.into_compact_value().expect("todo"),
+            data: response.data.into_compact_value(),
             errors: response.errors,
             has_next: false,
-        }
-    }
-}
-
-#[cfg(nope)]
-impl serde::Serialize for StreamingPayload {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match self {
-            StreamingPayload::InitialResponse(InitialResponse { response, has_next }) => {
-                #[derive(Serialize)]
-                struct Serialized<'a> {
-                    #[serde(flatten)]
-                    response: GraphQlResponse<'a>,
-                    #[serde(rename = "hasNext")]
-                    has_next: bool,
-                }
-
-                Serialized {
-                    response: response.to_graphql_response(),
-                    has_next: *has_next,
-                }
-                .serialize(serializer)
-            }
-            StreamingPayload::Incremental(incremental) => incremental.to_graphql_response().serialize(serializer),
         }
     }
 }
@@ -112,7 +97,7 @@ pub struct IncrementalPayload {
 impl Response {
     pub fn into_streaming_payload(self, has_next: bool) -> StreamingPayload {
         StreamingPayload::InitialResponse(InitialResponse {
-            data: self.data.into_compact_value().expect("todo"),
+            data: self.data.into_compact_value(),
             errors: self.errors,
             has_next,
         })

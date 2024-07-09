@@ -259,13 +259,11 @@ impl QueryResponse {
         Ok(id)
     }
 
-    pub fn into_compact_value(mut self) -> serde_json::Result<CompactValue> {
-        Ok(match self.root {
-            Some(root_id) => self
-                .take_node_into_compact_value(root_id)
+    pub fn into_compact_value(mut self) -> Option<CompactValue> {
+        Some(
+            self.take_node_into_compact_value(self.root?)
                 .expect("graph root should always exist"),
-            None => CompactValue::Object(Default::default()),
-        })
+        )
     }
 
     /// Creates a serde_json::Value of the Response.
@@ -284,13 +282,8 @@ impl QueryResponse {
                 let mut fields = Vec::with_capacity(children.len());
 
                 for (name, nested_id) in children {
-                    match self.take_node_into_compact_value(nested_id)? {
-                        // Skipping nested empty objects
-                        CompactValue::Object(fields) if fields.is_empty() => (),
-                        value => {
-                            fields.push((Name::new(name.to_string()), value));
-                        }
-                    }
+                    let value = self.take_node_into_compact_value(nested_id)?;
+                    fields.push((Name::new(name.to_string()), value));
                 }
                 Some(CompactValue::Object(fields))
             }

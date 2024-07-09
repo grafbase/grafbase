@@ -275,6 +275,29 @@ fn test_query_that_hits_uncacheable_fields_should_have_no_cache_control_header()
     assert_eq!(response.headers.typed_get::<headers::CacheControl>(), None);
 }
 
+#[test]
+fn test_streaming_handles_empty_deferred_objects() {
+    let registry = build_registry(SCHEMA);
+    const QUERY: &str = r#"query { user { ... @defer { name email someConstant nested }}}"#;
+
+    let plan = partial_caching::build_plan(QUERY, None, &registry).unwrap().unwrap();
+    let fetch_phase = plan.start_fetch_phase(&auth(), &headers(), &variables());
+
+    let FetchPhaseResult::PartialHit(execution) = fetch_phase.finish(no_subtypes()) else {
+        panic!("We didn't hit everything so this should always be a partial");
+    };
+
+    let mut execution = execution.streaming();
+
+    let response = execution.record_initial_response(json!({"user": {}}).into(), false);
+
+    assert_json_snapshot!(response, @r###"
+    {
+      "user": {}
+    }
+    "###);
+}
+
 fn build_registry(schema: &str) -> registry_for_cache::PartialCacheRegistry {
     registry_upgrade::convert_v1_to_partial_cache_registry(parser_sdl::parse_registry(schema).unwrap()).unwrap()
 }
