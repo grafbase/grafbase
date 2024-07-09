@@ -17,8 +17,7 @@ use tokio::sync::watch;
 use tracing::Level;
 use ulid::Ulid;
 
-use crate::config::Config;
-use crate::config::TlsConfig;
+use crate::config::{Config, TlsConfig};
 use axum::{routing::get, Router};
 use axum_server as _;
 use engine_v2_axum::websocket::{WebsocketAccepter, WebsocketService};
@@ -93,7 +92,6 @@ pub async fn serve(
     gateway.changed().await.ok();
     let mut router = Router::new()
         .route(path, get(engine::get).post(engine::post))
-        .route("/health", get(health::health))
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .layer(grafbase_tracing::tower::layer(
             grafbase_tracing::metrics::meter_from_global_provider(),
@@ -104,24 +102,38 @@ pub async fn serve(
                 response
             },
         ))
-        .layer(cors)
-        .with_state(state);
+        .layer(cors);
+
+    if config.health.enabled {
+        if let Some(listen) = config.health.listen {
+            tokio::spawn(health::bind_health_endpoint(
+                listen,
+                config.tls.clone(),
+                config.health,
+                state.clone(),
+            ));
+        } else {
+            router = router.route(&config.health.path, get(health::health));
+        }
+    }
+
+    let mut router = router.with_state(state);
 
     if config.csrf.enabled {
         router = csrf::inject_layer(router);
     }
 
-    bind(addr, path, router, config.tls).await?;
+    bind(addr, path, router, config.tls.as_ref()).await?;
 
     Ok(())
 }
 
 #[cfg(not(feature = "lambda"))]
-async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<TlsConfig>) -> crate::Result<()> {
+async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<&TlsConfig>) -> crate::Result<()> {
     let app = router.into_make_service();
 
     match tls {
-        Some(ref tls) => {
+        Some(tls) => {
             tracing::info!(target: GRAFBASE_TARGET, "GraphQL endpoint exposed at https://{addr}{path}");
 
             let rustls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(&tls.certificate, &tls.key)
@@ -143,7 +155,7 @@ async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<TlsC
 }
 
 #[cfg(feature = "lambda")]
-async fn bind(_: SocketAddr, path: &str, router: Router<()>, _: Option<TlsConfig>) -> crate::Result<()> {
+async fn bind(_: SocketAddr, path: &str, router: Router<()>, _: Option<&TlsConfig>) -> crate::Result<()> {
     let app = tower::ServiceBuilder::new()
         .layer(axum_aws_lambda::LambdaLayer::default())
         .service(router);
