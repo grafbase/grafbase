@@ -2513,6 +2513,7 @@ dependencies = [
  "itertools 0.13.0",
  "lasso2",
  "operation-normalizer",
+ "pretty_assertions",
  "runtime",
  "serde",
  "serde-value",
