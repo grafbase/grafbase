@@ -47,7 +47,7 @@ cd demo-hooks
 cargo component build --release
 ```
 
-After a successful build, the component can be found from `target/wasm32-wasi/release/demo_hooks.wasm`.
+After a successful build, the component can be found from `target/wasm32-wasip1/release/demo_hooks.wasm`.
 This file must exist for us to continue.
 
 Finally start the `grafbase-gateway`:
