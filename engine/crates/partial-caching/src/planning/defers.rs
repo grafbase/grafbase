@@ -2,20 +2,29 @@ use std::collections::HashSet;
 
 use cynic_parser::executable::ids::SelectionId;
 
-use crate::{parser_extensions::DeferExt, CachingPlan};
+use crate::parser_extensions::DeferExt;
 
 use super::visitor::Visitor;
 
 impl crate::CachingPlan {
     pub fn defers(&self) -> impl ExactSizeIterator<Item = Defer<'_>> + '_ {
-        self.defers.iter().enumerate().map(|(i, _)| Defer {
+        self.defers.iter()
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct DeferStore(Vec<DeferRecord>);
+
+impl DeferStore {
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = Defer<'_>> + '_ {
+        self.0.iter().enumerate().map(|(i, _)| Defer {
             id: DeferId(i.try_into().expect("there were more than 2^16 defers?  wtf")),
-            plan: self,
+            store: self,
         })
     }
 }
 
-pub(crate) struct DeferRecord {
+struct DeferRecord {
     label: Option<String>,
     spread_id: SelectionId,
 }
@@ -25,7 +34,7 @@ pub struct DeferId(u16);
 
 pub struct Defer<'a> {
     pub id: DeferId,
-    plan: &'a CachingPlan,
+    store: &'a DeferStore,
 }
 
 impl<'a> Defer<'a> {
@@ -38,13 +47,13 @@ impl<'a> Defer<'a> {
     }
 
     fn record(&self) -> &'a DeferRecord {
-        &self.plan.defers[self.id.0 as usize]
+        &self.store.0[self.id.0 as usize]
     }
 }
 
 #[derive(Default)]
 pub(super) struct DeferVisitor {
-    pub defers: Vec<DeferRecord>,
+    pub defers: DeferStore,
     seen_selections: HashSet<SelectionId>,
 }
 
@@ -66,7 +75,7 @@ impl Visitor for DeferVisitor {
             return;
         }
 
-        self.defers.push(DeferRecord {
+        self.defers.0.push(DeferRecord {
             label: directive.label.map(str::to_string),
             spread_id: id,
         })

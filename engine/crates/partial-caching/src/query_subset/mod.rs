@@ -59,6 +59,10 @@ impl QuerySubset {
         self.variables.extend(other.variables.iter().cloned());
     }
 
+    pub fn contains_selection(&self, selection: SelectionId) -> bool {
+        self.partition.selections.contains(&selection)
+    }
+
     pub fn as_display<'a>(&'a self, document: &'a ExecutableDocument) -> QuerySubsetDisplay<'a> {
         QuerySubsetDisplay {
             subset: self,

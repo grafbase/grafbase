@@ -60,6 +60,8 @@ pub fn build_plan(
     let (cache_groups, uncached_group) =
         visit_fragments(&document, registry, fragment_tracker, partitioner, &mut defer_visitor)?;
 
+    let defers = defer_visitor.defers;
+
     let nocache_variables = variables_required(&uncached_group, &document, operation);
 
     Ok(Some(CachingPlan {
@@ -73,7 +75,7 @@ pub fn build_plan(
         nocache_partition: QuerySubset::new(operation.id(), uncached_group, nocache_variables),
         operation_id: operation.id(),
         document,
-        defers: defer_visitor.defers,
+        defers,
     }))
 }
 
