@@ -18,12 +18,22 @@ async fn query_bad_request() {
     let span = expect::span().at_level(Level::INFO).named(GRAPHQL_SPAN_NAME);
 
     let (subscriber, handle) = subscriber::mock()
-        .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
+        .with_filter(|meta| {
+            meta.is_span()
+                && meta.target() == "grafbase"
+                && *meta.level() >= Level::INFO
+                && meta.name() == GRAPHQL_SPAN_NAME
+        })
         .new_span(span.clone())
         .enter(span.clone())
         .record(
             span.clone(),
             expect::field("gql.operation.name").with_value(&"__type_name"),
+        )
+        .record(span.clone(), expect::field("otel.name").with_value(&"__type_name"))
+        .record(
+            span.clone(),
+            expect::field("gql.operation.query").with_value(&"{\n  __type_name\n}\n"),
         )
         .record(span.clone(), expect::field("gql.operation.type").with_value(&"query"))
         .record(
@@ -65,14 +75,22 @@ async fn query() {
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
         .new_span(span.clone())
         .enter(span.clone())
-        .record(span.clone(), expect::field("gql.operation.name").with_value(&"test"))
-        .record(span.clone(), expect::field("gql.operation.type").with_value(&"query"))
         .new_span(
             resolver_span
                 .clone()
                 .with_field(expect::field("resolver.name").with_value(&"test")),
         )
         .enter(resolver_span.clone())
+        .exit(resolver_span.clone())
+        .enter(resolver_span.clone())
+        .exit(resolver_span.clone())
+        .record(span.clone(), expect::field("gql.operation.name").with_value(&"test"))
+        .record(span.clone(), expect::field("otel.name").with_value(&"test"))
+        .record(
+            span.clone(),
+            expect::field("gql.operation.query").with_value(&"query {\n  test\n}\n"),
+        )
+        .record(span.clone(), expect::field("gql.operation.type").with_value(&"query"))
         .run_with_handle();
 
     let _default = tracing::subscriber::set_default(subscriber);
@@ -106,20 +124,29 @@ async fn query_named() {
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
         .new_span(graphql_span.clone())
         .enter(graphql_span.clone())
-        .record(
-            graphql_span.clone(),
-            expect::field("gql.operation.name").with_value(&"Named"),
-        )
-        .record(
-            graphql_span.clone(),
-            expect::field("gql.operation.type").with_value(&"query"),
-        )
         .new_span(
             resolver_span
                 .clone()
                 .with_field(expect::field("resolver.name").with_value(&"test")),
         )
+        // Who knows why we're doing that
         .enter(resolver_span.clone())
+        .exit(resolver_span.clone())
+        .enter(resolver_span.clone())
+        .exit(resolver_span.clone())
+        .record(
+            graphql_span.clone(),
+            expect::field("gql.operation.name").with_value(&"Named"),
+        )
+        .record(graphql_span.clone(), expect::field("otel.name").with_value(&"Named"))
+        .record(
+            graphql_span.clone(),
+            expect::field("gql.operation.query").with_value(&"query Named {\n  test\n}\n"),
+        )
+        .record(
+            graphql_span.clone(),
+            expect::field("gql.operation.type").with_value(&"query"),
+        )
         .run_with_handle();
 
     let _default = tracing::subscriber::set_default(subscriber);
@@ -179,8 +206,6 @@ async fn resolvers_with_error() {
         .with_filter(|meta| meta.is_span() && meta.target() == "grafbase" && *meta.level() >= Level::INFO)
         .new_span(span.clone())
         .enter(span.clone())
-        .record(span.clone(), expect::field("gql.operation.name").with_value(&"nope"))
-        .record(span.clone(), expect::field("gql.operation.type").with_value(&"query"))
         .new_span(
             resolver_span_error
                 .clone()
@@ -198,6 +223,13 @@ async fn resolvers_with_error() {
             resolver_span_error.clone(),
             expect::field("resolver.invocation.is_error").with_value(&true),
         )
+        .record(span.clone(), expect::field("gql.operation.name").with_value(&"nope"))
+        .record(span.clone(), expect::field("otel.name").with_value(&"nope"))
+        .record(
+            span.clone(),
+            expect::field("gql.operation.query").with_value(&"query {\n  nope\n}\n"),
+        )
+        .record(span.clone(), expect::field("gql.operation.type").with_value(&"query"))
         .run_with_handle();
 
     let _default = tracing::subscriber::set_default(subscriber);

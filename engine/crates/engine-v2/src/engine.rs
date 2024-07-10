@@ -168,7 +168,7 @@ impl<R: Runtime> Engine<R> {
         request: Request,
     ) -> HttpGraphqlResponse {
         let start = Instant::now();
-        let span = GqlRequestSpan::new().into_span();
+        let span = GqlRequestSpan::create();
         async {
             let ctx = PreExecutionContext::new(self, request_context);
             let (operation_metadata, response) = ctx.execute_single(request).await;
@@ -187,7 +187,8 @@ impl<R: Runtime> Engine<R> {
             {
                 span.record_gql_request(GqlRequestAttributes {
                     operation_type: ty.as_str(),
-                    operation_name: name.clone(),
+                    operation_name: name.as_deref(),
+                    sanitized_query: Some(&normalized_query),
                 });
                 response_metadata.operation_name.clone_from(&name);
                 response_metadata.operation_type = Some(ty.as_str());
@@ -220,7 +221,7 @@ impl<R: Runtime> Engine<R> {
         let engine = Arc::clone(self);
         let (sender, receiver) = mpsc::channel(2);
 
-        let span = GqlRequestSpan::new().into_span();
+        let span = GqlRequestSpan::create();
         let span_clone = span.clone();
         receiver.join(
             async move {
@@ -235,7 +236,8 @@ impl<R: Runtime> Engine<R> {
                 {
                     span.record_gql_request(GqlRequestAttributes {
                         operation_type: ty.as_str(),
-                        operation_name: name.clone(),
+                        operation_name: name.as_deref(),
+                        sanitized_query: Some(&normalized_query),
                     });
                     engine.operation_metrics.record(
                         GraphqlOperationMetricsAttributes {

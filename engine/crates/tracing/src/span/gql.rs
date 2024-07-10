@@ -13,74 +13,35 @@ pub const GRAPHQL_OPERATION_NAME_ATTRIBUTE: &str = "gql.operation.name";
 
 /// A span for a graphql request
 #[derive(Default)]
-pub struct GqlRequestSpan<'a> {
-    /// The operation name from the graphql query
-    operation_name: Option<&'a str>,
-    /// The GraphQL operation type
-    operation_type: Option<&'a str>,
-    /// The GraphQL query
-    document: Option<&'a str>,
+pub struct GqlRequestSpan;
 
-    // -- response --
-    status: Option<&'a str>,
-    field_errors_count: Option<u64>,
-    data_is_null: Option<bool>,
-    request_errors_count: Option<u64>,
-}
-
-impl<'a> GqlRequestSpan<'a> {
-    /// Create a new instance
-    pub fn new() -> Self {
-        Self {
-            operation_name: None,
-            operation_type: None,
-            document: None,
-            status: None,
-            field_errors_count: None,
-            data_is_null: None,
-            request_errors_count: None,
-        }
-    }
-
-    /// Set the GraphQL document as an attribute of the span
-    pub fn with_document(mut self, document: impl Into<Option<&'a str>>) -> Self {
-        self.document = document.into();
-        self
-    }
-
-    /// Set the operation name as an attribute of the span
-    pub fn with_operation_name(mut self, operation_name: impl Into<Option<&'a str>>) -> Self {
-        self.operation_name = operation_name.into();
-        self
-    }
-
-    /// Set the operation type as an attribute of the span
-    pub fn with_operation_type(mut self, operation_type: impl Into<Option<&'a str>>) -> Self {
-        self.operation_type = operation_type.into();
-        self
-    }
-
+impl GqlRequestSpan {
     /// Consume self and turn into a [Span]
-    pub fn into_span(self) -> Span {
+    pub fn create() -> Span {
+        use tracing::field::Empty;
         info_span!(
             target: crate::span::GRAFBASE_TARGET,
             GRAPHQL_SPAN_NAME,
-            "gql.operation.name" = self.operation_name.clone(),
-            "gql.operation.type" = self.operation_type,
-            "gql.document" = self.document,
-            "otel.name" = format!("{GRAPHQL_SPAN_NAME}:{}", self.operation_name.unwrap_or("unknown")),
-            "gql.response.status" = self.status,
-            "gql.response.field_errors_count" = self.field_errors_count,
-            "gql.response.data_is_null" = self.data_is_null,
-            "gql.response.request_errors_count" = self.request_errors_count,
+            "otel.name"  = GRAPHQL_SPAN_NAME,
+            "gql.operation.name"  = Empty,
+            "gql.operation.type"  = Empty,
+            "gql.operation.query"  = Empty,
+            "gql.response.status"  = Empty,
+            "gql.response.field_errors_count"  = Empty,
+            "gql.response.data_is_null"  = Empty,
+            "gql.response.request_errors_count"  = Empty,
         )
     }
 }
 
 impl GqlRecorderSpanExt for Span {
-    fn record_gql_request(&self, attributes: GqlRequestAttributes) {
+    fn record_gql_request(&self, attributes: GqlRequestAttributes<'_>) {
         if let Some(name) = attributes.operation_name {
             self.record("gql.operation.name", name);
+            self.record("otel.name", name);
+        }
+        if let Some(query) = attributes.sanitized_query {
+            self.record("gql.operation.query", query);
         }
         self.record("gql.operation.type", attributes.operation_type);
     }
