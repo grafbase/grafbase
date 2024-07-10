@@ -10,7 +10,7 @@ pub use bench::*;
 use graphql_composition::FederatedGraph;
 use graphql_mocks::MockGraphQlServer;
 pub use mock::*;
-use parser_sdl::connector_parsers::MockConnectorParsers;
+use parser_sdl::{connector_parsers::MockConnectorParsers, federation::header::SubgraphHeaderRule};
 use runtime::{hooks::DynamicHooks, trusted_documents_client};
 pub use test_runtime::*;
 
@@ -22,6 +22,7 @@ pub struct FederationGatewayBuilder {
     trusted_documents: Option<MockTrustedDocumentsClient>,
     config_sdl: Option<String>,
     hooks: DynamicHooks,
+    header_rules: Vec<SubgraphHeaderRule>,
 }
 
 pub trait GatewayV2Ext {
@@ -31,6 +32,7 @@ pub trait GatewayV2Ext {
             schemas: vec![],
             config_sdl: None,
             hooks: DynamicHooks::default(),
+            header_rules: Vec::new(),
         }
     }
 }
@@ -71,6 +73,11 @@ impl FederationGatewayBuilder {
         self
     }
 
+    pub fn with_header_rule(mut self, rule: SubgraphHeaderRule) -> Self {
+        self.header_rules.push(rule);
+        self
+    }
+
     pub async fn finish(self) -> TestFederationEngine {
         let mut subgraphs = graphql_composition::Subgraphs::default();
         for (name, url, schema) in self.schemas {
@@ -87,7 +94,7 @@ impl FederationGatewayBuilder {
         let graph = FederatedGraph::from_sdl(&sdl).unwrap();
         let graph = serde_json::from_value(serde_json::to_value(&graph).unwrap()).unwrap();
 
-        let federated_graph_config = match self.config_sdl {
+        let mut federated_graph_config = match self.config_sdl {
             Some(sdl) => {
                 parser_sdl::parse(&sdl, &HashMap::new(), &MockConnectorParsers::default())
                     .await
@@ -97,6 +104,8 @@ impl FederationGatewayBuilder {
             None => None,
         }
         .unwrap_or_default();
+
+        federated_graph_config.header_rules.extend(self.header_rules);
 
         let config = engine_config_builder::build_config(&federated_graph_config, graph).into_latest();
 

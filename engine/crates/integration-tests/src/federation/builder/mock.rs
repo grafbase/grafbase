@@ -25,10 +25,11 @@ impl MockFederationEngine {
     pub async fn new(schema: &str) -> Self {
         let federated_graph = FederatedGraph::from_sdl(schema).unwrap().into_latest();
         let config =
-            engine_v2::VersionedConfig::V4(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
+            engine_v2::VersionedConfig::V5(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
 
         let (sender, receiver) = mpsc::unbounded_channel();
         let responses = Arc::new(Mutex::new(HashMap::new()));
+
         let fetcher = FetcherMock {
             requests: sender,
             responses: responses.clone(),
@@ -48,6 +49,7 @@ impl MockFederationEngine {
             },
         )
         .await;
+
         Self {
             engine: Arc::new(engine),
             receiver,

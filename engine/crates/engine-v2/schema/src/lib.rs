@@ -19,6 +19,7 @@ pub use input_value::*;
 pub use input_value_set::*;
 pub use names::Names;
 pub use provides::*;
+use regex::Regex;
 pub use requires::*;
 pub use resolver::*;
 pub use walkers::*;
@@ -55,14 +56,14 @@ pub struct Schema {
     strings: Vec<String>,
     urls: Vec<url::Url>,
     /// Headers we might want to send to a subgraph
-    headers: Vec<Header>,
+    header_rules: Vec<HeaderRule>,
 
     pub settings: Settings,
 }
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
-    default_headers: Vec<HeaderId>,
+    default_header_rules: Vec<HeaderRuleId>,
 
     pub auth_config: Option<config::latest::AuthConfig>,
     pub operation_limits: config::latest::OperationLimits,
@@ -397,14 +398,28 @@ impl Schema {
     }
 }
 
-#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
-pub struct Header {
-    pub name: StringId,
-    pub value: HeaderValue,
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+pub enum NameOrPattern {
+    /// A regex pattern matching multiple headers.
+    #[serde(with = "serde_regex", rename = "pattern")]
+    Pattern(Regex),
+    /// A static single name.
+    #[serde(rename = "name")]
+    Name(StringId),
 }
 
-#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
-pub enum HeaderValue {
-    Forward(StringId),
-    Static(StringId),
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum HeaderRule {
+    Forward {
+        name: NameOrPattern,
+        default: Option<StringId>,
+        rename: Option<StringId>,
+    },
+    Insert {
+        name: StringId,
+        value: StringId,
+    },
+    Remove {
+        name: NameOrPattern,
+    },
 }

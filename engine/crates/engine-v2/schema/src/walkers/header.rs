@@ -1,31 +1,61 @@
-use crate::{HeaderId, HeaderValue, SchemaWalker};
+use crate::{HeaderRule, HeaderRuleId, NameOrPattern, SchemaWalker};
+use regex::Regex;
+use std::fmt;
 
-pub type HeaderWalker<'a> = SchemaWalker<'a, HeaderId>;
+pub type HeaderRuleWalker<'a> = SchemaWalker<'a, HeaderRuleId>;
 
-impl<'a> HeaderWalker<'a> {
-    pub fn name(&self) -> &'a str {
-        &self.schema[self.as_ref().name]
+impl<'a> HeaderRuleWalker<'a> {
+    pub fn rule(&self) -> HeaderRuleRef<'a> {
+        match &self.schema[self.item] {
+            HeaderRule::Forward { name, default, rename } => HeaderRuleRef::Forward {
+                name: self.name_or_pattern_ref(name),
+                default: default.map(|id| self.schema[id].as_str()),
+                rename: rename.map(|id| self.schema[id].as_str()),
+            },
+            HeaderRule::Insert { name, value } => HeaderRuleRef::Insert {
+                name: self.schema[*name].as_str(),
+                value: self.schema[*value].as_str(),
+            },
+            HeaderRule::Remove { name } => HeaderRuleRef::Remove {
+                name: self.name_or_pattern_ref(name),
+            },
+        }
     }
 
-    pub fn value(&self) -> HeaderValueRef<'a> {
-        match self.as_ref().value {
-            HeaderValue::Forward(id) => HeaderValueRef::Forward(&self.schema[id]),
-            HeaderValue::Static(id) => HeaderValueRef::Static(&self.schema[id]),
+    fn name_or_pattern_ref(&self, name: &'a NameOrPattern) -> NameOrPatternRef<'a> {
+        match name {
+            NameOrPattern::Pattern(ref regex) => NameOrPatternRef::Pattern(regex),
+            NameOrPattern::Name(name_id) => NameOrPatternRef::Name(self.schema[*name_id].as_str()),
         }
     }
 }
 
-#[derive(Debug)]
-pub enum HeaderValueRef<'a> {
-    Forward(&'a str),
-    Static(&'a str),
+#[derive(Debug, Clone, Copy)]
+pub enum NameOrPatternRef<'a> {
+    Pattern(&'a Regex),
+    Name(&'a str),
 }
 
-impl<'a> std::fmt::Debug for HeaderWalker<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+#[derive(Debug)]
+pub enum HeaderRuleRef<'a> {
+    Forward {
+        name: NameOrPatternRef<'a>,
+        default: Option<&'a str>,
+        rename: Option<&'a str>,
+    },
+    Insert {
+        name: &'a str,
+        value: &'a str,
+    },
+    Remove {
+        name: NameOrPatternRef<'a>,
+    },
+}
+
+impl<'a> fmt::Debug for HeaderRuleWalker<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("SubgraphHeaderWalker")
-            .field("name", &self.name())
-            .field("value", &self.value())
+            .field("rule", &self.rule())
             .finish()
     }
 }

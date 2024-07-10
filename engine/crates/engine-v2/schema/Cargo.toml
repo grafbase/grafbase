@@ -29,6 +29,8 @@ url.workspace = true
 config = { package = "engine-v2-config", path = "../config" }
 federated-graph = { package = "graphql-federated-graph", path = "../../federated-graph" }
 wrapping.workspace = true
+regex.workspace = true
+serde_regex = "1.1.0"
 
 [dev-dependencies]
 insta.workspace = true

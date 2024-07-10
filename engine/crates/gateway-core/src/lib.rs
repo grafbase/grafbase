@@ -1,11 +1,6 @@
-use futures_util::{
-    stream::{self, BoxStream, StreamExt},
-    FutureExt,
-};
-use std::sync::Arc;
-
 use crate::rate_limit::RatelimitContext;
-use engine::{parser::types::OperationType, InitialResponse, StreamingPayload};
+use engine::parser::types::OperationType;
+use futures_util::FutureExt;
 use grafbase_tracing::{
     grafbase_client::Client,
     metrics::GraphqlOperationMetrics,
@@ -17,7 +12,13 @@ use runtime::{
     auth::AccessToken,
     cache::{Cache, CacheReadStatus, CachedExecutionResponse, X_GRAFBASE_CACHE},
 };
+use std::sync::Arc;
 use tracing::{info_span, Instrument};
+
+#[cfg(feature = "partial-caching")]
+use engine::{InitialResponse, StreamingPayload};
+#[cfg(feature = "partial-caching")]
+use futures_util::stream::{self, BoxStream, StreamExt};
 
 mod admin;
 mod auth;
@@ -458,6 +459,7 @@ where
     }
 }
 
+#[cfg(feature = "partial-caching")]
 fn error_stream(response: engine::Response) -> BoxStream<'static, engine::StreamingPayload> {
     stream::once(async move { StreamingPayload::InitialResponse(InitialResponse::error(response)) }).boxed()
 }

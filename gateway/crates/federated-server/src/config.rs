@@ -1,6 +1,7 @@
 mod authentication;
 mod cors;
 mod dynamic_string;
+mod header;
 mod health;
 mod telemetry;
 
@@ -10,7 +11,7 @@ pub use self::health::HealthConfig;
 use ascii::AsciiString;
 pub use authentication::AuthenticationConfig;
 pub use cors::CorsConfig;
-use parser_sdl::federation::SubgraphHeaderValue;
+pub use header::{HeaderForward, HeaderInsert, HeaderRemove, HeaderRule, NameOrPattern};
 use runtime_local::HooksConfig;
 pub use telemetry::TelemetryConfig;
 use url::Url;
@@ -46,7 +47,7 @@ pub struct Config {
     pub authentication: Option<AuthenticationConfig>,
     /// Header bypass configuration
     #[serde(default)]
-    pub headers: BTreeMap<AsciiString, HeaderValue>,
+    pub headers: Vec<HeaderRule>,
     /// Subgraph configuration
     #[serde(default)]
     pub subgraphs: BTreeMap<String, SubgraphConfig>,
@@ -59,31 +60,10 @@ pub struct Config {
 }
 
 #[derive(Debug, serde::Deserialize, Clone)]
-#[serde(rename_all = "lowercase")]
-#[serde(
-    expecting = "must contain either forward or value key, and the value must be an ASCII string with all environment variables set if used any"
-)]
-pub enum HeaderValue {
-    #[serde(untagged)]
-    Forward { forward: AsciiString },
-    #[serde(untagged)]
-    Static { value: DynamicString<AsciiString> },
-}
-
-impl From<HeaderValue> for SubgraphHeaderValue {
-    fn from(value: HeaderValue) -> Self {
-        match value {
-            HeaderValue::Forward { forward } => SubgraphHeaderValue::Forward(forward.to_string()),
-            HeaderValue::Static { value } => SubgraphHeaderValue::Static(value.to_string()),
-        }
-    }
-}
-
-#[derive(Debug, serde::Deserialize, Clone)]
 pub struct SubgraphConfig {
     /// Header bypass configuration
     #[serde(default)]
-    pub headers: BTreeMap<AsciiString, HeaderValue>,
+    pub headers: Vec<HeaderRule>,
     /// The URL to use for GraphQL websocket calls.
     pub websocket_url: Option<Url>,
 }
@@ -843,84 +823,392 @@ mod tests {
     }
 
     #[test]
-    fn global_headers() {
+    fn header_forward_static() {
         let input = indoc! {r#"
-            [headers.Authentication]
-            value = "Bearer asdf"
-
-            [headers.Content-Type]
-            forward = "content-type"
+            [[headers]]     
+            rule = "forward"
+            name = "content-type"
         "#};
 
         let result: Config = toml::from_str(input).unwrap();
 
         insta::assert_debug_snapshot!(&result.headers, @r###"
-        {
-            "Authentication": Static {
-                value: DynamicString(
-                    "Bearer asdf",
-                ),
-            },
-            "Content-Type": Forward {
-                forward: "content-type",
-            },
-        }
+        [
+            Forward(
+                HeaderForward {
+                    name: Name(
+                        DynamicString(
+                            "content-type",
+                        ),
+                    ),
+                    default: None,
+                    rename: None,
+                },
+            ),
+        ]
         "###);
     }
 
     #[test]
-    fn global_header_env_var() {
-        temp_env::with_var("BEARER", Some("asdf"), || {
+    fn header_forward_invalid_name() {
+        let input = indoc! {r#"
+            [[headers]]     
+            rule = "forward"
+            name = "Authoriz🎠"
+        "#};
+
+        let error = toml::from_str::<Config>(input).unwrap_err();
+
+        insta::assert_snapshot!(&error.to_string(), @r###"
+        TOML parse error at line 1, column 1
+          |
+        1 | [[headers]]     
+          | ^^^^^^^^^^^^^^^^
+        the byte at index 8 is not ASCII
+        "###);
+    }
+
+    #[test]
+    fn header_forward_two_headers_in_written_order() {
+        let input = indoc! {r#"
+            [[headers]]     
+            rule = "forward"
+            name = "content-type"
+
+            [[headers]]     
+            rule = "forward"
+            name = "accept"
+        "#};
+
+        let result: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&result.headers, @r###"
+        [
+            Forward(
+                HeaderForward {
+                    name: Name(
+                        DynamicString(
+                            "content-type",
+                        ),
+                    ),
+                    default: None,
+                    rename: None,
+                },
+            ),
+            Forward(
+                HeaderForward {
+                    name: Name(
+                        DynamicString(
+                            "accept",
+                        ),
+                    ),
+                    default: None,
+                    rename: None,
+                },
+            ),
+        ]
+        "###);
+    }
+
+    #[test]
+    fn header_forward_pattern() {
+        let input = indoc! {r#"
+            [[headers]]     
+            rule = "forward"
+            pattern = "^content-type-*"
+        "#};
+
+        let result: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&result.headers, @r###"
+        [
+            Forward(
+                HeaderForward {
+                    name: Pattern(
+                        Regex(
+                            "^content-type-*",
+                        ),
+                    ),
+                    default: None,
+                    rename: None,
+                },
+            ),
+        ]
+        "###);
+    }
+
+    #[test]
+    fn header_forward_invalid_pattern() {
+        let input = indoc! {r#"
+            [[headers]]     
+            rule = "forward"
+            pattern = "foo(bar"
+        "#};
+
+        let error = toml::from_str::<Config>(input).unwrap_err();
+
+        insta::assert_snapshot!(&error.to_string(), @r###"
+        TOML parse error at line 1, column 1
+          |
+        1 | [[headers]]     
+          | ^^^^^^^^^^^^^^^^
+        regex parse error:
+            foo(bar
+               ^
+        error: unclosed group
+        "###);
+    }
+
+    #[test]
+    fn header_forward_default() {
+        let input = indoc! {r#"
+            [[headers]]     
+            rule = "forward"
+            name = "content-type"
+            default = "application/json"
+        "#};
+
+        let result: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&result.headers, @r###"
+        [
+            Forward(
+                HeaderForward {
+                    name: Name(
+                        DynamicString(
+                            "content-type",
+                        ),
+                    ),
+                    default: Some(
+                        DynamicString(
+                            "application/json",
+                        ),
+                    ),
+                    rename: None,
+                },
+            ),
+        ]
+        "###);
+    }
+
+    #[test]
+    fn header_forward_invalid_default() {
+        let input = indoc! {r#"
+            [[headers]]     
+            rule = "forward"
+            name = "content-type"
+            default = "application/json🎠"
+        "#};
+
+        let error = toml::from_str::<Config>(input).unwrap_err();
+
+        insta::assert_snapshot!(&error.to_string(), @r###"
+        TOML parse error at line 1, column 1
+          |
+        1 | [[headers]]     
+          | ^^^^^^^^^^^^^^^^
+        the byte at index 16 is not ASCII
+        "###);
+    }
+
+    #[test]
+    fn header_forward_rename() {
+        let input = indoc! {r#"
+            [[headers]]     
+            rule = "forward"
+            name = "content-type"
+            rename = "kekw-type"
+        "#};
+
+        let result: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&result.headers, @r###"
+        [
+            Forward(
+                HeaderForward {
+                    name: Name(
+                        DynamicString(
+                            "content-type",
+                        ),
+                    ),
+                    default: None,
+                    rename: Some(
+                        DynamicString(
+                            "kekw-type",
+                        ),
+                    ),
+                },
+            ),
+        ]
+        "###);
+    }
+
+    #[test]
+    fn header_forward_invalid_rename() {
+        let input = indoc! {r#"
+            [[headers]]     
+            rule = "forward"
+            name = "content-type"
+            rename = "🎠"
+        "#};
+
+        let error = toml::from_str::<Config>(input).unwrap_err();
+
+        insta::assert_snapshot!(&error.to_string(), @r###"
+        TOML parse error at line 1, column 1
+          |
+        1 | [[headers]]     
+          | ^^^^^^^^^^^^^^^^
+        the byte at index 0 is not ASCII
+        "###);
+    }
+
+    #[test]
+    fn header_insert() {
+        let input = indoc! {r#"
+            [[headers]]     
+            rule = "insert"
+            name = "content-type"
+            value = "application/json"
+        "#};
+
+        let result: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&result.headers, @r###"
+        [
+            Insert(
+                HeaderInsert {
+                    name: DynamicString(
+                        "content-type",
+                    ),
+                    value: DynamicString(
+                        "application/json",
+                    ),
+                },
+            ),
+        ]
+        "###);
+    }
+
+    #[test]
+    fn header_insert_env() {
+        temp_env::with_var("CONTENT_TYPE", Some("application/json"), || {
             let input = indoc! {r#"
-                [headers.Authentication]
-                value = "Bearer {{ env.BEARER }}"
+                [[headers]]     
+                rule = "insert"
+                name = "content-type"
+                value = "{{ env.CONTENT_TYPE }}"
             "#};
 
             let result: Config = toml::from_str(input).unwrap();
 
             insta::assert_debug_snapshot!(&result.headers, @r###"
-            {
-                "Authentication": Static {
-                    value: DynamicString(
-                        "Bearer asdf",
+            [
+                Insert(
+                    HeaderInsert {
+                        name: DynamicString(
+                            "content-type",
+                        ),
+                        value: DynamicString(
+                            "application/json",
+                        ),
+                    },
+                ),
+            ]
+            "###);
+        })
+    }
+
+    #[test]
+    fn header_insert_invalid_name() {
+        let input = indoc! {r#"
+            [[headers]]
+            rule = "insert"
+            name = "content-type🎠"
+            value = "application/json"
+        "#};
+
+        let error = toml::from_str::<Config>(input).unwrap_err();
+
+        insta::assert_snapshot!(&error.to_string(), @r###"
+        TOML parse error at line 1, column 1
+          |
+        1 | [[headers]]
+          | ^^^^^^^^^^^
+        the byte at index 12 is not ASCII
+        "###);
+    }
+
+    #[test]
+    fn header_insert_invalid_value() {
+        let input = indoc! {r#"
+            [[headers]]
+            rule = "insert"
+            name = "content-type"
+            value = "application/json🎠"
+        "#};
+
+        let error = toml::from_str::<Config>(input).unwrap_err();
+
+        insta::assert_snapshot!(&error.to_string(), @r###"
+        TOML parse error at line 1, column 1
+          |
+        1 | [[headers]]
+          | ^^^^^^^^^^^
+        the byte at index 16 is not ASCII
+        "###);
+    }
+
+    #[test]
+    fn header_remove() {
+        let input = indoc! {r#"
+            [[headers]]     
+            rule = "remove"
+            name = "content-type"
+        "#};
+
+        let result: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&result.headers, @r###"
+        [
+            Remove(
+                HeaderRemove {
+                    name: Name(
+                        DynamicString(
+                            "content-type",
+                        ),
                     ),
                 },
-            }
-            "###);
-        })
+            ),
+        ]
+        "###);
     }
 
     #[test]
-    fn global_header_env_var_unset() {
-        temp_env::with_var_unset("BEARER", || {
-            let input = indoc! {r#"
-                [headers.Authentication]
-                value = "Bearer {{ env.BEARER }}"
-            "#};
-
-            let error = toml::from_str::<Config>(input).unwrap_err();
-
-            insta::assert_snapshot!(&error.to_string(), @r###"
-            TOML parse error at line 1, column 1
-              |
-            1 | [headers.Authentication]
-              | ^^^^^^^^^^^^^^^^^^^^^^^^
-            must contain either forward or value key, and the value must be an ASCII string with all environment variables set if used any
-            "###);
-        })
-    }
-
-    #[test]
-    fn subgraph_headers() {
+    fn header_remove_invalid_name() {
         let input = indoc! {r#"
-            [subgraphs.products.headers.Content-Type]
-            forward = "Content-Type"
+            [[headers]]
+            rule = "remove"
+            name = "content-type🎠"
+        "#};
 
-            [subgraphs.products.headers.Authentication]
-            value = "Bearer ufufuf"
+        let error = toml::from_str::<Config>(input).unwrap_err();
 
-            [subgraphs.users.headers.Content-Type]
-            value = "application/json"
+        insta::assert_snapshot!(&error.to_string(), @r###"
+        TOML parse error at line 1, column 1
+          |
+        1 | [[headers]]
+          | ^^^^^^^^^^^
+        the byte at index 12 is not ASCII
+        "###);
+    }
+
+    #[test]
+    fn subgraph_header_forward_static() {
+        let input = indoc! {r#"
+            [[subgraphs.products.headers]]     
+            rule = "forward"
+            name = "content-type"
         "#};
 
         let result: Config = toml::from_str(input).unwrap();
@@ -928,26 +1216,19 @@ mod tests {
         insta::assert_debug_snapshot!(&result.subgraphs, @r###"
         {
             "products": SubgraphConfig {
-                headers: {
-                    "Authentication": Static {
-                        value: DynamicString(
-                            "Bearer ufufuf",
-                        ),
-                    },
-                    "Content-Type": Forward {
-                        forward: "Content-Type",
-                    },
-                },
-                websocket_url: None,
-            },
-            "users": SubgraphConfig {
-                headers: {
-                    "Content-Type": Static {
-                        value: DynamicString(
-                            "application/json",
-                        ),
-                    },
-                },
+                headers: [
+                    Forward(
+                        HeaderForward {
+                            name: Name(
+                                DynamicString(
+                                    "content-type",
+                                ),
+                            ),
+                            default: None,
+                            rename: None,
+                        },
+                    ),
+                ],
                 websocket_url: None,
             },
         }

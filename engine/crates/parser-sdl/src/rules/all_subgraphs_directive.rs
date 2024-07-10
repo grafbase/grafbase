@@ -1,6 +1,6 @@
 use engine_parser::types::SchemaDefinition;
 
-use crate::directive_de::parse_directive;
+use crate::{directive_de::parse_directive, federation::header::SubgraphHeaderRule};
 
 use super::{
     connector_headers::Header,
@@ -60,11 +60,12 @@ impl Visitor<'_> for AllSubgraphsDirectiveVisitor {
                 }
             };
 
-            ctx.federated_graph_config.default_headers.extend(
+            ctx.federated_graph_config.header_rules.extend(
                 directive
                     .headers
                     .into_iter()
-                    .map(|header| (header.name, header.value.into())),
+                    .map(|header| (header.name, header.value))
+                    .map(SubgraphHeaderRule::from),
             );
         }
     }
@@ -115,28 +116,33 @@ mod tests {
                         name: "Products",
                         development_url: None,
                         websocket_url: None,
-                        headers: [
-                            (
-                                "Other",
-                                Static(
-                                    "Bar",
-                                ),
+                        header_rules: [
+                            Insert(
+                                SubgraphHeaderInsert {
+                                    name: "Other",
+                                    value: "Bar",
+                                },
                             ),
                         ],
                     },
                 },
-                default_headers: [
-                    (
-                        "Auth",
-                        Forward(
-                            "Authorization",
-                        ),
+                header_rules: [
+                    Forward(
+                        SubgraphHeaderForward {
+                            name: Name(
+                                "Authorization",
+                            ),
+                            default: None,
+                            rename: Some(
+                                "Auth",
+                            ),
+                        },
                     ),
-                    (
-                        "Auth",
-                        Static(
-                            "Foo",
-                        ),
+                    Insert(
+                        SubgraphHeaderInsert {
+                            name: "Auth",
+                            value: "Foo",
+                        },
                     ),
                 ],
                 operation_limits: OperationLimits {

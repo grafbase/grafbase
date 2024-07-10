@@ -4,14 +4,16 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 
 use engine_v2_config::latest::{
-    AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, OperationLimits,
+    AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, HeaderForward, HeaderInsert,
+    HeaderRemove, HeaderRule, HeaderRuleId, NameOrPattern, OperationLimits,
 };
 use engine_v2_config::{
-    latest::{self as config, Header, HeaderId},
+    latest::{self as config},
     VersionedConfig,
 };
 use federated_graph::{FederatedGraph, FederatedGraphV3, FieldId, ObjectId, SubgraphId};
-use parser_sdl::federation::{FederatedGraphConfig, SubgraphHeaderValue};
+use parser_sdl::federation::header::SubgraphHeaderRule;
+use parser_sdl::federation::FederatedGraphConfig;
 use parser_sdl::{AuthV2Provider, GlobalCacheTarget};
 
 mod strings;
@@ -22,7 +24,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
     let mut context = BuildContext::default();
     let mut subgraph_configs = BTreeMap::new();
 
-    let default_headers = context.insert_headers(&config.default_headers);
+    context.insert_headers(&config.header_rules);
 
     for (name, config) in &config.subgraphs {
         let Some(subgraph_id) = graph.find_subgraph(name) else {
@@ -30,14 +32,12 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
         };
 
         let parser_sdl::federation::SubgraphConfig {
-            name: _,
             websocket_url,
-            headers,
-            development_url: _,
+            header_rules,
+            ..
         } = config;
 
-        let headers = context.insert_headers(headers);
-
+        let headers = context.insert_headers(header_rules.iter());
         let websocket_url = websocket_url.as_ref().map(|url| context.strings.intern(url));
 
         subgraph_configs.insert(subgraph_id, config::SubgraphConfig { headers, websocket_url });
@@ -45,11 +45,10 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
 
     let cache_config = build_cache_config(config, &graph);
 
-    VersionedConfig::V4(config::Config {
+    VersionedConfig::V5(config::Config {
         graph,
-        default_headers,
         strings: context.strings.into_vec(),
-        headers: context.headers,
+        header_rules: context.header_rules,
         subgraph_configs,
         cache: cache_config,
         auth: build_auth_config(config),
@@ -129,35 +128,50 @@ fn build_cache_config(config: &FederatedGraphConfig, graph: &FederatedGraphV3) -
 #[derive(Default)]
 struct BuildContext<'a> {
     strings: strings::Strings<'a>,
-    headers: Vec<Header>,
+    header_rules: Vec<HeaderRule>,
 }
 
 impl<'a> BuildContext<'a> {
     pub fn insert_headers(
         &mut self,
-        headers: impl IntoIterator<Item = &'a (String, SubgraphHeaderValue)>,
-    ) -> Vec<HeaderId> {
-        headers
-            .into_iter()
-            .map(|(name, value)| self.insert_header(name, value))
-            .collect()
+        header_rules: impl IntoIterator<Item = &'a SubgraphHeaderRule>,
+    ) -> Vec<HeaderRuleId> {
+        header_rules.into_iter().map(|rule| self.insert_header(rule)).collect()
     }
 
-    pub fn insert_header(&mut self, name: &'a str, value: &'a SubgraphHeaderValue) -> HeaderId {
-        let name = self.strings.intern(name);
+    pub fn insert_header(&mut self, rule: &'a SubgraphHeaderRule) -> HeaderRuleId {
+        let rule = match rule {
+            SubgraphHeaderRule::Forward(ref rule) => {
+                let name = self.intern_header_name(&rule.name);
+                let default = rule.default.as_ref().map(|default| self.strings.intern(default));
+                let rename = rule.rename.as_ref().map(|rename| self.strings.intern(rename));
 
-        let value = match value {
-            parser_sdl::federation::SubgraphHeaderValue::Static(value) => {
-                config::HeaderValue::Static(self.strings.intern(value))
+                HeaderRule::Forward(HeaderForward { name, default, rename })
             }
-            parser_sdl::federation::SubgraphHeaderValue::Forward(value) => {
-                config::HeaderValue::Forward(self.strings.intern(value))
-            }
+            SubgraphHeaderRule::Insert(ref rule) => HeaderRule::Insert(HeaderInsert {
+                name: self.strings.intern(&rule.name),
+                value: self.strings.intern(&rule.value),
+            }),
+            SubgraphHeaderRule::Remove(ref rule) => HeaderRule::Remove(HeaderRemove {
+                name: self.intern_header_name(&rule.name),
+            }),
         };
 
-        let id = config::HeaderId(self.headers.len());
-        self.headers.push(config::Header { name, value });
+        let id = config::HeaderRuleId(self.header_rules.len());
+        self.header_rules.push(rule);
+
         id
+    }
+
+    fn intern_header_name(&mut self, name: &'a parser_sdl::federation::header::NameOrPattern) -> NameOrPattern {
+        match name {
+            parser_sdl::federation::header::NameOrPattern::Pattern(ref pattern) => {
+                NameOrPattern::Pattern(pattern.clone())
+            }
+            parser_sdl::federation::header::NameOrPattern::Name(ref name) => {
+                NameOrPattern::Name(self.strings.intern(name))
+            }
+        }
     }
 }
 

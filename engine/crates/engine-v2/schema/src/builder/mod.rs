@@ -47,6 +47,8 @@ pub(crate) struct BuildContext {
 impl BuildContext {
     #[cfg(test)]
     pub fn build_with<T>(build: impl FnOnce(&mut Self, &mut Graph) -> T) -> (Schema, T) {
+        use self::sources::introspection::IntrospectionBuilder;
+
         let mut ctx = Self {
             strings: Interner::from_vec(Vec::new()),
             urls: Interner::default(),
@@ -118,9 +120,10 @@ impl BuildContext {
             required_scopes: Vec::new(),
             authorized_directives: Vec::new(),
         };
+
         let out = build(&mut ctx, &mut graph);
-        let introspection =
-            sources::introspection::IntrospectionBuilder::create_data_source_and_insert_fields(&mut ctx, &mut graph);
+        let introspection = IntrospectionBuilder::create_data_source_and_insert_fields(&mut ctx, &mut graph);
+
         let schema = Schema {
             data_sources: DataSources {
                 graphql: Default::default(),
@@ -129,9 +132,10 @@ impl BuildContext {
             graph,
             strings: ctx.strings.into(),
             urls: Default::default(),
-            headers: Default::default(),
+            header_rules: Default::default(),
             settings: Default::default(),
         };
+
         (schema, out)
     }
 
@@ -151,19 +155,48 @@ impl BuildContext {
     }
 
     fn finalize(mut self, data_sources: DataSources, graph: Graph, mut config: Config) -> Result<Schema, BuildError> {
-        let headers = take(&mut config.headers)
+        let header_rules: Vec<_> = take(&mut config.header_rules)
             .into_iter()
-            .map(|header| Header {
-                name: self.strings.get_or_insert(&config[header.name]),
-                value: match header.value {
-                    config::latest::HeaderValue::Forward(id) => {
-                        HeaderValue::Forward(self.strings.get_or_insert(&config[id]))
+            .map(|rule| -> HeaderRule {
+                match rule {
+                    config::latest::HeaderRule::Forward(rule) => {
+                        let name = match rule.name {
+                            config::latest::NameOrPattern::Pattern(regex) => NameOrPattern::Pattern(regex),
+                            config::latest::NameOrPattern::Name(name) => {
+                                NameOrPattern::Name(self.strings.get_or_insert(&config[name]))
+                            }
+                        };
+
+                        let default = rule.default.map(|id| self.strings.get_or_insert(&config[id]));
+                        let rename = rule.rename.map(|id| self.strings.get_or_insert(&config[id]));
+
+                        HeaderRule::Forward { name, default, rename }
                     }
-                    config::latest::HeaderValue::Static(id) => {
-                        HeaderValue::Static(self.strings.get_or_insert(&config[id]))
+                    config::latest::HeaderRule::Insert(rule) => {
+                        let name = self.strings.get_or_insert(&config[rule.name]);
+                        let value = self.strings.get_or_insert(&config[rule.value]);
+
+                        HeaderRule::Insert { name, value }
                     }
-                },
+                    config::latest::HeaderRule::Remove(rule) => {
+                        let name = match rule.name {
+                            config::latest::NameOrPattern::Pattern(regex) => NameOrPattern::Pattern(regex),
+                            config::latest::NameOrPattern::Name(name) => {
+                                NameOrPattern::Name(self.strings.get_or_insert(&config[name]))
+                            }
+                        };
+
+                        HeaderRule::Remove { name }
+                    }
+                }
             })
+            .collect();
+
+        let default_header_rules = header_rules
+            .iter()
+            .enumerate()
+            .map(|(i, _)| i)
+            .map(Into::into)
             .collect();
 
         Ok(Schema {
@@ -171,9 +204,9 @@ impl BuildContext {
             graph,
             strings: self.strings.into(),
             urls: self.urls.into(),
-            headers,
+            header_rules,
             settings: Settings {
-                default_headers: take(&mut config.default_headers).into_iter().map(Into::into).collect(),
+                default_header_rules,
                 auth_config: take(&mut config.auth),
                 operation_limits: take(&mut config.operation_limits),
                 disable_introspection: config.disable_introspection,
@@ -205,5 +238,5 @@ from_id_newtypes! {
     federated_graph::StringId => StringId,
     federated_graph::SubgraphId => GraphqlEndpointId,
     federated_graph::UnionId => UnionId,
-    config::latest::HeaderId => HeaderId,
+    config::latest::HeaderRuleId => HeaderRuleId,
 }

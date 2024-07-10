@@ -1,21 +1,20 @@
+pub mod header;
+
 use std::collections::BTreeMap;
 
 use crate::{rules::auth_directive::v2::AuthV2Directive, GlobalCacheRules};
 use registry_v2::{ConnectorHeaderValue, OperationLimits};
 
+use self::header::{NameOrPattern, SubgraphHeaderForward, SubgraphHeaderInsert, SubgraphHeaderRule};
+
 /// Configuration for a federated graph
 #[derive(Clone, Debug, Default)]
 pub struct FederatedGraphConfig {
     pub subgraphs: BTreeMap<String, SubgraphConfig>,
-
-    pub default_headers: Vec<(String, SubgraphHeaderValue)>,
-
+    pub header_rules: Vec<SubgraphHeaderRule>,
     pub operation_limits: OperationLimits,
-
     pub global_cache_rules: GlobalCacheRules<'static>,
-
     pub auth: Option<AuthV2Directive>,
-
     pub disable_introspection: bool,
 }
 
@@ -36,25 +35,19 @@ pub struct SubgraphConfig {
     /// This will default to the normal URL if not present.
     pub websocket_url: Option<String>,
 
-    /// Any headers we should forward for this subgraph
-    pub headers: Vec<(String, SubgraphHeaderValue)>,
+    /// Rules for passing headers forward to the subgraph
+    pub header_rules: Vec<SubgraphHeaderRule>,
 }
 
-/// The value of a header to send to a subgraph
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum SubgraphHeaderValue {
-    /// We should send a static value for this header
-    Static(String),
-    /// We should pull the value for this header from the named header in the incoming
-    /// request
-    Forward(String),
-}
-
-impl From<ConnectorHeaderValue> for SubgraphHeaderValue {
-    fn from(value: ConnectorHeaderValue) -> Self {
+impl From<(String, ConnectorHeaderValue)> for SubgraphHeaderRule {
+    fn from((name, value): (String, ConnectorHeaderValue)) -> Self {
         match value {
-            ConnectorHeaderValue::Static(value) => SubgraphHeaderValue::Static(value),
-            ConnectorHeaderValue::Forward(value) => SubgraphHeaderValue::Forward(value),
+            ConnectorHeaderValue::Static(value) => SubgraphHeaderRule::Insert(SubgraphHeaderInsert { name, value }),
+            ConnectorHeaderValue::Forward(value) => SubgraphHeaderRule::Forward(SubgraphHeaderForward {
+                name: NameOrPattern::Name(value),
+                default: None,
+                rename: Some(name),
+            }),
         }
     }
 }

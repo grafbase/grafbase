@@ -1,14 +1,16 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use ascii::AsciiString;
 use engine_v2::Engine;
 use graphql_composition::FederatedGraph;
-use parser_sdl::federation::FederatedGraphConfig;
+use parser_sdl::federation::{header::SubgraphHeaderRule, FederatedGraphConfig};
 use runtime_local::{ComponentLoader, HooksConfig, HooksWasi, InMemoryKvStore};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;
 
-use crate::config::{AuthenticationConfig, HeaderValue, OperationLimitsConfig, SubgraphConfig, TrustedDocumentsConfig};
+use crate::{
+    config::{AuthenticationConfig, OperationLimitsConfig, SubgraphConfig, TrustedDocumentsConfig},
+    HeaderRule,
+};
 
 /// Send half of the gateway watch channel
 #[cfg(not(feature = "lambda"))]
@@ -24,7 +26,7 @@ pub(crate) struct GatewayConfig {
     pub enable_introspection: bool,
     pub operation_limits: Option<OperationLimitsConfig>,
     pub authentication: Option<AuthenticationConfig>,
-    pub default_headers: BTreeMap<AsciiString, HeaderValue>,
+    pub header_rules: Vec<HeaderRule>,
     pub subgraphs: BTreeMap<String, SubgraphConfig>,
     pub trusted_documents: TrustedDocumentsConfig,
     pub wasi: Option<HooksConfig>,
@@ -40,7 +42,7 @@ pub(super) async fn generate(
         enable_introspection,
         operation_limits,
         authentication,
-        default_headers,
+        header_rules,
         subgraphs,
         trusted_documents,
         wasi,
@@ -62,24 +64,17 @@ pub(super) async fn generate(
 
     graph_config.disable_introspection = !enable_introspection;
 
-    graph_config.default_headers = default_headers
-        .into_iter()
-        .map(|(key, value)| (key.to_string(), value.into()))
-        .collect();
+    graph_config.header_rules = header_rules.into_iter().map(SubgraphHeaderRule::from).collect();
 
     graph_config.subgraphs = subgraphs
         .into_iter()
         .map(|(name, value)| {
-            let headers = value
-                .headers
-                .into_iter()
-                .map(|(key, value)| (key.to_string(), value.into()))
-                .collect();
+            let header_rules = value.headers.into_iter().map(SubgraphHeaderRule::from).collect();
 
             let config = parser_sdl::federation::SubgraphConfig {
                 name: name.clone(),
                 websocket_url: value.websocket_url.map(|url| url.to_string()),
-                headers,
+                header_rules,
                 development_url: None,
             };
 

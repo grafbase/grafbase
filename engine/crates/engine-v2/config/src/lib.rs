@@ -1,10 +1,12 @@
 use federated_graph::FederatedGraphV1;
+use latest::{HeaderForward, HeaderInsert, HeaderRule};
 
 // The specific version modules should be kept private, users of this crate
 // should only access types via `latest`
 mod v2;
 mod v3;
 mod v4;
+mod v5;
 
 /// The latest version of the configuration.
 ///
@@ -12,7 +14,7 @@ mod v4;
 /// of older versions isolated in this crate.
 pub mod latest {
     // If you introduce a new version you should update this export to the latest
-    pub use super::v4::*;
+    pub use super::v5::*;
 }
 
 /// Configuration for engine-v2
@@ -32,6 +34,8 @@ pub enum VersionedConfig {
     V3(v3::Config),
     /// V4 is like V3 but with FederatedGraphV3
     V4(v4::Config),
+    /// V5 is like V4, but with new header handling
+    V5(v5::Config),
 }
 
 impl VersionedConfig {
@@ -95,7 +99,44 @@ impl VersionedConfig {
             })
             .into_latest(),
 
-            VersionedConfig::V4(latest) => latest,
+            VersionedConfig::V4(v4::Config {
+                graph,
+                strings,
+                headers,
+                default_headers: _,
+                subgraph_configs,
+                cache,
+                auth,
+                operation_limits,
+                disable_introspection,
+            }) => {
+                let header_rules = headers
+                    .into_iter()
+                    .map(|header| match header.value {
+                        v4::HeaderValue::Forward(value) => HeaderRule::Forward(HeaderForward {
+                            name: header.name.into(),
+                            default: None,
+                            rename: Some(value),
+                        }),
+                        v4::HeaderValue::Static(value) => HeaderRule::Insert(HeaderInsert {
+                            name: header.name,
+                            value,
+                        }),
+                    })
+                    .collect();
+
+                v5::Config {
+                    graph,
+                    strings,
+                    header_rules,
+                    subgraph_configs,
+                    cache,
+                    auth,
+                    operation_limits,
+                    disable_introspection,
+                }
+            }
+            VersionedConfig::V5(latest) => latest,
         }
     }
 }
