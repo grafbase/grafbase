@@ -10,8 +10,8 @@ use std::{
 use crate::{
     execution::ExecutionContext,
     operation::{
-        Condition, ConditionResult, FieldId, Operation, OperationWalker, PlanId, SelectionSetId, SelectionSetType,
-        Variables,
+        Condition, ConditionResult, FieldId, LogicalPlanId, Operation, OperationWalker, SelectionSetId,
+        SelectionSetType, Variables,
     },
     plan::{
         AnyCollectedSelectionSet, AnyCollectedSelectionSetId, CollectedField, CollectedFieldId, CollectedSelectionSet,
@@ -37,12 +37,12 @@ pub(crate) struct OperationPlanBuilder<'a, R: Runtime> {
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 struct UnfinalizedParentToChildEdge {
-    parent: PlanId,
-    child: PlanId,
+    parent: LogicalPlanId,
+    child: LogicalPlanId,
 }
 
 struct ToBePlanned {
-    plan_id: PlanId,
+    plan_id: LogicalPlanId,
     input_id: ResponseObjectSetId,
     selection_set_ty: SelectionSetType,
     root_fields: Vec<FieldId>,
@@ -54,7 +54,7 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
             ctx,
             to_be_planned: Vec::new(),
             plan_parent_to_child_edges: HashSet::new(),
-            plan_id_to_execution_plan_id: vec![None; operation.plans.len()],
+            plan_id_to_execution_plan_id: vec![None; operation.logical_plans.len()],
             condition_results: Vec::new(),
             operation_plan: OperationPlan {
                 root_errors: Vec::new(),
@@ -216,18 +216,17 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
 
     fn generate_root_execution_plans(&mut self) -> PlanningResult<()> {
         let walker = self.walker();
-        let root_plans =
-            walker
-                .selection_set()
-                .fields()
-                .fold(HashMap::<PlanId, Vec<FieldId>>::default(), |mut acc, field| {
-                    let plan_id = self.operation_plan.plan_id_for(field.id());
-                    acc.entry(plan_id).or_default().push(field.id());
-                    acc
-                });
+        let root_plans = walker.selection_set().fields().fold(
+            HashMap::<LogicalPlanId, Vec<FieldId>>::default(),
+            |mut acc, field| {
+                let plan_id = self.operation_plan.plan_id_for(field.id());
+                acc.entry(plan_id).or_default().push(field.id());
+                acc
+            },
+        );
 
         if walker.is_mutation() {
-            let mut maybe_previous_plan_id: Option<PlanId> = None;
+            let mut maybe_previous_plan_id: Option<LogicalPlanId> = None;
             let mut plan_ids = root_plans
                 .iter()
                 .map(|(plan_id, fields)| (walker.walk(fields[0]).as_ref().query_position(), plan_id))
@@ -309,7 +308,7 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
 pub(super) struct ExecutionPlanBuilder<'parent, 'ctx, R: Runtime> {
     builder: &'parent mut OperationPlanBuilder<'ctx, R>,
     input_id: ResponseObjectSetId,
-    plan_id: PlanId,
+    plan_id: LogicalPlanId,
     support_aliases: bool,
     tracked_locations: Vec<ResponseObjectSetId>,
 }
@@ -331,12 +330,12 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
     pub(super) fn new(
         builder: &'parent mut OperationPlanBuilder<'ctx, R>,
         input_id: ResponseObjectSetId,
-        plan_id: PlanId,
+        plan_id: LogicalPlanId,
     ) -> Self {
         let support_aliases = builder
             .ctx
             .schema
-            .walk(builder.operation_plan.operation.plans[usize::from(plan_id)].resolver_id)
+            .walk(builder.operation_plan.operation.logical_plans[usize::from(plan_id)].resolver_id)
             .supports_aliases();
         ExecutionPlanBuilder {
             builder,
@@ -498,7 +497,7 @@ impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
         concrete_parent: bool,
     ) -> PlanningResult<AnyCollectedSelectionSet> {
         let mut plan_fields: Vec<FieldId> = Vec::new();
-        let mut children_plan: HashMap<PlanId, Vec<FieldId>> = HashMap::new();
+        let mut children_plan: HashMap<LogicalPlanId, Vec<FieldId>> = HashMap::new();
         for selection_set_id in &selection_set_ids {
             for field in self.walker().walk(*selection_set_id).fields() {
                 let plan_id = self.operation_plan.plan_id_for(field.id());

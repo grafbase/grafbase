@@ -1,4 +1,4 @@
-use super::{Condition, Field, FieldArgument, Operation, Plan, SelectionSet, VariableDefinition};
+use super::{Condition, Field, FieldArgument, LogicalPlan, Operation, SelectionSet, VariableDefinition};
 
 id_newtypes::NonZeroU16! {
     Operation.fields[FieldId] => Field,
@@ -6,5 +6,5 @@ id_newtypes::NonZeroU16! {
     Operation.variable_definitions[VariableDefinitionId] => VariableDefinition,
     Operation.field_arguments[FieldArgumentId] => FieldArgument,
     Operation.conditions[ConditionId] => Condition,
-    Operation.plans[PlanId] => Plan,
+    Operation.logical_plans[LogicalPlanId] => LogicalPlan,
 }

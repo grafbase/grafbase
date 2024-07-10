@@ -57,10 +57,6 @@ impl<'a> FieldWalker<'a> {
     pub fn selection_set(&self) -> Option<SelectionSetWalker<'a>> {
         self.as_ref().selection_set_id().map(|id| self.walk_with(id, ()))
     }
-
-    pub fn parent_selection_set(&self) -> SelectionSetWalker<'a> {
-        self.walk_with(self.as_ref().parent_selection_set_id(), ())
-    }
 }
 
 impl PartialEq<RequiredField> for FieldWalker<'_> {
