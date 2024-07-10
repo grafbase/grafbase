@@ -1,6 +1,8 @@
 use url::Url;
 
-use crate::{HeaderId, HeaderWalker, RequiredFieldSet, RequiredFieldSetId, SchemaWalker, StringId, SubgraphId, UrlId};
+use crate::{
+    HeaderRuleId, HeaderRuleWalker, RequiredFieldSet, RequiredFieldSetId, SchemaWalker, StringId, SubgraphId, UrlId,
+};
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct GraphqlEndpoints {
@@ -13,7 +15,7 @@ pub struct GraphqlEndpoint {
     pub(crate) name: StringId,
     pub(crate) url: UrlId,
     pub(crate) websocket_url: Option<UrlId>,
-    pub(crate) headers: Vec<HeaderId>,
+    pub(crate) headers: Vec<HeaderRuleId>,
 }
 
 id_newtypes::U8! {
@@ -137,10 +139,10 @@ impl<'a> GraphqlEndpointWalker<'a> {
         }
     }
 
-    pub fn headers(self) -> impl Iterator<Item = HeaderWalker<'a>> {
+    pub fn headers(self) -> impl Iterator<Item = HeaderRuleWalker<'a>> {
         self.schema
             .settings
-            .default_headers
+            .default_header_rules
             .iter()
             .chain(self.as_ref().headers.iter())
             .map(move |id| self.walk(*id))

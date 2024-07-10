@@ -3,7 +3,6 @@ mod websockets;
 use std::collections::HashMap;
 
 use futures_util::stream::BoxStream;
-use reqwest::header::HeaderValue;
 use runtime::fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, Fetcher, FetcherInner, GraphqlRequest};
 use serde_json::json;
 
@@ -29,20 +28,16 @@ impl FetcherInner for NativeFetcher {
             .post(request.url.clone())
             .body(request.json_body)
             .header("Content-Type", "application/json")
-            .headers(
-                request
-                    .headers
-                    .iter()
-                    .filter_map(|(name, value)| Some((name.parse().ok()?, HeaderValue::from_str(value).ok()?)))
-                    .collect(),
-            )
+            .headers(request.headers.clone())
             .send()
             .await
             .map_err(|e| FetchError::AnyError(e.to_string()))?;
+
         let bytes = response
             .bytes()
             .await
             .map_err(|e| FetchError::AnyError(e.to_string()))?;
+
         Ok(FetchResponse { bytes })
     }
 
@@ -65,7 +60,11 @@ impl FetcherInner for NativeFetcher {
                 .map_err(FetchError::any)?
         };
 
-        let headers = request.headers.iter().copied().collect::<HashMap<_, _>>();
+        let headers: HashMap<_, _> = request
+            .headers
+            .iter()
+            .flat_map(|(k, v)| v.to_str().map(|v| (k.as_str(), v)))
+            .collect();
 
         Ok(graphql_ws_client::Client::build(connection)
             .payload(json!({"headers": headers}))

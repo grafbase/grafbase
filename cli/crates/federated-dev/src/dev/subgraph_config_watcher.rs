@@ -4,7 +4,7 @@ use std::{
 };
 
 use futures_util::StreamExt;
-use parser_sdl::federation::{SubgraphConfig, SubgraphHeaderValue};
+use parser_sdl::federation::{header::SubgraphHeaderRule, SubgraphConfig};
 use tokio::task::JoinSet;
 use tokio_stream::wrappers::WatchStream;
 use url::Url;
@@ -56,14 +56,15 @@ impl SubgraphConfigWatcher {
                 };
 
                 let headers = config
-                    .headers
+                    .header_rules
                     .iter()
-                    .filter_map(|(key, value)| match value {
-                        SubgraphHeaderValue::Static(value) => Some(Header {
-                            key: key.clone(),
-                            value: value.clone(),
+                    .filter_map(|rule| match rule {
+                        SubgraphHeaderRule::Insert(rule) => Some(Header {
+                            key: rule.name.clone(),
+                            value: rule.value.clone(),
                         }),
-                        SubgraphHeaderValue::Forward(_) => None,
+                        SubgraphHeaderRule::Forward(_) => None,
+                        SubgraphHeaderRule::Remove(_) => None,
                     })
                     .collect::<Vec<_>>();
 

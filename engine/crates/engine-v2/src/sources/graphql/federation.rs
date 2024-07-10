@@ -1,9 +1,6 @@
 use grafbase_tracing::span::subgraph::SubgraphRequestSpan;
 use runtime::fetch::FetchRequest;
-use schema::{
-    sources::graphql::{FederationEntityResolverWalker, GraphqlEndpointId, GraphqlEndpointWalker},
-    HeaderValueRef,
-};
+use schema::sources::graphql::{FederationEntityResolverWalker, GraphqlEndpointId, GraphqlEndpointWalker};
 use serde::de::DeserializeSeed;
 use tracing::Instrument;
 
@@ -120,19 +117,7 @@ impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
                 .post(FetchRequest {
                     url: self.subgraph.url(),
                     json_body: self.json_body,
-                    headers: self
-                        .subgraph
-                        .headers()
-                        .filter_map(|header| {
-                            Some((
-                                header.name(),
-                                match header.value() {
-                                    HeaderValueRef::Forward(name) => self.ctx.header(name)?,
-                                    HeaderValueRef::Static(value) => value,
-                                },
-                            ))
-                        })
-                        .collect(),
+                    headers: self.ctx.headers_with_rules(self.subgraph.headers()),
                 })
                 .await?
                 .bytes;

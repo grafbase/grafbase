@@ -59,7 +59,7 @@ impl<'a> DeterministicEngineBuilder<'a> {
         );
         let federated_graph = FederatedGraph::from_sdl(self.schema).unwrap().into_latest();
         let config =
-            engine_v2::VersionedConfig::V4(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
+            engine_v2::VersionedConfig::V5(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
 
         let engine = engine_v2::Engine::new(
             Arc::new(config.try_into().unwrap()),

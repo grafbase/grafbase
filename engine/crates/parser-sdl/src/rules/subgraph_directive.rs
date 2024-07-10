@@ -1,7 +1,7 @@
 use engine_parser::types::SchemaDefinition;
 use url::Url;
 
-use crate::directive_de::parse_directive;
+use crate::{directive_de::parse_directive, federation::header::SubgraphHeaderRule};
 
 use super::{
     connector_headers::Header,
@@ -122,11 +122,12 @@ impl Visitor<'_> for SubgraphDirectiveVisitor {
                 subgraph.development_url = Some(url.to_string())
             }
 
-            subgraph.headers.extend(
+            subgraph.header_rules.extend(
                 directive
                     .headers
                     .into_iter()
-                    .map(|header| (header.name, header.value.into())),
+                    .map(|header| (header.name, header.value))
+                    .map(SubgraphHeaderRule::from),
             )
         }
     }
@@ -167,18 +168,23 @@ mod tests {
                         name: "Products",
                         development_url: None,
                         websocket_url: None,
-                        headers: [
-                            (
-                                "Auth",
-                                Forward(
-                                    "Authorization",
-                                ),
+                        header_rules: [
+                            Forward(
+                                SubgraphHeaderForward {
+                                    name: Name(
+                                        "Authorization",
+                                    ),
+                                    default: None,
+                                    rename: Some(
+                                        "Auth",
+                                    ),
+                                },
                             ),
-                            (
-                                "Other",
-                                Static(
-                                    "Bar",
-                                ),
+                            Insert(
+                                SubgraphHeaderInsert {
+                                    name: "Other",
+                                    value: "Bar",
+                                },
                             ),
                         ],
                     },
@@ -186,17 +192,17 @@ mod tests {
                         name: "Reviews",
                         development_url: None,
                         websocket_url: None,
-                        headers: [
-                            (
-                                "Auth",
-                                Static(
-                                    "Foo",
-                                ),
+                        header_rules: [
+                            Insert(
+                                SubgraphHeaderInsert {
+                                    name: "Auth",
+                                    value: "Foo",
+                                },
                             ),
                         ],
                     },
                 },
-                default_headers: [],
+                header_rules: [],
                 operation_limits: OperationLimits {
                     depth: None,
                     height: None,

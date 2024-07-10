@@ -6,7 +6,9 @@ pub use cache_config::{CacheConfig, CacheConfigTarget, CacheConfigs};
 use federated_graph::{FederatedGraphV1, SubgraphId};
 pub use gateway_auth_config::v2::*;
 
-#[derive(Default, serde::Deserialize, serde::Serialize)]
+use crate::v5::HeaderRuleId;
+
+#[derive(Default, serde::Deserialize, serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct OperationLimits {
     pub depth: Option<u16>,
@@ -40,10 +42,10 @@ pub struct Config {
 }
 
 /// Additional configuration for a particular subgraph
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct SubgraphConfig {
     pub websocket_url: Option<StringId>,
-    pub headers: Vec<HeaderId>,
+    pub headers: Vec<HeaderRuleId>,
 }
 
 /// A header that should be sent to a subgraph
@@ -63,7 +65,7 @@ pub enum HeaderValue {
     Static(StringId),
 }
 
-#[derive(Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize, Debug)]
 pub struct StringId(pub usize);
 
 impl std::ops::Index<StringId> for Config {

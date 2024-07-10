@@ -1,6 +1,6 @@
 use futures_util::{stream::BoxStream, StreamExt};
 use runtime::fetch::GraphqlRequest;
-use schema::{sources::graphql::GraphqlEndpointWalker, HeaderValueRef};
+use schema::sources::graphql::GraphqlEndpointWalker;
 use serde::de::DeserializeSeed;
 
 use super::{
@@ -76,18 +76,7 @@ impl<'ctx, R: Runtime> GraphqlSubscriptionExecutor<'ctx, R> {
                     inputs: Vec::new(),
                 })
                 .map_err(|error| error.to_string())?,
-                headers: subgraph
-                    .headers()
-                    .filter_map(|header| {
-                        Some((
-                            header.name(),
-                            match header.value() {
-                                HeaderValueRef::Forward(name) => self.ctx.header(name)?,
-                                HeaderValueRef::Static(value) => value,
-                            },
-                        ))
-                    })
-                    .collect(),
+                headers: self.ctx.headers_with_rules(subgraph.headers()),
             })
             .await?;
 

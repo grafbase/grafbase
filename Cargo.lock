@@ -2548,9 +2548,11 @@ dependencies = [
  "gateway-v2-auth-config",
  "graphql-federated-graph",
  "insta",
+ "regex",
  "secrecy",
  "serde",
  "serde_json",
+ "serde_regex",
  "serde_with",
  "thiserror",
  "url",
@@ -2578,9 +2580,11 @@ dependencies = [
  "insta",
  "postcard",
  "pretty_assertions",
+ "regex",
  "rstest",
  "serde",
  "serde_json",
+ "serde_regex",
  "serde_with",
  "strum",
  "strum_macros",
@@ -2861,6 +2865,7 @@ dependencies = [
  "runtime-local",
  "runtime-noop",
  "serde",
+ "serde_regex",
  "serde_with",
  "temp-env",
  "thiserror",
@@ -4767,6 +4772,7 @@ dependencies = [
  "parser-postgres",
  "parser-sdl",
  "postgres-connector-types",
+ "regex",
  "registry-for-cache",
  "registry-upgrade",
  "registry-v2",
@@ -6902,7 +6908,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "syn 2.0.66",
@@ -8072,6 +8078,16 @@ dependencies = [
  "percent-encoding",
  "serde",
  "thiserror",
+]
+
+[[package]]
+name = "serde_regex"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8136f1a4ea815d7eac4101cfd0b16dc0cb5e1fe1b8609dfd728058656b7badf"
+dependencies = [
+ "regex",
+ "serde",
 ]
 
 [[package]]
