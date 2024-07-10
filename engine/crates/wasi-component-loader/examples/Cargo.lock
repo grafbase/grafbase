@@ -262,7 +262,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
- "wit-bindgen-rt",
+ "wit-bindgen-rt 0.27.0",
 ]
 
 [[package]]
@@ -423,7 +423,7 @@ dependencies = [
 name = "dir_access"
 version = "0.1.0"
 dependencies = [
- "wit-bindgen-rt",
+ "wit-bindgen-rt 0.27.0",
 ]
 
 [[package]]
@@ -476,7 +476,7 @@ dependencies = [
 name = "error"
 version = "0.1.0"
 dependencies = [
- "wit-bindgen-rt",
+ "wit-bindgen-rt 0.27.0",
 ]
 
 [[package]]
@@ -1004,7 +1004,7 @@ dependencies = [
 name = "missing_hook"
 version = "0.1.0"
 dependencies = [
- "wit-bindgen-rt",
+ "wit-bindgen-rt 0.27.0",
 ]
 
 [[package]]
@@ -1012,7 +1012,7 @@ name = "networking"
 version = "0.1.0"
 dependencies = [
  "waki",
- "wit-bindgen-rt",
+ "wit-bindgen-rt 0.27.0",
 ]
 
 [[package]]
@@ -1399,7 +1399,7 @@ dependencies = [
 name = "simple"
 version = "0.1.0"
 dependencies = [
- "wit-bindgen-rt",
+ "wit-bindgen-rt 0.27.0",
 ]
 
 [[package]]
@@ -2084,7 +2084,7 @@ version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a84376ff4f74ed07674a1157c0bd19e6627ab01fc90952a27ccefb52a24530f0"
 dependencies = [
- "wit-bindgen-rt",
+ "wit-bindgen-rt 0.26.0",
  "wit-bindgen-rust-macro",
 ]
 
@@ -2104,6 +2104,15 @@ name = "wit-bindgen-rt"
 version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29c7526379ace8709ee9ab9f2bb50f112d95581063a59ef3097d9c10153886c9"
+dependencies = [
+ "bitflags 2.5.0",
+]
+
+[[package]]
+name = "wit-bindgen-rt"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75956ff0a04a87ca0526b07199ce3b9baee899f2e4723b5b63aa296ab172ec52"
 dependencies = [
  "bitflags 2.5.0",
 ]

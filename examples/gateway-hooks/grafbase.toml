@@ -2,7 +2,7 @@
 introspection = true
 
 [hooks]
-location = "target/wasm32-wasi/release/demo_hooks.wasm"
+location = "target/wasm32-wasip1/release/demo_hooks.wasm"
 stdout = true
 stderr = true
 environment_variables = true

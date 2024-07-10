@@ -41,6 +41,4 @@ world gateway {
 
 The world defines the functions the guest is interested to plug into. If not wanting to handle this exact hook, the hook should be removed from the wit definition. If the host cannot find that exact function from the guest, the host hook will be a no-op.
 
-Currently for the env vars to work properly, we need a special reactor with a memory bug fixed. Follow [this issue](https://github.com/bytecodealliance/wasmtime/issues/8835) to see when it's actually released in cargo-component so we can remove the custom reactor from this repo.
-
 Only tested with Rust guests so far. If using another guest language, your mileage may vary.
