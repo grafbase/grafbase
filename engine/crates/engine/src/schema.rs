@@ -476,11 +476,6 @@ impl Schema {
                 match self.prepare_request(extensions, request, Default::default()).await {
                     Ok((env_builder, futures_waiter)) => {
                         let env = env_builder.build();
-                        Span::current().record_gql_request(GqlRequestAttributes {
-                            operation_type: env.operation.ty.as_str(),
-                            operation_name: env.operation_analytics_attributes.name.clone(),
-                        });
-
                         let fut = async {
                             self.execute_once(env.clone(), futures_waiter)
                                 .await
@@ -528,7 +523,7 @@ impl Schema {
         let schema = self.clone();
         let request: Request = request.into();
         let extensions = self.create_extensions(session_data.clone());
-        let gql_span = GqlRequestSpan::new().into_span();
+        let gql_span = GqlRequestSpan::create();
         let client = schema
             .env
             .data
@@ -538,13 +533,14 @@ impl Schema {
 
         let normalized_query = operation_normalizer::normalize(request.query(), request.operation_name()).ok();
 
+        let gql_span_clone = gql_span.clone();
         let request = futures_util::stream::StreamExt::boxed({
             let extensions = extensions.clone();
             async_stream::stream! {
                 let (env_builder, futures_waiter) = match schema.prepare_request(extensions, request, session_data).await {
                     Ok(res) => res,
                     Err((operation_metadata, errors)) => {
-                        Span::current().record_gql_status(GraphqlResponseStatus::RequestError { count: errors.len() as u64 });
+                        gql_span.record_gql_status(GraphqlResponseStatus::RequestError { count: errors.len() as u64 });
                         yield Response::bad_request(errors, operation_metadata).into_streaming_payload(false);
                         return;
                     }
@@ -556,7 +552,8 @@ impl Schema {
                     let env = env_builder.with_deferred_sender(sender).build();
                     Span::current().record_gql_request(GqlRequestAttributes {
                         operation_type: env.operation.ty.as_str(),
-                        operation_name: env.operation_analytics_attributes.name.clone()
+                        operation_name: env.operation_analytics_attributes.name.as_deref(),
+                        sanitized_query: normalized_query.as_deref(),
                     });
 
                     let initial_response = schema
@@ -584,9 +581,10 @@ impl Schema {
                 } else {
                     let env = env_builder.build();
 
-                    Span::current().record_gql_request(GqlRequestAttributes {
+                    gql_span.record_gql_request(GqlRequestAttributes {
                         operation_type: env.operation.ty.as_str(),
-                        operation_name: env.operation_analytics_attributes.name.clone()
+                        operation_name: env.operation_analytics_attributes.name.as_deref(),
+                        sanitized_query: normalized_query.as_deref(),
                     });
 
                     let ctx = env.create_context(
@@ -629,7 +627,7 @@ impl Schema {
             }
         });
 
-        request.instrument(gql_span).into_inner()
+        request.instrument(gql_span_clone).into_inner()
     }
 
     /// Execute a GraphQL streaming request.

@@ -101,12 +101,15 @@ pub(crate) struct FederationEntityExecutor<'ctx, R: Runtime> {
 impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
     #[tracing::instrument(skip_all)]
     pub async fn execute(self, mut response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
-        let subgraph_gql_request_span = SubgraphRequestSpan::new(self.subgraph.name())
-            .with_url(self.subgraph.url())
-            .with_operation_type(OperationType::Query.as_ref())
-            // The query string contains no input values, only variables. So it's safe to log.
-            .with_document(&self.operation.query)
-            .into_span();
+        let span = SubgraphRequestSpan {
+            name: self.subgraph.name(),
+            operation_type: OperationType::Query.as_str(),
+            // The generated query does not contain any data, everything are in the variables, so
+            // it's safe to use.
+            sanitized_query: &self.operation.query,
+            url: self.subgraph.url(),
+        }
+        .into_span();
 
         async {
             let bytes = self
@@ -150,7 +153,7 @@ impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
             .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
             Ok(response_part)
         }
-        .instrument(subgraph_gql_request_span.clone())
+        .instrument(span.clone())
         .await
     }
 }

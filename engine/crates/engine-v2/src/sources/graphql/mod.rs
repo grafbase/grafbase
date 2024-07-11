@@ -94,12 +94,15 @@ pub(crate) struct GraphqlExecutor<'ctx, R: Runtime> {
 impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
     #[tracing::instrument(skip_all)]
     pub async fn execute(self, mut response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
-        let subgraph_request_span = SubgraphRequestSpan::new(self.subgraph.name())
-            .with_url(self.subgraph.url())
-            .with_operation_type(self.operation.ty.as_ref())
-            // The query string contains no input values, only variables. So it's safe to log.
-            .with_document(&self.operation.query)
-            .into_span();
+        let span = SubgraphRequestSpan {
+            name: self.subgraph.name(),
+            operation_type: self.operation.ty.as_str(),
+            // The generated query does not contain any data, everything are in the variables, so
+            // it's safe to use.
+            sanitized_query: &self.operation.query,
+            url: self.subgraph.url(),
+        }
+        .into_span();
 
         async {
             let bytes = self
@@ -136,12 +139,12 @@ impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
                     response_keys: self.plan.response_keys(),
                 },
             )
-            .with_graphql_span(subgraph_request_span.clone())
+            .with_graphql_span(span.clone())
             .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
 
             Ok(response_part)
         }
-        .instrument(subgraph_request_span.clone())
+        .instrument(span.clone())
         .await
     }
 }

@@ -161,7 +161,7 @@ where
             unreachable!("auth must be AccessToken::V1 at this point");
         };
 
-        let gql_span = GqlRequestSpan::new().into_span();
+        let gql_span = GqlRequestSpan::create();
         let start = web_time::Instant::now();
 
         async {
@@ -192,7 +192,8 @@ where
                         common_types::OperationType::Mutation => "mutation",
                         common_types::OperationType::Subscription => "subscription",
                     },
-                    operation_name: operation.name.clone(),
+                    operation_name: operation.name.as_deref(),
+                    sanitized_query: normalized_query.as_deref(),
                 });
                 gql_span.record_gql_status(status);
             }

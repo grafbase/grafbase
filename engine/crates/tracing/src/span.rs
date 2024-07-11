@@ -32,7 +32,7 @@ pub trait HttpRecorderSpanExt {
 /// Extension trait to record gql request attributes
 pub trait GqlRecorderSpanExt {
     /// Record GraphQL request attributes in the span
-    fn record_gql_request(&self, attributes: GqlRequestAttributes);
+    fn record_gql_request(&self, attributes: GqlRequestAttributes<'_>);
     /// Record GraphQL response attributes in the span
     fn record_gql_response(&self, attributes: GqlResponseAttributes);
 
@@ -43,11 +43,13 @@ pub trait GqlRecorderSpanExt {
 
 /// Wraps attributes of a graphql request intended to be recorded
 #[derive(Debug)]
-pub struct GqlRequestAttributes {
+pub struct GqlRequestAttributes<'a> {
     /// GraphQL operation type
     pub operation_type: &'static str,
     /// GraphQL operation name
-    pub operation_name: Option<String>,
+    pub operation_name: Option<&'a str>,
+    /// Must NOT contain any sensitive data
+    pub sanitized_query: Option<&'a str>,
 }
 
 /// Wraps attributes of a graphql response intended to be recorded
