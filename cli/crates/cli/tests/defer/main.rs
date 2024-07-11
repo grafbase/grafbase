@@ -161,6 +161,119 @@ async fn defer_sse_test() {
     "###);
 }
 
+#[tokio::test(flavor = "multi_thread")]
+async fn partial_caching_defer_sse_test() {
+    const SCHEMA: &str = r#"
+        extend schema
+          @experimental(partialCaching: true)
+          @cache(rules: [{maxAge: 120, types: "Query"}])
+
+        type Todo {
+            id: ID!
+            title: String
+        }
+
+        extend type Query {
+            todoCollection(first: Int!): [Todo!]! @resolver(name: "todos")
+        }
+    "#;
+
+    let mut env = Environment::init_async().await;
+    let client = start_grafbase(&mut env, SCHEMA).await;
+
+    const QUERY: &str = r"
+        query {
+            todoCollection(first: 1) {
+                __typename
+                title
+                id
+            }
+            ... @defer {
+                deferred: todoCollection(first: 10) {
+                    __typename
+                    title
+                    id
+                }
+            }
+        }
+    ";
+
+    let events = client.gql::<Value>(QUERY).into_sse_stream().collect::<Vec<_>>().await;
+
+    insta::assert_json_snapshot!(events, @r###"
+    [
+      {
+        "data": {
+          "todoCollection": [
+            {
+              "__typename": "Todo",
+              "title": "Defer Things",
+              "id": "1"
+            }
+          ]
+        },
+        "hasNext": true
+      },
+      {
+        "data": {
+          "todoCollection": [
+            {
+              "__typename": "Todo",
+              "title": "Defer Things",
+              "id": "1"
+            }
+          ],
+          "deferred": [
+            {
+              "__typename": "Todo",
+              "title": "Defer Things",
+              "id": "1"
+            },
+            {
+              "__typename": "Todo",
+              "title": "Defer Things",
+              "id": "2"
+            }
+          ]
+        },
+        "path": [],
+        "hasNext": false
+      }
+    ]
+    "###);
+
+    let events = client.gql::<Value>(QUERY).into_sse_stream().collect::<Vec<_>>().await;
+
+    insta::assert_json_snapshot!(events, @r###"
+    [
+      {
+        "data": {
+          "todoCollection": [
+            {
+              "__typename": "Todo",
+              "title": "Defer Things",
+              "id": "1"
+            }
+          ],
+          "deferred": [
+            {
+              "__typename": "Todo",
+              "title": "Defer Things",
+              "id": "1"
+            },
+            {
+              "__typename": "Todo",
+              "title": "Defer Things",
+              "id": "2"
+            }
+          ]
+        },
+        "hasNext": false
+      }
+    ]
+    "###);
+}
+
 const JWT_SCHEMA: &str = r#"
   schema
     @auth(
