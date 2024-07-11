@@ -688,7 +688,7 @@ impl<'a> IntrospectionBuilder<'a> {
         let subgraph_id = self.subgraph_id;
         for (name, r#type, tag) in fields {
             let id = self.field_definitions.len().into();
-            let name = self.ctx.strings.get_or_insert(name);
+            let name = self.ctx.strings.get_or_new(name);
 
             self.field_definitions.push(FieldDefinition {
                 name,
@@ -778,7 +778,7 @@ impl<'a> IntrospectionBuilder<'a> {
         {
             Some(id) => id,
             None => {
-                let name = self.ctx.strings.get_or_insert(scalar_name);
+                let name = self.ctx.strings.get_or_new(scalar_name);
                 self.scalar_definitions.push(crate::Scalar {
                     name,
                     ty: scalar_type,
@@ -798,6 +798,6 @@ impl<'a> IntrospectionBuilder<'a> {
     }
 
     fn get_or_intern(&mut self, value: &str) -> StringId {
-        self.ctx.strings.get_or_insert(value)
+        self.ctx.strings.get_or_new(value)
     }
 }

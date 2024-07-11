@@ -11,7 +11,7 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
     BuildContext::build_with(|ctx, graph| {
         graph.input_value_definitions.extend([
             InputValueDefinition {
-                name: ctx.strings.get_or_insert("fieldA"),
+                name: ctx.strings.get_or_new("fieldA"),
                 description: None,
                 ty: Type {
                     inner: crate::Definition::Object(0.into()),
@@ -21,7 +21,7 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
                 directives: IdRange::empty(),
             },
             InputValueDefinition {
-                name: ctx.strings.get_or_insert("fieldB"),
+                name: ctx.strings.get_or_new("fieldB"),
                 description: None,
                 ty: Type {
                     inner: crate::Definition::Object(0.into()),
@@ -33,12 +33,12 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
         ]);
         graph.enum_value_definitions.extend([
             EnumValue {
-                name: ctx.strings.get_or_insert("ACTIVE"),
+                name: ctx.strings.get_or_new("ACTIVE"),
                 description: None,
                 directives: Default::default(),
             },
             EnumValue {
-                name: ctx.strings.get_or_insert("INACTIVE"),
+                name: ctx.strings.get_or_new("INACTIVE"),
                 description: None,
                 directives: Default::default(),
             },
@@ -55,35 +55,32 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
             ),
             (
                 InputValueDefinitionId::from(1),
-                SchemaInputValue::String(ctx.strings.get_or_insert("some string value")),
+                SchemaInputValue::String(ctx.strings.get_or_new("some string value")),
             ),
         ]);
         let nested_fields = graph.input_values.push_map(vec![
-            (ctx.strings.get_or_insert("null"), SchemaInputValue::Null),
+            (ctx.strings.get_or_new("null"), SchemaInputValue::Null),
             (
-                ctx.strings.get_or_insert("string"),
-                SchemaInputValue::String(ctx.strings.get_or_insert("some string value")),
+                ctx.strings.get_or_new("string"),
+                SchemaInputValue::String(ctx.strings.get_or_new("some string value")),
             ),
             (
-                ctx.strings.get_or_insert("enumValue"),
+                ctx.strings.get_or_new("enumValue"),
                 SchemaInputValue::EnumValue(EnumValueId::from(0)),
             ),
-            (ctx.strings.get_or_insert("int"), SchemaInputValue::Int(7)),
-            (ctx.strings.get_or_insert("bigInt"), SchemaInputValue::BigInt(8)),
-            (ctx.strings.get_or_insert("u64"), SchemaInputValue::U64(9)),
-            (ctx.strings.get_or_insert("float"), SchemaInputValue::Float(10.0)),
-            (ctx.strings.get_or_insert("boolean"), SchemaInputValue::Boolean(true)),
+            (ctx.strings.get_or_new("int"), SchemaInputValue::Int(7)),
+            (ctx.strings.get_or_new("bigInt"), SchemaInputValue::BigInt(8)),
+            (ctx.strings.get_or_new("u64"), SchemaInputValue::U64(9)),
+            (ctx.strings.get_or_new("float"), SchemaInputValue::Float(10.0)),
+            (ctx.strings.get_or_new("boolean"), SchemaInputValue::Boolean(true)),
         ]);
         let fields = graph.input_values.push_map(vec![
             (
-                ctx.strings.get_or_insert("inputObject"),
+                ctx.strings.get_or_new("inputObject"),
                 SchemaInputValue::InputObject(input_fields),
             ),
-            (ctx.strings.get_or_insert("list"), SchemaInputValue::List(list)),
-            (
-                ctx.strings.get_or_insert("object"),
-                SchemaInputValue::Map(nested_fields),
-            ),
+            (ctx.strings.get_or_new("list"), SchemaInputValue::List(list)),
+            (ctx.strings.get_or_new("object"), SchemaInputValue::Map(nested_fields)),
         ]);
         graph.input_values.push_value(SchemaInputValue::Map(fields))
     })
