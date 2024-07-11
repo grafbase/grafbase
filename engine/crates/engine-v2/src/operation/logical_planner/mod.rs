@@ -4,6 +4,7 @@ mod selection_set;
 use engine_parser::types::OperationType;
 use itertools::Itertools;
 use schema::{ResolverId, Schema};
+use tracing::instrument;
 
 use crate::{
     operation::{
@@ -66,7 +67,9 @@ impl<'a> LogicalPlanner<'a> {
         }
     }
 
-    pub(super) fn run(mut self) -> LogicalPlanningResult<()> {
+    #[instrument(skip_all)]
+    pub(super) fn plan(mut self) -> LogicalPlanningResult<()> {
+        tracing::trace!("Logical Planning");
         self.plan_all_fields()?;
         let Self {
             operation,
@@ -101,8 +104,12 @@ impl<'a> LogicalPlanner<'a> {
         let introspection = self.schema.walker().introspection_metadata();
 
         let walker = self.walker();
-        let (introspection_field_ids, field_ids): (Vec<_>, Vec<_>) =
-            walker.selection_set().as_ref().field_ids.iter().partition(|field_id| {
+        let (introspection_field_ids, field_ids): (Vec<_>, Vec<_>) = walker
+            .selection_set()
+            .as_ref()
+            .field_ids_ordered_by_parent_entity_id_then_position
+            .iter()
+            .partition(|field_id| {
                 if let Some(definition) = walker.walk(**field_id).definition() {
                     definition.is_resolvable_in(introspection.subgraph_id)
                 } else {
@@ -139,13 +146,13 @@ impl<'a> LogicalPlanner<'a> {
     /// field individually and setting up plan dependencies between them to ensures proper
     /// execution order.
     fn plan_mutation(&mut self, field_ids: Vec<FieldId>) -> LogicalPlanningResult<()> {
-        let mut groups = self
-            .walker()
-            .group_by_response_key_sorted_by_query_position(field_ids)
+        let mut groups = field_ids
+            .into_iter()
+            .into_group_map_by(|id| self.operation[*id].response_key())
             .into_values()
             .collect::<Vec<_>>();
         // Ordering groups by their position in the query, ensuring proper ordering of plans.
-        groups.sort_unstable_by_key(|field_ids| self.operation[field_ids[0]].query_position());
+        groups.sort_unstable_by_key(|field_ids| field_ids.iter().map(|id| self.operation[*id].query_position()).min());
 
         // FIXME: generates one plan per field, should be aggregated if consecutive fields can be
         // planned by a single resolver.
@@ -206,8 +213,11 @@ impl<'a> LogicalPlanner<'a> {
         id: SelectionSetId,
     ) -> LogicalPlanningResult<()> {
         let walker = self.walker();
-        let (obviously_plannable_field_ids, unplanned_field_ids): (Vec<_>, Vec<_>) =
-            self.operation[id].field_ids.iter().copied().partition(|field_id| {
+        let (obviously_plannable_field_ids, unplanned_field_ids): (Vec<_>, Vec<_>) = self.operation[id]
+            .field_ids_ordered_by_parent_entity_id_then_position
+            .iter()
+            .copied()
+            .partition(|field_id| {
                 if let Some(definition) = walker.walk(*field_id).definition() {
                     logic.is_providable(definition.id())
                         && definition.requires(logic.resolver().subgraph_id()).is_empty()

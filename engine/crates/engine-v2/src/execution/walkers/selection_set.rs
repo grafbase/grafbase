@@ -36,21 +36,30 @@ impl<'a> PlanSelectionSet<'a> {
     }
 
     pub fn fields(&self) -> Vec<PlanField<'a>> {
+        self.fields_ordered_by_parent_entity_id_then_position()
+    }
+
+    pub fn fields_ordered_by_parent_entity_id_then_position(&self) -> Vec<PlanField<'a>> {
         let out = match self {
-            PlanSelectionSet::RootFields(walker) => walker
-                .collected_selection_set()
-                .fields()
-                .map(move |field| field.as_operation_field())
-                .collect::<Vec<_>>(),
+            PlanSelectionSet::RootFields(walker) => {
+                let mut fields = walker
+                    .collected_selection_set()
+                    .fields()
+                    .map(move |field| field.as_operation_field())
+                    .collect::<Vec<_>>();
+                fields.sort_unstable_by_key(|field| (field.parent_entity().id(), field.as_ref().query_position()));
+                fields
+            }
+
             PlanSelectionSet::SelectionSet(walker) => {
-                let plan_id = walker.operation_plan[walker.execution_plan_id].plan_id;
+                let logical_plan_id = walker.operation_plan[walker.execution_plan_id].plan_id;
                 walker
                     .as_ref()
-                    .field_ids
+                    .field_ids_ordered_by_parent_entity_id_then_position
                     .iter()
                     .filter_map(|id| {
                         let field_plan_id = walker.operation_plan.plan_id_for(*id);
-                        if field_plan_id == plan_id {
+                        if field_plan_id == logical_plan_id {
                             walker.operation_plan[*id]
                                 .definition_id()
                                 .map(|definition_id| walker.walk_with(*id, definition_id))

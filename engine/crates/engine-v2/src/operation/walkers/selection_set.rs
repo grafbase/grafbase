@@ -6,7 +6,10 @@ pub type SelectionSetWalker<'a> = OperationWalker<'a, SelectionSetId, ()>;
 impl<'a> SelectionSetWalker<'a> {
     pub fn fields(self) -> impl Iterator<Item = FieldWalker<'a>> + 'a {
         let walker = self.walk_with((), ());
-        self.as_ref().field_ids.iter().map(move |id| walker.walk(*id))
+        self.as_ref()
+            .field_ids_ordered_by_parent_entity_id_then_position
+            .iter()
+            .map(move |id| walker.walk(*id))
     }
 }
 

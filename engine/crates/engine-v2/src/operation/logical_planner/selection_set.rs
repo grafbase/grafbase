@@ -83,12 +83,12 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                             .map(Self::build_solved_requirements)
                             .unwrap_or_default(),
                     }),
-                    PlannedField::Extra {
+                    PlannedField::Extra(ExtraPlannedField {
                         required_field_id,
                         field_id,
                         subselection,
                         ..
-                    } => field_id.map(|field_id| SolvedRequiredField {
+                    }) => field_id.map(|field_id| SolvedRequiredField {
                         id: required_field_id,
                         field_id,
                         subselection: Self::build_solved_requirements(subselection),
@@ -163,20 +163,22 @@ enum PlannedField {
         plan_id: LogicalPlanId,
         lazy_subselection: Option<PlannedSelectionSet>,
     },
-    Extra {
-        field_id: Option<FieldId>,
-        petitioner_field_id: FieldId,
-        required_field_id: RequiredFieldId,
-        logical_plan_id: LogicalPlanId,
-        subselection: PlannedSelectionSet,
-    },
+    Extra(ExtraPlannedField),
+}
+
+pub struct ExtraPlannedField {
+    field_id: Option<FieldId>,
+    petitioner_field_id: FieldId,
+    required_field_id: RequiredFieldId,
+    logical_plan_id: LogicalPlanId,
+    subselection: PlannedSelectionSet,
 }
 
 impl PlannedField {
     fn required_field_id(&self) -> Option<RequiredFieldId> {
         match self {
             Self::Query { required_field_id, .. } => *required_field_id,
-            Self::Extra { required_field_id, .. } => Some(*required_field_id),
+            Self::Extra(ExtraPlannedField { required_field_id, .. }) => Some(*required_field_id),
         }
     }
 }
@@ -333,45 +335,69 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                         self.register_necessary_extra_fields(planned_subselection, &required_field.subselection)
                     }
                 }
-                PlannedField::Extra {
-                    field_id,
-                    petitioner_field_id,
-                    required_field_id,
-                    logical_plan_id: parent_plan_id,
-                    subselection,
-                } => {
+                PlannedField::Extra(field) => {
                     // Now we're sure this filed is needed by plan, so it has to be in the
                     // operation. We will add it to a selection set at the end.
-                    if field_id.is_none() {
-                        let key = self.generate_response_key_for(definition_id);
-                        let parent_selection_set_id =
-                            planned_selection_set.id.expect("Parent was required, so should exist");
-                        let field = Field::Extra(ExtraField {
-                            edge: UnpackedResponseEdge::ExtraFieldResponseKey(key.into()).pack(),
-                            field_definition_id: definition_id,
-                            selection_set_id: None,
-                            argument_ids: self.create_arguments_for(*required_field_id),
-                            petitioner_location: self.operation[*petitioner_field_id].location(),
-                            condition: None,
-                            parent_selection_set_id,
-                        });
-                        self.operation.fields.push(field);
-                        self.field_to_logical_plan_id.push(Some(*parent_plan_id));
-                        let id = (self.operation.fields.len() - 1).into();
-                        *field_id = Some(id);
-                        self.operation[parent_selection_set_id].field_ids.push(id);
+                    if field.field_id.is_none() {
+                        self.insert_extra_field(
+                            planned_selection_set.id.expect("Parent was required, so should exist"),
+                            definition_id,
+                            field,
+                        );
                     }
 
                     if !required_field.subselection.is_empty() {
-                        if subselection.id.is_none() {
+                        if field.subselection.id.is_none() {
                             self.operation.selection_sets.push(SelectionSet::default());
-                            subselection.id = Some((self.operation.selection_sets.len() - 1).into());
+                            field.subselection.id = Some((self.operation.selection_sets.len() - 1).into());
                         }
-                        self.register_necessary_extra_fields(subselection, &required_field.subselection)
+                        self.register_necessary_extra_fields(&mut field.subselection, &required_field.subselection)
                     }
                 }
             }
         }
+    }
+
+    fn insert_extra_field(
+        &mut self,
+        parent_selection_set_id: SelectionSetId,
+        definition_id: FieldDefinitionId,
+        planned_field: &mut ExtraPlannedField,
+    ) {
+        // Creating the field
+        let key = self.generate_response_key_for(definition_id);
+        let field = Field::Extra(ExtraField {
+            edge: UnpackedResponseEdge::ExtraFieldResponseKey(key.into()).pack(),
+            definition_id,
+            selection_set_id: None,
+            argument_ids: self.create_arguments_for(planned_field.required_field_id),
+            petitioner_location: self.operation[planned_field.petitioner_field_id].location(),
+            condition: None,
+            parent_selection_set_id,
+        });
+        self.operation.fields.push(field);
+        self.field_to_logical_plan_id.push(Some(planned_field.logical_plan_id));
+        let id = (self.operation.fields.len() - 1).into();
+        planned_field.field_id = Some(id);
+
+        // Inserting into its parent selection set in order.
+        let mut field_ids = std::mem::take(
+            &mut self.operation[parent_selection_set_id].field_ids_ordered_by_parent_entity_id_then_position,
+        );
+        let extra_parent_entity_id = Some(self.schema[definition_id].parent_entity);
+        let extra_query_position = self.operation[id].query_position();
+        let i = field_ids
+            .binary_search_by(|probe_id| {
+                let probe_field = &self.operation[*probe_id];
+                probe_field
+                    .definition_id()
+                    .map(|id| self.schema[id].parent_entity)
+                    .cmp(&extra_parent_entity_id)
+                    .then(probe_field.query_position().cmp(&extra_query_position))
+            })
+            .expect_err("extra field cannot be present already");
+        field_ids.insert(i, id);
+        self.operation[parent_selection_set_id].field_ids_ordered_by_parent_entity_id_then_position = field_ids;
     }
 
     fn generate_all_candidates<'field>(
@@ -460,9 +486,12 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                             }
 
                             if lazy_subselection.is_none() {
-                                *lazy_subselection = self.operation[*field_id]
-                                    .selection_set_id()
-                                    .map(|id| self.build_planned_selection_set(id, &self.operation[id].field_ids));
+                                *lazy_subselection = self.operation[*field_id].selection_set_id().map(|id| {
+                                    self.build_planned_selection_set(
+                                        id,
+                                        &self.operation[id].field_ids_ordered_by_parent_entity_id_then_position,
+                                    )
+                                });
                             }
 
                             // Now we only need to know whether we can plan the field, We don't bother with
@@ -481,12 +510,12 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                                 return Ok(false);
                             }
                         }
-                        PlannedField::Extra {
+                        PlannedField::Extra(ExtraPlannedField {
                             required_field_id,
-                            logical_plan_id: plan_id,
+                            logical_plan_id,
                             subselection,
                             ..
-                        } => {
+                        }) => {
                             if *required_field_id != required.id {
                                 continue;
                             }
@@ -502,7 +531,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                             // So either we can plan the necessary requirements with this group or we
                             // don't.
                             if self.could_plan_requirements_on_previous_plans(
-                                Some(*plan_id),
+                                Some(*logical_plan_id),
                                 subselection,
                                 petitioner_field_id,
                                 &required.subselection,
@@ -582,13 +611,13 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
             .fields
             .entry(definition.id())
             .or_default()
-            .push(PlannedField::Extra {
+            .push(PlannedField::Extra(ExtraPlannedField {
                 field_id: None,
                 petitioner_field_id,
                 required_field_id: required.required_field_id(),
                 logical_plan_id: logic.id(),
                 subselection,
-            });
+            }));
 
         tracing::trace!(
             "Added extra field '{}' provided by {} required by '{}'",
