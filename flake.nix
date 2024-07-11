@@ -77,6 +77,7 @@
 
             # Rust
             rustup
+            gdb
 
             # SQLx macros
             libiconv
