@@ -18,9 +18,9 @@ use super::{
     ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
 use crate::{
-    execution::ExecutionError,
+    execution::{ExecutionError, PlanWalker},
     operation::Operation,
-    plan::{PlanWalker, ResponseObjectSetId},
+    plan::ResponseObjectSetId,
 };
 
 pub(crate) struct ResponseDataPart {

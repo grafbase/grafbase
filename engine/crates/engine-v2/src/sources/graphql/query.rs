@@ -8,8 +8,8 @@ use itertools::Itertools;
 use schema::EntityId;
 
 use crate::{
+    execution::{PlanField, PlanSelectionSet, PlanWalker},
     operation::{FieldArgumentsWalker, QueryInputValueId},
-    plan::{PlanField, PlanSelectionSet, PlanWalker},
 };
 
 const VARIABLE_PREFIX: &str = "var";

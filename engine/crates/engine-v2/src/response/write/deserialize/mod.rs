@@ -9,7 +9,8 @@ use serde::{
 };
 
 use crate::{
-    plan::{CollectedField, PlanWalker},
+    execution::PlanWalker,
+    plan::CollectedField,
     response::{ErrorCode, GraphqlError, ResponseEdge, ResponsePath, ResponseWriter},
 };
 
@@ -17,14 +18,14 @@ mod field;
 mod key;
 mod list;
 mod nullable;
+mod object;
 mod scalar;
-mod selection_set;
 
 use field::FieldSeed;
 use list::ListSeed;
 use nullable::NullableSeed;
+use object::*;
 use scalar::*;
-use selection_set::*;
 
 pub struct SeedContext<'ctx> {
     plan: PlanWalker<'ctx>,

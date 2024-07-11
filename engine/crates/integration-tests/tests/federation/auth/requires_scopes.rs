@@ -16,7 +16,7 @@ fn anonymous_does_not_any_scope() {
                 "mustHaveReadScope"
               ],
               "extensions": {
-                "code": "UNAUTHENTICATED"
+                "code": "UNAUTHORIZED"
               }
             }
           ]
@@ -49,7 +49,7 @@ fn no_scope() {
                 "mustHaveReadScope"
               ],
               "extensions": {
-                "code": "UNAUTHENTICATED"
+                "code": "UNAUTHORIZED"
               }
             }
           ]
@@ -96,7 +96,7 @@ fn has_read_scope() {
                 "mustHaveWriteScope"
               ],
               "extensions": {
-                "code": "UNAUTHENTICATED"
+                "code": "UNAUTHORIZED"
               }
             }
           ]
@@ -132,7 +132,7 @@ fn has_read_scope() {
                 "mustHaveReadAndWriteScope"
               ],
               "extensions": {
-                "code": "UNAUTHENTICATED"
+                "code": "UNAUTHORIZED"
               }
             }
           ]
@@ -165,7 +165,7 @@ fn has_write_scope() {
                 "mustHaveReadScope"
               ],
               "extensions": {
-                "code": "UNAUTHENTICATED"
+                "code": "UNAUTHORIZED"
               }
             }
           ]
@@ -215,7 +215,7 @@ fn has_write_scope() {
                 "mustHaveReadAndWriteScope"
               ],
               "extensions": {
-                "code": "UNAUTHENTICATED"
+                "code": "UNAUTHORIZED"
               }
             }
           ]

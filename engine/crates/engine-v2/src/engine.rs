@@ -277,23 +277,20 @@ async fn convert_stream_to_http_response(
 }
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
-    async fn execute_single(mut self, mut request: Request) -> (Option<OperationMetadata>, Response) {
-        let operation = match self.prepare_operation(&mut request).await {
-            Ok(operation) => operation,
+    async fn execute_single(mut self, request: Request) -> (Option<OperationMetadata>, Response) {
+        let operation_plan = match self.prepare_operation(request).await {
+            Ok(operation_plan) => operation_plan,
             Err((metadata, response)) => return (metadata, response),
         };
 
-        let metadata = Some(operation.metadata.clone());
-        let response = if matches!(operation.ty(), OperationType::Subscription) {
+        let metadata = Some(operation_plan.metadata.clone());
+        let response = if matches!(operation_plan.ty(), OperationType::Subscription) {
             Response::pre_execution_error(GraphqlError::new(
                 "Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets",
                 ErrorCode::BadRequest,
             ))
         } else {
-            match self.finalize_operation(operation, request.variables).await {
-                Ok(operation_plan) => self.execute_query_or_mutation(operation_plan).await,
-                Err(errors) => Response::pre_execution_errors(errors),
-            }
+            self.execute_query_or_mutation(operation_plan).await
         };
 
         (metadata, response)
@@ -301,29 +298,19 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
     async fn execute_stream(
         mut self,
-        mut request: Request,
+        request: Request,
         mut sender: mpsc::Sender<Response>,
     ) -> (Option<OperationMetadata>, GraphqlResponseStatus) {
-        let operation = match self.prepare_operation(&mut request).await {
-            Ok(operation) => operation,
+        let operation_plan = match self.prepare_operation(request).await {
+            Ok(operation_plan) => operation_plan,
             Err((metadata, response)) => {
                 let status = response.status();
                 sender.send(response).await.ok();
                 return (metadata, status);
             }
         };
-        let operation_type = operation.ty();
-        let metadata = Some(operation.metadata.clone());
-
-        let operation_plan = match self.finalize_operation(operation, request.variables).await {
-            Ok(operation_plan) => operation_plan,
-            Err(errors) => {
-                let response = Response::pre_execution_errors(errors);
-                let status = response.status();
-                sender.send(response).await.ok();
-                return (metadata, status);
-            }
-        };
+        let operation_type = operation_plan.ty();
+        let metadata = Some(operation_plan.metadata.clone());
 
         if matches!(operation_type, OperationType::Query | OperationType::Mutation) {
             let response = self.execute_query_or_mutation(operation_plan).await;
@@ -359,52 +346,49 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
     async fn prepare_operation(
         &mut self,
-        request: &mut Request,
-    ) -> Result<Arc<Operation>, (Option<OperationMetadata>, Response)> {
-        let (cache_key, query) = {
+        mut request: Request,
+    ) -> Result<OperationPlan, (Option<OperationMetadata>, Response)> {
+        let result = {
             let PreparedOperationDocument {
                 cache_key,
                 document_fut,
-            } = match self.prepare_operation_document(request) {
+            } = match self.prepare_operation_document(&request) {
                 Ok(pq) => pq,
                 Err(err) => return Err((None, Response::pre_execution_error(err))),
             };
             if let Some(operation) = self.operation_cache.get(&cache_key).await {
-                return Ok(operation);
-            }
-            if let Some(persisted_query) = document_fut {
+                Ok(operation)
+            } else if let Some(persisted_query) = document_fut {
                 match persisted_query.await {
-                    Ok(query) => (cache_key, Some(query)),
+                    Ok(query) => Err((cache_key, Some(query))),
                     Err(err) => return Err((None, Response::pre_execution_error(err))),
                 }
             } else {
-                (cache_key, None)
+                Err((cache_key, None))
             }
         };
-        if let Some(query) = query {
-            request.query = query
-        }
 
-        let operation = Operation::build(&self.schema, request)
-            .map(Arc::new)
-            .map_err(|mut err| (err.take_operation_metadata(), Response::pre_execution_error(err)))?;
+        let operation = match result {
+            Ok(operation) => operation,
+            Err((cache_key, query)) => {
+                if let Some(query) = query {
+                    request.query = query
+                }
+                let operation = Operation::build(&self.schema, &request)
+                    .map(Arc::new)
+                    .map_err(|mut err| (err.take_operation_metadata(), Response::pre_execution_error(err)))?;
 
-        self.push_background_future(self.engine.operation_cache.insert(cache_key, operation.clone()).boxed());
+                self.push_background_future(self.engine.operation_cache.insert(cache_key, operation.clone()).boxed());
+                operation
+            }
+        };
 
-        Ok(operation)
-    }
+        let variables = Variables::build(self.schema.as_ref(), &operation, request.variables)
+            .map_err(|errors| (Some(operation.metadata.clone()), Response::pre_execution_errors(errors)))?;
 
-    async fn finalize_operation(
-        &self,
-        operation: Arc<Operation>,
-        variables: engine::Variables,
-    ) -> Result<OperationPlan, Vec<GraphqlError>> {
-        let variables = Variables::build(self.schema.as_ref(), &operation, variables)
-            .map_err(|errors| errors.into_iter().map(Into::into).collect::<Vec<_>>())?;
-
-        OperationPlan::build(self, operation, variables)
+        OperationPlan::build(self, operation.clone(), variables)
             .await
-            .map_err(|err| vec![err.into()])
+            .map_err(|err| (Some(operation.metadata.clone()), Response::pre_execution_error(err)))
     }
 }
 

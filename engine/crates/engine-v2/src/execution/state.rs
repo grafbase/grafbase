@@ -4,9 +4,7 @@ use schema::{EntityId, Schema};
 
 use crate::response::{ResponseBuilder, ResponseObjectRef};
 
-use crate::plan::OperationPlan;
-
-use super::{ExecutionPlanId, ResponseObjectSetId};
+use crate::plan::{ExecutionPlanId, OperationPlan, ResponseObjectSetId};
 
 /// Holds the current state of the operation execution:
 /// - which plans have been executed
@@ -35,7 +33,7 @@ struct ResponseObjectSet {
 }
 
 impl OperationExecutionState {
-    pub(super) fn new(operation: &OperationPlan) -> Self {
+    pub(crate) fn new(operation: &OperationPlan) -> Self {
         Self {
             plan_dependencies_count: operation.plan_dependencies_count.clone(),
             set_consummers_count: operation.response_object_set_consummers_count.clone(),

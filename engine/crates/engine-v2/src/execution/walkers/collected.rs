@@ -1,10 +1,9 @@
 use crate::{
-    operation::SelectionSetType,
     plan::{
         AnyCollectedSelectionSet, CollectedField, CollectedFieldId, CollectedSelectionSet, CollectedSelectionSetId,
         ConditionalField, ConditionalFieldId, ConditionalSelectionSet, ConditionalSelectionSetId, FieldType,
     },
-    response::{ResponseEdge, ResponseValue, UnpackedResponseEdge},
+    response::UnpackedResponseEdge,
 };
 
 use super::{PlanField, PlanWalker};
@@ -30,31 +29,6 @@ impl<'a> PlanCollectedSelectionSet<'a> {
 
     pub fn fields(self) -> impl ExactSizeIterator<Item = PlanCollectedField<'a>> + 'a {
         self.as_ref().field_ids.map(move |id| self.walk(id))
-    }
-
-    /// Create a list of response fields with all the response edges and their default value (null,
-    /// as of today 2024-06-13). If any field is required or can't be trivially computed
-    /// (__typename for objects), None is returned.
-    /// Used when a plan execution failed to fill the field values if possible.
-    pub fn maybe_default_object(self) -> Option<Vec<(ResponseEdge, ResponseValue)>> {
-        let mut fields = Vec::new();
-        if !self.as_ref().typename_fields.is_empty() {
-            if let SelectionSetType::Object(id) = self.as_ref().ty {
-                let name: ResponseValue = self.schema_walker.walk(id).as_ref().name.into();
-                fields.extend(self.as_ref().typename_fields.iter().map(|&edge| (edge, name.clone())))
-            } else {
-                return None;
-            }
-        }
-        for field in self.fields() {
-            let field = field.as_ref();
-            if field.wrapping.is_required() {
-                return None;
-            }
-            fields.push((field.edge, ResponseValue::Null))
-        }
-
-        Some(fields)
     }
 }
 
