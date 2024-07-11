@@ -1,5 +1,5 @@
 use futures::FutureExt;
-use runtime::hooks::{EdgeDefinition, Hooks, NodeDefinition};
+use runtime::hooks::{AuthorizedHooks, EdgeDefinition, Hooks, NodeDefinition};
 use schema::{EntityWalker, FieldDefinitionWalker, SchemaInputValueWalker};
 use tracing::{instrument, Level};
 
@@ -14,6 +14,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
         metadata: Option<SchemaInputValueWalker<'_>>,
     ) -> Result<(), GraphqlError> {
         self.hooks
+            .authorized()
             .authorize_edge_pre_execution(
                 self.context,
                 EdgeDefinition {
@@ -38,6 +39,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
         metadata: Option<SchemaInputValueWalker<'_>>,
     ) -> Result<(), GraphqlError> {
         self.hooks
+            .authorized()
             .authorize_node_pre_execution(
                 self.context,
                 NodeDefinition {

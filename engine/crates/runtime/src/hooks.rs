@@ -31,6 +31,13 @@ impl std::fmt::Display for EdgeDefinition<'_> {
     }
 }
 
+// Used as a sort of convenient type alias
+pub trait Anything<'a>: serde::Serialize + serde::de::Deserializer<'a> + Send {}
+impl<'a, T> Anything<'a> for T where T: serde::Serialize + serde::de::Deserializer<'a> + Send {}
+
+pub type AuthorizationVerdict = Result<(), PartialGraphqlError>;
+pub type AuthorizationVerdicts = Result<Vec<AuthorizationVerdict>, PartialGraphqlError>;
+
 pub trait Hooks: Send + Sync + 'static {
     type Context: Send + Sync + 'static;
 
@@ -39,44 +46,59 @@ pub trait Hooks: Send + Sync + 'static {
         headers: HeaderMap,
     ) -> impl Future<Output = Result<(Self::Context, HeaderMap), PartialGraphqlError>> + Send;
 
+    fn authorized(&self) -> &impl AuthorizedHooks<Self::Context>;
+}
+
+pub trait AuthorizedHooks<Context>: Send + Sync + 'static {
     fn authorize_edge_pre_execution<'a>(
         &self,
-        context: &Self::Context,
+        context: &Context,
         definition: EdgeDefinition<'a>,
-        arguments: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
-        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> impl Future<Output = Result<(), PartialGraphqlError>> + Send;
+        arguments: impl Anything<'a>,
+        metadata: Option<impl Anything<'a>>,
+    ) -> impl Future<Output = AuthorizationVerdict> + Send;
 
     fn authorize_node_pre_execution<'a>(
         &self,
-        context: &Self::Context,
+        context: &Context,
         definition: NodeDefinition<'a>,
-        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> impl Future<Output = Result<(), PartialGraphqlError>> + Send;
+        metadata: Option<impl Anything<'a>>,
+    ) -> impl Future<Output = AuthorizationVerdict> + Send;
+
+    fn authorize_node_post_execution<'a>(
+        &self,
+        context: &Context,
+        definition: NodeDefinition<'a>,
+        nodes: impl IntoIterator<Item: Anything<'a>> + Send,
+        metadata: Option<impl Anything<'a>>,
+    ) -> impl Future<Output = AuthorizationVerdicts> + Send;
 
     fn authorize_parent_edge_post_execution<'a>(
         &self,
-        context: &Self::Context,
+        context: &Context,
         definition: EdgeDefinition<'a>,
-        parents: Vec<String>,
-        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> impl Future<Output = Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError>> + Send;
+        parents: impl IntoIterator<Item: Anything<'a>> + Send,
+        metadata: Option<impl Anything<'a>>,
+    ) -> impl Future<Output = AuthorizationVerdicts> + Send;
 
     fn authorize_edge_node_post_execution<'a>(
         &self,
-        context: &Self::Context,
+        context: &Context,
         definition: EdgeDefinition<'a>,
-        nodes: Vec<String>,
-        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> impl Future<Output = Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError>> + Send;
+        nodes: impl IntoIterator<Item: Anything<'a>> + Send,
+        metadata: Option<impl Anything<'a>>,
+    ) -> impl Future<Output = AuthorizationVerdicts> + Send;
 
-    fn authorize_edge_post_execution<'a>(
+    fn authorize_edge_post_execution<'a, Parent, Nodes>(
         &self,
-        context: &Self::Context,
+        context: &Context,
         definition: EdgeDefinition<'a>,
-        edges: Vec<(String, Vec<String>)>,
-        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> impl Future<Output = Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError>> + Send;
+        edges: impl IntoIterator<Item = (Parent, Nodes)> + Send,
+        metadata: Option<impl Anything<'a>>,
+    ) -> impl Future<Output = AuthorizationVerdicts> + Send
+    where
+        Parent: Anything<'a>,
+        Nodes: IntoIterator<Item: Anything<'a>> + Send;
 }
 
 // ---------------------------//
@@ -89,13 +111,19 @@ impl Hooks for () {
         Ok(((), headers))
     }
 
+    fn authorized(&self) -> &impl AuthorizedHooks<()> {
+        self
+    }
+}
+
+impl AuthorizedHooks<()> for () {
     async fn authorize_edge_pre_execution<'a>(
         &self,
-        _: &Self::Context,
+        _: &(),
         _: EdgeDefinition<'a>,
-        _: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
-        _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<(), PartialGraphqlError> {
+        _: impl Anything<'a>,
+        _: Option<impl Anything<'a>>,
+    ) -> AuthorizationVerdict {
         Err(PartialGraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
             PartialErrorCode::Unauthorized,
@@ -104,10 +132,23 @@ impl Hooks for () {
 
     async fn authorize_node_pre_execution<'a>(
         &self,
-        _: &Self::Context,
+        _: &(),
         _: NodeDefinition<'a>,
-        _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<(), PartialGraphqlError> {
+        _: Option<impl Anything<'a>>,
+    ) -> AuthorizationVerdict {
+        Err(PartialGraphqlError::new(
+            "@authorized directive cannot be used, so access was denied",
+            PartialErrorCode::Unauthorized,
+        ))
+    }
+
+    async fn authorize_node_post_execution<'a>(
+        &self,
+        _: &(),
+        _: NodeDefinition<'a>,
+        _: impl IntoIterator<Item: Anything<'a>> + Send,
+        _: Option<impl Anything<'a>>,
+    ) -> AuthorizationVerdicts {
         Err(PartialGraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
             PartialErrorCode::Unauthorized,
@@ -116,11 +157,11 @@ impl Hooks for () {
 
     async fn authorize_parent_edge_post_execution<'a>(
         &self,
-        _: &Self::Context,
+        _: &(),
         _: EdgeDefinition<'a>,
-        _: Vec<String>,
-        _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        _: impl IntoIterator<Item: Anything<'a>> + Send,
+        _: Option<impl Anything<'a>>,
+    ) -> AuthorizationVerdicts {
         Err(PartialGraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
             PartialErrorCode::Unauthorized,
@@ -129,24 +170,28 @@ impl Hooks for () {
 
     async fn authorize_edge_node_post_execution<'a>(
         &self,
-        _: &Self::Context,
+        _: &(),
         _: EdgeDefinition<'a>,
-        _: Vec<String>,
-        _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        _: impl IntoIterator<Item: Anything<'a>> + Send,
+        _: Option<impl Anything<'a>>,
+    ) -> AuthorizationVerdicts {
         Err(PartialGraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
             PartialErrorCode::Unauthorized,
         ))
     }
 
-    async fn authorize_edge_post_execution<'a>(
+    async fn authorize_edge_post_execution<'a, Parent, Nodes>(
         &self,
-        _: &Self::Context,
+        _: &(),
         _: EdgeDefinition<'a>,
-        _: Vec<(String, Vec<String>)>,
-        _: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        _: impl IntoIterator<Item = (Parent, Nodes)> + Send,
+        _: Option<impl Anything<'a>>,
+    ) -> AuthorizationVerdicts
+    where
+        Parent: Anything<'a>,
+        Nodes: IntoIterator<Item: Anything<'a>> + Send,
+    {
         Err(PartialGraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
             PartialErrorCode::Unauthorized,
