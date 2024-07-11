@@ -67,7 +67,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         self.fields.push(Field::Query(QueryField {
             bound_response_key,
             location,
-            field_definition_id: definition.id(),
+            definition_id: definition.id(),
             argument_ids,
             selection_set_id,
             condition,

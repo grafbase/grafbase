@@ -1,6 +1,6 @@
 use serde::ser::SerializeMap;
 
-use crate::{plan::PlanWalker, response::ResponseObjectsView};
+use crate::{execution::PlanWalker, response::ResponseObjectsView};
 
 use super::query::QueryVariables;
 

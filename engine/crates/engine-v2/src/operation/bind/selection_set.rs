@@ -70,8 +70,15 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         }
         let id = SelectionSetId::from(self.selection_sets.len());
         self.selection_sets.push(SelectionSet::default());
-        let field_ids = self.generate_fields(ty, id)?;
-        self.binder[id].field_ids = field_ids;
+        let mut field_ids = self.generate_fields(ty, id)?;
+        field_ids.sort_unstable_by_key(|id| {
+            let field = &self[*id];
+            (
+                field.definition_id().map(|id| self.schema[id].parent_entity),
+                field.query_position(),
+            )
+        });
+        self.binder[id].field_ids_ordered_by_parent_entity_id_then_position = field_ids;
 
         Ok(id)
     }

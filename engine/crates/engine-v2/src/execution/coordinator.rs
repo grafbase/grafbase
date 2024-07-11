@@ -10,14 +10,15 @@ use futures_util::{
 };
 
 use crate::{
-    execution::{coordinator, ExecutionContext},
-    plan::{ExecutionPlanId, OperationExecutionState, OperationPlan, PlanWalker},
-    response::{Response, ResponseBuilder, ResponseObjectRef, ResponsePart},
+    execution::{coordinator, ExecutionContext, ExecutionResult, PlanWalker, PreExecutionContext},
+    operation::SelectionSetType,
+    plan::{ExecutionPlanId, OperationPlan},
+    response::{Response, ResponseBuilder, ResponseEdge, ResponseObjectRef, ResponsePart, ResponseValue},
     sources::{Executor, ExecutorInput, SubscriptionInput},
     Runtime,
 };
 
-use super::{ExecutionResult, PreExecutionContext};
+use super::OperationExecutionState;
 
 pub(crate) trait ResponseSender {
     type Error;
@@ -28,8 +29,12 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     pub async fn execute_query_or_mutation(self, operation_plan: OperationPlan) -> Response {
         let background_futures: FuturesUnordered<_> = self.background_futures.into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
+        let ctx = ExecutionContext {
+            engine: self.engine,
+            request_context: self.request_context,
+        };
 
-        let coordinator = coordinator::ExecutionCoordinator::new(self.inner, operation_plan);
+        let coordinator = coordinator::ExecutionCoordinator::new(ctx, &operation_plan);
         let response_fut = coordinator.execute();
 
         let (response, _) = futures_util::join!(response_fut, background_fut);
@@ -39,8 +44,12 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     pub async fn execute_subscription(self, operation_plan: OperationPlan, responses: impl ResponseSender + Send) {
         let background_futures: FuturesUnordered<_> = self.background_futures.into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
+        let ctx = ExecutionContext {
+            engine: self.engine,
+            request_context: self.request_context,
+        };
 
-        let coordinator = coordinator::ExecutionCoordinator::new(self.inner, operation_plan);
+        let coordinator = coordinator::ExecutionCoordinator::new(ctx, &operation_plan);
         let subscription_fut = coordinator.execute_subscription(responses);
         futures_util::join!(subscription_fut, background_fut);
     }
@@ -48,11 +57,11 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
 pub(crate) struct ExecutionCoordinator<'ctx, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
-    operation_plan: OperationPlan,
+    operation_plan: &'ctx OperationPlan,
 }
 
 impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
-    pub fn new(ctx: ExecutionContext<'ctx, R>, operation_plan: OperationPlan) -> Self {
+    pub fn new(ctx: ExecutionContext<'ctx, R>, operation_plan: &'ctx OperationPlan) -> Self {
         Self { ctx, operation_plan }
     }
 
@@ -265,15 +274,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         {
             // Retrieving the first edge (response key) appearing in the query to provide a better
             // error path if necessary.
-            let selection_set = self.coordinator.plan_walker(plan_id).collected_selection_set();
-            let first_edge = selection_set
-                .fields()
-                .map(|field| field.as_ref().edge)
-                .min()
-                .or_else(|| selection_set.as_ref().field_errors.first().map(|f| f.edge))
-                .or_else(|| selection_set.as_ref().typename_fields.first().copied())
-                .expect("Selection set without any fields?");
-            let default_object = selection_set.maybe_default_object();
+            let (first_edge, default_object) = self.get_first_edge_and_default_object(plan_id);
             match result {
                 Ok(part) => {
                     tracing::trace!(%plan_id, "Succeeded");
@@ -286,7 +287,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
 
                     for plan_id in self
                         .state
-                        .get_next_executable_plans(&self.coordinator.operation_plan, plan_id)
+                        .get_next_executable_plans(self.coordinator.operation_plan, plan_id)
                     {
                         self.spawn_executor(plan_id);
                     }
@@ -309,9 +310,52 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         )
     }
 
+    fn get_first_edge_and_default_object(
+        &self,
+        plan_id: ExecutionPlanId,
+    ) -> (ResponseEdge, Option<Vec<(ResponseEdge, ResponseValue)>>) {
+        let selection_set = self.coordinator.plan_walker(plan_id).collected_selection_set();
+        let first_edge = selection_set
+            .fields()
+            .map(|field| field.as_ref().edge)
+            .min()
+            .or_else(|| selection_set.as_ref().field_errors.first().map(|f| f.edge))
+            .or_else(|| selection_set.as_ref().typename_fields.first().copied())
+            .expect("Selection set without any fields?");
+
+        // Create a list of response fields with all the response edges and their default value (null,
+        // as of today 2024-06-13). If any field is required or can't be trivially computed
+        // (__typename for objects), None is returned.
+        // Used when a plan execution failed to fill the field values if possible.
+        let mut fields = Vec::new();
+        if !selection_set.as_ref().typename_fields.is_empty() {
+            if let SelectionSetType::Object(id) = selection_set.as_ref().ty {
+                let name: ResponseValue = selection_set.schema_walker.walk(id).as_ref().name.into();
+                fields.extend(
+                    selection_set
+                        .as_ref()
+                        .typename_fields
+                        .iter()
+                        .map(|&edge| (edge, name.clone())),
+                )
+            } else {
+                return (first_edge, None);
+            }
+        }
+        for field in selection_set.fields() {
+            let field = field.as_ref();
+            if field.wrapping.is_required() {
+                return (first_edge, None);
+            }
+            fields.push((field.edge, ResponseValue::Null))
+        }
+
+        (first_edge, Some(fields))
+    }
+
     fn spawn_executor(&mut self, plan_id: ExecutionPlanId) {
         tracing::trace!(%plan_id, "Starting plan");
-        let operation: &'ctx OperationPlan = &self.coordinator.operation_plan;
+        let operation: &'ctx OperationPlan = self.coordinator.operation_plan;
         let engine = self.coordinator.ctx.engine;
         let root_response_object_refs =
             self.state

@@ -6,7 +6,7 @@ use serde::{
 };
 
 use crate::{
-    plan::PlanWalker,
+    execution::PlanWalker,
     response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePartMut, ResponsePath, UnpackedResponseEdge},
 };
 

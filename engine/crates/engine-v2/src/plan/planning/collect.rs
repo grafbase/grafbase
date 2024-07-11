@@ -8,10 +8,10 @@ use std::{
 };
 
 use crate::{
-    execution::ExecutionContext,
+    execution::PreExecutionContext,
     operation::{
-        Condition, ConditionResult, FieldId, LogicalPlanId, Operation, OperationWalker, SelectionSetId,
-        SelectionSetType, Variables,
+        ConditionResult, FieldId, LogicalPlanId, Operation, OperationWalker, SelectionSetId, SelectionSetType,
+        Variables,
     },
     plan::{
         AnyCollectedSelectionSet, AnyCollectedSelectionSetId, CollectedField, CollectedFieldId, CollectedSelectionSet,
@@ -19,37 +19,40 @@ use crate::{
         ConditionalSelectionSetId, ExecutionPlan, ExecutionPlanId, FieldError, FieldType, OperationPlan,
         ParentToChildEdge, PlanInput, PlanOutput, ResponseObjectSetId,
     },
-    response::{ErrorCode, GraphqlError, ReadField, ReadSelectionSet},
+    response::{ReadField, ReadSelectionSet},
     sources::PreparedExecutor,
     Runtime,
 };
 
 use super::{PlanningError, PlanningResult};
 
-pub(crate) struct OperationPlanBuilder<'a, R: Runtime> {
-    ctx: &'a ExecutionContext<'a, R>,
-    operation_plan: OperationPlan,
-    to_be_planned: Vec<ToBePlanned>,
-    plan_parent_to_child_edges: HashSet<UnfinalizedParentToChildEdge>,
-    plan_id_to_execution_plan_id: Vec<Option<ExecutionPlanId>>,
-    condition_results: Vec<ConditionResult>,
+pub(crate) struct OperationPlanBuilder<'ctx, 'op, R: Runtime> {
+    pub(super) ctx: &'op PreExecutionContext<'ctx, R>,
+    pub(super) operation_plan: OperationPlan,
+    pub(super) to_be_planned: Vec<ToBePlanned>,
+    pub(super) plan_parent_to_child_edges: HashSet<UnfinalizedParentToChildEdge>,
+    pub(super) plan_id_to_execution_plan_id: Vec<Option<ExecutionPlanId>>,
+    pub(super) condition_results: Vec<ConditionResult>,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq)]
-struct UnfinalizedParentToChildEdge {
+pub(super) struct UnfinalizedParentToChildEdge {
     parent: LogicalPlanId,
     child: LogicalPlanId,
 }
 
-struct ToBePlanned {
+pub(super) struct ToBePlanned {
     plan_id: LogicalPlanId,
     input_id: ResponseObjectSetId,
     selection_set_ty: SelectionSetType,
     root_fields: Vec<FieldId>,
 }
 
-impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
-    pub(crate) fn new(ctx: &'a ExecutionContext<'a, R>, operation: Arc<Operation>, variables: Variables) -> Self {
+impl<'ctx, 'op, R: Runtime> OperationPlanBuilder<'ctx, 'op, R>
+where
+    'ctx: 'op,
+{
+    pub(crate) fn new(ctx: &'op PreExecutionContext<'ctx, R>, operation: Arc<Operation>, variables: Variables) -> Self {
         OperationPlanBuilder {
             ctx,
             to_be_planned: Vec::new(),
@@ -76,91 +79,6 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
     pub(crate) async fn build(mut self) -> PlanningResult<OperationPlan> {
         self.condition_results = self.evaluate_all_conditions().await?;
         self.finalize()
-    }
-
-    async fn evaluate_all_conditions(&self) -> PlanningResult<Vec<ConditionResult>> {
-        let mut results = Vec::with_capacity(self.operation_plan.conditions.len());
-
-        let is_anonymous = self.ctx.access_token().is_anonymous();
-        let mut scopes = None;
-
-        for condition in &self.operation_plan.conditions {
-            let result = match condition {
-                Condition::All(ids) => ids
-                    .iter()
-                    .map(|id| &results[usize::from(*id)])
-                    .fold(ConditionResult::Include, |current, cond| current & cond),
-                Condition::Authenticated => {
-                    if is_anonymous {
-                        ConditionResult::Errors(vec![GraphqlError::new("Unauthenticated", ErrorCode::Unauthenticated)])
-                    } else {
-                        ConditionResult::Include
-                    }
-                }
-                Condition::RequiresScopes(id) => {
-                    let scopes = scopes.get_or_insert_with(|| {
-                        self.ctx
-                            .access_token()
-                            .get_claim("scope")
-                            .as_str()
-                            .map(|scope| scope.split(' ').collect::<Vec<_>>())
-                            .unwrap_or_default()
-                    });
-
-                    if self.ctx.schema.walk(*id).matches(scopes) {
-                        ConditionResult::Include
-                    } else {
-                        ConditionResult::Errors(vec![GraphqlError::new(
-                            "Not allowed: insufficient scopes",
-                            ErrorCode::Unauthenticated,
-                        )])
-                    }
-                }
-                Condition::AuthorizedEdge { directive_id, field_id } => {
-                    let directive = &self.ctx.schema[*directive_id];
-                    let field = self.walker().walk(*field_id);
-                    let arguments = field.arguments().with_selection_set(&directive.arguments);
-
-                    let result = self
-                        .ctx
-                        .hooks()
-                        .authorize_edge_pre_execution(
-                            field.definition().expect("@authorized cannot be applied on __typename"),
-                            arguments,
-                            directive.metadata.map(|id| self.ctx.schema.walk(&self.ctx.schema[id])),
-                        )
-                        .await;
-                    if let Err(err) = result {
-                        ConditionResult::Errors(vec![err])
-                    } else {
-                        ConditionResult::Include
-                    }
-                }
-                Condition::AuthorizedNode {
-                    directive_id,
-                    entity_id,
-                } => {
-                    let directive = &self.ctx.schema[*directive_id];
-                    let result = self
-                        .ctx
-                        .hooks()
-                        .authorize_node_pre_execution(
-                            self.ctx.schema.walk(*entity_id),
-                            directive.metadata.map(|id| self.ctx.schema.walk(&self.ctx.schema[id])),
-                        )
-                        .await;
-
-                    if let Err(err) = result {
-                        ConditionResult::Errors(vec![err])
-                    } else {
-                        ConditionResult::Include
-                    }
-                }
-            };
-            results.push(result);
-        }
-
-        Ok(results)
     }
 
     fn finalize(mut self) -> PlanningResult<OperationPlan> {
@@ -297,7 +215,7 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
         id
     }
 
-    fn walker(&self) -> OperationWalker<'_, (), ()> {
+    pub(super) fn walker(&self) -> OperationWalker<'_, (), ()> {
         // yes looks weird, will be improved
         self.operation_plan
             .operation
@@ -305,30 +223,30 @@ impl<'a, R: Runtime> OperationPlanBuilder<'a, R> {
     }
 }
 
-pub(super) struct ExecutionPlanBuilder<'parent, 'ctx, R: Runtime> {
-    builder: &'parent mut OperationPlanBuilder<'ctx, R>,
+pub(super) struct ExecutionPlanBuilder<'ctx, 'op, 'planner, R: Runtime> {
+    builder: &'planner mut OperationPlanBuilder<'ctx, 'op, R>,
     input_id: ResponseObjectSetId,
     plan_id: LogicalPlanId,
     support_aliases: bool,
     tracked_locations: Vec<ResponseObjectSetId>,
 }
 
-impl<'parent, 'ctx, R: Runtime> std::ops::Deref for ExecutionPlanBuilder<'parent, 'ctx, R> {
-    type Target = OperationPlanBuilder<'ctx, R>;
+impl<'ctx, 'op, 'planner, R: Runtime> std::ops::Deref for ExecutionPlanBuilder<'ctx, 'op, 'planner, R> {
+    type Target = OperationPlanBuilder<'ctx, 'op, R>;
     fn deref(&self) -> &Self::Target {
         self.builder
     }
 }
 
-impl<'parent, 'ctx, R: Runtime> std::ops::DerefMut for ExecutionPlanBuilder<'parent, 'ctx, R> {
+impl<'ctx, 'op, 'planner, R: Runtime> std::ops::DerefMut for ExecutionPlanBuilder<'ctx, 'op, 'planner, R> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.builder
     }
 }
 
-impl<'parent, 'ctx, R: Runtime> ExecutionPlanBuilder<'parent, 'ctx, R> {
+impl<'ctx, 'op, 'planner, R: Runtime> ExecutionPlanBuilder<'ctx, 'op, 'planner, R> {
     pub(super) fn new(
-        builder: &'parent mut OperationPlanBuilder<'ctx, R>,
+        builder: &'planner mut OperationPlanBuilder<'ctx, 'op, R>,
         input_id: ResponseObjectSetId,
         plan_id: LogicalPlanId,
     ) -> Self {

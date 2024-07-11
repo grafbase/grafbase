@@ -5,9 +5,9 @@ use serde::de::DeserializeSeed;
 use tracing::Instrument;
 
 use crate::{
-    execution::ExecutionContext,
+    execution::{ExecutionContext, PlanWalker},
     operation::OperationType,
-    plan::{PlanWalker, PlanningResult},
+    plan::PlanningResult,
     response::ResponsePart,
     sources::{
         graphql::deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},

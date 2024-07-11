@@ -3,7 +3,7 @@ use std::sync::Arc;
 use schema::{EntityId, ResolverId, Schema};
 
 use crate::{
-    execution::ExecutionContext,
+    execution::{OperationExecutionState, PlanWalker, PreExecutionContext},
     operation::{LogicalPlanId, Operation, Variables},
     response::{GraphqlError, ReadSelectionSet},
     sources::PreparedExecutor,
@@ -13,24 +13,20 @@ use crate::{
 mod collected;
 mod ids;
 mod planning;
-mod state;
-mod walkers;
 pub(crate) use collected::*;
 pub(crate) use ids::*;
 pub(crate) use planning::*;
-pub(crate) use state::*;
-pub(crate) use walkers::*;
 
 /// All the necessary information for the operation to be executed that can be prepared & cached.
 pub(crate) struct OperationPlan {
     pub(crate) operation: Arc<Operation>,
-    variables: Variables,
+    pub(crate) variables: Variables,
     pub(crate) root_errors: Vec<GraphqlError>,
 
     // Association between fields & selection sets and plans. Used when traversing the operation
     // for a plan filtering out other plans fields and to build the collected selection set.
     /// BoundSelectionSetId -> Option<CollectedSelectionSetId>
-    selection_set_to_collected: Vec<Option<AnyCollectedSelectionSetId>>,
+    pub(crate) selection_set_to_collected: Vec<Option<AnyCollectedSelectionSetId>>,
 
     // -- Plans --
     // Actual plans for the operation. A plan defines what do for a given selection set at a
@@ -40,11 +36,11 @@ pub(crate) struct OperationPlan {
     // PlanId -> Plan
     execution_plans: Vec<ExecutionPlan>,
     // sorted by parent plan id
-    plan_parent_to_child_edges: Vec<ParentToChildEdge>,
+    pub(crate) plan_parent_to_child_edges: Vec<ParentToChildEdge>,
     // PlanId -> u8
-    plan_dependencies_count: Vec<u8>,
+    pub(crate) plan_dependencies_count: Vec<u8>,
     // ResponseObjectSetId -> u8
-    response_object_set_consummers_count: Vec<u8>,
+    pub(crate) response_object_set_consummers_count: Vec<u8>,
 
     // -- Collected fields & selection sets --
     // Once all fields have been planned, we collect fields to know what to expect from the
@@ -90,11 +86,14 @@ where
 }
 
 impl OperationPlan {
-    pub async fn build<'a, R: Runtime>(
-        ctx: &ExecutionContext<'_, R>,
+    pub async fn build<'ctx, 'op, R: Runtime>(
+        ctx: &'op PreExecutionContext<'ctx, R>,
         operation: Arc<Operation>,
         variables: Variables,
-    ) -> PlanningResult<Self> {
+    ) -> PlanningResult<Self>
+    where
+        'ctx: 'op,
+    {
         planning::collect::OperationPlanBuilder::new(ctx, operation, variables)
             .build()
             .await

@@ -1,5 +1,9 @@
 use super::{ExecutionError, Executor, ExecutorInput};
-use crate::{execution::ExecutionContext, plan::PlanWalker, response::ResponsePart, Runtime};
+use crate::{
+    execution::{ExecutionContext, PlanWalker},
+    response::ResponsePart,
+    Runtime,
+};
 
 mod writer;
 

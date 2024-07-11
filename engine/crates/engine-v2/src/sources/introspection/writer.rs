@@ -8,7 +8,8 @@ use schema::{
 };
 
 use crate::{
-    plan::{CollectedField, PlanCollectedField, PlanCollectedSelectionSet, PlanWalker},
+    execution::{PlanCollectedField, PlanCollectedSelectionSet, PlanWalker},
+    plan::CollectedField,
     response::{ResponseObject, ResponseValue, ResponseWriter},
 };
 

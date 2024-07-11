@@ -46,9 +46,9 @@ use futures_util::stream::BoxStream;
 use schema::{Resolver, ResolverWalker};
 
 use crate::{
-    execution::{ExecutionContext, ExecutionError, ExecutionResult, OperationRootPlanExecution},
+    execution::{ExecutionContext, ExecutionError, ExecutionResult, OperationRootPlanExecution, PlanWalker},
     operation::OperationType,
-    plan::{ExecutionPlan, PlanWalker, PlanningResult},
+    plan::{ExecutionPlan, PlanningResult},
     response::{ResponseObjectsView, ResponsePart},
     Runtime,
 };

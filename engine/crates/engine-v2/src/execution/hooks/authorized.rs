@@ -3,9 +3,9 @@ use runtime::hooks::{EdgeDefinition, Hooks, NodeDefinition};
 use schema::{EntityWalker, FieldDefinitionWalker, SchemaInputValueWalker};
 use tracing::{instrument, Level};
 
-use crate::{operation::FieldArgumentsView, response::GraphqlError, Runtime};
+use crate::{operation::FieldArgumentsView, response::GraphqlError};
 
-impl<'ctx, R: Runtime> super::RequestHooks<'ctx, R> {
+impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
     #[instrument(skip_all, ret(level = Level::DEBUG))]
     pub async fn authorize_edge_pre_execution(
         &self,
@@ -13,12 +13,9 @@ impl<'ctx, R: Runtime> super::RequestHooks<'ctx, R> {
         arguments: FieldArgumentsView<'_>,
         metadata: Option<SchemaInputValueWalker<'_>>,
     ) -> Result<(), GraphqlError> {
-        self.0
-            .engine
-            .runtime
-            .hooks()
+        self.hooks
             .authorize_edge_pre_execution(
-                &self.0.request_context.hooks_context,
+                self.context,
                 EdgeDefinition {
                     parent_type_name: definition.parent_entity().name(),
                     field_name: definition.name(),
@@ -40,12 +37,9 @@ impl<'ctx, R: Runtime> super::RequestHooks<'ctx, R> {
         entity: EntityWalker<'_>,
         metadata: Option<SchemaInputValueWalker<'_>>,
     ) -> Result<(), GraphqlError> {
-        self.0
-            .engine
-            .runtime
-            .hooks()
+        self.hooks
             .authorize_node_pre_execution(
-                &self.0.request_context.hooks_context,
+                self.context,
                 NodeDefinition {
                     type_name: entity.name(),
                 },

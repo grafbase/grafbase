@@ -10,8 +10,7 @@ use super::{
     ExecutionContext, GraphqlPreparedExecutor,
 };
 use crate::{
-    execution::OperationRootPlanExecution,
-    plan::PlanWalker,
+    execution::{OperationRootPlanExecution, PlanWalker},
     sources::{ExecutionResult, SubscriptionExecutor, SubscriptionInput},
     Runtime,
 };

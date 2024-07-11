@@ -1,10 +1,10 @@
-mod collected;
-mod conditional;
+mod concrete;
+mod polymorphic;
 
 use std::borrow::Cow;
 
-pub(crate) use collected::*;
-use conditional::*;
+pub(crate) use concrete::*;
+use polymorphic::*;
 use schema::{ObjectId, SchemaWalker};
 use serde::de::DeserializeSeed;
 

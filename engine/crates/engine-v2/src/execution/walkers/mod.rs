@@ -4,13 +4,12 @@ use schema::{FieldDefinitionId, ObjectId, Schema, SchemaWalker};
 
 use crate::{
     operation::{FieldId, Operation, OperationWalker, QueryInputValueId, QueryInputValueWalker, SelectionSetType},
-    plan::{CollectedField, FieldError, FieldType, RuntimeMergedConditionals},
+    plan::{
+        AnyCollectedSelectionSet, CollectedField, CollectedSelectionSetId, ConditionalSelectionSetId, ExecutionPlanId,
+        FieldError, FieldType, OperationPlan, PlanInput, PlanOutput, RuntimeCollectedSelectionSet,
+        RuntimeMergedConditionals,
+    },
     response::{ResponseEdge, ResponseKey, ResponseKeys, SafeResponseKey},
-};
-
-use super::{
-    AnyCollectedSelectionSet, CollectedSelectionSetId, ConditionalSelectionSetId, ExecutionPlanId, OperationPlan,
-    PlanInput, PlanOutput, RuntimeCollectedSelectionSet,
 };
 
 mod collected;
@@ -23,10 +22,10 @@ pub use selection_set::*;
 
 #[derive(Clone, Copy)]
 pub(crate) struct PlanWalker<'a, Item = (), SchemaItem = ()> {
-    pub(super) schema_walker: SchemaWalker<'a, SchemaItem>,
-    pub(super) operation_plan: &'a OperationPlan,
-    pub(super) execution_plan_id: ExecutionPlanId,
-    pub(super) item: Item,
+    pub(crate) schema_walker: SchemaWalker<'a, SchemaItem>,
+    pub(crate) operation_plan: &'a OperationPlan,
+    pub(crate) execution_plan_id: ExecutionPlanId,
+    pub(crate) item: Item,
 }
 
 impl<'a> std::fmt::Debug for PlanWalker<'a> {
