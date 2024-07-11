@@ -1,4 +1,5 @@
 use schema::Schema;
+use tracing::instrument;
 
 use crate::response::{ErrorCode, GraphqlError};
 
@@ -62,6 +63,7 @@ impl Operation {
     ///
     /// All field names are mapped to their actual field id in the schema and respective configuration.
     /// At this stage the operation might not be resolvable but it should make sense given the schema types.
+    #[instrument(skip_all)]
     pub fn build(schema: &Schema, request: &engine::Request) -> Result<Operation, OperationError> {
         let parsed_operation = parse_operation(request)?;
         let operation_metadata = prepare_metadata(&parsed_operation, request);
@@ -85,7 +87,7 @@ impl Operation {
             });
         }
 
-        if let Err(err) = LogicalPlanner::new(schema, &variables, &mut operation).run() {
+        if let Err(err) = LogicalPlanner::new(schema, &variables, &mut operation).plan() {
             return Err(OperationError::LogicalPlanning {
                 operation_metadata: Box::new(operation_metadata),
                 err,

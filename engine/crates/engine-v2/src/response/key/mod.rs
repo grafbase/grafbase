@@ -73,6 +73,12 @@ use crate::operation::QueryPosition;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ResponseEdge(u32);
 
+impl From<ResponseEdge> for usize {
+    fn from(edge: ResponseEdge) -> usize {
+        edge.0 as usize
+    }
+}
+
 /// A ResponseKey associated with a position within the query, guaranteeing the right order of
 /// fields in the output as we BTreeMaps to store them in the response.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]

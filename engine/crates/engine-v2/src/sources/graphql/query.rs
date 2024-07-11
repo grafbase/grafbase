@@ -190,15 +190,11 @@ impl QueryBuilderContext {
         buffer: &mut Buffer,
         selection_set: PlanSelectionSet<'_>,
     ) -> Result<(), Error> {
-        let entity_to_fields =
-            selection_set
-                .fields()
-                .into_iter()
-                .fold(HashMap::<_, Vec<_>>::new(), |mut acc, field| {
-                    acc.entry(field.parent_entity().id()).or_default().push(field);
-                    acc
-                });
-        for (entity_id, fields) in entity_to_fields {
+        let entity_to_fields = selection_set
+            .fields_ordered_by_parent_entity_id_then_position()
+            .into_iter()
+            .chunk_by(|field| field.parent_entity().id());
+        for (entity_id, fields) in entity_to_fields.into_iter() {
             if maybe_entity_id != Some(entity_id) {
                 indent_write!(
                     buffer,
@@ -206,8 +202,6 @@ impl QueryBuilderContext {
                     selection_set.walker().schema().walk(entity_id).name()
                 )?;
                 buffer.indent += 1;
-                // not sure if really needed
-                indent_write!(buffer, "__typename\n")?;
             }
             for field in fields {
                 self.write_field(buffer, field)?;

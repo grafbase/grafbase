@@ -7,7 +7,7 @@ mod variable;
 pub use argument::*;
 use engine_parser::types::OperationType;
 pub use field::*;
-use schema::{ObjectWalker, SchemaWalker};
+use schema::SchemaWalker;
 pub use selection_set::*;
 #[allow(unused_imports)]
 pub use variable::*;
@@ -56,11 +56,6 @@ impl<'a> OperationWalker<'a, (), ()> {
 
     pub(crate) fn selection_set(&self) -> SelectionSetWalker<'a> {
         self.walk(self.operation.root_selection_set_id)
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn root_object(&self) -> ObjectWalker<'a> {
-        self.schema_walker.walk(self.as_ref().root_object_id)
     }
 }
 

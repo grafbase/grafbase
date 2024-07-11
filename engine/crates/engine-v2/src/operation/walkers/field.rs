@@ -19,18 +19,8 @@ impl<'a> FieldWalker<'a> {
     pub fn type_condition(&self) -> SelectionSetType {
         match self.as_ref() {
             Field::TypeName(f) => f.type_condition,
-            Field::Query(f) => self
-                .schema_walker
-                .walk(f.field_definition_id)
-                .parent_entity()
-                .id()
-                .into(),
-            Field::Extra(f) => self
-                .schema_walker
-                .walk(f.field_definition_id)
-                .parent_entity()
-                .id()
-                .into(),
+            Field::Query(f) => self.schema_walker.walk(f.definition_id).parent_entity().id().into(),
+            Field::Extra(f) => self.schema_walker.walk(f.definition_id).parent_entity().id().into(),
         }
     }
 
@@ -95,13 +85,10 @@ impl<'a> std::fmt::Debug for FieldWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.as_ref() {
             Field::TypeName { .. } => "__typename".fmt(f),
-            Field::Query(QueryField {
-                field_definition_id: field_id,
-                ..
-            }) => {
+            Field::Query(QueryField { definition_id, .. }) => {
                 let mut fmt = f.debug_struct("Field");
                 fmt.field("id", &self.item);
-                let name = self.schema_walker.walk(*field_id).name();
+                let name = self.schema_walker.walk(*definition_id).name();
                 if self.response_key_str() != name {
                     fmt.field("key", &self.response_key_str());
                 }
@@ -109,13 +96,10 @@ impl<'a> std::fmt::Debug for FieldWalker<'a> {
                     .field("selection_set", &self.selection_set())
                     .finish()
             }
-            Field::Extra(ExtraField {
-                field_definition_id: field_id,
-                ..
-            }) => {
+            Field::Extra(ExtraField { definition_id, .. }) => {
                 let mut fmt = f.debug_struct("ExtraField");
                 fmt.field("id", &self.item);
-                let name = self.schema_walker.walk(*field_id).name();
+                let name = self.schema_walker.walk(*definition_id).name();
                 if self.response_key_str() != name {
                     fmt.field("key", &self.response_key_str());
                 }

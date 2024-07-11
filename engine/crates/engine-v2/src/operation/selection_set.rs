@@ -8,10 +8,11 @@ use super::{ConditionId, FieldArgumentId, FieldId, Location, QueryInputValueId, 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SelectionSet {
     /// (ResponseKey, Option<FieldDefinitionId>) is guaranteed to be unique
-    pub field_ids: Vec<FieldId>,
+    /// Ordered by query (parent EntityId, query position)
+    pub field_ids_ordered_by_parent_entity_id_then_position: Vec<FieldId>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub enum SelectionSetType {
     Object(ObjectId),
     Interface(InterfaceId),
@@ -99,7 +100,7 @@ pub struct TypeNameField {
 pub struct QueryField {
     pub bound_response_key: BoundResponseKey,
     pub location: Location,
-    pub field_definition_id: FieldDefinitionId,
+    pub definition_id: FieldDefinitionId,
     pub argument_ids: IdRange<FieldArgumentId>,
     pub selection_set_id: Option<SelectionSetId>,
     pub condition: Option<ConditionId>,
@@ -109,7 +110,7 @@ pub struct QueryField {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ExtraField {
     pub edge: ResponseEdge,
-    pub field_definition_id: FieldDefinitionId,
+    pub definition_id: FieldDefinitionId,
     pub selection_set_id: Option<SelectionSetId>,
     pub argument_ids: IdRange<FieldArgumentId>,
     pub petitioner_location: Location,
@@ -122,7 +123,8 @@ impl Field {
         match self {
             Field::TypeName(TypeNameField { bound_response_key, .. }) => bound_response_key.position(),
             Field::Query(QueryField { bound_response_key, .. }) => bound_response_key.position(),
-            Field::Extra(ExtraField { .. }) => usize::MAX,
+            // Fake query position, but unique
+            Field::Extra(ExtraField { edge, .. }) => usize::from(*edge),
         }
     }
 
@@ -161,12 +163,8 @@ impl Field {
     pub fn definition_id(&self) -> Option<FieldDefinitionId> {
         match self {
             Field::TypeName(TypeNameField { .. }) => None,
-            Field::Query(QueryField {
-                field_definition_id, ..
-            }) => Some(*field_definition_id),
-            Field::Extra(ExtraField {
-                field_definition_id, ..
-            }) => Some(*field_definition_id),
+            Field::Query(QueryField { definition_id, .. }) => Some(*definition_id),
+            Field::Extra(ExtraField { definition_id, .. }) => Some(*definition_id),
         }
     }
 
@@ -207,9 +205,7 @@ impl Field {
 /// Represents arguments that were specified in the query with a value
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FieldArgument {
-    #[allow(dead_code)]
     pub name_location: Option<Location>,
-    #[allow(dead_code)]
     pub value_location: Option<Location>,
     pub input_value_definition_id: InputValueDefinitionId,
     pub input_value_id: QueryInputValueId,
