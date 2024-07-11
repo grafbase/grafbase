@@ -1,6 +1,9 @@
-use std::marker::PhantomData;
+mod non_ord;
+
+pub use non_ord::NonOrdInterner;
 
 use crate::{CacheControl, CacheControlId, RequiredScopes, RequiredScopesId, StringId};
+use std::marker::PhantomData;
 
 pub struct Interner<T, Id>(indexmap::IndexSet<T, fnv::FnvBuildHasher>, PhantomData<Id>);
 

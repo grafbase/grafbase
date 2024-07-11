@@ -1,6 +1,8 @@
+use config::latest::{HeaderRemove, HeaderRule, NameOrPattern};
 use engine_v2_schema::{Definition, Schema};
 use federated_graph::FederatedGraph;
 use pretty_assertions::assert_eq;
+use regex::Regex;
 
 const SCHEMA: &str = r#"
 schema
@@ -309,7 +311,12 @@ fn should_remove_all_inaccessible_items() {
 #[case(SCHEMA_WITH_INACCESSIBLES)]
 fn serde_roundtrip(#[case] sdl: &str) {
     let graph = FederatedGraph::from_sdl(sdl).unwrap().into_latest();
-    let config = config::VersionedConfig::V5(config::latest::Config::from_graph(graph)).into_latest();
+    let mut config = config::VersionedConfig::V5(config::latest::Config::from_graph(graph)).into_latest();
+
+    config.header_rules.push(HeaderRule::Remove(HeaderRemove {
+        name: NameOrPattern::Pattern(Regex::new("^foo*").unwrap()),
+    }));
+
     let schema = Schema::try_from(config).unwrap();
 
     let bytes = postcard::to_stdvec(&schema).unwrap();

@@ -15,6 +15,7 @@ use url::Url;
 use self::external_sources::ExternalDataSources;
 use self::graph::GraphBuilder;
 use self::ids::IdMaps;
+use self::interner::NonOrdInterner;
 use self::sources::graphql::GraphqlEndpointId;
 
 use super::*;
@@ -39,6 +40,7 @@ impl TryFrom<Config> for Schema {
 
 pub(crate) struct BuildContext {
     pub strings: Interner<String, StringId>,
+    pub regexps: NonOrdInterner<Regex, RegexId>,
     urls: Interner<Url, UrlId>,
     idmaps: IdMaps,
     next_subraph_id: usize,
@@ -47,14 +49,18 @@ pub(crate) struct BuildContext {
 impl BuildContext {
     #[cfg(test)]
     pub fn build_with<T>(build: impl FnOnce(&mut Self, &mut Graph) -> T) -> (Schema, T) {
+        use crate::builder::interner::NonOrdInterner;
+
         use self::sources::introspection::IntrospectionBuilder;
 
         let mut ctx = Self {
             strings: Interner::from_vec(Vec::new()),
+            regexps: NonOrdInterner::default(),
             urls: Interner::default(),
             idmaps: IdMaps::empty(),
             next_subraph_id: 0,
         };
+
         let mut graph = Graph {
             description: None,
             root_operation_types: RootOperationTypes {
@@ -131,6 +137,7 @@ impl BuildContext {
             },
             graph,
             strings: ctx.strings.into(),
+            regexps: Default::default(),
             urls: Default::default(),
             header_rules: Default::default(),
             settings: Default::default(),
@@ -142,6 +149,7 @@ impl BuildContext {
     fn new(config: &mut Config) -> Self {
         Self {
             strings: Interner::from_vec(take(&mut config.graph.strings)),
+            regexps: Default::default(),
             urls: Interner::default(),
             idmaps: IdMaps::new(config),
             next_subraph_id: 0,
@@ -161,7 +169,9 @@ impl BuildContext {
                 match rule {
                     config::latest::HeaderRule::Forward(rule) => {
                         let name = match rule.name {
-                            config::latest::NameOrPattern::Pattern(regex) => NameOrPattern::Pattern(regex),
+                            config::latest::NameOrPattern::Pattern(regex) => {
+                                NameOrPattern::Pattern(self.regexps.get_or_insert(&regex))
+                            }
                             config::latest::NameOrPattern::Name(name) => {
                                 NameOrPattern::Name(self.strings.get_or_insert(&config[name]))
                             }
@@ -180,7 +190,9 @@ impl BuildContext {
                     }
                     config::latest::HeaderRule::Remove(rule) => {
                         let name = match rule.name {
-                            config::latest::NameOrPattern::Pattern(regex) => NameOrPattern::Pattern(regex),
+                            config::latest::NameOrPattern::Pattern(regex) => {
+                                NameOrPattern::Pattern(self.regexps.get_or_insert(&regex))
+                            }
                             config::latest::NameOrPattern::Name(name) => {
                                 NameOrPattern::Name(self.strings.get_or_insert(&config[name]))
                             }
@@ -203,6 +215,7 @@ impl BuildContext {
             data_sources,
             graph,
             strings: self.strings.into(),
+            regexps: self.regexps.into(),
             urls: self.urls.into(),
             header_rules,
             settings: Settings {

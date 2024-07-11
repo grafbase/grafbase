@@ -54,6 +54,8 @@ pub struct Schema {
 
     /// All strings deduplicated.
     strings: Vec<String>,
+    #[serde(with = "serde_regex")]
+    regexps: Vec<Regex>,
     urls: Vec<url::Url>,
     /// Headers we might want to send to a subgraph
     header_rules: Vec<HeaderRule>,
@@ -401,10 +403,8 @@ impl Schema {
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub enum NameOrPattern {
     /// A regex pattern matching multiple headers.
-    #[serde(with = "serde_regex", rename = "pattern")]
-    Pattern(Regex),
+    Pattern(RegexId),
     /// A static single name.
-    #[serde(rename = "name")]
     Name(StringId),
 }
 
