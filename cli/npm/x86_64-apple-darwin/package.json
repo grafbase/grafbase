@@ -1,6 +1,6 @@
 {
   "name": "@grafbase/cli-x86_64-apple-darwin",
-  "version": "0.76.0",
+  "version": "0.77.0",
   "description": "x86_64-apple-darwin binary for Grafbase CLI",
   "keywords": [
     "grafbase",
