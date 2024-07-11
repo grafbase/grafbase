@@ -380,6 +380,98 @@ fn test_nested_defers() {
     });
 }
 
+#[test]
+fn test_when_defer_served_entirely_from_cache() {
+    runtime().block_on(async {
+        let gateway = EngineBuilder::new(
+            r#"
+                extend schema @experimental(partialCaching: true)
+
+                type Query {
+                   times: Times @resolver(name: "nope")
+                   user(id: ID!): User @resolver(name: "nope")
+                }
+
+                type Times {
+                   now: String @resolver(name: "time")
+                }
+
+                type User {
+                    reallyExpensiveField: String
+                        @resolver(name: "reallyExpensiveField")
+                        @cache(maxAge: 120)
+                }
+            "#,
+        )
+        .with_custom_resolvers(
+            RustUdfs::new()
+                .resolver("nope", json!({}))
+                .resolver("reallyExpensiveField", json!("hello"))
+                .resolver("time", json!("i'm not really the time")),
+        )
+        .gateway_builder()
+        .await
+        .build();
+
+        const QUERY: &str = r#"
+            query Times {
+                times {
+                    now
+                }
+                user(id: "1") {
+                    ... @defer(label: "hello") {
+                        reallyExpensiveField
+                    }
+                }
+            }
+        "#;
+
+        let responses = gateway.execute(QUERY).collect().await;
+
+        insta::assert_json_snapshot!(responses, @r###"
+        [
+          {
+            "data": {
+              "times": {
+                "now": "i'm not really the time"
+              },
+              "user": {}
+            },
+            "hasNext": true
+          },
+          {
+            "data": {
+              "reallyExpensiveField": "hello"
+            },
+            "path": [
+              "user"
+            ],
+            "hasNext": false,
+            "label": "hello"
+          }
+        ]
+        "###);
+
+        let responses = gateway.execute(QUERY).collect().await;
+
+        insta::assert_json_snapshot!(responses, @r###"
+        [
+          {
+            "data": {
+              "times": {
+                "now": "i'm not really the time"
+              },
+              "user": {
+                "reallyExpensiveField": "hello"
+              }
+            },
+            "hasNext": false
+          }
+        ]
+        "###);
+    });
+}
+
 #[derive(Default)]
 pub struct UserResolver {
     call_count: usize,

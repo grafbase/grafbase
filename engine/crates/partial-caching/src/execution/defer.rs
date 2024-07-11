@@ -19,6 +19,7 @@ pub struct StreamingExecutionPhase {
     shapes: OutputShapes,
     keys_to_write: Vec<(String, PartitionIndex)>,
     seen_errors: bool,
+    fully_cached_defers: Vec<DeferId>,
     output: Option<OutputStore>,
 }
 
@@ -26,11 +27,19 @@ impl StreamingExecutionPhase {
     pub(super) fn new(execution_phase: ExecutionPhase) -> StreamingExecutionPhase {
         let shapes = OutputShapes::new(&execution_phase.plan, execution_phase.type_relationships.as_ref());
 
+        let fully_cached_defers = execution_phase
+            .plan
+            .defers()
+            .filter(|defer| !execution_phase.executor_subset.contains_selection(defer.spread_id()))
+            .map(|defer| defer.id)
+            .collect();
+
         StreamingExecutionPhase {
             execution_phase,
             shapes,
             keys_to_write: vec![],
             seen_errors: false,
+            fully_cached_defers,
             output: None,
         }
     }
@@ -44,12 +53,13 @@ impl StreamingExecutionPhase {
 
         let root_shape = self.shapes.root();
 
-        let (mut store, active_defers) = handle_initial_response(
+        let (mut store, mut active_defers) = handle_initial_response(
             response,
             &self.shapes,
             root_shape,
             self.execution_phase.type_relationships.as_ref(),
         );
+        active_defers.extend(self.fully_cached_defers.iter().copied());
 
         let mut response_max_age = MaxAge::default();
 

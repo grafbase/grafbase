@@ -18,6 +18,7 @@ use cynic_parser::{
     executable::{ids::OperationDefinitionId, OperationDefinition},
     ExecutableDocument,
 };
+use planning::defers::DeferStore;
 use registry_for_cache::CacheControl;
 
 mod execution;
@@ -47,7 +48,7 @@ pub struct CachingPlan {
     pub cache_partitions: Vec<(CacheControl, QuerySubset)>,
     pub nocache_partition: QuerySubset,
     operation_id: OperationDefinitionId,
-    defers: Vec<planning::defers::DeferRecord>,
+    defers: DeferStore,
 }
 
 impl CachingPlan {
