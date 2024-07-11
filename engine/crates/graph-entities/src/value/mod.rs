@@ -50,6 +50,17 @@ impl CompactValue {
     pub fn is_array(&self) -> bool {
         matches!(self, CompactValue::List(_))
     }
+
+    pub fn is_null(&self) -> bool {
+        matches!(self, CompactValue::Null)
+    }
+
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            CompactValue::String(s) => Some(s.as_str()),
+            _ => None,
+        }
+    }
 }
 
 impl From<ConstValue> for CompactValue {

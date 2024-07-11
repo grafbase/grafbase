@@ -1,6 +1,6 @@
 use std::{collections::BTreeSet, time::Duration};
 
-use graph_entities::{QueryResponse, QueryResponseNode};
+use graph_entities::CompactValue;
 use query_path::QueryPathSegment;
 use runtime::cache::Entry;
 
@@ -48,7 +48,7 @@ impl StreamingExecutionPhase {
         self.execution_phase.query()
     }
 
-    pub fn record_initial_response(&mut self, response: QueryResponse, errors: bool) -> QueryResponse {
+    pub fn record_initial_response(&mut self, response: CompactValue, errors: bool) -> CompactValue {
         self.seen_errors = errors;
 
         let root_shape = self.shapes.root();
@@ -104,7 +104,7 @@ impl StreamingExecutionPhase {
 
         let return_value = store
             .reader(&self.shapes)
-            .map(|object| object.into_query_response(false))
+            .map(|object| object.into_compact_value(false))
             .unwrap_or_default();
 
         self.output = Some(store);
@@ -116,9 +116,9 @@ impl StreamingExecutionPhase {
         &mut self,
         label: Option<&str>,
         path: &[&QueryPathSegment],
-        data: QueryResponse,
+        data: CompactValue,
         errors: bool,
-    ) -> QueryResponse {
+    ) -> CompactValue {
         if self.output.is_none() {
             todo!("GB-6966");
         }
@@ -168,7 +168,7 @@ impl StreamingExecutionPhase {
 
         output
             .read_object(&self.shapes, destination_object_id)
-            .into_query_response(false)
+            .into_compact_value(false)
     }
 
     pub fn finish(mut self) -> Option<CacheUpdatePhase> {
@@ -198,7 +198,7 @@ impl StreamingExecutionPhase {
         &self,
         label: Option<&str>,
         destination_object: Object<'_>,
-        data: &QueryResponse,
+        data: &CompactValue,
     ) -> Option<DeferId> {
         if let Some(label) = label {
             return Some(
@@ -218,25 +218,27 @@ impl StreamingExecutionPhase {
         // If there's no label and multiple possible defers in this object we'll have to examine
         // the output to figure out what defer this is.  Urgh.
         let possible_defers = possible_defers.collect::<BTreeSet<_>>();
-        let mut field_stack = vec![(data.root?, ObjectShape::Concrete(destination_object.shape()))];
+        let mut field_stack = vec![(data, ObjectShape::Concrete(destination_object.shape()))];
 
-        while let Some((id, object_shape)) = field_stack.pop() {
-            match data.get_node(id)? {
-                QueryResponseNode::Container(container) => {
+        while let Some((value, object_shape)) = field_stack.pop() {
+            match value {
+                CompactValue::Object(object) => {
                     let concrete_shape = match object_shape {
                         ObjectShape::Concrete(shape) => shape,
                         ObjectShape::Polymorphic(shape) => {
-                            let Some(typename) =
-                                container.child("__typename").and_then(|id| data.get_node(id)?.as_str())
-                            else {
-                                todo!("GB-6966")
-                            };
+                            let typename = object
+                                .iter()
+                                .find(|(name, _)| name == "__typename")
+                                .and_then(|(_, value)| value.as_str());
+
+                            let Some(typename) = typename else { todo!("GB-6966") };
+
                             shape
                                 .concrete_shape_for_typename(typename, self.execution_phase.type_relationships.as_ref())
                         }
                     };
 
-                    for (name, src_id) in container.iter() {
+                    for (name, field_value) in object.iter() {
                         let Some(field_shape) = concrete_shape.field(name.as_str()) else {
                             continue;
                         };
@@ -246,14 +248,14 @@ impl StreamingExecutionPhase {
                             }
                         }
                         if let Some(subselection_shape) = field_shape.subselection_shape() {
-                            field_stack.push((*src_id, subselection_shape))
+                            field_stack.push((field_value, subselection_shape))
                         }
                     }
                 }
-                QueryResponseNode::List(list) => {
-                    field_stack.extend(list.iter().map(|id| (id, object_shape)));
+                CompactValue::List(items) => {
+                    field_stack.extend(items.iter().map(|value| (value, object_shape)));
                 }
-                QueryResponseNode::Primitive(_) => {}
+                _ => {}
             }
         }
 

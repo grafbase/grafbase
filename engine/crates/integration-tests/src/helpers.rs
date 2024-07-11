@@ -105,9 +105,9 @@ impl ResponseExt for Response {
 impl ResponseExt for StreamingPayload {
     fn assert_success(self) -> Self {
         match self {
-            StreamingPayload::InitialResponse(InitialResponse { response, has_next }) => {
-                let response = response.assert_success();
-                StreamingPayload::InitialResponse(InitialResponse { response, has_next })
+            StreamingPayload::InitialResponse(InitialResponse { data, has_next, errors }) => {
+                assert_eq!(errors, vec![]);
+                StreamingPayload::InitialResponse(InitialResponse { data, has_next, errors })
             }
             StreamingPayload::Incremental(incremental) => {
                 assert_eq!(incremental.errors, vec![]);

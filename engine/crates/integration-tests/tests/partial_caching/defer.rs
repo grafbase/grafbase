@@ -55,6 +55,7 @@ fn smoke_test() {
             "hasNext": true
           },
           {
+            "label": "woo",
             "data": {
               "name": "Jo 1",
               "email": "1@example.com",
@@ -63,8 +64,7 @@ fn smoke_test() {
             "path": [
               "user"
             ],
-            "hasNext": false,
-            "label": "woo"
+            "hasNext": false
           }
         ]
         "###);
@@ -124,6 +124,7 @@ fn test_defer_with_uncached_field() {
             "hasNext": true
           },
           {
+            "label": "woo",
             "data": {
               "name": "Jo 1",
               "email": "1@example.com",
@@ -133,8 +134,7 @@ fn test_defer_with_uncached_field() {
             "path": [
               "user"
             ],
-            "hasNext": false,
-            "label": "woo"
+            "hasNext": false
           }
         ]
         "###);
@@ -154,6 +154,7 @@ fn test_defer_with_uncached_field() {
             "hasNext": true
           },
           {
+            "label": "woo",
             "data": {
               "name": "Jo 1",
               "email": "1@example.com",
@@ -163,8 +164,7 @@ fn test_defer_with_uncached_field() {
             "path": [
               "user"
             ],
-            "hasNext": false,
-            "label": "woo"
+            "hasNext": false
           }
         ]
         "###);
@@ -440,14 +440,14 @@ fn test_when_defer_served_entirely_from_cache() {
             "hasNext": true
           },
           {
+            "label": "hello",
             "data": {
               "reallyExpensiveField": "hello"
             },
             "path": [
               "user"
             ],
-            "hasNext": false,
-            "label": "hello"
+            "hasNext": false
           }
         ]
         "###);

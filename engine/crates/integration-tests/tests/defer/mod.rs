@@ -498,6 +498,7 @@ fn test_defer_with_labels() {
             "hasNext": true
           },
           {
+            "label": "outer",
             "data": {
               "firstPet": {
                 "id": 123,
@@ -507,10 +508,10 @@ fn test_defer_with_labels() {
             "path": [
               "petstore"
             ],
-            "hasNext": true,
-            "label": "outer"
+            "hasNext": true
           },
           {
+            "label": "inner",
             "data": {
               "secondPet": {
                 "id": 456,
@@ -520,8 +521,7 @@ fn test_defer_with_labels() {
             "path": [
               "petstore"
             ],
-            "hasNext": false,
-            "label": "inner"
+            "hasNext": false
           }
         ]
         "###

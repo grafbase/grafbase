@@ -122,7 +122,8 @@ where
 
             Ok(stream::once(async move {
                 engine::StreamingPayload::InitialResponse(InitialResponse {
-                    response,
+                    data: response.data.into_compact_value(),
+                    errors: response.errors,
                     has_next: false,
                 })
             })
@@ -141,11 +142,9 @@ async fn run_execution_phase_stream(
         todo!("GB-6966");
     };
 
-    let mut response = payload.response;
-
-    response.data = execution_phase.record_initial_response(response.data, !response.errors.is_empty());
-
-    payload.response = response;
+    if let Some(data) = payload.data {
+        payload.data = Some(execution_phase.record_initial_response(data, !payload.errors.is_empty()));
+    }
 
     if response_sender
         .send(StreamingPayload::InitialResponse(payload))

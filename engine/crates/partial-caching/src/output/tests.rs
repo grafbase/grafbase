@@ -5,16 +5,16 @@
 
 use std::collections::HashSet;
 
-use graph_entities::QueryResponse;
+use graph_entities::CompactValue;
 use serde_json::json;
 
 use crate::{build_plan, output::handle_initial_response, type_relationships::NoSubtypes};
 
 use super::shapes::build_output_shapes;
 
-macro_rules! query_response {
+macro_rules! compact_value {
     ($($json:tt)+) => {
-        self::query_response(serde_json::json!($($json)+))
+        self::compact_value(serde_json::json!($($json)+))
     }
 }
 
@@ -27,7 +27,7 @@ fn test_initial_response_handling() {
     let shapes = build_output_shapes(&plan, &NoSubtypes);
     let root_shape = shapes.root();
 
-    let query_response = query_response!({
+    let compact_value = compact_value!({
         "user": {
             "name": "G",
             "email": "whatever",
@@ -36,7 +36,7 @@ fn test_initial_response_handling() {
         }
     });
 
-    let (store, _) = handle_initial_response(query_response, &shapes, root_shape, &NoSubtypes);
+    let (store, _) = handle_initial_response(compact_value, &shapes, root_shape, &NoSubtypes);
 
     insta::assert_json_snapshot!(store.serialize_all(&shapes, serde_json::value::Serializer).unwrap(), @r###"
     {
@@ -73,7 +73,7 @@ fn test_cache_merging() {
     let shapes = build_output_shapes(&plan, &NoSubtypes);
     let root_shape = shapes.root();
 
-    let query_response = query_response!({
+    let compact_value = compact_value!({
         "user": {
             "name": "G",
             "email": "whatever",
@@ -81,7 +81,7 @@ fn test_cache_merging() {
         }
     });
 
-    let (mut store, active_defers) = handle_initial_response(query_response, &shapes, root_shape, &NoSubtypes);
+    let (mut store, active_defers) = handle_initial_response(compact_value, &shapes, root_shape, &NoSubtypes);
 
     store.merge_cache_entry(
         &mut json!({
@@ -139,14 +139,14 @@ fn test_cache_merging_with_defer() {
     let shapes = build_output_shapes(&plan, &NoSubtypes);
     let root_shape = shapes.root();
 
-    let query_response = query_response!({
+    let compact_value = compact_value!({
         "user": {
             "name": "G",
             "email": "whatever",
         }
     });
 
-    let (mut store, active_defers) = handle_initial_response(query_response, &shapes, root_shape, &NoSubtypes);
+    let (mut store, active_defers) = handle_initial_response(compact_value, &shapes, root_shape, &NoSubtypes);
 
     store.merge_cache_entry(
         &mut json!({
@@ -197,14 +197,14 @@ fn test_cache_merging_when_defer_ignored() {
     let shapes = build_output_shapes(&plan, &NoSubtypes);
     let root_shape = shapes.root();
 
-    let query_response = query_response!({
+    let compact_value = compact_value!({
         "user": {
             "name": "G",
             "email": "whatever",
         }
     });
 
-    let (mut store, active_defers) = handle_initial_response(query_response, &shapes, root_shape, &NoSubtypes);
+    let (mut store, active_defers) = handle_initial_response(compact_value, &shapes, root_shape, &NoSubtypes);
 
     assert!(active_defers.contains(&defer_id));
 
@@ -265,14 +265,14 @@ fn test_incremental_response_merging() {
     let shapes = build_output_shapes(&plan, &NoSubtypes);
     let root_shape = shapes.root();
 
-    let query_response = query_response!({
+    let compact_value = compact_value!({
         "user": {
             "name": "G",
             "email": "whatever",
         }
     });
 
-    let (mut store, active_defers) = handle_initial_response(query_response, &shapes, root_shape, &NoSubtypes);
+    let (mut store, active_defers) = handle_initial_response(compact_value, &shapes, root_shape, &NoSubtypes);
 
     let mut cache_entry = json!({
         "user": {
@@ -295,7 +295,7 @@ fn test_incremental_response_merging() {
 
     store.merge_incremental_payload(
         user_object_id,
-        query_response!({
+        compact_value!({
             "nonCached": "I was not cached",
             "nested": [
                 {"nonCached": "nor was I"},
@@ -355,14 +355,14 @@ fn test_nested_defers() {
     let shapes = build_output_shapes(&plan, &NoSubtypes);
     let root_shape = shapes.root();
 
-    let query_response = query_response!({
+    let compact_value = compact_value!({
         "user": {
             "name": "G",
             "email": "whatever",
         }
     });
 
-    let (mut store, active_defers) = handle_initial_response(query_response, &shapes, root_shape, &NoSubtypes);
+    let (mut store, active_defers) = handle_initial_response(compact_value, &shapes, root_shape, &NoSubtypes);
 
     let mut cache_entry = json!({
         "user": {
@@ -383,7 +383,7 @@ fn test_nested_defers() {
 
     let active_defers = store.merge_incremental_payload(
         user_object_id,
-        query_response!({"nonCached": "I was not cached"}),
+        compact_value!({"nonCached": "I was not cached"}),
         &shapes,
         &NoSubtypes,
     );
@@ -402,7 +402,7 @@ fn test_nested_defers() {
 
     let active_defers = store.merge_incremental_payload(
         user_object_id,
-        query_response!({
+        compact_value!({
             "nested": [
                 {"nonCached": "nor was I"},
                 {"nonCached": "nor I"},
@@ -468,14 +468,14 @@ fn test_nested_defers_when_defer_ignored() {
     let shapes = build_output_shapes(&plan, &NoSubtypes);
     let root_shape = shapes.root();
 
-    let query_response = query_response!({
+    let compact_value = compact_value!({
         "user": {
             "name": "G",
             "email": "whatever",
         }
     });
 
-    let (mut store, active_defers) = handle_initial_response(query_response, &shapes, root_shape, &NoSubtypes);
+    let (mut store, active_defers) = handle_initial_response(compact_value, &shapes, root_shape, &NoSubtypes);
 
     let mut cache_entry = json!({
         "user": {
@@ -496,7 +496,7 @@ fn test_nested_defers_when_defer_ignored() {
 
     let active_defers = store.merge_incremental_payload(
         user_object_id,
-        query_response!({
+        compact_value!({
             "nonCached": "I was not cached",
             "nested": [
                 {"nonCached": "nor was I"},
@@ -530,9 +530,6 @@ fn test_nested_defers_when_defer_ignored() {
     "###);
 }
 
-fn query_response(json: serde_json::Value) -> QueryResponse {
-    let mut query_response = QueryResponse::default();
-    let root_node = query_response.from_serde_value(json);
-    query_response.set_root_unchecked(root_node);
-    query_response
+fn compact_value(json: serde_json::Value) -> CompactValue {
+    json.into()
 }
