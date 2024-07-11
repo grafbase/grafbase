@@ -12,6 +12,8 @@ export interface ExperimentalParams {
   codegen?: boolean
   /** Specifies the runtime to be used for the executor: `edge` or `nodejs`. */
   runtime?: 'edge' | 'nodejs'
+  /** Enables partial caching of responses */
+  partialCaching?: boolean
 }
 
 export class Experimental {
@@ -24,7 +26,7 @@ export class Experimental {
   public toString(): string {
     const params = Object.keys(this.params)
       .map((key) => {
-        const value = (this.params as any)[key]
+        const value = this.params[key as keyof ExperimentalParams]
         if (typeof value === 'string') {
           return `${key}: "${value.replace('"', '\\"')}"`
         } else {
