@@ -18,7 +18,7 @@ describe('Experimental generator', () => {
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
         @experimental(kv: true)
-      
+
       "
     `)
   })
@@ -34,7 +34,7 @@ describe('Experimental generator', () => {
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
         @experimental(ai: true)
-      
+
       "
     `)
   })
@@ -51,7 +51,7 @@ describe('Experimental generator', () => {
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
         @experimental(ai: true, kv: true)
-      
+
       "
     `)
   })
@@ -67,7 +67,7 @@ describe('Experimental generator', () => {
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
         @experimental(kv: false)
-      
+
       "
     `)
   })
@@ -83,7 +83,7 @@ describe('Experimental generator', () => {
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
         @experimental(ai: false)
-      
+
       "
     `)
   })
@@ -99,7 +99,23 @@ describe('Experimental generator', () => {
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
         @experimental(runtime: "nodejs")
-      
+
+      "
+    `)
+  })
+
+  it('renders experimental with the `partialCaching` property', async () => {
+    const cfg = config({
+      graph: g,
+      experimental: {
+        partialCaching: true
+      }
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend schema
+        @experimental(partialCaching: true)
+
       "
     `)
   })
@@ -138,7 +154,7 @@ describe('Experimental generator', () => {
             maxAge: 60
           }
         ])
-      
+
       "
     `
     expect(renderGraphQL(cfg)).toMatchInlineSnapshot(expected)
