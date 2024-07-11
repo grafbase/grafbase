@@ -5,6 +5,7 @@ use crate::{
     InputValueDefinition, Interface, Object, RequiredField, RequiredFieldSet, RequiredScopes, Resolver, Scalar, Schema,
     TypeSystemDirective, Union,
 };
+use regex::Regex;
 use url::Url;
 
 /// Reserving the 4 upper bits for some fun with bit packing. It still leaves 268 million possible values.
@@ -33,6 +34,7 @@ id_newtypes::NonZeroU32! {
     Schema.header_rules[HeaderRuleId] => HeaderRule | max(MAX_ID),
     Schema.urls[UrlId] => Url | max(MAX_ID),
     Schema.strings[StringId] => String | max(MAX_ID),
+    Schema.regexps[RegexId] => Regex | max(MAX_ID),
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]

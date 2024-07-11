@@ -24,7 +24,7 @@ impl<'a> HeaderRuleWalker<'a> {
 
     fn name_or_pattern_ref(&self, name: &'a NameOrPattern) -> NameOrPatternRef<'a> {
         match name {
-            NameOrPattern::Pattern(ref regex) => NameOrPatternRef::Pattern(regex),
+            NameOrPattern::Pattern(regex_id) => NameOrPatternRef::Pattern(&self.schema[*regex_id]),
             NameOrPattern::Name(name_id) => NameOrPatternRef::Name(self.schema[*name_id].as_str()),
         }
     }
