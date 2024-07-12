@@ -7,6 +7,7 @@ use std::{
     sync::Arc,
 };
 
+use id_newtypes::IdRange;
 pub use ids::*;
 use itertools::Either;
 use schema::{ObjectId, Schema};
@@ -20,7 +21,6 @@ use super::{
 use crate::{
     execution::{ExecutionError, PlanWalker},
     operation::Operation,
-    plan::ResponseObjectSetId,
 };
 
 pub(crate) struct ResponseDataPart {
@@ -78,7 +78,7 @@ impl ResponseBuilder {
     pub fn new_part(
         &mut self,
         root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        response_object_set_ids: &[ResponseObjectSetId],
+        response_object_set_ids: IdRange<ResponseObjectSetId>,
     ) -> ResponsePart {
         let id = ResponseDataPartId::from(self.parts.len());
         // reserving the spot until the actual data is written. It's safe as no one can reference
@@ -204,16 +204,14 @@ impl ResponseBuilder {
         if !invalidated_paths.is_empty() {
             boundaries = boundaries
                 .into_iter()
-                .map(|(id, refs)| {
-                    let refs = refs
-                        .into_iter()
+                .map(|refs| {
+                    refs.into_iter()
                         .filter(|obj| !invalidated_paths.iter().any(|path| obj.path.starts_with(path)))
-                        .collect();
-                    (id, refs)
+                        .collect()
                 })
                 .collect();
         }
-        boundaries
+        part.response_object_set_ids.zip(boundaries).collect()
     }
 
     pub fn build(self, schema: Arc<Schema>, operation: Arc<Operation>) -> Response {
@@ -343,21 +341,23 @@ pub(crate) struct ResponsePart {
     root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
     errors: Vec<GraphqlError>,
     updates: Vec<UpdateSlot>,
-    response_object_sets: Vec<(ResponseObjectSetId, Vec<ResponseObjectRef>)>,
+    response_object_set_ids: IdRange<ResponseObjectSetId>,
+    response_object_sets: Vec<Vec<ResponseObjectRef>>,
 }
 
 impl ResponsePart {
     fn new(
         data: ResponseDataPart,
         root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        response_object_set_ids: &[ResponseObjectSetId],
+        response_object_set_ids: IdRange<ResponseObjectSetId>,
     ) -> Self {
         Self {
             data,
             root_response_object_refs,
             errors: Vec::new(),
             updates: Vec::new(),
-            response_object_sets: response_object_set_ids.iter().map(|id| (*id, Vec::new())).collect(),
+            response_object_set_ids,
+            response_object_sets: response_object_set_ids.map(|_| (Vec::new())).collect(),
         }
     }
 
@@ -448,17 +448,10 @@ impl<'resp> ResponseWriter<'resp> {
         self.part().errors.push(error.into());
     }
 
-    pub fn push_response_object(&self, set_ids: &[ResponseObjectSetId], obj: ResponseObjectRef) {
+    pub fn push_response_object(&self, set_id: ResponseObjectSetId, obj: ResponseObjectRef) {
         let mut part = self.part();
-        // FIXME: Very likely doesn't make sense to have multiple entity locations for a single
-        // object here...
-        for set_id in set_ids {
-            for (tracked, refs) in &mut part.response_object_sets {
-                if tracked == set_id {
-                    refs.push(obj.clone())
-                }
-            }
-        }
+        let i = part.response_object_set_ids.index_of(set_id).unwrap();
+        part.response_object_sets[i].push(obj);
     }
 }
 

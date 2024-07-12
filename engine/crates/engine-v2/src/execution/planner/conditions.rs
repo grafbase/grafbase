@@ -4,19 +4,19 @@ use crate::{
     Runtime,
 };
 
-use super::{collect::OperationPlanBuilder, PlanningResult};
+use super::{ExecutionPlanner, PlanningResult};
 
-impl<'ctx, 'op, R: Runtime> OperationPlanBuilder<'ctx, 'op, R>
+impl<'ctx, 'op, R: Runtime> ExecutionPlanner<'ctx, 'op, R>
 where
     'ctx: 'op,
 {
     pub(super) async fn evaluate_all_conditions(&self) -> PlanningResult<Vec<ConditionResult>> {
-        let mut results = Vec::with_capacity(self.operation_plan.conditions.len());
+        let mut results = Vec::with_capacity(self.operation.conditions.len());
 
         let is_anonymous = self.ctx.access_token().is_anonymous();
         let mut scopes = None;
 
-        for condition in &self.operation_plan.conditions {
+        for condition in &self.operation.conditions {
             let result = match condition {
                 Condition::All(ids) => ids
                     .iter()
@@ -39,7 +39,7 @@ where
                             .unwrap_or_default()
                     });
 
-                    if self.ctx.schema.walk(*id).matches(scopes) {
+                    if self.ctx.schema().walk(*id).matches(scopes) {
                         ConditionResult::Include
                     } else {
                         ConditionResult::Errors(vec![GraphqlError::new(

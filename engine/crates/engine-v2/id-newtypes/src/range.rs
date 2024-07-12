@@ -51,6 +51,16 @@ where
         }
     }
 
+    pub fn index_of(&self, id: Id) -> Option<usize> {
+        let id = usize::from(id);
+        let start = usize::from(self.start);
+        if id >= start && id < usize::from(self.end) {
+            Some(id - start)
+        } else {
+            None
+        }
+    }
+
     // An From/Into would be nicer, but it's dangerously also works for (usize, usize)
     // which could also be interpreted as a range (start, end).
     pub fn from_start_and_length<Src>((start, len): (Src, usize)) -> Self
@@ -69,6 +79,25 @@ where
             start: id,
             end: Id::from(usize::from(id) + 1),
         }
+    }
+
+    pub fn from_slice(ids: &[Id]) -> Option<Self> {
+        let mut ids = ids.iter();
+        let Some(first) = ids.next() else {
+            return Some(Self::empty());
+        };
+        let start = usize::from(*first);
+        let mut end = start;
+        for id in ids {
+            if usize::from(*id) != end + 1 {
+                return None;
+            }
+            end += 1;
+        }
+        Some(Self {
+            start: *first,
+            end: Id::from(end + 1),
+        })
     }
 }
 

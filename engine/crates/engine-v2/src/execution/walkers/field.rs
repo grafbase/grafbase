@@ -21,10 +21,7 @@ impl<'a> PlanField<'a> {
     }
 
     pub fn response_key_str(&self) -> &'a str {
-        self.operation_plan
-            .response_keys
-            .try_resolve(self.response_key())
-            .unwrap()
+        self.operation.response_keys.try_resolve(self.response_key()).unwrap()
     }
 
     pub fn arguments(self) -> FieldArgumentsWalker<'a> {

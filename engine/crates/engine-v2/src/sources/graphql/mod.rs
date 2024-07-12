@@ -9,9 +9,8 @@ use self::variables::SubgraphVariables;
 
 use super::{ExecutionContext, ExecutionResult, Executor, ExecutorInput, PreparedExecutor};
 use crate::{
-    execution::PlanWalker,
+    execution::{PlanWalker, PlanningResult},
     operation::OperationType,
-    plan::PlanningResult,
     response::ResponsePart,
     sources::graphql::deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
     Runtime,

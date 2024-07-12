@@ -37,7 +37,6 @@ impl<Id: Copy> From<Vec<Id>> for Partition<Id> {
 ///
 /// All inputs are expected to be sorted and unique. Generics are only used for easier testing.
 ///
-#[allow(dead_code)]
 pub(super) fn partition_shapes<Id: Copy + Ord + std::fmt::Debug>(
     // Must be sorted and unique
     selection_set_possible_types: &[Id],

@@ -12,8 +12,8 @@ use crate::{
 };
 
 pub(super) struct NullableSeed<'ctx, 'parent, Seed> {
-    pub field_id: FieldId,
     pub ctx: &'parent SeedContext<'ctx>,
+    pub field_id: FieldId,
     pub seed: Seed,
 }
 

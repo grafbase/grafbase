@@ -8,17 +8,18 @@ use futures_util::{
     stream::{BoxStream, FuturesUnordered},
     StreamExt,
 };
+use tracing::instrument;
 
 use crate::{
-    execution::{coordinator, ExecutionContext, ExecutionResult, PlanWalker, PreExecutionContext},
-    operation::SelectionSetType,
-    plan::{ExecutionPlanId, OperationPlan},
-    response::{Response, ResponseBuilder, ResponseEdge, ResponseObjectRef, ResponsePart, ResponseValue},
+    execution::{coordinator, ExecutionContext, PlanWalker, PreparedOperation},
+    response::{
+        ObjectIdentifier, Response, ResponseBuilder, ResponseEdge, ResponseObjectRef, ResponsePart, ResponseValue,
+    },
     sources::{Executor, ExecutorInput, SubscriptionInput},
     Runtime,
 };
 
-use super::OperationExecutionState;
+use super::{state::OperationExecutionState, ExecutionPlanId, ExecutionResult, PreExecutionContext};
 
 pub(crate) trait ResponseSender {
     type Error;
@@ -26,7 +27,8 @@ pub(crate) trait ResponseSender {
 }
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
-    pub async fn execute_query_or_mutation(self, operation_plan: OperationPlan) -> Response {
+    #[instrument(skip_all)]
+    pub async fn execute_query_or_mutation(self, prepared: PreparedOperation) -> Response {
         let background_futures: FuturesUnordered<_> = self.background_futures.into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
         let ctx = ExecutionContext {
@@ -34,14 +36,16 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             request_context: self.request_context,
         };
 
-        let coordinator = coordinator::ExecutionCoordinator::new(ctx, &operation_plan);
+        let coordinator = coordinator::ExecutionCoordinator::new(ctx, &prepared);
         let response_fut = coordinator.execute();
 
+        tracing::trace!("Starting execution...");
         let (response, _) = futures_util::join!(response_fut, background_fut);
         response
     }
 
-    pub async fn execute_subscription(self, operation_plan: OperationPlan, responses: impl ResponseSender + Send) {
+    #[instrument(skip_all)]
+    pub async fn execute_subscription(self, prepared: PreparedOperation, responses: impl ResponseSender + Send) {
         let background_futures: FuturesUnordered<_> = self.background_futures.into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
         let ctx = ExecutionContext {
@@ -49,24 +53,37 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             request_context: self.request_context,
         };
 
-        let coordinator = coordinator::ExecutionCoordinator::new(ctx, &operation_plan);
+        let coordinator = coordinator::ExecutionCoordinator::new(ctx, &prepared);
         let subscription_fut = coordinator.execute_subscription(responses);
+
+        tracing::trace!("Starting execution...");
         futures_util::join!(subscription_fut, background_fut);
     }
 }
 
 pub(crate) struct ExecutionCoordinator<'ctx, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
-    operation_plan: &'ctx OperationPlan,
+    operation_plan: &'ctx PreparedOperation,
 }
 
 impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
-    pub fn new(ctx: ExecutionContext<'ctx, R>, operation_plan: &'ctx OperationPlan) -> Self {
+    pub fn new(ctx: ExecutionContext<'ctx, R>, operation_plan: &'ctx PreparedOperation) -> Self {
         Self { ctx, operation_plan }
     }
 
+    fn new_execution_state(&self) -> OperationExecutionState<'ctx> {
+        OperationExecutionState::new(&self.ctx.engine.schema, &self.operation_plan.plans)
+    }
+
     fn plan_walker(&self, plan_id: ExecutionPlanId) -> PlanWalker<'_, (), ()> {
-        self.operation_plan.walker_with(&self.ctx.engine.schema, plan_id)
+        PlanWalker {
+            schema_walker: self.ctx.engine.schema.walker(),
+            operation: &self.operation_plan.operation,
+            variables: &self.operation_plan.variables,
+            plans: &self.operation_plan.plans,
+            execution_plan_id: plan_id,
+            item: (),
+        }
     }
 
     pub async fn execute(self) -> Response {
@@ -78,7 +95,7 @@ impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
         OperationExecution {
             coordinator: &self,
             futures: ExecutorFutureSet::new(),
-            state: self.operation_plan.new_execution_state(),
+            state: self.new_execution_state(),
             response: ResponseBuilder::new(self.operation_plan.root_object_id),
         }
         .execute()
@@ -88,9 +105,9 @@ impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
     pub async fn execute_subscription(self, mut responses: impl ResponseSender + Send) {
         assert!(matches!(self.operation_plan.ty(), OperationType::Subscription));
 
-        if !self.operation_plan.root_errors.is_empty() {
+        if !self.operation_plan.plans.root_errors.is_empty() {
             let mut response = ResponseBuilder::new(self.operation_plan.root_object_id);
-            response.push_root_errors(&self.operation_plan.root_errors);
+            response.push_root_errors(&self.operation_plan.plans.root_errors);
             let _ = responses
                 .send(response.build(self.ctx.engine.schema.clone(), self.operation_plan.operation.clone()))
                 .await;
@@ -98,18 +115,22 @@ impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
         }
 
         let (state, subscription_plan_id) = {
-            let mut state = self.operation_plan.new_execution_state();
+            let mut state = self.new_execution_state();
             let id = state.pop_subscription_plan_id();
             (state, id)
         };
-        let entity_locations_to_track = &self.plan_walker(subscription_plan_id).output().tracked_locations;
+        let response_object_set_ids = self
+            .plan_walker(subscription_plan_id)
+            .as_ref()
+            .output
+            .tracked_output_ids;
 
         let new_execution = || {
             let mut response = ResponseBuilder::new(self.operation_plan.root_object_id);
             OperationRootPlanExecution {
                 root_response_part: response.new_part(
                     Arc::new(response.root_response_object().into_iter().collect()),
-                    entity_locations_to_track,
+                    response_object_set_ids,
                 ),
                 operation_execution: OperationExecution {
                     coordinator: &self,
@@ -144,10 +165,13 @@ impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
     where
         's: 'caller,
     {
-        let execution_plan = &self.operation_plan[plan_id];
         let plan = self.plan_walker(plan_id);
         let input = SubscriptionInput { ctx: self.ctx, plan };
-        let executor = execution_plan.new_subscription_executor(input)?;
+        let executor = self
+            .operation_plan
+            .plans
+            .prepared_executor(plan_id)
+            .new_subscription_executor(input)?;
         executor.execute(new_execution).await
     }
 }
@@ -247,16 +271,16 @@ impl<R: Runtime> OperationRootPlanExecution<'_, R> {
 pub struct OperationExecution<'ctx, R: Runtime> {
     coordinator: &'ctx ExecutionCoordinator<'ctx, R>,
     futures: ExecutorFutureSet<'ctx>,
-    state: OperationExecutionState,
+    state: OperationExecutionState<'ctx>,
     response: ResponseBuilder,
 }
 
 impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
     /// Runs a single execution to completion, returning its response
     async fn execute(mut self) -> Response {
-        if !self.coordinator.operation_plan.root_errors.is_empty() {
+        if !self.coordinator.operation_plan.plans.root_errors.is_empty() {
             self.response
-                .push_root_errors(&self.coordinator.operation_plan.root_errors);
+                .push_root_errors(&self.coordinator.operation_plan.plans.root_errors);
             return self.response.build(
                 self.coordinator.ctx.engine.schema.clone(),
                 self.coordinator.operation_plan.operation.clone(),
@@ -285,10 +309,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
                         self.state.push_response_objects(entity_location, response_object_refs);
                     }
 
-                    for plan_id in self
-                        .state
-                        .get_next_executable_plans(self.coordinator.operation_plan, plan_id)
-                    {
+                    for plan_id in self.state.get_next_executable_plans(plan_id) {
                         self.spawn_executor(plan_id);
                     }
                 }
@@ -314,36 +335,27 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         &self,
         plan_id: ExecutionPlanId,
     ) -> (ResponseEdge, Option<Vec<(ResponseEdge, ResponseValue)>>) {
-        let selection_set = self.coordinator.plan_walker(plan_id).collected_selection_set();
-        let first_edge = selection_set
-            .fields()
-            .map(|field| field.as_ref().edge)
+        let shape_id = self.coordinator.plan_walker(plan_id).as_ref().output.shape_id;
+        let shapes = &self.coordinator.operation_plan.plans.shapes;
+        let shape = &shapes[shape_id];
+        let first_edge = shapes[shape.field_shape_ids]
+            .iter()
+            .map(|field| field.edge)
             .min()
-            .or_else(|| selection_set.as_ref().field_errors.first().map(|f| f.edge))
-            .or_else(|| selection_set.as_ref().typename_fields.first().copied())
+            .or_else(|| shape.field_error_ids.map(|id| shapes[id].edge).min())
+            .or_else(|| shape.typename_response_edges.iter().min().copied())
             .expect("Selection set without any fields?");
 
-        // Create a list of response fields with all the response edges and their default value (null,
-        // as of today 2024-06-13). If any field is required or can't be trivially computed
-        // (__typename for objects), None is returned.
-        // Used when a plan execution failed to fill the field values if possible.
         let mut fields = Vec::new();
-        if !selection_set.as_ref().typename_fields.is_empty() {
-            if let SelectionSetType::Object(id) = selection_set.as_ref().ty {
-                let name: ResponseValue = selection_set.schema_walker.walk(id).as_ref().name.into();
-                fields.extend(
-                    selection_set
-                        .as_ref()
-                        .typename_fields
-                        .iter()
-                        .map(|&edge| (edge, name.clone())),
-                )
+        if !shape.typename_response_edges.is_empty() {
+            if let ObjectIdentifier::Known(object_id) = shape.identifier {
+                let name: ResponseValue = self.coordinator.ctx.schema.walk(object_id).as_ref().name.into();
+                fields.extend(shape.typename_response_edges.iter().map(|&edge| (edge, name.clone())))
             } else {
                 return (first_edge, None);
             }
         }
-        for field in selection_set.fields() {
-            let field = field.as_ref();
+        for field in &shapes[shape.field_shape_ids] {
             if field.wrapping.is_required() {
                 return (first_edge, None);
             }
@@ -355,33 +367,30 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
 
     fn spawn_executor(&mut self, plan_id: ExecutionPlanId) {
         tracing::trace!(%plan_id, "Starting plan");
-        let operation: &'ctx OperationPlan = self.coordinator.operation_plan;
-        let engine = self.coordinator.ctx.engine;
-        let root_response_object_refs =
-            self.state
-                .get_root_response_object_refs(&engine.schema, operation, &self.response, plan_id);
+        let operation: &'ctx PreparedOperation = self.coordinator.operation_plan;
+        let root_response_object_refs = self.state.get_root_response_object_refs(&self.response, plan_id);
 
         tracing::trace!(%plan_id, "Found {} root response objects", root_response_object_refs.len());
         if root_response_object_refs.is_empty() {
             return;
         }
 
-        let execution_plan = &operation[plan_id];
         let plan = self.coordinator.plan_walker(plan_id);
-        let response_part = self
-            .response
-            .new_part(root_response_object_refs.clone(), &plan.output().tracked_locations);
+        let response_part = self.response.new_part(
+            root_response_object_refs.clone(),
+            plan.as_ref().output.tracked_output_ids,
+        );
         let input = ExecutorInput {
             ctx: self.coordinator.ctx,
             plan,
             root_response_objects: self.response.read(
                 plan.schema(),
                 root_response_object_refs.clone(),
-                &plan.input().selection_set,
+                &plan.as_ref().input.requires,
             ),
         };
 
-        match execution_plan.new_executor(input) {
+        match operation.plans.prepared_executor(plan_id).new_executor(input) {
             Ok(executor) => self
                 .futures
                 .execute(plan_id, root_response_object_refs, executor, response_part),

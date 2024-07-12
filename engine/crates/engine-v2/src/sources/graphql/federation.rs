@@ -5,9 +5,8 @@ use serde::de::DeserializeSeed;
 use tracing::Instrument;
 
 use crate::{
-    execution::{ExecutionContext, PlanWalker},
+    execution::{ExecutionContext, PlanWalker, PlanningResult},
     operation::OperationType,
-    plan::PlanningResult,
     response::ResponsePart,
     sources::{
         graphql::deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},
@@ -53,7 +52,7 @@ impl FederationEntityPreparedExecutor {
                 ctx.engine
                     .schema
                     .walker()
-                    .walk(schema::Definition::from(plan.input().entity_id))
+                    .walk(schema::Definition::from(plan.as_ref().input.entity_id))
                     .name()
                     .to_string(),
             ),

@@ -4,7 +4,6 @@ mod engine;
 mod execution;
 mod http_response;
 mod operation;
-mod plan;
 mod response;
 mod sources;
 pub mod websocket;

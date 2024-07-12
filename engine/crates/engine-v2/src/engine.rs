@@ -24,10 +24,9 @@ use trusted_documents::PreparedOperationDocument;
 use web_time::Instant;
 
 use crate::{
-    execution::PreExecutionContext,
+    execution::{PreExecutionContext, PreparedOperation},
     http_response::{HttpGraphqlResponse, HttpGraphqlResponseExtraMetadata},
     operation::{Operation, OperationMetadata, Variables},
-    plan::OperationPlan,
     response::{ErrorCode, GraphqlError, Response},
     websocket,
 };
@@ -367,7 +366,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     async fn prepare_operation(
         &mut self,
         mut request: Request,
-    ) -> Result<OperationPlan, (Option<OperationMetadata>, Response)> {
+    ) -> Result<PreparedOperation, (Option<OperationMetadata>, Response)> {
         let result = {
             let PreparedOperationDocument {
                 cache_key,
@@ -406,9 +405,16 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         let variables = Variables::build(self.schema.as_ref(), &operation, request.variables)
             .map_err(|errors| (Some(operation.metadata.clone()), Response::pre_execution_errors(errors)))?;
 
-        OperationPlan::build(self, operation.clone(), variables)
+        let plans = self
+            .plan_execution(&operation, &variables)
             .await
-            .map_err(|err| (Some(operation.metadata.clone()), Response::pre_execution_error(err)))
+            .map_err(|err| (Some(operation.metadata.clone()), Response::pre_execution_error(err)))?;
+
+        Ok(PreparedOperation {
+            operation,
+            variables,
+            plans,
+        })
     }
 }
 
