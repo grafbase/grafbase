@@ -49,7 +49,7 @@ impl AuthService {
     }
 
     #[instrument(skip_all)]
-    pub async fn authorize(&self, headers: &http::HeaderMap) -> Option<AccessToken> {
+    pub async fn authenticate(&self, headers: &http::HeaderMap) -> Option<AccessToken> {
         let fut = self
             .authorizers
             .iter()

@@ -98,45 +98,65 @@ impl<R: Runtime> Engine<R> {
         headers: http::HeaderMap,
         batch_request: BatchRequest,
     ) -> HttpGraphqlResponse {
-        let (hooks_context, headers) = match self.runtime.hooks().on_gateway_request(headers).await {
-            Ok(result) => result,
-            Err(error) => return Response::pre_execution_error(error).into(),
+        let format = headers.typed_get::<StreamingFormat>();
+        let request_context = match self.create_request_context(headers).await {
+            Ok(context) => context,
+            Err(response) => return HttpGraphqlResponse::build(response, format, Default::default()),
         };
 
-        if let Some(access_token) = self.auth.authorize(&headers).await {
-            let context = RequestContext::new(headers, access_token, hooks_context);
-            self.execute_with_access_token(context, batch_request).await
-        } else if let Some(streaming_format) = headers.typed_get::<StreamingFormat>() {
-            HttpGraphqlResponse::stream_request_error(streaming_format, "Unauthorized")
-        } else {
-            HttpGraphqlResponse::request_error("Unauthorized")
-        }
+        self.execute_with_context(request_context, batch_request).await
     }
 
     pub async fn create_session(self: &Arc<Self>, headers: http::HeaderMap) -> Result<Session<R>, Cow<'static, str>> {
-        let (hooks_context, headers) = match self.runtime.hooks().on_gateway_request(headers).await {
-            Ok(result) => result,
-            Err(error) => return Err(Cow::from(error.to_string())),
+        let request_context = match self.create_request_context(headers).await {
+            Ok(context) => context,
+            Err(response) => return Err(response.first_error_message().unwrap_or("Internal server error".into())),
         };
 
-        match self.auth.authorize(&headers).await {
-            Some(access_token) => Ok(Session {
-                engine: Arc::clone(self),
-                request_context: Arc::new(RequestContext::new(headers, access_token, hooks_context)),
-            }),
-            None => Err(Cow::from("Forbidden")),
+        Ok(Session {
+            engine: Arc::clone(self),
+            request_context: Arc::new(request_context),
+        })
+    }
+
+    async fn create_request_context(
+        &self,
+        headers: http::HeaderMap,
+    ) -> Result<RequestContext<<R::Hooks as Hooks>::Context>, Response> {
+        let client = Client::extract_from(&headers);
+        let streaming_format = headers.typed_get::<StreamingFormat>();
+
+        let (hooks_context, headers) = self
+            .runtime
+            .hooks()
+            .on_gateway_request(headers)
+            .await
+            .map_err(Response::pre_execution_error)?;
+
+        if let Some(access_token) = self.auth.authenticate(&headers).await {
+            Ok(RequestContext {
+                headers,
+                streaming_format,
+                client,
+                access_token,
+                hooks_context,
+            })
+        } else {
+            Err(Response::pre_execution_error(GraphqlError::new(
+                "Unauthenticated",
+                ErrorCode::Unauthenticated,
+            )))
         }
     }
 
-    async fn execute_with_access_token(
+    async fn execute_with_context(
         self: &Arc<Self>,
         request_context: RequestContext<<R::Hooks as Hooks>::Context>,
         batch_request: BatchRequest,
     ) -> HttpGraphqlResponse {
-        let streaming_format = request_context.headers.typed_get::<StreamingFormat>();
         match batch_request {
             BatchRequest::Single(request) => {
-                if let Some(streaming_format) = streaming_format {
+                if let Some(streaming_format) = request_context.streaming_format {
                     convert_stream_to_http_response(
                         streaming_format,
                         self.execute_stream(Arc::new(request_context), request),
@@ -147,12 +167,12 @@ impl<R: Runtime> Engine<R> {
                 }
             }
             BatchRequest::Batch(requests) => {
-                if streaming_format.is_some() {
-                    return HttpGraphqlResponse::request_error(
+                if request_context.streaming_format.is_some() {
+                    return HttpGraphqlResponse::bad_request_error(
                         "batch requests can't use multipart or event-stream responses",
                     );
                 }
-                HttpGraphqlResponse::batch_response(
+                HttpGraphqlResponse::from_batch(
                     futures_util::stream::iter(requests.into_iter())
                         .then(|request| self.execute_single(&request_context, request))
                         .collect::<Vec<_>>()
@@ -206,7 +226,7 @@ impl<R: Runtime> Engine<R> {
                 );
             }
             span.record_gql_status(status);
-            HttpGraphqlResponse::from(response).with_metadata(response_metadata)
+            HttpGraphqlResponse::build(response, None, response_metadata)
         }
         .instrument(span.clone())
         .await
@@ -266,7 +286,7 @@ async fn convert_stream_to_http_response(
 ) -> HttpGraphqlResponse {
     let mut stream = Box::pin(stream);
     let Some(first_response) = stream.next().await else {
-        return HttpGraphqlResponse::request_error("Empty stream");
+        return HttpGraphqlResponse::internal_server_error("Empty stream");
     };
     HttpGraphqlResponse::from_stream(
         streaming_format,
@@ -408,22 +428,10 @@ impl<R: Runtime> Clone for Session<R> {
 
 pub(crate) struct RequestContext<C> {
     pub headers: http::HeaderMap,
+    pub streaming_format: Option<StreamingFormat>,
     pub client: Option<Client>,
     pub access_token: AccessToken,
     pub hooks_context: C,
-}
-
-impl<C> RequestContext<C> {
-    fn new(headers: http::HeaderMap, access_token: AccessToken, hooks_context: C) -> Self {
-        let client = Client::extract_from(&headers);
-
-        Self {
-            headers,
-            client,
-            access_token,
-            hooks_context,
-        }
-    }
 }
 
 impl<R: Runtime> Session<R> {

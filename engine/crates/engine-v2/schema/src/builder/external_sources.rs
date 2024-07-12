@@ -29,7 +29,7 @@ impl ExternalDataSources {
                             url,
                             websocket_url: websocket_url
                                 .map(|url| ctx.urls.insert(url::Url::parse(&config[url]).expect("valid url"))),
-                            headers: headers.into_iter().map(Into::into).collect(),
+                            header_rules: headers.into_iter().map(Into::into).collect(),
                         }
                     }
 
@@ -38,7 +38,7 @@ impl ExternalDataSources {
                         subgraph_id,
                         url,
                         websocket_url: None,
-                        headers: Vec::new(),
+                        header_rules: Vec::new(),
                     },
                 }
             })

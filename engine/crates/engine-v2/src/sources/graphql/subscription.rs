@@ -75,7 +75,7 @@ impl<'ctx, R: Runtime> GraphqlSubscriptionExecutor<'ctx, R> {
                     inputs: Vec::new(),
                 })
                 .map_err(|error| error.to_string())?,
-                headers: self.ctx.headers_with_rules(subgraph.headers()),
+                headers: self.ctx.headers_with_rules(subgraph.header_rules()),
             })
             .await?;
 

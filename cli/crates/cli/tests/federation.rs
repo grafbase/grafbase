@@ -47,7 +47,10 @@ async fn federation_start() {
     {
       "errors": [
         {
-          "message": "there are no subgraphs registered currently"
+          "message": "there are no subgraphs registered currently",
+          "extensions": {
+            "code": "INTERNAL_SERVER_ERROR"
+          }
         }
       ]
     }
@@ -262,7 +265,10 @@ async fn test_sse_transport_with_failed_auth() {
       {
         "errors": [
           {
-            "message": "Unauthorized"
+            "message": "Unauthenticated",
+            "extensions": {
+              "code": "UNAUTHENTICATED"
+            }
           }
         ]
       }
@@ -481,7 +487,10 @@ async fn test_multipart_transport_with_bad_auth() {
       {
         "errors": [
           {
-            "message": "Unauthorized"
+            "message": "Unauthenticated",
+            "extensions": {
+              "code": "UNAUTHENTICATED"
+            }
           }
         ]
       }

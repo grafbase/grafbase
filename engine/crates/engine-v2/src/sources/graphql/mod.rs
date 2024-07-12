@@ -111,7 +111,7 @@ impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
                 .post(FetchRequest {
                     url: self.subgraph.url(),
                     json_body: self.json_body,
-                    headers: self.ctx.headers_with_rules(self.subgraph.headers()),
+                    headers: self.ctx.headers_with_rules(self.subgraph.header_rules()),
                 })
                 .await?
                 .bytes;

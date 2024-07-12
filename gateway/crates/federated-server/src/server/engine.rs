@@ -62,7 +62,7 @@ async fn traced(
 
 async fn handle(headers: HeaderMap, request: BatchRequest, engine: EngineWatcher) -> impl IntoResponse {
     let Some(engine) = engine.borrow().clone() else {
-        return engine_v2_axum::error("there are no subgraphs registered currently");
+        return engine_v2_axum::internal_server_error("there are no subgraphs registered currently");
     };
     engine_v2_axum::into_response(engine.execute(headers, request).await)
 }

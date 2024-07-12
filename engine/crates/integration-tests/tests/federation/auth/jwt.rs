@@ -106,7 +106,10 @@ fn test_unauthorized() {
         {
           "errors": [
             {
-              "message": "Unauthorized"
+              "message": "Unauthenticated",
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
@@ -121,7 +124,10 @@ fn test_unauthorized() {
         {
           "errors": [
             {
-              "message": "Unauthorized"
+              "message": "Unauthenticated",
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
@@ -136,7 +142,10 @@ fn test_unauthorized() {
         {
           "errors": [
             {
-              "message": "Unauthorized"
+              "message": "Unauthenticated",
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
@@ -172,7 +181,10 @@ fn test_tampered_jwt() {
         {
           "errors": [
             {
-              "message": "Unauthorized"
+              "message": "Unauthenticated",
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
@@ -226,7 +238,10 @@ fn test_wrong_provider() {
         {
           "errors": [
             {
-              "message": "Unauthorized"
+              "message": "Unauthenticated",
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
@@ -284,7 +299,10 @@ fn test_audience() {
         {
           "errors": [
             {
-              "message": "Unauthorized"
+              "message": "Unauthenticated",
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
@@ -305,7 +323,10 @@ fn test_audience() {
         {
           "errors": [
             {
-              "message": "Unauthorized"
+              "message": "Unauthenticated",
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }
